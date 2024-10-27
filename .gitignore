@@ -30,3 +30,10 @@
 *.exe
 *.out
 *.app
+
+# 屏蔽IDE生成的文件
+out
+cmake-build-debug
+.idea
+cmake-build-release
+.vs
