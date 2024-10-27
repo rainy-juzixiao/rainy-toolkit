@@ -318,104 +318,104 @@ namespace rainy::foundation::type_traits::other_transformations {
 
 namespace rainy::foundation::type_traits::internals {
     template <typename Ty1, typename Ty2>
-    rainy_constEXPR_BOOL _is_same_v = false;
+    RAINY_CONSTEXPR_BOOL _is_same_v = false;
 
     template <typename Ty>
-    rainy_constEXPR_BOOL _is_same_v<Ty, Ty> = true;
+    RAINY_CONSTEXPR_BOOL _is_same_v<Ty, Ty> = true;
 
     template <typename Ty, typename... Types>
-    rainy_constEXPR_BOOL _is_any_of_v = (_is_same_v<Ty, Types> || ...);
+    RAINY_CONSTEXPR_BOOL _is_any_of_v = (_is_same_v<Ty, Types> || ...);
 
 #if RAINY_USING_MSVC || RAINY_USING_CLANG
     template <typename from, typename to>
-    rainy_constEXPR_BOOL _is_convertible_v = __is_convertible_to(from, to);
+    RAINY_CONSTEXPR_BOOL _is_convertible_v = __is_convertible_to(from, to);
 #else
     template <typename from, typename to>
-    rainy_constEXPR_BOOL _is_convertible_v = __is_convertible(from, to);
+    RAINY_CONSTEXPR_BOOL _is_convertible_v = __is_convertible(from, to);
 #endif
 
     template <typename Ty, typename... Types>
-    rainy_constEXPR_BOOL _is_any_convertible_v = (_is_convertible_v<Ty, Types> || ...);
+    RAINY_CONSTEXPR_BOOL _is_any_convertible_v = (_is_convertible_v<Ty, Types> || ...);
 
     template <typename>
-    rainy_constEXPR_BOOL _is_reference_v = false;
+    RAINY_CONSTEXPR_BOOL _is_reference_v = false;
 
     template <typename Ty>
-    rainy_constEXPR_BOOL _is_reference_v<Ty &> = true;
+    RAINY_CONSTEXPR_BOOL _is_reference_v<Ty &> = true;
 
     template <typename Ty>
-    rainy_constEXPR_BOOL _is_reference_v<Ty &&> = true;
+    RAINY_CONSTEXPR_BOOL _is_reference_v<Ty &&> = true;
 
     template <typename>
-    rainy_constEXPR_BOOL _is_const_v = false;
+    RAINY_CONSTEXPR_BOOL _is_const_v = false;
 
     template <typename Ty>
-    rainy_constEXPR_BOOL _is_const_v<const Ty> = true;
+    RAINY_CONSTEXPR_BOOL _is_const_v<const Ty> = true;
 
     template <typename>
-    rainy_constEXPR_BOOL _is_function_v = false;
+    RAINY_CONSTEXPR_BOOL _is_function_v = false;
 
     template <typename Rx, typename... Args>
-    rainy_constEXPR_BOOL _is_function_v<Rx(Args...)> = true;
+    RAINY_CONSTEXPR_BOOL _is_function_v<Rx(Args...)> = true;
 
     template <typename Ty>
-    rainy_constEXPR_BOOL _is_nothrow_move_constructible = __is_nothrow_constructible(Ty, Ty);
+    RAINY_CONSTEXPR_BOOL _is_nothrow_move_constructible = __is_nothrow_constructible(Ty, Ty);
 
     template <typename Ty, typename... Args>
-    rainy_constEXPR_BOOL _is_nothrow_constructible_v = __is_nothrow_constructible(Ty, Args...);
+    RAINY_CONSTEXPR_BOOL _is_nothrow_constructible_v = __is_nothrow_constructible(Ty, Args...);
 
     template <typename Ty>
-    rainy_constEXPR_BOOL _is_enum_v = __is_enum(Ty);
+    RAINY_CONSTEXPR_BOOL _is_enum_v = __is_enum(Ty);
 
     template <typename>
-    rainy_constEXPR_BOOL _is_pointer_v = false;
+    RAINY_CONSTEXPR_BOOL _is_pointer_v = false;
 
     template <typename Ty>
-    rainy_constEXPR_BOOL _is_pointer_v<Ty *> = true;
+    RAINY_CONSTEXPR_BOOL _is_pointer_v<Ty *> = true;
 
     template <typename Ty>
-    rainy_constEXPR_BOOL _is_pointer_v<Ty *const> = true;
+    RAINY_CONSTEXPR_BOOL _is_pointer_v<Ty *const> = true;
 
     template <typename Ty>
-    rainy_constEXPR_BOOL _is_pointer_v<Ty *volatile> = true;
+    RAINY_CONSTEXPR_BOOL _is_pointer_v<Ty *volatile> = true;
 
     template <typename Ty>
-    rainy_constEXPR_BOOL _is_pointer_v<Ty *const volatile> = true;
+    RAINY_CONSTEXPR_BOOL _is_pointer_v<Ty *const volatile> = true;
 
     template <typename>
-    rainy_constEXPR_BOOL always_false = false;
+    RAINY_CONSTEXPR_BOOL always_false = false;
 
     template <typename>
-    rainy_constEXPR_BOOL _is_array_v = false;
+    RAINY_CONSTEXPR_BOOL _is_array_v = false;
 
     template <typename Ty>
-    rainy_constEXPR_BOOL _is_array_v<Ty[]> = true;
+    RAINY_CONSTEXPR_BOOL _is_array_v<Ty[]> = true;
 
     template <typename Ty, std::size_t N>
-    rainy_constEXPR_BOOL _is_array_v<Ty[N]> = true;
+    RAINY_CONSTEXPR_BOOL _is_array_v<Ty[N]> = true;
 
     template <typename to, typename from>
-    rainy_constEXPR_BOOL _is_nothrow_assignable_v = __is_nothrow_assignable(to, from);
+    RAINY_CONSTEXPR_BOOL _is_nothrow_assignable_v = __is_nothrow_assignable(to, from);
 
 #if RAINY_USING_MSVC || RAINY_USING_CLANG
     template <typename Ty>
-    rainy_constEXPR_BOOL _is_trivially_destructible_v = __is_trivially_destructible(Ty);
+    RAINY_CONSTEXPR_BOOL _is_trivially_destructible_v = __is_trivially_destructible(Ty);
 #else
     template <typename Ty>
-    rainy_constEXPR_BOOL _is_trivially_destructible_v = std::__is_destructible_safe<Ty>::value && __has_trivial_destructor(Ty);
+    RAINY_CONSTEXPR_BOOL _is_trivially_destructible_v = std::__is_destructible_safe<Ty>::value && __has_trivial_destructor(Ty);
 #endif
 
     template <typename>
-    rainy_constEXPR_BOOL _is_lvalue_reference_v = false;
+    RAINY_CONSTEXPR_BOOL _is_lvalue_reference_v = false;
 
     template <typename Ty>
-    rainy_constEXPR_BOOL _is_lvalue_reference_v<Ty &> = true;
+    RAINY_CONSTEXPR_BOOL _is_lvalue_reference_v<Ty &> = true;
 
     template <typename Ty>
-    rainy_constEXPR_BOOL _is_void_v = _is_same_v<Ty, void>;
+    RAINY_CONSTEXPR_BOOL _is_void_v = _is_same_v<Ty, void>;
 
     template <typename Ty>
-    rainy_constEXPR_BOOL _is_object_v = _is_const_v<const Ty> && !_is_void_v<Ty>;
+    RAINY_CONSTEXPR_BOOL _is_object_v = _is_const_v<const Ty> && !_is_void_v<Ty>;
 
     template <bool, typename if_true, typename>
     struct _conditional {
@@ -667,7 +667,7 @@ namespace rainy::foundation::type_traits::internals {
     };
 
     template <typename Ty>
-    rainy_constEXPR20 Ty _fake_copy_init(Ty) noexcept {
+    RAINY_CONSTEXPR20 Ty _fake_copy_init(Ty) noexcept {
         return Ty{};
     }
 
@@ -698,7 +698,7 @@ namespace rainy::foundation::type_traits::internals {
     };
 
     template <typename Ty>
-    rainy_constEXPR_BOOL _is_integral_v =
+    RAINY_CONSTEXPR_BOOL _is_integral_v =
         _is_any_of_v<remove_cv_t<Ty>, bool, char, signed char, unsigned char, wchar_t,
 #if RAINY_HAS_CXX20 && defined(__cpp_lib_char8_t)
                      char8_t,
@@ -706,10 +706,10 @@ namespace rainy::foundation::type_traits::internals {
                      char16_t, char32_t, short, unsigned short, int, unsigned int, long, unsigned long, long long, unsigned long long>;
 
     template <typename Ty>
-    rainy_constEXPR_BOOL _is_floating_point_v = _is_any_of_v<remove_cv_t<Ty>, float, double, long double>;
+    RAINY_CONSTEXPR_BOOL _is_floating_point_v = _is_any_of_v<remove_cv_t<Ty>, float, double, long double>;
 
     template <typename Ty>
-    rainy_constEXPR_BOOL _is_arithmetic_v = _is_integral_v<Ty> || _is_floating_point_v<Ty>;
+    RAINY_CONSTEXPR_BOOL _is_arithmetic_v = _is_integral_v<Ty> || _is_floating_point_v<Ty>;
 
     template <typename Ty, bool = _is_integral_v<Ty>>
     struct sign_base {
@@ -727,10 +727,10 @@ namespace rainy::foundation::type_traits::internals {
 
 #if RAINY_USING_CLANG
     template <typename Ty>
-    rainy_constEXPR_BOOL _is_member_pointer_v = __is_member_pointer(Ty);
+    RAINY_CONSTEXPR_BOOL _is_member_pointer_v = __is_member_pointer(Ty);
 #else
     template <typename Ty>
-    rainy_constEXPR_BOOL _is_member_pointer_v = is_member_object_pointer_<Ty>::value || is_member_function_pointer_<Ty>::value;
+    RAINY_CONSTEXPR_BOOL _is_member_pointer_v = is_member_object_pointer_<Ty>::value || is_member_function_pointer_<Ty>::value;
 #endif // RAINY_USING_CLANG
 
     template <typename Ty>
@@ -792,7 +792,7 @@ namespace rainy::foundation::type_traits::internals {
 
     template <typename trait>
     struct _negation {
-        static rainy_constEXPR_BOOL value = !static_cast<bool>(trait::value);
+        static RAINY_CONSTEXPR_BOOL value = !static_cast<bool>(trait::value);
     };
 }
 
@@ -904,7 +904,7 @@ namespace rainy::foundation::type_traits::helper {
     RAINY_INLINE_CONSTEXPR char_type char_null_v = char_null<char_type>::value;
 
     template <typename char_type>
-    rainy_constEXPR_BOOL is_wchar_t = internals::_is_same_v<char_type, wchar_t>;
+    RAINY_CONSTEXPR_BOOL is_wchar_t = internals::_is_same_v<char_type, wchar_t>;
 }
 
 // 类型关系
@@ -915,10 +915,10 @@ namespace rainy::foundation::type_traits::type_relations {
      * @tparam Ty2 检索的第二个类型
      */
     template <typename Ty1, typename Ty2>
-    rainy_constEXPR_BOOL is_same_v = false;
+    RAINY_CONSTEXPR_BOOL is_same_v = false;
 
     template <typename Ty>
-    rainy_constEXPR_BOOL is_same_v<Ty, Ty> = true;
+    RAINY_CONSTEXPR_BOOL is_same_v<Ty, Ty> = true;
 
     /**
      * @brief 测试两个类型是否相同。
@@ -929,7 +929,7 @@ namespace rainy::foundation::type_traits::type_relations {
     struct is_same : helper::bool_constant<is_same_v<Ty1, Ty2>> {};
 
     template <typename Ty>
-    rainy_constEXPR_BOOL is_void_v = is_same_v<Ty, void>;
+    RAINY_CONSTEXPR_BOOL is_void_v = is_same_v<Ty, void>;
 
     template <typename Ty>
     struct is_void : helper::bool_constant<is_void_v<Ty>> {};
@@ -938,21 +938,21 @@ namespace rainy::foundation::type_traits::type_relations {
     struct is_base_of : helper::bool_constant<__is_base_of(base, derived)> {};
 
     template <typename base, typename derived>
-    rainy_constEXPR_BOOL is_base_of_v = __is_base_of(base, derived);
+    RAINY_CONSTEXPR_BOOL is_base_of_v = __is_base_of(base, derived);
 
     template <typename Ty, typename... Types>
-    rainy_constEXPR_BOOL is_any_of_v = (is_same_v<Ty, Types> || ...);
+    RAINY_CONSTEXPR_BOOL is_any_of_v = (is_same_v<Ty, Types> || ...);
 
 #if RAINY_USING_MSVC || RAINY_USING_CLANG
     template <typename from, typename to>
-    rainy_constEXPR_BOOL is_convertible_v = __is_convertible_to(from, to);
+    RAINY_CONSTEXPR_BOOL is_convertible_v = __is_convertible_to(from, to);
 #else
     template <typename from, typename to>
-    rainy_constEXPR_BOOL is_convertible_v = __is_convertible(from, to);
+    RAINY_CONSTEXPR_BOOL is_convertible_v = __is_convertible(from, to);
 #endif
 
     template <typename Ty, typename... Types>
-    rainy_constEXPR_BOOL is_any_convertible_v = (is_convertible_v<Ty, Types> || ...);
+    RAINY_CONSTEXPR_BOOL is_any_convertible_v = (is_convertible_v<Ty, Types> || ...);
 }
 
 namespace rainy::foundation::type_traits::logical_traits {
@@ -963,7 +963,7 @@ namespace rainy::foundation::type_traits::logical_traits {
     struct conjunction<first, rest...> : internals::_conjunction<first::value, first, rest...>::type {};
 
     template <typename... traits>
-    rainy_constEXPR_BOOL conjunction_v = conjunction<traits...>::value;
+    RAINY_CONSTEXPR_BOOL conjunction_v = conjunction<traits...>::value;
 
     template <typename...>
     struct disjunction : helper::false_type {};
@@ -972,13 +972,13 @@ namespace rainy::foundation::type_traits::logical_traits {
     struct disjunction<first, rest...> : internals::_disjunction<first::value, first, rest...>::type {};
 
     template <typename... traits>
-    rainy_constEXPR_BOOL disjunction_v = disjunction<traits...>::value;
+    RAINY_CONSTEXPR_BOOL disjunction_v = disjunction<traits...>::value;
 
     template <typename trait>
     struct negation : helper::bool_constant<!static_cast<bool>(trait::value)> {};
 
     template <typename trait>
-    rainy_constEXPR_BOOL negation_v = negation<trait>::value;
+    RAINY_CONSTEXPR_BOOL negation_v = negation<trait>::value;
 }
 
 namespace rainy::utility {
@@ -1071,7 +1071,7 @@ namespace rainy::foundation::type_traits::type_properties {
     };
 
     template <typename Fx, typename... Args>
-    rainy_constEXPR_BOOL is_invocable_v = is_invocable<Fx, Args...>::value;
+    RAINY_CONSTEXPR_BOOL is_invocable_v = is_invocable<Fx, Args...>::value;
 
     template <typename Rx, typename Fx, typename... Args>
     struct is_invocable_r {
@@ -1089,7 +1089,7 @@ namespace rainy::foundation::type_traits::type_properties {
     };
 
     template <typename Rx, typename Fx, typename... Args>
-    rainy_constEXPR_BOOL is_invocable_r_v = is_invocable_r<Rx, Fx, Args...>::value;
+    RAINY_CONSTEXPR_BOOL is_invocable_r_v = is_invocable_r<Rx, Fx, Args...>::value;
 }
 
 /* 元方法Trait */
@@ -1110,7 +1110,7 @@ namespace rainy::foundation::type_traits::extras::meta_method {
             return std::false_type{};
         }
 
-        static rainy_constEXPR_BOOL value = decltype(test<Ty>(0))::value;
+        static RAINY_CONSTEXPR_BOOL value = decltype(test<Ty>(0))::value;
     };
 
     template <typename Ty>
@@ -1124,7 +1124,7 @@ namespace rainy::foundation::type_traits::extras::meta_method {
             return std::false_type{};
         }
 
-        static rainy_constEXPR_BOOL value = decltype(test<Ty>(0))::value;
+        static RAINY_CONSTEXPR_BOOL value = decltype(test<Ty>(0))::value;
     };
 
     template <typename Ty>
@@ -1138,7 +1138,7 @@ namespace rainy::foundation::type_traits::extras::meta_method {
             return std::false_type{};
         }
 
-        static rainy_constEXPR_BOOL value = decltype(test<Ty>(0))::value;
+        static RAINY_CONSTEXPR_BOOL value = decltype(test<Ty>(0))::value;
     };
 
     template <typename Ty>
@@ -1152,7 +1152,7 @@ namespace rainy::foundation::type_traits::extras::meta_method {
             return std::false_type{};
         }
 
-        static rainy_constEXPR_BOOL value = decltype(test<Ty>(0))::value;
+        static RAINY_CONSTEXPR_BOOL value = decltype(test<Ty>(0))::value;
     };
 
     template <typename Ty>
@@ -1166,7 +1166,7 @@ namespace rainy::foundation::type_traits::extras::meta_method {
             return std::false_type{};
         }
 
-        static rainy_constEXPR_BOOL value = decltype(test<Ty>(0))::value;
+        static RAINY_CONSTEXPR_BOOL value = decltype(test<Ty>(0))::value;
     };
 
     template <typename Ty>
@@ -1181,7 +1181,7 @@ namespace rainy::foundation::type_traits::extras::meta_method {
             return std::false_type{};
         }
 
-        static rainy_constEXPR_BOOL value = decltype(test<Ty>(0))::value;
+        static RAINY_CONSTEXPR_BOOL value = decltype(test<Ty>(0))::value;
     };
 }
 

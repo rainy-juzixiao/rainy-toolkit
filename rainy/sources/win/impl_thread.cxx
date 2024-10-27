@@ -253,11 +253,11 @@ namespace rainy::foundation::system::async::internals {
             return thrd.thrd_handle;
         }
 
-        void copy(the_unknown &ptr) override {
+        void copy(the_unknown_ptr &ptr) override {
             ptr = std::make_shared<native_thread_winimpl>();
         }
 
-        void move(the_unknown &ptr) noexcept {
+        void move(the_unknown_ptr &ptr) noexcept {
             ptr = std::make_shared<native_thread_winimpl>(utility::move(*this));
         }
 
@@ -268,7 +268,7 @@ namespace rainy::foundation::system::async::internals {
         } thrd;
     };
 
-    comint::the_unknown native_thread::make_instance() {
+    std::shared_ptr<comint::the_unknown> native_thread::make_instance() {
         return std::make_shared<native_thread_winimpl>();
     }
 

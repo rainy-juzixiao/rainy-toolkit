@@ -37,7 +37,7 @@ namespace rainy::foundation::containers::internals {
         constexpr variant_storage() noexcept {
         }
 
-        rainy_constEXPR20 ~variant_storage() noexcept {
+        RAINY_CONSTEXPR20 ~variant_storage() noexcept {
         }
 
         constexpr variant_storage(variant_storage &&) noexcept = default;
@@ -89,7 +89,7 @@ namespace rainy::foundation::containers::internals {
         constexpr variant_storage() noexcept {
         }
 
-        rainy_constEXPR20 ~variant_storage() noexcept {
+        RAINY_CONSTEXPR20 ~variant_storage() noexcept {
         }
 
         constexpr variant_storage(variant_storage &&) noexcept = default;
@@ -225,7 +225,7 @@ namespace rainy::foundation::containers::internals {
 
         static inline constexpr std::size_t invalid_index = static_cast<index_t>(-1);
 
-        rainy_constEXPR20 variant_base() noexcept : storage_t{}, idx(invalid_index) {
+        RAINY_CONSTEXPR20 variant_base() noexcept : storage_t{}, idx(invalid_index) {
         }
 
         template <std::size_t Idx, typename... Args,
@@ -243,7 +243,7 @@ namespace rainy::foundation::containers::internals {
         template <std::size_t Idx, typename VariantStorage>
         friend constexpr decltype(auto) variant_raw_get(VariantStorage &&obj) noexcept;
 
-        rainy_constEXPR20 void set_index(const std::size_t index) noexcept {
+        RAINY_CONSTEXPR20 void set_index(const std::size_t index) noexcept {
             this->idx = static_cast<index_t>(index);
         }
 

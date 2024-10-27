@@ -91,13 +91,13 @@ clang和GNU编译器区域
 #endif
 
 #if RAINY_HAS_CXX20
-#define rainy_constEXPR20 constexpr
+#define RAINY_CONSTEXPR20 constexpr
 #else
-#define rainy_constEXPR20
+#define RAINY_CONSTEXPR20
 #endif
 
 #ifndef RAINY_NODISCARD_CONSTEXPR20
-#define RAINY_NODISCARD_CONSTEXPR20 RAINY_NODISCARD rainy_constEXPR20
+#define RAINY_NODISCARD_CONSTEXPR20 RAINY_NODISCARD RAINY_CONSTEXPR20
 #endif
 
 #ifndef RAINY_INLINE_NODISCARD
@@ -136,9 +136,9 @@ clang和GNU编译器区域
 #endif
 
 #define RAINY_INLINE_CONSTEXPR inline constexpr
-#define rainy_constEXPR_BOOL RAINY_INLINE_CONSTEXPR bool
+#define RAINY_CONSTEXPR_BOOL RAINY_INLINE_CONSTEXPR bool
 #define RAINY_FALLTHROUGH [[fallthrough]]
-#define rainy_constEXPR constexpr
+#define RAINY_CONSTEXPR constexpr
 
 #ifndef RAINY_STRINGIZE
 #define RAINY_STRINGIZE(s) #s
@@ -506,14 +506,14 @@ namespace rainy::information::system_call {
 
 namespace rainy::information {
     template <typename... Test>
-    rainy_constEXPR_BOOL check_format_type =
+    RAINY_CONSTEXPR_BOOL check_format_type =
         (foundation::type_traits::type_relations::is_any_convertible_v<foundation::type_traits::internals::decay_t_<Test>, char, int,
                                                                        double, void *, float, long, long long, unsigned int,
                                                                        unsigned long, unsigned long long, const char *> ||
          ...);
 
     template <typename... Test>
-    rainy_constEXPR_BOOL check_wformat_type =
+    RAINY_CONSTEXPR_BOOL check_wformat_type =
         (foundation::type_traits::type_relations::is_any_convertible_v<foundation::type_traits::internals::decay_t_<Test>, char, int,
                                                                        double, void *, float, long, long long, unsigned int,
                                                                        unsigned long, unsigned long long, const wchar_t *> ||

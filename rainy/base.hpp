@@ -102,7 +102,7 @@ namespace rainy::utility {
     const Ty *addressof(const Ty &&) = delete;
 
     template <typename Ty, typename... Args>
-    rainy_constEXPR20 Ty *construct_at(Ty *location, Args&&... args) noexcept(noexcept(::new(static_cast<void *>(location))
+    RAINY_CONSTEXPR20 Ty *construct_at(Ty *location, Args&&... args) noexcept(noexcept(::new(static_cast<void *>(location))
                                                                                             Ty(utility::forward<Args>(args)...))) {
         if (!location) {
             return nullptr;
@@ -116,7 +116,7 @@ namespace rainy::utility {
     }
 
     template <typename Ty, typename... Args>
-    rainy_constEXPR20 void construct_in_place(Ty &object, Args &&...args) noexcept(
+    RAINY_CONSTEXPR20 void construct_in_place(Ty &object, Args &&...args) noexcept(
         foundation::type_traits::internals::_is_nothrow_constructible_v<Ty, Args...>) {
 #if RAINY_HAS_CXX20
         if (std::is_constant_evaluated()) {
@@ -880,7 +880,7 @@ namespace rainy::component {
 
     protected:
         constexpr object() noexcept = default;
-        virtual rainy_constEXPR20 ~object() = default;
+        virtual RAINY_CONSTEXPR20 ~object() = default;
 
     private:
         union {
@@ -1140,23 +1140,23 @@ namespace rainy::utility {
         contract(cond, "Post-condition", message, location);
     }
 #else
-    RAINY_INLINE rainy_constEXPR20 void expects(
+    RAINY_INLINE RAINY_CONSTEXPR20 void expects(
         const bool cond, const utility::source_location &location = utility::source_location::current()) noexcept {
         contract(cond, "Pre-condition", location);
     }
 
-    RAINY_INLINE rainy_constEXPR20 void expects(
+    RAINY_INLINE RAINY_CONSTEXPR20 void expects(
         const bool cond, const std::string_view message,
         const utility::source_location &location = utility::source_location::current()) noexcept {
         contract(cond, "Pre-condition", message, location);
     }
 
-    RAINY_INLINE rainy_constEXPR20 void ensures(
+    RAINY_INLINE RAINY_CONSTEXPR20 void ensures(
         const bool cond, const utility::source_location &location = utility::source_location::current()) noexcept {
         contract(cond, "Post-condition", location);
     }
 
-    RAINY_INLINE rainy_constEXPR20 void ensures(
+    RAINY_INLINE RAINY_CONSTEXPR20 void ensures(
         const bool cond, const std::string_view message,
         const utility::source_location &location = utility::source_location::current()) noexcept {
         contract(cond, "Post-condition", message, location);
@@ -1192,15 +1192,15 @@ namespace rainy::foundation::system::memory {
         static constexpr std::size_t align = alignof(value_type);
         static constexpr std::size_t element_size = sizeof(value_type);
 
-        rainy_constEXPR20 allocator() noexcept = default;
+        RAINY_CONSTEXPR20 allocator() noexcept = default;
 
-        rainy_constEXPR20 allocator(const allocator &) noexcept = default;
+        RAINY_CONSTEXPR20 allocator(const allocator &) noexcept = default;
 
         template <typename U>
-        rainy_constEXPR20 explicit allocator(const allocator<U, Method> &) noexcept {
+        RAINY_CONSTEXPR20 explicit allocator(const allocator<U, Method> &) noexcept {
         }
 
-        rainy_constEXPR20 ~allocator() = default;
+        RAINY_CONSTEXPR20 ~allocator() = default;
 
         constexpr allocator(allocator &&) noexcept = default;
         constexpr allocator &operator=(const allocator &) noexcept = default;
@@ -1214,7 +1214,7 @@ namespace rainy::foundation::system::memory {
             return *this;
         }
 
-        RAINY_NODISCARD_RAW_PTR_ALLOC rainy_constEXPR20 pointer allocate(const size_type count) const {
+        RAINY_NODISCARD_RAW_PTR_ALLOC RAINY_CONSTEXPR20 pointer allocate(const size_type count) const {
 #if RAINY_HAS_CXX20
             if (std::is_constant_evaluated()) {
                 return std::allocator<value_type>{}.allocate(count);
@@ -1251,7 +1251,7 @@ namespace rainy::foundation::system::memory {
             return allocated_memory;
         }
 
-        rainy_constEXPR20 void deallocate(value_type *block, const size_type count) const {
+        RAINY_CONSTEXPR20 void deallocate(value_type *block, const size_type count) const {
             if (!block || count == 0) {
                 return;
             }
@@ -1274,7 +1274,7 @@ namespace rainy::foundation::system::memory {
             }
         }
 
-        RAINY_NODISCARD_RAW_PTR_ALLOC rainy_constEXPR20 allocation_result<pointer> allocate_at_least(
+        RAINY_NODISCARD_RAW_PTR_ALLOC RAINY_CONSTEXPR20 allocation_result<pointer> allocate_at_least(
             const size_type count) const {
             return {allocate(count), count};
         }
@@ -1284,12 +1284,12 @@ namespace rainy::foundation::system::memory {
         }
 
         template <typename... Args>
-        rainy_constEXPR20 void construct(value_type *const ptr, Args &&...args) const
+        RAINY_CONSTEXPR20 void construct(value_type *const ptr, Args &&...args) const
             noexcept(std::is_nothrow_constructible_v<value_type, Args...>) {
             utility::construct_at(ptr, utility::forward<Args>(args)...);
         }
 
-        rainy_constEXPR20 void destory(value_type *const ptr) const noexcept(std::is_nothrow_destructible_v<value_type>) {
+        RAINY_CONSTEXPR20 void destory(value_type *const ptr) const noexcept(std::is_nothrow_destructible_v<value_type>) {
             ptr->~value_type();
         }
     };
@@ -1614,32 +1614,32 @@ namespace rainy::utility {
 
         template <typename Ty1, typename Ty2>
         struct compressed_pair_switch<Ty1, Ty2, false, false, false> {
-            rainy_constEXPR static int value = 0;
+            RAINY_CONSTEXPR static int value = 0;
         };
 
         template <typename Ty1, typename Ty2>
         struct compressed_pair_switch<Ty1, Ty2, false, true, true> {
-            rainy_constEXPR static int value = 3;
+            RAINY_CONSTEXPR static int value = 3;
         };
 
         template <typename Ty1, typename Ty2>
         struct compressed_pair_switch<Ty1, Ty2, false, true, false> {
-            rainy_constEXPR static int value = 1;
+            RAINY_CONSTEXPR static int value = 1;
         };
 
         template <typename Ty1, typename Ty2>
         struct compressed_pair_switch<Ty1, Ty2, false, false, true> {
-            rainy_constEXPR static int value = 2;
+            RAINY_CONSTEXPR static int value = 2;
         };
 
         template <typename Ty1, typename Ty2>
         struct compressed_pair_switch<Ty1, Ty2, true, true, true> {
-            rainy_constEXPR static int value = 4;
+            RAINY_CONSTEXPR static int value = 4;
         };
 
         template <typename Ty1, typename Ty2>
         struct compressed_pair_switch<Ty1, Ty2, true, false, false> {
-            rainy_constEXPR static int value = 5;
+            RAINY_CONSTEXPR static int value = 5;
         };
 
         template <typename Ty1, typename Ty2, int Version>
@@ -1974,92 +1974,92 @@ namespace rainy::utility {
         using pointer = typename iterator_traits::pointer;
         using const_pointer = const value_type *;
 
-        rainy_constEXPR20 iterator() noexcept = default;
-        rainy_constEXPR20 iterator &operator=(iterator &&) noexcept = default;
-        rainy_constEXPR20 iterator &operator=(const iterator &) noexcept = default;
+        RAINY_CONSTEXPR20 iterator() noexcept = default;
+        RAINY_CONSTEXPR20 iterator &operator=(iterator &&) noexcept = default;
+        RAINY_CONSTEXPR20 iterator &operator=(const iterator &) noexcept = default;
 
-        explicit rainy_constEXPR20 iterator(iterator_type current) noexcept : ptr(current) {
+        explicit RAINY_CONSTEXPR20 iterator(iterator_type current) noexcept : ptr(current) {
         }
 
-        rainy_constEXPR20 iterator(const iterator &right) : ptr(right.ptr) {
+        RAINY_CONSTEXPR20 iterator(const iterator &right) : ptr(right.ptr) {
         }
 
-        rainy_constEXPR20 iterator(iterator &&right) noexcept : ptr(std::exchange(right.ptr, nullptr)) {
-        }
-
-        template <typename Iter_, std::enable_if_t<std::is_convertible_v<Iter_, Iter>, int> = 0>
-        rainy_constEXPR20 explicit iterator(const iterator<Iter_, container> &right) : ptr(right.ptr) {
+        RAINY_CONSTEXPR20 iterator(iterator &&right) noexcept : ptr(std::exchange(right.ptr, nullptr)) {
         }
 
         template <typename Iter_, std::enable_if_t<std::is_convertible_v<Iter_, Iter>, int> = 0>
-        rainy_constEXPR20 explicit iterator(iterator<Iter_, container> &&right) : ptr(right.ptr) {
+        RAINY_CONSTEXPR20 explicit iterator(const iterator<Iter_, container> &right) : ptr(right.ptr) {
         }
 
-        rainy_constEXPR20 ~iterator() = default;
+        template <typename Iter_, std::enable_if_t<std::is_convertible_v<Iter_, Iter>, int> = 0>
+        RAINY_CONSTEXPR20 explicit iterator(iterator<Iter_, container> &&right) : ptr(right.ptr) {
+        }
 
-        rainy_constEXPR20 pointer operator->() noexcept {
+        RAINY_CONSTEXPR20 ~iterator() = default;
+
+        RAINY_CONSTEXPR20 pointer operator->() noexcept {
             return ptr;
         }
 
-        rainy_constEXPR20 const_pointer operator->() const noexcept {
+        RAINY_CONSTEXPR20 const_pointer operator->() const noexcept {
             return ptr;
         }
 
-        rainy_constEXPR20 reference operator*() noexcept {
+        RAINY_CONSTEXPR20 reference operator*() noexcept {
             return *ptr;
         }
 
-        rainy_constEXPR20 const_reference operator*() const noexcept {
+        RAINY_CONSTEXPR20 const_reference operator*() const noexcept {
             return *ptr;
         }
 
-        rainy_constEXPR20 iterator operator++() noexcept {
+        RAINY_CONSTEXPR20 iterator operator++() noexcept {
             return iterator{++ptr};
         }
 
-        rainy_constEXPR20 iterator operator++(int) noexcept {
+        RAINY_CONSTEXPR20 iterator operator++(int) noexcept {
             iterator temp = *this;
             ++(*this);
             return temp;
         }
 
-        rainy_constEXPR20 iterator operator--() noexcept {
+        RAINY_CONSTEXPR20 iterator operator--() noexcept {
             return iterator{--ptr};
         }
 
-        rainy_constEXPR20 iterator operator--(int) noexcept {
+        RAINY_CONSTEXPR20 iterator operator--(int) noexcept {
             iterator temp = *this;
             --(*this);
             return temp;
         }
 
-        rainy_constEXPR20 iterator &operator+=(difference_type n) noexcept {
+        RAINY_CONSTEXPR20 iterator &operator+=(difference_type n) noexcept {
             ptr += n;
             return *this;
         }
 
-        rainy_constEXPR20 iterator &operator-=(difference_type n) noexcept {
+        RAINY_CONSTEXPR20 iterator &operator-=(difference_type n) noexcept {
             ptr -= n;
             return *this;
         }
 
-        rainy_constEXPR20 void swap(iterator &right) noexcept {
+        RAINY_CONSTEXPR20 void swap(iterator &right) noexcept {
             std::swap(this->ptr, right.ptr);
         }
 
-        rainy_constEXPR20 friend bool operator==(const iterator &left, const iterator &right) {
+        RAINY_CONSTEXPR20 friend bool operator==(const iterator &left, const iterator &right) {
             return left.ptr == right.ptr;
         }
 
-        rainy_constEXPR20 friend bool operator!=(const iterator &left, const iterator &right) {
+        RAINY_CONSTEXPR20 friend bool operator!=(const iterator &left, const iterator &right) {
             return left.ptr != right.ptr;
         }
 
-        rainy_constEXPR20 reference operator[](difference_type idx) noexcept {
+        RAINY_CONSTEXPR20 reference operator[](difference_type idx) noexcept {
             return ptr[idx];
         }
 
-        rainy_constEXPR20 const_reference operator[](difference_type idx) const noexcept {
+        RAINY_CONSTEXPR20 const_reference operator[](difference_type idx) const noexcept {
             return ptr[idx];
         }
 
@@ -2067,35 +2067,35 @@ namespace rainy::utility {
             return this->ptr == nullptr;
         }
 
-        rainy_constEXPR20 explicit operator bool() const noexcept {
+        RAINY_CONSTEXPR20 explicit operator bool() const noexcept {
             return !empty();
         }
 
-        rainy_constEXPR20 friend iterator operator+(const iterator &_iterator, difference_type n) {
+        RAINY_CONSTEXPR20 friend iterator operator+(const iterator &_iterator, difference_type n) {
             return iterator{_iterator.ptr + n};
         }
 
-        rainy_constEXPR20 friend iterator operator+(const iterator &left, const iterator &right) {
+        RAINY_CONSTEXPR20 friend iterator operator+(const iterator &left, const iterator &right) {
             return iterator{left.ptr + right.ptr};
         }
 
-        rainy_constEXPR20 friend difference_type operator-(const iterator &left, const iterator &right) {
+        RAINY_CONSTEXPR20 friend difference_type operator-(const iterator &left, const iterator &right) {
             return left.ptr - right.ptr;
         }
 
-        rainy_constEXPR20 friend bool operator<(const iterator &left, const iterator &right) {
+        RAINY_CONSTEXPR20 friend bool operator<(const iterator &left, const iterator &right) {
             return left.ptr < right.ptr;
         }
 
-        rainy_constEXPR20 friend bool operator<=(const iterator &left, const iterator &right) {
+        RAINY_CONSTEXPR20 friend bool operator<=(const iterator &left, const iterator &right) {
             return left.ptr <= right.ptr;
         }
 
-        rainy_constEXPR20 friend bool operator>(const iterator &left, const iterator &right) {
+        RAINY_CONSTEXPR20 friend bool operator>(const iterator &left, const iterator &right) {
             return left.ptr > right.ptr;
         }
 
-        rainy_constEXPR20 friend bool operator>=(const iterator &left, const iterator &right) {
+        RAINY_CONSTEXPR20 friend bool operator>=(const iterator &left, const iterator &right) {
             return left.ptr >= right.ptr;
         }
 
@@ -2124,7 +2124,7 @@ namespace rainy::foundation::containers {
         using reverse_iterator = std::reverse_iterator<iterator>;
         using const_reverse_iterator = std::reverse_iterator<iterator>;
 
-        rainy_constEXPR20 ~array() = default;
+        RAINY_CONSTEXPR20 ~array() = default;
 
         /**
          * @brief 获取指定下标的元素
@@ -2218,7 +2218,7 @@ namespace rainy::foundation::containers {
          * @brief 将一个值填充到数组中
          * @param value 要填充的值
          */
-        rainy_constEXPR20 void fill(const Ty &value) {
+        RAINY_CONSTEXPR20 void fill(const Ty &value) {
             check_zero_length_array();
             std::fill_n(begin(), size(), value);
         }
@@ -2401,54 +2401,54 @@ namespace rainy::foundation::containers {
 
         constexpr array_view() = default;
 
-        rainy_constEXPR20 array_view(array_view &&) = default;
-        rainy_constEXPR20 array_view(const array_view &) = default;
+        RAINY_CONSTEXPR20 array_view(array_view &&) = default;
+        RAINY_CONSTEXPR20 array_view(const array_view &) = default;
         array_view &operator=(array_view &&) = default;
         array_view &operator=(const array_view &) = default;
 
-        rainy_constEXPR20 ~array_view() = default;
+        RAINY_CONSTEXPR20 ~array_view() = default;
 
         template <size_type N>
-        rainy_constEXPR20 array_view(value_type (&reference_array)[N]) : data_(reference_array), size_(N) {
+        RAINY_CONSTEXPR20 array_view(value_type (&reference_array)[N]) : data_(reference_array), size_(N) {
         }
 
-        rainy_constEXPR20 array_view(std::vector<Ty> &vector) : data_(vector.data()), size_(vector.size()) {
+        RAINY_CONSTEXPR20 array_view(std::vector<Ty> &vector) : data_(vector.data()), size_(vector.size()) {
         }
 
-        rainy_constEXPR20 array_view(const std::vector<Ty> &vector) : data_(vector.data()), size_(vector.size()) {
+        RAINY_CONSTEXPR20 array_view(const std::vector<Ty> &vector) : data_(vector.data()), size_(vector.size()) {
         }
 
-        rainy_constEXPR20 array_view(pointer first, pointer last) : data_(first), size_(std::distance(first, last)) {
+        RAINY_CONSTEXPR20 array_view(pointer first, pointer last) : data_(first), size_(std::distance(first, last)) {
         }
 
-        rainy_constEXPR20 array_view(const_pointer first, const_pointer last) : data_(first), size_(std::distance(first, last)) {
+        RAINY_CONSTEXPR20 array_view(const_pointer first, const_pointer last) : data_(first), size_(std::distance(first, last)) {
         }
 
-        rainy_constEXPR20 array_view(std::initializer_list<Ty> initializer_list) :
+        RAINY_CONSTEXPR20 array_view(std::initializer_list<Ty> initializer_list) :
             data_(initializer_list.begin()), size_(initializer_list.size()) {
         }
 
         template <size_type N>
-        rainy_constEXPR20 array_view(std::array<Ty, N> &array) : data_(array.data()), size_(array.size()) {
+        RAINY_CONSTEXPR20 array_view(std::array<Ty, N> &array) : data_(array.data()), size_(array.size()) {
         }
 
         template <size_type N>
-        rainy_constEXPR20 array_view(const std::array<Ty, N> &array) : data_(array.data()), size_(array.size()) {
+        RAINY_CONSTEXPR20 array_view(const std::array<Ty, N> &array) : data_(array.data()), size_(array.size()) {
         }
 
         template <size_type N>
-        rainy_constEXPR20 array_view(array<Ty, N> &array) : data_(array.data()), size_(array.size()) {
+        RAINY_CONSTEXPR20 array_view(array<Ty, N> &array) : data_(array.data()), size_(array.size()) {
         }
 
         template <size_type N>
-        rainy_constEXPR20 array_view(const array<Ty, N> &array) : data_(array.data()), size_(array.size()) {
+        RAINY_CONSTEXPR20 array_view(const array<Ty, N> &array) : data_(array.data()), size_(array.size()) {
         }
 
-        RAINY_NODISCARD rainy_constEXPR20 pointer data() noexcept {
+        RAINY_NODISCARD RAINY_CONSTEXPR20 pointer data() noexcept {
             return data_;
         }
 
-        RAINY_NODISCARD rainy_constEXPR20 const_pointer data() const noexcept {
+        RAINY_NODISCARD RAINY_CONSTEXPR20 const_pointer data() const noexcept {
             return data_;
         }
 
@@ -2460,7 +2460,7 @@ namespace rainy::foundation::containers {
             return size_ == 0;
         }
 
-        rainy_constEXPR20 reference at(const difference_type idx) {
+        RAINY_CONSTEXPR20 reference at(const difference_type idx) {
             rangecheck(size(), idx);
             return data_[idx];
         }
@@ -2490,47 +2490,47 @@ namespace rainy::foundation::containers {
     };
 
     template <typename Ty>
-    rainy_constEXPR20 array_view<Ty> make_array_view(Ty *first, Ty *last) {
+    RAINY_CONSTEXPR20 array_view<Ty> make_array_view(Ty *first, Ty *last) {
         return array_view<Ty>(first, last);
     }
 
     template <typename Ty>
-    rainy_constEXPR20 array_view<Ty> make_array_view(const Ty *first, const Ty *last) {
+    RAINY_CONSTEXPR20 array_view<Ty> make_array_view(const Ty *first, const Ty *last) {
         return array_view<Ty>(first, last);
     }
 
     template <typename Ty, std::size_t N>
-    rainy_constEXPR20 array_view<Ty> make_array_view(Ty (&array)[N]) {
+    RAINY_CONSTEXPR20 array_view<Ty> make_array_view(Ty (&array)[N]) {
         return array_view<Ty>(array);
     }
 
     template <typename Ty>
-    rainy_constEXPR20 array_view<Ty> make_array_view(std::vector<Ty> &vector) {
+    RAINY_CONSTEXPR20 array_view<Ty> make_array_view(std::vector<Ty> &vector) {
         return array_view<Ty>(vector);
     }
 
     template <typename Ty>
-    rainy_constEXPR20 array_view<Ty> make_array_view(const std::vector<Ty> &vector) {
+    RAINY_CONSTEXPR20 array_view<Ty> make_array_view(const std::vector<Ty> &vector) {
         return array_view<Ty>(vector);
     }
 
     template <typename Ty, std::size_t N>
-    rainy_constEXPR20 array_view<Ty> make_array_view(std::array<Ty, N> &array) {
+    RAINY_CONSTEXPR20 array_view<Ty> make_array_view(std::array<Ty, N> &array) {
         return array_view<Ty>(array);
     }
 
     template <typename Ty, std::size_t N>
-    rainy_constEXPR20 array_view<Ty> make_array_view(const std::array<Ty, N> &array) {
+    RAINY_CONSTEXPR20 array_view<Ty> make_array_view(const std::array<Ty, N> &array) {
         return array_view<Ty>(array);
     }
 
     template <typename Ty, std::size_t N>
-    rainy_constEXPR20 array_view<Ty> make_array_view(array<Ty, N> &array) {
+    RAINY_CONSTEXPR20 array_view<Ty> make_array_view(array<Ty, N> &array) {
         return array_view<Ty>(array);
     }
 
     template <typename Ty, std::size_t N>
-    rainy_constEXPR20 array_view<Ty> make_array_view(const array<Ty, N> &array) {
+    RAINY_CONSTEXPR20 array_view<Ty> make_array_view(const array<Ty, N> &array) {
         return array_view<Ty>(array);
     }
 }
@@ -2804,10 +2804,10 @@ namespace rainy::foundation::containers {
 
         constexpr stack_container() noexcept = default;
 
-        rainy_constEXPR20 stack_container(stack_container &&right) noexcept :
+        RAINY_CONSTEXPR20 stack_container(stack_container &&right) noexcept :
             container_pair_(utility::exchange(right.container_pair_, {})) {
         }
-        rainy_constEXPR20 stack_container(const stack_container &) = default;
+        RAINY_CONSTEXPR20 stack_container(const stack_container &) = default;
 
         stack_container &operator=(stack_container &&right) noexcept {
             container_pair_ = utility::exchange(right.container_pair_, {});
@@ -2973,7 +2973,7 @@ namespace rainy::foundation::system::memory {
         constexpr explicit default_deleter(const default_deleter &) noexcept {
         }
 
-        rainy_constEXPR20 void operator()(const Ty *resource) const noexcept {
+        RAINY_CONSTEXPR20 void operator()(const Ty *resource) const noexcept {
             static_assert(0 < sizeof(Ty), "can't delete an incomplete type"); // NOLINT
             delete resource;
         }
@@ -2991,7 +2991,7 @@ namespace rainy::foundation::system::memory {
         }
 
         template <typename U, std::enable_if_t<std::is_convertible_v<U (*)[], Ty (*)[]>, int> = 0>
-        rainy_constEXPR20 void operator()(const U *resource) const noexcept {
+        RAINY_CONSTEXPR20 void operator()(const U *resource) const noexcept {
             static_assert(!std::is_abstract_v<U>, "can't delete an incomplete type");
             delete[] resource;
         }
@@ -3008,7 +3008,7 @@ namespace rainy::foundation::system::memory {
         constexpr explicit no_delete(const no_delete &) noexcept {
         }
 
-        rainy_constEXPR20 void operator()(const Ty *resource) const noexcept {
+        RAINY_CONSTEXPR20 void operator()(const Ty *resource) const noexcept {
             static_assert(0 < sizeof(Ty), "can't delete an incomplete type"); // NOLINT
         }
     };
@@ -3025,7 +3025,7 @@ namespace rainy::foundation::system::memory {
         }
 
         template <typename U, std::enable_if_t<std::is_convertible_v<U (*)[], Ty (*)[]>, int> = 0>
-        rainy_constEXPR20 void operator()(const U *resource) const noexcept {
+        RAINY_CONSTEXPR20 void operator()(const U *resource) const noexcept {
             static_assert(!std::is_abstract_v<U>, "can't delete an incomplete type");
         }
     };
@@ -3058,7 +3058,7 @@ namespace rainy::foundation::functional {
         constexpr function_pointer(const function_pointer &) noexcept = default;
         constexpr function_pointer(function_pointer &&) noexcept = default;
 
-        rainy_constEXPR20 ~function_pointer() = default;
+        RAINY_CONSTEXPR20 ~function_pointer() = default;
 
         RAINY_NODISCARD constexpr pointer get() const noexcept {
             return invoker;
@@ -3295,21 +3295,21 @@ namespace rainy::text {
             char_to = char_from;
         }
 
-        static rainy_constEXPR20 void assign(char_type *char_to, const size_type num, const char_type &char_from) {
+        static RAINY_CONSTEXPR20 void assign(char_type *char_to, const size_type num, const char_type &char_from) {
             for (int i = 0; i < num; ++i) {
                 char_to[i] = char_from;
             }
         }
 
-        static rainy_constEXPR20 bool eq(const char_type left, const char_type right) noexcept {
+        static RAINY_CONSTEXPR20 bool eq(const char_type left, const char_type right) noexcept {
             return left == right;
         }
 
-        static rainy_constEXPR20 bool eq_int_type(const int_type &left, const int_type &right) noexcept {
+        static RAINY_CONSTEXPR20 bool eq_int_type(const int_type &left, const int_type &right) noexcept {
             return left == right;
         }
 
-        static rainy_constEXPR20 int compare(const char_type *string1, const char_type *string2, const size_type count) {
+        static RAINY_CONSTEXPR20 int compare(const char_type *string1, const char_type *string2, const size_type count) {
             using information::internals::compare_string;
             using information::internals::compare_string_compile_time;
 #if RAINY_HAS_CXX20
@@ -3320,7 +3320,7 @@ namespace rainy::text {
             return compare_string(string1, string2, count);
         }
 
-        static rainy_constEXPR20 size_type length(const char_type *string) {
+        static RAINY_CONSTEXPR20 size_type length(const char_type *string) {
             using information::internals::string_length;
             using information::internals::string_length_compile_time;
 #if RAINY_HAS_CXX20
@@ -3331,7 +3331,7 @@ namespace rainy::text {
             return string_length(string);
         }
 
-        RAINY_NODISCARD static rainy_constEXPR20 const char_type *find(const char_type *string, std::size_t count,
+        RAINY_NODISCARD static RAINY_CONSTEXPR20 const char_type *find(const char_type *string, std::size_t count,
                                                                              const char_type &target) {
 #if RAINY_HAS_CXX20
             if (std::is_constant_evaluated()) {
@@ -3369,11 +3369,11 @@ namespace rainy::text {
             return nullptr;
         }
 
-        static rainy_constEXPR20 bool lt(const char_type left, const char_type right) {
+        static RAINY_CONSTEXPR20 bool lt(const char_type left, const char_type right) {
             return left < right;
         }
 
-        static rainy_constEXPR20 char_type *move(char_type *to, const char_type *from, size_type count) {
+        static RAINY_CONSTEXPR20 char_type *move(char_type *to, const char_type *from, size_type count) {
 #if RAINY_HAS_CXX20
             if (std::is_constant_evaluated()) {
                 bool loop_forward = true;
@@ -3409,7 +3409,7 @@ namespace rainy::text {
         }
 
         template <size_type N>
-        static rainy_constEXPR20 char_type *move(std::array<char_type, N> &to, const char_type *from, const size_type count) {
+        static RAINY_CONSTEXPR20 char_type *move(std::array<char_type, N> &to, const char_type *from, const size_type count) {
             if (N < count) {
                 return nullptr;
             }
@@ -3417,7 +3417,7 @@ namespace rainy::text {
         }
 
         template <size_type N>
-        static rainy_constEXPR20 char_type *move(foundation::containers::array<char_type, N> &to, const char_type *from,
+        static RAINY_CONSTEXPR20 char_type *move(foundation::containers::array<char_type, N> &to, const char_type *from,
                                                     const size_type count) {
             if (N < count) {
                 return nullptr;
@@ -3425,7 +3425,7 @@ namespace rainy::text {
             return move(to.data(), from, count);
         }
 
-        static rainy_constEXPR20 char_type *move(foundation::containers::array_view<char_type> &to, const char_type *from,
+        static RAINY_CONSTEXPR20 char_type *move(foundation::containers::array_view<char_type> &to, const char_type *from,
                                                     const size_type count) {
             if (to.size() < count || to.empty()) {
                 return nullptr;
@@ -3433,7 +3433,7 @@ namespace rainy::text {
             return move(to.data(), from, count);
         }
 
-        static rainy_constEXPR20 char_type *move(std::vector<char_type> &to, const char_type *from, const size_type count) {
+        static RAINY_CONSTEXPR20 char_type *move(std::vector<char_type> &to, const char_type *from, const size_type count) {
             if (to.size() < count || to.empty()) {
                 return nullptr;
             }
@@ -3441,14 +3441,14 @@ namespace rainy::text {
         }
 
         template <size_type N>
-        static rainy_constEXPR20 char_type *move_s(Elem (&to)[N], const char_type *from, const size_type count) {
+        static RAINY_CONSTEXPR20 char_type *move_s(Elem (&to)[N], const char_type *from, const size_type count) {
             if (N < count) {
                 return nullptr;
             }
             return move(to, from, N);
         }
 
-        static rainy_constEXPR20 char_type *move_s(char_type *dest, const size_type dest_size, const char_type *from,
+        static RAINY_CONSTEXPR20 char_type *move_s(char_type *dest, const size_type dest_size, const char_type *from,
                                                       const size_type count) {
             if (dest_size < count) {
                 return nullptr;
@@ -3492,65 +3492,65 @@ namespace rainy::text {
             common_char_traits<char_type>::assign(char_to, char_from);
         }
 
-        static rainy_constEXPR20 void assign(char_type *char_to, const size_type num, const char_type &char_from) {
+        static RAINY_CONSTEXPR20 void assign(char_type *char_to, const size_type num, const char_type &char_from) {
             common_char_traits<char_type>::assign(char_to, num, char_from);
         }
 
-        static rainy_constEXPR20 bool eq(const char_type left, const char_type right) noexcept {
+        static RAINY_CONSTEXPR20 bool eq(const char_type left, const char_type right) noexcept {
             return left == right;
         }
 
-        static rainy_constEXPR20 bool eq_int_type(const int_type &left, const int_type &right) noexcept {
+        static RAINY_CONSTEXPR20 bool eq_int_type(const int_type &left, const int_type &right) noexcept {
             return left == right;
         }
 
-        static rainy_constEXPR20 int compare(const char_type *string1, const char_type *string2, const size_type count) {
+        static RAINY_CONSTEXPR20 int compare(const char_type *string1, const char_type *string2, const size_type count) {
             return common_char_traits<char_type>::compare(string1, string2, count);
         }
 
-        static rainy_constEXPR20 size_type length(const char_type *string) {
+        static RAINY_CONSTEXPR20 size_type length(const char_type *string) {
             return common_char_traits<char_type>::length(string);
         }
 
-        RAINY_NODISCARD static rainy_constEXPR20 const char_type *find(const char_type *string, std::size_t count,
+        RAINY_NODISCARD static RAINY_CONSTEXPR20 const char_type *find(const char_type *string, std::size_t count,
                                                                              const char_type &target) {
             return common_char_traits<char_type>::find(string, count, target);
         }
 
-        static rainy_constEXPR20 bool lt(const char_type left, const char_type right) {
+        static RAINY_CONSTEXPR20 bool lt(const char_type left, const char_type right) {
             return left < right;
         }
 
-        static rainy_constEXPR20 char_type *move(char_type *to, const char_type *from, size_type count) {
+        static RAINY_CONSTEXPR20 char_type *move(char_type *to, const char_type *from, size_type count) {
             return common_char_traits<char_type>::move(to, from, count);
         }
 
         template <size_type N>
-        static rainy_constEXPR20 char_type *move(std::array<char_type, N> &to, const char_type *from, const size_type count) {
+        static RAINY_CONSTEXPR20 char_type *move(std::array<char_type, N> &to, const char_type *from, const size_type count) {
             return common_char_traits<char_type>::move(to, from, count);
         }
 
         template <size_type N>
-        static rainy_constEXPR20 char_type *move(foundation::containers::array<char_type, N> &to, const char_type *from,
+        static RAINY_CONSTEXPR20 char_type *move(foundation::containers::array<char_type, N> &to, const char_type *from,
                                                     const size_type count) {
             return common_char_traits<char_type>::move(to, from, count);
         }
 
-        static rainy_constEXPR20 char_type *move(foundation::containers::array_view<char_type> &to, const char_type *from,
+        static RAINY_CONSTEXPR20 char_type *move(foundation::containers::array_view<char_type> &to, const char_type *from,
                                                     const size_type count) {
             return common_char_traits<char_type>::move(to, from, count);
         }
 
-        static rainy_constEXPR20 char_type *move(std::vector<char_type> &to, const char_type *from, const size_type count) {
+        static RAINY_CONSTEXPR20 char_type *move(std::vector<char_type> &to, const char_type *from, const size_type count) {
             return common_char_traits<char_type>::move(to, from, count);
         }
 
         template <size_type N>
-        static rainy_constEXPR20 char_type *move_s(char_type (&to)[N], const char_type *from, const size_type count) {
+        static RAINY_CONSTEXPR20 char_type *move_s(char_type (&to)[N], const char_type *from, const size_type count) {
             return common_char_traits<char_type>::move_s(to, from, count);
         }
 
-        static rainy_constEXPR20 char_type *move_s(char_type *dest, const size_type dest_size, const char_type *from,
+        static RAINY_CONSTEXPR20 char_type *move_s(char_type *dest, const size_type dest_size, const char_type *from,
                                                       const size_type count) {
             if (dest_size < count) {
                 return nullptr;
@@ -3591,65 +3591,65 @@ namespace rainy::text {
             common_char_traits<char_type>::assign(char_to, char_from);
         }
 
-        static rainy_constEXPR20 void assign(char_type *char_to, const size_type num, const char_type &char_from) {
+        static RAINY_CONSTEXPR20 void assign(char_type *char_to, const size_type num, const char_type &char_from) {
             common_char_traits<char_type>::assign(char_to, num, char_from);
         }
 
-        static rainy_constEXPR20 bool eq(const char_type left, const char_type right) noexcept {
+        static RAINY_CONSTEXPR20 bool eq(const char_type left, const char_type right) noexcept {
             return left == right;
         }
 
-        static rainy_constEXPR20 bool eq_int_type(const int_type &left, const int_type &right) noexcept {
+        static RAINY_CONSTEXPR20 bool eq_int_type(const int_type &left, const int_type &right) noexcept {
             return left == right;
         }
 
-        static rainy_constEXPR20 int compare(const char_type *string1, const char_type *string2, const size_type count) {
+        static RAINY_CONSTEXPR20 int compare(const char_type *string1, const char_type *string2, const size_type count) {
             return common_char_traits<char_type>::compare(string1, string2, count);
         }
 
-        static rainy_constEXPR20 size_type length(const char_type *string) {
+        static RAINY_CONSTEXPR20 size_type length(const char_type *string) {
             return common_char_traits<char_type>::length(string);
         }
 
-        RAINY_NODISCARD static rainy_constEXPR20 const char_type *find(const char_type *string, std::size_t count,
+        RAINY_NODISCARD static RAINY_CONSTEXPR20 const char_type *find(const char_type *string, std::size_t count,
                                                                              const char_type &target) {
             return common_char_traits<char_type>::find(string, count, target);
         }
 
-        static rainy_constEXPR20 bool lt(const char_type left, const char_type right) {
+        static RAINY_CONSTEXPR20 bool lt(const char_type left, const char_type right) {
             return left < right;
         }
 
-        static rainy_constEXPR20 char_type *move(char_type *to, const char_type *from, size_type count) {
+        static RAINY_CONSTEXPR20 char_type *move(char_type *to, const char_type *from, size_type count) {
             return common_char_traits<char_type>::move(to, from, count);
         }
 
         template <size_type N>
-        static rainy_constEXPR20 char_type *move(std::array<char_type, N> &to, const char_type *from, const size_type count) {
+        static RAINY_CONSTEXPR20 char_type *move(std::array<char_type, N> &to, const char_type *from, const size_type count) {
             return common_char_traits<char_type>::move(to, from, count);
         }
 
         template <size_type N>
-        static rainy_constEXPR20 char_type *move(foundation::containers::array<char_type, N> &to, const char_type *from,
+        static RAINY_CONSTEXPR20 char_type *move(foundation::containers::array<char_type, N> &to, const char_type *from,
                                                     const size_type count) {
             return common_char_traits<char_type>::move(to, from, count);
         }
 
-        static rainy_constEXPR20 char_type *move(foundation::containers::array_view<char_type> &to, const char_type *from,
+        static RAINY_CONSTEXPR20 char_type *move(foundation::containers::array_view<char_type> &to, const char_type *from,
                                                     const size_type count) {
             return common_char_traits<char_type>::move(to, from, count);
         }
 
-        static rainy_constEXPR20 char_type *move(std::vector<char_type> &to, const char_type *from, const size_type count) {
+        static RAINY_CONSTEXPR20 char_type *move(std::vector<char_type> &to, const char_type *from, const size_type count) {
             return common_char_traits<char_type>::move(to, from, count);
         }
 
         template <size_type N>
-        static rainy_constEXPR20 char_type *move_s(char_type (&to)[N], const char_type *from, const size_type count) {
+        static RAINY_CONSTEXPR20 char_type *move_s(char_type (&to)[N], const char_type *from, const size_type count) {
             return common_char_traits<char_type>::move_s(to, from, count);
         }
 
-        static rainy_constEXPR20 char_type *move_s(char_type *dest, const size_type dest_size, const char_type *from,
+        static RAINY_CONSTEXPR20 char_type *move_s(char_type *dest, const size_type dest_size, const char_type *from,
                                                       const size_type count) {
             if (dest_size < count) {
                 return nullptr;
@@ -3690,11 +3690,11 @@ namespace rainy::text {
 
         constexpr basic_string_view() noexcept : view_data(nullptr){};
 
-        rainy_constEXPR20 basic_string_view(const value_type *string) noexcept :
+        RAINY_CONSTEXPR20 basic_string_view(const value_type *string) noexcept :
             view_data(string), view_size(traits_type::length(string)) {
         }
 
-        rainy_constEXPR20 basic_string_view(const std::basic_string<Elem> &stdstring) noexcept :
+        RAINY_CONSTEXPR20 basic_string_view(const std::basic_string<Elem> &stdstring) noexcept :
             view_data(stdstring.c_str()), view_size(stdstring.size()) {
         }
 
@@ -3899,7 +3899,7 @@ namespace rainy::utility {
         using type = Ty;
 
         template <typename Uty>
-        rainy_constEXPR20 reference_wrapper(Uty &&val) noexcept {
+        RAINY_CONSTEXPR20 reference_wrapper(Uty &&val) noexcept {
             Ty &ref = static_cast<Uty &&>(val);
             reference_data = rainy::utility::addressof(ref);
         }
@@ -3907,11 +3907,11 @@ namespace rainy::utility {
         reference_wrapper(const reference_wrapper &) = delete;
         reference_wrapper(reference_wrapper &&) = delete;
 
-        rainy_constEXPR20 operator Ty &() const noexcept {
+        RAINY_CONSTEXPR20 operator Ty &() const noexcept {
             return *reference_data;
         }
 
-        RAINY_NODISCARD rainy_constEXPR20 Ty &get() const noexcept {
+        RAINY_NODISCARD RAINY_CONSTEXPR20 Ty &get() const noexcept {
             return *reference_data;
         }
 
@@ -4068,7 +4068,7 @@ namespace rainy::algorithm::internals {
 
 namespace rainy::algorithm::container_operater {
     template <typename InputIter, typename OutIter>
-    rainy_constEXPR20 OutIter copy(InputIter begin, InputIter end, OutIter dest) noexcept(
+    RAINY_CONSTEXPR20 OutIter copy(InputIter begin, InputIter end, OutIter dest) noexcept(
         std::is_nothrow_copy_constructible_v<foundation::type_traits::other_transformations::conditional_t<
             foundation::type_traits::internals::_is_pointer_v<InputIter>,
             foundation::type_traits::pointer_modify::remove_pointer_t<InputIter>, typename InputIter::value_type>>) {
@@ -4101,7 +4101,7 @@ namespace rainy::algorithm::container_operater {
     }
 
     template <typename InputIter, typename OutIter>
-    rainy_constEXPR20 OutIter copy(execution::policy policy, InputIter begin, InputIter end, OutIter dest) {
+    RAINY_CONSTEXPR20 OutIter copy(execution::policy policy, InputIter begin, InputIter end, OutIter dest) {
         using value_type = typename InputIter::value_type;
         if (policy == execution::seq) {
             return copy(begin, end, dest);
@@ -4142,7 +4142,7 @@ namespace rainy::algorithm::container_operater {
     }
 
     template <typename InputIter, typename OutIter>
-    rainy_constEXPR20 OutIter copy_n(InputIter begin, const std::size_t count, OutIter dest) noexcept(
+    RAINY_CONSTEXPR20 OutIter copy_n(InputIter begin, const std::size_t count, OutIter dest) noexcept(
         std::is_nothrow_copy_constructible_v<foundation::type_traits::other_transformations::conditional_t<
             foundation::type_traits::internals::_is_pointer_v<InputIter>,
             foundation::type_traits::pointer_modify::remove_pointer_t<InputIter>, typename InputIter::value_type>>) {
@@ -4179,7 +4179,7 @@ namespace rainy::algorithm::container_operater {
     }
 
     template <typename InputIter, typename OutIter>
-    rainy_constEXPR20 OutIter copy_n(execution::policy policy, InputIter begin, const std::size_t count, OutIter dest) {
+    RAINY_CONSTEXPR20 OutIter copy_n(execution::policy policy, InputIter begin, const std::size_t count, OutIter dest) {
         using value_type = typename InputIter::value_type;
         if (policy == execution::seq) {
             return copy_n(begin, count, dest);
@@ -4251,24 +4251,24 @@ namespace rainy::algorithm::container_operater {
 
 namespace rainy::algorithm::ranges::container_operater {
     template <typename InputContainer, typename OutContainer>
-    rainy_constEXPR20 auto copy(InputContainer &container,
+    RAINY_CONSTEXPR20 auto copy(InputContainer &container,
                                    OutContainer dest) noexcept(std::is_nothrow_copy_constructible_v<typename InputContainer::value_type>) {
         return algorithm::container_operater::copy(container.begin(), container.end(), dest.begin());
     }
 
     template <typename InputContainer, typename OutContainer>
-    rainy_constEXPR20 auto copy(execution::policy policy, InputContainer &container, OutContainer dest) {
+    RAINY_CONSTEXPR20 auto copy(execution::policy policy, InputContainer &container, OutContainer dest) {
         return algorithm::container_operater::copy(policy, container.begin(), container.end(), dest.begin());
     }
 
     template <typename InputContainer, typename OutContainer>
-    rainy_constEXPR20 auto copy_n(InputContainer &container, const std::size_t count, OutContainer dest) noexcept(
+    RAINY_CONSTEXPR20 auto copy_n(InputContainer &container, const std::size_t count, OutContainer dest) noexcept(
         std::is_nothrow_copy_constructible_v<typename InputContainer::value_type>) {
         return algorithm::container_operater::copy_n(container.begin(), count, dest.begin());
     }
 
     template <typename InputContainer, typename OutContainer>
-    rainy_constEXPR20 auto copy_n(execution::policy policy, InputContainer &container, const std::size_t count, OutContainer dest) {
+    RAINY_CONSTEXPR20 auto copy_n(execution::policy policy, InputContainer &container, const std::size_t count, OutContainer dest) {
         return algorithm::container_operater::copy_n(policy, container.begin(), count, dest.begin());
     }
 }
@@ -4547,10 +4547,13 @@ comint是仿制Microsoft中组件对象模型（COM）的一种接口规范
 采用shared_ptr避免直接管理引用计数，用于增强内存安全性，同时定义一套适用于现代C++的规范
 */
 namespace rainy::foundation::comint {
-    struct the_unknown_t {
-        using the_unknown = std::shared_ptr<the_unknown_t>;
+    template <typename Interface>
+    class comint_ptr;
 
-        virtual ~the_unknown_t() = default;
+    struct the_unknown {
+        using the_unknown_ptr = std::shared_ptr<the_unknown>;
+
+        virtual ~the_unknown() = default;
 
         std::string_view name() const noexcept {
             return typeid(*this).name();
@@ -4561,12 +4564,32 @@ namespace rainy::foundation::comint {
         }
 
         /* 我们通过此接口，为某个实例复制或新实例化一个实例 */
-        virtual void copy(the_unknown &ptr) = 0;
+        virtual void copy(the_unknown_ptr &ptr) = 0;
         /* 负责实现移动语义（不针对智能指针，而是对象，行为上是make_shared附上move后的参数） */
-        virtual void move(the_unknown &ptr) noexcept = 0;
+        virtual void move(the_unknown_ptr &ptr) noexcept = 0;
     };
 
-    using the_unknown = std::shared_ptr<the_unknown_t>;
+    template  <typename Interface>
+    class comint_ptr {
+    public:
+        comint_ptr() {
+            static_assert(std::is_base_of_v<the_unknown, Interface>, "Interface must be a derived interface from the_unknown struct!");
+        }
+
+        the_unknown &as_unknown() {
+            if (!pointer) {
+                system::exceptions::cast::throw_bad_cast("the internal pointer is null!");
+            }
+            rainy_let cast_ptr = dynamic_cast<the_unknown*>(pointer.get());
+            if (!cast_ptr) {
+                system::exceptions::cast::throw_bad_cast("failed to cast pointer to the_unknown");
+            }
+            return *cast_ptr;
+        }
+
+    private:
+        std::shared_ptr<Interface> pointer;
+    };
 
     class interface_table {
     public:
@@ -4594,7 +4617,7 @@ namespace rainy::foundation::comint {
         }
 
         template <typename InterfaceClass>
-        RAINY_NODISCARD the_unknown create_instance() {
+        RAINY_NODISCARD std::shared_ptr<comint::the_unknown> create_instance() {
             utility::type_index type_idx = typeid(InterfaceClass);
             const auto find = table.find(type_idx);
             if (find == table.end()) {
@@ -4604,7 +4627,8 @@ namespace rainy::foundation::comint {
         }
 
     private:
-        std::unordered_map<utility::type_index, foundation::functional::function_pointer<the_unknown()>> table;
+        std::unordered_map<utility::type_index, foundation::functional::function_pointer<std::shared_ptr<comint::the_unknown>()>>
+            table;
     };
 
     template <typename InterfaceClass>

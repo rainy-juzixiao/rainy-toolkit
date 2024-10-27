@@ -36,7 +36,7 @@ list(APPEND SOURCES
         rainy/base.hpp
         rainy/utility.hpp
         rainy/algorithm.hpp
-        main.cpp
+        test/main.cpp
 )
 
 # 容器模块

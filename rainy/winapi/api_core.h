@@ -76,7 +76,7 @@ namespace rainy::foundation::system::async::internals {
         unsigned int id_;
     };
 
-    struct native_thread : foundation::comint::the_unknown_t {
+    struct native_thread : foundation::comint::the_unknown {
         virtual ~native_thread() = default;
         virtual void start(void *security, unsigned int stack_size,
                            functional::function_pointer<unsigned int(void *)> invoke_function_addr, void *arg_list,
@@ -88,7 +88,7 @@ namespace rainy::foundation::system::async::internals {
         virtual void resume() = 0;
         virtual bool joinable() const noexcept = 0;
         virtual void *native_handle() noexcept = 0;
-        static the_unknown make_instance();
+        static std::shared_ptr<comint::the_unknown> make_instance();
     };
 
     void init_async_moudle_abi();

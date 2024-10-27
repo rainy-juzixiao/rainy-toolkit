@@ -96,13 +96,13 @@ namespace rainy::foundation::type_traits::internals::gcc_detail_impl {
     };
 
     template <typename>
-    rainy_constEXPR_BOOL is_null_pointer_v = false;
+    RAINY_CONSTEXPR_BOOL is_null_pointer_v = false;
 
     template <>
-    rainy_constEXPR_BOOL is_null_pointer_v<std::nullptr_t> = true;
+    RAINY_CONSTEXPR_BOOL is_null_pointer_v<std::nullptr_t> = true;
 
     template <typename Ty>
-    rainy_constEXPR_BOOL is_arithmetic_v = internals::_is_integral_v<Ty> || _is_floating_point_v<Ty>;
+    RAINY_CONSTEXPR_BOOL is_arithmetic_v = internals::_is_integral_v<Ty> || _is_floating_point_v<Ty>;
 
     template <typename Ty>
     struct is_scalar : helper::bool_constant<is_arithmetic_v<Ty> || __is_enum(Ty) || _is_pointer_v<Ty> || _is_member_pointer_v<Ty> ||

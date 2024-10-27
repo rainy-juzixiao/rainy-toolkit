@@ -30,21 +30,21 @@ namespace rainy::foundation::system::memory {
         constexpr nebula_ptr_base(std::nullptr_t) noexcept : pair(Dx{}, nullptr) {
         }
 
-        rainy_constEXPR20 nebula_ptr_base(element_type *pointer) noexcept : pair(Dx{}, pointer) {
+        RAINY_CONSTEXPR20 nebula_ptr_base(element_type *pointer) noexcept : pair(Dx{}, pointer) {
         }
 
         template <type_traits::other_transformations::enable_if_t<std::is_copy_constructible_v<deleter_type>, int> = 0>
-        rainy_constEXPR20 nebula_ptr_base(element_type *pointer, deleter_type deleter) : pair(Dx{}, pointer) {
+        RAINY_CONSTEXPR20 nebula_ptr_base(element_type *pointer, deleter_type deleter) : pair(Dx{}, pointer) {
         }
 
         template <typename Uty,
                   foundation::type_traits::other_transformations::enable_if_t<std::is_convertible_v<Uty *, pointer>, int> = 0>
-        rainy_constEXPR20 nebula_ptr_base(Uty *pointer) noexcept : pair(Dx{}, pointer) {
+        RAINY_CONSTEXPR20 nebula_ptr_base(Uty *pointer) noexcept : pair(Dx{}, pointer) {
         }
 
         template <typename Uty, foundation::type_traits::other_transformations::enable_if_t<
                                     std::is_convertible_v<Uty *, pointer> && std::is_copy_constructible_v<deleter_type>, int> = 0>
-        rainy_constEXPR20 nebula_ptr_base(Uty *pointer, deleter_type deleter) : pair(Dx{}, pointer) {
+        RAINY_CONSTEXPR20 nebula_ptr_base(Uty *pointer, deleter_type deleter) : pair(Dx{}, pointer) {
         }
 
         nebula_ptr_base(const nebula_ptr_base &) = delete;
@@ -55,7 +55,7 @@ namespace rainy::foundation::system::memory {
                       std::conjunction_v<std::is_reference<Dx2>, std::is_constructible<Dx2, std::remove_reference_t<Dx2>>>, int> = 0>
         nebula_ptr_base(pointer, std::remove_reference_t<Dx> &&) = delete;
 
-        rainy_constEXPR20 ~nebula_ptr_base() {
+        RAINY_CONSTEXPR20 ~nebula_ptr_base() {
             reset(nullptr);
         };
 
@@ -69,19 +69,19 @@ namespace rainy::foundation::system::memory {
             return !static_cast<bool>(pair.second);
         }
 
-        rainy_constEXPR20 void reset(element_type *pointer = nullptr) {
+        RAINY_CONSTEXPR20 void reset(element_type *pointer = nullptr) {
             if (!empty()) {
                 pair.get_first()(pair.second);
             }
             pair.second = pointer;
         }
 
-        rainy_constEXPR20 nebula_ptr_base &operator=(std::nullptr_t) {
+        RAINY_CONSTEXPR20 nebula_ptr_base &operator=(std::nullptr_t) {
             reset(nullptr);
             return *this;
         }
 
-        rainy_constEXPR20 nebula_ptr_base &operator=(element_type *pointer) {
+        RAINY_CONSTEXPR20 nebula_ptr_base &operator=(element_type *pointer) {
             reset(pointer);
             return *this;
         }
@@ -207,7 +207,7 @@ namespace rainy::foundation::system::memory {
         nebula_ptr(element_type (&arr)[N]) : base(arr), _length(N), local(true) {
         }
 
-        rainy_constEXPR20 ~nebula_ptr() {
+        RAINY_CONSTEXPR20 ~nebula_ptr() {
             reset(nullptr);
         }
 
@@ -249,16 +249,16 @@ namespace rainy::foundation::system::memory {
             return this->pair.second + length();
         }
 
-        rainy_constEXPR20 void fill(const Ty &val) noexcept(std::is_nothrow_constructible_v<Ty>) {
+        RAINY_CONSTEXPR20 void fill(const Ty &val) noexcept(std::is_nothrow_constructible_v<Ty>) {
             std::fill_n(this->pair.second, length(), val);
         }
 
-        rainy_constEXPR20 void fill_with_ilist(std::initializer_list<Ty> ilist) noexcept(std::is_nothrow_constructible_v<Ty>) {
+        RAINY_CONSTEXPR20 void fill_with_ilist(std::initializer_list<Ty> ilist) noexcept(std::is_nothrow_constructible_v<Ty>) {
             size_type count = ilist.size() > length() ? length() : ilist.size();
             std::copy_n(ilist.begin(), count, this->pair.second);
         }
 
-        rainy_constEXPR20 void reset(element_type *pointer = nullptr) {
+        RAINY_CONSTEXPR20 void reset(element_type *pointer = nullptr) {
             if (!local) {
                 base::reset(pointer);
                 local = false;
@@ -270,13 +270,13 @@ namespace rainy::foundation::system::memory {
         }
 
         template <size_type N>
-        rainy_constEXPR20 void reset(element_type (&arr)[N]) {
+        RAINY_CONSTEXPR20 void reset(element_type (&arr)[N]) {
             base::reset(arr);
             this->_length = N;
             local = true;
         }
 
-        rainy_constEXPR20 nebula_ptr &operator=(std::nullptr_t) {
+        RAINY_CONSTEXPR20 nebula_ptr &operator=(std::nullptr_t) {
             if (!local) {
                 reset();
             }
@@ -285,13 +285,13 @@ namespace rainy::foundation::system::memory {
             return *this;
         }
 
-        rainy_constEXPR20 nebula_ptr &operator=(element_type *pointer) {
+        RAINY_CONSTEXPR20 nebula_ptr &operator=(element_type *pointer) {
             reset(pointer);
             return *this;
         }
 
         template <size_type N>
-        rainy_constEXPR20 nebula_ptr &operator=(element_type (*arr)[N]) {
+        RAINY_CONSTEXPR20 nebula_ptr &operator=(element_type (*arr)[N]) {
             reset<N>(*arr);
             return *this;
         }

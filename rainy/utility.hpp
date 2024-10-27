@@ -57,7 +57,7 @@ namespace rainy::foundation::system::memory {
 
         using ref_type = type_traits::other_transformations::conditional_t<type_traits::primary_types::is_void_v<elem>, char, elem> &;
 
-        RAINY_NODISCARD static rainy_constEXPR20 pointer pointer_to(ref_type val) noexcept(noexcept(Ty::pointer_to(val))) {
+        RAINY_NODISCARD static RAINY_CONSTEXPR20 pointer pointer_to(ref_type val) noexcept(noexcept(Ty::pointer_to(val))) {
             return Ty::pointer_to(val);
         }
     };
@@ -87,7 +87,7 @@ namespace rainy::foundation::system::memory {
 
         using ref_type = type_traits::other_transformations::conditional_t<type_traits::primary_types::is_void_v<Ty>, char, Ty> &;
 
-        RAINY_NODISCARD static rainy_constEXPR20 pointer pointer_to(ref_type val) noexcept {
+        RAINY_NODISCARD static RAINY_CONSTEXPR20 pointer pointer_to(ref_type val) noexcept {
             return std::addressof(val);
         }
     };

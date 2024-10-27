@@ -1313,7 +1313,7 @@ public:
 
     constexpr array() noexcept(std::is_nothrow_constructible_v<Ty>) = default;
 
-    rainy_constEXPR20 array(std::initializer_list<Ty> ilist) noexcept(std::is_nothrow_copy_assignable_v<Ty>) {
+    RAINY_CONSTEXPR20 array(std::initializer_list<Ty> ilist) noexcept(std::is_nothrow_copy_assignable_v<Ty>) {
         _size = ilist.size();
 #if RAINY_HAS_CXX20
         if (std::is_constant_evaluated()) {
@@ -1330,7 +1330,7 @@ public:
         }
     }
 
-    rainy_constEXPR20 array(const array &right) {
+    RAINY_CONSTEXPR20 array(const array &right) {
         
     }
 
@@ -1347,7 +1347,7 @@ public:
     }
 
     template <typename... Args>
-    rainy_constEXPR20 void emplace_back(Args... args) noexcept {
+    RAINY_CONSTEXPR20 void emplace_back(Args... args) noexcept {
         range_check(++_size);
         
     }
@@ -1865,7 +1865,7 @@ int main() {
     rainy::foundation::system::async::internals::abi::thread_sleep_for(1);
     std::cout << thread_instance.use_count() << "\n";
     std::cout << thread_instance->get_id() << "\n";
-    std::shared_ptr<rainy::foundation::comint::the_unknown_t> move_ptr;
+    std::shared_ptr<rainy::foundation::comint::the_unknown> move_ptr;
     thread_instance->move(move_ptr);
     std::cout << thread_instance->get_id() << "\n";
     std::cout << std::dynamic_pointer_cast<rainy::foundation::system::async::internals::native_thread>(move_ptr)->get_id() << "\n";

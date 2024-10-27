@@ -569,7 +569,7 @@ namespace rainy::foundation::utitily {
 
         constexpr object() = default;
 
-        virtual rainy_constEXPR20 ~object() = default;
+        virtual RAINY_CONSTEXPR20 ~object() = default;
 
         RAINY_NODISCARD virtual const std::type_info &type_info() const noexcept {
             return typeid(class_type);
@@ -768,7 +768,7 @@ public:
 
     constexpr object() = default;
 
-    virtual rainy_constEXPR20 ~object() = default;
+    virtual RAINY_CONSTEXPR20 ~object() = default;
 
     RAINY_NODISCARD virtual const std::type_info &type_info() const noexcept {
         return typeid(class_type);

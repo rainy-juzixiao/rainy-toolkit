@@ -1,5 +1,5 @@
-#ifndef rainy_refLECTION_CORE_FIELD_HPP
-#define rainy_refLECTION_CORE_FIELD_HPP
+#ifndef RAINY_REFLECTION_CORE_FIELD_HPP
+#define RAINY_REFLECTION_CORE_FIELD_HPP
 /*
 此文件提供了对字段的抽象。配合动态反射系统使用
 */
@@ -53,7 +53,7 @@ namespace rainy::foundation::reflection {
     public:
         static const std::size_t not_found = static_cast<std::size_t>(-1);
 
-        rainy_constEXPR20 attributes() noexcept = default;
+        RAINY_CONSTEXPR20 attributes() noexcept = default;
 
         attributes(std::initializer_list<std::string_view> ilist) : meta_data(ilist) {
         }

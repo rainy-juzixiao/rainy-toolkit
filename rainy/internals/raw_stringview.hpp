@@ -197,7 +197,7 @@ namespace rainy::information::internals {
         /**
          * @brief 默认析构函数
          */
-        rainy_constEXPR20 ~raw_string_view() noexcept = default;
+        RAINY_CONSTEXPR20 ~raw_string_view() noexcept = default;
 
         /**
          * @brief 获取视图指向字符串大小
