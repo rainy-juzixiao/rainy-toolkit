@@ -1,10 +1,10 @@
-#include <variant>
+﻿#include <variant>
 #include <unordered_set>
 #include <sstream>
 
 #include <rainy/base.hpp>
 #include <rainy/containers/any.hpp>
-#include <rainy/meta_programming/type_traits.hpp>
+#include <rainy/meta/type_traits.hpp>
 
 namespace rainy::foundation::type_traits::type_properties {
     template <typename T>

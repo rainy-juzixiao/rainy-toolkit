@@ -1,7 +1,7 @@
-#ifndef RAINY_REFLECTION_CORE_METHOD_HPP
+ï»¿#ifndef RAINY_REFLECTION_CORE_METHOD_HPP
 #define RAINY_REFLECTION_CORE_METHOD_HPP
 #include <rainy/base.hpp>
-#include <rainy/meta_programming/reflection_core/field.hpp>
+#include <rainy/meta/reflection_core/field.hpp>
 
 namespace rainy::foundation::reflection {
     template <typename ReturnType, typename... Args>
@@ -54,7 +54,7 @@ namespace rainy::foundation::reflection {
             }
             if constexpr (std::is_void_v<ReturnType>) {
                 rainy::utility::invoke(method, static_cast<Class *>(obj), rainy::utility::any_cast<Args>(params[I])...);
-                return {}; // ·µ»Ø¿ÕµÄ any ¶ÔÏó
+                return {}; // è¿”å›žç©ºçš„ any å¯¹è±¡
             } else {
                 return any(
                     rainy::utility::invoke(method, static_cast<Class *>(obj), rainy::utility::any_cast<Args>(params[I])...));
@@ -100,7 +100,7 @@ namespace rainy::foundation::reflection {
             }
             if constexpr (std::is_void_v<ReturnType>) {
                 (static_cast<const Class *>(obj)->*method)(rainy::utility::any_cast<Args>(params[I])...);
-                return {}; // ·µ»Ø¿ÕµÄ any ¶ÔÏó
+                return {}; // è¿”å›žç©ºçš„ any å¯¹è±¡
             } else {
                 return any((static_cast<const Class *>(obj)->*method)(rainy::utility::any_cast<Args>(params[I])...));
             }

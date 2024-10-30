@@ -2,7 +2,7 @@
 #define RAINY_UTILITY_HPP
 
 #include <rainy/base.hpp>
-#include <rainy/meta_programming/type_traits.hpp>
+#include <rainy/meta/type_traits.hpp>
 #include <random>
 #include <bitset>
 #include <ostream>

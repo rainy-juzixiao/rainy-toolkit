@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.25.1)
+﻿cmake_minimum_required(VERSION 3.25.1)
 project(rainy_toolkit)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -36,7 +36,6 @@ list(APPEND SOURCES
         rainy/base.hpp
         rainy/utility.hpp
         rainy/algorithm.hpp
-        test/main.cpp
 )
 
 # 容器模块
@@ -47,15 +46,21 @@ list(APPEND SOURCES
         rainy/containers/tuple.hpp
         rainy/containers/variant.hpp
         rainy/containers/vector.hpp
+        rainy/containers/stack.hpp
+)
+
+# 文本模块
+list(APPEND SOURCES
+    rainy/text/format_wrapper.hpp
 )
 
 # 元编程
 list(APPEND SOURCES
-        rainy/meta_programming/hash.hpp
-        rainy/meta_programming/type_traits.hpp
-        rainy/meta_programming/reflection.hpp
-        rainy/meta_programming/reflection_core/field.hpp
-        rainy/meta_programming/reflection_core/method.hpp
+        rainy/meta/hash.hpp
+        rainy/meta/type_traits.hpp
+        rainy/meta/reflection.hpp
+        rainy/meta/reflection_core/field.hpp
+        rainy/meta/reflection_core/method.hpp
 )
 
 # 异步支持
@@ -72,7 +77,24 @@ list(APPEND SOURCES
 
 # 异常支持
 list(APPEND SOURCES
+        rainy/system/basic_exceptions.hpp
         rainy/system/exceptions.hpp
+)
+
+# 仿函数支持
+list(APPEND SOURCES
+        rainy/functional/function_pointer.hpp
+)
+
+# 诊断库支持
+list(APPEND SOURCES
+        rainy/diagnostics/source_location.hpp
+        rainy/diagnostics/contract.hpp
+)
+
+
+list(APPEND SOURCES
+        rainy/utility/iterator.hpp
 )
 
 # 内部实现
@@ -94,6 +116,9 @@ if (WIN32)
             rainy/winapi/ui/window.hpp
     )
 endif ()
+
+# 设置测试用例
+list(APPEND SOURCES test/test_format_wrapper.cpp)
 
 # 创建可执行文件
 add_executable(rainy-toolkit ${SOURCES})

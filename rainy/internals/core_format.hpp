@@ -1,8 +1,8 @@
-#ifndef RAINY_CORE_FORMAT_HPP
+﻿#ifndef RAINY_CORE_FORMAT_HPP
 #define RAINY_CORE_FORMAT_HPP
 #include <rainy/core.hpp>
 #include <rainy/base.hpp>
-#include <rainy/meta_programming/type_traits.hpp>
+#include <rainy/meta/type_traits.hpp>
 
 #if RAINY_HAS_CXX20
 namespace rainy::foundation::system::exceptions::runtime {

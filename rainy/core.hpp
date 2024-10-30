@@ -157,9 +157,9 @@ clang和GNU编译器区域
 #endif
 
 #if RAINY_USING_GCC
-#define RAINY_AINLINE_NODISCARD RAINY_NODISCARD RAINY_ALWAYS_INLINE
-#else
 #define RAINY_AINLINE_NODISCARD RAINY_NODISCARD RAINY_INLINE
+#else
+#define RAINY_AINLINE_NODISCARD RAINY_NODISCARD RAINY_ALWAYS_INLINE
 #endif
 
 #ifdef __AVX2__
@@ -619,6 +619,43 @@ namespace rainy::utility {
     private:
         const std::type_info *type_info_ptr;
     };
+}
+
+namespace rainy::utility {
+    template <typename Ty>
+    RAINY_NODISCARD Ty *addressof(Ty &val) noexcept {
+        return __builtin_addressof(val);
+    }
+
+    template <typename Ty>
+    const Ty *addressof(const Ty &&) = delete;
+
+    template <typename Ty, typename... Args>
+    RAINY_CONSTEXPR20 Ty *construct_at(Ty *location, Args &&...args) noexcept(noexcept(::new(static_cast<void *>(location))
+                                                                                           Ty(utility::forward<Args>(args)...))) {
+        if (!location) {
+            return nullptr;
+        }
+#if RAINY_HAS_CXX20
+        if (std::is_constant_evaluated()) {
+            return std::construct_at(location, std::forward<Args>(args)...);
+        }
+#endif
+        return ::new (static_cast<void *>(location)) Ty(std::forward<Args>(args)...);
+    }
+
+    template <typename Ty, typename... Args>
+    RAINY_CONSTEXPR20 void construct_in_place(Ty &object, Args &&...args) noexcept(
+        foundation::type_traits::internals::_is_nothrow_constructible_v<Ty, Args...>) {
+#if RAINY_HAS_CXX20
+        if (std::is_constant_evaluated()) {
+            construct_at(utility::addressof(object), forward<Args>(args)...);
+        } else
+#endif
+        {
+            ::new (static_cast<void *>(addressof(object))) Ty(forward<Args>(args)...);
+        }
+    }
 }
 
 #endif

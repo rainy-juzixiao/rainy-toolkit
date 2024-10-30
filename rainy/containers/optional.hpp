@@ -1,8 +1,8 @@
-#ifndef RAINY_OPTIONAL_H
+﻿#ifndef RAINY_OPTIONAL_H
 #define RAINY_OPTIONAL_H
 
 #include <rainy/base.hpp>
-#include <rainy/meta_programming/type_traits.hpp>
+#include <rainy/meta/type_traits.hpp>
 #include <optional>
 
 namespace rainy::foundation::containers {

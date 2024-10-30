@@ -1,19 +1,20 @@
-#ifndef RAINY_IMPL_WINAPI_THREAD_CXX
+ï»¿#ifndef RAINY_IMPL_WINAPI_THREAD_CXX
 #define RAINY_IMPL_WINAPI_THREAD_CXX
 /*
-ÕâÊÇÒ»¸ö±àÒëµ¥Ôª£¨ÊµÏÖÎÄ¼ş£©ÎÒÃÇÍ¨³£ÊÇÏ£ÍûÔÚ²¿·Öµ×²ãAPIÖĞÒş²ØÊµÏÖÔÚHeader-OnlyÖĞ¡£
-ÎÒÃÇ²»½¨Òé°üº¬´ËÎÄ¼ş£¬ÒòÎªcmake»á×Ô¶¯½«´ËÎÄ¼ş×÷Îª±àÒëµ¥ÔªÊ¹ÓÃ
+è¿™æ˜¯ä¸€ä¸ªç¼–è¯‘å•å…ƒï¼ˆå®ç°æ–‡ä»¶ï¼‰æˆ‘ä»¬é€šå¸¸æ˜¯å¸Œæœ›åœ¨éƒ¨åˆ†åº•å±‚APIä¸­éšè—å®ç°åœ¨Header-Onlyä¸­ã€‚
+æˆ‘ä»¬ä¸å»ºè®®åŒ…å«æ­¤æ–‡ä»¶ï¼Œå› ä¸ºcmakeä¼šè‡ªåŠ¨å°†æ­¤æ–‡ä»¶ä½œä¸ºç¼–è¯‘å•å…ƒä½¿ç”¨
 */
 #include <rainy/winapi/api_core.h>
 
 namespace rainy::foundation::system::async::internals::abi {
-    void endthread(void) {
+    void endthread() {
         ExitThread(0);
     }
 
     RAINY_NODISCARD uintptr_t begin_thread(functional::function_pointer<unsigned int(void *)> invoke_function_addr,
                                               unsigned int stack_size, void *arg_list) {
         if (!invoke_function_addr) {
+            // å¦‚æœå‡½æ•°åœ°å€ä¸ºç©º
             errno = EINVAL;
             return -1;
         }
@@ -100,7 +101,8 @@ namespace rainy::foundation::system::async::internals::abi {
         }
         if (wait_result == WAIT_ABANDONED) {
             return thrd_result::busy;
-        } else if (wait_result == WAIT_TIMEOUT) {
+        }
+        if (wait_result == WAIT_TIMEOUT) {
             return thrd_result::timed_out;
         }
         return thrd_result::error;
@@ -175,7 +177,7 @@ namespace rainy::foundation::system::async::internals {
             thrd.thrd_handle = utility::exchange(right.thrd.thrd_handle, nullptr);
         }
 
-        virtual ~native_thread_winimpl() {
+        ~native_thread_winimpl() override {
             if (joinable()) {
 #if RAINY_ENABLE_DEBUG
                 foundation::system::exceptions::runtime::throw_runtime_error("You must invoke join() method to close this thread.");
@@ -233,7 +235,7 @@ namespace rainy::foundation::system::async::internals {
             thrd = {};
         }
 
-        id get_id() const noexcept override {
+        RAINY_NODISCARD id get_id() const noexcept override {
             return thrd.id;
         }
 
@@ -245,7 +247,7 @@ namespace rainy::foundation::system::async::internals {
             abi::resume_thread(thrd.thrd_handle);
         }
 
-        bool joinable() const noexcept override {
+        RAINY_NODISCARD bool joinable() const noexcept override {
             return thrd.id.id_ != 0;
         }
 
@@ -254,10 +256,12 @@ namespace rainy::foundation::system::async::internals {
         }
 
         void copy(the_unknown_ptr &ptr) override {
+            // ç”±äºæˆ‘ä»¬çš„çº¿ç¨‹æ˜¯ä¸€ä¸ªå®ä¾‹ç‹¬å ï¼Œå› æ­¤æ­¤éƒ¨åˆ†åªæ˜¯åˆ›å»ºæ–°å®ä¾‹
             ptr = std::make_shared<native_thread_winimpl>();
         }
 
-        void move(the_unknown_ptr &ptr) noexcept {
+        void move(the_unknown_ptr &ptr) noexcept override {
+            // ç§»åŠ¨å½“å‰å®ä¾‹çš„å¯¹è±¡
             ptr = std::make_shared<native_thread_winimpl>(utility::move(*this));
         }
 

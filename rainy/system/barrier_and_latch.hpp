@@ -2,7 +2,7 @@
 #define RAINY_BARRIER_AND_LATCH_H
 #include <atomic>
 #include <rainy/base.hpp>
-#include <rainy/meta_programming/type_traits.hpp>
+#include <rainy/meta/type_traits.hpp>
 
 #define RAINY_NODISCARD_BARRIER_TOKEN                                                                                                   \
     RAINY_NODISCARD_MSG("The token from 'arrive()' should not be discarded; it should be passed to 'wait()'.")

@@ -2,7 +2,7 @@
 #define RAINY_FUNCTIONAL_HPP
 #include <functional>
 #include <rainy/base.hpp>
-#include <rainy/meta_programming/type_traits.hpp>
+#include <rainy/meta/type_traits.hpp>
 #include <rainy/system/exceptions.hpp>
 
 namespace rainy::foundation::system::exceptions::runtime {

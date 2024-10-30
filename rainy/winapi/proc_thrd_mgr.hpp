@@ -5,7 +5,7 @@
 #include <chrono>
 #include <filesystem>
 #include <rainy/base.hpp>
-#include <rainy/meta_programming/type_traits.hpp>
+#include <rainy/meta/type_traits.hpp>
 #include <rainy/system/exceptions.hpp>
 #include <memory>
 #include <stdexcept>

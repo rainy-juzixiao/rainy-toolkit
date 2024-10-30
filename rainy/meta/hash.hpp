@@ -1,7 +1,7 @@
 ﻿#ifndef RAINY_HASH_HPP
 #define RAINY_HASH_HPP
 #include <rainy/core.hpp>
-#include <rainy/meta_programming/type_traits.hpp>
+#include <rainy/meta/type_traits.hpp>
 
 namespace rainy::utility {
     template <typename key>
@@ -18,8 +18,8 @@ namespace rainy::utility {
         RAINY_AINLINE_NODISCARD std::size_t fnv1a_append_range(const std::size_t offset_basis, const Ty *const first,
                                                                   const Ty *const last) {
             static_assert(foundation::type_traits::type_properties::is_trivial_v<Ty>, "Only trivial types can be directly hashed.");
-            const auto first_binary = reinterpret_cast<const unsigned char *>(first);
-            const auto last_binary = reinterpret_cast<const unsigned char *>(last);
+            const auto *const first_binary = reinterpret_cast<const unsigned char *>(first);
+            const auto *const last_binary = reinterpret_cast<const unsigned char *>(last);
             return fnv1a_append_bytes(offset_basis, first_binary, static_cast<size_t>(last_binary - first_binary));
         }
 

@@ -1102,26 +1102,12 @@ namespace rainy::foundation::type_traits::extras::meta_method {
                                           --utility::declval<decltype(utility::begin(utility::declval<U &>())) &>(),
                                           utility::declval<decltype(utility::begin(utility::declval<U &>())) &>()++,
                                           utility::declval<decltype(utility::begin(utility::declval<U &>())) &>()--,
-                                          *utility::begin(std::declval<U &>()), type_traits::helper::true_type{}) {
+                                          *utility::begin(utility::declval<U &>()), helper::true_type{}) {
         }
 
         template <typename>
-        static std::false_type test(...) {
-            return std::false_type{};
-        }
-
-        static RAINY_CONSTEXPR_BOOL value = decltype(test<Ty>(0))::value;
-    };
-
-    template <typename Ty>
-    struct has_value_type {
-        template <typename U>
-        static auto test(int) -> typename std::is_class<typename U::value_type>::type {
-        }
-
-        template <typename>
-        static std::false_type test(...) {
-            return std::false_type{};
+        static helper::false_type test(...) {
+            return helper::false_type{};
         }
 
         static RAINY_CONSTEXPR_BOOL value = decltype(test<Ty>(0))::value;
@@ -1130,12 +1116,12 @@ namespace rainy::foundation::type_traits::extras::meta_method {
     template <typename Ty>
     struct has_empty_method {
         template <typename U>
-        static auto test(int) -> decltype(utility::declval<U &>().empty(), std::true_type{}) {
+        static auto test(int) -> decltype(utility::declval<U &>().empty(), helper::true_type{}) {
         }
 
         template <typename>
-        static std::false_type test(...) {
-            return std::false_type{};
+        static helper::false_type test(...) {
+            return helper::false_type{};
         }
 
         static RAINY_CONSTEXPR_BOOL value = decltype(test<Ty>(0))::value;
@@ -1144,12 +1130,12 @@ namespace rainy::foundation::type_traits::extras::meta_method {
     template <typename Ty>
     struct has_size_method {
         template <typename U>
-        static auto test(int) -> decltype(utility::declval<U &>().size(), std::true_type{}) {
+        static auto test(int) -> decltype(utility::declval<U &>().size(), helper::true_type{}) {
         }
 
         template <typename>
-        static std::false_type test(...) {
-            return std::false_type{};
+        static helper::false_type test(...) {
+            return helper::false_type{};
         }
 
         static RAINY_CONSTEXPR_BOOL value = decltype(test<Ty>(0))::value;
@@ -1158,12 +1144,12 @@ namespace rainy::foundation::type_traits::extras::meta_method {
     template <typename Ty>
     struct has_data_method {
         template <typename U>
-        static auto test(int) -> decltype(utility::declval<U &>().data(), std::true_type{}) {
+        static auto test(int) -> decltype(utility::declval<U &>().data(), helper::true_type{}) {
         }
 
         template <typename>
-        static std::false_type test(...) {
-            return std::false_type{};
+        static helper::false_type test(...) {
+            return helper::false_type{};
         }
 
         static RAINY_CONSTEXPR_BOOL value = decltype(test<Ty>(0))::value;
@@ -1173,66 +1159,18 @@ namespace rainy::foundation::type_traits::extras::meta_method {
     struct has_assignment_operator {
         template <typename U>
 
-        static auto test(int) -> decltype(std::declval<U &>() = std::declval<const U &>(), std::true_type{}) {
+        static auto test(int) -> decltype(utility::declval<U &>() = utility::declval<const U &>(), helper::true_type{}) {
         }
 
         template <typename>
-        static std::false_type test(...) {
-            return std::false_type{};
+        static helper::false_type test(...) {
+            return helper::false_type{};
         }
 
         static RAINY_CONSTEXPR_BOOL value = decltype(test<Ty>(0))::value;
     };
 }
 
-namespace rainy::utility {
-    template <typename Callable>
-    class finally_impl : Callable {
-    public:
-        finally_impl(Callable &&callable) noexcept : Callable(std::forward<Callable>(callable)), invalidate(false) {
-        }
-
-        ~finally_impl() {
-            if (!is_invalidate()) {
-                invoke_now();
-            }
-        }
-
-        finally_impl(const finally_impl &) = delete;
-
-        finally_impl &operator=(const finally_impl &) = delete;
-        finally_impl &operator=(finally_impl &&) = delete;
-
-        RAINY_NODISCARD bool is_invalidate() const noexcept {
-            return invalidate;
-        }
-
-        void to_invalidate() noexcept {
-            invalidate = true;
-        }
-
-        void to_useable() noexcept {
-            invalidate = false;
-        }
-
-        void invoke_now() const {
-            (*this)();
-        }
-
-        template <typename Pred>
-        void set_condition(Pred &&pred) {
-            invalidate = static_cast<bool>(pred());
-        }
-
-    private:
-        bool invalidate;
-    };
-
-    template <typename Callable>
-    auto make_finally(Callable &&callable) -> finally_impl<Callable> {
-        return finally_impl<Callable>(std::forward<Callable>(callable));
-    }
-}
 
 /*
 forward和move以及exchange和实现
@@ -1311,6 +1249,58 @@ namespace rainy::utility {
         Ty old_val = static_cast<Ty &&>(val);
         val = static_cast<Other &&>(new_val);
         return old_val;
+    }
+}
+
+namespace rainy::utility {
+    template <typename Callable>
+    class finally_impl : Callable {
+    public:
+        template <foundation::type_traits::other_transformations::enable_if_t<
+                      foundation::type_traits::type_properties::is_invocable_r_v<void, Callable>, int> = 0>
+        finally_impl(Callable &&callable) noexcept : Callable(utility::forward<Callable>(callable)), invalidate(false) {
+        }
+
+        ~finally_impl() {
+            if (!is_invalidate()) {
+                invoke_now();
+            }
+        }
+
+        finally_impl(const finally_impl &) = delete;
+
+        finally_impl &operator=(const finally_impl &) = delete;
+        finally_impl &operator=(finally_impl &&) = delete;
+
+        RAINY_NODISCARD bool is_invalidate() const noexcept {
+            return invalidate;
+        }
+
+        void to_invalidate() noexcept {
+            invalidate = true;
+        }
+
+        void to_useable() noexcept {
+            invalidate = false;
+        }
+
+        void invoke_now() const {
+            (*this)();
+        }
+
+        template <typename Pred>
+        void set_condition(Pred &&pred) {
+            invalidate = static_cast<bool>(pred());
+        }
+
+    private:
+        bool invalidate;
+    };
+
+    template <typename Callable, foundation::type_traits::other_transformations::enable_if_t<
+                                     foundation::type_traits::type_properties::is_invocable_r_v<void, Callable>, int> = 0>
+    auto make_finally(Callable &&callable) -> finally_impl<Callable> {
+        return finally_impl<Callable>(std::forward<Callable>(callable));
     }
 }
 

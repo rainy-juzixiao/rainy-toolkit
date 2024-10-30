@@ -1,10 +1,10 @@
-#ifndef RAINY_LINUXAPI_PROC_THRD_MGR_H
+﻿#ifndef RAINY_LINUXAPI_PROC_THRD_MGR_H
 #define RAINY_LINUXAPI_PROC_THRD_MGR_H
 #include <rainy/core.hpp>
 #if RAINY_USING_LINUX
 #include <cstdlib>
 #include <rainy/base.hpp>
-#include <rainy/meta_programming/type_traits.hpp>
+#include <rainy/meta/type_traits.hpp>
 #include <rainy/system/exceptions.hpp>
 #include <memory>
 #include <pthread.h>

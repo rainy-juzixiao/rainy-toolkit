@@ -21,7 +21,7 @@ void benchmark(const char *const label, Fn &&func, Args &&...args) {
 #include <sstream>
 #include <unordered_set>
 #include <rainy/containers/any.hpp>
-#include <rainy/meta_programming/hash.hpp>
+#include <rainy/meta/hash.hpp>
 #include <rainy/utility.hpp>
 
 // declare
@@ -32,8 +32,8 @@ namespace rainy::foundation::reflection {
     class reflclass;
 }
 
-#include <rainy/meta_programming/reflection_core/field.hpp>
-#include <rainy/meta_programming/reflection_core/method.hpp>
+#include <rainy/meta/reflection_core/field.hpp>
+#include <rainy/meta/reflection_core/method.hpp>
 
 namespace rainy::foundation::reflection {
     template <typename Ty>

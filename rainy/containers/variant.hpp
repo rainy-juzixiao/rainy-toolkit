@@ -1,7 +1,7 @@
 ﻿#ifndef RAINY_VARIANT_HPP
 #define RAINY_VARIANT_HPP
 #include <rainy/base.hpp>
-#include <rainy/meta_programming/type_traits.hpp>
+#include <rainy/meta/type_traits.hpp>
 
 #if RAINY_USING_MSVC
 #pragma warning(push)
