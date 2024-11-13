@@ -4,8 +4,8 @@
 #ifndef RAINY_CORE_HPP
 #include <rainy/core.hpp>
 #endif
-
 namespace rainy::information::internals {
+#if RAINY_USING_AVX2
     RAINY_INLINE int32_t ctz_avx2(const uint32_t x) noexcept {
         if (x == 0) {
             return 32; // 特殊情况：输入为0
@@ -19,6 +19,7 @@ namespace rainy::information::internals {
         }
         return i;
     }
+#endif
 
     template <typename Ty>
     constexpr std::size_t string_length_compile_time(const Ty *string) {
@@ -59,7 +60,7 @@ namespace rainy::information::internals {
     template <typename Ty>
     int compare_string(const Ty *str1, const Ty *str2, std::size_t count) noexcept {
         using compare_type =
-            foundation::type_traits::other_transformations::conditional_t<foundation::type_traits::type_relations::is_same_v<Ty, wchar_t>,
+            type_traits::other_transformations::conditional_t<type_traits::type_relations::is_same_v<Ty, wchar_t>,
                                                                           wchar_t, unsigned char>;
         rainy_let ptr_left = reinterpret_cast<const compare_type *>(str1);
         rainy_let ptr_right = reinterpret_cast<const compare_type *>(str2);

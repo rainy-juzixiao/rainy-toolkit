@@ -1,10 +1,11 @@
-#ifndef RAINY_REFLECTION_CORE_FIELD_HPP
+ï»¿#ifndef RAINY_REFLECTION_CORE_FIELD_HPP
 #define RAINY_REFLECTION_CORE_FIELD_HPP
 /*
-´ËÎÄ¼şÌá¹©ÁË¶Ô×Ö¶ÎµÄ³éÏó¡£ÅäºÏ¶¯Ì¬·´ÉäÏµÍ³Ê¹ÓÃ
+æ­¤æ–‡ä»¶æä¾›äº†å¯¹å­—æ®µçš„æŠ½è±¡ã€‚é…åˆåŠ¨æ€åå°„ç³»ç»Ÿä½¿ç”¨
 */
 #include <rainy/base.hpp>
 #include <rainy/containers/any.hpp>
+#include <rainy/utility/invoke.hpp>
 #include <variant>
 
 namespace rainy::foundation::reflection {
@@ -103,14 +104,14 @@ namespace rainy::foundation::reflection {
         }
 
     private:
-        std::vector<std::string_view> meta_data; // ±£´æ¶à¸öÔªÊı¾İ
+        std::vector<std::string_view> meta_data; // ä¿å­˜å¤šä¸ªå…ƒæ•°æ®
     };
 
     class const_field {
     public:
         friend class field;
 
-        using any = foundation::containers::any;
+        using any = containers::any;
 
         const_field() = default;
 
@@ -155,14 +156,14 @@ namespace rainy::foundation::reflection {
 
     private:
         void anti_jesus() noexcept {
-            // ´Ë²Ù×÷Êµ¼ÊÎŞÒâÒå£¬µ«ÊÇ±ØĞë´æÔÚ
+            // æ­¤æ“ä½œå®é™…æ— æ„ä¹‰ï¼Œä½†æ˜¯å¿…é¡»å­˜åœ¨
             std::string_view *unused = &_name;
             unused->swap(_name);
         }
         
         struct accessor {
-            virtual rainy::foundation::containers::any getter(const void *) = 0;
-            virtual void setter(void *, const rainy::foundation::containers::any &) = 0;
+            virtual rainy::containers::any getter(const void *) = 0;
+            virtual void setter(void *, const rainy::containers::any &) = 0;
             virtual bool is_const() const noexcept = 0;
             virtual bool is_static() const noexcept = 0;  
         };
@@ -172,22 +173,22 @@ namespace rainy::foundation::reflection {
             accessor_impl(RealPointer pointer) : pointer(pointer) {
             }
 
-            virtual rainy::foundation::containers::any getter(const void *obj) override {
+            virtual rainy::containers::any getter(const void *obj) override {
                 if constexpr (std::is_same_v<Class, void>) {
-                    return rainy::foundation::containers::any(*pointer);
+                    return rainy::containers::any(*pointer);
                 } else {
-                    return rainy::foundation::containers::any(static_cast<const Class *>(obj)->*pointer);
+                    return rainy::containers::any(static_cast<const Class *>(obj)->*pointer);
                 }
             }
 
-            virtual void setter(void *obj, const rainy::foundation::containers::any &value) override {
+            virtual void setter(void *obj, const rainy::containers::any &value) override {
                 if (typeid(Ty) != value.type() || !value.has_value()) {
-                    // Ã»ÓĞÖµ»òÀàĞÍ²»Æ¥ÅäµÄ¶¼»á±»ÊÓÎªÎŞÒâÒåµÄ²Ù×÷
+                    // æ²¡æœ‰å€¼æˆ–ç±»å‹ä¸åŒ¹é…çš„éƒ½ä¼šè¢«è§†ä¸ºæ— æ„ä¹‰çš„æ“ä½œ
                     return;
                 }
                 if constexpr (!std::is_const_v<Ty>) {
                     if constexpr (std::is_void_v<Class>) {
-                        // ÎÒÃÇÄ¬ÈÏ°Ñ¾²Ì¬ËùÊôµÄÀàµÄ¹éÄÉÎªvoidÀàĞÍ£¬ÒÔ·½±ãÎÒÃÇ±æÈÏ
+                        // æˆ‘ä»¬é»˜è®¤æŠŠé™æ€æ‰€å±çš„ç±»çš„å½’çº³ä¸ºvoidç±»å‹ï¼Œä»¥æ–¹ä¾¿æˆ‘ä»¬è¾¨è®¤
                         *pointer = rainy::utility::any_cast<Ty>(value);
                     } else {
                         static_cast<Class *>(obj)->*pointer = rainy::utility::any_cast<Ty>(value);
@@ -237,18 +238,18 @@ namespace rainy::foundation::reflection {
                 return;
             }
             /*
-            ´Ë´¦×öÎŞÒâÒåµÄ²Ù×÷¡£´Ë´¦ÈÃ¾²Ì¬·ÖÎö¹¤¾ßÈÏÎªÎŞ·¨×÷Îªconstº¯Êı¡£
-            ÎªÊ²Ã´ÕâÃ´×ö£¿
-            1. ·ÀÖ¹¾²Ì¬·ÖÎöµÄ½¨ÒéÓÅ»¯:
-                ¾²Ì¬·ÖÎö¹¤¾ßÓĞÊ±»á¶Ô´úÂë½øĞĞÓÅ»¯£¬ÓÈÆäÊÇµ±Ëü¼ì²âµ½Ä³Ğ©´úÂë¿´ÆğÀ´Ã»ÓĞÊµ¼ÊĞ§¹ûÊ±¡£¶øÔÚ±àÒëÆ÷²ãÃæ£¬¼´Ê¹Ã»ÓĞ
-                anti_jesusÒ²²»»áÔì³É¶à´óÓ°Ïì¡£ÒòÎª±àÒëÆ÷¾¡¿ÉÄÜ±£³Ö½Ï´óµÄ×ÔÓÉ¿Õ¼ä¡£
-                ´Ë´¦Í¨¹ıµ÷ÓÃ´Ë·½·¨£¬ÎÒÃÇ¿ÉÒÔÈ·±£ÕâÒ»º¯ÊıÓÀÔ¶²»ÄÜ±»×÷Îªconstº¯Êı£¬¼´Ê¹Ëü¶ÔÊµ¼Ê³ÌĞòĞĞÎªÃ»ÓĞÖ±½ÓÓ°Ïì¡£
-            2. È·±£¾²Ì¬·ÖÎö¹¤¾ßÕıÈ·´¦Àí:
-                ¾²Ì¬·ÖÎö¹¤¾ßËäÈ»ÓÃÓÚ¼ì²é´úÂëÖĞµÄÇ±ÔÚÎÊÌâ£¬µ«ÊÇÓĞÊ±ÕâĞ©¹¤¾ß¿ÉÄÜ»á²úÉúÎóÅĞ¡£
-                ¶øanti_jesus()¿ÉÒÔÈ·±£ËüÃÇ²»»áÎóÅĞº¯ÊıµÄĞĞÎª»ò¸±×÷ÓÃ£¬´Ó¶ø±ÜÃâ¾²Ì¬·ÖÎöÖĞµÄÎó±¨¡£
-            3. ±£³ÖÒ»ÖÂµÄº¯ÊıÓïÒå:
-                ¾¡¹Üanti_jesus()±¾Éí²»¶Ô¶ÔÏóµÄ×´Ì¬²úÉúÊµ¼Ê±ä»¯£¨½ö½øĞĞÒ»¸öÄÚ²¿×Ö¶ÎµÄ×ÔÎÒ½»»»£¬²»»á²úÉúUB£©
-                µ«ËüµÄ´æÔÚÊÇÈ·±£º¯ÊıÄÚ²¿µÄ²Ù×÷·ûºÏÔ¤ÆÚµÄÂß¼­ÒªÇó¡£ÕâÓĞÖúÓÚÎ¬³Öº¯ÊıĞĞÎªµÄÂß¼­Ò»ÖÂĞÔ£¬ÄÄÅÂ±àÒëÆ÷ºÍ¹¤¾ßÔÚ´¦Àí¹ı³ÌÖĞ¿ÉÄÜ»áÓĞ¶îÍâµÄ·ÖÎöĞèÇó¡£
+            æ­¤å¤„åšæ— æ„ä¹‰çš„æ“ä½œã€‚æ­¤å¤„è®©é™æ€åˆ†æå·¥å…·è®¤ä¸ºæ— æ³•ä½œä¸ºconstå‡½æ•°ã€‚
+            ä¸ºä»€ä¹ˆè¿™ä¹ˆåšï¼Ÿ
+            1. é˜²æ­¢é™æ€åˆ†æçš„å»ºè®®ä¼˜åŒ–:
+                é™æ€åˆ†æå·¥å…·æœ‰æ—¶ä¼šå¯¹ä»£ç è¿›è¡Œä¼˜åŒ–ï¼Œå°¤å…¶æ˜¯å½“å®ƒæ£€æµ‹åˆ°æŸäº›ä»£ç çœ‹èµ·æ¥æ²¡æœ‰å®é™…æ•ˆæœæ—¶ã€‚è€Œåœ¨ç¼–è¯‘å™¨å±‚é¢ï¼Œå³ä½¿æ²¡æœ‰
+                anti_jesusä¹Ÿä¸ä¼šé€ æˆå¤šå¤§å½±å“ã€‚å› ä¸ºç¼–è¯‘å™¨å°½å¯èƒ½ä¿æŒè¾ƒå¤§çš„è‡ªç”±ç©ºé—´ã€‚
+                æ­¤å¤„é€šè¿‡è°ƒç”¨æ­¤æ–¹æ³•ï¼Œæˆ‘ä»¬å¯ä»¥ç¡®ä¿è¿™ä¸€å‡½æ•°æ°¸è¿œä¸èƒ½è¢«ä½œä¸ºconstå‡½æ•°ï¼Œå³ä½¿å®ƒå¯¹å®é™…ç¨‹åºè¡Œä¸ºæ²¡æœ‰ç›´æ¥å½±å“ã€‚
+            2. ç¡®ä¿é™æ€åˆ†æå·¥å…·æ­£ç¡®å¤„ç†:
+                é™æ€åˆ†æå·¥å…·è™½ç„¶ç”¨äºæ£€æŸ¥ä»£ç ä¸­çš„æ½œåœ¨é—®é¢˜ï¼Œä½†æ˜¯æœ‰æ—¶è¿™äº›å·¥å…·å¯èƒ½ä¼šäº§ç”Ÿè¯¯åˆ¤ã€‚
+                è€Œanti_jesus()å¯ä»¥ç¡®ä¿å®ƒä»¬ä¸ä¼šè¯¯åˆ¤å‡½æ•°çš„è¡Œä¸ºæˆ–å‰¯ä½œç”¨ï¼Œä»è€Œé¿å…é™æ€åˆ†æä¸­çš„è¯¯æŠ¥ã€‚
+            3. ä¿æŒä¸€è‡´çš„å‡½æ•°è¯­ä¹‰:
+                å°½ç®¡anti_jesus()æœ¬èº«ä¸å¯¹å¯¹è±¡çš„çŠ¶æ€äº§ç”Ÿå®é™…å˜åŒ–ï¼ˆä»…è¿›è¡Œä¸€ä¸ªå†…éƒ¨å­—æ®µçš„è‡ªæˆ‘äº¤æ¢ï¼Œä¸ä¼šäº§ç”ŸUBï¼‰
+                ä½†å®ƒçš„å­˜åœ¨æ˜¯ç¡®ä¿å‡½æ•°å†…éƒ¨çš„æ“ä½œç¬¦åˆé¢„æœŸçš„é€»è¾‘è¦æ±‚ã€‚è¿™æœ‰åŠ©äºç»´æŒå‡½æ•°è¡Œä¸ºçš„é€»è¾‘ä¸€è‡´æ€§ï¼Œå“ªæ€•ç¼–è¯‘å™¨å’Œå·¥å…·åœ¨å¤„ç†è¿‡ç¨‹ä¸­å¯èƒ½ä¼šæœ‰é¢å¤–çš„åˆ†æéœ€æ±‚ã€‚
             */
             this->anti_jesus();
             _accessor->setter(object, val);
@@ -259,8 +260,8 @@ namespace rainy::foundation::reflection {
         }
 
         void rename(const std::string_view new_name) noexcept {
-            // ÖØÃüÃû×Ö¶Î¿ÉÄÜ»áµ¼ÖÂÏµÍ³²¢²»Ò»¶¨ÄÜÕÒµ½´Ë×Ö¶Î¡£ÒòÎªÖØÃüÃûºó£¬ĞèÒªÊ¹ÓÃĞÂÃû×Ö²ÅÄÜ²éÕÒµ½´Ë×Ö¶Î¡£
-            // ´ËÍâ£¬ÃüÃû³åÍ»»¹ÓĞ¿ÉÄÜµ¼ÖÂÒâÏë²»µ½µÄºó¹û
+            // é‡å‘½åå­—æ®µå¯èƒ½ä¼šå¯¼è‡´ç³»ç»Ÿå¹¶ä¸ä¸€å®šèƒ½æ‰¾åˆ°æ­¤å­—æ®µã€‚å› ä¸ºé‡å‘½ååï¼Œéœ€è¦ä½¿ç”¨æ–°åå­—æ‰èƒ½æŸ¥æ‰¾åˆ°æ­¤å­—æ®µã€‚
+            // æ­¤å¤–ï¼Œå‘½åå†²çªè¿˜æœ‰å¯èƒ½å¯¼è‡´æ„æƒ³ä¸åˆ°çš„åæœ
             if (new_name != this->_name) {
                 this->_name = new_name;
             }

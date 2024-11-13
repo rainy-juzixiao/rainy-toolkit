@@ -1,4 +1,4 @@
-#ifndef RAINY_COROUTINE_H
+﻿#ifndef RAINY_COROUTINE_H
 #define RAINY_COROUTINE_H
 
 #include <rainy/core.hpp>
@@ -301,10 +301,10 @@ namespace rainy::user::async::utils {
         coroutine_type coroutine;
     };
 
-    template <foundation::type_traits::concepts::awaitable awaitable_type,
-              typename return_type = typename foundation::type_traits::concepts::awaitable_traits<awaitable_type>::awaiter_return_type>
+    template <type_traits::concepts::awaitable awaitable_type,
+              typename return_type = typename type_traits::concepts::awaitable_traits<awaitable_type>::awaiter_return_type>
     static auto make_sync_wait_task(awaitable_type &&a) -> sync_wait_task<return_type> {
-        if constexpr (foundation::type_traits::primary_types::is_void_v<return_type>) {
+        if constexpr (type_traits::primary_types::is_void_v<return_type>) {
             co_await foundation::utility::forward<awaitable_type>(a);
             co_return;
         } else {
@@ -539,8 +539,8 @@ namespace rainy::user::async {
         coroutine_handle coro{nullptr};
     };
 
-    template <foundation::type_traits::concepts::awaitable awaitable_type,
-              typename return_type = typename foundation::type_traits::concepts::awaitable_traits<awaitable_type>::awaiter_return_type>
+    template <type_traits::concepts::awaitable awaitable_type,
+              typename return_type = typename type_traits::concepts::awaitable_traits<awaitable_type>::awaiter_return_type>
     auto sync_wait(awaitable_type &&awaitable) {
         utils::sync_wait_event event{};
         auto task = utils::make_sync_wait_task(foundation::utility::forward<awaitable_type>(awaitable));

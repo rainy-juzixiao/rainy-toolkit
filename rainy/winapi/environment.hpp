@@ -63,7 +63,7 @@ namespace rainy::winapi::environment {
 
         template <typename CharType>
         result_list<CharType> get_environment_var_by_list(std::basic_string_view<CharType> name) const {
-            using namespace foundation::type_traits;
+            using namespace type_traits;
             static_assert(type_relations::is_any_of_v<CharType, char, wchar_t>, "Only support wchat_t and char types");
 
             std::lock_guard<std::shared_mutex> lock(get_shared_mutex()); 
@@ -106,7 +106,7 @@ namespace rainy::winapi::environment {
 
         template <typename CharType>
         result<CharType> get_environment_var(std::basic_string_view<CharType> name) const {
-            using namespace foundation::type_traits;
+            using namespace type_traits;
             static_assert(type_relations::is_any_of_v<CharType, char, wchar_t>, "Only support wchat_t and char types");
 
             using string_type = std::basic_string<CharType>;
@@ -183,16 +183,16 @@ namespace rainy::winapi::environment {
 
     private:
         template <typename CharType>
-        static inline constexpr bool is_wchar = foundation::type_traits::helper::is_wchar_t<CharType>;
+        static inline constexpr bool is_wchar = rainy::type_traits::helper::is_wchar_t<CharType>;
 
         template <typename CharType>
-        static inline constexpr CharType split_char = foundation::type_traits::other_transformations::conditional_t<
-            is_wchar<CharType>, foundation::type_traits::helper::integral_constant<char, ';'>,
-            foundation::type_traits::helper::integral_constant<wchar_t, L';'>>::value; // 根据字符类型，选择相应的分隔符
+        static inline constexpr CharType split_char = type_traits::other_transformations::conditional_t<
+            is_wchar<CharType>, type_traits::helper::integral_constant<char, ';'>,
+            type_traits::helper::integral_constant<wchar_t, L';'>>::value; // 根据字符类型，选择相应的分隔符
 
         template <typename CharType>
         static DWORD get_environment_impl(const std::basic_string_view<CharType> &name, std::basic_string<CharType> &buffer, DWORD size) {
-            using namespace foundation::type_traits;
+            using namespace type_traits;
             static_assert(type_relations::is_any_of_v<CharType, char, wchar_t>, "Only support wchat_t and char types");
             if constexpr (is_wchar<CharType>) {
                 return GetEnvironmentVariableW(name.data(), &buffer[0], size);
@@ -203,7 +203,7 @@ namespace rainy::winapi::environment {
 
         template <typename CharType>
         static BOOL set_environment_impl(const std::basic_string_view<CharType> &name, const std::basic_string_view<CharType> &value) {
-            using namespace foundation::type_traits;
+            using namespace type_traits;
             static_assert(type_relations::is_any_of_v<CharType, char, wchar_t>, "Only support wchat_t and char types");
             if constexpr (is_wchar<CharType>) {
                 return SetEnvironmentVariableW(name, value);

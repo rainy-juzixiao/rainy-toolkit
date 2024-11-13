@@ -5,7 +5,7 @@
 #include <rainy/meta/type_traits.hpp>
 #include <optional>
 
-namespace rainy::foundation::containers {
+namespace rainy::containers {
     struct nullopt_t {
         struct tag {};
         constexpr explicit nullopt_t(tag) {
@@ -18,7 +18,7 @@ namespace rainy::foundation::containers {
     class optional;
 }
 
-namespace rainy::foundation::containers::internals {
+namespace rainy::containers::internals {
     template <typename Ty>
     class optional_base {
     protected:
@@ -68,7 +68,7 @@ namespace rainy::foundation::containers::internals {
 }
 
 
-namespace rainy::foundation::containers {
+namespace rainy::containers {
     template <typename Ty>
     class optional : internals::optional_base<Ty> {
     public:

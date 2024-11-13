@@ -199,7 +199,7 @@ namespace rainy::foundation::functional::internals {
             if (empty()) {
                 system::exceptions::runtime::throw_invoke_error("internal object is null!");
             }
-            if constexpr (foundation::type_traits::primary_types::is_void_v<return_type>) {
+            if constexpr (type_traits::primary_types::is_void_v<return_type>) {
                 instance->invoke(args...);
             } else {
                 return instance->invoke(args...);

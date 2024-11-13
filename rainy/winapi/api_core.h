@@ -5,8 +5,8 @@
 
 #define RAINY_DECLARE_CHARSET_TEMPLATE \
 template<typename CharType = char, \
-          rainy::foundation::type_traits::other_transformations::enable_if_t<\
-rainy::winapi::type_traits::is_support_charset_v<CharType>, int> = 0>
+          rainy::type_traits::other_transformations::enable_if_t<\
+rainy::type_traits::extras::winapi::is_support_charset_v<CharType>, int> = 0>
 
 namespace rainy::information::winapi {
     constexpr internals::raw_string_view<char> winapi_name("rainy.winapi");

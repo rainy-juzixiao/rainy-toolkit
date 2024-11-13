@@ -71,7 +71,7 @@ namespace rainy::foundation::system::exceptions {
 #endif
     }
 
-    RAINY_INLINE exception stdexcept_to_jexcept(
+    RAINY_INLINE exception stdexcept_to_rexcept(
         const std::exception &except, const diagnostics::source_location &location = diagnostics::source_location::current()) {
         if (!dynamic_cast<const exception *>(&except)) {
             // 不应该转换为rainy's toolkit的异常。因为我们要的是标准库异常
@@ -171,7 +171,7 @@ public:
 #endif
 
 namespace rainy::utility {
-    using foundation::system::exceptions::stdexcept_to_jexcept;
+    using foundation::system::exceptions::stdexcept_to_rexcept;
     using foundation::system::exceptions::throw_exception;
 }
 

@@ -1,9 +1,9 @@
-/*
-ÎÄ¼şÃû: nebula_ptr.hpp
-´ËÍ·ÎÄ¼şÓÃÓÚ´æ·Ånebula_ptrÖÇÄÜÖ¸ÕëµÄÊµÏÖ
+ï»¿/*
+æ–‡ä»¶å: nebula_ptr.hpp
+æ­¤å¤´æ–‡ä»¶ç”¨äºå­˜æ”¾nebula_ptræ™ºèƒ½æŒ‡é’ˆçš„å®ç°
 
 nebula_ptr:
-Ò»¸öÀàÄ£°åÀàĞÍ¡£ÊôÓÚ¶ÀÕ¼ËùÓĞÈ¨ÓïÒåÖ¸Õë¡£ËüµÄÄ¿±êÔÚÓÚÎªÓÃ»§Ìá¹©Ò»¸ö±ÈÆğstd::unique_ptr¸ü¼ÓÁé»îµÄAPI½Ó¿Ú½â¾ö·½°¸
+ä¸€ä¸ªç±»æ¨¡æ¿ç±»å‹ã€‚å±äºç‹¬å æ‰€æœ‰æƒè¯­ä¹‰æŒ‡é’ˆã€‚å®ƒçš„ç›®æ ‡åœ¨äºä¸ºç”¨æˆ·æä¾›ä¸€ä¸ªæ¯”èµ·std::unique_ptræ›´åŠ çµæ´»çš„APIæ¥å£è§£å†³æ–¹æ¡ˆ
 */
 
 #ifndef RAINY_NEBULA_PTR
@@ -38,11 +38,11 @@ namespace rainy::foundation::system::memory {
         }
 
         template <typename Uty,
-                  foundation::type_traits::other_transformations::enable_if_t<std::is_convertible_v<Uty *, pointer>, int> = 0>
+                  type_traits::other_transformations::enable_if_t<std::is_convertible_v<Uty *, pointer>, int> = 0>
         RAINY_CONSTEXPR20 nebula_ptr_base(Uty *pointer) noexcept : pair(Dx{}, pointer) {
         }
 
-        template <typename Uty, foundation::type_traits::other_transformations::enable_if_t<
+        template <typename Uty, type_traits::other_transformations::enable_if_t<
                                     std::is_convertible_v<Uty *, pointer> && std::is_copy_constructible_v<deleter_type>, int> = 0>
         RAINY_CONSTEXPR20 nebula_ptr_base(Uty *pointer, deleter_type deleter) : pair(Dx{}, pointer) {
         }
@@ -51,7 +51,7 @@ namespace rainy::foundation::system::memory {
         nebula_ptr_base(nebula_ptr_base &&) = default;
 
         template <typename Dx2 = Dx,
-                  foundation::type_traits::other_transformations::enable_if_t<
+                  type_traits::other_transformations::enable_if_t<
                       std::conjunction_v<std::is_reference<Dx2>, std::is_constructible<Dx2, std::remove_reference_t<Dx2>>>, int> = 0>
         nebula_ptr_base(pointer, std::remove_reference_t<Dx> &&) = delete;
 
@@ -116,7 +116,7 @@ namespace rainy::foundation::system::memory {
 
         template <typename Base, type_traits::other_transformations::enable_if_t<std::is_base_of_v<Base, Ty>, int> = 0>
         nebula_ptr_base<Base, Dx> &upcast() noexcept {
-            // ÎÒÃÇÎŞ·¨Ê¹ÓÃRTTIµÄdynamic_cast¹¦ÄÜÀ´½øĞĞ×ª»»¡£Òò´Ë£¬ÎÒÃÇĞèÒªÊ¹ÓÃ¾²Ì¬SFINAEÀ´È·±£°²È«×ª»»
+            // æˆ‘ä»¬æ— æ³•ä½¿ç”¨RTTIçš„dynamic_caståŠŸèƒ½æ¥è¿›è¡Œè½¬æ¢ã€‚å› æ­¤ï¼Œæˆ‘ä»¬éœ€è¦ä½¿ç”¨é™æ€SFINAEæ¥ç¡®ä¿å®‰å…¨è½¬æ¢
             return reinterpret_cast<nebula_ptr_base<Base, Dx> &>(*this);
         }
 
@@ -195,9 +195,9 @@ namespace rainy::foundation::system::memory {
     class nebula_ptr<Ty[], Dx> : public nebula_ptr_base<Ty, Dx> {
     public:
         using base = nebula_ptr_base<Ty, Dx>;
-        using element_type = base::element_type;
+        using element_type = typename base::element_type;
         using size_type = std::size_t;
-        using pointer = base::pointer;
+        using pointer = typename base::pointer;
         using base::base;
 
         nebula_ptr(element_type *ptr, const size_type length) : base(ptr), _length(length), local(false) {
@@ -330,12 +330,12 @@ namespace rainy::foundation::system::memory {
     };
 
     /**
-     * @brief ´´½¨Ò»¸ö `nebula_ptr` Ö¸Õë£¬ÓÃÓÚ¹ÜÀíÒ»¸ö·ÇÊı×éÀàĞÍ¶ÔÏóµÄÉúÃüÖÜÆÚ¡£
+     * @brief åˆ›å»ºä¸€ä¸ª `nebula_ptr` æŒ‡é’ˆï¼Œç”¨äºç®¡ç†ä¸€ä¸ªéæ•°ç»„ç±»å‹å¯¹è±¡çš„ç”Ÿå‘½å‘¨æœŸã€‚
      *
-     * @tparam Ty Òª´´½¨µÄ¶ÔÏóµÄÀàĞÍ£¬±ØĞë²»ÊÇÊı×éÀàĞÍ¡£
-     * @tparam Args Òª´«µİ¸ø¶ÔÏó¹¹Ôìº¯ÊıµÄ²ÎÊıÀàĞÍ¡£
-     * @param args ¹¹Ôì¶ÔÏóÊ±ĞèÒªµÄ²ÎÊı£¬¿ÉÒÔÊÇÈÎÒâÊıÁ¿¡£
-     * @return ·µ»ØÒ»¸ö `nebula_ptr<Ty>` Ö¸Õë£¬Ö¸ÏòĞÂ´´½¨µÄ¶ÔÏó¡£
+     * @tparam Ty è¦åˆ›å»ºçš„å¯¹è±¡çš„ç±»å‹ï¼Œå¿…é¡»ä¸æ˜¯æ•°ç»„ç±»å‹ã€‚
+     * @tparam Args è¦ä¼ é€’ç»™å¯¹è±¡æ„é€ å‡½æ•°çš„å‚æ•°ç±»å‹ã€‚
+     * @param args æ„é€ å¯¹è±¡æ—¶éœ€è¦çš„å‚æ•°ï¼Œå¯ä»¥æ˜¯ä»»æ„æ•°é‡ã€‚
+     * @return è¿”å›ä¸€ä¸ª `nebula_ptr<Ty>` æŒ‡é’ˆï¼ŒæŒ‡å‘æ–°åˆ›å»ºçš„å¯¹è±¡ã€‚
      *
      */
     template <typename Ty, typename... Args, type_traits::other_transformations::enable_if_t<!std::is_array_v<Ty>, int> = 0>
@@ -344,16 +344,16 @@ namespace rainy::foundation::system::memory {
     }
 
     /**
-     * @brief ´´½¨Ò»¸ö `nebula_ptr` Ö¸Õë£¬ÓÃÓÚ¹ÜÀíÒ»¸ö¶¯Ì¬Êı×éÀàĞÍ¶ÔÏóµÄÉúÃüÖÜÆÚ¡£
+     * @brief åˆ›å»ºä¸€ä¸ª `nebula_ptr` æŒ‡é’ˆï¼Œç”¨äºç®¡ç†ä¸€ä¸ªåŠ¨æ€æ•°ç»„ç±»å‹å¯¹è±¡çš„ç”Ÿå‘½å‘¨æœŸã€‚
      *
-     * @tparam Ty Òª´´½¨µÄ¶ÔÏóÀàĞÍ£¬±ØĞëÊÇÊı×éÀàĞÍ£¬²¢ÇÒ³ß´ç±ØĞëÎª0£¨¼´¶¯Ì¬´óĞ¡Êı×é£©¡£
-     * @tparam Args Òª´«µİ¸ø¶ÔÏó¹¹Ôìº¯ÊıµÄ²ÎÊıÀàĞÍ¡£
-     * @param num Òª´´½¨µÄÊı×éµÄ´óĞ¡¡£
-     * @param args ¹¹Ôì¶ÔÏóĞèÒªµÄ²ÎÊı£¬¿ÉÒÔÊÇÈÎÒâÊıÁ¿
-     * @return ·µ»ØÒ»¸ö `nebula_ptr<Ty[]>` Ö¸Õë£¬Ö¸ÏòĞÂ´´½¨µÄ¶¯Ì¬Êı×é¡£
+     * @tparam Ty è¦åˆ›å»ºçš„å¯¹è±¡ç±»å‹ï¼Œå¿…é¡»æ˜¯æ•°ç»„ç±»å‹ï¼Œå¹¶ä¸”å°ºå¯¸å¿…é¡»ä¸º0ï¼ˆå³åŠ¨æ€å¤§å°æ•°ç»„ï¼‰ã€‚
+     * @tparam Args è¦ä¼ é€’ç»™å¯¹è±¡æ„é€ å‡½æ•°çš„å‚æ•°ç±»å‹ã€‚
+     * @param num è¦åˆ›å»ºçš„æ•°ç»„çš„å¤§å°ã€‚
+     * @param args æ„é€ å¯¹è±¡éœ€è¦çš„å‚æ•°ï¼Œå¯ä»¥æ˜¯ä»»æ„æ•°é‡
+     * @return è¿”å›ä¸€ä¸ª `nebula_ptr<Ty[]>` æŒ‡é’ˆï¼ŒæŒ‡å‘æ–°åˆ›å»ºçš„åŠ¨æ€æ•°ç»„ã€‚
      *
      * @remark
-     * ¸Ãº¯Êı¸ºÔğ·ÖÅäºÍ³õÊ¼»¯Ò»¸öÖ¸¶¨´óĞ¡µÄ¶¯Ì¬Êı×é£¬Ê¹ÓÃÄ¬ÈÏ¹¹Ôìº¯Êı³õÊ¼»¯Ã¿¸öÔªËØ¡£
+     * è¯¥å‡½æ•°è´Ÿè´£åˆ†é…å’Œåˆå§‹åŒ–ä¸€ä¸ªæŒ‡å®šå¤§å°çš„åŠ¨æ€æ•°ç»„ï¼Œä½¿ç”¨é»˜è®¤æ„é€ å‡½æ•°åˆå§‹åŒ–æ¯ä¸ªå…ƒç´ ã€‚
      *
      */
     template <typename Ty, typename... Args,
@@ -397,7 +397,7 @@ namespace rainy::foundation::system::memory {
         auto data = new elem[num];
         std::size_t count = num > ilist.size() ? ilist.size() : num;
         std::copy_n(ilist.begin(), count, data);
-        return unqiue_ptr<Ty>(data, num);
+        return unique_ptr<Ty>(data, num);
     }
 }
 

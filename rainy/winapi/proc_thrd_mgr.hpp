@@ -60,7 +60,7 @@ namespace rainy::winapi::proc_thrd {
         template <typename CharType = char>
         utility::result_collection<DWORD, std::basic_string<CharType>> current_directory() noexcept {
             static_assert(type_traits::is_support_charset_v<CharType>, "Only support wchat_t and char types");
-            using namespace foundation::type_traits;
+            using namespace type_traits;
             namespace fs = std::filesystem;
             DWORD require_size{0};
             if constexpr (helper::is_wchar_t<CharType>) {
@@ -91,10 +91,10 @@ namespace rainy::winapi::proc_thrd {
             }
             void* const parent_process = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, pid);
 
-            string_type buffer(MAX_PATH, foundation::type_traits::helper::char_null_v<CharType>);
+            string_type buffer(MAX_PATH, type_traits::helper::char_null_v<CharType>);
             DWORD buffer_size{MAX_PATH};
             BOOL result{FALSE};
-            if constexpr (foundation::type_traits::helper::is_wchar_t<CharType>) {
+            if constexpr (type_traits::helper::is_wchar_t<CharType>) {
                 result = QueryFullProcessImageNameW(parent_process, 0, &buffer[0], &buffer_size);
             } else {
                 result = QueryFullProcessImageNameA(parent_process, 0, &buffer[0], &buffer_size);
@@ -108,7 +108,7 @@ namespace rainy::winapi::proc_thrd {
         template <typename CharType = char>
         utility::result_collection<DWORD, std::basic_string<CharType>> system_directory() noexcept {
             static_assert(type_traits::is_support_charset_v<CharType>, "Only support wchat_t and char types");
-            using namespace foundation::type_traits;
+            using namespace type_traits;
             namespace fs = std::filesystem;
             static std::basic_string<CharType> buffer(MAX_PATH, helper::char_null_v<CharType>);
             if (!buffer[0] == helper::char_null_v<CharType>) {
@@ -131,7 +131,7 @@ namespace rainy::winapi::proc_thrd {
         template <typename CharType = char>
         utility::result_collection<DWORD, std::basic_string<CharType>> windows_directory() noexcept {
             static_assert(type_traits::is_support_charset_v<CharType>, "Only support wchat_t and char types");
-            using namespace foundation::type_traits;
+            using namespace type_traits;
             namespace fs = std::filesystem;
             static std::basic_string<CharType> buffer(MAX_PATH, helper::char_null_v<CharType>);
             if (!buffer[0] == helper::char_null_v<CharType>) {
@@ -227,7 +227,7 @@ namespace rainy::winapi::proc_thrd {
         template <typename CharType>
         BOOL create(const std::basic_string_view<CharType> &target, const std::basic_string_view<CharType> &command_line = {}) {
             static_assert(type_traits::is_support_charset_v<CharType>, "Only support wchat_t and char types");
-            using namespace foundation::type_traits;
+            using namespace type_traits;
             namespace fs = std::filesystem;
             using startupinfo_type = other_transformations::conditional_t<helper::is_wchar_t<CharType>, STARTUPINFOW, STARTUPINFOA>;
             using string_type = std::basic_string<CharType>;
@@ -250,7 +250,7 @@ namespace rainy::winapi::proc_thrd {
             */
             if (procced_command_line[0] != ' ') {
                 // 由于CreateProcess中传递命令行参数，字符串0索引必须是空格才能成功传递，所以此处需要修改
-                procced_command_line.insert(procced_command_line.begin(), foundation::type_traits::helper::char_space_v<CharType>);
+                procced_command_line.insert(procced_command_line.begin(), type_traits::helper::char_space_v<CharType>);
             }
             startupinfo_type startup_info{};
             std::memset(&startup_info, 0, sizeof(startupinfo_type));
@@ -441,10 +441,10 @@ namespace rainy::winapi::proc_thrd {
         thread_manager() : thread_({}) {
         }
 
-        template <typename Fx, typename... Args,foundation::type_traits::other_transformations::enable_if_t<
-                                   !foundation::type_traits::type_relations::is_same_v<
-                                       foundation::type_traits::cv_modify::remove_cvref_t<Fx>, thread_manager> &&
-                                       foundation::type_traits::type_properties::is_invocable_r_v<void, Fx, Args...>,
+        template <typename Fx, typename... Args,type_traits::other_transformations::enable_if_t<
+                                   !type_traits::type_relations::is_same_v<
+                                       type_traits::cv_modify::remove_cvref_t<Fx>, thread_manager> &&
+                                       type_traits::type_properties::is_invocable_r_v<void, Fx, Args...>,
                                    int> = 0>
         explicit thread_manager(Fx&& handler,Args... args) : thread_({}) {
             create_thread(foundation::utility::forward<Fx>(handler),foundation::utility::forward<Args>(args)...);
@@ -504,10 +504,10 @@ namespace rainy::winapi::proc_thrd {
             return thread_.id;
         }
 
-        template <typename Fx, typename... Args,foundation::type_traits::other_transformations::enable_if_t<
-                                   !foundation::type_traits::type_relations::is_same_v<
-                                       foundation::type_traits::cv_modify::remove_cvref_t<Fx>, thread_manager> &&
-                                       foundation::type_traits::type_properties::is_invocable_r_v<void, Fx, Args...>,
+        template <typename Fx, typename... Args,type_traits::other_transformations::enable_if_t<
+                                   !type_traits::type_relations::is_same_v<
+                                       type_traits::cv_modify::remove_cvref_t<Fx>, thread_manager> &&
+                                       type_traits::type_properties::is_invocable_r_v<void, Fx, Args...>,
                                    int> = 0>
         void start(Fx&& handler,Args &&...args) {
             create_thread(foundation::utility::forward<Fx>(handler),foundation::utility::forward<Args>(args)...);

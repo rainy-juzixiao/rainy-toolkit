@@ -1,4 +1,4 @@
-#ifndef RAINY_CORE_GCC_TYPETRAITS_HPP
+﻿#ifndef RAINY_CORE_GCC_TYPETRAITS_HPP
 #define RAINY_CORE_GCC_TYPETRAITS_HPP
 
 #ifndef RAINY_HAS_INCLUDE_PTR_DECLARE
@@ -10,7 +10,7 @@
 此命名空间是预先声明给gnu编译器的，请勿使用
 原因是此区域是处于混乱的
 */
-namespace rainy::foundation::type_traits::internals::gcc_detail_impl {
+namespace rainy::type_traits::internals::gcc_detail_impl {
     template <bool, typename Ty = void>
     struct enable_if {};
 

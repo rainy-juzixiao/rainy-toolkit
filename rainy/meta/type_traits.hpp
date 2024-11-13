@@ -21,131 +21,7 @@ static_assert(false, "使用了未知的编译器");
 
 #include <rainy/core.hpp>
 
-namespace rainy::foundation::type_traits {
-    namespace primary_types {
-        template <typename Ty>
-        RAINY_CONSTEXPR_BOOL is_void_v = type_relations::is_same_v<void, Ty>;
-
-        template <typename Ty>
-        struct is_void : helper::bool_constant<is_void_v<Ty>> {};
-
-        /**
-         * @brief 检索类型是否具有特化
-         * @tparam Type 要检查的特化模板
-         * @tparam Template 特化的类型
-         * @remark
-         */
-        template <typename Type, template <typename...> typename Template>
-        RAINY_CONSTEXPR_BOOL is_specialization_v = false;
-
-        template <template <typename...> typename Template, typename... Types>
-        RAINY_CONSTEXPR_BOOL is_specialization_v<Template<Types...>, Template> = true;
-
-        /**
-         * @brief 检索类型是否具有特化
-         * @tparam Type 要检查的特化模板
-         * @tparam Template 特化的类型
-         */
-        template <typename Type, template <typename...> typename Template>
-        struct is_specialization : helper::bool_constant<is_specialization_v<Type, Template>> {};
-
-        template <typename Ty>
-        RAINY_CONSTEXPR_BOOL is_enum_v = internals::_is_enum_v<Ty>;
-
-        template <typename Ty>
-        struct is_enum : helper::bool_constant<is_enum_v<Ty>> {};
-
-        template <typename Ty>
-        RAINY_CONSTEXPR_BOOL is_pod_v = std::is_standard_layout_v<Ty> && std::is_trivial_v<Ty>;
-
-        template <typename Ty>
-        RAINY_CONSTEXPR_BOOL is_integral_v = internals::_is_integral_v<Ty>;
-
-        template <typename Ty>
-        struct is_integral : helper::bool_constant<is_integral_v<Ty>> {};
-
-        template <typename Ty>
-        RAINY_CONSTEXPR_BOOL is_floating_point_v = internals::_is_floating_point_v<Ty>;
-
-        template <typename Ty>
-        struct is_floating_point : helper::bool_constant<is_floating_point_v<Ty>> {};
-
-        template <typename Ty>
-        struct is_union : helper::bool_constant<__is_union(Ty)> {};
-
-        template <typename Ty>
-        RAINY_CONSTEXPR_BOOL is_union_v = __is_union(Ty);
-
-        template <typename Ty>
-        struct is_class : helper::bool_constant<__is_class(Ty)> {};
-
-        template <typename Ty>
-        RAINY_CONSTEXPR_BOOL is_class_v = __is_class(Ty);
-
-        template <typename Ty>
-        RAINY_CONSTEXPR_BOOL is_function_v = internals::_is_function_v<Ty>;
-
-        template <typename Ty>
-        struct is_function : helper::bool_constant<internals::_is_function_v<Ty>> {};
-
-        template <typename>
-        RAINY_CONSTEXPR_BOOL is_lvalue_reference_v = false;
-
-        template <typename Ty>
-        RAINY_CONSTEXPR_BOOL is_lvalue_reference_v<Ty &> = true;
-
-        template <typename Ty>
-        struct is_lvalue_reference : helper::bool_constant<is_lvalue_reference_v<Ty>> {};
-
-        template <typename>
-        RAINY_CONSTEXPR_BOOL is_rvalue_reference_v = false;
-
-        template <typename Ty>
-        RAINY_CONSTEXPR_BOOL is_rvalue_reference_v<Ty &&> = true;
-
-        template <typename Ty>
-        struct is_rvalue_reference : helper::bool_constant<is_rvalue_reference_v<Ty>> {};
-
-        template <typename Ty>
-        RAINY_CONSTEXPR_BOOL is_array_v = internals::_is_array_v<Ty>;
-
-        template <typename Ty>
-        struct is_array : helper::bool_constant<is_array_v<Ty>> {};
-
-        template <typename Ty>
-        RAINY_CONSTEXPR_BOOL is_pointer_v = internals::_is_pointer_v<Ty>;
-
-        template <typename Ty>
-        struct is_pointer : helper::bool_constant<is_pointer_v<Ty>> {};
-
-        template <typename>
-        RAINY_CONSTEXPR_BOOL is_null_pointer_v = false;
-
-        template <>
-        RAINY_CONSTEXPR_BOOL is_null_pointer_v<std::nullptr_t> = true;
-
-        template <typename Ty>
-        struct is_null_pointer : helper::bool_constant<is_null_pointer_v<Ty>> {};
-
-#if RAINY_USING_CLANG
-        template <typename Ty>
-        RAINY_CONSTEXPR_BOOL is_member_object_pointer_v = __is_member_object_pointer(Ty);
-#else
-        template <typename Ty>
-        RAINY_CONSTEXPR_BOOL is_member_object_pointer_v = internals::is_member_object_pointer_<cv_modify::remove_cv_t<Ty>>::value;
-#endif
-
-        template <typename Ty>
-        struct is_member_object_pointer : helper::bool_constant<is_member_object_pointer_v<Ty>> {};
-
-        template <typename Ty>
-        RAINY_CONSTEXPR_BOOL is_member_function_pointer_v =
-            internals::is_member_function_pointer_<cv_modify::remove_cv_t<Ty>>::value;
-
-        template <typename Ty>
-        struct is_member_function_pointer : helper::bool_constant<is_member_function_pointer_v<Ty>> {};
-    }
-
+namespace rainy::type_traits {
     // 类型属性
     namespace type_properties {
         /*
@@ -545,79 +421,8 @@ namespace rainy::foundation::type_traits {
     }
 }
 
-namespace rainy::utility {
-    template <typename callable>
-    constexpr auto invoke(callable &&object) noexcept(noexcept(static_cast<callable &&>(object)()))
-        -> decltype(static_cast<callable &&>(object)()) {
-        return static_cast<callable &&>(object)();
-    }
-
-    template <typename callable, typename Ty, typename... Args>
-    constexpr auto invoke(callable &&object, Ty &&args1, Args &&...args2) noexcept(
-        noexcept(foundation::type_traits::type_properties::invoker<callable, Ty>::invoke(static_cast<callable &&>(object),
-                                                                                         static_cast<Ty &&>(args1),
-                                                                                         static_cast<Args &&>(args2)...)))
-        -> decltype(foundation::type_traits::type_properties::invoker<callable, Ty>::invoke(static_cast<callable &&>(object),
-                                                                                            static_cast<Ty &&>(args1),
-                                                                                            static_cast<Args &&>(args2)...)) {
-        using namespace foundation::type_traits::internals;
-        using namespace foundation::type_traits::type_properties;
-        /* 引用别名命名空间 */
-        if constexpr (invoker<callable, Ty>::strategy == invoker_strategy::functor) {
-            return static_cast<callable &&>(object)(static_cast<Ty &&>(args1), static_cast<Args &&>(args2)...);
-        } else if constexpr (invoker<callable, Ty>::strategy == invoker_strategy::pmf_object) {
-            return (static_cast<Ty &&>(args1).*object)(static_cast<Args &&>(args2)...);
-        } else if constexpr (invoker<callable, Ty>::strategy == invoker_strategy::pmf_refwrap) {
-            return (args1.get().*object)(static_cast<Args &&>(args2)...);
-        } else if constexpr (invoker<callable, Ty>::strategy == invoker_strategy::pmf_pointer) {
-            return (static_cast<const Ty &&>(args1)->*object)(static_cast<Args &&>(args2)...);
-        } else if constexpr (invoker<callable, Ty>::strategy == invoker_strategy::pmd_object) {
-            return static_cast<Ty &&>(args1).*object;
-        } else if constexpr (invoker<callable, Ty>::strategy == invoker_strategy::pmd_refwrap) {
-            return args1.get().*object;
-        } else {
-            static_assert(invoker<callable, Ty>::strategy == invoker_strategy::pmd_pointer);
-            return (*static_cast<Ty &&>(args1)).*object;
-        }
-    }
-}
-
-namespace rainy::utility {
-    template <typename, typename = void>
-    struct iterator_traits_base {};
-
-    template <typename iter>
-    struct iterator_traits_base<iter, foundation::type_traits::internals::_void_t<
-                                          typename iter::iterator_category, typename iter::value_type, typename iter::difference_type,
-                                          typename iter::pointer, typename iter::reference>> {
-        using iterator_category = typename iter::iterator_category;
-        using value_type = typename iter::valueType;
-        using difference_type = typename iter::differenceType;
-        using pointer = typename iter::pointer;
-        using reference = typename iter::reference;
-    };
-
-    template <typename Ty, bool = foundation::type_traits::composite_types::is_object_v<Ty>>
-    struct iterator_traits_pointer_base {
-        using iterator_category = std::random_access_iterator_tag;
-        using value_type = foundation::type_traits::cv_modify::remove_cv_t<Ty>;
-        using difference_type = ptrdiff_t;
-        using pointer = Ty *;
-        using reference = Ty &;
-    };
-
-    template <typename Ty>
-    struct iterator_traits_pointer_base<Ty, false> {};
-
-    template <typename iter>
-    struct iterator_traits : iterator_traits_base<iter> {};
-
-    template <typename Ty>
-    struct iterator_traits<Ty *> : iterator_traits_pointer_base<Ty> {};
-}
-
 /* 元组及可变体Trait */
-namespace rainy::foundation::type_traits::extras::tuple_like {
+namespace rainy::type_traits::extras::tuple_like {
     template <typename...>
     struct meta_list;
 
@@ -713,7 +518,7 @@ namespace rainy::foundation::type_traits::extras::tuple_like {
 /*
  * 追加概念库，需要启用C++20
  */
-namespace rainy::foundation::type_traits::concepts {
+namespace rainy::type_traits::concepts {
 
 }
 #endif // RAINY_HAS_CXX20
@@ -724,17 +529,17 @@ namespace rainy::foundation::type_traits::concepts {
 #endif
 #include <windows.h>
 
-namespace rainy::winapi::type_traits {
+namespace rainy::type_traits::extras::winapi {
     template <typename CharType>
     RAINY_CONSTEXPR_BOOL is_support_charset_v =
-        foundation::type_traits::type_relations::is_any_of_v<CharType, CHAR, LPSTR, LPCSTR, LPCTSTR, WCHAR, LPWSTR, LPCWSTR, TCHAR,
+        rainy::type_traits::type_relations::is_any_of_v<CharType, CHAR, LPSTR, LPCSTR, LPCTSTR, WCHAR, LPWSTR, LPCWSTR, TCHAR,
                                                              const TCHAR *>;
 
     template <typename CharType>
-    struct is_support_charset : foundation::type_traits::helper::bool_constant<is_support_charset_v<CharType>> {};
+    struct is_support_charset : rainy::type_traits::helper::bool_constant<is_support_charset_v<CharType>> {};
 
     template <typename CharType>
-    RAINY_CONSTEXPR_BOOL is_support_char_v = foundation::type_traits::type_relations::is_any_of_v<CharType, char, wchar_t>;
+    RAINY_CONSTEXPR_BOOL is_support_char_v = rainy::type_traits::type_relations::is_any_of_v<CharType, char, wchar_t>;
 }
 #endif
 
@@ -744,7 +549,7 @@ namespace rainy::foundation::reflection::type_traits {
                                             std::is_union_v<Class>) &&!std::is_same_v<Class, Base>;
 }
 
-namespace rainy::foundation::type_traits::extras::reflection {
+namespace rainy::type_traits::extras::reflection {
     namespace internals {
         template <bool IsMemberFunctionPointer = false, bool IsFunctionPointer = false, bool IsNothrowInvocable = false,
                   bool IsVolatile = false, bool IsConstMemberFunctionPointer = false>

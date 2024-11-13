@@ -82,6 +82,12 @@ clang和GNU编译器区域
 #define RAINY_HAS_CXX20 false
 #endif
 
+#if RAINY_CURRENT_STANDARD_VERSION == 201703L
+#define RAINY_IS_CXX17 true
+#else
+#define RAINY_IS_CXX17 false
+#endif
+
 #ifndef RAINY_NODISCARD
 #define RAINY_NODISCARD [[nodiscard]]
 #endif
@@ -171,7 +177,7 @@ clang和GNU编译器区域
 #endif
 
 // 启用juzixioa's libray的AVX2支持，这将使得某些函数可以通过AVX2指令集进行较大程度的优化
-#define RAINY_USING_AVX2 true
+#define RAINY_USING_AVX2 false
 
 #if RAINY_USING_AVX2
 
@@ -238,7 +244,7 @@ static_assert(false, "AVX2 not support!");
 #include <rainy/internals/raw_stringview.hpp>
 
 #if RAINY_HAS_CXX20
-namespace rainy::foundation::containers {
+namespace rainy::containers {
     enum class memory_order : int {
         relaxed,
         consume,
@@ -263,7 +269,7 @@ namespace rainy::foundation::containers {
     inline auto memory_order_seq_cst = memory_order::seq_cst;
 }
 #else
-namespace rainy::foundation::containers {
+namespace rainy::containers {
     enum memory_order {
         memory_order_relaxed,
         memory_order_consume,
@@ -387,7 +393,7 @@ namespace rainy::information::system_call {
 #endif
     }
 
-    RAINY_INLINE uint32_t iso_volatile_load32(const volatile __int32 *addr) {
+    RAINY_INLINE uint32_t iso_volatile_load32(const volatile int *addr) {
 #if RAINY_USING_MSVC
         return __iso_volatile_load32(addr);
 #else
@@ -507,14 +513,14 @@ namespace rainy::information::system_call {
 namespace rainy::information {
     template <typename... Test>
     RAINY_CONSTEXPR_BOOL check_format_type =
-        (foundation::type_traits::type_relations::is_any_convertible_v<foundation::type_traits::internals::decay_t_<Test>, char, int,
+        (type_traits::type_relations::is_any_convertible_v<type_traits::other_transformations::decay_t<Test>, char, int,
                                                                        double, void *, float, long, long long, unsigned int,
                                                                        unsigned long, unsigned long long, const char *> ||
          ...);
 
     template <typename... Test>
     RAINY_CONSTEXPR_BOOL check_wformat_type =
-        (foundation::type_traits::type_relations::is_any_convertible_v<foundation::type_traits::internals::decay_t_<Test>, char, int,
+        (type_traits::type_relations::is_any_convertible_v<type_traits::other_transformations::decay_t<Test>, char, int,
                                                                        double, void *, float, long, long long, unsigned int,
                                                                        unsigned long, unsigned long long, const wchar_t *> ||
          ...);
@@ -523,7 +529,7 @@ namespace rainy::information {
 #if RAINY_USING_GCC
 #include <rainy/internals/gnu/typetraits.hpp>
 
-namespace rainy::foundation::type_traits::internals::gcc_detail_impl {
+namespace rainy::type_traits::internals::gcc_detail_impl {
     template <typename Ty, _enable_if_t<is_void<Ty>::value, int> = 0>
     void avoid_warning_placeholder() {
     }
@@ -646,7 +652,7 @@ namespace rainy::utility {
 
     template <typename Ty, typename... Args>
     RAINY_CONSTEXPR20 void construct_in_place(Ty &object, Args &&...args) noexcept(
-        foundation::type_traits::internals::_is_nothrow_constructible_v<Ty, Args...>) {
+        type_traits::internals::_is_nothrow_constructible_v<Ty, Args...>) {
 #if RAINY_HAS_CXX20
         if (std::is_constant_evaluated()) {
             construct_at(utility::addressof(object), forward<Args>(args)...);
@@ -657,5 +663,172 @@ namespace rainy::utility {
         }
     }
 }
+
+/* 此部分宏由ChatGPT生成 */
+#define RAINY_TO_TUPLE_EXPAND_ARGS(N) RAINY_TO_TUPLE_EXPAND_##N
+#define RAINY_TO_TUPLE_EXPAND_1 _1
+#define RAINY_TO_TUPLE_EXPAND_2 _1, _2
+#define RAINY_TO_TUPLE_EXPAND_3 _1, _2, _3
+#define RAINY_TO_TUPLE_EXPAND_4 _1, _2, _3, _4
+#define RAINY_TO_TUPLE_EXPAND_5 _1, _2, _3, _4, _5
+#define RAINY_TO_TUPLE_EXPAND_6 _1, _2, _3, _4, _5, _6
+#define RAINY_TO_TUPLE_EXPAND_7 _1, _2, _3, _4, _5, _6, _7
+#define RAINY_TO_TUPLE_EXPAND_8 _1, _2, _3, _4, _5, _6, _7, _8
+#define RAINY_TO_TUPLE_EXPAND_9 _1, _2, _3, _4, _5, _6, _7, _8, _9
+#define RAINY_TO_TUPLE_EXPAND_10 _1, _2, _3, _4, _5, _6, _7, _8, _9, _10
+#define RAINY_TO_TUPLE_EXPAND_11 _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11
+#define RAINY_TO_TUPLE_EXPAND_12 _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12
+#define RAINY_TO_TUPLE_EXPAND_13 _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13
+#define RAINY_TO_TUPLE_EXPAND_14 _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14
+#define RAINY_TO_TUPLE_EXPAND_15 _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15
+#define RAINY_TO_TUPLE_EXPAND_16 _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16
+#define RAINY_TO_TUPLE_EXPAND_17 _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17
+#define RAINY_TO_TUPLE_EXPAND_18 _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18
+#define RAINY_TO_TUPLE_EXPAND_19 _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19
+#define RAINY_TO_TUPLE_EXPAND_20 _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, _20
+#define RAINY_TO_TUPLE_EXPAND_21 RAINY_TO_TUPLE_EXPAND_20, _21
+#define RAINY_TO_TUPLE_EXPAND_22 RAINY_TO_TUPLE_EXPAND_21, _22
+#define RAINY_TO_TUPLE_EXPAND_23 RAINY_TO_TUPLE_EXPAND_22, _23
+#define RAINY_TO_TUPLE_EXPAND_24 RAINY_TO_TUPLE_EXPAND_23, _24
+#define RAINY_TO_TUPLE_EXPAND_25 RAINY_TO_TUPLE_EXPAND_24, _25
+#define RAINY_TO_TUPLE_EXPAND_26 RAINY_TO_TUPLE_EXPAND_25, _26
+#define RAINY_TO_TUPLE_EXPAND_27 RAINY_TO_TUPLE_EXPAND_26, _27
+#define RAINY_TO_TUPLE_EXPAND_28 RAINY_TO_TUPLE_EXPAND_27, _28
+#define RAINY_TO_TUPLE_EXPAND_29 RAINY_TO_TUPLE_EXPAND_28, _29
+#define RAINY_TO_TUPLE_EXPAND_30 RAINY_TO_TUPLE_EXPAND_29, _30
+#define RAINY_TO_TUPLE_EXPAND_31 RAINY_TO_TUPLE_EXPAND_30, _31
+#define RAINY_TO_TUPLE_EXPAND_32 RAINY_TO_TUPLE_EXPAND_31, _32
+#define RAINY_TO_TUPLE_EXPAND_33 RAINY_TO_TUPLE_EXPAND_32, _33
+#define RAINY_TO_TUPLE_EXPAND_34 RAINY_TO_TUPLE_EXPAND_33, _34
+#define RAINY_TO_TUPLE_EXPAND_35 RAINY_TO_TUPLE_EXPAND_34, _35
+#define RAINY_TO_TUPLE_EXPAND_36 RAINY_TO_TUPLE_EXPAND_35, _36
+#define RAINY_TO_TUPLE_EXPAND_37 RAINY_TO_TUPLE_EXPAND_36, _37
+#define RAINY_TO_TUPLE_EXPAND_38 RAINY_TO_TUPLE_EXPAND_37, _38
+#define RAINY_TO_TUPLE_EXPAND_39 RAINY_TO_TUPLE_EXPAND_38, _39
+#define RAINY_TO_TUPLE_EXPAND_40 RAINY_TO_TUPLE_EXPAND_39, _40
+#define RAINY_TO_TUPLE_EXPAND_41 RAINY_TO_TUPLE_EXPAND_40, _41
+#define RAINY_TO_TUPLE_EXPAND_42 RAINY_TO_TUPLE_EXPAND_41, _42
+#define RAINY_TO_TUPLE_EXPAND_43 RAINY_TO_TUPLE_EXPAND_42, _43
+#define RAINY_TO_TUPLE_EXPAND_44 RAINY_TO_TUPLE_EXPAND_43, _44
+#define RAINY_TO_TUPLE_EXPAND_45 RAINY_TO_TUPLE_EXPAND_44, _45
+#define RAINY_TO_TUPLE_EXPAND_46 RAINY_TO_TUPLE_EXPAND_45, _46
+#define RAINY_TO_TUPLE_EXPAND_47 RAINY_TO_TUPLE_EXPAND_46, _47
+#define RAINY_TO_TUPLE_EXPAND_48 RAINY_TO_TUPLE_EXPAND_47, _48
+#define RAINY_TO_TUPLE_EXPAND_49 RAINY_TO_TUPLE_EXPAND_48, _49
+#define RAINY_TO_TUPLE_EXPAND_50 RAINY_TO_TUPLE_EXPAND_49, _50
+#define RAINY_TO_TUPLE_EXPAND_51 RAINY_TO_TUPLE_EXPAND_50, _51
+#define RAINY_TO_TUPLE_EXPAND_52 RAINY_TO_TUPLE_EXPAND_51, _52
+#define RAINY_TO_TUPLE_EXPAND_53 RAINY_TO_TUPLE_EXPAND_52, _53
+#define RAINY_TO_TUPLE_EXPAND_54 RAINY_TO_TUPLE_EXPAND_53, _54
+#define RAINY_TO_TUPLE_EXPAND_55 RAINY_TO_TUPLE_EXPAND_54, _55
+#define RAINY_TO_TUPLE_EXPAND_56 RAINY_TO_TUPLE_EXPAND_55, _56
+#define RAINY_TO_TUPLE_EXPAND_57 RAINY_TO_TUPLE_EXPAND_56, _57
+#define RAINY_TO_TUPLE_EXPAND_58 RAINY_TO_TUPLE_EXPAND_57, _58
+#define RAINY_TO_TUPLE_EXPAND_59 RAINY_TO_TUPLE_EXPAND_58, _59
+#define RAINY_TO_TUPLE_EXPAND_60 RAINY_TO_TUPLE_EXPAND_59, _60
+#define RAINY_TO_TUPLE_EXPAND_61 RAINY_TO_TUPLE_EXPAND_60, _61
+#define RAINY_TO_TUPLE_EXPAND_62 RAINY_TO_TUPLE_EXPAND_61, _62
+#define RAINY_TO_TUPLE_EXPAND_63 RAINY_TO_TUPLE_EXPAND_62, _63
+#define RAINY_TO_TUPLE_EXPAND_64 RAINY_TO_TUPLE_EXPAND_63, _64
+#define RAINY_TO_TUPLE_EXPAND_65 RAINY_TO_TUPLE_EXPAND_64, _65
+#define RAINY_TO_TUPLE_EXPAND_66 RAINY_TO_TUPLE_EXPAND_65, _66
+#define RAINY_TO_TUPLE_EXPAND_67 RAINY_TO_TUPLE_EXPAND_66, _67
+#define RAINY_TO_TUPLE_EXPAND_68 RAINY_TO_TUPLE_EXPAND_67, _68
+#define RAINY_TO_TUPLE_EXPAND_69 RAINY_TO_TUPLE_EXPAND_68, _69
+#define RAINY_TO_TUPLE_EXPAND_70 RAINY_TO_TUPLE_EXPAND_69, _70
+#define RAINY_TO_TUPLE_EXPAND_71 RAINY_TO_TUPLE_EXPAND_70, _71
+#define RAINY_TO_TUPLE_EXPAND_72 RAINY_TO_TUPLE_EXPAND_71, _72
+#define RAINY_TO_TUPLE_EXPAND_73 RAINY_TO_TUPLE_EXPAND_72, _73
+#define RAINY_TO_TUPLE_EXPAND_74 RAINY_TO_TUPLE_EXPAND_73, _74
+#define RAINY_TO_TUPLE_EXPAND_75 RAINY_TO_TUPLE_EXPAND_74, _75
+#define RAINY_TO_TUPLE_EXPAND_76 RAINY_TO_TUPLE_EXPAND_75, _76
+#define RAINY_TO_TUPLE_EXPAND_77 RAINY_TO_TUPLE_EXPAND_76, _77
+#define RAINY_TO_TUPLE_EXPAND_78 RAINY_TO_TUPLE_EXPAND_77, _78
+#define RAINY_TO_TUPLE_EXPAND_79 RAINY_TO_TUPLE_EXPAND_78, _79
+#define RAINY_TO_TUPLE_EXPAND_80 RAINY_TO_TUPLE_EXPAND_79, _80
+
+/* 用于创建初始化器 */
+#define RAINY_INITIALIZER_LIST(N) RAINY_INITIALIZER_LIST_##N
+#define RAINY_INITIALIZER_LIST_1 {}
+#define RAINY_INITIALIZER_LIST_2 {} ,{}
+#define RAINY_INITIALIZER_LIST_3 {} ,{} ,{}
+#define RAINY_INITIALIZER_LIST_4 {} ,{} ,{} ,{}
+#define RAINY_INITIALIZER_LIST_5 {} ,{} ,{} ,{} ,{}
+#define RAINY_INITIALIZER_LIST_6 {} ,{} ,{} ,{} ,{} ,{}
+#define RAINY_INITIALIZER_LIST_7 {} ,{} ,{} ,{} ,{} ,{} ,{}
+#define RAINY_INITIALIZER_LIST_8 {} ,{} ,{} ,{} ,{} ,{} ,{}, {}
+#define RAINY_INITIALIZER_LIST_9 {} ,{} ,{} ,{} ,{} ,{} ,{}, {}, {}
+#define RAINY_INITIALIZER_LIST_10 {} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{}
+#define RAINY_INITIALIZER_LIST_11 {} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{}, {}
+#define RAINY_INITIALIZER_LIST_12 {} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{}
+#define RAINY_INITIALIZER_LIST_13 {} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{}
+#define RAINY_INITIALIZER_LIST_14 {} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{}
+#define RAINY_INITIALIZER_LIST_15 {} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{}
+#define RAINY_INITIALIZER_LIST_16 {} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{}
+#define RAINY_INITIALIZER_LIST_17 {} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{}
+#define RAINY_INITIALIZER_LIST_18 {} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{}
+#define RAINY_INITIALIZER_LIST_19 {} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{}
+#define RAINY_INITIALIZER_LIST_20 {} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{} ,{}
+#define RAINY_INITIALIZER_LIST_21 RAINY_INITIALIZER_LIST_20 ,{}
+#define RAINY_INITIALIZER_LIST_22 RAINY_INITIALIZER_LIST_21 ,{}
+#define RAINY_INITIALIZER_LIST_23 RAINY_INITIALIZER_LIST_22 ,{}
+#define RAINY_INITIALIZER_LIST_24 RAINY_INITIALIZER_LIST_23 ,{}
+#define RAINY_INITIALIZER_LIST_25 RAINY_INITIALIZER_LIST_24 ,{}
+#define RAINY_INITIALIZER_LIST_26 RAINY_INITIALIZER_LIST_25 ,{}
+#define RAINY_INITIALIZER_LIST_27 RAINY_INITIALIZER_LIST_26 ,{}
+#define RAINY_INITIALIZER_LIST_28 RAINY_INITIALIZER_LIST_27 ,{}
+#define RAINY_INITIALIZER_LIST_29 RAINY_INITIALIZER_LIST_28 ,{}
+#define RAINY_INITIALIZER_LIST_30 RAINY_INITIALIZER_LIST_29 ,{}
+#define RAINY_INITIALIZER_LIST_31 RAINY_INITIALIZER_LIST_30 ,{}
+#define RAINY_INITIALIZER_LIST_32 RAINY_INITIALIZER_LIST_31 ,{}
+#define RAINY_INITIALIZER_LIST_33 RAINY_INITIALIZER_LIST_32 ,{}
+#define RAINY_INITIALIZER_LIST_34 RAINY_INITIALIZER_LIST_33 ,{}
+#define RAINY_INITIALIZER_LIST_35 RAINY_INITIALIZER_LIST_34 ,{}
+#define RAINY_INITIALIZER_LIST_36 RAINY_INITIALIZER_LIST_35 ,{}
+#define RAINY_INITIALIZER_LIST_37 RAINY_INITIALIZER_LIST_36 ,{}
+#define RAINY_INITIALIZER_LIST_38 RAINY_INITIALIZER_LIST_37 ,{}
+#define RAINY_INITIALIZER_LIST_39 RAINY_INITIALIZER_LIST_38 ,{}
+#define RAINY_INITIALIZER_LIST_40 RAINY_INITIALIZER_LIST_39 ,{}
+#define RAINY_INITIALIZER_LIST_41 RAINY_INITIALIZER_LIST_40 ,{}
+#define RAINY_INITIALIZER_LIST_42 RAINY_INITIALIZER_LIST_41 ,{}
+#define RAINY_INITIALIZER_LIST_43 RAINY_INITIALIZER_LIST_42 ,{}
+#define RAINY_INITIALIZER_LIST_44 RAINY_INITIALIZER_LIST_43 ,{}
+#define RAINY_INITIALIZER_LIST_45 RAINY_INITIALIZER_LIST_44 ,{}
+#define RAINY_INITIALIZER_LIST_46 RAINY_INITIALIZER_LIST_45 ,{}
+#define RAINY_INITIALIZER_LIST_47 RAINY_INITIALIZER_LIST_46 ,{}
+#define RAINY_INITIALIZER_LIST_48 RAINY_INITIALIZER_LIST_47 ,{}
+#define RAINY_INITIALIZER_LIST_49 RAINY_INITIALIZER_LIST_48 ,{}
+#define RAINY_INITIALIZER_LIST_50 RAINY_INITIALIZER_LIST_49 ,{}
+#define RAINY_INITIALIZER_LIST_51 RAINY_INITIALIZER_LIST_50 ,{}
+#define RAINY_INITIALIZER_LIST_52 RAINY_INITIALIZER_LIST_51 ,{}
+#define RAINY_INITIALIZER_LIST_53 RAINY_INITIALIZER_LIST_52 ,{}
+#define RAINY_INITIALIZER_LIST_54 RAINY_INITIALIZER_LIST_53 ,{}
+#define RAINY_INITIALIZER_LIST_55 RAINY_INITIALIZER_LIST_54 ,{}
+#define RAINY_INITIALIZER_LIST_56 RAINY_INITIALIZER_LIST_55 ,{}
+#define RAINY_INITIALIZER_LIST_57 RAINY_INITIALIZER_LIST_56 ,{}
+#define RAINY_INITIALIZER_LIST_58 RAINY_INITIALIZER_LIST_57 ,{}
+#define RAINY_INITIALIZER_LIST_59 RAINY_INITIALIZER_LIST_58 ,{}
+#define RAINY_INITIALIZER_LIST_60 RAINY_INITIALIZER_LIST_59 ,{}
+#define RAINY_INITIALIZER_LIST_61 RAINY_INITIALIZER_LIST_60 ,{}
+#define RAINY_INITIALIZER_LIST_62 RAINY_INITIALIZER_LIST_61 ,{}
+#define RAINY_INITIALIZER_LIST_63 RAINY_INITIALIZER_LIST_62 ,{}
+#define RAINY_INITIALIZER_LIST_64 RAINY_INITIALIZER_LIST_63 ,{}
+#define RAINY_INITIALIZER_LIST_65 RAINY_INITIALIZER_LIST_64 ,{}
+#define RAINY_INITIALIZER_LIST_66 RAINY_INITIALIZER_LIST_65 ,{}
+#define RAINY_INITIALIZER_LIST_67 RAINY_INITIALIZER_LIST_66 ,{}
+#define RAINY_INITIALIZER_LIST_68 RAINY_INITIALIZER_LIST_67 ,{}
+#define RAINY_INITIALIZER_LIST_69 RAINY_INITIALIZER_LIST_68 ,{}
+#define RAINY_INITIALIZER_LIST_70 RAINY_INITIALIZER_LIST_69 ,{}
+#define RAINY_INITIALIZER_LIST_71 RAINY_INITIALIZER_LIST_70 ,{}
+#define RAINY_INITIALIZER_LIST_72 RAINY_INITIALIZER_LIST_71 ,{}
+#define RAINY_INITIALIZER_LIST_73 RAINY_INITIALIZER_LIST_72 ,{}
+#define RAINY_INITIALIZER_LIST_74 RAINY_INITIALIZER_LIST_73 ,{}
+#define RAINY_INITIALIZER_LIST_75 RAINY_INITIALIZER_LIST_74 ,{}
+#define RAINY_INITIALIZER_LIST_76 RAINY_INITIALIZER_LIST_75 ,{}
+#define RAINY_INITIALIZER_LIST_77 RAINY_INITIALIZER_LIST_76 ,{}
+#define RAINY_INITIALIZER_LIST_78 RAINY_INITIALIZER_LIST_77 ,{}
+#define RAINY_INITIALIZER_LIST_79 RAINY_INITIALIZER_LIST_78 ,{}
+#define RAINY_INITIALIZER_LIST_80 RAINY_INITIALIZER_LIST_79 ,{}
+
 
 #endif

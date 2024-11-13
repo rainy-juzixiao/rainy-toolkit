@@ -10,14 +10,14 @@ namespace rainy::utility {
     namespace internals {
         template <typename Key>
         RAINY_AINLINE_NODISCARD std::size_t fnv1a_append_value(const std::size_t offset_basis, const Key &keyval) noexcept {
-            static_assert(foundation::type_traits::type_properties::is_trivial_v<Key>, "Only trivial types can be directly hashed.");
+            static_assert(type_traits::type_properties::is_trivial_v<Key>, "Only trivial types can be directly hashed.");
             return fnv1a_append_bytes(offset_basis, &reinterpret_cast<const unsigned char &>(keyval), sizeof(Key));
         }
 
         template <typename Ty>
         RAINY_AINLINE_NODISCARD std::size_t fnv1a_append_range(const std::size_t offset_basis, const Ty *const first,
                                                                   const Ty *const last) {
-            static_assert(foundation::type_traits::type_properties::is_trivial_v<Ty>, "Only trivial types can be directly hashed.");
+            static_assert(type_traits::type_properties::is_trivial_v<Ty>, "Only trivial types can be directly hashed.");
             const auto *const first_binary = reinterpret_cast<const unsigned char *>(first);
             const auto *const last_binary = reinterpret_cast<const unsigned char *>(last);
             return fnv1a_append_bytes(offset_basis, first_binary, static_cast<size_t>(last_binary - first_binary));
@@ -30,7 +30,7 @@ namespace rainy::utility {
 
         template <typename Key>
         RAINY_AINLINE_NODISCARD std::size_t hash_array_representation(const Key *const first, const std::size_t count) noexcept {
-            static_assert(foundation::type_traits::type_properties::is_trivial_v<Key>, "Only trivial types can be directly hashed.");
+            static_assert(type_traits::type_properties::is_trivial_v<Key>, "Only trivial types can be directly hashed.");
             return fnv1a_append_bytes(fnv_offset_basis, reinterpret_cast<const unsigned char *>(first), count * sizeof(Key));
         }
 
@@ -61,11 +61,11 @@ namespace rainy::utility {
     }
 
     template <typename key>
-    struct hash : internals::hash_enable_if<key, !foundation::type_traits::type_properties::is_const_v<key> &&
-                                                     !foundation::type_traits::type_properties::is_volatile_v<key> &&
-                                                     (foundation::type_traits::primary_types::is_enum_v<key> ||
-                                                      foundation::type_traits::primary_types::is_integral_v<key> ||
-                        foundation::type_traits::primary_types::is_pointer_v<key>)> {
+    struct hash : internals::hash_enable_if<key, !type_traits::type_properties::is_const_v<key> &&
+                                                     !type_traits::type_properties::is_volatile_v<key> &&
+                                                     (type_traits::primary_types::is_enum_v<key> ||
+                                                      type_traits::primary_types::is_integral_v<key> ||
+                        type_traits::primary_types::is_pointer_v<key>)> {
         static size_t hash_this_val(const key &keyval) noexcept {
             return internals::hash_representation(keyval);
         }

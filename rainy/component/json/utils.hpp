@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <cmath>
 #include <rainy/base.hpp>
 #include <rainy/system/exceptions.hpp>
@@ -245,7 +245,7 @@ namespace rainy::component::json::utils {
 
 		bool get_code(size_t &i, uint32_t &code_output) const {
 			using namespace rainy::foundation::system::exceptions::json;
-			static constexpr foundation::containers::array<std::uint8_t, 256> utf8_extra_bytes = {
+			static constexpr containers::array<std::uint8_t, 256> utf8_extra_bytes = {
 					0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 					0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 					0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -254,7 +254,7 @@ namespace rainy::component::json::utils {
 					0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
 					1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5,
 			};
-			static constexpr foundation::containers::array<std::uint32_t, 6> utf8_offsets = {
+			static constexpr containers::array<std::uint32_t, 6> utf8_offsets = {
 					0x00000000, 0x00003080, 0x000E2080, 0x03C82080, 0xFA082080, 0x82082080,
 			};
 			if (i >= val.size())

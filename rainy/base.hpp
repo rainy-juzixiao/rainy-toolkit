@@ -7,9 +7,11 @@
 #include <rainy/core.hpp>
 #include <rainy/diagnostics/source_location.hpp>
 #include <rainy/system/basic_exceptions.hpp>
+#include <rainy/system/stream_print.hpp>
 #include <rainy/text/format_wrapper.hpp>
 #include <rainy/functional/function_pointer.hpp>
 #include <rainy/diagnostics/contract.hpp>
+#include <rainy/utility/iterator.hpp>
 
 /* standard-libray header */
 #include <algorithm>
@@ -36,6 +38,7 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
+#include <memory_resource>
 
 #if RAINY_HAS_CXX20
 #include <format>
@@ -46,7 +49,6 @@
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
-#include <sstream>
 #include <windows.h>
 #endif
 
@@ -55,7 +57,7 @@ namespace rainy::information {
 }
 
 #if RAINY_HAS_CXX20
-namespace rainy::foundation::type_traits::concepts {
+namespace rainy::type_traits::concepts {
     template <typename Ty1, typename Ty2>
     concept same_as = internals::_is_same_v<Ty1, Ty2>;
 
@@ -136,7 +138,7 @@ namespace rainy::utility {
 
         template <typename Ty>
         constexpr std::string_view wrapped_type_name() {
-            constexpr bool always_false = rainy::foundation::type_traits::internals::always_false<Ty>;
+            constexpr bool always_false = rainy::type_traits::internals::always_false<Ty>;
             static_assert(!always_false);
 #if RAINY_USING_CLANG || RAINY_USING_GCC
             return __PRETTY_FUNCTION__;
@@ -177,21 +179,25 @@ namespace rainy::utility {
     }
 
     template <auto Variable>
-    constexpr std::string_view variable_name() {
-        constexpr std::string_view wrapped_name = internals::wrapped_variable_name<Variable>();
-        constexpr std::string_view prober_prefix = internals::wrapped_variable_name<0>();
-        constexpr auto prefix_length = prober_prefix.find('0');
-        constexpr std::string_view remove_prefix = wrapped_name.substr(prefix_length);
-#if RAINY_USING_CLANG
-        constexpr auto suffix_length = remove_prefix.find("]");
-#elif RAINY_USING_GCC
-        constexpr auto suffix_length = remove_prefix.rfind(';');
-#elif RAINY_USING_MSVC
-        constexpr auto suffix_length = remove_prefix.rfind(">(void)");
+    inline constexpr std::string_view variable_name() {
+#if RAINY_USING_MSVC
+        constexpr std::string_view func_name = __FUNCSIG__;
 #else
-        static_assert(false, "unsupported compiler");
+        constexpr std::string_view func_name = __PRETTY_FUNCTION__;
 #endif
-        return remove_prefix.substr(0, suffix_length);
+#if RAINY_USING_CLANG
+        auto split = func_name.substr(0, func_name.size() - 2);
+        return split.substr(split.find_last_of(":.") + 1);
+#elif RAINY_USING_GCC
+        auto split = func_name.substr(0, func_name.rfind(")}"));
+        return split.substr(split.find_last_of(":") + 1);
+#elif RAINY_USING_MSVC
+        auto split = func_name.substr(func_name.rfind("variable_name<") + 13);
+        auto split_again = split.substr(split.rfind("->") + 2);
+        return split_again.substr(0, split_again.rfind(">(void)"));
+#else
+        static_assert(false, "You are using an unsupported compiler. Please use GCC, Clang or MSVC");
+#endif
     }
 
     enum class type_flags {
@@ -276,6 +282,8 @@ namespace rainy::utility {
 }
 
 #if RAINY_HAS_CXX20
+
+#ifdef __cpp_lib_format
 template <>
 class std::formatter<rainy::utility::type_info, char> {
 public:
@@ -289,6 +297,8 @@ public:
         return std::format_to(fc.out(), "{}", value.to_string());
     }
 };
+#endif
+
 #endif
 
 namespace rainy::foundation::system::memory {
@@ -774,12 +784,12 @@ namespace rainy::utility {
         public:
             using first_type = Ty1;
             using second_type = Ty2;
-            using first_param_type = typename foundation::type_traits::internals::_call_traits<first_type>::param_type;
-            using second_param_type = typename foundation::type_traits::internals::_call_traits<second_type>::param_type;
-            using first_reference = typename foundation::type_traits::internals::_call_traits<first_type>::reference;
-            using second_reference = typename foundation::type_traits::internals::_call_traits<second_type>::reference;
-            using first_const_reference = typename foundation::type_traits::internals::_call_traits<first_type>::const_reference;
-            using second_const_reference = typename foundation::type_traits::internals::_call_traits<second_type>::const_reference;
+            using first_param_type = typename type_traits::internals::_call_traits<first_type>::param_type;
+            using second_param_type = typename type_traits::internals::_call_traits<second_type>::param_type;
+            using first_reference = typename type_traits::internals::_call_traits<first_type>::reference;
+            using second_reference = typename type_traits::internals::_call_traits<second_type>::reference;
+            using first_const_reference = typename type_traits::internals::_call_traits<first_type>::const_reference;
+            using second_const_reference = typename type_traits::internals::_call_traits<second_type>::const_reference;
 
             constexpr compressed_pair_impl() = default;
 
@@ -818,16 +828,16 @@ namespace rainy::utility {
         };
 
         template <typename Ty1, typename Ty2>
-        class compressed_pair_impl<Ty1, Ty2, 1> : protected foundation::type_traits::internals::remove_cv_t<Ty1> {
+        class compressed_pair_impl<Ty1, Ty2, 1> : protected type_traits::internals::remove_cv_t<Ty1> {
         public:
             using first_type = Ty1;
             using second_type = Ty2;
-            using first_param_type = typename foundation::type_traits::internals::_call_traits<first_type>::param_type;
-            using second_param_type = typename foundation::type_traits::internals::_call_traits<second_type>::param_type;
-            using first_reference = typename foundation::type_traits::internals::_call_traits<first_type>::reference;
-            using second_reference = typename foundation::type_traits::internals::_call_traits<second_type>::reference;
-            using first_const_reference = typename foundation::type_traits::internals::_call_traits<first_type>::const_reference;
-            using second_const_reference = typename foundation::type_traits::internals::_call_traits<second_type>::const_reference;
+            using first_param_type = typename type_traits::internals::_call_traits<first_type>::param_type;
+            using second_param_type = typename type_traits::internals::_call_traits<second_type>::param_type;
+            using first_reference = typename type_traits::internals::_call_traits<first_type>::reference;
+            using second_reference = typename type_traits::internals::_call_traits<second_type>::reference;
+            using first_const_reference = typename type_traits::internals::_call_traits<first_type>::const_reference;
+            using second_const_reference = typename type_traits::internals::_call_traits<second_type>::const_reference;
 
             constexpr compressed_pair_impl() = default;
 
@@ -864,16 +874,16 @@ namespace rainy::utility {
         };
 
         template <typename Ty1, typename Ty2>
-        class compressed_pair_impl<Ty1, Ty2, 2> : protected foundation::type_traits::internals::remove_cv_t<Ty2>::type {
+        class compressed_pair_impl<Ty1, Ty2, 2> : protected type_traits::internals::remove_cv_t<Ty2>::type {
         public:
             using first_type = Ty1;
             using second_type = Ty2;
-            using first_param_type = typename foundation::type_traits::internals::_call_traits<first_type>::param_type;
-            using second_param_type = typename foundation::type_traits::internals::_call_traits<second_type>::param_type;
-            using first_reference = typename foundation::type_traits::internals::_call_traits<first_type>::reference;
-            using second_reference = typename foundation::type_traits::internals::_call_traits<second_type>::reference;
-            using first_const_reference = typename foundation::type_traits::internals::_call_traits<first_type>::const_reference;
-            using second_const_reference = typename foundation::type_traits::internals::_call_traits<second_type>::const_reference;
+            using first_param_type = typename type_traits::internals::_call_traits<first_type>::param_type;
+            using second_param_type = typename type_traits::internals::_call_traits<second_type>::param_type;
+            using first_reference = typename type_traits::internals::_call_traits<first_type>::reference;
+            using second_reference = typename type_traits::internals::_call_traits<second_type>::reference;
+            using first_const_reference = typename type_traits::internals::_call_traits<first_type>::const_reference;
+            using second_const_reference = typename type_traits::internals::_call_traits<second_type>::const_reference;
 
             constexpr compressed_pair_impl() = default;
 
@@ -910,17 +920,17 @@ namespace rainy::utility {
         };
 
         template <typename Ty1, typename Ty2>
-        class compressed_pair_impl<Ty1, Ty2, 3> : protected foundation::type_traits::internals::remove_cv_t<Ty1>,
-                                                  protected foundation::type_traits::internals::remove_cv_t<Ty2> {
+        class compressed_pair_impl<Ty1, Ty2, 3> : protected type_traits::internals::remove_cv_t<Ty1>,
+                                                  protected type_traits::internals::remove_cv_t<Ty2> {
         public:
             using first_type = Ty1;
             using second_type = Ty2;
-            using first_param_type = typename foundation::type_traits::internals::_call_traits<first_type>::param_type;
-            using second_param_type = typename foundation::type_traits::internals::_call_traits<second_type>::param_type;
-            using first_reference = typename foundation::type_traits::internals::_call_traits<first_type>::reference;
-            using second_reference = typename foundation::type_traits::internals::_call_traits<second_type>::reference;
-            using first_const_reference = typename foundation::type_traits::internals::_call_traits<first_type>::const_reference;
-            using second_const_reference = typename foundation::type_traits::internals::_call_traits<second_type>::const_reference;
+            using first_param_type = typename type_traits::internals::_call_traits<first_type>::param_type;
+            using second_param_type = typename type_traits::internals::_call_traits<second_type>::param_type;
+            using first_reference = typename type_traits::internals::_call_traits<first_type>::reference;
+            using second_reference = typename type_traits::internals::_call_traits<second_type>::reference;
+            using first_const_reference = typename type_traits::internals::_call_traits<first_type>::const_reference;
+            using second_const_reference = typename type_traits::internals::_call_traits<second_type>::const_reference;
 
             compressed_pair_impl() = default;
 
@@ -952,16 +962,16 @@ namespace rainy::utility {
         };
 
         template <typename Ty1, typename Ty2>
-        class compressed_pair_impl<Ty1, Ty2, 4> : protected foundation::type_traits::internals::remove_cv_t<Ty1> {
+        class compressed_pair_impl<Ty1, Ty2, 4> : protected type_traits::internals::remove_cv_t<Ty1> {
         public:
             using first_type = Ty1;
             using second_type = Ty2;
-            using first_param_type = typename foundation::type_traits::internals::_call_traits<first_type>::param_type;
-            using second_param_type = typename foundation::type_traits::internals::_call_traits<second_type>::param_type;
-            using first_reference = typename foundation::type_traits::internals::_call_traits<first_type>::reference;
-            using second_reference = typename foundation::type_traits::internals::_call_traits<second_type>::reference;
-            using first_const_reference = typename foundation::type_traits::internals::_call_traits<first_type>::const_reference;
-            using second_const_reference = typename foundation::type_traits::internals::_call_traits<second_type>::const_reference;
+            using first_param_type = typename type_traits::internals::_call_traits<first_type>::param_type;
+            using second_param_type = typename type_traits::internals::_call_traits<second_type>::param_type;
+            using first_reference = typename type_traits::internals::_call_traits<first_type>::reference;
+            using second_reference = typename type_traits::internals::_call_traits<second_type>::reference;
+            using first_const_reference = typename type_traits::internals::_call_traits<first_type>::const_reference;
+            using second_const_reference = typename type_traits::internals::_call_traits<second_type>::const_reference;
 
             compressed_pair_impl() = default;
 
@@ -999,12 +1009,12 @@ namespace rainy::utility {
         public:
             using first_type = Ty1;
             using second_type = Ty2;
-            using first_param_type = typename foundation::type_traits::internals::_call_traits<first_type>::param_type;
-            using second_param_type = typename foundation::type_traits::internals::_call_traits<second_type>::param_type;
-            using first_reference = typename foundation::type_traits::internals::_call_traits<first_type>::reference;
-            using second_reference = typename foundation::type_traits::internals::_call_traits<second_type>::reference;
-            using first_const_reference = typename foundation::type_traits::internals::_call_traits<first_type>::const_reference;
-            using second_const_reference = typename foundation::type_traits::internals::_call_traits<second_type>::const_reference;
+            using first_param_type = typename type_traits::internals::_call_traits<first_type>::param_type;
+            using second_param_type = typename type_traits::internals::_call_traits<second_type>::param_type;
+            using first_reference = typename type_traits::internals::_call_traits<first_type>::reference;
+            using second_reference = typename type_traits::internals::_call_traits<second_type>::reference;
+            using first_const_reference = typename type_traits::internals::_call_traits<first_type>::const_reference;
+            using second_const_reference = typename type_traits::internals::_call_traits<second_type>::const_reference;
 
             compressed_pair_impl() = default;
 
@@ -1046,16 +1056,16 @@ namespace rainy::utility {
               Ty1, Ty2,
               internals::compressed_pair_switch<
                   Ty1, Ty2,
-                                    foundation::type_traits::internals::_is_same_v<foundation::type_traits::cv_modify::remove_cv_t<Ty1>,
-                                                                                   foundation::type_traits::cv_modify::remove_cv_t<Ty2>>,
+                                    type_traits::internals::_is_same_v<type_traits::cv_modify::remove_cv_t<Ty1>,
+                                                                                   type_traits::cv_modify::remove_cv_t<Ty2>>,
                   internals::compressed_pair_empty<Ty1>::value, internals::compressed_pair_empty<Ty2>::value>::value> {
     public:
         using base = internals::compressed_pair_impl<
             Ty1, Ty2,
             internals::compressed_pair_switch<
                 Ty1, Ty2,
-                foundation::type_traits::internals::_is_same_v<foundation::type_traits::cv_modify::remove_cv_t<Ty1>,
-                                                               foundation::type_traits::cv_modify::remove_cv_t<Ty2>>,
+                type_traits::internals::_is_same_v<type_traits::cv_modify::remove_cv_t<Ty1>,
+                                                               type_traits::cv_modify::remove_cv_t<Ty2>>,
                 internals::compressed_pair_empty<Ty1>::value, internals::compressed_pair_empty<Ty2>::value>::value>;
         using base::base;
     };
@@ -1066,166 +1076,22 @@ namespace rainy::utility {
               Ty, Ty,
               internals::compressed_pair_switch<
                   Ty, Ty,
-                  foundation::type_traits::internals::_is_same_v<foundation::type_traits::cv_modify::remove_cv_t<Ty>,
-                                                                 foundation::type_traits::cv_modify::remove_cv_t<Ty>>,
+                  type_traits::internals::_is_same_v<type_traits::cv_modify::remove_cv_t<Ty>,
+                                                                 type_traits::cv_modify::remove_cv_t<Ty>>,
                   internals::compressed_pair_empty<Ty>::value, internals::compressed_pair_empty<Ty>::value>::value> {
     public:
         using base = internals::compressed_pair_impl<
             Ty, Ty,
             internals::compressed_pair_switch<
                 Ty, Ty,
-                foundation::type_traits::internals::_is_same_v<foundation::type_traits::cv_modify::remove_cv_t<Ty>,
-                                                               foundation::type_traits::cv_modify::remove_cv_t<Ty>>,
+                type_traits::internals::_is_same_v<type_traits::cv_modify::remove_cv_t<Ty>,
+                                                               type_traits::cv_modify::remove_cv_t<Ty>>,
                 internals::compressed_pair_empty<Ty>::value, internals::compressed_pair_empty<Ty>::value>::value>;
         using base::base;
     };
 }
 
-namespace rainy::utility {
-    template <typename Iter, typename container, std::enable_if_t<std::is_pointer_v<Iter>,int> = 0>
-    class iterator {
-    public:
-        using iterator_type = Iter;
-        using iterator_traits = std::iterator_traits<iterator_type>;
-        using iterator_category = typename iterator_traits::iterator_category;
-        using value_type = typename iterator_traits::value_type;
-        using difference_type = typename iterator_traits::difference_type;
-        using reference = typename iterator_traits::reference;
-        using const_reference = const value_type &;
-        using pointer = typename iterator_traits::pointer;
-        using const_pointer = const value_type *;
-
-        RAINY_CONSTEXPR20 iterator() noexcept = default;
-        RAINY_CONSTEXPR20 iterator &operator=(iterator &&) noexcept = default;
-        RAINY_CONSTEXPR20 iterator &operator=(const iterator &) noexcept = default;
-
-        explicit RAINY_CONSTEXPR20 iterator(iterator_type current) noexcept : ptr(current) {
-        }
-
-        RAINY_CONSTEXPR20 iterator(const iterator &right) : ptr(right.ptr) {
-        }
-
-        RAINY_CONSTEXPR20 iterator(iterator &&right) noexcept : ptr(std::exchange(right.ptr, nullptr)) {
-        }
-
-        template <typename Iter_, std::enable_if_t<std::is_convertible_v<Iter_, Iter>, int> = 0>
-        RAINY_CONSTEXPR20 explicit iterator(const iterator<Iter_, container> &right) : ptr(right.ptr) {
-        }
-
-        template <typename Iter_, std::enable_if_t<std::is_convertible_v<Iter_, Iter>, int> = 0>
-        RAINY_CONSTEXPR20 explicit iterator(iterator<Iter_, container> &&right) : ptr(right.ptr) {
-        }
-
-        RAINY_CONSTEXPR20 ~iterator() = default;
-
-        RAINY_CONSTEXPR20 pointer operator->() noexcept {
-            return ptr;
-        }
-
-        RAINY_CONSTEXPR20 const_pointer operator->() const noexcept {
-            return ptr;
-        }
-
-        RAINY_CONSTEXPR20 reference operator*() noexcept {
-            return *ptr;
-        }
-
-        RAINY_CONSTEXPR20 const_reference operator*() const noexcept {
-            return *ptr;
-        }
-
-        RAINY_CONSTEXPR20 iterator operator++() noexcept {
-            return iterator{++ptr};
-        }
-
-        RAINY_CONSTEXPR20 iterator operator++(int) noexcept {
-            iterator temp = *this;
-            ++(*this);
-            return temp;
-        }
-
-        RAINY_CONSTEXPR20 iterator operator--() noexcept {
-            return iterator{--ptr};
-        }
-
-        RAINY_CONSTEXPR20 iterator operator--(int) noexcept {
-            iterator temp = *this;
-            --(*this);
-            return temp;
-        }
-
-        RAINY_CONSTEXPR20 iterator &operator+=(difference_type n) noexcept {
-            ptr += n;
-            return *this;
-        }
-
-        RAINY_CONSTEXPR20 iterator &operator-=(difference_type n) noexcept {
-            ptr -= n;
-            return *this;
-        }
-
-        RAINY_CONSTEXPR20 void swap(iterator &right) noexcept {
-            std::swap(this->ptr, right.ptr);
-        }
-
-        RAINY_CONSTEXPR20 friend bool operator==(const iterator &left, const iterator &right) {
-            return left.ptr == right.ptr;
-        }
-
-        RAINY_CONSTEXPR20 friend bool operator!=(const iterator &left, const iterator &right) {
-            return left.ptr != right.ptr;
-        }
-
-        RAINY_CONSTEXPR20 reference operator[](difference_type idx) noexcept {
-            return ptr[idx];
-        }
-
-        RAINY_CONSTEXPR20 const_reference operator[](difference_type idx) const noexcept {
-            return ptr[idx];
-        }
-
-        RAINY_NODISCARD_CONSTEXPR20 bool empty() const noexcept {
-            return this->ptr == nullptr;
-        }
-
-        RAINY_CONSTEXPR20 explicit operator bool() const noexcept {
-            return !empty();
-        }
-
-        RAINY_CONSTEXPR20 friend iterator operator+(const iterator &_iterator, difference_type n) {
-            return iterator{_iterator.ptr + n};
-        }
-
-        RAINY_CONSTEXPR20 friend iterator operator+(const iterator &left, const iterator &right) {
-            return iterator{left.ptr + right.ptr};
-        }
-
-        RAINY_CONSTEXPR20 friend difference_type operator-(const iterator &left, const iterator &right) {
-            return left.ptr - right.ptr;
-        }
-
-        RAINY_CONSTEXPR20 friend bool operator<(const iterator &left, const iterator &right) {
-            return left.ptr < right.ptr;
-        }
-
-        RAINY_CONSTEXPR20 friend bool operator<=(const iterator &left, const iterator &right) {
-            return left.ptr <= right.ptr;
-        }
-
-        RAINY_CONSTEXPR20 friend bool operator>(const iterator &left, const iterator &right) {
-            return left.ptr > right.ptr;
-        }
-
-        RAINY_CONSTEXPR20 friend bool operator>=(const iterator &left, const iterator &right) {
-            return left.ptr >= right.ptr;
-        }
-
-    private:
-        pointer ptr;
-    };
-}
-
-namespace rainy::foundation::containers {
+namespace rainy::containers {
     template <typename Ty, std::size_t N>
     class array final {
     public:
@@ -1486,7 +1352,7 @@ namespace rainy::foundation::containers {
     private:
         RAINY_ALWAYS_INLINE static void range_check(const difference_type offset) {
             if (offset > N || offset == 0) {
-                system::exceptions::logic::throw_out_of_range("Invalid array subscript");
+                foundation::system::exceptions::logic::throw_out_of_range("Invalid array subscript");
             }
         }
 
@@ -1498,7 +1364,7 @@ namespace rainy::foundation::containers {
     };
 }
 
-namespace rainy::foundation::containers {
+namespace rainy::containers {
     template <typename Ty>
     class array_view {
     public:
@@ -1884,7 +1750,7 @@ namespace rainy::utility {
     public:
         using pointer = Ty;
 
-        /// static_assert(foundation::type_traits::primary_types::is_pointer_v<Ty>, "Ty must be a pointer!");
+        /// static_assert(type_traits::primary_types::is_pointer_v<Ty>, "Ty must be a pointer!");
 
         not_null() = delete;
 
@@ -1918,22 +1784,22 @@ namespace rainy::utility::internals {
     constexpr bool allow_inheriting_unwrap_v = true;
 
     template <typename iter>
-    constexpr bool allow_inheriting_unwrap_v<iter, foundation::type_traits::internals::_void_t<typename iter::prevent_inheriting_unwrap>> =
-        foundation::type_traits::internals::_is_same_v<iter, typename iter::prevent_inheriting_unwrap>;
+    constexpr bool allow_inheriting_unwrap_v<iter, type_traits::internals::_void_t<typename iter::prevent_inheriting_unwrap>> =
+        type_traits::internals::_is_same_v<iter, typename iter::prevent_inheriting_unwrap>;
 
     template <typename iter, typename sentinel = iter, typename = void>
     constexpr bool range_verifiable_v = false;
 
     template <typename iter, typename sentinel>
     constexpr bool range_verifiable_v<
-        iter, sentinel, foundation::type_traits::internals::_void_t<decltype(verify_range(declval<const iter &>(), declval<const sentinel &>()))>> =
+        iter, sentinel, type_traits::internals::_void_t<decltype(verify_range(declval<const iter &>(), declval<const sentinel &>()))>> =
         allow_inheriting_unwrap_v<iter>;
 
     template <typename iter, typename sentinel>
     constexpr void adl_verify_range(const iter &first, const sentinel &last) {
         // check that [first, last) forms an iterator range
-        if constexpr (foundation::type_traits::internals::_is_pointer_v<iter> &&
-                      foundation::type_traits::internals::_is_pointer_v<sentinel>) {
+        if constexpr (type_traits::internals::_is_pointer_v<iter> &&
+                      type_traits::internals::_is_pointer_v<sentinel>) {
             expects(first <= last, "transposed pointer range");
         } else if constexpr (range_verifiable_v<iter, sentinel>) {
             verify_range(first, last);
@@ -2040,7 +1906,7 @@ namespace rainy::text {
                     }
                 }
 #else
-                for (; 0 < num; --num, ++string) {
+                for (; 0 < count; --count, ++string) {
                     if (*string == target) {
                         return string;
                     }
@@ -2098,7 +1964,7 @@ namespace rainy::text {
         }
 
         template <size_type N>
-        static RAINY_CONSTEXPR20 char_type *move(foundation::containers::array<char_type, N> &to, const char_type *from,
+        static RAINY_CONSTEXPR20 char_type *move(containers::array<char_type, N> &to, const char_type *from,
                                                     const size_type count) {
             if (N < count) {
                 return nullptr;
@@ -2106,7 +1972,7 @@ namespace rainy::text {
             return move(to.data(), from, count);
         }
 
-        static RAINY_CONSTEXPR20 char_type *move(foundation::containers::array_view<char_type> &to, const char_type *from,
+        static RAINY_CONSTEXPR20 char_type *move(containers::array_view<char_type> &to, const char_type *from,
                                                     const size_type count) {
             if (to.size() < count || to.empty()) {
                 return nullptr;
@@ -2212,12 +2078,12 @@ namespace rainy::text {
         }
 
         template <size_type N>
-        static RAINY_CONSTEXPR20 char_type *move(foundation::containers::array<char_type, N> &to, const char_type *from,
+        static RAINY_CONSTEXPR20 char_type *move(containers::array<char_type, N> &to, const char_type *from,
                                                     const size_type count) {
             return common_char_traits<char_type>::move(to, from, count);
         }
 
-        static RAINY_CONSTEXPR20 char_type *move(foundation::containers::array_view<char_type> &to, const char_type *from,
+        static RAINY_CONSTEXPR20 char_type *move(containers::array_view<char_type> &to, const char_type *from,
                                                     const size_type count) {
             return common_char_traits<char_type>::move(to, from, count);
         }
@@ -2311,12 +2177,12 @@ namespace rainy::text {
         }
 
         template <size_type N>
-        static RAINY_CONSTEXPR20 char_type *move(foundation::containers::array<char_type, N> &to, const char_type *from,
+        static RAINY_CONSTEXPR20 char_type *move(containers::array<char_type, N> &to, const char_type *from,
                                                     const size_type count) {
             return common_char_traits<char_type>::move(to, from, count);
         }
 
-        static RAINY_CONSTEXPR20 char_type *move(foundation::containers::array_view<char_type> &to, const char_type *from,
+        static RAINY_CONSTEXPR20 char_type *move(containers::array_view<char_type> &to, const char_type *from,
                                                     const size_type count) {
             return common_char_traits<char_type>::move(to, from, count);
         }
@@ -2461,69 +2327,6 @@ namespace rainy::text {
     using wstring_view = basic_string_view<wchar_t>;
 }
 
-namespace rainy::foundation::system::output {
-    namespace utils {
-        RAINY_INLINE std::shared_mutex &get_mtx() {
-            static std::shared_mutex lock;
-            return lock;
-        }
-    }
-
-    template <typename... Args>
-    std::string make_sstream_string(Args... args) {
-        std::stringstream stream;
-        ((stream << args), ...);
-        return stream.str();
-    }
-
-    template <typename... Args>
-    void stdout_print(Args... args) {
-        std::string output_string = make_sstream_string(args...);
-        (void)std::fwrite(output_string.c_str(), sizeof(char), output_string.size(), stdout);
-    }
-
-    template <typename... Args>
-    void stderr_print(Args... args) {
-        std::string output_string = make_sstream_string(args...);
-        (void)std::fwrite(output_string.c_str(), sizeof(char), output_string.size(), stderr);
-    }
-
-    template <typename... Args>
-    void stdout_println(Args... args) {
-        std::string output_string = make_sstream_string(args...) + "\n";
-        (void)std::fwrite(output_string.c_str(), sizeof(char), output_string.size(), stdout);
-    }
-
-    template <typename... Args>
-    void stderr_println(Args... args) {
-        std::string output_string = make_sstream_string(args...) + "\n";
-        (void)std::fwrite(output_string.c_str(), sizeof(char), output_string.size(), stderr);
-    }
-
-    template <typename... Args>
-    void ts_stdout_print(Args... args) {
-        std::lock_guard<std::shared_mutex> lock(utils::get_mtx());
-        stdout_print(args...);
-    }
-
-    template <typename... Args>
-    void ts_stderr_print(Args... args) {
-        std::lock_guard<std::shared_mutex> lock(utils::get_mtx());
-        stderr_print(args...);
-    }
-
-    template <typename... Args>
-    void ts_stdout_println(Args... args) {
-        std::lock_guard<std::shared_mutex> lock(utils::get_mtx());
-        stdout_println(args...);
-    }
-
-    template <typename... Args>
-    void ts_stderr_println(Args... args) {
-        std::lock_guard<std::shared_mutex> lock(utils::get_mtx());
-        stderr_println(args...);
-    }
-}
 
 #if RAINY_USING_WINDOWS
 namespace rainy::winapi::error_process {
@@ -2536,7 +2339,7 @@ namespace rainy::winapi::error_process {
 #if RAINY_USING_MSVC
 #pragma warning(push)
 #pragma warning(disable : 6387)
-        if constexpr (foundation::type_traits::internals::_is_same_v<CharType, wchar_t>) {
+        if constexpr (type_traits::internals::_is_same_v<CharType, wchar_t>) {
             DWORD buffer_len =
                 FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, error_code,
                                MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), static_cast<LPWSTR>(static_buffer), 2048, nullptr);
@@ -2559,70 +2362,16 @@ namespace rainy::winapi::error_process {
 }
 
 namespace rainy::winapi::dynamic_libray {
-    template <typename CharType = char, foundation::type_traits::other_transformations::enable_if_t<
-                                            foundation::type_traits::type_relations::is_any_of_v<CharType, char, wchar_t>, int> = 0>
+    template <typename CharType = char, type_traits::other_transformations::enable_if_t<
+                                            type_traits::type_relations::is_any_of_v<CharType, char, wchar_t>, int> = 0>
     HMODULE get_module_handle(const CharType *module_name = nullptr) {
-        if constexpr (foundation::type_traits::helper::is_wchar_t<CharType>) {
+        if constexpr (type_traits::helper::is_wchar_t<CharType>) {
             return GetModuleHandleW(module_name);
         } else {
             return GetModuleHandleA(module_name);
         }
     }
 }
-
-namespace rainy::utility {
-    template <typename Ty>
-    class reference_wrapper {
-    public:
-        static_assert(foundation::type_traits::internals::_is_object_v<Ty> || foundation::type_traits::internals::_is_function_v<Ty>,
-                      "reference_wrapper<T> requires T to be an object type or a function type.");
-
-        using type = Ty;
-
-        template <typename Uty>
-        RAINY_CONSTEXPR20 reference_wrapper(Uty &&val) noexcept {
-            Ty &ref = static_cast<Uty &&>(val);
-            reference_data = rainy::utility::addressof(ref);
-        }
-
-        reference_wrapper(const reference_wrapper &) = delete;
-        reference_wrapper(reference_wrapper &&) = delete;
-
-        RAINY_CONSTEXPR20 operator Ty &() const noexcept {
-            return *reference_data;
-        }
-
-        RAINY_NODISCARD RAINY_CONSTEXPR20 Ty &get() const noexcept {
-            return *reference_data;
-        }
-
-        template <typename Elem, typename Uty>
-        friend std::basic_ostream<Elem> &operator<<(std::basic_ostream<Elem> &ostream, const reference_wrapper<Uty> &ref_wrap) {
-            ostream << ref_wrap.get();
-            return ostream;
-        }
-
-    private:
-        Ty *reference_data{};
-    };
-}
-#endif
-
-#if RAINY_HAS_CXX20
-template <typename Ty>
-class std::formatter<rainy::utility::reference_wrapper<Ty>,char> // NOLINT
-{
-public:
-    explicit formatter() noexcept = default;
-
-    auto parse(format_parse_context &ctx) const noexcept {
-        return ctx.begin();
-    }
-
-    auto format(const rainy::utility::reference_wrapper<Ty> &value,std::format_context fc) const noexcept {
-        return std::format_to(fc.out(), "{}", value.get());
-    }
-};
 #endif
 
 namespace rainy::utility {
@@ -2721,9 +2470,9 @@ namespace rainy::algorithm::execution {
 namespace rainy::algorithm::internals {
     RAINY_INLINE std::size_t get_paralells(const std::size_t count) {
         std::size_t paralells = 1;
-        foundation::containers::array<std::pair<std::size_t, std::size_t>, 4> thresholds = {
+        containers::array<std::pair<std::size_t, std::size_t>, 4> thresholds = {
             {{75, 100}, {100, 250}, {300, 648}, {800, 1500}}};
-        foundation::containers::array<std::size_t, 4> increments = {1, 2, 3, 4};
+        containers::array<std::size_t, 4> increments = {1, 2, 3, 4};
         for (std::size_t i = 0; i < thresholds.size(); ++i) {
             if (count > thresholds[static_cast<ptrdiff_t>(i)].first && count <= thresholds[static_cast<ptrdiff_t>(i)].second) {
                 paralells += increments[static_cast<ptrdiff_t>(i)];
@@ -2750,9 +2499,9 @@ namespace rainy::algorithm::internals {
 namespace rainy::algorithm::container_operater {
     template <typename InputIter, typename OutIter>
     RAINY_CONSTEXPR20 OutIter copy(InputIter begin, InputIter end, OutIter dest) noexcept(
-        std::is_nothrow_copy_constructible_v<foundation::type_traits::other_transformations::conditional_t<
-            foundation::type_traits::internals::_is_pointer_v<InputIter>,
-            foundation::type_traits::pointer_modify::remove_pointer_t<InputIter>, typename InputIter::value_type>>) {
+        std::is_nothrow_copy_constructible_v<type_traits::other_transformations::conditional_t<
+            type_traits::internals::_is_pointer_v<InputIter>,
+            type_traits::pointer_modify::remove_pointer_t<InputIter>, typename InputIter::value_type>>) {
         using value_type = typename InputIter::value_type;
         if (begin == end || (end - 1) == begin) {
             return dest; // 不进行复制
@@ -2824,13 +2573,13 @@ namespace rainy::algorithm::container_operater {
 
     template <typename InputIter, typename OutIter>
     RAINY_CONSTEXPR20 OutIter copy_n(InputIter begin, const std::size_t count, OutIter dest) noexcept(
-        std::is_nothrow_copy_constructible_v<foundation::type_traits::other_transformations::conditional_t<
-            foundation::type_traits::internals::_is_pointer_v<InputIter>,
-            foundation::type_traits::pointer_modify::remove_pointer_t<InputIter>, typename InputIter::value_type>>) {
+        std::is_nothrow_copy_constructible_v<type_traits::other_transformations::conditional_t<
+            type_traits::internals::_is_pointer_v<InputIter>,
+            type_traits::pointer_modify::remove_pointer_t<InputIter>, typename InputIter::value_type>>) {
 
-        using value_type = foundation::type_traits::other_transformations::conditional_t<
-            foundation::type_traits::internals::_is_pointer_v<InputIter>,
-            foundation::type_traits::pointer_modify::remove_pointer_t<InputIter>, typename InputIter::value_type>;
+        using value_type = type_traits::other_transformations::conditional_t<
+            type_traits::internals::_is_pointer_v<InputIter>,
+            type_traits::pointer_modify::remove_pointer_t<InputIter>, typename InputIter::value_type>;
 
         if (count == 0) {
             return dest; // 不进行复制
@@ -2903,9 +2652,9 @@ namespace rainy::algorithm::container_operater {
 
     template <typename InputIter, typename OutIter, typename Fx>
     constexpr OutIter transform(InputIter begin, InputIter end, OutIter dest, Fx func) noexcept(
-        std::is_nothrow_copy_assignable_v<foundation::type_traits::other_transformations::conditional_t<
-            foundation::type_traits::internals::_is_pointer_v<InputIter>,
-            foundation::type_traits::pointer_modify::remove_pointer_t<InputIter>, typename InputIter::value_type>>) {
+        std::is_nothrow_copy_assignable_v<type_traits::other_transformations::conditional_t<
+            type_traits::internals::_is_pointer_v<InputIter>,
+            type_traits::pointer_modify::remove_pointer_t<InputIter>, typename InputIter::value_type>>) {
         if (begin == end || (end - 1) == begin) {
             return dest;
         }
@@ -2917,9 +2666,9 @@ namespace rainy::algorithm::container_operater {
 
     template <typename InputIter, typename OutIter, typename Fx>
     constexpr OutIter transform(InputIter begin1, InputIter end1, InputIter begin2, OutIter dest, Fx func) noexcept(
-        std::is_nothrow_copy_assignable_v<foundation::type_traits::other_transformations::conditional_t<
-            foundation::type_traits::internals::_is_pointer_v<InputIter>,
-            foundation::type_traits::pointer_modify::remove_pointer_t<InputIter>, typename InputIter::value_type>>) {
+        std::is_nothrow_copy_assignable_v<type_traits::other_transformations::conditional_t<
+            type_traits::internals::_is_pointer_v<InputIter>,
+            type_traits::pointer_modify::remove_pointer_t<InputIter>, typename InputIter::value_type>>) {
         if (begin1 == end1 || (end1 - 1) == begin1) {
             return dest;
         }
@@ -3011,6 +2760,11 @@ namespace rainy::component::sync_event {
 
     class dispatcher {
     public:
+        class registration;
+
+        using registrations_t = std::list<std::shared_ptr<registration>>;
+        using type_mapping = std::unordered_map<utility::type_index, std::shared_ptr<registrations_t>>;
+
         static dispatcher *instance() {
             static dispatcher instance;
             return &instance;
@@ -3033,7 +2787,7 @@ namespace rainy::component::sync_event {
         RAINY_NODISCARD std::shared_ptr<handler_registration> subscribe(std::shared_ptr<event_handler<EventType>> handler) {
             auto &registrations_instance = handlers[typeid(EventType)];
             if (!registrations_instance) {
-                registrations_instance = std::make_shared<registrations>();
+                registrations_instance = std::make_shared<registrations_t>();
             }
             auto registration_instance = std::make_shared<registration>(registrations_instance);
             registration_instance->set<EventType>(handler);
@@ -3042,8 +2796,8 @@ namespace rainy::component::sync_event {
         }
 
         template <typename EventType, typename Fx,
-                  foundation::type_traits::other_transformations::enable_if_t<
-                      foundation::type_traits::type_properties::is_invocable_r_v<void, Fx, event &>, int> = 0>
+                  type_traits::other_transformations::enable_if_t<
+                      type_traits::type_properties::is_invocable_r_v<void, Fx, event &>, int> = 0>
         RAINY_NODISCARD std::shared_ptr<handler_registration> subscribe(Fx &&func) {
             /* 我们实际创建了一个virtual_listener实例，表示虚拟的监听器 */
             struct virtual_listener : public event_handler<EventType>, Fx {
@@ -3116,7 +2870,7 @@ namespace rainy::component::sync_event {
                     foundation::system::output::stderr_println(
                         "found a error in :" RAINY_STRINGIZE(rainy::component::sync_event::dispatcher::publish),
                         "with addtional information from std::exception: ", e.what());
-                    utility::throw_exception(utility::stdexcept_to_jexcept(e));
+                    utility::throw_exception(utility::stdexcept_to_rexcept(e));
                 }
             }
         }
@@ -3136,15 +2890,9 @@ namespace rainy::component::sync_event {
             }
         }
 
-    private:
-        class registration;
-
-        using registrations = std::list<std::shared_ptr<registration>>;
-        using type_mapping = std::unordered_map<utility::type_index, std::shared_ptr<registrations>>;
-
         class registration : public handler_registration, public std::enable_shared_from_this<registration> {
         public:
-            registration(std::shared_ptr<registrations> registrations) :
+            registration(std::shared_ptr<registrations_t> registrations) :
                 registrations(utility::move(registrations)) {
             }
 
@@ -3210,7 +2958,7 @@ namespace rainy::component::sync_event {
                 std::shared_ptr<event_handler<EventType>> handler;
             };
 
-            std::shared_ptr<registrations> registrations;
+            std::shared_ptr<registrations_t> registrations;
             bool registered{true};
             std::unique_ptr<resource> instance;
         };

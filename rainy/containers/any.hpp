@@ -6,7 +6,7 @@
 /*
  * any的基础utils和异常实现
  */
-namespace rainy::foundation {
+namespace rainy {
     namespace containers::internals {
         inline constexpr size_t any_trivial_space_size = (information::small_object_num_ptrs - 1) * sizeof(void *);
 
@@ -77,7 +77,7 @@ namespace rainy::foundation {
                                                                 &small_any_rtti::move<Ty>};
     }
 
-    namespace system::exceptions::cast {
+    namespace foundation::system::exceptions::cast {
         class bad_any_cast final : public bad_cast {
         public:
             using base = bad_cast;
@@ -89,19 +89,20 @@ namespace rainy::foundation {
         void throw_bad_any_cast() {
             utility::throw_exception(bad_any_cast{});
         }
+
     }
 }
 
 /*
  * any实现
  */
-namespace rainy::foundation::containers {
+namespace rainy::containers {
     class any {
     public:
         template <typename Ty>
         using _enable_if = std::enable_if_t<
             std::conjunction_v<std::negation<std::is_same<std::decay_t<Ty>, any>>,
-                               std::negation<type_traits::primary_types::is_specialization<std::decay_t<Ty>, std::in_place_type_t>>,
+                               std::negation<type_traits::primary_types::has_specialization<std::decay_t<Ty>, std::in_place_type_t>>,
                                std::is_copy_constructible<std::decay_t<Ty>>>,
             int>;
 
@@ -225,7 +226,7 @@ namespace rainy::foundation::containers {
                 return *extract_data;
             }
             static char placeholder = '\0'; // 占位，此值永远不会被返回
-            return system::exceptions::cast::throw_bad_any_cast(), reinterpret_cast<decayed &>(placeholder);
+            return foundation::system::exceptions::cast::throw_bad_any_cast(), reinterpret_cast<decayed &>(placeholder);
         }
 
         template <typename decayed>
@@ -235,7 +236,7 @@ namespace rainy::foundation::containers {
                 return *extract_data;
             }
             static char placeholder = '\0';
-            return system::exceptions::cast::throw_bad_any_cast(), reinterpret_cast<const decayed &>(placeholder);
+            return foundation::system::exceptions::cast::throw_bad_any_cast(), reinterpret_cast<const decayed &>(placeholder);
         }
 
     private:
@@ -364,7 +365,7 @@ namespace rainy::foundation::containers {
 
 namespace rainy::utility {
     template <typename ValueType>
-    RAINY_NODISCARD const ValueType *any_cast(const foundation::containers::any *const any) noexcept {
+    RAINY_NODISCARD const ValueType *any_cast(const containers::any *const any) noexcept {
         // retrieve a pointer to the ValueType contained in _Any, or null
         using namespace foundation;
         using namespace type_traits;
@@ -380,7 +381,7 @@ namespace rainy::utility {
     }
 
     template <typename ValueType>
-    RAINY_NODISCARD ValueType *any_cast(foundation::containers::any *const any) noexcept {
+    RAINY_NODISCARD ValueType *any_cast(containers::any *const any) noexcept {
         // retrieve a pointer to the ValueType contained in _Any, or null
         using namespace foundation;
         using namespace type_traits;
@@ -396,7 +397,7 @@ namespace rainy::utility {
     }
 
     template <typename Ty>
-    RAINY_NODISCARD foundation::type_traits::cv_modify::remove_cv_t<Ty> any_cast(const foundation::containers::any &any) {
+    RAINY_NODISCARD type_traits::cv_modify::remove_cv_t<Ty> any_cast(const containers::any &any) {
         using namespace foundation;
         using namespace type_traits;
         static_assert(type_properties::is_constructible_v<cv_modify::remove_cv_t<Ty>, const cv_modify::remove_cvref_t<Ty> &>,
@@ -412,7 +413,7 @@ namespace rainy::utility {
     }
 
     template <typename Ty>
-    RAINY_NODISCARD foundation::type_traits::cv_modify::remove_cv_t<Ty> any_cast(foundation::containers::any &any) {
+    RAINY_NODISCARD type_traits::cv_modify::remove_cv_t<Ty> any_cast(containers::any &any) {
         using namespace foundation;
         using namespace type_traits;
         static_assert(type_properties::is_constructible_v<cv_modify::remove_cv_t<Ty>, cv_modify::remove_cvref_t<Ty> &>,
@@ -428,7 +429,7 @@ namespace rainy::utility {
     }
 
     template <typename Ty>
-    RAINY_NODISCARD foundation::type_traits::cv_modify::remove_cv_t<Ty> any_cast(foundation::containers::any &&any) {
+    RAINY_NODISCARD type_traits::cv_modify::remove_cv_t<Ty> any_cast(containers::any &&any) {
         using namespace foundation;
         using namespace type_traits;
         static_assert(type_properties::is_constructible_v<cv_modify::remove_cv_t<Ty>, cv_modify::remove_cvref_t<Ty>>,
@@ -444,8 +445,8 @@ namespace rainy::utility {
     }
 
     template <typename Ty, typename AnyType,
-              foundation::type_traits::other_transformations::enable_if_t<
-                  foundation::type_traits::type_relations::is_same_v<std::decay_t<AnyType>, foundation::containers::any>, int> = 0>
+              type_traits::other_transformations::enable_if_t<
+                  type_traits::type_relations::is_same_v<std::decay_t<AnyType>, containers::any>, int> = 0>
     RAINY_NODISCARD decltype(auto) get(AnyType &&any) noexcept {
         return any_cast<Ty>(forward<AnyType>(any));
     }

@@ -3,7 +3,7 @@
 #include <rainy/base.hpp>
 #include <deque>
 
-namespace rainy::foundation::containers {
+namespace rainy::containers {
     template <typename Ty, typename container = std::deque<Ty>>
     class stack {
     public:
@@ -134,12 +134,12 @@ namespace rainy::foundation::containers {
         container_type container_;
     };
 
-    template <typename Ty, typename _alloc = system::memory::allocator<Ty>>
+    template <typename Ty, typename Alloc = foundation::system::memory::allocator<Ty>>
     class stack_container {
     public:
         using value_type = Ty;
         using size_type = std::size_t;
-        using allocator_type = _alloc;
+        using allocator_type = Alloc;
         using pointer = value_type *;
         using const_reference = const value_type &;
 

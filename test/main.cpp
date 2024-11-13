@@ -1,7 +1,6 @@
 ﻿#include <iostream>
 
 #include <cstdio>
-#include <format>
 #include <rainy/experimental/format.hpp>
 #include <rainy/system/exceptions.hpp>
 #include <span>
@@ -23,6 +22,7 @@ void benchmark(const char *const label, Fn &&func, Args &&...args) {
 #include <rainy/containers/any.hpp>
 #include <rainy/meta/hash.hpp>
 #include <rainy/utility.hpp>
+#include <rainy/containers/stack.hpp>
 
 // declare
 namespace rainy::foundation::reflection {
@@ -170,7 +170,7 @@ namespace rainy::foundation::reflection {
 
         RAINY_NODISCARD info_collection get_info(const std::string_view name) noexcept override {
             if (name == "field") {
-                return {info_type::field, static_cast<void *>(&field)};
+                return {info_type::field, static_cast<void *>(&_field)};
             }
             return {info_type::unknown, nullptr};
         }
@@ -181,7 +181,7 @@ namespace rainy::foundation::reflection {
 
     private:
         utility::type_info _info;
-        std::vector<field> field;
+        std::vector<field> _field;
     };
 
     template <typename Ty>
@@ -209,8 +209,8 @@ namespace rainy::foundation::reflection {
     protected:
         utility::type_info _info;
         type _type_kind;
-        std::vector<field> field;
-        std::vector<method> method_field;
+        std::vector<field> field_;
+        std::vector<method> method_field_;
         std::vector<class_info *> derived;
     };
 
@@ -222,10 +222,10 @@ namespace rainy::foundation::reflection {
 
         info_collection get_info(const std::string_view name) noexcept override {
             if (name == "field") {
-                return {info_type::field, static_cast<void *>(&this->field)};
+                return {info_type::field, static_cast<void *>(&this->field_)};
             }
             if (name == "method") {
-                return {info_type::method_info, static_cast<void *>(&this->method_field)};
+                return {info_type::method_info, static_cast<void *>(&this->method_field_)};
             }
             if (name == "base") {
                 return {info_type::class_info, static_cast<void *>(&base)};
@@ -608,16 +608,16 @@ namespace rainy::foundation::reflection {
                         /* 因为正常类具有base继承，我们需要从base中安全删除 */
                         auto *base_class_list = static_cast<std::vector<class_info *> *>(remove_class->get_info("base").resouces);
                         for (auto base: *base_class_list) {
-                            auto *derived_class_list = static_cast<std::vector<class_info *> *>(base->get_info("derived").resouces);
+                            auto *_derived_class_list = static_cast<std::vector<class_info *> *>(base->get_info("derived").resouces);
                             /* 获取派生列表 */
-                            if (!derived_class_list) {
+                            if (!_derived_class_list) {
                                 std::terminate(); // 不应该发生
                             }
                             const auto remove_iter =
-                                std::find_if(derived_class_list->begin(), derived_class_list->end(),
+                                std::find_if(_derived_class_list->begin(), _derived_class_list->end(),
                                              [&remove_key_hash](const class_info *info) { return info->hash_code() == remove_key_hash; });
-                            if (remove_iter != derived_class_list->end()) {
-                                derived_class_list->erase(remove_iter); // 找到就移除
+                            if (remove_iter != _derived_class_list->end()) {
+                                _derived_class_list->erase(remove_iter); // 找到就移除
                             }
                         }
                     }
@@ -731,9 +731,9 @@ namespace rainy::foundation::reflection {
         template <auto Field, bool NoReturn = false,
                   std::enable_if_t<std::is_member_object_pointer_v<decltype(Field)> || std::is_enum_v<decltype(Field)>, int> = 0>
         auto add_field(const std::string_view name = rainy::utility::variable_name<Field>(), const attributes &attr = {}) noexcept
-            -> foundation::type_traits::other_transformations::conditional_t<
+            -> rainy::type_traits::other_transformations::conditional_t<
                 NoReturn, void,
-                foundation::type_traits::other_transformations::conditional_t<
+                rainy::type_traits::other_transformations::conditional_t<
                     !member_pointer_class<decltype(Field)>::valid, utility::pair<bool, enum_field *>, utility::pair<bool, field *>>> {
             // 根据Field的类型决定返回，如果Field是一个枚举，则返回rainy::utility::pair<bool,enum_field*>，否则rainy::utility::pair<bool,field*>
             using field_type = decltype(Field);
@@ -801,7 +801,7 @@ namespace rainy::foundation::reflection {
 
         template <auto Method, bool NoReturn = false, std::enable_if_t<std::is_member_function_pointer_v<decltype(Method)>, int> = 0>
         auto add_method(const std::string_view name = rainy::utility::variable_name<Method>(), const attributes &attr = {}) noexcept
-            -> foundation::type_traits::other_transformations::conditional_t<NoReturn, void, utility::pair<bool, method *>> {
+            -> rainy::type_traits::other_transformations::conditional_t<NoReturn, void, utility::pair<bool, method *>> {
             using method_type = decltype(Method);
             using traits = method_traits<method_type>;
             using trait_type = typename member_pointer_class<method_type>::type;
@@ -842,7 +842,7 @@ namespace rainy::foundation::reflection {
                     } else if constexpr (!(traits::is_const && traits::is_static)) {
                         method_infos->emplace_back(make_method<trait_type>(name, Method));
                     } else {
-                        static_assert(rainy::foundation::type_traits::internals::always_false<void>);
+                        static_assert(rainy::type_traits::internals::always_false<void>);
                     }
                     break;
                 }
@@ -1248,7 +1248,7 @@ namespace rainy::foundation::reflection {
                 std::terminate(); // 不应该发生
             }
             info_type *found_info = nullptr;
-            rainy::foundation::containers::stack_container<class_info *> class_stack;
+            rainy::containers::stack_container<class_info *> class_stack;
             std::unordered_set<class_info *> visited_classes; // 用于跟踪已访问过的类，防止循环
             class_stack.push(parent_class);
             visited_classes.insert(parent_class); // 初始类标记为已访问
@@ -1322,7 +1322,7 @@ public:
 #endif
         {
             rainy::utility::expects(ilist.size() <= _size);
-            if constexpr (rainy::foundation::type_traits::type_properties::is_pod_v<Ty>) {
+            if constexpr (rainy::type_traits::type_properties::is_pod_v<Ty>) {
                 std::uninitialized_copy_n(ilist.begin(), _size, elems);
             } else {
                 std::copy_n(ilist.begin(), _size, elems);
@@ -1551,12 +1551,13 @@ public:
 
 const int my_class::c = 10;
 
+#if RAINY_USING_WINDOWS
 template <typename CharType>
 LSTATUS reg_openkey(HKEY key,DWORD options,const CharType* sub_key, REGSAM desired,PHKEY result) {
     if (!result || !key) {
         return ERROR_BAD_ARGUMENTS;
     }
-    if constexpr (rainy::foundation::type_traits::helper::is_wchar_t<CharType>) {
+    if constexpr (rainy::type_traits::helper::is_wchar_t<CharType>) {
         return RegOpenKeyExW(key, sub_key, options, desired, result);
     } else {
         return RegOpenKeyExA(key, sub_key, options, desired, result);
@@ -1651,6 +1652,7 @@ private:
 
     HKEY context{};
 };
+#endif
 
 #include <rainy/utility.hpp>
 
@@ -1719,7 +1721,7 @@ constexpr int test_fun() {
 #include <rainy/containers/variant.hpp>
 
 void run_visit_test() {
-    using namespace rainy::foundation::containers;
+    using namespace rainy::containers;
     struct visitor {
         void operator()(int val) noexcept {
             std::cout << "int\n";
@@ -1791,12 +1793,12 @@ struct foo {
 
 #include <rainy/winapi/ui/window.hpp>
 
-class my_window : public rainy::winapi::ui::window<char> {
-public:
-    virtual LRESULT handle_message(UINT msg, WPARAM wparam, LPARAM lparam) override {
-        return DefWindowProcA(this->handle,msg,wparam,lparam);
-    }
-};
+//class my_window : public rainy::winapi::ui::window<char> {
+//public:
+//    virtual LRESULT handle_message(UINT msg, WPARAM wparam, LPARAM lparam) override {
+//        return DefWindowProcA(this->handle,msg,wparam,lparam);
+//    }
+//};
 
 unsigned int my_function(void*) {
     std::cout << "Hello World"
@@ -1804,20 +1806,7 @@ unsigned int my_function(void*) {
     return 0;
 }
 
-#include <process.h>
-
-struct abstract{
-    //virtual int v() = 0;
-};
-
-class event_system {
-public:
-
-private:
-    
-};
-
-
+//#include <process.h>
 #include <fstream>
 
 class localization {
@@ -1858,19 +1847,80 @@ public:
     }
 };
 
+struct pod {
+    int a{};
+    char b{};
+    std::string c;
+    std::vector<int> d;
+public:
+    static constexpr auto __refl_struct_members() noexcept {
+        return std::make_tuple(&pod::a, &pod::b, &pod::c, &pod::d);
+    }
+};
+
+class secret {
+    int m_i = 3;
+    int m_f(int p) {
+        return 14 * p;
+    }
+    int m_2 = 10;
+    std::string m_3;
+};
+
+class secret2 {
+    int m_i = 3;
+    int m_f(int p) {
+        return 14 * p;
+    }
+};
+
+struct test_class {
+    void noexcept_fun() noexcept {
+        std::cout << "Hello test_class"
+                  << "\n";
+    }
+
+    int a;
+};
+
+#include <set>
+#include <rainy/utility/invoke.hpp>
+
 int main() {
-    rainy::foundation::system::async::internals::init_async_moudle_abi();
-    auto thread_instance = rainy::foundation::comint::create_instance<rainy::foundation::system::async::internals::native_thread>();
-    thread_instance->start(nullptr, 0, my_function, nullptr, 0);
-    rainy::foundation::system::async::internals::abi::thread_sleep_for(1);
-    std::cout << thread_instance.use_count() << "\n";
-    std::cout << thread_instance->get_id() << "\n";
-    std::shared_ptr<rainy::foundation::comint::the_unknown> move_ptr;
-    thread_instance->move(move_ptr);
-    std::cout << thread_instance->get_id() << "\n";
-    std::cout << std::dynamic_pointer_cast<rainy::foundation::system::async::internals::native_thread>(move_ptr)->get_id() << "\n";
-    std::dynamic_pointer_cast<rainy::foundation::system::async::internals::native_thread>(move_ptr)->join();
-    std::cout << thread_instance.use_count() << "\n";
+    test_class object_test{};
+    std::reference_wrapper<test_class> my_test = object_test;
+    rainy::utility::internals::select_invoker<decltype(&test_class::a), decltype(my_test)>::value;
+    rainy::utility::invoke(&test_class::a, my_test);
+    std::cout << "Hello World"
+              << "\n";
+    std::cout << "Hello World\n";
+    std::random_device random_device;
+    std::mt19937 gen(random_device());
+    std::uniform_int_distribution<> dist(1, 27);
+    std::set<int> my_set;
+    while (my_set.size() < 10) {
+        my_set.insert(dist(gen));
+    }
+    for (const auto &i: my_set) {
+        std::cout << i << "\n";
+    }
+    std::uniform_int_distribution<> rc_dist(1, 11);
+    std::cout << "random choice = " << rc_dist(gen) << "\n";
+    //rainy::foundation::system::async::internals::init_async_moudle_abi();
+    //auto thread_instance = rainy::foundation::comint::create_instance<rainy::foundation::system::async::internals::native_thread>();
+
+
+
+    //thread_instance->start(nullptr, 0, my_function, nullptr, 0);
+    //rainy::foundation::system::async::internals::abi::thread_sleep_for(1);
+    //std::cout << thread_instance.use_count() << "\n";
+    //std::cout << thread_instance->get_id() << "\n";
+    //std::shared_ptr<rainy::foundation::comint::the_unknown> move_ptr;
+    //thread_instance->move(move_ptr);
+    //std::cout << thread_instance->get_id() << "\n";
+    //std::cout << std::dynamic_pointer_cast<rainy::foundation::system::async::internals::native_thread>(move_ptr)->get_id() << "\n";
+    //std::dynamic_pointer_cast<rainy::foundation::system::async::internals::native_thread>(move_ptr)->join();
+    //std::cout << thread_instance.use_count() << "\n";
     auto reg = rainy::component::sync_event::dispatcher::instance()->subscribe<user_event, listener>();
     std::cout << reg->name() << "\n";
     (void) rainy::component::sync_event::dispatcher::instance()->subscribe<user_event>(
@@ -1891,7 +1941,7 @@ int main() {
         });
     rainy::component::sync_event::dispatcher::instance()->clear();
     std::tuple<int,char,std::string> t;
-    using namespace rainy::foundation::type_traits::extras::reflection;
+    using namespace rainy::type_traits::extras::reflection;
     //rainy::winapi::ui::window<> main_window;
     //RECT window_rect = {100, 100, 800, 600};
     //main_window.create(NULL, "Main Window", WS_OVERLAPPEDWINDOW, 0, window_rect);
@@ -1924,7 +1974,7 @@ int main() {
     std::cout << sample_object.x << "\n";
 
     auto &mult_method = instance->get_method<demo_class>(rainy::utility::variable_name<&demo_class::mult>());
-
+    std::cout << "mult_method name: " << mult_method.name() << "\n";
     std::cout << mult_method.invoke_with_paramspack(&sample_object).as<int>() << "\n";
     // 或者...
     std::cout << mult_method(&sample_object, {}).as<int>() << "\n";
@@ -1941,16 +1991,16 @@ int main() {
     std::cout << "Is demo_class registered? " << std::boolalpha << instance->is_registered(typeid(demo_class)) << "\n";
 
     run_visit_test();
-    rainy::foundation::containers::any any_object = 10;
+    rainy::containers::any any_object = 10;
     std::cout << rainy::utility::get<int&>(any_object) << "\n";
     rainy::utility::get<int &>(any_object) = 666;
     std::cout << rainy::utility::get<int &>(any_object) << "\n";
 
 
-    rainy::winapi::environment::environment_manager manager;
+    /*rainy::winapi::environment::environment_manager manager;
     for (const auto &i: manager.get_environment_var_by_list("PATH").vector_list) {
         std::cout << i << "\n";
-    }
+    }*/
     constexpr int v = test_fun();
     std::cout << v << "\n";
 

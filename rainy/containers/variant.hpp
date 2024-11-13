@@ -12,12 +12,12 @@ https://learn.microsoft.com/en-us/cpp/code-quality/c26495
 */
 #endif
 
-namespace rainy::foundation::containers {
+namespace rainy::containers {
     template <typename... Types>
     class variant; // 前置声明
 }
 
-namespace rainy::foundation::containers::internals {
+namespace rainy::containers::internals {
     template <bool TrivialTestruction, typename... Types>
     struct variant_storage {};
 
@@ -165,7 +165,7 @@ namespace rainy::foundation::containers::internals {
       // Operator for handling the initialization without C++20.
         template <typename InitializerType>
         auto operator()(TargetType, InitializerType &&)
-            -> foundation::type_traits::extras::tuple_like::meta_list<foundation::type_traits::helper::integral_constant<size_t, Index>, TargetType> {
+            -> type_traits::extras::tuple_like::meta_list<type_traits::helper::integral_constant<size_t, Index>, TargetType> {
         }
 #endif
     };
@@ -193,7 +193,7 @@ namespace rainy::foundation::containers::internals {
 
     template <typename Ty, typename... Types>
     using variant_init_type =
-        type_traits::extras::tuple_like::meta_front<foundation::type_traits::extras::tuple_like::meta_pop_front<typename variant_init_helper<void, Ty, Types...>::type>>;
+        type_traits::extras::tuple_like::meta_front<type_traits::extras::tuple_like::meta_pop_front<typename variant_init_helper<void, Ty, Types...>::type>>;
 
     template <typename Ty, typename... Types>
     using variant_init_index = type_traits::extras::tuple_like::meta_front<typename variant_init_helper<void, Ty, Types...>::type>;
@@ -283,7 +283,7 @@ namespace rainy::foundation::containers::internals {
     }
 }
 
-namespace rainy::foundation::containers {
+namespace rainy::containers {
     template <typename... Types>
     class variant : public internals::variant_base<Types...> {
     public:

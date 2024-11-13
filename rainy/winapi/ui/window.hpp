@@ -1,5 +1,7 @@
-#ifndef RAINY_WINAPI_WINDOW_H
+﻿#ifndef RAINY_WINAPI_WINDOW_H
 #define RAINY_WINAPI_WINDOW_H
+
+#if RAINY_USING_WINDOWS
 #include <rainy/winapi/api_core.h>
 
 /* 对window.hpp使用的WindowsAPI进行重新的包装，并进行模板化 */
@@ -9,7 +11,7 @@ namespace rainy::winapi::ui::utils {
     }
 
     RAINY_DECLARE_CHARSET_TEMPLATE BOOL get_message(LPMSG msg_ptr, HWND handle, UINT window_msg_filter_min, UINT window_msg_filter_max) {
-        if constexpr (foundation::type_traits::helper::is_wchar_t<CharType>) {
+        if constexpr (type_traits::helper::is_wchar_t<CharType>) {
             return GetMessageW(msg_ptr, handle, window_msg_filter_min, window_msg_filter_max);
         } else {
             return GetMessageA(msg_ptr, handle, window_msg_filter_min, window_msg_filter_max);
@@ -17,7 +19,7 @@ namespace rainy::winapi::ui::utils {
     }
 
     RAINY_DECLARE_CHARSET_TEMPLATE LRESULT dispatch_message(const MSG *msg_ptr) {
-        if constexpr (foundation::type_traits::helper::is_wchar_t<CharType>) {
+        if constexpr (type_traits::helper::is_wchar_t<CharType>) {
             return DispatchMessageW(msg_ptr);
         } else {
             return DispatchMessageA(msg_ptr);
@@ -29,12 +31,12 @@ namespace rainy::winapi::ui::utils {
     }
 
     template <typename CharType = char,
-              typename WndCPtrType = foundation::type_traits::other_transformations::conditional_t<
-                  foundation::type_traits::helper::is_wchar_t<CharType>, LPWNDCLASSEXW, LPWNDCLASSA>,
-              rainy::foundation::type_traits::other_transformations::enable_if_t<
-                                            rainy::winapi::type_traits::is_support_charset_v<CharType>, int> = 0>
+              typename WndCPtrType = type_traits::other_transformations::conditional_t<
+                  type_traits::helper::is_wchar_t<CharType>, LPWNDCLASSEXW, LPWNDCLASSA>,
+              type_traits::other_transformations::enable_if_t<
+                                            type_traits::extras::winapi::is_support_charset_v<CharType>, int> = 0>
     BOOL get_class_info_ex(HINSTANCE handle_of_instance, const CharType *class_name, WndCPtrType window_class_ptr) {
-        if constexpr (foundation::type_traits::helper::is_wchar_t<CharType>) {
+        if constexpr (type_traits::helper::is_wchar_t<CharType>) {
             return GetClassInfoExW(handle_of_instance, class_name, window_class_ptr);
         } else {
             return GetClassInfoExA(handle_of_instance, class_name, window_class_ptr);
@@ -42,11 +44,11 @@ namespace rainy::winapi::ui::utils {
     }
 
     template <typename CharType = char, typename WndCPtrType = 
-        foundation::type_traits::other_transformations::conditional_t < foundation::type_traits::helper::is_wchar_t<CharType>,WNDCLASSEXW,WNDCLASSEXA>,
-              foundation::type_traits::other_transformations::enable_if_t<
-                 winapi::type_traits::is_support_charset_v<CharType>, int> = 0>
+        type_traits::other_transformations::conditional_t < type_traits::helper::is_wchar_t<CharType>,WNDCLASSEXW,WNDCLASSEXA>,
+              type_traits::other_transformations::enable_if_t<
+                 type_traits::extras::winapi::is_support_charset_v<CharType>, int> = 0>
     ATOM register_window_class(const WndCPtrType *window_class) {
-        if constexpr (foundation::type_traits::helper::is_wchar_t<CharType>) {
+        if constexpr (type_traits::helper::is_wchar_t<CharType>) {
             return RegisterClassExW(window_class);
         } else {
             return RegisterClassExA(window_class);
@@ -54,7 +56,7 @@ namespace rainy::winapi::ui::utils {
     }
 
     RAINY_DECLARE_CHARSET_TEMPLATE LRESULT invoke_window_callback(WNDPROC callback, HWND handle, UINT msg, WPARAM wparam, LPARAM lparam) {
-        if constexpr (foundation::type_traits::helper::is_wchar_t<CharType>) {
+        if constexpr (type_traits::helper::is_wchar_t<CharType>) {
             return CallWindowProcW(callback, handle, msg, wparam, lparam);
         } else {
             return CallWindowProcA(callback, handle, msg, wparam, lparam);
@@ -72,7 +74,7 @@ namespace rainy::winapi::ui::utils {
     }
 
     RAINY_DECLARE_CHARSET_TEMPLATE LRESULT call_default_window_callback(HWND handle, UINT msg, WPARAM wparam, LPARAM lparam) {
-        if constexpr (foundation::type_traits::helper::is_wchar_t<CharType>) {
+        if constexpr (type_traits::helper::is_wchar_t<CharType>) {
             return DefWindowProcW(handle, msg, wparam, lparam);
         } else {
             return DefWindowProcA(handle, msg, wparam, lparam);
@@ -84,7 +86,7 @@ namespace rainy::winapi::ui {
     template <typename CharType = char>
     class window {
     public:
-        static_assert(winapi::type_traits::is_support_charset_v<CharType>);
+        static_assert(type_traits::extras::winapi::is_support_charset_v<CharType>);
 
         using handle_type = HWND;
 
@@ -348,5 +350,7 @@ namespace rainy::winapi::ui {
         }
     };
 }
+
+#endif
 
 #endif

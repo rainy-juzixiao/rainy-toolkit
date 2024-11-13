@@ -1,9 +1,9 @@
-#ifndef RAINY_VECTOR_HPP
+﻿#ifndef RAINY_VECTOR_HPP
 #define RAINY_VECTOR_HPP
 
 #include <rainy/base.hpp>
 
-namespace rainy::foundation::containers::internals {
+namespace rainy::containers::internals {
     template <typename Ty>
     struct vector_storage {
         vector_storage() = default;
@@ -14,7 +14,7 @@ namespace rainy::foundation::containers::internals {
     };
 }
 
-namespace rainy::foundation::containers {
+namespace rainy::containers {
     template <typename Ty,typename Alloc = std::allocator<Ty>>
     class vector {
     public:

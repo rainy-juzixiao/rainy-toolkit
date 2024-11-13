@@ -22,10 +22,10 @@ namespace rainy::linux_api::proc_thrd {
         thread_manager() : thread_({}) {
         }
 
-        template <typename Fx,typename... Args, foundation::type_traits::other_transformations::enable_if_t<
-                                   !foundation::type_traits::type_relations::is_same_v<
-                                       foundation::type_traits::cv_modify::remove_cvref_t<Fx>, thread_manager> &&
-                                       foundation::type_traits::type_properties::is_invocable_r_v<void, Fx, Args...>,
+        template <typename Fx,typename... Args, type_traits::other_transformations::enable_if_t<
+                                   !type_traits::type_relations::is_same_v<
+                                       type_traits::cv_modify::remove_cvref_t<Fx>, thread_manager> &&
+                                       type_traits::type_properties::is_invocable_r_v<void, Fx, Args...>,
                                    int> = 0>
         explicit thread_manager(Fx handler,Args&&... args) : thread_({}) {
             create_thread(handler,foundation::utility::forward<Args&&>(args)...);
@@ -84,10 +84,10 @@ namespace rainy::linux_api::proc_thrd {
             return thread_.thread;
         }
 
-        template <typename Fx, typename... Args,foundation::type_traits::other_transformations::enable_if_t<
-                                   !foundation::type_traits::type_relations::is_same_v<
-                                       foundation::type_traits::cv_modify::remove_cvref_t<Fx>, thread_manager> &&
-                                       foundation::type_traits::type_properties::is_invocable_r_v<void, Fx, Args...>,
+        template <typename Fx, typename... Args,type_traits::other_transformations::enable_if_t<
+                                   !type_traits::type_relations::is_same_v<
+                                       type_traits::cv_modify::remove_cvref_t<Fx>, thread_manager> &&
+                                       type_traits::type_properties::is_invocable_r_v<void, Fx, Args...>,
                                    int> = 0>
         void start(Fx handler,Args&&...args) {
             create_thread(handler, std::forward<Args>(args)...);

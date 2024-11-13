@@ -95,6 +95,8 @@ list(APPEND SOURCES
 
 list(APPEND SOURCES
         rainy/utility/iterator.hpp
+        rainy/utility/invoke.hpp
+        rainy/utility/ref_wrap.hpp
 )
 
 # 内部实现
@@ -118,7 +120,7 @@ if (WIN32)
 endif ()
 
 # 设置测试用例
-list(APPEND SOURCES test/test_format_wrapper.cpp)
+list(APPEND SOURCES test/main.cpp)
 
 # 创建可执行文件
 add_executable(rainy-toolkit ${SOURCES})

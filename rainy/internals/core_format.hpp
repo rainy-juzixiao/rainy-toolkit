@@ -25,7 +25,7 @@ namespace rainy::foundation::system::exceptions::runtime {
 namespace rainy::experimental::format_internals {
     template <typename CharType>
     RAINY_NODISCARD constexpr const CharType *choose_literal(const char *const str, const wchar_t *const wstr) noexcept {
-        if constexpr (foundation::type_traits::type_relations::is_same_v<CharType, char>) {
+        if constexpr (type_traits::type_relations::is_same_v<CharType, char>) {
             return str;
         } else {
             return wstr;

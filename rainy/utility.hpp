@@ -30,7 +30,7 @@ namespace rainy::utility {
     };
 
     template <typename Ty>
-    struct get_ptr_difference_type<Ty, foundation::type_traits::primary_types::is_void<typename Ty::difference_type>> {
+    struct get_ptr_difference_type<Ty, type_traits::primary_types::is_void<typename Ty::difference_type>> {
         using type = typename Ty::difference_type;
     };
 
@@ -40,7 +40,7 @@ namespace rainy::utility {
     };
 
     template <typename Ty, typename other>
-    struct get_rebind_alias<Ty, other, foundation::type_traits::other_transformations::void_t<typename Ty::template rebind<other>>> {
+    struct get_rebind_alias<Ty, other, type_traits::other_transformations::void_t<typename Ty::template rebind<other>>> {
         using type = typename Ty::template rebind<other>;
     };
 }
@@ -205,8 +205,8 @@ namespace rainy::utility {
 template <typename Ty1,typename Ty2>
 class std::formatter<rainy::utility::pair<Ty1, Ty2>, char> {
 public:
-    static_assert(rainy::foundation::type_traits::concepts::formattable_with<Ty1, std::format_context>, "Ty1 Is A unsupported type");
-    static_assert(rainy::foundation::type_traits::concepts::formattable_with<Ty2, std::format_context>, "Ty2 Is A unsupported type");
+    static_assert(rainy::type_traits::concepts::formattable_with<Ty1, std::format_context>, "Ty1 Is A unsupported type");
+    static_assert(rainy::type_traits::concepts::formattable_with<Ty2, std::format_context>, "Ty2 Is A unsupported type");
 
     explicit formatter() noexcept {
     }
@@ -227,7 +227,7 @@ namespace rainy::utility {
         constexpr uuid() : resources(){};
 
         uuid(const unsigned long data1, const unsigned short data2, const unsigned short data3,
-             const foundation::containers::array<unsigned char, 8> data4) :
+             const containers::array<unsigned char, 8> data4) :
             resources(data1, data2, data3, data4) {
         }
 
@@ -345,7 +345,7 @@ namespace rainy::utility {
             unsigned short data3 = dist16(gen);
             data3 &= 0x0FFF;
             data3 |= (4 << 12);
-            foundation::containers::array<unsigned char, 8> data4{};
+            containers::array<unsigned char, 8> data4{};
             for (int i = 0; i < 8; ++i) {
                 data4[i] = dist8(gen);
             }
@@ -387,7 +387,7 @@ namespace rainy::utility {
              * 永远不可能会被调用，始终为占位。
              */
             internals(const unsigned long data1, const unsigned short data2, const unsigned short data3,
-                      const foundation::containers::array<unsigned char, 8> &data4) :
+                      const containers::array<unsigned char, 8> &data4) :
                 data1(data1),
                 data2(data2), data3(data3), data4(data4) {
             }
@@ -404,7 +404,7 @@ namespace rainy::utility {
                 return data3;
             }
 
-            foundation::containers::array<unsigned char, 8> &get_data4() noexcept {
+            containers::array<unsigned char, 8> &get_data4() noexcept {
                 return data4;
             }
 
@@ -412,7 +412,7 @@ namespace rainy::utility {
             unsigned long data1;
             unsigned short data2;
             unsigned short data3;
-            foundation::containers::array<unsigned char, 8> data4;
+            containers::array<unsigned char, 8> data4;
         };
 
         internals resources;
@@ -440,387 +440,325 @@ public:
 };
 #endif
 
-namespace rainy::utility::internals {
-    template <std::size_t N, typename Ty, typename = void>
-    struct bind : std::integral_constant<std::size_t, 0> {};
-
+/*
+[N4849 13.7.5 Class template partial specializations(temp.class.spec) - 10]:
+    The usual access checking rules do not apply to non-dependent names used to specify template arguments of the simple-template-id of the partial specialization. 
+    [Note: The template arguments may be private types or objects that would normally not be accessible. Dependent names cannot be checked when declaring the partial specialization, but will be checked when substituting into the partial specialization. —end note] 
+    通常的访问检查规则不适用于用于指定显式实例化的名称。
+    [注意：特别是，函数声明符中使用的模板参数和名称（包括参数类型、返回类型和异常规范）可能是通常无法访问的私有类型或对象。而模板可能是通常无法访问的成员模板或成员函数。 -结束注释]
+*/
+namespace rainy::utility {
     template <typename Ty>
-    struct bind<1, Ty, std::void_t<decltype(Ty{{}})>> : std::integral_constant<std::size_t, 1> {};
+    struct private_access_tag_t {};
 
-    template <typename Ty>
-    struct bind<2, Ty, std::void_t<decltype(Ty{{}, {}})>> : std::integral_constant<std::size_t, 2> {};
-
-    template <typename Ty>
-    struct bind<3, Ty, std::void_t<decltype(Ty{{}, {}, {}})>> : std::integral_constant<std::size_t, 3> {};
-
-    template <typename Ty>
-    struct bind<4, Ty, std::void_t<decltype(Ty{{}, {}, {}, {}})>> : std::integral_constant<std::size_t, 4> {};
-
-    template <typename Ty>
-    struct bind<5, Ty, std::void_t<decltype(Ty{{}, {}, {}, {}, {}})>> : std::integral_constant<std::size_t, 5> {};
-
-    template <typename Ty>
-    struct bind<6, Ty, std::void_t<decltype(Ty{{}, {}, {}, {}, {}, {}})>> : std::integral_constant<std::size_t, 6> {};
-
-    template <typename Ty>
-    struct bind<7, Ty, std::void_t<decltype(Ty{{}, {}, {}, {}, {}, {}, {}})>> : std::integral_constant<std::size_t, 7> {};
-
-    template <typename Ty>
-    struct bind<8, Ty, std::void_t<decltype(Ty{{}, {}, {}, {}, {}, {}, {}, {}})>> : std::integral_constant<std::size_t, 8> {};
-
-    template <typename Ty>
-    struct bind<9, Ty, std::void_t<decltype(Ty{{}, {}, {}, {}, {}, {}, {}, {}, {}})>> : std::integral_constant<std::size_t, 9> {};
-
-    template <typename Ty>
-    struct bind<10, Ty, std::void_t<decltype(Ty{{}, {}, {}, {}, {}, {}, {}, {}, {}, {}})>> : std::integral_constant<std::size_t, 10> {
+    template <typename Class, auto... Fields>
+    struct private_access {
+        friend inline constexpr auto get_private_ptrs(private_access_tag_t<Class>) {
+            return std::make_tuple(Fields...);
+        }
     };
 
+    template <typename Ty>
+    inline constexpr private_access_tag_t<Ty> private_access_tag;
+}
+
+// 更新后的宏定义
+#define RAINY_MAKE_PRIVATE_ACCESSIBLE(TYPE,...)                                                                                               \
+    namespace rainy::utility {\
+    template <> private_access<TYPE, ##__VA_ARGS__>; \
+    inline constexpr auto get_private_ptrs(private_access_tag_t<TYPE>);\
+    }
+
+
+namespace rainy::type_traits::extras::tuple::internals {
+    template <std::size_t N, typename Ty, typename = void>
+    struct bind : type_traits::helper::integral_constant<std::size_t, 0> {};
+
+#define RAINY_DECLARE_BIND(N)                                                                                                         \
+    template <typename Ty>                                                                                                            \
+    struct bind<N, Ty, rainy::type_traits::other_transformations::void_t<decltype(Ty{RAINY_INITIALIZER_LIST(N)})>>                    \
+        : rainy::type_traits::helper::integral_constant<std::size_t, N> {}
+
+    RAINY_DECLARE_BIND(1);
+    RAINY_DECLARE_BIND(2);
+    RAINY_DECLARE_BIND(3);
+    RAINY_DECLARE_BIND(4);
+    RAINY_DECLARE_BIND(5);
+    RAINY_DECLARE_BIND(6);
+    RAINY_DECLARE_BIND(7);
+    RAINY_DECLARE_BIND(8);
+    RAINY_DECLARE_BIND(9);
+    RAINY_DECLARE_BIND(10);
+    RAINY_DECLARE_BIND(11);
+    RAINY_DECLARE_BIND(12);
+    RAINY_DECLARE_BIND(13);
+    RAINY_DECLARE_BIND(14);
+    RAINY_DECLARE_BIND(15);
+    RAINY_DECLARE_BIND(16);
+    RAINY_DECLARE_BIND(17);
+    RAINY_DECLARE_BIND(18);
+    RAINY_DECLARE_BIND(19);
+    RAINY_DECLARE_BIND(20);
+    RAINY_DECLARE_BIND(21);
+    RAINY_DECLARE_BIND(22);
+    RAINY_DECLARE_BIND(23);
+    RAINY_DECLARE_BIND(24);
+    RAINY_DECLARE_BIND(25);
+    RAINY_DECLARE_BIND(26);
+    RAINY_DECLARE_BIND(27);
+    RAINY_DECLARE_BIND(28);
+    RAINY_DECLARE_BIND(29);
+    RAINY_DECLARE_BIND(30);
+    RAINY_DECLARE_BIND(31);
+    RAINY_DECLARE_BIND(32);
+    RAINY_DECLARE_BIND(33);
+    RAINY_DECLARE_BIND(34);
+    RAINY_DECLARE_BIND(35);
+    RAINY_DECLARE_BIND(36);
+    RAINY_DECLARE_BIND(37);
+    RAINY_DECLARE_BIND(38);
+    RAINY_DECLARE_BIND(39);
+    RAINY_DECLARE_BIND(40);
+    RAINY_DECLARE_BIND(41);
+    RAINY_DECLARE_BIND(42);
+    RAINY_DECLARE_BIND(43);
+    RAINY_DECLARE_BIND(44);
+    RAINY_DECLARE_BIND(45);
+    RAINY_DECLARE_BIND(46);
+    RAINY_DECLARE_BIND(47);
+    RAINY_DECLARE_BIND(48);
+    RAINY_DECLARE_BIND(49);
+    RAINY_DECLARE_BIND(50);
+    RAINY_DECLARE_BIND(51);
+    RAINY_DECLARE_BIND(52);
+    RAINY_DECLARE_BIND(53);
+    RAINY_DECLARE_BIND(54);
+    RAINY_DECLARE_BIND(55);
+    RAINY_DECLARE_BIND(56);
+    RAINY_DECLARE_BIND(57);
+    RAINY_DECLARE_BIND(58);
+    RAINY_DECLARE_BIND(59);
+    RAINY_DECLARE_BIND(60);
+    RAINY_DECLARE_BIND(61);
+    RAINY_DECLARE_BIND(62);
+    RAINY_DECLARE_BIND(63);
+    RAINY_DECLARE_BIND(64);
+    RAINY_DECLARE_BIND(65);
+    RAINY_DECLARE_BIND(66);
+    RAINY_DECLARE_BIND(67);
+    RAINY_DECLARE_BIND(68);
+    RAINY_DECLARE_BIND(69);
+    RAINY_DECLARE_BIND(70);
+    RAINY_DECLARE_BIND(71);
+    RAINY_DECLARE_BIND(72);
+    RAINY_DECLARE_BIND(73);
+    RAINY_DECLARE_BIND(74);
+    RAINY_DECLARE_BIND(75);
+    RAINY_DECLARE_BIND(76);
+    RAINY_DECLARE_BIND(77);
+    RAINY_DECLARE_BIND(78);
+    RAINY_DECLARE_BIND(79);
+    RAINY_DECLARE_BIND(80);
+#undef RAINY_DECLARE_BIND
+}
+
+namespace rainy::type_traits::extras::tuple::internals {
     template <std::size_t N, typename Ty>
     inline static constexpr auto bind_v = bind<N, Ty>::value;
 
     template <std::size_t N, typename Ty>
-    struct to_tuple;
+    struct refl_to_tuple_impl;
 
     template <typename Ty>
-    struct to_tuple<0, Ty> : std::integral_constant<std::size_t, 0> {
-        static constexpr auto make = [](auto &&x) noexcept { return std::make_tuple(); };
-
-        using type = decltype(make(std::declval<Ty>()));
-    };
-
-    template <typename Ty>
-    struct to_tuple<1, Ty> : std::integral_constant<std::size_t, 1> {
-        static constexpr auto make = [](auto &&x) noexcept {
-            auto [_1] = x;
-            return std::make_tuple(_1);
+    struct refl_to_tuple_impl<0, Ty> : std::integral_constant<std::size_t, 0> {
+        static constexpr auto make() noexcept {
+            return std::make_tuple();
         };
 
-        using type = decltype(make(std::declval<Ty>()));
+        using type = decltype(make());
     };
 
-    template <typename Ty>
-    struct to_tuple<2, Ty> : std::integral_constant<std::size_t, 2> {
-        static constexpr auto make = [](auto &&x) noexcept {
-            auto [_1, _2] = x;
-            return std::make_tuple(_1, _2);
-        };
+#define RAINY_DECLARE_TO_TUPLE(N)                                                                                                     \
+    template <typename Ty>                                                                                                            \
+    struct refl_to_tuple_impl<N, Ty> : std::integral_constant<std::size_t, N> {                                                            \
+        static constexpr auto make() noexcept {                                                                                       \
+            auto &[RAINY_TO_TUPLE_EXPAND_ARGS(N)] =                                                                                   \
+                type_traits::helper::get_fake_object<type_traits::cv_modify::remove_cvref_t<Ty>>();                                   \
+            auto ref_tup = std::tie(RAINY_TO_TUPLE_EXPAND_ARGS(N));                                                                   \
+            auto get_ptrs = [](auto &..._refs) { return std::make_tuple(&_refs...); };                                                \
+            return std::apply(get_ptrs, ref_tup);                                                                                     \
+        }                                                                                                                             \
+        using type = decltype(make());                                                                                                \
+    }
 
-        using type = decltype(make(std::declval<Ty>()));
-    };
-
-    template <typename Ty>
-    struct to_tuple<3, Ty> : std::integral_constant<std::size_t, 3> {
-        static constexpr auto make = [](auto &&x) noexcept {
-            auto [_1, _2, _3] = x;
-            return std::make_tuple(_1, _2, _3);
-        };
-
-        using type = decltype(make(std::declval<Ty>()));
-    };
-
-    template <typename Ty>
-    struct to_tuple<4, Ty> : std::integral_constant<std::size_t, 4> {
-        static constexpr auto make = [](auto &&x) noexcept {
-            auto [_1, _2, _3, _4] = x;
-            return std::make_tuple(_1, _2, _3);
-        };
-
-        using type = decltype(make(std::declval<Ty>()));
-    };
-
-    template <typename Ty>
-    struct to_tuple<5, Ty> : std::integral_constant<std::size_t, 5> {
-        static constexpr auto make = [](auto &&x) noexcept {
-            auto [_1, _2, _3, _4, _5] = x;
-            return std::make_tuple(_1, _2, _3, _4, _5);
-        };
-
-        using type = decltype(make(std::declval<Ty>()));
-    };
-
-    template <typename Ty>
-    struct to_tuple<6, Ty> : std::integral_constant<std::size_t, 6> {
-        static constexpr auto make = [](auto &&x) noexcept {
-            auto [_1, _2, _3, _4, _5, _6] = x;
-            return std::make_tuple(_1, _2, _3, _4, _5, _6);
-        };
-
-        using type = decltype(make(std::declval<Ty>()));
-    };
-
-    template <typename Ty>
-    struct to_tuple<7, Ty> : std::integral_constant<std::size_t, 7> {
-        static constexpr auto make = [](auto &&x) noexcept {
-            auto [_1, _2, _3, _4, _5, _6, _7] = x;
-            return std::make_tuple(_1, _2, _3, _4, _5, _6, _7);
-        };
-
-        using type = decltype(make(std::declval<Ty>()));
-    };
-
-    template <typename Ty>
-    struct to_tuple<8, Ty> : std::integral_constant<std::size_t, 8> {
-        static constexpr auto make = [](auto &&x) noexcept {
-            auto [_1, _2, _3, _4, _5, _6, _7, _8] = x;
-            return std::make_tuple(_1, _2, _3, _4, _5, _6, _7, _8);
-        };
-
-        using type = decltype(make(std::declval<Ty>()));
-    };
-
-    template <typename Ty>
-    struct to_tuple<9, Ty> : std::integral_constant<std::size_t, 9> {
-        static constexpr auto make = [](auto &&x) noexcept {
-            auto [_1, _2, _3, _4, _5, _6, _7, _8, _9] = x;
-            return std::make_tuple(_1, _2, _3, _4, _5, _6, _7, _8, _9);
-        };
-
-        using type = decltype(make(std::declval<Ty>()));
-    };
-
-    template <typename Ty>
-    struct to_tuple<10, Ty> : std::integral_constant<std::size_t, 10> {
-        static constexpr auto make = [](auto &&x) noexcept {
-            auto [_1, _2, _3, _4, _5, _6, _7, _8, _9, _10] = x;
-            return std::make_tuple(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10);
-        };
-
-        using type = decltype(make(std::declval<Ty>()));
-    };
-
-#ifndef RAINY_BIND_STRUCT_MORE_MEMBERS
-#define RAINY_BIND_STRUCT_MORE_MEMBERS 0
-#endif
-
-/* 我在思考哪个神经病没事要那么多成员？ */
-#if RAINY_BIND_STRUCT_MORE_MEMBERS
-    template <typename Ty>
-    struct bind<11, Ty, std::void_t<decltype(Ty{{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}})>>
-        : std::integral_constant<std::size_t, 11> {};
+    RAINY_DECLARE_TO_TUPLE(1);
+    RAINY_DECLARE_TO_TUPLE(2);
+    RAINY_DECLARE_TO_TUPLE(3);
+    RAINY_DECLARE_TO_TUPLE(4);
+    RAINY_DECLARE_TO_TUPLE(5);
+    RAINY_DECLARE_TO_TUPLE(6);
+    RAINY_DECLARE_TO_TUPLE(7);
+    RAINY_DECLARE_TO_TUPLE(8);
+    RAINY_DECLARE_TO_TUPLE(9);
+    RAINY_DECLARE_TO_TUPLE(10);
+    RAINY_DECLARE_TO_TUPLE(11);
+    RAINY_DECLARE_TO_TUPLE(12);
+    RAINY_DECLARE_TO_TUPLE(13);
+    RAINY_DECLARE_TO_TUPLE(14);
+    RAINY_DECLARE_TO_TUPLE(15);
+    RAINY_DECLARE_TO_TUPLE(16);
+    RAINY_DECLARE_TO_TUPLE(17);
+    RAINY_DECLARE_TO_TUPLE(18);
+    RAINY_DECLARE_TO_TUPLE(19);
+    RAINY_DECLARE_TO_TUPLE(20);
+    RAINY_DECLARE_TO_TUPLE(21);
+    RAINY_DECLARE_TO_TUPLE(22);
+    RAINY_DECLARE_TO_TUPLE(23);
+    RAINY_DECLARE_TO_TUPLE(24);
+    RAINY_DECLARE_TO_TUPLE(25);
+    RAINY_DECLARE_TO_TUPLE(26);
+    RAINY_DECLARE_TO_TUPLE(27);
+    RAINY_DECLARE_TO_TUPLE(28);
+    RAINY_DECLARE_TO_TUPLE(29);
+    RAINY_DECLARE_TO_TUPLE(30);
+    RAINY_DECLARE_TO_TUPLE(31);
+    RAINY_DECLARE_TO_TUPLE(32);
+    RAINY_DECLARE_TO_TUPLE(33);
+    RAINY_DECLARE_TO_TUPLE(34);
+    RAINY_DECLARE_TO_TUPLE(35);
+    RAINY_DECLARE_TO_TUPLE(36);
+    RAINY_DECLARE_TO_TUPLE(37);
+    RAINY_DECLARE_TO_TUPLE(38);
+    RAINY_DECLARE_TO_TUPLE(39);
+    RAINY_DECLARE_TO_TUPLE(40);
+    RAINY_DECLARE_TO_TUPLE(41);
+    RAINY_DECLARE_TO_TUPLE(42);
+    RAINY_DECLARE_TO_TUPLE(43);
+    RAINY_DECLARE_TO_TUPLE(44);
+    RAINY_DECLARE_TO_TUPLE(45);
+    RAINY_DECLARE_TO_TUPLE(46);
+    RAINY_DECLARE_TO_TUPLE(47);
+    RAINY_DECLARE_TO_TUPLE(48);
+    RAINY_DECLARE_TO_TUPLE(49);
+    RAINY_DECLARE_TO_TUPLE(50);
+    RAINY_DECLARE_TO_TUPLE(51);
+    RAINY_DECLARE_TO_TUPLE(52);
+    RAINY_DECLARE_TO_TUPLE(53);
+    RAINY_DECLARE_TO_TUPLE(54);
+    RAINY_DECLARE_TO_TUPLE(55);
+    RAINY_DECLARE_TO_TUPLE(56);
+    RAINY_DECLARE_TO_TUPLE(57);
+    RAINY_DECLARE_TO_TUPLE(58);
+    RAINY_DECLARE_TO_TUPLE(59);
+    RAINY_DECLARE_TO_TUPLE(60);
+    RAINY_DECLARE_TO_TUPLE(61);
+    RAINY_DECLARE_TO_TUPLE(62);
+    RAINY_DECLARE_TO_TUPLE(63);
+    RAINY_DECLARE_TO_TUPLE(64);
+    RAINY_DECLARE_TO_TUPLE(65);
+    RAINY_DECLARE_TO_TUPLE(66);
+    RAINY_DECLARE_TO_TUPLE(67);
+    RAINY_DECLARE_TO_TUPLE(68);
+    RAINY_DECLARE_TO_TUPLE(69);
+    RAINY_DECLARE_TO_TUPLE(70);
+    RAINY_DECLARE_TO_TUPLE(71);
+    RAINY_DECLARE_TO_TUPLE(72);
+    RAINY_DECLARE_TO_TUPLE(73);
+    RAINY_DECLARE_TO_TUPLE(74);
+    RAINY_DECLARE_TO_TUPLE(75);
+    RAINY_DECLARE_TO_TUPLE(76);
+    RAINY_DECLARE_TO_TUPLE(77);
+    RAINY_DECLARE_TO_TUPLE(78);
+    RAINY_DECLARE_TO_TUPLE(79);
+    RAINY_DECLARE_TO_TUPLE(80);
+#undef RAINY_DECLARE_TO_TUPLE
 
     template <typename Ty>
-    struct bind<12, Ty, std::void_t<decltype(Ty{{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}})>>
-        : std::integral_constant<std::size_t, 12> {};
-
-    template <typename Ty>
-    struct bind<13, Ty, std::void_t<decltype(Ty{{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}})>>
-        : std::integral_constant<std::size_t, 13> {};
-
-    template <typename Ty>
-    struct bind<14, Ty, std::void_t<decltype(Ty{{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}})>>
-        : std::integral_constant<std::size_t, 14> {};
-
-    template <typename Ty>
-    struct bind<15, Ty, std::void_t<decltype(Ty{{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}})>>
-        : std::integral_constant<std::size_t, 15> {};
-
-    template <typename Ty>
-    struct bind<16, Ty, std::void_t<decltype(Ty{{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}})>>
-        : std::integral_constant<std::size_t, 16> {};
-
-    template <typename Ty>
-    struct bind<17, Ty, std::void_t<decltype(Ty{{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}})>>
-        : std::integral_constant<std::size_t, 17> {};
-
-    template <typename Ty>
-    struct bind<18, Ty, std::void_t<decltype(Ty{{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}})>>
-        : std::integral_constant<std::size_t, 18> {};
-
-    template <typename Ty>
-    struct bind<19, Ty, std::void_t<decltype(Ty{{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}})>>
-        : std::integral_constant<std::size_t, 19> {};
-
-    template <typename Ty>
-    struct bind<20, Ty, std::void_t<decltype(Ty{{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}})>>
-        : std::integral_constant<std::size_t, 20> {};
-
-    template <typename Ty>
-    struct bind<21, Ty, std::void_t<decltype(Ty{{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}})>>
-        : std::integral_constant<std::size_t, 21> {};
-
-    template <typename Ty>
-    struct bind<22, Ty,
-                std::void_t<decltype(Ty{{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}})>>
-        : std::integral_constant<std::size_t, 22> {};
-
-    template <typename Ty>
-    struct bind<23, Ty,
-                std::void_t<decltype(Ty{{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}})>>
-        : std::integral_constant<std::size_t, 23> {};
-
-    template <typename Ty>
-    struct bind<24, Ty, std::void_t<decltype(Ty{{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {},
-                                                {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}})>>
-        : std::integral_constant<std::size_t, 24> {};
-
-    template <typename Ty>
-    struct to_tuple<11, Ty> : std::integral_constant<std::size_t, 11> {
-        static constexpr auto make = [](auto &&x) noexcept {
-            auto [_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11] = x;
-            return std::make_tuple(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11);
-        };
-
-        using type = decltype(make(std::declval<Ty>()));
-    };
-
-    template <typename Ty>
-    struct to_tuple<12, Ty> : std::integral_constant<std::size_t, 12> {
-        static constexpr auto make = [](auto &&x) noexcept {
-            auto [_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12] = x;
-            return std::make_tuple(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12);
-        };
-
-        using type = decltype(make(std::declval<Ty>()));
-    };
-
-    template <typename Ty>
-    struct to_tuple<13, Ty> : std::integral_constant<std::size_t, 13> {
-        static constexpr auto make = [](auto &&x) noexcept {
-            auto [_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13] = x;
-            return std::make_tuple(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13);
-        };
-
-        using type = decltype(make(std::declval<Ty>()));
-    };
-
-    template <typename Ty>
-    struct to_tuple<14, Ty> : std::integral_constant<std::size_t, 14> {
-        static constexpr auto make = [](auto &&x) noexcept {
-            auto [_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14] = x;
-            return std::make_tuple(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14);
-        };
-
-        using type = decltype(make(std::declval<Ty>()));
-    };
-
-
-    template <typename Ty>
-    struct to_tuple<15, Ty> : std::integral_constant<std::size_t, 15> {
-        static constexpr auto make = [](auto &&x) noexcept {
-            auto [_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15] = x;
-            return std::make_tuple(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15);
-        };
-
-        using type = decltype(make(std::declval<Ty>()));
-    };
-
-    template <typename Ty>
-    struct to_tuple<16, Ty> : std::integral_constant<std::size_t, 16> {
-        static constexpr auto make = [](auto &&x) noexcept {
-            auto [_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16] = x;
-            return std::make_tuple(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16);
-        };
-
-        using type = decltype(make(std::declval<Ty>()));
-    };
-
-    template <typename Ty>
-    struct to_tuple<17, Ty> : std::integral_constant<std::size_t, 17> {
-        static constexpr auto make = [](auto &&x) noexcept {
-            auto [_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17] = x;
-            return std::make_tuple(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17);
-        };
-
-        using type = decltype(make(std::declval<Ty>()));
-    };
-
-    template <typename Ty>
-    struct to_tuple<18, Ty> : std::integral_constant<std::size_t, 18> {
-        static constexpr auto make = [](auto &&x) noexcept {
-            auto [_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18] = x;
-            return std::make_tuple(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18);
-        };
-
-        using type = decltype(make(std::declval<Ty>()));
-    };
-
-    template <typename Ty>
-    struct to_tuple<19, Ty> : std::integral_constant<std::size_t, 19> {
-        static constexpr auto make = [](auto &&x) noexcept {
-            auto [_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19] = x;
-            return std::make_tuple(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19);
-        };
-
-        using type = decltype(make(std::declval<Ty>()));
-    };
-
-    template <typename Ty>
-    struct to_tuple<20, Ty> : std::integral_constant<std::size_t, 20> {
-        static constexpr auto make = [](auto &&x) noexcept {
-            auto [_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, _20] = x;
-            return std::make_tuple(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, _20);
-        };
-
-        using type = decltype(make(std::declval<Ty>()));
-    };
-
-    template <typename Ty>
-    struct to_tuple<21, Ty> : std::integral_constant<std::size_t, 21> {
-        static constexpr auto make = [](auto &&x) noexcept {
-            auto [_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, _20, _21] = x;
-            return std::make_tuple(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, _20, _21);
-        };
-
-        using type = decltype(make(std::declval<Ty>()));
-    };
-
-    template <typename Ty>
-    struct to_tuple<22, Ty> : std::integral_constant<std::size_t, 22> {
-        static constexpr auto make = [](auto &&x) noexcept {
-            auto [_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, _20, _21, _22] = x;
-            return std::make_tuple(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, _20, _21,
-                                   _22);
-        };
-
-        using type = decltype(make(std::declval<Ty>()));
-    };
-
-
-    template <typename Ty>
-    struct to_tuple<23, Ty> : std::integral_constant<std::size_t, 23> {
-        static constexpr auto make = [](auto &&x) noexcept {
-            auto [_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, _20, _21, _22, _23] = x;
-            return std::make_tuple(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, _20, _21, _22,
-                                   _23);
-        };
-
-        using type = decltype(make(std::declval<Ty>()));
-    };
-
-    template <typename Ty>
-    struct to_tuple<24, Ty> : std::integral_constant<std::size_t, 24> {
-        static constexpr auto make = [](auto &&x) noexcept {
-            auto [_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, _20, _21, _22, _23, _24] = x;
-            return std::make_tuple(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, _20, _21, _22,
-                                   _23, _24);
-        };
-
-        using type = decltype(make(std::declval<Ty>()));
-    };
-#endif
-}
-
-namespace rainy::utility {
-#if RAINY_BIND_STRUCT_MORE_MEMBERS
-    template <typename Ty>
-    static constexpr auto member_count =
+    static inline constexpr std::size_t eval_member_count =
         (std::max)({internals::bind_v<0, Ty>,  internals::bind_v<1, Ty>,  internals::bind_v<2, Ty>,  internals::bind_v<3, Ty>,
                     internals::bind_v<4, Ty>,  internals::bind_v<5, Ty>,  internals::bind_v<6, Ty>,  internals::bind_v<7, Ty>,
                     internals::bind_v<8, Ty>,  internals::bind_v<9, Ty>,  internals::bind_v<10, Ty>, internals::bind_v<11, Ty>,
                     internals::bind_v<12, Ty>, internals::bind_v<13, Ty>, internals::bind_v<14, Ty>, internals::bind_v<15, Ty>,
                     internals::bind_v<16, Ty>, internals::bind_v<17, Ty>, internals::bind_v<18, Ty>, internals::bind_v<19, Ty>,
                     internals::bind_v<20, Ty>, internals::bind_v<21, Ty>, internals::bind_v<22, Ty>, internals::bind_v<23, Ty>,
-                    internals::bind_v<24, Ty>});
-#else
+                    internals::bind_v<24, Ty>, internals::bind_v<25, Ty>, internals::bind_v<26, Ty>, internals::bind_v<27, Ty>,
+                    internals::bind_v<28, Ty>, internals::bind_v<29, Ty>, internals::bind_v<30, Ty>, internals::bind_v<31, Ty>,
+                    internals::bind_v<32, Ty>, internals::bind_v<33, Ty>, internals::bind_v<34, Ty>, internals::bind_v<35, Ty>,
+                    internals::bind_v<36, Ty>, internals::bind_v<37, Ty>, internals::bind_v<38, Ty>, internals::bind_v<39, Ty>,
+                    internals::bind_v<40, Ty>, internals::bind_v<41, Ty>, internals::bind_v<42, Ty>, internals::bind_v<43, Ty>,
+                    internals::bind_v<44, Ty>, internals::bind_v<45, Ty>, internals::bind_v<46, Ty>, internals::bind_v<47, Ty>,
+                    internals::bind_v<48, Ty>, internals::bind_v<49, Ty>, internals::bind_v<50, Ty>, internals::bind_v<51, Ty>,
+                    internals::bind_v<52, Ty>, internals::bind_v<53, Ty>, internals::bind_v<54, Ty>, internals::bind_v<55, Ty>,
+                    internals::bind_v<56, Ty>, internals::bind_v<57, Ty>, internals::bind_v<58, Ty>, internals::bind_v<59, Ty>,
+                    internals::bind_v<60, Ty>, internals::bind_v<61, Ty>, internals::bind_v<62, Ty>, internals::bind_v<63, Ty>,
+                    internals::bind_v<64, Ty>, internals::bind_v<65, Ty>, internals::bind_v<66, Ty>, internals::bind_v<67, Ty>,
+                    internals::bind_v<68, Ty>, internals::bind_v<69, Ty>, internals::bind_v<70, Ty>, internals::bind_v<71, Ty>,
+                    internals::bind_v<72, Ty>, internals::bind_v<73, Ty>, internals::bind_v<74, Ty>, internals::bind_v<75, Ty>,
+                    internals::bind_v<76, Ty>, internals::bind_v<77, Ty>, internals::bind_v<78, Ty>, internals::bind_v<79, Ty>});
+}
+
+namespace rainy::type_traits::extras::tuple {
     template <typename Ty>
-    static constexpr auto member_count =
-        (std::max)({internals::bind_v<0, Ty>, internals::bind_v<1, Ty>, internals::bind_v<2, Ty>, internals::bind_v<3, Ty>,
-                    internals::bind_v<4, Ty>, internals::bind_v<5, Ty>, internals::bind_v<6, Ty>, internals::bind_v<7, Ty>,
-                    internals::bind_v<8, Ty>, internals::bind_v<9, Ty>, internals::bind_v<10, Ty>});
-#endif
+    struct member_count {
+        static inline constexpr std::size_t value = internals::eval_member_count<Ty>;
+    };
 
     template <typename Ty>
-    inline static constexpr auto make_to_tuple = internals::to_tuple<member_count<Ty>, Ty>::make;
+    static constexpr std::size_t member_count_v = member_count<Ty>::value;
+
+    template <typename Ty>
+    inline static constexpr auto struct_to_tuple = internals::refl_to_tuple_impl<member_count_v<Ty>, Ty>::make;
+}
+
+namespace rainy::utility {
+    using type_traits::extras::tuple::member_count_v;
+    using type_traits::extras::tuple::member_count;
+    using type_traits::extras::tuple::struct_to_tuple;
+}
+
+namespace rainy::utility::internals {
+    template <typename Ty, typename = void>
+    struct has_get_private_ptrs : type_traits::helper::false_type {};
+
+    template <typename Ty>
+    struct has_get_private_ptrs<Ty, type_traits::other_transformations::void_t<decltype(get_private_ptrs(private_access_tag<Ty>))>>
+        : std::true_type {};
+
+    template <typename Ty, typename = void>
+    struct get_private_ptrs_helper {
+        static constexpr auto value = std::make_tuple();
+    };
+
+    template <typename Ty>
+    struct get_private_ptrs_helper<Ty, std::void_t<decltype(get_private_ptrs(private_access_tag<Ty>))>> {
+        static constexpr auto value = get_private_ptrs(private_access_tag<Ty>);
+    };
+}
+
+namespace rainy::utility {
+#if RAINY_HAS_CXX20
+    template <typename Ty>
+    constexpr auto get_member_names() {
+        constexpr bool has_get_private_ptrs_v = internals::has_get_private_ptrs<Ty>::value;
+        static_assert(member_count_v<Ty> != 0 || has_get_private_ptrs_v, "Failed!");
+        if constexpr (!has_get_private_ptrs_v) {
+            containers::array<std::string_view, member_count_v<Ty>> array{}; // 创建对应的数组
+            constexpr auto tp = struct_to_tuple<Ty>();
+            [&array, &tp]<std::size_t... I>(std::index_sequence<I...>) mutable {
+                ((array[I] = variable_name<(std::get<I>(tp))>()), ...);
+            }(std::make_index_sequence<member_count_v<Ty>>{});
+            return array;
+        } else {
+            constexpr auto tp = internals::get_private_ptrs_helper<Ty>::value; // 使用 helper 获取 `tp`
+            constexpr size_t tuple_size = std::tuple_size_v<decltype(tp)>;
+            containers::array<std::string_view, tuple_size> array{};
+            [&array, &tp]<std::size_t... I>(std::index_sequence<I...>) mutable {
+                ((array[I] = variable_name<(std::get<I>(tp))>()), ...);
+            }(std::make_index_sequence<tuple_size>{});
+            return array;
+        }
+    }
+#endif
 }
 
 #endif

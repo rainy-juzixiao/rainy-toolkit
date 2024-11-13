@@ -1,7 +1,7 @@
 ﻿#include <coroutine>
 #include <rainy/meta/type_traits.hpp>
 
-namespace rainy::foundation::type_traits::concepts {
+namespace rainy::type_traits::concepts {
     template <typename Ty, typename... Types>
     concept in_types = (type_traits::type_relations::is_any_of_v<Ty, Types...>);
 

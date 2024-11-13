@@ -1,8 +1,8 @@
-#ifndef RAINY_ATOMIC_HPP
+﻿#ifndef RAINY_ATOMIC_HPP
 #define RAINY_ATOMIC_HPP
 #include <rainy/core.hpp>
 
-namespace rainy::foundation::containers {
+namespace rainy::containers {
     namespace internals {
         using atomic_counter_t = unsigned long;
 
