@@ -872,7 +872,7 @@ namespace rainy::type_traits::other_transformations {
     template <bool Test, typename IfTrue, typename IfFalse>
     using conditional_t = typename conditional<Test, IfTrue, IfFalse>::type;
 
-    template <typename ValueType,bool Test, ValueType IfTrue, ValueType>
+    template <typename ValueType, bool Test, ValueType IfTrue, ValueType>
     struct conditional_value {
         static inline constexpr ValueType value = IfTrue;
     };
@@ -881,6 +881,19 @@ namespace rainy::type_traits::other_transformations {
     struct conditional_value<ValueType, false, IfTrue, IfFalse> {
         static inline constexpr ValueType value = IfFalse;
     };
+
+    template <bool Test, bool IfTrue, bool IfFalse>
+    struct conditional_bool {
+        static RAINY_CONSTEXPR_BOOL value = IfTrue;
+    };
+
+    template <bool IfTrue, bool IfFalse>
+    struct conditional_bool<false, IfTrue, IfFalse> {
+        static RAINY_CONSTEXPR_BOOL value = IfFalse;
+    };
+
+    template <bool Test, bool IfTrue, bool IfFalse>
+    static RAINY_CONSTEXPR_BOOL conditional_bool_v = conditional_bool<Test, IfTrue, IfFalse>::value;
 
     template <typename ValueType, bool Test, ValueType IfTrue, ValueType IfFalse>
     static inline constexpr ValueType conditional_value_v = conditional_value<ValueType, Test, IfTrue, IfFalse>::value;
@@ -903,8 +916,11 @@ namespace rainy::type_traits::other_transformations {
     template <typename Ty>
     struct decay {
         using Ty1 = reference_modify::remove_reference_t<Ty>;
-        using Ty2 = typename select<internals::_is_function_v<Ty1>>::template apply<pointer_modify::add_pointer<Ty1>,cv_modify::remove_cv<Ty1>>;
-        using type = typename select<internals::_is_array_v<Ty1>>::template apply<pointer_modify::add_pointer<array_modify::remove_extent<Ty1>>, Ty2>::type;
+        using Ty2 = typename select<internals::_is_function_v<Ty1>>::template apply<pointer_modify::add_pointer<Ty1>,
+                                                                                    cv_modify::remove_cv<Ty1>>;
+        using type =
+            typename select<internals::_is_array_v<Ty1>>::template apply<pointer_modify::add_pointer<array_modify::remove_extent<Ty1>>,
+                                                                         Ty2>::type;
     };
 
     template <typename Ty>
@@ -993,6 +1009,14 @@ namespace rainy::type_traits::helper {
     inline constexpr cv_modify::remove_cvref_t<Ty> &get_fake_object() noexcept {
         return wrapper<cv_modify::remove_cvref_t<Ty>>::value;
     }
+
+    template <typename Ty>
+    struct identity {
+        using type = Ty;
+    };
+
+    template <typename Ty>
+    using identity_t = identity<Ty>::type;
 }
 
 // 类型关系
@@ -1112,25 +1136,235 @@ namespace rainy::utility {
     }
 }
 
+namespace rainy::type_traits::extras::meta_method {
+    template <typename Ty, typename = void>
+    struct try_to_invoke_begin {
+        static RAINY_CONSTEXPR_BOOL value = false;
+
+        template <typename Uty>
+        static void invoke(const Uty &) {
+            static_assert(rainy::type_traits::internals::always_false<Uty>,
+                          "Can not find begin method! "
+                          "rainy::utility::begin"
+                          "only support begin() and Begin() in Container Type"
+                          "please add begin() or Begin() method in Container Definition");
+        }
+    };
+
+    template <typename Ty>
+    struct try_to_invoke_begin<Ty, type_traits::other_transformations::void_t<decltype(utility::declval<Ty>().begin())>> {
+        static RAINY_CONSTEXPR_BOOL value = true;
+
+        static auto invoke(Ty &container) noexcept(noexcept(container.begin())) -> decltype(container.begin()) {
+            return container.begin();
+        }
+    };
+
+    // compitable for PascalCase
+    template <typename Ty>
+    struct try_to_invoke_begin<Ty, type_traits::other_transformations::void_t<decltype(utility::declval<Ty>().Begin()), int>> {
+        static RAINY_CONSTEXPR_BOOL value = true;
+
+        static auto invoke(Ty &container) noexcept(noexcept(container.Begin())) -> decltype(container.Begin()) {
+            return container.Begin();
+        }
+    };
+
+    template <typename, typename = void>
+    struct try_to_invoke_end {
+        static RAINY_CONSTEXPR_BOOL value = false;
+
+        template <typename Uty>
+        static void invoke(const Uty &) {
+            static_assert(rainy::type_traits::internals::always_false<Uty>,
+                          "Can not find end method! "
+                          "rainy::utility::end"
+                          "only support end() and End() in Container Type"
+                          "please add end() or End() method in Container Definition");
+        }
+    };
+
+    template <typename Ty>
+    struct try_to_invoke_end<Ty, type_traits::other_transformations::void_t<decltype(utility::declval<Ty>().end())>> {
+        static RAINY_CONSTEXPR_BOOL value = true;
+
+        static auto invoke(Ty &container) noexcept(noexcept(container.end())) -> decltype(container.end()) {
+            return container.end();
+        }
+    };
+
+    template <typename Ty>
+    struct try_to_invoke_end<Ty, type_traits::other_transformations::void_t<decltype(utility::declval<Ty>().End()), int>> {
+        static RAINY_CONSTEXPR_BOOL value = true;
+
+        static auto invoke(Ty &container) noexcept(noexcept(container.End())) -> decltype(container.End()) {
+            return container.End();
+        }
+    };
+
+    template <typename Ty, typename = void>
+    struct try_to_invoke_cbegin {
+        static RAINY_CONSTEXPR_BOOL value = false;
+
+        template <typename Uty>
+        static void invoke(const Uty &) {
+            static_assert(rainy::type_traits::internals::always_false<Uty>,
+                          "Can not find begin method! "
+                          "rainy::utility::cbegin"
+                          "only support cbegin() and CBegin() and Cbgein() and const-qualify(end()) and const-qualify(End()) in Container Type"
+                          "please add cbegin() or CBegin() or Cbegin() or const-qualify(begin()) or const-qualify(Begin()) method in Container Definition");
+        }
+    };
+
+    template <typename Ty>
+    struct try_to_invoke_cbegin<Ty, type_traits::other_transformations::void_t<decltype(utility::declval<Ty>().begin())>> {
+        static RAINY_CONSTEXPR_BOOL value = true;
+
+        static auto invoke(const Ty &container) noexcept(noexcept(container.begin())) -> decltype(container.begin()) {
+            return container.begin();
+        }
+    };
+
+    template <typename Ty>
+    struct try_to_invoke_cbegin<Ty, type_traits::other_transformations::void_t<decltype(utility::declval<Ty>().Begin()), int>> {
+        static RAINY_CONSTEXPR_BOOL value = true;
+
+        static auto invoke(const Ty &container) noexcept(noexcept(container.Begin())) -> decltype(container.Begin()) {
+            return container.Begin();
+        }
+    };
+
+    template <typename Ty>
+    struct try_to_invoke_cbegin<Ty, type_traits::other_transformations::void_t<decltype(utility::declval<Ty>().cbegin()), int, int>> {
+        static RAINY_CONSTEXPR_BOOL value = true;
+
+        static auto invoke(const Ty &container) noexcept(noexcept(container.cbegin())) -> decltype(container.cbegin()) {
+            return container.cbegin();
+        }
+    };
+
+    template <typename Ty>
+    struct try_to_invoke_cbegin<Ty,
+                                type_traits::other_transformations::void_t<decltype(utility::declval<Ty>().CBegin()), int, int, int>> {
+        static RAINY_CONSTEXPR_BOOL value = true;
+
+        static auto invoke(const Ty &container) noexcept(noexcept(container.CBegin())) -> decltype(container.CBegin()) {
+            return container.CBegin();
+        }
+    };
+
+    template <typename Ty>
+    struct try_to_invoke_cbegin<
+        Ty, type_traits::other_transformations::void_t<decltype(utility::declval<Ty>().Cbegin()), int, int, int, int>> {
+        static RAINY_CONSTEXPR_BOOL value = true;
+
+        static auto invoke(const Ty &container) noexcept(noexcept(container.Cbegin())) -> decltype(container.Cbegin()) {
+            return container.Cbegin();
+        }
+    };
+
+    template <typename, typename = void>
+    struct try_to_invoke_cend {
+        static RAINY_CONSTEXPR_BOOL value = false;
+
+        template <typename Uty>
+        static void invoke(const Uty &) {
+            static_assert(rainy::type_traits::internals::always_false<Uty>,
+                          "Can not find end method! "
+                          "rainy::utility::cend"
+                          "only support cend() and CEnd() and Cend() and const-qualify(end()) and const-qualify(End()) in Container Type"
+                          "please add cend() or CEnd() or Cend() or const-qualify(end()) or const-qualify(End()) method in Container Definition");
+        }
+    };
+
+    template <typename Ty>
+    struct try_to_invoke_cend<Ty, type_traits::other_transformations::void_t<decltype(utility::declval<Ty>().end())>> {
+        static RAINY_CONSTEXPR_BOOL value = true;
+
+        static auto invoke(const Ty &container) noexcept(noexcept(container.end())) -> decltype(container.end()) {
+            return container.end();
+        }
+    };
+
+    template <typename Ty>
+    struct try_to_invoke_cend<Ty, type_traits::other_transformations::void_t<decltype(utility::declval<Ty>().End()), int>> {
+        static RAINY_CONSTEXPR_BOOL value = true;
+
+        static auto invoke(const Ty &container) noexcept(noexcept(container.End())) -> decltype(container.End()) {
+            return container.End();
+        }
+    };
+
+    template <typename Ty>
+    struct try_to_invoke_cend<Ty, type_traits::other_transformations::void_t<decltype(utility::declval<Ty>().cend()), int, int>> {
+        static RAINY_CONSTEXPR_BOOL value = true;
+
+        static auto invoke(const Ty &container) noexcept(noexcept(container.cend())) -> decltype(container.cend()) {
+            return container.cend();
+        }
+    };
+
+    template <typename Ty>
+    struct try_to_invoke_cend<Ty, type_traits::other_transformations::void_t<decltype(utility::declval<Ty>().Cend()), int, int, int>> {
+        static RAINY_CONSTEXPR_BOOL value = true;
+
+        static auto invoke(const Ty &container) noexcept(noexcept(container.Cend())) -> decltype(container.Cend()) {
+            return container.Cend();
+        }
+    };
+
+    template <typename Ty>
+    struct try_to_invoke_cend<
+        Ty, type_traits::other_transformations::void_t<decltype(utility::declval<Ty>().CEnd()), int, int, int, int>> {
+        static RAINY_CONSTEXPR_BOOL value = true;
+
+        static auto invoke(const Ty &container) noexcept(noexcept(container.CEnd())) -> decltype(container.CEnd()) {
+            return container.CEnd();
+        }
+    };
+}
+
 namespace rainy::utility {
-    template <typename container>
-    RAINY_NODISCARD constexpr auto begin(container &cont) noexcept(noexcept(cont.begin())) -> decltype(cont.begin()) {
-        return cont.begin();
+    template <typename Container>
+    RAINY_NODISCARD constexpr auto begin(Container &cont) noexcept(
+        noexcept(type_traits::extras::meta_method::try_to_invoke_begin<Container>::invoke(cont)))
+        -> decltype(type_traits::extras::meta_method::try_to_invoke_begin<Container>::invoke(cont)) {
+        return type_traits::extras::meta_method::try_to_invoke_begin<Container>::invoke(cont);
     }
 
-    template <typename container>
-    RAINY_NODISCARD constexpr auto begin(const container &cont) noexcept(noexcept(cont.begin())) -> decltype(cont.begin()) {
-        return cont.begin();
+    template <typename Container>
+    RAINY_NODISCARD constexpr auto begin(const Container &cont) noexcept(
+        noexcept(type_traits::extras::meta_method::try_to_invoke_begin<const Container>::invoke(cont)))
+        -> decltype(type_traits::extras::meta_method::try_to_invoke_begin<const Container>::invoke(cont)) {
+        return type_traits::extras::meta_method::try_to_invoke_begin<const Container>::invoke(cont);
     }
 
-    template <typename container>
-    RAINY_NODISCARD constexpr auto end(container &cont) noexcept(noexcept(cont.end())) -> decltype(cont.end()) {
-        return cont.end();
+    template <typename Container>
+    RAINY_NODISCARD constexpr auto end(Container &cont) noexcept(
+        noexcept(type_traits::extras::meta_method::try_to_invoke_end<Container>::invoke(cont)))
+        -> decltype(type_traits::extras::meta_method::try_to_invoke_end<Container>::invoke(cont)) {
+        return type_traits::extras::meta_method::try_to_invoke_end<Container>::invoke(cont);
     }
 
-    template <typename container>
-    RAINY_NODISCARD constexpr auto end(const container &cont) noexcept(noexcept(cont.end())) -> decltype(cont.end()) {
-        return cont.end();
+    template <typename Container>
+    RAINY_NODISCARD constexpr auto end(const Container &cont) noexcept(
+        noexcept(type_traits::extras::meta_method::try_to_invoke_end<const Container>::invoke(cont)))
+        -> decltype(type_traits::extras::meta_method::try_to_invoke_end<const Container>::invoke(cont)) {
+        return type_traits::extras::meta_method::try_to_invoke_end<const Container>::invoke(cont);
+    }
+
+    template <typename Container>
+    RAINY_NODISCARD constexpr auto cbegin(const Container &cont) noexcept(
+        noexcept(type_traits::extras::meta_method::try_to_invoke_cbegin<const Container>::invoke(cont)))
+        -> decltype(type_traits::extras::meta_method::try_to_invoke_cbegin<const Container>::invoke(cont)) {
+        return type_traits::extras::meta_method::try_to_invoke_cbegin<const Container>::invoke(cont);
+    }
+
+    template <typename Container>
+    RAINY_NODISCARD constexpr auto cend(const Container &cont) noexcept(
+        noexcept(type_traits::extras::meta_method::try_to_invoke_cbegin<const Container>::invoke(cont)))
+        -> decltype(type_traits::extras::meta_method::try_to_invoke_cbegin<const Container>::invoke(cont)) {
+        return type_traits::extras::meta_method::try_to_invoke_cbegin<const Container>::invoke(cont);
     }
 }
 
@@ -1546,5 +1780,169 @@ namespace rainy::type_traits::primary_types {
 #if RAINY_USING_MSVC
 #pragma warning(pop)
 #endif
+
+#define RAINY_DECLARE_NORMAL_FUNCTION_TRAITS(IsNothrowInvocable, IsVolatile, SPEC)                                                    \
+    template <typename Rx, typename... Args>                                                                                          \
+    struct function_traits<Rx(Args...) SPEC> : internals::function_traits_base<false, false, IsNothrowInvocable, IsVolatile, false> { \
+        using return_type = Rx;                                                                                                       \
+        using tuple_like_type = std::tuple<Args...>;                                                                                  \
+        static inline constexpr std::size_t arity = sizeof...(Args);                                                                  \
+    };                                                                                                                                \
+    template <typename Rx, typename... Args>                                                                                          \
+    struct function_traits<Rx(Args..., ...) SPEC>                                                                                     \
+        : internals::function_traits_base<false, false, IsNothrowInvocable, IsVolatile, false> {                                      \
+        using return_type = Rx;                                                                                                       \
+    };
+
+#define RAINY_DECLARE_MEMBER_FUNCTION_TRAITS(IsNothrowInvocable, IsVolatile, IsConstMemberFunctionPointer, IsLValue, IsRValue, SPEC)  \
+    template <typename Rx, typename Class, typename... Args>                                                                          \
+    struct function_traits<Rx (Class::*)(Args...) SPEC>                                                                               \
+        : internals::function_traits_base<true, false, IsNothrowInvocable, IsVolatile, IsConstMemberFunctionPointer>,                 \
+          internals::member_function_traits_base<IsLValue, IsRValue> {                                                                \
+        using return_type = Rx;                                                                                                       \
+        using tuple_like_type = std::tuple<Args...>;                                                                                  \
+        static inline constexpr std::size_t arity = sizeof...(Args);                                                                  \
+    };                                                                                                                                \
+    template <typename Rx, typename Class, typename... Args>                                                                          \
+    struct function_traits<Rx (Class::*)(Args..., ...) SPEC>                                                                          \
+        : internals::function_traits_base<true, false, IsNothrowInvocable, IsVolatile, IsConstMemberFunctionPointer>,                 \
+          internals::member_function_traits_base<IsLValue, IsRValue> {                                                                \
+        using return_type = Rx;                                                                                                       \
+    };
+
+
+namespace rainy::type_traits::primary_types {
+    namespace internals {
+        template <bool IsMemberFunctionPointer = false, bool IsFunctionPointer = false, bool IsNothrowInvocable = false,
+                  bool IsVolatile = false, bool IsConstMemberFunctionPointer = false>
+        struct function_traits_base {
+            static RAINY_CONSTEXPR_BOOL is_member_function_pointer = IsMemberFunctionPointer;
+            static RAINY_CONSTEXPR_BOOL is_function_pointer = IsFunctionPointer;
+            static RAINY_CONSTEXPR_BOOL is_nothrow_invocable = IsNothrowInvocable;
+            static RAINY_CONSTEXPR_BOOL is_volatile = IsVolatile;
+            static RAINY_CONSTEXPR_BOOL is_const_member_function_pointer = IsConstMemberFunctionPointer;
+            static RAINY_CONSTEXPR_BOOL valid = true;
+        };
+
+        template <bool IsLvalue, bool IsRvalue>
+        struct member_function_traits_base {
+            static RAINY_CONSTEXPR_BOOL is_invoke_for_lvalue = IsLvalue;
+            static RAINY_CONSTEXPR_BOOL is_invoke_for_rvalue = IsRvalue;
+        };
+    }
+
+    template <typename Ty>
+    struct function_traits {
+        static RAINY_CONSTEXPR_BOOL valid = false;        
+    };
+
+    template <typename Rx, typename... Args>
+    struct function_traits<Rx(Args...)> : internals::function_traits_base<> {
+        using return_type = Rx;
+        using tuple_like_type = std::tuple<Args...>;
+        static inline constexpr std::size_t arity = sizeof...(Args);
+    };
+    template <typename Rx, typename... Args>
+    struct function_traits<Rx(Args..., ...)> : internals::function_traits_base<> {
+        using return_type = Rx;
+    };
+
+    RAINY_DECLARE_NORMAL_FUNCTION_TRAITS(false, true, volatile)
+    RAINY_DECLARE_NORMAL_FUNCTION_TRAITS(true, false, noexcept)
+    RAINY_DECLARE_NORMAL_FUNCTION_TRAITS(true, true, volatile noexcept)
+
+    template <typename Rx, typename... Args>
+    struct function_traits<Rx (*)(Args...)> : internals::function_traits_base<false, true> {
+        using return_type = Rx;
+        using tuple_like_type = std::tuple<Args...>;
+        static inline constexpr std::size_t arity = sizeof...(Args);
+    };
+
+    template <typename Rx, typename... Args>
+    struct function_traits<Rx (*)(Args..., ...)> : internals::function_traits_base<false, true> {
+        using return_type = Rx;
+    };
+
+    template <typename Rx, typename... Args>
+    struct function_traits<Rx (*)(Args...) noexcept> : internals::function_traits_base<false, true, true> {
+        using return_type = Rx;
+        using tuple_like_type = std::tuple<Args...>;
+        static inline constexpr std::size_t arity = sizeof...(Args);
+    };
+
+    template <typename Rx, typename... Args>
+    struct function_traits<Rx (*)(Args..., ...) noexcept> : internals::function_traits_base<false, true, true> {
+        using return_type = Rx;
+    };
+
+
+    /*------------------
+    [normal]
+    ------------------*/
+    RAINY_DECLARE_MEMBER_FUNCTION_TRAITS(false, false, false, false, false,)
+    RAINY_DECLARE_MEMBER_FUNCTION_TRAITS(false, false, false, true, false, &)
+    RAINY_DECLARE_MEMBER_FUNCTION_TRAITS(false, false, false, false, true, &&)
+    /*------------------
+    (const)
+    ------------------*/
+    RAINY_DECLARE_MEMBER_FUNCTION_TRAITS(false, false, true, false, false, const)
+    RAINY_DECLARE_MEMBER_FUNCTION_TRAITS(false, false, true, true, false, const &)
+    RAINY_DECLARE_MEMBER_FUNCTION_TRAITS(false, false, true, false, true, const &&)
+    /*------------------
+    (const noexcept)
+    ------------------*/
+    RAINY_DECLARE_MEMBER_FUNCTION_TRAITS(true, false, true, false, false, const noexcept)
+    RAINY_DECLARE_MEMBER_FUNCTION_TRAITS(true, false, true, true, false, const & noexcept)
+    RAINY_DECLARE_MEMBER_FUNCTION_TRAITS(true, false, true, false, true, const && noexcept)
+    /*------------------
+    (const volatile)
+    ------------------*/
+    RAINY_DECLARE_MEMBER_FUNCTION_TRAITS(false, true, true, false, false, const volatile)
+    RAINY_DECLARE_MEMBER_FUNCTION_TRAITS(false, true, true, true, false, const volatile &)
+    RAINY_DECLARE_MEMBER_FUNCTION_TRAITS(false, true, true, false, true, const volatile &&)
+    /*------------------
+    (const volatile noexcept)
+    ------------------*/
+    RAINY_DECLARE_MEMBER_FUNCTION_TRAITS(true, true, true, false, false, const volatile noexcept)
+    RAINY_DECLARE_MEMBER_FUNCTION_TRAITS(true, true, true, true, false, const volatile & noexcept)
+    RAINY_DECLARE_MEMBER_FUNCTION_TRAITS(true, true, true, false, true, const volatile && noexcept)
+    /*------------------
+    (noexcept)
+    ------------------*/
+    RAINY_DECLARE_MEMBER_FUNCTION_TRAITS(true, false, false, false, false, noexcept)
+    RAINY_DECLARE_MEMBER_FUNCTION_TRAITS(true, false, false, true, false, & noexcept)
+    RAINY_DECLARE_MEMBER_FUNCTION_TRAITS(true, false, false, false, true, && noexcept)
+    /*------------------
+    (volatile noexcept)
+    ------------------*/
+    RAINY_DECLARE_MEMBER_FUNCTION_TRAITS(true, true, false, false, false, volatile noexcept)
+    RAINY_DECLARE_MEMBER_FUNCTION_TRAITS(true, true, false, true, false, volatile & noexcept)
+    RAINY_DECLARE_MEMBER_FUNCTION_TRAITS(true, true, false, false, true, volatile && noexcept)
+    /*------------------
+    (volatile)
+    ------------------*/
+    RAINY_DECLARE_MEMBER_FUNCTION_TRAITS(false, true, false, false, false, volatile)
+    RAINY_DECLARE_MEMBER_FUNCTION_TRAITS(false, true, false, true, false, volatile &)
+    RAINY_DECLARE_MEMBER_FUNCTION_TRAITS(false, true, false, false, true, volatile &&)
+
+    template <template <typename> typename FunctorContainer, typename Fx>
+    struct function_traits<FunctorContainer<Fx>> : function_traits<Fx> {};
+
+    template <typename Fx>
+    using function_return_type = typename function_traits<Fx>::return_type;
+
+    template <typename Fx>
+    static inline constexpr std::size_t arity = function_traits<Fx>::arity;
+
+    template <typename Fx>
+    using param_list_in_tuple = typename function_traits<Fx>::tuple_like_type;
+}
+
+namespace rainy::type_traits::other_transformations {
+    template <typename Fx>
+    struct invoke_result {
+        using type = typename primary_types::function_traits<Fx>::return_type;
+    };
+}
 
 #endif

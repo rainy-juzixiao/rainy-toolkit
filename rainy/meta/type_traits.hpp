@@ -408,7 +408,7 @@ namespace rainy::type_traits {
 
         template <typename Ty>
         RAINY_CONSTEXPR_BOOL is_scalar_v = is_arithmetic_v<Ty> || primary_types::is_enum_v<Ty> || primary_types::is_pointer_v<Ty> ||
-                                              is_member_pointer_v<Ty> || primary_types::is_null_pointer_v<Ty>;
+                                           is_member_pointer_v<Ty> || primary_types::is_null_pointer_v<Ty>;
 
         template <typename Ty>
         struct is_scalar : helper::bool_constant<is_scalar_v<Ty>> {};
@@ -518,9 +518,7 @@ namespace rainy::type_traits::extras::tuple_like {
 /*
  * 追加概念库，需要启用C++20
  */
-namespace rainy::type_traits::concepts {
-
-}
+namespace rainy::type_traits::concepts {}
 #endif // RAINY_HAS_CXX20
 
 #if RAINY_USING_WINDOWS
@@ -533,7 +531,7 @@ namespace rainy::type_traits::extras::winapi {
     template <typename CharType>
     RAINY_CONSTEXPR_BOOL is_support_charset_v =
         rainy::type_traits::type_relations::is_any_of_v<CharType, CHAR, LPSTR, LPCSTR, LPCTSTR, WCHAR, LPWSTR, LPCWSTR, TCHAR,
-                                                             const TCHAR *>;
+                                                        const TCHAR *>;
 
     template <typename CharType>
     struct is_support_charset : rainy::type_traits::helper::bool_constant<is_support_charset_v<CharType>> {};
@@ -546,259 +544,7 @@ namespace rainy::type_traits::extras::winapi {
 namespace rainy::foundation::reflection::type_traits {
     template <typename Class, typename Base = void>
     RAINY_CONSTEXPR_BOOL support_type = (std::is_enum_v<Class> || std::is_abstract_v<Class> || std::is_class_v<Class> ||
-                                            std::is_union_v<Class>) &&!std::is_same_v<Class, Base>;
-}
-
-namespace rainy::type_traits::extras::reflection {
-    namespace internals {
-        template <bool IsMemberFunctionPointer = false, bool IsFunctionPointer = false, bool IsNothrowInvocable = false,
-                  bool IsVolatile = false, bool IsConstMemberFunctionPointer = false>
-        struct function_traits_base {
-            static RAINY_CONSTEXPR_BOOL is_member_function_pointer = IsMemberFunctionPointer;
-            static RAINY_CONSTEXPR_BOOL is_function_pointer = IsFunctionPointer;
-            static RAINY_CONSTEXPR_BOOL is_nothrow_invocable = IsNothrowInvocable;
-            static RAINY_CONSTEXPR_BOOL is_volatile = IsVolatile;
-            static RAINY_CONSTEXPR_BOOL is_const_member_function_pointer = IsConstMemberFunctionPointer;
-        };
-
-        template <bool IsLvalue, bool IsRvalue>
-        struct member_function_traits_base {
-            static RAINY_CONSTEXPR_BOOL is_invoke_for_lvalue = IsLvalue;
-            static RAINY_CONSTEXPR_BOOL is_invoke_for_rvalue = IsRvalue;
-        };
-    }
-
-    template <typename Ty>
-    struct function_traits {};
-
-    template <typename Rx, typename... Args>
-    struct function_traits<Rx(Args...)> : internals::function_traits_base<> {
-        using return_type = Rx;
-        using tuple_like_type = std::tuple<Args...>;
-        static inline constexpr std::size_t arity = sizeof...(Args);
-    };
-
-    template <typename Rx, typename... Args>
-    struct function_traits<Rx(Args...) volatile> : internals::function_traits_base<false, false, false, true> {
-        using return_type = Rx;
-        using tuple_like_type = std::tuple<Args...>;
-        static inline constexpr std::size_t arity = sizeof...(Args);
-    };
-
-    template <typename Rx, typename... Args>
-    struct function_traits<Rx(Args...) noexcept> : internals::function_traits_base<false, false, true> {
-        using return_type = Rx;
-        using tuple_like_type = std::tuple<Args...>;
-        static inline constexpr std::size_t arity = sizeof...(Args);
-    };
-
-    template <typename Rx, typename... Args>
-    struct function_traits<Rx(Args...) volatile noexcept> : internals::function_traits_base<false, false, true, true> {
-        using return_type = Rx;
-        using tuple_like_type = std::tuple<Args...>;
-        static inline constexpr std::size_t arity = sizeof...(Args);
-    };
-
-    template <typename Rx, typename... Args>
-    struct function_traits<Rx (*)(Args...)> : internals::function_traits_base<false, true> {
-        using return_type = Rx;
-        using tuple_like_type = std::tuple<Args...>;
-        static inline constexpr std::size_t arity = sizeof...(Args);
-    };
-
-    template <typename Rx, typename... Args>
-    struct function_traits<Rx (*)(Args...) noexcept> : internals::function_traits_base<false, true, true> {
-        using return_type = Rx;
-        using tuple_like_type = std::tuple<Args...>;
-        static inline constexpr std::size_t arity = sizeof...(Args);
-    };
-
-    /*------------------
-    普通类成员函数
-    ------------------*/
-    template <typename Rx, typename Class, typename... Args>
-    struct function_traits<Rx (Class::*)(Args...)> : internals::function_traits_base<true, false>,
-                                                     internals::member_function_traits_base<false, false> {
-        using return_type = Rx;
-        using class_type = Class;
-        using tuple_like_type = std::tuple<Args...>;
-        static inline constexpr std::size_t arity = sizeof...(Args);
-    };
-
-    template <typename Rx, typename Class, typename... Args>
-    struct function_traits<Rx (Class::*)(Args...) &> : internals::function_traits_base<true, false>,
-                                                       internals::member_function_traits_base<true, false> {
-        using return_type = Rx;
-        using class_type = Class;
-        using tuple_like_type = std::tuple<Args...>;
-        static inline constexpr std::size_t arity = sizeof...(Args);
-    };
-
-    template <typename Rx, typename Class, typename... Args>
-    struct function_traits<Rx (Class::*)(Args...) &&> : internals::function_traits_base<true, false>,
-                                                        internals::member_function_traits_base<false, true> {
-        using return_type = Rx;
-        using class_type = Class;
-        using tuple_like_type = std::tuple<Args...>;
-        static inline constexpr std::size_t arity = sizeof...(Args);
-    };
-
-    /*------------------
-    普通类成员函数（noexcept）
-    ------------------*/
-    template <typename Rx, typename Class, typename... Args>
-    struct function_traits<Rx (Class::*)(Args...) noexcept> : internals::function_traits_base<true, false, true> {
-        using return_type = Rx;
-        using class_type = Class;
-        using tuple_like_type = std::tuple<Args...>;
-        static inline constexpr std::size_t arity = sizeof...(Args);
-    };
-
-    template <typename Rx, typename Class, typename... Args>
-    struct function_traits<Rx (Class::*)(Args...) & noexcept> : internals::function_traits_base<true, false, true>,
-                                                                internals::member_function_traits_base<true, false> {
-        using return_type = Rx;
-        using class_type = Class;
-        using tuple_like_type = std::tuple<Args...>;
-        static inline constexpr std::size_t arity = sizeof...(Args);
-    };
-
-    template <typename Rx, typename Class, typename... Args>
-    struct function_traits<Rx (Class::*)(Args...) && noexcept> : internals::function_traits_base<true, false, true>,
-                                                                 internals::member_function_traits_base<false, true> {
-        using return_type = Rx;
-        using class_type = Class;
-        using tuple_like_type = std::tuple<Args...>;
-        static inline constexpr std::size_t arity = sizeof...(Args);
-    };
-
-    /*------------------
-    普通类成员函数（const）
-    ------------------*/
-    template <typename Rx, typename Class, typename... Args>
-    struct function_traits<Rx (Class::*)(Args...) const> : internals::function_traits_base<true, false, false, false, true> {
-        using return_type = Rx;
-        using class_type = Class;
-        using tuple_like_type = std::tuple<Args...>;
-        static inline constexpr std::size_t arity = sizeof...(Args);
-    };
-
-    template <typename Rx, typename Class, typename... Args>
-    struct function_traits<Rx (Class::*)(Args...) const &> : internals::function_traits_base<true, false, false, false, true>,
-                                                             internals::member_function_traits_base<true, false> {
-        using return_type = Rx;
-        using class_type = Class;
-        using tuple_like_type = std::tuple<Args...>;
-        static inline constexpr std::size_t arity = sizeof...(Args);
-    };
-
-    template <typename Rx, typename Class, typename... Args>
-    struct function_traits<Rx (Class::*)(Args...) const &&> : internals::function_traits_base<true, false, false, false, true>,
-                                                              internals::member_function_traits_base<false, true> {
-        using return_type = Rx;
-        using class_type = Class;
-        using tuple_like_type = std::tuple<Args...>;
-        static inline constexpr std::size_t arity = sizeof...(Args);
-    };
-
-    /*------------------
-    普通类成员函数（const noexcept）
-    ------------------*/
-    template <typename Rx, typename Class, typename... Args>
-    struct function_traits<Rx (Class::*)(Args...) const noexcept> : internals::function_traits_base<true, false, true, false, true> {
-        using return_type = Rx;
-        using class_type = Class;
-        using tuple_like_type = std::tuple<Args...>;
-        static inline constexpr std::size_t arity = sizeof...(Args);
-    };
-
-    template <typename Rx, typename Class, typename... Args>
-    struct function_traits<Rx (Class::*)(Args...) const & noexcept> : internals::function_traits_base<true, false, true, false, true>,
-                                                                      internals::member_function_traits_base<true, false> {
-        using return_type = Rx;
-        using class_type = Class;
-        using tuple_like_type = std::tuple<Args...>;
-        static inline constexpr std::size_t arity = sizeof...(Args);
-    };
-
-    template <typename Rx, typename Class, typename... Args>
-    struct function_traits<Rx (Class::*)(Args...) const && noexcept> : internals::function_traits_base<true, false, true, false, true>,
-                                                                       internals::member_function_traits_base<false, true> {
-        using return_type = Rx;
-        using class_type = Class;
-        using tuple_like_type = std::tuple<Args...>;
-        static inline constexpr std::size_t arity = sizeof...(Args);
-    };
-
-    /*------------------
-    普通类成员函数（volatile）
-    ------------------*/
-    template <typename Rx, typename Class, typename... Args>
-    struct function_traits<Rx (Class::*)(Args...) volatile> : internals::function_traits_base<true, false, false, true> {
-        using return_type = Rx;
-        using class_type = Class;
-        using tuple_like_type = std::tuple<Args...>;
-        static inline constexpr std::size_t arity = sizeof...(Args);
-    };
-
-    template <typename Rx, typename Class, typename... Args>
-    struct function_traits<Rx (Class::*)(Args...) volatile &> : internals::function_traits_base<true, false, false, true>,
-                                                                internals::member_function_traits_base<true, false> {
-        using return_type = Rx;
-        using class_type = Class;
-        using tuple_like_type = std::tuple<Args...>;
-        static inline constexpr std::size_t arity = sizeof...(Args);
-    };
-
-    template <typename Rx, typename Class, typename... Args>
-    struct function_traits<Rx (Class::*)(Args...) volatile &&> : internals::function_traits_base<true, false, false, true>,
-                                                                 internals::member_function_traits_base<false, true> {
-        using return_type = Rx;
-        using class_type = Class;
-        using tuple_like_type = std::tuple<Args...>;
-        static inline constexpr std::size_t arity = sizeof...(Args);
-    };
-
-    /*------------------
-    普通类成员函数（volatile noexcept）
-    ------------------*/
-    template <typename Rx, typename Class, typename... Args>
-    struct function_traits<Rx (Class::*)(Args...) volatile noexcept> : internals::function_traits_base<true, false, true, true> {
-        using return_type = Rx;
-        using class_type = Class;
-        using tuple_like_type = std::tuple<Args...>;
-        static inline constexpr std::size_t arity = sizeof...(Args);
-    };
-
-    template <typename Rx, typename Class, typename... Args>
-    struct function_traits<Rx (Class::*)(Args...) volatile & noexcept> : internals::function_traits_base<true, false, true, true>,
-                                                                         internals::member_function_traits_base<true, false> {
-        using return_type = Rx;
-        using class_type = Class;
-        using tuple_like_type = std::tuple<Args...>;
-        static inline constexpr std::size_t arity = sizeof...(Args);
-    };
-
-    template <typename Rx, typename Class, typename... Args>
-    struct function_traits<Rx (Class::*)(Args...) volatile && noexcept> : internals::function_traits_base<true, false, true, true>,
-                                                                          internals::member_function_traits_base<false, true> {
-        using return_type = Rx;
-        using class_type = Class;
-        using tuple_like_type = std::tuple<Args...>;
-        static inline constexpr std::size_t arity = sizeof...(Args);
-    };
-
-    template <template <typename> typename FunctorContainer, typename Fx>
-    struct function_traits<FunctorContainer<Fx>> : function_traits<Fx> {};
-
-    template <typename Fx>
-    using return_type = typename function_traits<Fx>::return_type;
-
-    template <typename Fx>
-    static inline constexpr std::size_t arity = function_traits<Fx>::arity;
-
-    template <typename Fx>
-    using param_list_in_tuple = typename function_traits<Fx>::tuple_like_type;
+                                         std::is_union_v<Class>) &&!std::is_same_v<Class, Base>;
 }
 
 #endif // RAINY_TYPE_TRAITS_HPP

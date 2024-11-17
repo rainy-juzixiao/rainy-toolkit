@@ -1,4 +1,4 @@
-﻿cmake_minimum_required(VERSION 3.25.1)
+﻿cmake_minimum_required(VERSION 3.22.1)
 project(rainy_toolkit)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -36,6 +36,11 @@ list(APPEND SOURCES
         rainy/base.hpp
         rainy/utility.hpp
         rainy/algorithm.hpp
+)
+
+# 算法模块
+list(APPEND SOURCES
+        rainy/algorithm/container_operator.hpp
 )
 
 # 容器模块

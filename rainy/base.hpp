@@ -12,6 +12,8 @@
 #include <rainy/functional/function_pointer.hpp>
 #include <rainy/diagnostics/contract.hpp>
 #include <rainy/utility/iterator.hpp>
+#include <rainy/utility/ref_wrap.hpp>
+#include <rainy/utility/invoke.hpp>
 
 /* standard-libray header */
 #include <algorithm>

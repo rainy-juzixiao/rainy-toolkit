@@ -1880,30 +1880,53 @@ struct test_class {
                   << "\n";
     }
 
+    void virtual_function() noexcept {
+    
+    }
+
+    int *Begin() const noexcept {
+        return nullptr;
+    }
+
     int a;
 };
+
+int virtual_function() noexcept {
+    return 555;
+}
 
 #include <set>
 #include <rainy/utility/invoke.hpp>
 
+
 int main() {
-    test_class object_test{};
-    std::reference_wrapper<test_class> my_test = object_test;
-    rainy::utility::internals::select_invoker<decltype(&test_class::a), decltype(my_test)>::value;
-    rainy::utility::invoke(&test_class::a, my_test);
-    std::cout << "Hello World"
-              << "\n";
-    std::cout << "Hello World\n";
+    {
+        int a{};
+        rainy::utility::reference_wrapper ref = virtual_function;
+        ref();
+        std::vector<int> v{};
+        rainy::utility::end(v);
+        test_class c{};
+    }
     std::random_device random_device;
     std::mt19937 gen(random_device());
     std::uniform_int_distribution<> dist(1, 27);
     std::set<int> my_set;
     while (my_set.size() < 10) {
+        auto number = dist(gen);
+        if (number == 19) {
+            while (number != 19) {
+                number = dist(gen);
+            }
+        }
         my_set.insert(dist(gen));
     }
     for (const auto &i: my_set) {
         std::cout << i << "\n";
     }
+
+    
+
     std::uniform_int_distribution<> rc_dist(1, 11);
     std::cout << "random choice = " << rc_dist(gen) << "\n";
     //rainy::foundation::system::async::internals::init_async_moudle_abi();
@@ -1941,7 +1964,6 @@ int main() {
         });
     rainy::component::sync_event::dispatcher::instance()->clear();
     std::tuple<int,char,std::string> t;
-    using namespace rainy::type_traits::extras::reflection;
     //rainy::winapi::ui::window<> main_window;
     //RECT window_rect = {100, 100, 800, 600};
     //main_window.create(NULL, "Main Window", WS_OVERLAPPEDWINDOW, 0, window_rect);
