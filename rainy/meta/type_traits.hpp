@@ -218,11 +218,11 @@ namespace rainy::type_traits {
 
         template <typename callable, typename Ty1, typename removed_cvref>
         struct invoker<callable, Ty1, removed_cvref, true, false>
-            : other_transformations::conditional_t<
+            : other_trans::conditional_t<
                   std::is_same_v<typename std::is_member_function_pointer<removed_cvref>::type, cv_modify::remove_cvref_t<Ty1>> ||
                       std::is_base_of_v<typename std::is_member_function_pointer<removed_cvref>::type, cv_modify::remove_cvref_t<Ty1>>,
                   internals::invoker_pmf_object,
-                  other_transformations::conditional_t<
+                  other_trans::conditional_t<
                       primary_types::is_specialization_v<cv_modify::remove_cvref_t<Ty1>, std::reference_wrapper>,
                       internals::invoker_pmf_refwrap, internals::invoker_pmf_pointer>> {}; // pointer to member function
 
@@ -233,7 +233,7 @@ namespace rainy::type_traits {
                                      type_relations::is_base_of_v<typename std::is_member_object_pointer<removed_cvref>::type,
                                                                   cv_modify::remove_cvref_t<Ty1>>,
                                  internals::invoker_pmd_object,
-                                 other_transformations::conditional_t<
+                                 other_trans::conditional_t<
                                      primary_types::is_specialization_v<cv_modify::remove_cvref_t<Ty1>, std::reference_wrapper>,
                                      internals::invoker_pmd_refwrap, internals::invoker_pmd_pointer>> {}; // pointer to member data
 
@@ -277,7 +277,7 @@ namespace rainy::type_traits {
         using _decltype_invoke_zero = decltype(std::declval<callable>()());
 
         template <typename callable>
-        struct invoke_traits_zero<other_transformations::void_t<_decltype_invoke_zero<callable>>, callable>
+        struct invoke_traits_zero<other_trans::void_t<_decltype_invoke_zero<callable>>, callable>
             : invoke_traits_common<_decltype_invoke_zero<callable>, noexcept(std::declval<callable>()())> {};
 
         template <typename _void, typename... Args>
@@ -299,14 +299,14 @@ namespace rainy::type_traits {
             decltype(invoker<callable, Ty1>::invoke(std::declval<callable>(), std::declval<Ty1>(), std::declval<Args2>()...));
 
         template <typename callable, typename Ty1, typename... Args2>
-        struct invoke_traits_nonzero<other_transformations::void_t<_decltype_invoke_nonzero<callable, Ty1, Args2...>>, callable, Ty1,
+        struct invoke_traits_nonzero<other_trans::void_t<_decltype_invoke_nonzero<callable, Ty1, Args2...>>, callable, Ty1,
                                      Args2...>
             : invoke_traits_common<_decltype_invoke_nonzero<callable, Ty1, Args2...>,
                                    noexcept(invoker<callable, Ty1>::invoke(std::declval<callable>(), std::declval<Ty1>(),
                                                                            std::declval<Args2>()...))> {};
 
         template <typename callable, typename... Args>
-        using select_invoke_traits = other_transformations::conditional_t<sizeof...(Args) == 0, invoke_traits_zero<void, callable>,
+        using select_invoke_traits = other_trans::conditional_t<sizeof...(Args) == 0, invoke_traits_zero<void, callable>,
                                                                           invoke_traits_nonzero<void, callable, Args...>>;
 
         template <typename callable, typename... Args>
@@ -482,7 +482,7 @@ namespace rainy::type_traits::extras::tuple_like {
 
     template <typename Ty, template <typename...> class List, typename First, typename... Rest>
     struct is_type_in_list<Ty, List<First, Rest...>>
-        : other_transformations::conditional_t<type_relations::is_same_v<Ty, First>, std::true_type,
+        : other_trans::conditional_t<type_relations::is_same_v<Ty, First>, std::true_type,
                                                is_type_in_list<Ty, List<Rest...>>> {};
 
     template <typename T, template <typename...> class List>
@@ -540,11 +540,5 @@ namespace rainy::type_traits::extras::winapi {
     RAINY_CONSTEXPR_BOOL is_support_char_v = rainy::type_traits::type_relations::is_any_of_v<CharType, char, wchar_t>;
 }
 #endif
-
-namespace rainy::foundation::reflection::type_traits {
-    template <typename Class, typename Base = void>
-    RAINY_CONSTEXPR_BOOL support_type = (std::is_enum_v<Class> || std::is_abstract_v<Class> || std::is_class_v<Class> ||
-                                         std::is_union_v<Class>) &&!std::is_same_v<Class, Base>;
-}
 
 #endif // RAINY_TYPE_TRAITS_HPP

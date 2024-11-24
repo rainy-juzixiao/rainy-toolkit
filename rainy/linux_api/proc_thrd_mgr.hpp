@@ -22,7 +22,7 @@ namespace rainy::linux_api::proc_thrd {
         thread_manager() : thread_({}) {
         }
 
-        template <typename Fx,typename... Args, type_traits::other_transformations::enable_if_t<
+        template <typename Fx,typename... Args, type_traits::other_trans::enable_if_t<
                                    !type_traits::type_relations::is_same_v<
                                        type_traits::cv_modify::remove_cvref_t<Fx>, thread_manager> &&
                                        type_traits::type_properties::is_invocable_r_v<void, Fx, Args...>,
@@ -84,7 +84,7 @@ namespace rainy::linux_api::proc_thrd {
             return thread_.thread;
         }
 
-        template <typename Fx, typename... Args,type_traits::other_transformations::enable_if_t<
+        template <typename Fx, typename... Args,type_traits::other_trans::enable_if_t<
                                    !type_traits::type_relations::is_same_v<
                                        type_traits::cv_modify::remove_cvref_t<Fx>, thread_manager> &&
                                        type_traits::type_properties::is_invocable_r_v<void, Fx, Args...>,

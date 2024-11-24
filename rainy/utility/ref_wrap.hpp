@@ -19,7 +19,7 @@ namespace rainy::utility::internals {
     struct refwrap_has_ctor_from : type_traits::helper::false_type {};
 
     template <typename Ty, typename Uty>
-    struct refwrap_has_ctor_from<Ty, Uty, type_traits::other_transformations::void_t<decltype(refwrap_ctor_fun<Ty>(declval<Uty>()))>>
+    struct refwrap_has_ctor_from<Ty, Uty, type_traits::other_trans::void_t<decltype(refwrap_ctor_fun<Ty>(declval<Uty>()))>>
         : type_traits::helper::true_type {};
 
     template <typename Fx,typename... Args>
@@ -51,7 +51,7 @@ namespace rainy::utility {
 
         template <
             typename Uty,
-            type_traits::other_transformations::enable_if_t<
+            type_traits::other_trans::enable_if_t<
                 type_traits::logical_traits::conjunction_v<type_traits::logical_traits::negation<type_traits::type_relations::is_same<
                                                                type_traits::cv_modify::remove_cvref_t<Uty>, reference_wrapper>>,
                                                            internals::refwrap_has_ctor_from<Ty, Uty>>,
@@ -79,7 +79,7 @@ namespace rainy::utility {
         }
 
         template <typename... Args,
-                  type_traits::other_transformations::enable_if_t<type_traits::type_properties::is_invocable_v<Ty, Args...>, int> = 0>
+                  type_traits::other_trans::enable_if_t<type_traits::type_properties::is_invocable_v<Ty, Args...>, int> = 0>
         constexpr decltype(auto) try_to_invoke_as_function(Args &&...args) const
             noexcept(internals::test_refwrap_nothrow_invoke<Ty, Args...>::value) {
             using f_traits = type_traits::primary_types::function_traits<Ty>;
@@ -97,7 +97,7 @@ namespace rainy::utility {
         }
 
         template <typename... Args,
-                  type_traits::other_transformations::enable_if_t<type_traits::type_properties::is_invocable_v<Ty, Args...>, int> = 0>
+                  type_traits::other_trans::enable_if_t<type_traits::type_properties::is_invocable_v<Ty, Args...>, int> = 0>
         constexpr decltype(auto) operator()(Args &&...args) const
             noexcept(internals::test_refwrap_nothrow_invoke<Ty, Args...>::value) {
             return try_to_invoke_as_function(utility::forward<Args>(args)...);
@@ -157,7 +157,7 @@ namespace rainy::type_traits::cv_modify {
     using unwrap_reference_t = unwrap_reference<_Ty>::type;
 
     template <typename Ty>
-    using unwrap_ref_decay_t = unwrap_reference_t<other_transformations::decay_t<Ty>>;
+    using unwrap_ref_decay_t = unwrap_reference_t<other_trans::decay_t<Ty>>;
 
     template <typename Ty>
     struct unwrap_ref_decay {

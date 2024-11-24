@@ -55,7 +55,7 @@ namespace rainy::foundation::functional {
          * @brief 例如，如果模板形参返回值是int，而函数地址对应的签名为char，则产生转换
          */
         template <typename URx, typename... UArgs,
-                  rainy::type_traits::other_transformations::enable_if_t<
+                  rainy::type_traits::other_trans::enable_if_t<
                       type_traits::type_properties::is_invocable_r_v<Rx, URx (*)(UArgs...), Args...>, int> = 0>
         constexpr function_pointer(URx (*function_address)(UArgs...)) : invoker(function_address) {
         }
@@ -137,7 +137,7 @@ namespace rainy::foundation::functional {
         constexpr function_pointer &operator=(function_pointer &&) noexcept = default;
 
         template <typename URx, typename... UArgs,
-                  rainy::type_traits::other_transformations::enable_if_t<
+                  rainy::type_traits::other_trans::enable_if_t<
                       type_traits::type_properties::is_invocable_r_v<Rx, URx (*)(UArgs...), Args...>, int> = 0>
         constexpr function_pointer &operator=(URx (*function_address)(UArgs...)) noexcept {
             return assign(function_address); // NOLINT
@@ -161,7 +161,7 @@ namespace rainy::foundation::functional {
         }
 
         template <typename URx, typename... UArgs,
-                  rainy::type_traits::other_transformations::enable_if_t<
+                  rainy::type_traits::other_trans::enable_if_t<
                       type_traits::type_properties::is_invocable_r_v<Rx, URx (*)(UArgs...), Args...>, int> = 0>
         constexpr function_pointer &assign(URx (*function_address)(UArgs...)) noexcept {
             invoker = function_address;

@@ -207,18 +207,33 @@ namespace rainy::utility {
         is_integral,
         is_floating_point,
         is_trivially_copyable,
+        from_create,
+        from_typeid,
         size
     };
 
-    class type_info final {
+    class dynamic_type_info final {
     public:
-        template <typename Ty>
-        static type_info create() noexcept {
-            type_info info{};
+        dynamic_type_info() = default;
 
+        dynamic_type_info(const std::type_info &rtti) {
+            this->_name = rtti.name();
+            this->_hash_code = rtti.hash_code();
+            this->flags[static_cast<int>(type_flags::from_create)] = false;
+            this->flags[static_cast<int>(type_flags::from_typeid)] = true;
+        }
+
+        template <typename Ty>
+        static dynamic_type_info create() noexcept {
+            dynamic_type_info info{};
             info._name = type_name<Ty>();
-            info._size = sizeof(Ty);
-            info._align = alignof(Ty);
+            if constexpr (type_traits::primary_types::function_traits<Ty>::valid) {
+                info._size = 0;
+                info._align = 0;
+            } else {
+                info._size = sizeof(Ty);
+                info._align = alignof(Ty);
+            }
             info.flags[static_cast<int>(type_flags::is_trivially_copyable)] = std::is_trivially_copyable_v<Ty>;
             info.flags[static_cast<int>(type_flags::is_integral)] = std::is_integral_v<Ty>;
             info.flags[static_cast<int>(type_flags::is_floating_point)] = std::is_floating_point_v<Ty>;
@@ -268,11 +283,17 @@ namespace rainy::utility {
             buffer += "typename=";
             buffer += _name;
             std::string temp;
-            utility::cstyle_format(temp, " : size=%d,align=%d,hash_code=%d", _size, _align, _hash_code);
+            utility::cstyle_format(temp, " : size=%d,align=%d,hash_code=%llu", _size, _align, _hash_code);
             buffer += temp;
 #endif
             return buffer;
         }
+
+        RAINY_NODISCARD friend bool operator==(const dynamic_type_info &left, const dynamic_type_info &right) {
+            return left.hash_code() == right.hash_code();
+        }
+
+        
 
     private:
         std::string_view _name;
@@ -287,7 +308,7 @@ namespace rainy::utility {
 
 #ifdef __cpp_lib_format
 template <>
-class std::formatter<rainy::utility::type_info, char> {
+class std::formatter<rainy::utility::dynamic_type_info, char> {
 public:
     explicit formatter() noexcept = default;
 
@@ -295,7 +316,7 @@ public:
         return ctx.begin();
     }
 
-    static auto format(const rainy::utility::type_info &value, std::format_context fc) noexcept {
+    static auto format(const rainy::utility::dynamic_type_info &value, std::format_context fc) noexcept {
         return std::format_to(fc.out(), "{}", value.to_string());
     }
 };
@@ -2364,7 +2385,7 @@ namespace rainy::winapi::error_process {
 }
 
 namespace rainy::winapi::dynamic_libray {
-    template <typename CharType = char, type_traits::other_transformations::enable_if_t<
+    template <typename CharType = char, type_traits::other_trans::enable_if_t<
                                             type_traits::type_relations::is_any_of_v<CharType, char, wchar_t>, int> = 0>
     HMODULE get_module_handle(const CharType *module_name = nullptr) {
         if constexpr (type_traits::helper::is_wchar_t<CharType>) {
@@ -2501,7 +2522,7 @@ namespace rainy::algorithm::internals {
 namespace rainy::algorithm::container_operater {
     template <typename InputIter, typename OutIter>
     RAINY_CONSTEXPR20 OutIter copy(InputIter begin, InputIter end, OutIter dest) noexcept(
-        std::is_nothrow_copy_constructible_v<type_traits::other_transformations::conditional_t<
+        std::is_nothrow_copy_constructible_v<type_traits::other_trans::conditional_t<
             type_traits::internals::_is_pointer_v<InputIter>,
             type_traits::pointer_modify::remove_pointer_t<InputIter>, typename InputIter::value_type>>) {
         using value_type = typename InputIter::value_type;
@@ -2575,11 +2596,11 @@ namespace rainy::algorithm::container_operater {
 
     template <typename InputIter, typename OutIter>
     RAINY_CONSTEXPR20 OutIter copy_n(InputIter begin, const std::size_t count, OutIter dest) noexcept(
-        std::is_nothrow_copy_constructible_v<type_traits::other_transformations::conditional_t<
+        std::is_nothrow_copy_constructible_v<type_traits::other_trans::conditional_t<
             type_traits::internals::_is_pointer_v<InputIter>,
             type_traits::pointer_modify::remove_pointer_t<InputIter>, typename InputIter::value_type>>) {
 
-        using value_type = type_traits::other_transformations::conditional_t<
+        using value_type = type_traits::other_trans::conditional_t<
             type_traits::internals::_is_pointer_v<InputIter>,
             type_traits::pointer_modify::remove_pointer_t<InputIter>, typename InputIter::value_type>;
 
@@ -2654,12 +2675,9 @@ namespace rainy::algorithm::container_operater {
 
     template <typename InputIter, typename OutIter, typename Fx>
     constexpr OutIter transform(InputIter begin, InputIter end, OutIter dest, Fx func) noexcept(
-        std::is_nothrow_copy_assignable_v<type_traits::other_transformations::conditional_t<
+        std::is_nothrow_copy_assignable_v<type_traits::other_trans::conditional_t<
             type_traits::internals::_is_pointer_v<InputIter>,
             type_traits::pointer_modify::remove_pointer_t<InputIter>, typename InputIter::value_type>>) {
-        if (begin == end || (end - 1) == begin) {
-            return dest;
-        }
         for (InputIter iter = begin; iter != end; ++iter, ++dest) {
             *dest = func(*iter);
         }
@@ -2668,7 +2686,7 @@ namespace rainy::algorithm::container_operater {
 
     template <typename InputIter, typename OutIter, typename Fx>
     constexpr OutIter transform(InputIter begin1, InputIter end1, InputIter begin2, OutIter dest, Fx func) noexcept(
-        std::is_nothrow_copy_assignable_v<type_traits::other_transformations::conditional_t<
+        std::is_nothrow_copy_assignable_v<type_traits::other_trans::conditional_t<
             type_traits::internals::_is_pointer_v<InputIter>,
             type_traits::pointer_modify::remove_pointer_t<InputIter>, typename InputIter::value_type>>) {
         if (begin1 == end1 || (end1 - 1) == begin1) {
@@ -2798,7 +2816,7 @@ namespace rainy::component::sync_event {
         }
 
         template <typename EventType, typename Fx,
-                  type_traits::other_transformations::enable_if_t<
+                  type_traits::other_trans::enable_if_t<
                       type_traits::type_properties::is_invocable_r_v<void, Fx, event &>, int> = 0>
         RAINY_NODISCARD std::shared_ptr<handler_registration> subscribe(Fx &&func) {
             /* 我们实际创建了一个virtual_listener实例，表示虚拟的监听器 */

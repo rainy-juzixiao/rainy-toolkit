@@ -31,9 +31,9 @@ namespace rainy::winapi::ui::utils {
     }
 
     template <typename CharType = char,
-              typename WndCPtrType = type_traits::other_transformations::conditional_t<
+              typename WndCPtrType = type_traits::other_trans::conditional_t<
                   type_traits::helper::is_wchar_t<CharType>, LPWNDCLASSEXW, LPWNDCLASSA>,
-              type_traits::other_transformations::enable_if_t<
+              type_traits::other_trans::enable_if_t<
                                             type_traits::extras::winapi::is_support_charset_v<CharType>, int> = 0>
     BOOL get_class_info_ex(HINSTANCE handle_of_instance, const CharType *class_name, WndCPtrType window_class_ptr) {
         if constexpr (type_traits::helper::is_wchar_t<CharType>) {
@@ -44,8 +44,8 @@ namespace rainy::winapi::ui::utils {
     }
 
     template <typename CharType = char, typename WndCPtrType = 
-        type_traits::other_transformations::conditional_t < type_traits::helper::is_wchar_t<CharType>,WNDCLASSEXW,WNDCLASSEXA>,
-              type_traits::other_transformations::enable_if_t<
+        type_traits::other_trans::conditional_t < type_traits::helper::is_wchar_t<CharType>,WNDCLASSEXW,WNDCLASSEXA>,
+              type_traits::other_trans::enable_if_t<
                  type_traits::extras::winapi::is_support_charset_v<CharType>, int> = 0>
     ATOM register_window_class(const WndCPtrType *window_class) {
         if constexpr (type_traits::helper::is_wchar_t<CharType>) {

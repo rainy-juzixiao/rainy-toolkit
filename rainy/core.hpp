@@ -513,14 +513,14 @@ namespace rainy::information::system_call {
 namespace rainy::information {
     template <typename... Test>
     RAINY_CONSTEXPR_BOOL check_format_type =
-        (type_traits::type_relations::is_any_convertible_v<type_traits::other_transformations::decay_t<Test>, char, int,
+        (type_traits::type_relations::is_any_convertible_v<type_traits::other_trans::decay_t<Test>, char, int,
                                                                        double, void *, float, long, long long, unsigned int,
                                                                        unsigned long, unsigned long long, const char *> ||
          ...);
 
     template <typename... Test>
     RAINY_CONSTEXPR_BOOL check_wformat_type =
-        (type_traits::type_relations::is_any_convertible_v<type_traits::other_transformations::decay_t<Test>, char, int,
+        (type_traits::type_relations::is_any_convertible_v<type_traits::other_trans::decay_t<Test>, char, int,
                                                                        double, void *, float, long, long long, unsigned int,
                                                                        unsigned long, unsigned long long, const wchar_t *> ||
          ...);

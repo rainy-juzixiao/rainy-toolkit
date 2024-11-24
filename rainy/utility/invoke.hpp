@@ -112,7 +112,7 @@ namespace rainy::utility::internals {
 
         template <bool Test, invoker_category IfTrue, invoker_category IfFalse>
         static constexpr auto cond_v =
-            type_traits::other_transformations::conditional_value_v<invoker_category, Test, IfTrue, IfFalse>;
+            type_traits::other_trans::conditional_value_v<invoker_category, Test, IfTrue, IfFalse>;
 
         static constexpr auto value = cond_v < type_traits::type_relations::is_same_v<__class_type, __ty1_type> ||
                                       type_traits::type_relations::is_base_of_v<__class_type, __ty1_type>,
@@ -130,7 +130,7 @@ namespace rainy::utility::internals {
 
         template <bool Test, invoker_category IfTrue, invoker_category IfFalse>
         static constexpr auto cond_v =
-            type_traits::other_transformations::conditional_value_v<invoker_category, Test, IfTrue, IfFalse>;
+            type_traits::other_trans::conditional_value_v<invoker_category, Test, IfTrue, IfFalse>;
 
         static constexpr auto value = cond_v < type_traits::type_relations::is_same_v<__class_type, __ty1_type> ||
                                       type_traits::type_relations::is_base_of_v<__class_type, __ty1_type>,
@@ -144,7 +144,7 @@ namespace rainy::utility::internals {
     template <typename Callable, typename Ty1, typename RemovedCvref>
     struct select_invoker<Callable, Ty1, RemovedCvref, false, false> {
         static constexpr auto value =
-            type_traits::other_transformations::conditional_value_v<invoker_category,
+            type_traits::other_trans::conditional_value_v<invoker_category,
                                                                     type_traits::primary_types::function_traits<RemovedCvref>::valid,
                                                                     invoker_category::functor, invoker_category::decl_failed>;
         /*

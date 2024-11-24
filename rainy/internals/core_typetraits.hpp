@@ -831,7 +831,7 @@ namespace rainy::utility {
     }
 }
 
-namespace rainy::type_traits::other_transformations {
+namespace rainy::type_traits::other_trans {
     /**
      * @brief 有条件地为 SFINAE 重载决策设置类型的实例。 当且仅当 enable_if_t<test,Ty> 是 Type 时，嵌套的 typedef
      * Condition 才存在（并且是 true 的同义词）。
@@ -1152,7 +1152,7 @@ namespace rainy::type_traits::extras::meta_method {
     };
 
     template <typename Ty>
-    struct try_to_invoke_begin<Ty, type_traits::other_transformations::void_t<decltype(utility::declval<Ty>().begin())>> {
+    struct try_to_invoke_begin<Ty, type_traits::other_trans::void_t<decltype(utility::declval<Ty>().begin())>> {
         static RAINY_CONSTEXPR_BOOL value = true;
 
         static auto invoke(Ty &container) noexcept(noexcept(container.begin())) -> decltype(container.begin()) {
@@ -1162,7 +1162,7 @@ namespace rainy::type_traits::extras::meta_method {
 
     // compitable for PascalCase
     template <typename Ty>
-    struct try_to_invoke_begin<Ty, type_traits::other_transformations::void_t<decltype(utility::declval<Ty>().Begin()), int>> {
+    struct try_to_invoke_begin<Ty, type_traits::other_trans::void_t<decltype(utility::declval<Ty>().Begin()), int>> {
         static RAINY_CONSTEXPR_BOOL value = true;
 
         static auto invoke(Ty &container) noexcept(noexcept(container.Begin())) -> decltype(container.Begin()) {
@@ -1185,7 +1185,7 @@ namespace rainy::type_traits::extras::meta_method {
     };
 
     template <typename Ty>
-    struct try_to_invoke_end<Ty, type_traits::other_transformations::void_t<decltype(utility::declval<Ty>().end())>> {
+    struct try_to_invoke_end<Ty, type_traits::other_trans::void_t<decltype(utility::declval<Ty>().end())>> {
         static RAINY_CONSTEXPR_BOOL value = true;
 
         static auto invoke(Ty &container) noexcept(noexcept(container.end())) -> decltype(container.end()) {
@@ -1194,7 +1194,7 @@ namespace rainy::type_traits::extras::meta_method {
     };
 
     template <typename Ty>
-    struct try_to_invoke_end<Ty, type_traits::other_transformations::void_t<decltype(utility::declval<Ty>().End()), int>> {
+    struct try_to_invoke_end<Ty, type_traits::other_trans::void_t<decltype(utility::declval<Ty>().End()), int>> {
         static RAINY_CONSTEXPR_BOOL value = true;
 
         static auto invoke(Ty &container) noexcept(noexcept(container.End())) -> decltype(container.End()) {
@@ -1217,7 +1217,7 @@ namespace rainy::type_traits::extras::meta_method {
     };
 
     template <typename Ty>
-    struct try_to_invoke_cbegin<Ty, type_traits::other_transformations::void_t<decltype(utility::declval<Ty>().begin())>> {
+    struct try_to_invoke_cbegin<Ty, type_traits::other_trans::void_t<decltype(utility::declval<Ty>().begin())>> {
         static RAINY_CONSTEXPR_BOOL value = true;
 
         static auto invoke(const Ty &container) noexcept(noexcept(container.begin())) -> decltype(container.begin()) {
@@ -1226,7 +1226,7 @@ namespace rainy::type_traits::extras::meta_method {
     };
 
     template <typename Ty>
-    struct try_to_invoke_cbegin<Ty, type_traits::other_transformations::void_t<decltype(utility::declval<Ty>().Begin()), int>> {
+    struct try_to_invoke_cbegin<Ty, type_traits::other_trans::void_t<decltype(utility::declval<Ty>().Begin()), int>> {
         static RAINY_CONSTEXPR_BOOL value = true;
 
         static auto invoke(const Ty &container) noexcept(noexcept(container.Begin())) -> decltype(container.Begin()) {
@@ -1235,7 +1235,7 @@ namespace rainy::type_traits::extras::meta_method {
     };
 
     template <typename Ty>
-    struct try_to_invoke_cbegin<Ty, type_traits::other_transformations::void_t<decltype(utility::declval<Ty>().cbegin()), int, int>> {
+    struct try_to_invoke_cbegin<Ty, type_traits::other_trans::void_t<decltype(utility::declval<Ty>().cbegin()), int, int>> {
         static RAINY_CONSTEXPR_BOOL value = true;
 
         static auto invoke(const Ty &container) noexcept(noexcept(container.cbegin())) -> decltype(container.cbegin()) {
@@ -1245,7 +1245,7 @@ namespace rainy::type_traits::extras::meta_method {
 
     template <typename Ty>
     struct try_to_invoke_cbegin<Ty,
-                                type_traits::other_transformations::void_t<decltype(utility::declval<Ty>().CBegin()), int, int, int>> {
+                                type_traits::other_trans::void_t<decltype(utility::declval<Ty>().CBegin()), int, int, int>> {
         static RAINY_CONSTEXPR_BOOL value = true;
 
         static auto invoke(const Ty &container) noexcept(noexcept(container.CBegin())) -> decltype(container.CBegin()) {
@@ -1255,7 +1255,7 @@ namespace rainy::type_traits::extras::meta_method {
 
     template <typename Ty>
     struct try_to_invoke_cbegin<
-        Ty, type_traits::other_transformations::void_t<decltype(utility::declval<Ty>().Cbegin()), int, int, int, int>> {
+        Ty, type_traits::other_trans::void_t<decltype(utility::declval<Ty>().Cbegin()), int, int, int, int>> {
         static RAINY_CONSTEXPR_BOOL value = true;
 
         static auto invoke(const Ty &container) noexcept(noexcept(container.Cbegin())) -> decltype(container.Cbegin()) {
@@ -1278,7 +1278,7 @@ namespace rainy::type_traits::extras::meta_method {
     };
 
     template <typename Ty>
-    struct try_to_invoke_cend<Ty, type_traits::other_transformations::void_t<decltype(utility::declval<Ty>().end())>> {
+    struct try_to_invoke_cend<Ty, type_traits::other_trans::void_t<decltype(utility::declval<Ty>().end())>> {
         static RAINY_CONSTEXPR_BOOL value = true;
 
         static auto invoke(const Ty &container) noexcept(noexcept(container.end())) -> decltype(container.end()) {
@@ -1287,7 +1287,7 @@ namespace rainy::type_traits::extras::meta_method {
     };
 
     template <typename Ty>
-    struct try_to_invoke_cend<Ty, type_traits::other_transformations::void_t<decltype(utility::declval<Ty>().End()), int>> {
+    struct try_to_invoke_cend<Ty, type_traits::other_trans::void_t<decltype(utility::declval<Ty>().End()), int>> {
         static RAINY_CONSTEXPR_BOOL value = true;
 
         static auto invoke(const Ty &container) noexcept(noexcept(container.End())) -> decltype(container.End()) {
@@ -1296,7 +1296,7 @@ namespace rainy::type_traits::extras::meta_method {
     };
 
     template <typename Ty>
-    struct try_to_invoke_cend<Ty, type_traits::other_transformations::void_t<decltype(utility::declval<Ty>().cend()), int, int>> {
+    struct try_to_invoke_cend<Ty, type_traits::other_trans::void_t<decltype(utility::declval<Ty>().cend()), int, int>> {
         static RAINY_CONSTEXPR_BOOL value = true;
 
         static auto invoke(const Ty &container) noexcept(noexcept(container.cend())) -> decltype(container.cend()) {
@@ -1305,7 +1305,7 @@ namespace rainy::type_traits::extras::meta_method {
     };
 
     template <typename Ty>
-    struct try_to_invoke_cend<Ty, type_traits::other_transformations::void_t<decltype(utility::declval<Ty>().Cend()), int, int, int>> {
+    struct try_to_invoke_cend<Ty, type_traits::other_trans::void_t<decltype(utility::declval<Ty>().Cend()), int, int, int>> {
         static RAINY_CONSTEXPR_BOOL value = true;
 
         static auto invoke(const Ty &container) noexcept(noexcept(container.Cend())) -> decltype(container.Cend()) {
@@ -1315,7 +1315,7 @@ namespace rainy::type_traits::extras::meta_method {
 
     template <typename Ty>
     struct try_to_invoke_cend<
-        Ty, type_traits::other_transformations::void_t<decltype(utility::declval<Ty>().CEnd()), int, int, int, int>> {
+        Ty, type_traits::other_trans::void_t<decltype(utility::declval<Ty>().CEnd()), int, int, int, int>> {
         static RAINY_CONSTEXPR_BOOL value = true;
 
         static auto invoke(const Ty &container) noexcept(noexcept(container.CEnd())) -> decltype(container.CEnd()) {
@@ -1374,13 +1374,13 @@ namespace rainy::type_traits::type_properties {
 
     template <typename from, typename to>
     struct is_invoke_convertible<
-        from, to, other_transformations::void_t<decltype(internals::_fake_copy_init<to>(internals::_returns_exactly<from>()))>>
+        from, to, other_trans::void_t<decltype(internals::_fake_copy_init<to>(internals::_returns_exactly<from>()))>>
         : helper::true_type {};
 
     template <typename Fx, typename... Args>
     struct is_invocable {
         template <typename U>
-        static auto test(int) -> decltype(std::declval<U>()(std::declval<Args>()...), std::true_type{}) {
+        static auto test(int) -> decltype(utility::declval<U>()(utility::declval<Args>()...), std::true_type{}) {
             return helper::true_type{};
         }
 
@@ -1669,7 +1669,7 @@ namespace rainy::utility {
     template <typename Callable>
     class finally_impl : Callable {
     public:
-        template <type_traits::other_transformations::enable_if_t<
+        template <type_traits::other_trans::enable_if_t<
                       type_traits::type_properties::is_invocable_r_v<void, Callable>, int> = 0>
         finally_impl(Callable &&callable) noexcept : Callable(utility::forward<Callable>(callable)), invalidate(false) {
         }
@@ -1710,7 +1710,7 @@ namespace rainy::utility {
         bool invalidate;
     };
 
-    template <typename Callable, type_traits::other_transformations::enable_if_t<
+    template <typename Callable, type_traits::other_trans::enable_if_t<
                                      type_traits::type_properties::is_invocable_r_v<void, Callable>, int> = 0>
     auto make_finally(Callable &&callable) -> finally_impl<Callable> {
         return finally_impl<Callable>(std::forward<Callable>(callable));
@@ -1813,14 +1813,14 @@ namespace rainy::type_traits::primary_types {
 
 namespace rainy::type_traits::primary_types {
     namespace internals {
-        template <bool IsMemberFunctionPointer = false, bool IsFunctionPointer = false, bool IsNothrowInvocable = false,
-                  bool IsVolatile = false, bool IsConstMemberFunctionPointer = false>
+        template <bool IsMemberFunctionPointer = false, bool IsFunctionPointer = false, bool IsNoexcept = false,
+                  bool IsVolatile = false, bool IsConstMemberFunction = false>
         struct function_traits_base {
             static RAINY_CONSTEXPR_BOOL is_member_function_pointer = IsMemberFunctionPointer;
             static RAINY_CONSTEXPR_BOOL is_function_pointer = IsFunctionPointer;
-            static RAINY_CONSTEXPR_BOOL is_nothrow_invocable = IsNothrowInvocable;
+            static RAINY_CONSTEXPR_BOOL is_noexcept = IsNoexcept;
             static RAINY_CONSTEXPR_BOOL is_volatile = IsVolatile;
-            static RAINY_CONSTEXPR_BOOL is_const_member_function_pointer = IsConstMemberFunctionPointer;
+            static RAINY_CONSTEXPR_BOOL is_const_member_function = IsConstMemberFunction;
             static RAINY_CONSTEXPR_BOOL valid = true;
         };
 
@@ -1938,7 +1938,7 @@ namespace rainy::type_traits::primary_types {
     using param_list_in_tuple = typename function_traits<Fx>::tuple_like_type;
 }
 
-namespace rainy::type_traits::other_transformations {
+namespace rainy::type_traits::other_trans {
     template <typename Fx>
     struct invoke_result {
         using type = typename primary_types::function_traits<Fx>::return_type;

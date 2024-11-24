@@ -5,7 +5,7 @@
 namespace rainy::type_traits::extras::meta_typedef {
     template <typename Ty>
     struct has_difference_type {
-        template <typename U, typename = other_transformations::void_t<decltype(Ty::difference_type)>>
+        template <typename U, typename = other_trans::void_t<decltype(Ty::difference_type)>>
         static auto test(int) -> helper::true_type {
             return helper::true_type{};
         }
@@ -23,7 +23,7 @@ namespace rainy::type_traits::extras::meta_typedef {
 
     template <typename Ty>
     struct has_value_type {
-        template <typename U, typename = other_transformations::void_t<decltype(Ty::value_type)>>
+        template <typename U, typename = other_trans::void_t<decltype(Ty::value_type)>>
         static auto test(int) -> helper::true_type {
             return helper::true_type{};
         }
@@ -41,7 +41,7 @@ namespace rainy::type_traits::extras::meta_typedef {
 
     template <typename Ty>
     struct has_pointer {
-        template <typename U, typename = other_transformations::void_t<decltype(Ty::pointer)>>
+        template <typename U, typename = other_trans::void_t<decltype(Ty::pointer)>>
         static auto test(int) -> helper::true_type {
             return helper::true_type{};
         }
@@ -59,7 +59,7 @@ namespace rainy::type_traits::extras::meta_typedef {
 
     template <typename Ty>
     struct has_reference {
-        template <typename U, typename = other_transformations::void_t<decltype(Ty::reference)>>
+        template <typename U, typename = other_trans::void_t<decltype(Ty::reference)>>
         static auto test(int) -> helper::true_type {
             return helper::true_type{};
         }
@@ -77,7 +77,7 @@ namespace rainy::type_traits::extras::meta_typedef {
 
     template <typename Ty>
     struct has_iterator_category {
-        template <typename U, typename = other_transformations::void_t<decltype(Ty::iterator_category)>>
+        template <typename U, typename = other_trans::void_t<decltype(Ty::iterator_category)>>
         static auto test(int) -> helper::true_type {
             return helper::true_type{};
         }
@@ -193,14 +193,14 @@ namespace rainy::utility {
         }
 
         template <typename UIter,
-                  type_traits::other_transformations::enable_if_t<
+                  type_traits::other_trans::enable_if_t<
             type_traits::type_relations::is_convertible_v<UIter, IterRaw>,
             int> = 0>
         RAINY_CONSTEXPR20 explicit iterator(const iterator<UIter, Container> &right) : ptr(right.ptr) {
         }
 
         template <typename UIter,
-                  type_traits::other_transformations::enable_if_t<
+                  type_traits::other_trans::enable_if_t<
             type_traits::type_relations::is_convertible_v<UIter, IterRaw>,
             int> = 0>
         RAINY_CONSTEXPR20 explicit iterator(iterator<UIter, Container> &&right) : ptr(right.ptr) {

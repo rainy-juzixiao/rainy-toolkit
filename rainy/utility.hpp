@@ -40,7 +40,7 @@ namespace rainy::utility {
     };
 
     template <typename Ty, typename other>
-    struct get_rebind_alias<Ty, other, type_traits::other_transformations::void_t<typename Ty::template rebind<other>>> {
+    struct get_rebind_alias<Ty, other, type_traits::other_trans::void_t<typename Ty::template rebind<other>>> {
         using type = typename Ty::template rebind<other>;
     };
 }
@@ -55,7 +55,7 @@ namespace rainy::foundation::system::memory {
         template <typename other>
         using rebind = typename utility::get_rebind_alias<Ty, other>::type;
 
-        using ref_type = type_traits::other_transformations::conditional_t<type_traits::primary_types::is_void_v<elem>, char, elem> &;
+        using ref_type = type_traits::other_trans::conditional_t<type_traits::primary_types::is_void_v<elem>, char, elem> &;
 
         RAINY_NODISCARD static RAINY_CONSTEXPR20 pointer pointer_to(ref_type val) noexcept(noexcept(Ty::pointer_to(val))) {
             return Ty::pointer_to(val);
@@ -66,11 +66,11 @@ namespace rainy::foundation::system::memory {
     struct ptr_traits_sfinae_layer {};
 
     template <typename Ty, typename Uty>
-    struct ptr_traits_sfinae_layer<Ty, Uty, type_traits::other_transformations::void_t<typename utility::get_first_parameter<Ty>::type>>
+    struct ptr_traits_sfinae_layer<Ty, Uty, type_traits::other_trans::void_t<typename utility::get_first_parameter<Ty>::type>>
         : pointer_traits_base<Ty, typename utility::get_first_parameter<Ty>::type> {};
 
     template <typename Ty>
-    struct ptr_traits_sfinae_layer<Ty, type_traits::other_transformations::void_t<typename Ty::elementType>, void>
+    struct ptr_traits_sfinae_layer<Ty, type_traits::other_trans::void_t<typename Ty::elementType>, void>
         : pointer_traits_base<Ty, typename Ty::elementType> {};
 
     template <typename Ty>
@@ -85,7 +85,7 @@ namespace rainy::foundation::system::memory {
         template <typename other>
         using rebind = other *;
 
-        using ref_type = type_traits::other_transformations::conditional_t<type_traits::primary_types::is_void_v<Ty>, char, Ty> &;
+        using ref_type = type_traits::other_trans::conditional_t<type_traits::primary_types::is_void_v<Ty>, char, Ty> &;
 
         RAINY_NODISCARD static RAINY_CONSTEXPR20 pointer pointer_to(ref_type val) noexcept {
             return std::addressof(val);
@@ -476,7 +476,7 @@ namespace rainy::type_traits::extras::tuple::internals {
 
 #define RAINY_DECLARE_BIND(N)                                                                                                         \
     template <typename Ty>                                                                                                            \
-    struct bind<N, Ty, rainy::type_traits::other_transformations::void_t<decltype(Ty{RAINY_INITIALIZER_LIST(N)})>>                    \
+    struct bind<N, Ty, rainy::type_traits::other_trans::void_t<decltype(Ty{RAINY_INITIALIZER_LIST(N)})>>                    \
         : rainy::type_traits::helper::integral_constant<std::size_t, N> {}
 
     RAINY_DECLARE_BIND(1);
@@ -721,7 +721,7 @@ namespace rainy::utility::internals {
     struct has_get_private_ptrs : type_traits::helper::false_type {};
 
     template <typename Ty>
-    struct has_get_private_ptrs<Ty, type_traits::other_transformations::void_t<decltype(get_private_ptrs(private_access_tag<Ty>))>>
+    struct has_get_private_ptrs<Ty, type_traits::other_trans::void_t<decltype(get_private_ptrs(private_access_tag<Ty>))>>
         : std::true_type {};
 
     template <typename Ty, typename = void>

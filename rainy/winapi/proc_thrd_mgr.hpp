@@ -229,9 +229,9 @@ namespace rainy::winapi::proc_thrd {
             static_assert(type_traits::is_support_charset_v<CharType>, "Only support wchat_t and char types");
             using namespace type_traits;
             namespace fs = std::filesystem;
-            using startupinfo_type = other_transformations::conditional_t<helper::is_wchar_t<CharType>, STARTUPINFOW, STARTUPINFOA>;
+            using startupinfo_type = other_trans::conditional_t<helper::is_wchar_t<CharType>, STARTUPINFOW, STARTUPINFOA>;
             using string_type = std::basic_string<CharType>;
-            using execute_info = other_transformations::conditional_t<helper::is_wchar_t<CharType>, SHELLEXECUTEINFOW, SHELLEXECUTEINFOA>;
+            using execute_info = other_trans::conditional_t<helper::is_wchar_t<CharType>, SHELLEXECUTEINFOW, SHELLEXECUTEINFOA>;
 
             std::lock_guard<std::mutex> lock(mtx_);
             if (running_) {
@@ -441,7 +441,7 @@ namespace rainy::winapi::proc_thrd {
         thread_manager() : thread_({}) {
         }
 
-        template <typename Fx, typename... Args,type_traits::other_transformations::enable_if_t<
+        template <typename Fx, typename... Args,type_traits::other_trans::enable_if_t<
                                    !type_traits::type_relations::is_same_v<
                                        type_traits::cv_modify::remove_cvref_t<Fx>, thread_manager> &&
                                        type_traits::type_properties::is_invocable_r_v<void, Fx, Args...>,
@@ -504,7 +504,7 @@ namespace rainy::winapi::proc_thrd {
             return thread_.id;
         }
 
-        template <typename Fx, typename... Args,type_traits::other_transformations::enable_if_t<
+        template <typename Fx, typename... Args,type_traits::other_trans::enable_if_t<
                                    !type_traits::type_relations::is_same_v<
                                        type_traits::cv_modify::remove_cvref_t<Fx>, thread_manager> &&
                                        type_traits::type_properties::is_invocable_r_v<void, Fx, Args...>,

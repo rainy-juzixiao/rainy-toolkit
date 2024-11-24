@@ -33,16 +33,16 @@ namespace rainy::foundation::system::memory {
         RAINY_CONSTEXPR20 nebula_ptr_base(element_type *pointer) noexcept : pair(Dx{}, pointer) {
         }
 
-        template <type_traits::other_transformations::enable_if_t<std::is_copy_constructible_v<deleter_type>, int> = 0>
+        template <type_traits::other_trans::enable_if_t<std::is_copy_constructible_v<deleter_type>, int> = 0>
         RAINY_CONSTEXPR20 nebula_ptr_base(element_type *pointer, deleter_type deleter) : pair(Dx{}, pointer) {
         }
 
         template <typename Uty,
-                  type_traits::other_transformations::enable_if_t<std::is_convertible_v<Uty *, pointer>, int> = 0>
+                  type_traits::other_trans::enable_if_t<std::is_convertible_v<Uty *, pointer>, int> = 0>
         RAINY_CONSTEXPR20 nebula_ptr_base(Uty *pointer) noexcept : pair(Dx{}, pointer) {
         }
 
-        template <typename Uty, type_traits::other_transformations::enable_if_t<
+        template <typename Uty, type_traits::other_trans::enable_if_t<
                                     std::is_convertible_v<Uty *, pointer> && std::is_copy_constructible_v<deleter_type>, int> = 0>
         RAINY_CONSTEXPR20 nebula_ptr_base(Uty *pointer, deleter_type deleter) : pair(Dx{}, pointer) {
         }
@@ -51,7 +51,7 @@ namespace rainy::foundation::system::memory {
         nebula_ptr_base(nebula_ptr_base &&) = default;
 
         template <typename Dx2 = Dx,
-                  type_traits::other_transformations::enable_if_t<
+                  type_traits::other_trans::enable_if_t<
                       std::conjunction_v<std::is_reference<Dx2>, std::is_constructible<Dx2, std::remove_reference_t<Dx2>>>, int> = 0>
         nebula_ptr_base(pointer, std::remove_reference_t<Dx> &&) = delete;
 
@@ -103,24 +103,24 @@ namespace rainy::foundation::system::memory {
         }
 
         template <typename Cast, typename Dx_ = default_deleter<Cast>,
-                  type_traits::other_transformations::enable_if_t<std::is_convertible_v<Ty, Cast>, int> = 0>
+                  type_traits::other_trans::enable_if_t<std::is_convertible_v<Ty, Cast>, int> = 0>
         constexpr nebula_ptr_base<Cast, Dx_> &cast() noexcept {
             return static_cast<nebula_ptr_base<Cast, Dx_> &>(*this);
         }
 
         template <typename Cast, typename Dx_ = default_deleter<Cast>,
-                  type_traits::other_transformations::enable_if_t<std::is_convertible_v<Ty, Cast>, int> = 0>
+                  type_traits::other_trans::enable_if_t<std::is_convertible_v<Ty, Cast>, int> = 0>
         constexpr const nebula_ptr_base<Cast, Dx_> &cast() const noexcept {
             return static_cast<const nebula_ptr_base<Cast, Dx> &>(*this);
         }
 
-        template <typename Base, type_traits::other_transformations::enable_if_t<std::is_base_of_v<Base, Ty>, int> = 0>
+        template <typename Base, type_traits::other_trans::enable_if_t<std::is_base_of_v<Base, Ty>, int> = 0>
         nebula_ptr_base<Base, Dx> &upcast() noexcept {
             // 我们无法使用RTTI的dynamic_cast功能来进行转换。因此，我们需要使用静态SFINAE来确保安全转换
             return reinterpret_cast<nebula_ptr_base<Base, Dx> &>(*this);
         }
 
-        template <typename Base, type_traits::other_transformations::enable_if_t<std::is_base_of_v<Base, Ty>, int> = 0>
+        template <typename Base, type_traits::other_trans::enable_if_t<std::is_base_of_v<Base, Ty>, int> = 0>
         const nebula_ptr_base<Base, Dx> &upcast() const noexcept {
             return reinterpret_cast<nebula_ptr_base<Base, Dx> &>(*this);
         }
@@ -338,7 +338,7 @@ namespace rainy::foundation::system::memory {
      * @return 返回一个 `nebula_ptr<Ty>` 指针，指向新创建的对象。
      *
      */
-    template <typename Ty, typename... Args, type_traits::other_transformations::enable_if_t<!std::is_array_v<Ty>, int> = 0>
+    template <typename Ty, typename... Args, type_traits::other_trans::enable_if_t<!std::is_array_v<Ty>, int> = 0>
     nebula_ptr<Ty> make_nebula(Args &&...args) noexcept(std::is_nothrow_constructible_v<Ty, Args...>) {
         return nebula_ptr<Ty>(new Ty(utility::forward<Args>(args)...));
     }
@@ -357,14 +357,14 @@ namespace rainy::foundation::system::memory {
      *
      */
     template <typename Ty, typename... Args,
-              type_traits::other_transformations::enable_if_t<std::is_array_v<Ty> && std::extent_v<Ty> == 0, int> = 0>
+              type_traits::other_trans::enable_if_t<std::is_array_v<Ty> && std::extent_v<Ty> == 0, int> = 0>
     nebula_ptr<Ty> make_nebula(const std::size_t num, Args... args) noexcept(std::is_nothrow_constructible_v<Ty>) {
         using elem = std::remove_extent_t<Ty>;
         return nebula_ptr<Ty>(new elem[num](args...), num);
     }
 
     template <typename Ty, typename... Args,
-              type_traits::other_transformations::enable_if_t<std::is_array_v<Ty> && std::extent_v<Ty> == 0, int> = 0>
+              type_traits::other_trans::enable_if_t<std::is_array_v<Ty> && std::extent_v<Ty> == 0, int> = 0>
     nebula_ptr<Ty> make_nebula(const std::size_t num, std::initializer_list<std::remove_extent_t<Ty>> ilist = {}) noexcept(
         std::is_nothrow_constructible_v<Ty>) {
         using elem = std::remove_extent_t<Ty>;
@@ -377,20 +377,20 @@ namespace rainy::foundation::system::memory {
     template <typename Ty, typename Dx = default_deleter<Ty>>
     using unique_ptr = nebula_ptr<Ty, Dx>;
 
-    template <typename Ty, typename... Args, type_traits::other_transformations::enable_if_t<!std::is_array_v<Ty>, int> = 0>
+    template <typename Ty, typename... Args, type_traits::other_trans::enable_if_t<!std::is_array_v<Ty>, int> = 0>
     unique_ptr<Ty> make_unique(Args &&...args) noexcept(std::is_nothrow_constructible_v<Ty, Args...>) {
         return unique_ptr<Ty>(new Ty(utility::forward<Args>(args)...));
     }
 
     template <typename Ty, typename... Args,
-              type_traits::other_transformations::enable_if_t<std::is_array_v<Ty> && std::extent_v<Ty> == 0, int> = 0>
+              type_traits::other_trans::enable_if_t<std::is_array_v<Ty> && std::extent_v<Ty> == 0, int> = 0>
     unique_ptr<Ty> make_unique(const std::size_t num, Args... args) noexcept(std::is_nothrow_constructible_v<Ty>) {
         using elem = std::remove_extent_t<Ty>;
         return unique_ptr<Ty>(new elem[num](args...), num);
     }
 
     template <typename Ty, typename... Args,
-              type_traits::other_transformations::enable_if_t<std::is_array_v<Ty> && std::extent_v<Ty> == 0, int> = 0>
+              type_traits::other_trans::enable_if_t<std::is_array_v<Ty> && std::extent_v<Ty> == 0, int> = 0>
     unique_ptr<Ty> make_unique(const std::size_t num, std::initializer_list<std::remove_extent_t<Ty>> ilist = {}) noexcept(
         std::is_nothrow_constructible_v<Ty>) {
         using elem = std::remove_extent_t<Ty>;

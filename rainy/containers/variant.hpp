@@ -49,7 +49,7 @@ namespace rainy::containers::internals {
         constexpr explicit variant_storage(idx_t<0>, Types &&...args) : head(utility::forward<Types>(args)...) {
         }
 
-        template <std::size_t Idx, typename... Types, type_traits::other_transformations::enable_if_t<(Idx > 0), int> = 0>
+        template <std::size_t Idx, typename... Types, type_traits::other_trans::enable_if_t<(Idx > 0), int> = 0>
         constexpr explicit variant_storage(idx_t<Idx>, Types &&...args) : tail(idx_t<Idx - 1>{}, utility::forward<Types>(args)...) {
         }
 
@@ -101,7 +101,7 @@ namespace rainy::containers::internals {
         constexpr explicit variant_storage(idx_t<0>, Types &&...args) : head(utility::forward<Types>(args)...) {
         }
 
-        template <std::size_t Idx, typename... Types, type_traits::other_transformations::enable_if_t<(Idx > 0), int> = 0>
+        template <std::size_t Idx, typename... Types, type_traits::other_trans::enable_if_t<(Idx > 0), int> = 0>
         constexpr explicit variant_storage(idx_t<Idx>, Types &&...args) : tail(idx_t<Idx - 1>{}, utility::forward<Types>(args)...) {
         }
 
@@ -229,7 +229,7 @@ namespace rainy::containers::internals {
         }
 
         template <std::size_t Idx, typename... Args,
-                  type_traits::other_transformations::enable_if_t<
+                  type_traits::other_trans::enable_if_t<
                       type_traits::type_properties::is_constructible_v<
                           type_traits::extras::tuple_like::meta_at_c_t<Idx, variant_base<Types...>>, Args...>,
                       int> = 0>
@@ -292,13 +292,13 @@ namespace rainy::containers {
         using cv_modify_helper = type_traits::cv_modify::cv_modify_helper<Ty>; // 引用，此处忽略
 
         template <typename First = type_traits::extras::tuple_like::meta_at_c_t<0, variant>,
-                  type_traits::other_transformations::enable_if_t<type_traits::type_properties::is_default_constructible_v<First>, int> = 0>
+                  type_traits::other_trans::enable_if_t<type_traits::type_properties::is_default_constructible_v<First>, int> = 0>
         constexpr variant() : base(utility::placeholder_index<0>) {
         }
 
         template <
             typename Ty,
-            type_traits::other_transformations::enable_if_t<
+            type_traits::other_trans::enable_if_t<
                 sizeof...(Types) != 0 && !type_traits::type_relations::is_same_v<typename cv_modify_helper<Ty>::remove_cvref, variant> &&
                     !type_traits::primary_types::is_specialization_v<typename cv_modify_helper<Ty>::remove_cvref,
                                                                      utility::placeholder_type_t> &&
@@ -310,20 +310,20 @@ namespace rainy::containers {
         }
 
         template <typename Ty, typename... Args, typename Idx = type_traits::extras::tuple_like::meta_find_unique_index<Ty, variant>,
-                  type_traits::other_transformations::enable_if_t<
+                  type_traits::other_trans::enable_if_t<
                       Idx::value != base::invalid_index && type_traits::type_properties::is_constructible_v<Ty, Args...>, int> = 0>
         constexpr explicit variant(std::in_place_type_t<Ty>, Args &&...args) noexcept(std::is_nothrow_constructible_v<Ty, Args...>) {
         }
 
         template <typename Ty, typename... Args, typename Idx = type_traits::extras::tuple_like::meta_find_unique_index<Ty, variant>,
-                  type_traits::other_transformations::enable_if_t<
+                  type_traits::other_trans::enable_if_t<
                       Idx::value != base::invalid_index && type_traits::type_properties::is_constructible_v<Ty, Args...>, int> = 0>
         constexpr explicit variant(utility::placeholder_type_t<Ty>, Args &&...args) noexcept(std::is_nothrow_constructible_v<Ty,Args...>) :
             base(utility::placeholder_index<Idx::value>, utility::forward<Args>(args)...) {
         }
 
         template <std::size_t Idx, typename... Args, typename Type = type_traits::extras::tuple_like::meta_at_c_t<Idx, variant>,
-                  type_traits::other_transformations::enable_if_t<type_traits::type_properties::is_constructible_v<Type, Args...> &&
+                  type_traits::other_trans::enable_if_t<type_traits::type_properties::is_constructible_v<Type, Args...> &&
                                                                       type_traits::extras::tuple_like::meta_find_unique_index<
                                                                           Type, variant>::value != base::invalid_index /* 防止类型双关 */,
                                                                   int> = 0>
@@ -332,7 +332,7 @@ namespace rainy::containers {
         }
 
         template <std::size_t Idx, typename... Args, typename Type = type_traits::extras::tuple_like::meta_at_c_t<Idx, variant>,
-                  type_traits::other_transformations::enable_if_t<type_traits::type_properties::is_constructible_v<Type, Args...> &&
+                  type_traits::other_trans::enable_if_t<type_traits::type_properties::is_constructible_v<Type, Args...> &&
                                                                       type_traits::extras::tuple_like::meta_find_unique_index<
                                                                           Type, variant>::value != base::invalid_index /* 防止类型双关 */,
                                                                   int> = 0>

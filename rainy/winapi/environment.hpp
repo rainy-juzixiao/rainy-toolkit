@@ -186,7 +186,7 @@ namespace rainy::winapi::environment {
         static inline constexpr bool is_wchar = rainy::type_traits::helper::is_wchar_t<CharType>;
 
         template <typename CharType>
-        static inline constexpr CharType split_char = type_traits::other_transformations::conditional_t<
+        static inline constexpr CharType split_char = type_traits::other_trans::conditional_t<
             is_wchar<CharType>, type_traits::helper::integral_constant<char, ';'>,
             type_traits::helper::integral_constant<wchar_t, L';'>>::value; // 根据字符类型，选择相应的分隔符
 

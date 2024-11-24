@@ -60,7 +60,7 @@ namespace rainy::information::internals {
     template <typename Ty>
     int compare_string(const Ty *str1, const Ty *str2, std::size_t count) noexcept {
         using compare_type =
-            type_traits::other_transformations::conditional_t<type_traits::type_relations::is_same_v<Ty, wchar_t>,
+            type_traits::other_trans::conditional_t<type_traits::type_relations::is_same_v<Ty, wchar_t>,
                                                                           wchar_t, unsigned char>;
         rainy_let ptr_left = reinterpret_cast<const compare_type *>(str1);
         rainy_let ptr_right = reinterpret_cast<const compare_type *>(str2);

@@ -64,8 +64,10 @@ list(APPEND SOURCES
         rainy/meta/hash.hpp
         rainy/meta/type_traits.hpp
         rainy/meta/reflection.hpp
-        rainy/meta/reflection_core/field.hpp
-        rainy/meta/reflection_core/method.hpp
+        rainy/internals/reflection_core/field.hpp
+        rainy/internals/reflection_core/method.hpp
+        rainy/internals/reflection_core/abstract_type.hpp
+        rainy/internals/reflection_core/method_invoker.hpp
 )
 
 # 异步支持

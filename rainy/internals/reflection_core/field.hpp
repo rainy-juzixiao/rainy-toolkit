@@ -45,8 +45,8 @@ namespace rainy::foundation::reflection {
     private:
         std::string_view _name{};
         std::string_view _type{};
-        std::variant<int, unsigned int, long, unsigned long, long long, unsigned long long, float, double, char, unsigned char, long double,
-                     short, unsigned short>
+        std::variant<int, unsigned int, long, unsigned long, long long, unsigned long long, float, double, char, unsigned char,
+                     long double, short, unsigned short>
             _value{};
     };
 
@@ -160,12 +160,12 @@ namespace rainy::foundation::reflection {
             std::string_view *unused = &_name;
             unused->swap(_name);
         }
-        
+
         struct accessor {
             virtual rainy::containers::any getter(const void *) = 0;
             virtual void setter(void *, const rainy::containers::any &) = 0;
             virtual bool is_const() const noexcept = 0;
-            virtual bool is_static() const noexcept = 0;  
+            virtual bool is_static() const noexcept = 0;
         };
 
         template <typename Ty, typename Class, typename RealPointer>
@@ -277,5 +277,16 @@ namespace rainy::foundation::reflection {
     field make_field(std::string_view name, Type *static_member, const attributes &attr = {}) {
         return field(name, typeid(Type).name(), static_member, attr);
     }
+
+    template <typename Class, typename Type>
+    const_field make_const_field(std::string_view name, Type Class::*member, const attributes &attr = {}) {
+        return const_field(name, typeid(Type).name(), member, attr);
+    }
+
+    template <typename, typename Type>
+    const_field make_const_field(std::string_view name, Type *static_member, const attributes &attr = {}) {
+        return const_field(name, typeid(Type).name(), static_member, attr);
+    }
 }
+
 #endif

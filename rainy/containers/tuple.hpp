@@ -11,12 +11,12 @@ namespace rainy::containers::internals {
         }
 
         template <typename Alloc, typename... Args,
-                  type_traits::other_transformations::enable_if_t<!std::uses_allocator_v<Ty, Alloc>, int> = 0>
+                  type_traits::other_trans::enable_if_t<!std::uses_allocator_v<Ty, Alloc>, int> = 0>
         constexpr tuple_val(const Alloc &, utility::allocator_arg_t, Args &&...args) : value(utility::forward<Args>(args)...) {
         }
 
         template <typename Alloc, typename... Args,
-                  type_traits::other_transformations::enable_if_t<
+                  type_traits::other_trans::enable_if_t<
                       type_traits::logical_traits::conjunction_v<
                           std::uses_allocator<Ty, Alloc>, std::is_constructible<Ty, std::allocator_arg_t, const Alloc &, Args...>>,
                       int> = 0>
@@ -25,7 +25,7 @@ namespace rainy::containers::internals {
         }
 
         template <typename Alloc, typename... Args,
-                  type_traits::other_transformations::enable_if_t<
+                  type_traits::other_trans::enable_if_t<
                       type_traits::logical_traits::conjunction_v<
                           std::uses_allocator<Ty, Alloc>, type_traits::logical_traits::negation<
                                                               std::is_constructible<Ty, utility::allocator_arg_t, const Alloc &, Args...>>>,
