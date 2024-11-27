@@ -418,21 +418,4 @@ namespace rainy::foundation::reflection {
 
 #undef RAINY_MAKE_METHOD
 
-namespace rainy::foundation::reflection {
-    template <typename ClassType, typename ReturnType, typename... Args>
-    constexpr auto overload_method(ReturnType (ClassType::*method)(Args...)) {
-        return method;
-    }
-
-    template <typename ClassType, typename ReturnType, typename... Args>
-    constexpr auto overload_cmethod(ReturnType (ClassType::*method)(Args...) const) {
-        return method;
-    }
-
-    template <typename ClassType, typename ReturnType, typename... Args>
-    constexpr auto overload_static_method(ReturnType (*method)(Args...)) {
-        return method;
-    }
-}
-
 #endif

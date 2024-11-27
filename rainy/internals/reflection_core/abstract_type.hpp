@@ -1,6 +1,5 @@
 ﻿#ifndef RAINY_REFLECTION_CORE_TYPE_HPP
 #define RAINY_REFLECTION_CORE_TYPE_HPP
-
 #include <rainy/internals/reflection_core/field.hpp>
 #include <rainy/internals/reflection_core/method.hpp>
 #include <rainy/system/nebula_ptr.hpp>
@@ -34,7 +33,7 @@ namespace rainy::foundation::reflection::internals {
         dynamic_type &operator=(const dynamic_type &) = default;
         dynamic_type &operator=(dynamic_type &&) = default;
 
-        RAINY_NODISCARD virtual const utility::type_info &info() const noexcept = 0;
+        RAINY_NODISCARD virtual const utility::dynamic_type_info &info() const noexcept = 0;
         RAINY_NODISCARD virtual type get_type() const noexcept = 0;
         RAINY_NODISCARD virtual std::string_view name() const noexcept = 0;
         RAINY_NODISCARD virtual data_collection get_data(std::string_view name) const noexcept = 0;
@@ -216,7 +215,7 @@ namespace rainy::foundation::reflection::internals {
         
         }
 
-        const std::vector<method> &try_get_field() const {
+        const std::vector<field> &try_get_field() const {
             utility::expects(!data.empty());
             data_collection collection = data->get_data("field");
             utility::ensures(collection.type == data_type::field);

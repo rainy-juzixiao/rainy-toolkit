@@ -243,44 +243,6 @@ static_assert(false, "AVX2 not support!");
 #include <rainy/internals/core_typetraits.hpp>
 #include <rainy/internals/raw_stringview.hpp>
 
-#if RAINY_HAS_CXX20
-namespace rainy::containers {
-    enum class memory_order : int {
-        relaxed,
-        consume,
-        acquire,
-        release,
-        acq_rel,
-        seq_cst,
-
-        memory_order_relaxed = relaxed,
-        memory_order_consume = consume,
-        memory_order_acquire = acquire,
-        memory_order_release = release,
-        memory_order_acq_rel = acq_rel,
-        memory_order_seq_cst = seq_cst
-    };
-
-    inline auto memory_order_relaxed = memory_order::relaxed;
-    inline auto memory_order_consume = memory_order::consume;
-    inline auto memory_order_acquire = memory_order::acquire;
-    inline auto memory_order_release = memory_order::release;
-    inline auto memory_order_acq_rel = memory_order::acq_rel;
-    inline auto memory_order_seq_cst = memory_order::seq_cst;
-}
-#else
-namespace rainy::containers {
-    enum memory_order {
-        memory_order_relaxed,
-        memory_order_consume,
-        memory_order_acquire,
-        memory_order_release,
-        memory_order_acq_rel,
-        memory_order_seq_cst
-    };
-}
-#endif
-
 namespace rainy::information {
     static constexpr internals::raw_string_view<char> libray_name("rainy's toolkit");
     static constexpr internals::raw_string_view<char> creator_name("rainy-juzixiao");
@@ -327,7 +289,6 @@ namespace rainy::utility::internals {
     RAINY_INLINE_NODISCARD std::size_t fnv1a_append_bytes(const std::size_t offset_basis, const unsigned char *const first,
                                                              const std::size_t count) noexcept {
         std::size_t hash = offset_basis;
-        // Process the remaining bytes
         for (int i = 0; i < count; ++i) {
             hash ^= static_cast<std::size_t>(first[i]);
             hash *= fnv_prime;
@@ -829,6 +790,259 @@ namespace rainy::utility {
 #define RAINY_INITIALIZER_LIST_78 RAINY_INITIALIZER_LIST_77 ,{}
 #define RAINY_INITIALIZER_LIST_79 RAINY_INITIALIZER_LIST_78 ,{}
 #define RAINY_INITIALIZER_LIST_80 RAINY_INITIALIZER_LIST_79 ,{}
+
+#define RAINY_OVERLOAD_METHOD(QUAL)                                                                                                   \
+    template <typename ClassType, typename ReturnType, typename... Args>                                                              \
+    constexpr auto overload_method(ReturnType (ClassType::*method)(Args...) QUAL) {                                                   \
+        return method;                                                                                                                \
+    }
+
+#define RAINY_OVERLOAD_NOEXCEPT_METHOD(QUAL)                                                                                          \
+    template <typename ClassType, typename ReturnType, typename... Args>                                                              \
+    constexpr auto overload_noexcept_method(ReturnType (ClassType::*noexcept_method)(Args...) QUAL) {                                 \
+        return noexcept_method;                                                                                                       \
+    }
+
+#define RAINY_OVERLOAD_CONST_METHOD(QUAL)                                                                                             \
+    template <typename ClassType, typename ReturnType, typename... Args>                                                              \
+    constexpr auto overload_cmethod(ReturnType (ClassType::*cmethod)(Args...) QUAL) {                                                 \
+        return cmethod;                                                                                                               \
+    }
+
+#define RAINY_OVERLOAD_VOLATILE_METHOD(QUAL)                                                                                          \
+    template <typename ClassType, typename ReturnType, typename... Args>                                                              \
+    constexpr auto overload_volatile_method(ReturnType (ClassType::*volatile_method)(Args...) QUAL) {                                 \
+        return volatile_method;                                                                                                       \
+    }
+
+#define RAINY_OVERLOAD_CV_METHOD(QUAL) template <typename ClassType, typename ReturnType, typename... Args>\
+constexpr auto overload_cv_method(ReturnType (ClassType::*cv_method)(Args...) const volatile QUAL) {\
+    return cv_method;\
+}
+
+namespace rainy::utility {
+    template <typename ClassType, typename ReturnType, typename... Args>
+    constexpr auto overload_method(ReturnType (ClassType::*method)(Args...)) {
+        return method;
+    }
+
+    // 使用宏批量生成代码，虽然牺牲了可读性，但是是必要的。避免过多代码
+    RAINY_OVERLOAD_METHOD(&)
+    RAINY_OVERLOAD_METHOD(&&)
+    RAINY_OVERLOAD_METHOD(volatile)
+    RAINY_OVERLOAD_METHOD(volatile &)
+    RAINY_OVERLOAD_METHOD(volatile &&)
+    RAINY_OVERLOAD_METHOD(noexcept)
+    RAINY_OVERLOAD_METHOD(& noexcept)
+    RAINY_OVERLOAD_METHOD(&& noexcept)
+    RAINY_OVERLOAD_METHOD(volatile noexcept)
+    RAINY_OVERLOAD_METHOD(volatile & noexcept)
+    RAINY_OVERLOAD_METHOD(volatile && noexcept)
+    RAINY_OVERLOAD_METHOD(const &)
+    RAINY_OVERLOAD_METHOD(const &&)
+    RAINY_OVERLOAD_METHOD(const volatile)
+    RAINY_OVERLOAD_METHOD(const volatile &)
+    RAINY_OVERLOAD_METHOD(const volatile &&)
+    RAINY_OVERLOAD_METHOD(const noexcept)
+    RAINY_OVERLOAD_METHOD(const & noexcept)
+    RAINY_OVERLOAD_METHOD(const && noexcept)
+    RAINY_OVERLOAD_METHOD(const volatile noexcept)
+    RAINY_OVERLOAD_METHOD(const volatile & noexcept)
+    RAINY_OVERLOAD_METHOD(const volatile && noexcept)
+
+    template <typename ClassType, typename ReturnType, typename... Args>
+    constexpr auto overload_cmethod(ReturnType (ClassType::*cmethod)(Args...) const) {
+        return cmethod;
+    }
+
+    RAINY_OVERLOAD_CONST_METHOD(const &)
+    RAINY_OVERLOAD_CONST_METHOD(const &&)
+    RAINY_OVERLOAD_CONST_METHOD(const volatile)
+    RAINY_OVERLOAD_CONST_METHOD(const volatile &)
+    RAINY_OVERLOAD_CONST_METHOD(const volatile &&)
+    RAINY_OVERLOAD_CONST_METHOD(const noexcept)
+    RAINY_OVERLOAD_CONST_METHOD(const & noexcept)
+    RAINY_OVERLOAD_CONST_METHOD(const && noexcept)
+    RAINY_OVERLOAD_CONST_METHOD(const volatile noexcept)
+    RAINY_OVERLOAD_CONST_METHOD(const volatile & noexcept)
+    RAINY_OVERLOAD_CONST_METHOD(const volatile && noexcept)
+
+    template <typename ClassType, typename ReturnType, typename... Args>
+    constexpr auto overload_volatile_method(ReturnType (ClassType::*volatile_method)(Args...) volatile) {
+        return volatile_method;
+    }
+
+    RAINY_OVERLOAD_VOLATILE_METHOD(volatile &)
+    RAINY_OVERLOAD_VOLATILE_METHOD(volatile &&)
+    RAINY_OVERLOAD_VOLATILE_METHOD(volatile noexcept)
+    RAINY_OVERLOAD_VOLATILE_METHOD(volatile & noexcept)
+    RAINY_OVERLOAD_VOLATILE_METHOD(volatile && noexcept)
+    RAINY_OVERLOAD_VOLATILE_METHOD(const volatile)
+    RAINY_OVERLOAD_VOLATILE_METHOD(const volatile &)
+    RAINY_OVERLOAD_VOLATILE_METHOD(const volatile &&)
+    RAINY_OVERLOAD_VOLATILE_METHOD(const volatile noexcept)
+    RAINY_OVERLOAD_VOLATILE_METHOD(const volatile & noexcept)
+    RAINY_OVERLOAD_VOLATILE_METHOD(const volatile && noexcept)
+
+    template <typename ClassType, typename ReturnType, typename... Args>
+    constexpr auto overload_noexcept_method(ReturnType (ClassType::*noexcept_method)(Args...) noexcept) {
+        return noexcept_method;
+    }
+
+    RAINY_OVERLOAD_NOEXCEPT_METHOD(& noexcept)
+    RAINY_OVERLOAD_NOEXCEPT_METHOD(&& noexcept)
+    RAINY_OVERLOAD_NOEXCEPT_METHOD(const noexcept)
+    RAINY_OVERLOAD_NOEXCEPT_METHOD(const & noexcept)
+    RAINY_OVERLOAD_NOEXCEPT_METHOD(const && noexcept)
+    RAINY_OVERLOAD_NOEXCEPT_METHOD(const volatile noexcept)
+    RAINY_OVERLOAD_NOEXCEPT_METHOD(const volatile & noexcept)
+    RAINY_OVERLOAD_NOEXCEPT_METHOD(const volatile && noexcept)
+
+    template <typename ClassType, typename ReturnType, typename... Args>
+    constexpr auto overload_cv_method(ReturnType (ClassType::*cv_method)(Args...) const volatile) {
+        return cv_method;
+    }
+
+    RAINY_OVERLOAD_CV_METHOD(&)
+    RAINY_OVERLOAD_CV_METHOD(&&)
+    RAINY_OVERLOAD_CV_METHOD(noexcept)
+    RAINY_OVERLOAD_CV_METHOD(& noexcept)
+    RAINY_OVERLOAD_CV_METHOD(&& noexcept)
+
+    template <typename ClassType, typename ReturnType, typename... Args>
+    constexpr auto overload_static_method(ReturnType (*method)(Args...)) {
+        return method;
+    }
+}
+
+// 阻止滥用
+#undef RAINY_OVERLOAD_METHOD
+#undef RAINY_OVERLOAD_CONST_METHOD
+#undef RAINY_OVERLOAD_VOLATILE_METHOD
+#undef RAINY_OVERLOAD_NOEXCEPT_METHOD
+
+#define RAINY_OVERLOAD_LEFT_METHOD(QUAL)                                                                                                   \
+    template <typename ClassType, typename ReturnType, typename... Args>                                                              \
+    constexpr auto overload_left_method(ReturnType (ClassType::*method)(Args...) QUAL) {                                                   \
+        return method;                                                                                                                \
+    }
+
+#define RAINY_OVERLOAD_LEFT_CONST_METHOD(QUAL)                                                                                             \
+    template <typename ClassType, typename ReturnType, typename... Args>                                                              \
+    constexpr auto overload_left_cmethod(ReturnType (ClassType::*cmethod)(Args...) QUAL) {                                                 \
+        return cmethod;                                                                                                               \
+    }
+
+#define RAINY_OVERLOAD_LEFT_VOLATILE_METHOD(QUAL)                                                                                          \
+    template <typename ClassType, typename ReturnType, typename... Args>                                                              \
+    constexpr auto overload_left_volatile_method(ReturnType (ClassType::*volatile_method)(Args...) QUAL) {                                 \
+        return volatile_method;                                                                                                       \
+    }
+
+#define RAINY_OVERLOAD_LEFT_NOEXCEPT_METHOD(QUAL)                                                                                     \
+    template <typename ClassType, typename ReturnType, typename... Args>                                                              \
+    constexpr auto overload_left_noexcept_method(ReturnType (ClassType::*noexcept_method)(Args...) QUAL) {                                 \
+        return noexcept_method;                                                                                                       \
+    }
+
+
+#define RAINY_OVERLOAD_LEFT_CV_METHOD(QUAL)                                                                                                \
+    template <typename ClassType, typename ReturnType, typename... Args>                                                              \
+    constexpr auto overload_left_cv_method(ReturnType (ClassType::*cv_method)(Args...) const volatile QUAL) {                                   \
+        return cv_method;                                                                                                             \
+    }
+
+namespace rainy::utility {
+    RAINY_OVERLOAD_LEFT_METHOD(&)
+    RAINY_OVERLOAD_LEFT_METHOD(volatile &)
+    RAINY_OVERLOAD_LEFT_METHOD(volatile & noexcept)
+    RAINY_OVERLOAD_LEFT_METHOD(const &)
+    RAINY_OVERLOAD_LEFT_METHOD(const volatile &)
+    RAINY_OVERLOAD_LEFT_METHOD(const & noexcept)
+    RAINY_OVERLOAD_LEFT_METHOD(const volatile & noexcept)
+
+    RAINY_OVERLOAD_LEFT_CONST_METHOD(const &)
+    RAINY_OVERLOAD_LEFT_CONST_METHOD(const volatile &)
+    RAINY_OVERLOAD_LEFT_CONST_METHOD(const & noexcept)
+    RAINY_OVERLOAD_LEFT_CONST_METHOD(const volatile & noexcept)
+    
+    RAINY_OVERLOAD_LEFT_VOLATILE_METHOD(volatile &)
+    RAINY_OVERLOAD_LEFT_VOLATILE_METHOD(volatile & noexcept)
+    RAINY_OVERLOAD_LEFT_VOLATILE_METHOD(const volatile &)
+    RAINY_OVERLOAD_LEFT_VOLATILE_METHOD(const volatile & noexcept)
+    
+    RAINY_OVERLOAD_LEFT_NOEXCEPT_METHOD(& noexcept)
+    RAINY_OVERLOAD_LEFT_NOEXCEPT_METHOD(const & noexcept)
+    RAINY_OVERLOAD_LEFT_NOEXCEPT_METHOD(const volatile & noexcept)
+    
+    RAINY_OVERLOAD_LEFT_CV_METHOD(&)
+    RAINY_OVERLOAD_LEFT_CV_METHOD(& noexcept)
+}
+
+#undef RAINY_OVERLOAD_LEFT_METHOD
+#undef RAINY_OVERLOAD_LEFT_CONST_METHOD
+#undef RAINY_OVERLOAD_LEFT_VOLATILE_METHOD
+#undef RAINY_OVERLOAD_LEFT_NOEXCEPT_METHOD
+
+#define RAINY_OVERLOAD_RIGHT_METHOD(QUAL)                                                                                              \
+    template <typename ClassType, typename ReturnType, typename... Args>                                                              \
+    constexpr auto overload_right_method(ReturnType (ClassType::*method)(Args...) QUAL) {                                              \
+        return method;                                                                                                                \
+    }
+
+#define RAINY_OVERLOAD_RIGHT_CONST_METHOD(QUAL)                                                                                        \
+    template <typename ClassType, typename ReturnType, typename... Args>                                                              \
+    constexpr auto overload_right_cmethod(ReturnType (ClassType::*cmethod)(Args...) QUAL) {                                            \
+        return cmethod;                                                                                                               \
+    }
+
+#define RAINY_OVERLOAD_RIGHT_VOLATILE_METHOD(QUAL)                                                                                     \
+    template <typename ClassType, typename ReturnType, typename... Args>                                                              \
+    constexpr auto overload_right_volatile_method(ReturnType (ClassType::*volatile_method)(Args...) QUAL) {                            \
+        return volatile_method;                                                                                                       \
+    }
+
+#define RAINY_OVERLOAD_RIGHT_NOEXCEPT_METHOD(QUAL)                                                                                     \
+    template <typename ClassType, typename ReturnType, typename... Args>                                                              \
+    constexpr auto overload_right_noexcept_method(ReturnType (ClassType::*noexcept_method)(Args...) QUAL) {                            \
+        return noexcept_method;                                                                                                       \
+    }
+
+
+#define RAINY_OVERLOAD_RIGHT_CV_METHOD(QUAL)                                                                                           \
+    template <typename ClassType, typename ReturnType, typename... Args>                                                              \
+    constexpr auto overload_right_cv_method(ReturnType (ClassType::*cv_method)(Args...) const volatile QUAL) {                         \
+        return cv_method;                                                                                                             \
+    }
+
+namespace rainy::utility {
+    RAINY_OVERLOAD_RIGHT_METHOD(&&)
+    RAINY_OVERLOAD_RIGHT_METHOD(volatile &&)
+    RAINY_OVERLOAD_RIGHT_METHOD(&& noexcept)
+    RAINY_OVERLOAD_RIGHT_METHOD(volatile && noexcept)
+    RAINY_OVERLOAD_RIGHT_METHOD(const &&)
+    RAINY_OVERLOAD_RIGHT_METHOD(const volatile &&)
+    RAINY_OVERLOAD_RIGHT_METHOD(const && noexcept)
+    RAINY_OVERLOAD_RIGHT_METHOD(const volatile && noexcept)
+    RAINY_OVERLOAD_RIGHT_CONST_METHOD(const &&)
+    RAINY_OVERLOAD_RIGHT_CONST_METHOD(const volatile &&)
+    RAINY_OVERLOAD_RIGHT_CONST_METHOD(const && noexcept)
+    RAINY_OVERLOAD_RIGHT_CONST_METHOD(const volatile && noexcept)
+    RAINY_OVERLOAD_RIGHT_VOLATILE_METHOD(volatile &&)
+    RAINY_OVERLOAD_RIGHT_VOLATILE_METHOD(volatile && noexcept)
+    RAINY_OVERLOAD_RIGHT_VOLATILE_METHOD(const volatile &&)
+    RAINY_OVERLOAD_RIGHT_VOLATILE_METHOD(const volatile && noexcept)
+    RAINY_OVERLOAD_RIGHT_NOEXCEPT_METHOD(&& noexcept)
+    RAINY_OVERLOAD_RIGHT_NOEXCEPT_METHOD(const && noexcept)
+    RAINY_OVERLOAD_RIGHT_NOEXCEPT_METHOD(const volatile && noexcept)
+    RAINY_OVERLOAD_RIGHT_CV_METHOD(&&)
+    RAINY_OVERLOAD_RIGHT_CV_METHOD(&& noexcept)
+}
+
+#undef RAINY_OVERLOAD_RIGHT_METHOD
+#undef RAINY_OVERLOAD_RIGHT_CONST_METHOD
+#undef RAINY_OVERLOAD_RIGHT_VOLATILE_METHOD
+#undef RAINY_OVERLOAD_RIGHT_NOEXCEPT_METHOD
 
 
 #endif

@@ -377,6 +377,7 @@ namespace rainy::foundation::system::memory {
         RAINY_NODISCARD_RAW_PTR_ALLOC RAINY_CONSTEXPR20 pointer allocate(const size_type count) const {
 #if RAINY_HAS_CXX20
             if (std::is_constant_evaluated()) {
+                // 在可进行编译期求值的时候，且标准为C++20的时候，使用标准库分配器分配内存
                 return std::allocator<value_type>{}.allocate(count);
             }
 #endif
@@ -2481,6 +2482,11 @@ namespace rainy::utility {
         return {memptr};
     }
 }
+
+
+
+
+
 
 namespace rainy::algorithm::execution {
     enum policy {

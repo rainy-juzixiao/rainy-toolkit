@@ -687,7 +687,7 @@ namespace rainy_test {
     };
 
     void test() {
-        auto size_method = rainy::foundation::reflection::method("test_class::size()", typeid(int), {}, {}, &test_class::size);
+        auto size_method = rainy::foundation::reflection::make_method("test_class::size()", &test_class::size);
         for (int i = 0; i < 10; ++i) {
             benchmark("test_class::size() 100000 invocations", [&size_method]() {
                 for (int i = 0; i < 100000; ++i) {
@@ -695,9 +695,8 @@ namespace rainy_test {
                 }
             });
         }
-        auto test_4args_method = rainy::foundation::reflection::method("test_class::test_4args_method()", typeid(int),
-                                                                       {typeid(int), typeid(int), typeid(int), typeid(int)}, {},
-                                                                       &test_class::test_4args_method);
+        auto test_4args_method =
+            rainy::foundation::reflection::make_method("test_class::test_4args_method()", &test_class::test_4args_method);
         for (int i = 0; i < 10; ++i) {
             benchmark("test_class::test_4args_method(int,int,int,int) 100000 invocations", [&test_4args_method]() {
                 for (int i = 0; i < 100000; ++i) {
@@ -721,6 +720,11 @@ namespace rainy_test {
 
 
 int main() {
+    {
+        const std::vector<int> a;
+        auto p = std::mem_fn(rainy::utility::overload_cmethod(&std::vector<int>::at));
+        p(a, 0);
+    }
     rainy_test::test();
     /*{
         int a{};
