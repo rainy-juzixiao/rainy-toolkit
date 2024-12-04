@@ -1,7 +1,7 @@
 ﻿#ifndef RAINY_REF_WRAP_HPP
 #define RAINY_REF_WRAP_HPP
 
-#include <rainy/core.hpp>
+#include <rainy/core/core.hpp>
 
 #if RAINY_HAS_CXX20
 #include <format>
@@ -154,7 +154,7 @@ namespace rainy::type_traits::cv_modify {
     };
 
     template <class _Ty>
-    using unwrap_reference_t = unwrap_reference<_Ty>::type;
+    using unwrap_reference_t = typename unwrap_reference<_Ty>::type;
 
     template <typename Ty>
     using unwrap_ref_decay_t = unwrap_reference_t<other_trans::decay_t<Ty>>;

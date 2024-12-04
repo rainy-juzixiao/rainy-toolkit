@@ -2,7 +2,7 @@
 #define RAINY_RAW_STRINGVIEW
 
 #ifndef RAINY_CORE_HPP
-#include <rainy/core.hpp>
+#include <rainy/core/core.hpp>
 #endif
 namespace rainy::information::internals {
 #if RAINY_USING_AVX2

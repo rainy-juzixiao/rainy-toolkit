@@ -147,7 +147,7 @@ clang和GNU编译器区域
 #define RAINY_CONSTEXPR constexpr
 
 #ifndef RAINY_STRINGIZE
-#define RAINY_STRINGIZE(s) #s
+#define RAINY_STRINGIZE(...) #__VA_ARGS__
 #endif
 
 #ifdef _WIN32
@@ -197,7 +197,7 @@ static_assert(false, "AVX2 not support!");
 
 #if RAINY_ENABLE_DEBUG
 #ifndef RAINY_NODEBUG_CONSTEXPR
-#define RAINY_NODEBUG_CONSTEXPR
+#define RAINY_NODEBUG_CONSTEXPR constexpr
 #endif
 #else
 #ifndef RAINY_NODEBUG_CONSTEXPR
@@ -240,8 +240,8 @@ static_assert(false, "AVX2 not support!");
 
 #endif
 
-#include <rainy/internals/core_typetraits.hpp>
-#include <rainy/internals/raw_stringview.hpp>
+#include <rainy/core/core_typetraits.hpp>
+#include <rainy/core/raw_stringview.hpp>
 
 namespace rainy::information {
     static constexpr internals::raw_string_view<char> libray_name("rainy's toolkit");
@@ -488,7 +488,7 @@ namespace rainy::information {
 }
 
 #if RAINY_USING_GCC
-#include <rainy/internals/gnu/typetraits.hpp>
+#include <rainy/core/gnu/typetraits.hpp>
 
 namespace rainy::type_traits::internals::gcc_detail_impl {
     template <typename Ty, _enable_if_t<is_void<Ty>::value, int> = 0>
@@ -1043,6 +1043,17 @@ namespace rainy::utility {
 #undef RAINY_OVERLOAD_RIGHT_CONST_METHOD
 #undef RAINY_OVERLOAD_RIGHT_VOLATILE_METHOD
 #undef RAINY_OVERLOAD_RIGHT_NOEXCEPT_METHOD
+
+namespace rainy::utility {
+    struct invalid_type {};
+}
+
+#define RAINY_DECLARE_SIGNLE_INSTANCE(CLASSNAME) static CLASSNAME &instance() noexcept { static CLASSNAME instance;return instance;}
+
+namespace rainy::information::internals {
+    constexpr static raw_string_view<char> token_charset("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789");
+}
+
 
 
 #endif

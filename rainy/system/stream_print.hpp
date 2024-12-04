@@ -5,7 +5,7 @@
 #include <mutex>
 #include <sstream>
 #include <shared_mutex>
-#include <rainy/core.hpp>
+#include <rainy/core/core.hpp>
 
 namespace rainy::foundation::system::output {
     namespace utils {

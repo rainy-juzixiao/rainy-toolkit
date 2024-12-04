@@ -1,7 +1,7 @@
 ﻿#ifndef RAINY_FORMAT_HPP
 #define RAINY_FORMAT_HPP
 
-#include <rainy/internals/core_format.hpp>
+#include <rainy/core/core_format.hpp>
 #if RAINY_HAS_CXX20
 #include <array>
 #include <charconv>

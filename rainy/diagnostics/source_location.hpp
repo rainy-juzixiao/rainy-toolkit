@@ -15,7 +15,7 @@
  */
 #ifndef RAINY_SOURCE_LOCATION_HPP
 #define RAINY_SOURCE_LOCATION_HPP
-#include <rainy/core.hpp>
+#include <rainy/core/core.hpp>
 #include <cstring>
 
 #if RAINY_HAS_CXX20

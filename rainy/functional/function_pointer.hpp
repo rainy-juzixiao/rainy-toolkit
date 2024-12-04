@@ -15,7 +15,7 @@
  */
 #ifndef RAINY_FUNCTION_POINTER_HPP
 #define RAINY_FUNCTION_POINTER_HPP
-#include <rainy/core.hpp>
+#include <rainy/core/core.hpp>
 #include <functional>
 
 namespace rainy::foundation::functional {

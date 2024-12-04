@@ -1,4 +1,4 @@
-#include <rainy/core.hpp>
+﻿#include <rainy/core/core.hpp>
 
 #ifndef EASYWSCLIENT_HPP_20120819_MIOFVASDTNUASZDQPLFD
 #define EASYWSCLIENT_HPP_20120819_MIOFVASDTNUASZDQPLFD

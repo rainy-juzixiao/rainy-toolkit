@@ -28,11 +28,34 @@ if (MSVC)
 endif ()
 
 # 添加头文件搜索路径
-include_directories(${CMAKE_SOURCE_DIR})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+
+list(APPEND SOURCES 
+    rainy/core/core.hpp
+    rainy/core/core_format.hpp
+    rainy/core/core_typetraits.hpp
+    rainy/core/raw_stringview.hpp
+)
+
+list(APPEND SOURCES
+    rainy/utility/invoke.hpp
+    rainy/utility/iterator.hpp
+    rainy/utility/ref_wrap.hpp
+)
+
+list(APPEND SOURCES
+    rainy/diagnostics/contract.hpp
+    rainy/diagnostics/exception_handler.hpp
+    rainy/diagnostics/source_location.hpp
+)
+
+list(APPEND SOURCES
+    rainy/user/hash/sha.hpp
+    rainy/user/hash/hash.hpp
+)
 
 # 基础模块
 list(APPEND SOURCES
-        rainy/core.hpp
         rainy/base.hpp
         rainy/utility.hpp
         rainy/algorithm.hpp
@@ -61,7 +84,6 @@ list(APPEND SOURCES
 
 # 元编程
 list(APPEND SOURCES
-        rainy/meta/hash.hpp
         rainy/meta/type_traits.hpp
         rainy/meta/reflection.hpp
         rainy/internals/reflection_core/field.hpp
@@ -93,27 +115,6 @@ list(APPEND SOURCES
         rainy/functional/function_pointer.hpp
 )
 
-# 诊断库支持
-list(APPEND SOURCES
-        rainy/diagnostics/source_location.hpp
-        rainy/diagnostics/contract.hpp
-)
-
-
-list(APPEND SOURCES
-        rainy/utility/iterator.hpp
-        rainy/utility/invoke.hpp
-        rainy/utility/ref_wrap.hpp
-)
-
-# 内部实现
-list(APPEND SOURCES
-        rainy/internals/core_format.hpp
-        rainy/internals/core_typetraits.hpp
-        rainy/internals/raw_stringview.hpp
-        rainy/internals/gnu/typetraits.hpp
-)
-
 # 针对 Windows 平台的特定源文件
 if (WIN32)
     message("Adding Windows specific source files")
@@ -136,3 +137,5 @@ if (WIN32)
     # 为WindowsAPI链接cpp源文件（部分文件采用分离编译）
     target_sources(rainy-toolkit PRIVATE "rainy/sources/win/impl_thread.cxx")
 endif ()
+
+target_sources(rainy-toolkit PRIVATE "rainy/sources/sha/impl_sha.cxx")

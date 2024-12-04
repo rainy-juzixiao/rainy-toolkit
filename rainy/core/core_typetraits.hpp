@@ -2,7 +2,7 @@
 #define RAINY_CORE_TYPETRAITS_HPP
 
 #ifndef RAINY_CORE_HPP
-#include <rainy/core.hpp>
+#include <rainy/core/core.hpp>
 #endif
 
 /* 数组修改 */
@@ -1016,7 +1016,7 @@ namespace rainy::type_traits::helper {
     };
 
     template <typename Ty>
-    using identity_t = identity<Ty>::type;
+    using identity_t = typename identity<Ty>::type;
 }
 
 // 类型关系
@@ -1475,10 +1475,10 @@ namespace rainy::type_traits::primary_types {
     RAINY_CONSTEXPR_BOOL is_class_v = __is_class(Ty);
 
     template <typename Ty>
-    RAINY_CONSTEXPR_BOOL is_function_v = internals::_is_function_v<Ty>;
+    RAINY_CONSTEXPR_BOOL is_function_v = type_traits::internals::_is_function_v<Ty>;
 
     template <typename Ty>
-    struct is_function : helper::bool_constant<internals::_is_function_v<Ty>> {};
+    struct is_function : helper::bool_constant<type_traits::internals::_is_function_v<Ty>> {};
 
     template <typename>
     RAINY_CONSTEXPR_BOOL is_lvalue_reference_v = false;
@@ -1499,13 +1499,13 @@ namespace rainy::type_traits::primary_types {
     struct is_rvalue_reference : helper::bool_constant<is_rvalue_reference_v<Ty>> {};
 
     template <typename Ty>
-    RAINY_CONSTEXPR_BOOL is_array_v = internals::_is_array_v<Ty>;
+    RAINY_CONSTEXPR_BOOL is_array_v = type_traits::internals::_is_array_v<Ty>;
 
     template <typename Ty>
     struct is_array : helper::bool_constant<is_array_v<Ty>> {};
 
     template <typename Ty>
-    RAINY_CONSTEXPR_BOOL is_pointer_v = internals::_is_pointer_v<Ty>;
+    RAINY_CONSTEXPR_BOOL is_pointer_v = type_traits::internals::_is_pointer_v<Ty>;
 
     template <typename Ty>
     struct is_pointer : helper::bool_constant<is_pointer_v<Ty>> {};

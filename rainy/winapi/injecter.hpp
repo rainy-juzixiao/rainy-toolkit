@@ -1,6 +1,6 @@
 ﻿#ifndef RAINY_WINAPI_INJECTER_HPP
 #define RAINY_WINAPI_INJECTER_HPP
-#include <rainy/core.hpp>
+#include <rainy/core/core.hpp>
 #if RAINY_USING_WINDOWS
 #include <chrono>
 #include <filesystem>

@@ -15,7 +15,7 @@
  */
 #ifndef JUZIXIAO_FORMAT_WRAPPER_HPP
 #define JUZIXIAO_FORMAT_WRAPPER_HPP
-#include <rainy/core.hpp>
+#include <rainy/core/core.hpp>
 #include <rainy/system/basic_exceptions.hpp>
 #include <string>
 #include <cstdarg>

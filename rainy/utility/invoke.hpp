@@ -1,6 +1,6 @@
 ﻿#ifndef RAINY_INVOKE_HPP
 #define RAINY_INVOKE_HPP
-#include <rainy/core.hpp>
+#include <rainy/core/core.hpp>
 #include <rainy/utility/ref_wrap.hpp>
 
 namespace rainy::utility {

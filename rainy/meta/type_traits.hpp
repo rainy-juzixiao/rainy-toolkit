@@ -19,7 +19,7 @@ static_assert(false, "使用了未知的编译器");
 
 #endif // else
 
-#include <rainy/core.hpp>
+#include <rainy/core/core.hpp>
 
 namespace rainy::type_traits {
     // 类型属性

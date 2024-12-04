@@ -1,7 +1,7 @@
 ﻿#ifndef RAINY_COROUTINE_H
 #define RAINY_COROUTINE_H
 
-#include <rainy/core.hpp>
+#include <rainy/core/core.hpp>
 
 #if RAINY_HAS_CXX20
 #include <condition_variable>

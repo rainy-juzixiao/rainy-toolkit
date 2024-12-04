@@ -1,6 +1,6 @@
 ﻿#ifndef RAINY_LINUXAPI_PROC_THRD_MGR_H
 #define RAINY_LINUXAPI_PROC_THRD_MGR_H
-#include <rainy/core.hpp>
+#include <rainy/core/core.hpp>
 #if RAINY_USING_LINUX
 #include <cstdlib>
 #include <rainy/base.hpp>

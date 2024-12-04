@@ -4,7 +4,7 @@
 文件名: base.hpp
 此头文件用于存放基础设施实现，提供对C语言的部分函数封装以及少量模块
 */
-#include <rainy/core.hpp>
+#include <rainy/core/core.hpp>
 #include <rainy/diagnostics/source_location.hpp>
 #include <rainy/system/basic_exceptions.hpp>
 #include <rainy/system/stream_print.hpp>
@@ -1127,10 +1127,10 @@ namespace rainy::containers {
         using const_pointer = const value_type *;
         using difference_type = std::ptrdiff_t;
         /* 普通迭代器 */
-        using iterator = utility::iterator<pointer, array>;
-        using const_iterator = utility::iterator<const_pointer, array>;
-        using reverse_iterator = std::reverse_iterator<iterator>;
-        using const_reverse_iterator = std::reverse_iterator<iterator>;
+        using iterator = utility::iterator<pointer>;
+        using const_iterator = utility::iterator<const_pointer>;
+        using reverse_iterator = utility::reverse_iterator<iterator>;
+        using const_reverse_iterator = utility::reverse_iterator<iterator>;
 
         RAINY_CONSTEXPR20 ~array() = default;
 
@@ -1269,7 +1269,7 @@ namespace rainy::containers {
          */
         RAINY_ALWAYS_INLINE iterator begin() {
             check_zero_length_array();
-            return iterator(elems_);
+            return iterator(elems_, utility::make_iterator_range<pointer>(elems_, elems_ + N));
         }
 
         /**
@@ -1278,7 +1278,7 @@ namespace rainy::containers {
          */
         RAINY_ALWASY_INLINE_NODISCARD const_iterator begin() const {
             check_zero_length_array();
-            return const_iterator(elems_);
+            return const_iterator(elems_, utility::make_iterator_range<const_pointer>(elems_, elems_ + N));
         }
 
         /**
@@ -1287,7 +1287,7 @@ namespace rainy::containers {
          */
         RAINY_ALWASY_INLINE_NODISCARD const_iterator cbegin() const {
             check_zero_length_array();
-            return const_iterator(elems_);
+            return const_iterator(elems_, utility::make_iterator_range<const_pointer>(elems_, elems_ + N));
         }
 
         /**
@@ -1321,9 +1321,9 @@ namespace rainy::containers {
          * @brief 获取指向当前数组末尾位置的迭代器
          * @return 返回指向末尾的迭代器
          */
-        RAINY_ALWASY_INLINE_NODISCARD iterator end() {
+        RAINY_ALWASY_INLINE_NODISCARD constexpr iterator end() {
             check_zero_length_array();
-            return iterator(elems_ + N);
+            return iterator(elems_ + N, utility::make_iterator_range<pointer>(elems_, elems_ + N));
         }
 
         /**
@@ -1332,7 +1332,7 @@ namespace rainy::containers {
          */
         RAINY_ALWASY_INLINE_NODISCARD const_iterator end() const {
             check_zero_length_array();
-            return const_iterator(elems_ + N);
+            return const_iterator(elems_ + N, utility::make_iterator_range<const_pointer>(elems_, elems_ + N));
         }
 
         /**
@@ -1341,7 +1341,7 @@ namespace rainy::containers {
          */
         RAINY_ALWASY_INLINE_NODISCARD const_iterator cend() const {
             check_zero_length_array();
-            return const_iterator(elems_ + N);
+            return const_iterator(elems_ + N, utility::make_iterator_range<const_pointer>(elems_, elems_ + N));
         }
 
         /**
@@ -1357,7 +1357,7 @@ namespace rainy::containers {
          * @brief 获取指向当前数组末尾位置的反向迭代器
          * @return 返回指向末尾的反向迭代器
          */
-        RAINY_NODISCARD RAINY_ALWAYS_INLINE const_reverse_iterator rend() const {
+        RAINY_ALWASY_INLINE_NODISCARD const_reverse_iterator rend() const {
             check_zero_length_array();
             return const_reverse_iterator(end());
         }
@@ -1366,7 +1366,7 @@ namespace rainy::containers {
          * @brief 获取指向当前数组末尾位置的反向迭代器常量
          * @return 返回指向末尾的反向迭代器
          */
-        RAINY_NODISCARD RAINY_ALWAYS_INLINE const_reverse_iterator crend() const {
+        RAINY_ALWASY_INLINE_NODISCARD const_reverse_iterator crend() const {
             check_zero_length_array();
             return const_reverse_iterator(end());
         }
@@ -1399,8 +1399,8 @@ namespace rainy::containers {
         using pointer = value_type *;
         using const_pointer = const value_type *;
         using difference_type = std::ptrdiff_t;
-        using iterator = utility::iterator<pointer, array_view>;
-        using const_iterator = const utility::iterator<const_pointer, array_view>;
+        using iterator = utility::iterator<pointer>;
+        using const_iterator = const utility::iterator<const_pointer>;
         using reverse_iterator = std::reverse_iterator<iterator>;
         using const_reverse_iterator = const std::reverse_iterator<iterator>;
 
@@ -2252,7 +2252,9 @@ namespace rainy::text {
         using pointer = const value_type *;
         using const_pointer = const value_type *;
         using size_type = std::size_t;
-        using iterator = utility::iterator<pointer, basic_string_view<Elem>>;
+        using iterator = utility::iterator<pointer>;
+        using const_iterator = utility::iterator<pointer>;
+        using reverse_iterator = std::reverse_iterator<iterator>;
         using reference = const value_type &;
         using const_reference = const value_type &;
         using traits_type = Traits;
@@ -2276,6 +2278,50 @@ namespace rainy::text {
         constexpr basic_string_view(const value_type (&string)[N]) noexcept {
         }
 
+        RAINY_NODISCARD constexpr const_reference operator[](const std::size_t idx) const {
+#if RAINY_ENABLE_DEBUG
+            utility::expects(
+                !empty(), "can not call " RAINY_STRINGIZE(basic_string_view<value_type, traits_type>::front) " on empty string_view");
+            range_check(idx);
+#endif
+            return view_data[idx];
+        }
+
+        // 元素访问
+        RAINY_NODISCARD constexpr const_reference at(const std::size_t idx) const {
+#if RAINY_ENABLE_DEBUG
+            utility::expects(!empty(),
+                             "can not call " RAINY_STRINGIZE(basic_string_view<value_type, traits_type>::at) " on empty string_view");
+#endif
+            range_check(idx);
+            return view_data[idx];
+        }
+
+        RAINY_NODISCARD constexpr const_reference back() const noexcept {
+#if RAINY_ENABLE_DEBUG
+            utility::expects(
+                !empty(), "can not call " RAINY_STRINGIZE(basic_string_view<value_type, traits_type>::back) " on empty string_view");
+#endif
+            return view_data[view_size - 1];
+        }
+
+        RAINY_NODISCARD constexpr const_reference front() const noexcept {
+#if RAINY_ENABLE_DEBUG
+            utility::expects(
+                !empty(), "can not call " RAINY_STRINGIZE(basic_string_view<value_type, traits_type>::front) " on empty string_view");
+#endif
+            return view_data[0];
+        }
+
+        RAINY_NODISCARD constexpr pointer data() const noexcept {
+            return view_data;
+        }
+
+        RAINY_NODISCARD constexpr pointer c_str() const noexcept {
+            return view_data;
+        }
+
+        // 容量
         RAINY_NODISCARD constexpr size_type size() const noexcept {
             return view_size;
         }
@@ -2284,13 +2330,32 @@ namespace rainy::text {
             return view_size;
         }
 
+        RAINY_NODISCARD constexpr size_type max_size() const noexcept {
+            return (std::min)(static_cast<size_t>(PTRDIFF_MAX), static_cast<size_t>(-1) / sizeof(value_type));
+        }
+
         RAINY_NODISCARD constexpr bool empty() const noexcept {
             return view_size == 0;
         }
 
-        RAINY_NODISCARD constexpr pointer data() const noexcept {
-            return view_data;
+        // 迭代器
+        RAINY_NODISCARD constexpr const_iterator begin() const noexcept {
+            return const_iterator(view_data);
         }
+
+        RAINY_NODISCARD constexpr const_iterator end() const noexcept {
+            return const_iterator(view_data + view_size);
+        }
+
+        RAINY_NODISCARD constexpr const_iterator cbegin() const noexcept {
+            return const_iterator(view_data);
+        }
+
+        RAINY_NODISCARD constexpr const_iterator cend() const noexcept {
+            return const_iterator(view_data + view_size);
+        }
+
+
 
         RAINY_NODISCARD constexpr basic_string_view substr(const size_type offset = 0, size_type count = npos) const {
             range_check(offset);
@@ -2298,21 +2363,9 @@ namespace rainy::text {
             return basic_string_view(view_data + offset, count);
         }
 
-        RAINY_NODISCARD constexpr const_reference operator[](const std::size_t idx) const {
-            if (empty()) {
-                std::terminate();
-            }
-            range_check(idx);
-            return view_data[idx];
-        }
+        
 
-        RAINY_NODISCARD constexpr const_reference at(const std::size_t idx) const {
-            if (empty()) {
-                std::terminate();
-            }
-            range_check(idx);
-            return view_data[idx];
-        }
+      
 
         template <typename... Args>
         std::basic_string<value_type> make_format(Args... fmt_args) const {

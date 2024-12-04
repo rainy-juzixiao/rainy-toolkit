@@ -1,8 +1,9 @@
 ﻿#ifndef RAINY_CONTRACT_HPP
 #define RAINY_CONTRACT_HPP
 
-#include <rainy/core.hpp>
+#include <rainy/core/core.hpp>
 #include <rainy/text/format_wrapper.hpp>
+#include <rainy/functional/function_pointer.hpp>
 
 namespace rainy::utility {
     RAINY_INLINE RAINY_NODEBUG_CONSTEXPR void contract(const bool cond, const std::string_view type,
@@ -55,6 +56,7 @@ namespace rainy::utility {
             utility::cstyle_format(buffer, "contract : %s triggered %s\nMessage: %s\n", type.data(), temp.c_str(), message.data());
 #endif
             if (!cond) {
+
                 (void) std::fwrite(buffer.c_str(), 1, buffer.size(), stderr);
                 information::system_call::debug_break();
             };
@@ -89,23 +91,23 @@ namespace rainy::utility {
         contract(cond, "Post-condition", message, location);
     }
 #else
-    RAINY_INLINE RAINY_CONSTEXPR20 void expects(
+    RAINY_INLINE constexpr void expects(
         const bool cond, const utility::source_location &location = utility::source_location::current()) noexcept {
         contract(cond, "Pre-condition", location);
     }
 
-    RAINY_INLINE RAINY_CONSTEXPR20 void expects(
+    RAINY_INLINE constexpr void expects(
         const bool cond, const std::string_view message,
         const utility::source_location &location = utility::source_location::current()) noexcept {
         contract(cond, "Pre-condition", message, location);
     }
 
-    RAINY_INLINE RAINY_CONSTEXPR20 void ensures(
+    RAINY_INLINE constexpr void ensures(
         const bool cond, const utility::source_location &location = utility::source_location::current()) noexcept {
         contract(cond, "Post-condition", location);
     }
 
-    RAINY_INLINE RAINY_CONSTEXPR20 void ensures(
+    RAINY_INLINE constexpr void ensures(
         const bool cond, const std::string_view message,
         const utility::source_location &location = utility::source_location::current()) noexcept {
         contract(cond, "Post-condition", message, location);

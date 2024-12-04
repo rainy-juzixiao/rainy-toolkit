@@ -1,6 +1,6 @@
-﻿#ifndef RAINY_HASH_HPP
-#define RAINY_HASH_HPP
-#include <rainy/core.hpp>
+﻿#ifndef RAINY_USER_HASH_HPP
+#define RAINY_USER_HASH_HPP
+#include <rainy/core/core.hpp>
 #include <rainy/meta/type_traits.hpp>
 
 namespace rainy::utility {
@@ -16,7 +16,7 @@ namespace rainy::utility {
 
         template <typename Ty>
         RAINY_AINLINE_NODISCARD std::size_t fnv1a_append_range(const std::size_t offset_basis, const Ty *const first,
-                                                                  const Ty *const last) {
+                                                               const Ty *const last) {
             static_assert(type_traits::type_properties::is_trivial_v<Ty>, "Only trivial types can be directly hashed.");
             const auto *const first_binary = reinterpret_cast<const unsigned char *>(first);
             const auto *const last_binary = reinterpret_cast<const unsigned char *>(last);
@@ -61,11 +61,10 @@ namespace rainy::utility {
     }
 
     template <typename key>
-    struct hash : internals::hash_enable_if<key, !type_traits::type_properties::is_const_v<key> &&
-                                                     !type_traits::type_properties::is_volatile_v<key> &&
-                                                     (type_traits::primary_types::is_enum_v<key> ||
-                                                      type_traits::primary_types::is_integral_v<key> ||
-                        type_traits::primary_types::is_pointer_v<key>)> {
+    struct hash : internals::hash_enable_if<
+                      key, !type_traits::type_properties::is_const_v<key> && !type_traits::type_properties::is_volatile_v<key> &&
+                               (type_traits::primary_types::is_enum_v<key> || type_traits::primary_types::is_integral_v<key> ||
+                                type_traits::primary_types::is_pointer_v<key>)> {
         static size_t hash_this_val(const key &keyval) noexcept {
             return internals::hash_representation(keyval);
         }

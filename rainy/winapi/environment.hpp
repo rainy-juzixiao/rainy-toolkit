@@ -1,6 +1,6 @@
 ﻿#ifndef RAINY_WINAPI_ENVIRONMENT_H
 #define RAINY_WINAPI_ENVIRONMENT_H
-#include <rainy/core.hpp>
+#include <rainy/core/core.hpp>
 #if RAINY_USING_WINDOWS
 #include <string>
 #include <memory>

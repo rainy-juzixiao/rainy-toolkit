@@ -1,6 +1,6 @@
 ﻿#ifndef RAINY_CORE_FORMAT_HPP
 #define RAINY_CORE_FORMAT_HPP
-#include <rainy/core.hpp>
+#include <rainy/core/core.hpp>
 #include <rainy/base.hpp>
 #include <rainy/meta/type_traits.hpp>
 

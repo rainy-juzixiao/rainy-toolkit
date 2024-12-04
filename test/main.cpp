@@ -20,7 +20,7 @@ void benchmark(const char *const label, Fn &&func, Args &&...args) {
 #include <sstream>
 #include <unordered_set>
 #include <rainy/containers/any.hpp>
-#include <rainy/meta/hash.hpp>
+#include <rainy/user/hash/hash.hpp>
 #include <rainy/utility.hpp>
 #include <rainy/containers/stack.hpp>
 
@@ -716,16 +716,60 @@ namespace rainy_test {
     }
 }
 
+constexpr int my_test() {
+    rainy::utility::expects(true);
 
+    return 0;
+}
 
+#include <rainy/algorithm.hpp>
+#include <rainy/user/hash/sha.hpp>
+
+void test_sha512() {
+    std::vector<std::string> test_inputs = {"123456789", "Hello, World!", "TestCase"};
+
+    for (const auto &input: test_inputs) {
+        std::string result = rainy::user::hash::internals::make_sha<rainy::user::hash::internals::sha_type::sha256>(input);
+        std::cout << "Input: " << input << std::endl;
+        std::cout << "SHA-256 hash: " << result << std::endl << std::endl;
+    }
+
+    for (const auto &input: test_inputs) {
+        std::string result = rainy::user::hash::internals::make_sha<rainy::user::hash::internals::sha_type::sha512>(input);
+        std::cout << "Input: " << input << std::endl;
+        std::cout << "SHA-512 hash: " << result << std::endl << std::endl;
+    }
+    std::string result = rainy::user::hash::internals::make_sha_from_file<rainy::user::hash::internals::sha_type::sha512>("cpp.hint");
+    std::cout << result << "\n";
+    result = rainy::user::hash::internals::make_sha_from_file<rainy::user::hash::internals::sha_type::sha512>("cpp.hint");
+    std::cout << result << "\n";
+}
 
 int main() {
     {
-        const std::vector<int> a;
+        constexpr int i = my_test();
+
+        std::vector<int> a = {1, 2, 3, 4, 5};
         auto p = std::mem_fn(rainy::utility::overload_cmethod(&std::vector<int>::at));
         p(a, 0);
+        // rainy::utility::iterator<typename std::vector<int>::iterator> iterator_begin(a.begin());
+        // rainy::utility::iterator<typename std::vector<int>::iterator> iterator_end(a.end());
+        // rainy::containers::array<int, 5> arr = {1, 2, 3, 4, 5};
+        // rainy::utility::reverse_iterator<typename std::vector<int>::iterator> r_begin(a.end());
+        // rainy::utility::reverse_iterator<typename std::vector<int>::iterator> r_end(a.begin());
+        // for (; r_begin != r_end; ++r_begin) {
+        //     std::cout << *r_begin << "\n";
+        // }
+        rainy::containers::array<int, 5> my_array = {1, 2, 3, 4, 5};
+        auto it = my_array.end();
+        //std::cout << *it << "\n";
     }
-    rainy_test::test();
+
+    { 
+        test_sha512();
+    }
+
+    //rainy_test::test();
     /*{
         int a{};
         rainy::utility::reference_wrapper ref = virtual_function;
@@ -794,7 +838,6 @@ int main() {
     //main_window.create(NULL, "Main Window", WS_OVERLAPPEDWINDOW, 0, window_rect);
     //main_window.show_window();
     //main_window.message_loop();
-    system("pause");
     foo a = 2;
     foo b = ++a;
     std::cout << a.val << "\n";
@@ -874,6 +917,34 @@ int main() {
     std::cout.put('\n');
 
     rainy::foundation::system::output::stdout_print("p.length = ", p.length(), " \n");
+
+    std::vector<int> numbers(1000);
+    for (int i = 0; i < 1000; ++i) {
+        numbers[i] = i + 1; // 填充 1 到 1000 的整数
+    }
+    std::random_device rd;
+    std::mt19937 g(rd());
+    std::shuffle(numbers.begin(), numbers.end(), g);
+    {
+        benchmark("shell_sort", [&numbers]() {
+            rainy::algorithm::sort::shell_sort(numbers.begin(), numbers.end(), [](int a, int b) { return a < b; });
+            });
+        for (const auto &i: numbers) {
+            std::cout << i << ' ';
+        }
+        std::endl(std::cout);
+    }
+    std::shuffle(numbers.begin(), numbers.end(), g);
+    {
+        benchmark("insertion_sort", [&numbers]() {
+            rainy::algorithm::sort::insertion_sort(numbers.begin(), numbers.end(), [](int a, int b) { return a < b; });
+        });
+        for (const auto &i: numbers) {
+            std::cout << i << ' ';
+        }
+        std::endl(std::cout);
+    }
+
 
     return 0;
 }
