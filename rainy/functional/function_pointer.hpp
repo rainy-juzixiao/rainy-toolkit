@@ -23,7 +23,7 @@ namespace rainy::foundation::functional {
     class function_pointer;
 
     /**
-     * @brief 此模板允许用户创建一个具有类型安全的函数指针对象 
+     * @brief 此模板允许用户创建一个具有类型安全的函数指针对象
      * @tparam Rx 函数指针期望的返回类型
      * @tparam Args 函数形参列表
      */
@@ -56,7 +56,7 @@ namespace rainy::foundation::functional {
          */
         template <typename URx, typename... UArgs,
                   rainy::type_traits::other_trans::enable_if_t<
-                      type_traits::type_properties::is_invocable_r_v<Rx, URx (*)(UArgs...), Args...>, int> = 0>
+                      std::is_invocable_r_v<Rx, URx (*)(UArgs...), Args...>, int> = 0>
         constexpr function_pointer(URx (*function_address)(UArgs...)) : invoker(function_address) {
         }
 
@@ -138,7 +138,7 @@ namespace rainy::foundation::functional {
 
         template <typename URx, typename... UArgs,
                   rainy::type_traits::other_trans::enable_if_t<
-                      type_traits::type_properties::is_invocable_r_v<Rx, URx (*)(UArgs...), Args...>, int> = 0>
+                      std::is_invocable_r_v<Rx, URx (*)(UArgs...), Args...>, int> = 0>
         constexpr function_pointer &operator=(URx (*function_address)(UArgs...)) noexcept {
             return assign(function_address); // NOLINT
         }
@@ -162,7 +162,7 @@ namespace rainy::foundation::functional {
 
         template <typename URx, typename... UArgs,
                   rainy::type_traits::other_trans::enable_if_t<
-                      type_traits::type_properties::is_invocable_r_v<Rx, URx (*)(UArgs...), Args...>, int> = 0>
+                      std::is_invocable_r_v<Rx, URx (*)(UArgs...), Args...>, int> = 0>
         constexpr function_pointer &assign(URx (*function_address)(UArgs...)) noexcept {
             invoker = function_address;
             return *this;
@@ -185,8 +185,7 @@ namespace rainy::foundation::functional {
     };
 
     template <typename Rx, typename... Args>
-    class function_pointer<Rx (*)(Args...)> : public function_pointer<Rx(Args...)> {
-    };
+    class function_pointer<Rx (*)(Args...)> : public function_pointer<Rx(Args...)> {};
 
     template <typename Rx, typename... Args>
     constexpr auto make_function_pointer(Rx (*ptr)(Args...)) noexcept -> function_pointer<Rx(Args...)> {

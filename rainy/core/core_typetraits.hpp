@@ -54,17 +54,6 @@ namespace rainy::type_traits::internals {
     template <typename Ty, typename... Types>
     RAINY_CONSTEXPR_BOOL _is_any_of_v = (_is_same_v<Ty, Types> || ...);
 
-#if RAINY_USING_MSVC || RAINY_USING_CLANG
-    template <typename from, typename to>
-    RAINY_CONSTEXPR_BOOL _is_convertible_v = __is_convertible_to(from, to);
-#else
-    template <typename from, typename to>
-    RAINY_CONSTEXPR_BOOL _is_convertible_v = __is_convertible(from, to);
-#endif
-
-    template <typename Ty, typename... Types>
-    RAINY_CONSTEXPR_BOOL _is_any_convertible_v = (_is_convertible_v<Ty, Types> || ...);
-
     template <typename>
     RAINY_CONSTEXPR_BOOL _is_reference_v = false;
 
@@ -338,11 +327,11 @@ namespace rainy::type_traits::internals {
     struct invoker_functor {
         static constexpr auto strategy = invoker_strategy::functor;
 
-        template <typename callable, typename... Args>
-        static constexpr auto invoke(callable &&object, Args &&...args) noexcept(
-            noexcept(static_cast<callable &&>(object)(static_cast<Args &&>(args)...)))
-            -> decltype(static_cast<callable &&>(object)(static_cast<Args &&>(args)...)) {
-            return static_cast<callable &&>(object)(static_cast<Args &&>(args)...);
+        template <typename Callable, typename... Args>
+        static constexpr auto invoke(Callable &&object, Args &&...args) noexcept(
+            noexcept(static_cast<Callable &&>(object)(static_cast<Args &&>(args)...)))
+            -> decltype(static_cast<Callable &&>(object)(static_cast<Args &&>(args)...)) {
+            return static_cast<Callable &&>(object)(static_cast<Args &&>(args)...);
         }
     };
 
@@ -1369,49 +1358,23 @@ namespace rainy::utility {
 }
 
 namespace rainy::type_traits::type_properties {
-    template <typename from, typename to, typename = void>
+    template <typename From, typename To, typename = void>
     struct is_invoke_convertible : helper::false_type {};
 
-    template <typename from, typename to>
-    struct is_invoke_convertible<
-        from, to, other_trans::void_t<decltype(internals::_fake_copy_init<to>(internals::_returns_exactly<from>()))>>
+    template <typename From, typename To>
+    struct is_invoke_convertible<From, To,
+                                 other_trans::void_t<decltype(internals::_fake_copy_init<To>(internals::_returns_exactly<From>()))>>
         : helper::true_type {};
 
-    template <typename Fx, typename... Args>
-    struct is_invocable {
-        template <typename U>
-        static auto test(int) -> decltype(utility::declval<U>()(utility::declval<Args>()...), std::true_type{}) {
-            return helper::true_type{};
-        }
+    template <typename From,typename To>
+    RAINY_CONSTEXPR_BOOL is_invoke_convertible_v = is_invoke_convertible<From, To>::value;
 
-        template <typename>
-        static helper::false_type test(...) {
-            return helper::false_type{};
-        }
+    template <typename From, typename To>
+    struct is_invoke_nothrow_convertible
+        : helper::bool_constant<noexcept(internals::_fake_copy_init<To>(internals::_returns_exactly<From>()))> {};
 
-        static constexpr bool value = decltype(test<Fx>(0))::value;
-    };
-
-    template <typename Fx, typename... Args>
-    RAINY_CONSTEXPR_BOOL is_invocable_v = is_invocable<Fx, Args...>::value;
-
-    template <typename Rx, typename Fx, typename... Args>
-    struct is_invocable_r {
-        template <typename U>
-        static auto test(int) -> decltype(static_cast<Rx>(utility::declval<U>()(utility::declval<Args>()...)), std::true_type{}) {
-            return helper::true_type{};
-        }
-
-        template <typename>
-        static helper::false_type test(...) {
-            return helper::false_type{};
-        }
-
-        static constexpr bool value = decltype(test<Fx>(0))::value;
-    };
-
-    template <typename Rx, typename Fx, typename... Args>
-    RAINY_CONSTEXPR_BOOL is_invocable_r_v = is_invocable_r<Rx, Fx, Args...>::value;
+    template <typename From, typename To>
+    RAINY_CONSTEXPR_BOOL is_invoke_nothrow_convertible_v = is_invoke_convertible<From, To>::value;
 }
 
 namespace rainy::type_traits::primary_types {
@@ -1669,9 +1632,7 @@ namespace rainy::utility {
     template <typename Callable>
     class finally_impl : Callable {
     public:
-        template <type_traits::other_trans::enable_if_t<
-                      type_traits::type_properties::is_invocable_r_v<void, Callable>, int> = 0>
-        finally_impl(Callable &&callable) noexcept : Callable(utility::forward<Callable>(callable)), invalidate(false) {
+        finally_impl(Callable &&Callable) noexcept : Callable(utility::forward<Callable>(Callable)), invalidate(false) {
         }
 
         ~finally_impl() {
@@ -1710,10 +1671,9 @@ namespace rainy::utility {
         bool invalidate;
     };
 
-    template <typename Callable, type_traits::other_trans::enable_if_t<
-                                     type_traits::type_properties::is_invocable_r_v<void, Callable>, int> = 0>
+    template <typename Callable>
     auto make_finally(Callable &&callable) -> finally_impl<Callable> {
-        return finally_impl<Callable>(std::forward<Callable>(callable));
+        return finally_impl<Callable>(utility::forward<Callable>(callable));
     }
 }
 
@@ -1811,29 +1771,29 @@ namespace rainy::type_traits::primary_types {
     };
 
 
+namespace rainy::type_traits::internals {
+    template <bool IsMemberFunctionPointer = false, bool IsFunctionPointer = false, bool IsNoexcept = false, bool IsVolatile = false,
+              bool IsConstMemberFunction = false>
+    struct function_traits_base {
+        static RAINY_CONSTEXPR_BOOL is_member_function_pointer = IsMemberFunctionPointer;
+        static RAINY_CONSTEXPR_BOOL is_function_pointer = IsFunctionPointer;
+        static RAINY_CONSTEXPR_BOOL is_noexcept = IsNoexcept;
+        static RAINY_CONSTEXPR_BOOL is_volatile = IsVolatile;
+        static RAINY_CONSTEXPR_BOOL is_const_member_function = IsConstMemberFunction;
+        static RAINY_CONSTEXPR_BOOL valid = true;
+    };
+
+    template <bool IsLvalue, bool IsRvalue>
+    struct member_function_traits_base {
+        static RAINY_CONSTEXPR_BOOL is_invoke_for_lvalue = IsLvalue;
+        static RAINY_CONSTEXPR_BOOL is_invoke_for_rvalue = IsRvalue;
+    };
+}
+
 namespace rainy::type_traits::primary_types {
-    namespace internals {
-        template <bool IsMemberFunctionPointer = false, bool IsFunctionPointer = false, bool IsNoexcept = false,
-                  bool IsVolatile = false, bool IsConstMemberFunction = false>
-        struct function_traits_base {
-            static RAINY_CONSTEXPR_BOOL is_member_function_pointer = IsMemberFunctionPointer;
-            static RAINY_CONSTEXPR_BOOL is_function_pointer = IsFunctionPointer;
-            static RAINY_CONSTEXPR_BOOL is_noexcept = IsNoexcept;
-            static RAINY_CONSTEXPR_BOOL is_volatile = IsVolatile;
-            static RAINY_CONSTEXPR_BOOL is_const_member_function = IsConstMemberFunction;
-            static RAINY_CONSTEXPR_BOOL valid = true;
-        };
-
-        template <bool IsLvalue, bool IsRvalue>
-        struct member_function_traits_base {
-            static RAINY_CONSTEXPR_BOOL is_invoke_for_lvalue = IsLvalue;
-            static RAINY_CONSTEXPR_BOOL is_invoke_for_rvalue = IsRvalue;
-        };
-    }
-
     template <typename Ty>
     struct function_traits {
-        static RAINY_CONSTEXPR_BOOL valid = false;        
+        static RAINY_CONSTEXPR_BOOL valid = false;
     };
 
     template <typename Rx, typename... Args>
@@ -1938,11 +1898,386 @@ namespace rainy::type_traits::primary_types {
     using param_list_in_tuple = typename function_traits<Fx>::tuple_like_type;
 }
 
-namespace rainy::type_traits::other_trans {
-    template <typename Fx>
-    struct invoke_result {
-        using type = typename primary_types::function_traits<Fx>::return_type;
+namespace rainy::utility::internals {
+    template <typename Ty>
+    void refwrap_ctor_fun(type_traits::helper::identity_t<Ty &>) noexcept {
+    }
+
+    template <typename Ty>
+    void refwrap_ctor_fun(type_traits::helper::identity_t<Ty &&>) = delete;
+
+    template <typename Ty, typename Uty, typename = void>
+    struct refwrap_has_ctor_from : type_traits::helper::false_type {};
+
+    template <typename Ty, typename Uty>
+    struct refwrap_has_ctor_from<Ty, Uty, type_traits::other_trans::void_t<decltype(refwrap_ctor_fun<Ty>(declval<Uty>()))>>
+        : type_traits::helper::true_type {};
+
+    template <typename Fx, typename... Args>
+    struct test_refwrap_nothrow_invoke {
+        static auto test() {
+            if constexpr (std::is_invocable_v<Fx, Args...>) {
+                if constexpr (type_traits::primary_types::function_traits<Fx>::is_nothrow_invocable) {
+                    return type_traits::helper::true_type{};
+                } else {
+                    return type_traits::helper::false_type{};
+                }
+            } else {
+                return type_traits::helper::false_type{};
+            }
+        }
+
+        static RAINY_CONSTEXPR_BOOL value = decltype(test())::value;
     };
+}
+
+namespace rainy::utility {
+    template <typename Ty>
+    class reference_wrapper {
+    public:
+        static_assert(type_traits::internals::_is_object_v<Ty> || type_traits::internals::_is_function_v<Ty>,
+                      "reference_wrapper<T> requires T to be an object type or a function type.");
+
+        using type = Ty;
+
+        template <typename Uty,
+                  type_traits::other_trans::enable_if_t<type_traits::logical_traits::conjunction_v<
+                                                            type_traits::logical_traits::negation<type_traits::type_relations::is_same<
+                                                                type_traits::cv_modify::remove_cvref_t<Uty>, reference_wrapper>>,
+                                                            internals::refwrap_has_ctor_from<Ty, Uty>>,
+                                                        int> = 0>
+        constexpr reference_wrapper(Uty &&val) noexcept(noexcept(internals::refwrap_ctor_fun<Ty>(declval<Uty>()))) {
+            Ty &ref = static_cast<Uty &&>(val);
+            this->reference_data = addressof(ref);
+        }
+
+        reference_wrapper(const reference_wrapper &) = delete;
+        reference_wrapper(reference_wrapper &&) = delete;
+
+        constexpr operator Ty &() const noexcept {
+            return *reference_data;
+        }
+
+        RAINY_NODISCARD RAINY_CONSTEXPR20 Ty &get() const noexcept {
+            return *reference_data;
+        }
+
+        template <typename Elem, typename Uty>
+        friend std::basic_ostream<Elem> &operator<<(std::basic_ostream<Elem> &ostream, const reference_wrapper<Uty> &ref_wrap) {
+            ostream << ref_wrap.get();
+            return ostream;
+        }
+
+        template <typename... Args, type_traits::other_trans::enable_if_t<std::is_invocable_v<Ty, Args...>, int> = 0>
+        constexpr decltype(auto) try_to_invoke_as_function(Args &&...args) const
+            noexcept(internals::test_refwrap_nothrow_invoke<Ty, Args...>::value) {
+            using f_traits = type_traits::primary_types::function_traits<Ty>;
+            if constexpr (f_traits::valid) {
+                using return_type = f_traits::return_type;
+                if constexpr (std::is_invocable_r_v<return_type, Ty, Args...>) {
+                    // 经过实践证明的是，reference_wrapper不能引用成员函数，因此像不同函数一样调用也就够了
+                    if constexpr (type_traits::primary_types::is_void_v<return_type>) {
+                        get(utility::forward<Args>(args)...);
+                    } else {
+                        return get()(utility::forward<Args>(args)...);
+                    }
+                }
+            }
+        }
+
+        template <typename... Args, type_traits::other_trans::enable_if_t<std::is_invocable_v<Ty, Args...>, int> = 0>
+        constexpr decltype(auto) operator()(Args &&...args) const
+            noexcept(internals::test_refwrap_nothrow_invoke<Ty, Args...>::value) {
+            return try_to_invoke_as_function(utility::forward<Args>(args)...);
+        }
+
+    private:
+        Ty *reference_data{nullptr};
+    };
+
+    template <typename Uty>
+    reference_wrapper(Uty &) -> reference_wrapper<type_traits::cv_modify::remove_cvref_t<Uty>>; // 使用Deduction Guide模板参数推导
+
+    template <typename Ty>
+    void ref(const Ty &&) = delete;
+
+    template <typename Ty>
+    void cref(const Ty &&) = delete;
+
+    template <typename Ty>
+    RAINY_NODISCARD RAINY_CONSTEXPR20 reference_wrapper<Ty> ref(Ty &val) noexcept {
+        return reference_wrapper<Ty>(val);
+    }
+
+    template <typename Ty>
+    RAINY_NODISCARD RAINY_CONSTEXPR20 reference_wrapper<Ty> ref(reference_wrapper<Ty> val) noexcept {
+        return val;
+    }
+
+    template <typename Ty>
+    RAINY_NODISCARD RAINY_CONSTEXPR20 reference_wrapper<const Ty> cref(const Ty &val) noexcept {
+        return reference_wrapper<const Ty>(val);
+    }
+
+    template <typename Ty>
+    RAINY_NODISCARD RAINY_CONSTEXPR20 reference_wrapper<const Ty> cref(reference_wrapper<Ty> val) noexcept {
+        return val;
+    }
+}
+
+namespace rainy::type_traits::cv_modify {
+    template <typename Ty>
+    struct unwrap_reference {
+        using type = Ty;
+    };
+
+    template <typename Ty>
+    struct unwrap_reference<utility::reference_wrapper<Ty>> {
+        using type = Ty;
+    };
+
+    template <typename Ty>
+    struct unwrap_reference<std::reference_wrapper<Ty>> {
+        using type = Ty;
+    };
+
+    template <class _Ty>
+    using unwrap_reference_t = typename unwrap_reference<_Ty>::type;
+
+    template <typename Ty>
+    using unwrap_ref_decay_t = unwrap_reference_t<other_trans::decay_t<Ty>>;
+
+    template <typename Ty>
+    struct unwrap_ref_decay {
+        using type = unwrap_ref_decay_t<Ty>;
+    };
+}
+
+namespace rainy::utility {
+    enum class invoker_category {
+        functor, // 仿函数或函数类型
+        pmf_object, // 类成员函数——对象调用
+        pmf_refwrap, // 类成员函数——对象引用包装器调用
+        pmf_pointer, // 类成员函数——对象指针调用
+        pmd_object, // 类成员变量——对象调用
+        pmd_refwrap, // 类成员变量——对象引用包装器调用
+        pmd_pointer // 类成员变量——对象指针调用
+    };
+}
+
+namespace rainy::utility::internals {
+    template <invoker_category>
+    struct invoker_impl {
+        static constexpr auto category = invoker_category::decl_failed;
+    };
+
+    template <>
+    struct invoker_impl<invoker_category::functor> {
+        static constexpr auto category = invoker_category::functor;
+
+        template <typename Callable, typename... Args>
+        static auto invoke(Callable &&callable,
+                           Args &&...args) noexcept(noexcept(static_cast<Callable &&>(callable)(static_cast<Args &&>(args)...)))
+            -> decltype(rainy::utility::forward<Callable>(callable)(rainy::utility::forward<Args>(args)...)) {
+            return static_cast<Callable &&>(callable)(static_cast<Args &&>(args)...);
+        }
+    };
+
+    template <>
+    struct invoker_impl<invoker_category::pmf_object> {
+        static constexpr auto category = invoker_category::pmf_object;
+
+        template <typename Decayed, typename Ty, typename... Args>
+        static constexpr auto invoke(Decayed pmf, Ty &&args1, Args &&...args) noexcept(noexcept((static_cast<Ty &&>(args1).*pmf)(
+            static_cast<Args &&>(args)...))) -> decltype((static_cast<Ty &&>(args1).*pmf)(static_cast<Args &&>(args)...)) {
+            return (static_cast<Ty &&>(args1).*pmf)(static_cast<Args &&>(args)...);
+        }
+    };
+
+    template <>
+    struct invoker_impl<invoker_category::pmf_refwrap> {
+        static constexpr auto category = invoker_category::pmf_refwrap;
+
+        template <typename Decayed, template <typename> typename RefWrap, typename Ty, typename... Args>
+        static constexpr auto invoke(Decayed pmf, RefWrap<Ty> ref_wrap,
+                                     Args &&...args) noexcept(noexcept((ref_wrap.get().*pmf)(static_cast<Args &&>(args)...))) {
+            return (ref_wrap.get().*pmf)(static_cast<Args &&>(args)...);
+        }
+    };
+
+    template <>
+    struct invoker_impl<invoker_category::pmf_pointer> {
+        static constexpr auto category = invoker_category::pmf_pointer;
+
+        template <typename Decayed, typename Ty, typename... Args>
+        static constexpr auto invoke(Decayed pmf, Ty &&args1, Args &&...args) noexcept(noexcept(((*static_cast<Ty &&>(args1)).*pmf)(
+            static_cast<Args &&>(args)...))) -> decltype(((*static_cast<Ty &&>(args1)).*pmf)(static_cast<Args &&>(args)...)) {
+            return ((*static_cast<Ty &&>(args1)).*pmf)(static_cast<Args &&>(args)...);
+        }
+    };
+
+    template <>
+    struct invoker_impl<invoker_category::pmd_object> {
+        static constexpr auto category = invoker_category::pmd_pointer;
+
+        template <typename Decayed, typename Ty>
+        static constexpr auto invoke(Decayed pmd, Ty &&args) noexcept -> decltype(static_cast<Ty &&>(args).*pmd) {
+            return static_cast<Ty &&>(args).*pmd;
+        }
+    };
+
+    template <>
+    struct invoker_impl<invoker_category::pmd_refwrap> {
+        static constexpr auto category = invoker_category::pmd_refwrap;
+
+        template <typename Decayed, template <typename> typename RefWrap, typename Ty>
+        static constexpr auto invoke(Decayed pmd, RefWrap<Ty> ref_wrap) noexcept -> decltype(ref_wrap.get().*pmd) {
+            return ref_wrap.get().*pmd;
+        }
+    };
+
+    template <>
+    struct invoker_impl<invoker_category::pmd_pointer> {
+        static constexpr auto category = invoker_category::pmd_pointer;
+
+        template <typename Decayed, typename Ty>
+        static constexpr auto invoke(Decayed pmd, Ty &&args) noexcept(noexcept((*static_cast<Ty &&>(args)).*
+                                                                               pmd)) -> decltype((*static_cast<Ty &&>(args)).*pmd) {
+            return (*static_cast<Ty &&>(args)).*pmd;
+        }
+    };
+
+    template <typename Callable, typename Ty1, typename RemovedCvref = type_traits::cv_modify::remove_cvref_t<Callable>,
+              bool is_pmf = type_traits::primary_types::is_member_function_pointer_v<RemovedCvref>,
+              bool is_pmd = type_traits::primary_types::is_member_object_pointer_v<RemovedCvref>>
+    struct select_invoker {};
+
+    template <typename Callable, typename Ty1, typename RemovedCvref>
+    struct select_invoker<Callable, Ty1, RemovedCvref, true, false> {
+        using __class_type = typename type_traits::primary_types::member_pointer_traits<RemovedCvref>::class_type;
+        using __ty1_type = type_traits::cv_modify::remove_cvref_t<Ty1>;
+
+        template <bool Test, invoker_category IfTrue, invoker_category IfFalse>
+        static constexpr auto cond_v = type_traits::other_trans::conditional_value_v<invoker_category, Test, IfTrue, IfFalse>;
+
+        static constexpr auto value = cond_v < type_traits::type_relations::is_same_v<__class_type, __ty1_type> ||
+                                      type_traits::type_relations::is_base_of_v<__class_type, __ty1_type>,
+                              invoker_category::pmf_object,
+                              cond_v < type_traits::primary_types::is_specialization_v<__ty1_type, std::reference_wrapper> ||
+                                  type_traits::primary_types::is_specialization_v<__ty1_type, utility::reference_wrapper>,
+                              invoker_category::pmf_refwrap, invoker_category::pmf_pointer >>
+            ;
+    };
+
+    template <typename Callable, typename Ty1, typename RemovedCvref>
+    struct select_invoker<Callable, Ty1, RemovedCvref, false, true> {
+        using __class_type = typename type_traits::primary_types::member_pointer_traits<RemovedCvref>::class_type;
+        using __ty1_type = type_traits::cv_modify::remove_cvref_t<Ty1>;
+
+        template <bool Test, invoker_category IfTrue, invoker_category IfFalse>
+        static constexpr auto cond_v = type_traits::other_trans::conditional_value_v<invoker_category, Test, IfTrue, IfFalse>;
+
+        static constexpr auto value = cond_v < type_traits::type_relations::is_same_v<__class_type, __ty1_type> ||
+                                      type_traits::type_relations::is_base_of_v<__class_type, __ty1_type>,
+                              invoker_category::pmd_object,
+                              cond_v < type_traits::primary_types::is_specialization_v<__ty1_type, std::reference_wrapper> ||
+                                  type_traits::primary_types::is_specialization_v<__ty1_type, utility::reference_wrapper>,
+                              invoker_category::pmd_refwrap, invoker_category::pmd_pointer >>
+            ;
+    };
+
+    template <typename Callable, typename Ty1, typename RemovedCvref>
+    struct select_invoker<Callable, Ty1, RemovedCvref, false, false> {
+        static constexpr auto value = invoker_category::functor;
+    };
+}
+
+namespace rainy::utility {
+    template <typename Callable, typename Ty1 = void>
+    struct invoker : internals::invoker_impl<internals::select_invoker<Callable, Ty1>::value> {};
+
+    template <typename Callable>
+    constexpr auto invoke(Callable &&object) noexcept(noexcept(static_cast<Callable &&>(object)()))
+        -> decltype(static_cast<Callable &&>(object)()) {
+        return static_cast<Callable &&>(object)();
+    }
+
+    template <typename Callable, typename Ty, typename... Args>
+    constexpr auto invoke(Callable &&object, Ty &&args1, Args &&...args2) noexcept(noexcept(
+        invoker<Callable, Ty>::invoke(static_cast<Callable &&>(object), static_cast<Ty &&>(args1), static_cast<Args &&>(args2)...)))
+        -> decltype(invoker<Callable, Ty>::invoke(static_cast<Callable &&>(object), static_cast<Ty &&>(args1),
+                                                  static_cast<Args &&>(args2)...)) {
+        // 我们可以直接使用invoker提供的invoke模板函数完成调用
+        return invoker<Callable, Ty>::invoke(utility::forward<Callable>(object), utility::forward<Ty>(args1),
+                                             utility::forward<Args>(args2)...);
+    }
+}
+
+namespace rainy::type_traits::internals {
+    template <typename Rx, bool NoThrow>
+    struct invoke_traits_common {
+        using type = Rx;
+        using is_invocable = helper::true_type;
+        using is_nothrow_invocable = helper::bool_constant<NoThrow>;
+        template <typename Rx_>
+        using is_invocable_r = helper::bool_constant<
+            logical_traits::disjunction_v<primary_types::is_void<Rx>, type_properties::is_invoke_convertible<type, Rx>>>;
+        template <typename Rx_>
+        using is_nothrow_invocable_r = helper::bool_constant<logical_traits::conjunction_v<
+            is_nothrow_invocable,
+            logical_traits::disjunction<primary_types::is_void<Rx>,
+                                        logical_traits::conjunction<type_properties::is_invoke_convertible<type, Rx>,
+                                                                    type_properties::is_invoke_nothrow_convertible<type, Rx>>>>>;
+    };
+
+    template <typename Void, typename Callable>
+    struct invoke_traits_zero {
+        using is_invocable = helper::false_type;
+        using is_nothrow_invocable = helper::false_type;
+        template <typename Rx>
+        using is_invocable_r = helper::false_type;
+        template <typename Rx>
+        using is_nothrow_invocable_r = helper::false_type;
+        using is_void_ = primary_types::is_void<Void>;
+        using Callable_type_ = Callable;
+    };
+
+    template <typename Callable>
+    using decltype_invoke_zero = decltype(utility::declval<Callable>()());
+
+    template <typename Callable>
+    struct invoke_traits_zero<other_trans::void_t<decltype_invoke_zero<Callable>>, Callable>
+        : invoke_traits_common<decltype_invoke_zero<Callable>, noexcept(utility::declval<Callable>()())> {};
+
+    template <typename Void, typename... Args>
+    struct invoke_traits_nonzero {
+        using is_invocable = helper::false_type;
+        using is_nothrow_invocable = helper::false_type;
+
+        template <typename Rx>
+        using is_invocable_r = helper::false_type;
+
+        template <typename Rx>
+        using is_nothrow_invocable_r = helper::false_type;
+
+        using is_void_ = primary_types::is_void<Void>;
+    };
+
+    template <typename Callable, typename Ty1, typename... Args2>
+    using decltype_invoke_nonzero =
+        decltype(utility::invoker<Callable, Ty1>::invoke(utility::declval<Callable>(), utility::declval<Ty1>(), utility::declval<Args2>()...));
+
+    template <typename Callable, typename Ty1, typename... Args2>
+    struct invoke_traits_nonzero<other_trans::void_t<decltype_invoke_nonzero<Callable, Ty1, Args2...>>, Callable, Ty1, Args2...>
+        : invoke_traits_common<decltype_invoke_nonzero<Callable, Ty1, Args2...>,
+                               noexcept(utility::invoker<Callable, Ty1>::invoke(utility::declval<Callable>(), utility::declval<Ty1>(),
+                                                                       utility::declval<Args2>()...))> {};
+
+    template <typename Callable, typename... Args>
+    using select_invoke_traits = other_trans::conditional_t<sizeof...(Args) == 0, invoke_traits_zero<void, Callable>,
+                                                            invoke_traits_nonzero<void, Callable, Args...>>;
+
+
 }
 
 #endif

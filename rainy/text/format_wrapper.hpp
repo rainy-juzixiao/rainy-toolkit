@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef JUZIXIAO_FORMAT_WRAPPER_HPP
-#define JUZIXIAO_FORMAT_WRAPPER_HPP
+#ifndef RAINY_FORMAT_WRAPPER_HPP
+#define RAINY_FORMAT_WRAPPER_HPP
 #include <rainy/core/core.hpp>
 #include <rainy/system/basic_exceptions.hpp>
 #include <string>

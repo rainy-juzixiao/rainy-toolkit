@@ -177,7 +177,7 @@ clang和GNU编译器区域
 #endif
 
 // 启用juzixioa's libray的AVX2支持，这将使得某些函数可以通过AVX2指令集进行较大程度的优化
-#define RAINY_USING_AVX2 false
+#define RAINY_USING_AVX2 true
 
 #if RAINY_USING_AVX2
 
@@ -1053,6 +1053,45 @@ namespace rainy::utility {
 namespace rainy::information::internals {
     constexpr static raw_string_view<char> token_charset("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789");
 }
+
+#include <thread>
+
+namespace rainy::information {
+    static const std::size_t max_threads = std::thread::hardware_concurrency();
+}
+
+#if RAINY_HAS_CXX20
+#include <format>
+namespace rainy::type_traits::concepts {
+    template <typename Ty1, typename Ty2>
+    concept same_as = internals::_is_same_v<Ty1, Ty2>;
+
+    template <typename base, typename derived>
+    concept derived_from =
+        __is_base_of(base, derived) && type_relations::is_convertible_v<const volatile derived *, const volatile base *>;
+
+    template <typename Ty, typename Context = std::format_context,
+              typename Formatter = Context::template formatter_type<std::remove_const_t<Ty>>>
+    concept formattable_with = std::semiregular<Formatter> &&
+                               requires(Formatter &formatter, const Formatter &const_formatter, Ty &&type, Context format_context,
+                                        std::basic_format_parse_context<typename Context::char_type> parse_context) {
+                                   { formatter.parse(parse_context) } -> same_as<typename decltype(parse_context)::iterator>;
+                                   { const_formatter.format(type, format_context) } -> same_as<typename Context::iterator>;
+                               };
+
+    template <typename Ty, typename Context = std::format_context,
+              typename Formatter = Context::template formatter_type<std::remove_const_t<Ty>>>
+    concept formattable_with_non_const =
+        std::semiregular<Formatter> && requires(Formatter &formatter, Ty &&type, Context format_context,
+                                                std::basic_format_parse_context<typename Context::char_type> parse_context) {
+            { formatter.parse(format_context) } -> std::same_as<typename decltype(parse_context)::iterator>;
+            { formatter.format(type, format_context) } -> std::same_as<typename Context::iterator>;
+        };
+}
+#endif
+
+
+
 
 
 

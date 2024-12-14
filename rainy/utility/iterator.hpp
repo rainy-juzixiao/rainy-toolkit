@@ -2,6 +2,8 @@
 #define RAINY_UTILITY_ITERATOR_HPP
 #include <rainy/core/core.hpp>
 #include <rainy/diagnostics/contract.hpp>
+#include <istream>
+#include <ostream>
 
 namespace rainy::type_traits::extras::meta_typedef {
     template <typename Ty, typename = void>
@@ -179,17 +181,14 @@ namespace rainy::utility {
             return end_ptr - begin_ptr;
         }
 
-        constexpr size_type distance(pointer ptr) const noexcept {
-            return end_ptr - ptr;
-        }
-
-        constexpr void run_assert(pointer current,
-                                  std::string_view error_value_init_iterator_msg = "can't access value-initialized iterator",
-                                  std::string_view error_out_of_range_msg = "can't dereference out of range iterator") const {
+        constexpr void run_assert(pointer current, std::string_view error_value_init_iterator_msg,
+                                  std::string_view error_out_of_range_msg) const {
+#if RAINY_ENABLE_DEBUG
             if (valid()) {
                 expects(current, error_value_init_iterator_msg);
                 expects(begin_ptr <= current && current < end_ptr, error_out_of_range_msg);
             }
+#endif
         }
 
     private:
@@ -208,46 +207,55 @@ namespace rainy::utility {
 
 namespace rainy::utility {
     template <typename Iter>
-    class iterator : protected iterator_range<Iter> {
+    class const_iterator {
     public:
+        template <typename>
+        friend class iterator;
+
         using iterator_type = Iter;
         using iterator_traits = utility::iterator_traits<iterator_type>;
         using iterator_category = typename iterator_traits::iterator_category;
         using value_type = typename iterator_traits::value_type;
         using difference_type = typename iterator_traits::difference_type;
-        using reference = typename iterator_traits::reference;
         using const_reference = const value_type &;
-        using pointer = typename iterator_traits::pointer;
         using const_pointer = const value_type *;
 
         using range_base = iterator_range<iterator_type>;
 
-        constexpr iterator() noexcept {};
-        constexpr iterator &operator=(iterator &&) noexcept = default;
-        constexpr iterator &operator=(const iterator &) noexcept = default;
+        constexpr const_iterator() noexcept {};
+        constexpr const_iterator &operator=(const_iterator &&) noexcept = default;
+        constexpr const_iterator &operator=(const const_iterator &) noexcept = default;
 
-        explicit constexpr iterator(iterator_type current) noexcept :
-           range_base(), current(current) {
+        explicit constexpr const_iterator(iterator_type current) noexcept :
+           range_base_(), current(current) {
         }
 
-        constexpr iterator(iterator_type current,range_base safe_range) noexcept :
-            range_base(safe_range), current(current) {
+        constexpr const_iterator(iterator_type current,range_base safe_range) noexcept :
+            range_base_(safe_range), current(current) {
         }
 
-        constexpr iterator(const iterator &right) : range_base(right), current(right.current) {
+        constexpr const_iterator(const const_iterator &right) : range_base_(right.range_base_), current(right.current) {
         }
 
-        constexpr iterator(iterator &&right) noexcept : range_base(right), current(utility::exchange(right.current, {})) {
+        constexpr const_iterator(const_iterator &&right) noexcept : range_base_(right), current(utility::exchange(right.current, {})) {
         }
 
-        RAINY_CONSTEXPR20 ~iterator() = default;
+        RAINY_CONSTEXPR20 ~const_iterator() = default;
 
-        constexpr pointer get_pointer() noexcept {
-            return const_cast<pointer>(static_cast<const iterator*>(this)->get_pointer());
+        constexpr const_pointer begin() const noexcept {
+            return range_base_.begin();
+        }
+
+        constexpr const_pointer end() const noexcept {
+            return range_base_.end();
+        }
+
+        constexpr std::size_t length() const noexcept {
+            return range_base_.length();
         }
 
         constexpr const_pointer get_pointer() const noexcept {
-            this->run_assert(current);
+            this->run_assert(current, "can't access value-initialized iterator.", "can't get a pointer from a out of range iterator.");
             if constexpr (type_traits::primary_types::is_pointer_v<iterator_type>) {
                 return current;
             } else {
@@ -255,118 +263,94 @@ namespace rainy::utility {
             }
         }
 
-        constexpr pointer operator->() noexcept {
-            return get_pointer();
-        }
-
         constexpr const_pointer operator->() const noexcept {
             return get_pointer();
         }
 
-        constexpr reference dereference() noexcept {
-            this->run_assert(current);
-            return *current;
-        }
-
         constexpr const_reference dereference() const noexcept {
-            this->run_assert(current);
+            range_base_.run_assert(current, "can't access value-initialized iterator.", "can't dereference a out of range iterator.");
             return *current;
-        }
-
-        constexpr reference operator*() noexcept {
-            return dereference();
         }
 
         constexpr const_reference operator*() const noexcept {
             return dereference();
         }
 
-        constexpr iterator& self_inc_prefix() noexcept {
+        constexpr const_iterator &self_inc_prefix() noexcept {
             ++current;
             return *this;
         }
 
-        constexpr iterator self_inc_postfix() noexcept {
-            iterator temp = *this;
+        constexpr const_iterator self_inc_postfix() noexcept {
+            const_iterator temp = *this;
             ++(*this);
             return temp;
         }
 
-        constexpr iterator &operator++() noexcept {
+        constexpr const_iterator &operator++() noexcept {
             return self_inc_prefix();
         }
 
-        constexpr iterator operator++(int) noexcept {
+        constexpr const_iterator operator++(int) noexcept {
             return self_inc_postfix();
         }
 
-        constexpr iterator& self_dec_prefix() noexcept {
+        constexpr const_iterator &self_dec_prefix() noexcept {
             --current;
             return *this;
         }
 
-        constexpr iterator self_dec_postfix() noexcept {
-            iterator temp = *this;
+        constexpr const_iterator self_dec_postfix() noexcept {
+            const_iterator temp = *this;
             --(*this);
             return temp;
         }
 
-        constexpr iterator &operator--() noexcept {
+        constexpr const_iterator &operator--() noexcept {
             return self_dec_prefix();
         }
 
-        constexpr iterator operator--(int) noexcept {
+        constexpr const_iterator operator--(int) noexcept {
             return self_dec_postfix();
         }
-
-        constexpr iterator &plus_equal(difference_type n) noexcept {
+        
+        constexpr const_iterator &plus_equal(difference_type n) noexcept {
             current += n;
             return *this;
         }
 
-        constexpr iterator &minus_equal(difference_type n) noexcept {
+        constexpr const_iterator &minus_equal(difference_type n) noexcept {
             current -= n;
             return *this;
         }
 
-        constexpr iterator &operator+=(difference_type n) noexcept {
+        constexpr const_iterator &operator+=(difference_type n) noexcept {
             return plus_equal(n);
         }
 
-        constexpr iterator &operator-=(difference_type n) noexcept {
-            return minus_equal(n);            
+        constexpr const_iterator &operator-=(difference_type n) noexcept {
+            return minus_equal(n);
         }
 
-        constexpr void swap(iterator &right) noexcept {
-            std::swap(this->current, right.current);
-        }
-
-        constexpr bool is_equal(const iterator &right) const noexcept {
+        constexpr bool is_equal(const const_iterator &right) const noexcept {
             return current == right.current;
         }
 
-        constexpr bool not_equal(const iterator &right) const noexcept {
+        constexpr bool not_equal(const const_iterator &right) const noexcept {
             return current != right.current;
         }
 
-        constexpr friend bool operator==(const iterator &left, const iterator &right) {
+        constexpr friend bool operator==(const const_iterator &left, const const_iterator &right) {
             return left.is_equal(right);
         }
 
-        constexpr friend bool operator!=(const iterator &left, const iterator &right) {
+        constexpr friend bool operator!=(const const_iterator &left, const const_iterator &right) {
             return left.not_equal(right);
         }
 
-        constexpr reference at_subscript(difference_type idx) noexcept {
-            return current[idx];
-        }
-
         constexpr const_reference at_subscript(difference_type idx) const noexcept {
+            this->run_assert(current, "can't access value-initialized iterator.", "can't dereference a out of range iterator.");
             return current[idx];
-        }
-
-        constexpr reference operator[](difference_type idx) noexcept {
-            return at_subscript(idx);
         }
 
         constexpr const_reference operator[](difference_type idx) const noexcept {
@@ -381,72 +365,117 @@ namespace rainy::utility {
             return !empty();
         }
 
-        constexpr iterator add_offset(difference_type n) const noexcept {
-            return iterator{current + n};
-        }
-
-        constexpr iterator add_offset(const iterator &right) const noexcept {
-            return iterator{current + right.current};
+        constexpr const_iterator add_offset(difference_type n) const noexcept {
+            return const_iterator{current + n};
         }
         
-        constexpr friend iterator operator+(const iterator &left, difference_type n) {
+        constexpr friend const_iterator operator+(const const_iterator &left, difference_type n) {
             return left.add_offset(n);
-        }
-
-        constexpr friend iterator operator+(const iterator &left, const iterator &right) {
-            return left.add_offset(right);
         }
 
         constexpr difference_type subtract(difference_type n) const noexcept {
             return current - n;
         }
 
-        constexpr difference_type subtract(const iterator &right) const noexcept {
+        constexpr difference_type subtract(const const_iterator &right) const noexcept {
             return current - right.current;
         }
 
-        constexpr friend difference_type operator-(const iterator &left, const iterator &right) {
+        constexpr friend difference_type operator-(const const_iterator &left, const const_iterator &right) {
             return left.subtract(right);
         }
 
-        constexpr friend difference_type operator-(const iterator &left, difference_type n) {
+        constexpr friend difference_type operator-(const const_iterator &left, difference_type n) {
             return left.subtract(n);
         }
 
-        constexpr bool lt(const iterator &right) const noexcept {
+        constexpr bool lt(const const_iterator &right) const noexcept {
             return current < right.current;
         }
 
-        constexpr friend bool operator<(const iterator &left, const iterator &right) {
+        constexpr friend bool operator<(const const_iterator &left, const const_iterator &right) {
             return left.lt(right);
         }
 
-        constexpr bool lt_or_equal(const iterator &right) const noexcept {
+        constexpr bool lt_or_equal(const const_iterator &right) const noexcept {
             return current <= right.current;
         }
 
-        constexpr friend bool operator<=(const iterator &left, const iterator &right) {
+        constexpr friend bool operator<=(const const_iterator &left, const const_iterator &right) {
             return left.lt_or_equal(right);
         }
 
-        constexpr bool greater_than(const iterator &right) const noexcept {
+        constexpr bool greater_than(const const_iterator &right) const noexcept {
             return current > right.current;
         }
 
-        constexpr friend bool operator>(const iterator &left, const iterator &right) {
+        constexpr friend bool operator>(const const_iterator &left, const const_iterator &right) {
             return left.greater_than(right);
         }
 
-        constexpr bool greater_than_or_equal(const iterator &right) const noexcept {
+        constexpr bool greater_than_or_equal(const const_iterator &right) const noexcept {
             return current >= right.current;
         }
 
-        constexpr friend bool operator>=(const iterator &left, const iterator &right) {
+        constexpr friend bool operator>=(const const_iterator &left, const const_iterator &right) {
             return left.greater_than_or_equal(right);
         }
 
     private:
         iterator_type current;
+        iterator_range<Iter> range_base_;
+    };
+
+    template <typename Iter>
+    class iterator : public const_iterator<Iter> {
+    public:
+        using iterator_type = Iter;
+        using iterator_traits = utility::iterator_traits<iterator_type>;
+        using reference = typename iterator_traits::reference;
+        using pointer = typename iterator_traits::pointer;
+
+        using base = const_iterator<Iter>;
+
+        constexpr iterator() noexcept : base() {};
+
+        constexpr iterator(iterator_type current, iterator_range<Iter> safe_range) noexcept : base(current, safe_range) {
+        }
+
+        constexpr iterator(const iterator &right) : base(right) {
+        }
+
+        constexpr iterator(iterator &&right) noexcept : base(right) {
+        }
+
+        RAINY_CONSTEXPR20 ~iterator() = default;
+
+        constexpr base &as_const_iterator() const noexcept {
+            return *this;
+        } 
+
+        constexpr pointer begin() noexcept {
+            return const_cast<pointer>(this->range_base_.begin());
+        }
+
+        constexpr pointer end() noexcept {
+            return const_cast<pointer>(this->range_base_.end());
+        }
+
+        constexpr pointer get_pointer() noexcept {
+            return const_cast<pointer>(static_cast<const base *>(this)->get_pointer());
+        }
+
+        constexpr pointer operator->() noexcept {
+            return get_pointer();
+        }
+
+        constexpr reference dereference() noexcept {
+            return const_cast<reference>(static_cast<const base *>(this)->dereference());
+        }
+
+        constexpr reference operator*() noexcept {
+            return dereference();
+        }
     };
 }
 
@@ -490,7 +519,6 @@ namespace rainy::utility {
             return current;
         }
 
-        
         constexpr pointer get_pointer() noexcept {
             return const_cast<pointer>(this->get_pointer());
         }
@@ -516,24 +544,23 @@ namespace rainy::utility {
             return *--tmp;
         }
 
-        RAINY_CONSTEXPR20 const_reference operator*() const noexcept(
-            noexcept(*--(utility::declval<iterator_type &>()))) {
+        RAINY_CONSTEXPR20 const_reference operator*() const noexcept(noexcept(*--(utility::declval<iterator_type &>()))) {
             iterator_type tmp = current;
             return *--tmp;
         }
 
-        RAINY_CONSTEXPR20 reverse_iterator& operator++() noexcept {
+        RAINY_CONSTEXPR20 reverse_iterator &operator++() noexcept {
             --current;
             return *this;
         }
 
-        RAINY_CONSTEXPR20 reverse_iterator& operator++(int) noexcept {
+        RAINY_CONSTEXPR20 reverse_iterator &operator++(int) noexcept {
             reverse_iterator temp = *this;
             --(*this);
             return temp;
         }
 
-        RAINY_CONSTEXPR20 reverse_iterator& operator--() noexcept {
+        RAINY_CONSTEXPR20 reverse_iterator &operator--() noexcept {
             --current;
             return *this;
         }
@@ -549,69 +576,202 @@ namespace rainy::utility {
             return *this;
         }
 
-        RAINY_CONSTEXPR20 reverse_iterator &operator-=(difference_type n) noexcept {
+        reverse_iterator &operator-=(difference_type n) noexcept {
             current += n;
             return *this;
         }
 
-        RAINY_CONSTEXPR20 void swap(reverse_iterator &right) noexcept {
+        void swap(reverse_iterator &right) noexcept {
             std::swap(this->current, right.current);
         }
 
-        RAINY_CONSTEXPR20 friend bool operator==(const reverse_iterator &left, const reverse_iterator &right) {
+        friend bool operator==(const reverse_iterator &left, const reverse_iterator &right) {
             return left.current == right.current;
         }
 
-        RAINY_CONSTEXPR20 friend bool operator!=(const reverse_iterator &left, const reverse_iterator &right) {
+        friend bool operator!=(const reverse_iterator &left, const reverse_iterator &right) {
             return left.current != right.current;
         }
 
-        RAINY_CONSTEXPR20 reference operator[](difference_type idx) noexcept {
+        reference operator[](difference_type idx) noexcept {
             return current[-idx - 1];
         }
 
-        RAINY_CONSTEXPR20 const_reference operator[](difference_type idx) const noexcept {
+        const_reference operator[](difference_type idx) const noexcept {
             return current[-idx - 1];
         }
 
-        RAINY_NODISCARD_CONSTEXPR20 bool empty() const noexcept {
+        bool empty() const noexcept {
             return this->current == nullptr;
         }
 
-        RAINY_CONSTEXPR20 explicit operator bool() const noexcept {
+        explicit operator bool() const noexcept {
             return !empty();
         }
 
-        RAINY_CONSTEXPR20 friend reverse_iterator operator+(const reverse_iterator &_iterator, difference_type n) {
+        friend reverse_iterator operator+(const reverse_iterator &_iterator, difference_type n) {
             return reverse_iterator{_iterator.current - n};
         }
 
-        RAINY_CONSTEXPR20 friend reverse_iterator operator+(const reverse_iterator &left, const reverse_iterator &right) {
+        friend reverse_iterator operator+(const reverse_iterator &left, const reverse_iterator &right) {
             return reverse_iterator{left.current - right.current};
         }
 
-        RAINY_CONSTEXPR20 friend difference_type operator-(const reverse_iterator &left, const reverse_iterator &right) {
+        friend difference_type operator-(const reverse_iterator &left, const reverse_iterator &right) {
             return left.current + right.current;
         }
 
-        RAINY_CONSTEXPR20 friend bool operator<(const reverse_iterator &left, const reverse_iterator &right) {
-            return left.current < right.current;
+        constexpr bool lt(const reverse_iterator &right) const noexcept {
+            return current < right.current;
         }
 
-        RAINY_CONSTEXPR20 friend bool operator<=(const reverse_iterator &left, const reverse_iterator &right) {
-            return left.current <= right.current;
+        constexpr friend bool operator<(const reverse_iterator &left, const reverse_iterator &right) {
+            return left.lt(right);
         }
 
-        RAINY_CONSTEXPR20 friend bool operator>(const reverse_iterator &left, const reverse_iterator &right) {
-            return left.current > right.current;
+        constexpr bool lt_or_equal(const reverse_iterator &right) const noexcept {
+            return current <= right.current;
         }
 
-        RAINY_CONSTEXPR20 friend bool operator>=(const reverse_iterator &left, const reverse_iterator &right) {
-            return left.current >= right.current;
+        constexpr friend bool operator<=(const reverse_iterator &left, const reverse_iterator &right) {
+            return left.lt_or_equal(right);
+        }
+
+        constexpr bool greater_than(const reverse_iterator &right) const noexcept {
+            return current > right.current;
+        }
+
+        constexpr friend bool operator>(const reverse_iterator &left, const reverse_iterator &right) {
+            return left.greater_than(right);
+        }
+
+        constexpr bool greater_than_or_equal(const reverse_iterator &right) const noexcept {
+            return current >= right.current;
+        }
+
+        constexpr friend bool operator>=(const reverse_iterator &left, const reverse_iterator &right) {
+            return left.greater_than_or_equal(right);
         }
 
     private:
         iterator_type current;
+    };
+}
+namespace rainy::utility {
+    template <typename Ty, typename Elem = char, typename Traits = std::char_traits<Elem>,typename Diff = std::ptrdiff_t>
+    class istream_iterator {
+    public:
+        using iterator_category = std::input_iterator_tag;
+        using value_type = Ty;
+        using difference_type = Diff;
+        using pointer = const value_type *;
+        using reference = const value_type &;
+        using char_type = Elem;
+        using traits_type = Traits;
+        using istream_type = std::basic_istream<Elem, Traits>;
+
+        static_assert(type_traits::logical_traits::conjunction_v<std::is_default_constructible<Ty>, std::is_copy_constructible<Ty>,
+                                                                 std::is_copy_assignable<Ty>>,
+                      "istream_iterator<T> requires T to be default constructible, copy constructible, and copy assignable. ");
+
+        constexpr istream_iterator() noexcept(std::is_nothrow_default_constructible_v<Ty>) {
+        }
+
+        istream_iterator(istream_iterator &ifstream) : istream(addressof(ifstream)){
+        }
+
+        RAINY_NODISCARD reference operator*() const noexcept {
+            expects(istream, "The stored istream pointer in istream_iterator must be not-null!");
+            return value;
+        }
+
+        RAINY_NODISCARD pointer operator->() const noexcept {
+            expects(istream, "The stored istream pointer in istream_iterator must be not-null!");
+            return addressof(value);
+        }
+
+        istream_iterator &operator++() {
+            read_next();
+            return *this;
+        }
+
+        istream_iterator self_inc_postfix() {
+            
+        }
+
+        istream_iterator operator++(int) {
+            istream_iterator tmp = *this;
+            ++(*this);
+            return tmp;
+        }
+
+        RAINY_NODISCARD bool equal(const istream_iterator& right) const noexcept {
+            return istream == right.istream;
+        }
+
+        template <typename Ty_, typename Elem_, typename Traits_, typename Diff_>
+        RAINY_NODISCARD friend bool operator==(const istream_iterator<Ty_, Elem_, Traits_, Diff_> &left,
+                                               const istream_iterator<Ty_, Elem_, Traits_, Diff_> &right) {
+            return left.equal(right);
+        }
+
+        RAINY_NODISCARD friend bool operator==(const istream_iterator &left, const istream_iterator &right) {
+            return left.equal(right);
+        }
+
+    private:
+        void read_next() {
+            expects(istream, "The stored istream pointer in istream_iterator must be not-null!");
+            if (!(*istream >> value)) {
+                istream = nullptr;
+            }
+        }
+
+        istream_type *istream{nullptr};
+        Ty value{};
+    };
+
+    template <typename Ty, typename Elem = char, typename Traits = std::char_traits<Elem>>
+    class ostream_iterator {
+    public:
+        using iterator_category = std::output_iterator_tag;
+        using value_type = void;
+        using difference_type = std::ptrdiff_t;
+        using pointer = void;
+        using reference = void;
+        using char_type = Elem;
+        using traits_type = Traits;
+        using ostream_type = std::basic_ostream<Elem, Traits>;
+
+        ostream_iterator() = delete;
+
+        ostream_iterator(ostream_type &ostream, const char_type *const delim = nullptr) noexcept :
+            delim(delim), ostream(rainy::utility::addressof(ostream)) {
+        }
+
+        ostream_iterator &operator=(const Ty &val) {
+            *ostream << val;
+            if (delim) {
+                *ostream << delim;
+            }
+            return *this;
+        }
+
+        _NODISCARD ostream_iterator &operator*() noexcept {
+            return *this;
+        }
+
+        ostream_iterator &operator++() noexcept {
+            return *this;
+        }
+
+        ostream_iterator &operator++(int) noexcept {
+            return *this;
+        }
+
+    private:
+        const char_type *delim;
+        ostream_type *ostream;
     };
 }
 

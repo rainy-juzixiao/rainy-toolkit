@@ -12,8 +12,8 @@
 #include <rainy/functional/function_pointer.hpp>
 #include <rainy/diagnostics/contract.hpp>
 #include <rainy/utility/iterator.hpp>
-#include <rainy/utility/ref_wrap.hpp>
-#include <rainy/utility/invoke.hpp>
+#include <rainy/containers/array.hpp>
+#include <rainy/algorithm/modify_algorithm.hpp>
 
 /* standard-libray header */
 #include <algorithm>
@@ -54,36 +54,21 @@
 #include <windows.h>
 #endif
 
-namespace rainy::information {
-    static const std::size_t max_threads = std::thread::hardware_concurrency();
-}
-
 #if RAINY_HAS_CXX20
-namespace rainy::type_traits::concepts {
-    template <typename Ty1, typename Ty2>
-    concept same_as = internals::_is_same_v<Ty1, Ty2>;
+template <typename Ty>
+class std::formatter<rainy::utility::reference_wrapper<Ty>, char> // NOLINT
+{
+public:
+    explicit formatter() noexcept = default;
 
-    template <typename base, typename derived>
-    concept derived_from = __is_base_of(base, derived) && internals::_is_convertible_v<const volatile derived *, const volatile base *>;
+    auto parse(format_parse_context &ctx) const noexcept {
+        return ctx.begin();
+    }
 
-    template <typename Ty, typename Context = std::format_context,
-              typename Formatter = Context::template formatter_type<std::remove_const_t<Ty>>>
-    concept formattable_with =
-        std::semiregular<Formatter> && requires(Formatter &formatter, const Formatter &const_formatter, Ty &&type, Context format_context,
-                                                std::basic_format_parse_context<typename Context::char_type> parse_context) {
-            { formatter.parse(parse_context) } -> same_as<typename decltype(parse_context)::iterator>;
-            { const_formatter.format(type, format_context) } -> same_as<typename Context::iterator>;
-        };
-
-    template <typename Ty, typename Context = std::format_context,
-              typename Formatter = Context::template formatter_type<std::remove_const_t<Ty>>>
-    concept formattable_with_non_const =
-        std::semiregular<Formatter> && requires(Formatter &formatter, Ty &&type, Context format_context,
-                                                std::basic_format_parse_context<typename Context::char_type> parse_context) {
-            { formatter.parse(format_context) } -> std::same_as<typename decltype(parse_context)::iterator>;
-            { formatter.format(type, format_context) } -> std::same_as<typename Context::iterator>;
-        };
-}
+    auto format(const rainy::utility::reference_wrapper<Ty> &value, std::format_context fc) const noexcept {
+        return std::format_to(fc.out(), "{}", value.get());
+    }
+};
 #endif
 
 namespace rainy::component {
@@ -1115,278 +1100,7 @@ namespace rainy::utility {
     };
 }
 
-namespace rainy::containers {
-    template <typename Ty, std::size_t N>
-    class array final {
-    public:
-        using value_type = Ty;
-        using size_type = std::size_t;
-        using reference = Ty &;
-        using const_reference = const Ty &;
-        using pointer = value_type *;
-        using const_pointer = const value_type *;
-        using difference_type = std::ptrdiff_t;
-        /* 普通迭代器 */
-        using iterator = utility::iterator<pointer>;
-        using const_iterator = utility::iterator<const_pointer>;
-        using reverse_iterator = utility::reverse_iterator<iterator>;
-        using const_reverse_iterator = utility::reverse_iterator<iterator>;
 
-        RAINY_CONSTEXPR20 ~array() = default;
-
-        /**
-         * @brief 获取指定下标的元素
-         * @attention 此函数进行范围检查
-         * @param off 偏移量
-         * @return 返回对应下标的元素引用
-         */
-        RAINY_NODISCARD RAINY_ALWAYS_INLINE reference at(difference_type off) {
-            range_check(off);
-            return elems_[off];
-        }
-
-        /**
-         * @brief 获取指定下标的元素
-         * @attention 此函数进行范围检查
-         * @param off 偏移量
-         * @return 返回对应下标的元素引用
-         */
-        RAINY_NODISCARD RAINY_ALWAYS_INLINE  const_reference at(difference_type off) const {
-            check_zero_length_array();
-            range_check(off);
-            return elems_[off];
-        }
-
-        /**
-         * @brief 获取当前数组第一个元素
-         * @return 返回第一个元素的引用
-         */
-        RAINY_NODISCARD RAINY_ALWAYS_INLINE reference front() {
-            check_zero_length_array();
-            return elems_[0];
-        }
-
-        /**
-         * @brief 获取当前数组第一个元素
-         * @return 返回第一个元素的引用
-         */
-        RAINY_NODISCARD RAINY_ALWAYS_INLINE constexpr const_reference front() const {
-            check_zero_length_array();
-            return elems_[0];
-        }
-
-        /**
-         * @brief 获取当前数组最后一个元素
-         * @return 返回最后一个元素的引用
-         */
-        RAINY_NODISCARD RAINY_ALWAYS_INLINE reference back() {
-            check_zero_length_array();
-            return elems_[N - 1];
-        }
-
-        /**
-         * @brief 获取当前数组最后一个元素
-         * @return 返回最后一个元素的引用
-         */
-        RAINY_NODISCARD RAINY_ALWAYS_INLINE constexpr const_reference back() const {
-            check_zero_length_array();
-            return elems_[N - 1];
-        }
-
-        /**
-         * @brief 获取指定下标的元素
-         * @attention 此函数不进行范围检查
-         * @param idx 索引下标
-         * @return 返回对应下标的元素引用
-         */
-        RAINY_NODISCARD RAINY_ALWAYS_INLINE reference operator[](difference_type idx) noexcept {
-            return elems_[idx]; // NOLINT
-        }
-
-        /**
-         * @brief 获取指定下标的元素
-         * @attention 此函数不进行范围检查
-         * @param idx 索引下标
-         * @return 返回对应下标的元素引用
-         */
-        RAINY_NODISCARD RAINY_ALWAYS_INLINE constexpr const_reference operator[](difference_type idx) const noexcept {
-            return elems_[idx]; // NOLINT
-        }
-
-        /**
-         * @brief 将一个对象的数据与当前对象的数据进行交换
-         * @param right 待交换的数组对象
-         */
-        RAINY_ALWAYS_INLINE void swap(array &right) noexcept(std::is_nothrow_swappable_v<Ty>) {
-            check_zero_length_array();
-            std::swap_ranges(elems_, right.elems_);
-        }
-
-        /**
-         * @brief 将一个值填充到数组中
-         * @param value 要填充的值
-         */
-        RAINY_CONSTEXPR20 void fill(const Ty &value) {
-            check_zero_length_array();
-            std::fill_n(begin(), size(), value);
-        }
-
-        /**
-         * @brief 获取当前数组大小
-         * @return 返回当前数组大小
-         */
-        RAINY_ALWAYS_INLINE constexpr static size_type size() noexcept {
-            return N;
-        }
-
-        /**
-         * @brief 检查当前数组容器是否为空
-         * @return 容器状态
-         */
-        RAINY_ALWAYS_INLINE constexpr static bool empty() noexcept {
-            return size() == 0;
-        }
-
-        /**
-         * @brief 获取当前数组地址
-         * @return 返回数组的地址，以指针形式
-         */
-        RAINY_NODISCARD RAINY_ALWAYS_INLINE constexpr pointer data() noexcept {
-            return elems_;
-        }
-
-        /**
-         * @brief 获取当前数组地址
-         * @return 返回数组的地址，以指针形式
-         */
-        RAINY_NODISCARD RAINY_ALWAYS_INLINE constexpr const_pointer data() const noexcept {
-            return elems_;
-        }
-
-        /**
-         * @brief 获取指向当前数组起始位置的迭代器
-         * @return 返回指向起始的迭代器
-         */
-        RAINY_ALWAYS_INLINE iterator begin() {
-            check_zero_length_array();
-            return iterator(elems_, utility::make_iterator_range<pointer>(elems_, elems_ + N));
-        }
-
-        /**
-         * @brief 获取指向当前数组起始位置的迭代器
-         * @return 返回指向起始的迭代器
-         */
-        RAINY_ALWASY_INLINE_NODISCARD const_iterator begin() const {
-            check_zero_length_array();
-            return const_iterator(elems_, utility::make_iterator_range<const_pointer>(elems_, elems_ + N));
-        }
-
-        /**
-         * @brief 获取指向当前数组起始位置的迭代器常量
-         * @return 返回指向起始的迭代器
-         */
-        RAINY_ALWASY_INLINE_NODISCARD const_iterator cbegin() const {
-            check_zero_length_array();
-            return const_iterator(elems_, utility::make_iterator_range<const_pointer>(elems_, elems_ + N));
-        }
-
-        /**
-         * @brief 获取指向当前数组末尾位置的反向迭代器
-         * @return 返回指向起始的反向迭代器
-         */
-        RAINY_ALWASY_INLINE_NODISCARD reverse_iterator rbegin() {
-            check_zero_length_array();
-            return reverse_iterator(end());
-        }
-
-        /**
-         * @brief 获取指向当前数组末尾位置的反向迭代器
-         * @return 返回指向起始的反向迭代器
-         */
-        RAINY_ALWASY_INLINE_NODISCARD const_reverse_iterator rbegin() const {
-            check_zero_length_array();
-            return const_reverse_iterator(end());
-        }
-
-        /**
-         * @brief 获取指向当前数组末尾位置的反向迭代器常量
-         * @return 返回指向起始的反向迭代器
-         */
-        RAINY_ALWASY_INLINE_NODISCARD const_reverse_iterator crbegin() const {
-            check_zero_length_array();
-            return const_reverse_iterator(end());
-        }
-
-        /**
-         * @brief 获取指向当前数组末尾位置的迭代器
-         * @return 返回指向末尾的迭代器
-         */
-        RAINY_ALWASY_INLINE_NODISCARD constexpr iterator end() {
-            check_zero_length_array();
-            return iterator(elems_ + N, utility::make_iterator_range<pointer>(elems_, elems_ + N));
-        }
-
-        /**
-         * @brief 获取指向当前数组末尾位置的迭代器
-         * @return 返回指向末尾的迭代器
-         */
-        RAINY_ALWASY_INLINE_NODISCARD const_iterator end() const {
-            check_zero_length_array();
-            return const_iterator(elems_ + N, utility::make_iterator_range<const_pointer>(elems_, elems_ + N));
-        }
-
-        /**
-         * @brief 获取指向当前数组末尾位置的迭代器常量
-         * @return 返回指向末尾的迭代器
-         */
-        RAINY_ALWASY_INLINE_NODISCARD const_iterator cend() const {
-            check_zero_length_array();
-            return const_iterator(elems_ + N, utility::make_iterator_range<const_pointer>(elems_, elems_ + N));
-        }
-
-        /**
-         * @brief 获取指向当前数组末尾位置的反向迭代器
-         * @return 返回指向末尾的反向迭代器
-         */
-        RAINY_ALWASY_INLINE_NODISCARD reverse_iterator rend() {
-            check_zero_length_array();
-            return reverse_iterator(end());
-        }
-
-        /**
-         * @brief 获取指向当前数组末尾位置的反向迭代器
-         * @return 返回指向末尾的反向迭代器
-         */
-        RAINY_ALWASY_INLINE_NODISCARD const_reverse_iterator rend() const {
-            check_zero_length_array();
-            return const_reverse_iterator(end());
-        }
-
-        /**
-         * @brief 获取指向当前数组末尾位置的反向迭代器常量
-         * @return 返回指向末尾的反向迭代器
-         */
-        RAINY_ALWASY_INLINE_NODISCARD const_reverse_iterator crend() const {
-            check_zero_length_array();
-            return const_reverse_iterator(end());
-        }
-
-        Ty elems_[N == 0 ? 1 : N];
-
-    private:
-        RAINY_ALWAYS_INLINE static void range_check(const difference_type offset) {
-            if (offset > N || offset == 0) {
-                foundation::system::exceptions::logic::throw_out_of_range("Invalid array subscript");
-            }
-        }
-
-        RAINY_ALWAYS_INLINE static void check_zero_length_array() {
-            if (size() == 0) {
-                std::terminate();
-            }
-        }
-    };
-}
 
 namespace rainy::containers {
     template <typename Ty>
@@ -1479,11 +1193,11 @@ namespace rainy::containers {
             return data_[idx];
         }
 
+    private:
         RAINY_NODISCARD constexpr bool check_index(const size_type idx) const noexcept {
             return idx < size_;
         }
 
-    private:
         static void rangecheck(const size_type size, const difference_type idx) {
             if (size <= idx) {
                 utility::throw_exception(std::out_of_range("Invalid array subscript"));
@@ -1774,7 +1488,7 @@ namespace rainy::utility {
     public:
         using pointer = Ty;
 
-        /// static_assert(type_traits::primary_types::is_pointer_v<Ty>, "Ty must be a pointer!");
+        // static_assert(type_traits::primary_types::is_pointer_v<Ty>, "Ty must be a pointer!");
 
         not_null() = delete;
 
@@ -1795,58 +1509,6 @@ namespace rainy::utility {
     private:
         pointer resource;
     };
-}
-
-namespace rainy::utility::internals {
-    template <typename TY>
-    constexpr void verify_range(const TY *const first, const TY *const last) noexcept {
-        // special case range verification for pointers
-        expects(first <= last, "transposed pointer range");
-    }
-
-    template <typename iter, typename = void>
-    constexpr bool allow_inheriting_unwrap_v = true;
-
-    template <typename iter>
-    constexpr bool allow_inheriting_unwrap_v<iter, type_traits::internals::_void_t<typename iter::prevent_inheriting_unwrap>> =
-        type_traits::internals::_is_same_v<iter, typename iter::prevent_inheriting_unwrap>;
-
-    template <typename iter, typename sentinel = iter, typename = void>
-    constexpr bool range_verifiable_v = false;
-
-    template <typename iter, typename sentinel>
-    constexpr bool range_verifiable_v<
-        iter, sentinel, type_traits::internals::_void_t<decltype(verify_range(declval<const iter &>(), declval<const sentinel &>()))>> =
-        allow_inheriting_unwrap_v<iter>;
-
-    template <typename iter, typename sentinel>
-    constexpr void adl_verify_range(const iter &first, const sentinel &last) {
-        // check that [first, last) forms an iterator range
-        if constexpr (type_traits::internals::_is_pointer_v<iter> &&
-                      type_traits::internals::_is_pointer_v<sentinel>) {
-            expects(first <= last, "transposed pointer range");
-        } else if constexpr (range_verifiable_v<iter, sentinel>) {
-            verify_range(first, last);
-        }
-    }
-}
-
-namespace rainy::utility {
-    template <typename Iter>
-    RAINY_NODISCARD constexpr std::ptrdiff_t distance(Iter first, Iter last) {
-        if constexpr (std::is_same_v<typename std::iterator_traits<Iter>::iterator_category, std::random_access_iterator_tag>) {
-            return last - first; // assume the iterator will do debug checking
-        } else {
-            internals::adl_verify_range(first, last);
-            auto ufirst = addressof(*first);
-            const auto ulast = addressof(*(last - 1)) + 1;
-            std::ptrdiff_t off = 0;
-            for (; ufirst != ulast; ++ufirst) {
-                ++off;
-            }
-            return off;
-        }
-    }
 }
 
 namespace rainy::text {
@@ -2541,246 +2203,7 @@ namespace rainy::utility {
 
 
 
-namespace rainy::algorithm::execution {
-    enum policy {
-        par,
-        seq,
-        max_par
-    };
-}
 
-namespace rainy::algorithm::internals {
-    RAINY_INLINE std::size_t get_paralells(const std::size_t count) {
-        std::size_t paralells = 1;
-        containers::array<std::pair<std::size_t, std::size_t>, 4> thresholds = {
-            {{75, 100}, {100, 250}, {300, 648}, {800, 1500}}};
-        containers::array<std::size_t, 4> increments = {1, 2, 3, 4};
-        for (std::size_t i = 0; i < thresholds.size(); ++i) {
-            if (count > thresholds[static_cast<ptrdiff_t>(i)].first && count <= thresholds[static_cast<ptrdiff_t>(i)].second) {
-                paralells += increments[static_cast<ptrdiff_t>(i)];
-                break;
-            }
-        }
-        if (count > 2500) {
-            paralells += 2;
-        }
-        if (information::max_threads < 16 && count > 2000) {
-            paralells += 1;
-        } else if (information::max_threads > 16 && count > 1250) {
-            if (count > 3500) {
-                paralells += 2;
-            } else if (count > 2000) {
-                paralells += 1;
-            }
-        }
-        paralells = (std::min)(information::max_threads, paralells);
-        return paralells;
-    }
-}
-
-namespace rainy::algorithm::container_operater {
-    template <typename InputIter, typename OutIter>
-    RAINY_CONSTEXPR20 OutIter copy(InputIter begin, InputIter end, OutIter dest) noexcept(
-        std::is_nothrow_copy_constructible_v<type_traits::other_trans::conditional_t<
-            type_traits::internals::_is_pointer_v<InputIter>,
-            type_traits::pointer_modify::remove_pointer_t<InputIter>, typename InputIter::value_type>>) {
-        using value_type = typename InputIter::value_type;
-        if (begin == end || (end - 1) == begin) {
-            return dest; // 不进行复制
-        }
-#if RAINY_HAS_CXX20
-        if (std::is_constant_evaluated()) {
-            auto input_begin = utility::addressof(*begin);
-            auto input_end = utility::addressof(*(end - 1)) + 1; // 防止MSVC编译器的DEBUG功能导致此处无法运作
-            auto out_dest = utility::addressof(*dest);
-            for (auto i = input_begin; i != input_end; ++i) {
-                *out_dest = *i;
-            }
-            return out_dest;
-        }
-#endif
-        if constexpr (std::is_standard_layout_v<value_type> && std::is_trivial_v<value_type>) {
-            const auto input_begin = utility::addressof(*begin);
-            const auto input_end = utility::addressof(*(end - 1)) + 1; // 防止MSVC编译器的DEBUG功能导致此处无法运作
-            auto out_dest = utility::addressof(*dest);
-            std::memcpy(out_dest, input_begin, sizeof(value_type) * utility::distance(input_begin, input_end));
-        } else {
-            for (InputIter i = begin; begin != end; ++i, ++dest) {
-                *dest = *i;
-            }
-        }
-        return dest;
-    }
-
-    template <typename InputIter, typename OutIter>
-    RAINY_CONSTEXPR20 OutIter copy(execution::policy policy, InputIter begin, InputIter end, OutIter dest) {
-        using value_type = typename InputIter::value_type;
-        if (policy == execution::seq) {
-            return copy(begin, end, dest);
-        }
-#if RAINY_HAS_CXX20
-        if (std::is_constant_evaluated()) {
-            return copy(begin, end, dest);
-        }
-#endif
-
-        auto input_begin = utility::addressof(*begin);
-        const std::size_t count = utility::distance(begin, end);
-        std::size_t threads = internals::get_paralells(count);
-        if (policy == execution::max_par) {
-            threads = information::max_threads;
-        } else {
-            if (threads == 1) {
-                return copy(begin, end, dest);
-            }
-        }
-        std::size_t chunk_size = count / threads;
-        std::size_t remainder = count % threads;
-        std::vector<std::future<void>> tasks(threads);
-        InputIter chunk_start = begin;
-        OutIter chunk_dest = dest;
-        for (std::size_t i = 0; i < threads; ++i) {
-            std::size_t current_chunk_size = chunk_size + (i < remainder ? 1 : 0);
-            tasks.emplace_back(std::async(std::launch::async, [chunk_start, chunk_dest, current_chunk_size]() {
-                copy_n(chunk_start, current_chunk_size, chunk_dest);
-            }));
-            std::advance(chunk_start, current_chunk_size);
-            std::advance(chunk_dest, current_chunk_size);
-        }
-        for (auto &task: tasks) {
-            task.get();
-        }
-        return chunk_dest;
-    }
-
-    template <typename InputIter, typename OutIter>
-    RAINY_CONSTEXPR20 OutIter copy_n(InputIter begin, const std::size_t count, OutIter dest) noexcept(
-        std::is_nothrow_copy_constructible_v<type_traits::other_trans::conditional_t<
-            type_traits::internals::_is_pointer_v<InputIter>,
-            type_traits::pointer_modify::remove_pointer_t<InputIter>, typename InputIter::value_type>>) {
-
-        using value_type = type_traits::other_trans::conditional_t<
-            type_traits::internals::_is_pointer_v<InputIter>,
-            type_traits::pointer_modify::remove_pointer_t<InputIter>, typename InputIter::value_type>;
-
-        if (count == 0) {
-            return dest; // 不进行复制
-        }
-#if RAINY_HAS_CXX20
-        if (std::is_constant_evaluated()) {
-            // 在C++20中，如果我们在常量环境求值，我们不需要考虑过多运行时优化
-            auto input_begin = utility::addressof(*begin);
-            auto out_dest = utility::addressof(*dest);
-            for (std::size_t i = 0; i < count; ++i, ++input_begin, ++dest) {
-                *out_dest = *input_begin;
-            }
-        } else
-#endif
-        {
-            if constexpr (std::is_standard_layout_v<value_type> && std::is_trivial_v<value_type>) {
-                const auto input_begin = utility::addressof(*begin);
-                auto out_dest = utility::addressof(*dest);
-                std::memcpy(out_dest, input_begin, sizeof(value_type) * count);
-            } else {
-                for (std::size_t i = 0; i < count; ++i, ++begin, ++dest) {
-                    *dest = *begin;
-                }
-            }
-        }
-        return dest;
-    }
-
-    template <typename InputIter, typename OutIter>
-    RAINY_CONSTEXPR20 OutIter copy_n(execution::policy policy, InputIter begin, const std::size_t count, OutIter dest) {
-        using value_type = typename InputIter::value_type;
-        if (policy == execution::seq) {
-            return copy_n(begin, count, dest);
-        }
-#if RAINY_HAS_CXX20
-        if (std::is_constant_evaluated()) {
-            return copy_n(begin, count, dest);
-        }
-#endif
-        auto input_begin = utility::addressof(*begin);
-        std::size_t threads = internals::get_paralells(count); // 获取可能的规模并计算出可能适合的线程数量（考虑最大线程数）
-        if (policy == execution::max_par) {
-            threads = information::max_threads;
-        } else {
-            if (threads == 1) {
-                // 线程数若为1，则只调用单线程版本
-                return copy_n(begin, count, dest);
-            }
-        }
-        std::size_t chunk_size = count / threads;
-        std::size_t remainder = count % threads;
-        std::vector<std::future<void>> tasks(threads); // 创建task表
-        InputIter chunk_start = begin;
-        OutIter chunk_dest = dest;
-        for (std::size_t i = 0; i < threads; ++i) {
-            std::size_t current_chunk_size = chunk_size + (i < remainder ? 1 : 0);
-            tasks.emplace_back(std::async(std::launch::async, [chunk_start, chunk_dest, current_chunk_size]() {
-                copy_n(chunk_start, current_chunk_size, chunk_dest);
-            }));
-            // 让std::async为我们分配工作线程（不考虑返回值）
-            std::advance(chunk_start, current_chunk_size);
-            std::advance(chunk_dest, current_chunk_size);
-        }
-        for (auto &task: tasks) {
-            task.get();
-        }
-        return chunk_dest;
-    }
-
-
-    template <typename InputIter, typename OutIter, typename Fx>
-    constexpr OutIter transform(InputIter begin, InputIter end, OutIter dest, Fx func) noexcept(
-        std::is_nothrow_copy_assignable_v<type_traits::other_trans::conditional_t<
-            type_traits::internals::_is_pointer_v<InputIter>,
-            type_traits::pointer_modify::remove_pointer_t<InputIter>, typename InputIter::value_type>>) {
-        for (InputIter iter = begin; iter != end; ++iter, ++dest) {
-            *dest = func(*iter);
-        }
-        return dest;
-    }
-
-    template <typename InputIter, typename OutIter, typename Fx>
-    constexpr OutIter transform(InputIter begin1, InputIter end1, InputIter begin2, OutIter dest, Fx func) noexcept(
-        std::is_nothrow_copy_assignable_v<type_traits::other_trans::conditional_t<
-            type_traits::internals::_is_pointer_v<InputIter>,
-            type_traits::pointer_modify::remove_pointer_t<InputIter>, typename InputIter::value_type>>) {
-        if (begin1 == end1 || (end1 - 1) == begin1) {
-            return dest;
-        }
-        for (InputIter iter = begin1; iter != end1; ++iter, ++dest, ++begin2) {
-            *dest = func(*iter, *begin2);
-        }
-        return dest;
-    }
-}
-
-namespace rainy::algorithm::ranges::container_operater {
-    template <typename InputContainer, typename OutContainer>
-    RAINY_CONSTEXPR20 auto copy(InputContainer &container,
-                                   OutContainer dest) noexcept(std::is_nothrow_copy_constructible_v<typename InputContainer::value_type>) {
-        return algorithm::container_operater::copy(container.begin(), container.end(), dest.begin());
-    }
-
-    template <typename InputContainer, typename OutContainer>
-    RAINY_CONSTEXPR20 auto copy(execution::policy policy, InputContainer &container, OutContainer dest) {
-        return algorithm::container_operater::copy(policy, container.begin(), container.end(), dest.begin());
-    }
-
-    template <typename InputContainer, typename OutContainer>
-    RAINY_CONSTEXPR20 auto copy_n(InputContainer &container, const std::size_t count, OutContainer dest) noexcept(
-        std::is_nothrow_copy_constructible_v<typename InputContainer::value_type>) {
-        return algorithm::container_operater::copy_n(container.begin(), count, dest.begin());
-    }
-
-    template <typename InputContainer, typename OutContainer>
-    RAINY_CONSTEXPR20 auto copy_n(execution::policy policy, InputContainer &container, const std::size_t count, OutContainer dest) {
-        return algorithm::container_operater::copy_n(policy, container.begin(), count, dest.begin());
-    }
-}
 
 /* 为rainy::utility::type_index进行一个hash特化 */
 template <>
@@ -2876,7 +2299,7 @@ namespace rainy::component::sync_event {
 
         template <typename EventType, typename Fx,
                   type_traits::other_trans::enable_if_t<
-                      type_traits::type_properties::is_invocable_r_v<void, Fx, event &>, int> = 0>
+                      std::is_invocable_r_v<void, Fx, event &>, int> = 0>
         RAINY_NODISCARD std::shared_ptr<handler_registration> subscribe(Fx &&func) {
             /* 我们实际创建了一个virtual_listener实例，表示虚拟的监听器 */
             struct virtual_listener : public event_handler<EventType>, Fx {

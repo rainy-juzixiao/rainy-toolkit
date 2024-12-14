@@ -205,11 +205,20 @@ namespace rainy::type_traits {
         template <typename Ty>
         RAINY_CONSTEXPR_BOOL is_copy_constructible_v = __is_constructible(Ty, reference_modify::add_lvalue_reference_t<const Ty>);
 
+        template <typename Ty, typename... Args>
+        struct is_copy_constructible : helper::bool_constant<is_copy_constructible_v<Ty>> {};
+
         template <typename Ty>
         RAINY_CONSTEXPR_BOOL is_default_constructible_v = __is_constructible(Ty);
 
+        template <typename Ty, typename... Args>
+        struct is_default_constructible : helper::bool_constant<is_default_constructible_v<Ty>> {};
+
         template <typename Ty>
         RAINY_CONSTEXPR_BOOL is_move_constructible_v = __is_constructible(Ty, Ty);
+
+        template <typename Ty, typename... Args>
+        struct is_move_constructible : helper::bool_constant<is_move_constructible_v<Ty>> {};
 
         template <typename callable, typename Ty1, typename removed_cvref = cv_modify::remove_cvref_t<callable>,
                   bool is_pmf = primary_types::is_member_function_pointer_v<removed_cvref>,
@@ -239,103 +248,6 @@ namespace rainy::type_traits {
 
         template <typename callable, typename Ty1, typename removed_cvref>
         struct invoker<callable, Ty1, removed_cvref, false, false> : internals::invoker_functor {};
-
-        template <typename from, typename to>
-        struct is_invoke_nothrow_convertible
-            : helper::bool_constant<noexcept(internals::_fake_copy_init<to>(internals::_returns_exactly<from>()))> {};
-
-        template <typename Rx, bool no_throw>
-        struct invoke_traits_common {
-            using type = Rx;
-            using is_invocable = helper::true_type;
-            using is_nothrow_invocable = helper::bool_constant<no_throw>;
-            template <typename Rx_>
-            using is_invocable_r =
-                helper::bool_constant<logical_traits::disjunction_v<primary_types::is_void<Rx>, is_invoke_convertible<type, Rx>>>;
-            template <typename Rx_>
-            using is_nothrow_invocable_r = helper::bool_constant<logical_traits::conjunction_v<
-                is_nothrow_invocable,
-                logical_traits::disjunction<
-                    primary_types::is_void<Rx>,
-                    logical_traits::conjunction<is_invoke_convertible<type, Rx>, is_invoke_nothrow_convertible<type, Rx>>>>>;
-        };
-
-        template <typename _void, typename callable>
-        struct invoke_traits_zero {
-            // selected when callable isn't callable with zero _Args
-            using is_invocable = helper::false_type;
-            using is_nothrow_invocable = helper::false_type;
-            template <typename Rx>
-            using is_invocable_r = helper::false_type;
-            template <typename Rx>
-            using is_nothrow_invocable_r = helper::false_type;
-            using is_void_ = primary_types::is_void<_void>;
-            using callable_type_ = callable;
-        };
-
-        template <typename callable>
-        using _decltype_invoke_zero = decltype(std::declval<callable>()());
-
-        template <typename callable>
-        struct invoke_traits_zero<other_trans::void_t<_decltype_invoke_zero<callable>>, callable>
-            : invoke_traits_common<_decltype_invoke_zero<callable>, noexcept(std::declval<callable>()())> {};
-
-        template <typename _void, typename... Args>
-        struct invoke_traits_nonzero {
-            using is_invocable = helper::false_type;
-            using is_nothrow_invocable = helper::false_type;
-
-            template <typename Rx>
-            using is_invocable_r = helper::false_type;
-
-            template <typename Rx>
-            using is_nothrow_invocable_r = helper::false_type;
-
-            using is_void_ = primary_types::is_void<_void>;
-        };
-
-        template <typename callable, typename Ty1, typename... Args2>
-        using _decltype_invoke_nonzero =
-            decltype(invoker<callable, Ty1>::invoke(std::declval<callable>(), std::declval<Ty1>(), std::declval<Args2>()...));
-
-        template <typename callable, typename Ty1, typename... Args2>
-        struct invoke_traits_nonzero<other_trans::void_t<_decltype_invoke_nonzero<callable, Ty1, Args2...>>, callable, Ty1,
-                                     Args2...>
-            : invoke_traits_common<_decltype_invoke_nonzero<callable, Ty1, Args2...>,
-                                   noexcept(invoker<callable, Ty1>::invoke(std::declval<callable>(), std::declval<Ty1>(),
-                                                                           std::declval<Args2>()...))> {};
-
-        template <typename callable, typename... Args>
-        using select_invoke_traits = other_trans::conditional_t<sizeof...(Args) == 0, invoke_traits_zero<void, callable>,
-                                                                          invoke_traits_nonzero<void, callable, Args...>>;
-
-        template <typename callable, typename... Args>
-        using _invoke_rx_t = typename select_invoke_traits<callable, Args...>::type;
-
-        template <typename Rx, typename callable, typename... Args>
-        using _is_invocable_r_ = typename select_invoke_traits<callable, Args...>::template is_invocable_r<Rx>;
-
-        template <typename Rx, typename callable, typename... Args>
-        struct _is_invocable_r : _is_invocable_r_<Rx, callable, Args...> {};
-
-        template <typename callable, typename... Args>
-        struct invoke_result : select_invoke_traits<callable, Args...> {};
-
-        template <typename callable, typename... Args>
-        using invoke_result_t = typename select_invoke_traits<callable, Args...>::type;
-
-        template <typename callable, typename... Args>
-        struct is_nothrow_invocable : select_invoke_traits<callable, Args...>::is_nothrow_invocable {};
-
-        template <typename Rx, typename callable, typename... Args>
-        struct is_nothrow_invocable_r : select_invoke_traits<callable, Args...>::template is_nothrow_invocable_r<Rx> {};
-
-        template <typename callable, typename... Args>
-        RAINY_CONSTEXPR_BOOL is_nothrow_invocable_v = select_invoke_traits<callable, Args...>::is_nothrow_invocable::value;
-
-        template <typename Rx, typename callable, typename... Args>
-        RAINY_CONSTEXPR_BOOL is_nothrow_invocable_r_v =
-            select_invoke_traits<callable, Args...>::template is_nothrow_invocable_r<Rx>::value;
 
         template <typename to, typename from>
         RAINY_CONSTEXPR_BOOL is_assignable_v = __is_assignable(to, from);

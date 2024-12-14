@@ -63,12 +63,14 @@ list(APPEND SOURCES
 
 # 算法模块
 list(APPEND SOURCES
-        rainy/algorithm/container_operator.hpp
+        rainy/algorithm/pre.h
+        rainy/algorithm/modify_algorithm.hpp
 )
 
 # 容器模块
 list(APPEND SOURCES
         rainy/containers/any.hpp
+        rainy/containers/array.hpp
         rainy/containers/optional.hpp
         rainy/containers/span.hpp
         rainy/containers/tuple.hpp
@@ -126,6 +128,11 @@ if (WIN32)
             rainy/winapi/ui/window.hpp
     )
 endif ()
+
+# 对frozen模块提供对应的支持
+list(APPEND SOURCES
+    rainy/frozen/containers/vector.hpp
+)
 
 # 设置测试用例
 list(APPEND SOURCES test/main.cpp)
