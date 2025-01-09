@@ -1,4 +1,4 @@
----
+﻿---
 Checks: '-*,
 mpi-*,
 bugprone-*,
@@ -63,6 +63,8 @@ cppcoreguidelines-*,
 -cppcoreguidelines-avoid-c-arrays,
 -cppcoreguidelines-noexcept-move-operations,
 -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
+-cppcoreguidelines-macro-usage,
+-cppcoreguidelines-special-member-functions,
 google-default-arguments,
 google-runtime-operator,
 hicpp-use-noexcept,

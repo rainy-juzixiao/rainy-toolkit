@@ -1,0 +1,2241 @@
+﻿#ifndef RAINY_BASE_HPP
+#define RAINY_BASE_HPP
+/*
+文件名: base.hpp
+此头文件用于存放基础设施实现，提供对C语言的部分函数封装以及少量模块
+*/
+#include <rainy/core/core.hpp>
+#include <rainy/diagnostics/source_location.hpp>
+#include <rainy/system/basic_exceptions.hpp>
+#include <rainy/io/stream_print.hpp>
+#include <rainy/text/format_wrapper.hpp>
+#include <rainy/functional/function_pointer.hpp>
+#include <rainy/diagnostics/contract.hpp>
+#include <rainy/utility/iterator.hpp>
+#include <rainy/containers/array.hpp>
+#include <rainy/algorithm/modify_algorithm.hpp>
+
+/* standard-libray header */
+#include <algorithm>
+#include <array>
+#include <bitset>
+#include <cerrno>
+#include <cstdarg>
+#include <cstring>
+#include <deque>
+#include <functional>
+#include <future>
+#include <list>
+#include <map>
+#include <memory>
+#include <mutex>
+#include <queue>
+#include <shared_mutex>
+#include <stdexcept>
+#include <string>
+#include <string_view>
+#include <thread>
+#include <tuple>
+#include <unordered_map>
+#include <unordered_set>
+#include <utility>
+#include <vector>
+#include <memory_resource>
+
+#if RAINY_HAS_CXX20
+#include <format>
+#include <source_location>
+#endif
+
+#if RAINY_USING_WINDOWS
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+#endif
+
+#if RAINY_HAS_CXX20
+template <typename Ty>
+class std::formatter<rainy::utility::reference_wrapper<Ty>, char> // NOLINT
+{
+public:
+    explicit formatter() noexcept = default;
+
+    auto parse(format_parse_context &ctx) const noexcept {
+        return ctx.begin();
+    }
+
+    auto format(const rainy::utility::reference_wrapper<Ty> &value, std::format_context fc) const noexcept {
+        return std::format_to(fc.out(), "{}", value.get());
+    }
+};
+#endif
+
+namespace rainy::component {
+    template <typename Class>
+    class object {
+    public:
+        using object_type = Class;
+        using super_type = object<Class>;
+
+        static_assert(std::is_class_v<object_type> && !std::is_array_v<object_type>);
+
+        RAINY_NODISCARD const std::type_info &type_info() const noexcept {
+            return typeid(object_type);
+        }
+
+        RAINY_NODISCARD std::size_t hash_code() const noexcept {
+            rainy_let object_address = reinterpret_cast<const unsigned char *>(&object_dummy_unused);
+            return utility::internals::fnv1a_append_bytes(utility::internals::fnv_offset_basis, object_address,
+                                                          sizeof(object<object_type>));
+        }
+
+        RAINY_NODISCARD const void *addressof() const noexcept {
+            return static_cast<const void *>(this);
+        }
+
+        RAINY_NODISCARD virtual const super_type &as_super() const noexcept {
+            return *this;
+        }
+
+        RAINY_NODISCARD virtual std::shared_ptr<object_type> clone() const noexcept(std::is_nothrow_copy_constructible_v<object_type>) {
+            if (std::is_copy_constructible_v<object_type>) {
+                return std::shared_ptr<object_type>(new object_type(*static_cast<const object_type *>(this)));
+            }
+            foundation::system::exceptions::runtime::throw_runtime_error("We can't create a copy from this class");
+            return nullptr;
+        }
+
+    protected:
+        constexpr object() noexcept = default;
+        virtual RAINY_CONSTEXPR20 ~object() = default;
+
+    private:
+        union {
+            std::max_align_t object_dummy_unused{};
+        };
+    };
+}
+
+namespace rainy::utility {
+    template <>
+    struct hash<std::nullptr_t> {
+        using argument_type = std::nullptr_t;
+        using result_type = std::size_t;
+
+        static size_t hash_this_val(std::nullptr_t) noexcept {
+            void *null_pointer{};
+            return internals::hash_representation(null_pointer);
+        }
+
+        RAINY_AINLINE_NODISCARD result_type operator()(std::nullptr_t) const {
+            void *null_pointer{};
+            return internals::hash_representation(null_pointer);
+        }
+    };
+
+    template <>
+    struct hash<std::string_view> {
+        using argument_type = std::string_view;
+        using result_type = std::size_t;
+
+        static size_t hash_this_val(const argument_type &val) noexcept {
+            return internals::hash_array_representation(val.data(), val.size());
+        }
+
+        RAINY_AINLINE_NODISCARD result_type operator()(argument_type val) const {
+            return internals::hash_array_representation(val.data(), val.size());
+        }
+    };
+
+    template <>
+    struct hash<std::string> {
+        using argument_type = std::string_view;
+        using result_type = std::size_t;
+
+        static size_t hash_this_val(const argument_type &val) noexcept {
+            return internals::hash_array_representation(val.data(), val.size());
+        }
+
+        RAINY_AINLINE_NODISCARD result_type operator()(argument_type val) const {
+            return internals::hash_array_representation(val.data(), val.size());
+        }
+    };
+
+    template <>
+    struct hash<type_index> {
+        using argument_type = type_index;
+        using result_type = std::size_t;
+
+        static size_t hash_this_val(const argument_type &val) noexcept {
+            return val.hash_code();
+        }
+
+        RAINY_NODISCARD size_t operator()(const type_index &val) const noexcept {
+            return val.hash_code();
+        }
+    };
+}
+
+namespace rainy::utility {
+    namespace internals {
+        using type_name_prober = void;
+
+        constexpr std::string_view type_name_prober_ = "void";
+
+        template <typename Ty>
+        constexpr std::string_view wrapped_type_name() {
+            constexpr bool always_false = rainy::type_traits::internals::always_false<Ty>;
+            static_assert(!always_false);
+#if RAINY_USING_CLANG || RAINY_USING_GCC
+            return __PRETTY_FUNCTION__;
+#elif RAINY_USING_MSVC
+            return __FUNCSIG__;
+#else
+            static_assert(always_false, "unsuporrted complier");
+#endif
+        }
+
+        static constexpr std::size_t wrapped_type_name_prefix_length() {
+            return wrapped_type_name<type_name_prober>().find(type_name_prober_);
+        }
+
+        static constexpr std::size_t wrapped_type_name_suffix_length() {
+            return wrapped_type_name<type_name_prober>().length() - wrapped_type_name_prefix_length() - type_name_prober_.length();
+        }
+
+        template <auto Variable>
+        constexpr std::string_view wrapped_variable_name() {
+#if RAINY_USING_CLANG || RAINY_USING_GCC
+            return __PRETTY_FUNCTION__;
+#elif RAINY_USING_MSVC
+            return __FUNCSIG__;
+#else
+            static_assert(false, "unsupported compiler");
+#endif
+        }
+    }
+
+    template <typename Ty>
+    constexpr std::string_view type_name() {
+        constexpr auto wrapped_name = internals::wrapped_type_name<Ty>();
+        constexpr auto prefix_length = internals::wrapped_type_name_prefix_length();
+        constexpr auto suffix_length = internals::wrapped_type_name_suffix_length();
+        constexpr auto type_name_length = wrapped_name.length() - prefix_length - suffix_length;
+        return wrapped_name.substr(prefix_length, type_name_length);
+    }
+
+    template <auto Variable>
+    inline constexpr std::string_view variable_name() {
+#if RAINY_USING_MSVC
+        constexpr std::string_view func_name = __FUNCSIG__;
+#else
+        constexpr std::string_view func_name = __PRETTY_FUNCTION__;
+#endif
+#if RAINY_USING_CLANG
+        auto split = func_name.substr(0, func_name.size() - 2);
+        return split.substr(split.find_last_of(":.") + 1);
+#elif RAINY_USING_GCC
+        auto split = func_name.substr(0, func_name.rfind(")}"));
+        return split.substr(split.find_last_of(":") + 1);
+#elif RAINY_USING_MSVC
+        auto split = func_name.substr(func_name.rfind("variable_name<") + 13);
+        auto split_again = split.substr(split.rfind("->") + 2);
+        return split_again.substr(0, split_again.rfind(">(void)"));
+#else
+        static_assert(false, "You are using an unsupported compiler. Please use GCC, Clang or MSVC");
+#endif
+    }
+
+    class sti_typeinfo {
+    public:
+        template <typename Ty>
+        static constexpr sti_typeinfo create() {
+            sti_typeinfo info{};
+            info._name = type_name<Ty>();
+            info._hash_code = fnv1a_hash(info._name);
+            return info;
+        }
+
+        template <typename Ty>
+        static const sti_typeinfo &of() {
+            static const sti_typeinfo instance = create<Ty>();
+            return instance;
+        }
+
+        constexpr std::string_view name() const noexcept {
+            return _name;
+        }
+
+        constexpr std::size_t hash_code() const noexcept {
+            return _hash_code;
+        }
+
+        constexpr bool is_same(const sti_typeinfo &right) const noexcept {
+            return hash_code() == right.hash_code();
+        }
+
+        constexpr friend bool operator==(const sti_typeinfo &left, const sti_typeinfo &right) noexcept {
+            return left.is_same(right);
+        }
+
+        constexpr friend bool operator!=(const sti_typeinfo &left, const sti_typeinfo &right) noexcept {
+            return !left.is_same(right);
+        }
+
+        //constexpr std::size_t size() const noexcept {
+        //    return _size;
+        //}
+
+    private:
+        constexpr sti_typeinfo() = default;
+
+        static constexpr std::size_t fnv1a_hash(std::string_view val,
+                                                std::size_t offset_basis = rainy::utility::internals::fnv_offset_basis) noexcept {
+            std::size_t hash = offset_basis;
+            for (std::size_t i = 0; i < val.size(); ++i) {
+                hash ^= static_cast<std::size_t>(static_cast<unsigned char>(val[i]));
+                hash *= rainy::utility::internals::fnv_prime;
+            }
+            return hash;
+        }
+
+        std::string_view _name{};
+        std::size_t _hash_code{};
+    };
+
+    template <>
+    struct hash<utility::sti_typeinfo> {
+        using argument_type = utility::sti_typeinfo;
+        using result_type = std::size_t;
+
+        static size_t hash_this_val(const argument_type &val) noexcept {
+            return val.hash_code();
+        }
+    };
+
+#define sti_typeid(x) ::rainy::utility::sti_typeinfo::of<x>()
+
+    enum class type_flags {
+        is_fundamental,
+        is_integral,
+        is_floating_point,
+        is_trivially_copyable,
+        from_create,
+        from_typeid,
+        size
+    };
+
+    class dynamic_type_info final {
+    public:
+        dynamic_type_info() = default;
+
+        dynamic_type_info(const std::type_info &rtti) {
+            this->_name = rtti.name();
+            this->_hash_code = rtti.hash_code();
+            this->flags[static_cast<int>(type_flags::from_create)] = false;
+            this->flags[static_cast<int>(type_flags::from_typeid)] = true;
+        }
+
+        template <typename Ty>
+        static dynamic_type_info create() noexcept {
+            dynamic_type_info info{};
+            info._name = type_name<Ty>();
+            if constexpr (type_traits::primary_types::function_traits<Ty>::valid) {
+                info._size = 0;
+                info._align = 0;
+            } else {
+                info._size = sizeof(Ty);
+                info._align = alignof(Ty);
+            }
+            info.flags[static_cast<int>(type_flags::is_trivially_copyable)] = std::is_trivially_copyable_v<Ty>;
+            info.flags[static_cast<int>(type_flags::is_integral)] = std::is_integral_v<Ty>;
+            info.flags[static_cast<int>(type_flags::is_floating_point)] = std::is_floating_point_v<Ty>;
+            info.flags[static_cast<int>(type_flags::is_fundamental)] = std::is_fundamental_v<Ty>;
+            info._hash_code = typeid(Ty).hash_code();
+            return info;
+        }
+
+        RAINY_NODISCARD constexpr uint64_t hash_code() const noexcept {
+            return _hash_code;
+        }
+
+        RAINY_NODISCARD std::string_view name() const noexcept {
+            return _name;
+        }
+
+        RAINY_NODISCARD uint32_t size() const noexcept {
+            return _size;
+        }
+
+        RAINY_NODISCARD uint32_t alignment() const noexcept {
+            return _align;
+        }
+
+        RAINY_NODISCARD bool is_fundamental() const noexcept {
+            return flags[static_cast<int>(type_flags::is_fundamental)];
+        }
+
+        RAINY_NODISCARD bool is_integral() const noexcept {
+            return flags[static_cast<int>(type_flags::is_integral)];
+        }
+
+        RAINY_NODISCARD bool is_floating_point() const noexcept {
+            return flags[static_cast<int>(type_flags::is_floating_point)];
+        }
+
+        RAINY_NODISCARD bool is_trivially_copyable() const noexcept {
+            return flags[static_cast<int>(type_flags::is_trivially_copyable)];
+        }
+
+        RAINY_NODISCARD std::string to_string() const {
+            std::string buffer;
+            buffer.reserve(64);
+#if RAINY_USING_CXX20
+            utility::format(buffer, "type_name={} : size={},align={},hash_code={}", _name.data(), _size, _align, _hash_code);
+#else
+            buffer += "typename=";
+            buffer += _name;
+            std::string temp;
+            utility::cstyle_format(temp, " : size=%d,align=%d,hash_code=%llu", _size, _align, _hash_code);
+            buffer += temp;
+#endif
+            return buffer;
+        }
+
+        RAINY_NODISCARD friend bool operator==(const dynamic_type_info &left, const dynamic_type_info &right) {
+            return left.hash_code() == right.hash_code();
+        }
+
+        
+
+    private:
+        std::string_view _name;
+        uint32_t _size{};
+        uint32_t _align{};
+        std::size_t _hash_code{};
+        std::bitset<static_cast<int>(type_flags::size)> flags;
+    };
+}
+
+#if RAINY_HAS_CXX20
+
+#ifdef __cpp_lib_format
+template <>
+class std::formatter<rainy::utility::dynamic_type_info, char> {
+public:
+    explicit formatter() noexcept = default;
+
+    static auto parse(format_parse_context &ctx) noexcept {
+        return ctx.begin();
+    }
+
+    static auto format(const rainy::utility::dynamic_type_info &value, std::format_context fc) noexcept {
+        return std::format_to(fc.out(), "{}", value.to_string());
+    }
+};
+#endif
+
+#endif
+
+namespace rainy::foundation::system::memory {
+    enum class allocation_method {
+        std_allocator,
+        cstd_allocator,
+        RAINY_allocator,
+        RAINY_allocator_no_check
+    };
+
+    template <typename Ptr, typename SizeType = std::size_t>
+    struct allocation_result {
+        Ptr ptr;
+        SizeType count;
+    };
+
+    template <typename Ty, allocation_method Method = allocation_method::RAINY_allocator>
+    class allocator final {
+    public:
+        using value_type = Ty;
+        using pointer = value_type *;
+        using size_type = std::size_t;
+        using reference = value_type &;
+        using const_reference = const value_type &;
+
+        static_assert(!type_traits::internals::_is_reference_v<value_type>);
+
+        static constexpr std::size_t align = alignof(value_type);
+        static constexpr std::size_t element_size = sizeof(value_type);
+
+        RAINY_CONSTEXPR20 allocator() noexcept = default;
+
+        RAINY_CONSTEXPR20 allocator(const allocator &) noexcept = default;
+
+        template <typename U>
+        RAINY_CONSTEXPR20 explicit allocator(const allocator<U, Method> &) noexcept {
+        }
+
+        RAINY_CONSTEXPR20 ~allocator() = default;
+
+        constexpr allocator(allocator &&) noexcept = default;
+        constexpr allocator &operator=(const allocator &) noexcept = default;
+        constexpr allocator &operator=(allocator &&) noexcept = default;
+
+        constexpr allocator &operator=(const std::allocator<value_type> &) noexcept {
+            return *this;
+        }
+
+        constexpr allocator &operator=(std::allocator<value_type> &&) noexcept {
+            return *this;
+        }
+
+        RAINY_NODISCARD_RAW_PTR_ALLOC RAINY_CONSTEXPR20 pointer allocate(const size_type count) const {
+#if RAINY_HAS_CXX20
+            if (std::is_constant_evaluated()) {
+                // 在可进行编译期求值的时候，且标准为C++20的时候，使用标准库分配器分配内存
+                return std::allocator<value_type>{}.allocate(count);
+            }
+#endif
+            using exceptions::runtime::throw_bad_alloc;
+            if constexpr (Method == allocation_method::std_allocator) {
+                try {
+                    rainy_let ret = std::allocator<value_type>{}.allocate(count);
+                    return ret;
+                } catch (std::bad_alloc &) {
+                    throw_bad_alloc();
+                }
+            } else if constexpr (Method == allocation_method::cstd_allocator) {
+                rainy_let allocated_memory = static_cast<pointer>(std::malloc(element_size * count));
+                if (!allocated_memory) {
+                    throw_bad_alloc();
+                }
+                return allocated_memory;
+            } else if constexpr (Method == allocation_method::RAINY_allocator_no_check) {
+                rainy_let allocated_memory =
+                    static_cast<value_type *>(information::system_call::allocate(element_size * count, align));
+                if (!allocated_memory) {
+                    throw_bad_alloc();
+                }
+                return allocated_memory;
+            }
+            // 使用rainy's toolkit的内存管理函数
+            rainy_let allocated_memory =
+                static_cast<value_type *>(information::system_call::aligned_malloc_withcheck(element_size * count, align));
+            if (!allocated_memory) {
+                throw_bad_alloc();
+            }
+            return allocated_memory;
+        }
+
+        RAINY_CONSTEXPR20 void deallocate(value_type *block, const size_type count) const {
+            if (!block || count == 0) {
+                return;
+            }
+#if RAINY_HAS_CXX20
+            if (std::is_constant_evaluated()) {
+                std::allocator<value_type>{}.deallocate(block, count);
+            } else
+#endif
+            {
+                if constexpr (Method == allocation_method::std_allocator) {
+                    std::allocator<value_type>{}.deallocate(block, count);
+                } else if constexpr (Method == allocation_method::cstd_allocator) {
+                    std::free(block);
+                } else if constexpr (Method == allocation_method::RAINY_allocator_no_check) {
+                    information::system_call::deallocate(block, element_size * count, align);
+                } else {
+                    // 使用rainy's toolkit的内存管理函数
+                    information::system_call::aligned_free_withcheck(block, align);
+                }
+            }
+        }
+
+        RAINY_NODISCARD_RAW_PTR_ALLOC RAINY_CONSTEXPR20 allocation_result<pointer> allocate_at_least(
+            const size_type count) const {
+            return {allocate(count), count};
+        }
+
+        constexpr static allocation_method current_method() noexcept {
+            return Method;
+        }
+
+        template <typename... Args>
+        RAINY_CONSTEXPR20 void construct(value_type *const ptr, Args &&...args) const
+            noexcept(std::is_nothrow_constructible_v<value_type, Args...>) {
+            utility::construct_at(ptr, utility::forward<Args>(args)...);
+        }
+
+        RAINY_CONSTEXPR20 void destory(value_type *const ptr) const noexcept(std::is_nothrow_destructible_v<value_type>) {
+            ptr->~value_type();
+        }
+    };
+
+    namespace pmr {
+        class memory_resource : public std::pmr::memory_resource {
+        public:
+            using std::pmr::memory_resource::memory_resource;
+
+            /*
+            rainy's toolkit将在std::pmr::memory_resource的基础上拓展一个current_method以表示对应的分配器策略
+            */
+
+            RAINY_NODISCARD virtual allocation_method current_method() const noexcept = 0;
+        };
+
+        class cstd_memory_resource : public memory_resource {
+        public:
+            RAINY_NODISCARD allocation_method current_method() const noexcept override {
+                return allocation_method::cstd_allocator;
+            }
+
+            static memory_resource *instance() {
+                static cstd_memory_resource instance;
+                return &instance;
+            }
+
+        private:
+            void *do_allocate(std::size_t bytes, std::size_t) override {
+                void *ptr = std::malloc(bytes);
+                if (!ptr) {
+                    exceptions::runtime::throw_bad_alloc();
+                }
+                return ptr;
+            }
+
+            void do_deallocate(void *block, std::size_t bytes, std::size_t alignment) override {
+                if (bytes == 0 || !information::internals::is_pow_2(alignment) || !block) {
+                    return;
+                }
+                std::free(block);
+            }
+
+            RAINY_NODISCARD bool do_is_equal(const std::pmr::memory_resource &right) const noexcept override {
+                return this == utility::addressof(right);
+            }
+        };
+
+        class std_memory_resource final : public memory_resource {
+        public:
+            RAINY_NODISCARD allocation_method current_method() const noexcept override {
+                return allocation_method::std_allocator;
+            }
+
+            static memory_resource *instance() {
+                static std_memory_resource instance;
+                return &instance;
+            }
+
+        private:
+            void *do_allocate(std::size_t bytes, std::size_t alignment) override {
+#ifdef __cpp_aligned_new
+                return ::operator new[](bytes, std::align_val_t{alignment});
+#else
+                return information::system_call::allocate(bytes, alignment);
+#endif
+            }
+
+            void do_deallocate(void *block, std::size_t bytes, std::size_t alignment) override {
+                if (bytes == 0 || !information::internals::is_pow_2(alignment) || !block) {
+                    return;
+                }
+#ifdef __cpp_aligned_new
+                ::operator delete[](block, bytes, std::align_val_t{alignment});
+#else
+                information::system_call::deallocate(block, bytes, alignment);
+#endif
+            }
+
+            RAINY_NODISCARD bool do_is_equal(const std::pmr::memory_resource &right) const noexcept override {
+                return this == utility::addressof(right);
+            }
+        };
+
+        class RAINY_memory_resource final : public memory_resource {
+        public:
+            RAINY_NODISCARD allocation_method current_method() const noexcept override {
+                return allocation_method::RAINY_allocator;
+            }
+
+            static memory_resource *instance() {
+                static RAINY_memory_resource instance;
+                return &instance;
+            }
+
+        private:
+            void *do_allocate(std::size_t bytes, std::size_t alignment) override {
+                if (bytes == 0 || !information::internals::is_pow_2(alignment)) {
+                    return nullptr;
+                }
+                return information::system_call::aligned_malloc_withcheck(bytes, alignment);
+            }
+
+            void do_deallocate(void *block, std::size_t bytes, std::size_t alignment) override {
+                if (bytes == 0 || !information::internals::is_pow_2(alignment) || !block) {
+                    return;
+                }
+                information::system_call::aligned_free_withcheck(block, alignment);
+            }
+
+            RAINY_NODISCARD bool do_is_equal(const std::pmr::memory_resource &right) const noexcept override {
+                return this == utility::addressof(right);
+            }
+        };
+
+        class RAINY_nocheck_memory_resource final : public memory_resource {
+        public:
+            RAINY_NODISCARD allocation_method current_method() const noexcept override {
+                return allocation_method::RAINY_allocator_no_check;
+            }
+
+            static memory_resource *instance() {
+                static RAINY_nocheck_memory_resource instance;
+                return &instance;
+            }
+
+        private:
+            void *do_allocate(std::size_t bytes, std::size_t alignment) override {
+                if (bytes == 0 || !information::internals::is_pow_2(alignment)) {
+                    return nullptr;
+                }
+                return information::system_call::allocate(bytes, alignment);
+            }
+
+            void do_deallocate(void *block, std::size_t bytes, std::size_t alignment) override {
+                if (bytes == 0 || !information::internals::is_pow_2(alignment) || !block) {
+                    return;
+                }
+                information::system_call::deallocate(block, bytes, alignment);
+            }
+
+            RAINY_NODISCARD bool do_is_equal(const std::pmr::memory_resource &right) const noexcept override {
+                return this == utility::addressof(right);
+            }
+        };
+
+        RAINY_INLINE memory_resource *get_memory_resource(allocation_method method) noexcept {
+            switch (method) {
+                case allocation_method::std_allocator:
+                    return std_memory_resource::instance();
+                case allocation_method::cstd_allocator:
+                    return cstd_memory_resource::instance();
+                case allocation_method::RAINY_allocator:
+                    return RAINY_memory_resource::instance();
+                case allocation_method::RAINY_allocator_no_check:
+                    return RAINY_nocheck_memory_resource::instance();
+                default:
+                    break;
+            }
+            return nullptr;
+        }
+
+
+#if RAINY_HAS_CXX20
+        template <typename Ty = information::byte_t, allocation_method Method = allocation_method::std_allocator>
+#else
+        template <typename Ty, allocation_method Method = allocation_method::std_allocator>
+#endif
+        class polymorphic_allocator {
+        public:
+            using value_type = Ty;
+            static constexpr std::size_t align = alignof(value_type);
+            static constexpr std::size_t element_size = sizeof(value_type);
+
+            polymorphic_allocator() noexcept = default;
+
+            polymorphic_allocator(memory_resource *const resource) noexcept : _resource{resource} {
+                utility::expects(static_cast<bool>(resource), "Cannot initialize polymorphic_allocator with null resource");
+            }
+
+            polymorphic_allocator(const polymorphic_allocator &) = default;
+
+            template <typename Uty>
+            polymorphic_allocator(const polymorphic_allocator<Uty> &that) noexcept : _resource{that._resource} {
+            }
+
+            polymorphic_allocator &operator=(const polymorphic_allocator &) = delete;
+
+            RAINY_NODISCARD_RAW_PTR_ALLOC value_type *allocate(const size_t count) {
+                void *const resource = _resource->allocate(information::internals::get_size_of_n<Ty>(count), align);
+                return static_cast<value_type *>(resource);
+            }
+
+            void deallocate(Ty *const ptr, const size_t count) noexcept {
+                _resource->deallocate(ptr, information::internals::get_size_of_n<Ty>(count), align);
+            }
+
+            RAINY_NODISCARD_RAW_PTR_ALLOC void *allocate_bytes(const size_t bytes,
+                                                                  const size_t align_ = alignof(std::max_align_t)) {
+                return _resource->allocate(bytes, align_);
+            }
+
+            void deallocate_bytes(void *const ptr, const size_t bytes, const size_t align_ = alignof(std::max_align_t)) noexcept {
+                _resource->deallocate(ptr, bytes, align_);
+            }
+
+            RAINY_NODISCARD_RAW_PTR_ALLOC value_type *allocate_object(const size_t count = 1) {
+                void *const resource = allocate_bytes(information::internals::get_size_of_n<value_type>(count), align);
+                return static_cast<value_type *>(resource);
+            }
+
+            void deallocate_object(value_type *const ptr, const size_t count = 1) noexcept {
+                deallocate_bytes(ptr, information::internals::get_size_of_n<value_type>(count), align);
+            }
+
+            template <typename... Args>
+            RAINY_NODISCARD_RAW_PTR_ALLOC value_type *new_object(Args &&...args) {
+                value_type *const ptr = allocate_object();
+                struct deallocate_bytes_guard {
+                    ~deallocate_bytes_guard() noexcept {
+                        if (mem_res) {
+                            mem_res->deallocate(pointer, element_size, align);
+                        }
+                    }
+
+                    deallocate_bytes_guard &operator=(const deallocate_bytes_guard &) = delete;
+                    deallocate_bytes_guard &operator=(deallocate_bytes_guard &&) = delete;
+
+                    memory_resource *mem_res;
+                    void *pointer;
+                };
+
+                deallocate_bytes_guard guard{_resource, ptr};
+                construct(ptr, utility::forward<Args>(args)...);
+                guard.mem_res = nullptr;
+                return ptr;
+            }
+
+            void delete_object(value_type *const ptr) noexcept {
+                ptr->~value_type();
+                deallocate_object(ptr);
+            }
+
+            template <typename... Args>
+            void construct(value_type *const ptr, Args &&...args) {
+                utility::construct_at(ptr, utility::forward<Args>(args)...);
+            }
+
+            void destroy(value_type *const ptr) noexcept {
+                ptr->~value_type();
+            }
+
+            RAINY_NODISCARD polymorphic_allocator select_on_container_copy_construction() const noexcept {
+                return {};
+            }
+
+            RAINY_NODISCARD memory_resource *resource() const noexcept {
+                return _resource;
+            }
+
+            RAINY_NODISCARD_FRIEND bool operator==(const polymorphic_allocator &left, const polymorphic_allocator &right) noexcept {
+                return *left._resource == *right.resource;
+            }
+
+        private:
+            memory_resource *_resource = get_memory_resource(Method);
+        };
+
+        /* 为STL容器提供具有rainy's toolkit的polymorphic_allocator分配器别名 */
+        namespace stl {
+            template <typename Elem, typename Traits = std::char_traits<Elem>>
+            using basic_string = std::basic_string<Elem, Traits, polymorphic_allocator<Elem>>;
+
+            using string = basic_string<char>;
+#ifdef __cpp_lib_char8_t
+            using u8string = basic_string<char8_t>;
+#endif
+            using u16string = basic_string<char16_t>;
+            using u32string = basic_string<char32_t>;
+            using wstring = basic_string<wchar_t>;
+
+            template <typename Ty>
+            using vector = std::vector<Ty, polymorphic_allocator<Ty>>;
+
+            template <typename Ty>
+            using deque = std::deque<Ty, polymorphic_allocator<Ty>>;
+
+            template <typename Ty>
+            using list = std::list<Ty, polymorphic_allocator<Ty>>;
+
+            template <typename Key, typename Ty, typename Pred = std::less<Key>>
+            using map = std::map<Key, Ty, Pred, polymorphic_allocator<Ty>>;
+
+            template <typename Key, typename Ty, typename Hasher = std::hash<Key>, typename KeyEqual = std::equal_to<Key>>
+            using unordered_map = std::unordered_map<Key, Ty, Hasher, KeyEqual, polymorphic_allocator<Ty>>;
+
+            template <typename Key, typename Ty, typename Hasher = std::hash<Key>, typename KeyEqual = std::equal_to<Key>>
+            using unordered_multimap = std::unordered_multimap<Key, Ty, Hasher, KeyEqual, polymorphic_allocator<Ty>>;
+
+            template <typename Ty, typename Hasher = std::hash<Ty>, typename KeyEqual = std::equal_to<Ty>>
+            using unordered_set = std::unordered_set<Ty, Hasher, KeyEqual, polymorphic_allocator<Ty>>;
+        }
+    }
+}
+
+
+
+
+
+namespace rainy::containers {
+    template <typename Ty>
+    class array_view {
+    public:
+        using value_type = Ty;
+        using size_type = std::size_t;
+        using reference = Ty &;
+        using const_reference = const Ty &;
+        using pointer = value_type *;
+        using const_pointer = const value_type *;
+        using difference_type = std::ptrdiff_t;
+        using iterator = utility::iterator<pointer>;
+        using const_iterator = const utility::iterator<const_pointer>;
+        using reverse_iterator = std::reverse_iterator<iterator>;
+        using const_reverse_iterator = const std::reverse_iterator<iterator>;
+
+        constexpr array_view() = default;
+
+        RAINY_CONSTEXPR20 array_view(array_view &&) = default;
+        RAINY_CONSTEXPR20 array_view(const array_view &) = default;
+        array_view &operator=(array_view &&) = default;
+        array_view &operator=(const array_view &) = default;
+
+        RAINY_CONSTEXPR20 ~array_view() = default;
+
+        template <size_type N>
+        RAINY_CONSTEXPR20 array_view(value_type (&reference_array)[N]) : data_(reference_array), size_(N) {
+        }
+
+        RAINY_CONSTEXPR20 array_view(std::vector<Ty> &vector) : data_(vector.data()), size_(vector.size()) {
+        }
+
+        RAINY_CONSTEXPR20 array_view(const std::vector<Ty> &vector) : data_(vector.data()), size_(vector.size()) {
+        }
+
+        RAINY_CONSTEXPR20 array_view(pointer first, pointer last) : data_(first), size_(std::distance(first, last)) {
+        }
+
+        RAINY_CONSTEXPR20 array_view(const_pointer first, const_pointer last) : data_(first), size_(std::distance(first, last)) {
+        }
+
+        RAINY_CONSTEXPR20 array_view(std::initializer_list<Ty> initializer_list) :
+            data_(initializer_list.begin()), size_(initializer_list.size()) {
+        }
+
+        template <size_type N>
+        RAINY_CONSTEXPR20 array_view(std::array<Ty, N> &array) : data_(array.data()), size_(array.size()) {
+        }
+
+        template <size_type N>
+        RAINY_CONSTEXPR20 array_view(const std::array<Ty, N> &array) : data_(array.data()), size_(array.size()) {
+        }
+
+        template <size_type N>
+        RAINY_CONSTEXPR20 array_view(array<Ty, N> &array) : data_(array.data()), size_(array.size()) {
+        }
+
+        template <size_type N>
+        RAINY_CONSTEXPR20 array_view(const array<Ty, N> &array) : data_(array.data()), size_(array.size()) {
+        }
+
+        RAINY_NODISCARD RAINY_CONSTEXPR20 pointer data() noexcept {
+            return data_;
+        }
+
+        RAINY_NODISCARD RAINY_CONSTEXPR20 const_pointer data() const noexcept {
+            return data_;
+        }
+
+        RAINY_NODISCARD constexpr size_type size() const {
+            return size_;
+        }
+
+        RAINY_NODISCARD constexpr bool empty() const {
+            return size_ == 0;
+        }
+
+        RAINY_CONSTEXPR20 reference at(const difference_type idx) {
+            rangecheck(size(), idx);
+            return data_[idx];
+        }
+
+        RAINY_NODISCARD constexpr const_reference at(const difference_type idx) const {
+            rangecheck(size(), idx);
+            return data_[idx];
+        }
+
+        constexpr const_reference operator[](const difference_type idx) const {
+            return data_[idx];
+        }
+
+    private:
+        RAINY_NODISCARD constexpr bool check_index(const size_type idx) const noexcept {
+            return idx < size_;
+        }
+
+        static void rangecheck(const size_type size, const difference_type idx) {
+            if (size <= idx) {
+                utility::throw_exception(std::out_of_range("Invalid array subscript"));
+            }
+        }
+
+        pointer data_;
+        size_type size_{};
+    };
+
+    template <typename Ty>
+    RAINY_CONSTEXPR20 array_view<Ty> make_array_view(Ty *first, Ty *last) {
+        return array_view<Ty>(first, last);
+    }
+
+    template <typename Ty>
+    RAINY_CONSTEXPR20 array_view<Ty> make_array_view(const Ty *first, const Ty *last) {
+        return array_view<Ty>(first, last);
+    }
+
+    template <typename Ty, std::size_t N>
+    RAINY_CONSTEXPR20 array_view<Ty> make_array_view(Ty (&array)[N]) {
+        return array_view<Ty>(array);
+    }
+
+    template <typename Ty>
+    RAINY_CONSTEXPR20 array_view<Ty> make_array_view(std::vector<Ty> &vector) {
+        return array_view<Ty>(vector);
+    }
+
+    template <typename Ty>
+    RAINY_CONSTEXPR20 array_view<Ty> make_array_view(const std::vector<Ty> &vector) {
+        return array_view<Ty>(vector);
+    }
+
+    template <typename Ty, std::size_t N>
+    RAINY_CONSTEXPR20 array_view<Ty> make_array_view(std::array<Ty, N> &array) {
+        return array_view<Ty>(array);
+    }
+
+    template <typename Ty, std::size_t N>
+    RAINY_CONSTEXPR20 array_view<Ty> make_array_view(const std::array<Ty, N> &array) {
+        return array_view<Ty>(array);
+    }
+
+    template <typename Ty, std::size_t N>
+    RAINY_CONSTEXPR20 array_view<Ty> make_array_view(array<Ty, N> &array) {
+        return array_view<Ty>(array);
+    }
+
+    template <typename Ty, std::size_t N>
+    RAINY_CONSTEXPR20 array_view<Ty> make_array_view(const array<Ty, N> &array) {
+        return array_view<Ty>(array);
+    }
+}
+
+/*
+仿函数实现
+*/
+namespace rainy::foundation::functional {
+    namespace operators {
+        template <typename Ty = void>
+        struct plus {
+            constexpr Ty operator()(const Ty &left, const Ty &right) const {
+                return left + right;
+            }
+        };
+
+        template <typename Ty = void>
+        struct minus {
+            constexpr Ty operator()(const Ty &left, const Ty &right) const {
+                return left - right;
+            }
+        };
+
+        template <typename Ty = void>
+        struct multiplies {
+            constexpr Ty operator()(const Ty &left, const Ty &right) const {
+                return left * right;
+            }
+        };
+
+        template <typename Ty = void>
+        struct divides {
+            constexpr Ty operator()(const Ty &left, const Ty &right) const {
+                return left / right;
+            }
+        };
+
+        template <typename Ty = void>
+        struct modulus {
+            constexpr Ty operator()(const Ty &left, const Ty &right) const {
+                return left % right;
+            }
+        };
+
+        template <typename Ty = void>
+        struct negate {
+            constexpr Ty operator()(const Ty &object) const {
+                return -object;
+            }
+        };
+
+        template <>
+        struct plus<void> {
+            template <typename Ty, typename U>
+            constexpr auto operator()(const Ty &left, const Ty &right) const
+                noexcept(noexcept(std::forward<Ty>(left) + std::forward<U>(right)))
+                    -> decltype(std::forward<Ty>(left) + std::forward<U>(right)) {
+                return left + right;
+            }
+        };
+
+        template <>
+        struct minus<void> {
+            template <typename Ty, typename U>
+            constexpr auto operator()(const Ty &left, const Ty &right) const
+                noexcept(noexcept(std::forward<Ty>(left) - std::forward<U>(right)))
+                    -> decltype(std::forward<Ty>(left) - std::forward<U>(right)) {
+                return left - right;
+            }
+        };
+
+        template <>
+        struct multiplies<void> {
+            template <typename Ty, typename U>
+            constexpr auto operator()(const Ty &left, const U &right) const
+                noexcept(noexcept(std::forward<Ty>(left) * std::forward<U>(right)))
+                    -> decltype(std::forward<Ty>(left) * std::forward<U>(right)) {
+                return left * right;
+            }
+        };
+
+        template <>
+        struct divides<void> {
+            template <typename Ty, typename U>
+            constexpr auto operator()(const Ty &left, const U &right) const
+                noexcept(noexcept(std::forward<Ty>(left) / std::forward<U>(right)))
+                    -> decltype(std::forward<Ty>(left) / std::forward<U>(right)) {
+                return left / right;
+            }
+        };
+
+        template <>
+        struct modulus<void> {
+            template <typename Ty, typename U>
+            constexpr auto operator()(const Ty &left, const U &right) const
+                noexcept(noexcept(std::forward<Ty>(left) % std::forward<U>(right)))
+                    -> decltype(std::forward<Ty>(left) % std::forward<U>(right)) {
+                return left % right;
+            }
+        };
+
+        template <>
+        struct negate<void> {
+            template <typename Ty>
+            constexpr auto operator()(const Ty &object) const noexcept(noexcept(-std::forward<Ty>(object)))
+                -> decltype(-std::forward<Ty>(object)) {
+                return -object;
+            }
+        };
+    }
+
+    namespace predicate {
+        template <typename Ty = void>
+        struct equal {
+            constexpr bool operator()(const Ty &left, const Ty &right) const {
+                return left == right;
+            }
+        };
+
+        template <>
+        struct equal<void> {
+            template <typename Ty, typename U>
+            constexpr auto operator()(const Ty &left, const Ty &right) const
+                noexcept(noexcept(std::forward<Ty>(left) == std::forward<U>(right)))
+                    -> decltype(std::forward<Ty>(left) == std::forward<U>(right)) {
+                return left == right;
+            }
+        };
+    }
+}
+
+namespace rainy::utility {
+    /**
+     * @brief 用于将结果和资源进行绑定以便快捷返回.
+     * @tparam _error 函数返回的结果，此处应当尽可能使用枚举或整型数据
+     * @tparam _type 用于提供实际返回资源
+     * @note 该模板结构体根据 _type 是否具有默认构造函数提供不同的实现。
+     */
+    template <typename Result, typename Type, bool = std::is_default_constructible_v<Type>>
+    struct result_collection {
+        Result result;
+        Type data;
+    };
+
+    /**
+     * @brief 特化版本，用于 _type 不具有默认构造函数的情况。
+     * @tparam _error 函数返回的结果，应当使用枚举或整型数据。
+     * @tparam _type 用于提供实际返回资源。
+     */
+    template <typename Result, typename Type>
+    struct result_collection<Result, Type, false> {
+        template <typename... Args>
+        explicit result_collection(Result result,
+                                   Args &&...construct_args) noexcept(std::conjunction_v<std::is_nothrow_default_constructible<Type>>) :
+            result(result), data(utility::forward<Args>(construct_args)...) {
+        }
+
+        Result result;
+        Type data;
+    };
+}
+
+namespace rainy::utility {
+    template <typename Ty>
+    struct not_null {
+    public:
+        using pointer = Ty;
+
+        // static_assert(type_traits::primary_types::is_pointer_v<Ty>, "Ty must be a pointer!");
+
+        not_null() = delete;
+
+        constexpr not_null(std::nullptr_t) = delete;
+
+        constexpr not_null(pointer resource) noexcept : resource(resource) {
+            ensures(resource != nullptr, "resource cannot be a null pointer!");
+        }
+
+        constexpr decltype(auto) operator->() const {
+            return resource;
+        }
+
+        constexpr decltype(auto) operator*() const {
+            return *resource;
+        }
+
+    private:
+        pointer resource;
+    };
+}
+
+namespace rainy::text {
+    template <typename Elem>
+    struct common_char_traits {
+        using char_type = Elem;
+        using int_type = int;
+        using off_type = std::streamoff;
+        using pos_type = std::streampos;
+        using state_type = std::mbstate_t;
+        using size_type = std::size_t;
+#if RAINY_HAS_CXX20
+        using comparison_category = std::strong_ordering;
+#endif
+
+        static constexpr void assign(char_type &char_to, const char_type &char_from) noexcept {
+            char_to = char_from;
+        }
+
+        static RAINY_CONSTEXPR20 void assign(char_type *char_to, const size_type num, const char_type &char_from) {
+            for (int i = 0; i < num; ++i) {
+                char_to[i] = char_from;
+            }
+        }
+
+        static RAINY_CONSTEXPR20 bool eq(const char_type left, const char_type right) noexcept {
+            return left == right;
+        }
+
+        static RAINY_CONSTEXPR20 bool eq_int_type(const int_type &left, const int_type &right) noexcept {
+            return left == right;
+        }
+
+        static RAINY_CONSTEXPR20 int compare(const char_type *string1, const char_type *string2, const size_type count) {
+            using information::internals::compare_string;
+            using information::internals::compare_string_compile_time;
+#if RAINY_HAS_CXX20
+            if (std::is_constant_evaluated()) {
+                return compare_string_compile_time(string1, string2, count);
+            }
+#endif
+            return compare_string(string1, string2, count);
+        }
+
+        static RAINY_CONSTEXPR20 size_type length(const char_type *string) {
+            using information::internals::string_length;
+            using information::internals::string_length_compile_time;
+#if RAINY_HAS_CXX20
+            if (std::is_constant_evaluated()) {
+                return string_length_compile_time(string);
+            }
+#endif
+            return string_length(string);
+        }
+
+        RAINY_NODISCARD static RAINY_CONSTEXPR20 const char_type *find(const char_type *string, std::size_t count,
+                                                                             const char_type &target) {
+#if RAINY_HAS_CXX20
+            if (std::is_constant_evaluated()) {
+                for (; 0 < count; --count, ++string) {
+                    if (*string == target) {
+                        return string;
+                    }
+                }
+            } else
+#endif
+            {
+#if RAINY_USING_AVX2
+                auto *bytes = reinterpret_cast<const unsigned char *>(string);
+                const __m128i target_vector = _mm_set1_epi8(target);
+                for (std::size_t i = 0; i + 16 <= count; i += 16) {
+                    const __m128i chunk = _mm_loadu_si128(reinterpret_cast<const __m128i *>(bytes + i));
+                    const __m128i cmp = _mm_cmpeq_epi8(chunk, target_vector);
+                    if (const int mask = _mm_movemask_epi8(cmp); mask != 0) {
+                        return string + i + information::internals::ctz_avx2(mask);
+                    }
+                }
+                for (std::size_t i = count & ~0xF; i < count; ++i) {
+                    if (bytes[i] == target) {
+                        return string + i;
+                    }
+                }
+#else
+                for (; 0 < count; --count, ++string) {
+                    if (*string == target) {
+                        return string;
+                    }
+                }
+#endif
+            }
+            return nullptr;
+        }
+
+        static RAINY_CONSTEXPR20 bool lt(const char_type left, const char_type right) {
+            return left < right;
+        }
+
+        static RAINY_CONSTEXPR20 char_type *move(char_type *to, const char_type *from, size_type count) {
+#if RAINY_HAS_CXX20
+            if (std::is_constant_evaluated()) {
+                bool loop_forward = true;
+                for (const Elem *source = from; source != from + count; ++source) {
+                    if (to == source) {
+                        loop_forward = false;
+                        break;
+                    }
+                }
+                if (loop_forward) {
+                    for (size_t idx = 0; idx != count; ++idx) {
+                        to[idx] = from[idx];
+                    }
+                } else {
+                    for (size_t idx = count; idx != 0; --idx) {
+                        to[idx - 1] = from[idx - 1];
+                    }
+                }
+                return to;
+            }
+#endif
+#if RAINY_USING_MSVC
+            errno_t error = memmove_s(to, count, from, count);
+            if (error != 0) {
+                std::abort();
+            }
+#elif RAINY_USING_CLANG
+            __builtin_memmove(to, from, count);
+#elif RAINY_USING_GCC
+            memmove(to, from, count);
+#endif
+            return to;
+        }
+
+        template <size_type N>
+        static RAINY_CONSTEXPR20 char_type *move(std::array<char_type, N> &to, const char_type *from, const size_type count) {
+            if (N < count) {
+                return nullptr;
+            }
+            return move(to.data(), from, count);
+        }
+
+        template <size_type N>
+        static RAINY_CONSTEXPR20 char_type *move(containers::array<char_type, N> &to, const char_type *from,
+                                                    const size_type count) {
+            if (N < count) {
+                return nullptr;
+            }
+            return move(to.data(), from, count);
+        }
+
+        static RAINY_CONSTEXPR20 char_type *move(containers::array_view<char_type> &to, const char_type *from,
+                                                    const size_type count) {
+            if (to.size() < count || to.empty()) {
+                return nullptr;
+            }
+            return move(to.data(), from, count);
+        }
+
+        static RAINY_CONSTEXPR20 char_type *move(std::vector<char_type> &to, const char_type *from, const size_type count) {
+            if (to.size() < count || to.empty()) {
+                return nullptr;
+            }
+            return move(to.data(), from, count);
+        }
+
+        template <size_type N>
+        static RAINY_CONSTEXPR20 char_type *move_s(Elem (&to)[N], const char_type *from, const size_type count) {
+            if (N < count) {
+                return nullptr;
+            }
+            return move(to, from, N);
+        }
+
+        static RAINY_CONSTEXPR20 char_type *move_s(char_type *dest, const size_type dest_size, const char_type *from,
+                                                      const size_type count) {
+            if (dest_size < count) {
+                return nullptr;
+            }
+            return move(dest, from, count);
+        }
+
+        static constexpr int_type to_int_type(const int_type &ch) {
+            return ch;
+        }
+
+        static constexpr char_type to_char_type(const int_type &ch) {
+            return ch;
+        }
+
+        static constexpr int_type eof() {
+            return EOF;
+        }
+
+        static constexpr int_type not_eof(const int_type &ch) {
+            return ch != eof() ? ch : false;
+        }
+    };
+
+    template <typename>
+    struct char_traits;
+
+    template <>
+    struct char_traits<char> : common_char_traits<char> {
+        using char_type = char;
+        using int_type = int;
+        using off_type = std::streamoff;
+        using pos_type = std::streampos;
+        using state_type = std::mbstate_t;
+        using size_type = std::size_t;
+#if RAINY_HAS_CXX20
+        using comparison_category = std::strong_ordering;
+#endif
+
+        static constexpr void assign(char_type &char_to, const char_type &char_from) noexcept {
+            common_char_traits<char_type>::assign(char_to, char_from);
+        }
+
+        static RAINY_CONSTEXPR20 void assign(char_type *char_to, const size_type num, const char_type &char_from) {
+            common_char_traits<char_type>::assign(char_to, num, char_from);
+        }
+
+        static RAINY_CONSTEXPR20 bool eq(const char_type left, const char_type right) noexcept {
+            return left == right;
+        }
+
+        static RAINY_CONSTEXPR20 bool eq_int_type(const int_type &left, const int_type &right) noexcept {
+            return left == right;
+        }
+
+        static RAINY_CONSTEXPR20 int compare(const char_type *string1, const char_type *string2, const size_type count) {
+            return common_char_traits<char_type>::compare(string1, string2, count);
+        }
+
+        static RAINY_CONSTEXPR20 size_type length(const char_type *string) {
+            return common_char_traits<char_type>::length(string);
+        }
+
+        RAINY_NODISCARD static RAINY_CONSTEXPR20 const char_type *find(const char_type *string, std::size_t count,
+                                                                             const char_type &target) {
+            return common_char_traits<char_type>::find(string, count, target);
+        }
+
+        static RAINY_CONSTEXPR20 bool lt(const char_type left, const char_type right) {
+            return left < right;
+        }
+
+        static RAINY_CONSTEXPR20 char_type *move(char_type *to, const char_type *from, size_type count) {
+            return common_char_traits<char_type>::move(to, from, count);
+        }
+
+        template <size_type N>
+        static RAINY_CONSTEXPR20 char_type *move(std::array<char_type, N> &to, const char_type *from, const size_type count) {
+            return common_char_traits<char_type>::move(to, from, count);
+        }
+
+        template <size_type N>
+        static RAINY_CONSTEXPR20 char_type *move(containers::array<char_type, N> &to, const char_type *from,
+                                                    const size_type count) {
+            return common_char_traits<char_type>::move(to, from, count);
+        }
+
+        static RAINY_CONSTEXPR20 char_type *move(containers::array_view<char_type> &to, const char_type *from,
+                                                    const size_type count) {
+            return common_char_traits<char_type>::move(to, from, count);
+        }
+
+        static RAINY_CONSTEXPR20 char_type *move(std::vector<char_type> &to, const char_type *from, const size_type count) {
+            return common_char_traits<char_type>::move(to, from, count);
+        }
+
+        template <size_type N>
+        static RAINY_CONSTEXPR20 char_type *move_s(char_type (&to)[N], const char_type *from, const size_type count) {
+            return common_char_traits<char_type>::move_s(to, from, count);
+        }
+
+        static RAINY_CONSTEXPR20 char_type *move_s(char_type *dest, const size_type dest_size, const char_type *from,
+                                                      const size_type count) {
+            if (dest_size < count) {
+                return nullptr;
+            }
+            return move(dest, from, count);
+        }
+
+        static constexpr int_type to_int_type(const int_type &ch) {
+            return ch;
+        }
+
+        static constexpr char_type to_char_type(const int_type &ch) {
+            return static_cast<char_type>(ch);
+        }
+
+        static constexpr int_type eof() {
+            return EOF;
+        }
+
+        static constexpr int_type not_eof(const int_type &ch) {
+            return ch != eof() ? ch : false;
+        }
+    };
+
+    template <>
+    struct char_traits<wchar_t> : common_char_traits<wchar_t> {
+        using char_type = wchar_t;
+        using int_type = std::wint_t;
+        using off_type = std::streamoff;
+        using pos_type = std::streampos;
+        using state_type = std::mbstate_t;
+        using size_type = std::size_t;
+#if RAINY_HAS_CXX20
+        using comparison_category = std::strong_ordering;
+#endif
+
+        static constexpr void assign(char_type &char_to, const char_type &char_from) noexcept {
+            common_char_traits<char_type>::assign(char_to, char_from);
+        }
+
+        static RAINY_CONSTEXPR20 void assign(char_type *char_to, const size_type num, const char_type &char_from) {
+            common_char_traits<char_type>::assign(char_to, num, char_from);
+        }
+
+        static RAINY_CONSTEXPR20 bool eq(const char_type left, const char_type right) noexcept {
+            return left == right;
+        }
+
+        static RAINY_CONSTEXPR20 bool eq_int_type(const int_type &left, const int_type &right) noexcept {
+            return left == right;
+        }
+
+        static RAINY_CONSTEXPR20 int compare(const char_type *string1, const char_type *string2, const size_type count) {
+            return common_char_traits<char_type>::compare(string1, string2, count);
+        }
+
+        static RAINY_CONSTEXPR20 size_type length(const char_type *string) {
+            return common_char_traits<char_type>::length(string);
+        }
+
+        RAINY_NODISCARD static RAINY_CONSTEXPR20 const char_type *find(const char_type *string, std::size_t count,
+                                                                             const char_type &target) {
+            return common_char_traits<char_type>::find(string, count, target);
+        }
+
+        static RAINY_CONSTEXPR20 bool lt(const char_type left, const char_type right) {
+            return left < right;
+        }
+
+        static RAINY_CONSTEXPR20 char_type *move(char_type *to, const char_type *from, size_type count) {
+            return common_char_traits<char_type>::move(to, from, count);
+        }
+
+        template <size_type N>
+        static RAINY_CONSTEXPR20 char_type *move(std::array<char_type, N> &to, const char_type *from, const size_type count) {
+            return common_char_traits<char_type>::move(to, from, count);
+        }
+
+        template <size_type N>
+        static RAINY_CONSTEXPR20 char_type *move(containers::array<char_type, N> &to, const char_type *from,
+                                                    const size_type count) {
+            return common_char_traits<char_type>::move(to, from, count);
+        }
+
+        static RAINY_CONSTEXPR20 char_type *move(containers::array_view<char_type> &to, const char_type *from,
+                                                    const size_type count) {
+            return common_char_traits<char_type>::move(to, from, count);
+        }
+
+        static RAINY_CONSTEXPR20 char_type *move(std::vector<char_type> &to, const char_type *from, const size_type count) {
+            return common_char_traits<char_type>::move(to, from, count);
+        }
+
+        template <size_type N>
+        static RAINY_CONSTEXPR20 char_type *move_s(char_type (&to)[N], const char_type *from, const size_type count) {
+            return common_char_traits<char_type>::move_s(to, from, count);
+        }
+
+        static RAINY_CONSTEXPR20 char_type *move_s(char_type *dest, const size_type dest_size, const char_type *from,
+                                                      const size_type count) {
+            if (dest_size < count) {
+                return nullptr;
+            }
+            return move(dest, from, count);
+        }
+
+        static constexpr int_type to_int_type(const int_type &ch) {
+            return ch;
+        }
+
+        static constexpr char_type to_char_type(const int_type &ch) {
+            return ch;
+        }
+
+        static constexpr int_type eof() {
+            return EOF;
+        }
+
+        static constexpr int_type not_eof(const int_type &ch) {
+            return ch != eof() ? ch : false;
+        }
+    };
+
+    template <typename Elem, typename Traits = char_traits<Elem>>
+    class basic_string_view {
+    public:
+        using value_type = Elem;
+        using pointer = const value_type *;
+        using const_pointer = const value_type *;
+        using size_type = std::size_t;
+        using iterator = utility::iterator<pointer>;
+        using const_iterator = utility::iterator<pointer>;
+        using reverse_iterator = std::reverse_iterator<iterator>;
+        using reference = const value_type &;
+        using const_reference = const value_type &;
+        using traits_type = Traits;
+
+        static inline constexpr size_type npos = static_cast<size_type>(-1);
+
+        constexpr basic_string_view() noexcept : view_data(nullptr){};
+
+        RAINY_CONSTEXPR20 basic_string_view(const value_type *string) noexcept :
+            view_data(string), view_size(traits_type::length(string)) {
+        }
+
+        RAINY_CONSTEXPR20 basic_string_view(const std::basic_string<Elem> &stdstring) noexcept :
+            view_data(stdstring.c_str()), view_size(stdstring.size()) {
+        }
+
+        constexpr basic_string_view(const value_type *string, const size_type size) noexcept : view_data(string), view_size(size) {
+        }
+
+        template <std::size_t N>
+        constexpr basic_string_view(const value_type (&string)[N]) noexcept {
+        }
+
+        RAINY_NODISCARD constexpr const_reference operator[](const std::size_t idx) const {
+#if RAINY_ENABLE_DEBUG
+            utility::expects(
+                !empty(), "can not call " RAINY_STRINGIZE(basic_string_view<value_type, traits_type>::front) " on empty string_view");
+            range_check(idx);
+#endif
+            return view_data[idx];
+        }
+
+        // 元素访问
+        RAINY_NODISCARD constexpr const_reference at(const std::size_t idx) const {
+#if RAINY_ENABLE_DEBUG
+            utility::expects(!empty(),
+                             "can not call " RAINY_STRINGIZE(basic_string_view<value_type, traits_type>::at) " on empty string_view");
+#endif
+            range_check(idx);
+            return view_data[idx];
+        }
+
+        RAINY_NODISCARD constexpr const_reference back() const noexcept {
+#if RAINY_ENABLE_DEBUG
+            utility::expects(
+                !empty(), "can not call " RAINY_STRINGIZE(basic_string_view<value_type, traits_type>::back) " on empty string_view");
+#endif
+            return view_data[view_size - 1];
+        }
+
+        RAINY_NODISCARD constexpr const_reference front() const noexcept {
+#if RAINY_ENABLE_DEBUG
+            utility::expects(
+                !empty(), "can not call " RAINY_STRINGIZE(basic_string_view<value_type, traits_type>::front) " on empty string_view");
+#endif
+            return view_data[0];
+        }
+
+        RAINY_NODISCARD constexpr pointer data() const noexcept {
+            return view_data;
+        }
+
+        RAINY_NODISCARD constexpr pointer c_str() const noexcept {
+            return view_data;
+        }
+
+        // 容量
+        RAINY_NODISCARD constexpr size_type size() const noexcept {
+            return view_size;
+        }
+
+        RAINY_NODISCARD constexpr size_type length() const noexcept {
+            return view_size;
+        }
+
+        RAINY_NODISCARD constexpr size_type max_size() const noexcept {
+            return (std::min)(static_cast<size_t>(PTRDIFF_MAX), static_cast<size_t>(-1) / sizeof(value_type));
+        }
+
+        RAINY_NODISCARD constexpr bool empty() const noexcept {
+            return view_size == 0;
+        }
+
+        // 迭代器
+        RAINY_NODISCARD constexpr const_iterator begin() const noexcept {
+            return const_iterator(view_data);
+        }
+
+        RAINY_NODISCARD constexpr const_iterator end() const noexcept {
+            return const_iterator(view_data + view_size);
+        }
+
+        RAINY_NODISCARD constexpr const_iterator cbegin() const noexcept {
+            return const_iterator(view_data);
+        }
+
+        RAINY_NODISCARD constexpr const_iterator cend() const noexcept {
+            return const_iterator(view_data + view_size);
+        }
+
+        RAINY_NODISCARD constexpr basic_string_view substr(const size_type offset = 0, size_type count = npos) const {
+            range_check(offset);
+            count = clamp_suffix_size(offset, count);
+            return basic_string_view(view_data + offset, count);
+        }
+      
+
+        template <typename... Args>
+        std::basic_string<value_type> make_format(Args... fmt_args) const {
+            std::basic_string<value_type> buffer;
+#if RAINY_HAS_CXX20
+            utility::basic_format(buffer, std::basic_string_view{view_data, view_size}, fmt_args...);
+#else
+            utility::cstyle_format(buffer, view_data, fmt_args...);
+#endif
+            return buffer;
+        }
+
+        template <typename Elem_, typename Uty>
+        friend std::basic_ostream<Elem_> &operator<<(std::basic_ostream<Elem_> &ostream, const basic_string_view<Uty> &right) {
+            ostream.write(right.view_data, right.view_size);
+            return ostream;
+        }
+
+    private:
+        RAINY_NODISCARD constexpr size_type clamp_suffix_size(const size_type offset, const size_type count) const noexcept {
+            return (std::min)(count, view_size - offset);
+        }
+
+
+        constexpr void range_check(const std::size_t idx) const {
+            if (view_size <= idx) {
+                foundation::system::exceptions::logic::throw_out_of_range("Invalid subscript");
+            }
+        }
+
+        pointer view_data{nullptr};
+        size_type view_size{0};
+    };
+
+    using string_view = basic_string_view<char>;
+    using wstring_view = basic_string_view<wchar_t>;
+}
+
+namespace rainy::utility {
+    template <typename Fx>
+    class mem_fn_impl;
+
+    template <typename Rx, typename Class, typename... Args>
+    class mem_fn_impl<Rx (Class::*)(Args...)> {
+    public:
+        using return_type = Rx;
+        using class_type = Class;
+        using pointer = return_type (class_type::*)(Args...);
+
+        mem_fn_impl() = delete;
+
+        mem_fn_impl(Rx (Class::*mem_fn)(Args...)) noexcept : fn(mem_fn) {
+        }
+
+        return_type invoke(class_type &object, Args &&...args) const {
+            return (object.*fn)(std::forward<Args>(args)...);
+        }
+
+        return_type operator()(class_type &object, Args &&...args) const {
+            return (object.*fn)(std::forward<Args>(args)...);
+        }
+
+        RAINY_NODISCARD std::type_info &type() const noexcept {
+            return get_typeid<pointer>();
+        }
+
+        RAINY_NODISCARD std::size_t arity() const noexcept {
+            return sizeof...(Args);
+        }
+
+    private:
+        union {
+            pointer fn;
+            std::max_align_t dummy;
+        };
+    };
+
+    template <typename Rx, typename Class, typename... Args>
+    class mem_fn_impl<Rx (Class::*)(Args...) const> {
+    public:
+        using return_type = Rx;
+        using class_type = Class;
+        using pointer = return_type (class_type::*)(Args...) const;
+
+        mem_fn_impl() = delete;
+
+        mem_fn_impl(Rx (Class::*mem_fn)(Args...) const) noexcept : fn(mem_fn) {
+        }
+
+        return_type invoke(const class_type &object, Args &&...args) const {
+            return (object.*fn)(std::forward<Args>(args)...);
+        }
+
+        return_type operator()(class_type &object, Args &&...args) const {
+            return (object.*fn)(std::forward<Args>(args)...);
+        }
+
+        RAINY_NODISCARD std::type_info &type() const noexcept {
+            return get_typeid<pointer>();
+        }
+
+        RAINY_NODISCARD std::size_t arity() const noexcept {
+            return sizeof...(Args);
+        }
+
+    private:
+        union {
+            pointer fn;
+            std::max_align_t dummy;
+        };
+    };
+
+    template <typename Rx, typename Class, typename... Args>
+    auto mem_fn(Rx (Class::*memptr)(Args...)) -> mem_fn_impl<Rx (Class::*)(Args...)> {
+        return {memptr};
+    }
+
+    template <typename Rx, typename Class, typename... Args>
+    auto mem_fn(Rx (Class::*memptr)(Args...) const) -> mem_fn_impl<Rx (Class::*)(Args...) const> {
+        return {memptr};
+    }
+}
+
+template <>
+struct std::hash<rainy::utility::type_index> {
+    using argument_type RAINY_CXX17_DEPRECATED_TYPEDEF = rainy::utility::type_index;
+    using result_type RAINY_CXX17_DEPRECATED_TYPEDEF = std::size_t;
+
+    RAINY_NODISCARD std::size_t operator()(const rainy::utility::type_index &val) const noexcept {
+        return val.hash_code();
+    }
+};
+
+template <>
+struct std::hash<rainy::utility::sti_typeinfo> {
+    using argument_type RAINY_CXX17_DEPRECATED_TYPEDEF = rainy::utility::sti_typeinfo;
+    using result_type RAINY_CXX17_DEPRECATED_TYPEDEF = std::size_t;
+
+    RAINY_NODISCARD std::size_t operator()(const rainy::utility::sti_typeinfo &val) const noexcept {
+        return val.hash_code();
+    }
+};
+
+namespace rainy::component::sync_event {
+    class event {
+    public:
+        virtual ~event() = default;
+
+        virtual const std::type_info &type_info() {
+            return typeid(*this);
+        }
+    };
+
+    template <typename Derived>
+    class event_handler {
+    public:
+        event_handler() {
+            static_assert(std::is_base_of_v<event, Derived>);
+        }
+
+        virtual ~event_handler() = default;
+
+        virtual void on(event &user_event) = 0;
+
+        RAINY_NODISCARD std::string_view handler_name() const noexcept {
+            return typeid(*this).name();
+        }
+
+        RAINY_NODISCARD std::size_t handler_hash_code() const noexcept {
+            return typeid(*this).hash_code();
+        }
+
+        void dispatch(event &user_event) {
+            on(dynamic_cast<Derived &>(user_event));
+        }
+    };
+
+    class handler_registration {
+    public:
+        virtual ~handler_registration() = default;
+
+        virtual void remove_handler() = 0;
+        RAINY_NODISCARD virtual std::string_view name() const noexcept = 0;
+        RAINY_NODISCARD virtual std::size_t hash_code() const noexcept = 0;
+        virtual void invoke_dispatch(event &) const = 0;
+    };
+
+    class dispatcher {
+    public:
+        class registration;
+
+        using registrations_t = std::list<std::shared_ptr<registration>>;
+        using type_mapping = std::unordered_map<utility::type_index, std::shared_ptr<registrations_t>>;
+
+        static dispatcher *instance() {
+            static dispatcher instance;
+            return &instance;
+        }
+
+        ~dispatcher() {
+            clear();
+        }
+
+        void clear() {
+            handlers.clear();
+        }
+
+        template <typename EventType, typename ListenerType, typename... Args>
+        RAINY_NODISCARD std::shared_ptr<handler_registration> subscribe(Args &&...args) {
+            return subscribe<EventType>(std::make_shared<ListenerType>(utility::forward<Args>(args)...));
+        }
+
+        template <typename EventType>
+        RAINY_NODISCARD std::shared_ptr<handler_registration> subscribe(std::shared_ptr<event_handler<EventType>> handler) {
+            auto &registrations_instance = handlers[typeid(EventType)];
+            if (!registrations_instance) {
+                registrations_instance = std::make_shared<registrations_t>();
+            }
+            auto registration_instance = std::make_shared<registration>(registrations_instance);
+            registration_instance->set<EventType>(handler);
+            registrations_instance->emplace_back(registration_instance);
+            return registration_instance;
+        }
+
+        template <typename EventType, typename Fx,
+                  type_traits::other_trans::enable_if_t<
+                      type_traits::type_properties::is_invocable_r_v<void, Fx, event &>, int> = 0>
+        RAINY_NODISCARD std::shared_ptr<handler_registration> subscribe(Fx &&func) {
+            /* 我们实际创建了一个virtual_listener实例，表示虚拟的监听器 */
+            struct virtual_listener : public event_handler<EventType>, Fx {
+                virtual_listener(Fx &&func) : Fx(std::forward<Fx>(func)) {
+                }
+
+                void on(event &user_event) override {
+                    (*this)(user_event);
+                }
+            };
+            return subscribe<EventType, virtual_listener>(std::forward<Fx>(func));
+        }
+
+        template <typename EventType>
+        RAINY_NODISCARD std::shared_ptr<handler_registration> subscribe(
+            foundation::functional::function_pointer<void(event &)> fptr) {
+            struct virtual_listener : public event_handler<EventType> {
+                virtual_listener(foundation::functional::function_pointer<void(event &)> fptr) : fptr(std::move(fptr)) {
+                }
+
+                void on(event &user_event) override {
+                    fptr(user_event);
+                    anti_jesus(); // 防止静态工具的const建议
+                }
+
+                void anti_jesus() {
+                    jesus = 666;
+                }
+
+                foundation::functional::function_pointer<void(event &)> fptr;
+                int jesus{33};
+            };
+            return subscribe<EventType, virtual_listener>(fptr);
+        }
+
+        template <typename EventType>
+        void for_each_in_handlers(foundation::functional::function_pointer<void(event_handler<EventType> *)> pred) const {
+            const auto it = handlers.find(typeid(EventType));
+            if (it == handlers.end()) {
+                return;
+            }
+            const auto &registrations_instance = it->second;
+            if (!registrations_instance || registrations_instance->empty()) {
+                return;
+            }
+            for (const auto &handler: *registrations_instance) {
+                pred(static_cast<event_handler<EventType> *>(handler->get_handler()));
+            }
+        }
+
+        template <typename EventType>
+        void publish(EventType &event) const {
+            const auto it = handlers.find(typeid(EventType));
+            if (it == handlers.end()) {
+                return;
+            }
+            const auto &registrations_instance = it->second;
+            if (!registrations_instance || registrations_instance->empty()) {
+                return;
+            }
+            for (const auto &handler: *registrations_instance) {
+                try {
+                    static_cast<event_handler<EventType> *>(handler->get_handler())->dispatch(event);
+                } catch (foundation::system::exceptions::exception &RAINY_exception) {
+                    io::print::stderr_println(
+                        "found a error in :" RAINY_STRINGIZE(rainy::component::sync_event::dispatcher::publish),
+                        "with addtional information from RAINY_exception: ", RAINY_exception.what());
+                    utility::throw_exception(RAINY_exception);
+                } catch (std::exception &e) {
+                    io::print::stderr_println(
+                        "found a error in :" RAINY_STRINGIZE(rainy::component::sync_event::dispatcher::publish),
+                        "with addtional information from std::exception: ", e.what());
+                    utility::throw_exception(utility::stdexcept_to_rexcept(e));
+                }
+            }
+        }
+
+        template <typename EventType>
+        void publish_noexcept(EventType &event) const noexcept {
+            const auto it = handlers.find(typeid(EventType));
+            if (it == handlers.end()) {
+                return;
+            }
+            const auto &registrations_instance = it->second;
+            if (!registrations_instance || registrations_instance->empty()) {
+                return;
+            }
+            for (const auto &handler: *registrations_instance) {
+                handler->invoke_dispatch(event);
+            }
+        }
+
+        class registration : public handler_registration, public std::enable_shared_from_this<registration> {
+        public:
+            registration(std::shared_ptr<registrations_t> registrations) :
+                registrations(utility::move(registrations)) {
+            }
+
+            void remove_handler() override {
+                if (registered) {
+                    auto self = shared_from_this();
+                    registrations->remove_if([self](const std::shared_ptr<registration> &reg) { return reg == self; });
+                    registered = false;
+                }
+            }
+
+            RAINY_NODISCARD std::string_view name() const noexcept override {
+                return instance->name();
+            }
+
+            RAINY_NODISCARD std::size_t hash_code() const noexcept override {
+                return instance->hash_code();
+            }
+
+            void invoke_dispatch(event &user_event) const noexcept override {
+                return instance->invoke(user_event);
+            }
+
+            void *get_handler() {
+                return instance->get_handler();
+            }
+
+            template <typename EventType>
+            void set(std::shared_ptr<event_handler<EventType>> handler) {
+                instance = std::make_unique<impl<EventType>>(handler);
+            }
+
+        private:
+            struct resource {
+                virtual ~resource() = default;
+                virtual void *get_handler() = 0;
+                RAINY_NODISCARD virtual std::string_view name() const noexcept = 0;
+                RAINY_NODISCARD virtual std::size_t hash_code() const noexcept = 0;
+                virtual void invoke(event &) const = 0;
+            };
+
+            template <typename EventType>
+            struct impl : resource {
+                impl(std::shared_ptr<event_handler<EventType>> handler) : handler(std::move(handler)) {
+                }
+
+                void *get_handler() override {
+                    return handler.get();
+                }
+
+                RAINY_NODISCARD std::string_view name() const noexcept override {
+                    return handler->handler_name();
+                }
+
+                RAINY_NODISCARD std::size_t hash_code() const noexcept override {
+                    return handler->handler_hash_code();
+                }
+
+                void invoke(event &user_event) const override {
+                    handler->dispatch(user_event);
+                }
+
+                std::shared_ptr<event_handler<EventType>> handler;
+            };
+
+            std::shared_ptr<registrations_t> registrations;
+            bool registered{true};
+            std::unique_ptr<resource> instance;
+        };
+
+        dispatcher() {
+            handlers.reserve(16);
+        }
+
+        type_mapping handlers;
+    };
+}
+
+/*
+comint是仿制Microsoft中组件对象模型（COM）的一种接口规范
+采用shared_ptr避免直接管理引用计数，用于增强内存安全性，同时定义一套适用于现代C++的规范
+*/
+namespace rainy::foundation::comint {
+    template <typename Interface>
+    class comint_ptr;
+
+    struct the_unknown {
+        using the_unknown_ptr = std::shared_ptr<the_unknown>;
+
+        virtual ~the_unknown() = default;
+
+        RAINY_NODISCARD std::string_view name() const noexcept {
+            return typeid(*this).name();
+        }
+
+        RAINY_NODISCARD std::size_t hash_code() const noexcept {
+            return typeid(*this).hash_code();
+        }
+
+        /* 我们通过此接口，为某个实例复制或新实例化一个实例 */
+        virtual void copy(the_unknown_ptr &ptr) = 0;
+        /* 负责实现移动语义（不针对智能指针，而是对象，行为上是make_shared附上move后的参数） */
+        virtual void move(the_unknown_ptr &ptr) noexcept = 0;
+    };
+
+    template  <typename Interface>
+    class comint_ptr {
+    public:
+        comint_ptr() {
+            static_assert(std::is_base_of_v<the_unknown, Interface>, "Interface must be a derived interface from the_unknown struct!");
+        }
+
+        comint_ptr(comint_ptr &&right) noexcept : pointer() {
+            static_assert(std::is_base_of_v<the_unknown, Interface>, "Interface must be a derived interface from the_unknown struct!");
+        }
+
+        the_unknown &as_unknown() {
+            if (!pointer) {
+                system::exceptions::cast::throw_bad_cast("the internal pointer is null!");
+            }
+            rainy_let cast_ptr = dynamic_cast<the_unknown*>(pointer.get());
+            if (!cast_ptr) {
+                system::exceptions::cast::throw_bad_cast("failed to cast pointer to the_unknown");
+            }
+            return *cast_ptr;
+        }
+
+        the_unknown * as_unknown_ptr() {
+            return &as_unknown();
+        }
+
+    private:
+        std::shared_ptr<Interface> pointer;
+    };
+
+    class interface_table {
+    public:
+        static interface_table *instance() {
+            static interface_table instance;
+            return &instance;
+        }
+
+        template <typename InterfaceClass>
+        void add_interface() {
+            utility::sti_typeinfo type_idx = sti_typeid(InterfaceClass);
+            const auto find = table.find(type_idx);
+            if (find == table.end()) {
+                table.insert({type_idx, &InterfaceClass::make_instance});
+            }
+        }
+
+        template <typename InterfaceClass>
+        void remove_interface() {
+            utility::sti_typeinfo type_idx = sti_typeid(InterfaceClass);
+            const auto find = table.find(type_idx);
+            if (find != table.end()) {
+                table.erase(find);
+            }
+        }
+
+        template <typename InterfaceClass>
+        RAINY_NODISCARD std::shared_ptr<comint::the_unknown> create_instance() {
+            utility::sti_typeinfo type_idx = sti_typeid(InterfaceClass);
+            const auto find = table.find(type_idx);
+            if (find == table.end()) {
+                return nullptr;
+            }
+            return find->second();
+        }
+
+    private:
+        std::unordered_map<utility::sti_typeinfo, foundation::functional::function_pointer<std::shared_ptr<comint::the_unknown>()>>
+            table;
+    };
+
+    template <typename InterfaceClass>
+    void add_interface() {
+        interface_table::instance()->add_interface<InterfaceClass>();
+    }
+
+    template <typename InterfaceClass>
+    RAINY_NODISCARD std::shared_ptr<InterfaceClass> create_instance() {
+        return std::dynamic_pointer_cast<InterfaceClass>(interface_table::instance()->create_instance<InterfaceClass>());
+    }
+
+    template <typename InterfaceClass>
+    void remove_interface() {
+        interface_table::instance()->remove_interface<InterfaceClass>();
+    }
+}
+
+#endif // RAINY_BASE_HPP

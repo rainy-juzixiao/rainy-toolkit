@@ -826,33 +826,7 @@ constexpr void *builtin_fast_memcpy(void *dest, const void *src, std::size_t len
     return dst;
 }
 
-template <typename Ty, typename Dx = rainy::foundation::system::memory::default_deleter<Ty>>
-class scope_guard {
-public:
-    using value_type = Ty;
-    using pointer = value_type *;
 
-    constexpr scope_guard() = default;
-
-    scope_guard(const scope_guard &) = delete;
-    scope_guard(scope_guard &&) = delete;
-    scope_guard &operator=(const scope_guard &) = delete;
-    scope_guard &operator=(scope_guard &&) = delete;
-
-    constexpr scope_guard(pointer data) : data_(data) {
-    }
-
-    constexpr scope_guard(pointer data,Dx) : data_(data) {
-    }
-
-    template <typename Uty,rainy::type_traits::other_trans::enable_if_t<rainy::type_traits::type_relations::is_convertible_v<Uty,value_type>,int> = 0>
-    constexpr scope_guard(Uty* data)  {
-    
-    }
-
-private:
-    pointer data_{nullptr};
-};
 
 
 int main() {

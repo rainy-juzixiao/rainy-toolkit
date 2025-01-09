@@ -12,3 +12,4 @@
 #define RAINY_OVERLOAD_RIGHT_CV_METHOD(QUAL) template <typename ClassType, typename ReturnType, typename... Args> constexpr auto overload_right_cv_method(ReturnType (ClassType::*cv_method)(Args...) const volatile QUAL) { return cv_method; }
 #define RAINY_OVERLOAD_RIGHT_NOEXCEPT_METHOD(QUAL) template <typename ClassType, typename ReturnType, typename... Args> constexpr auto overload_right_noexcept_method(ReturnType (ClassType::*noexcept_method)(Args...) QUAL) { return noexcept_method; }
 #define RAINY_INLINE
+#define RAINY_DECLARE_SIGNLE_INSTANCE(CLASSNAME) static CLASSNAME &instance() noexcept { static CLASSNAME instance;return instance;}
