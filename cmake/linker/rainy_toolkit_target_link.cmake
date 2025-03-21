@@ -1,4 +1,4 @@
-﻿message("Starting adding sources files.")
+message("Starting adding sources files.")
 
 if (WIN32)
     include(${PROJECT_SOURCE_DIR}/cmake/linker/cross_platform_config/rainy_target_link_windows.cmake)
@@ -8,13 +8,11 @@ else()
     message(FATAL_ERROR "Unsupported platform: ${CMAKE_SYSTEM_NAME}")
 endif()
 
-if (MOUDLE_USE_SOURCE_BUILD_MODE)
-    message("Using source build mode. Adding source files to target_sources")
-    target_sources(rainy-toolkit PRIVATE 
-        ${PROJECT_SOURCE_DIR}/master/sources/rainy_cxxfiles/user/hash/impl_sha.cxx 
-        ${PROJECT_SOURCE_DIR}/master/sources/rainy_cxxfiles/diagnostics/contract.cxx
-        ${PROJECT_SOURCE_DIR}/master/sources/rainy_cxxfiles/core/core.cxx
-    )
-endif()
+target_sources(rainy-toolkit PRIVATE 
+    ${PROJECT_SOURCE_DIR}/sources/user/hash/impl_sha.cxx 
+    ${PROJECT_SOURCE_DIR}/sources/diagnostics/contract.cxx
+    ${PROJECT_SOURCE_DIR}/sources/core/core.cxx
+    ${PROJECT_SOURCE_DIR}/sources/core/pal_filesystem.cxx
+)
 
 include(${PROJECT_SOURCE_DIR}/cmake/linker/rainy_target_pal_link.cmake)

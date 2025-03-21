@@ -1,0 +1,136 @@
+/*
+ * Copyright 2025 rainy-juzixiao
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+#ifndef RAINY_CORE_TYPE_TRAITS_HELPER_H
+#define RAINY_CORE_TYPE_TRAITS_HELPER_H
+#include <rainy/core/type_traits/implements.h>
+#include <rainy/core/type_traits/modifers.h>
+
+// type_traits的帮助程序类和 typedef
+namespace rainy::type_traits::helper {
+    /**
+     * @brief 从类型和值生成整型常量。
+     * @tparam Ty 类型
+     * @tparam Data 值
+     */
+    template <typename Ty, Ty Data>
+    struct integral_constant {
+        using value_type = Ty;
+        using type = integral_constant;
+
+        constexpr explicit operator value_type() const noexcept {
+            return value;
+        }
+        constexpr value_type operator()() const noexcept {
+            return value;
+        }
+
+        static constexpr Ty value = Data;
+    };
+
+    /**
+     * @brief 将 bool 用作 Ty 参数的 integral_constant 的显式部分特化
+     */
+    template <bool Boolean>
+    using bool_constant = integral_constant<bool, Boolean>;
+
+    using true_type = integral_constant<bool, true>;
+    using false_type = integral_constant<bool, false>;
+
+    template <typename>
+    struct char_space : integral_constant<char, ' '> {};
+
+    template <>
+    struct char_space<wchar_t> : integral_constant<wchar_t, ' '> {};
+
+    template <>
+    struct char_space<char16_t> : integral_constant<char16_t, u' '> {};
+
+    template <>
+    struct char_space<char32_t> : integral_constant<char32_t, u' '> {};
+
+    template <typename CharType>
+    RAINY_INLINE_CONSTEXPR CharType char_space_v = char_space<CharType>::value;
+
+#if RAINY_HAS_CXX20 && defined(__cpp_lib_char8_t)
+    template <>
+    struct char_space<char8_t> : integral_constant<char8_t, ' '> {};
+#endif
+    template <typename CharType>
+    struct char_null : integral_constant<char, '\0'> {};
+
+    template <>
+    struct char_null<wchar_t> : integral_constant<wchar_t, '\0'> {};
+
+    template <>
+    struct char_null<char16_t> : integral_constant<char16_t, u'\0'> {};
+
+    template <>
+    struct char_null<char32_t> : integral_constant<char32_t, u'\0'> {};
+
+#if RAINY_HAS_CXX20 && defined(__cpp_lib_char8_t)
+    template <>
+    struct char_null<char8_t> : integral_constant<char8_t, '\0'> {};
+#endif
+
+    template <typename CharType>
+    RAINY_INLINE_CONSTEXPR CharType char_null_v = char_null<CharType>::value;
+
+    template <typename CharType>
+    RAINY_CONSTEXPR_BOOL is_wchar_t = implements::is_same_v<CharType, wchar_t>;
+
+    template <typename Ty>
+    struct wrapper {
+        inline static cv_modify::remove_cvref_t<Ty> value;
+    };
+
+    template <typename Ty>
+    constexpr cv_modify::remove_cvref_t<Ty> &get_fake_object() noexcept {
+        return wrapper<cv_modify::remove_cvref_t<Ty>>::value;
+    }
+
+    template <typename Ty>
+    struct identity {
+        using type = Ty;
+    };
+
+    template <typename Ty>
+    using identity_t = typename identity<Ty>::type;
+
+    template <typename Ty, Ty... Vals>
+    struct integer_sequence {
+        static_assert(implements::is_integral_v<Ty>, "integer_sequence<T, I...> requires T to be an integral type.");
+
+        using value_type = Ty;
+
+        RAINY_NODISCARD static constexpr size_t size() noexcept {
+            return sizeof...(Vals);
+        }
+    };
+
+    template <typename T, T N>
+    using make_integer_sequence = typename core::builtin::make_integer_seq<integer_sequence, T, N>::type;
+
+    template <std::size_t... Vals>
+    using index_sequence = integer_sequence<std::size_t, Vals...>;
+
+    template <std::size_t Size>
+    using make_index_sequence = make_integer_sequence<size_t, Size>;
+
+    template <typename... Types>
+    using index_sequence_for = make_index_sequence<sizeof...(Types)>;
+}
+
+#endif

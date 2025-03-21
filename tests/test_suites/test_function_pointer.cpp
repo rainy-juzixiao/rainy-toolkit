@@ -11,6 +11,10 @@ void print_hello() {
     std::cout << "Hello" << std::endl;
 }
 
+int variadic_fn(int a, int b, ...) {
+    return a + b;
+}
+
 TEST(RainyFunctionPointerTest, TestFunctionPointerCreation) {
     function_pointer<int(int, int)> fptr = &add;
     EXPECT_EQ(fptr(1, 2), 3);
@@ -49,8 +53,7 @@ TEST(RainyFunctionPointerTest, TestFunctionPointerCTAD) {
 }
 
 TEST(RainyFunctionPointerTest, TestFunctionPointerWithVariadic) {
-    auto variadic_fn = [](int a, int b, ...) { return a + b; };
-    function_pointer<int(int, int, ...)> fptr = +variadic_fn;
+    function_pointer<int(int, int, ...)> fptr = variadic_fn;
     EXPECT_EQ(fptr(1, 2), 3); // 验证调用
 }
 
@@ -78,7 +81,7 @@ TEST(RainyFunctionPointerTest, TestNullptrAssignment) {
 }
 
 TEST(RainyFunctionPointerTest, TestVariadicArgument) {
-    function_pointer<int(int, int, ...)> fptr = +[](int a, int b, ...) { return a + b; };
+    function_pointer<int(int, int, ...)> fptr = variadic_fn;
     EXPECT_EQ(fptr(1, 2), 3);
 }
 

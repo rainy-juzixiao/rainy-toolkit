@@ -91,7 +91,7 @@ void write() {
 void read() {
     FILE *file = fopen("student.dat", "rb");
     Student student{};
-    rainy::information::pal::read_binray(file, &student, sizeof(student), 1);
+    rainy::core::pal::read_binray(file, &student, sizeof(student), 1);
     std::cout << student.id << "\n";
     std::cout << student.name << "\n";
 }
@@ -615,15 +615,15 @@ int main() {
     }*/
 
     //std::cout << "All multithreaded tests passed!" << std::endl;
-    std::cout << "是否为主线程： " << rainy::information::is_main_thread() << "\n";
+    std::cout << "是否为主线程： " << rainy::core::is_main_thread() << "\n";
     std::thread thread([]() {
         std::cout << "jthread---" << "\n";
-        std::cout << "是否为主线程： " << rainy::information::is_main_thread() << "\n";
+        std::cout << "是否为主线程： " << rainy::core::is_main_thread() << "\n";
     });
     thread.join();
     std::thread thread1([]() {
         std::cout << "jthread---" << "\n";
-        std::cout << "是否为主线程： " << rainy::information::is_main_thread() << "\n";
+        std::cout << "是否为主线程： " << rainy::core::is_main_thread() << "\n";
     });
     thread1.join();
     // std::allocator_traits<std::allocator<int>>;
@@ -654,7 +654,7 @@ int main() {
         return 0;
     },1,2,3);
     thread.join();
-    std::cout << "是否为主线程： " << rainy::information::is_main_thread() << "\n";
+    std::cout << "是否为主线程： " << rainy::core::is_main_thread() << "\n";
     return 0;
 }
 

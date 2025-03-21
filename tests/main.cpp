@@ -1,4 +1,4 @@
-﻿#include <set>
+#include <set>
 #include <iostream>
 #include <rainy/core/core.hpp>
 #include <rainy/frozen/containers/vector.hpp>
@@ -499,11 +499,11 @@ int main() {
             std::endl(std::cout);
         }
     }
-    rainy::information::byte_t byte{};
+    rainy::core::byte_t byte{};
     {
-        rainy::utility::scope_guard<rainy::information::byte_t,
-                                    rainy::foundation::system::memory::default_deleter<rainy::information::byte_t>>
-            scope_guard(new rainy::information::byte_t);
+        rainy::utility::scope_guard<rainy::core::byte_t,
+                                    rainy::foundation::system::memory::default_deleter<rainy::core::byte_t>>
+            scope_guard(new rainy::core::byte_t);
     }
     std::random_device random_device;
     std::mt19937 gen(random_device());

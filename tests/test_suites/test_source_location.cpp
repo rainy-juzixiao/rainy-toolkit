@@ -16,7 +16,6 @@ TEST(RainyToolKit_SourceLocationTest, LogicOperatorsTest) {
     auto sl1 = current_location();
     auto sl2 = current_location();
     auto sl_copy = sl1;
-
     EXPECT_EQ(sl1, sl_copy);
     EXPECT_NE(sl1, sl2);
 }

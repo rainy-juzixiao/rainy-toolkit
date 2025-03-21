@@ -4286,7 +4286,7 @@ namespace refl::detail
         struct member {};
 
 /**
- * Creates reflection information for a specified type. Takes an optional attribute list.
+ * Creates reflection core for a specified type. Takes an optional attribute list.
  * This macro must only be expanded in the global namespace.
  *
  * # Examples:
@@ -4301,7 +4301,7 @@ namespace refl::detail
         REFL_DETAIL_TYPE_BODY((TypeName), __VA_ARGS__)
 
 /**
- * Creates reflection information for a specified type template. Takes an optional attribute list.
+ * Creates reflection core for a specified type template. Takes an optional attribute list.
  * TemplateDeclaration must be a panenthesis-enclosed list declaring the template parameters. (e.g. (typename A, typename B)).
  * TypeName must be the fully-specialized type name and should also be enclosed in panenthesis. (e.g. (MyType<A, B>))
  * This macro must only be expanded in the global namespace.
@@ -4355,7 +4355,7 @@ namespace refl::detail
         }
 
 /**
- * Creates reflection information for a public field. Takes an optional attribute list.
+ * Creates reflection core for a public field. Takes an optional attribute list.
  */
 #define REFL_FIELD(FieldName_, ...) \
     REFL_DETAIL_MEMBER_HEADER { \
@@ -4367,7 +4367,7 @@ namespace refl::detail
     };
 
 /**
- * Creates reflection information for a public functions. Takes an optional attribute list.
+ * Creates reflection core for a public functions. Takes an optional attribute list.
  */
 #define REFL_FUNC(FunctionName_, ...) \
     REFL_DETAIL_MEMBER_HEADER { \
@@ -4576,7 +4576,7 @@ namespace refl::detail
     };
 } // namespace refl::detail
 
-// Custom reflection information for
+// Custom reflection core for
 // some common built-in types (std::basic_string, std::tuple, std::pair).
 
 #ifndef REFL_NO_STD_SUPPORT

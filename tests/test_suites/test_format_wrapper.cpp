@@ -1,11 +1,9 @@
-﻿#include <gtest/gtest.h>
+#include <gtest/gtest.h>
 #include <rainy/text/format_wrapper.hpp>
 
 using namespace rainy::utility;
 
 TEST(RainyToolKit_FormatWrapperTest, BasicFormat) {
-    rainy::foundation::functional::function_pointer f = std::printf;
-    f = nullptr;
     std::string result;
     cstyle_format(result, "Hello, %s!", "world");
     EXPECT_EQ(result, "Hello, world!");
@@ -25,9 +23,9 @@ TEST(RainyToolKit_FormatWrapperTest, MixedFormat) {
 
 TEST(RainyToolKit_FormatWrapperTest, MismatchPlaceholder) {
     std::string result;
-    EXPECT_NO_THROW(cstyle_format(result, "This has %d placeholders %d", 20, 10));
+    EXPECT_NO_THROW(cstyle_format(result, "This has %d placeholders %d", 20, 10)); // NOLINT
 #if !RAINY_ENABLE_DEBUG
-    EXPECT_THROW(cstyle_format(result, "This has %d placeholders %d", 20, 10, 40),
+    EXPECT_THROW(cstyle_format(result, "This has %d placeholders %d", 20, 10, 40), // NOLINT
                  rainy::foundation::system::exceptions::wrapexcept<rainy::foundation::system::exceptions::runtime::runtime_error>);
     // 注意。实际上，cstyle_format抛出的异常是一个wrapper，因此，此处我们只需要就是，用wrapper指代即可
 #endif
@@ -43,7 +41,7 @@ TEST(RainyToolKit_FormatWrapperTest, LargeOutputResize) {
 
 TEST(RainyToolKit_FormatWrapperTest, WideStringFormat) {
     std::wstring result;
-    cstyle_format(result, L"Hello, %s!", L"world");
+    cstyle_format(result, L"Hello, %ls!", L"world");
     EXPECT_EQ(result, L"Hello, world!");
 }
 
@@ -73,7 +71,11 @@ TEST(RainyToolKit_FormatWrapperTest, FloatingPointPrecision) {
 
 TEST(RainyToolKit_FormatWrapperTest, IntegerOverflow) {
     std::string result;
+#if RAINY_USING_WINDOWS
     cstyle_format(result, "Max int: %d", INT_MAX);
+#else
+    cstyle_format(result, "Max int: %d", INT32_MAX);
+#endif
     EXPECT_EQ(result, "Max int: 2147483647");
 }
 

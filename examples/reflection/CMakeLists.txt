@@ -1,0 +1,1 @@
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/function/01_basic)
