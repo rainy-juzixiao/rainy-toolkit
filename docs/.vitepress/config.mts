@@ -1,7 +1,10 @@
 import { defineConfig } from 'vitepress'
 
+let repoBase: String = "rainy-toolkit";
+
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
+  base: repoBase + '/',
   title: "rainy-toolkit 文档",
   description: "A VitePress Site",
   lang: 'zh-CN',
