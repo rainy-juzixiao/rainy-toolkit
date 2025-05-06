@@ -4,10 +4,10 @@ let repoBase: String = "/rainy-toolkit";
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
-  base: repoBase + '/',
   title: "rainy-toolkit 文档",
   description: "A VitePress Site",
   lang: 'zh-CN',
+  base: '/rainy-toolkit/',
   themeConfig: {
     sidebar: [
       {
@@ -24,11 +24,11 @@ export default defineConfig({
                 link: 'function/'
               },          
               {
-                text: '&lt;function.hpp&gt 函数',
+                text: '<function.hpp> 函数',
                 link: 'function/pubfn'
               },
               {
-                text: '&lt;function.hpp&gt 运算符',
+                text: '<function.hpp> 运算符',
                 link: 'function/operators'
               },
               {
@@ -36,9 +36,6 @@ export default defineConfig({
                 link: 'function/function_class'
               }
             ]
-          },
-          {
-            text: ''
           }
         ]
       }
