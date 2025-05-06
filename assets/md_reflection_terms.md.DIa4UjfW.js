@@ -1,0 +1,1 @@
+import{_ as e,c as t,o as r}from"./chunks/framework.jSsAt8jZ.js";const p=JSON.parse('{"title":"","description":"","frontmatter":{},"headers":[],"relativePath":"md/reflection/terms.md","filePath":"md/reflection/terms.md"}'),a={name:"md/reflection/terms.md"};function o(s,c,n,m,d,i){return r(),t("div")}const _=e(a,[["render",o]]);export{p as __pageData,_ as default};
