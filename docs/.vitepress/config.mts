@@ -1,6 +1,6 @@
 import { defineConfig } from 'vitepress'
 
-let repoBase: String = "rainy-toolkit";
+let repoBase: String = "/rainy-toolkit";
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
