@@ -1,4 +1,4 @@
-rainy_load_flodar_files("${PROJECT_SOURCE_DIR}/sources" ".cxx" SPECIAL_FILES_LIST)
+rainy_load_flodar_files("${PROJECT_SOURCE_DIR}/xaga/sources" ".cxx" SPECIAL_FILES_LIST)
 message(${SPECIAL_FILES_LIST})
 
 if (RAINY_BUILD_WITH_DYNAMIC)
@@ -17,7 +17,7 @@ set_target_properties(rainy-toolkit PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_
 
 target_include_directories(
     rainy-toolkit PUBLIC
-    ${PROJECT_SOURCE_DIR}/include
+    ${PROJECT_SOURCE_DIR}/xaga/include
 )
 
 message("Checking compiler...")
@@ -34,6 +34,10 @@ if ((COMPILER_ID MATCHES "MSVC") OR (COMPILER_ID MATCHES "MSVC-Clang"))
     else()
         target_compile_definitions(rainy-toolkit PUBLIC RAINY_USING_AVX2=0)
     endif()
+    set(MY_VERSIONINFO_RC "${CMAKE_BINARY_DIR}/version.rc")
+    configure_file("${PROJECT_SOURCE_DIR}/cmake/msvc/version_template.rc"
+                   "${MY_VERSIONINFO_RC}")
+    target_sources(rainy-toolkit PRIVATE "${MY_VERSIONINFO_RC}")
 endif()
 
 if (CMAKE_COMPILER_IS_GNUCXX OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT MSVC))
@@ -82,3 +86,12 @@ if (MSVC AND NOT (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
             endif()
     endif()
 endif ()
+
+if (WIN32)
+    target_link_libraries(rainy-toolkit PRIVATE dbghelp)
+    target_link_libraries(rainy-toolkit PRIVATE dbgeng)
+endif ()
+
+if (COMPILER_ID MATCHES "MSVC") 
+    target_compile_options(rainy-toolkit PRIVATE /W4 /w14996)
+endif()

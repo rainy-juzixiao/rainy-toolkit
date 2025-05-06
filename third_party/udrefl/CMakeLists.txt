@@ -17,6 +17,8 @@ option(Ubpa_UDRefl_Build_Shared "build shared library" OFF)
 option(Ubpa_UDRefl_Build_ext_Bootstrap "build ext Bootstrap" OFF)
 option(Ubpa_UDRefl_include_all_StdName "switch UBPA_UDREFL_INCLUDE_ALL_STD_NAME" OFF)
 
+set(Ubpa_BuildTest_UDRefl OFF)
+
 if(Ubpa_BuildTest_UDRefl)
   find_package(GTest QUIET)
   if(GTest_FOUND)

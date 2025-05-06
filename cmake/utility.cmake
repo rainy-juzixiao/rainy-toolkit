@@ -65,3 +65,10 @@ function(rainy_load_flodar_files DIRECTORY EXTENSION RESULT_VAR)
     # 将结果设置到父作用域
     set(${RESULT_VAR} ${FILE_LIST} PARENT_SCOPE)
 endfunction()
+
+function(rainy_module name)
+    add_library(${name} ${ARGN})
+    target_include_directories(${name} PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    )
+endfunction()

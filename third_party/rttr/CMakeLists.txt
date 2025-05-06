@@ -31,8 +31,6 @@
 # the build configuration options are initialized.                                 #
 ####################################################################################
 
-cmake_minimum_required (VERSION 3.0)
-
 project ("rttr" LANGUAGES CXX)
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake")
@@ -48,12 +46,12 @@ include(utility)
 
 # set up option variable for cmake
 option(BUILD_RTTR_DYNAMIC "Build the dynamic/shared version of RTTR library" ON)
-option(BUILD_UNIT_TESTS "Build the unit tests of RTTR" ON)
+option(BUILD_UNIT_TESTS "Build the unit tests of RTTR" OFF)
 option(BUILD_STATIC "Build RTTR as static library" OFF)
 option(BUILD_WITH_STATIC_RUNTIME_LIBS "Link against the static runtime libraries" OFF)
 option(BUILD_WITH_RTTI "Enable build with C++ runtime type information for compilation" ON)
 option(BUILD_BENCHMARKS "Enable this to build the benchmarks" OFF)
-option(BUILD_EXAMPLES "Enable this to build the examples" On)
+option(BUILD_EXAMPLES "Enable this to build the examples" OFF)
 option(BUILD_DOCUMENTATION "Enable this to build the documentation" ON)
 option(BUILD_INSTALLER "Enable this to build the installer" ON)
 option(BUILD_PACKAGE "Enable this to build the installer" ON)

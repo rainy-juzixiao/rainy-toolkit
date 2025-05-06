@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.22.1)
-project(rainy_toolkit)
+project(rainy-toolkit VERSION 0.7.3)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 message("Starting build rainy's toolkit")
@@ -22,14 +22,14 @@ include(${PROJECT_SOURCE_DIR}/cmake/config.cmake)
 if (RAINY_ENABLE_TESTING)
     message("Testing is enable!")
     enable_testing()
-    add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/rttr)
-    #add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/udrefl)
     add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/googletest)
-    add_subdirectory(${PROJECT_SOURCE_DIR}/tests)
+    add_subdirectory(${PROJECT_SOURCE_DIR}/xaga/tests)
 endif()
+add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/rttr/)
+add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/udrefl)
+
 add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/benchmark)
-include_directories(${PROJECT_SOURCE_DIR}/third_party/benchmark/include)
-add_subdirectory(${PROJECT_SOURCE_DIR}/examples/reflection/)
-
-
-add_subdirectory(${PROJECT_SOURCE_DIR}/benchmark)
+add_subdirectory(${PROJECT_SOURCE_DIR}/xaga/examples/reflection/)
+add_subdirectory(${PROJECT_SOURCE_DIR}/xaga/benchmark)
+add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/fastio)
+add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/meta)

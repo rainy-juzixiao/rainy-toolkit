@@ -1,0 +1,68 @@
+name: build
+
+on: [push, pull_request]
+
+jobs:
+
+  linux:
+    timeout-minutes: 5
+
+    strategy:
+      matrix:
+        compiler: [g++, clang++]
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Compile tests
+      working-directory: build
+      env:
+        CXX: ${{ matrix.compiler }}
+      run: |
+        cmake -DBUILD_TESTING=ON ..
+        make -j4
+    - name: Run tests
+      working-directory: build
+      env:
+        CTEST_OUTPUT_ON_FAILURE: 1
+      run: ctest --timeout 5 -C Debug -j4
+
+  windows:
+    timeout-minutes: 5
+
+    strategy:
+      matrix:
+        generator: [Visual Studio 16 2019]
+
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Compile tests
+      working-directory: build
+      run: |
+        cmake -DBUILD_TESTING=ON -DCMAKE_CXX_FLAGS=/W1 -G"${{ matrix.generator }}" ..
+        cmake --build . -j 4
+    - name: Run tests
+      working-directory: build
+      env:
+        CTEST_OUTPUT_ON_FAILURE: 1
+      run: ctest --timeout 5 -C Debug -j4
+
+  macos:
+    timeout-minutes: 5
+    runs-on: macOS-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Compile tests
+      working-directory: build
+      run: |
+        cmake -DBUILD_TESTING=ON ..
+        make -j4
+    - name: Run tests
+      working-directory: build
+      env:
+        CTEST_OUTPUT_ON_FAILURE: 1
+      run: ctest --timeout 5 -C Debug -j4
