@@ -33,69 +33,7 @@
 #define RAINY_GENERATE_PRETTY_FUNCTION_NAME_IMPL "unsupported compiler"
 #endif
 
-namespace rainy::foundation::rtti::implements {
-    using type_name_prober = void;
-
-    constexpr std::string_view type_name_prober_ = "void";
-
-    template <typename Ty>
-    constexpr std::string_view wrapped_type_name() { // NOLINT
-        return RAINY_GENERATE_PRETTY_FUNCTION_NAME_IMPL;
-    }
-
-    static constexpr std::size_t wrapped_type_name_prefix_length() { // NOLINT
-        return wrapped_type_name<type_name_prober>().find(type_name_prober_);
-    }
-
-    static constexpr std::size_t wrapped_type_name_suffix_length() { // NOLINT
-        return wrapped_type_name<type_name_prober>().length() - wrapped_type_name_prefix_length() - type_name_prober_.length();
-    }
-
-    template <auto Variable>
-    constexpr std::string_view wrapped_variable_name() {
-#if RAINY_USING_CLANG || RAINY_USING_GCC
-        return __PRETTY_FUNCTION__;
-#elif RAINY_USING_MSVC
-        return __FUNCSIG__;
-#else
-        static_assert(false, "unsupported compiler");
-#endif
-        // 仅支持Clang、MSVC、GCC编译器。因为其它的编译器不在本库的支持范围内。考虑其它实现
-    }
-}
-
 namespace rainy::foundation::rtti {
-    template <typename Ty>
-    constexpr std::string_view type_name() {
-        constexpr auto wrapped_name = implements::wrapped_type_name<Ty>();
-        constexpr auto prefix_length = implements::wrapped_type_name_prefix_length();
-        constexpr auto suffix_length = implements::wrapped_type_name_suffix_length();
-        constexpr auto type_name_length = wrapped_name.length() - prefix_length - suffix_length;
-        return wrapped_name.substr(prefix_length, type_name_length);
-    }
-
-    template <auto Variable>
-    inline constexpr std::string_view variable_name() {
-#if RAINY_USING_MSVC
-        constexpr std::string_view func_name = __FUNCSIG__;
-#else
-        constexpr std::string_view func_name = __PRETTY_FUNCTION__;
-#endif
-#if RAINY_USING_CLANG
-        auto split = func_name.substr(0, func_name.size() - 2);
-        return split.substr(split.find_last_of(":.") + 1);
-#elif RAINY_USING_GCC
-        auto split = func_name.substr(0, func_name.rfind(")}"));
-        return split.substr(split.find_last_of(':') + 1);
-#elif RAINY_USING_MSVC
-        auto split = func_name.substr(func_name.rfind("variable_name<") + 13);
-        auto split_again = split.substr(split.rfind("->") + 2);
-        return split_again.substr(0, split_again.rfind(">(void"));
-#else
-        static_assert(false, "You are using an unsupported compiler. Please use GCC, Clang or MSVC");
-#endif
-    }
-
     struct traits {
         /* properties */
         static RAINY_INLINE_CONSTEXPR int is_lref = 1 << 0;
@@ -126,10 +64,169 @@ namespace rainy::foundation::rtti {
         /* for reflection */
         static RAINY_INLINE_CONSTEXPR int is_reflection_type = 1 << 23;
     };
+}
+
+namespace rainy::foundation::rtti::implements {
+    using type_name_prober = void;
+
+    constexpr std::string_view type_name_prober_ = "void";
+
+    template <typename Ty>
+    constexpr std::string_view wrapped_type_name() { // NOLINT
+        return RAINY_GENERATE_PRETTY_FUNCTION_NAME_IMPL;
+    }
+
+    static constexpr std::size_t wrapped_type_name_prefix_length() { // NOLINT
+        return wrapped_type_name<type_name_prober>().find(type_name_prober_);
+    }
+
+    static constexpr std::size_t wrapped_type_name_suffix_length() { // NOLINT
+        return wrapped_type_name<type_name_prober>().length() - wrapped_type_name_prefix_length() - type_name_prober_.length();
+    }
+
+    template <auto Variable>
+    constexpr std::string_view wrapped_variable_name() {
+#if RAINY_USING_CLANG || RAINY_USING_GCC
+        return __PRETTY_FUNCTION__;
+#elif RAINY_USING_MSVC
+        return __FUNCSIG__;
+#else
+        static_assert(false, "unsupported compiler");
+#endif
+        // 仅支持Clang、MSVC、GCC编译器。因为其它的编译器不在本库的支持范围内。考虑其它实现
+    }
+
+    template <typename Ty>
+    static constexpr int eval_traits_for_properties() noexcept {
+        int traits_{0};
+        if constexpr (type_traits::primary_types::is_lvalue_reference_v<Ty>) {
+            traits_ |= traits::is_lref;
+        }
+        if constexpr (type_traits::primary_types::is_rvalue_reference_v<Ty>) {
+            traits_ |= traits::is_rref;
+        }
+        if constexpr (type_traits::type_properties::is_const_v<type_traits::reference_modify::remove_reference_t<Ty>>) {
+            traits_ |= traits::is_const;
+        }
+        if constexpr (type_traits::type_properties::is_volatile_v<type_traits::reference_modify::remove_reference_t<Ty>>) {
+            traits_ |= traits::is_volatile;
+        }
+        return traits_;
+    }
+
+    template <typename Ty>
+    static constexpr int eval_traits_for_fundamental() noexcept {
+        int traits_{0};
+        if constexpr (type_traits::primary_types::is_void_v<Ty>) {
+            traits_ |= traits::is_void;
+        }
+        if constexpr (type_traits::primary_types::is_pointer_v<type_traits::cv_modify::remove_cvref_t<Ty>> || type_traits::type_relations::is_same_v<Ty, std::nullptr_t>) {
+            traits_ |= traits::is_pointer;
+        }
+        if constexpr (type_traits::primary_types::is_integral_v<Ty>) {
+            traits_ |= traits::is_integer;
+        }
+        if constexpr (type_traits::type_relations::is_same_v<Ty, std::nullptr_t>) {
+            traits_ |= traits::is_nullptr_t;
+        }
+        if constexpr (type_traits::primary_types::is_floating_point_v<Ty>) {
+            traits_ |= traits::is_floating_point;
+        }
+        if constexpr (type_traits::type_properties::is_unsigned_v<Ty>) {
+            traits_ |= traits::is_unsigned;
+        }
+        if constexpr (type_traits::composite_types::is_fundamental_v<Ty>) {
+            traits_ |= traits::is_fundamental;
+        }
+        return traits_;
+    }
+
+    template <typename Ty>
+    static constexpr int eval_traits_for_compound() noexcept {
+        int traits_{0};
+        if constexpr (type_traits::primary_types::is_class_v<type_traits::other_trans::decay_t<Ty>>) {
+            traits_ |= traits::is_class;
+        }
+        if constexpr (type_traits::primary_types::is_template_v<type_traits::other_trans::decay_t<Ty>>) {
+            traits_ |= traits::is_template;
+        }
+        if constexpr (type_traits::primary_types::is_function_v<Ty> || type_traits::primary_types::is_variadic_function_v<Ty>) {
+            traits_ |= traits::is_function;
+        }
+        if constexpr (type_traits::primary_types::function_traits<Ty>::valid) {
+            traits_ |= traits::is_function_pointer;
+        }
+        if constexpr (type_traits::composite_types::is_member_pointer_v<Ty>) {
+            if constexpr (type_traits::primary_types::is_member_function_pointer_v<Ty>) {
+                traits_ |= traits::is_member_fnptr;
+            }
+            if constexpr (!type_traits::primary_types::is_member_function_pointer_v<Ty>) {
+                traits_ |= traits::is_member_field_ptr;
+            }
+        }
+        if constexpr (type_traits::primary_types::is_array_v<Ty>) {
+            traits_ |= traits::is_array;
+        }
+        if constexpr (type_traits::primary_types::is_enum_v<Ty>) {
+            traits_ |= traits::is_enum;
+        }
+        if constexpr (type_traits::primary_types::is_union_v<Ty>) {
+            traits_ |= traits::is_union;
+        }
+        if constexpr (type_traits::composite_types::is_compound_v<Ty>) {
+            traits_ |= traits::is_compound;
+        }
+        if constexpr (type_traits::type_properties::is_polymorphic_v<Ty>) {
+            traits_ |= traits::is_polymorphic;
+        }
+        if constexpr (type_traits::type_properties::is_abstract_v<Ty>) {
+            traits_ |= traits::is_abstract;
+        }
+        return traits_;
+    }
+}
+namespace rainy::foundation::rtti {
+    template <typename Ty>
+    constexpr std::string_view type_name() {
+        constexpr auto wrapped_name = implements::wrapped_type_name<Ty>();
+        constexpr auto prefix_length = implements::wrapped_type_name_prefix_length();
+        constexpr auto suffix_length = implements::wrapped_type_name_suffix_length();
+        constexpr auto type_name_length = wrapped_name.length() - prefix_length - suffix_length;
+        return wrapped_name.substr(prefix_length, type_name_length);
+    }
+}
+
+namespace rainy::foundation::rtti {
+    template <auto Variable>
+    inline constexpr std::string_view variable_name() {
+#if RAINY_USING_MSVC
+        constexpr std::string_view func_name = __FUNCSIG__;
+#else
+        constexpr std::string_view func_name = __PRETTY_FUNCTION__;
+#endif
+#if RAINY_USING_CLANG
+        auto split = func_name.substr(0, func_name.size() - 2);
+        return split.substr(split.find_last_of(":.") + 1);
+#elif RAINY_USING_GCC
+        auto split = func_name.substr(0, func_name.rfind(")}"));
+        return split.substr(split.find_last_of(':') + 1);
+#elif RAINY_USING_MSVC
+        auto split = func_name.substr(func_name.rfind("variable_name<") + 13);
+        auto split_again = split.substr(split.rfind("->") + 2);
+        return split_again.substr(0, split_again.rfind(">(void"));
+#else
+        static_assert(false, "You are using an unsupported compiler. Please use GCC, Clang or MSVC");
+#endif
+    }
 
     class typeinfo {
     public:
         constexpr typeinfo() = default;
+        constexpr typeinfo(const typeinfo&) = default;
+        constexpr typeinfo(typeinfo &&) = default;
+
+        typeinfo &operator=(const typeinfo &) = default;
+        typeinfo &operator=(typeinfo &&) = default;
 
         /**
          * @brief 从Ty类型信息中构造typeinfo对象
@@ -141,9 +238,9 @@ namespace rainy::foundation::rtti {
             typeinfo info{};
             info._name = type_name<Ty>();
             info._hash_code = fnv1a_hash(info._name);
-            info.traits_ |= eval_traits_for_properties<Ty>();
-            info.traits_ |= eval_traits_for_fundamental<Ty>();
-            info.traits_ |= eval_traits_for_compound<Ty>();
+            info.traits_ |= implements::eval_traits_for_properties<Ty>();
+            info.traits_ |= implements::eval_traits_for_fundamental<Ty>();
+            info.traits_ |= implements::eval_traits_for_compound<Ty>();
             return info;
         }
 
@@ -158,7 +255,7 @@ namespace rainy::foundation::rtti {
          */
         template <typename Ty>
         static const typeinfo &of() {
-            static const typeinfo instance = create<Ty>();
+            static typeinfo instance = create<Ty>();
             return instance;
         }
 
@@ -222,7 +319,6 @@ namespace rainy::foundation::rtti {
          * @attention 首先，它将检查非const是否可以转换为const
          * @attention 接着，继续检查数值类型是否可以相互转换
          * @attention 然后，进行指针类型兼容性规则检查
-         * @attention 之后，进行引用类型兼容性规则检查
          * @attention 再之后，进行nullptr_t兼容性规则检查
          * @attention 最后，进行名称字符串的比较，如果相同，则认为是“兼容”的
          * @return 如果right的类型信息与this存储的类型信息具有兼容性，返回true，否则返回false
@@ -231,48 +327,38 @@ namespace rainy::foundation::rtti {
             if (is_same(right)) {
                 return true;
             }
-            // 1. 处理const修饰符 - 非const可以转换到const
             if (right.has_traits(traits::is_const) && !has_traits(traits::is_const)) {
-                // 目标是const，源不是const，但其他方面兼容
                 typeinfo stripped_target = right;
                 stripped_target.traits_ &= ~traits::is_const;
                 if (is_compatible(stripped_target)) {
                     return true;
                 }
             }
-            // 2. 数值类型转换规则
             if (has_traits(traits::is_integer) && right.has_traits(traits::is_integer)) {
-                // 整数类型之间可以相互转换
                 return true;
             }
-            // 3. 指针兼容性规则
             if (has_traits(traits::is_pointer) && right.has_traits(traits::is_pointer)) {
+                if (has_traits(traits::is_lref) || has_traits(traits::is_rref)) {
+                    foundation::rtti::typeinfo target = right;
+                    if (target.has_traits(traits::is_lref) || target.has_traits(traits::is_rref)) {
+                        target = target.remove_reference();
+                    }
+                    return this->remove_reference() == target;
+                }
                 std::string_view tmp = right._name;
                 normalize_name(tmp);
                 if (tmp == "void*") {
                     return true;
                 }
-            } else if (has_traits(traits::is_array) || right.has_traits(traits::is_array)) {
-                if (has_traits(traits::is_pointer) || right.has_traits(traits::is_pointer)) {
-                    return true;
-                }
             }
-            std::string_view this_name_tmp = _name;
-            std::string_view right_name_tmp = right._name;
-            // 4. 引用类型兼容性规则
-            if (has_traits(traits::is_rref) && right.has_traits(traits::is_lref)) {
-                // 右值引用可以绑定到const左值引用
-                if (right.has_traits(traits::is_const)) {
-                    normalize_name(this_name_tmp), normalize_name(right_name_tmp);
-                    return this_name_tmp == right_name_tmp;
-                }
+            if ((has_traits(traits::is_array) || right.has_traits(traits::is_array)) &&
+                (has_traits(traits::is_pointer) || right.has_traits(traits::is_pointer))) {
+                return true;
             }
-            // 5. nullptr_t 兼容所有指针类型
             if (has_traits(traits::is_nullptr_t) && right.has_traits(traits::is_pointer)) {
                 return true;
             }
-            normalize_name(this_name_tmp), normalize_name(right_name_tmp);
-            return this_name_tmp == right_name_tmp;
+            return this->remove_cvref() == right.remove_cvref();
         }
 
         /**
@@ -282,78 +368,6 @@ namespace rainy::foundation::rtti {
          */
         constexpr bool has_traits(const int traits) const noexcept {
             return traits_ & traits;
-        }
-
-        /**
-         * @brief 获取浮点类型的权重（由小到大）
-         * @return 如果类型不是浮点类型，返回-1，否则返回0、1、2分别代表float、double、long double的权重
-         */
-        RAINY_NODISCARD constexpr int get_floating_point_rank() const {
-            if (!has_traits(traits::is_floating_point)) {
-                return -1;
-            }
-            std::string_view name;
-            normalize_name(name);
-            if (name == "float") {
-                return 0;
-            }
-            if (name == "double") {
-                return 1;
-            }
-            if (name == "long double") {
-                return 2;
-            }
-            return -1;
-        }
-
-        /**
-         * @brief 获取整数类型的权重（由小到大）
-         * @return 如果类型不是整数类型，返回-1，否则返回0、1、2、3、4、5分别代表bool、char、short、int、long、long long的权重
-         */
-        RAINY_NODISCARD constexpr int get_integer_rank() const {
-            if (!has_traits(traits::is_integer)) {
-                return -1;
-            }
-            std::string_view name;
-            normalize_name(name);
-            if (name == "bool") {
-                return 0;
-            }
-            if (name == "char" || name == "signed char" || name == "unsigned char") {
-                return 1;
-            }
-            if (name == "short" || name == "unsigned short") {
-                return 2;
-            }
-            if (name == "int" || name == "unsigned int") {
-                return 3;
-            }
-            if (name == "long" || name == "unsigned long") {
-                return 4;
-            }
-            if (name == "long long" || name == "unsigned long long") {
-                return 5;
-            }
-            return -1;
-        }
-
-        /**
-         * @brief 获取类型信息中存储的指针类型信息
-         * @return 如果类型不是指针类型，将返回自身的类型信息对象。否则，将返回指针指向的类型信息对象
-         */
-        RAINY_NODISCARD constexpr typeinfo extract_pointed_type() const {
-            if (!has_traits(traits::is_pointer)) {
-                return *this;
-            }
-            typeinfo result = *this;
-            auto pos = result._name.rfind('*');
-            if (pos != std::string_view::npos) {
-                result._name = result._name.substr(0, pos);
-                while (!result._name.empty() && result._name.back() == ' ') {
-                    result._name = result._name.substr(0, result._name.size() - 1);
-                }
-            }
-            return result;
         }
 
         /**
@@ -377,23 +391,6 @@ namespace rainy::foundation::rtti {
             return result;
         }
 
-        /**
-         * @brief 获取类型信息去除const修饰符的类型信息
-         * @return 如果类型没有const修饰符，将返回自身的类型信息对象。否则，将返回去除const修饰符的类型信息对象
-         */
-        RAINY_NODISCARD constexpr typeinfo remove_const() const {
-            if (!has_traits(traits::is_const)) {
-                return *this;
-            }
-            typeinfo result = *this;
-            result.traits_ &= ~(traits::is_const);
-            std::string_view name = _name;
-            remove_prefix(name, "const ");
-            result._hash_code = fnv1a_hash(name);
-            result._name = name;
-            return result;
-        }
-
         RAINY_NODISCARD static typeinfo create_typeinfo_by_name(std::string_view name) {
             typeinfo result;
             result._name = name;
@@ -403,13 +400,21 @@ namespace rainy::foundation::rtti {
         }
 
         RAINY_NODISCARD constexpr typeinfo remove_cvref() const noexcept {
+            return remove_cv().remove_reference();
+        }
+
+        RAINY_NODISCARD constexpr typeinfo remove_cv() const noexcept {
             typeinfo result = *this;
-            normalize_name(result._name);
+#if RAINY_USING_CLANG || RAINY_USING_GCC
+            remove_prefix(result._name, "const ");
+            remove_prefix(result._name, "volatile ");
+#else
+            remove_prefix(result._name, "volatile ");
+            remove_prefix(result._name, "const ");
+#endif
             result._hash_code = fnv1a_hash(result._name);
             result.traits_ &= ~(traits::is_const);
             result.traits_ &= ~(traits::is_volatile);
-            result.traits_ &= ~(traits::is_lref);
-            result.traits_ &= ~(traits::is_rref);
             return result;
         }
 
@@ -425,13 +430,15 @@ namespace rainy::foundation::rtti {
         }
 
         static constexpr void remove_prefix(std::string_view &str, std::string_view prefix) {
-            str = (str.substr(0, prefix.size()) == prefix) ? str.substr(prefix.size()) : str;
+            if (str.size() >= prefix.size() && str.substr(0, prefix.size()) == prefix) {
+                str.remove_prefix(prefix.size());
+            }
         }
 
         static constexpr void remove_suffix(std::string_view &str, std::string_view suffix) {
-            str = (str.size() >= suffix.size() && str.substr(str.size() - suffix.size()) == suffix)
-                      ? str.substr(0, str.size() - suffix.size())
-                      : str;
+            if (str.size() >= suffix.size() && str.substr(str.size() - suffix.size()) == suffix) {
+                str.remove_suffix(suffix.size());
+            }
         }
 
         static constexpr void normalize_name(std::string_view &name) {
@@ -443,99 +450,11 @@ namespace rainy::foundation::rtti {
             remove_prefix(name, "const ");
 #endif
             remove_suffix(name, "&");
+            remove_suffix(name, "&");
             remove_suffix(name, "*");
             remove_suffix(name, " ");
         }
-
-        template <typename Ty>
-        static constexpr int eval_traits_for_properties() noexcept {
-            int traits_{0};
-            if constexpr (type_traits::primary_types::is_lvalue_reference_v<Ty>) {
-                traits_ |= traits::is_lref;
-            }
-            if constexpr (type_traits::primary_types::is_rvalue_reference_v<Ty>) {
-                traits_ |= traits::is_rref;
-            }
-            if constexpr (type_traits::type_properties::is_const_v<type_traits::reference_modify::remove_reference_t<Ty>>) {
-                traits_ |= traits::is_const;
-            }
-            if constexpr (type_traits::type_properties::is_volatile_v<type_traits::reference_modify::remove_reference_t<Ty>>) {
-                traits_ |= traits::is_volatile;
-            }
-            return traits_;
-        }
-
-        template <typename Ty>
-        static constexpr int eval_traits_for_fundamental() noexcept {
-            int traits_{0};
-            if constexpr (type_traits::primary_types::is_void_v<Ty>) {
-                traits_ |= traits::is_void;
-            }
-            if constexpr (type_traits::primary_types::is_pointer_v<Ty> || type_traits::type_relations::is_same_v<Ty, std::nullptr_t>) {
-                traits_ |= traits::is_pointer;
-            }
-            if constexpr (type_traits::primary_types::is_integral_v<Ty>) {
-                traits_ |= traits::is_integer;
-            }
-            if constexpr (type_traits::type_relations::is_same_v<Ty, std::nullptr_t>) {
-                traits_ |= traits::is_nullptr_t;
-            }
-            if constexpr (type_traits::primary_types::is_floating_point_v<Ty>) {
-                traits_ |= traits::is_floating_point;
-            }
-            if constexpr (type_traits::type_properties::is_unsigned_v<Ty>) {
-                traits_ |= traits::is_unsigned;
-            }
-            if constexpr (type_traits::composite_types::is_fundamental_v<Ty>) {
-                traits_ |= traits::is_fundamental;
-            }
-            return traits_;
-        }
-
-        template <typename Ty>
-        static constexpr int eval_traits_for_compound() noexcept {
-            int traits_{0};
-            if constexpr (type_traits::primary_types::is_class_v<type_traits::other_trans::decay_t<Ty>>) {
-                traits_ |= traits::is_class;
-            }
-            if constexpr (type_traits::primary_types::is_template_v<type_traits::other_trans::decay_t<Ty>>) {
-                traits_ |= traits::is_template;
-            }
-            if constexpr (type_traits::primary_types::is_function_v<Ty> || type_traits::primary_types::is_variadic_function_v<Ty>) {
-                traits_ |= traits::is_function;
-            }
-            if constexpr (type_traits::primary_types::function_traits<Ty>::valid) {
-                traits_ |= traits::is_function_pointer;
-            }
-            if constexpr (type_traits::composite_types::is_member_pointer_v<Ty>) {
-                if constexpr (type_traits::primary_types::is_member_function_pointer_v<Ty>) {
-                    traits_ |= traits::is_member_fnptr;
-                }
-                if constexpr (!type_traits::primary_types::is_member_function_pointer_v<Ty>) {
-                    traits_ |= traits::is_member_field_ptr;
-                }
-            }
-            if constexpr (type_traits::primary_types::is_array_v<Ty>) {
-                traits_ |= traits::is_array;
-            }
-            if constexpr (type_traits::primary_types::is_enum_v<Ty>) {
-                traits_ |= traits::is_enum;
-            }
-            if constexpr (type_traits::primary_types::is_union_v<Ty>) {
-                traits_ |= traits::is_union;
-            }
-            if constexpr (type_traits::composite_types::is_compound_v<Ty>) {
-                traits_ |= traits::is_compound;
-            }
-            if constexpr (type_traits::type_properties::is_polymorphic_v<Ty>) {
-                traits_ |= traits::is_polymorphic;
-            }
-            if constexpr (type_traits::type_properties::is_abstract_v<Ty>) {
-                traits_ |= traits::is_abstract;
-            }
-            return traits_;
-        }
-
+        
         std::string_view _name{};
         std::size_t _hash_code{};
         int traits_{};

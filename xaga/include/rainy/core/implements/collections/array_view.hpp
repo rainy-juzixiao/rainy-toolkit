@@ -57,6 +57,7 @@ namespace rainy::collections::views {
             data_(initializer_list.begin()),
             size_(initializer_list.size()) {
         }
+        
 #if RAINY_USING_GCC
 #pragma GCC diagnostic pop
 #endif
@@ -143,7 +144,7 @@ namespace rainy::collections::views {
 
         RAINY_CONSTEXPR20 reference at(const difference_type idx) {
             rangecheck(size(), idx);
-            return const_cast<pointer>(data_[idx]);
+            return const_cast<reference>(data_[idx]);
         }
 
         RAINY_NODISCARD constexpr const_reference at(const difference_type idx) const {
@@ -174,7 +175,7 @@ namespace rainy::collections::views {
         }
 
         static void rangecheck(const size_type size, const difference_type idx) {
-            if (size <= idx) {
+            if (size <= static_cast<size_type>(idx)) {
                 utility::throw_exception(std::out_of_range("Invalid array subscript"));
             }
         }

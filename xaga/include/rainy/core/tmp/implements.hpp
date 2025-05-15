@@ -349,7 +349,7 @@ namespace rainy::type_traits::implements {
     template <typename Ty1, typename Ty2>
     struct is_member_object_pointer_<Ty1 Ty2::*> {
         static constexpr bool value = !_is_function_v<Ty1>;
-        using Class_type = Ty2;
+        using class_type = Ty2;
     };
 
     template <typename Ty>

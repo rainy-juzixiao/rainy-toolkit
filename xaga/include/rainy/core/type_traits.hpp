@@ -39,7 +39,7 @@ namespace rainy::type_traits::other_trans {
             pointer_modify::add_pointer<Ty1>, cv_modify::remove_cv<std::conditional_t<!implements::_is_function_v<Ty1>, Ty1, void>>>;
 
         using type =
-            typename select<implements::_is_array_v<Ty1>>::template apply<pointer_modify::add_pointer<array_modify::remove_extent<Ty1>>,
+            typename select<implements::_is_array_v<Ty1>>::template apply<pointer_modify::add_pointer<array_modify::remove_extent_t<Ty1>>,
                                                                          Ty2>::type;
     };
 
@@ -142,6 +142,15 @@ namespace rainy::type_traits::primary_types {
 
     template <typename Ty>
     struct is_pointer : helper::bool_constant<is_pointer_v<Ty>> {};
+
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL is_pointer_reference_v = false;
+
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL is_pointer_reference_v<Ty*&> = true;
+
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL is_pointer_reference_v<Ty*&&> = true;
 
     template <typename>
     RAINY_CONSTEXPR_BOOL is_null_pointer_v = false;
@@ -723,7 +732,7 @@ namespace rainy::type_traits::type_properties {
     RAINY_CONSTEXPR_BOOL is_constructible_v = __is_constructible(Ty, Args...);
 
     template <typename Ty, typename... Args>
-    struct is_constructible : helper::bool_constant<is_constructible_v<Ty>> {};
+    struct is_constructible : helper::bool_constant<is_constructible_v<Ty, Args...>> {};
 
     template <typename Ty>
     RAINY_CONSTEXPR_BOOL is_copy_constructible_v = __is_constructible(Ty, reference_modify::add_lvalue_reference_t<const Ty>);
@@ -766,7 +775,7 @@ namespace rainy::type_traits::type_properties {
     RAINY_CONSTEXPR_BOOL is_trivially_destructible_v = __is_trivially_destructible(Ty);
 #else
     template <typename Ty>
-    RAINY_CONSTEXPR_BOOL is_trivially_destructible_v = std::__is_destructible_safe<Ty>::value;
+    RAINY_CONSTEXPR_BOOL is_trivially_destructible_v = implements::gcc_detail_impl::_is_destructible_safe<Ty>::value;
 #endif
 
     template <typename Ty>
@@ -2719,16 +2728,6 @@ namespace rainy::type_traits::extras::templates {
     template <typename Ty>
     struct is_template : helper::bool_constant<is_template_v<Ty>> {};
 }
-
-#define RAINY_TEMPLATE_TYPE_TRAITS_SPEC(TYPES) \
-            RAINY_TEMPLATE_TYPE_TRAIT_SPEC_1(TYPES);  \
-            RAINY_TEMPLATE_TYPE_TRAIT_SPEC_2(TYPES);  \
-            RAINY_TEMPLATE_TYPE_TRAIT_SPEC_3(TYPES);  
-
-RAINY_TEMPLATE_TYPE_TRAITS_SPEC(int);
-RAINY_TEMPLATE_TYPE_TRAITS_SPEC(char);
-RAINY_TEMPLATE_TYPE_TRAITS_SPEC(std::size_t);
-RAINY_TEMPLATE_TYPE_TRAITS_SPEC(bool);
 
 namespace rainy::type_traits::primary_types {
     using extras::templates::is_template;

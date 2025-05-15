@@ -19,6 +19,15 @@ namespace rainy::meta::reflection::implements {
     }
 }
 
+namespace rainy::meta::reflection::implements {
+    enum class object_view_rep {
+        normal,
+        pointer,
+        reference,
+        pointer_with_reference
+    };
+}
+
 namespace rainy::meta::reflection {
     // 用于表示不存在的实例
     struct non_exists_instance_t {};
@@ -31,28 +40,48 @@ namespace rainy::meta::reflection {
         using enable_if_t = type_traits::other_trans::enable_if_t<!type_traits::type_relations::is_same_v<Ty, object_view>, int>;
 
         template <typename Ty, enable_if_t<Ty> = 0>
-        object_view(Ty *object) noexcept :
-            object_{const_cast<type_traits::cv_modify::remove_cv_t<Ty> *>(object)}, rtti_{&rainy_typeid(Ty *)} {
-            utility::expects(object != nullptr, "object cannot be a null pointer!");
-        }
-
-        template <typename Ty, enable_if_t<Ty> = 0>
         object_view(Ty &object) noexcept :
-            object_{utility::addressof(const_cast<type_traits::cv_modify::remove_cv_t<Ty> &>(object))}, rtti_{&rainy_typeid(Ty)} {
+            object_{const_cast<void *>(static_cast<const void *>(utility::addressof(object)))}, rtti_{&rainy_typeid(Ty)} {
+            if constexpr (type_traits::composite_types::is_reference_v<Ty> || type_traits::primary_types::is_pointer_v<Ty>) {
+                this->rep = implements::object_view_rep::pointer_with_reference;
+            } else if constexpr (type_traits::composite_types::is_reference_v<Ty>) {
+                this->rep = implements::object_view_rep::reference;
+            } else if constexpr (type_traits::primary_types::is_pointer_v<Ty>) {
+                this->rep = implements::object_view_rep::pointer;
+            } else {
+                this->rep = implements::object_view_rep::normal;
+            }
         }
 
-        object_view(const non_exists_instance_t &) noexcept : object_(nullptr), rtti_(&rainy_typeid(void)) {
+        object_view(void *const object, const foundation::rtti::typeinfo &rtti, bool is_any = false) noexcept :
+            object_{object}, rtti_{&rtti}, rep{implements::object_view_rep::normal}, is_any_{is_any} {
+            using namespace foundation::rtti;
+            if (rtti.has_traits(traits::is_pointer) && (rtti.has_traits(traits::is_lref) || rtti.has_traits(traits::is_rref))) {
+                this->rep = implements::object_view_rep::pointer_with_reference;
+            } else if (rtti.has_traits(traits::is_pointer)) {
+                this->rep = implements::object_view_rep::pointer;
+            } else if (rtti.has_traits(traits::is_lref) || rtti.has_traits(traits::is_rref)) {
+                this->rep = implements::object_view_rep::reference;
+            } else {
+                this->rep = implements::object_view_rep::normal;
+            }
         }
 
-        object_view(object_view &&other) noexcept : object_(other.object_), rtti_(other.rtti_) {
+        object_view(const non_exists_instance_t &) noexcept : object_(nullptr), rtti_(&rainy_typeid(void)),rep(implements::object_view_rep::normal) {
+        }
+
+        object_view(object_view &&other) noexcept :
+            object_(other.object_), rtti_(other.rtti_), rep{implements::object_view_rep::normal} {
             other.object_ = nullptr;
             other.rtti_ = &rainy_typeid(void);
+            other.rep = implements::object_view_rep::normal;
         }
 
         object_view &operator=(object_view &&other) noexcept {
             if (this != &other) {
                 object_ = utility::exchange(other.object_, nullptr);
                 rtti_ = utility::exchange(other.rtti_, &rainy_typeid(void));
+                rep = implements::object_view_rep::normal;
             }
             return *this;
         }
@@ -64,48 +93,67 @@ namespace rainy::meta::reflection {
         object_view(std::nullptr_t) = delete;
         object_view &operator=(std::nullptr_t) = delete;
 
-        template <typename Ty, enable_if_t<Ty> = 0>
-        RAINY_NODISCARD Ty *cast_to_pointer() noexcept {
-            using TypeNoRef = std::remove_reference_t<Ty>;
-            return const_cast<TypeNoRef *>(static_cast<const object_view *>(this)->cast_to_pointer<TypeNoRef>());
+        template <typename Decayed, enable_if_t<Decayed> = 0>
+        RAINY_NODISCARD Decayed *cast_to_pointer() noexcept {
+            using remove_ref_t = type_traits::reference_modify::remove_reference_t<Decayed>;
+            return const_cast<remove_ref_t *>(static_cast<const object_view *>(this)->cast_to_pointer<Decayed>());
         }
 
-        template <typename Ty, enable_if_t<Ty> = 0>
-        RAINY_NODISCARD const Ty *cast_to_pointer() const noexcept {
-            using TypeNoRef = std::remove_reference_t<Ty>;
-            rainy_assume(rtti_ != nullptr);
-            if (!valid()) {
-                return nullptr;
+        template <typename Decayed, enable_if_t<Decayed> = 0>
+        RAINY_NODISCARD const Decayed *cast_to_pointer() const noexcept {
+            using namespace foundation::rtti;
+            static constexpr std::size_t target_hashcode = typeinfo::create<Decayed>().hash_code();
+            const typeinfo & info = rtti();
+            if (info.has_traits(traits::is_lref)) {
+                static constexpr std::size_t add_ref_hash =
+                    typeinfo::create<type_traits::reference_modify::add_lvalue_reference_t<Decayed>>().hash_code();
+                return info.hash_code() == add_ref_hash ? reinterpret_cast<const Decayed *>(target_as_void_ptr()) : nullptr;
+            } else if (info.has_traits(traits::is_rref)) {
+                static constexpr std::size_t add_ref_hash =
+                    typeinfo::create<type_traits::reference_modify::add_rvalue_reference_t<Decayed>>().hash_code();
+                return info.hash_code() == add_ref_hash ? reinterpret_cast<const Decayed *>(target_as_void_ptr()) : nullptr;
             }
-            return static_cast<const TypeNoRef *>(object_);
+            return info.hash_code() == target_hashcode ? reinterpret_cast<const Decayed *>(target_as_void_ptr()) : nullptr;
         }
 
-        template <typename Ty, enable_if_t<Ty> = 0>
-        RAINY_NODISCARD auto as() -> std::conditional_t<std::is_const_v<Ty>, const Ty &, Ty &> {
-            using TypeNoRef = std::remove_reference_t<Ty>;
-            const TypeNoRef *ptr = cast_to_pointer<TypeNoRef>();
-            utility::ensures(ptr != nullptr, "Cannot dereference an invalid instance");
-
-            if constexpr (std::is_const_v<Ty>) {
-                return *ptr; // const返回const引用
+        template <typename Type, enable_if_t<Type> = 0>
+        RAINY_NODISCARD auto as() -> decltype(auto) {
+#if RAINY_ENABLE_DEBUG
+            rainy_let ptr = cast_to_pointer<type_traits::other_trans::decay_t<Type>>();
+#else
+            rainy_let ptr = static_cast<type_traits::other_trans::decay_t<Type> *>(const_cast<void *>(target_as_void_ptr()));
+#endif
+            if (!ptr) {
+                std::terminate();
+            }
+            if constexpr (type_traits::primary_types::is_lvalue_reference_v<Type>) {
+                if constexpr (type_traits::type_properties::is_const_v<std::remove_reference_t<Type>>) {
+                    return *static_cast<const std::remove_reference_t<Type> *>(ptr);
+                } else {
+                    return *static_cast<std::remove_reference_t<Type> *>(ptr);
+                }
+            } else if constexpr (std::is_rvalue_reference_v<Type>) {
+                if constexpr (std::is_const_v<std::remove_reference_t<Type>>) {
+                    return *static_cast<const std::remove_reference_t<Type> *>(ptr);
+                } else {
+                    return utility::move(*static_cast<std::remove_reference_t<Type> *>(ptr));
+                }
             } else {
-                return *const_cast<TypeNoRef *>(ptr); // 非const返回非const引用
+                return *static_cast<std::remove_reference_t<Type> *>(ptr);
             }
         }
 
-        template <typename Ty, enable_if_t<Ty> = 0>
-        RAINY_NODISCARD auto as() const -> std::conditional_t<std::is_const_v<Ty>, const Ty &, Ty &> {
-            using TypeNoRef = std::remove_reference_t<Ty>;
-            const TypeNoRef *ptr = cast_to_pointer<TypeNoRef>();
-            utility::ensures(ptr != nullptr, "Cannot dereference an invalid instance");
-
-            if constexpr (std::is_const_v<Ty>) {
-                return *ptr; // const返回const引用
+        template <typename Type, enable_if_t<Type> = 0>
+        RAINY_NODISCARD auto as() const -> decltype(auto) {
+            using namespace type_traits::cv_modify;
+            using ret_type = decltype(utility::declval<object_view &>().template as<Type>());
+            rainy_let nonconst = const_cast<object_view *>(this);
+            if constexpr (type_traits::primary_types::is_rvalue_reference_v<ret_type>) {
+                return nonconst->as<type_traits::reference_modify::add_const_rvalue_ref_t<Type>>();
             } else {
-                return *const_cast<TypeNoRef *>(ptr); // 非const返回非const引用
+                return nonconst->as<type_traits::reference_modify::add_const_lvalue_ref_t<Type>>();
             }
         }
-
 
         RAINY_NODISCARD explicit operator bool() const noexcept {
             return valid();
@@ -129,11 +177,31 @@ namespace rainy::meta::reflection {
             return valid() ? object_ : nullptr;
         }
 
+        RAINY_NODISCARD const void *target_as_void_ptr() const noexcept {
+            using implements::object_view_rep;
+            switch (rep) {
+                case object_view_rep::normal: 
+                    return object_;
+                case object_view_rep::pointer:
+                    return &object_;
+                case object_view_rep::reference:
+                    return object_;
+                case object_view_rep::pointer_with_reference:
+                    return object_;
+            }
+            return nullptr;
+        }
+
+        RAINY_NODISCARD bool is_any() const noexcept {
+            return is_any_;
+        }
+
     private:
         void *object_;
+        implements::object_view_rep rep{implements::object_view_rep::normal};
         const foundation::rtti::typeinfo *rtti_{&rainy_typeid(void)};
+        bool is_any_{false};
     };
-#undef RAINY_OBJECT_VIEW_CAST_TO_DECLARATION
 }
 
 #endif

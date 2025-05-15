@@ -13,7 +13,7 @@ def parse_info(name):
     parts = name.split("_")
     # 找到库名（如 rainytoolkit / rttr / ubpa）
     if "rainytoolkit" in parts:
-        lib = "rainy-toolkit"
+        lib = "rainy-toolkit by rainy-juzixiao"
     elif "rttr" in parts:
         lib = "RTTR by rttr org"
     elif "udrefl" in parts:

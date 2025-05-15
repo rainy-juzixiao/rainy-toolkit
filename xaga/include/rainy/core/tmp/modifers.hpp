@@ -241,12 +241,12 @@ namespace rainy::type_traits::cv_modify {
 
     template <typename Ty>
     struct add_cvlref {
-        using type = add_cv_t<reference_modify::add_lvalue_reference_t<Ty>>;
+        using type = reference_modify::add_lvalue_reference_t<add_cv_t<Ty>>;
     };
 
     template <typename Ty>
     struct add_cvrref {
-        using type = add_cv_t<reference_modify::add_rvalue_reference_t<Ty>>;
+        using type = reference_modify::add_rvalue_reference_t<add_cv_t<Ty>>;
     };
 
     template <typename Ty>

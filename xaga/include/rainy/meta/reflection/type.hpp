@@ -73,10 +73,9 @@ namespace rainy::meta::reflection::implements {
     }
 
     std::size_t eval_hash_from_paramlist(collections::views::array_view<utility::any> view) {
-        return std::accumulate(view.begin(), view.end(), std::size_t{0},
+        return core::accumulate(view.begin(), view.end(), std::size_t{0},
                                [](std::size_t acc, const utility::any &arg) { return acc + arg.type().hash_code(); });
     }
-
 }
 
 namespace rainy::meta::reflection {
@@ -297,7 +296,7 @@ namespace rainy::meta::reflection::implements {
             }
             auto ctor = std::find_if(ctors.begin(), ctors.end(), [&paramlist](const auto &ctor) {
                 const function &fn = ctor.second;
-                return fn.is_invocable(paramlist);
+                return fn.is_invocable();
             });
             return ctor->second.invoke_variadic(non_exists_instance, paramlist);
         }

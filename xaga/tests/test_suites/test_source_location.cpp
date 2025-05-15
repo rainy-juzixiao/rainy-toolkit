@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include <rainy/foundation/diagnostics/source_location.hpp>
+#include <rainy/core/core.hpp>
 
 using namespace rainy::foundation::diagnostics;
 

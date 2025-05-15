@@ -210,7 +210,7 @@ namespace Ubpa::UDRefl::details {
 			[f = std::forward<Func>(func)](void*, void* result_buffer, ArgsView args) mutable {
 			if constexpr (!std::is_void_v<Return>) {
 				using NonCVReturn = std::remove_cv_t<Return>;
-				NonCVReturn rst = details::wrap_function_call<ArgList>::template run(std::forward<Func>(f), args, IndexSeq{});
+				NonCVReturn rst = details::wrap_function_call<ArgList>::run(std::forward<Func>(f), args, IndexSeq{});
 				if (result_buffer) {
 					if constexpr (std::is_reference_v<Return>)
 						buffer_as<std::add_pointer_t<Return>>(result_buffer) = &rst;
@@ -219,7 +219,7 @@ namespace Ubpa::UDRefl::details {
 				}
 			}
 			else
-				details::wrap_function_call<ArgList>::template run(std::forward<Func>(f), args, IndexSeq{});
+				details::wrap_function_call<ArgList>::run(std::forward<Func>(f), args, IndexSeq{});
 		};
 		return wrapped_function;
 	}

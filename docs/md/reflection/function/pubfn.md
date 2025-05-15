@@ -39,16 +39,4 @@ rainy::utility::any invoke(const function &fn,object_view instance, Args &&...ar
 
 ### 备注
 
-若args的类型与对应的目标参数类型并不完全一致，则function可能会尝试从rainy::utility::any_converter中进行类型转换。例如，float可转换为int，int可转换为float这类。但是，部分类型可能会存在转换失败问题，或是潜在的未定义行为，详见warning部分
-
-:::warning
-invoke的调用中，Args的类型均以`原样`被提供给调用目标。因此，诸如下列的对象：
-```cpp
-rainy::utility::any any_a(std::in_place_type<rainy::utility::any>, 10);
-```
-在推导中，仍然会以rainy::utility::any进行提供。且，若类型不匹配，在转换的时候，可能会产生运行时强制终止的崩溃。
-此外，对于any_converter，目前已知以下问题：
-
-1. 无法对不同类型进行引用级转换，如int&无法转换为long&，仅支持诸如int&转换为const int&这样的同类型引用转换
-2. any_converter无法直接将当前类型转换为另一个类型的引用，仅支持值的构造（有可能导致UB）
-:::
+在调用的时候，`function`内部会检查参数的可转换性，通常会计算参数是否适合且参数是否完全一致。若参数数量不一致，则`errno`会被设置为`EINVAL`，则尝试检查类型兼容性并在可能的情况下尝试不同类型的转换（`可能会导致std::terminate()`的调用）。但是，如果调用所需类型未被用于特化，则`errno`也会被设置为`EACCES`。表示无法找到适当的类型转换。（默认情况下提供对拷贝/移动构造、同类型引用转换、算术类型转换、`std::string_view`转换的支持。详见`any`文档的`any_converter`描述）。

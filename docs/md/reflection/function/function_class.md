@@ -6,10 +6,10 @@
 |[function](#function)|用于构造function对象|
 |[invoke_static](#invoke_static)|向function对象中存储的函数指针，发起调用，以静态域函数方式|
 |[invoke](#invoke)|向function对象中存储的函数指针，发起调用|
-|[invoke_paramlist](#invoke_paramlist)|类似invoke的调用，但是支持自动根据当前传递的参数的值类别向invoke提供辅助推导信息|
-|[invoke_variadic](#invoke_variadic)|对invoke的拓展，支持大于7以上的参数传递|
 |[return_type](#return_type)|获取当前function对象指向的返回值类型的rtti类型标识|
-|[param_lists](#param_lists)|获取当前function对象的调用参数的类型标识列表|
+|[paramlists](#paramlists)|获取当前function对象的调用参数的类型标识列表|
+|[arg_count](#arg_count)|获取调用当前function的所需参数数量|
+|[arg](#arg)|获取当前function对象中，从0开始索引的参数列表中的某个参数的类型信息|
 |[function_signature](#function_signature)|获取当前function对象的函数签名的rtti类型标识|
 |[type](#type)|获取当前function对象具体属于哪种调用类型|
 |[which_belongs](#which_belongs)|获取当前function对象中，函数指针具体所属的类类型信息|
@@ -19,6 +19,9 @@
 |[is_const](#is_const)|检查当前function对象是否为成员实例函数，且检查是否具有const属性|
 |[is_volatile](#is_volatile)|检查当前function对象是否为成员实例函数，且检查是否具有volatile属性|
 |[is_invocable](#is_invocable)|检查当前function对象是否可通过其提供的参数进行动态调用|
+|[is_noexcept](#is_noexcept)|检查当前function对象是否具有noexcept属性|
+|[is_invoke_for_lvalue](#is_invoke_for_lvalue)|检查当前function对象是否是适用于左值引用的调用|
+|[is_invoke_for_rvalue](#is_invoke_for_rvalue)|检查当前function对象是否是适用于右值引用的调用|
 |[copy_from_other](#copy_from_other)|拷贝一个function对象存储的函数指针到此function对象中|
 |[move_from_other](#move_from_other)|将function对象存储的函数指针转移到此function对象中|
 |[swap](#swap)|将function对象的函数指针与当前function对象的函数指针进行交换|
@@ -62,27 +65,18 @@ function(const function &right) noexcept;
 通过函数指针，构造function对象
 
 ```cpp
-template <typename ReturnType, typename... Args>
-function(ReturnType (*function)(Args...));
-
-template <typename Class, typename ReturnType, typename... Args>
-function(ReturnType (Class::*function)(Args...));
-
-/* 此处为function为不同修饰符（noexcept、volatile、const）组合提供的重载，此部分省去 */
+template <typename Fx>
+function(Fx function) noexcept;
 ```
 
 #### 参数
 
-`function`: 可支持构造的函数指针
+`function`: 可支持构造的函数指针，但是必须是*静态域函数、对象实例函数、仿函数*这类的。
 
 #### 备注
 
-以下构造函数被默认删除。
-
-```cpp
-template <typename LambdaOrFnObj>
-function(LambdaOrFnObj) = delete;
-```
+对于仿函数，该构造函数将会进行类型推导，首先获取operator()。
+随后检查仿函数的类型是否可被用于直接构造并调用，如果可能，则存储一个代理函数对象，以*静态域*函数的形式存在。否则作为成员函数进行存储，以*对象实例函数*形式存在。
 
 ### 示例
 
@@ -129,6 +123,23 @@ int main() {
     a object{};
     a_change.invoke(object); // invoke a_change, a_change --> a::change()
     a_print.invoke(object); // invoke a_print, a_print --> a::print()
+    function lambda_without_capture = [](int a, const int b) {
+        std::cout << "This Is Lambda\n";
+        std::cout << "a = " << a << '\n';
+        std::cout << "b = " << b << '\n';
+    }; // bind a non-capture lambda expression
+    std::cout << "lambda_without_capture's signature: " << lambda_without_capture << '\n';
+    lambda_without_capture.invoke_static(10, 30);
+    // invoke lambda_without_capture, lambda_without_capture --> lambda
+    auto lambda = [&](int a,int b) {
+        std::cout << "This Is Lambda\n";
+        std::cout << "a = " << a << '\n';
+        std::cout << "b = " << b << '\n';
+        std::cout << f1 << '\n';
+    }; // bind a capture lambda expression
+    function lambda_with_capture = lambda;
+    lambda_with_capture.invoke(lambda, 10, 30);
+    std::cout << "lambda_without_capture's signature: " << lambda_with_capture << '\n';
     return 0;
 }
 /*Output
@@ -139,6 +150,15 @@ change()
 print()
 10
 20
+lambda_without_capture's signature: void(__cdecl *)(int,int) noexcept(false) -> 00007FF6496FA7A0
+This Is Lambda
+a = 10
+b = 30
+This Is Lambda
+a = 10
+b = 30
+void(__cdecl *)(void) noexcept -> 00007FF6496F1974
+lambda_without_capture's signature: void(__cdecl main::<lambda_2>::* )(int,int) const -> 00007FF6496F8DE0
 */
 ```
 
@@ -153,11 +173,23 @@ rainy::utility::any invoke_static(Args &&...args);
 
 ### 参数
 
-`args...`: 任意数量的参数，用于提供给目标
+`args...`: 任意数量的参数，用于提供给目标。另注：`rainy::utility::any`支持被`拆箱（自动处理内部类型）`，`数组`会被退化为指针，不保留原类型
 
 ### 返回值
 
 如果调用目标的返回类型不为void，则此部分返回的any将包含实际的返回值内容。如，目标调用返回`int`类型，数据为`42`。则`any`将包含`int`类型的rtti信息和数据`42`。
+
+### 备注
+
+该接口是对[invoke](#invoke)函数的封装。其效果与下列调用等效。详见示例。
+
+```cpp
+fn.invoke(non_exists_instance, args...);
+```
+
+此函数是为了语义进行封装的，使用`invoke_static`即明确表示当前调用的是一个静态域函数，而非对象实例函数。倘若当前对象存储的是一个对象实例函数，则会调用失败。在DEBUG模式下，会检查是否为`non_exists_instance`。若不是，则会触发契约错误。契约将会在DEBUG模式下触发一个断点。且无法直接捕获。在RELEASE模式不会进行检查。因此，若调用目标是个对象实例函数，则产生未定义行为。如空指针访问成员函数等
+
+另外，在调用的时候，会检查参数的可转换性，通常会计算参数是否适合且参数是否完全一致。若参数数量不一致，则`errno`会被设置为`EINVAL`，则尝试检查类型兼容性并在可能的情况下尝试不同类型的转换（`可能会导致std::terminate()`的调用）。但是，如果调用所需类型未被用于特化，则`errno`也会被设置为`EACCES`。表示无法找到适当的类型转换。（默认情况下提供对拷贝/移动构造、同类型引用转换、算术类型转换、`std::string_view`转换的支持。详见`any`文档的`any_converter`描述）。
 
 ### 示例
 
@@ -183,7 +215,7 @@ int main() {
     f1.invoke(non_exists_instance); // Same effect with f1.invoke_static()
     function f2 = &foo1;
     f2.invoke_static(10, 20);
-    f2.invoke(non_exists_instance, 10, 20);
+    f2.invoke(non_exists_instance, 10, 20); // Same effect with f2.invoke_static()
 
     rainy::utility::any result_of_foo1 = f2.invoke_static(10, 20);
     std::cout << "f2 returns: " << result_of_foo1.as<int>() << '\n';
@@ -203,6 +235,330 @@ foo1
 20
 f2 returns: 30
 */
+```
+
+## invoke
+
+用于调用当前function对象存有的函数。
+
+```cpp
+template <typename... Args>
+rainy::utility::any invoke(
+    rainy::meta::reflection::object_view instance,
+    Args &&...args
+) const;
+```
+
+### 参数
+
+`instance`: 一个对象实例，可能是`non_exists_instance`（一个对象占位符，表示不存在的对象实例，用于调用静态域函数）也或者是一个对象实例的引用。
+`args...`: 任意数量的参数，用于提供给目标。另注：`rainy::utility::any`支持被`拆箱（自动处理内部类型）`，`数组`会被退化为指针，不保留原类型
+
+### 返回值
+
+如果调用目标的返回类型不为void，则此部分返回的any将包含实际的返回值内容。如，目标调用返回`int`类型，数据为`42`。则`any`将包含`int`类型的rtti信息和数据`42`。
+
+### 备注
+
+若当前对象存储的是一个对象实例函数，需要提供与`which_belongs()`返回的类型信息兼容的对象。否则会调用失败。在DEBUG模式下会检查是否为`non_exists_instance`。若是，则会触发契约错误。契约将会在DEBUG模式下触发一个断点。且无法直接捕获。在RELEASE模式不会进行检查。因此，若调用目标是个对象实例函数，则产生未定义行为。如空指针访问成员函数等。
+
+另外，在调用的时候，会检查参数的可转换性，通常会计算参数是否适合且参数是否完全一致。若参数数量不一致，则`errno`会被设置为`EINVAL`，则尝试检查类型兼容性并在可能的情况下尝试不同类型的转换（`可能会导致std::terminate()`的调用）。但是，如果调用所需类型未被用于特化，则`errno`也会被设置为`EACCES`。表示无法找到适当的类型转换。（默认情况下提供对拷贝/移动构造、同类型引用转换、算术类型转换、`std::string_view`转换的支持。详见`any`文档的`any_converter`描述）。
+
+### 示例
+
+```cpp
+#include <iostream>
+#include <rainy/meta/reflection/function.hpp>
+
+struct class_a {
+    void change() noexcept {
+        std::cout << "change()\n";
+        a = 10;
+        b = 20;
+    }
+
+    void print() const noexcept {
+        std::cout << "print()\n";
+        std::cout << a << '\n';
+        std::cout << b << '\n';
+    }
+
+    int a;
+    int b;
+};
+
+void foo() noexcept {
+    std::cout << "foo\n";
+}
+
+void foo1() {
+    std::cout << "foo1\n";
+}
+
+int main() {
+    using namespace rainy::meta::reflection;
+    function f1 = &foo;
+    function f2 = &foo1;
+    f1.invoke(non_exists_instance); // invoke f1 , f1 --> foo()
+    f2.invoke(non_exists_instance); // invoke f2, f2 --> foo1()
+    function a_change = &class_a::change;
+    function a_print = &class_a::print;
+    class_a object{};
+    a_change.invoke(object); // invoke a_change, a_change --> a::change()
+    a_print.invoke(object); // invoke a_print, a_print --> a::print()
+    auto lmb = [](int a, const int b) {
+        std::cout << "This Is Lambda\n";
+        std::cout << "a = " << a << '\n';
+        std::cout << "b = " << b << '\n';
+    };
+    using t = decltype(&decltype(lmb)::operator());
+    function lambda_without_capture = [](int a, const int b) {
+        std::cout << "This Is Lambda\n";
+        std::cout << "a = " << a << '\n';
+        std::cout << "b = " << b << '\n';
+    }; // bind a non-capture lambda expression
+    std::cout << "lambda_without_capture's signature: " << lambda_without_capture << '\n';
+    lambda_without_capture.invoke(non_exists_instance,10, 30);
+    // invoke lambda_without_capture, lambda_without_capture --> lambda
+    auto lambda = [&](int a,int b) {
+        std::cout << "This Is Lambda\n";
+        std::cout << "a = " << a << '\n';
+        std::cout << "b = " << b << '\n';
+        std::cout << f1 << '\n';
+    }; // bind a capture lambda expression
+    function lambda_with_capture = lambda;
+    lambda_with_capture.invoke(lambda, 10, 30);
+    std::cout << "lambda_without_capture's signature: " << lambda_with_capture << '\n';
+    return 0;
+}
+/*Output
+foo
+foo1
+change()
+print()
+10
+20
+lambda_without_capture's signature: void(__cdecl *)(int,int) noexcept(false) -> 00007FF79F004530
+This Is Lambda
+a = 10
+b = 30
+This Is Lambda
+a = 10
+b = 30
+void(__cdecl *)(void) noexcept -> 00007FF79F0019DD
+lambda_without_capture's signature: void(__cdecl main::<lambda_2>::* )(int,int) const -> 00007FF79F004420
+*/
+```
+
+在调用时，无论是Debug还是Release模式。都会默认调用一个契约函数`expects`以检查`empty()`返回结果是否为假，若为假，则代表当前对象无效，将触发断言
+
+## return_type {#return_type}
+
+获取当前function对象指向的返回值类型的rtti类型标识
+
+### 返回值
+
+返回一个类型为`rainy::foundation::rtti::typeinfo`的对象，其中包含该对象对应类型的类型特征表示以及其哈希码和字符串表示名称。
+
+### 备注
+
+建议使用哈希码作为类型比对，而非使用字符串名称，因为这些名称是通过编译器生成的，使用字符串名称可能导致实现定义行为
+
+在调用时，无论是Debug还是Release模式。都会默认调用一个契约函数`expects`以检查`empty()`返回结果是否为假，若为假，则代表当前对象无效，将触发断言
+
+### 备注
+
+```cpp
+#include <iostream>
+#include <string_view>
+#include <vector>
+#include <rainy/meta/reflection/function.hpp>
+
+using namespace rainy;
+using namespace rainy::meta::reflection;
+
+struct example {
+    // int(example::*)(std::int64_t, int, std::string);
+    int foo(std::int64_t,int , std::string) {
+        return 0;
+    }
+};
+
+int static_foo(int, std::string_view, std::vector<int>&) {
+    return 0;
+}
+
+std::vector<std::int64_t> use_array(int[100]) {
+    return {};
+}
+
+int main() {
+    std::cout << std::boolalpha;
+    function fn = &example::foo;
+    std::cout << "example::foo ret type => " << fn.return_type().name() << "\n"; // int
+    std::cout << "rainy_typeid(int) == fn.return_type() ? => "<< (rainy_typeid(int) == fn.return_type() )<<'\n'; // true
+    fn.rebind(&static_foo);
+    std::cout << "static_foo ret type => " << fn.return_type().name() << "\n"; // int
+    std::cout << "rainy_typeid(int) == fn.return_type() ? => "<< (rainy_typeid(int) == fn.return_type() )<<'\n'; // true
+    fn.rebind(&use_array);
+    std::cout << "use_array ret type => " << fn.return_type().name() << '\n';
+    std::cout << "rainy_typeid(int) == fn.return_type() ? => "<< (rainy_typeid(int) == fn.return_type() )<<'\n'; // false
+    return 0;
+}
+/*Output
+example::foo ret type => int
+rainy_typeid(int) == fn.return_type() ? => true
+static_foo ret type => int
+rainy_typeid(int) == fn.return_type() ? => true
+use_array ret type => class std::vector<__int64,class std::allocator<__int64> >
+rainy_typeid(int) == fn.return_type() ? => false
+*/
+```
+
+## paramlists
+
+获取当前function对象的调用参数的类型标识列表
+
+```cpp
+const rainy::collections::views::array_view<
+    rainy::foundation::rtti::typeinfo
+>& paramlists() const noexcept;
+```
+
+### 返回值
+
+返回当前function对象中持有的函数指针对应的参数列表信息
+
+### 备注
+
+在调用时，无论是Debug还是Release模式。都会默认调用一个契约函数`expects`以检查`empty()`返回结果是否为假，若为假，则代表当前对象无效，将触发断言
+
+另外，对paramlists进行const_cast修改，将导致未定义行为
+
+### 示例
+
+```cpp
+#include <iostream>
+#include <string_view>
+#include <vector>
+#include <rainy/meta/reflection/function.hpp>
+
+using namespace rainy;
+using namespace rainy::collections::views;
+using namespace rainy::foundation::rtti;
+using namespace rainy::meta::reflection;
+
+using fp = void(*)(float);
+
+struct example {
+    // int(example::*)(std::int64_t, int, std::string);
+    int foo(std::int64_t,int , std::string) {
+        return 0;
+    }
+};
+
+int static_foo(int, std::string_view, std::vector<int>&) {
+    return 0;
+}
+
+std::vector<std::int64_t> use_array(int[100]) {
+    return {};
+}
+
+void cv_ref_fn(const int&, volatile double&&) {}
+
+void test_fnptr(fp) {}
+
+void print(std::string_view fn_name, const array_view<typeinfo>& array_view) {
+    std::cout << fn_name << "(";
+    for (std::size_t i = 0; i < array_view.size(); ++i) {
+        std::cout << array_view[i].name();
+        if (i != array_view.size() - 1) {
+            std::cout << ", ";
+        }
+    }
+    std::cout << ")\n";
+    std::cout << fn_name << " paramlist's details\n{\n";
+    for (auto&& type : array_view) {
+        std::cout << '\t' << type.name() 
+            << ", is_ref: " << (type.has_traits(traits::is_lref) || type.has_traits(traits::is_rref)) 
+            << ", is_cv: " << (type.has_traits(traits::is_const) && type.has_traits(traits::is_volatile)) << std::endl;
+    }
+    std::cout << "}\n";
+    std::cout.put('\n');
+}
+
+int main() {
+    std::cout << std::boolalpha;
+    function fn = &example::foo;
+    std::cout << sizeof(fn) << '\n';
+    print("example::foo", fn.paramlists()); // paramlists() returns a view reference
+    fn.rebind(&static_foo);
+    print("static_foo", fn.paramlists());
+    fn.rebind(&use_array);
+    print("use_array", fn.paramlists());
+    fn.rebind(&cv_ref_fn);
+    print("cv_ref_fn", fn.paramlists());
+    fn.rebind(&test_fnptr);
+    print("test_fnptr", fn.paramlists());
+}
+
+/*Output
+example::foo(__int64, int, class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> >)
+example::foo paramlist's details
+{       __int64, is_ref: false, is_cv: false
+        int, is_ref: false, is_cv: false
+        class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> >, is_ref: false, is_cv: false
+example::foo(__int64, int, class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> >)
+example::foo paramlist's details
+{
+        __int64, is_ref: false, is_cv: false
+        int, is_ref: false, is_cv: false
+        class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> >, is_ref: false, is_cv: false
+}
+
+static_foo(int, class std::basic_string_view<char,struct std::char_traits<char> >, class std::vector<int,class std::allocator<int> >&)
+static_foo paramlist's details
+{
+        int, is_ref: false, is_cv: false
+        class std::basic_string_view<char,struct std::char_traits<char> >, is_ref: false, is_cv: false
+        class std::vector<int,class std::allocator<int> >&, is_ref: true, is_cv: false
+}
+
+use_array(int*)
+use_array paramlist's details
+{
+        int*, is_ref: false, is_cv: false
+}
+
+test_fnptr(void(__cdecl *)(float))
+test_fnptr paramlist's details
+{
+        void(__cdecl *)(float), is_ref: false, is_cv: false
+}
+*/
+```
+
+## arg_count {#arg_count}
+
+获取调用当前function的所需参数数量
+
+```cpp
+std::size_t arg_count() const noexcept;
+```
+
+### 返回值
+
+返回当前function对象中持有的函数指针对应的参数列表的参数总数量
+
+### 备注
+
+在调用时，无论是Debug还是Release模式。都会默认调用一个契约函数`expects`以检查`empty()`返回结果是否为假，若为假，则代表当前对象无效，将触发断言
+
+### 示例
+
+```cpp
+
 ```
 
 ## function::operator bool
@@ -331,92 +687,4 @@ Now, f2 get his resources again.
 Also, f1 is invalid now!
 Now, f1 and f2 is empty!
 */
-```
-
-```cpp
-class function {
-public:
-    // ===== 构造函数 =====
-    function() noexcept;
-    function(std::nullptr_t);
-    function(function &&right) noexcept;
-    function(const function &right) noexcept;
-
-    template <typename ReturnType, typename... Args>
-    function(ReturnType (*function)(Args...));
-
-    template <typename Class, typename ReturnType, typename... Args>
-    function(ReturnType (Class::*function)(Args...));
-
-    template <typename LambdaOrFnObj,
-              type_traits::other_trans::enable_if_t<!type_traits::primary_types::function_traits<LambdaOrFnObj>::valid, int> = 0>
-    function(LambdaOrFnObj) = delete;
-
-    /* 此处为function为不同修饰符（noexcept、volatile、const）组合提供的重载，此部分省去 */
-
-    // ===== 赋值操作符 =====
-    function &operator=(const function &right) noexcept;
-    function &operator=(function &&right) noexcept;
-    function &operator=(std::nullptr_t) noexcept;
-
-    // ===== 调用接口 =====
-    template <typename... Args>
-    utility::any invoke_static(Args &&...args) const;
-
-    utility::any invoke(object_view object) const;
-    utility::any invoke(object_view object, utility::any ax1) const;
-    utility::any invoke(object_view object, utility::any ax1, utility::any ax2) const;
-    utility::any invoke(object_view object, utility::any ax1, utility::any ax2, utility::any ax3) const;
-    utility::any invoke(object_view object, utility::any ax1, utility::any ax2, utility::any ax3, utility::any ax4) const;
-    utility::any invoke(object_view object, utility::any ax1, utility::any ax2, utility::any ax3, utility::any ax4,
-                        utility::any ax5) const;
-    utility::any invoke(object_view object, utility::any ax1, utility::any ax2, utility::any ax3, utility::any ax4,
-                        utility::any ax5, utility::any ax6) const;
-    utility::any invoke(object_view object, utility::any ax1, utility::any ax2, utility::any ax3, utility::any ax4,
-                        utility::any ax5, utility::any ax6, utility::any ax7) const;
-
-    template <typename... Args>
-    utility::any invoke_paramlist(object_view instance, Args &&...args) const;
-
-    utility::any invoke_variadic(object_view instance, rainy::collections::views::array_view<utility::any> any_args) const;
-
-    template <typename... Args>
-    utility::any operator()(object_view instance, Args &&...args) const;
-
-    // ===== 元信息和状态 =====
-    const foundation::rtti::typeinfo &return_type() const noexcept;
-    rainy::collections::views::array_view<foundation::rtti::typeinfo> param_lists() const noexcept;
-    const foundation::rtti::typeinfo &function_signature() const noexcept;
-    method_type type() const noexcept;
-    const foundation::rtti::typeinfo &which_belongs() const noexcept;
-
-    bool empty() const noexcept;
-    explicit operator bool() const noexcept;
-
-    // ===== 特性判断 =====
-    bool is_static() const noexcept;
-    bool is_const() const noexcept;
-    bool is_volatile() const noexcept;
-    bool is_invocable(rainy::collections::views::array_view<utility::any> paramlist) const noexcept;
-
-    // ===== 管理函数 =====
-    void copy_from_other(const function &right) noexcept;
-    void move_from_other(function &&right) noexcept;
-    void swap(function &right) noexcept;
-    void clear() noexcept;
-    void rebind(function &&function) noexcept;
-    void rebind(const function &function) noexcept;
-
-    // ===== 获取目标函数指针 =====
-    template <typename Fx>
-    Fx target() const noexcept;
-
-    // ===== 比较函数 =====
-    bool equal_with(const function &right) const noexcept;
-    bool not_equal_with(const function &right) const noexcept;
-
-    friend bool operator==(const function &left, const function &right) noexcept;
-    friend bool operator!=(const function &left, const function &right) noexcept;
-};
-
 ```

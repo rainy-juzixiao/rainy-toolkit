@@ -241,65 +241,6 @@ namespace rainy::core {
                            "Discarding the return value will cause a memory leak.")
 #endif
 
-namespace rainy::utility {
-    class type_index {
-    public:
-        type_index(const std::type_info &type_info) noexcept : type_info_ptr_(&type_info) {
-        }
-
-        RAINY_NODISCARD std::size_t hash_code() const noexcept {
-            return type_info_ptr_->hash_code();
-        }
-
-        RAINY_NODISCARD const char *name() const noexcept {
-            return type_info_ptr_->name();
-        }
-
-        RAINY_NODISCARD bool operator==(const type_index &right) const noexcept {
-            return *type_info_ptr_ == *right.type_info_ptr_;
-        }
-
-#if RAINY_HAS_CXX20
-        RAINY_NODISCARD std::strong_ordering operator<=>(const type_index &right) const noexcept {
-            if (type_info_ptr_ == right.type_info_ptr_) {
-                return std::strong_ordering::equal;
-            }
-            return std::strcmp(right.type_info_ptr_->name(), right.type_info_ptr_->name()) <=> 0;
-        }
-#else
-        RAINY_NODISCARD bool operator!=(const type_index &right) const noexcept {
-            return !(*this == right);
-        }
-#endif
-
-        RAINY_NODISCARD bool operator<(const type_index &right) const noexcept {
-            return type_info_ptr_->before(*right.type_info_ptr_);
-        }
-
-        RAINY_NODISCARD bool operator>=(const type_index &right) const noexcept {
-            return !(*this < right);
-        }
-
-        RAINY_NODISCARD bool operator>(const type_index &right) const noexcept {
-            return right < *this;
-        }
-
-        RAINY_NODISCARD bool operator<=(const type_index &right) const noexcept {
-            return !(right < *this);
-        }
-
-    private:
-        const std::type_info *type_info_ptr_;
-    };
-}
-
-template <>
-struct std::hash<rainy::utility::type_index> {
-    RAINY_NODISCARD std::size_t operator()(const rainy::utility::type_index &val) const noexcept {
-        return val.hash_code();
-    }
-};
-
 /* 此部分宏由ChatGPT生成 */
 #define RAINY_TO_TUPLE_EXPAND_ARGS(N) RAINY_TO_TUPLE_EXPAND_##N
 #define RAINY_TO_TUPLE_EXPAND_1 _1

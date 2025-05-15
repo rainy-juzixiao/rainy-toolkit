@@ -568,22 +568,32 @@ namespace rainy::type_traits::helper {
 
     template <std::size_t N>
     using constexpr_string = basic_constexpr_string<char, N>;
+
+    template <typename CharType, std::size_t N>
+    constexpr auto make_constexpr_string(const CharType (&str)[N]) {
+        return basic_constexpr_string<CharType, N>(str);
+    }
+
+    template <typename CharType,std::size_t N>
+    basic_constexpr_string(const CharType (&)[N]) -> basic_constexpr_string<CharType, N>;
+
+    template <typename CharType, std::size_t N1, std::size_t N2>
+    constexpr auto concat(const basic_constexpr_string<CharType, N1> &lhs, const basic_constexpr_string<CharType, N2> &rhs) {
+        basic_constexpr_string<CharType, N1 + N2 - 1> result{};
+        for (std::size_t i = 0; i < N1 - 1; ++i) {
+            result[i] = lhs[i];
+        }
+        for (std::size_t i = 0; i < N2; ++i) {
+            result[N1 - 1 + i] = rhs[i];
+        }
+        return result;
+    }
 }
 
 namespace rainy::utility {
     struct ignore_static_warning_tag {};
 
     struct require_static_warning_tag {};
-
-    template <bool expr, type_traits::helper::constexpr_string, typename Tag = require_static_warning_tag>
-    struct static_warning {
-        using type = void *;
-    };
-
-    template <type_traits::helper::constexpr_string string>
-    struct static_warning<false, string, require_static_warning_tag> {
-        using type [[deprecated("")]] = void *;
-    };
 }
 
 #define rainy_make_template_warning(cond, msg)                                                                                        \
@@ -685,6 +695,12 @@ namespace rainy::core {
     RAINY_CONSTEXPR Ty(min)(std::initializer_list<Ty> ilist, Pred pred) {
         return *(min_element(ilist.begin(), ilist.end(), pred));
     }
+
+    enum class convert_context {
+        as_lvalue,
+        as_rvalue,
+        as_value
+    };
 }
 
 #endif

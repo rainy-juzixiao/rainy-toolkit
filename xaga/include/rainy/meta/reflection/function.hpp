@@ -17,397 +17,405 @@
 #define RAINY_META_RELF_IMPL_FUNCTION_HPP
 #include <rainy/foundation/diagnostics/contract.hpp>
 #include <rainy/meta/reflection/refl_impl/invoker.hpp>
-#include <rainy/meta/reflection/refl_impl/object_view.hpp>
-
-namespace rainy::meta::reflection::implements {
-    struct remote_invoker {
-        virtual ~remote_invoker() = default;
-        virtual std::uintptr_t target(const foundation::rtti::typeinfo &fx_sign) const noexcept = 0;
-        virtual method_type type() const noexcept = 0;
-        virtual utility::any invoke(object_view object) const = 0;
-        virtual utility::any invoke(object_view object, utility::any &ax1) const = 0;
-        virtual utility::any invoke(object_view object, utility::any &ax1, utility::any &ax2) const = 0;
-        virtual utility::any invoke(object_view object, utility::any &ax1, utility::any &ax2, utility::any &ax3) const = 0;
-        virtual utility::any invoke(object_view object, utility::any &ax1, utility::any &ax2, utility::any &ax3,
-                                    utility::any &ax4) const = 0;
-        virtual utility::any invoke(object_view object, utility::any &ax1, utility::any &ax2, utility::any &ax3, utility::any &ax4,
-                                    utility::any &ax5) const = 0;
-        virtual utility::any invoke(object_view object, utility::any &ax1, utility::any &ax2, utility::any &ax3, utility::any &ax4,
-                                    utility::any &ax5, utility::any &ax6) const = 0;
-        virtual utility::any invoke(object_view object, utility::any &ax1, utility::any &ax2, utility::any &ax3, utility::any &ax4,
-                                    utility::any &ax5, utility::any &ax6, utility::any &ax7) const = 0;
-        virtual utility::any invoke_variadic(object_view obj, rainy::collections::views::array_view<utility::any> &any_args) const = 0;
-        virtual const foundation::rtti::typeinfo &which_belongs() const noexcept = 0;
-        virtual const foundation::rtti::typeinfo &return_type() const noexcept = 0;
-        virtual const foundation::rtti::typeinfo &function_signature() const noexcept = 0;
-        virtual remote_invoker *construct_from_this(core::byte_t *soo_buffer) const noexcept = 0;
-        virtual const rainy::collections::views::array_view<foundation::rtti::typeinfo> param_types() const noexcept = 0;
-        virtual bool equal_with(const remote_invoker *impl) const noexcept = 0;
-        virtual bool is_invocable(rainy::collections::views::array_view<foundation::rtti::typeinfo> paramlist) const noexcept = 0;
-    };
-
-    template <typename Fx, typename Class, typename ReturnType, typename... Args>
-    struct remote_invoker_impl : implements::remote_invoker {
-        using function_signature_t = Fx;
-        using storage_t = implements::invoker<Fx, Args...>;
-        using typelist = type_traits::other_trans::type_list<Args...>;
-
-        template <typename Method>
-        remote_invoker_impl(Method method) noexcept {
-            utility::construct_at(&this->storage, method);
-        }
-
-        utility::any invoke_variadic(object_view object, rainy::collections::views::array_view<utility::any> &params) const override {
-#if RAINY_ENABLE_DEBUG
-            utility::expects(object.rtti().is_compatible(rainy_typeid(Class)),
-                             "We can't invoke this function because we found the ClassType is not same with your passed instance!");
-#endif
-            if (storage.arity == params.size()) {
-                return invoke_variadic_helper(object.get_pointer(), params.data(),
-                                              type_traits::helper::make_index_sequence<storage.arity>{});
-            }
-            return {};
-        }
-
-        const foundation::rtti::typeinfo &return_type() const noexcept override {
-            return implements::return_type_res<ReturnType>();
-        }
-
-        const rainy::collections::views::array_view<foundation::rtti::typeinfo> param_types() const noexcept override {
-            return implements::param_types_res<Args...>();
-        }
-
-        const foundation::rtti::typeinfo &function_signature() const noexcept override {
-            return implements::function_signature_res<function_signature_t>();
-        }
-
-        const foundation::rtti::typeinfo &which_belongs() const noexcept override {
-            return implements::which_belongs_res<Class>();
-        }
-
-        remote_invoker *construct_from_this(core::byte_t *soo_buffer) const noexcept override {
-            return utility::construct_at(reinterpret_cast<remote_invoker_impl *>(soo_buffer), storage.fn);
-        }
-
-        method_type type() const noexcept override {
-            return storage.type;
-        }
-
-        bool equal_with(const remote_invoker *impl) const noexcept override {
-            if (function_signature() != impl->function_signature()) {
-                return false;
-            }
-            if (impl->type() != type()) {
-                return false;
-            }
-            auto cast_impl = static_cast<const remote_invoker_impl *>(impl);
-            return storage.fn == cast_impl->storage.fn;
-        }
-
-        std::uintptr_t target(const foundation::rtti::typeinfo &fx_sign) const noexcept override {
-            if (fx_sign != function_signature()) {
-                if (fx_sign == rainy_typeid(function *)) {
-                    return reinterpret_cast<std::uintptr_t>(const_cast<type_traits::other_trans::decay_t<Fx> *>(&storage.fn));
-                }
-                return 0;
-            }
-            return reinterpret_cast<std::uintptr_t>(const_cast<type_traits::other_trans::decay_t<Fx> *>(&storage.fn));
-        }
-
-        utility::any invoke(object_view object) const override {
-            return storage.invoke(object.get_pointer());
-        }
-
-        utility::any invoke(object_view object, utility::any &ax1) const override {
-            return storage.invoke(object.get_pointer(), ax1);
-        }
-
-        utility::any invoke(object_view object, utility::any &ax1, utility::any &ax2) const override {
-            return storage.invoke(object.get_pointer(), ax1, ax2);
-        }
-
-        utility::any invoke(object_view object, utility::any &ax1, utility::any &ax2, utility::any &ax3) const override {
-            return storage.invoke(object.get_pointer(), ax1, ax2, ax3);
-        }
-
-        utility::any invoke(object_view object, utility::any &ax1, utility::any &ax2, utility::any &ax3,
-                            utility::any &ax4) const override {
-            return storage.invoke(object.get_pointer(), ax1, ax2, ax3, ax4);
-        }
-
-        utility::any invoke(object_view object, utility::any &ax1, utility::any &ax2, utility::any &ax3, utility::any &ax4,
-                            utility::any &ax5) const override {
-            return storage.invoke(object.get_pointer(), ax1, ax2, ax3, ax4, ax5);
-        }
-
-        utility::any invoke(object_view object, utility::any &ax1, utility::any &ax2, utility::any &ax3, utility::any &ax4,
-                            utility::any &ax5, utility::any &ax6) const override {
-            return storage.invoke(object.get_pointer(), ax1, ax2, ax3, ax4, ax5, ax6);
-        }
-
-        utility::any invoke(object_view object, utility::any &ax1, utility::any &ax2, utility::any &ax3, utility::any &ax4,
-                            utility::any &ax5, utility::any &ax6, utility::any &ax7) const override {
-            return storage.invoke(object.get_pointer(), ax1, ax2, ax3, ax4, ax5, ax6, ax7);
-        }
-
-        bool is_invocable(collections::views::array_view<foundation::rtti::typeinfo> paramlist) const noexcept override {
-            if (storage.arity != paramlist.size()) {
-                return false;
-            }
-            std::size_t paramhash =
-                core::accumulate(paramlist.begin(), paramlist.end(), std::size_t{0},
-                                 [&paramhash](std::size_t acc, const utility::any &item) { return acc + item.type().hash_code(); });
-            if (paramhash == storage.param_hash) {
-                return true;
-            }
-            return is_invocable_helper(paramlist, type_traits::helper::make_index_sequence<storage.arity>{});
-        }
-
-        template <std::size_t... I>
-        bool is_invocable_helper(collections::views::array_view<foundation::rtti::typeinfo> paramlist, type_traits::helper::index_sequence<I...>) const noexcept {
-            return (... && utility::any_converter<typename type_traits::other_trans::type_at<I, typelist>::type>::is_convertible(
-                               paramlist[I]));
-        }
-
-        template <std::size_t... I>
-        utility::any invoke_variadic_helper(void *object, utility::any *data, type_traits::helper::index_sequence<I...>) const {
-            return storage.invoke(object, (static_cast<void>(I), *data++)...);
-        }
-
-        storage_t storage;
-    };    
-
-    template <typename Fx,typename Traits,typename TypeList = typename type_traits::other_trans::tuple_like_to_type_list<typename Traits::tuple_like_type>::type>
-    struct get_ri_implement_type {};
-
-    template <typename Fx, typename Traits, typename... Args>
-    struct get_ri_implement_type<Fx, Traits, type_traits::other_trans::type_list<Args...>> {
-        using memptr_traits = type_traits::primary_types::member_pointer_traits<Fx>;
-
-        template <typename Traits, bool IsMemptr = Traits::valid>
-        struct decl_class {
-            using type = void;
-        };
-
-        template <typename Traits>
-        struct decl_class<Traits, true> {
-            using type = typename Traits::class_type;
-        };
-
-        using type = remote_invoker_impl<Fx, typename decl_class<memptr_traits>::type, typename Traits::return_type, Args...>;
-    };
-}
 
 namespace rainy::meta::reflection {
+    /**
+     * @brief 表示一个反射函数对象。
+     *
+     * 该类提供了一种存储和调用具有不同签名的函数的方式。
+     * 它支持静态函数和成员函数。
+     *
+     * @note 该类是线程安全的。
+     */
     class RAINY_TOOLKIT_API function final {
     public:
-        /* 因为invoker始终是无分配的，因此，不考虑额外的逻辑。***线程安全*** */
         /**
-         * @brief 构造一个空的反射函数对象
+         * @brief 构造一个空的反射函数对象。
          */
         function() noexcept;
 
         /**
-         * @brief 从右值引用中进行移动构造
-         * @param right 待移动的函数对象
+         * @brief 从右值引用中进行移动构造。
+         * @param right 待移动的函数对象。
          */
         function(function &&right) noexcept;
 
         /**
-         * @brief 从左值常量引用中进行拷贝构造
-         * @param right 待拷贝的函数对象
+         * @brief 从左值常量引用中进行拷贝构造。
+         * @param right 待拷贝的函数对象。
          */
         function(const function &right) noexcept;
+
         /**
-         * @brief 与默认构造函数的行为相同
+         * @brief 与默认构造函数的行为相同。
          */
         function(std::nullptr_t) noexcept;
 
         /**
-         * @brief lambda表达式或函数对象默认不进行支持，对构造函数进行删除
-         * @brief lambda和函数对象的复杂度较高，且在反射中，意义不大
+         * @brief 从给定的函数对象构造一个反射函数对象。
+         * @tparam Fx 函数对象类型。
+         * @param function 函数对象。
          */
-        template <typename LambdaOrFnObj,
-                  type_traits::other_trans::enable_if_t<!type_traits::primary_types::function_traits<LambdaOrFnObj>::valid, int> = 0>
-        function(LambdaOrFnObj) = delete;
-
-        template <typename Fx, type_traits::other_trans::enable_if_t<type_traits::primary_types::function_traits<Fx>::valid,int> = 0>
-        function(Fx fx) noexcept {
-            using implemented_type = implements::get_ri_implement_type<Fx, type_traits::primary_types::function_traits<Fx>>::type;
-            utility::construct_at(reinterpret_cast<implemented_type *>(invoker_storage), fx);
+        template <typename Fx, type_traits::other_trans::enable_if_t<type_traits::primary_types::function_traits<Fx>::valid ||
+                                                                         implements::try_to_get_invoke_operator<Fx>::value,
+                                                                     int> = 0>
+        function(Fx function) noexcept {
+            if constexpr (type_traits::primary_types::function_traits<Fx>::valid) {
+                // 静态域指针/对象实例指针
+                using implemented_type =
+                    typename implements::get_ia_implement_type<Fx, type_traits::primary_types::function_traits<Fx>>::type;
+                utility::construct_at(reinterpret_cast<implemented_type *>(invoker_storage), function);
+            } else {
+                // 仿函数/lambda表达式
+                using invoker_type = implements::try_to_get_invoke_operator<Fx>;
+                using method_type = type_traits::cv_modify::remove_cv_t<decltype(invoker_type::method)>;
+                if constexpr (invoker_type::is_lambda_without_capture ||
+                              (type_traits::type_properties::is_default_constructible_v<Fx> &&
+                               type_traits::type_properties::is_empty_v<Fx>) ) {
+                    // lambda without capture --> fnptr | empty fn class --> fnptr
+                    // 无捕获lambda表达式/空类默认可构造对象可转换到函数指针
+                    constexpr auto invoke_fn = &invoker_type::template get_fn_obj_invoke_if_default_constructible<
+                        Fx, type_traits::primary_types::function_traits<method_type>>::invoke;
+                    using invoke_fn_t = type_traits::cv_modify::remove_cv_t<decltype(invoke_fn)>;
+                    using implemented_type =
+                        typename implements::get_ia_implement_type<invoke_fn_t,
+                                                                   type_traits::primary_types::function_traits<invoke_fn_t>>::type;
+                    utility::construct_at(reinterpret_cast<implemented_type *>(invoker_storage), invoke_fn);
+                } else {
+                    // lambda with capture --> memptr | non-empty fn class --> memptr
+                    // 对象实例指针/非空类对象可转换到成员函数指针，直接获取operator()
+                    constexpr auto method = invoker_type::method;
+                    using implemented_type =
+                        typename implements::get_ia_implement_type<method_type,
+                                                                   type_traits::primary_types::function_traits<method_type>>::type;
+                    utility::construct_at(reinterpret_cast<implemented_type *>(invoker_storage), method);
+                }
+            }
         }
 
         /**
-         * @brief 调用函数，以静态方式，并返回结果
-         * @tparam ...Args 任意数量的函数参数类型，但是其数量需要与目标调用的参数数量一致
-         * @param ...args 任意数量的函数实参，需要与目标调用的参数数量一致
-         * @return 函数调用结果，以any形式
+         * @brief 调用函数，以静态方式，并返回结果。
+         * @tparam ...Args 任意数量的函数参数类型，但是其数量需要与目标调用的参数数量一致。
+         * @param ...args 任意数量的函数实参，需要与目标调用的参数数量一致。
+         * @return 函数调用结果，以any形式。
          */
         template <typename... Args>
         utility::any invoke_static(Args &&...args) const {
             return invoke(non_exists_instance, utility::forward<Args>(args)...);
         }
 
-        utility::any invoke(object_view object) const;
-        utility::any invoke(object_view object, utility::any ax1) const;
-        utility::any invoke(object_view object, utility::any ax1, utility::any ax2) const;
-        utility::any invoke(object_view object, utility::any ax1, utility::any ax2, utility::any ax3) const;
-        utility::any invoke(object_view object, utility::any ax1, utility::any ax2, utility::any ax3, utility::any ax4) const;
-        utility::any invoke(object_view object, utility::any ax1, utility::any ax2, utility::any ax3, utility::any ax4,
-                            utility::any ax5) const;
-        utility::any invoke(object_view object, utility::any ax1, utility::any ax2, utility::any ax3, utility::any ax4,
-                            utility::any ax5, utility::any ax6) const;
-        utility::any invoke(object_view object, utility::any ax1, utility::any ax2, utility::any ax3, utility::any ax4,
-                            utility::any ax5, utility::any ax6, utility::any ax7) const;
-
+        /**
+         * @brief 调用函数，并返回结果。
+         * @tparam ...Args 任意数量的函数参数类型，但是其数量需要与目标调用的参数数量一致。
+         * @param instance 对象实例。
+         * @param ...args 任意数量的函数实参，需要与目标调用的参数数量一致。
+         * @return 函数调用结果，以any形式。
+         */
         template <typename... Args>
-        utility::any invoke_paramlist(object_view instance, Args &&...args) const {
-            utility::expects(!empty(), "You're trying to invoke an empty object!");
+        utility::any invoke(object_view instance, Args &&...args) const {
+            assert(!empty() && "You're trying to invoke a empty object!");
             if constexpr (sizeof...(Args) == 0) {
-                return invoke(instance);
-            } else if constexpr (sizeof...(Args) <= 7) {
-                return invoke(instance, {std::in_place_type<Args>, utility::forward<Args>(args)}...);
+                return reinterpret_cast<const implements::invoker_accessor *>(invoker_storage)->invoke(instance);
             } else {
-                return invoke_variadic(instance, {{std::in_place_type<Args>, utility::forward<Args>(args)}...});
+                return reinterpret_cast<const implements::invoker_accessor *>(invoker_storage)
+                    ->invoke(instance, implements::arg_store{utility::forward<Args>(args)...});
             }
         }
 
+        /**
+         * @brief 重载函数调用运算符，以调用函数并返回结果。
+         * @tparam ...Args 任意数量的函数参数类型，但是其数量需要与目标调用的参数数量一致。
+         * @param instance 对象实例。
+         * @param ...args 任意数量的函数实参，需要与目标调用的参数数量一致。
+         * @return 函数调用结果，以any形式。
+         */
         template <typename... Args>
         utility::any operator()(object_view instance, Args &&...args) const {
-            return invoke_paramlist(instance, utility::forward<Args>(args)...);
+            return invoke(instance, utility::forward<Args>(args)...);
         }
 
         /**
-         * @brief 以数组容器作为参数，调用目标函数，非静态
-         * @param instance 对象的实例引用
-         * @param any_args 可以是std::vector，std::array，rainy::collections::array，初始化列表或者是任意可用于构造array_view的对象
-         * @return 函数调用结果，以any形式
-         */
-        utility::any invoke_variadic(object_view instance, rainy::collections::views::array_view<utility::any> any_args) const;
-
-        const foundation::rtti::typeinfo &return_type() const noexcept;
-
-        rainy::collections::views::array_view<foundation::rtti::typeinfo> param_lists() const noexcept;
-
-        /**
-         * @brief 检查当前反射函数对象是否为空
+         * @brief 检查当前反射函数对象是否为空。
+         * @return 如果为空，则返回true；否则返回false。
          */
         bool empty() const noexcept;
 
         /**
-         * @brief 从常量左值引用中拷贝函数对象
-         * @brief 与默认拷贝构造函数的行为相同
+         * @brief 从常量左值引用中拷贝函数对象。
+         * @param right 从此对象拷贝函数对象。
          */
         void copy_from_other(const function &right) noexcept;
 
         /**
-         * @brief 从右值引用中移动函数对象
-         * @brief 与默认移动构造函数的行为相同
+         * @brief 从右值引用中移动函数对象。
+         * @param right 从此对象移动函数对象。
          */
         void move_from_other(function &&right) noexcept;
 
         /**
-         * @brief 交换两个函数对象
-         * @brief 与默认swap函数的行为相同
+         * @brief 交换两个函数对象。
+         * @param right 另一个函数对象。
          */
         void swap(function &right) noexcept;
 
         /**
-         * @brief 从常量左值引用中拷贝函数对象
-         * @param right 从此对象拷贝函数对象
-         * @return 返回对象
+         * @brief 从常量左值引用中拷贝函数对象。
+         * @param right 从此对象拷贝函数对象。
+         * @return 返回对象本身的引用。
          */
         function &operator=(const function &right) noexcept;
 
+        /**
+         * @brief 通过移动语义转移函数对象。
+         * @param right 从此对象移动函数对象。
+         * @return 返回对象本身的引用。
+         */
         function &operator=(function &&right) noexcept;
 
+        /**
+         * @brief 将函数对象设置为空。
+         * @param right 设置为空的对象。
+         * @return 返回对象本身的引用。
+         */
         function &operator=(std::nullptr_t) noexcept;
 
+        /**
+         * @brief 获取函数对象的函数签名。
+         * @return 返回函数签名。
+         */
         const foundation::rtti::typeinfo &function_signature() const noexcept;
 
+        /**
+         * @brief 获取函数对象的函数类型。
+         * @return 返回函数类型。
+         */
         method_type type() const noexcept;
 
+        /**
+         * @brief 检查当前函数对象是否有效。
+         * @return 如果有效，则返回true；否则返回false。
+         */
         explicit operator bool() const noexcept;
 
+        /**
+         * @brief 检查当前函数对象是否与另一个函数对象相同。
+         * @param right 另一个函数对象。
+         * @return 如果相同，则返回true；否则返回false。
+         */
         bool equal_with(const function &right) const noexcept;
 
+        /**
+         * @brief 检查当前函数对象是否与另一个函数对象不同。
+         * @param right 另一个函数对象。
+         * @return 如果不同，则返回true；否则返回false。
+         */
         bool not_equal_with(const function &right) const noexcept;
 
+        /**
+         * @brief 清空函数对象。
+         */
         void clear() noexcept;
 
+        /**
+         * @brief 重新绑定函数对象。
+         * @param function 待绑定的函数对象。
+         * @remark 以移动语义的方式绑定函数对象。
+         */
         void rebind(function &&function) noexcept;
 
+        /**
+         * @brief 重新绑定函数对象。
+         * @param function 待绑定的函数对象。
+         * @remark 以拷贝语义的方式绑定函数对象。
+         */
         void rebind(const function &function) noexcept;
 
+        /**
+         * @brief 重新绑定函数对象。
+         * @param function 待绑定的函数对象。
+         * @remark 将函数对象设置为空。
+         */
         void rebind(std::nullptr_t) noexcept;
 
+        /**
+         * @brief 获取函数对象的所属类。
+         * @return 返回函数对象的所属类。
+         */
         const foundation::rtti::typeinfo &which_belongs() const noexcept;
 
+        /**
+         * @brief 获取函数对象的返回类型。
+         * @return 返回函数对象的返回类型。
+         */
+        const foundation::rtti::typeinfo &return_type() const noexcept;
+
+        /**
+         * @brief 获取函数对象的参数类型列表。
+         * @return 返回函数对象的参数类型列表。
+         */
+        const collections::views::array_view<foundation::rtti::typeinfo> &paramlists() const noexcept;
+
+        /**
+         * @brief 获取函数对象的所需参数数量。
+         * @return 返回函数对象的所需参数数量。
+         */
+        std::size_t arg_count() const noexcept;
+
+        /**
+         * @brief 获取当前function对象中，从0开始索引的参数列表中的某个参数的类型信息
+         * @param idx 索引
+         * @return 返回参数类型信息
+         */
+        const foundation::rtti::typeinfo &arg(std::size_t idx) const noexcept;
+
+        /**
+         * @brief 检查当前函数对象是否为静态函数。
+         * @return 如果是静态函数，则返回true；否则返回false。
+         */
         bool is_static() const noexcept;
 
+        /**
+         * @brief 检查当前函数对象是否为成员实例函数。
+         * @return 如果是成员实例函数，则返回true；否则返回false。
+         */
         bool is_memfn() const noexcept;
 
+        /**
+         * @brief 检查当前函数对象是否为const函数。
+         * @return 如果是const函数，则返回true；否则返回false。
+         */
         bool is_const() const noexcept;
 
+        /**
+         * @brief 检查当前函数对象是否为noexcept函数。
+         * @return 如果是noexcept函数，则返回true；否则返回false。
+         */
         bool is_noexcept() const noexcept;
 
+        /**
+         * @brief 检查当前函数对象是否为volatile函数。
+         * @return 如果是volatile函数，则返回true；否则返回false。
+         */
         bool is_volatile() const noexcept;
 
+        /**
+         * @brief 检查当前函数对象是否支持lvalue调用。
+         * @return 如果支持lvalue调用，则返回true；否则返回false。
+         */
         bool is_invoke_for_lvalue() const noexcept;
 
+        /**
+         * @brief 检查当前函数对象是否支持rvalue调用。
+         * @return 如果支持rvalue调用，则返回true；否则返回false。
+         */
         bool is_invoke_for_rvalue() const noexcept;
 
-        bool is_invocable(rainy::collections::views::array_view<foundation::rtti::typeinfo> paramlist) const noexcept;
+        /**
+         * @brief 检查当前函数对象是否可以调用给定的参数列表。
+         * @param paramlist 参数列表。
+         * @return 如果可以调用，则返回true；否则返回false。
+         */
+        bool is_invocable(collections::views::array_view<foundation::rtti::typeinfo> paramlist) const noexcept;
 
+        /**
+         * @brief 检查当前函数对象是否可以调用给定的参数类型。
+         * @tparam ...Args 参数类型。
+         * @return 如果可以调用，则返回true；否则返回false。
+         */
+        template <typename... Args>
+        bool is_invocable() const noexcept {
+            return is_invocable(implements::param_types_res<Args...>());
+        }
+
+        /**
+         * @brief 获取函数对象的目标函数指针。
+         * @tparam Fx 目标函数类型。
+         * @return 返回目标函数指针。
+         */
         template <typename Fx>
         Fx target() const noexcept {
             auto ptr = reinterpret_cast<Fx *>(
-                reinterpret_cast<const implements::remote_invoker *>(invoker_storage)->target(rainy_typeid(Fx)));
+                reinterpret_cast<const implements::invoker_accessor *>(invoker_storage)->target(rainy_typeid(Fx)));
             return *ptr;
         }
 
+        /**
+         * @brief 比较两个函数对象是否相等。
+         * @param left 左侧函数对象。
+         * @param right 右侧函数对象。
+         * @return 如果相等，则返回true；否则返回false。
+         */
         friend bool operator==(const function &left, const function &right) noexcept {
             return left.equal_with(right);
         }
 
+        /**
+         * @brief 比较两个函数对象是否不相等。
+         * @param left 左侧函数对象。
+         * @param right 右侧函数对象。
+         * @return 如果不相等，则返回true；否则返回false。
+         */
         friend bool operator!=(const function &left, const function &right) noexcept {
             return left.not_equal_with(right);
         }
 
-        friend std::ostream &operator<<(std::ostream &os, const rainy::meta::reflection::function &f) {
+        /**
+         * @brief 将函数对象的信息输出到流中。
+         * @param os 输出流。
+         * @param f 函数对象。
+         * @return 返回输出流。
+         */
+        friend std::ostream &operator<<(std::ostream &os, const function &f) {
             if (f.empty()) {
                 return os;
             }
-            return os << f.function_signature().name() << " -> " << f.target<rainy::meta::reflection::function *>();
+            return os << f.function_signature().name() << " -> " << f.target<function *>();
         }
 
     private:
-        static constexpr inline std::size_t soo_buffer_size =
-            sizeof(implements::remote_invoker_impl<void (implements::fake_class::*)(int), implements::fake_class, void, int>);
+        using fake_invoker_storage_type =
+            implements::invoker_accessor_impl<void (implements::fake_class::*)(int), implements::fake_class, void, int>;
 
-        alignas(std::max_align_t) core::byte_t invoker_storage[soo_buffer_size]{};
+        // 对于32位系统，为了避免内存对齐导致的stack-overrun，额外扩充一段空间用于防止此类问题
+        static constexpr inline std::size_t soo_buffer_size = sizeof(fake_invoker_storage_type) + alignof(std::max_align_t);
+
+        alignas(std::max_align_t) core::byte_t invoker_storage[soo_buffer_size]{}; // 不使用std::array/std::aligned_storage
     };
 
+    /**
+     * @brief 创建一个反射函数对象。
+     * @tparam Fx 函数对象类型。
+     * @param fx 函数对象。
+     * @return 返回创建的反射函数对象。
+     */
     template <typename Fx,
               type_traits::other_trans::enable_if_t<type_traits::type_properties::is_constructible_v<function, Fx>, int> = 0>
     function make_function(Fx &&fx) noexcept {
         return function{utility::forward<Fx>(fx)};
     }
 
+    /**
+     * @brief 调用函数对象。
+     * @tparam Args 函数参数类型。
+     * @param fn 函数对象。
+     * @param instance 对象实例。
+     * @param args 函数实参。
+     * @return 函数调用结果。
+     */
     template <typename... Args>
     utility::any invoke(const function &fn, object_view instance, Args &&...args) {
-        return fn.invoke_paramlist(instance, utility::forward<Args>(args)...);
+        return fn.invoke(instance, utility::forward<Args>(args)...);
     }
 }
 
 namespace rainy::utility {
-    RAINY_INLINE void swap(meta::reflection::function &left, meta::reflection::function &right) noexcept {
+    RAINY_INLINE void swap(rainy::meta::reflection::function &left, rainy::meta::reflection::function &right) noexcept {
         left.swap(right);
     }
 }
 
 namespace std {
-    inline void swap(rainy::meta::reflection::function& left, rainy::meta::reflection::function& right) noexcept {
+    inline void swap(rainy::meta::reflection::function &left, rainy::meta::reflection::function &right) noexcept {
         left.swap(right);
     }
 }

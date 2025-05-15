@@ -15,6 +15,7 @@
  */
 #include <rainy/core/layer.hpp>
 #include <cstdio>
+#include <errno.h>
 
 #if RAINY_USING_WINDOWS
 #include <DbgEng.h>

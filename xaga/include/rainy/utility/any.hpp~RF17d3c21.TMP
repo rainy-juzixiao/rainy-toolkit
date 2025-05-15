@@ -1,5 +1,5 @@
-#ifndef RAINY_UTILITY_ANY_HPP
-#define RAINY_UTILITY_ANY_HPP
+#ifndef RAINY_CONTAINERS_ANY_HPP
+#define RAINY_CONTAINERS_ANY_HPP
 #include <rainy/core/core.hpp>
 #include <rainy/foundation/typeinfo.hpp>
 #include <rainy/foundation/diagnostics/contract.hpp>
@@ -397,6 +397,7 @@ namespace rainy::utility {
         template <typename TargetType>
         RAINY_NODISCARD TargetType convert() {
             using foundation::rtti::traits;
+            using decayed = type_traits::other_trans::decay_t<TargetType>;
             static foundation::rtti::typeinfo target_type = foundation::rtti::typeinfo::create<TargetType>();
             std::size_t hash_code = type().hash_code();
             if (hash_code == rainy_typehash(TargetType)) {
@@ -682,6 +683,7 @@ namespace rainy::utility {
             static const auto target_type = foundation::rtti::typeinfo::create<TargetType>();
             if (target_type.is_compatible(type)) {
                 if constexpr (type_traits::composite_types::is_reference_v<TargetType>) {
+                    using raw_type = type_traits::reference_modify::remove_reference_t<TargetType>;
                     if constexpr (type_traits::type_properties::is_const_v<std::remove_reference_t<TargetType>>) {
                         return true;
                     } else if constexpr (type_traits::primary_types::is_rvalue_reference_v<TargetType>) {
@@ -850,9 +852,9 @@ namespace rainy::utility {
                 // any -> std::u32string_view
                 switch (type.remove_cvref().hash_code()) {
                     case rainy_typehash(const char32_t *):
-                        return std::u32string_view{static_cast<const char32_t *const>(target_pointer)};
+                        return std::u32string_view{*static_cast<const char32_t *const>(target_pointer)};
                     case rainy_typehash(char32_t *):
-                        return std::u32string_view{static_cast<const char32_t *const>(target_pointer)};
+                        return std::u32string_view{*static_cast<const char32_t *const>(target_pointer)};
                     case rainy_typehash(std::u32string_view):
                         return *static_cast<const std::u32string_view *>(target_pointer);
                     case rainy_typehash(std::u32string):
@@ -866,9 +868,9 @@ namespace rainy::utility {
                 // any -> std::u8string_view
                 switch (type.remove_cvref().hash_code()) {
                     case rainy_typehash(const char8_t *):
-                        return std::u8string_view{static_cast<const char8_t *const>(target_pointer)};
+                        return std::u8string_view{*static_cast<const char8_t *const *>(target_pointer)};
                     case rainy_typehash(char8_t *):
-                        return std::u8string_view{static_cast<const char8_t *const>(target_pointer)};
+                        return std::u8string_view{*static_cast<const char8_t *const *>(target_pointer)};
                     case rainy_typehash(std::u8string_view):
                         return *static_cast<const std::u8string_view *>(target_pointer);
                     case rainy_typehash(std::u8string):

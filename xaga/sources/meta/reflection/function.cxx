@@ -30,105 +30,33 @@ namespace rainy::meta::reflection {
     function::function(std::nullptr_t) noexcept : invoker_storage{} {
     }
 
-    utility::any function::invoke_variadic(object_view instance, collections::views::array_view<utility::any> any_args) const {
-        utility::expects(!empty());
-        rainy_let invoker = reinterpret_cast<const implements::remote_invoker *>(invoker_storage);
-        std::size_t arg_count = any_args.size();
-        if (arg_count == 0) {
-            return invoker->invoke(instance);
-        }
-        switch (arg_count) {
-            case 1:
-                return invoker->invoke(instance, any_args[0]);
-            case 2:
-                return invoker->invoke(instance, any_args[0], any_args[1]);
-            case 3:
-                return invoker->invoke(instance, any_args[0], any_args[1], any_args[2]);
-            case 4:
-                return invoker->invoke(instance, any_args[0], any_args[1], any_args[2], any_args[3]);
-            case 5:
-                return invoker->invoke(instance, any_args[0], any_args[1], any_args[2], any_args[3], any_args[4]);
-            case 6:
-                return invoker->invoke(instance, any_args[0], any_args[1], any_args[2], any_args[3], any_args[4], any_args[5]);
-            case 7:
-                return invoker->invoke(instance, any_args[0], any_args[1], any_args[2], any_args[3], any_args[4], any_args[5],
-                                       any_args[6]);
-            default:
-                return invoker->invoke_variadic(instance, any_args);
-        }
-    }
-
-    utility::any function::invoke(object_view object) const {
-        utility::expects(!empty());
-        return reinterpret_cast<const implements::remote_invoker *>(invoker_storage)->invoke(object);
-    }
-
-    utility::any function::invoke(object_view object, utility::any ax1) const {
-        utility::expects(!empty());
-        return reinterpret_cast<const implements::remote_invoker *>(invoker_storage)->invoke(object, ax1);
-    }
-
-    utility::any function::invoke(object_view object, utility::any ax1, utility::any ax2) const {
-        utility::expects(!empty());
-        return reinterpret_cast<const implements::remote_invoker *>(invoker_storage)->invoke(object, ax1, ax2);
-    }
-
-    utility::any function::invoke(object_view object, utility::any ax1, utility::any ax2, utility::any ax3) const {
-        utility::expects(!empty());
-        return reinterpret_cast<const implements::remote_invoker *>(invoker_storage)->invoke(object, ax1, ax2, ax3);
-    }
-
-    utility::any function::invoke(object_view object, utility::any ax1, utility::any ax2, utility::any ax3, utility::any ax4) const {
-        utility::expects(!empty());
-        return reinterpret_cast<const implements::remote_invoker *>(invoker_storage)->invoke(object, ax1, ax2, ax3, ax4);
-    }
-
-    utility::any function::invoke(object_view object, utility::any ax1, utility::any ax2, utility::any ax3, utility::any ax4,
-                                  utility::any ax5) const {
-        utility::expects(!empty());
-        return reinterpret_cast<const implements::remote_invoker *>(invoker_storage)->invoke(object, ax1, ax2, ax3, ax4, ax5);
-    }
-
-    utility::any function::invoke(object_view object, utility::any ax1, utility::any ax2, utility::any ax3, utility::any ax4,
-                                  utility::any ax5, utility::any ax6) const {
-        utility::expects(!empty());
-        return reinterpret_cast<const implements::remote_invoker *>(invoker_storage)->invoke(object, ax1, ax2, ax3, ax4, ax5, ax6);
-    }
-
-    utility::any function::invoke(object_view object, utility::any ax1, utility::any ax2, utility::any ax3, utility::any ax4,
-                                  utility::any ax5, utility::any ax6, utility::any ax7) const {
-        utility::expects(!empty());
-        return reinterpret_cast<const implements::remote_invoker *>(invoker_storage)
-            ->invoke(object, ax1, ax2, ax3, ax4, ax5, ax6, ax7);
-    }
-
     const foundation::rtti::typeinfo &function::return_type() const noexcept {
-        utility::expects(!empty());
-        return reinterpret_cast<const implements::remote_invoker *>(invoker_storage)->return_type();
+        utility::expects(!empty(), "You're trying to get the return type of a empty object!");
+        return reinterpret_cast<const implements::invoker_accessor *>(invoker_storage)->return_type();
     }
 
-    rainy::collections::views::array_view<foundation::rtti::typeinfo> function::param_lists() const noexcept {
-        utility::expects(!empty());
-        return reinterpret_cast<const implements::remote_invoker *>(invoker_storage)->param_types();
+    const collections::views::array_view<foundation::rtti::typeinfo>& function::paramlists() const noexcept {
+        utility::expects(!empty(), "You're trying to get the param list of a empty object!");
+        return reinterpret_cast<const implements::invoker_accessor *>(invoker_storage)->paramlists();
     }
 
     bool function::empty() const noexcept {
         struct canary {
             std::int64_t header;
         };
-        static_assert(sizeof(canary) <= soo_buffer_size);
+        static_assert(sizeof(canary) <= soo_buffer_size); // 确保canary的大小不超过缓冲区大小
         return reinterpret_cast<const canary *>(invoker_storage)->header == 0;
     }
 
     void function::copy_from_other(const function &right) noexcept {
         if (this != utility::addressof(right) && !right.empty()) {
-            reinterpret_cast<const implements::remote_invoker *>(right.invoker_storage)->construct_from_this(this->invoker_storage);
+            reinterpret_cast<const implements::invoker_accessor *>(right.invoker_storage)->construct_from_this(this->invoker_storage);
         }
     }
 
     void function::move_from_other(function &&right) noexcept {
         if (this != utility::addressof(right) && !right.empty()) {
-            reinterpret_cast<const implements::remote_invoker *>(right.invoker_storage)->construct_from_this(this->invoker_storage);
+            reinterpret_cast<const implements::invoker_accessor *>(right.invoker_storage)->construct_from_this(this->invoker_storage);
             std::memset(right.invoker_storage, 0, sizeof(right.invoker_storage));
         }
     }
@@ -159,13 +87,13 @@ namespace rainy::meta::reflection {
     }
 
     const foundation::rtti::typeinfo &function::function_signature() const noexcept {
-        utility::expects(!empty());
-        return reinterpret_cast<const implements::remote_invoker *>(invoker_storage)->function_signature();
+        utility::expects(!empty(), "You're trying to get the function signature of a empty object!");
+        return reinterpret_cast<const implements::invoker_accessor *>(invoker_storage)->function_signature();
     }
 
     method_type function::type() const noexcept {
-        utility::expects(!empty());
-        return reinterpret_cast<const implements::remote_invoker *>(invoker_storage)->type();
+        utility::expects(!empty(), "You're trying to get the function type of a empty object!");
+        return reinterpret_cast<const implements::invoker_accessor *>(invoker_storage)->type();
     }
 
     function::operator bool() const noexcept {
@@ -179,8 +107,8 @@ namespace rainy::meta::reflection {
         if (this->empty() || right.empty()) {
             return false;
         }
-        return reinterpret_cast<const implements::remote_invoker *>(invoker_storage)
-            ->equal_with(reinterpret_cast<const implements::remote_invoker *>(right.invoker_storage));
+        return reinterpret_cast<const implements::invoker_accessor *>(invoker_storage)
+            ->equal_with(reinterpret_cast<const implements::invoker_accessor *>(right.invoker_storage));
     }
 
     bool function::not_equal_with(const function &right) const noexcept {
@@ -206,7 +134,7 @@ namespace rainy::meta::reflection {
 
     const foundation::rtti::typeinfo &function::which_belongs() const noexcept {
         utility::expects(!empty());
-        return reinterpret_cast<const implements::remote_invoker *>(invoker_storage)->which_belongs();
+        return reinterpret_cast<const implements::invoker_accessor *>(invoker_storage)->which_belongs();
     }
 
     bool function::is_static() const noexcept {
@@ -282,6 +210,7 @@ namespace rainy::meta::reflection {
             case method_type::const_method_left_noexcept:
             case method_type::const_volatile_method_left:
             case method_type::const_volatile_method_left_noexcept:
+                // 上述是被推导为左值引用的函数枚举类型
                 return true;
             default:
                 break;
@@ -303,6 +232,7 @@ namespace rainy::meta::reflection {
             case method_type::const_method_right_noexcept:
             case method_type::const_volatile_method_right:
             case method_type::const_volatile_method_right_noexcept:
+                // 上述是被推导为右值引用的函数枚举类型
                 return true;
             default:
                 break;
@@ -311,6 +241,19 @@ namespace rainy::meta::reflection {
     }
 
     bool function::is_invocable(collections::views::array_view<foundation::rtti::typeinfo> paramlist) const noexcept {
-        return reinterpret_cast<const implements::remote_invoker *>(invoker_storage)->is_invocable(paramlist);
+        if (empty()) {
+            return false;
+        }
+        return reinterpret_cast<const implements::invoker_accessor *>(invoker_storage)->is_invocable(paramlist);
+    }
+
+    std::size_t function::arg_count() const noexcept {
+        utility::expects(!empty(), "You're trying to get the arg count of a empty object!");
+        return reinterpret_cast<const implements::invoker_accessor *>(invoker_storage)->paramlists().size();
+    }
+
+    const foundation::rtti::typeinfo &function::arg(std::size_t idx) const noexcept {
+        utility::expects(!empty(), "You're trying to get the arg type of a empty object!");
+        return reinterpret_cast<const implements::invoker_accessor *>(invoker_storage)->paramlists()[idx];
     }
 }

@@ -212,11 +212,7 @@ namespace rainy::foundation::system::memory {
                 if (bytes == 0 || !core::implements::is_pow_2(alignment) || !block) {
                     return;
                 }
-#ifdef __cpp_aligned_new
-                ::operator delete[](block, bytes, std::align_val_t{alignment});
-#else
                 core::pal::deallocate(block, bytes, alignment);
-#endif
             }
 
             RAINY_NODISCARD bool do_is_equal(const std::pmr::memory_resource &right) const noexcept override {

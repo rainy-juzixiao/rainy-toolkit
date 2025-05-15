@@ -1,9 +1,16 @@
 rainy_load_flodar_files("${PROJECT_SOURCE_DIR}/xaga/sources" ".cxx" SPECIAL_FILES_LIST)
 message(${SPECIAL_FILES_LIST})
 
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(rainy_toolkit_libraryname "rainy-toolkit-debug-package")
+else()
+    set(rainy_toolkit_libraryname "rainy-toolkit-release-package")
+endif()
+
 if (RAINY_BUILD_WITH_DYNAMIC)
     message("Build dynamic library target")
     add_library(rainy-toolkit SHARED ${SPECIAL_FILES_LIST})
+    set_target_properties(rainy-toolkit PROPERTIES OUTPUT_NAME ${rainy_toolkit_libraryname})
     target_compile_definitions(rainy-toolkit PRIVATE RAINY_DYNAMIC_EXPORTS=1)
     target_compile_definitions(rainy-toolkit PUBLIC RAINY_USING_DYNAMIC=1)
 else()
@@ -94,4 +101,8 @@ endif ()
 
 if (COMPILER_ID MATCHES "MSVC") 
     target_compile_options(rainy-toolkit PRIVATE /W4 /w14996)
+endif()
+
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    string(REPLACE "/MP" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 endif()

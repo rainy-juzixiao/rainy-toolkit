@@ -153,7 +153,8 @@ namespace rainy::utility {
                 std::ranges::transform(ref.begin(), ref.end(), ref.begin(),
                                        [](const wchar_t c) { return static_cast<wchar_t>(std::toupper(c)); });
 #else
-                std::transform(ref.begin(), ref.end(), ref.begin(), [](const wchar_t c) { return std::toupper(c); });
+                std::transform(ref.begin(), ref.end(), ref.begin(),
+                               [](const wchar_t c) { return static_cast<wchar_t>(std::toupper(static_cast<int>(c))); });
 #endif
             }
             if (use_brace) {

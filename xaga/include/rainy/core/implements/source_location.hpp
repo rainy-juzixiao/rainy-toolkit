@@ -24,6 +24,10 @@
 #include <source_location>
 #endif
 
+#if RAINY_USING_GCC
+#include <rainy/core/gnu/source_location.hpp>
+#endif
+
 namespace rainy::foundation::diagnostics {
     /**
      * @brief 提供当前代码源文件位置的元数据，包括文件名、函数名、行号和列号。
