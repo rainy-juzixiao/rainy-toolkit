@@ -1,15 +1,28 @@
 #ifndef RAINY_UTILITY_ANY_HPP
 #define RAINY_UTILITY_ANY_HPP
 #include <rainy/core/core.hpp>
-#include <rainy/foundation/typeinfo.hpp>
 #include <rainy/foundation/diagnostics/contract.hpp>
 #include <rainy/foundation/functional/function_pointer.hpp>
+#include <rainy/foundation/typeinfo.hpp>
 #include <utility>
 
 #if RAINY_USING_MSVC
 #pragma warning(push)
 #pragma warning(disable : 4715 4702)
 #endif
+
+namespace rainy::utility {
+    class any;
+
+    template <typename TargetType, typename = void>
+    struct any_converter {
+        static constexpr bool convertible = false;
+
+        static bool is_convertible(const foundation::rtti::typeinfo &) {
+            return false;
+        }
+    };
+}
 
 /*
  * any的基础utils和异常实现
@@ -19,13 +32,15 @@ namespace rainy::utility::implements {
 
     template <typename Ty>
     inline constexpr bool any_is_trivial =
-        alignof(Ty) <= alignof(max_align_t) && type_traits::type_properties::is_trivially_copyable_v<Ty> && sizeof(Ty) <= any_trivial_space_size;
+        alignof(Ty) <= alignof(max_align_t) && type_traits::type_properties::is_trivially_copyable_v<Ty> &&
+        sizeof(Ty) <= any_trivial_space_size;
 
     inline constexpr size_t any_small_space_size = (core::small_object_num_ptrs - 2) * sizeof(void *);
 
     template <typename Ty>
     inline constexpr bool any_is_small =
-        alignof(Ty) <= alignof(max_align_t) && type_traits::type_properties::is_nothrow_move_constructible_v<Ty> && sizeof(Ty) <= any_small_space_size;
+        alignof(Ty) <= alignof(max_align_t) && type_traits::type_properties::is_nothrow_move_constructible_v<Ty> &&
+        sizeof(Ty) <= any_small_space_size;
 
     enum class any_representation : uintptr_t {
         trivial,
@@ -37,6 +52,7 @@ namespace rainy::utility::implements {
     struct big_any_rtti_manager {
         using destory_fn = void(void *target) noexcept;
         using copy_fn = void *(const void *source);
+        using size_fn = std::size_t() noexcept;
 
         template <typename Ty>
         static void destory(void *const target) noexcept {
@@ -79,11 +95,32 @@ namespace rainy::utility::implements {
 
     template <typename Ty>
     inline constexpr big_any_rtti_manager any_big_rtti_manager_object = {&big_any_rtti_manager::destory<Ty>,
-                                                                       &big_any_rtti_manager::copy<Ty>};
+                                                                         &big_any_rtti_manager::copy<Ty>};
 
     template <typename Ty>
     inline constexpr small_any_rtti_manager any_small_rtti_manager_object = {
         &small_any_rtti_manager::destroy<Ty>, &small_any_rtti_manager::copy<Ty>, &small_any_rtti_manager::move<Ty>};
+
+    struct any_operater_policy {
+        enum operation {
+            compare_less,
+            compare_equal,
+            compare_less_equal,
+            eval_hash
+        };
+
+        using invoke_fn = bool(operation op, void * data) noexcept;
+
+        template <typename Ty>
+        static bool invoke(operation op, void * data);
+        
+        invoke_fn* fn;
+    };
+
+    template <typename Ty>
+    inline const any_operater_policy any_operater_policy_object = {
+        +[](const any_operater_policy::operation op, void * const data) noexcept -> bool { return any_operater_policy::invoke<Ty>(op, data); }
+    };
 }
 
 namespace rainy::foundation::exceptions::cast {
@@ -98,17 +135,6 @@ namespace rainy::foundation::exceptions::cast {
     RAINY_INLINE void throw_bad_any_cast() {
         utility::throw_exception(bad_any_cast{});
     }
-}
-
-namespace rainy::utility {
-    template <typename TargetType, typename = void>
-    struct any_converter {
-        static constexpr bool convertible = false;
-
-        static bool is_convertible(const foundation::rtti::typeinfo &) {
-            return false;
-        }
-    };
 }
 
 namespace rainy::utility::implements {
@@ -146,6 +172,7 @@ namespace rainy::utility {
         any(const any &right) {
             using namespace implements;
             storage.type_data = right.storage.type_data;
+            storage.policy = right.storage.policy;
             switch (get_representation()) {
                 case any_representation::_small:
                     storage.small_storage.rtti_manager = right.storage.small_storage.rtti_manager;
@@ -153,7 +180,7 @@ namespace rainy::utility {
                     break;
                 case any_representation::big:
                     storage.big_storage.rtti_manager = right.storage.big_storage.rtti_manager;
-                    storage.big_storage.ptr = storage.big_storage.rtti_manager->copy_(right.storage.big_storage.ptr);
+                    storage.big_storage.ptr = right.storage.big_storage.rtti_manager->copy_(right.storage.big_storage.ptr);
                     break;
                 case any_representation::reference:
                     storage.reference_storage.ptr = right.storage.reference_storage.ptr;
@@ -419,7 +446,7 @@ namespace rainy::utility {
         const void *target_as_void_ptr() const {
             switch (get_representation()) {
                 case implements::any_representation::big:
-                    return reinterpret_cast<const void *>(&storage.big_storage.ptr);
+                    return reinterpret_cast<const void *>(storage.big_storage.ptr);
                 case implements::any_representation::reference:
                     return storage.reference_storage.ptr;
                 case implements::any_representation::trivial:
@@ -429,76 +456,46 @@ namespace rainy::utility {
             }
             return nullptr;
         }
+        
+        bool operator<(const utility::any &right) const {
+            std::tuple<const utility::any *,const utility::any&> tuple{this, right};
+            return storage.policy->fn(implements::any_operater_policy::compare_less, &tuple);
+        }
 
-        template <typename CharType, typename Traits>
-        friend std::basic_ostream<CharType, Traits> &operator<<(std::basic_ostream<CharType, Traits> &left, const any &right) {
-            if (!right.has_value()) {
-                return left;
+        bool operator>(const utility::any &right) const {
+            std::tuple<const utility::any *, const utility::any &> tuple{this, right};
+            return (!storage.policy->fn(implements::any_operater_policy::compare_less, &tuple) &&
+                    !storage.policy->fn(implements::any_operater_policy::compare_equal, &tuple));
+        }
+
+        bool operator>=(const utility::any &right) const {
+            std::tuple<const utility::any *, const utility::any &> tuple{this, right};
+            return ((storage.policy->fn(implements::any_operater_policy::compare_equal, &tuple)) ||
+                    (!storage.policy->fn(implements::any_operater_policy::compare_less, &tuple)));
+        }
+
+        bool operator<=(const utility::any &right) const {
+            std::tuple<const utility::any *, const utility::any &> tuple{this, right};
+            return (storage.policy->fn(implements::any_operater_policy::compare_equal, &tuple) ||
+                    storage.policy->fn(implements::any_operater_policy::compare_less, &tuple));
+        }
+
+        bool operator==(const utility::any& right) const {
+            std::tuple<const utility::any *, const utility::any &> tuple{this, right};
+            return storage.policy->fn(implements::any_operater_policy::compare_equal, &tuple);
+        }
+
+        bool operator!=(const utility::any &right) const {
+            return !(*this == right);
+        }
+
+        std::size_t hash_code() const noexcept {
+            std::size_t ret{};
+            std::tuple<const utility::any *, std::size_t &> tuple{this, ret};
+            if (storage.policy->fn(implements::any_operater_policy::eval_hash, &tuple)) {
+                return ret;
             }
-            std::size_t typehash = right.type().remove_cvref().hash_code();
-            switch (typehash) {
-                case rainy_typehash(char *):
-                case rainy_typehash(wchar_t *):
-                case rainy_typehash(const char *):
-                case rainy_typehash(const wchar_t *):
-                case rainy_typehash(std::string):
-                case rainy_typehash(std::wstring):
-                case rainy_typehash(std::string_view):
-                case rainy_typehash(std::wstring_view):
-                    if (typehash == rainy_typehash(std::string) || typehash == rainy_typehash(std::string_view)) {
-                        if constexpr (!type_traits::helper::is_wchar_t<CharType>) {
-                            return left << (typehash == rainy_typehash(std::string) ? right.to_string() : right.to_string_view());
-                        }
-                    } else if (typehash == rainy_typehash(std::wstring) || typehash == rainy_typehash(std::wstring_view)) {
-                        if constexpr (type_traits::helper::is_wchar_t<CharType>) {
-                            return left << (typehash == rainy_typehash(std::wstring) ? right.to_wstring() : right.to_wstring_view());
-                        }
-                    } else if (typehash == rainy_typehash(char *) || typehash == rainy_typehash(const char *)) {
-                        return left << (typehash == rainy_typehash(char *) ? right.as<char *>() : right.as<const char *>());
-                    } else {
-                        if constexpr (type_traits::helper::is_wchar_t<CharType>) {
-                            return left << (typehash == rainy_typehash(wchar_t *) ? right.as<wchar_t *>()
-                                                                                  : right.as<const wchar_t *>());
-                        }
-                    }
-                    return left;
-                default:
-                    break;
-            }
-            switch (typehash) {
-                case rainy_typehash(int):
-                    return left << right.to_int();
-                case rainy_typehash(char):
-                    return left << right.to_char();
-                case rainy_typehash(float):
-                    return left << right.to_float();
-                case rainy_typehash(double):
-                    return left << right.to_double();
-                case rainy_typehash(long):
-                    return left << right.to_long();
-                case rainy_typehash(bool):
-                    return left << right.to_bool();
-                case rainy_typehash(long long):
-                    return left << right.to_long_long();
-                case rainy_typehash(short):
-                    return left << right.to_short();
-                case rainy_typehash(std::int8_t):
-                    return left << right.to_int8();
-                case rainy_typehash(std::uint8_t):
-                    return left << right.to_uint8();
-                case rainy_typehash(std::uint16_t):
-                    return left << right.to_uint16();
-                case rainy_typehash(std::uint32_t):
-                    return left << right.to_uint32();
-                case rainy_typehash(std::uint64_t):
-                    return left << right.to_uint64();
-                default:
-                    if constexpr (!type_traits::helper::is_wchar_t<CharType>) {
-                        implements::any_ostream_converter_register::instance().call_converter(left, right.type(), &right);
-                    }
-                    break;
-            }
-            return left;
+            std::terminate();
         }
 
     private:
@@ -515,6 +512,7 @@ namespace rainy::utility {
         void move_from(any &right) noexcept {
             using namespace implements;
             storage.type_data = right.storage.type_data;
+            storage.policy = right.storage.policy;
             switch (get_representation()) {
                 case any_representation::_small:
                     storage.small_storage.rtti_manager = right.storage.small_storage.rtti_manager;
@@ -555,6 +553,7 @@ namespace rainy::utility {
                 ::new (utility::addressof(object)) decayed(utility::forward<Types>(args)...);
                 storage.type_data = reinterpret_cast<std::uintptr_t>(&rainy_typeid(decayed)) |
                                     static_cast<std::uintptr_t>(implements::any_representation::trivial);
+                storage.policy = &implements::any_operater_policy_object<decayed>;
                 return object;
             } else if constexpr (implements::any_is_small<decayed>) {
                 auto &object = reinterpret_cast<decayed &>(storage.small_storage.data);
@@ -562,6 +561,7 @@ namespace rainy::utility {
                 storage.small_storage.rtti_manager = &implements::any_small_rtti_manager_object<decayed>;
                 storage.type_data = reinterpret_cast<std::uintptr_t>(&rainy_typeid(decayed)) |
                                     static_cast<std::uintptr_t>(implements::any_representation::_small);
+                storage.policy = &implements::any_operater_policy_object<decayed>;
                 return object;
             } else {
                 decayed *const new_alloc_ptr = ::new decayed(utility::forward<Types>(args)...);
@@ -569,6 +569,7 @@ namespace rainy::utility {
                 storage.big_storage.rtti_manager = &implements::any_big_rtti_manager_object<decayed>;
                 storage.type_data = reinterpret_cast<std::uintptr_t>(&rainy_typeid(decayed)) |
                                     static_cast<std::uintptr_t>(implements::any_representation::big);
+                storage.policy = &implements::any_operater_policy_object<decayed>;
                 return *new_alloc_ptr;
             }
         }
@@ -578,6 +579,7 @@ namespace rainy::utility {
             storage.reference_storage.ptr = utility::addressof(reference);
             storage.type_data = reinterpret_cast<std::uintptr_t>(&rainy_typeid(Decayed)) |
                                 static_cast<std::uintptr_t>(implements::any_representation::reference);
+            storage.policy = &implements::any_operater_policy_object<Decayed>;
             return reference;
         }
 
@@ -607,10 +609,11 @@ namespace rainy::utility {
                 bigstorage_t big_storage;
                 reference_storage_t reference_storage;
             };
+            const implements::any_operater_policy *policy;
             std::uintptr_t type_data;
         };
 
-        static_assert(sizeof(storage_t) == implements::any_trivial_space_size + sizeof(void *));
+        static_assert(sizeof(storage_t) == implements::any_trivial_space_size + (sizeof(void *) * 2));
         static_assert(type_traits::type_properties::is_standard_layout_v<storage_t>);
 
         union {
@@ -632,8 +635,13 @@ namespace rainy::utility {
     RAINY_NODISCARD any make_any(std::initializer_list<U> initializer_list, Args &&...args) {
         return any{std::in_place_type<Ty>, initializer_list, utility::forward<Args>(args)...};
     }
+
+    RAINY_INLINE void swap(utility::any& left,utility::any& right) {
+        left.swap(right);
+    }
 }
 
+#include <iostream>
 namespace rainy::utility {
     template <typename TargetType>
     struct any_converter<TargetType, type_traits::other_trans::enable_if_t<
@@ -652,10 +660,11 @@ namespace rainy::utility {
 
         static decltype(auto) basic_convert(const void *target_pointer, const foundation::rtti::typeinfo &type, bool is_any) {
             using namespace foundation::rtti;
+            using namespace foundation::exceptions::cast;
             using raw_type = std::remove_reference_t<TargetType>;
             static const auto target_type = typeinfo::create<TargetType>();
             if (!target_type.is_compatible(type)) {
-                std::terminate();
+                throw_bad_any_cast();
             }
             if constexpr (std::is_lvalue_reference_v<TargetType>) {
                 if constexpr (std::is_const_v<raw_type>) {
@@ -676,6 +685,7 @@ namespace rainy::utility {
             } else {
                 return *static_cast<raw_type *>(const_cast<void *>(target_pointer));
             }
+            throw_bad_any_cast();
         }
 
         static bool is_convertible(const foundation::rtti::typeinfo &type) {
@@ -797,16 +807,20 @@ namespace rainy::utility {
                   type_traits::other_trans::enable_if_t<
                       type_traits::type_relations::is_same_v<type_traits::cv_modify::remove_cvref_t<Any>, utility::any>, int> = 0>
         static std::basic_string_view<CharType> convert(Any &&any) {
-            return basic_convert(any.target_as_void_ptr(), any.type());
+            return basic_convert(any.target_as_void_ptr(), any.type(), true);
         }
 
         static std::basic_string_view<CharType> basic_convert(const void *target_pointer, const foundation::rtti::typeinfo &type,
-                                                              bool = false) {
+                                                              bool is_any = false) {
             using namespace foundation::rtti;
             using namespace foundation::exceptions::cast;
+            if (is_any) {
+                auto ptr = *static_cast<const void *const *>(target_pointer);
+                return basic_convert(ptr, type.remove_reference(), false);
+            }
             if constexpr (type_traits::helper::is_wchar_t<CharType>) {
-                // any -> std::wstring_view
-                switch (type.remove_cvref().hash_code()) {
+                // any -> std::wstring_view   
+                switch (type.hash_code()) {
                     case rainy_typehash(const wchar_t *):
                         return std::wstring_view{static_cast<const wchar_t *const>(target_pointer)};
                     case rainy_typehash(wchar_t *):
@@ -818,9 +832,10 @@ namespace rainy::utility {
                     default:
                         break;
                 }
+                
             } else if constexpr (type_traits::type_relations::is_same_v<CharType, char>) {
                 // any -> std::string
-                switch (type.remove_cvref().hash_code()) {
+                switch (type.remove_reference().hash_code()) {
                     case rainy_typehash(const char *):
                         return std::string_view{static_cast<const char *const>(target_pointer)};
                     case rainy_typehash(char *):
@@ -834,7 +849,7 @@ namespace rainy::utility {
                 }
             } else if constexpr (type_traits::type_relations::is_same_v<CharType, char16_t>) {
                 // any -> std::u16string_view
-                switch (type.remove_cvref().hash_code()) {
+                switch (type.remove_reference().hash_code()) {
                     case rainy_typehash(const char16_t *):
                         return std::u16string_view{static_cast<const char16_t *const>(target_pointer)};
                     case rainy_typehash(char16_t *):
@@ -848,7 +863,7 @@ namespace rainy::utility {
                 }
             } else if constexpr (type_traits::type_relations::is_same_v<CharType, char32_t>) {
                 // any -> std::u32string_view
-                switch (type.remove_cvref().hash_code()) {
+                switch (type.remove_reference().hash_code()) {
                     case rainy_typehash(const char32_t *):
                         return std::u32string_view{static_cast<const char32_t *const>(target_pointer)};
                     case rainy_typehash(char32_t *):
@@ -864,7 +879,7 @@ namespace rainy::utility {
 #ifdef __cpp_lib_char8_t
             else if constexpr (type_traits::type_relations::is_same_v<CharType, char8_t>) {
                 // any -> std::u8string_view
-                switch (type.remove_cvref().hash_code()) {
+                switch (type.remove_reference().hash_code()) {
                     case rainy_typehash(const char8_t *):
                         return std::u8string_view{static_cast<const char8_t *const>(target_pointer)};
                     case rainy_typehash(char8_t *):
@@ -884,7 +899,7 @@ namespace rainy::utility {
         static bool is_convertible(const foundation::rtti::typeinfo &type) {
             using namespace foundation::rtti;
             if constexpr (type_traits::helper::is_wchar_t<CharType>) {
-                switch (type.remove_cvref().hash_code()) {
+                switch (type.remove_reference().hash_code()) {
                     case rainy_typehash(const wchar_t *):
                     case rainy_typehash(wchar_t *):
                     case rainy_typehash(std::wstring_view):
@@ -894,7 +909,7 @@ namespace rainy::utility {
                         break;
                 }
             } else if constexpr (type_traits::type_relations::is_same_v<CharType, char>) {
-                switch (type.remove_cvref().hash_code()) {
+                switch (type.remove_reference().hash_code()) {
                     case rainy_typehash(const char *):
                     case rainy_typehash(char *):
                     case rainy_typehash(std::string_view):
@@ -904,7 +919,7 @@ namespace rainy::utility {
                         break;
                 }
             } else if constexpr (type_traits::type_relations::is_same_v<CharType, char16_t>) {
-                switch (type.remove_cvref().hash_code()) {
+                switch (type.remove_reference().hash_code()) {
                     case rainy_typehash(const char16_t *):
                     case rainy_typehash(char16_t *):
                     case rainy_typehash(std::u16string_view):
@@ -914,7 +929,7 @@ namespace rainy::utility {
                         break;
                 }
             } else if constexpr (type_traits::type_relations::is_same_v<CharType, char32_t>) {
-                switch (type.remove_cvref().hash_code()) {
+                switch (type.remove_reference().hash_code()) {
                     case rainy_typehash(const char32_t *):
                     case rainy_typehash(char32_t *):
                     case rainy_typehash(std::u32string_view):
@@ -926,7 +941,7 @@ namespace rainy::utility {
             }
 #ifdef __cpp_lib_char8_t
             else if constexpr (type_traits::type_relations::is_same_v<CharType, char8_t>) {
-                switch (type.remove_cvref().hash_code()) {
+                switch (type.remove_reference().hash_code()) {
                     case rainy_typehash(const char8_t *):
                     case rainy_typehash(char8_t *):
                     case rainy_typehash(std::u8string_view):
@@ -938,6 +953,229 @@ namespace rainy::utility {
             }
 #endif
             return false;
+        }
+    };
+}
+
+namespace rainy::utility {
+    template <typename CharType, typename Traits>
+    std::basic_ostream<CharType, Traits> &operator<<(std::basic_ostream<CharType, Traits> &left, const any &right) {
+        if (!right.has_value()) {
+            return left;
+        }
+        std::size_t typehash = right.type().remove_reference().hash_code();
+        switch (typehash) {
+            case rainy_typehash(char *):
+                return left << right.as<char *>();
+            case rainy_typehash(wchar_t *):
+                if constexpr (type_traits::helper::is_wchar_t<CharType>) {
+                    return left << right.as<wchar_t *>();
+                }
+            case rainy_typehash(const char *):
+                return left << right.as<const char *>();
+            case rainy_typehash(const wchar_t *):
+                if constexpr (type_traits::helper::is_wchar_t<CharType>) {
+                    return left << right.as<const wchar_t *>();
+                }
+            case rainy_typehash(std::string):
+            case rainy_typehash(std::wstring):
+            case rainy_typehash(std::string_view):
+            case rainy_typehash(std::wstring_view):
+                if (typehash == rainy_typehash(std::string) || typehash == rainy_typehash(std::string_view)) {
+                    if constexpr (!type_traits::helper::is_wchar_t<CharType>) {
+                        return left << (typehash == rainy_typehash(std::string) ? right.to_string() : right.to_string_view());
+                    }
+                } else if (typehash == rainy_typehash(std::wstring) || typehash == rainy_typehash(std::wstring_view)) {
+                    if constexpr (type_traits::helper::is_wchar_t<CharType>) {
+                        return left << (typehash == rainy_typehash(std::wstring) ? right.to_wstring() : right.to_wstring_view());
+                    }
+                } else if (typehash == rainy_typehash(char *) || typehash == rainy_typehash(const char *)) {
+                    return left << (typehash == rainy_typehash(const char *) ? right.as<const char *>() : right.as<char *>());
+                } else {
+                    if constexpr (type_traits::helper::is_wchar_t<CharType>) {
+                        return left << (typehash == rainy_typehash(wchar_t *) ? right.as<wchar_t *>() : right.as<const wchar_t *>());
+                    }
+                }
+                return left;
+            default:
+                break;
+        }
+        switch (typehash) {
+            case rainy_typehash(int):
+                return left << right.to_int();
+            case rainy_typehash(char):
+                return left << right.to_char();
+            case rainy_typehash(float):
+                return left << right.to_float();
+            case rainy_typehash(double):
+                return left << right.to_double();
+            case rainy_typehash(long):
+                return left << right.to_long();
+            case rainy_typehash(bool):
+                return left << right.to_bool();
+            case rainy_typehash(long long):
+                return left << right.to_long_long();
+            case rainy_typehash(short):
+                return left << right.to_short();
+            case rainy_typehash(std::int8_t):
+                return left << right.to_int8();
+            case rainy_typehash(std::uint8_t):
+                return left << right.to_uint8();
+            case rainy_typehash(std::uint16_t):
+                return left << right.to_uint16();
+            case rainy_typehash(std::uint32_t):
+                return left << right.to_uint32();
+            case rainy_typehash(std::uint64_t):
+                return left << right.to_uint64();
+            default:
+                if constexpr (!type_traits::helper::is_wchar_t<CharType>) {
+                    implements::any_ostream_converter_register::instance().call_converter(left, right.type(), &right);
+                }
+                break;
+        }
+        return left;
+    }
+}
+
+namespace rainy::utility::implements {
+    RAINY_INLINE bool compare_equal_helpr(const utility::any &left, const utility::any &right) {
+        if (left.type().is_floating_point() || right.type().is_floating_point()) {
+            return core::builtin::almost_equal(left.convert<double>(), right.convert<double>());
+        } else {
+            if (any_converter<std::int64_t>::is_convertible(left.type()) && any_converter<std::int64_t>::is_convertible(right.type())) {
+                return left.convert<std::int64_t>() == right.convert<std::int64_t>();
+            }
+            return false;
+        }
+    }
+
+    template <typename Ty>
+    bool any_operater_policy::invoke(operation op, void *const data) {
+        switch (op) {
+            case compare_less: {
+                const auto *res = static_cast<const std::tuple<const utility::any *, const utility::any &> *const>(data);
+                const utility::any *left = std::get<0>(*res);
+                const utility::any &right = std::get<1>(*res);
+                static constexpr auto left_type = foundation::rtti::typeinfo::create<Ty>();
+                if constexpr (type_traits::composite_types::is_arithmetic_v<Ty>) {
+                    if (right.type().is_arithmetic()) {
+                        if (left_type == right.type()) {
+                            return (left->as<Ty>() < right.as<Ty>());
+                        }
+                        if (left_type.is_floating_point() || right.type().is_floating_point()) {
+                            return (left->convert<double>() < right.convert<double>());
+                        } else {
+                            return (left->convert<std::int64_t>() < right.convert<std::int64_t>());
+                        }
+                    }
+                }
+                if (!left_type.is_nullptr() && right.type().is_nullptr()) {
+                    return false;
+                }
+                if constexpr (type_traits::type_relations::is_same_v<Ty, std::string_view>) {
+                    if (left_type == right.type()) {
+                        return (left->as<std::string_view>() < right.as<std::string_view>());
+                    }
+                    bool convertible = any_converter<std::string_view>::is_convertible(right.type());
+                    if (convertible) {
+                        return (left->as<std::string_view>() < any_converter<std::string_view>::convert(right));
+                    }
+                } else {
+                    if (any_converter<std::string_view>::is_convertible(left->type()) &&
+                        any_converter<std::string_view>::is_convertible(right.type())) {
+                        return left->convert<std::string_view>() < right.convert<std::string_view>();
+                    }
+                }
+                return false;
+            }
+            case compare_equal: {
+                const auto *res = static_cast<const std::tuple<const utility::any *, const utility::any &> *const>(data);
+                const utility::any *left = std::get<0>(*res);
+                const utility::any &right = std::get<1>(*res);
+                static constexpr auto left_type = foundation::rtti::typeinfo::create<Ty>();
+                if constexpr (type_traits::composite_types::is_arithmetic_v<Ty>) {
+                    if (right.type().is_arithmetic()) {
+                        if (left_type == right.type()) {
+                            return (left->as<Ty>() == right.as<Ty>());
+                        }
+                        return compare_equal_helpr(left, right);
+                    }
+                }
+                if (!left_type.is_nullptr() && right.type().is_nullptr()) {
+                    return false;
+                }
+                if constexpr (type_traits::type_relations::is_same_v<Ty, std::string_view>) {
+                    if (left_type == right.type()) {
+                        return (left->as<std::string_view>() == right.as<std::string_view>());
+                    }
+                    bool convertible = any_converter<std::string_view>::is_convertible(right.type());
+                    if (convertible) {
+                        return (left->as<std::string_view>() == any_converter<std::string_view>::convert(right));
+                    }
+                } else {
+                    if (any_converter<std::string_view>::is_convertible(left->type()) &&
+                        any_converter<std::string_view>::is_convertible(right.type())) {
+                        return left->convert<std::string_view>() == right.convert<std::string_view>();
+                    }
+                }
+                return false;
+            }
+            case operation::compare_less_equal: {
+                const auto *res = static_cast<const std::tuple<const utility::any *, const utility::any &> *const>(data);
+                const utility::any *left = std::get<0>(*res);
+                const utility::any &right = std::get<1>(*res);
+                static constexpr auto left_type = foundation::rtti::typeinfo::create<Ty>();
+                if constexpr (type_traits::composite_types::is_arithmetic_v<Ty>) {
+                    if (right.type().is_arithmetic()) {
+                        if (left_type <= right.type()) {
+                            return (left->as<Ty>() <= right.as<Ty>());
+                        }
+                        if (left_type.is_floating_point() || right.type().is_floating_point()) {
+                            return (left->convert<double>() <= right.convert<double>());
+                        } else {
+                            return (left->convert<std::int64_t>() <= right.convert<std::int64_t>());
+                        }
+                    }
+                }
+                if (!left_type.is_nullptr() && right.type().is_nullptr()) {
+                    return false;
+                }
+                if constexpr (type_traits::type_relations::is_same_v<Ty, std::string_view>) {
+                    if (left_type == right.type()) {
+                        return (left->as<std::string_view>() <= right.as<std::string_view>());
+                    }
+                    if (any_converter<std::string_view>::is_convertible(right.type())) {
+                        return (left->as<std::string_view>() <= any_converter<std::string_view>::convert(right));
+                    }
+                } else {
+                    if (any_converter<std::string_view>::is_convertible(left->type()) &&
+                        any_converter<std::string_view>::is_convertible(right.type())) {
+                        return left->convert<std::string_view>() <= right.convert<std::string_view>();
+                    }
+                }
+                return false;
+            }
+            case any_operater_policy::eval_hash: {
+                auto* res = static_cast<std::tuple<const utility::any *, std::size_t&>*>(data);
+                const utility::any* any = std::get<0>(*res);
+                std::size_t &hashcode = std::get<1>(*res);
+                if constexpr (utility::is_support_standard_hasher_available<Ty>::value) {
+                    hashcode = std::hash<Ty>{}(any->as<Ty>());
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+        }
+        return false;
+    }
+}
+
+namespace std {
+    template <>
+    struct hash<rainy::utility::any> {
+        RAINY_NODISCARD std::size_t operator()(const rainy::utility::any right) const {
+            return right.hash_code();
         }
     };
 }

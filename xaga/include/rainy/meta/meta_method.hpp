@@ -116,4 +116,58 @@ namespace rainy::meta::method {
     }
 }
 
+namespace rainy::meta::method::cpp_methods {
+    static constexpr std::string_view method_operator_add = "operator+";
+    static constexpr std::string_view method_operator_sub = "operator-";
+    static constexpr std::string_view method_operator_mul = "operator*";
+    static constexpr std::string_view method_operator_div = "operator/";
+    static constexpr std::string_view method_operator_mod = "operator%";
+    static constexpr std::string_view method_operator_eq = "operator==";
+    static constexpr std::string_view method_operator_neq = "operator!=";
+    static constexpr std::string_view method_operator_lt = "operator<";
+    static constexpr std::string_view method_operator_gt = "operator>";
+    static constexpr std::string_view method_operator_le = "operator<=";
+    static constexpr std::string_view method_operator_ge = "operator>=";
+    static constexpr std::string_view method_operator_assign = "operator=";
+    static constexpr std::string_view method_operator_index = "operator[";
+    static constexpr std::string_view method_operator_call = "operator()";
+    static constexpr std::string_view method_operator_arrow = "operator->";
+    static constexpr std::string_view method_operator_deref = "operator*";
+    static constexpr std::string_view method_operator_addr = "operator&";
+    static constexpr std::string_view method_operator_preinc = "operator++";
+    static constexpr std::string_view method_operator_postinc = "operator++(int)";
+    static constexpr std::string_view method_operator_predec = "operator--";
+    static constexpr std::string_view method_operator_postdec = "operator--(int)";
+    static constexpr std::string_view method_operator_or = "operator||";
+    static constexpr std::string_view method_operator_and = "operator&&";
+    static constexpr std::string_view method_operator_not = "operator!";
+    static constexpr std::string_view method_operator_bit_or = "operator|";
+    static constexpr std::string_view method_operator_bit_and = "operator&";
+    static constexpr std::string_view method_operator_bit_xor = "operator^";
+    static constexpr std::string_view method_operator_bit_not = "operator~";
+    static constexpr std::string_view method_operator_shift_l = "operator<<";
+    static constexpr std::string_view method_operator_shift_r = "operator>>";
+    static constexpr std::string_view method_begin = "begin";
+    static constexpr std::string_view method_end = "end";
+    static constexpr std::string_view method_cbegin = "cbegin";
+    static constexpr std::string_view method_cend = "cend";
+    static constexpr std::string_view method_rbegin = "rbegin";
+    static constexpr std::string_view method_rend = "rend";
+    static constexpr std::string_view method_size = "size";
+    static constexpr std::string_view method_empty = "empty";
+    static constexpr std::string_view method_clear = "clear";
+    static constexpr std::string_view method_push_back = "push_back";
+    static constexpr std::string_view method_pop_back = "pop_back";
+    static constexpr std::string_view method_length = "length";
+    static constexpr std::string_view method_insert = "insert";
+    static constexpr std::string_view method_erase = "erase";
+    static constexpr std::string_view method_find = "find";
+    static constexpr std::string_view method_resize = "resize";
+    static constexpr std::string_view method_swap = "swap";
+    static constexpr std::string_view method_at = "at";
+    static constexpr std::string_view method_front = "front";
+    static constexpr std::string_view method_back = "back";
+    static constexpr std::string_view method_append = "append";
+}
+
 #endif

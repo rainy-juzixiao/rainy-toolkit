@@ -16,7 +16,7 @@ TEST(RainyToolkit_ConstructorTest, DefaultConstructor) {
 
 // 测试带allocator构造函数
 TEST(RainyToolkit_ConstructorTest, AllocatorConstructor) {
-    std::allocator<char> alloc;
+    rainy::foundation::system::memory::allocator<char> alloc;
     basic_string<char> str(alloc);
     EXPECT_EQ(str.size(), 0); // 默认构造为空字符串
 }
@@ -46,7 +46,7 @@ TEST(RainyToolkit_ConstructorTest, CopyConstructorWithOffsetAndCount) {
 
 // 测试带偏移量、计数和allocator的拷贝构造
 TEST(RainyToolkit_ConstructorTest, CopyConstructorWithOffsetCountAndAlloc) {
-    std::allocator<char> alloc;
+    rainy::foundation::system::memory::allocator<char> alloc;
     basic_string<char> str1("Hello, World!");
     basic_string<char> str2(str1, 7, 5, alloc); // 从位置7开始，取5个字符
     EXPECT_EQ(str2, "World"); // 字符串应为 "World"
@@ -71,7 +71,7 @@ TEST(RainyToolkit_ConstructorTest, PointerConstructorWithCount) {
 // 测试带allocator的指针构造（字符数组）
 TEST(RainyToolkit_ConstructorTest, PointerConstructorWithAlloc) {
     const char *ptr = "Hello, World!";
-    std::allocator<char> alloc;
+    rainy::foundation::system::memory::allocator<char> alloc;
     basic_string<char> str(ptr, alloc); // 使用allocator
     EXPECT_EQ(str, "Hello, World!");
 }
@@ -85,7 +85,7 @@ TEST(RainyToolkit_ConstructorTest, NCharConstructor) {
 
 // 测试带n个字符和allocator的构造
 TEST(RainyToolkit_ConstructorTest, NCharConstructorWithAlloc) {
-    std::allocator<char> alloc;
+    rainy::foundation::system::memory::allocator<char> alloc;
     basic_string<char> str(5, 'A', alloc); // 使用allocator构造
     EXPECT_EQ(str, "AAAAA"); // 字符串应为 "AAAAA"
     EXPECT_EQ(str.size(), 5); // 长度应为5
@@ -101,7 +101,7 @@ TEST(RainyToolkit_ConstructorTest, IteratorConstructor) {
 
 // 测试带allocator的迭代器构造
 TEST(RainyToolkit_ConstructorTest, IteratorConstructorWithAlloc) {
-    std::allocator<char> alloc;
+    rainy::foundation::system::memory::allocator<char> alloc;
     std::vector<char> vec = {'H', 'e', 'l', 'l', 'o'};
     basic_string<char> str(vec.begin(), vec.end(), alloc); // 使用allocator
     EXPECT_EQ(str, "Hello"); // 字符串应为 "Hello"

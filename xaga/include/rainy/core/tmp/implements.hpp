@@ -15,6 +15,7 @@
  */
 #ifndef RAINY_CORE_TMP_IMPLEMENTS_HPP
 #define RAINY_CORE_TMP_IMPLEMENTS_HPP
+#include <cstdlib>
 #include <rainy/core/platform.hpp>
 
 #if RAINY_USING_MSVC
@@ -276,6 +277,14 @@ namespace rainy::type_traits::implements {
     template <typename Ty>
     using _add_lvalue_reference_t = typename _add_lvalue_reference<Ty>::type;
 
+    template <typename Ty>
+    struct _add_rvalue_reference {
+        using type = typename _add_reference<Ty>::rvalue;
+    };
+
+    template <typename Ty>
+    using _add_rvalue_reference_t = typename _add_rvalue_reference<Ty>::type;
+
     template <bool, typename first, typename...>
     struct _disjunction {
         using type = first;
@@ -516,6 +525,12 @@ namespace rainy::utility {
         Ty old_val = static_cast<Ty &&>(val);
         val = static_cast<Other &&>(new_val);
         return old_val;
+    }
+
+    template <typename Ty>
+    type_traits::implements::_add_rvalue_reference_t<Ty> declval() noexcept {
+        static_assert(type_traits::implements::always_false<Ty>, "Calling declval is ill-formed, see N4950 [declval]/2.");
+        std::abort();
     }
 }
 

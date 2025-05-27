@@ -16,8 +16,7 @@
 #include <rainy/meta/reflection/function.hpp>
 
 namespace rainy::meta::reflection {
-    function::function() noexcept : invoker_storage{0} {
-    }
+    function::function() noexcept = default;
 
     function::function(function &&right) noexcept {
         move_from_other(utility::move(right));
@@ -27,45 +26,72 @@ namespace rainy::meta::reflection {
         copy_from_other(right);
     }
 
-    function::function(std::nullptr_t) noexcept : invoker_storage{} {
+    function::function(std::nullptr_t) noexcept {
+    }
+
+    function::~function() {
+        reset();
+    }
+
+    bool function::is_local() const noexcept {
+        if (empty()) {
+            return true;
+        }
+        return invoke_accessor() == reinterpret_cast<const void *>(invoker_storage);
+    }
+
+    implements::invoker_accessor *function::invoke_accessor() noexcept {
+        return invoke_accessor_;
+    }
+
+    const implements::invoker_accessor *function::invoke_accessor() const noexcept {
+        return invoke_accessor_;
     }
 
     const foundation::rtti::typeinfo &function::return_type() const noexcept {
         utility::expects(!empty(), "You're trying to get the return type of a empty object!");
-        return reinterpret_cast<const implements::invoker_accessor *>(invoker_storage)->return_type();
+        return invoke_accessor()->return_type();
     }
 
-    const collections::views::array_view<foundation::rtti::typeinfo>& function::paramlists() const noexcept {
+    const collections::views::array_view<foundation::rtti::typeinfo> &function::paramlists() const noexcept {
         utility::expects(!empty(), "You're trying to get the param list of a empty object!");
-        return reinterpret_cast<const implements::invoker_accessor *>(invoker_storage)->paramlists();
+        return invoke_accessor()->paramlists();
     }
 
     bool function::empty() const noexcept {
-        struct canary {
-            std::int64_t header;
-        };
-        static_assert(sizeof(canary) <= soo_buffer_size); // 确保canary的大小不超过缓冲区大小
-        return reinterpret_cast<const canary *>(invoker_storage)->header == 0;
+        return invoke_accessor() == nullptr;
     }
 
     void function::copy_from_other(const function &right) noexcept {
         if (this != utility::addressof(right) && !right.empty()) {
-            reinterpret_cast<const implements::invoker_accessor *>(right.invoker_storage)->construct_from_this(this->invoker_storage);
+            invoke_accessor_ = right.invoke_accessor()->construct_from_this(this->invoker_storage);
         }
     }
 
     void function::move_from_other(function &&right) noexcept {
         if (this != utility::addressof(right) && !right.empty()) {
-            reinterpret_cast<const implements::invoker_accessor *>(right.invoker_storage)->construct_from_this(this->invoker_storage);
-            std::memset(right.invoker_storage, 0, sizeof(right.invoker_storage));
+            if (right.is_local()) {
+                invoke_accessor_ = right.invoke_accessor()->construct_from_this(this->invoker_storage);
+                std::memset(right.invoker_storage, 0, sizeof(right.invoker_storage));
+                right.invoke_accessor_ = nullptr;
+            } else {
+                invoke_accessor_ = utility::exchange(right.invoke_accessor_, nullptr);
+            }
         }
     }
 
     void function::swap(function &right) noexcept {
-        alignas(std::max_align_t) char temporary_memory[soo_buffer_size]{};
-        core::builtin::copy_memory(&temporary_memory, &right.invoker_storage, soo_buffer_size);
-        core::builtin::copy_memory(&right.invoker_storage, &this->invoker_storage, soo_buffer_size);
-        core::builtin::copy_memory(&this->invoker_storage, &temporary_memory, soo_buffer_size);
+        if (this == utility::addressof(right)) {
+            return;
+        }
+        if (!is_local() && !right.is_local()) {
+            std::swap(invoke_accessor_, right.invoke_accessor_);
+        } else {
+            function temp;
+            temp.move_from_other(std::move(*this));
+            this->move_from_other(std::move(right));
+            right.move_from_other(std::move(temp));
+        }
     }
 
     function &function::operator=(const function &right) noexcept {
@@ -82,18 +108,18 @@ namespace rainy::meta::reflection {
     }
 
     function &function::operator=(std::nullptr_t) noexcept {
-        clear();
+        reset();
         return *this;
     }
 
     const foundation::rtti::typeinfo &function::function_signature() const noexcept {
         utility::expects(!empty(), "You're trying to get the function signature of a empty object!");
-        return reinterpret_cast<const implements::invoker_accessor *>(invoker_storage)->function_signature();
+        return invoke_accessor()->function_signature();
     }
 
-    method_type function::type() const noexcept {
+    method_flags function::type() const noexcept {
         utility::expects(!empty(), "You're trying to get the function type of a empty object!");
-        return reinterpret_cast<const implements::invoker_accessor *>(invoker_storage)->type();
+        return invoke_accessor()->type();
     }
 
     function::operator bool() const noexcept {
@@ -107,17 +133,17 @@ namespace rainy::meta::reflection {
         if (this->empty() || right.empty()) {
             return false;
         }
-        return reinterpret_cast<const implements::invoker_accessor *>(invoker_storage)
-            ->equal_with(reinterpret_cast<const implements::invoker_accessor *>(right.invoker_storage));
+        return invoke_accessor()->equal_with(reinterpret_cast<const implements::invoker_accessor *>(right.invoker_storage));
     }
 
     bool function::not_equal_with(const function &right) const noexcept {
         return !equal_with(right);
     }
 
-    void function::clear() noexcept {
-        invoker_storage[0] = '\0';
-        std::memset(invoker_storage, 0, soo_buffer_size);
+    void function::reset() noexcept {
+        if (!empty()) {
+            invoke_accessor()->destruct(is_local());
+        }
     }
 
     void function::rebind(function &&function) noexcept {
@@ -129,19 +155,19 @@ namespace rainy::meta::reflection {
     }
 
     void function::rebind(std::nullptr_t) noexcept {
-        clear();
+        reset();
     }
 
     const foundation::rtti::typeinfo &function::which_belongs() const noexcept {
         utility::expects(!empty());
-        return reinterpret_cast<const implements::invoker_accessor *>(invoker_storage)->which_belongs();
+        return invoke_accessor()->which_belongs();
     }
 
     bool function::is_static() const noexcept {
         if (empty()) {
             return false;
         }
-        return type() == method_type::static_method || type() == method_type::static_method_noexcept;
+        return static_cast<bool>(type() & method_flags::static_qualified);
     }
 
     bool function::is_memfn() const noexcept {
@@ -155,105 +181,102 @@ namespace rainy::meta::reflection {
         if (empty()) {
             return false;
         }
-        method_type method_type = type();
-        if (method_type >= method_type::volatile_method && method_type <= method_type::volatile_method_right_noexcept) {
-            return true;
-        }
-        return method_type >= method_type::const_volatile_method && method_type <= method_type::const_volatile_method_right_noexcept;
+        return static_cast<bool>(type() & method_flags::volatile_qualified);
     }
 
     bool function::is_const() const noexcept {
         if (empty()) {
             return false;
         }
-        method_type method_type = type();
-        return method_type >= method_type::const_method && method_type <= method_type::const_volatile_method_right_noexcept;
+        return static_cast<bool>(type() & method_flags::const_qualified);
     }
 
     bool function::is_noexcept() const noexcept {
         if (empty()) {
             return false;
         }
-        method_type method_type = type();
-        switch (method_type) {
-            case method_type::static_method_noexcept:
-            case method_type::normal_method_noexcept:
-            case method_type::normal_method_left_noexcept:
-            case method_type::normal_method_right_noexcept:
-            case method_type::volatile_method_noexcept:
-            case method_type::volatile_method_left_noexcept:
-            case method_type::volatile_method_right_noexcept:
-            case method_type::const_method_noexcept:
-            case method_type::const_method_left_noexcept:
-            case method_type::const_method_right_noexcept:
-            case method_type::const_volatile_method_noexcept:
-            case method_type::const_volatile_method_left_noexcept:
-            case method_type::const_volatile_method_right_noexcept:
-                return true;
-            default:
-                break;
-        }
-        return false;
+        return static_cast<bool>(type() & method_flags::noexcept_specified);
     }
 
     bool function::is_invoke_for_lvalue() const noexcept {
         if (empty()) {
             return false;
         }
-        method_type method_type = type();
-        switch (method_type) {
-            case method_type::normal_method_left:
-            case method_type::normal_method_left_noexcept:
-            case method_type::volatile_method_left:
-            case method_type::volatile_method_left_noexcept:
-            case method_type::const_method_left:
-            case method_type::const_method_left_noexcept:
-            case method_type::const_volatile_method_left:
-            case method_type::const_volatile_method_left_noexcept:
-                // 上述是被推导为左值引用的函数枚举类型
-                return true;
-            default:
-                break;
-        }
-        return false;
+        return static_cast<bool>(type() & method_flags::lvalue_qualified);
     }
 
     bool function::is_invoke_for_rvalue() const noexcept {
         if (empty()) {
             return false;
         }
-        method_type method_type = type();
-        switch (method_type) {
-            case method_type::normal_method_right:
-            case method_type::normal_method_right_noexcept:
-            case method_type::volatile_method_right:
-            case method_type::volatile_method_right_noexcept:
-            case method_type::const_method_right:
-            case method_type::const_method_right_noexcept:
-            case method_type::const_volatile_method_right:
-            case method_type::const_volatile_method_right_noexcept:
-                // 上述是被推导为右值引用的函数枚举类型
-                return true;
-            default:
-                break;
-        }
-        return false;
+        return static_cast<bool>(type() & method_flags::rvalue_qualified);
     }
 
     bool function::is_invocable(collections::views::array_view<foundation::rtti::typeinfo> paramlist) const noexcept {
         if (empty()) {
             return false;
         }
-        return reinterpret_cast<const implements::invoker_accessor *>(invoker_storage)->is_invocable(paramlist);
+        return invoke_accessor()->is_invocable(paramlist);
     }
 
-    std::size_t function::arg_count() const noexcept {
+    std::size_t function::arity() const noexcept {
         utility::expects(!empty(), "You're trying to get the arg count of a empty object!");
-        return reinterpret_cast<const implements::invoker_accessor *>(invoker_storage)->paramlists().size();
+        return invoke_accessor()->paramlists().size();
     }
 
-    const foundation::rtti::typeinfo &function::arg(std::size_t idx) const noexcept {
+    const foundation::rtti::typeinfo &function::arg(std::size_t idx) const {
         utility::expects(!empty(), "You're trying to get the arg type of a empty object!");
-        return reinterpret_cast<const implements::invoker_accessor *>(invoker_storage)->paramlists()[idx];
+        return invoke_accessor()->paramlists().at(static_cast<std::ptrdiff_t>(idx));
+    }
+
+    method::method(method &&right) noexcept :
+        function(utility::move(right)), name_(utility::move(right.name_)), metadata_(utility::move(right.metadata_)) {
+    }
+
+    method &method::operator=(method &&right) noexcept {
+        if (this != utility::addressof(right)) {
+            function::operator=(utility::move(right));
+            name_ = utility::move(right.name_);
+            metadata_ = utility::move(right.metadata_);
+        }
+        return *this;
+    }
+
+    void method::rebind(const method &right) noexcept {
+        function::operator=(right);
+        name_ = right.name_;
+        metadata_ = right.metadata_;
+    }
+
+    void method::rebind(method &&right) noexcept {
+        function::operator=(utility::move(right));
+        name_ = utility::move(right.name_);
+        metadata_ = utility::move(right.metadata_);
+    }
+
+    void method::rebind(std::nullptr_t) noexcept {
+        function::reset();
+        name_ = {};
+        metadata_ = {};
+    }
+
+    void method::swap(method &right) noexcept {
+        function::swap(right);
+        name_.swap(right.name_);
+        metadata_.swap(right.metadata_);
+    }
+
+    std::string_view method::name() const noexcept {
+        return name_;
+    }
+
+    const method::metadata_map &method::metadata() const noexcept {
+        return metadata_;
+    }
+
+    const utility::any &method::get_metadata(const std::string_view key) const noexcept {
+        static const utility::any empty;
+        const auto it = metadata_.find(key);
+        return it != metadata_.end() ? it->second : empty;
     }
 }

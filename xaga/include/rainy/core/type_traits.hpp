@@ -25,6 +25,7 @@
 #include <rainy/core/tmp/modifers.hpp>
 #include <rainy/core/tmp/type_list.hpp>
 #include <rainy/core/tmp/iter_traits.hpp>
+#include <rainy/core/tmp/meta_methods.hpp>
 #include <rainy/core/implements/basic_algorithm.hpp>
 #if RAINY_USING_GCC
 #include <rainy/core/gnu/typetraits.hpp>
@@ -438,160 +439,6 @@ namespace rainy::utility {
     using allocator_arg_t = std::allocator_arg_t;
 
     inline constexpr allocator_arg_t allocator_arg{};
-
-    template <typename Ty>
-    type_traits::reference_modify::add_rvalue_reference_t<Ty> declval() noexcept {
-        static_assert(type_traits::implements::always_false<Ty>, "Calling declval is ill-formed, see N4950 [declval]/2.");
-        return type_traits::helper::get_fake_object<Ty>();
-    }
-}
-
-namespace rainy::type_traits::extras::meta_method {
-    template <typename Ty, typename = void>
-    struct try_to_invoke_begin {
-        static RAINY_CONSTEXPR_BOOL value = false;
-
-        template <typename Uty>
-        static void invoke(const Uty &) {
-            static_assert(rainy::type_traits::implements::always_false<Uty>,
-                          "Can not find begin method! "
-                          "rainy::utility::begin"
-                          "only support begin() in Container Type"
-                          "please add begin() method in Container Definition");
-        }
-    };
-
-    template <typename Ty>
-    struct try_to_invoke_begin<Ty, type_traits::other_trans::void_t<decltype(utility::declval<Ty>().begin())>> {
-        static RAINY_CONSTEXPR_BOOL value = true;
-
-        static auto invoke(Ty &container) noexcept(noexcept(container.begin())) -> decltype(container.begin()) {
-            return container.begin();
-        }
-    };
-
-    template <typename, typename = void>
-    struct try_to_invoke_end {
-        static RAINY_CONSTEXPR_BOOL value = false;
-
-        template <typename Uty>
-        static void invoke(const Uty &) {
-            static_assert(rainy::type_traits::implements::always_false<Uty>,
-                          "Can not find end method! "
-                          "rainy::utility::end"
-                          "only support end() in Container Type"
-                          "please add end() method in Container Definition");
-        }
-    };
-
-    template <typename Ty>
-    struct try_to_invoke_end<Ty, type_traits::other_trans::void_t<decltype(utility::declval<Ty>().end())>> {
-        static RAINY_CONSTEXPR_BOOL value = true;
-
-        static auto invoke(Ty &container) noexcept(noexcept(container.end())) -> decltype(container.end()) {
-            return container.end();
-        }
-    };
-
-    template <typename Ty, typename = void>
-    struct try_to_invoke_cbegin {
-        static RAINY_CONSTEXPR_BOOL value = false;
-
-        template <typename Uty>
-        static void invoke(const Uty &) {
-            static_assert(rainy::type_traits::implements::always_false<Uty>,
-                          "Can not find begin method! "
-                          "rainy::utility::cbegin"
-                          "only support cbegin() in Container Type"
-                          "please add cbegin() method in Container Definition");
-        }
-    };
-
-    template <typename Ty>
-    struct try_to_invoke_cbegin<Ty, type_traits::other_trans::void_t<decltype(utility::declval<Ty>().cbegin())>> {
-        static RAINY_CONSTEXPR_BOOL value = true;
-
-        static auto invoke(const Ty &container) noexcept(noexcept(container.cbegin())) -> decltype(container.cbegin()) {
-            return container.cbegin();
-        }
-    };
-
-    template <typename, typename = void>
-    struct try_to_invoke_cend {
-        static RAINY_CONSTEXPR_BOOL value = false;
-
-        template <typename Uty>
-        static void invoke(const Uty &) {
-            static_assert(rainy::type_traits::implements::always_false<Uty>,
-                          "Can not find end method! "
-                          "rainy::utility::cend"
-                          "only support cend() in Container Type"
-                          "please add cend() method in Container Definition");
-        }
-    };
-
-    template <typename Ty>
-    struct try_to_invoke_cend<Ty, type_traits::other_trans::void_t<decltype(utility::declval<Ty>().cend())>> {
-        static RAINY_CONSTEXPR_BOOL value = true;
-
-        static auto invoke(const Ty &container) noexcept(noexcept(container.cend())) -> decltype(container.cend()) {
-            return container.cend();
-        }
-    };
-}
-
-namespace rainy::utility {
-    template <typename Container>
-    RAINY_NODISCARD constexpr auto begin(Container &cont) noexcept(
-        noexcept(type_traits::extras::meta_method::try_to_invoke_begin<Container>::invoke(cont)))
-        -> decltype(type_traits::extras::meta_method::try_to_invoke_begin<Container>::invoke(cont)) {
-        return type_traits::extras::meta_method::try_to_invoke_begin<Container>::invoke(cont);
-    }
-
-    template <typename Container>
-    RAINY_NODISCARD constexpr auto begin(const Container &cont) noexcept(
-        noexcept(type_traits::extras::meta_method::try_to_invoke_begin<const Container>::invoke(cont)))
-        -> decltype(type_traits::extras::meta_method::try_to_invoke_begin<const Container>::invoke(cont)) {
-        return type_traits::extras::meta_method::try_to_invoke_begin<const Container>::invoke(cont);
-    }
-
-    template <typename Container, std::size_t N>
-    static auto begin(Container (&container)[N]) noexcept {
-        return container;
-    }
-
-    template <typename Container>
-    RAINY_NODISCARD constexpr auto end(Container &cont) noexcept(
-        noexcept(type_traits::extras::meta_method::try_to_invoke_end<Container>::invoke(cont)))
-        -> decltype(type_traits::extras::meta_method::try_to_invoke_end<Container>::invoke(cont)) {
-        return type_traits::extras::meta_method::try_to_invoke_end<Container>::invoke(cont);
-    }
-
-    template <typename Container>
-    RAINY_NODISCARD constexpr auto end(const Container &cont) noexcept(
-        noexcept(type_traits::extras::meta_method::try_to_invoke_end<const Container>::invoke(cont)))
-        -> decltype(type_traits::extras::meta_method::try_to_invoke_end<const Container>::invoke(cont)) {
-        return type_traits::extras::meta_method::try_to_invoke_end<const Container>::invoke(cont);
-    }
-
-    template <typename Container, std::size_t N>
-    static auto end(Container (&container)[N]) noexcept {
-        return container + N;
-    }
-
-    template <typename Container>
-    RAINY_NODISCARD constexpr auto cbegin(const Container &cont) noexcept(
-        noexcept(type_traits::extras::meta_method::try_to_invoke_cbegin<const Container>::invoke(cont)))
-        -> decltype(type_traits::extras::meta_method::try_to_invoke_cbegin<const Container>::invoke(cont)) {
-        return type_traits::extras::meta_method::try_to_invoke_cbegin<const Container>::invoke(cont);
-    }
-
-    template <typename Container>
-    RAINY_NODISCARD constexpr auto cend(const Container &cont) noexcept(
-        noexcept(type_traits::extras::meta_method::try_to_invoke_cbegin<const Container>::invoke(cont)))
-        -> decltype(type_traits::extras::meta_method::try_to_invoke_cbegin<const Container>::invoke(cont)) {
-        return type_traits::extras::meta_method::try_to_invoke_cbegin<const Container>::invoke(cont);
-    }
 }
 
 namespace rainy::type_traits::type_properties {
@@ -1148,89 +995,6 @@ namespace rainy::utility {
     template <typename... Args>
     struct tuple_size<tuple<Args...>> {
         static RAINY_INLINE_CONSTEXPR std::size_t value = sizeof...(Args);
-    };
-}
-
-/* 元方法Trait */
-namespace rainy::type_traits::extras::meta_method {
-    template <typename Ty>
-    struct has_iterator {
-        template <typename U>
-        static auto test(int) -> decltype(utility::begin(utility::declval<U &>()) != utility::end(utility::declval<U &>()),
-                                          ++utility::declval<decltype(utility::begin(utility::declval<U &>())) &>(),
-                                          --utility::declval<decltype(utility::begin(utility::declval<U &>())) &>(),
-                                          (void)utility::declval<decltype(utility::begin(utility::declval<U &>())) &>()++,
-                                          (void)utility::declval<decltype(utility::begin(utility::declval<U &>())) &>()--,
-                                          *utility::begin(utility::declval<U &>()), helper::true_type{}) {
-            return utility::declval<helper::true_type>();
-        }
-
-        template <typename>
-        static helper::false_type test(...) {
-            return helper::false_type{};
-        }
-
-        static RAINY_CONSTEXPR_BOOL value = decltype(test<Ty>(0))::value;
-    };
-
-    template <typename Ty>
-    struct has_empty_method {
-        template <typename U>
-        static auto test(int) -> decltype(utility::declval<U &>().empty(), helper::true_type{}) {
-            return utility::declval<helper::true_type>();
-        }
-
-        template <typename>
-        static helper::false_type test(...) {
-            return helper::false_type{};
-        }
-
-        static RAINY_CONSTEXPR_BOOL value = decltype(test<Ty>(0))::value;
-    };
-
-    template <typename Ty>
-    struct has_size_method {
-        template <typename U>
-        static auto test(int) -> decltype(utility::declval<U &>().size(), helper::true_type{}) {
-            return utility::declval<helper::true_type>();
-        }
-
-        template <typename>
-        static helper::false_type test(...) {
-            return helper::false_type{};
-        }
-
-        static RAINY_CONSTEXPR_BOOL value = decltype(test<Ty>(0))::value;
-    };
-
-    template <typename Ty>
-    struct has_data_method {
-        template <typename U>
-        static auto test(int) -> decltype(utility::declval<U &>().data(), helper::true_type{}) {
-            return utility::declval<helper::true_type>();
-        }
-
-        template <typename>
-        static helper::false_type test(...) {
-            return helper::false_type{};
-        }
-
-        static RAINY_CONSTEXPR_BOOL value = decltype(test<Ty>(0))::value;
-    };
-
-    template <typename Ty>
-    struct has_assignment_operator {
-        template <typename U>
-        static auto test(int) -> decltype(utility::declval<U &>() = utility::declval<const U &>(), helper::true_type{}) {
-            return utility::declval<helper::true_type>();
-        }
-
-        template <typename>
-        static helper::false_type test(...) {
-            return helper::false_type{};
-        }
-
-        static RAINY_CONSTEXPR_BOOL value = decltype(test<Ty>(0))::value;
     };
 }
 
@@ -2597,9 +2361,9 @@ namespace rainy::utility {
 namespace rainy::utility {
 #if RAINY_HAS_CXX20
     template <typename Class, typename Fx>
-              requires(type_traits::primary_types::is_member_function_pointer_v<Fx Class::*> &&
+        requires(type_traits::primary_types::is_member_function_pointer_v<Fx Class::*> &&
                  !type_traits::type_relations::is_same_v<Fx, std::nullptr_t>)
-    consteval auto get_overloaded_memfn(Fx memfn) {
+    constexpr auto get_overloaded_memfn(Fx Class::*memfn) {
         assert(memfn != nullptr && "memfn cannot be nullptr");
         return memfn;
     }
@@ -2608,9 +2372,9 @@ namespace rainy::utility {
               type_traits::other_trans::enable_if_t<type_traits::primary_types::is_member_function_pointer_v<Fx Class::*> &&
                                                         !type_traits::type_relations::is_same_v<Fx, std::nullptr_t>,
                                                     int> = 0>
-    constexpr auto get_overloaded_memfn(Fx Class::*func) {
+    constexpr auto get_overloaded_memfn(Fx Class::*memfn) {
         assert(memfn != nullptr && "memfn cannot be nullptr");
-        return func;
+        return memfn;
     }
 #endif
 }
@@ -2736,7 +2500,7 @@ namespace rainy::type_traits::primary_types {
     using extras::templates::is_template_v;
 }
 
- namespace type_traits {
+namespace rainy::stdanrd {
     using namespace rainy::type_traits::array_modify;
     using namespace rainy::type_traits::composite_types;
     using namespace rainy::type_traits::cv_modify;

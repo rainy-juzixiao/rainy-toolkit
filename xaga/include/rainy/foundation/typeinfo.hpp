@@ -35,34 +35,45 @@
 
 namespace rainy::foundation::rtti {
     struct traits {
-        /* properties */
+        /* qualifiers */
         static RAINY_INLINE_CONSTEXPR int is_lref = 1 << 0;
         static RAINY_INLINE_CONSTEXPR int is_rref = 1 << 1;
         static RAINY_INLINE_CONSTEXPR int is_const = 1 << 2;
         static RAINY_INLINE_CONSTEXPR int is_volatile = 1 << 3;
-        /* fundamental */
+
+        /* fundamental types */
         static RAINY_INLINE_CONSTEXPR int is_void = 1 << 4;
-        static RAINY_INLINE_CONSTEXPR int is_pointer = 1 << 5;
+        static RAINY_INLINE_CONSTEXPR int is_nullptr_t = 1 << 5;
         static RAINY_INLINE_CONSTEXPR int is_integer = 1 << 6;
         static RAINY_INLINE_CONSTEXPR int is_floating_point = 1 << 7;
         static RAINY_INLINE_CONSTEXPR int is_unsigned = 1 << 8;
-        static RAINY_INLINE_CONSTEXPR int is_nullptr_t = 1 << 9;
+        static RAINY_INLINE_CONSTEXPR int is_arithmetic = 1 << 9;
         static RAINY_INLINE_CONSTEXPR int is_fundamental = 1 << 10;
-        /* compound */
-        static RAINY_INLINE_CONSTEXPR int is_class = 1 << 11;
-        static RAINY_INLINE_CONSTEXPR int is_template = 1 << 12;
-        static RAINY_INLINE_CONSTEXPR int is_function = 1 << 13;
-        static RAINY_INLINE_CONSTEXPR int is_function_pointer = 1 << 14;
-        static RAINY_INLINE_CONSTEXPR int is_member_fnptr = 1 << 15;
-        static RAINY_INLINE_CONSTEXPR int is_member_field_ptr = 1 << 16;
-        static RAINY_INLINE_CONSTEXPR int is_array = 1 << 17;
-        static RAINY_INLINE_CONSTEXPR int is_enum = 1 << 18;
-        static RAINY_INLINE_CONSTEXPR int is_union = 1 << 19;
-        static RAINY_INLINE_CONSTEXPR int is_compound = 1 << 20;
-        static RAINY_INLINE_CONSTEXPR int is_polymorphic = 1 << 21;
-        static RAINY_INLINE_CONSTEXPR int is_abstract = 1 << 22;
-        /* for reflection */
-        static RAINY_INLINE_CONSTEXPR int is_reflection_type = 1 << 23;
+        static RAINY_INLINE_CONSTEXPR int is_trivial = 1 << 11;
+
+        /* pointer-related */
+        static RAINY_INLINE_CONSTEXPR int is_pointer = 1 << 12;
+
+        /* compound types */
+        static RAINY_INLINE_CONSTEXPR int is_array = 1 << 13;
+        static RAINY_INLINE_CONSTEXPR int is_class = 1 << 14;
+        static RAINY_INLINE_CONSTEXPR int is_union = 1 << 15;
+        static RAINY_INLINE_CONSTEXPR int is_enum = 1 << 16;
+        static RAINY_INLINE_CONSTEXPR int is_compound = 1 << 17;
+
+        /* function and member pointers */
+        static RAINY_INLINE_CONSTEXPR int is_function = 1 << 18;
+        static RAINY_INLINE_CONSTEXPR int is_function_pointer = 1 << 19;
+        static RAINY_INLINE_CONSTEXPR int is_member_fnptr = 1 << 20;
+        static RAINY_INLINE_CONSTEXPR int is_member_field_ptr = 1 << 21;
+
+        /* class traits */
+        static RAINY_INLINE_CONSTEXPR int is_template = 1 << 22;
+        static RAINY_INLINE_CONSTEXPR int is_polymorphic = 1 << 23;
+        static RAINY_INLINE_CONSTEXPR int is_abstract = 1 << 24;
+
+        /* reflection */
+        static RAINY_INLINE_CONSTEXPR int is_reflection_type = 1 << 25;
     };
 }
 
@@ -137,6 +148,12 @@ namespace rainy::foundation::rtti::implements {
         }
         if constexpr (type_traits::composite_types::is_fundamental_v<Ty>) {
             traits_ |= traits::is_fundamental;
+        }
+        if constexpr (type_traits::type_properties::is_trivial_v<Ty>) {
+            traits_ |= traits::is_trivial;
+        }
+        if constexpr (type_traits::composite_types::is_arithmetic_v<Ty>) {
+            traits_ |= traits::is_arithmetic;
         }
         return traits_;
     }
@@ -334,9 +351,6 @@ namespace rainy::foundation::rtti {
                     return true;
                 }
             }
-            if (has_traits(traits::is_integer) && right.has_traits(traits::is_integer)) {
-                return true;
-            }
             if (has_traits(traits::is_pointer) && right.has_traits(traits::is_pointer)) {
                 if (has_traits(traits::is_lref) || has_traits(traits::is_rref)) {
                     foundation::rtti::typeinfo target = right;
@@ -358,7 +372,7 @@ namespace rainy::foundation::rtti {
             if (has_traits(traits::is_nullptr_t) && right.has_traits(traits::is_pointer)) {
                 return true;
             }
-            return this->remove_cvref() == right.remove_cvref();
+            return this->remove_all_qualifier() == right.remove_all_qualifier();
         }
 
         /**
@@ -416,6 +430,44 @@ namespace rainy::foundation::rtti {
             result.traits_ &= ~(traits::is_const);
             result.traits_ &= ~(traits::is_volatile);
             return result;
+        }
+
+        RAINY_NODISCARD constexpr typeinfo remove_pointer() const noexcept {
+            typeinfo result = *this;
+            if (is_pointer()) {
+                remove_suffix(result._name, "*");
+            }
+            result._hash_code = fnv1a_hash(result._name);
+            result.traits_ &= ~(traits::is_pointer);
+            return result;
+        }
+
+        RAINY_NODISCARD constexpr typeinfo remove_all_qualifier() const noexcept {
+            return this->remove_cvref().remove_pointer();
+        }
+
+        RAINY_NODISCARD constexpr bool is_arithmetic() const noexcept {
+            return has_traits(traits::is_arithmetic);
+        }
+
+        RAINY_NODISCARD constexpr bool is_floating_point() const noexcept {
+            return has_traits(traits::is_floating_point);
+        }
+
+        RAINY_NODISCARD constexpr bool is_integer() const noexcept {
+            return has_traits(traits::is_integer);
+        }
+
+        RAINY_NODISCARD constexpr bool is_nullptr() const noexcept {
+            return has_traits(traits::is_nullptr_t);
+        }
+
+        RAINY_NODISCARD constexpr bool is_reference() const noexcept {
+            return has_traits(traits::is_lref) || has_traits(traits::is_rref);
+        }
+
+        RAINY_NODISCARD constexpr bool is_pointer() const noexcept {
+            return has_traits(traits::is_pointer);
         }
 
     private:

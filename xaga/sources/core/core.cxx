@@ -378,8 +378,9 @@ namespace rainy::core::implements {
         constexpr static std::size_t static_memory_size = 120;
         thread_local char static_memory[static_memory_size]; // For Thread Safety
         rainy_let buffer = static_cast<char *>(static_memory);
-        rainy_let required_size = 1 + std::snprintf(nullptr, 0, "%s:%du in function '%s' found a error\n", source_location.file_name(),
-                                                    source_location.line(), source_location.function_name());
+        std::size_t required_size =
+            1 + std::snprintf(nullptr, 0, "%s:%du in function '%s' found a error\n", source_location.file_name(),
+                              source_location.line(), source_location.function_name());
         if (required_size > static_memory_size) {
             buffer = static_cast<char *>(pal::allocate(sizeof(char) * required_size,
                                                        alignof(char))); // 通过operator new[]获取内存，而不是通过new char

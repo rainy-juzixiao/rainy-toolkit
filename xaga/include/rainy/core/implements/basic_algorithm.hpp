@@ -26,15 +26,7 @@ namespace rainy::utility {
         swap(*a, *b);
     }
 
-    template <typename Ty,
-              typename type_traits::implements::_enable_if<
-                  type_traits::implements::_is_move_constructible_v<Ty> && type_traits::implements::_is_move_assignable_v<Ty>, int>::type = 0>
-    constexpr void swap(Ty &left, Ty &right) noexcept(type_traits::implements::_is_nothrow_move_constructible_v<Ty> &&
-                                                      type_traits::implements::_is_nothrow_move_assignable_v<Ty>) {
-        Ty temp = utility::move(left);
-        left = utility::move(right);
-        right = utility::move(temp);
-    }
+    using std::swap;
 }
 
 namespace rainy::core::algorithm {

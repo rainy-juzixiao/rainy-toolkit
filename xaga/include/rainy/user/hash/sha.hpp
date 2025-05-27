@@ -32,7 +32,7 @@ namespace rainy::user::hash::implements {
     };
 
     template <sha_type,typename Ty>
-    RAINY_INLINE std::string to_hex_string(const Ty (&hash)[8]) {
+    RAINY_INLINE std::string to_hex_string(const Ty (&)[8]) {
         return {};
     }
 

@@ -37,11 +37,29 @@ namespace rainy::meta::reflection {
     class object_view {
     public:
         template <typename Ty>
-        using enable_if_t = type_traits::other_trans::enable_if_t<!type_traits::type_relations::is_same_v<Ty, object_view>, int>;
+        using enable_if_t = type_traits::other_trans::enable_if_t<!type_traits::type_relations::is_same_v<Ty, object_view> && !type_traits::type_relations::is_same_v<Ty,non_exists_instance_t>, int>;
 
         template <typename Ty, enable_if_t<Ty> = 0>
-        object_view(Ty &object) noexcept :
+        object_view(Ty& object) noexcept :
             object_{const_cast<void *>(static_cast<const void *>(utility::addressof(object)))}, rtti_{&rainy_typeid(Ty)} {
+            if constexpr (type_traits::composite_types::is_reference_v<Ty> || type_traits::primary_types::is_pointer_v<Ty>) {
+                this->rep = implements::object_view_rep::pointer_with_reference;
+            } else if constexpr (type_traits::composite_types::is_reference_v<Ty>) {
+                this->rep = implements::object_view_rep::reference;
+            } else if constexpr (type_traits::primary_types::is_pointer_v<Ty>) {
+                this->rep = implements::object_view_rep::pointer;
+            } else {
+                this->rep = implements::object_view_rep::normal;
+            }
+        }
+
+        template <typename Ty,
+                  std::enable_if_t<!type_traits::type_relations::is_same_v<std::decay_t<Ty>, object_view> &&
+                      !type_traits::type_relations::is_same_v<std::decay_t<Ty>, non_exists_instance_t> &&
+                      std::is_rvalue_reference_v<Ty &&> && !std::is_lvalue_reference_v<Ty>,
+                  int> = 0>
+        object_view(Ty &&object) :
+            object_{const_cast<void *>(static_cast<const void *>(utility::addressof(object)))}, rtti_{&rainy_typeid(Ty &&)} {
             if constexpr (type_traits::composite_types::is_reference_v<Ty> || type_traits::primary_types::is_pointer_v<Ty>) {
                 this->rep = implements::object_view_rep::pointer_with_reference;
             } else if constexpr (type_traits::composite_types::is_reference_v<Ty>) {
@@ -67,7 +85,7 @@ namespace rainy::meta::reflection {
             }
         }
 
-        object_view(const non_exists_instance_t &) noexcept : object_(nullptr), rtti_(&rainy_typeid(void)),rep(implements::object_view_rep::normal) {
+        object_view(non_exists_instance_t) noexcept : object_(nullptr), rtti_(&rainy_typeid(void)),rep(implements::object_view_rep::normal) {
         }
 
         object_view(object_view &&other) noexcept :
@@ -86,7 +104,7 @@ namespace rainy::meta::reflection {
             return *this;
         }
 
-        object_view(const object_view &right) = default;
+        object_view(const object_view &) = default;
         object_view &operator=(const object_view &) = default;
 
         object_view() = delete;
@@ -102,18 +120,9 @@ namespace rainy::meta::reflection {
         template <typename Decayed, enable_if_t<Decayed> = 0>
         RAINY_NODISCARD const Decayed *cast_to_pointer() const noexcept {
             using namespace foundation::rtti;
-            static constexpr std::size_t target_hashcode = typeinfo::create<Decayed>().hash_code();
-            const typeinfo & info = rtti();
-            if (info.has_traits(traits::is_lref)) {
-                static constexpr std::size_t add_ref_hash =
-                    typeinfo::create<type_traits::reference_modify::add_lvalue_reference_t<Decayed>>().hash_code();
-                return info.hash_code() == add_ref_hash ? reinterpret_cast<const Decayed *>(target_as_void_ptr()) : nullptr;
-            } else if (info.has_traits(traits::is_rref)) {
-                static constexpr std::size_t add_ref_hash =
-                    typeinfo::create<type_traits::reference_modify::add_rvalue_reference_t<Decayed>>().hash_code();
-                return info.hash_code() == add_ref_hash ? reinterpret_cast<const Decayed *>(target_as_void_ptr()) : nullptr;
-            }
-            return info.hash_code() == target_hashcode ? reinterpret_cast<const Decayed *>(target_as_void_ptr()) : nullptr;
+            static constexpr typeinfo target_type = typeinfo::create<Decayed>();
+            return rtti().is_compatible(target_type) ? reinterpret_cast<const Decayed *>(target_as_void_ptr())
+                                                                      : nullptr;
         }
 
         template <typename Type, enable_if_t<Type> = 0>

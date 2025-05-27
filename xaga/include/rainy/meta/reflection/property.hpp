@@ -13,106 +13,106 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef RAINY_META_REFLECTION_FIELD_HPP
-#define RAINY_META_REFLECTION_FIELD_HPP
+#ifndef RAINY_META_REFLECTION_PROPERTY_HPP
+#define RAINY_META_REFLECTION_PROPERTY_HPP
 #include <rainy/utility/any.hpp>
 #include <rainy/meta/reflection/refl_impl/object_view.hpp>
 
 namespace rainy::meta::reflection {
-    enum class field_type {
-        enum_field,
-        static_field,
-        const_static_field,
-        volatile_static_field,
-        const_volatile_static_field,
-        member_field,
-        const_member_field,
-        volatile_member_field,
-        const_volatile_member_field
+    enum class property_type {
+        enum_property,
+        static_property,
+        const_static_property,
+        volatile_static_property,
+        const_volatile_static_property,
+        member_property,
+        const_member_property,
+        volatile_member_property,
+        const_volatile_member_property
     };
 }
 
 namespace rainy::meta::reflection::implements {
     template <typename Type, typename Class>
-    static constexpr field_type deduction_field_type() noexcept {
+    static constexpr property_type deduction_property_type() noexcept {
         if constexpr (type_traits::type_relations::is_void_v<Class>) {
             if constexpr (type_traits::type_properties::is_const_v<Type>) {
                 if constexpr (type_traits::type_properties::is_volatile_v<Type>) {
-                    return field_type::const_volatile_static_field;
+                    return property_type::const_volatile_static_property;
                 }
-                return field_type::const_static_field;
+                return property_type::const_static_property;
             }
             if constexpr (type_traits::type_properties::is_volatile_v<Type>) {
-                return field_type::volatile_static_field;
+                return property_type::volatile_static_property;
             }
-            return field_type::static_field;
+            return property_type::static_property;
         }
         if constexpr (type_traits::type_properties::is_const_v<Type>) {
             if constexpr (type_traits::type_properties::is_volatile_v<Type>) {
-                return field_type::const_volatile_member_field;
+                return property_type::const_volatile_member_property;
             }
-            return field_type::const_member_field;
+            return property_type::const_member_property;
         }
         if constexpr (type_traits::type_properties::is_volatile_v<Type>) {
-            return field_type::volatile_member_field;
+            return property_type::volatile_member_property;
         }
-        return type_traits::primary_types::is_enum_v<Type> ? field_type::enum_field : field_type::member_field;
+        return type_traits::primary_types::is_enum_v<Type> ? property_type::enum_property : property_type::member_property;
     }
 }
 
 namespace rainy::meta::reflection {
-    class RAINY_TOOLKIT_API field {
+    class RAINY_TOOLKIT_API property {
     public:
-        field() noexcept {
+        property() noexcept {
         }
 
         template <typename Class, typename Type>
-        field(Type Class::*field) {
-            utility::construct_at(reinterpret_cast<field_accessor_impl<Type, Type Class::*, Class> *>(&field_storage), field);
+        property(Type Class::*property) {
+            utility::construct_at(reinterpret_cast<property_accessor_impl<Type, Type Class::*, Class> *>(&property_storage), property);
         }
 
         template <typename Type>
-        field(Type *static_field) {
-            utility::construct_at(reinterpret_cast<field_accessor_impl<Type, Type *, void> *>(&field_storage), static_field);
+        property(Type *static_property) {
+            utility::construct_at(reinterpret_cast<property_accessor_impl<Type, Type *, void> *>(&property_storage), static_property);
         }
 
         template <typename Type, type_traits::other_trans::enable_if_t<type_traits::primary_types::is_enum_v<Type>, int> = 0>
-        field(Type enum_field) {
-            utility::construct_at(reinterpret_cast<enum_field_accessor_impl<Type> *>(&field_storage), enum_field);
+        property(Type enum_property) {
+            utility::construct_at(reinterpret_cast<enum_property_accessor_impl<Type> *>(&property_storage), enum_property);
         }
 
-        field(const field &right) noexcept;
-        field(field &&right) noexcept;
+        property(const property &right) noexcept;
+        property(property &&right) noexcept;
 
         RAINY_NODISCARD const foundation::rtti::typeinfo &which_belongs() const noexcept;
 
-        RAINY_NODISCARD const foundation::rtti::typeinfo &field_rtti_type() const noexcept;
+        RAINY_NODISCARD const foundation::rtti::typeinfo &property_rtti_type() const noexcept;
         RAINY_NODISCARD const foundation::rtti::typeinfo &compound_type() const noexcept;
 
-        field &operator=(const field &right) noexcept;
-        field &operator=(field &&right) noexcept;
+        property &operator=(const property &right) noexcept;
+        property &operator=(property &&right) noexcept;
 
-        const field &set_value(object_view object,const utility::any& val) const;
+        void set_value(object_view object, const utility::any &val) const;
 
         template <typename Decayed>
         Decayed get_value(object_view object = non_exists_instance) const {
-            return reinterpret_cast<const field_accessor *>(field_storage)->get_field(object).as<Decayed>();
+            return reinterpret_cast<const property_accessor *>(property_storage)->get_property(object).as<Decayed>();
         }
 
         utility::any get_value(object_view object = non_exists_instance) const;
 
         template <typename Class, typename Type>
         auto target() const noexcept -> Type Class::* {
-            auto ptr = reinterpret_cast<const field_accessor *>(field_storage)->target(rainy_typeid(Type Class::*));
+            auto ptr = reinterpret_cast<const property_accessor *>(property_storage)->target(rainy_typeid(Type Class::*));
             return *reinterpret_cast<Type Class::**>(ptr);
         }
 
-        field_type type() const noexcept;
+        property_type type() const noexcept;
 
         bool is_const() const noexcept;
 
         bool is_static() const noexcept {
-            return type() >= field_type::static_field && type() <= field_type::const_volatile_static_field;
+            return type() >= property_type::static_property && type() <= property_type::const_volatile_static_property;
         }
 
         bool is_volatile() const noexcept;
@@ -134,15 +134,15 @@ namespace rainy::meta::reflection {
         bool empty() const noexcept;
 
     private:
-        struct field_accessor {
-            virtual ~field_accessor() = default;
-            virtual void set_field(object_view object, const utility::any &any) const = 0;
-            virtual utility::any get_field(object_view object) noexcept = 0;
-            RAINY_NODISCARD virtual const utility::any get_field(object_view object) const noexcept = 0;
-            RAINY_NODISCARD virtual field_type type() const noexcept = 0;
+        struct property_accessor {
+            virtual ~property_accessor() = default;
+            virtual void set_property(object_view object, const utility::any &any) const = 0;
+            virtual utility::any get_property(object_view object) noexcept = 0;
+            RAINY_NODISCARD virtual const utility::any get_property(object_view object) const noexcept = 0;
+            RAINY_NODISCARD virtual property_type type() const noexcept = 0;
             RAINY_NODISCARD virtual const foundation::rtti::typeinfo &compound_rtti() const noexcept = 0;
             RAINY_NODISCARD virtual const foundation::rtti::typeinfo &which_belongs() const noexcept = 0;
-            RAINY_NODISCARD virtual const foundation::rtti::typeinfo &field_rtti_type() const noexcept = 0;
+            RAINY_NODISCARD virtual const foundation::rtti::typeinfo &property_rtti_type() const noexcept = 0;
             RAINY_NODISCARD virtual std::uintptr_t target(const foundation::rtti::typeinfo &rtti) const noexcept = 0;
         };
 
@@ -152,48 +152,56 @@ namespace rainy::meta::reflection {
         }
 
         template <typename Type>
-        static const foundation::rtti::typeinfo &field_rtti_type_res() noexcept {
+        static const foundation::rtti::typeinfo &property_rtti_type_res() noexcept {
             return rainy_typeid(Type);
         }
 
         template <typename Type, typename CompoundType, typename Class>
-        struct field_accessor_impl : field_accessor {
+        struct property_accessor_impl : property_accessor {
             using compound_type = CompoundType;
 
-            field_accessor_impl(compound_type field) noexcept : field_ptr(field) {
+            property_accessor_impl(compound_type property) noexcept : property_ptr(property) {
             }
 
-            void set_field(object_view object,const utility::any& any) const override {
+            void set_property(object_view object,const utility::any& any) const override {
                 if constexpr (type_traits::primary_types::is_member_object_pointer_v<compound_type>) {
                     if constexpr (type_traits::logical_traits::negation_v<type_traits::type_properties::is_const<Type>>) {
 #if RAINY_ENABLE_DEBUG
                         utility::expects(
                             object.rtti().is_compatible(rainy_typeid(Type)),
-                            "We can't set this field because we found the ClassType is not same with your passed instance!");
+                            "We can't set this property because we found the ClassType is not same with your passed instance!");
 #else
                         if (!object.rtti().is_compatible(rainy_typeid(Type))) {
                             return;
                         }
 #endif
-                        utility::invoke(field_ptr, object.as<Class>()) = any.convert<Type>();
+                        utility::invoke(property_ptr, object.as<Class>()) = any.convert<Type>();
                     }
                 } else {
                     if constexpr (type_traits::logical_traits::negation_v<type_traits::type_properties::is_const<Type>>) {
-                        *field_ptr = any.convert<Type>();
+                        *property_ptr = any.convert<Type>();
                     }
                 }
             }
 
-            utility::any get_field(object_view object) noexcept override {
-                return {utility::invoke(field_ptr, object.as<Class>())};
+            utility::any get_property(object_view object) noexcept override {
+                if constexpr (type_traits::type_relations::is_void_v<Class>) {
+                    return {*property_ptr};
+                } else {
+                    return {utility::invoke(property_ptr, object.as<Class>())};
+                }
             }
 
-            RAINY_NODISCARD const utility::any get_field(object_view object) const noexcept override {
-                return {utility::invoke(field_ptr, object.as<Class>())};
+            RAINY_NODISCARD const utility::any get_property(object_view object) const noexcept override {
+                if constexpr (type_traits::type_relations::is_void_v<Class>) {
+                    return {*property_ptr};
+                } else {
+                    return {utility::invoke(property_ptr, object.as<Class>())};
+                }
             }
 
-            RAINY_NODISCARD field_type type() const noexcept override {
-                return field_type_;
+            RAINY_NODISCARD property_type type() const noexcept override {
+                return property_type_;
             }
 
             RAINY_NODISCARD const foundation::rtti::typeinfo &compound_rtti() const noexcept override {
@@ -204,45 +212,45 @@ namespace rainy::meta::reflection {
                 return implements::which_belongs_res<Class>();
             }
 
-            RAINY_NODISCARD const foundation::rtti::typeinfo &field_rtti_type() const noexcept override {
-                return field_rtti_type_res<Type>();
+            RAINY_NODISCARD const foundation::rtti::typeinfo &property_rtti_type() const noexcept override {
+                return property_rtti_type_res<Type>();
             }
 
             RAINY_NODISCARD std::uintptr_t target(const foundation::rtti::typeinfo &rtti) const noexcept override {
                 constexpr std::size_t typehash = rainy_typehash(compound_type);
                 if (typehash == rtti.hash_code()) {
                     return reinterpret_cast<std::uintptr_t>(
-                        const_cast<type_traits::other_trans::decay_t<compound_type> *>(&field_ptr));
+                        const_cast<type_traits::other_trans::decay_t<compound_type> *>(&property_ptr));
                 }
                 return 0;
             }
 
-            static constexpr field_type field_type_ = implements::deduction_field_type<Type, Class>();
-            compound_type field_ptr;
+            static constexpr property_type property_type_ = implements::deduction_property_type<Type, Class>();
+            compound_type property_ptr;
         };
 
         template <typename Type>
-        struct enum_field_accessor_impl : field_accessor {
+        struct enum_property_accessor_impl : property_accessor {
             using compound_type = Type;
 
-            enum_field_accessor_impl(compound_type field) noexcept : field_ptr(field) {
+            enum_property_accessor_impl(compound_type property) noexcept : property_ptr(property) {
             }
 
-            void set_field(object_view object, const utility::any &any) const override {
+            void set_property(object_view object, const utility::any &any) const override {
                 utility::expects(object.rtti() == any.type(), "Type Is Invalid!");
                 object.as<Type>() = any.as<Type>();
             }
 
-            utility::any get_field(object_view) noexcept override {
-                return field_ptr;
+            utility::any get_property(object_view) noexcept override {
+                return property_ptr;
             }
 
-            RAINY_NODISCARD const utility::any get_field(object_view) const noexcept override {
-                return field_ptr;
+            RAINY_NODISCARD const utility::any get_property(object_view) const noexcept override {
+                return property_ptr;
             }
 
-            RAINY_NODISCARD field_type type() const noexcept override {
-                return field_type_;
+            RAINY_NODISCARD property_type type() const noexcept override {
+                return property_type_;
             }
 
             RAINY_NODISCARD const foundation::rtti::typeinfo &compound_rtti() const noexcept override {
@@ -253,26 +261,25 @@ namespace rainy::meta::reflection {
                 return implements::which_belongs_res<void>();
             }
 
-            RAINY_NODISCARD const foundation::rtti::typeinfo &field_rtti_type() const noexcept override {
-                return field_rtti_type_res<Type>();
+            RAINY_NODISCARD const foundation::rtti::typeinfo &property_rtti_type() const noexcept override {
+                return property_rtti_type_res<Type>();
             }
 
             RAINY_NODISCARD std::uintptr_t target(const foundation::rtti::typeinfo &) const noexcept override {
                 return 0;
             }
 
-            static constexpr field_type field_type_ = implements::deduction_field_type<Type, void>();
-            compound_type field_ptr;
+            static constexpr property_type property_type_ = implements::deduction_property_type<Type, void>();
+            compound_type property_ptr;
         };
 
         enum fake_enum { fake1 };
 
         static constexpr std::size_t soo_buffer_size =
-            sizeof(field_accessor_impl<int, int implements::fake_class::*, implements::fake_class>);
-        static constexpr std::size_t soo_enum_size = sizeof(enum_field_accessor_impl<fake_enum>);
+            sizeof(property_accessor_impl<int, int implements::fake_class::*, implements::fake_class>);
 
-        static_assert(soo_buffer_size >= sizeof(field_accessor_impl<int, int implements::fake_class::*, implements::fake_class>));
-        core::byte_t field_storage[soo_buffer_size]{};
+        static_assert(soo_buffer_size >= sizeof(property_accessor_impl<int, int implements::fake_class::*, implements::fake_class>));
+        core::byte_t property_storage[soo_buffer_size]{};
     };
 }
 

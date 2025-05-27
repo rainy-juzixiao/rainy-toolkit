@@ -362,9 +362,9 @@ lambda_without_capture's signature: void(__cdecl main::<lambda_2>::* )(int,int) 
 
 ### 备注
 
-建议使用哈希码作为类型比对，而非使用字符串名称，因为这些名称是通过编译器生成的，使用字符串名称可能导致实现定义行为
-
 在调用时，无论是Debug还是Release模式。都会默认调用一个契约函数`expects`以检查`empty()`返回结果是否为假，若为假，则代表当前对象无效，将触发断言
+
+以及，`return_type()`返回的rtti类型名称在不同编译器中不具备相同名称。因此，通过硬编码字符串确定名称并不是最佳的实践，建议通过`hash_code()`、`is_compatible`等方法进行类型的比对判断
 
 ### 备注
 
@@ -431,9 +431,10 @@ const rainy::collections::views::array_view<
 
 ### 备注
 
-在调用时，无论是Debug还是Release模式。都会默认调用一个契约函数`expects`以检查`empty()`返回结果是否为假，若为假，则代表当前对象无效，将触发断言
+在调用时，无论是Debug还是Release模式。都会默认调用一个契约函数`expects`以检查`empty()`返回结果是否为假，若为假，则代表当前对象无效，将触发断言。另外，对paramlists进行const_cast修改，将导致未定义行为
 
-另外，对paramlists进行const_cast修改，将导致未定义行为
+以及，`paramlists()`返回的rtti类型名称在不同编译器中不具备相同名称。因此，通过硬编码字符串确定名称并不是最佳的实践，建议通过`hash_code()`、`is_compatible`等方法进行类型的比对判断
+
 
 ### 示例
 
@@ -491,7 +492,6 @@ void print(std::string_view fn_name, const array_view<typeinfo>& array_view) {
 int main() {
     std::cout << std::boolalpha;
     function fn = &example::foo;
-    std::cout << sizeof(fn) << '\n';
     print("example::foo", fn.paramlists()); // paramlists() returns a view reference
     fn.rebind(&static_foo);
     print("static_foo", fn.paramlists());
@@ -502,7 +502,6 @@ int main() {
     fn.rebind(&test_fnptr);
     print("test_fnptr", fn.paramlists());
 }
-
 /*Output
 example::foo(__int64, int, class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> >)
 example::foo paramlist's details
@@ -558,8 +557,150 @@ std::size_t arg_count() const noexcept;
 ### 示例
 
 ```cpp
+#include <iostream>
+#include <string_view>
+#include <vector>
+#include <rainy/meta/reflection/function.hpp>
 
+using namespace rainy;
+using namespace rainy::collections::views;
+using namespace rainy::foundation::rtti;
+using namespace rainy::meta::reflection;
+
+using fp = void(*)(float);
+
+struct example {
+    // int(example::*)(std::int64_t, int, std::string);
+    int foo(std::int64_t, int , std::string) {
+        return 0;
+    }
+};
+
+int static_foo(int, std::string_view, std::vector<int>&) {
+    return 0;
+}
+
+std::vector<std::int64_t> use_array(int[100]) {
+    return {};
+}
+
+void cv_ref_fn(const int&, volatile double&&) {}
+
+void test_fnptr(fp) {}
+
+int main() {
+    function fn = &example::foo;
+    std::cout << "example::foo 's arg count -> " << fn.arg_count() << '\n';
+    fn.rebind(&static_foo);
+    std::cout << "static_foo 's arg count -> " << fn.arg_count() << '\n';
+    fn.rebind(&use_array);
+    std::cout << "use_array 's arg count -> " << fn.arg_count() << '\n';
+    fn.rebind(&cv_ref_fn);
+    std::cout << "cv_ref_fn 's arg count -> " << fn.arg_count() << '\n';
+    fn.rebind(&test_fnptr);
+    std::cout << "test_fnptr 's arg count -> " << fn.arg_count() << '\n';
+    return 0;
+}
+/*Output
+example::foo 's arg count -> 3
+static_foo 's arg count -> 3  
+use_array 's arg count -> 1   
+cv_ref_fn 's arg count -> 2   
+test_fnptr 's arg count -> 1  
+*/
 ```
+
+## arg
+
+获取当前function对象中，从0开始索引的参数列表中的某个参数的类型信息
+
+```cpp
+const rainy::foundation::rtti::typeinfo &arg(
+    std::size_t idx
+) const;
+```
+
+### 参数
+
+`idx`: 指定的索引
+
+### 返回值
+
+当前function对象存储的参数列表对应的类型信息
+
+### 异常
+
+产生`out_of_range`异常，当`idx >= arg_count()`
+
+### 备注
+
+`arg()`返回的rtti类型名称在不同编译器中不具备相同名称。因此，通过硬编码字符串确定名称并不是最佳的实践，建议通过`hash_code()`、`is_compatible`等方法进行类型的比对判断
+
+### 示例
+
+```cpp
+#include <iostream>
+#include <string_view>
+#include <vector>
+#include <rainy/meta/reflection/function.hpp>
+
+using namespace rainy;
+using namespace rainy::collections::views;
+using namespace rainy::foundation::rtti;
+using namespace rainy::meta::reflection;
+
+using fp = void(*)(float);
+
+struct example {
+    // int(example::*)(std::int64_t, int, std::string);
+    int foo(std::int64_t,int , std::string) {
+        return 0;
+    }
+};
+
+void void_arg_fn() {
+}
+
+void int_int_fn(int ,int) {
+}
+
+int main() {
+    function fn = &example::foo;
+    std::cout << "example::foo: \n";
+    for (int i = 0; i < fn.arg_count(); ++i) {
+        std::cout << fn.arg(i).name() << '\n';
+    }
+    // fn.arg(4) <-- it will fail
+    fn.rebind(&void_arg_fn);
+    // fn.arg(0) <-- it will fail;
+    fn.rebind(&int_int_fn);
+    std::cout << '\n';
+    std::cout << fn.arg(0).name() << '\n';
+    std::cout << fn.arg(1).name() << '\n';
+    return 0;
+}
+/*Output
+example::foo: 
+__int64
+int
+class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> >
+
+int
+int
+*/
+```
+
+## function_signature {#function_signature}
+
+获取当前function对象的函数签名的rtti类型标识
+
+```cpp
+const rainy::foundation::rtti::typeinfo & function_signature() const noexcept;
+```
+
+### 备注
+
+`function_signature()`返回的rtti类型名称在不同编译器中不具备相同名称。因此，通过硬编码字符串确定名称并不是最佳的实践，建议通过`hash_code()`、`is_compatible`等方法进行类型的比对判断
 
 ## function::operator bool
 

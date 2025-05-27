@@ -496,7 +496,7 @@ namespace rainy::foundation::system::memory {
 
         template <typename U,
                   type_traits::other_trans::enable_if_t<type_traits::type_relations::is_convertible_v<U (*)[], Ty (*)[]>, int> = 0>
-        RAINY_CONSTEXPR20 void operator()(const U *resource) const noexcept {
+        RAINY_CONSTEXPR20 void operator()(const U *) const noexcept {
             static_assert(!std::is_abstract_v<U>, "can't delete an incomplete type");
         }
     };
@@ -702,6 +702,22 @@ namespace rainy::utility {
             return implements::hash_representation(val == 0.0L ? 0.0L : val);
         }
     };
+
+    template <typename Ty, typename = void>
+    struct is_support_standard_hasher_available : type_traits::helper::false_type {};
+
+    template <typename Ty>
+    struct is_support_standard_hasher_available<
+        Ty, type_traits::other_trans::void_t<decltype(utility::declval<std::hash<Ty>>()(utility::declval<Ty>()))>>
+        : type_traits::helper::true_type {};
+
+    template <typename Ty, typename = void>
+    struct is_support_rainytoolkit_hasher_available : type_traits::helper::false_type {};
+
+    template <typename Ty>
+    struct is_support_rainytoolkit_hasher_available<
+        Ty, type_traits::other_trans::void_t<decltype(utility::declval<std::hash<Ty>>()(utility::declval<Ty>()))>>
+        : type_traits::helper::true_type {};
 }
 
 namespace rainy::utility {
@@ -877,6 +893,27 @@ namespace rainy::core {
         }
         return init;
     }
+}
+
+namespace rainy::utility {
+    template <typename Iter>
+    class sub_range {
+    public:
+        sub_range(Iter begin, Iter end) : begin_{begin}, end_{end} {
+        }
+
+        auto begin() const noexcept {
+            return begin_;
+        }
+
+        auto end() const noexcept {
+            return end_;
+        }
+
+    private:
+        Iter begin_;
+        Iter end_;
+    };
 }
 
 #endif

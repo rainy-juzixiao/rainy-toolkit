@@ -12,13 +12,12 @@ namespace rainy::meta::reflection::moon {
 
     template <typename Ty>
     struct meta<Ty, false> : implements::named_value<void> {
-        constexpr meta() {
-        }
+        constexpr meta() = default;
     };
 
     template <typename... As>
     struct meta_list : implements::element_list<As...> {
-        constexpr meta_list(As... as) : implements::element_list<As...>{as...} {
+        constexpr meta_list(As... as) : implements::element_list<As...>{as...} { // NOLINT
         }
     };
 
@@ -41,9 +40,9 @@ namespace rainy::meta::reflection::moon {
         return meta_list<std::decay_t<Metas>...>{utility::forward<Metas>(metas)...};
     }
 
-    template <typename... Metas>
-    constexpr auto bind_meta_if(bool cond, Metas &&...metas) {
-        if constexpr (cond) {
+    template <bool Cond,typename... Metas>
+    constexpr auto bind_meta_if(Metas &&...metas) {
+        if constexpr (Cond) {
             return meta_list<std::decay_t<Metas>...>{utility::forward<Metas>(metas)...};
         } else {
             return meta_list<>{};

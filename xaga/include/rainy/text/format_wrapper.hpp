@@ -289,7 +289,7 @@ namespace rainy::text {
      */
     template<typename CharType, typename... Args>
     void cstyle_format(std::basic_string<CharType> &ref, const std::basic_string_view<CharType> fmt, Args &&...args) {
-        static_assert(sizeof...(Args) == 0 ? true : core::check_format_type<Args...>,
+        static_assert(sizeof...(Args) == 0 ? true : core::check_format_type<type_traits::other_trans::decay_t<Args>...>,
                       "Unsupported argument type passed to format");
         auto check_func = [&ref](int update_size) {
             if (update_size < 0) {

@@ -349,25 +349,28 @@ namespace rainy::utility {
         using iterator_category = typename iterator_traits::iterator_category;
         using value_type = typename iterator_traits::value_type;
         using difference_type = typename iterator_traits::difference_type;
-        using pointer = typename iterator_traits::pointer;
-        using reference = typename iterator_traits::reference;
+        using pointer = value_type &;
+        using reference = value_type &;
         using const_reference = const value_type &;
         using const_pointer = const value_type *;
+#if RAINY_HAS_CXX20
+        using iterator_concept = typename iterator_traits::iterator_category;
+#endif
 
-        RAINY_CONSTEXPR20 reference operator*() noexcept(noexcept(static_cast<implement_type *>(this)->get_element_impl())) {
+        RAINY_CONSTEXPR20 decltype(auto) operator*() noexcept(noexcept(static_cast<implement_type *>(this)->get_element_impl())) {
             return static_cast<implement_type *>(this)->get_element_impl();
         }
 
-        RAINY_CONSTEXPR20 pointer operator->() noexcept(noexcept(static_cast<implement_type *>(this)->get_pointer_impl())) {
+        RAINY_CONSTEXPR20 decltype(auto) operator->() noexcept(noexcept(static_cast<implement_type *>(this)->get_pointer_impl())) {
             return static_cast<implement_type *>(this)->get_pointer_impl();
         }
 
-        RAINY_CONSTEXPR20 const_reference operator*() const
+        RAINY_CONSTEXPR20 decltype(auto) operator*() const
             noexcept(noexcept(static_cast<const implement_type *>(this)->get_element_impl())) {
             return static_cast<const implement_type *>(this)->get_element_impl();
         }
 
-        RAINY_CONSTEXPR20 const_pointer operator->() const
+        RAINY_CONSTEXPR20 decltype(auto) operator->() const
             noexcept(noexcept(static_cast<const implement_type *>(this)->get_pointer_impl())) {
             return static_cast<const implement_type *>(this)->get_pointer_impl();
         }
@@ -401,7 +404,7 @@ namespace rainy::utility {
         }
 
         friend RAINY_CONSTEXPR20 bool operator!=(const bidirectional_iterator &left,
-                               const bidirectional_iterator &right) noexcept(noexcept(left == right)) {
+                                                 const bidirectional_iterator &right) noexcept(noexcept(left == right)) {
             return !(left == right);
         }
 
@@ -411,6 +414,78 @@ namespace rainy::utility {
             return static_cast<const implement_type *>(this)->equal_with_impl(static_cast<const implement_type &>(right));
         }
     };
+
+    template <typename MapContainer>
+    class map_mapped_const_iterator
+        : public utility::bidirectional_iterator<
+              map_mapped_const_iterator<MapContainer>,
+              utility::make_iterator_traits<typename MapContainer::iterator::difference_type, std::bidirectional_iterator_tag,
+                                            typename MapContainer::mapped_type *, typename MapContainer::mapped_type &,
+                                            typename MapContainer::mapped_type>> {
+    public:
+        template <typename MapContainer_>
+        friend class map_mapped_iterator;
+
+        using base = utility::bidirectional_iterator<
+            map_mapped_const_iterator<MapContainer>,
+            utility::make_iterator_traits<typename MapContainer::iterator::difference_type, std::bidirectional_iterator_tag,
+                                          typename MapContainer::mapped_type *, typename MapContainer::mapped_type &,
+                                          typename MapContainer::mapped_type>>;
+
+        template <typename Ty>
+        explicit map_mapped_const_iterator(Ty it) : current_(it) {
+        }
+
+        base::const_reference get_element_impl() const noexcept {
+            return current_->second;
+        }
+
+        base::const_pointer get_pointer_impl() const noexcept {
+            return utility::addressof(current_->second);
+        }
+
+        void next_impl() noexcept {
+            ++current_;
+        }
+
+        void back_impl() noexcept {
+            --current_;
+        }
+
+        bool equal_with_impl(const map_mapped_const_iterator &other) const noexcept {
+            return current_ == other.current_;
+        }
+
+    private:
+        typename MapContainer::const_iterator current_;
+    };
+
+    template <typename MapContainer>
+    class map_mapped_iterator : public map_mapped_const_iterator<MapContainer> {
+    public:
+        using base = typename map_mapped_const_iterator<MapContainer>::base;
+
+        using const_iterator = map_mapped_const_iterator<MapContainer>;
+        using const_iterator::const_iterator;
+
+        base::pointer get_pointer_impl() noexcept {
+            return utility::addressof(this->current_->second);
+        }
+
+        base::reference &get_element_impl() noexcept {
+            return const_cast<base::reference &>(this->current_->second);
+        }
+    };
+
+    template <typename Map>
+    auto mapped_range(Map & map) {
+        return utility::sub_range{map_mapped_iterator<Map>{map.begin()}, map_mapped_iterator<Map>{map.end()}};
+    }
+
+    template <typename Map>
+    auto mapped_range(const Map &map) {
+        return utility::sub_range{map_mapped_const_iterator<Map>{map.begin()}, map_mapped_const_iterator<Map>{map.end()}};
+    }
 }
 
 #endif

@@ -1,63 +1,71 @@
 #define NOMINMAX
-#include <benchmark/benchmark.h>
-#include <rainy/meta/reflection/function.hpp>
-//#include <rttr/registration.h>
 #include <UDRefl/UDRefl.hpp>
+#include <benchmark/benchmark.h>
 #include <meta/factory.hpp>
 #include <meta/meta.hpp>
+#include <rainy/meta/reflection/registration.hpp>
+#include <rttr/registration.h>
 
 class test {
 public:
-    void fun() {
+    float fun() { // NOLINT
         static volatile float c;
         c += 3.14f;  
+        return c;
     }
 
-    void fun1(float n) {
+    float fun1(float n) { // NOLINT
         static volatile float c;
         c += n;
+        return c;
     }
 
-    void fun2(float n, float m) {
+    float fun2(float n, float m) { // NOLINT
         static volatile float c;
         c += n + m;
+        return c;
     }
 
-    void fun3(float n, float m, float o) {
+    float fun3(float n, float m, float o) { // NOLINT
         static volatile float c;
         c += n + m + o;
+        return c;
     }
 
-    void fun4(float n, float m, float o, float p) {
+    float fun4(float n, float m, float o, float p) { // NOLINT
         static volatile float c;
         c += n + m + o + p;
+        return c;
     }
 
-    void fun5(float n, float m, float o, float p, float q) {
+    float fun5(float n, float m, float o, float p, float q) { // NOLINT
         static volatile float c;
         c += n + m + o + p + q;
+        return c;
     }
 
-    void fun6(float n, float m, float o, float p, float q, float a1) {
+    float fun6(float n, float m, float o, float p, float q, float a1) { // NOLINT
         static volatile float c;
         c += n + m + o + p + q +a1;
+        return c;
     }
 };
 
-//using namespace rttr;
+using namespace rttr;
 using namespace Ubpa;
 using namespace Ubpa::UDRefl;
 
 struct auto_regsiter {
     auto_regsiter() {
-        /*registration::class_<test>("test")
+        registration::class_<test>("test")
             .constructor()
+            .method("fun", &test::fun)
             .method("fun1", &test::fun1)
             .method("fun2", &test::fun2)
             .method("fun3", &test::fun3)
             .method("fun4", &test::fun4)
             .method("fun5", &test::fun5)
-            .method("fun6", &test::fun6);*/
+            .method("fun6", &test::fun6);
         Mngr.RegisterType<test>();
         Mngr.AddMethod<&test::fun>("fun");
         Mngr.AddMethod<&test::fun1>("fun1");
@@ -66,7 +74,7 @@ struct auto_regsiter {
         Mngr.AddMethod<&test::fun4>("fun4");
         Mngr.AddMethod<&test::fun5>("fun5");
         Mngr.AddMethod<&test::fun6>("fun6");
-        std::hash<std::string_view> hash{};
+        constexpr std::hash<std::string_view> hash{};
         auto factory = meta::reflect<test>(hash("reflected_type"));
         factory.func<&test::fun>(hash("fun"));
         factory.func<&test::fun1>(hash("fun1"));
@@ -75,79 +83,102 @@ struct auto_regsiter {
         factory.func<&test::fun4>(hash("fun4"));
         factory.func<&test::fun5>(hash("fun5"));
         factory.func<&test::fun6>(hash("fun6"));
+        rainy::meta::reflection::registration::class_<test>("test")
+            .constructor()
+            .method("fun", &test::fun)
+            .method("fun1", &test::fun1)
+            .method("fun2", &test::fun2)
+            .method("fun3", &test::fun3)
+            .method("fun4", &test::fun4)
+            .method("fun5", &test::fun5)
+            .method("fun6", &test::fun6);
     }
 };
 
 auto_regsiter registers;
 
 static void benchmark_rainytoolkit_reflection_invoke_method(benchmark::State &state) {
-    using namespace rainy::meta::reflection;
-    for (auto _: state) {
-        static function fun_rf = &test::fun;
+    using namespace rainy::meta;
+    for (const auto _: state) {
+        static auto type = reflection::type::get<test>();
+        static const auto &fun_rf = type.get_method("fun");
         static test object_x;
         benchmark::DoNotOptimize(fun_rf.invoke(object_x));
         benchmark::ClobberMemory();
+        (void) _;
     }
 }
 
 
 static void benchmark_rainytoolkit_reflection_invoke_method_1(benchmark::State &state) {
-    using namespace rainy::meta::reflection;
-    for (auto _: state) {
-        static function fun_rf = &test::fun1;
+    using namespace rainy::meta;
+    for (const auto _: state) {
+        static auto type = reflection::type::get<test>();
+        static const auto& fun_rf = type.get_method("fun1");
         static test object_x;
         benchmark::DoNotOptimize(fun_rf.invoke(object_x, 10.0f));
         benchmark::ClobberMemory();
+        (void) _;
     }
 }
 
 static void benchmark_rainytoolkit_reflection_invoke_method_2(benchmark::State &state) {
-    using namespace rainy::meta::reflection;
-    for (auto _: state) {
-        static function fun_rf = &test::fun2;
+    using namespace rainy::meta;
+    for (const auto _: state) {
+        static auto type = reflection::type::get<test>();
+        static const auto &fun_rf = type.get_method("fun2");
         static test object_x;
         benchmark::DoNotOptimize(fun_rf.invoke(object_x, 10.0f, 20.0f));
         benchmark::ClobberMemory();
+        (void) _;
     }
 }
 
 static void benchmark_rainytoolkit_reflection_invoke_method_3(benchmark::State &state) {
-    using namespace rainy::meta::reflection;
-    for (auto _: state) {
-        static function fun_rf = &test::fun3;
+    using namespace rainy::meta;
+    for (const auto _: state) {
+        static auto type = reflection::type::get<test>();
+        static const auto &fun_rf = type.get_method("fun3");
         static test object_x;
         benchmark::DoNotOptimize(fun_rf.invoke(object_x, 10.0f, 20.0f, 30.0f));
         benchmark::ClobberMemory();
+        (void) _;
     }
 }
 
 static void benchmark_rainytoolkit_reflection_invoke_method_4(benchmark::State &state) {
-    using namespace rainy::meta::reflection;
-    for (auto _: state) {
-        static function fun_rf = &test::fun4;
+    using namespace rainy::meta;
+    for (const auto _: state) {
+        static auto type = reflection::type::get<test>();
+        static const auto &fun_rf = type.get_method("fun4");
         static test object_x;
         benchmark::DoNotOptimize(fun_rf.invoke(object_x, 10.0f, 20.0f, 30.0f, 40.0f));
         benchmark::ClobberMemory();
+        (void) _;
     }
 }
 
 static void benchmark_rainytoolkit_reflection_invoke_method_5(benchmark::State &state) {
-    using namespace rainy::meta::reflection;
-    for (auto _: state) {
-        static function fun_rf = &test::fun5;
+    using namespace rainy::meta;
+    for (const auto _: state) {
+        static auto type = reflection::type::get<test>();
+        static const auto &fun_rf = type.get_method("fun5");
         static test object_x;
         benchmark::DoNotOptimize(fun_rf.invoke(object_x, 10.0f, 20.0f, 30.0f, 40.0f, 50.0f));
         benchmark::ClobberMemory();
+        (void) _;
     }
 }
 
 static void benchmark_rainytoolkit_reflection_invoke_method_6(benchmark::State &state) {
-    using namespace rainy::meta::reflection;
-    for (auto _: state) {
-        static function fun_rf = &test::fun6;
+    using namespace rainy::meta;
+    for (const auto _: state) {
+        static auto type = reflection::type::get<test>();
+        static const auto &fun_rf = type.get_method("fun6");
         static test object_x;
         benchmark::DoNotOptimize(fun_rf.invoke(object_x, 10.0f, 20.0f, 30.0f, 40.0f, 50.0f, 60.0f));
         benchmark::ClobberMemory();
+        (void) _;
     }
 }
 
@@ -159,143 +190,165 @@ BENCHMARK(benchmark_rainytoolkit_reflection_invoke_method_4);
 BENCHMARK(benchmark_rainytoolkit_reflection_invoke_method_5);
 BENCHMARK(benchmark_rainytoolkit_reflection_invoke_method_6);
 
-//static void benchmark_rttr_reflection_invoke_method(benchmark::State &state) {
-//    for (auto _: state) {
-//        static auto type = rttr::type::get_by_name("test");
-//        static auto fun1 = type.get_method("fun");
-//        static test object_x;
-//        benchmark::DoNotOptimize(fun1.invoke(object_x));
-//        benchmark::ClobberMemory();
-//    }
-//}
-//
-//static void benchmark_rttr_reflection_invoke_method_1(benchmark::State &state) {
-//    for (auto _: state) {
-//        static auto type = rttr::type::get_by_name("test");
-//        static auto fun1 = type.get_method("fun1");
-//        static test object_x;
-//        benchmark::DoNotOptimize(fun1.invoke(object_x, 10.0f));
-//        benchmark::ClobberMemory();
-//    }
-//}
-//
-//static void benchmark_rttr_reflection_invoke_method_2(benchmark::State &state) {
-//    for (auto _: state) {
-//        static auto type = rttr::type::get_by_name("test");
-//        static auto fun2 = type.get_method("fun2");
-//        static test object_x;
-//        benchmark::DoNotOptimize(fun2.invoke(object_x, 10.0f, 20.0f));
-//        benchmark::ClobberMemory();
-//    }
-//}
-//
-//static void benchmark_rttr_reflection_invoke_method_3(benchmark::State &state) {
-//    for (auto _: state) {
-//        static auto type = rttr::type::get_by_name("test");
-//        static auto fun3 = type.get_method("fun3");
-//        static test object_x;
-//        benchmark::DoNotOptimize(fun3.invoke(object_x, 10.0f, 20.0f, 30.0f));
-//        benchmark::ClobberMemory();
-//    }
-//}
-//
-//static void benchmark_rttr_reflection_invoke_method_4(benchmark::State &state) {
-//    for (auto _: state) {
-//        static auto type = rttr::type::get_by_name("test");
-//        static auto fun4 = type.get_method("fun4");
-//        static test object_x;
-//        benchmark::DoNotOptimize(fun4.invoke(object_x, 10.0f, 20.0f, 30.0f, 40.0f));
-//        benchmark::ClobberMemory();
-//    }
-//}
-//
-//static void benchmark_rttr_reflection_invoke_method_5(benchmark::State &state) {
-//    for (auto _: state) {
-//        static auto type = rttr::type::get_by_name("test");
-//        static auto fun5 = type.get_method("fun5");
-//        static test object_x;
-//        fun5.invoke(object_x, 10.0f, 20.0f, 30.0f, 40.0f, 50.0f);
-//        benchmark::DoNotOptimize(state.iterations());
-//    }
-//}
-//
-//static void benchmark_rttr_reflection_invoke_method_6(benchmark::State &state) {
-//    for (auto _: state) {
-//        static auto type = rttr::type::get_by_name("test");
-//        static auto fun6 = type.get_method("fun6");
-//        static test object_x;
-//        benchmark::DoNotOptimize(fun6.invoke(object_x, 10.0f, 20.0f, 30.0f, 40.0f, 50.0f, 60.0f));
-//    }
-//}
-//
-//BENCHMARK(benchmark_rttr_reflection_invoke_method);
-//BENCHMARK(benchmark_rttr_reflection_invoke_method_1);
-//BENCHMARK(benchmark_rttr_reflection_invoke_method_2);
-//BENCHMARK(benchmark_rttr_reflection_invoke_method_3);
-//BENCHMARK(benchmark_rttr_reflection_invoke_method_4);
-//BENCHMARK(benchmark_rttr_reflection_invoke_method_5);
-//BENCHMARK(benchmark_rttr_reflection_invoke_method_6);
+static void benchmark_rttr_reflection_invoke_method(benchmark::State &state) {
+    for (const auto _: state) {
+        static auto type = rttr::type::get_by_name("test");
+        static auto fun1 = type.get_method("fun");
+        static test object_x;
+        benchmark::DoNotOptimize(fun1.invoke(object_x));
+        benchmark::ClobberMemory();
+        (void) _;
+    }
+}
+
+static void benchmark_rttr_reflection_invoke_method_1(benchmark::State &state) {
+    for (const auto _: state) {
+        static auto type = rttr::type::get_by_name("test");
+        static auto fun1 = type.get_method("fun1");
+        static test object_x;
+        benchmark::DoNotOptimize(fun1.invoke(object_x, 10.0f));
+        benchmark::ClobberMemory();
+        (void) _;
+    }
+}
+
+static void benchmark_rttr_reflection_invoke_method_2(benchmark::State &state) {
+    for (const auto _: state) {
+        static auto type = rttr::type::get_by_name("test");
+        static auto fun2 = type.get_method("fun2");
+        static test object_x;
+        benchmark::DoNotOptimize(fun2.invoke(object_x, 10.0f, 20.0f));
+        benchmark::ClobberMemory();
+        (void) _;
+    }
+}
+
+static void benchmark_rttr_reflection_invoke_method_3(benchmark::State &state) {
+    for (const auto _: state) {
+        static auto type = rttr::type::get_by_name("test");
+        static auto fun3 = type.get_method("fun3");
+        static test object_x;
+        benchmark::DoNotOptimize(fun3.invoke(object_x, 10.0f, 20.0f, 30.0f));
+        benchmark::ClobberMemory();
+        (void) _;
+    }
+}
+
+static void benchmark_rttr_reflection_invoke_method_4(benchmark::State &state) {
+    for (const auto _: state) {
+        static auto type = rttr::type::get_by_name("test");
+        static auto fun4 = type.get_method("fun4");
+        static test object_x;
+        benchmark::DoNotOptimize(fun4.invoke(object_x, 10.0f, 20.0f, 30.0f, 40.0f));
+        benchmark::ClobberMemory();
+        (void) _;
+    }
+}
+
+static void benchmark_rttr_reflection_invoke_method_5(benchmark::State &state) {
+    for (const auto _: state) {
+        static auto type = rttr::type::get_by_name("test");
+        static auto fun5 = type.get_method("fun5");
+        static test object_x;
+        benchmark::DoNotOptimize(fun5.invoke(object_x, 10.0f, 20.0f, 30.0f, 40.0f, 50.0f));
+        benchmark::ClobberMemory();
+        (void) _;
+    }
+}
+
+static void benchmark_rttr_reflection_invoke_method_6(benchmark::State &state) {
+    for (const auto _: state) {
+        static auto type = rttr::type::get_by_name("test");
+        static auto fun6 = type.get_method("fun6");
+        static test object_x;
+        benchmark::DoNotOptimize(fun6.invoke(object_x, 10.0f, 20.0f, 30.0f, 40.0f, 50.0f, 60.0f));
+        benchmark::ClobberMemory();
+        (void) _;
+    }
+}
+
+BENCHMARK(benchmark_rttr_reflection_invoke_method);
+BENCHMARK(benchmark_rttr_reflection_invoke_method_1);
+BENCHMARK(benchmark_rttr_reflection_invoke_method_2);
+BENCHMARK(benchmark_rttr_reflection_invoke_method_3);
+BENCHMARK(benchmark_rttr_reflection_invoke_method_4);
+BENCHMARK(benchmark_rttr_reflection_invoke_method_5);
+BENCHMARK(benchmark_rttr_reflection_invoke_method_6);
 
 static void benchmark_skypjack_meta_reflection_invoke_method(benchmark::State &state) {
-    for (auto _: state) {
+    for (const auto _: state) {
         static std::hash<std::string_view> hasher;
         static auto f = meta::resolve<test>().func(hasher("fun"));
         static test object;
         benchmark::DoNotOptimize(f.invoke(object));
+        benchmark::ClobberMemory();
+        (void) _;
     }
 }
 
 static void benchmark_skypjack_meta_reflection_invoke_method_1(benchmark::State &state) {
-    for (auto _: state) {
+    for (const auto _: state) {
         static std::hash<std::string_view> hasher;
         static auto f = meta::resolve<test>().func(hasher("fun1"));
         static test object;
         benchmark::DoNotOptimize(f.invoke(object, 10.0f));
+        benchmark::ClobberMemory();
+        (void) _;
     }
 }
 
 static void benchmark_skypjack_meta_reflection_invoke_method_2(benchmark::State &state) {
-    for (auto _: state) {
+    for (const auto _: state) {
         static std::hash<std::string_view> hasher;
         static auto f = meta::resolve<test>().func(hasher("fun2"));
         static test object;
         benchmark::DoNotOptimize(f.invoke(object, 10.0f, 20.0f));
+        benchmark::ClobberMemory();
+        (void) _;
     }
 }
 
 static void benchmark_skypjack_meta_reflection_invoke_method_3(benchmark::State &state) {
-    for (auto _: state) {
+    for (const auto _: state) {
         static std::hash<std::string_view> hasher;
         static auto f = meta::resolve<test>().func(hasher("fun3"));
         static test object;
         benchmark::DoNotOptimize(f.invoke(object, 10.0f, 20.0f, 30.0f));
+        benchmark::ClobberMemory();
+        (void) _;
     }
 }
 
 static void benchmark_skypjack_meta_reflection_invoke_method_4(benchmark::State &state) {
-    for (auto _: state) {
+    for (const auto _: state) {
         static std::hash<std::string_view> hasher;
         static auto f = meta::resolve<test>().func(hasher("fun4"));
         static test object;
         benchmark::DoNotOptimize(f.invoke(object, 10.0f, 20.0f, 30.0f, 40.0f));
+        benchmark::ClobberMemory();
+        (void) _;
     }
 }
 
 static void benchmark_skypjack_meta_reflection_invoke_method_5(benchmark::State &state) {
-    for (auto _: state) {
+    for (const auto _: state) {
         static std::hash<std::string_view> hasher;
         static auto f = meta::resolve<test>().func(hasher("fun5"));
         static test object;
         benchmark::DoNotOptimize(f.invoke(object, 10.0f, 20.0f, 30.0f, 40.0f, 50.0f));
+        benchmark::ClobberMemory();
+        (void) _;
     }
 }
 
 static void benchmark_skypjack_meta_reflection_invoke_method_6(benchmark::State &state) {
-    for (auto _: state) {
+    for (const auto _: state) {
         static std::hash<std::string_view> hasher;
         static auto f = meta::resolve<test>().func(hasher("fun6"));
         static test object;
         benchmark::DoNotOptimize(f.invoke(object, 10.0f, 20.0f, 30.0f, 40.0f, 50.0f, 60.0f));
+        benchmark::ClobberMemory();
+        (void) _;
     }
 }
 
@@ -309,50 +362,64 @@ BENCHMARK(benchmark_skypjack_meta_reflection_invoke_method_6);
 
 static void benchmark_ubpa_udrefl_reflection_invoke_method(benchmark::State &state) {
     static auto object = Mngr.MakeShared(Type_of<test>);
-    for (auto _: state) {
+    for (const auto _: state) {
         benchmark::DoNotOptimize(object.Invoke("fun"));
+        benchmark::ClobberMemory();
+        (void) _;
     }
 }
 
 static void benchmark_ubpa_udrefl_reflection_invoke_method_1(benchmark::State &state) {
     static auto object = Mngr.MakeShared(Type_of<test>);
-    for (auto _: state) {
+    for (const auto _: state) {
         benchmark::DoNotOptimize(object.Invoke("fun1", TempArgsView{10.0f}));
+        benchmark::ClobberMemory();
+        (void) _;
     }
 }
 
 static void benchmark_ubpa_udrefl_reflection_invoke_method_2(benchmark::State &state) {
     static auto object = Mngr.MakeShared(Type_of<test>);
-    for (auto _: state) {
+    for (const auto _: state) {
         benchmark::DoNotOptimize(object.Invoke("fun2", TempArgsView{10.0f, 20.0f}));
+        benchmark::ClobberMemory();
+        (void) _;
     }
 }
 
 static void benchmark_ubpa_udrefl_reflection_invoke_method_3(benchmark::State &state) {
     static auto object = Mngr.MakeShared(Type_of<test>);
-    for (auto _: state) {
+    for (const auto _: state) {
         benchmark::DoNotOptimize(object.Invoke("fun3", TempArgsView{10.0f, 20.0f, 30.0f}));
+        benchmark::ClobberMemory();
+        (void) _;
     }
 }
 
 static void benchmark_ubpa_udrefl_reflection_invoke_method_4(benchmark::State &state) {
     static auto object = Mngr.MakeShared(Type_of<test>);
-    for (auto _: state) {
+    for (const auto _: state) {
         benchmark::DoNotOptimize(object.Invoke("fun4", TempArgsView{10.0f, 20.0f, 30.0f, 40.0f}));
+        benchmark::ClobberMemory();
+        (void) _;
     }
 }
 
 static void benchmark_ubpa_udrefl_reflection_invoke_method_5(benchmark::State &state) {
     static auto object = Mngr.MakeShared(Type_of<test>);
-    for (auto _: state) {
+    for (const auto _: state) {
         benchmark::DoNotOptimize(object.Invoke("fun5", TempArgsView{10.0f, 20.0f, 30.0f, 40.0f, 50.0f}));
+        benchmark::ClobberMemory();
+        (void) _;
     }
 }
 
 static void benchmark_ubpa_udrefl_reflection_invoke_method_6(benchmark::State &state) {
     static auto object = Mngr.MakeShared(Type_of<test>);
-    for (auto _: state) {
+    for (const auto _: state) {
         benchmark::DoNotOptimize(object.Invoke("fun6", TempArgsView{10.0f, 20.0f, 30.0f, 40.0f, 50.0f, 60.0f}));
+        benchmark::ClobberMemory();
+        (void) _;
     }
 }
 

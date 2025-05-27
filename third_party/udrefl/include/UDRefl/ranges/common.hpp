@@ -10,7 +10,7 @@ namespace Ubpa::UDRefl::Ranges {
 		TypeInfo* typeinfo; // not nullptr
 		std::unordered_map<Type, BaseInfo>::iterator curbase;
 
-		UDRefl_core_API friend bool operator==(const Derived& lhs, const Derived& rhs) {
+	    friend bool operator==(const Derived& lhs, const Derived& rhs) {
 			return lhs.obj.GetType() == rhs.obj.GetType()
 				&& lhs.obj.GetPtr() == rhs.obj.GetPtr()
 				&& lhs.curbase == rhs.curbase;

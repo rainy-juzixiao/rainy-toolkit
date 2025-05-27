@@ -59,18 +59,18 @@ TEST(RainyFunctionPointerTest, TestFunctionPointerWithVariadic) {
 TEST(RainyFunctionPointerTest, TestEmptyPointerInvokeThrowsException) {
     function_pointer<int(int, int)> fptr = nullptr;
     EXPECT_THROW(fptr(1, 2),
-                 rainy::foundation::system::exceptions::wrapexcept<rainy::foundation::system::exceptions::runtime::runtime_error>);
+                 rainy::foundation::exceptions::wrapexcept<rainy::foundation::exceptions::runtime::runtime_error>);
 }
 
 TEST(RainyFunctionPointerTest, TestResetPointerInvokeThrowsException) {
     function_pointer<int(int, int)> fptr = nullptr;
     EXPECT_THROW(fptr(1, 2),
-                 rainy::foundation::system::exceptions::wrapexcept<rainy::foundation::system::exceptions::runtime::runtime_error>);
+                 rainy::foundation::exceptions::wrapexcept<rainy::foundation::exceptions::runtime::runtime_error>);
     fptr.reset(&add);
     EXPECT_NO_THROW(fptr(1, 2));
     fptr.reset(nullptr);
     EXPECT_THROW(fptr(1, 2),
-                 rainy::foundation::system::exceptions::wrapexcept<rainy::foundation::system::exceptions::runtime::runtime_error>);
+                 rainy::foundation::exceptions::wrapexcept<rainy::foundation::exceptions::runtime::runtime_error>);
 }
 
 TEST(RainyFunctionPointerTest, TestNullptrAssignment) {
