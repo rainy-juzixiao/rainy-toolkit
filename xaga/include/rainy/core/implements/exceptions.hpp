@@ -62,7 +62,8 @@ namespace rainy::foundation::exceptions {
 
     template <typename Except>
     void throw_exception(const Except &exception) {
-        static_assert(type_traits::type_relations::is_base_of_v<std::exception, Except>, "exception type must be derived from std::exception!");
+        static_assert(type_traits::type_relations::is_base_of_v<std::exception, Except>,
+                      "exception type must be derived from std::exception!");
 #if __cpp_exceptions
         throw wrapexcept<Except>{exception}; // 阻止Clang-Tidy的误报
 #else
@@ -81,78 +82,80 @@ namespace rainy::foundation::exceptions {
         }
         return exception{""};
     }
+}
 
-    namespace runtime {
-        class runtime_error : public exception {
-        public:
-            using base = exception;
+namespace rainy::foundation::exceptions::runtime {
+    class runtime_error : public exception {
+    public:
+        using base = exception;
 
-            explicit runtime_error(const char *message, const source &location = source::current()) : base(message, location) {
-            }
-
-            explicit runtime_error(const std::string &message, const source &location = source::current()) : base(message, location) {
-            }
-        };
-
-        RAINY_INLINE void throw_runtime_error(const char *message,
-                                              const diagnostics::source_location &location = diagnostics::source_location::current()) {
-            throw_exception(runtime_error{message, location});
-        }
-    }
-
-    namespace logic {
-        class logic_error : public exception {
-        public:
-            using base = exception;
-
-            explicit logic_error(const char *message, const source &location = source::current()) : base(message, location) {
-            }
-
-            explicit logic_error(const std::string &message, const source &location = source::current()) : base(message, location) {
-            }
-        };
-
-        RAINY_INLINE void throw_logic_error(const char *message,
-                                            const diagnostics::source_location &location = diagnostics::source_location::current()) {
-            throw_exception(logic_error{message, location});
+        explicit runtime_error(const source &location = source::current()) noexcept : base("I Got a runtime_error!", location) {
         }
 
-        class out_of_range final : public logic_error {
-        public:
-            using base = logic_error;
-
-            explicit out_of_range(const char *message, const source &location = source::current()) : base(message, location) {
-            }
-
-            explicit out_of_range(const std::string &message, const source &location = source::current()) : base(message, location) {
-            }
-        };
-
-        RAINY_INLINE void throw_out_of_range(const char *message,
-                                             const diagnostics::source_location &location = diagnostics::source_location::current()) {
-            throw_exception(out_of_range{message, location});
+        explicit runtime_error(const char *message, const source &location = source::current()) : base(message, location) {
         }
-    }
 
-    namespace cast {
-        class bad_cast : public exception {
-        public:
-            using base = exception;
-
-            explicit bad_cast(const source &location = source::current()) : base("bad cast", location) {
-            }
-
-            explicit bad_cast(const std::string &message, const source &location = source::current()) : base(message, location) {
-            }
-        };
-
-        RAINY_INLINE void throw_bad_cast(const char *message,
-                                         const diagnostics::source_location &location = diagnostics::source_location::current()) {
-            throw_exception(bad_cast{message, location});
+        explicit runtime_error(const std::string &message, const source &location = source::current()) : base(message, location) {
         }
+    };
+
+    RAINY_INLINE void throw_runtime_error(const char *message,
+                                          const diagnostics::source_location &location = diagnostics::source_location::current()) {
+        throw_exception(runtime_error{message, location});
     }
 }
 
+namespace rainy::foundation::exceptions::logic {
+    class logic_error : public exception {
+    public:
+        using base = exception;
+
+        explicit logic_error(const char *message, const source &location = source::current()) : base(message, location) {
+        }
+
+        explicit logic_error(const std::string &message, const source &location = source::current()) : base(message, location) {
+        }
+    };
+
+    RAINY_INLINE void throw_logic_error(const char *message,
+                                        const diagnostics::source_location &location = diagnostics::source_location::current()) {
+        throw_exception(logic_error{message, location});
+    }
+
+    class out_of_range final : public logic_error {
+    public:
+        using base = logic_error;
+
+        explicit out_of_range(const char *message, const source &location = source::current()) : base(message, location) {
+        }
+
+        explicit out_of_range(const std::string &message, const source &location = source::current()) : base(message, location) {
+        }
+    };
+
+    RAINY_INLINE void throw_out_of_range(const char *message,
+                                         const diagnostics::source_location &location = diagnostics::source_location::current()) {
+        throw_exception(out_of_range{message, location});
+    }
+}
+
+namespace rainy::foundation::exceptions::cast {
+    class bad_cast : public exception {
+    public:
+        using base = exception;
+
+        explicit bad_cast(const source &location = source::current()) : base("bad cast", location) {
+        }
+
+        explicit bad_cast(const std::string &message, const source &location = source::current()) : base(message, location) {
+        }
+    };
+
+    RAINY_INLINE void throw_bad_cast(const char *message,
+                                     const diagnostics::source_location &location = diagnostics::source_location::current()) {
+        throw_exception(bad_cast{message, location});
+    }
+}
 
 #if RAINY_HAS_CXX20
 template <>

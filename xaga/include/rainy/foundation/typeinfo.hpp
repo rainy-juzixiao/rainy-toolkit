@@ -19,7 +19,7 @@
  * @file typeinfo.hpp
  * @brief 类型信息类
  * @brief 此文件定义了一套类型信息类，用于获取类型信息。rainy-toolkit通过此文件提供的接口，用于实现元编程功能
- * @brief 使用此rtti不会带来性能开销，因为它本质只是做一个静态的编译期计算，仅涉及比较基本的元编程操作
+ * @brief 使用此ctti不会带来性能开销，因为它本质只是做一个静态的编译期计算，仅涉及比较基本的元编程操作
  * @author rainy-juzixiao
 */
 #include <rainy/core/core.hpp>
@@ -33,7 +33,7 @@
 #define RAINY_GENERATE_PRETTY_FUNCTION_NAME_IMPL "unsupported compiler"
 #endif
 
-namespace rainy::foundation::rtti {
+namespace rainy::foundation::ctti {
     struct traits {
         /* qualifiers */
         static RAINY_INLINE_CONSTEXPR int is_lref = 1 << 0;
@@ -77,7 +77,7 @@ namespace rainy::foundation::rtti {
     };
 }
 
-namespace rainy::foundation::rtti::implements {
+namespace rainy::foundation::ctti::implements {
     using type_name_prober = void;
 
     constexpr std::string_view type_name_prober_ = "void";
@@ -201,8 +201,17 @@ namespace rainy::foundation::rtti::implements {
         }
         return traits_;
     }
+
+    template <typename Ty>
+    constexpr std::size_t eval_for_typeinfo() noexcept {
+        std::size_t traits{};
+        traits |= implements::eval_traits_for_properties<Ty>();
+        traits |= implements::eval_traits_for_fundamental<Ty>();
+        traits |= implements::eval_traits_for_compound<Ty>();
+        return traits;
+    }
 }
-namespace rainy::foundation::rtti {
+namespace rainy::foundation::ctti {
     template <typename Ty>
     constexpr std::string_view type_name() {
         constexpr auto wrapped_name = implements::wrapped_type_name<Ty>();
@@ -213,7 +222,7 @@ namespace rainy::foundation::rtti {
     }
 }
 
-namespace rainy::foundation::rtti {
+namespace rainy::foundation::ctti {
     template <auto Variable>
     inline constexpr std::string_view variable_name() {
 #if RAINY_USING_MSVC
@@ -254,10 +263,10 @@ namespace rainy::foundation::rtti {
         static constexpr typeinfo create() {
             typeinfo info{};
             info._name = type_name<Ty>();
-            info._hash_code = fnv1a_hash(info._name);
-            info.traits_ |= implements::eval_traits_for_properties<Ty>();
-            info.traits_ |= implements::eval_traits_for_fundamental<Ty>();
-            info.traits_ |= implements::eval_traits_for_compound<Ty>();
+            constexpr std::size_t hash_code = fnv1a_hash(type_name<Ty>());
+            constexpr std::size_t traits = implements::eval_for_typeinfo<Ty>();
+            info._hash_code = hash_code;
+            info.traits_ = traits;
             return info;
         }
 
@@ -332,12 +341,6 @@ namespace rainy::foundation::rtti {
         /**
          * @brief 用于比较两个类型信息是否兼容
          * @param right 要比较的右边的类型信息对象
-         * @attention 在实现细节上。它并非万能的，不过此处将提及它的规则
-         * @attention 首先，它将检查非const是否可以转换为const
-         * @attention 接着，继续检查数值类型是否可以相互转换
-         * @attention 然后，进行指针类型兼容性规则检查
-         * @attention 再之后，进行nullptr_t兼容性规则检查
-         * @attention 最后，进行名称字符串的比较，如果相同，则认为是“兼容”的
          * @return 如果right的类型信息与this存储的类型信息具有兼容性，返回true，否则返回false
          */
         constexpr bool is_compatible(const typeinfo &right) const noexcept {
@@ -353,7 +356,7 @@ namespace rainy::foundation::rtti {
             }
             if (has_traits(traits::is_pointer) && right.has_traits(traits::is_pointer)) {
                 if (has_traits(traits::is_lref) || has_traits(traits::is_rref)) {
-                    foundation::rtti::typeinfo target = right;
+                    foundation::ctti::typeinfo target = right;
                     if (target.has_traits(traits::is_lref) || target.has_traits(traits::is_rref)) {
                         target = target.remove_reference();
                     }
@@ -470,6 +473,18 @@ namespace rainy::foundation::rtti {
             return has_traits(traits::is_pointer);
         }
 
+        RAINY_NODISCARD constexpr bool is_lvalue_reference() const noexcept {
+            return has_traits(traits::is_lref);
+        }
+
+        RAINY_NODISCARD constexpr bool is_rvalue_reference() const noexcept {
+            return has_traits(traits::is_rref);
+        }
+
+        RAINY_NODISCARD constexpr bool is_const() const noexcept {
+            return has_traits(traits::is_const);
+        }
+
     private:
         static constexpr std::size_t fnv1a_hash(std::string_view val,
                                                 std::size_t offset_basis = rainy::utility::implements::fnv_offset_basis) noexcept {
@@ -514,8 +529,8 @@ namespace rainy::foundation::rtti {
 }
 
 template <>
-struct rainy::utility::hash<rainy::foundation::rtti::typeinfo> {
-    using argument_type = foundation::rtti::typeinfo;
+struct rainy::utility::hash<rainy::foundation::ctti::typeinfo> {
+    using argument_type = foundation::ctti::typeinfo;
     using result_type = std::size_t;
 
     static size_t hash_this_val(const argument_type &val) noexcept {
@@ -524,12 +539,12 @@ struct rainy::utility::hash<rainy::foundation::rtti::typeinfo> {
 };
 
 // 用于获取类型信息的宏，考虑到使用传统rtti的使用习惯
-#define rainy_typeid(x) ::rainy::foundation::rtti::typeinfo::of<x>()
-#define rainy_typehash(x) ::rainy::foundation::rtti::typeinfo::get_type_hash<x>()
+#define rainy_typeid(x) ::rainy::foundation::ctti::typeinfo::of<x>()
+#define rainy_typehash(x) ::rainy::foundation::ctti::typeinfo::get_type_hash<x>()
 
 template <>
-struct std::hash<rainy::foundation::rtti::typeinfo> {
-    RAINY_NODISCARD std::size_t operator()(const rainy::foundation::rtti::typeinfo &val) const noexcept {
+struct std::hash<rainy::foundation::ctti::typeinfo> {
+    RAINY_NODISCARD std::size_t operator()(const rainy::foundation::ctti::typeinfo &val) const noexcept {
         return val.hash_code();
     }
 };

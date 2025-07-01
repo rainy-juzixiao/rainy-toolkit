@@ -9,180 +9,196 @@
 
 namespace rainy::collections::views {
     template <typename Ty>
-    class array_view {
-    public:
+    struct array_view {
         using value_type = Ty;
         using size_type = std::size_t;
-        using reference = Ty &;
-        using const_reference = const Ty &;
+        using reference = value_type &;
+        using const_reference = value_type const &;
         using pointer = value_type *;
-        using const_pointer = const value_type *;
-        using difference_type = std::ptrdiff_t;
-        using iterator = pointer;
-        using const_iterator = const_pointer;
+        using const_pointer = value_type const *;
+        using iterator = value_type *;
+        using const_iterator = value_type const *;
         using reverse_iterator = utility::reverse_iterator<iterator>;
-        using const_reverse_iterator = const utility::reverse_iterator<iterator>;
+        using const_reverse_iterator = utility::reverse_iterator<const_iterator>;
 
-        constexpr array_view() = default;
+        constexpr array_view() noexcept = default;
 
-        RAINY_CONSTEXPR20 array_view(array_view &&) = default;
-        RAINY_CONSTEXPR20 array_view(const array_view &) = default;
-        array_view &operator=(array_view &&) = default;
-        array_view &operator=(const array_view &) = default;
-
-        RAINY_CONSTEXPR20 ~array_view() = default;
-
-        template <size_type N>
-        RAINY_CONSTEXPR20 array_view(value_type (&reference_array)[N]) : data_(reference_array), size_(N) {
+        constexpr array_view(pointer data, size_type size) noexcept : data_(data), size_(size) {
         }
 
-        RAINY_CONSTEXPR20 array_view(std::vector<Ty> &vector) : data_(vector.data()), size_(vector.size()) {
+        constexpr array_view(pointer first, pointer last) noexcept : data_(first), size_(last - first) {
         }
 
-        RAINY_CONSTEXPR20 array_view(const std::vector<Ty> &vector) : data_(vector.data()), size_(vector.size()) {
+        constexpr array_view(std::initializer_list<value_type> value) noexcept : array_view{const_cast<pointer>(value.begin()), value.size()} {
         }
 
-        RAINY_CONSTEXPR20 array_view(pointer first, pointer last) : data_(first), size_(std::distance(first, last)) {
+        template <typename C, size_type N>
+        constexpr array_view(C (&value)[N]) noexcept : array_view(value, N) {
         }
 
-        RAINY_CONSTEXPR20 array_view(const_pointer first, const_pointer last) : data_(first), size_(std::distance(first, last)) {
+        template <typename C>
+        RAINY_CONSTEXPR20 array_view(std::vector<C> &value) noexcept : array_view(data(value), value.size()) {
         }
 
-#if RAINY_USING_GCC
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Winit-list-lifetime"
-#endif
-
-        RAINY_CONSTEXPR20 array_view(std::initializer_list<Ty> initializer_list) :
-            data_(initializer_list.begin()),
-            size_(initializer_list.size()) {
-        }
-        
-#if RAINY_USING_GCC
-#pragma GCC diagnostic pop
-#endif
-
-        template <size_type N>
-        RAINY_CONSTEXPR20 array_view(std::array<Ty, N> &array) : data_(array.data()), size_(array.size()) {
+        template <typename C>
+        RAINY_CONSTEXPR20 array_view(std::vector<C> const &value) noexcept :
+            array_view(data(value), value.size()) {
         }
 
-        template <size_type N>
-        RAINY_CONSTEXPR20 array_view(const std::array<Ty, N> &array) : data_(array.data()), size_(array.size()) {
+        template <typename C, std::size_t N>
+        constexpr array_view(std::array<C, N> &value) noexcept : array_view(value.data(), value.size()) {
         }
 
-        template <size_type N>
-        RAINY_CONSTEXPR20 array_view(array<Ty, N> &array) : data_(array.data()), size_(array.size()) {
+        template <typename C, std::size_t N>
+        constexpr array_view(std::array<C, N> const &value) noexcept : array_view(value.data(), value.size()) {
         }
 
-        template <size_type N>
-        RAINY_CONSTEXPR20 array_view(const array<Ty, N> &array) : data_(const_cast<Ty *>(array.data())), size_(array.size()) {
+        template <typename C, std::size_t N>
+        constexpr array_view(collections::array<C, N> &value) noexcept : array_view(value.data(), N) {
         }
 
-        RAINY_CONSTEXPR20 iterator begin() noexcept {
-            return iterator(data());
+        template <typename C, std::size_t N>
+        constexpr array_view(collections::array<C, N> const &value) noexcept : array_view(value.data(), N) {
         }
 
-        RAINY_CONSTEXPR20 iterator end() noexcept {
-            return iterator{data() + size()};
+        template <typename OtherType, type_traits::other_trans::enable_if_t<
+                                          type_traits::type_relations::is_convertible_v<OtherType (*)[], Ty (*)[]>, int> = 0>
+        constexpr array_view(array_view<OtherType> const &other) noexcept : array_view(other.data(), other.size()) {
         }
 
-        RAINY_CONSTEXPR20 const_iterator begin() const noexcept {
-            return const_iterator{data()};
+        constexpr reference operator[](size_type const pos) noexcept {
+            assert(pos < size());
+            return data_[pos];
         }
 
-        RAINY_CONSTEXPR20 const_iterator end() const noexcept {
-            return const_iterator{data() + size()};
+        constexpr const_reference operator[](size_type const pos) const noexcept {
+            assert(pos < size());
+            return data_[pos];
         }
 
-        RAINY_CONSTEXPR20 const_iterator cbegin() const noexcept {
-            return const_iterator{data()};
+        constexpr reference at(size_type const pos) noexcept {
+            if (size() <= pos) {
+                foundation::exceptions::logic::throw_out_of_range("Invalid Subscript");
+            }
+            return data_[pos];
         }
 
-        RAINY_CONSTEXPR20 const_iterator cend() const noexcept {
-            return const_iterator{data() + size()};
+        constexpr const_reference at(size_type const pos) const {
+            if (size() <= pos) {
+                foundation::exceptions::logic::throw_out_of_range("Invalid Subscript");
+            }
+            return data_[pos];
         }
 
-        RAINY_CONSTEXPR20 reverse_iterator rbegin() noexcept {
-            return reverse_iterator{end()};
+        constexpr reference front() noexcept {
+            assert(size_ > 0);
+            return *data_;
         }
 
-        RAINY_CONSTEXPR20 reverse_iterator rend() noexcept {
-            return reverse_iterator{begin()};
+        constexpr const_reference front() const noexcept {
+            assert(size_ > 0);
+            return *data_;
         }
 
-        RAINY_CONSTEXPR20 const_reverse_iterator rbegin() const noexcept {
-            return const_reverse_iterator{end()};
+        constexpr reference back() noexcept {
+            assert(size_ > 0);
+            return data_[size_ - 1];
         }
 
-        RAINY_CONSTEXPR20 const_reverse_iterator rend() const noexcept {
-            return const_reverse_iterator{begin()};
+        constexpr const_reference back() const noexcept {
+            assert(size_ > 0);
+            return data_[size_ - 1];
         }
 
-        RAINY_CONSTEXPR20 const_reverse_iterator crbegin() const noexcept {
-            return const_reverse_iterator{end()};
-        }
-
-        RAINY_CONSTEXPR20 const_reverse_iterator crend() const noexcept {
-            return const_reverse_iterator{begin()};
-        }
-
-        RAINY_NODISCARD RAINY_CONSTEXPR20 pointer data() noexcept {
-            return const_cast<pointer>(data_);
-        }
-
-        RAINY_NODISCARD RAINY_CONSTEXPR20 const_pointer data() const noexcept {
+        constexpr pointer data() const noexcept {
             return data_;
         }
 
-        RAINY_NODISCARD constexpr size_type size() const {
-            return size_;
+        constexpr iterator begin() noexcept {
+            return data_;
         }
 
-        RAINY_NODISCARD constexpr bool empty() const {
+        constexpr const_iterator begin() const noexcept {
+            return data_;
+        }
+
+        constexpr const_iterator cbegin() const noexcept {
+            return data_;
+        }
+
+        constexpr iterator end() noexcept {
+            return data_ + size_;
+        }
+
+        constexpr const_iterator end() const noexcept {
+            return data_ + size_;
+        }
+
+        constexpr const_iterator cend() const noexcept {
+            return data_ + size_;
+        }
+
+        constexpr reverse_iterator rbegin() noexcept {
+            return reverse_iterator(end());
+        }
+
+        constexpr const_reverse_iterator rbegin() const noexcept {
+            return const_reverse_iterator(end());
+        }
+
+        constexpr const_reverse_iterator crbegin() const noexcept {
+            return rbegin();
+        }
+
+        constexpr reverse_iterator rend() noexcept {
+            return reverse_iterator(begin());
+        }
+
+        constexpr const_reverse_iterator rend() const noexcept {
+            return const_reverse_iterator(begin());
+        }
+
+        constexpr const_reverse_iterator crend() const noexcept {
+            return rend();
+        }
+
+        constexpr bool empty() const noexcept {
             return size_ == 0;
         }
 
-        RAINY_CONSTEXPR20 reference at(const difference_type idx) {
-            rangecheck(size(), idx);
-            return const_cast<reference>(data_[idx]);
-        }
-
-        RAINY_NODISCARD constexpr const_reference at(const difference_type idx) const {
-            rangecheck(size(), idx);
-            return data_[idx];
-        }
-
-        constexpr reference operator[](const difference_type idx) {
-            return const_cast<reference>(data_[idx]);
-        }
-
-        constexpr const_reference operator[](const difference_type idx) const {
-            return data_[idx];
-        }
-
-        friend RAINY_CONSTEXPR20 bool operator==(array_view &left, array_view &right) {
-            return core::algorithm::all_of(left.begin(), left.end(), right.begin(), [](const auto &left, const auto &right) { return left == right; });
-        }
-
-        friend RAINY_CONSTEXPR20 bool operator!=(array_view &left, array_view &right) {
-            return core::algorithm::all_of(left.begin(), left.end(), right.begin(),
-                               [](const auto &left, const auto &right) { return left != right; });
+        constexpr size_type size() const noexcept {
+            return size_;
         }
 
     private:
-        RAINY_NODISCARD constexpr bool check_index(const size_type idx) const noexcept {
-            return idx < size_;
+        template <typename C>
+        RAINY_CONSTEXPR20 auto data(std::vector<C> const &value) noexcept {
+            static_assert(!type_traits::type_relations::is_same_v<C, bool>,
+                          "Cannot use std::vector<bool> as an array_view. Consider std::array or std::unique_ptr<bool[]>.");
+            return value.data();
         }
 
-        static void rangecheck(const size_type size, const difference_type idx) {
-            if (size <= static_cast<size_type>(idx)) {
-                utility::throw_exception(std::out_of_range("Invalid array subscript"));
-            }
+        template <typename C>
+        RAINY_CONSTEXPR20 auto data(std::vector<C> &value) noexcept {
+            static_assert(!type_traits::type_relations::is_same_v<C, bool>,
+                          "Cannot use std::vector<bool> as an array_view. Consider std::array or std::unique_ptr<bool[]>.");
+            return value.data();
         }
 
-        const_pointer data_{};
-        size_type size_{};
+        pointer data_{nullptr};
+        size_type size_{0};
     };
+
+    template <typename C, size_t N>
+    array_view(C (&value)[N]) -> array_view<C>;
+    template <typename C>
+    array_view(std::vector<C> &value) -> array_view<C>;
+    template <typename C>
+    array_view(std::vector<C> const &value) -> array_view<C const>;
+    template <typename C, size_t N>
+    array_view(std::array<C, N> &value) -> array_view<C>;
+    template <typename C, size_t N>
+    array_view(std::array<C, N> const &value) -> array_view<C const>;
 
     template <typename Ty>
     RAINY_CONSTEXPR20 array_view<Ty> make_array_view(Ty *first, Ty *last) {

@@ -87,7 +87,7 @@ namespace rainy::foundation::comint {
 
         template <typename InterfaceClass>
         void add_interface() {
-            rtti::typeinfo type_idx = rainy_typeid(InterfaceClass);
+            ctti::typeinfo type_idx = rainy_typeid(InterfaceClass);
             const auto find = table.find(type_idx);
             if (find == table.end()) {
                 table.insert({type_idx, &InterfaceClass::make_instance});
@@ -96,7 +96,7 @@ namespace rainy::foundation::comint {
 
         template <typename InterfaceClass>
         void remove_interface() {
-            rtti::typeinfo type_idx = rainy_typeid(InterfaceClass);
+            ctti::typeinfo type_idx = rainy_typeid(InterfaceClass);
             const auto find = table.find(type_idx);
             if (find != table.end()) {
                 table.erase(find);
@@ -105,7 +105,7 @@ namespace rainy::foundation::comint {
 
         template <typename InterfaceClass>
         RAINY_NODISCARD std::shared_ptr<comint::the_unknown> create_instance() {
-            rtti::typeinfo type_idx = rainy_typeid(InterfaceClass);
+            ctti::typeinfo type_idx = rainy_typeid(InterfaceClass);
             const auto find = table.find(type_idx);
             if (find == table.end()) {
                 return nullptr;
@@ -114,7 +114,7 @@ namespace rainy::foundation::comint {
         }
 
     private:
-        std::unordered_map<rtti::typeinfo, foundation::functional::function_pointer<std::shared_ptr<comint::the_unknown>()>> table;
+        std::unordered_map<ctti::typeinfo, foundation::functional::function_pointer<std::shared_ptr<comint::the_unknown>()>> table;
     };
 
     template <typename InterfaceClass>

@@ -46,7 +46,45 @@ namespace rainy::type_traits::other_trans {
 
     template <typename Ty>
     using decay_t = typename decay<Ty>::type;
+
+    template <typename Ty>
+    struct underlying_type {
+        using type = __underlying_type(Ty);
+    };
+
+    template <typename Ty>
+    using underlying_type_t = typename underlying_type<Ty>::type;
 }
+
+#define RAINY_ENABLE_ENUM_CLASS_BITMASK_OPERATORS(EnumType)                                                                           \
+    inline constexpr EnumType operator|(EnumType lhs, EnumType rhs) {                                                                 \
+        using type = ::rainy::type_traits::other_trans::underlying_type_t<EnumType>;                                                  \
+        return static_cast<EnumType>(static_cast<type>(lhs) | static_cast<type>(rhs));                                                \
+    }                                                                                                                                 \
+    inline constexpr EnumType operator&(EnumType lhs, EnumType rhs) {                                                                 \
+        using type = ::rainy::type_traits::other_trans::underlying_type_t<EnumType>;                                                  \
+        return static_cast<EnumType>(static_cast<type>(lhs) & static_cast<type>(rhs));                                                \
+    }                                                                                                                                 \
+    inline constexpr EnumType operator^(EnumType lhs, EnumType rhs) {                                                                 \
+        using type = ::rainy::type_traits::other_trans::underlying_type_t<EnumType>;                                                  \
+        return static_cast<EnumType>(static_cast<type>(lhs) ^ static_cast<type>(rhs));                                                \
+    }                                                                                                                                 \
+    inline constexpr EnumType operator~(EnumType val) {                                                                               \
+        using type = ::rainy::type_traits::other_trans::underlying_type_t<EnumType>;                                                  \
+        return static_cast<EnumType>(~static_cast<type>(val));                                                                        \
+    }                                                                                                                                 \
+    inline constexpr EnumType &operator|=(EnumType &lhs, EnumType rhs) {                                                              \
+        lhs = lhs | rhs;                                                                                                              \
+        return lhs;                                                                                                                   \
+    }                                                                                                                                 \
+    inline constexpr EnumType &operator&=(EnumType &lhs, EnumType rhs) {                                                              \
+        lhs = lhs & rhs;                                                                                                              \
+        return lhs;                                                                                                                   \
+    }                                                                                                                                 \
+    inline constexpr EnumType &operator^=(EnumType &lhs, EnumType rhs) {                                                              \
+        lhs = lhs ^ rhs;                                                                                                              \
+        return lhs;                                                                                                                   \
+    }
 
 namespace rainy::type_traits::primary_types {
     template <typename Ty>
@@ -76,7 +114,7 @@ namespace rainy::type_traits::primary_types {
     struct is_specialization : helper::bool_constant<is_specialization_v<Type, Template>> {};
 
     template <typename Ty>
-    RAINY_CONSTEXPR_BOOL is_enum_v = implements::_is_enum_v<Ty>;
+    RAINY_CONSTEXPR_BOOL is_enum_v = type_traits::implements::_is_enum_v<Ty>;
 
     template <typename Ty>
     struct is_enum : helper::bool_constant<is_enum_v<Ty>> {};
@@ -91,7 +129,7 @@ namespace rainy::type_traits::primary_types {
     struct is_integral : helper::bool_constant<is_integral_v<Ty>> {};
 
     template <typename Ty>
-    RAINY_CONSTEXPR_BOOL is_floating_point_v = implements::is_floating_point_v<Ty>;
+    RAINY_CONSTEXPR_BOOL is_floating_point_v = type_traits::implements::is_floating_point_v<Ty>;
 
     template <typename Ty>
     struct is_floating_point : helper::bool_constant<is_floating_point_v<Ty>> {};
@@ -179,166 +217,6 @@ namespace rainy::type_traits::primary_types {
 
     template <typename Ty>
     struct is_member_function_pointer : helper::bool_constant<is_member_function_pointer_v<Ty>> {};
-}
-
-namespace rainy::core {
-    template <typename Ty>
-    class let {
-    public:
-        template <typename Uty,
-                  std::enable_if_t<std::is_convertible_v<Uty, Ty> &&
-                                       !rainy::type_traits::primary_types::is_specialization_v<type_traits::cv_modify::remove_cvref_t<Uty>, let>,
-                                   int> = 0>
-        constexpr let(Uty &&val) : val(static_cast<Ty>(val)) {
-        }
-
-        constexpr let(const let &right) noexcept(std::is_nothrow_copy_constructible_v<Ty>) : val(right.val) {
-        }
-
-        constexpr let(let &&right) noexcept(std::is_nothrow_move_constructible_v<Ty>) : val(std::move(right.val)) {
-        }
-
-        constexpr let &operator=(const let &right) noexcept(std::is_nothrow_copy_assignable_v<Ty>) {
-            this->val = right.val;
-            return *this;
-        }
-
-        constexpr let &operator=(const let &&right) noexcept(std::is_nothrow_copy_assignable_v<Ty>) {
-            this->val = std::move(right.val);
-            return *this;
-        }
-
-        template <typename Uty, std::enable_if_t<std::is_assignable_v<Uty, Ty>, int> = 0>
-        constexpr let &operator=(Uty &&val) {
-            this->val = val;
-            return *this;
-        }
-
-        constexpr Ty *operator->() noexcept {
-            return builtin::addressof(val);
-        }
-
-        constexpr const Ty *operator->() const noexcept {
-            return builtin::addressof(val);
-        }
-
-        constexpr operator Ty &() noexcept {
-            return val;
-        }
-
-        constexpr operator const Ty &() const noexcept {
-            return val;
-        }
-
-    private:
-        Ty val;
-    };
-
-    template <typename Ty>
-    class let<Ty &> {
-    public:
-        template <typename Uty, type_traits::other_trans::enable_if_t<type_traits::type_relations::is_convertible_v<Uty, Ty &>, int> = 0>
-        constexpr let(Uty &val) : ref(val) {
-        }
-
-        template <typename Uty, type_traits::other_trans::enable_if_t<type_traits::implements::_is_assignable_v<Uty, Ty>, int> = 0>
-        constexpr let &operator=(Uty &&val) {
-            ref = val;
-            return *this;
-        }
-
-        constexpr let &operator=(const let &right) noexcept(std::is_nothrow_copy_assignable_v<Ty>) {
-            this->ref = right.ref;
-            return *this;
-        }
-
-        constexpr let &operator=(const let &&right) noexcept(std::is_nothrow_copy_assignable_v<Ty>) {
-            this->ref = std::move(right.ref);
-            return *this;
-        }
-
-        constexpr Ty *operator->() noexcept {
-            return builtin::addressof(ref);
-        }
-
-        constexpr const Ty *operator->() const noexcept {
-            return builtin::addressof(ref);
-        }
-
-        constexpr operator Ty &() noexcept {
-            return ref;
-        }
-
-        constexpr operator const Ty &() const noexcept {
-            return ref;
-        }
-
-    private:
-        Ty& ref;
-    };
-
-    template <typename Ty>
-    class let<Ty &&> {
-    public:
-        constexpr let(Ty &&val) noexcept : ref(val) {
-        }
-
-        constexpr let(let<Ty> &other) noexcept : ref(other) {
-        }
-
-        constexpr let(let<Ty &> &other) noexcept : ref(other) {
-        }
-
-        template <typename Uty, type_traits::other_trans::enable_if_t<type_traits::implements::_is_assignable_v<Uty, Ty>, int> = 0>
-        constexpr let &operator=(Uty &&val) {
-            ref = val;
-            return *this;
-        }
-
-        constexpr let &operator=(const let &right) noexcept(std::is_nothrow_copy_assignable_v<Ty>) {
-            this->ref = right.ref;
-            return *this;
-        }
-
-        constexpr let &operator=(const let &&right) noexcept(std::is_nothrow_copy_assignable_v<Ty>) {
-            this->ref = std::move(right.ref);
-            return *this;
-        }
-
-        constexpr Ty *operator->() noexcept {
-            return builtin::addressof(ref);
-        }
-
-        constexpr const Ty *operator->() const noexcept {
-            return builtin::addressof(ref);
-        }
-
-        constexpr operator Ty &() noexcept {
-            return ref;
-        }
-
-        constexpr operator const Ty &() const noexcept {
-            return ref;
-        }
-
-    private:
-        Ty &ref;
-    };
-
-    template <typename Ty>
-    let(Ty &) -> let<Ty &>;
-
-    template <typename Ty>
-    let(Ty &&) -> let<Ty &&>;
-
-    template <typename Ty>
-    let(let<Ty>) -> let<Ty>;
-
-    template <typename Ty>
-    let(let<Ty &>) -> let<Ty &>;
-
-    template <typename Ty>
-    let(let<Ty &&>) -> let<Ty &&>;
 }
 
 namespace rainy::utility {
@@ -465,10 +343,6 @@ namespace rainy::type_traits::type_properties {
     is_copy_assignable 测试是否可以将类型的常量引用值分配给该类型。
     is_move_assignable 测试是否可以将类型的右值引用分配给该类型。
     is_swappable_with
-    is_trivially_constructible 测试在使用指定类型构造类型时，该类型是否未使用非常用操作。
-    is_trivially_default_constructible 测试在构造默认时，该类型是否未使用非常用操作。
-    is_trivially_copy_constructible 测试在构造复制时，该类型是否未使用非常用操作。
-    is_trivially_move_constructible 测试在构造移动时，该类型是否未使用非常用操作。
     is_trivially_assignable 测试类型是否可赋值，以及赋值是否未使用非常用操作。
     is_trivially_copy_assignable 测试类型是否为复制赋值，以及赋值是否未使用非常用操作。
     is_trivially_move_assignable 测试类型是否为移动赋值，以及赋值是否未使用非常用操作。
@@ -477,10 +351,6 @@ namespace rainy::type_traits::type_properties {
     is_nothrow_swappable_with
     has_virtual_destructor 测试类型是否包含虚拟的析构函数。
     has_unique_object_representations
-    is_invocable 测试是否可以使用指定的参数类型调用可调用类型。
-    已在 C++17 中添加。
-    is_invocable_r 测试是否可以使用指定的参数类型调用可调用类型，以及结果是否可转换为指定类型。
-    已在 C++17 中添加。
     is_nothrow_invocable 测试是否可以使用指定的参数类型调用可调用类型及其是否已知不会引发异常。
     已在 C++17 中添加。
     is_nothrow_invocable_r
@@ -716,6 +586,31 @@ namespace rainy::type_traits::type_properties {
 
     template <typename Ty>
     RAINY_CONSTEXPR_BOOL is_nothrow_default_constructible_v = __is_nothrow_constructible(Ty);
+
+    template <typename Ty, typename... Args>
+    RAINY_CONSTEXPR_BOOL is_trivially_constructible_v = __is_trivially_constructible(Ty, Args...);
+
+    template <typename Ty, typename... Args>
+    struct is_trivially_constructible : helper::bool_constant<is_trivially_constructible_v<Ty, Args...>> {};
+
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL is_trivially_default_constructible_v = is_trivially_constructible_v<Ty>;
+
+    template <typename Ty>
+    struct is_trivially_default_constructible : helper::bool_constant<is_trivially_default_constructible_v<Ty>> {};
+
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL is_trivially_copy_constructible_v =
+        is_trivially_constructible_v<Ty, reference_modify::add_lvalue_reference_t<const Ty>>;
+
+    template <typename Ty>
+    struct is_trivially_copy_constructible : helper::bool_constant<is_trivially_copy_constructible_v<Ty>> {};
+
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL is_trivially_move_constructible_v = is_trivially_constructible_v<Ty, Ty>;
+
+    template <typename Ty>
+    struct is_trivially_move_constructible : helper::bool_constant<is_trivially_move_constructible_v<Ty>> {};
 }
 
 namespace rainy::utility {
@@ -881,7 +776,6 @@ namespace rainy::utility {
             head_base(get<0>(other)), rest_base(static_cast<const tuple<OtherRest...> &>(other)) {
         }
 
-        // 带分配器构造
         template <typename Alloc>
         constexpr tuple(std::allocator_arg_t tag, const Alloc &alloc) : head_base(tag, alloc), rest_base(tag, alloc) {
         }
@@ -892,7 +786,6 @@ namespace rainy::utility {
             rest_base(tag, alloc, utility::forward<TailArgs>(tail_args)...) {
         }
 
-        // 赋值操作符
         constexpr tuple &operator=(const tuple &other) {
             head_base::value = static_cast<const head_base &>(other).value;
             static_cast<rest_base &>(*this) = static_cast<const rest_base &>(other);
@@ -906,7 +799,6 @@ namespace rainy::utility {
             return *this;
         }
 
-        // 从不同类型tuple赋值
         template <typename OtherHead, typename... OtherRest,
                   type_traits::other_trans::enable_if_t<sizeof...(OtherRest) == sizeof...(Rest) &&
                       std::is_assignable_v<Head &, const OtherHead &> && (std::is_assignable_v<Rest &, const OtherRest &> && ...),
@@ -917,7 +809,6 @@ namespace rainy::utility {
             return *this;
         }
 
-        // 添加swap成员函数
         constexpr void swap(tuple &other) noexcept(std::is_nothrow_swappable_v<Head> && std::is_nothrow_swappable_v<tuple<Rest...>>) {
             head_base::swap(static_cast<head_base &>(other));
             static_cast<rest_base &>(*this).swap(static_cast<rest_base &>(other));
@@ -956,13 +847,11 @@ namespace rainy::utility {
         return utility::move(static_cast<const leaf_type &>(t).value);
     }
 
-    // 辅助函数
     template <typename... Types>
     constexpr tuple<std::decay_t<Types>...> make_tuple(Types &&...args) {
         return tuple<std::decay_t<Types>...>(utility::forward<Types>(args)...);
     }
 
-    // 添加forward_as_tuple
     template <typename... Types>
     constexpr tuple<Types &&...> forward_as_tuple(Types &&...args) noexcept {
         return tuple<Types &&...>(utility::forward<Types>(args)...);
@@ -1072,6 +961,7 @@ namespace rainy::type_traits::primary_types {
     template <typename>
     struct member_pointer_traits {
         static RAINY_CONSTEXPR_BOOL valid = false;
+        using class_type = void;
     };
 
     RAINY_MEMBER_POINTER_TRAITS_SPEC()
@@ -1157,6 +1047,7 @@ namespace rainy::type_traits::implements {
         static RAINY_CONSTEXPR_BOOL is_volatile = IsVolatile;
         static RAINY_CONSTEXPR_BOOL is_const_member_function = IsConstMemberFunction;
         static RAINY_CONSTEXPR_BOOL valid = true;
+        static RAINY_CONSTEXPR_BOOL is_function_object = false;
     };
 
     template <bool IsLvalue, bool IsRvalue>
@@ -1166,11 +1057,53 @@ namespace rainy::type_traits::implements {
     };
 }
 
-namespace rainy::type_traits::primary_types {
-    template <typename Ty>
-    struct function_traits {
+namespace rainy::type_traits::implements {
+    template <typename Fx, typename = void>
+    struct fx_traits_has_invoke_operator : helper::false_type {};
+
+    template <typename Fx>
+    struct fx_traits_has_invoke_operator<
+        Fx, type_traits::other_trans::void_t<decltype(&type_traits::cv_modify::remove_cv_t<Fx>::operator())>> : helper::true_type {};
+
+    struct empty_function_traits {
         static RAINY_CONSTEXPR_BOOL valid = false;
     };
+
+    template <typename Fx, bool Enable = fx_traits_has_invoke_operator<Fx>::value>
+    struct try_to_get_operator {
+        using type = void;
+    };
+
+    template <typename Fx>
+    struct try_to_get_operator<Fx, true> {
+        using type = decltype(&type_traits::cv_modify::remove_cv_t<Fx>::operator());
+    };
+
+    template <typename Traits,bool Enable = Traits::valid>
+    struct fn_obj_traits {
+        using tuple_like_type = typename Traits::tuple_like_type;
+        using return_type = typename Traits::return_type;
+        static inline constexpr std::size_t arity = Traits::arity;
+        static RAINY_CONSTEXPR_BOOL is_noexcept = Traits::is_noexcept;
+        static RAINY_CONSTEXPR_BOOL is_volatile = Traits::is_volatile;
+        static RAINY_CONSTEXPR_BOOL is_invoke_for_lvalue = false;
+        static RAINY_CONSTEXPR_BOOL is_invoke_for_rvalue = false;
+        static RAINY_CONSTEXPR_BOOL is_function_object = true;
+        static RAINY_CONSTEXPR_BOOL valid = true;
+        static RAINY_CONSTEXPR_BOOL is_const_member_function = Traits::is_const_member_function;
+    };
+
+    template <typename Traits>
+    struct fn_obj_traits<Traits, false> : empty_function_traits {};
+}
+
+namespace rainy::type_traits::primary_types {
+    template <typename Ty>
+    struct function_traits : implements::fn_obj_traits<function_traits<typename implements::try_to_get_operator<type_traits::cv_modify::remove_cvref_t<Ty>>::type>> {
+    };
+
+    template <>
+    struct function_traits<void> : implements::empty_function_traits {};
 
     template <typename Rx, typename... Args>
     struct function_traits<Rx(Args...)> : implements::function_traits_base<> {
@@ -1265,9 +1198,6 @@ namespace rainy::type_traits::primary_types {
     RAINY_DECLARE_MEMBER_FUNCTION_TRAITS(false, true, false, false, false, volatile)
     RAINY_DECLARE_MEMBER_FUNCTION_TRAITS(false, true, false, true, false, volatile &)
     RAINY_DECLARE_MEMBER_FUNCTION_TRAITS(false, true, false, false, true, volatile &&)
-
-    template <template <typename> typename FunctorContainer, typename Fx>
-    struct function_traits<FunctorContainer<Fx>> : function_traits<Fx> {};
 
     template <typename Fx>
     using function_return_type = typename function_traits<Fx>::return_type;
@@ -1580,13 +1510,13 @@ namespace rainy::utility {
 
 namespace rainy::utility {
     template <typename Callable>
-    constexpr auto invoke(Callable &&obj) noexcept(noexcept(static_cast<Callable &&>(obj)()))
+    constexpr RAINY_INLINE auto invoke(Callable &&obj) noexcept(noexcept(static_cast<Callable &&>(obj)()))
         -> decltype(static_cast<Callable &&>(obj)()) {
         return static_cast<Callable &&>(obj)();
     }
 
     template <typename Callable, typename Ty1, typename... Args>
-    constexpr auto invoke(Callable &&obj, Ty1 &&arg1, Args &&...args) noexcept(noexcept(
+    constexpr RAINY_INLINE auto invoke(Callable &&obj, Ty1 &&arg1, Args &&...args) noexcept(noexcept(
         invoker<Callable, Ty1>::invoke(static_cast<Callable &&>(obj), static_cast<Ty1 &&>(arg1), static_cast<Args &&>(args)...)))
         -> decltype(invoker<Callable, Ty1>::invoke(static_cast<Callable &&>(obj), static_cast<Ty1 &&>(arg1),
                                                    static_cast<Args &&>(args)...)) {
@@ -2112,6 +2042,12 @@ namespace rainy::type_traits::type_properties {
      */
     template <typename Ty>
     struct is_trivial : helper::bool_constant<is_trivial_v<Ty>> {};
+
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL has_unique_object_representations_v = __has_unique_object_representations(Ty);
+
+    template <typename Ty>
+    struct has_unique_object_representations : helper::bool_constant<has_unique_object_representations_v<Ty>> {};
 }
 
 namespace rainy::type_traits::extras::templates {
@@ -2287,83 +2223,11 @@ namespace rainy::type_traits::composite_types {
 }
 
 namespace rainy::utility {
-    template <typename Err>
-    class unexpected {
-    public:
-        static_assert(type_traits::composite_types::is_object_v<Err>, "Err must be an object type");
-        static_assert(!type_traits::primary_types::is_array_v<Err>, "Err must not be an array type");
-        static_assert(!type_traits::type_properties::is_const_v<Err>, "Err must not be const");
-        static_assert(!type_traits::type_properties::is_volatile_v<Err>, "Err must not be volatile");
-        static_assert(!type_traits::primary_types::is_specialization_v<Err, unexpected>,
-                      "Err must not be a specialization of unexpected.");
-        template <typename Ty, typename Err2>
-        friend class expected;
-
-        unexpected() = delete;
-
-        template <typename UError, typename type_traits::other_trans::enable_if_t<!type_traits::type_relations::is_same_v<type_traits::other_trans::decay_t<UError>, unexpected> &&
-                          !type_traits::type_relations::is_same_v<type_traits::other_trans::decay_t<UError>, std::in_place_t> &&
-                                                               type_traits::type_properties::is_constructible_v<Err, UError>,
-                                                           int> = 0>
-        explicit constexpr unexpected(UError &&unex) noexcept(std::is_nothrow_constructible<Err, UError>::value) :
-            unexpected_value(utility::forward<UError>(unex)) {
-        }
-
-        template <typename... Args, type_traits::other_trans::enable_if_t<type_traits::type_properties::is_constructible_v<Err, Args...>, int> = 0>
-        explicit constexpr unexpected(std::in_place_t, Args &&...vals) noexcept(
-            type_traits::type_properties::is_nothrow_constructible_v<Err, Args...>) :
-            unexpected_value(utility::forward<Args>(vals)...) {
-        }
-
-        template <typename Uty, typename... Args,
-                  std::enable_if_t<type_traits::type_properties::is_constructible_v<Err, std::initializer_list<Uty> &, Args...>, int> = 0>
-        explicit constexpr unexpected(std::in_place_t, std::initializer_list<Uty> ilist, Args &&...vals) noexcept(
-            std::is_nothrow_constructible<Err, std::initializer_list<Uty> &, Args...>::value) :
-            unexpected_value(ilist, utility::forward<Args>(vals)...) {
-        }
-
-        constexpr const Err &error() const & noexcept {
-            return unexpected_value;
-        }
-        constexpr Err &error() & noexcept {
-            return unexpected_value;
-        }
-        constexpr const Err &&error() const && noexcept {
-            return utility::move(unexpected_value);
-        }
-        constexpr Err &&error() && noexcept {
-            return utility::move(unexpected_value);
-        }
-
-        constexpr void swap(unexpected &other) noexcept(type_traits::type_properties::is_nothrow_swappable_v<Err>) {
-            static_assert(type_traits::type_properties::is_swappable_v<Err>, "Err must be swappable");
-            std::swap(unexpected_value, other.unexpected_value);
-        }
-
-        friend constexpr void swap(unexpected &left, unexpected &right) noexcept(type_traits::type_properties::is_nothrow_swappable_v<Err>) {
-            left.swap(right);
-        }
-
-        template <typename UErr>
-        friend constexpr bool operator==(const unexpected &left,
-                                         const unexpected<UErr> &right) noexcept(noexcept(left.unexpected_value == right.error())) {
-            return left.unexpected_value == right.error();
-        }
-
-    private:
-        Err unexpected_value;
-    };
-
-    template <typename Err>
-    unexpected(Err) -> unexpected<Err>;
-}
-
-namespace rainy::utility {
 #if RAINY_HAS_CXX20
     template <typename Class, typename Fx>
         requires(type_traits::primary_types::is_member_function_pointer_v<Fx Class::*> &&
                  !type_traits::type_relations::is_same_v<Fx, std::nullptr_t>)
-    constexpr auto get_overloaded_memfn(Fx Class::*memfn) {
+    constexpr auto get_overloaded_func(Fx Class::*memfn) {
         assert(memfn != nullptr && "memfn cannot be nullptr");
         return memfn;
     }
@@ -2372,7 +2236,7 @@ namespace rainy::utility {
               type_traits::other_trans::enable_if_t<type_traits::primary_types::is_member_function_pointer_v<Fx Class::*> &&
                                                         !type_traits::type_relations::is_same_v<Fx, std::nullptr_t>,
                                                     int> = 0>
-    constexpr auto get_overloaded_memfn(Fx Class::*memfn) {
+    constexpr auto get_overloaded_func(Fx Class::*memfn) {
         assert(memfn != nullptr && "memfn cannot be nullptr");
         return memfn;
     }
@@ -2413,70 +2277,6 @@ namespace rainy::type_traits::concepts {
 
 #endif
 
-#define RAINY_TEMPLATE_TYPE_TRAIT_SPEC_1(TYPES)                                                                                       \
-    namespace rainy::type_traits::extras::templates {                                                                                 \
-        template <template <typename TYPES...> typename Template, TYPES... Args>                                                      \
-        struct template_traits<Template<Args...>> : helper::true_type {                                                               \
-            using type = other_trans::type_list<TYPES>;                                                                               \
-        };                                                                                                                            \
-    }
-
-#define RAINY_TEMPLATE_TYPE_TRAIT_SPEC_2(TYPES)                                                                                       \
-    namespace rainy::type_traits::extras::templates {                                                                                 \
-        template <template <typename, TYPES> typename Template, typename Ty1, TYPES Var1>                                             \
-        struct template_traits<Template<Ty1, Var1>> : helper::true_type {                                                             \
-            using type = other_trans::type_list<TYPES, decltype(Var1)>;                                                               \
-        };                                                                                                                            \
-                                                                                                                                      \
-        template <template <TYPES, typename> typename Template, typename Ty1, TYPES Var1>                                             \
-        struct template_traits<Template<Var1, Ty1>> : helper::true_type {                                                             \
-            using type = other_trans::type_list<decltype(Var1), TYPES>;                                                               \
-        };                                                                                                                            \
-                                                                                                                                      \
-        template <template <TYPES, TYPES> typename Template, typename TYPES Var1, TYPES Var2>                                         \
-        struct template_traits<Template<Var1, Var2>> : helper::true_type {                                                            \
-            using type = other_trans::type_list<decltype(Var1), decltype(Var2)>;                                                      \
-        };                                                                                                                            \
-    }
-
-#define RAINY_TEMPLATE_TYPE_TRAIT_SPEC_3(TYPES)                                                                                       \
-    namespace rainy::type_traits::extras::templates {                                                                                 \
-        template <template <typename, typename, TYPES> typename Template, typename Ty1, typename Ty2, TYPES Var1>                     \
-        struct template_traits<Template<Ty1, Ty2, Var1>> : helper::true_type {                                                        \
-            using type = other_trans::type_list<TYPES, decltype(Var1)>;                                                               \
-        };                                                                                                                            \
-                                                                                                                                      \
-        template <template <typename, TYPES, typename> typename Template, typename Ty1, TYPES Var1, typename Ty2>                     \
-        struct template_traits<Template<Ty1, Var1, Ty2>> : helper::true_type {                                                        \
-            using type = other_trans::type_list<decltype(Var1), TYPES>;                                                               \
-        };                                                                                                                            \
-                                                                                                                                      \
-        template <template <TYPES, typename, typename> typename Template, TYPES Var1, typename Ty1, typename Ty2>                     \
-        struct template_traits<Template<Var1, Ty1, Ty2>> : helper::true_type {                                                        \
-            using type = other_trans::type_list<decltype(Var1), TYPES>;                                                               \
-        };                                                                                                                            \
-                                                                                                                                      \
-        template <template <TYPES, TYPES, typename> typename Template, TYPES Var1, TYPES Var2, typename Ty1>                          \
-        struct template_traits<Template<Var1, Var2, Ty1>> : helper::true_type {                                                       \
-            using type = other_trans::type_list<decltype(Var1), decltype(Var2), TYPES>;                                               \
-        };                                                                                                                            \
-                                                                                                                                      \
-        template <template <TYPES, typename, TYPES> typename Template, TYPES Var1, typename Ty1, TYPES Var2>                          \
-        struct template_traits<Template<Var1, Ty1, Var2>> : helper::true_type {                                                       \
-            using type = other_trans::type_list<decltype(Var1), TYPES, decltype(Var2)>;                                               \
-        };                                                                                                                            \
-                                                                                                                                      \
-        template <template <typename, TYPES, TYPES> typename Template, typename Ty1, TYPES Var1, TYPES Var2>                          \
-        struct template_traits<Template<Ty1, Var1, Var2>> : helper::true_type {                                                       \
-            using type = other_trans::type_list<TYPES, decltype(Var1), decltype(Var2)>;                                               \
-        };                                                                                                                            \
-                                                                                                                                      \
-        template <template <TYPES, TYPES, TYPES> typename Template, TYPES Var1, TYPES Var2, TYPES Var3>                               \
-        struct template_traits<Template<Var1, Var2, Var3>> : helper::true_type {                                                      \
-            using type = other_trans::type_list<decltype(Var1), decltype(Var2), decltype(Var3)>;                                      \
-        };                                                                                                                            \
-    }
-
 namespace rainy::type_traits::extras::templates {
     template <typename Template>
     struct template_traits : helper::false_type {};
@@ -2500,22 +2300,65 @@ namespace rainy::type_traits::primary_types {
     using extras::templates::is_template_v;
 }
 
-namespace rainy::stdanrd {
-    using namespace rainy::type_traits::array_modify;
-    using namespace rainy::type_traits::composite_types;
-    using namespace rainy::type_traits::cv_modify;
-    using namespace rainy::type_traits::extras;
-    using namespace rainy::type_traits::helper;
-    using namespace rainy::type_traits::logical_traits;
-    using namespace rainy::type_traits::other_trans;
-    using namespace rainy::type_traits::pointer_modify;
-    using namespace rainy::type_traits::primary_types;
-    using namespace rainy::type_traits::reference_modify;
-    using namespace rainy::type_traits::type_properties;
-    using namespace rainy::type_traits::type_relations;
-#if RAINY_HAS_CXX20
-    using namespace rainy::type_traits::concepts;
-#endif
+namespace rainy::core {
+    enum class method_flags : std::uint8_t {
+        none = 0,
+        static_specified = 1, // static method
+        memfn_specified = 2, // member method
+        noexcept_specified = 4, // noexcept
+        lvalue_qualified = 8, // left qualifier (e.g. &)
+        rvalue_qualified = 16, // right qualifier (e.g. &&)
+        const_qualified = 32, // const
+        volatile_qualified = 64, // volatile
+    };
+
+    RAINY_ENABLE_ENUM_CLASS_BITMASK_OPERATORS(method_flags);
+
+    template <typename Fx, typename... Args>
+    constexpr method_flags deduction_invoker_type() noexcept {
+        auto flag{method_flags::none};
+        using traits = type_traits::primary_types::function_traits<Fx>;
+        if constexpr (!traits::valid) {
+            return flag;
+        }
+        if constexpr (!type_traits::primary_types::is_member_function_pointer_v<Fx>) {
+            constexpr bool noexcept_invoke = noexcept(utility::invoke(utility::declval<Fx>(), utility::declval<Args>()...));
+            flag |=
+                (noexcept_invoke ? method_flags::static_specified | method_flags::noexcept_specified : method_flags::static_specified);
+        } else {
+            flag |= method_flags::memfn_specified;
+            using method_traits = type_traits::primary_types::member_pointer_traits<Fx>;
+            using raw_class_type = typename method_traits::class_type;
+            bool noexcept_invoke{false};
+            if constexpr (traits::is_invoke_for_lvalue || traits::is_invoke_for_rvalue) {
+                if constexpr (traits::is_invoke_for_lvalue) {
+                    noexcept_invoke = noexcept(
+                        utility::invoke(utility::declval<Fx>(), utility::declval<raw_class_type &>(), utility::declval<Args>()...));
+                } else {
+                    noexcept_invoke = noexcept(
+                        utility::invoke(utility::declval<Fx>(), utility::declval<raw_class_type &&>(), utility::declval<Args>()...));
+                }
+            } else {
+                noexcept_invoke = noexcept(
+                    utility::invoke(utility::declval<Fx>(), utility::declval<raw_class_type *>(), utility::declval<Args>()...));
+            }
+            if constexpr (traits::is_const_member_function) {
+                flag |= method_flags::const_qualified;
+            }
+            if constexpr (traits::is_volatile) {
+                flag |= method_flags::volatile_qualified;
+            }
+            if constexpr (traits::is_invoke_for_lvalue) {
+                flag |= method_flags::lvalue_qualified;
+            } else if constexpr (traits::is_invoke_for_rvalue) {
+                flag |= method_flags::rvalue_qualified;
+            }
+            if (noexcept_invoke) {
+                flag |= method_flags::noexcept_specified;
+            }
+        }
+        return flag;
+    }
 }
 
 #endif

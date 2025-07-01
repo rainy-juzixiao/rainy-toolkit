@@ -17,6 +17,7 @@
 #define RAINY_META_RELF_IMPL_FUNCTION_HPP
 #include <rainy/foundation/diagnostics/contract.hpp>
 #include <rainy/meta/reflection/refl_impl/invoker_accessor.hpp>
+#include <rainy/meta/reflection/metadata.hpp>
 
 namespace rainy::meta::reflection {
     /**
@@ -54,27 +55,30 @@ namespace rainy::meta::reflection {
          * @tparam Fx 函数对象类型。
          * @param function 函数对象。
          */
-        template <typename Fx, type_traits::other_trans::enable_if_t<type_traits::primary_types::function_traits<Fx>::valid ||
-                                                                         implements::try_to_get_invoke_operator<Fx>::value,
-                                                                     int> = 0>
-        function(Fx function) noexcept { // NOLINT
-            if constexpr (type_traits::primary_types::function_traits<Fx>::valid) {
-                // 静态域指针/对象实例指针
-                using implemented_type =
-                    typename implements::get_ia_implement_type<Fx, type_traits::primary_types::function_traits<Fx>>::type;
-                invoke_accessor_ = utility::construct_at(reinterpret_cast<implemented_type *>(invoker_storage), function);
+        template <typename Fx, typename... Args,
+                  type_traits::other_trans::enable_if_t<type_traits::primary_types::function_traits<Fx>::valid, int> = 0>
+        function(Fx function, Args &&...default_arguments) noexcept : invoke_accessor_{} { // NOLINT
+            using traits = type_traits::primary_types::function_traits<Fx>;
+            using paramlist = typename type_traits::other_trans::tuple_like_to_type_list<typename traits::tuple_like_type>::type;
+
+            static constexpr std::size_t arity = traits::arity;
+            static constexpr std::size_t default_arg_count = sizeof...(Args);
+            static constexpr std::size_t start_index = arity - default_arg_count;
+
+            static_assert(default_arg_count <= arity, "Too many default arguments provided for the function.");
+            static_assert(implements::check_default_args_compatibility<paramlist, start_index, Args...>(),
+                          "Default arguments are not compatible with corresponding function parameters.");
+
+            using implemented_type = typename implements::get_ia_implement_type<Fx, implements::default_arguments_store<Args...>,
+                                                                                type_traits::primary_types::function_traits<Fx>>::type;
+            invoke_accessor_ = utility::construct_at(reinterpret_cast<implemented_type *>(invoker_storage),
+                                                     utility::forward<Fx>(function), utility::forward<Args>(default_arguments)...);
+            if constexpr (sizeof(implemented_type) >= core::fn_obj_soo_buffer_size) {
+                invoke_accessor_ =
+                    ::new implemented_type(utility::forward<Fx>(function), utility::forward<Args>(default_arguments)...);
             } else {
-                // 仿函数/lambda表达式
-                using invoker_type = implements::try_to_get_invoke_operator<Fx>;
-                using method_type = type_traits::cv_modify::remove_cv_t<decltype(invoker_type::method)>;
-                // lambda with capture --> memptr | non-empty fn class --> memptr
-                using implemented_type =
-                    typename implements::get_ia_implement_type<Fx, typename implements::extract_function_traits<Fx>::type>::type;
-                if constexpr (sizeof(implemented_type) >= soo_buffer_size) {
-                    invoke_accessor_ = ::new implemented_type(function);
-                } else {
-                    invoke_accessor_ = utility::construct_at(reinterpret_cast<implemented_type *>(invoker_storage), function);
-                }
+                invoke_accessor_ = utility::construct_at(reinterpret_cast<implemented_type *>(invoker_storage),
+                                                         utility::forward<Fx>(function), utility::forward<Args>(default_arguments)...);
             }
         }
 
@@ -87,7 +91,7 @@ namespace rainy::meta::reflection {
          * @return 函数调用结果，以any形式。
          */
         template <typename... Args>
-        utility::any invoke_static(Args &&...args) const {
+        RAINY_INLINE utility::any static_invoke(Args &&...args) const {
             return invoke(non_exists_instance, utility::forward<Args>(args)...);
         }
 
@@ -99,25 +103,27 @@ namespace rainy::meta::reflection {
          * @return 函数调用结果，以any形式。
          */
         template <typename... Args>
-        utility::any invoke(object_view instance, Args &&...args) const {
-            using namespace foundation::rtti;
-            utility::expects(!empty() && "You're trying to invoke a empty object!");
-            if (instance.rtti().has_traits(traits::is_const)) {
+        RAINY_INLINE utility::any invoke(object_view instance, Args &&...args) const {
+            using namespace foundation::ctti;
+#if RAINY_ENABLE_DEBUG
+            utility::expects(!empty(), "Cannot call [invoke] method, curent object is empty!");
+            if (instance.ctti().is_const()) {
                 if (!is_const()) {
                     errno = ECANCELED;
                     return {};
                 }
-            } else if (instance.rtti().has_traits(traits::is_volatile)) {
+            } else if (instance.ctti().has_traits(traits::is_volatile)) {
                 if (!is_volatile()) {
                     errno = ECANCELED;
                     return {};
                 }
-            } else if (instance.rtti().has_traits(traits::is_rref)) {
+            } else if (instance.ctti().is_rvalue_reference()) {
                 if (!is_invoke_for_rvalue()) {
                     errno = ECANCELED;
                     return {};
                 }
             }
+#endif
             if constexpr (sizeof...(Args) == 0) {
                 return invoke_accessor()->invoke(instance);
             } else {
@@ -133,7 +139,7 @@ namespace rainy::meta::reflection {
          * @return 函数调用结果，以any形式。
          */
         template <typename... Args>
-        utility::any operator()(object_view instance, Args &&...args) const {
+        RAINY_INLINE utility::any operator()(object_view instance, Args &&...args) const {
             return invoke(instance, utility::forward<Args>(args)...);
         }
 
@@ -185,13 +191,18 @@ namespace rainy::meta::reflection {
          * @brief 获取函数对象的函数签名。
          * @return 返回函数签名。
          */
-        RAINY_NODISCARD const foundation::rtti::typeinfo &function_signature() const noexcept;
-
+        RAINY_NODISCARD const foundation::ctti::typeinfo &function_signature() const noexcept;
+        
         /**
          * @brief 获取函数对象的函数类型。
          * @return 返回函数类型。
          */
         RAINY_NODISCARD method_flags type() const noexcept;
+
+        /**
+         * @brief 获取函数对象的函数类型。检查是否具有特定的属性
+         */
+        RAINY_NODISCARD bool has(method_flags flag) const noexcept;
 
         /**
          * @brief 检查当前函数对象是否有效。
@@ -242,19 +253,19 @@ namespace rainy::meta::reflection {
          * @brief 获取函数对象的所属类。
          * @return 返回函数对象的所属类。
          */
-        RAINY_NODISCARD const foundation::rtti::typeinfo &which_belongs() const noexcept;
+        RAINY_NODISCARD const foundation::ctti::typeinfo &which_belongs() const noexcept;
 
         /**
          * @brief 获取函数对象的返回类型。
          * @return 返回函数对象的返回类型。
          */
-        RAINY_NODISCARD const foundation::rtti::typeinfo &return_type() const noexcept;
+        RAINY_NODISCARD const foundation::ctti::typeinfo &return_type() const noexcept;
 
         /**
          * @brief 获取函数对象的参数类型列表。
          * @return 返回函数对象的参数类型列表。
          */
-        RAINY_NODISCARD const collections::views::array_view<foundation::rtti::typeinfo> &paramlists() const noexcept;
+        RAINY_NODISCARD const collections::views::array_view<foundation::ctti::typeinfo> &paramlists() const noexcept;
 
         /**
          * @brief 获取函数对象的所需参数数量。
@@ -267,7 +278,7 @@ namespace rainy::meta::reflection {
          * @param idx 索引
          * @return 返回参数类型信息
          */
-        RAINY_NODISCARD const foundation::rtti::typeinfo &arg(std::size_t idx) const;
+        RAINY_NODISCARD const foundation::ctti::typeinfo &arg(std::size_t idx) const;
 
         /**
          * @brief 检查当前函数对象是否为静态函数。
@@ -316,7 +327,7 @@ namespace rainy::meta::reflection {
          * @param paramlist 参数列表。
          * @return 如果可以调用，则返回true；否则返回false。
          */
-        RAINY_NODISCARD bool is_invocable(collections::views::array_view<foundation::rtti::typeinfo> paramlist) const noexcept;
+        RAINY_NODISCARD bool is_invocable(collections::views::array_view<foundation::ctti::typeinfo> paramlist) const noexcept;
 
         /**
          * @brief 检查当前函数对象是否可以调用给定的参数类型。
@@ -328,8 +339,8 @@ namespace rainy::meta::reflection {
             if constexpr (sizeof...(Args) == 0) {
                 return is_invocable({});
             } else {
-                static collections::array<foundation::rtti::typeinfo, sizeof...(Args)> paramlist = {
-                    foundation::rtti::typeinfo::create<Args>()...};
+                static collections::array<foundation::ctti::typeinfo, sizeof...(Args)> paramlist = {
+                    foundation::ctti::typeinfo::create<Args>()...};
                 return is_invocable(paramlist);
             }
         }
@@ -347,12 +358,11 @@ namespace rainy::meta::reflection {
          */
         template <typename Fx>
         RAINY_NODISCARD Fx* target() const noexcept {
+            utility::expects(!empty(), "You're trying to get the arg count of a empty object!");
             if constexpr (type_traits::type_relations::is_same_v<Fx, function>) {
-                return reinterpret_cast<function *>(
-                    reinterpret_cast<const implements::invoker_accessor *>(invoker_storage)->target(rainy_typeid(Fx)));
+                return reinterpret_cast<function *>(invoke_accessor()->target(rainy_typeid(Fx)));
             } else {
-                auto ptr = reinterpret_cast<Fx *>(
-                    reinterpret_cast<const implements::invoker_accessor *>(invoker_storage)->target(rainy_typeid(Fx)));
+                auto ptr = reinterpret_cast<Fx *>(invoke_accessor()->target(rainy_typeid(Fx)));
                 return ptr;
             }
         }
@@ -393,14 +403,11 @@ namespace rainy::meta::reflection {
     private:
         bool is_local() const noexcept;
 
-        implements::invoker_accessor *invoke_accessor() noexcept;
-        const implements::invoker_accessor *invoke_accessor() const noexcept;
+        RAINY_INLINE implements::invoker_accessor *invoke_accessor() const noexcept {
+            return invoke_accessor_;
+        }
 
-        // 对于32位系统，为了避免内存对齐导致的stack-overrun，额外扩充一段空间用于防止此类问题
-        static constexpr inline std::size_t soo_buffer_size =
-            (core::small_object_num_ptrs * sizeof(void *)) + alignof(std::max_align_t);
-
-        alignas(std::max_align_t) core::byte_t invoker_storage[soo_buffer_size]{}; // 不使用std::array/std::aligned_storage
+        alignas(std::max_align_t) core::byte_t invoker_storage[core::fn_obj_soo_buffer_size]{}; // 不使用std::array/std::aligned_storage
         implements::invoker_accessor *invoke_accessor_{nullptr};
     };
 
@@ -445,24 +452,23 @@ namespace std {
 namespace rainy::meta::reflection {
     class method : public function {
     public:
-        using metadata_map = std::unordered_map<std::string_view, utility::any>;
+        method() noexcept = default;
 
-        RAINY_TOOLKIT_API method() noexcept = default;
-
-        template <typename Fx,
+        template <typename Fx, typename... Args, std::size_t N = 0,
                   type_traits::other_trans::enable_if_t<type_traits::type_properties::is_constructible_v<function, Fx>, int> = 0>
-        method(std::string_view name, Fx &&fn, metadata_map metadata = {}) noexcept :
-            function(utility::forward<Fx>(fn)), name_(utility::move(name)), metadata_(utility::move(metadata)) {
+        static method make(std::string_view name, Fx &&fn, std::tuple<Args...> &default_arguemnts,
+                           collections::array<metadata, N> &metadatas) {
+            return method{name, fn, default_arguemnts, metadatas, type_traits::helper::index_sequence_for<Args...>{}};
         }
 
         method(const method &) = delete;
         method &operator=(const method &) = delete;
 
-        RAINY_TOOLKIT_API method(method &&right) noexcept;
+        method(method &&right) noexcept :
+            function(utility::move(right)), name_(utility::move(right.name_)), metadata_(utility::move(right.metadata_)) {
+        }
 
         RAINY_TOOLKIT_API method &operator=(method &&right) noexcept;
-
-        RAINY_TOOLKIT_API void rebind(const method &right) noexcept;
 
         RAINY_TOOLKIT_API void rebind(method &&right) noexcept;
 
@@ -472,14 +478,26 @@ namespace rainy::meta::reflection {
 
         RAINY_TOOLKIT_API std::string_view name() const noexcept;
 
-        RAINY_TOOLKIT_API const utility::any &get_metadata(const std::string_view key) const noexcept;
+        RAINY_TOOLKIT_API const metadata &get_metadata(const std::string_view key) const noexcept;
 
-        RAINY_TOOLKIT_API const metadata_map &metadata() const noexcept;
+        RAINY_TOOLKIT_API const std::unordered_map<std::string_view, reflection::metadata> &metadatas() const noexcept;
 
     private:
+        template <typename Fx, typename... Args, std::size_t N = 0, std::size_t... I,
+                  type_traits::other_trans::enable_if_t<type_traits::type_properties::is_constructible_v<function, Fx>, int> = 0>
+        method(std::string_view name, Fx &&fn, std::tuple<Args...>& default_arguemnts, collections::array<metadata, N> &metadatas,
+               type_traits::helper::index_sequence<I...>) noexcept :
+            function(utility::forward<Fx>(fn), std::get<I>(default_arguemnts)...), name_(utility::move(name)), metadata_{} {
+            if constexpr (N != 0) {
+                for (metadata &meta: metadatas) {
+                    std::string_view name = meta.key();
+                    this->metadata_.emplace(name, utility::move(meta));
+                }
+            }
+        }
+
         std::string_view name_;
-        metadata_map metadata_;
+        std::unordered_map<std::string_view, reflection::metadata> metadata_;
     };
 }
-
 #endif

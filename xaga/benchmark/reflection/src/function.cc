@@ -10,43 +10,49 @@ class test {
 public:
     float fun() { // NOLINT
         static volatile float c;
-        c += 3.14f;  
+        c += 3.14f;
         return c;
     }
 
     float fun1(float n) { // NOLINT
+        rainy::utility::expects(n == 10.0f);
         static volatile float c;
         c += n;
         return c;
     }
 
     float fun2(float n, float m) { // NOLINT
+        rainy::utility::expects(n == 10.0f && m == 20.0f);
         static volatile float c;
         c += n + m;
         return c;
     }
 
     float fun3(float n, float m, float o) { // NOLINT
+        rainy::utility::expects(n == 10.0f && m == 20.0f && o == 30.0f);
         static volatile float c;
         c += n + m + o;
         return c;
     }
 
     float fun4(float n, float m, float o, float p) { // NOLINT
+        rainy::utility::expects(n == 10.0f && m == 20.0f && o == 30.0f && p == 40.0f);
         static volatile float c;
         c += n + m + o + p;
         return c;
     }
 
     float fun5(float n, float m, float o, float p, float q) { // NOLINT
+        rainy::utility::expects(n == 10.0f && m == 20.0f && o == 30.0f && p == 40.0f && q == 50.0f);
         static volatile float c;
         c += n + m + o + p + q;
         return c;
     }
 
     float fun6(float n, float m, float o, float p, float q, float a1) { // NOLINT
+        rainy::utility::expects(n == 10.0f && m == 20.0f && o == 30.0f && p == 40.0f && q == 50.0f && a1 == 60.0f);
         static volatile float c;
-        c += n + m + o + p + q +a1;
+        c += n + m + o + p + q + a1;
         return c;
     }
 };
@@ -114,7 +120,7 @@ static void benchmark_rainytoolkit_reflection_invoke_method_1(benchmark::State &
     using namespace rainy::meta;
     for (const auto _: state) {
         static auto type = reflection::type::get<test>();
-        static const auto& fun_rf = type.get_method("fun1");
+        static const auto &fun_rf = type.get_method("fun1");
         static test object_x;
         benchmark::DoNotOptimize(fun_rf.invoke(object_x, 10.0f));
         benchmark::ClobberMemory();

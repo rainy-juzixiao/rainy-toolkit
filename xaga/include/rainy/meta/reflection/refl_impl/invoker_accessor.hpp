@@ -3,60 +3,80 @@
 #include <rainy/meta/reflection/refl_impl/invoker.hpp>
 
 namespace rainy::meta::reflection::implements {
+    template <typename Fx, bool IsFnObj = is_fnobj<Fx>::value>
+    struct function_signature {
+        using type = Fx;
+    };
+
+    template <typename Fx>
+    struct function_signature<Fx, true> {
+        using type = decltype(&Fx::operator());
+    };
+
     /**
      * @brief function使用的接口抽象层。用于统一访问函数对象，非库开发者不需要直接引用
      */
     struct invoker_accessor {
         virtual ~invoker_accessor() = default;
-        RAINY_NODISCARD virtual std::uintptr_t target(const foundation::rtti::typeinfo &fx_sign) const noexcept = 0;
+        RAINY_NODISCARD virtual std::uintptr_t target(const foundation::ctti::typeinfo &fx_sign) const noexcept = 0;
         RAINY_NODISCARD virtual method_flags type() const noexcept = 0;
-        virtual utility::any invoke(object_view &object) const = 0;
-        virtual utility::any invoke(object_view &object, arg_view arg_view) const = 0;
-        RAINY_NODISCARD virtual const foundation::rtti::typeinfo &which_belongs() const noexcept = 0;
-        RAINY_NODISCARD virtual const foundation::rtti::typeinfo &return_type() const noexcept = 0;
-        RAINY_NODISCARD virtual const foundation::rtti::typeinfo &function_signature() const noexcept = 0;
+        virtual utility::any invoke(object_view &object) = 0;
+        virtual utility::any invoke(object_view &object, arg_view arg_view) = 0;
+        RAINY_NODISCARD virtual const foundation::ctti::typeinfo &which_belongs() const noexcept = 0;
+        RAINY_NODISCARD virtual const foundation::ctti::typeinfo &return_type() const noexcept = 0;
+        RAINY_NODISCARD virtual const foundation::ctti::typeinfo &function_signature() const noexcept = 0;
         virtual invoker_accessor *construct_from_this(core::byte_t *soo_buffer) const noexcept = 0;
-        RAINY_NODISCARD virtual const rainy::collections::views::array_view<foundation::rtti::typeinfo> &paramlists()
+        RAINY_NODISCARD virtual const rainy::collections::views::array_view<foundation::ctti::typeinfo> &paramlists()
             const noexcept = 0;
         virtual bool equal_with(const invoker_accessor *impl) const noexcept = 0;
         RAINY_NODISCARD virtual bool is_invocable(
-            rainy::collections::views::array_view<foundation::rtti::typeinfo> paramlist) const noexcept = 0;
+            rainy::collections::views::array_view<foundation::ctti::typeinfo> paramlist) const noexcept = 0;
         virtual void destruct(bool local) noexcept = 0;
     };
 
-    template <typename Fx, typename Class, typename ReturnType, typename... Args>
+    template <typename Fx, typename Class, typename ReturnType, typename DefaultArguments, typename... Args>
     struct invoker_accessor_impl final : invoker_accessor {
-        using function_signature_t = Fx;
-        using storage_t = invoker<Fx, Args...>;
+        using function_signature_t = typename implements::function_signature<Fx>::type;
+        using storage_t = invoker<Fx, DefaultArguments, Args...>;
         using typelist = type_traits::other_trans::type_list<Args...>;
 
-        template <typename Functor>
-        explicit invoker_accessor_impl(Functor &&method) noexcept {
-            utility::construct_at(&this->storage, utility::forward<Functor>(method));
+        template <typename Functor, typename... UAx>
+        explicit invoker_accessor_impl(Functor &&method, UAx &&...args) noexcept {
+            utility::construct_at(&this->storage, utility::forward<Functor>(method), utility::forward<UAx>(args)...);
         }
 
-        RAINY_NODISCARD const foundation::rtti::typeinfo &return_type() const noexcept override {
+        invoker_accessor_impl(const storage_t &right) : storage(right) {
+        }
+
+        invoker_accessor_impl(storage_t &&right) : storage(utility::move(right)) {
+        }
+
+        ~invoker_accessor_impl() {
+        
+        }
+
+        RAINY_NODISCARD const foundation::ctti::typeinfo &return_type() const noexcept override {
             return implements::return_type_res<ReturnType>();
         }
 
-        RAINY_NODISCARD const collections::views::array_view<foundation::rtti::typeinfo> &paramlists() const noexcept override {
-            static const collections::views::array_view<foundation::rtti::typeinfo> paramlist = implements::param_types_res<Args...>();
+        RAINY_NODISCARD const collections::views::array_view<foundation::ctti::typeinfo> &paramlists() const noexcept override {
+            static const collections::views::array_view<foundation::ctti::typeinfo> paramlist = implements::param_types_res<Args...>();
             return paramlist;
         }
 
-        RAINY_NODISCARD const foundation::rtti::typeinfo &function_signature() const noexcept override {
+        RAINY_NODISCARD const foundation::ctti::typeinfo &function_signature() const noexcept override {
             return implements::function_signature_res<function_signature_t>();
         }
 
-        RAINY_NODISCARD const foundation::rtti::typeinfo &which_belongs() const noexcept override {
+        RAINY_NODISCARD const foundation::ctti::typeinfo &which_belongs() const noexcept override {
             return implements::which_belongs_res<Class>();
         }
 
         RAINY_NODISCARD invoker_accessor *construct_from_this(core::byte_t *soo_buffer) const noexcept override {
-            if constexpr (is_fnobj<Fx>::value) {
-                return ::new invoker_accessor_impl(storage.fn);
+            if constexpr (sizeof(type_traits::other_trans::decay_t<decltype(*this)>) >= core::fn_obj_soo_buffer_size) {
+                return ::new invoker_accessor_impl(storage);
             } else {
-                return utility::construct_at(reinterpret_cast<invoker_accessor_impl *>(soo_buffer), storage.fn);
+                return utility::construct_at(reinterpret_cast<invoker_accessor_impl *>(soo_buffer), storage);
             }
         }
 
@@ -80,42 +100,95 @@ namespace rainy::meta::reflection::implements {
             }
         }
 
-        RAINY_NODISCARD std::uintptr_t target(const foundation::rtti::typeinfo &fx_sign) const noexcept override {
-            if (fx_sign != function_signature()) {
-                if (fx_sign == rainy_typeid(function *)) {
-                    return reinterpret_cast<std::uintptr_t>(const_cast<type_traits::other_trans::decay_t<Fx> *>(&storage.fn));
+        RAINY_NODISCARD std::uintptr_t target(const foundation::ctti::typeinfo &fx_sign) const noexcept override {
+            if (fx_sign == rainy_typeid(function *)) {
+                return reinterpret_cast<std::uintptr_t>(const_cast<type_traits::other_trans::decay_t<Fx> *>(&storage.fn));
+            }
+            if constexpr (is_fnobj<Fx>::value) {
+                if (fx_sign != rainy_typeid(Fx)) {
+                    return 0;
                 }
-                return 0;
+            } else {
+                if (fx_sign != function_signature()) {
+                    return 0;
+                }
             }
             return reinterpret_cast<std::uintptr_t>(const_cast<type_traits::other_trans::decay_t<Fx> *>(&storage.fn));
         }
 
-        RAINY_NODISCARD utility::any invoke(object_view &object) const override {
+        RAINY_NODISCARD utility::any invoke(object_view &object) override {
 #if RAINY_ENABLE_DEBUG
-            utility::expects(object.rtti().is_compatible(rainy_typeid(Class)));
+            utility::expects(object.ctti().is_compatible(rainy_typeid(Class)));
 #endif
             if constexpr (storage_t::arity == 0) {
-                return storage.access_invoke(object.get_pointer());
+                return access_invoke(utility::forward<Fx>(storage.fn), object.get_pointer());
             } else {
+                if constexpr (!type_traits::type_relations::is_same_v<decltype(storage.arguments.store), std::tuple<>>) {
+                    return invoke(object, {});
+                }
                 return {};
             }
         }
 
-        RAINY_NODISCARD utility::any invoke(object_view &object, arg_view arg_view) const override {
+        RAINY_NODISCARD utility::any invoke(object_view &object, arg_view arg_view) override {
 #if RAINY_ENABLE_DEBUG
-            utility::expects(object.rtti().is_compatible(rainy_typeid(Class)));
+            utility::expects(object.ctti().is_compatible(rainy_typeid(Class)));
 #endif
-            return storage.invoke(object.get_pointer(), &arg_view);
+            const std::size_t size = arg_view.size();
+            static constexpr std::size_t arity = storage_t::arity;
+            static constexpr std::size_t least = arity - storage_t::default_arity;
+            if (size == arity) {
+                const std::size_t args_hash =
+                    core::accumulate(arg_view.begin(), arg_view.end(), std::size_t{0},
+                                     [right = std::size_t{1}](const std::size_t acc, const object_view &item) mutable {
+                                         return acc + static_cast<std::size_t>(item.ctti().hash_code() * right++);
+                                     });
+                /*
+                在此处，我们考虑了参数校验的开销影响。例如，基本的遍历，占据n次比较开销用于检查遍历条件。
+                因此，为了减少不必要的比较开销，我们设计了一个优化算法。
+                这个算法通过一个基本的离散数学理论进行证明。可减少比较开销次数到n+1次。下面是证明。
+                定义：
+                  设序列 S = {item_i}_{i=1}^n
+                  设旧哈希: H_old(S) = ∑_{i=1}^n hash(item_i)
+                  设新哈希: H_new(S) = ∑_{i=1}^n i × hash(item_i)
+
+                其中，旧哈希是对序列元素的简单哈希求和，新哈希则引入了元素的位置权重比较。
+
+                证明：
+                  ∀S, T: (H_old(S) = H_old(T)) ⇒ (∃ i,j: i ≠ j ∧ hash(item_i^S) = hash(item_j^T) ∧ item_i^S ≠ item_j^T ∨
+                顺序不同且H_old相同) ⇏ ∀S, T: (H_new(S) = H_new(T)) ⇒ (∀ i: item_i^S = item_i^T)
+
+                解释：
+                  - H_old不唯一对应序列元素及顺序（因为交换律导致碰撞）
+                  - H_new引入权重i破坏交换律，使哈希值唯一对应序列元素及位置
+                  - 故H_new能检测元素及位置，一次比较即可判定序列一致性，减少多次比较
+                结论：
+                  H_new(S) = ∑ i × hash(item_i) 同时保证元素及其顺序的唯一性，改良了H_old(S)
+                */
+                if (args_hash == storage_t::param_hash) {
+                    return storage.invoke_impl(object.get_pointer(), arg_view, type_traits::helper::make_index_sequence<arity>{});
+                } else {
+                    // 如果参数一致，我们或许可以尝试转换参数类型来进行fallback处理
+                    return storage.invoke_with_conv_impl(object.get_pointer(), arg_view,
+                                                         type_traits::helper::make_index_sequence<arity>{});
+                }
+            }
+            if (size < least || size > arity) {
+                errno = EINVAL;
+                return {};
+            }
+            // 这里可能会涉及默认参数，不过，可能有些参数是需要转换的，因此，这个路径可能会处理需要转换的参数
+            return storage.invoke_with_defaults(object.get_pointer(), arg_view);
         }
 
         RAINY_NODISCARD bool is_invocable(
-            collections::views::array_view<foundation::rtti::typeinfo> paramlist) const noexcept override {
-            if (storage.arity != paramlist.size()) {
+            collections::views::array_view<foundation::ctti::typeinfo> paramlist) const noexcept override {
+            if (storage_t::arity != paramlist.size()) {
                 return false;
             }
             std::size_t paramhash =
                 core::accumulate(paramlist.begin(), paramlist.end(), std::size_t{0},
-                                 [right = std::size_t{1}](const std::size_t acc, const foundation::rtti::typeinfo &item) mutable {
+                                 [right = std::size_t{1}](const std::size_t acc, const foundation::ctti::typeinfo &item) mutable {
                                      return acc + (item.hash_code() * right++);
                                  });
             if (paramhash == storage.param_hash) {
@@ -128,15 +201,14 @@ namespace rainy::meta::reflection::implements {
         }
 
         template <std::size_t... I>
-        bool is_invocable_helper(collections::views::array_view<foundation::rtti::typeinfo> paramlist,
+        bool is_invocable_helper(collections::views::array_view<foundation::ctti::typeinfo> paramlist,
                                  type_traits::helper::index_sequence<I...>) const noexcept {
             return (... && utility::any_converter<typename type_traits::other_trans::type_at<I, typelist>::type>::is_convertible(
                                paramlist[I]));
         }
 
-        void destruct(bool local) noexcept override {
+        void destruct(const bool local) noexcept override {
             if (local) {
-                this->storage.~storage();
             } else {
                 delete this;
             }
@@ -148,15 +220,16 @@ namespace rainy::meta::reflection::implements {
         };
     };
 
-    template <typename Fx, typename Traits,
+    template <typename Fx, typename DefaultArguments, typename Traits,
               typename TypeList = typename type_traits::other_trans::tuple_like_to_type_list<typename Traits::tuple_like_type>::type>
     struct get_ia_implement_type {
         using unused_type1 = Fx;
-        using unused_type2 = TypeList;
+        using unused_type2 = DefaultArguments;
+        using unused_type3 = TypeList;
     };
 
-    template <typename Fx, typename Traits, typename... Args>
-    struct get_ia_implement_type<Fx, Traits, type_traits::other_trans::type_list<Args...>> {
+    template <typename Fx, typename Traits, typename... DArgs, typename... Args>
+    struct get_ia_implement_type<Fx, default_arguments_store<DArgs...>, Traits, type_traits::other_trans::type_list<Args...>> {
         using memptr_traits = type_traits::primary_types::member_pointer_traits<Fx>;
 
         template <typename FxTraits, bool IsMemptr = FxTraits::valid>
@@ -170,45 +243,8 @@ namespace rainy::meta::reflection::implements {
             using type = typename FxTraits::class_type;
         };
 
-        using type = invoker_accessor_impl<Fx, typename decl_class<memptr_traits>::type, typename Traits::return_type, Args...>;
-    };
-
-    template <typename Fx, typename = void>
-    struct try_to_get_invoke_operator : type_traits::helper::false_type {
-        static RAINY_CONSTEXPR_BOOL is_lambda_without_capture = false;
-    };
-
-    template <typename Fx>
-    struct try_to_get_invoke_operator<Fx, type_traits::other_trans::void_t<decltype(&Fx::operator())>>
-        : type_traits::helper::true_type {
-        template <typename Ty, typename = void>
-        struct test_is_lambda_without_capture : type_traits::helper::false_type {};
-
-        template <typename Ty>
-        struct test_is_lambda_without_capture<
-            Ty, type_traits::other_trans::void_t<decltype(+utility::declval<type_traits::cv_modify::remove_cv_t<Ty>>())>>
-            : type_traits::helper::bool_constant<
-                  type_traits::primary_types::is_pointer_v<decltype(+utility::declval<type_traits::cv_modify::remove_cv_t<Ty>>())>> {};
-
-        template <typename Ty, typename Traits,
-                  typename TypeList =
-                      typename type_traits::other_trans::tuple_like_to_type_list<typename Traits::tuple_like_type>::type>
-        struct get_fn_obj_invoke_if_default_constructible {
-            using unused_type1 = Ty;
-            using unused_type2 = TypeList;
-        };
-
-        template <typename Ty, typename Traits, typename... Args>
-        struct get_fn_obj_invoke_if_default_constructible<Ty, Traits, type_traits::other_trans::type_list<Args...>> {
-            static decltype(auto) invoke(Args... args) noexcept(Traits::is_noexcept) {
-                static Ty fn_obj{};
-                return fn_obj(utility::forward<Args>(args)...);
-            };
-        };
-
-        static RAINY_CONSTEXPR_BOOL is_lambda_without_capture = test_is_lambda_without_capture<Fx>::value;
-
-        static constexpr auto method = &Fx::operator();
+        using type = invoker_accessor_impl<Fx, typename decl_class<memptr_traits>::type, typename Traits::return_type,
+                                           implements::default_arguments_store<DArgs...>, Args...>;
     };
 }
 

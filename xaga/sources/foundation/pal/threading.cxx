@@ -15,79 +15,6 @@
  */
 #include <rainy/foundation/pal/threading.hpp>
 
-#if RAINY_USING_WINDOWS
-#include <rainy/winapi/system/multithread/thread.h>
-#elif RAINY_USING_LINUX
-#include <rainy/linux_api/system/multithread/thread.h>
-#endif
-
-namespace rainy::foundation::pal::threading::layer {
-#if RAINY_USING_WINDOWS
-    using namespace winapi::system::multithread; // layer -> rainy::winapi::system::mutithread
-#elif RAINY_USING_LINUX
-    using namespace linux_api::system::multithread; // layer -> rainy::linux_api::system::mutithread
-#endif
-}
-
-namespace rainy::foundation::pal::threading {
-    RAINY_INLINE void endthread(bool force_exit_main) {
-        if (core::is_main_thread() && !force_exit_main) {
-            return; // 不应当退出主线程
-        }
-        if (force_exit_main && core::is_main_thread()) {
-            std::exit(0);
-            return;
-        }
-        layer::endthread();
-    }
-
-    RAINY_INLINE void endthreadex(unsigned int return_code, bool force_exit_main) {
-        if (core::is_main_thread() && !force_exit_main) {
-            return; // 不应当退出主线程
-        }
-        if (force_exit_main && core::is_main_thread()) {
-            std::exit(0);
-            return;
-        }
-        layer::endthreadex(return_code);
-    }
-
-    RAINY_NODISCARD std::uintptr_t create_thread(
-        functional::function_pointer<unsigned int (*)(void *)> invoke_function_addr, unsigned int stack_size, void *arg_list) {
-        return layer::create_thread(invoke_function_addr, stack_size, arg_list);
-    }
-
-    RAINY_NODISCARD std::uintptr_t create_thread(
-        void *security, unsigned int stack_size, functional::function_pointer<unsigned int (*)(void *)> invoke_function_addr,
-        void *arg_list, unsigned int init_flag,std::uint64_t * thrd_addr) {
-        return layer::create_thread(security, stack_size, invoke_function_addr, arg_list, init_flag, thrd_addr);
-    }
-
-    RAINY_INLINE thrd_result thread_join(std::uintptr_t thread_handle, std::int64_t *result_receiver) noexcept {
-        return static_cast<thrd_result>(layer::thread_join(thread_handle, result_receiver));
-    }
-
-    RAINY_INLINE thrd_result thread_detach(std::uintptr_t thread_handle) noexcept {
-        return static_cast<thrd_result>(layer::thread_detach(thread_handle));
-    }
-
-    RAINY_INLINE void thread_yield() noexcept {
-        layer::thread_yield();
-    }
-
-    RAINY_INLINE unsigned int thread_hardware_concurrency() noexcept {
-        return layer::thread_hardware_concurrency();
-    }
-
-    RAINY_INLINE std::uint64_t get_thread_id() noexcept {
-        return layer::get_thread_id();
-    }
-
-    RAINY_INLINE void thread_sleep_for(const unsigned long ms) noexcept {
-        layer::thread_sleep_for(ms);
-    }
-}
-
 namespace rainy::foundation::pal::threading {
     thread::~thread() {
         switch (policy_) {
@@ -103,7 +30,9 @@ namespace rainy::foundation::pal::threading {
                 break;
             case policy::manual:
             default:
-                // manual模式表示正常threading模式，如果使用manual模式，由用户自己确保线程生命周期，如果此处一旦出现内存泄漏，必须进行释放。因此，此处不会允许程序的正常执行
+                // manual模式表示正常threading模式，如果使用manual模式
+                // 由用户自己确保线程生命周期，如果此处一旦出现内存泄漏，必须进行释放
+                // 因此，此处不会允许程序的正常执行
                 if (joinable()) {
                     std::terminate();
                 }
@@ -114,18 +43,18 @@ namespace rainy::foundation::pal::threading {
     thread &thread::operator=(thread &&right) noexcept {
         utility::expects(!joinable(), "We can't deprecated this thread. it's still exists. unless using detach() or join()",
                          utility::contract_option::use_terminate);
-        this->thread_handle = utility::exchange(right.thread_handle, 0);
-        this->id = utility::exchange(right.id, 0);
+        this->thread_handle = utility::exchange(right.thread_handle, {});
         this->policy_ = utility::exchange(right.policy_, policy::manual);
         return *this;
     }
 
     void thread::join() {
         utility::expects(joinable(), "Current Thread Is Invalid", utility::contract_option::use_exception);
-        utility::expects(id != get_thread_id(), "Resource deadlock would occur", utility::contract_option::use_exception);
-        auto result = thread_join(thread_handle, nullptr);
+        utility::expects(get_id() != thread::id{implements::get_thread_id()}, "Resource deadlock would occur",
+                         utility::contract_option::use_exception);
+        auto result = implements::thread_join(thread_handle, nullptr);
         if (result == thrd_result::success) {
-            thread_handle = 0;
+            thread_handle = {};
             return;
         }
         switch (result) {
@@ -150,25 +79,73 @@ namespace rainy::foundation::pal::threading {
 
     void thread::detach() {
         utility::expects(joinable(), "Current Thread Is Invalid", utility::contract_option::use_exception);
-        utility::expects(id != get_thread_id(), "Resource deadlock would occur", utility::contract_option::use_exception);
-        utility::ensures(thread_detach(thread_handle) == thrd_result::success, "Failed to detach current thread.",
+        utility::expects(get_id() != thread::id{implements::get_thread_id()}, "Resource deadlock would occur",
                          utility::contract_option::use_exception);
-        thread_handle = 0;
+        utility::ensures(implements::thread_detach(thread_handle) == thrd_result::success, "Failed to detach current thread.",
+                         utility::contract_option::use_exception);
+        thread_handle = {};
     }
 
     bool thread::joinable() const noexcept {
-        return static_cast<bool>(thread_handle);
+        return static_cast<bool>(thread_handle.handle);
     }
 
     void thread::sleep_for(const unsigned long ms) noexcept {
-        thread_sleep_for(ms);
+        implements::thread_sleep_for(ms);
     }
 
     RAINY_NODISCARD thread::native_handle_type thread::native_handle() const noexcept {
-        return reinterpret_cast<native_handle_type>(thread_handle);
+        return reinterpret_cast<native_handle_type>(thread_handle.handle);
     }
 
-    RAINY_NODISCARD std::uintptr_t thread::get() const noexcept {
-        return thread_handle;
+    void thread::suspend() noexcept {
+        implements::suspend_thread(this->thread_handle);
+    }
+
+    void thread::resume() noexcept {
+        implements::resume_thread(this->thread_handle);
+    }
+
+    thread::id thread::get_id() const noexcept {
+#if RAINY_USING_LINUX
+        return thread::id{this->thread_handle.handle};
+#else
+        return thread::id{this->thread_handle.tid};
+#endif
+    }
+
+    bool operator==(thread::id left, thread::id right) noexcept {
+        return left.id_ == right.id_;
+    }
+
+    RAINY_NODISCARD bool operator!=(thread::id left, thread::id right) noexcept {
+        return !(left == right);
+    }
+
+    RAINY_NODISCARD bool operator<(thread::id left, thread::id right) noexcept {
+        return left.id_ < right.id_;
+    }
+
+    RAINY_NODISCARD bool operator<=(thread::id left, thread::id right) noexcept {
+        return !(right < left);
+    }
+
+    RAINY_NODISCARD bool operator>(thread::id left, thread::id right) noexcept {
+        return right < left;
+    }
+
+    RAINY_NODISCARD bool operator>=(thread::id left, thread::id right) noexcept {
+        return !(left < right);
+    }
+}
+
+namespace rainy::foundation::system::this_thread {
+    foundation::pal::threading::thread::id get_id() noexcept {
+        using namespace foundation::pal;
+        return threading::thread::id{threading::implements::get_thread_id()};
+    }
+
+    void yield() noexcept {
+        return foundation::pal::threading::implements::thread_yield();
     }
 }

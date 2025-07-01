@@ -36,14 +36,14 @@ namespace rainy::utility::implements {
 
     template <typename... Types>
     struct get_template_arg_helper<type_traits::other_trans::type_list<Types...>> {
-        static constexpr collections::array<foundation::rtti::typeinfo, sizeof...(Types)> arguments = {
-            foundation::rtti::typeinfo::create<Types>()...};
+        static constexpr collections::array<foundation::ctti::typeinfo, sizeof...(Types)> arguments = {
+            foundation::ctti::typeinfo::create<Types>()...};
     };
 }
 
 namespace rainy::utility {
     template <typename Template>
-    constexpr decltype(auto) get_template_arguments_rtti() {
+    constexpr decltype(auto) get_template_arguments_ctti() {
         using namespace type_traits::extras::templates;
         using traits = template_traits<Template>;
         if constexpr (is_template_v<Template>) {
@@ -52,7 +52,7 @@ namespace rainy::utility {
     }
 
     template <typename Fx>
-    constexpr decltype(auto) get_fn_arguments_rtti() {
+    constexpr decltype(auto) get_fn_arguments_ctti() {
         using namespace type_traits::primary_types;
         using namespace type_traits::other_trans;
         using traits = function_traits<Fx>;
@@ -63,8 +63,8 @@ namespace rainy::utility {
     }
 
     template <typename Fx>
-    constexpr decltype(auto) get_fn_arguments_rtti(Fx) {
-        return get_fn_arguments_rtti<Fx>();
+    constexpr decltype(auto) get_fn_arguments_ctti(Fx) {
+        return get_fn_arguments_ctti<Fx>();
     }
 }
 

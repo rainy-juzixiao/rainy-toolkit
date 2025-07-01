@@ -165,7 +165,7 @@ namespace rainy::winapi::system::multithread {
             return false;
         }
         rainy_let mutex = static_cast<implements::mutex_handle *>(*mtx);
-        return mutex->count != 0 && mutex->thread_id == get_thread_id();
+        return mutex->count != 0 && mutex->thread_id == GetCurrentThreadId();
     }
 
     RAINY_INLINE win32_thread_result mtx_destroy(mtx_t *mtx, bool release) noexcept {

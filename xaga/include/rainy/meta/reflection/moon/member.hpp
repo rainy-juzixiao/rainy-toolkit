@@ -7,7 +7,7 @@
 namespace rainy::meta::reflection::moon {
     template <typename Ty, typename AList, bool Enable>
     struct member {
-        constexpr member(std::string_view n, Ty v, AList metas = {}) : name{n}, value{v}, metas{metas} {
+        constexpr member(std::string_view n, Ty v, AList metas = {}) : metas{metas}, value{v}, name{n} {
         }
 
         static constexpr bool has_value = true;
@@ -25,8 +25,8 @@ namespace rainy::meta::reflection::moon {
         static constexpr bool has_value = false;
     };
 
-    template <typename T>
-    member(std::string_view, T) -> member<T, meta_list<>, true>;
+    template <typename Ty>
+    member(std::string_view, Ty) -> member<Ty, meta_list<>, true>;
 
     template <typename... Fs>
     struct property_list : implements::element_list<Fs...> {

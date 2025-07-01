@@ -15,6 +15,7 @@
  */
 #ifndef RAINY_CORE_TMP_TYPE_RELATIONS_HPP
 #define RAINY_CORE_TMP_TYPE_RELATIONS_HPP
+#include <rainy/core/tmp/implements.hpp>
 
 // 类型关系
 namespace rainy::type_traits::type_relations {
@@ -60,8 +61,15 @@ namespace rainy::type_traits::type_relations {
     RAINY_CONSTEXPR_BOOL is_convertible_v = __is_convertible(From, To);
 #endif
 
+    template <typename From ,typename To>
+    struct is_convertible : helper::bool_constant<is_convertible_v<From, To>> {};
+
     template <typename Ty, typename... Types>
     RAINY_CONSTEXPR_BOOL is_any_convertible_v = (is_convertible_v<Ty, Types> || ...);
+
+    template <typename Ty1, typename Ty2>
+    RAINY_CONSTEXPR_BOOL different_from_v =
+        !type_traits::type_relations::is_same_v<implements::remove_cvref_t<Ty1>, implements::remove_cvref_t<Ty2>>;
 }
 
 #endif

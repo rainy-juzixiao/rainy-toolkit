@@ -144,7 +144,7 @@ namespace rainy::foundation::functional::implements {
          * @brief 获取invoker的函数签名的类型信息，以静态方式
          * @return invoker函数签名类型信息
          */
-        RAINY_NODISCARD static constexpr rtti::typeinfo typeinfo() noexcept {
+        RAINY_NODISCARD static constexpr ctti::typeinfo typeinfo() noexcept {
             return rainy_typeid(pointer);
         }
 

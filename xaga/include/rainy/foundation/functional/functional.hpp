@@ -1,273 +1,702 @@
-#ifndef RAINY_FUNCTIONAL_HPP
-#define RAINY_FUNCTIONAL_HPP
+#ifndef RAINY_FOUNDATION_FUNCTIONAL_HPP
+#define RAINY_FOUNDATION_FUNCTIONAL_HPP
 #include <functional>
-#include <rainy/base.hpp>
-#include <rainy/meta/type_traits.hpp>
-#include <rainy/system/exceptions.hpp>
+#include <rainy/core/core.hpp>
 
-namespace rainy::foundation::system::exceptions::runtime {
+namespace rainy::foundation::exceptions::runtime {
     class invalid_delegate : public runtime_error {
     public:
         using base = runtime_error;
 
-        invalid_delegate(const char *message, source loc = source::current()) :
-            base(std::format("invalid delegate,reason : {}", message).c_str(), loc) {
+        invalid_delegate(source loc = source::current()) : base("bad delegation call", loc) {
         }
     };
 
-    class internal_error : public runtime_error {
-    public:
-        using base = runtime_error;
-
-        internal_error(const char *message, const source &loc = source::current()) :
-            base(std::format("we found a error,reason : {}", message).c_str(), loc) {
-        }
-    };
-
-    class invoke_error : public runtime_error {
-    public:
-        using base = runtime_error;
-
-        invoke_error(const char *message, source loc = source::current()) :
-            base(std::format("we can't invoke this object,reason : {}", message).c_str(), loc) {
-        }
-    };
-
-    void throw_invoke_error(const char *message, utility::source_location loc = utility::source_location::current()) {
-        throw_exception(invoke_error(message, loc));
+    void throw_invalid_delegate(utility::source_location loc = utility::source_location::current()) {
+        throw_exception(invalid_delegate(loc));
     }
 }
 
-namespace rainy::foundation::functional::implements {
-    template <typename Rx, typename... Args>
-    class delegate_abstract { // abstract base for implementation types
-    public:
-        delegate_abstract() = default;
-        delegate_abstract(const delegate_abstract &) = default;
-        delegate_abstract(delegate_abstract &&) = default;
-        delegate_abstract &operator=(delegate_abstract &&) = default;
-        delegate_abstract &operator=(const delegate_abstract &) = default;
-        virtual ~delegate_abstract() = default;
+namespace rainy::foundation::functional {
+    template <typename Fx>
+    class delegate;
 
-        /**
-         * \brief 此部分写于2024/1/18.
-         * \brief 应当实现拷贝，若大小大于std::_Space_size，则在堆区创建对象，否则在栈区创建.
-         *
-         * \param where 目标位置
-         * \return 应当返回子类指针
-         */
-        virtual delegate_abstract *copy(void *where) const = 0;
-
-        /**
-         * \brief 此部分写于2024/1/18.
-         * \brief 应当实现移动，若对象分配在堆区，应返回nullptr.
-         *
-         * \param where 目标位置
-         * \return 应当返回子类指针
-         */
-        virtual delegate_abstract *move(void *where) noexcept = 0;
-
-        /**
-         * \brief 此部分写于2024/1/18.
-         * \brief 应当实现调用，而且应当调用的是函数对象.
-         *
-         * \param args 调用的参数
-         * \return 函数对象的operator()返回值
-         */
-        virtual Rx invoke(Args &&...args) const = 0;
-
-        /**
-         * \brief 此部分写于2024/1/18.
-         * \brief 应由负责清理的函数调用
-         *
-         * \param dealloc 如果对象是堆区分配的，应为true，否则仅调用析构
-         */
-        virtual void release(bool dealloc) noexcept = 0;
-
-        /**
-         * \brief 此部分写于2024/4/22
-         * \brief 应当实现函数对象大小查询
-         *
-         * \return 当前函数对象的字节大小
-         */
-        RAINY_NODISCARD virtual std::size_t size() const noexcept = 0;
-
-        /**
-         * \brief 此部分写于2024/4/25.
-         * \brief 应当实现函数对象的std::type_info.
-         *
-         * \return 返回当前函数对象的typeid
-         */
-        RAINY_NODISCARD virtual const std::type_info &target_type() const noexcept = 0;
-
-        /**
-         * \brief 此部分写于2024/4/25.
-         * \brief 应当返回这个函数对象的地址.
-         *
-         * \return 返回当前函数对象的地址，以const void*形式
-         */
-        RAINY_NODISCARD virtual const void *get() const noexcept = 0;
-    };
-
-    template <typename Fx, typename Rx, typename... Args>
-    struct invoker final : delegate_abstract<Rx, Args...> {
-        using base = delegate_abstract<Rx, Args...>;
-        using nothrow_move = std::is_nothrow_move_constructible<Fx>;
-
-        template <typename impl>
-        static constexpr bool is_large = sizeof(impl) > core::space_size ||
-                                                alignof(impl) > alignof(std::max_align_t) ||
-                                                  !impl::nothrow_move::value;
-
-        template <typename Other, std::enable_if_t<!std::is_same_v<invoker, std::decay_t<Other>>, int> = 0>
-        explicit invoker(Other &&callable) : callable(std::forward<Other>(callable)) {
-        }
-
-        base *copy(void *where) const override {
-            if constexpr (is_large<invoker>) {
-                return ::new invoker(callable);
-            } else {
-                if (where) {
-                    rainy_let location = static_cast<invoker *>(where);
-                    return dynamic_cast<delegate_abstract<Rx, Args...> *>(utility::construct_at(location, callable));
-                }
-                return ::new invoker(callable);
-            }
-        }
-
-        base *move(void *where) noexcept override {
-            if constexpr (is_large<invoker>) {
-                return nullptr;
-            } else {
-                rainy_let location = static_cast<invoker *>(where);
-                return dynamic_cast<delegate_abstract<Rx, Args...> *>(utility::construct_at(location, callable));
-            }
-        }
-
-        Rx invoke(Args &&...args) const override {
-            if constexpr (std::is_void_v<Rx>) {
-                std::invoke(callable, std::forward<Args>(args)...);
-            } else {
-                return std::invoke(callable, std::forward<Args>(args)...);
-            }
-            return Rx();
-        }
-
-        void release(const bool dealloc) noexcept override { // destroy self
-            this->~invoker();
-            if (dealloc) {
-                std::allocator<invoker>{}.deallocate(this, 1);
-            }
-        }
-
-        std::size_t size() const noexcept override {
-            return sizeof(callable);
-        }
-
-        const std::type_info &target_type() const noexcept override {
-            return typeid(callable);
-        }
-
-        const void *get() const noexcept override {
-            return static_cast<const void *>(&callable);
-        }
-
-        mutable Fx callable;
-    };
+    using core::method_flags;
 }
 
 namespace rainy::foundation::functional::implements {
-    template <typename Fx>
-    class delegate_base;
+    template <typename Rx, typename Class, typename... Args>
+    struct invoker_accessor {
+        virtual Rx invoke(Class *object, Args &&...args) = 0;
+        RAINY_NODISCARD virtual std::uintptr_t target(const foundation::ctti::typeinfo &fx_sign) const noexcept = 0;
+        RAINY_NODISCARD virtual const foundation::ctti::typeinfo &target_type() const noexcept = 0;
+        virtual void destruct(bool local) noexcept = 0;
+        virtual invoker_accessor *move(core::byte_t *soo_buffer) noexcept = 0;
+        virtual invoker_accessor *copy(core::byte_t *soo_buffer) const = 0;
+        virtual method_flags type() const noexcept = 0;
+    };
 
-    template <typename Rx, typename... Args>
-    class delegate_base<Rx(Args...)> {
+    template <typename Fx, typename Rx, typename Class, typename... Args>
+    struct invoker_accessor_impl : invoker_accessor<Rx, Class, Args...> {
     public:
-        using return_type = Rx;
+        using fx_traits = type_traits::primary_types::function_traits<Fx>;
+        using instance_t = Class;
+        using base = invoker_accessor<Rx, Class, Args...>;
 
-        static inline constexpr std::size_t arity = sizeof...(Args);
-
-        template <typename Fx>
-        delegate_base(Fx &&function) : instance(make_invoker(utility::forward<Fx>(function))) {
+        template <typename UFx>
+        invoker_accessor_impl(UFx &&fn) : fn(utility::forward<UFx>(fn)) {
         }
 
-        ~delegate_base() {
-            reset();
-        }
-
-        return_type invoke(Args... args) const {
-            if (empty()) {
-                system::exceptions::runtime::throw_invoke_error("internal object is null!");
-            }
-            if constexpr (type_traits::primary_types::is_void_v<return_type>) {
-                instance->invoke(args...);
+        Rx invoke(Class *object, Args &&...args) override {
+            // 调用始终是无线程安全的，始终考虑执行的函数是否为线程安全
+            if constexpr (type_traits::type_relations::is_void_v<Class>) {
+                if constexpr (type_traits::type_relations::is_void_v<Rx>) {
+                    utility::invoke(utility::forward<Fx>(this->fn), utility::forward<Args>(args)...);
+                } else {
+                    return utility::invoke(utility::forward<Fx>(this->fn), utility::forward<Args>(args)...);
+                }
             } else {
-                return instance->invoke(args...);
+                if constexpr (fx_traits::is_invoke_for_lvalue) {
+                    if constexpr (type_traits::type_relations::is_void_v<Rx>) {
+                        utility::invoke(utility::forward<Fx>(fn), static_cast<instance_t &>(*static_cast<instance_t *>(object)),
+                                        utility::forward<Args>(args)...);
+                    } else {
+                        return utility::invoke(utility::forward<Fx>(fn), static_cast<instance_t &>(*static_cast<instance_t *>(object)),
+                                               utility::forward<Args>(args)...);
+                    }
+                } else if constexpr (fx_traits::is_invoke_for_rvalue) {
+                    if constexpr (type_traits::type_relations::is_void_v<Rx>) {
+                        utility::invoke(utility::forward<Fx>(fn), static_cast<instance_t &&>(*static_cast<instance_t *>(object)),
+                                        utility::forward<Args>(args)...);
+                    } else {
+                        return utility::invoke(utility::forward<Fx>(fn),
+                                               static_cast<instance_t &&>(*static_cast<instance_t *>(object)),
+                                               utility::forward<Args>(args)...);
+                    }
+                } else {
+                    if constexpr (type_traits::type_relations::is_void_v<Rx>) {
+                        utility::invoke(utility::forward<Fx>(fn), static_cast<instance_t *>(object), utility::forward<Args>(args)...);
+                    } else {
+                        return utility::invoke(utility::forward<Fx>(fn), static_cast<instance_t *>(object),
+                                               utility::forward<Args>(args)...);
+                    }
+                }
             }
         }
 
-        return_type operator()(Args... args) const {
-            return invoke(args...);
-        }
-
-        const std::type_info &target_type() const noexcept {
-            if (empty()) {
-                return typeid(void);
+        void destruct(bool local) noexcept override {
+            this->~invoker_accessor_impl();
+            if (!local) {
+                delete this;
             }
-            return instance->target_type();
         }
 
-        void reset() {
-            if (!empty()) {
-                instance->release(!using_local());
+        method_flags type() const noexcept override {
+            static constexpr method_flags flags = core::deduction_invoker_type<Fx, Args...>();
+            return flags;
+        }
+
+        std::uintptr_t target(const foundation::ctti::typeinfo &fx_sign) const noexcept override {
+            if (fx_sign == rainy_typeid(Fx)) {
+                return reinterpret_cast<std::uintptr_t>(utility::addressof(fn));
             }
-            instance = nullptr;
+            return 0;
         }
 
-        void reset(std::nullptr_t) {
-            reset();
-        }
-
-        template <typename Fx>
-        void reset(Fx&& function) {
-            if (!empty()) {
-                reset();
+        base *move(core::byte_t *soo_buffer) noexcept override {
+            if constexpr (sizeof(invoker_accessor_impl) >= core::fn_obj_soo_buffer_size) {
+                return nullptr;
+            } else {
+                return utility::construct_at(reinterpret_cast<invoker_accessor_impl *>(soo_buffer), utility::move(fn));
             }
-            instance = make_invoker(utility::forward<Fx>(function));
         }
 
-
-
-        RAINY_NODISCARD bool empty() const noexcept {
-            return !static_cast<bool>(instance);
+        base *copy(core::byte_t *soo_buffer) const override {
+            if constexpr (!type_traits::type_properties::is_copy_constructible_v<Fx>) {
+                std::terminate();
+            }
+            if constexpr (sizeof(invoker_accessor_impl) >= core::fn_obj_soo_buffer_size) {
+                return ::new invoker_accessor_impl(fn);
+            } else {
+                return utility::construct_at(reinterpret_cast<invoker_accessor_impl *>(soo_buffer), fn);
+            }
         }
 
-        RAINY_NODISCARD bool using_local() const noexcept {
-            return static_cast<const void *>(instance) == static_cast<const void *>(&small_object[0]);
+        const foundation::ctti::typeinfo &target_type() const noexcept {
+            return rainy_typeid(Fx);
         }
 
     private:
-        template <typename Fx>
-        delegate_abstract<Rx, Args...> *make_invoker(Fx &&handler) {
-            using invoker_type = invoker<Fx, Rx, Args...>;
-            static constexpr bool is_large = sizeof(invoker_type) > core::space_size ||
-                                             alignof(invoker_type) > alignof(std::max_align_t) || !invoker_type::nothrow_move::value;
-            if constexpr (is_large) {
-                return new invoker_type(utility::forward<Fx>(handler));
+        Fx fn;
+    };
+
+    template <typename Fx,
+              typename TypeList =
+                  typename type_traits::other_trans::tuple_like_to_type_list<typename type_traits::primary_types::function_traits<
+                      typename type_traits::other_trans::decay_t<Fx>>::tuple_like_type>::type>
+    struct get_ia_implement_type {
+        using type = void;
+    };
+
+    template <typename Fx, typename... Args>
+    struct get_ia_implement_type<Fx, type_traits::other_trans::type_list<Args...>> {
+        using traits = type_traits::primary_types::function_traits<type_traits::other_trans::decay_t<Fx>>;
+
+        using type = invoker_accessor_impl<type_traits::other_trans::decay_t<Fx>, typename traits::return_type,
+                                           typename type_traits::primary_types::member_pointer_traits<Fx>::class_type, Args...>;
+    };
+
+    template <typename Fx, typename Rx, typename TypeList>
+    class delegate_impl {};
+
+    template <typename Fx, typename Rx, typename... Args>
+    class delegate_impl<Fx, Rx, type_traits::other_trans::type_list<Args...>> {
+    public:
+        using paramlist = type_traits::other_trans::type_list<Args...>;
+        using result_type = Rx;
+        using function_type = Fx;
+        using class_t = typename type_traits::primary_types::member_pointer_traits<Fx>::class_type;
+
+        static constexpr std::size_t arity = sizeof...(Args);
+
+        template <typename UFx, typename Delegate>
+        using enable_if_callable_t = type_traits::other_trans::enable_if_t<
+            !type_traits::type_relations::is_same_v<type_traits::cv_modify::remove_cvref_t<UFx>, Delegate> &&
+                type_traits::other_trans::conditional_t<
+                    type_traits::type_relations::is_void_v<class_t>,
+                    type_traits::type_properties::is_invocable_r<Rx, type_traits::other_trans::decay_t<UFx> &, Args...>,
+                    type_traits::type_properties::is_invocable_r<Rx, type_traits::other_trans::decay_t<UFx> &, class_t,
+                                                                 Args...>>::value,
+            int>;
+
+        template <typename UFx>
+        friend class functional::delegate;
+
+        delegate_impl() noexcept = default;
+
+        ~delegate_impl() {
+            reset();
+        }
+
+        template <typename Class, typename UFx = Fx,
+                  type_traits::other_trans::enable_if_t<
+                      type_traits::type_properties::is_invocable_r_v<result_type, UFx, Class, Args...>, int> = 0>
+        Rx invoke(Class &&object, Args &&...args) const {
+            if (empty()) {
+                foundation::exceptions::runtime::throw_invalid_delegate();
+            }
+            if constexpr (rainy::type_traits::type_relations::is_void_v<Rx>) {
+                invoker_accessor()->invoke(const_cast<class_t *>(utility::addressof(object)), utility::forward<Args>(args)...);
             } else {
-                return utility::construct_at(reinterpret_cast<invoker_type *>(small_object), utility::forward<Fx>(handler));
+                return invoker_accessor()->invoke(const_cast<class_t *>(utility::addressof(object)), utility::forward<Args>(args)...);
             }
         }
 
-        union {
-            char small_object[core::space_size];
-            std::max_align_t dummy;
-        };
-        delegate_abstract<Rx, Args...> *instance;
+        template <typename Class, typename UFx = Fx,
+                  type_traits::other_trans::enable_if_t<
+                      type_traits::type_properties::is_invocable_r_v<result_type, UFx, Class, Args...>, int> = 0>
+        Rx operator()(Class &&object, Args &&...args) const {
+            return invoke(utility::forward<Class>(object), utility::forward<Args>(args)...);
+        }
+
+        template <typename UFx = Fx, type_traits::other_trans::enable_if_t<
+                                         type_traits::type_properties::is_invocable_r_v<result_type, UFx, Args...>, int> = 0>
+        Rx invoke(Args &&...args) const {
+            if (empty()) {
+                foundation::exceptions::runtime::throw_invalid_delegate();
+            }
+            if constexpr (type_traits::type_relations::is_void_v<Rx>) {
+                invoker_accessor()->invoke(nullptr, utility::forward<Args>(args)...);
+            } else {
+                return invoker_accessor()->invoke(nullptr, utility::forward<Args>(args)...);
+            }
+        }
+
+        template <typename UFx = Fx, type_traits::other_trans::enable_if_t<
+                                         type_traits::type_properties::is_invocable_r_v<result_type, UFx, Args...>, int> = 0>
+        Rx operator()(Args &&...args) const {
+            return invoke(utility::forward<Args>(args)...);
+        }
+
+        bool empty() const noexcept {
+            return static_cast<bool>(!invoker_accessor_);
+        }
+
+        void reset() noexcept {
+            if (!empty()) {
+                invoker_accessor()->destruct(is_local());
+                invoker_accessor_ = nullptr;
+            }
+        }
+
+        void swap(delegate_impl &right) noexcept {
+            if (!is_local() && !right.is_local()) {
+                utility::swap(invoker_accessor_, right.invoker_accessor_);
+            } else {
+                delegate_impl temp;
+                temp.move_from_other(utility::move(*this));
+                reset_move(utility::move(right));
+                right.move_from_other(utility::move(temp));
+            }
+        }
+
+        template <typename UFx, enable_if_callable_t<UFx, delegate<Fx>> = 0>
+        void rebind(UFx &&func) {
+            if (!empty()) {
+                invoker_accessor_->destruct(is_local());
+            }
+            using implemented_type = typename get_ia_implement_type<UFx>::type;
+            if constexpr (sizeof(implemented_type) > core::fn_obj_soo_buffer_size) {
+                invoker_accessor_ = ::new implemented_type(utility::forward<UFx>(func));
+            } else {
+                invoker_accessor_ =
+                    utility::construct_at(reinterpret_cast<implemented_type *>(invoker_storage), utility::forward<UFx>(func));
+            }
+        }
+
+        void rebind(delegate_impl &&right) {
+            reset();
+            move_from_other(right);
+            right.reset();
+        }
+
+        void rebind(const delegate_impl &right) {
+            reset();
+            copy_from_other(right);
+        }
+
+        void move_from_other(delegate_impl &&right) noexcept {
+            if (this == utility::addressof(right)) {
+                return;
+            }
+            if (!right.empty()) {
+                if (right.is_local()) {
+                    invoker_accessor_ = right.invoker_accessor()->move(invoker_storage);
+                    right.reset();
+                } else {
+                    invoker_accessor_ = right.invoker_accessor_;
+                    right.invoker_accessor_ = nullptr;
+                }
+            }
+        }
+
+        void copy_from_other(const delegate_impl &right) {
+            if (this == utility::addressof(right)) {
+                return;
+            }
+            if (!right.empty()) {
+                invoker_accessor_ = right.invoker_accessor()->copy(invoker_storage);
+            }
+        }
+
+        const foundation::ctti::typeinfo &function_signature() const noexcept {
+            return rainy_typeid(Fx);
+        }
+
+        const foundation::ctti::typeinfo &return_type() const noexcept {
+            return rainy_typeid(Rx);
+        }
+
+        const foundation::ctti::typeinfo &which_belongs() const noexcept {
+            return rainy_typeid(class_t);
+        }
+
+        const foundation::ctti::typeinfo &target_type() const noexcept {
+            return invoker_accessor()->target_type();
+        }
+
+        method_flags type() const noexcept {
+            if (empty()) {
+                return method_flags::none;
+            }
+            return invoker_accessor()->type();
+        }
+
+        bool has(method_flags flag) const noexcept {
+            return static_cast<bool>(type() & flag);
+        }
+
+        RAINY_NODISCARD bool is_const() const noexcept {
+            return has(method_flags::const_qualified);
+        }
+
+        RAINY_NODISCARD bool is_noexcept() const noexcept {
+            return has(method_flags::noexcept_specified);
+        }
+
+        RAINY_NODISCARD bool is_invoke_for_lvalue() const noexcept {
+            return has(method_flags::lvalue_qualified);
+        }
+
+        RAINY_NODISCARD bool is_invoke_for_rvalue() const noexcept {
+            return has(method_flags::rvalue_qualified);
+        }
+
+        RAINY_NODISCARD bool is_static() const noexcept {
+            return has(method_flags::static_specified);
+        }
+
+        RAINY_NODISCARD bool is_volatile() const noexcept {
+            return has(method_flags::volatile_qualified);
+        }
+
+        RAINY_NODISCARD bool is_memfn() const noexcept {
+            return !is_static();
+        }
+
+        template <typename UFx>
+        const UFx *target() const noexcept {
+            if (empty()) {
+                return nullptr;
+            }
+            auto ptr = reinterpret_cast<UFx *>(invoker_accessor()->target(rainy_typeid(UFx)));
+            if (ptr) {
+                return ptr;
+            }
+            return nullptr;
+        }
+
+        template <typename UFx>
+        UFx *target() noexcept {
+            if (empty()) {
+                return nullptr;
+            }
+            auto ptr = reinterpret_cast<UFx *>(invoker_accessor()->target(rainy_typeid(UFx)));
+            if (ptr) {
+                return ptr;
+            }
+            return nullptr;
+        }
+
+    private:
+        bool is_local() const noexcept {
+            return static_cast<const void *>(invoker_accessor_) == reinterpret_cast<const void *>(invoker_storage);
+        }
+
+        implements::invoker_accessor<Rx, class_t, Args...> *invoker_accessor() const {
+            return invoker_accessor_;
+        }
+
+        alignas(std::max_align_t) core::byte_t invoker_storage[core::fn_obj_soo_buffer_size]{};
+        implements::invoker_accessor<Rx, class_t, Args...> *invoker_accessor_{nullptr};
     };
 
-    template <typename Rx, typename... Args>
-    class delegate_base<Rx(*)(Args...)> : public delegate_base<Rx(Args...)> {};
-
+    template <typename Fx>
+    struct get_delegate_impl {
+        using type = implements::delegate_impl<Fx, typename type_traits::primary_types::function_traits<Fx>::return_type,
+                                               typename type_traits::other_trans::tuple_like_to_type_list<
+                                                   typename type_traits::primary_types::function_traits<Fx>::tuple_like_type>::type>;
+    };
 }
+
+namespace rainy::foundation::functional {
+    template <typename Fx>
+    class delegate final : public implements::get_delegate_impl<Fx>::type {
+    public:
+        using base = typename implements::get_delegate_impl<Fx>::type;
+
+        delegate() noexcept = default;
+
+        template <typename UFx, typename base::template enable_if_callable_t<UFx, delegate> = 0> 
+            // UFx应能被适配，且remove_cvref_t<UFx>不能为delegate类型
+        delegate(UFx &&fn) {
+            this->rebind(utility::forward<UFx>(fn));
+        }
+
+        delegate(const delegate &right) {
+            this->copy_from_other(right);
+        }
+
+        delegate(delegate &&right) {
+            this->move_from_other(utility::move(right));
+        }
+
+        delegate(std::nullptr_t) noexcept {
+        }
+
+        template <typename UFx, typename base::template enable_if_callable_t<UFx, delegate> = 0>
+        delegate &operator=(UFx &&fn) {
+            this->rebind(utility::forward<UFx>(fn));
+            return *this;
+        }
+
+        delegate &operator=(const delegate &right) {
+            this->copy_from_other(right);
+            return *this;
+        }
+
+        delegate &operator=(delegate &&right) {
+            this->move_from_other(utility::move(right));
+            return *this;
+        }
+
+        delegate &operator=(std::nullptr_t) noexcept {
+            this->reset();
+            return *this;
+        }
+    };
+
+    template <typename Fx>
+    delegate(Fx &&) -> delegate<Fx>;
+}
+
+namespace rainy::foundation::functional {
+    inline namespace operators {
+        template <typename Ty = void>
+        struct plus {
+            constexpr Ty operator()(const Ty &left, const Ty &right) const {
+                return left + right;
+            }
+        };
+
+        template <>
+        struct plus<void> {
+            template <typename Ty, typename U>
+            constexpr auto operator()(const Ty &left, const Ty &right) const
+                noexcept(noexcept(utility::forward<Ty>(left) + utility::forward<U>(right)))
+                    -> decltype(utility::forward<Ty>(left) + utility::forward<U>(right)) {
+                return left + right;
+            }
+        };
+
+        template <typename Ty = void>
+        struct minus {
+            constexpr Ty operator()(const Ty &left, const Ty &right) const {
+                return left - right;
+            }
+        };
+        
+        template <>
+        struct minus<void> {
+            template <typename Ty, typename U>
+            constexpr auto operator()(const Ty &left, const Ty &right) const
+                noexcept(noexcept(utility::forward<Ty>(left) - utility::forward<U>(right)))
+                    -> decltype(utility::forward<Ty>(left) - utility::forward<U>(right)) {
+                return left - right;
+            }
+        };
+
+        template <typename Ty = void>
+        struct multiplies {
+            constexpr Ty operator()(const Ty &left, const Ty &right) const {
+                return left * right;
+            }
+        };
+
+        template <>
+        struct multiplies<void> {
+            template <typename Ty, typename U>
+            constexpr auto operator()(const Ty &left, const U &right) const
+                noexcept(noexcept(utility::forward<Ty>(left) * utility::forward<U>(right)))
+                    -> decltype(utility::forward<Ty>(left) * utility::forward<U>(right)) {
+                return left * right;
+            }
+        };
+
+        template <typename Ty = void>
+        struct divides {
+            constexpr Ty operator()(const Ty &left, const Ty &right) const {
+                return left / right;
+            }
+        };
+
+        template <>
+        struct divides<void> {
+            template <typename Ty, typename U>
+            constexpr auto operator()(const Ty &left, const U &right) const
+                noexcept(noexcept(utility::forward<Ty>(left) / utility::forward<U>(right)))
+                    -> decltype(utility::forward<Ty>(left) / utility::forward<U>(right)) {
+                return left / right;
+            }
+        };
+
+        template <typename Ty = void>
+        struct modulus {
+            constexpr Ty operator()(const Ty &left, const Ty &right) const {
+                return left % right;
+            }
+        };
+
+        template <>
+        struct modulus<void> {
+            template <typename Ty, typename U>
+            constexpr auto operator()(const Ty &left, const U &right) const
+                noexcept(noexcept(utility::forward<Ty>(left) % utility::forward<U>(right)))
+                    -> decltype(utility::forward<Ty>(left) % utility::forward<U>(right)) {
+                return left % right;
+            }
+        };
+
+        template <typename Ty = void>
+        struct negate {
+            constexpr Ty operator()(const Ty &object) const {
+                return -object;
+            }
+        };
+
+        template <>
+        struct negate<void> {
+            template <typename Ty>
+            constexpr auto operator()(const Ty &object) const noexcept(noexcept(-utility::forward<Ty>(object)))
+                -> decltype(-utility::forward<Ty>(object)) {
+                return -object;
+            }
+        };
+    }
+
+    inline namespace predicate {
+        template <typename Ty = void>
+        struct equal {
+            constexpr bool operator()(const Ty &left, const Ty &right) const {
+                return left == right;
+            }
+        };
+
+        template <>
+        struct equal<void> {
+            template <typename Ty, typename U>
+            constexpr auto operator()(const Ty &left, const Ty &right) const
+                noexcept(noexcept(utility::forward<Ty>(left) == utility::forward<U>(right)))
+                    -> decltype(utility::forward<Ty>(left) == utility::forward<U>(right)) {
+                return left == right;
+            }
+        };
+
+        template <typename Ty = void>
+        struct not_equal {
+            constexpr bool operator()(const Ty &left, const Ty &right) const {
+                return left != right;
+            }
+        };
+
+        template <>
+        struct not_equal<void> {
+            template <typename Ty, typename U>
+            constexpr auto operator()(const Ty &left, const Ty &right) const
+                noexcept(noexcept(utility::forward<Ty>(left) != utility::forward<U>(right)))
+                    -> decltype(utility::forward<Ty>(left) != utility::forward<U>(right)) {
+                return left != right;
+            }
+        };
+
+        template <typename Ty = void>
+        struct less {
+            constexpr bool operator()(const Ty &left, const Ty &right) const {
+                return left < right;
+            }
+        };
+
+        template <>
+        struct less<void> {
+            template <typename Ty, typename U>
+            constexpr auto operator()(const Ty &left, const U &right) const
+                noexcept(noexcept(utility::forward<Ty>(left) < utility::forward<U>(right)))
+                    -> decltype(utility::forward<Ty>(left) < utility::forward<U>(right)) {
+                return left < right;
+            }
+        };
+
+        template <typename Ty = void>
+        struct less_equal {
+            constexpr bool operator()(const Ty &left, const Ty &right) const {
+                return left <= right;
+            }
+        };
+
+        template <>
+        struct less_equal<void> {
+            template <typename Ty, typename U>
+            constexpr auto operator()(const Ty &left, const U &right) const
+                noexcept(noexcept(utility::forward<Ty>(left) <= utility::forward<U>(right)))
+                    -> decltype(utility::forward<Ty>(left) <= utility::forward<U>(right)) {
+                return left <= right;
+            }
+        };
+
+        template <typename Ty = void>
+        struct greater {
+            constexpr bool operator()(const Ty &left, const Ty &right) const {
+                return left > right;
+            }
+        };
+
+        template <>
+        struct greater<void> {
+            template <typename Ty, typename U>
+            constexpr auto operator()(const Ty &left, const U &right) const
+                noexcept(noexcept(utility::forward<Ty>(left) > utility::forward<U>(right)))
+                    -> decltype(utility::forward<Ty>(left) > utility::forward<U>(right)) {
+                return left > right;
+            }
+        };
+
+        template <typename Ty = void>
+        struct greater_equal {
+            constexpr bool operator()(const Ty &left, const Ty &right) const {
+                return left >= right;
+            }
+        };
+
+        template <>
+        struct greater_equal<void> {
+            template <typename Ty, typename U>
+            constexpr auto operator()(const Ty &left, const U &right) const
+                noexcept(noexcept(utility::forward<Ty>(left) >= utility::forward<U>(right)))
+                    -> decltype(utility::forward<Ty>(left) >= utility::forward<U>(right)) {
+                return left >= right;
+            }
+        };
+
+        template <typename Ty = void>
+        struct logical_and {
+            constexpr bool operator()(const Ty &left, const Ty &right) const {
+                return left && right;
+            }
+        };
+
+        template <>
+        struct logical_and<void> {
+            template <typename Ty, typename U>
+            constexpr auto operator()(const Ty &left, const U &right) const
+                noexcept(noexcept(utility::forward<Ty>(left) && utility::forward<U>(right)))
+                    -> decltype(utility::forward<Ty>(left) && utility::forward<U>(right)) {
+                return left && right;
+            }
+        };
+
+        template <typename Ty = void>
+        struct logical_or {
+            constexpr bool operator()(const Ty &left, const Ty &right) const {
+                return left || right;
+            }
+        };
+
+        template <>
+        struct logical_or<void> {
+            template <typename Ty, typename U>
+            constexpr auto operator()(const Ty &left, const U &right) const
+                noexcept(noexcept(utility::forward<Ty>(left) || utility::forward<U>(right)))
+                    -> decltype(utility::forward<Ty>(left) || utility::forward<U>(right)) {
+                return left || right;
+            }
+        };
+
+        template <typename Ty = void>
+        struct logical_not {
+            constexpr bool operator()(const Ty &object) const {
+                return !object;
+            }
+        };
+
+        template <>
+        struct logical_not<void> {
+            template <typename Ty>
+            constexpr auto operator()(const Ty &object) const noexcept(noexcept(!utility::forward<Ty>(object)))
+                -> decltype(!utility::forward<Ty>(object)) {
+                return !object;
+            }
+        };
+    }
+}
+
 #endif

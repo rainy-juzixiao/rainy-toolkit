@@ -15,127 +15,25 @@
  */
 #ifndef RAINY_FOUNDATION_PAL_THREADING_HPP
 #define RAINY_FOUNDATION_PAL_THREADING_HPP
-
+/**
+ * @file threading.hpp
+ * @brief 此头文件是rainy-toolkit用于实现跨平台线程API的库，若要访问内部的API，请参阅implements文件夹的tgc_layer_threading.hpp
+ */
+#include <chrono>
 #include <rainy/core/core.hpp>
 #include <rainy/foundation/functional/function_pointer.hpp>
 #include <rainy/foundation/diagnostics/contract.hpp>
 #include <rainy/foundation/system/memory/nebula_ptr.hpp>
+#include <rainy/foundation/system/memory/allocator.hpp>
 #include <rainy/utility/any.hpp>
-
-#include <future>
-
-#if RAINY_USING_LINUX
-#include <pthread.h>
-#endif
-
-namespace rainy::foundation::pal::threading {
-    enum class thrd_result : int {
-        success,
-        nomem,
-        timed_out,
-        busy,
-        error
-    };
-
-    /**
-     * @brief 结束当前线程，默认返回0
-     * @attention 若要设置自定义返回值，请调用endthreadex
-     */
-    RAINY_TOOLKIT_API void endthread(bool force_exit_main = false);
-
-    /**
-     * @brief 结束当前线程，并附上一个由用户设置的返回代码
-     * @param return_code 线程的返回代码
-     */
-    RAINY_TOOLKIT_API void endthreadex(unsigned int return_code, bool force_exit_main = false);
-
-    /**
-     * @brief 通过本地线程接口创建一个线程
-     * @param invoke_function_addr 启动开始执行新线程的例程的地址（invoke_function_addr是一个函数指针，返回值要求为unsigned
-     * int，形参为void*）
-     * @param stack_size 新线程的堆栈大小或直接填为0
-     * @param arg_list 参数列表地址
-     * @attention 如果开启调试模式编译，std::system_error将会把errno以及对应的信息进行抛出
-     * @attention 生命周期需由开发者进行管理
-     * @remarks 另外
-     * @remarks 如果invoke_function_addr为空，则errno为EINVAL，并返回-1
-     * @remarks 如果线程创建失败，根据情况设置errno并返回-1
-     * @remarks 资源不足 -> EAGAIN
-     * @remarks 参数错误 -> EINVAL
-     * @remarks 拒绝访问 -> EACESS
-     * @return 以intptr_t的形式返回指向线程句柄的指针，如果失败，返回-1（错误通过errno获取详细信息）
-     */
-    RAINY_NODISCARD RAINY_TOOLKIT_API std::uintptr_t create_thread(
-        functional::function_pointer<unsigned int (*)(void *)> invoke_function_addr, unsigned int stack_size, void *arg_list);
-
-    /**
-     * @brief 通过本地线程接口创建一个线程
-     * @param security （仅限Windows使用，linux请忽略此参数）指向 SECURITY_ATTRIBUTES
-     * 结构的指针，此结构确定返回的句柄是否由子进程继承。 如果 security 为 nullptr，则不能继承句柄
-     * @param stack_size 新线程的堆栈大小或直接填为0
-     * @param invoke_function_addr 启动开始执行新线程的例程的地址（invoke_function_addr是一个函数指针，返回值要求为unsigned
-     * int，形参为void*）
-     * @param arg_list 参数列表地址
-     * @param init_flag
-     * （仅限Windows使用，linux请忽略此参数）控制新线程的初始状态的标志。将initflag设置为0以立即运行，或设置为CREATE_SUSPENDED以在挂起状态下创建线程；使用resume()来恢复此线程。另外，将initflag设置为STACK_SIZE_PARAM_IS_A_RESERVATION标志以将stack_size用作堆栈的初始保留大小（以字节计）；如果未指定此标志，则stack_size将指定提交大小
-     * @param thrd_addr 用于接受线程的标识符的指针，如果为空视为不使用
-     * @attention 生命周期需由开发者进行管理
-     * @remarks 如果线程创建失败，根据情况设置errno并返回-1
-     * @remarks 资源不足 -> EAGAIN
-     * @remarks 参数错误 -> EINVAL
-     * @remarks 拒绝访问 -> EACESS
-     * @return 以uintptr_t的形式返回指向线程句柄的地址，如果失败，返回-1（错误通过errno获取详细信息）
-     */
-    RAINY_NODISCARD RAINY_TOOLKIT_API std::uintptr_t create_thread(
-        void *security, unsigned int stack_size, functional::function_pointer<unsigned int (*)(void *)> invoke_function_addr,
-        void *arg_list, unsigned int init_flag, std::uint64_t *thrd_addr);
-
-    /**
-     * @brief 用于等待指定的线程完成执行。当线程成功完成时，它将获取线程的退出代码并关闭线程句柄
-     * @param thread_handle 指向线程句柄的指针。此句柄必须有效并处于活动状态。
-     * @param result_receiver 于接受线程的退出码的指针，如果为空视为不使用
-     * @return 返回表示操作结果的枚举值：
-     *         success 成功等待线程完成，获取退出代码并关闭句柄
-     *         error 发生错误（例如参数无效或获取退出代码失败）
-     *         busy 等待期间线程被放弃
-     *         timed_out （Windows将会返回此值，linux不会）等待超时（此处设置为无限等待，通常不会超时）
-     * @attention 如果thread_handle为空或无效，或存在其他参数错误，函数会将errno设置为EINVAL。
-     */
-    RAINY_TOOLKIT_API thrd_result thread_join(std::uintptr_t thread_handle, std::int64_t *result_receiver) noexcept;
-
-    /**
-     * @brief 使线程句柄失效，以防止其被join
-     * @attention 调用此函数后，线程将导致未定义行为，不保证其安全性，且也不保证其不发生UB
-     */
-    RAINY_TOOLKIT_API thrd_result thread_detach(std::uintptr_t thread_handle) noexcept;
-
-    /**
-     * @brief 让出当前线程的执行权
-     */
-    RAINY_TOOLKIT_API void thread_yield() noexcept;
-
-    /**
-     * @brief 获取当前线程的硬件线程数
-     * @return 成功获取线程数，返回大于等于1的整数；失败（例如系统调用失败），返回0
-     */
-    RAINY_TOOLKIT_API unsigned int thread_hardware_concurrency() noexcept;
-
-    /**
-     * @brief 获取当前线程的id
-     * @return 成功获取线程id，返回大于等于1的整数；失败（例如系统调用失败），返回0
-     */
-    RAINY_TOOLKIT_API std::uint64_t get_thread_id() noexcept;
-
-    /**
-     * @brief 等待指定的时间（单位：毫秒）
-     * @param ms 等待时间（单位：毫秒）
-     */
-    RAINY_TOOLKIT_API void thread_sleep_for(const unsigned long ms) noexcept;
-}
+#include <rainy/foundation/pal/implements/tgc_layer_threading.hpp>
+#include <rainy/foundation/pal/atomicinfra.hpp>
 
 namespace rainy::foundation::pal::threading {
     class RAINY_TOOLKIT_API thread {
     public:
+        class id;
+
         enum class policy {
             manual,
             auto_join,
@@ -150,12 +48,11 @@ namespace rainy::foundation::pal::threading {
 
         thread() = default;
 
-        thread(policy policy) : id(0), thread_handle(0), policy_(policy) {
+        thread(policy policy) : policy_(policy), thread_handle(0) {
         }
 
         thread(thread &&right) noexcept :
-            policy_(utility::exchange(right.policy_, policy::manual)), id(utility::exchange(right.id, 0)),
-            thread_handle(utility::exchange(right.thread_handle, 0)) {
+            policy_(utility::exchange(right.policy_, policy::manual)), thread_handle(utility::exchange(right.thread_handle, {})) {
         }
 
         template <typename Fx, typename... Args>
@@ -171,20 +68,21 @@ namespace rainy::foundation::pal::threading {
         ~thread();
 
         thread &operator=(thread &&right) noexcept;
+        
         thread(const thread &) = delete;
         thread &operator=(const thread &) = delete;
 
         template <typename Fx, typename... Args>
         void start(Fx &&fn, Args &&...args) {
             using tuple = std::tuple<type_traits::other_trans::decay_t<Fx>, type_traits::other_trans::decay_t<Args>...>;
-            if (thread_handle) {
+            if (thread_handle.handle) {
                 return;
             }
             auto decay_copied =
                 foundation::system::memory::make_nebula<tuple>(utility::forward<Fx>(fn), utility::forward<Args>(args)...);
             constexpr auto invoker = get_invoke_function_addr<tuple>(std::make_index_sequence<1 + sizeof...(Args)>{});
-            thread_handle = create_thread(nullptr, 0, invoker, decay_copied.get(), 0, &id);
-            if (thread_handle) {
+            thread_handle = implements::create_thread(nullptr, 0, invoker, decay_copied.get(), 0, nullptr);
+            if (thread_handle.handle) {
                 (void) decay_copied.release();
             } else {
                 throw std::system_error(errno, std::generic_category(), "Failed to create thread");
@@ -201,12 +99,16 @@ namespace rainy::foundation::pal::threading {
 
         RAINY_NODISCARD native_handle_type native_handle() const noexcept;
 
-        RAINY_NODISCARD std::uintptr_t get() const noexcept;
+        void suspend() noexcept;
+
+        void resume() noexcept;
+
+        id get_id() const noexcept;
 
     private:
         template <typename Tuple, std::size_t... Indices>
         static unsigned int invoke_function(void *arg_list) {
-            std::unique_ptr<Tuple> fn_vals(static_cast<Tuple *>(arg_list));
+            foundation::system::memory::nebula_ptr<Tuple> fn_vals(static_cast<Tuple *>(arg_list));
             Tuple &tuple = *fn_vals.get();
             utility::invoke(utility::move(std::get<Indices>(tuple))...);
             return 0;
@@ -218,8 +120,7 @@ namespace rainy::foundation::pal::threading {
         }
 
         policy policy_{};
-        std::uint64_t id{};
-        std::uintptr_t thread_handle{};
+        implements::schd_thread_t thread_handle{};
     };
 
     template <typename Fx, typename... Args>
@@ -227,30 +128,195 @@ namespace rainy::foundation::pal::threading {
         return thread(utility::forward<Fx>(fn), utility::forward<Args>(args)...);
     }
 
-    std::shared_mutex &get_shared_mtx() {
-        static std::shared_mutex shared_mtx;
-        return shared_mtx;
+    template <typename Mutex, typename Fx, typename... Args>
+    RAINY_INLINE decltype(auto) create_synchronized_task(Mutex &mtx, Fx &&callable, Args &&...args) noexcept(
+        noexcept(utility::invoke(utility::forward<Fx>(callable), utility::forward<Args>(args)...))) {
+        std::lock_guard<Mutex> guard{mtx};
+        return utility::invoke(utility::forward<Fx>(callable), utility::forward<Args>(args)...);
     }
+}
 
-    template <typename Fx, typename... Args>
-    auto create_synchronized_task(Fx &&callable, Args &&...args) {
-        static std::unordered_map<std::size_t, std::shared_ptr<std::mutex>> mutex_map;
-        constexpr std::size_t key = rainy_typehash(Fx);
-        {
-            std::shared_lock lock(get_shared_mtx());
-            if (mutex_map.find(key) == mutex_map.end()) {
-                mutex_map[key] = std::make_shared<std::mutex>();
+namespace rainy::foundation::system::this_thread::implements {
+    template <typename Rep, typename Period>
+    RAINY_NODISCARD auto to_absolute_time(const std::chrono::duration<Rep, Period> &rel_time) noexcept {
+        constexpr auto zero = std::chrono::duration<Rep, Period>::zero();
+        const auto now = std::chrono::steady_clock::now();
+        decltype(now + rel_time) abs_time = now;
+        if (rel_time > zero) {
+            constexpr auto forever = (std::chrono::steady_clock::time_point::max)();
+            if (abs_time < forever - rel_time) {
+                abs_time += rel_time;
+            } else {
+                abs_time = forever;
             }
         }
-        std::lock_guard lock(*mutex_map[key]);
-        return rainy::utility::invoke(rainy::utility::forward<Fx>(callable), rainy::utility::forward<Args>(args)...);
+        return abs_time;
     }
 
-    template <typename Fx, typename... Args>
-    auto create_synchronized_task(std::mutex &mtx, Fx &&callable, Args &&...args) {
-        std::lock_guard guard{mtx};
-        return rainy::utility::invoke(rainy::utility::forward<Fx>(callable), rainy::utility::forward<Args>(args)...);
+    using pal::threading::implements::thread_sleep_for;
+}
+
+namespace rainy::foundation::system::this_thread {
+    template <typename Clock, typename Duration>
+    void sleep_until(const std::chrono::time_point<Clock, Duration> &abs_time) {
+#if RAINY_HAS_CXX20
+        static_assert(std::chrono::is_clock_v<Clock>, "Clock type required");
+#endif
+        for (;;) {
+            const auto now = Clock::now();
+            if (abs_time <= now) {
+                return;
+            }
+            constexpr std::chrono::milliseconds clamp{std::chrono::hours{24}};
+            const auto rel = abs_time - now;
+            if (rel >= clamp) {
+                implements::thread_sleep_for(clamp.count());
+            } else {
+                const auto rel_ms = std::chrono::ceil<std::chrono::milliseconds>(rel);
+                implements::thread_sleep_for(static_cast<unsigned long>(rel_ms.count()));
+            }
+        }
     }
+
+    template <typename Rep, typename Period>
+    void sleep_for(const std::chrono::duration<Rep, Period> &rel_time) {
+        sleep_until(implements::to_absolute_time(rel_time));
+    }
+
+#if RAINY_USING_LINUX
+    RAINY_NODISCARD ::pthread_t get_current_thread() noexcept;
+#else
+    RAINY_NODISCARD void *get_current_thread() noexcept;
+#endif
+
+    RAINY_NODISCARD pal::threading::thread::id get_id() noexcept;
+
+    void yield() noexcept;
+}
+
+namespace rainy::foundation::pal::threading {
+    class thread::id {
+    public:
+        id() noexcept = default;
+
+        friend class thread;
+
+    private:
+        explicit id(std::uint64_t id) noexcept : id_{id} {
+        }
+
+        friend thread::id thread::get_id() const noexcept;
+        friend thread::id foundation::system::this_thread::get_id() noexcept;
+        
+        friend bool operator==(thread::id left, thread::id right) noexcept;
+
+#if !RAINY_HAS_CXX20
+        friend std::strong_ordering operator<=>(thread::id left, thread::id right) noexcept {
+            return left.id_ <=> right.id_;
+        }
+#else 
+        friend bool operator<(thread::id left, thread::id right) noexcept;
+#endif 
+
+        template <typename Elem, typename Traits>
+        friend std::basic_ostream<Elem, Traits> &operator<<(std::basic_ostream<Elem, Traits> &ostream, id id) {
+            ostream << id.id_;
+            return ostream;
+        }
+
+        friend utility::hash<thread::id>;
+        friend std::hash<thread::id>;
+
+        std::uint64_t id_{};
+    };
+
+    RAINY_NODISCARD bool operator!=(thread::id left, thread::id right) noexcept;
+    RAINY_NODISCARD bool operator<(thread::id left, thread::id right) noexcept;
+    RAINY_NODISCARD bool operator<=(thread::id left, thread::id right) noexcept;
+    RAINY_NODISCARD bool operator>(thread::id left, thread::id right) noexcept;
+    RAINY_NODISCARD bool operator>=(thread::id left, thread::id right) noexcept;
+}
+
+namespace std {
+    template <>
+    struct hash<rainy::foundation::pal::threading::thread::id> {
+        using argument_type = rainy::foundation::pal::threading::thread::id;
+        using result_type = std::uint64_t;
+
+        RAINY_NODISCARD static result_type operator()(const argument_type keyval) noexcept {
+            return rainy::utility::implements::hash_representation(keyval.id_);
+        }
+    };
+}
+
+namespace rainy::utility {
+    template <>
+    struct hash<foundation::pal::threading::thread::id> {
+        using argument_type = foundation::pal::threading::thread::id;
+        using result_type = std::uint64_t;
+
+        RAINY_NODISCARD static result_type operator()(const argument_type keyval) noexcept {
+            return implements::hash_representation(keyval.id_);
+        }
+    };
+}
+
+namespace rainy::foundation::pal::threading {
+    enum class future_errc {
+        broken_promise = 1,
+        future_already_retrieved,
+        promise_already_satisfied,
+        no_state
+    };
+
+    enum class launch {
+        async = 0x1,
+        deferred = 0x2
+    };
+
+    RAINY_ENABLE_ENUM_CLASS_BITMASK_OPERATORS(launch);
+
+    enum class future_status {
+        ready,
+        timeout,
+        deferred
+    };
+}
+
+namespace rainy::foundation::pal::threading::implements {
+    template <typename Ty>
+    class associated_state;
+
+    template <typename Ty>
+    struct deleter_bridge {
+        virtual void delete_this(associated_state<Ty> *) noexcept = 0;
+        virtual ~deleter_bridge() = default;
+    };
+
+    template <typename Ty, typename Derived, typename Alloc>
+    struct state_deleter : deleter_bridge<Ty> {
+        state_deleter(const Alloc &al) : alloc(al) {
+        }
+
+        state_deleter(const state_deleter &) = delete;
+        state_deleter &operator=(const state_deleter &) = delete;
+
+        void delete_this(associated_state<Ty> *state) noexcept override {
+        
+        }
+
+        Alloc alloc;
+    };
+
+    template <class Ty>
+    union _Result_holder {
+        _Result_holder() noexcept {
+        }
+        ~_Result_holder() noexcept {
+        }
+
+        Ty _Held_value;
+    };
 }
 
 #endif

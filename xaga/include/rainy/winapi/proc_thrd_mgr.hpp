@@ -1,4 +1,4 @@
-﻿#ifndef RAINY_WINAPI_PROC_THRD_MGR_H
+#ifndef RAINY_WINAPI_PROC_THRD_MGR_H
 #define RAINY_WINAPI_PROC_THRD_MGR_H
 #include <rainy/core/core.hpp>
 #if RAINY_USING_WINDOWS
@@ -566,21 +566,7 @@ namespace rainy::winapi::proc_thrd {
 
 namespace rainy::foundation::system::this_thread {
     namespace utils {
-        template <typename Rep, typename Period>
-        RAINY_NODISCARD auto to_absolute_time(const std::chrono::duration<Rep, Period> &rel_time) noexcept {
-            constexpr auto zero = std::chrono::duration<Rep, Period>::zero();
-            const auto now = std::chrono::steady_clock::now();
-            decltype(now + rel_time) abs_time = now;
-            if (rel_time > zero) {
-                constexpr auto forever = (std::chrono::steady_clock::time_point::max)();
-                if (abs_time < forever - rel_time) {
-                    abs_time += rel_time;
-                } else {
-                    abs_time = forever;
-                }
-            }
-            return abs_time;
-        }
+        
     }
 
     template <typename Clock, typename Duration>

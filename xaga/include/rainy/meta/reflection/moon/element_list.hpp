@@ -10,7 +10,9 @@ namespace rainy::meta::reflection::moon {
 
 namespace rainy::meta::reflection::moon::implements {
     template <typename Type>
-    struct extract_member_ptr_type {};
+    struct extract_member_ptr_type {
+        using type = Type;
+    };
 
     template <template <typename, typename, bool> typename Template, typename Ty, typename AList, bool Enable>
     struct extract_member_ptr_type<Template<Ty, AList, Enable>> {

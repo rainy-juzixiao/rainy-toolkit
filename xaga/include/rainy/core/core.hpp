@@ -43,6 +43,7 @@
 #include <rainy/core/implements/collections/array_view.hpp>
 #include <rainy/core/implements/exceptions.hpp>
 #include <rainy/core/implements/source_location.hpp>
+#include <rainy/core/expected.hpp>
 #include <rainy/core/layer.hpp>
 
 namespace rainy::core {
@@ -677,7 +678,6 @@ namespace rainy::utility {
         using argument_type = float;
         using result_type = std::size_t;
 
-
         RAINY_AINLINE_NODISCARD result_type operator()(argument_type val) const {
             return implements::hash_representation(val == 0.0f ? 0.0f : val);
         }
@@ -871,7 +871,7 @@ namespace rainy::core::algorithm {
 
 namespace rainy::core {
     template <typename InputIt, typename Ty>
-    RAINY_CONSTEXPR20 Ty accumulate(InputIt first, InputIt last, Ty init) {
+    RAINY_INLINE RAINY_CONSTEXPR20 Ty accumulate(InputIt first, InputIt last, Ty init) {
         for (; first != last; ++first) {
 #if RAINY_HAS_CXX20
             init = utility::move(init) + *first;
@@ -883,7 +883,7 @@ namespace rainy::core {
     }
 
     template <typename InputIt, typename Ty, typename BinaryOperation>
-    RAINY_CONSTEXPR20 Ty accumulate(InputIt first, InputIt last, Ty init, BinaryOperation op) {
+    RAINY_INLINE RAINY_CONSTEXPR20 Ty accumulate(InputIt first, InputIt last, Ty init, BinaryOperation op) {
         for (; first != last; ++first) {
 #if RAINY_HAS_CXX20
             init = op(utility::move(init), *first);

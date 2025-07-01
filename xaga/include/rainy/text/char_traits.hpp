@@ -300,7 +300,7 @@ namespace rainy::text {
         }
 
         template <std::size_t N>
-        constexpr basic_string_view(const value_type (&string)[N]) noexcept {
+        constexpr basic_string_view(const value_type (&)[N]) noexcept {
         }
 
         RAINY_NODISCARD constexpr const_reference operator[](const std::size_t idx) const {

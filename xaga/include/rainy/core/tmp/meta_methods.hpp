@@ -626,6 +626,18 @@ namespace rainy::type_traits::extras::meta_method {
     template <typename Ty>
     RAINY_CONSTEXPR_BOOL has_mapped_type_v<Ty, type_traits::other_trans::void_t<typename Ty::mapped_type>> = true;
 
+    template <typename Ty>
+    struct has_mapped_type : type_traits::helper::bool_constant<has_mapped_type_v<Ty>> {};
+
+    template <typename Ty, typename = void>
+    RAINY_CONSTEXPR_BOOL has_max_size_v = false;
+
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL has_max_size_v<Ty, type_traits::other_trans::void_t<decltype(utility::declval<const Ty &>().max_size())>> =
+        true;
+
+    template <typename Ty>
+    struct has_max_size : type_traits::helper::bool_constant<has_max_size_v<Ty>> {};
 }
 
 #endif

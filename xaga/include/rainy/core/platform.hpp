@@ -213,6 +213,10 @@ clang和GNU编译器区域
 #define RAINY_USING_32_BIT_PLATFORM 1
 #endif
 
+#if defined(__arm__) || defined(__aarch64__)
+static_assert(false, "ARM architecture is not supported for this project.");
+#endif
+
 #if RAINY_CURRENT_STANDARD_VERSION < 201703L
 static_assert(false, "We detected you are using C++14 and below, and the library only supports C++17 and above, please modify your standard version of C++ to C++17 and above before trying to compile!");
 #endif
@@ -323,6 +327,12 @@ static_assert(false, "We detected you are using C++14 and below, and the library
 #endif
 #else
     #define RAINY_TOOLKIT_API __attribute__((visibility("default")))
+#endif
+
+#ifdef __EDG__
+#define RAINY_USING_EDG 1
+#else
+#define RAINY_USING_EDG 0
 #endif
 
 namespace rainy::core {
@@ -506,8 +516,8 @@ namespace rainy::core {
 
     using native_frame_ptr_t = void *;
 
-    inline constexpr std::size_t small_object_num_ptrs = 4 + 16 / sizeof(void *);
-    inline constexpr std::size_t space_size = (small_object_num_ptrs - 1) * sizeof(void *);
+    static inline constexpr std::size_t small_object_num_ptrs = 6 + 16 / sizeof(void *);
+    static inline constexpr std::size_t space_size = (small_object_num_ptrs - 1) * sizeof(void *);
 
     using byte_t = unsigned char;
     using handle = std::uintptr_t;
@@ -708,5 +718,21 @@ namespace rainy::core::builtin {
         return (std::abs(p1 - p2) * 1000000000000. <= (core::min)(std::abs(p1), std::abs(p2)));
     }
 }
+
+namespace rainy::core {
+    // 对于32位系统，为了避免内存对齐导致的stack-overrun，额外扩充一段空间用于防止此类问题
+    static constexpr inline std::size_t fn_obj_soo_buffer_size = (small_object_num_ptrs - 1) * sizeof(void *);
+}
+
+namespace rainy::core {
+    struct internal_construct_tag_t {};
+
+    RAINY_INLINE_CONSTEXPR internal_construct_tag_t internal_construct_tag{};
+
+    inline constexpr std::size_t hardware_constructive_interference_size = 64;
+    inline constexpr std::size_t hardware_destructive_interference_size = 64;
+}
+
+#define RAINY_USE_MODULE(Module) using namespace rainy:: Module
 
 #endif

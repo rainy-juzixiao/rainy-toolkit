@@ -17,6 +17,7 @@
 
 #if RAINY_USING_MSVC
 #include <intrin.h>
+#include <emmintrin.h>
 #endif
 
 namespace rainy::core::pal {
@@ -85,11 +86,9 @@ namespace rainy::core::pal {
 
     std::intptr_t interlocked_exchange_subtract(volatile std::intptr_t *value, const std::intptr_t amount) {
 #if RAINY_USING_64_BIT_PLATFORM
-        return interlocked_exchange_subtract64(static_cast<volatile std::int64_t *>(value),
-                                               static_cast<const std::int64_t>(amount));
+        return interlocked_exchange_subtract64(static_cast<volatile std::int64_t *>(value), static_cast<const std::int64_t>(amount));
 #else
-        return interlocked_exchange_subtract32(static_cast<volatile std::int32_t *>(value),
-                                               static_cast<const std::int32_t>(amount));
+        return interlocked_exchange_subtract32(static_cast<volatile std::int32_t *>(value), static_cast<const std::int32_t>(amount));
 #endif
     }
 
@@ -103,9 +102,31 @@ namespace rainy::core::pal {
 
     std::intptr_t iso_volatile_load(const volatile std::intptr_t *address) {
 #if RAINY_USING_64_BIT_PLATFORM
-        return iso_volatile_load64(static_cast<const volatile long long *>(address));
+        return iso_volatile_load64(reinterpret_cast<const volatile long long *>(address));
 #else
         return iso_volatile_load32(static_cast<const volatile int *>(address));
+#endif
+    }
+
+    std::int8_t iso_volatile_load8(const volatile std::int8_t *address) {
+        rainy_assume(static_cast<bool>(address));
+#if RAINY_USING_MSVC
+        return __iso_volatile_load8(reinterpret_cast<const volatile char *>(address));
+#else
+        volatile std::int8_t value = 0;
+        __asm__ __volatile__("lfence\n movb (%1), %0" : "=r"(value) : "r"(address) : "memory");
+        return value;
+#endif
+    }
+
+    std::int16_t iso_volatile_load16(const volatile std::int16_t *address) {
+        rainy_assume(static_cast<bool>(address));
+#if RAINY_USING_MSVC
+        return __iso_volatile_load16(address);
+#else
+        volatile std::int16_t value = 0;
+        __asm__ __volatile__("lfence\n movw (%1), %0" : "=r"(value) : "r"(address) : "memory");
+        return value;
 #endif
     }
 
@@ -140,7 +161,47 @@ namespace rainy::core::pal {
         return value;
 #endif
     }
-    
+
+    std::int8_t interlocked_exchange8(volatile std::int8_t *target, std::int8_t value) {
+        rainy_assume(static_cast<bool>(target));
+#if RAINY_USING_MSVC
+        return _InterlockedExchange8(reinterpret_cast<volatile char *>(target), value);
+#else
+        __asm__ __volatile__("lock xchgb %0, %1" : "=q"(value), "+m"(*target) : "0"(value) : "memory");
+        return value;
+#endif
+    }
+
+    std::int16_t interlocked_exchange16(volatile std::int16_t *target, std::int16_t value) {
+        rainy_assume(static_cast<bool>(target));
+#if RAINY_USING_MSVC
+        return _InterlockedExchange16(target, value);
+#else
+        __asm__ __volatile__("lock xchgw %0, %1" : "=r"(value), "+m"(*target) : "0"(value) : "memory");
+        return value;
+#endif
+    }
+
+    std::int32_t interlocked_exchange32(volatile std::int32_t *target, std::int32_t value) {
+        rainy_assume(static_cast<bool>(target));
+#if RAINY_USING_MSVC
+        return _InterlockedExchange(reinterpret_cast<volatile long *>(target), static_cast<long>(value));
+#else
+        __asm__ __volatile__("lock xchgl %0, %1" : "=r"(value), "+m"(*target) : "0"(value) : "memory");
+        return value;
+#endif
+    }
+
+    std::int64_t interlocked_exchange64(volatile std::int64_t *target, std::int64_t value) {
+        rainy_assume(static_cast<bool>(target));
+#if RAINY_USING_MSVC
+        return _InterlockedExchange64(reinterpret_cast<volatile __int64 *>(target), value);
+#else
+        __asm__ __volatile__("lock xchgq %0, %1" : "=r"(value), "+m"(*target) : "0"(value) : "memory");
+        return value;
+#endif
+    }
+
     void *interlocked_exchange_pointer(volatile void **target, void *value) {
 #if RAINY_USING_MSVC
         return _InterlockedExchangePointer(const_cast<void *volatile *>(target), value);
@@ -167,13 +228,45 @@ namespace rainy::core::pal {
 #endif
     }
 
-    bool interlocked_compare_exchange_pointer(volatile void **destination, void *exchange, void *comparand) {
+    #include <cstdint>
+
+    bool interlocked_compare_exchange8(volatile std::int8_t *destination, std::int8_t exchange, std::int8_t comparand) {
         rainy_assume(static_cast<bool>(destination));
 #if RAINY_USING_MSVC
-        return _InterlockedCompareExchangePointer(const_cast<void *volatile *>(destination), exchange, comparand) == comparand;
+        return _InterlockedCompareExchange8(reinterpret_cast<volatile char *>(destination), exchange, comparand);
 #else
-        char result{};
-        __asm__ __volatile__("lock cmpxchg %3, %1\n\t"
+        char result;
+        __asm__ __volatile__("lock cmpxchgb %2, %1\n\t"
+                             "sete %0"
+                             : "=q"(result), "+m"(*destination), "+a"(comparand)
+                             : "r"(exchange)
+                             : "memory");
+        return result;
+#endif
+    }
+
+    bool interlocked_compare_exchange16(volatile std::int16_t *destination, std::int16_t exchange, std::int16_t comparand) {
+        rainy_assume(static_cast<bool>(destination));
+#if RAINY_USING_MSVC
+        return _InterlockedCompareExchange16(destination, exchange, comparand);
+#else
+        char result;
+        __asm__ __volatile__("lock cmpxchgw %2, %1\n\t"
+                             "sete %0"
+                             : "=q"(result), "+m"(*destination), "+a"(comparand)
+                             : "r"(exchange)
+                             : "memory");
+        return result;
+#endif
+    }
+
+    bool interlocked_compare_exchange32(volatile std::int32_t *destination, std::int32_t exchange, std::int32_t comparand) {
+        rainy_assume(static_cast<bool>(destination));
+#if RAINY_USING_MSVC
+        return _InterlockedCompareExchange(reinterpret_cast<volatile long *>(destination), exchange, comparand) == comparand;
+#else
+        char result;
+        __asm__ __volatile__("lock cmpxchgl %2, %1\n\t"
                              "sete %0"
                              : "=q"(result), "+m"(*destination), "+a"(comparand)
                              : "r"(exchange)
@@ -205,6 +298,21 @@ namespace rainy::core::pal {
                              : "c"(exchange_high), "b"(exchange_low)
                              : "memory");
 #endif
+        return result;
+#endif
+    }
+
+    bool interlocked_compare_exchange_pointer(volatile void **destination, void *exchange, void *comparand) {
+        rainy_assume(static_cast<bool>(destination));
+#if RAINY_USING_MSVC
+        return _InterlockedCompareExchangePointer(const_cast<void *volatile *>(destination), exchange, comparand) == comparand;
+#else
+        char result{};
+        __asm__ __volatile__("lock cmpxchg %3, %1\n\t"
+                             "sete %0"
+                             : "=q"(result), "+m"(*destination), "+a"(comparand)
+                             : "r"(exchange)
+                             : "memory");
         return result;
 #endif
     }
@@ -262,6 +370,32 @@ namespace rainy::core::pal {
 #endif
     }
 
+    void iso_volatile_store8(volatile std::int8_t *address, std::int8_t value) {
+        rainy_assume(static_cast<bool>(address));
+#if RAINY_USING_MSVC
+        // MSVC doesn't provide an interlocked 8-bit store; use normal volatile store
+        *address = value;
+#else
+        __asm__ __volatile__("movb %0, (%1)"
+                             : // no output
+                             : "r"(value), "r"(address)
+                             : "memory");
+#endif
+    }
+
+    void iso_volatile_store16(volatile std::int16_t *address, std::int16_t value) {
+        rainy_assume(static_cast<bool>(address));
+#if RAINY_USING_MSVC
+        // MSVC also lacks _InterlockedExchange16 on all platforms
+        *address = value;
+#else
+        __asm__ __volatile__("movw %0, (%1)"
+                             : // no output
+                             : "r"(value), "r"(address)
+                             : "memory");
+#endif
+    }
+
     void iso_volatile_store32(volatile int *address, std::uint32_t value) {
         rainy_assume(static_cast<bool>(address));
 #if RAINY_USING_MSVC
@@ -290,19 +424,27 @@ namespace rainy::core::pal {
 #endif
     }
 
-    void iso_memory_fence() {
+    void read_write_barrier() noexcept {
 #if RAINY_USING_MSVC
-        _ReadWriteBarrier(); // MSVC 内存屏障
+        _ReadWriteBarrier();
 #else
-        __asm__ __volatile__("mfence" // x86/x86_64 内存屏障指令
-                             :
-                             :
-                             : "memory");
+        __asm__ __volatile__("mfence" : : : "memory");
 #endif
     }
 
+    void read_barrier() noexcept {
+#if RAINY_USING_MSVC
+        _mm_lfence();
+#else
+        __asm__ __volatile__("lfence" ::: "memory");
+#endif
+    }
 
-    void memory_barrier() {
-        iso_memory_fence();
+    void write_barrier() noexcept {
+#if RAINY_USING_MSVC
+        _mm_sfence();
+#else
+        __asm__ __volatile__("sfence" ::: "memory");
+#endif
     }
 }

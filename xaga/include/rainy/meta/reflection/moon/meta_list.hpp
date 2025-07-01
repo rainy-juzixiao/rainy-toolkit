@@ -21,17 +21,17 @@ namespace rainy::meta::reflection::moon {
         }
     };
 
-    template <typename T>
-    constexpr auto attach(std::string_view name, T value) {
-        return meta<T,true>{name, value};
+    template <typename Ty, type_traits::other_trans::enable_if_t<!type_traits::composite_types::is_reference_v<Ty>,int> = 0>
+    constexpr auto attach(std::string_view name, Ty value) {
+        return meta<Ty, true>{name, value};
     }
 
-    template <bool Cond,typename T>
-    constexpr auto attach_if(std::string_view name, T value) {
+    template <bool Cond,typename Ty, type_traits::other_trans::enable_if_t<!type_traits::composite_types::is_reference_v<Ty>, int> = 0>
+    constexpr auto attach_if(std::string_view name, Ty value) {
         if constexpr (Cond) {
-            return meta<T, true>{name, value};
+            return meta<Ty, true>{name, value};
         } else {
-            return meta<T, false>{};
+            return meta<Ty, false>{};
         }
     }
 

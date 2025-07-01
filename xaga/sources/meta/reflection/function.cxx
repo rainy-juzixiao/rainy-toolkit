@@ -40,20 +40,12 @@ namespace rainy::meta::reflection {
         return invoke_accessor() == reinterpret_cast<const void *>(invoker_storage);
     }
 
-    implements::invoker_accessor *function::invoke_accessor() noexcept {
-        return invoke_accessor_;
-    }
-
-    const implements::invoker_accessor *function::invoke_accessor() const noexcept {
-        return invoke_accessor_;
-    }
-
-    const foundation::rtti::typeinfo &function::return_type() const noexcept {
+    const foundation::ctti::typeinfo &function::return_type() const noexcept {
         utility::expects(!empty(), "You're trying to get the return type of a empty object!");
         return invoke_accessor()->return_type();
     }
 
-    const collections::views::array_view<foundation::rtti::typeinfo> &function::paramlists() const noexcept {
+    const collections::views::array_view<foundation::ctti::typeinfo> &function::paramlists() const noexcept {
         utility::expects(!empty(), "You're trying to get the param list of a empty object!");
         return invoke_accessor()->paramlists();
     }
@@ -63,20 +55,22 @@ namespace rainy::meta::reflection {
     }
 
     void function::copy_from_other(const function &right) noexcept {
-        if (this != utility::addressof(right) && !right.empty()) {
-            invoke_accessor_ = right.invoke_accessor()->construct_from_this(this->invoker_storage);
+        if (this == utility::addressof(right) && !right.empty()) {
+            return;
         }
+        invoke_accessor_ = right.invoke_accessor()->construct_from_this(this->invoker_storage);
     }
 
     void function::move_from_other(function &&right) noexcept {
-        if (this != utility::addressof(right) && !right.empty()) {
-            if (right.is_local()) {
-                invoke_accessor_ = right.invoke_accessor()->construct_from_this(this->invoker_storage);
-                std::memset(right.invoker_storage, 0, sizeof(right.invoker_storage));
-                right.invoke_accessor_ = nullptr;
-            } else {
-                invoke_accessor_ = utility::exchange(right.invoke_accessor_, nullptr);
-            }
+        if (this == utility::addressof(right) && !right.empty()) {
+            return;
+        }
+        if (right.is_local()) {
+            invoke_accessor_ = right.invoke_accessor()->construct_from_this(this->invoker_storage);
+            std::memset(right.invoker_storage, 0, sizeof(right.invoker_storage));
+            right.invoke_accessor_ = nullptr;
+        } else {
+            invoke_accessor_ = utility::exchange(right.invoke_accessor_, nullptr);
         }
     }
 
@@ -112,14 +106,13 @@ namespace rainy::meta::reflection {
         return *this;
     }
 
-    const foundation::rtti::typeinfo &function::function_signature() const noexcept {
+    const foundation::ctti::typeinfo &function::function_signature() const noexcept {
         utility::expects(!empty(), "You're trying to get the function signature of a empty object!");
         return invoke_accessor()->function_signature();
     }
 
-    method_flags function::type() const noexcept {
-        utility::expects(!empty(), "You're trying to get the function type of a empty object!");
-        return invoke_accessor()->type();
+    bool function::has(method_flags flag) const noexcept {
+        return static_cast<bool>(type() & flag);
     }
 
     function::operator bool() const noexcept {
@@ -158,16 +151,21 @@ namespace rainy::meta::reflection {
         reset();
     }
 
-    const foundation::rtti::typeinfo &function::which_belongs() const noexcept {
+    const foundation::ctti::typeinfo &function::which_belongs() const noexcept {
         utility::expects(!empty());
         return invoke_accessor()->which_belongs();
+    }
+
+    method_flags function::type() const noexcept {
+        utility::expects(!empty(), "You're trying to get the function type of a empty object!");
+        return invoke_accessor()->type();
     }
 
     bool function::is_static() const noexcept {
         if (empty()) {
             return false;
         }
-        return static_cast<bool>(type() & method_flags::static_qualified);
+        return has(method_flags::static_specified);
     }
 
     bool function::is_memfn() const noexcept {
@@ -181,38 +179,38 @@ namespace rainy::meta::reflection {
         if (empty()) {
             return false;
         }
-        return static_cast<bool>(type() & method_flags::volatile_qualified);
+        return has(method_flags::volatile_qualified);
     }
 
     bool function::is_const() const noexcept {
         if (empty()) {
             return false;
         }
-        return static_cast<bool>(type() & method_flags::const_qualified);
+        return has(method_flags::const_qualified);
     }
 
     bool function::is_noexcept() const noexcept {
         if (empty()) {
             return false;
         }
-        return static_cast<bool>(type() & method_flags::noexcept_specified);
+        return has(method_flags::noexcept_specified);
     }
 
     bool function::is_invoke_for_lvalue() const noexcept {
         if (empty()) {
             return false;
         }
-        return static_cast<bool>(type() & method_flags::lvalue_qualified);
+        return has(method_flags::lvalue_qualified);
     }
 
     bool function::is_invoke_for_rvalue() const noexcept {
         if (empty()) {
             return false;
         }
-        return static_cast<bool>(type() & method_flags::rvalue_qualified);
+        return has(method_flags::rvalue_qualified);
     }
 
-    bool function::is_invocable(collections::views::array_view<foundation::rtti::typeinfo> paramlist) const noexcept {
+    bool function::is_invocable(collections::views::array_view<foundation::ctti::typeinfo> paramlist) const noexcept {
         if (empty()) {
             return false;
         }
@@ -224,13 +222,9 @@ namespace rainy::meta::reflection {
         return invoke_accessor()->paramlists().size();
     }
 
-    const foundation::rtti::typeinfo &function::arg(std::size_t idx) const {
+    const foundation::ctti::typeinfo &function::arg(std::size_t idx) const {
         utility::expects(!empty(), "You're trying to get the arg type of a empty object!");
         return invoke_accessor()->paramlists().at(static_cast<std::ptrdiff_t>(idx));
-    }
-
-    method::method(method &&right) noexcept :
-        function(utility::move(right)), name_(utility::move(right.name_)), metadata_(utility::move(right.metadata_)) {
     }
 
     method &method::operator=(method &&right) noexcept {
@@ -242,16 +236,8 @@ namespace rainy::meta::reflection {
         return *this;
     }
 
-    void method::rebind(const method &right) noexcept {
-        function::operator=(right);
-        name_ = right.name_;
-        metadata_ = right.metadata_;
-    }
-
     void method::rebind(method &&right) noexcept {
-        function::operator=(utility::move(right));
-        name_ = utility::move(right.name_);
-        metadata_ = utility::move(right.metadata_);
+        operator=(utility::move(right));
     }
 
     void method::rebind(std::nullptr_t) noexcept {
@@ -270,12 +256,12 @@ namespace rainy::meta::reflection {
         return name_;
     }
 
-    const method::metadata_map &method::metadata() const noexcept {
+    const std::unordered_map<std::string_view, metadata> &method::metadatas() const noexcept {
         return metadata_;
     }
 
-    const utility::any &method::get_metadata(const std::string_view key) const noexcept {
-        static const utility::any empty;
+    const metadata &method::get_metadata(const std::string_view key) const noexcept {
+        static const metadata empty;
         const auto it = metadata_.find(key);
         return it != metadata_.end() ? it->second : empty;
     }

@@ -19,7 +19,6 @@
 #include <ctime>
 #include <rainy/core/core.hpp>
 #include <rainy/winapi/api_core.h>
-#include <rainy/winapi/system/multithread/thread.h>
 
 namespace rainy::winapi::system::multithread {
     struct mutex_types {

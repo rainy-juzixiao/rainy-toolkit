@@ -129,7 +129,7 @@ namespace rainy::meta::method::cpp_methods {
     static constexpr std::string_view method_operator_le = "operator<=";
     static constexpr std::string_view method_operator_ge = "operator>=";
     static constexpr std::string_view method_operator_assign = "operator=";
-    static constexpr std::string_view method_operator_index = "operator[";
+    static constexpr std::string_view method_operator_index = "operator[]";
     static constexpr std::string_view method_operator_call = "operator()";
     static constexpr std::string_view method_operator_arrow = "operator->";
     static constexpr std::string_view method_operator_deref = "operator*";

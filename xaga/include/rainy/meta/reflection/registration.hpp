@@ -3,6 +3,8 @@
 #include <rainy/meta/meta_method.hpp>
 #include <rainy/meta/reflection/moon/reflect.hpp>
 #include <rainy/meta/reflection/type.hpp>
+#include <rainy/foundation/pal/threading.hpp>
+#include <rainy/meta/reflection/metadata.hpp>
 #include <string_view>
 
 namespace rainy::meta::reflection::implements {
@@ -11,18 +13,22 @@ namespace rainy::meta::reflection::implements {
         template <typename Type>
         static void register_type(std::string_view name, type_accessor *type) {
             auto *this_ = &instance();
-            constexpr auto rtti = foundation::rtti::typeinfo::create<Type>();
+            constexpr auto ctti = foundation::ctti::typeinfo::create<Type>();
+            // 从此处开始，进入同步块
+            foundation::pal::threading::create_synchronized_task(this_->lock, [this_,&ctti,&type,name]() {
 #if RAINY_HAS_CXX20
-            if (!this_->data.contains(rtti))
+                if (!this_->data.contains(ctti))
 #else
-            if (this_->data.find(rtti) == this_->data.end())
+                if (this_->data.find(ctti) == this_->data.end())
 #endif
-            {
-                auto [iter, success] = this_->data.emplace(rtti, type);
-                utility::ensures(success, "Cannot register type.");
-                this_->index.emplace(name, rtti);
-                (void) iter;
-            }
+                {
+                    auto [iter, success] = this_->data.emplace(ctti, type);
+                    utility::ensures(success, "Cannot register type.");
+                    this_->index.emplace(name, ctti);
+                    (void) iter;
+                }
+            });
+            // 同步结束
         }
 
         template <typename Type>
@@ -34,27 +40,64 @@ namespace rainy::meta::reflection::implements {
             return nullptr;
         }
 
+        RAINY_TOOLKIT_API static void unregister(std::string_view name, foundation::ctti::typeinfo ctti);
+
         static type_accessor *get_accessor_by_name(std::string_view name);
     private:
         RAINY_TOOLKIT_API static register_table &instance();
 
-        std::unordered_map<std::string_view, foundation::rtti::typeinfo> index;
-        std::unordered_map<foundation::rtti::typeinfo, type_accessor *> data;
+        std::unordered_map<std::string_view, foundation::ctti::typeinfo> index;
+        std::unordered_map<foundation::ctti::typeinfo, type_accessor *> data;
+        std::mutex lock;
     };
 }
 
 namespace rainy::meta::reflection::implements {
-    struct shared_object_accessor {
-        virtual ~shared_object_accessor() = default;
-        RAINY_NODISCARD virtual const foundation::rtti::typeinfo& type() const noexcept = 0;
-        virtual void* clone(void* soo_buffer) const noexcept = 0;
-        virtual void *target() noexcept = 0;
-        
+    class injector {
+    public:
+        template <typename Type>
+        static void register_type(std::string_view name, type_accessor *type) {
+            register_table::register_type<Type>(name, type);
+            auto *this_ = &instance();
+            constexpr auto ctti = foundation::ctti::typeinfo::create<Type>();
+            std::lock_guard<std::mutex> guard(this_->lock);
+            this_->registered.emplace_back(registration_entry{name, ctti});
+        }
+
+        static void unregister_all() {
+            auto *this_ = &instance();
+            std::lock_guard<std::mutex> guard(this_->lock);
+            for (const auto &entry: this_->registered) {
+                register_table::unregister(entry.name, entry.ctti);
+            }
+            this_->registered.clear();
+        }
+
+    private:
+        struct registration_entry {
+            std::string_view name;
+            foundation::ctti::typeinfo ctti;
+        };
+
+        static injector &instance() {
+            static injector inst;
+            return inst;
+        }
+
+        std::mutex lock;
+        std::vector<registration_entry> registered;
     };
 }
 
 namespace rainy::meta::reflection {
-    class type {
+    template <typename Any,
+              type_traits::other_trans::enable_if_t<
+                  type_traits::type_relations::is_same_v<type_traits::cv_modify::remove_cvref_t<Any>, utility::any>, int> = 0>
+    RAINY_INLINE object_view as_object_view(Any&& any) {
+        return object_view{const_cast<void*>(any.target_as_void_ptr()), any.type()};
+    }
+
+    class RAINY_TOOLKIT_API type {
     public:
         using type_id = std::size_t;
 
@@ -65,7 +108,7 @@ namespace rainy::meta::reflection {
             return instance;
         }
 
-        RAINY_TOOLKIT_API static type get_by_name(std::string_view name) noexcept;
+        static type get_by_name(std::string_view name) noexcept;
 
         RAINY_NODISCARD std::string_view get_name() const noexcept {
             if (!accessor) {
@@ -88,65 +131,18 @@ namespace rainy::meta::reflection {
             return accessor->type().get_sizeof();
         }
 
-        RAINY_NODISCARD collections::views::array_view<foundation::rtti::typeinfo> get_template_arguments() const noexcept {
+        RAINY_NODISCARD collections::views::array_view<foundation::ctti::typeinfo> get_template_arguments() const noexcept {
             if (!accessor) {
                 return {};
             }
             return accessor->type().template_arguemnts();
         }
 
-        RAINY_NODISCARD const method& get_method(const std::string_view name) const noexcept {
-            static const method empty;
-            if (!accessor) {
-                return empty;
-            }
-            const auto &cont = accessor->methods();
-            const auto iter = cont.find(name);
-            return iter != cont.end() ? iter->second : empty;
-        }
+        RAINY_NODISCARD const method &get_method(const std::string_view name) const noexcept;
 
-        RAINY_NODISCARD const method &get_method(const std::string_view name, const collections::views::array_view<foundation::rtti::typeinfo> overload_version_paramlist,
-                                                 const method_flags filter_item = method_flags::none) const noexcept {
-            static const method empty;
-            if (!accessor) {
-                return empty;
-            }
-            const auto [fst, snd] = accessor->methods().equal_range(name);
-            if (fst == snd) {
-                errno = EACCES;
-                return empty;
-            }
-            auto match_method_type = [](method_flags candidate, method_flags filter) -> bool {
-                if (filter == method_flags::none) {
-                    return true;
-                }
-                candidate &= ~(method_flags::noexcept_specified);
-                filter &= ~(method_flags::noexcept_specified);
-                return candidate == filter;
-            };
-            for (auto iter = fst; iter != snd; ++iter) {
-                if (const auto &method = iter->second; method.type() == filter_item) {
-                    if (method.is_invocable(overload_version_paramlist)) {
-                        return method;
-                    }
-                }
-            }
-            for (auto iter = fst; iter != snd; ++iter) {
-                if (const auto &method = iter->second;
-                    method.is_invocable(overload_version_paramlist) && match_method_type(method.type(), filter_item)) {
-                    return method;
-                }
-            }
-            if (filter_item != method_flags::none) {
-                for (auto iter = fst; iter != snd; ++iter) {
-                    if (const auto &method = iter->second; method.is_invocable(overload_version_paramlist)) {
-                        return method;
-                    }
-                }
-            }
-            errno = EACCES;
-            return empty;
-        }
+        RAINY_NODISCARD const method &get_method(
+            const std::string_view name, const collections::views::array_view<foundation::ctti::typeinfo> overload_version_paramlist,
+            const method_flags filter_item = method_flags::none) const noexcept;
 
         RAINY_NODISCARD auto get_methods() const {
             static implements::method_storage_t empty;
@@ -156,22 +152,30 @@ namespace rainy::meta::reflection {
             return utility::mapped_range(accessor->methods());
         }
 
-        RAINY_NODISCARD const property& get_property(const std::string_view name) const noexcept {
+        RAINY_NODISCARD const property &get_property(const std::string_view name) const noexcept {
             static const property empty;
-            if (!accessor){
+            if (!accessor) {
                 return empty;
             }
-            const auto& cont = accessor->properties();
+            const auto &cont = accessor->properties();
             const auto iter = cont.find(name);
             return iter != cont.end() ? iter->second : empty;
         }
 
         RAINY_NODISCARD auto get_properties() const noexcept {
             static implements::property_storage_t empty;
-            if (!accessor){
+            if (!accessor) {
                 return utility::mapped_range(empty);
             }
             return utility::mapped_range(accessor->properties());
+        }
+
+        RAINY_NODISCARD auto get_ctors() const noexcept {
+            static implements::ctor_storage_t empty;
+            if (!accessor) {
+                return utility::mapped_range(empty);
+            }
+            return utility::mapped_range(accessor->ctors());
         }
 
         template <typename... Args>
@@ -187,7 +191,7 @@ namespace rainy::meta::reflection {
                     invocable = cur_ctor.is_invocable(paramlist.get());
                 }
                 if (invocable) {
-                    return cur_ctor.invoke_static(utility::forward<Args>(args)...);
+                    return cur_ctor.static_invoke(utility::forward<Args>(args)...);
                 }
             }
             return {};
@@ -199,15 +203,16 @@ namespace rainy::meta::reflection {
 
         template <typename... Args>
         utility::any invoke_method(std::string_view name, object_view instance, Args &&...args) const {
-            using namespace foundation::rtti;
+            using namespace foundation::ctti;
+
             auto flag = method_flags::none;
-            if (instance.rtti().has_traits(traits::is_const)) {
+            if (instance.ctti().has_traits(traits::is_const)) {
                 flag = flag | method_flags::const_qualified;
             }
-            if (instance.rtti().has_traits(traits::is_volatile)) {
+            if (instance.ctti().has_traits(traits::is_volatile)) {
                 flag = flag | method_flags::volatile_qualified;
             }
-            if (instance.rtti().has_traits(traits::is_rref)) {
+            if (instance.ctti().has_traits(traits::is_rref)) {
                 flag = flag | method_flags::rvalue_qualified;
             }
             return invoke_method(flag, name, instance, utility::forward<Args>(args)...);
@@ -217,14 +222,14 @@ namespace rainy::meta::reflection {
         utility::any invoke_method(method_flags flag, std::string_view name, object_view instance, Args &&...args) const {
             using namespace type_traits::other_trans;
             using namespace type_traits::type_relations;
-            using namespace foundation::rtti;
+            using namespace foundation::ctti;
             const method *invoker{nullptr};
             if constexpr (is_any_of_v<utility::any, decay_t<Args>...> || is_any_of_v<object_view, decay_t<Args>...>) {
                 implements::make_paramlist paramlist{utility::forward<Args>(args)...};
                 invoker = &get_method(name, paramlist, flag);
             } else {
-                static collections::array<foundation::rtti::typeinfo, sizeof...(Args)> paramlist = {
-                    foundation::rtti::typeinfo::create<Args>()...};
+                static collections::array<foundation::ctti::typeinfo, sizeof...(Args)> paramlist = {
+                    foundation::ctti::typeinfo::create<Args>()...};
                 invoker = &get_method(name, paramlist, flag);
             }
             if (invoker->empty()) {
@@ -232,7 +237,7 @@ namespace rainy::meta::reflection {
                 return {};
             }
             if (invoker->is_static()) {
-                return invoker->invoke_static(utility::forward<Args>(args)...);
+                return invoker->static_invoke(utility::forward<Args>(args)...);
             }
             return invoker->invoke(instance, utility::forward<Args>(args)...);
         }
@@ -240,9 +245,19 @@ namespace rainy::meta::reflection {
     private:
         implements::type_accessor *accessor{nullptr};
     };
+}
 
+namespace rainy::meta::reflection::implements {
+    RAINY_TOOLKIT_API bool check_method_field(type_accessor *type, std::string_view name, method &meth);
+    RAINY_TOOLKIT_API void register_method_helper(type_accessor *type, std::string_view name, method &&meth);
+}
+
+namespace rainy::meta::reflection {
     class registration {
     public:
+        template <typename... Types>
+        class bind;
+
         template <typename Type>
         class class_ {
         public:
@@ -251,111 +266,89 @@ namespace rainy::meta::reflection {
             explicit class_(const std::string_view name) : type(instance(name)) {
             }
 
+            explicit class_(core::internal_construct_tag_t, type_accessor *type) : type(type) {
+            }
+
             class_ &reflect_moon() {
-                moon::reflect<Type>::methods.for_each([this](auto pack) {
-                    std::unordered_map<utility::any, utility::any> metadata;
-                    if constexpr (!type_traits::type_relations::is_same_v<decltype(pack.metas), moon::meta_list<>>) {
-                        pack.metas.for_each([&metadata](auto meta) {
-                            metadata.emplace(meta.name, type_traits::other_trans::decay_t<decltype(meta.value)>{meta.value});
-                        });
-                    }
-                    this->method(pack.name, pack.value, utility::move(metadata));
-                });
+                using namespace moon::implements;
+                using reflect = moon::reflect<Type>;
+                if constexpr (has_ctors<Type>) {
+                    //reflect::ctors.for_each([this](auto pack) {
+                    //    /*std::unordered_map<std::string_view, utility::any> metadata;
+                    //    if constexpr (!type_traits::type_relations::is_same_v<decltype(pack.metas), moon::meta_list<>>) {
+                    //        pack.metas.for_each([&metadata](auto meta) {
+                    //            metadata.emplace(meta.name, type_traits::other_trans::decay_t<decltype(meta.value)>{meta.value});
+                    //        });
+                    //    }
+                    //    this->constructor(pack.value, utility::move(metadata));*/
+                    //});
+                }
+                if constexpr (has_methods<Type>) {
+                    reflect::methods.for_each([this](auto pack) {
+                        /*std::unordered_map<std::string_view, utility::any> metadata;
+                        if constexpr (!type_traits::type_relations::is_same_v<decltype(pack.metas), moon::meta_list<>>) {
+                            pack.metas.for_each([&metadata](auto meta) {
+                                metadata.emplace(meta.name, type_traits::other_trans::decay_t<decltype(meta.value)>{meta.value});
+                            });
+                        }
+                        this->method(pack.name, pack.value, utility::move(metadata));*/
+                    });
+                }
+                if constexpr (has_properties<Type>) {
+                    /*reflect::properties.for_each([this](auto pack) {
+                        std::unordered_map<std::string_view, utility::any> metadata;
+                        if constexpr (!type_traits::type_relations::is_same_v<decltype(pack.metas), moon::meta_list<>>) {
+                            pack.metas.for_each([&metadata](auto meta) {
+                                metadata.emplace(meta.name, type_traits::other_trans::decay_t<decltype(meta.value)>{meta.value});
+                            });
+                        }
+                        this->property(pack.name, pack.value, utility::move(metadata));
+                    });*/
+                }
                 return *this;
             }
 
             template <typename Fx,
-                      type_traits::other_trans::enable_if_t<
-                          type_traits::type_properties::is_constructible_v<function,Fx>, int> = 0>
-            class_ &method(std::string_view name, Fx &&fn, std::unordered_map<std::string_view, utility::any> metadata = {}) {
-                reflection::method meth{name, utility::forward<Fx>(fn), utility::move(metadata)};
-#if RAINY_HAS_CXX20
-                if (type->methods().contains(name))
-#else
-                if (type->methods().find(name) != type->methods().end())
-#endif
-                    {
-                    auto [fst, snd] = type->methods().equal_range(name);
-                    for (auto &it = fst; it != snd; ++it) {
-                        const auto &existing_params = it->second.paramlists();
-                        const auto &wiat_for_emplace_params = meth.paramlists();
-                        if (existing_params.size() != wiat_for_emplace_params.size()) {
-                            continue;
-                        }
-                        const bool same = core::algorithm::all_of(
-                            wiat_for_emplace_params.begin(), wiat_for_emplace_params.end(),
-                            [&, i = std::size_t{0}](const auto &param) mutable { return param == existing_params[static_cast<std::ptrdiff_t
-                                >(i++)]; });
-                        if (same && it->second.function_signature() == meth.function_signature()) {
-                            return *this;
-                        }
-                    }
-                }
-                type->methods().emplace(name, utility::move(meth));
-                return *this;
+                      type_traits::other_trans::enable_if_t<type_traits::type_properties::is_constructible_v<function, Fx>, int> = 0>
+            bind<reflection::method, Type, Fx> method(std::string_view name, Fx &&fn) {
+                return bind<reflection::method, Type, Fx>{this->type, name, utility::forward<Fx>(fn)};
             }
 
             template <typename Property,
                       type_traits::other_trans::enable_if_t<type_traits::primary_types::is_pointer_v<Property> ||
                                                                 (type_traits::primary_types::is_member_object_pointer_v<Property>),
                                                             int> = 0>
-            class_ &property(std::string_view name, Property &&property,
-                             std::unordered_map<std::string_view, utility::any> metadata = {}) {
+            class_ &property(std::string_view name, Property &&property) {
 #if RAINY_HAS_CXX20
-                if (type->ctors().contains(name)) {
+                if (type->properties().contains(name)) {
                     return *this;
                 }
 #else
-                if (type->ctors().find(name) != type->ctors().end()) {
+                if (type->properties().find(name) != type->properties().end()) {
                     return *this;
                 }
 #endif
                 type->properties().emplace(name, property);
-                if (!metadata.empty()) {
-                    type->metadatas().emplace(name, utility::move(metadata));
-                }
                 return *this;
             }
 
             template <typename... Args, type_traits::other_trans::enable_if_t<type_traits::type_properties::is_constructible_v<Type,Args...>,int> = 0>
             class_ &constructor(std::unordered_map<std::string_view, utility::any> metadata = {}) {
                 static constexpr auto ctor_name = implements::make_ctor_name<Type, Args...>();
-                std::string_view name{ctor_name.data(), ctor_name.size()};
-#if RAINY_HAS_CXX20
-                if (type->ctors().contains(name)) {
-                    return *this;
-                }
-#else
-                if (type->ctors().find(name) != type->ctors().end()) {
-                    return *this;
-                }
-#endif
-                type->ctors().emplace(name, meta::method::get_ctor_fn<Type, Args...>());
-                if (!metadata.empty()) {
-                    type->metadatas().emplace(name, utility::move(metadata));
-                }
+                // reflection::method ctor{"ctor", rainy::meta::method::get_ctor_fn<Type, Args...>()};
+                // if (implements::check_method_field(type, "ctor", ctor)) {
+                //     type->ctors().emplace(std::string_view{"ctor"}, utility::move(ctor));
+                // }
                 return *this;
             }
 
             template <typename Fx, type_traits::other_trans::enable_if_t<type_traits::type_properties::is_constructible_v<reflection::function,Fx> && !type_traits::primary_types::is_member_function_pointer_v<Fx>,int> = 0>
-            class_ &constructor(Fx &&fn, const std::string_view ctor_name = {},
-                                std::unordered_map<std::string_view, utility::any> metadata = {}) {
-                function ctor{utility::forward<Fx>(fn)};
-                utility::expects(ctor.is_static(), "Ctor must be static");
-                std::string_view name = ctor_name.empty() ? ctor.function_signature().name() : ctor_name;
-#if RAINY_HAS_CXX20
-                if (type->ctors().contains(name)) {
-                    return *this;
-                }
-#else
-                if (type->ctors().find(name) != type->ctors().end()) {
-                    return *this;
-                }
-#endif
-                type->ctors().emplace(name, ctor);
-                if (!metadata.empty()) {
-                    type->metadatas().emplace(name, utility::move(metadata));
-                }
+            class_ &constructor(Fx &&fn) {
+                // reflection::method ctor{"ctor", utility::forward<Fx>(fn)};
+                // utility::expects(ctor.is_static(), "Cannot use this constructor fn");
+                // if (implements::check_method_field(type, "ctor", ctor)) {
+                //     type->ctors().emplace(std::string_view{"ctor"}, utility::move(ctor));
+                // }
                 return *this;
             }
 
@@ -363,7 +356,7 @@ namespace rainy::meta::reflection {
             static type_accessor *instance(std::string_view name) noexcept {
                 static std::once_flag flag;
                 static implements::type_accessor_impl_class<Type> instance{name};
-                std::call_once(flag, [&]() { implements::register_table::register_type<Type>(name, &instance); });
+                std::call_once(flag, [&]() { implements::injector::register_type<Type>(name, &instance); });
                 return &instance;
             }
 
@@ -387,45 +380,96 @@ namespace rainy::meta::reflection {
         RAINY_CAT(rainy_toolkit_reflect_auto_register_, __LINE__);                                                          \
     static void RAINY_CAT(RAINY_CAT(rainytoolkit_auto_register_reflection_, __LINE__),_function_())
 
+namespace rainy::meta::reflection::implements {
+    template <typename Ty>
+    using registration_derived_t = type_traits::other_trans::conditional_t<type_traits::type_relations::is_void_v<Ty>, registration, registration::class_<Ty>>;
 
+    template <typename Ty>
+    struct is_tuple : type_traits::helper::false_type {};
 
-RAINY_REFLECTION_REGISTRATION {
-    using std::string;
-    using namespace rainy;
-    using namespace rainy::meta;
-    using namespace rainy::meta::method::cpp_methods;
-    reflection::registration::class_<string>("std::string")
-        .constructor<const char *>()
-        .constructor<const char *, std::size_t>()
-        .constructor<const std::string &>()
-        .constructor<std::string &&>()
-        .constructor([](const std::string_view str) {
-            return std::string{str.data(),str.size()};
-        })
-        .method(method_append, utility::get_overloaded_memfn<string, string &(const char *)>(&string::append))
-        .method(method_size, &string::size)
-        .method(method_operator_assign, utility::get_overloaded_memfn<string, string &(char)>(&string::operator=))
-        .method(method_operator_assign, utility::get_overloaded_memfn<string, string &(const char *)>(&string::operator=))
-        .method(method_operator_assign, utility::get_overloaded_memfn<string, string &(char)>(&string::operator=))
-        .method(method_at, utility::get_overloaded_memfn<string, const char &(std::size_t) const>(&string::at))
-        .method(method_at, utility::get_overloaded_memfn<string, char &(std::size_t)>(&string::at))
-        .method(method_operator_index, utility::get_overloaded_memfn<string, char &(std::size_t)>(&string::operator[]))
-        .method(method_swap, utility::get_overloaded_memfn<string, void(string &)>(&string::swap))
-        .method(method_clear, &string::clear)
-        .method(method_begin, utility::get_overloaded_memfn<string,string::iterator()>(&string::begin))
-        .method(method_end, utility::get_overloaded_memfn<string,string::iterator()>(&string::end))
-        .method(method_begin, utility::get_overloaded_memfn<string,string::const_iterator() const>(&string::begin))
-        .method(method_end, utility::get_overloaded_memfn<string,string::const_iterator() const>(&string::end))
-        .method(method_rbegin,utility::get_overloaded_memfn<string,string::reverse_iterator()>(&string::rbegin))
-        .method(method_rend,utility::get_overloaded_memfn<string,string::reverse_iterator()>(&string::rend))
-        .method(method_rbegin,utility::get_overloaded_memfn<string,string::const_reverse_iterator() const>(&string::rbegin))
-        .method(method_rend,utility::get_overloaded_memfn<string,string::const_reverse_iterator() const>(&string::rend))
-        .method(method_push_back, &string::push_back)
-        .method(method_pop_back, &string::pop_back)
-        .method(method_length, &string::length)
-        .method(method_erase, utility::get_overloaded_memfn<string,string&(string::size_type, string::size_type)>(&string::erase))
-        .method("substr", &string::substr)
-        .property("npos", &string::npos);
+    template <typename... Ts>
+    struct is_tuple<std::tuple<Ts...>> : type_traits::helper::true_type {};
+
+    template <typename... Args>
+    struct extract_unique_tuple;
+
+    template <>
+    struct extract_unique_tuple<> {
+        using type = void;
+        static constexpr bool valid = false;
+    };
+
+    template <typename T, typename... Rest>
+    struct extract_unique_tuple<T, Rest...> {
+    public:
+        using next = extract_unique_tuple<Rest...>;
+
+        static constexpr bool current_is_tuple = is_tuple<std::decay_t<T>>::value;
+        static constexpr bool valid = (current_is_tuple && !next::valid) || (!current_is_tuple && next::valid);
+
+        using type = std::conditional_t<current_is_tuple, std::decay_t<T>, typename next::type>;
+    };
+
+    template <typename TupleType, typename First, typename... Rest>
+    decltype(auto) extract_tuple_from_args(First &&first, Rest &&...rest) {
+        using FirstClean = std::remove_reference_t<First>;
+        using TupleClean = std::remove_reference_t<TupleType>;
+
+        if constexpr (std::is_same_v<FirstClean, TupleClean>) {
+            return static_cast<TupleType>(first); // 保持原类型返回
+        } else {
+            return extract_tuple_from_args<TupleType>(std::forward<Rest>(rest)...);
+        }
+    }
+}
+
+namespace rainy::meta::reflection {
+    template <typename... Args>
+    RAINY_NODISCARD std::tuple<Args...> default_arguments(Args &&...args) {
+        return {utility::forward<Args>(args)...};
+    }
+
+    template <typename ClassType, typename Fx>
+    class registration::bind<method, ClassType, Fx> : public implements::registration_derived_t<ClassType> {
+    public:
+        bind(implements::type_accessor *type, std::string_view name, Fx &&f) :
+            implements::registration_derived_t<ClassType>(core::internal_construct_tag, type), type_accessor(type),
+            fn(utility::forward<Fx>(f)), name(name), meth_{} {
+        }
+
+        ~bind() {
+            if (type_accessor) {
+                if (meth_.empty()) {
+                    static collections::array<metadata, 0> empty{};
+                    std::tuple<> a;
+                    meth_ = method::make(name, utility::move(fn), a, empty);
+                }
+                type_accessor->methods().emplace(name, utility::move(meth_));
+            }
+        }
+
+        template <typename... Args>
+        implements::registration_derived_t<ClassType> operator()(Args &&...args) {
+            static constexpr std::size_t metadata_count = implements::metadata_count<Args...>;
+            collections::array<metadata, metadata_count> metadatas =
+                utility::extract_args_to_array<metadata>(utility::forward<Args>(args)...);
+            using tuple_type = typename implements::extract_unique_tuple<Args...>::type;
+            if constexpr (!type_traits::type_relations::is_void_v<tuple_type>) {
+                tuple_type arguments = implements::extract_tuple_from_args<tuple_type>(utility::forward<Args>(args)...);
+                meth_ = reflection::method::make(name, utility::forward<Fx>(fn), arguments, metadatas);
+            } else {
+                static std::tuple<> empty_arguments;
+                meth_ = reflection::method::make(name, utility::forward<Fx>(fn), empty_arguments, metadatas);
+            }
+            return implements::registration_derived_t<ClassType>(core::internal_construct_tag, type_accessor);
+        }
+
+    private:
+        implements::type_accessor *type_accessor;
+        Fx fn;
+        std::string_view name;
+        reflection::method meth_;
+    };
 }
 
 #endif

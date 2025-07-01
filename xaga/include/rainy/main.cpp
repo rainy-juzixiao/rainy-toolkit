@@ -372,8 +372,8 @@ int main() {
             });
             benchmark("standard-libray any", []() {
                 for (int i = 0; i < 100000; ++i) {
-                    std::any rtti_any(std::in_place_type<std::string>, "Hello World");
-                    std::any_cast<std::string>(&rtti_any)->append("Who");
+                    std::any ctti_any(std::in_place_type<std::string>, "Hello World");
+                    std::any_cast<std::string>(&ctti_any)->append("Who");
                 }
             });
 

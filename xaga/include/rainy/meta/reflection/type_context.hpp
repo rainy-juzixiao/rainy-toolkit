@@ -44,25 +44,25 @@ namespace rainy::meta::reflection {
         private_context
     };
 
-    class rtti_type_register {
+    class ctti_type_register {
     public:
         struct type {
-            const foundation::rtti::typeinfo *rtti;
+            const foundation::ctti::typeinfo *ctti;
             foundation::functional::function_pointer<utility::any(*)()> creater;
         };
 
         using value = utility::any;
         using creater = foundation::functional::function_pointer<value(*)()>;
 
-        static rtti_type_register &instance() noexcept {
+        static ctti_type_register &instance() noexcept {
             static std::once_flag flag;
-            static rtti_type_register instance;
+            static ctti_type_register instance;
             std::call_once(flag, [&] { instance.preheat(); });
             return instance;
         };
 
         template <typename Type, type_traits::other_trans::enable_if_t<type_traits::type_properties::is_default_constructible_v<Type>,int> = 0>
-        rtti_type_register& create_type_mapping(std::string_view name) {
+        ctti_type_register& create_type_mapping(std::string_view name) {
             if (mapping.find(name) == mapping.end()) {
                 mapping.insert({name, {&rainy_typeid(Type), &create_helper<Type>}});
             }
@@ -108,7 +108,7 @@ namespace rainy::meta::reflection {
         static constexpr std::size_t preheat_reserve = 80;
 #endif
 
-        rtti_type_register() noexcept = default;
+        ctti_type_register() noexcept = default;
 
         void preheat() {
             mapping.reserve(preheat_reserve);
@@ -129,7 +129,7 @@ namespace rainy::meta::reflection {
             member(acc_level access_level, utility::any data) : access_level(access_level), data(data), dummy{} {
             }
 
-            const foundation::rtti::typeinfo &rtti() const noexcept {
+            const foundation::ctti::typeinfo &ctti() const noexcept {
                 return data.type();
             }
 
@@ -188,10 +188,10 @@ namespace rainy::meta::reflection {
             return blueprint_name;
         }
 
-        const foundation::rtti::typeinfo &typeinfo(std::string_view member_name) const {
+        const foundation::ctti::typeinfo &typeinfo(std::string_view member_name) const {
             const auto it = members_.find(member_name);
             utility::expects(it != members_.end(), "Could not find the member");
-            return it->second.rtti();
+            return it->second.ctti();
         }
 
         std::optional<acc_level> get_access_level(std::string_view member_name) const noexcept {
@@ -288,7 +288,7 @@ namespace rainy::meta::reflection {
             struct blueprint_member {
                 acc_level access_level;
                 foundation::functional::function_pointer<value (*)()> creater;
-                const foundation::rtti::typeinfo* type;
+                const foundation::ctti::typeinfo* type;
             };
 
             blueprint() noexcept {
@@ -306,10 +306,10 @@ namespace rainy::meta::reflection {
                     return *this;
                 }
                 if (members.find(name) == members.end()) {
-                    const foundation::rtti::typeinfo &rtti = rainy_typeid(Type);
-                    members.insert({name, {level, &create_helper<Type>, &rtti}});
-                    if (!rtti_type_register::instance().has_type_mapping(rtti.name())) {
-                        rtti_type_register::instance().create_type_mapping<Type>(rtti.name());
+                    const foundation::ctti::typeinfo &ctti = rainy_typeid(Type);
+                    members.insert({name, {level, &create_helper<Type>, &ctti}});
+                    if (!ctti_type_register::instance().has_type_mapping(ctti.name())) {
+                        ctti_type_register::instance().create_type_mapping<Type>(ctti.name());
                     }
                 }
                 return *this;
@@ -321,17 +321,17 @@ namespace rainy::meta::reflection {
                     return *this;
                 }
                 if (members.find(name) == members.end()) {
-                    auto type = rtti_type_register::instance().get_type(type_name);
-                    if (!type.rtti->is_same(rainy_typeid(void))) {
-                        members.insert({name, {level, type.creater, type.rtti}});
+                    auto type = ctti_type_register::instance().get_type(type_name);
+                    if (!type.ctti->is_same(rainy_typeid(void))) {
+                        members.insert({name, {level, type.creater, type.ctti}});
                     }
                 }
                 return *this;
             }
 
-            blueprint &add_member_by_rtti(const foundation::rtti::typeinfo &rtti, std::string_view name,
+            blueprint &add_member_by_ctti(const foundation::ctti::typeinfo &ctti, std::string_view name,
                                   acc_level level = acc_level::private_access) {
-                return add_member_by_typename(rtti.name(), name, level);
+                return add_member_by_typename(ctti.name(), name, level);
             }
 
             void remove_member(std::string_view name) {
@@ -427,7 +427,7 @@ namespace rainy::meta::reflection {
         namespace {                                                                                                                       \
         struct RAINY_CAT(rainy_toolkit_registrarion_for_type_context_, __LINE__) {                                                    \
             RAINY_CAT(rainy_toolkit_registrarion_for_type_context_, __LINE__)() {                                                     \
-                ::rainy::meta::reflection::rtti_type_register::instance().create_type_mapping<TYPE>(RAINY_STRINGIZE(TYPE));           \
+                ::rainy::meta::reflection::ctti_type_register::instance().create_type_mapping<TYPE>(RAINY_STRINGIZE(TYPE));           \
             }                                                                                                                         \
         };                                                                                                                            \
         const static RAINY_CAT(rainy_toolkit_registrarion_for_type_context_,__LINE__) RAINY_CAT(rainy_toolkit_type_context_auto_register_, __LINE__);                                                  \

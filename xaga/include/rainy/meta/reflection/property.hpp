@@ -30,33 +30,70 @@ namespace rainy::meta::reflection {
         volatile_member_property,
         const_volatile_member_property
     };
+
+    enum class property_flags {
+        none = 0,
+        static_property = 1 << 0,
+        const_property = 1 << 1,
+        volatile_property = 1 << 2,
+        member_property = 1 << 3,
+        enum_property = 1 << 4
+    };
+
+    RAINY_INLINE constexpr property_flags operator&(property_flags lhs, property_flags rhs) noexcept {
+        return static_cast<property_flags>(static_cast<std::underlying_type_t<property_flags>>(lhs) &
+                                           static_cast<std::underlying_type_t<property_flags>>(rhs));
+    }
+
+    RAINY_INLINE constexpr property_flags operator|(property_flags lhs, property_flags rhs) noexcept {
+        return static_cast<property_flags>(static_cast<std::underlying_type_t<property_flags>>(lhs) |
+                                           static_cast<std::underlying_type_t<property_flags>>(rhs));
+    }
+
+    RAINY_INLINE constexpr property_flags operator^(property_flags lhs, property_flags rhs) noexcept {
+        return static_cast<property_flags>(static_cast<std::underlying_type_t<property_flags>>(lhs) ^
+                                           static_cast<std::underlying_type_t<property_flags>>(rhs));
+    }
+
+    RAINY_INLINE constexpr property_flags operator~(property_flags flags) noexcept {
+        return static_cast<property_flags>(~static_cast<std::underlying_type_t<property_flags>>(flags));
+    }
+
+    RAINY_INLINE constexpr property_flags &operator&=(property_flags &lhs, property_flags rhs) noexcept {
+        lhs = lhs & rhs;
+        return lhs;
+    }
+
+    RAINY_INLINE constexpr property_flags &operator|=(property_flags &lhs, property_flags rhs) noexcept {
+        lhs = lhs | rhs;
+        return lhs;
+    }
+
+    RAINY_INLINE constexpr property_flags &operator^=(property_flags &lhs, property_flags rhs) noexcept {
+        lhs = lhs ^ rhs;
+        return lhs;
+    }
 }
 
 namespace rainy::meta::reflection::implements {
     template <typename Type, typename Class>
-    static constexpr property_type deduction_property_type() noexcept {
+    static constexpr property_flags deduction_property_type() noexcept {
+        property_flags flags = property_flags::none;
         if constexpr (type_traits::type_relations::is_void_v<Class>) {
-            if constexpr (type_traits::type_properties::is_const_v<Type>) {
-                if constexpr (type_traits::type_properties::is_volatile_v<Type>) {
-                    return property_type::const_volatile_static_property;
-                }
-                return property_type::const_static_property;
-            }
-            if constexpr (type_traits::type_properties::is_volatile_v<Type>) {
-                return property_type::volatile_static_property;
-            }
-            return property_type::static_property;
+            flags |= property_flags::static_property;
+        } else {
+            flags |= property_flags::member_property;
         }
         if constexpr (type_traits::type_properties::is_const_v<Type>) {
-            if constexpr (type_traits::type_properties::is_volatile_v<Type>) {
-                return property_type::const_volatile_member_property;
-            }
-            return property_type::const_member_property;
+            flags |= property_flags::const_property;
         }
         if constexpr (type_traits::type_properties::is_volatile_v<Type>) {
-            return property_type::volatile_member_property;
+            flags |= property_flags::volatile_property;
         }
-        return type_traits::primary_types::is_enum_v<Type> ? property_type::enum_property : property_type::member_property;
+        if constexpr (type_traits::primary_types::is_enum_v<Type>) {
+            flags |= property_flags::enum_property;
+        }
+        return flags;
     }
 }
 
@@ -84,10 +121,10 @@ namespace rainy::meta::reflection {
         property(const property &right) noexcept;
         property(property &&right) noexcept;
 
-        RAINY_NODISCARD const foundation::rtti::typeinfo &which_belongs() const noexcept;
+        RAINY_NODISCARD const foundation::ctti::typeinfo &which_belongs() const noexcept;
 
-        RAINY_NODISCARD const foundation::rtti::typeinfo &property_rtti_type() const noexcept;
-        RAINY_NODISCARD const foundation::rtti::typeinfo &compound_type() const noexcept;
+        RAINY_NODISCARD const foundation::ctti::typeinfo &property_ctti_type() const noexcept;
+        RAINY_NODISCARD const foundation::ctti::typeinfo &compound_type() const noexcept;
 
         property &operator=(const property &right) noexcept;
         property &operator=(property &&right) noexcept;
@@ -107,12 +144,12 @@ namespace rainy::meta::reflection {
             return *reinterpret_cast<Type Class::**>(ptr);
         }
 
-        property_type type() const noexcept;
+        property_flags type() const noexcept;
 
         bool is_const() const noexcept;
 
         bool is_static() const noexcept {
-            return type() >= property_type::static_property && type() <= property_type::const_volatile_static_property;
+            return static_cast<bool>(type() | property_flags::static_property);
         }
 
         bool is_volatile() const noexcept;
@@ -139,20 +176,20 @@ namespace rainy::meta::reflection {
             virtual void set_property(object_view object, const utility::any &any) const = 0;
             virtual utility::any get_property(object_view object) noexcept = 0;
             RAINY_NODISCARD virtual const utility::any get_property(object_view object) const noexcept = 0;
-            RAINY_NODISCARD virtual property_type type() const noexcept = 0;
-            RAINY_NODISCARD virtual const foundation::rtti::typeinfo &compound_rtti() const noexcept = 0;
-            RAINY_NODISCARD virtual const foundation::rtti::typeinfo &which_belongs() const noexcept = 0;
-            RAINY_NODISCARD virtual const foundation::rtti::typeinfo &property_rtti_type() const noexcept = 0;
-            RAINY_NODISCARD virtual std::uintptr_t target(const foundation::rtti::typeinfo &rtti) const noexcept = 0;
+            RAINY_NODISCARD virtual property_flags type() const noexcept = 0;
+            RAINY_NODISCARD virtual const foundation::ctti::typeinfo &compound_ctti() const noexcept = 0;
+            RAINY_NODISCARD virtual const foundation::ctti::typeinfo &which_belongs() const noexcept = 0;
+            RAINY_NODISCARD virtual const foundation::ctti::typeinfo &property_ctti_type() const noexcept = 0;
+            RAINY_NODISCARD virtual std::uintptr_t target(const foundation::ctti::typeinfo &ctti) const noexcept = 0;
         };
 
         template <typename CompoundType>
-        static const foundation::rtti::typeinfo &compound_type_res() noexcept {
+        static const foundation::ctti::typeinfo &compound_type_res() noexcept {
             return rainy_typeid(CompoundType);
         }
 
         template <typename Type>
-        static const foundation::rtti::typeinfo &property_rtti_type_res() noexcept {
+        static const foundation::ctti::typeinfo &property_ctti_type_res() noexcept {
             return rainy_typeid(Type);
         }
 
@@ -168,10 +205,10 @@ namespace rainy::meta::reflection {
                     if constexpr (type_traits::logical_traits::negation_v<type_traits::type_properties::is_const<Type>>) {
 #if RAINY_ENABLE_DEBUG
                         utility::expects(
-                            object.rtti().is_compatible(rainy_typeid(Type)),
+                            object.ctti().is_compatible(rainy_typeid(Type)),
                             "We can't set this property because we found the ClassType is not same with your passed instance!");
 #else
-                        if (!object.rtti().is_compatible(rainy_typeid(Type))) {
+                        if (!object.ctti().is_compatible(rainy_typeid(Type))) {
                             return;
                         }
 #endif
@@ -200,32 +237,32 @@ namespace rainy::meta::reflection {
                 }
             }
 
-            RAINY_NODISCARD property_type type() const noexcept override {
+            RAINY_NODISCARD property_flags type() const noexcept override {
                 return property_type_;
             }
 
-            RAINY_NODISCARD const foundation::rtti::typeinfo &compound_rtti() const noexcept override {
+            RAINY_NODISCARD const foundation::ctti::typeinfo &compound_ctti() const noexcept override {
                 return compound_type_res<compound_type>();
             }
 
-            RAINY_NODISCARD const foundation::rtti::typeinfo &which_belongs() const noexcept override {
+            RAINY_NODISCARD const foundation::ctti::typeinfo &which_belongs() const noexcept override {
                 return implements::which_belongs_res<Class>();
             }
 
-            RAINY_NODISCARD const foundation::rtti::typeinfo &property_rtti_type() const noexcept override {
-                return property_rtti_type_res<Type>();
+            RAINY_NODISCARD const foundation::ctti::typeinfo &property_ctti_type() const noexcept override {
+                return property_ctti_type_res<Type>();
             }
 
-            RAINY_NODISCARD std::uintptr_t target(const foundation::rtti::typeinfo &rtti) const noexcept override {
+            RAINY_NODISCARD std::uintptr_t target(const foundation::ctti::typeinfo &ctti) const noexcept override {
                 constexpr std::size_t typehash = rainy_typehash(compound_type);
-                if (typehash == rtti.hash_code()) {
+                if (typehash == ctti.hash_code()) {
                     return reinterpret_cast<std::uintptr_t>(
                         const_cast<type_traits::other_trans::decay_t<compound_type> *>(&property_ptr));
                 }
                 return 0;
             }
 
-            static constexpr property_type property_type_ = implements::deduction_property_type<Type, Class>();
+            static constexpr property_flags property_type_ = implements::deduction_property_type<Type, Class>();
             compound_type property_ptr;
         };
 
@@ -237,7 +274,7 @@ namespace rainy::meta::reflection {
             }
 
             void set_property(object_view object, const utility::any &any) const override {
-                utility::expects(object.rtti() == any.type(), "Type Is Invalid!");
+                utility::expects(object.ctti() == any.type(), "Type Is Invalid!");
                 object.as<Type>() = any.as<Type>();
             }
 
@@ -249,27 +286,27 @@ namespace rainy::meta::reflection {
                 return property_ptr;
             }
 
-            RAINY_NODISCARD property_type type() const noexcept override {
+            RAINY_NODISCARD property_flags type() const noexcept override {
                 return property_type_;
             }
 
-            RAINY_NODISCARD const foundation::rtti::typeinfo &compound_rtti() const noexcept override {
+            RAINY_NODISCARD const foundation::ctti::typeinfo &compound_ctti() const noexcept override {
                 return compound_type_res<Type>();
             }
 
-            RAINY_NODISCARD const foundation::rtti::typeinfo &which_belongs() const noexcept override {
+            RAINY_NODISCARD const foundation::ctti::typeinfo &which_belongs() const noexcept override {
                 return implements::which_belongs_res<void>();
             }
 
-            RAINY_NODISCARD const foundation::rtti::typeinfo &property_rtti_type() const noexcept override {
-                return property_rtti_type_res<Type>();
+            RAINY_NODISCARD const foundation::ctti::typeinfo &property_ctti_type() const noexcept override {
+                return property_ctti_type_res<Type>();
             }
 
-            RAINY_NODISCARD std::uintptr_t target(const foundation::rtti::typeinfo &) const noexcept override {
+            RAINY_NODISCARD std::uintptr_t target(const foundation::ctti::typeinfo &) const noexcept override {
                 return 0;
             }
 
-            static constexpr property_type property_type_ = implements::deduction_property_type<Type, void>();
+            static constexpr property_flags property_type_ = implements::deduction_property_type<Type, void>();
             compound_type property_ptr;
         };
 

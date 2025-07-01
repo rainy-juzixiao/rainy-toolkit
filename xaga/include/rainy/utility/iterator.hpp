@@ -357,6 +357,9 @@ namespace rainy::utility {
         using iterator_concept = typename iterator_traits::iterator_category;
 #endif
 
+        template <typename UImplement, typename UTraits>
+        friend class bidirectional_iterator;
+        
         RAINY_CONSTEXPR20 decltype(auto) operator*() noexcept(noexcept(static_cast<implement_type *>(this)->get_element_impl())) {
             return static_cast<implement_type *>(this)->get_element_impl();
         }
@@ -398,8 +401,7 @@ namespace rainy::utility {
         }
 
         friend RAINY_CONSTEXPR20 bool operator==(const bidirectional_iterator &left, const bidirectional_iterator &right) noexcept(
-            noexcept(utility::invoke(&bidirectional_iterator::proxy_equal_with, utility::declval<const bidirectional_iterator &>(),
-                                     utility::declval<const bidirectional_iterator &>()))) {
+            noexcept(utility::declval<const bidirectional_iterator&>().proxy_equal_with(utility::declval<const bidirectional_iterator&>(right)))) {
             return left.proxy_equal_with(right);
         }
 
@@ -436,11 +438,11 @@ namespace rainy::utility {
         explicit map_mapped_const_iterator(Ty it) : current_(it) {
         }
 
-        base::const_reference get_element_impl() const noexcept {
+        typename base::const_reference get_element_impl() const noexcept {
             return current_->second;
         }
 
-        base::const_pointer get_pointer_impl() const noexcept {
+        typename base::const_pointer get_pointer_impl() const noexcept {
             return utility::addressof(current_->second);
         }
 
@@ -468,11 +470,11 @@ namespace rainy::utility {
         using const_iterator = map_mapped_const_iterator<MapContainer>;
         using const_iterator::const_iterator;
 
-        base::pointer get_pointer_impl() noexcept {
+        typename base::pointer get_pointer_impl() noexcept {
             return utility::addressof(this->current_->second);
         }
 
-        base::reference &get_element_impl() noexcept {
+        typename base::reference &get_element_impl() noexcept {
             return const_cast<base::reference &>(this->current_->second);
         }
     };

@@ -10,6 +10,7 @@
 namespace rainy::meta::reflection::implements {
     using method_storage_t = std::unordered_multimap<std::string_view, method>;
     using property_storage_t = std::unordered_map<std::string_view, property>;
+    using ctor_storage_t = std::unordered_multimap<std::string_view, method>;
 }
 
 namespace rainy::meta::reflection::implements {
@@ -18,9 +19,9 @@ namespace rainy::meta::reflection::implements {
 
     template <typename... Types>
     struct template_argument_generater<type_traits::other_trans::type_list<Types...>> {
-        static collections::views::array_view<foundation::rtti::typeinfo> get() noexcept {
-            static const collections::array<foundation::rtti::typeinfo, sizeof...(Types)> list = {
-                foundation::rtti::typeinfo::create<Types>()...};
+        static collections::views::array_view<foundation::ctti::typeinfo> get() noexcept {
+            static collections::array<foundation::ctti::typeinfo, sizeof...(Types)> list = {
+                foundation::ctti::typeinfo::create<Types>()...};
             return list;
         }
     };
@@ -39,7 +40,7 @@ namespace rainy::meta::reflection::implements {
                 info.template_arguemnts_ = template_argument_generater<
                     typename type_traits::primary_types::template_traits<type_traits::cv_modify::remove_cvref_t<Ty>>::type>::get();
             }
-            info.type_ = foundation::rtti::typeinfo::create<Ty>();
+            info.type_ = foundation::ctti::typeinfo::create<Ty>();
             return info;
         }
 
@@ -47,19 +48,19 @@ namespace rainy::meta::reflection::implements {
             return sizeof_;
         }
 
-        RAINY_NODISCARD const foundation::rtti::typeinfo& typeinfo() const noexcept {
+        RAINY_NODISCARD const foundation::ctti::typeinfo& typeinfo() const noexcept {
             return type_;
         }
 
-        RAINY_NODISCARD collections::views::array_view<foundation::rtti::typeinfo> template_arguemnts() const noexcept {
+        RAINY_NODISCARD collections::views::array_view<foundation::ctti::typeinfo> template_arguemnts() const noexcept {
             return template_arguemnts_;
         }
 
     private:
         dyn_typeinfo() noexcept = default;
 
-        collections::views::array_view<foundation::rtti::typeinfo> template_arguemnts_;
-        foundation::rtti::typeinfo type_;
+        collections::views::array_view<foundation::ctti::typeinfo> template_arguemnts_;
+        foundation::ctti::typeinfo type_;
         std::size_t sizeof_{0};
     };
 }
@@ -71,13 +72,10 @@ namespace rainy::meta::reflection::implements {
         RAINY_NODISCARD virtual std::string_view name() const noexcept = 0;
         /* 类型信息 */
         virtual dyn_typeinfo &type() noexcept = 0;
-        /* 元数据反射 */
-        virtual std::unordered_map<std::string_view, std::unordered_map<std::string_view, utility::any>> &metadatas() = 0;
         /* 方法、静态方法、重载运算符 */
         virtual method_storage_t &methods() noexcept = 0;
-        virtual std::unordered_map<std::string_view, function> &extensions() noexcept = 0;
         /* 构造函数集合 */
-        virtual std::unordered_map<std::string_view, function> &ctors() noexcept = 0;
+        virtual ctor_storage_t &ctors() noexcept = 0;
         /* 属性、静态属性 */
         virtual std::unordered_map<std::string_view, property> &properties() noexcept = 0;
         /* 基类集合 */
@@ -107,11 +105,7 @@ namespace rainy::meta::reflection::implements {
             return methods_;
         }
 
-        std::unordered_map<std::string_view, function> &extensions() noexcept override {
-            return extensions_;
-        }
-
-        std::unordered_map<std::string_view, function> &ctors() noexcept override {
+        ctor_storage_t &ctors() noexcept override {
             return ctors_;
         }
 
@@ -127,27 +121,21 @@ namespace rainy::meta::reflection::implements {
             return deriveds_;
         }
 
-        std::unordered_map<std::string_view, std::unordered_map<std::string_view, utility::any>> &metadatas() override {
-            return metadatas_;
-        }
-
     private:
         std::string_view name_;
         dyn_typeinfo typeinfo_;
         method_storage_t methods_;
-        std::unordered_map<std::string_view, function> extensions_;
-        std::unordered_map<std::string_view, function> ctors_;
+        ctor_storage_t ctors_;
         std::unordered_map<std::string_view, property> properties_;
         std::unordered_map<std::string_view, type_accessor *> bases_;
         std::unordered_map<std::string_view, type_accessor *> deriveds_;
-        std::unordered_map<std::string_view, std::unordered_map<std::string_view, utility::any>> metadatas_;
     };
 }
 
 namespace rainy::meta::reflection::implements {
     template <typename Type, typename... Args>
     constexpr auto make_ctor_name() {
-        using namespace foundation::rtti;
+        using namespace foundation::ctti;
         constexpr auto type_str = type_name<Type>();
         if constexpr (sizeof...(Args) == 0) {
             constexpr std::size_t total_len = type_str.size() + 2 + 1; // "Type()" + '\0'

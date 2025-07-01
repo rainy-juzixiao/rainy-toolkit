@@ -85,32 +85,51 @@ namespace rainy::core::pal {
     RAINY_TOOLKIT_API std::size_t safe_dump_to(void *memory, std::size_t size, std::size_t skip) noexcept;
     RAINY_TOOLKIT_API bool resolve_stack_frame(native_frame_ptr_t frame, cstring buf, std::size_t buf_size) noexcept;
     RAINY_TOOLKIT_API void demangle(czstring name, cstring buf, std::size_t buffer_length);
-    /* atomic */
+    /* atomic:: inc,dec */
     RAINY_TOOLKIT_API long interlocked_increment(volatile long *value);
     RAINY_TOOLKIT_API long interlocked_decrement(volatile long *value);
     RAINY_TOOLKIT_API std::intptr_t interlocked_exchange_add(volatile std::intptr_t *value, const std::intptr_t amount);
     RAINY_TOOLKIT_API std::int32_t interlocked_exchange_add32(volatile std::int32_t *value, std::int32_t amount);
     RAINY_TOOLKIT_API std::int64_t interlocked_exchange_add64(volatile std::int64_t *value, std::int64_t amount);
-    RAINY_TOOLKIT_API std::intptr_t interlocked_exchange_subtract(volatile std::intptr_t *value,const std::intptr_t amount);
+    RAINY_TOOLKIT_API std::intptr_t interlocked_exchange_subtract(volatile std::intptr_t *value, const std::intptr_t amount);
     RAINY_TOOLKIT_API std::int32_t interlocked_exchange_subtract32(volatile std::int32_t *value, std::int32_t amount);
     RAINY_TOOLKIT_API std::int64_t interlocked_exchange_subtract64(volatile std::int64_t *value, std::int64_t amount);
+    /* atomic::iso_volatile_load */
     RAINY_TOOLKIT_API std::intptr_t iso_volatile_load(const volatile std::intptr_t *address);
+    RAINY_TOOLKIT_API std::int8_t iso_volatile_load8(const volatile std::int8_t *address);
+    RAINY_TOOLKIT_API std::int16_t iso_volatile_load16(const volatile std::int64_t *address);
     RAINY_TOOLKIT_API std::int32_t iso_volatile_load32(const volatile int *address);
     RAINY_TOOLKIT_API std::int64_t iso_volatile_load64(const volatile long long *address);
     RAINY_TOOLKIT_API long interlocked_exchange(volatile long *target, long value);
+    RAINY_TOOLKIT_API std::int8_t interlocked_exchange8(volatile std::int8_t *target, std::int8_t value);
+    RAINY_TOOLKIT_API std::int16_t interlocked_exchange16(volatile std::int16_t *target, std::int16_t value);
+    RAINY_TOOLKIT_API std::int32_t interlocked_exchange32(volatile std::int32_t *target, std::int32_t value);
+    RAINY_TOOLKIT_API std::int64_t interlocked_exchange64(volatile std::int64_t *target, std::int64_t value);
     RAINY_TOOLKIT_API void *interlocked_exchange_pointer(volatile void **target, void *value);
+    
     RAINY_TOOLKIT_API bool interlocked_compare_exchange(volatile long *destination, long exchange, long comparand);
-    RAINY_TOOLKIT_API bool interlocked_compare_exchange_pointer(volatile void **destination, void *exchange, void *comparand);
+    RAINY_TOOLKIT_API bool interlocked_compare_exchange8(volatile std::int8_t *destination, std::int8_t exchange,
+                                                         std::int8_t comparand);
+    RAINY_TOOLKIT_API bool interlocked_compare_exchange16(volatile std::int16_t *destination, std::int16_t exchange,
+                                                          std::int16_t comparand);
+    RAINY_TOOLKIT_API bool interlocked_compare_exchange32(volatile std::int32_t *destination, std::int32_t exchange,
+                                                          std::int32_t comparand);
     RAINY_TOOLKIT_API bool interlocked_compare_exchange64(volatile std::int64_t *destination, std::int64_t exchange,
                                                           std::int64_t comparand);
+
+    RAINY_TOOLKIT_API bool interlocked_compare_exchange_pointer(volatile void **destination, void *exchange, void *comparand);
+    
     RAINY_TOOLKIT_API long interlocked_and(volatile long *value, long mask);
     RAINY_TOOLKIT_API long interlocked_or(volatile long *value, long mask);
     RAINY_TOOLKIT_API long interlocked_xor(volatile long *value, long mask);
-    RAINY_TOOLKIT_API void iso_volatile_store(volatile void *address, void* value);
+    RAINY_TOOLKIT_API void iso_volatile_store(volatile void *address, void *value);
+    RAINY_TOOLKIT_API void iso_volatile_store8(volatile std::int8_t *address, std::int8_t value);
+    RAINY_TOOLKIT_API void iso_volatile_store16(volatile std::int16_t *address, std::int16_t value);
     RAINY_TOOLKIT_API void iso_volatile_store32(volatile int *address, std::uint32_t value);
     RAINY_TOOLKIT_API void iso_volatile_store64(volatile long long *address, std::uint64_t value);
-    RAINY_TOOLKIT_API void iso_memory_fence();
-    RAINY_TOOLKIT_API void memory_barrier();
+    RAINY_TOOLKIT_API void read_write_barrier() noexcept;
+    RAINY_TOOLKIT_API void read_barrier() noexcept;
+    RAINY_TOOLKIT_API void write_barrier() noexcept;
     /* file system */
     RAINY_TOOLKIT_API file_status get_file_status(czstring file_path) noexcept;
     RAINY_TOOLKIT_API file_handle open_file(czstring filepath, open_mode mode);
@@ -122,7 +141,7 @@ namespace rainy::core::pal {
     RAINY_TOOLKIT_API bool get_file_size(czstring file_path, std::uint64_t &size);
     RAINY_TOOLKIT_API bool rename_file(czstring old_path, czstring new_path);
     /* memory io */
-    RAINY_TOOLKIT_API bool is_aligned(void * ptr, std::size_t alignment);
+    RAINY_TOOLKIT_API bool is_aligned(void *ptr, std::size_t alignment);
     RAINY_TOOLKIT_API void *allocate(std::size_t size, std::size_t alignment) noexcept;
     RAINY_TOOLKIT_API void deallocate(void *block, std::size_t alignment);
     RAINY_TOOLKIT_API void deallocate(void *ptr, std::size_t size, std::size_t alignment);
@@ -134,8 +153,8 @@ namespace rainy::core::pal {
     RAINY_TOOLKIT_API io_size_t read_line(std::uintptr_t stream, char *buffer, io_size_t buffer_size, char delimiter);
     RAINY_TOOLKIT_API io_size_t read_binary(std::uintptr_t stream, void *buffer, io_size_t element_size, io_size_t element_count);
     /* write io */
-    //RAINY_TOOLKIT_API io_size_t write(std::uintptr_t stream, czstring buffer, io_size_t count);
-    //RAINY_TOOLKIT_API io_size_t write_line(std::uintptr_t stream, czstring buffer);
+    // RAINY_TOOLKIT_API io_size_t write(std::uintptr_t stream, czstring buffer, io_size_t count);
+    // RAINY_TOOLKIT_API io_size_t write_line(std::uintptr_t stream, czstring buffer);
     RAINY_TOOLKIT_API io_size_t write(std::uintptr_t fd, const void *buffer, size_t count);
     RAINY_TOOLKIT_API void flush(std::uintptr_t fd);
 }
