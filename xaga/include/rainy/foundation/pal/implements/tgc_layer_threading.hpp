@@ -149,4 +149,11 @@ namespace rainy::foundation::pal::threading::implements {
     RAINY_TOOLKIT_API void *native_mtx_handle(mtx_t *mtx) noexcept;
 }
 
+namespace rainy::foundation::pal::threading::implements {
+    RAINY_TOOLKIT_API core::handle tss_create();
+    RAINY_TOOLKIT_API void *tss_get(core::handle tss_key);
+    RAINY_TOOLKIT_API bool tss_set(core::handle tss_key, void *value);
+    RAINY_TOOLKIT_API bool tss_delete(core::handle tss_key);
+}
+
 #endif

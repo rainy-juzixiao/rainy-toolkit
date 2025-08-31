@@ -5,15 +5,11 @@
 此头文件用于存放基础设施实现，提供对C语言的部分函数封装以及少量模块
 */
 #include <rainy/core/core.hpp>
-#include <rainy/foundation/diagnostics/source_location.hpp>
-#include <rainy/foundation/system/basic_exception.hpp>
 #include <rainy/foundation/io/stream_print.hpp>
 #include <rainy/text/format_wrapper.hpp>
 #include <rainy/foundation/functional/function_pointer.hpp>
 #include <rainy/foundation/diagnostics/contract.hpp>
 #include <rainy/utility/iterator.hpp>
-#include <rainy/collections/array.hpp>
-#include <rainy/collections/views/array_view.hpp>
 #include <rainy/text/char_traits.hpp>
 #include <rainy/foundation/system/memory/allocator.hpp>
 
@@ -120,60 +116,18 @@ namespace rainy::component {
 }
 
 namespace rainy::utility {
-    template <>
-    struct hash<std::nullptr_t> {
-        using argument_type = std::nullptr_t;
-        using result_type = std::size_t;
-
-        static size_t hash_this_val(std::nullptr_t) noexcept {
-            void *null_pointer{};
-            return implements::hash_representation(null_pointer);
-        }
-
-        RAINY_AINLINE_NODISCARD result_type operator()(std::nullptr_t) const {
-            void *null_pointer{};
-            return implements::hash_representation(null_pointer);
-        }
-    };
-
-    template <>
-    struct hash<std::string_view> {
-        using argument_type = std::string_view;
-        using result_type = std::size_t;
-
-        static size_t hash_this_val(const argument_type &val) noexcept {
-            return implements::hash_array_representation(val.data(), val.size());
-        }
-
-        RAINY_AINLINE_NODISCARD result_type operator()(argument_type val) const {
-            return implements::hash_array_representation(val.data(), val.size());
-        }
-    };
-
-    template <>
-    struct hash<std::string> {
-        using argument_type = std::string_view;
-        using result_type = std::size_t;
-
-        static size_t hash_this_val(const argument_type &val) noexcept {
-            return implements::hash_array_representation(val.data(), val.size());
-        }
-
-        RAINY_AINLINE_NODISCARD result_type operator()(argument_type val) const {
-            return implements::hash_array_representation(val.data(), val.size());
-        }
-    };
+    
 
     template <>
     struct hash<type_index> {
         using argument_type = type_index;
         using result_type = std::size_t;
 
-        static size_t hash_this_val(const argument_type &val) noexcept {
+        static std::size_t hash_this_val(const argument_type &val) noexcept {
             return val.hash_code();
         }
 
-        RAINY_NODISCARD size_t operator()(const type_index &val) const noexcept {
+        RAINY_NODISCARD std::size_t operator()(const type_index &val) const noexcept {
             return val.hash_code();
         }
     };

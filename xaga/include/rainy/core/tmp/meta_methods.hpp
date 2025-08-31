@@ -540,17 +540,31 @@ namespace rainy::type_traits::extras::meta_method {
 
     template <typename Ty>
     RAINY_CONSTEXPR_BOOL has_clear_v<Ty, type_traits::other_trans::void_t<decltype(utility::declval<Ty &>().clear())>> = true;
+
     template <typename Ty>
     struct has_clear : helper::bool_constant<has_clear_v<Ty>> {};
 
     template <typename Ty, typename = void>
     RAINY_CONSTEXPR_BOOL has_push_back_v = false;
+
     template <typename Ty>
     RAINY_CONSTEXPR_BOOL has_push_back_v<
         Ty, type_traits::other_trans::void_t<decltype(utility::declval<Ty &>().push_back(std::declval<typename Ty::value_type>()))>> =
         true;
+
     template <typename Ty>
     struct has_push_back : helper::bool_constant<has_push_back_v<Ty>> {};
+
+    template <typename Ty, typename = void>
+    RAINY_CONSTEXPR_BOOL has_emplace_back_v = false;
+
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL has_emplace_back_v<
+        Ty, type_traits::other_trans::void_t<decltype(utility::declval<Ty &>().emplace_back(std::declval<typename Ty::value_type>()))>> =
+        true;
+
+    template <typename Ty>
+    struct has_emplace_back : helper::bool_constant<has_emplace_back_v<Ty>> {};
 
     template <typename Ty, typename = void>
     RAINY_CONSTEXPR_BOOL has_pop_back_v = false;
@@ -560,6 +574,15 @@ namespace rainy::type_traits::extras::meta_method {
 
     template <typename Ty>
     struct has_pop_back : helper::bool_constant<has_pop_back_v<Ty>> {};
+
+    template <typename Ty, typename = void>
+    RAINY_CONSTEXPR_BOOL has_pop_front_v = false;
+
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL has_pop_front_v<Ty, type_traits::other_trans::void_t<decltype(utility::declval<Ty &>().pop_front())>> = true;
+
+    template <typename Ty>
+    struct has_pop_front : helper::bool_constant<has_pop_front_v<Ty>> {};
 
     template <typename Ty, typename = void>
     RAINY_CONSTEXPR_BOOL has_insert_v = false;
@@ -638,6 +661,24 @@ namespace rainy::type_traits::extras::meta_method {
 
     template <typename Ty>
     struct has_max_size : type_traits::helper::bool_constant<has_max_size_v<Ty>> {};
+
+    template <typename Ty, typename = void>
+    RAINY_CONSTEXPR_BOOL has_data_v = false;
+
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL has_data_v<Ty, type_traits::other_trans::void_t<decltype(utility::declval<const Ty &>().data())>> = true;
+
+    template <typename Ty>
+    struct has_data : type_traits::helper::bool_constant<has_data_v<Ty>> {};
+
+    template <typename Ty, typename = void>
+    RAINY_CONSTEXPR_BOOL has_length_v = false;
+
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL has_length_v<Ty, type_traits::other_trans::void_t<decltype(utility::declval<const Ty &>().length())>> = true;
+
+    template <typename Ty>
+    struct has_length : type_traits::helper::bool_constant<has_length_v<Ty>> {};
 }
 
 #endif

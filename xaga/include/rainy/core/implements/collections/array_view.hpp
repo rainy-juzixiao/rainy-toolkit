@@ -26,7 +26,13 @@ namespace rainy::collections::views {
         constexpr array_view(pointer data, size_type size) noexcept : data_(data), size_(size) {
         }
 
+        constexpr array_view(const_pointer data, size_type size) noexcept : data_(const_cast<pointer>(data)), size_(size) {
+        }
+
         constexpr array_view(pointer first, pointer last) noexcept : data_(first), size_(last - first) {
+        }
+
+        constexpr array_view(const_pointer first, const_pointer last) noexcept : data_(const_cast<pointer>(first)), size_(last - first) {
         }
 
         constexpr array_view(std::initializer_list<value_type> value) noexcept : array_view{const_cast<pointer>(value.begin()), value.size()} {
@@ -189,15 +195,15 @@ namespace rainy::collections::views {
         size_type size_{0};
     };
 
-    template <typename C, size_t N>
+    template <typename C, std::size_t N>
     array_view(C (&value)[N]) -> array_view<C>;
     template <typename C>
     array_view(std::vector<C> &value) -> array_view<C>;
     template <typename C>
     array_view(std::vector<C> const &value) -> array_view<C const>;
-    template <typename C, size_t N>
+    template <typename C, std::size_t N>
     array_view(std::array<C, N> &value) -> array_view<C>;
-    template <typename C, size_t N>
+    template <typename C, std::size_t N>
     array_view(std::array<C, N> const &value) -> array_view<C const>;
 
     template <typename Ty>

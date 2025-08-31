@@ -14,3 +14,7 @@
 #define RAINY_INLINE
 #define RAINY_DECLARE_SIGNLE_INSTANCE(CLASSNAME) static CLASSNAME &instance() noexcept { static CLASSNAME instance;return instance;}
 #define RAINY_IS_MEMBER_FUNCTION_POINTER_HELPER_SPEC(__VA_ARGS__) template <typename Rx, typename Class, typename... Args> struct is_member_function_pointer_helper<Rx (Class::*)(Args...) __VA_ARGS__> { static constexpr bool value = true; }; template <typename Rx, typename Class, typename... Args> struct is_member_function_pointer_helper<Rx (Class::*)(Args..., ...) __VA_ARGS__> { static constexpr bool value = true; };
+#define RAINY_TOOLKIT_API __declspec(dllexport)
+#define RAINY_TOOLKIT_API __declspec(dllimport)
+#define RAINY_TOOLKIT_API
+#define RAINY_TOOLKIT_API __attribute__((visibility("default")))

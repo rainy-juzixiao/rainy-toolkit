@@ -36,7 +36,7 @@ namespace rainy::type_traits::extras::templates {
     template <typename Ty>
     struct has_reference<Ty, other_trans::void_t<typename Ty::reference>> : helper::true_type {};
 
-    template <typename Ty>
+    template <typename Ty>  
     inline constexpr bool has_reference_v = has_reference<Ty>::value;
 
     template <typename Ty, typename = void>

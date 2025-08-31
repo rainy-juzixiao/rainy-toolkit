@@ -16,8 +16,8 @@
 #ifndef RAINY_META_RELF_IMPL_FUNCTION_HPP
 #define RAINY_META_RELF_IMPL_FUNCTION_HPP
 #include <rainy/foundation/diagnostics/contract.hpp>
-#include <rainy/meta/reflection/refl_impl/invoker_accessor.hpp>
 #include <rainy/meta/reflection/metadata.hpp>
+#include <rainy/meta/reflection/refl_impl/invoker_accessor.hpp>
 
 namespace rainy::meta::reflection {
     /**
@@ -192,7 +192,7 @@ namespace rainy::meta::reflection {
          * @return 返回函数签名。
          */
         RAINY_NODISCARD const foundation::ctti::typeinfo &function_signature() const noexcept;
-        
+
         /**
          * @brief 获取函数对象的函数类型。
          * @return 返回函数类型。
@@ -337,7 +337,7 @@ namespace rainy::meta::reflection {
         template <typename... Args>
         RAINY_NODISCARD bool is_invocable() const noexcept {
             if constexpr (sizeof...(Args) == 0) {
-                return is_invocable({});
+                return is_invocable();
             } else {
                 static collections::array<foundation::ctti::typeinfo, sizeof...(Args)> paramlist = {
                     foundation::ctti::typeinfo::create<Args>()...};
@@ -357,7 +357,7 @@ namespace rainy::meta::reflection {
          * @return 返回目标函数指针。
          */
         template <typename Fx>
-        RAINY_NODISCARD Fx* target() const noexcept {
+        RAINY_NODISCARD Fx *target() const noexcept {
             utility::expects(!empty(), "You're trying to get the arg count of a empty object!");
             if constexpr (type_traits::type_relations::is_same_v<Fx, function>) {
                 return reinterpret_cast<function *>(invoke_accessor()->target(rainy_typeid(Fx)));
@@ -407,7 +407,8 @@ namespace rainy::meta::reflection {
             return invoke_accessor_;
         }
 
-        alignas(std::max_align_t) core::byte_t invoker_storage[core::fn_obj_soo_buffer_size]{}; // 不使用std::array/std::aligned_storage
+        alignas(std::max_align_t) core::byte_t
+            invoker_storage[core::fn_obj_soo_buffer_size]{}; // 不使用std::array/std::aligned_storage
         implements::invoker_accessor *invoke_accessor_{nullptr};
     };
 
@@ -485,7 +486,7 @@ namespace rainy::meta::reflection {
     private:
         template <typename Fx, typename... Args, std::size_t N = 0, std::size_t... I,
                   type_traits::other_trans::enable_if_t<type_traits::type_properties::is_constructible_v<function, Fx>, int> = 0>
-        method(std::string_view name, Fx &&fn, std::tuple<Args...>& default_arguemnts, collections::array<metadata, N> &metadatas,
+        method(std::string_view name, Fx &&fn, std::tuple<Args...> &default_arguemnts, collections::array<metadata, N> &metadatas,
                type_traits::helper::index_sequence<I...>) noexcept :
             function(utility::forward<Fx>(fn), std::get<I>(default_arguemnts)...), name_(utility::move(name)), metadata_{} {
             if constexpr (N != 0) {
@@ -500,4 +501,5 @@ namespace rainy::meta::reflection {
         std::unordered_map<std::string_view, reflection::metadata> metadata_;
     };
 }
+
 #endif

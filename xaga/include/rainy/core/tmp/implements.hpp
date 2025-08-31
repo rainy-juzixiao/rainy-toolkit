@@ -295,7 +295,6 @@ namespace rainy::type_traits::implements {
         using type = typename _disjunction<next::value, next, rest...>::type;
     };
 
-
     template <bool, typename first, typename...>
     struct _conjunction {
         using type = first;
@@ -312,12 +311,12 @@ namespace rainy::type_traits::implements {
     };
 
     template <typename Ty>
-    struct _add_volatile {
+    struct add_volatile {
         using type = volatile Ty;
     };
 
     template <typename Ty>
-    struct _add_cv {
+    struct add_cv {
         using type = const volatile Ty;
     };
 
@@ -341,12 +340,12 @@ namespace rainy::type_traits::implements {
     };
 
     template <typename Ty>
-    RAINY_CONSTEXPR20 Ty _fake_copy_init(Ty) noexcept {
+    RAINY_CONSTEXPR20 Ty fake_copy_init(Ty) noexcept {
         return Ty{};
     }
 
     template <typename Ty>
-    Ty _returns_exactly() noexcept {
+    Ty returns_exactly() noexcept {
         return Ty{};
     }
 
@@ -362,20 +361,20 @@ namespace rainy::type_traits::implements {
     };
 
     template <typename Ty>
-    RAINY_CONSTEXPR_BOOL _is_arithmetic_v = is_integral_v<Ty> || is_floating_point_v<Ty>;
+    RAINY_CONSTEXPR_BOOL is_arithmetic_v = is_integral_v<Ty> || is_floating_point_v<Ty>;
 
     template <typename Ty, bool = is_integral_v<Ty>>
     struct sign_base {
         using uty = remove_cv_t<Ty>;
 
-        static constexpr bool _signed = static_cast<uty>(-1) < static_cast<uty>(0);
-        static constexpr bool _unsigned = !_signed;
+        static constexpr bool is_signed = static_cast<uty>(-1) < static_cast<uty>(0);
+        static constexpr bool is_unsigned = !is_signed;
     };
 
     template <typename Ty>
     struct sign_base<Ty, false> {
-        static constexpr bool _signed = is_floating_point_v<Ty>;
-        static constexpr bool _unsigned = false;
+        static constexpr bool is_signed = is_floating_point_v<Ty>;
+        static constexpr bool is_unsigned = false;
     };
 
     template <typename Ty, bool small_>
@@ -409,16 +408,16 @@ namespace rainy::type_traits::implements {
     };
 
     template <typename Ty>
-    struct _call_traits {
+    struct call_traits {
     public:
         using value_type = Ty;
         using reference = Ty &;
         using const_reference = const Ty &;
-        using param_type = typename ct_imp<Ty, _is_pointer_v<Ty>, _is_arithmetic_v<Ty>, _is_enum_v<Ty>>::param_type;
+        using param_type = typename ct_imp<Ty, _is_pointer_v<Ty>, is_arithmetic_v<Ty>, _is_enum_v<Ty>>::param_type;
     };
 
     template <typename Ty>
-    struct _call_traits<Ty &> {
+    struct call_traits<Ty &> {
         using value_type = Ty &;
         using reference = Ty &;
         using const_reference = const Ty &;
@@ -433,22 +432,85 @@ namespace rainy::type_traits::implements {
 
 namespace rainy::type_traits::implements {
     template <typename To, typename From>
-    RAINY_CONSTEXPR_BOOL _is_assignable_v = __is_assignable(To, From);
+    RAINY_CONSTEXPR_BOOL is_assignable_v = __is_assignable(To, From);
 
     template <typename Ty>
-    RAINY_CONSTEXPR_BOOL _is_move_assignable_v = __is_assignable(implements::_add_lvalue_reference_t<Ty>, Ty);
+    RAINY_CONSTEXPR_BOOL is_move_assignable_v = __is_assignable(implements::_add_lvalue_reference_t<Ty>, Ty);
 
     template <typename Ty>
     RAINY_CONSTEXPR_BOOL _is_move_constructible_v = __is_constructible(Ty, Ty);
 
     template <typename Ty>
-    RAINY_CONSTEXPR_BOOL _is_nothrow_move_constructible_v = __is_nothrow_constructible(Ty, Ty);
+    RAINY_CONSTEXPR_BOOL is_nothrow_move_constructible_v = __is_nothrow_constructible(Ty, Ty);
 
     template <typename Ty>
-    RAINY_CONSTEXPR_BOOL _is_nothrow_move_assignable_v = __is_nothrow_assignable(_add_lvalue_reference_t<Ty>, Ty);
+    RAINY_CONSTEXPR_BOOL is_nothrow_move_assignable_v = __is_nothrow_assignable(_add_lvalue_reference_t<Ty>, Ty);
 
     template <typename Ty, typename... Args>
-    RAINY_CONSTEXPR_BOOL _is_nothrow_constructible_v = __is_nothrow_constructible(Ty, Args...);
+    RAINY_CONSTEXPR_BOOL is_nothrow_constructible_v = __is_nothrow_constructible(Ty, Args...);
+}
+
+namespace rainy::type_traits::implements {
+    template <std::size_t>
+    struct make_unsigned_by_size;
+
+    template <>
+    struct make_unsigned_by_size<1> {
+        template <typename>
+        using apply = unsigned char;
+    };
+
+    template <>
+    struct make_unsigned_by_size<2> {
+        template <typename>
+        using apply = unsigned short;
+    };
+
+    template <>
+    struct make_unsigned_by_size<4> {
+        template <typename Ty>
+        using apply =
+            typename _select<is_same_v<Ty, long> || is_same_v<Ty, unsigned long>>::template type<unsigned long, unsigned int>;
+    };
+
+    template <>
+    struct make_unsigned_by_size<8> {
+        template <typename>
+        using apply = unsigned long long;
+    };
+
+    template <typename Ty>
+    using make_unsigned_raw = typename make_unsigned_by_size<sizeof(Ty)>::template apply<Ty>;
+
+    template <std::size_t>
+    struct make_signed_by_size;
+
+    template <>
+    struct make_signed_by_size<1> {
+        template <typename>
+        using apply = signed char;
+    };
+
+    template <>
+    struct make_signed_by_size<2> {
+        template <typename>
+        using apply = short;
+    };
+
+    template <>
+    struct make_signed_by_size<4> {
+        template <typename Ty>
+        using apply = typename _select<is_same_v<Ty, unsigned long> || is_same_v<Ty, long>>::template type<long, int>;
+    };
+
+    template <>
+    struct make_signed_by_size<8> {
+        template <typename>
+        using apply = long long;
+    };
+
+    template <typename Ty>
+    using make_signed_raw = typename make_signed_by_size<sizeof(Ty)>::template apply<Ty>;
 }
 
 namespace rainy::utility {
@@ -520,7 +582,7 @@ namespace rainy::utility {
      * 因为此函数要求实例化类型的Ty是可移动构造，且Ty的左值引用是能赋值给Other类型的
      */
     template <typename Ty, typename Other = Ty>
-    constexpr Ty exchange(Ty &val, Other &&new_val) noexcept(type_traits::implements::_is_nothrow_move_constructible_v<Ty> &&
+    constexpr Ty exchange(Ty &val, Other &&new_val) noexcept(type_traits::implements::is_nothrow_move_constructible_v<Ty> &&
                                                              type_traits::implements::_is_nothrow_assignable_v<Ty &, Other>) {
         Ty old_val = static_cast<Ty &&>(val);
         val = static_cast<Other &&>(new_val);

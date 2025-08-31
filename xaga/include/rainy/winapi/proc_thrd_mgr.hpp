@@ -537,7 +537,7 @@ namespace rainy::winapi::proc_thrd {
             return 0;
         }
 
-        template <typename Tuple, size_t... Indices>
+        template <typename Tuple, std::size_t... Indices>
         RAINY_NODISCARD static constexpr auto get_invoke(std::index_sequence<Indices...>) noexcept {
             return &invoke<Tuple, Indices...>;
         }

@@ -25,6 +25,11 @@
 
 #include <iostream>
 
+#if RAINY_USING_CLANG
+#pragma clang diagnostic ignored "-Wcast-function-type-mismatch"
+#pragma clang diagnostic ignored "-Wsign-compare"
+#endif
+
 #if RAINY_USING_WINDOWS
 namespace rainy::core::builtin::implements {
     struct rtl_osversion_info {
@@ -36,8 +41,8 @@ namespace rainy::core::builtin::implements {
         WCHAR szCSDVersion[128];
     };
 
-    NTSTATUS NTAPI get_version_impl(rtl_osversion_info *version_info) {
-        using impl_type = NTSTATUS(NTAPI *)(rtl_osversion_info *);
+    long NTAPI get_version_impl(rtl_osversion_info *version_info) {
+        using impl_type = long(NTAPI *)(rtl_osversion_info *);
         static impl_type impl_fn;
         if (impl_fn) {
             return impl_fn(version_info);
@@ -46,7 +51,7 @@ namespace rainy::core::builtin::implements {
         if (!handle) {
             return ERROR_NOT_FOUND;
         }
-        if (impl_fn = reinterpret_cast<impl_type>(GetProcAddress(handle, "RtlGetVersion")); impl_fn != nullptr) {
+        if (impl_fn = reinterpret_cast<impl_type>(GetProcAddress(handle, "RtlGetVersion")); impl_fn != nullptr) { // NOLINT
             return impl_fn(version_info);
         } else {
             return -1;
@@ -61,6 +66,8 @@ namespace rainy::core::builtin {
 #if RAINY_USING_MSVC
         __cpuid(query, function_id);
 #else
+        (void) query;
+        (void) function_id;
 #endif
     }
 

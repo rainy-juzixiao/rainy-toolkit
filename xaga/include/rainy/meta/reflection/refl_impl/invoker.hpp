@@ -70,9 +70,7 @@ namespace rainy::meta::reflection::implements {
 
 namespace rainy::meta::reflection::implements {
     template <typename Fx, typename = void>
-    struct is_fnobj : type_traits::helper::false_type {
-        static RAINY_CONSTEXPR_BOOL is_lambda_without_capture = false;
-    };
+    struct is_fnobj : type_traits::helper::false_type {};
 
     template <typename Fx>
     struct is_fnobj<Fx, type_traits::other_trans::void_t<decltype(&Fx::operator())>> : type_traits::helper::true_type {};
@@ -89,7 +87,7 @@ namespace rainy::meta::reflection::implements {
     };
 
     template <typename Fx,typename... UAx>
-    RAINY_INLINE constexpr utility::any access_invoke(Fx &&fn, void *object, UAx &&...args) {
+    RAINY_INLINE utility::any access_invoke(Fx &&fn, void *object, UAx &&...args) {
         using traits = typename extract_function_traits<Fx>::type;
         static constexpr method_flags type = core::deduction_invoker_type<Fx, UAx...>();
         using namespace type_traits;

@@ -47,39 +47,140 @@ namespace rainy::core::pal {
 #endif
     }
 
-    std::intptr_t interlocked_exchange_add(volatile std::intptr_t *value, const std::intptr_t amount) {
-        rainy_assume(static_cast<bool>(value));
-#if RAINY_USING_64_BIT_PLATFORM
-        return interlocked_exchange_add64(static_cast<volatile std::int64_t *>(value), static_cast<const std::int64_t>(amount));
+    std::int8_t interlocked_increment8(volatile std::int8_t *value) {
+        rainy_assume(value);
+#if RAINY_USING_MSVC
+        return interlocked_exchange_add8(reinterpret_cast<volatile std::int8_t *>(value), 1);
 #else
-        return interlocked_exchange_add32(static_cast<volatile std::int32_t *>(value), static_cast<const std::int32_t>(amount));
+        volatile std::int8_t *avoid_clangtidy = value;
+        __asm__ __volatile__("lock; incb %0" : "+m"(*avoid_clangtidy) : : "cc");
+        return *avoid_clangtidy;
 #endif
     }
 
-    std::int32_t interlocked_exchange_add32(volatile std::int32_t *value, std::int32_t amount) {
-        rainy_assume(static_cast<bool>(value));
-        volatile std::int32_t old_value = (*value);
+    std::int16_t interlocked_increment16(volatile std::int16_t *value) {
+        rainy_assume(value);
 #if RAINY_USING_MSVC
-        ::_InterlockedExchangeAdd(reinterpret_cast<volatile long *>(value), amount);
-#elif RAINY_USING_GCC || RAINY_USING_CLANG
+        return _InterlockedIncrement16(reinterpret_cast<volatile short *>(value));
+#else
+        volatile std::int16_t *avoid_clangtidy = value;
+        __asm__ __volatile__("lock; incw %0" : "+m"(*avoid_clangtidy) : : "cc");
+        return *avoid_clangtidy;
+#endif
+    }
+
+    std::int32_t interlocked_increment32(volatile std::int32_t *value) {
+        rainy_assume(value);
+#if RAINY_USING_MSVC
+        return _InterlockedIncrement(reinterpret_cast<volatile long *>(value));
+#else
         volatile std::int32_t *avoid_clangtidy = value;
-        __asm__ __volatile__("lock; xadd %0, %1" : "+r"(amount) : "m"(*avoid_clangtidy) : "memory", "cc");
+        __asm__ __volatile__("lock; incl %0" : "+m"(*avoid_clangtidy) : : "cc");
+        return *avoid_clangtidy;
+#endif
+    }
+
+    std::int64_t interlocked_increment64(volatile std::int64_t *value) {
+        rainy_assume(value);
+#if RAINY_USING_MSVC
+        return _InterlockedIncrement64(reinterpret_cast<volatile __int64 *>(value));
+#else
+        volatile std::int64_t *avoid_clangtidy = value;
+        __asm__ __volatile__("lock; incq %0" : "+m"(*avoid_clangtidy) : : "cc");
+        return *avoid_clangtidy;
+#endif
+    }
+
+    // ----------- Decrement ------------
+
+    std::int8_t interlocked_decrement8(volatile std::int8_t *value) {
+        rainy_assume(value);
+#if RAINY_USING_MSVC
+        return interlocked_exchange_add8(reinterpret_cast<volatile std::int8_t *>(value), -1);
+#else
+        volatile std::int8_t *avoid_clangtidy = value;
+        __asm__ __volatile__("lock; decb %0" : "+m"(*avoid_clangtidy) : : "cc");
+        return *avoid_clangtidy;
+#endif
+    }
+
+    std::int16_t interlocked_decrement16(volatile std::int16_t *value) {
+        rainy_assume(value);
+#if RAINY_USING_MSVC
+        return _InterlockedDecrement16(reinterpret_cast<volatile short *>(value));
+#else
+        volatile std::int16_t *avoid_clangtidy = value;
+        __asm__ __volatile__("lock; decw %0" : "+m"(*avoid_clangtidy) : : "cc");
+        return *avoid_clangtidy;
+#endif
+    }
+
+    std::int32_t interlocked_decrement32(volatile std::int32_t *value) {
+        rainy_assume(value);
+#if RAINY_USING_MSVC
+        return _InterlockedDecrement(reinterpret_cast<volatile long *>(value));
+#else
+        volatile std::int32_t *avoid_clangtidy = value;
+        __asm__ __volatile__("lock; decl %0" : "+m"(*avoid_clangtidy) : : "cc");
+        return *avoid_clangtidy;
+#endif
+    }
+
+    std::int64_t interlocked_decrement64(volatile std::int64_t *value) {
+        rainy_assume(value);
+#if RAINY_USING_MSVC
+        return _InterlockedDecrement64(reinterpret_cast<volatile __int64 *>(value));
+#else
+        volatile std::int64_t *avoid_clangtidy = value;
+        __asm__ __volatile__("lock; decq %0" : "+m"(*avoid_clangtidy) : : "cc");
+        return *avoid_clangtidy;
+#endif
+    }
+
+    std::int8_t interlocked_exchange_add8(volatile std::int8_t *value, std::int8_t amount) {
+        rainy_assume(value);
+        volatile std::int8_t old_value = *value;
+#if RAINY_USING_MSVC
+        _InterlockedExchangeAdd8(reinterpret_cast<volatile char *>(value), amount);
+#else
+        volatile std::int8_t *avoid_clangtidy = value;
+        __asm__ __volatile__("lock; xaddb %0, %1" : "+q"(amount), "+m"(*avoid_clangtidy) : : "memory", "cc");
+#endif
+        return old_value;
+    }
+
+    std::int16_t interlocked_exchange_add16(volatile std::int16_t *value, std::int16_t amount) {
+        rainy_assume(value);
+        volatile std::int16_t old_value = *value;
+#if RAINY_USING_MSVC
+        _InterlockedExchangeAdd16(reinterpret_cast<volatile short *>(value), amount);
+#else
+        volatile std::int16_t *avoid_clangtidy = value;
+        __asm__ __volatile__("lock; xaddw %0, %1" : "+r"(amount), "+m"(*avoid_clangtidy) : : "memory", "cc");
+#endif
+        return old_value;
+    }
+
+    std::int32_t interlocked_exchange_add32(volatile std::int32_t *value, std::int32_t amount) {
+        rainy_assume(value);
+        volatile std::int32_t old_value = *value;
+#if RAINY_USING_MSVC
+        _InterlockedExchangeAdd(reinterpret_cast<volatile long *>(value), amount);
+#else
+        volatile std::int32_t *avoid_clangtidy = value;
+        __asm__ __volatile__("lock; xaddl %0, %1" : "+r"(amount), "+m"(*avoid_clangtidy) : : "memory", "cc");
 #endif
         return old_value;
     }
 
     std::int64_t interlocked_exchange_add64(volatile std::int64_t *value, std::int64_t amount) {
-        rainy_assume(static_cast<bool>(value));
-        volatile std::int64_t old_value = (*value);
+        rainy_assume(value);
+        volatile std::int64_t old_value = *value;
 #if RAINY_USING_MSVC
-#if RAINY_USING_64_BIT_PLATFORM
-        ::_InterlockedExchangeAdd64(value, amount);
+        _InterlockedExchangeAdd64(reinterpret_cast<volatile __int64 *>(value), amount);
 #else
-        ::_interlockedexchangeadd64(value, amount);
-#endif
-#elif (RAINY_USING_GCC || RAINY_USING_CLANG) && RAINY_USING_64_BIT_PLATFORM
         volatile std::int64_t *avoid_clangtidy = value;
-        __asm__ __volatile__("lock; xaddq %0, %1" : "+r"(amount) : "m"(*avoid_clangtidy) : "memory", "cc");
+        __asm__ __volatile__("lock; xaddq %0, %1" : "+r"(amount), "+m"(*avoid_clangtidy) : : "memory", "cc");
 #endif
         return old_value;
     }
@@ -228,8 +329,6 @@ namespace rainy::core::pal {
 #endif
     }
 
-    #include <cstdint>
-
     bool interlocked_compare_exchange8(volatile std::int8_t *destination, std::int8_t exchange, std::int8_t comparand) {
         rainy_assume(static_cast<bool>(destination));
 #if RAINY_USING_MSVC
@@ -302,6 +401,35 @@ namespace rainy::core::pal {
 #endif
     }
 
+#if RAINY_USING_64_BIT_PLATFORM
+
+    bool interlocked_compare_exchange128(std::int64_t volatile *destination, std::int64_t exchange_high,
+                                                  std::int64_t exchange_low, std::int64_t *comparand_result) {
+        rainy_assume(static_cast<bool>(destination));
+        rainy_assume(static_cast<bool>(comparand_result));
+#if RAINY_USING_MSVC
+        return _InterlockedCompareExchange128(reinterpret_cast<volatile std::int64_t *>(destination), exchange_high, exchange_low,
+                                              comparand_result);
+#else
+        bool result{};
+        __int64 comparand_low = comparand_result[0];
+        __int64 comparand_high = comparand_result[1];
+        __asm__ __volatile__("lock cmpxchg16b %1\n\t"
+                             "setz %0"
+                             : "=q"(result), "+m"(*reinterpret_cast<__int128 volatile *>(destination)), "+d"(comparand_high),
+                               "+a"(comparand_low)
+                             : "c"(exchange_high), "b"(exchange_low)
+                             : "memory");
+        if (!result) {
+            comparand_result[0] = comparand_low;
+            comparand_result[1] = comparand_high;
+        }
+        return result;
+#endif
+    }
+
+#endif
+
     bool interlocked_compare_exchange_pointer(volatile void **destination, void *exchange, void *comparand) {
         rainy_assume(static_cast<bool>(destination));
 #if RAINY_USING_MSVC
@@ -317,14 +445,29 @@ namespace rainy::core::pal {
 #endif
     }
 
-    long interlocked_and(volatile long *value, long mask) {
-        rainy_assume(static_cast<bool>(value));
+    int8_t interlocked_and8(volatile int8_t *value, int8_t mask) {
+        rainy_assume(value);
 #if RAINY_USING_MSVC
-        return _InterlockedAnd(value, mask);
+        return _InterlockedAnd8((volatile char *) value, mask);
 #else
-        long old{};
-        __asm__ __volatile__("mov %1, %0\n\t"
-                             "lock and %2, %1"
+        int8_t old;
+        __asm__ __volatile__("movb %1, %0\n\t"
+                             "lock andb %2, %1"
+                             : "=&q"(old), "+m"(*value)
+                             : "iq"(mask)
+                             : "memory");
+        return old;
+#endif
+    }
+
+    int16_t interlocked_and16(volatile int16_t *value, int16_t mask) {
+        rainy_assume(value);
+#if RAINY_USING_MSVC
+        return _InterlockedAnd16((volatile short *) value, mask);
+#else
+        int16_t old;
+        __asm__ __volatile__("movw %1, %0\n\t"
+                             "lock andw %2, %1"
                              : "=&r"(old), "+m"(*value)
                              : "r"(mask)
                              : "memory");
@@ -332,14 +475,14 @@ namespace rainy::core::pal {
 #endif
     }
 
-    long interlocked_or(volatile long *value, long mask) {
-        rainy_assume(static_cast<bool>(value));
+    int32_t interlocked_and32(volatile int32_t *value, int32_t mask) {
+        rainy_assume(value);
 #if RAINY_USING_MSVC
-        return _InterlockedOr(value, mask);
+        return _InterlockedAnd((volatile long *) value, mask);
 #else
-        long old{};
-        __asm__ __volatile__("mov %1, %0\n\t"
-                             "lock or %2, %1"
+        int32_t old;
+        __asm__ __volatile__("movl %1, %0\n\t"
+                             "lock andl %2, %1"
                              : "=&r"(old), "+m"(*value)
                              : "r"(mask)
                              : "memory");
@@ -347,14 +490,134 @@ namespace rainy::core::pal {
 #endif
     }
 
-    long interlocked_xor(volatile long *value, long mask) {
-        rainy_assume(static_cast<bool>(value));
+    int64_t interlocked_and64(volatile int64_t *value, int64_t mask) {
+        rainy_assume(value);
 #if RAINY_USING_MSVC
-        return _InterlockedXor(value, mask);
+        return _InterlockedAnd64((volatile __int64 *) value, mask);
 #else
-        long old{};
-        __asm__ __volatile__("mov %1, %0\n\t"
-                             "lock xor %2, %1"
+        int64_t old;
+        __asm__ __volatile__("movq %1, %0\n\t"
+                             "lock andq %2, %1"
+                             : "=&r"(old), "+m"(*value)
+                             : "r"(mask)
+                             : "memory");
+        return old;
+#endif
+    }
+
+    std::int8_t interlocked_or8(volatile std::int8_t *value, std::int8_t mask) {
+        rainy_assume(value);
+#if RAINY_USING_MSVC
+        return _InterlockedOr8(reinterpret_cast<volatile char *>(value), mask);
+#else
+        std::int8_t old;
+        __asm__ __volatile__("movb %1, %0\n\t"
+                             "lock orb %2, %1"
+                             : "=&q"(old), "+m"(*value)
+                             : "iq"(mask)
+                             : "memory");
+        return old;
+#endif
+    }
+
+    std::int16_t interlocked_or16(volatile std::int16_t *value, std::int16_t mask) {
+        rainy_assume(value);
+#if RAINY_USING_MSVC
+        return _InterlockedOr16(reinterpret_cast<volatile short *>(value), mask);
+#else
+        std::int16_t old;
+        __asm__ __volatile__("movw %1, %0\n\t"
+                             "lock orw %2, %1"
+                             : "=&r"(old), "+m"(*value)
+                             : "r"(mask)
+                             : "memory");
+        return old;
+#endif
+    }
+
+    std::int32_t interlocked_or32(volatile std::int32_t *value, std::int32_t mask) {
+        rainy_assume(value);
+#if RAINY_USING_MSVC
+        return _InterlockedOr(reinterpret_cast<volatile long *>(value), mask);
+#else
+        std::int32_t old;
+        __asm__ __volatile__("movl %1, %0\n\t"
+                             "lock orl %2, %1"
+                             : "=&r"(old), "+m"(*value)
+                             : "r"(mask)
+                             : "memory");
+        return old;
+#endif
+    }
+
+    std::int64_t interlocked_or64(volatile std::int64_t *value, std::int64_t mask) {
+        rainy_assume(value);
+#if RAINY_USING_MSVC
+        return _InterlockedOr64(reinterpret_cast<volatile __int64 *>(value), mask);
+#else
+        std::int64_t old;
+        __asm__ __volatile__("movq %1, %0\n\t"
+                             "lock orq %2, %1"
+                             : "=&r"(old), "+m"(*value)
+                             : "r"(mask)
+                             : "memory");
+        return old;
+#endif
+    }
+
+    std::int8_t interlocked_xor8(volatile std::int8_t *value, std::int8_t mask) {
+        rainy_assume(value);
+#if RAINY_USING_MSVC
+        return _InterlockedXor8(reinterpret_cast<volatile char *>(value), mask);
+#else
+        std::int8_t old;
+        __asm__ __volatile__("movb %1, %0\n\t"
+                             "lock xorb %2, %1"
+                             : "=&q"(old), "+m"(*value)
+                             : "iq"(mask)
+                             : "memory");
+        return old;
+#endif
+    }
+
+    std::int16_t interlocked_xor16(volatile std::int16_t *value, std::int16_t mask) {
+        rainy_assume(value);
+#if RAINY_USING_MSVC
+        return _InterlockedXor16(reinterpret_cast<volatile short *>(value), mask);
+#else
+        std::int16_t old;
+        __asm__ __volatile__("movw %1, %0\n\t"
+                             "lock xorw %2, %1"
+                             : "=&r"(old), "+m"(*value)
+                             : "r"(mask)
+                             : "memory");
+        return old;
+#endif
+    }
+
+    std::int32_t interlocked_xor32(volatile std::int32_t *value, std::int32_t mask) {
+        rainy_assume(value);
+#if RAINY_USING_MSVC
+        return _InterlockedXor(reinterpret_cast<volatile long *>(value), mask);
+#else
+        std::int32_t old;
+        __asm__ __volatile__("movl %1, %0\n\t"
+                             "lock xorl %2, %1"
+                             : "=&r"(old), "+m"(*value)
+                             : "r"(mask)
+                             : "memory");
+        return old;
+#endif
+    }
+
+    std::int64_t interlocked_xor64(volatile std::int64_t *value, std::int64_t mask) {
+        rainy_assume(value);
+#if RAINY_USING_MSVC
+        return _InterlockedXor64(reinterpret_cast<volatile __int64 *>(value), mask);
+#else
+        std::int64_t old;
+        __asm__ __volatile__("movq %1, %0\n\t"
+                             "lock xorq %2, %1"
                              : "=&r"(old), "+m"(*value)
                              : "r"(mask)
                              : "memory");

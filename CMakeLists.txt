@@ -3,6 +3,7 @@ project(rainy-toolkit VERSION 0.7.4 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(RAINY_TOOLKIT_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
 
 message("Starting build rainy's toolkit")
 message("Current C++ Standard Is ${CMAKE_CXX_STANDARD}")
@@ -24,9 +25,4 @@ if (RAINY_ENABLE_TESTING)
     add_subdirectory(${PROJECT_SOURCE_DIR}/xaga/tests)
 endif()
 
-add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/rttr)
-add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/udrefl)
 add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/benchmark)
-add_subdirectory(${PROJECT_SOURCE_DIR}/xaga/examples/reflection/)
-add_subdirectory(${PROJECT_SOURCE_DIR}/xaga/benchmark)
-add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/meta)

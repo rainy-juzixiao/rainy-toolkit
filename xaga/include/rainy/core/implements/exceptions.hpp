@@ -56,6 +56,10 @@ namespace rainy::foundation::exceptions {
             return exception_.what();
         }
 
+        Except &get_exception() noexcept {
+            return exception_;
+        }
+
     private:
         Except exception_;
     };
@@ -65,7 +69,7 @@ namespace rainy::foundation::exceptions {
         static_assert(type_traits::type_relations::is_base_of_v<std::exception, Except>,
                       "exception type must be derived from std::exception!");
 #if __cpp_exceptions
-        throw wrapexcept<Except>{exception}; // 阻止Clang-Tidy的误报
+        throw wrapexcept<Except>{exception}.get_exception(); // 阻止Clang-Tidy的误报
 #else
         std::fwrite(exception.what(), sizeof(char), sizeof(char) * core::implements::string_length(exception.what()), stderr);
         std::terminate();
@@ -126,14 +130,14 @@ namespace rainy::foundation::exceptions::logic {
     public:
         using base = logic_error;
 
-        explicit out_of_range(const char *message, const source &location = source::current()) : base(message, location) {
+        explicit out_of_range(const char *message = "out_of_range", const source &location = source::current()) : base(message, location) {
         }
 
-        explicit out_of_range(const std::string &message, const source &location = source::current()) : base(message, location) {
+        explicit out_of_range(const std::string &message = "out_of_range", const source &location = source::current()) : base(message, location) {
         }
     };
 
-    RAINY_INLINE void throw_out_of_range(const char *message,
+    RAINY_INLINE void throw_out_of_range(const char *message = "out_of_range",
                                          const diagnostics::source_location &location = diagnostics::source_location::current()) {
         throw_exception(out_of_range{message, location});
     }
@@ -190,6 +194,24 @@ namespace rainy::foundation::exceptions::runtime {
     RAINY_INLINE void throw_bad_alloc() {
         throw_exception(bad_alloc{});
     }
+}
+
+namespace rainy::foundation::exceptions {
+    class multiple_exceptions : public exception {
+    public:
+        multiple_exceptions(std::exception_ptr first) noexcept;
+
+        const char *what() const noexcept override {
+            return "multiple exceptions";
+        }
+
+        std::exception_ptr first_exception() const {
+            return first_;
+        }
+
+    private:
+        std::exception_ptr first_;
+    };
 }
 
 #endif

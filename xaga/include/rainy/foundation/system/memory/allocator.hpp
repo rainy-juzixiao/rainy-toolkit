@@ -293,29 +293,29 @@ namespace rainy::foundation::system::memory::pmr {
 
         polymorphic_allocator &operator=(const polymorphic_allocator &) = delete;
 
-        RAINY_NODISCARD_RAW_PTR_ALLOC value_type *allocate(const size_t count) {
+        RAINY_NODISCARD_RAW_PTR_ALLOC value_type *allocate(const std::size_t count) {
             void *const resource = _resource->allocate(core::implements::get_size_of_n<Ty>(count), align);
             return static_cast<value_type *>(resource);
         }
 
-        void deallocate(Ty *const ptr, const size_t count) noexcept {
+        void deallocate(Ty *const ptr, const std::size_t count) noexcept {
             _resource->deallocate(ptr, core::implements::get_size_of_n<Ty>(count), align);
         }
 
-        RAINY_NODISCARD_RAW_PTR_ALLOC void *allocate_bytes(const size_t bytes, const size_t align_ = alignof(std::max_align_t)) {
+        RAINY_NODISCARD_RAW_PTR_ALLOC void *allocate_bytes(const std::size_t bytes, const std::size_t align_ = alignof(std::max_align_t)) {
             return _resource->allocate(bytes, align_);
         }
 
-        void deallocate_bytes(void *const ptr, const size_t bytes, const size_t align_ = alignof(std::max_align_t)) noexcept {
+        void deallocate_bytes(void *const ptr, const std::size_t bytes, const std::size_t align_ = alignof(std::max_align_t)) noexcept {
             _resource->deallocate(ptr, bytes, align_);
         }
 
-        RAINY_NODISCARD_RAW_PTR_ALLOC value_type *allocate_object(const size_t count = 1) {
+        RAINY_NODISCARD_RAW_PTR_ALLOC value_type *allocate_object(const std::size_t count = 1) {
             void *const resource = allocate_bytes(core::implements::get_size_of_n<value_type>(count), align);
             return static_cast<value_type *>(resource);
         }
 
-        void deallocate_object(value_type *const ptr, const size_t count = 1) noexcept {
+        void deallocate_object(value_type *const ptr, const std::size_t count = 1) noexcept {
             deallocate_bytes(ptr, core::implements::get_size_of_n<value_type>(count), align);
         }
 
@@ -398,7 +398,7 @@ namespace rainy::foundation::system::memory::implements {
         using void_pointer = void *;
         using const_void_pointer = const void *;
 
-        using size_type = size_t;
+        using size_type = std::size_t;
         using difference_type = ptrdiff_t;
 
         using propagate_on_container_copy_assignment = std::false_type;

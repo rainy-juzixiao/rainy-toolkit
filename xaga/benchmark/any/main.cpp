@@ -3,6 +3,8 @@
 #include <rainy/utility/any.hpp>
 #include <string>
 #include <vector>
+#include <iostream>
+#include <entt/entt.hpp>
 
 static void benchmark_standard_any_construct_int(benchmark::State &state) {
     for (auto _: state) {
@@ -48,16 +50,6 @@ static void benchmark_standard_any_move(benchmark::State &state) {
 }
 BENCHMARK(benchmark_standard_any_move);
 
-// Baseline comparison with plain_int
-static void benchmark_standard_plain_int(benchmark::State &state) {
-    for (auto _: state) {
-        int a = 42;
-        int b = a;
-        benchmark::DoNotOptimize(b);
-    }
-}
-BENCHMARK(benchmark_standard_plain_int);
-
 static void benchmark_rainytoolkit_any_construct_int(benchmark::State &state) {
     for (auto _: state) {
         rainy::utility::any a = 42;
@@ -102,15 +94,58 @@ static void benchmark_rainytoolkit_any_move(benchmark::State &state) {
 }
 BENCHMARK(benchmark_rainytoolkit_any_move);
 
-// Baseline comparison with plain_ int
-static void benchmark_rainytoolkit_plain_int(benchmark::State &state) {
+static void benchmark_entt_any_construct_int(benchmark::State &state) {
+    for (auto _: state) {
+        entt::any a = 42;
+        benchmark::DoNotOptimize(a);
+    }
+}
+
+BENCHMARK(benchmark_entt_any_construct_int);
+
+static void benchmark_entt_any_construct_string(benchmark::State &state) {
+    for (auto _: state) {
+        entt::any a = std::string("hello world");
+        benchmark::DoNotOptimize(a);
+    }
+}
+BENCHMARK(benchmark_entt_any_construct_string);
+
+static void benchmark_entt_any_cast_int(benchmark::State &state) {
+    entt::any a = 123;
+    for (auto _: state) {
+        int value = entt::any_cast<int>(a);
+        benchmark::DoNotOptimize(value);
+    }
+}
+BENCHMARK(benchmark_entt_any_cast_int);
+
+static void benchmark_entt_any_copy(benchmark::State &state) {
+    entt::any a = std::vector<int>{1, 2, 3, 4, 5};
+    for (auto _: state) {
+        entt::any b = a;
+        benchmark::DoNotOptimize(b);
+    }
+}
+BENCHMARK(benchmark_entt_any_copy);
+
+static void benchmark_entt_any_move(benchmark::State &state) {
+    for (auto _: state) {
+        entt::any a = std::vector<int>{1, 2, 3, 4, 5};
+        entt::any b = std::move(a);
+        benchmark::DoNotOptimize(b);
+    }
+}
+BENCHMARK(benchmark_entt_any_move);
+
+static void base_line_int(benchmark::State &state) {
     for (auto _: state) {
         int a = 42;
         int b = a;
         benchmark::DoNotOptimize(b);
     }
 }
-BENCHMARK(benchmark_rainytoolkit_plain_int);
+BENCHMARK(base_line_int);
 
 int main(int argc, char **argv) {
     char arg0_default[] = "benchmark";

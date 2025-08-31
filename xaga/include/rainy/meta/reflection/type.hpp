@@ -38,7 +38,7 @@ namespace rainy::meta::reflection::implements {
             }
             if constexpr (type_traits::primary_types::template_traits<type_traits::cv_modify::remove_cvref_t<Ty>>::value) {
                 info.template_arguemnts_ = template_argument_generater<
-                    typename type_traits::primary_types::template_traits<type_traits::cv_modify::remove_cvref_t<Ty>>::type>::get();
+                    typename type_traits::primary_types::template_traits<type_traits::cv_modify::remove_cvref_t<Ty>>::types>::get();
             }
             info.type_ = foundation::ctti::typeinfo::create<Ty>();
             return info;

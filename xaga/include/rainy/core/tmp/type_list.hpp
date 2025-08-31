@@ -27,7 +27,9 @@ namespace rainy::type_traits::other_trans {
         using type = First;
     };
 
-    template <typename Ty,typename TypeList>
+    // push front/back
+
+    template <typename Ty, typename TypeList>
     struct type_list_push_front {};
 
     template <typename Ty, typename... Types>
@@ -36,11 +38,24 @@ namespace rainy::type_traits::other_trans {
     };
 
     template <typename Ty, typename TypeList>
+    using type_list_push_front_t = typename type_list_push_front<Ty,TypeList>::type;
+
+    template <typename Ty, typename TypeList>
     struct type_list_push_back {};
 
     template <typename Ty, typename... Types>
     struct type_list_push_back<Ty, type_list<Types...>> {
         using type = type_list<Types..., Ty>;
+    };
+
+    // push front/back all
+
+    template <typename TypeList, typename... PushTypes>
+    struct type_list_push_front_all;
+
+    template <typename... Types, typename... PushTypes>
+    struct type_list_push_front_all<type_list<Types...>, PushTypes...> {
+        using type = type_list<PushTypes..., Types...>;
     };
 
     template <typename TypeList, typename... PushTypes>
@@ -51,12 +66,22 @@ namespace rainy::type_traits::other_trans {
         using type = type_list<Types..., PushTypes...>;
     };
 
-    template <typename TypeList, typename... PushTypes>
-    struct type_list_push_front_all;
+    // pop front/back
 
-    template <typename... Types, typename... PushTypes>
-    struct type_list_push_front_all<type_list<Types...>, PushTypes...> {
-        using type = type_list<PushTypes..., Types...>;
+    template <typename TypeList>
+    struct type_list_pop_front {};
+
+    template <typename Front, typename... Rest>
+    struct type_list_pop_front<type_list<Front, Rest...>> {
+        using type = type_list<Rest...>;
+    };
+
+    template <typename TypeList>
+    struct type_list_pop_back {};
+
+    template <typename Back, typename... Rest>
+    struct type_list_pop_back<type_list<Rest..., Back>> {
+        using type = type_list<Rest...>;
     };
 
     template <typename TupleLike>
@@ -127,6 +152,180 @@ namespace rainy::type_traits::other_trans {
     struct sub_type_list<StartIndex, type_list<>> {
         using type = type_list<>;
     };
+
+    template <class...>
+    struct type_list_concat_impl;
+
+    template <class... _Types>
+    using type_list_concat = typename type_list_concat_impl<_Types...>::type;
+
+    template <template <typename...> typename type_list>
+    struct type_list_concat_impl<type_list<>> {
+        using type = type_list<>;
+    };
+
+    template <typename... Items1>
+    struct type_list_concat_impl<type_list<Items1...>> {
+        using type = type_list<Items1...>;
+    };
+
+    template <typename... Items1, typename... Items2>
+    struct type_list_concat_impl<type_list<Items1...>, type_list<Items2...>> {
+        using type = type_list<Items1..., Items2...>;
+    };
+
+    template <typename... Items1, typename... Items2, typename... Items3>
+    struct type_list_concat_impl<type_list<Items1...>, type_list<Items2...>, type_list<Items3...>> {
+        using type = type_list<Items1..., Items2..., Items3...>;
+    };
+
+    template <typename... Items1, typename... Items2, typename... Items3, typename... _Rest>
+    struct type_list_concat_impl<type_list<Items1...>, type_list<Items2...>, type_list<Items3...>, _Rest...> {
+        using type = type_list_concat<type_list<Items1..., Items2..., Items3...>, _Rest...>;
+    };
+
+    template <typename TypeList>
+    struct type_list_front {};
+
+    template <typename Type, typename... Rest>
+    struct type_list_front<type_list<Type, Rest...>> {
+        using type = Type;
+    };
+
+    template <typename Find, typename TypeList>
+    struct type_find_unique {};
+
+    template <typename Find, typename First, typename... Rest>
+    struct type_find_unique<Find, type_list<First, Rest...>> {
+        static constexpr std::size_t value =
+            (count_type_v<Find, type_list<First, Rest...>> != 1)
+                ? static_cast<std::size_t>(-1)
+                : (type_relations::is_same_v<Find, First> ? 0 : 1 + type_find_unique<Find, type_list<Rest...>>::value);
+    };
+
+    template <typename Ty>
+    struct type_find_unique<Ty, type_list<>> {
+        static constexpr std::size_t value = static_cast<std::size_t>(-1);
+    };
+
+    template <typename Ty, typename List>
+    struct is_type_in_list;
+
+    template <typename Ty, template <typename...> class List, typename First, typename... Rest>
+    struct is_type_in_list<Ty, List<First, Rest...>>
+        : other_trans::conditional_t<implements::is_same_v<Ty, First>, std::true_type, is_type_in_list<Ty, List<Rest...>>> {};
+
+    template <typename T, template <typename...> class List>
+    struct is_type_in_list<T, List<>> : std::false_type {};
+
+    RAINY_INLINE_CONSTEXPR std::size_t type_list_npos = static_cast<std::size_t>(-1);
+
+    template <class _Void, template <class...> class _Fn, class... _Args>
+    struct _Meta_quote_helper_;
+    template <template <class...> class _Fn, class... _Args>
+    struct _Meta_quote_helper_<void_t<_Fn<_Args...>>, _Fn, _Args...> {
+        using type = _Fn<_Args...>;
+    };
+    template <template <class...> class _Fn>
+    struct type_list_quote { // encapsulate a template into a meta-callable type
+        template <class... _Types>
+        using invoke = typename _Meta_quote_helper_<void, _Fn, _Types...>::type;
+    };
+
+    template <typename Fn, typename... Args>
+    using type_list_invoke = typename Fn::template invoke<Args...>;
+
+    template <typename Fn, typename... Args>
+    struct type_list_bind_back {
+        template <typename... Types>
+        using invoke = type_list_invoke<Fn, Types..., Args...>;
+    };
+
+    template <typename Fn, typename List>
+    struct type_list_apply_impl;
+
+    template <typename Fn, typename... Types>
+    struct type_list_apply_impl<Fn, type_list<Types...>> {
+        using type = type_list_invoke<Fn, Types...>;
+    };
+
+    template <typename Fn, typename Ty, Ty... Idxs>
+    struct type_list_apply_impl<Fn, helper::integer_sequence<Ty, Idxs...>> {
+        using type = type_list_invoke<Fn, helper::integral_constant<Ty, Idxs>...>;
+    };
+
+    template <typename Fn, typename List>
+    using type_list_apply = typename type_list_apply_impl<Fn, List>::type;
+
+    template <typename TypeList>
+    using type_list_join = type_list_apply<type_list_quote<type_list_concat>, TypeList>;
+
+    template <typename Fn, typename List>
+    struct type_list_transform_impl {};
+
+    template <typename Fn, typename List>
+    using type_list_transform = typename type_list_transform_impl<Fn, List>::type;
+
+    template <typename Fn, typename... Types>
+    struct type_list_transform_impl<Fn, type_list<Types...>> {
+        using type = type_list<type_list_invoke<Fn, Types>...>;
+    };
+
+    template <class _List>
+    struct meta_as_integer_sequence_impl;
+
+    template <typename _Ty, _Ty... _Idxs>
+    struct meta_as_integer_sequence_impl<type_list<helper::integral_constant<_Ty, _Idxs>...>> {
+        using type = helper::integer_sequence<_Ty, _Idxs...>;
+    };
+
+    template <class _List>
+    struct meta_as_integer_sequence {
+        using invoke = typename meta_as_integer_sequence_impl<_List>::type;
+    };
+
+    template <typename>
+    struct type_list_cartesian_product_impl {};
+
+    template <typename ListOfLists>
+    using type_list_cartesian_product = typename type_list_cartesian_product_impl<ListOfLists>::type;
+
+    template <>
+    struct type_list_cartesian_product_impl<type_list<>> {
+        using type = type_list<>;
+    };
+
+    template <typename... Items>
+    struct type_list_cartesian_product_impl<type_list<type_list<Items...>>> {
+        using type = type_list<type_list<Items>...>;
+    };
+
+    template <typename... Items, typename... Lists>
+    struct type_list_cartesian_product_impl<type_list<type_list<Items...>, Lists...>> {
+        using type = type_list_join<
+            type_list<
+                type_list_transform<
+                    type_list_bind_back<type_list_quote<type_list_push_front>, Items>,
+                    type_list_cartesian_product<type_list<Lists...>>
+                >...>
+        >;
+    };
+
+    template <typename ListLike>
+    struct as_list_impl {};
+
+    template <template <typename...> typename List, typename... Types>
+    struct as_list_impl<List<Types...>> {
+        using type = type_list<Types...>;
+    };
+
+    template <typename Ty, Ty... Idxs>
+    struct as_list_impl<helper::integer_sequence<Ty, Idxs...>> {
+        using type = type_list<helper::integral_constant<Ty, Idxs>...>;
+    };
+
+    template <class _Ty>
+    using as_list = typename as_list_impl<_Ty>::type;
 }
 
 #endif

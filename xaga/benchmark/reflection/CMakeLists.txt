@@ -13,3 +13,4 @@ target_link_libraries(rainy-toolkit-benchmark-reflection rttr_core)
 target_include_directories(rainy-toolkit-benchmark-reflection PUBLIC ${PROJECT_SOURCE_DIR}/third_party/udrefl/include)
 
 set_target_properties(rainy-toolkit-benchmark-reflection PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set_target_properties(rttr_core PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)

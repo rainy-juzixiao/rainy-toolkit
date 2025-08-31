@@ -4,6 +4,28 @@
 #include <rainy/core/implements/reverse_iterator.hpp>
 
 namespace rainy::utility {
+    template <typename Ty>
+    struct input_iterator_pointer final {
+        using value_type = Ty;
+        using pointer = Ty *;
+        using reference = Ty &;
+
+        constexpr input_iterator_pointer(value_type &&val) noexcept(std::is_nothrow_move_constructible_v<value_type>) :
+            value{std::move(val)} {
+        }
+
+        RAINY_NODISCARD constexpr pointer operator->() noexcept {
+            return std::addressof(value);
+        }
+
+        RAINY_NODISCARD constexpr reference operator*() noexcept {
+            return value;
+        }
+
+    private:
+        Ty value;
+    };
+
     template <typename Iter, typename Traits = utility::iterator_traits<Iter>>
     class const_iterator {
     public:
@@ -338,6 +360,17 @@ namespace rainy::utility {
     };
 }
 
+namespace rainy::utility::implements {
+    template <typename Ty, typename = void>
+        static RAINY_CONSTEXPR_BOOL is_proxy_equal_with_noexcept = false;
+
+    template <typename Ty>
+    static RAINY_CONSTEXPR_BOOL
+        is_proxy_equal_with_noexcept<Ty, type_traits::other_trans::void_t<decltype(utility::declval<const Ty &>().proxy_equal_with(
+                                             utility::declval<const Ty &>()))>> =
+            noexcept(utility::declval<const Ty &>().proxy_equal_with(utility::declval<const Ty &>()));
+}
+
 namespace rainy::utility {
     template <typename Implement, typename Traits>
     class bidirectional_iterator {
@@ -359,7 +392,7 @@ namespace rainy::utility {
 
         template <typename UImplement, typename UTraits>
         friend class bidirectional_iterator;
-        
+
         RAINY_CONSTEXPR20 decltype(auto) operator*() noexcept(noexcept(static_cast<implement_type *>(this)->get_element_impl())) {
             return static_cast<implement_type *>(this)->get_element_impl();
         }
@@ -401,7 +434,7 @@ namespace rainy::utility {
         }
 
         friend RAINY_CONSTEXPR20 bool operator==(const bidirectional_iterator &left, const bidirectional_iterator &right) noexcept(
-            noexcept(utility::declval<const bidirectional_iterator&>().proxy_equal_with(utility::declval<const bidirectional_iterator&>(right)))) {
+            implements::is_proxy_equal_with_noexcept<bidirectional_iterator>) {
             return left.proxy_equal_with(right);
         }
 
@@ -411,6 +444,7 @@ namespace rainy::utility {
         }
 
     private:
+
         RAINY_CONSTEXPR20 bool proxy_equal_with(const bidirectional_iterator &right) const noexcept(
             noexcept(static_cast<const implement_type *>(this)->equal_with_impl(static_cast<const implement_type &>(right)))) {
             return static_cast<const implement_type *>(this)->equal_with_impl(static_cast<const implement_type &>(right));

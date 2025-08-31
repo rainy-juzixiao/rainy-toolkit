@@ -180,6 +180,13 @@ namespace rainy::core::pal {
         return (reinterpret_cast<uintptr_t>(ptr) & (alignment - 1)) == 0;
     }
 
+    void *allocate(std::size_t size) noexcept {
+        if (size == 0) {
+            return nullptr;
+        }
+        return operator new[](size, std::nothrow);
+    }
+
     void *allocate(const std::size_t size, const std::size_t alignment) noexcept {
         if (size == 0) {
             return nullptr;
@@ -199,6 +206,13 @@ namespace rainy::core::pal {
         *(reinterpret_cast<void **>(aligned_location - sizeof(void *))) = ptr;
         return aligned_ptr;
 #endif
+    }
+
+    void deallocate(void *block) {
+        if (!block) {
+            return;
+        }
+        operator delete[](block);
     }
 
     void deallocate(void *block, const std::size_t alignment) {

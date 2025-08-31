@@ -67,7 +67,7 @@ namespace rainy::utility {
             first(utility::forward<other1>(val1)), second(utility::forward<other2>(val2)) {
         }
 
-        template <typename... Tuple1, typename... Tuple2, size_t... Indices1, size_t... Indices2>
+        template <typename... Tuple1, typename... Tuple2, std::size_t... Indices1, std::size_t... Indices2>
         constexpr pair(std::tuple<Tuple1...> &&first_args, std::tuple<Tuple2...> &&second_args, std::index_sequence<Indices1...>,
                        std::index_sequence<Indices2...>) :
             first(std::get<Indices1>(std::move(first_args))...), second(std::get<Indices2>(std::move(second_args))...) {
@@ -83,12 +83,11 @@ namespace rainy::utility {
 
         template <typename Other1, typename Other2,
                   type_traits::other_trans::enable_if_t<
-            type_traits::logical_traits::conjunction_v<
-                type_traits::logical_traits::negation<
-                    type_traits::type_relations::is_same<pair, pair<Other1, Other2>>>, type_traits::type_properties:: is_assignable<Ty1 &, const Other1 &>,
-                    type_traits::type_properties::is_assignable<Ty2 &, const Other2 &>
-            >,
-                              int> = 0>
+                      type_traits::logical_traits::conjunction_v<
+                          type_traits::logical_traits::negation<type_traits::type_relations::is_same<pair, pair<Other1, Other2>>>,
+                          type_traits::type_properties::is_assignable<Ty1 &, const Other1 &>,
+                          type_traits::type_properties::is_assignable<Ty2 &, const Other2 &>>,
+                      int> = 0>
         constexpr pair &operator=(const pair<Other1, Other2> &right) noexcept(
             type_traits::type_properties::is_nothrow_assignable_v<Ty1 &, const Other1 &> &&
             type_traits::type_properties::is_nothrow_assignable_v<Ty2 &, const Other2 &>) /* strengthened */ {
@@ -132,11 +131,10 @@ namespace rainy::utility {
 
     template <typename Ty1, typename Ty2>
     constexpr auto make_pair(const Ty1 &val1, const Ty2 &val2) noexcept(
-        std::is_nothrow_constructible_v<rainy::utility::pair<Ty1, Ty2>, const Ty1 &, const Ty2 &>) {
+        type_traits::type_properties::is_nothrow_constructible_v<utility::pair<Ty1, Ty2>, const Ty1 &, const Ty2 &>) {
         return pair<Ty1, Ty2>(val1, val2);
     }
 }
-
 
 #if RAINY_HAS_CXX20
 template <typename Ty1, typename Ty2>

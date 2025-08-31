@@ -24,6 +24,7 @@ namespace rainy::utility {
                   type_traits::other_trans::enable_if_t<
                       !type_traits::type_relations::is_same_v<Ty, type_traits::other_trans::decay_t<Uty>>, int> = 0>
         static void extract_types_recursively(ContainerType &container, Uty &&value, Rest &&...rest) {
+            (void) value;
             extract_types_recursively(container, utility::forward<Rest>(rest)...);
         }
 

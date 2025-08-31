@@ -16,6 +16,12 @@
 #include <rainy/foundation/pal/threading.hpp>
 
 namespace rainy::foundation::pal::threading {
+    implements::thread_info_base *thread_context::top_of_thread_call_stack() {
+        return thread_call_stack::top();
+    }
+}
+
+namespace rainy::foundation::pal::threading {
     thread::~thread() {
         switch (policy_) {
             case policy::auto_join:
@@ -118,6 +124,7 @@ namespace rainy::foundation::pal::threading {
         return left.id_ == right.id_;
     }
 
+#if !RAINY_HAS_CXX20
     RAINY_NODISCARD bool operator!=(thread::id left, thread::id right) noexcept {
         return !(left == right);
     }
@@ -137,6 +144,7 @@ namespace rainy::foundation::pal::threading {
     RAINY_NODISCARD bool operator>=(thread::id left, thread::id right) noexcept {
         return !(left < right);
     }
+#endif
 }
 
 namespace rainy::foundation::system::this_thread {

@@ -1,4 +1,4 @@
-﻿#ifndef RAINY_CORE_GNU_TYPETRAITS_HPP
+#ifndef RAINY_CORE_GNU_TYPETRAITS_HPP
 #define RAINY_CORE_GNU_TYPETRAITS_HPP
 
 #include <rainy/core/tmp/implements.hpp>
@@ -56,7 +56,7 @@ namespace rainy::type_traits::implements::gcc_detail_impl {
     template <typename Ty>
     struct _is_array_known_bounds : helper::false_type {};
 
-    template <typename Ty, size_t Size>
+    template <typename Ty, std::size_t Size>
     struct _is_array_known_bounds<Ty[Size]> : helper::true_type {};
 
     template <typename Ty>

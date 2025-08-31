@@ -34,10 +34,12 @@
 #include <cstdlib>
 #include <initializer_list>
 #include <string_view>
+#include <string>
 
 #ifdef __linux__
 #include <csignal>
 #include <unistd.h>
+#include <linux/version.h>
 #endif
 
 /*-----------
@@ -335,6 +337,49 @@ static_assert(false, "We detected you are using C++14 and below, and the library
 #define RAINY_USING_EDG 0
 #endif
 
+#if RAINY_USING_WINDOWS
+#define WIN32_LEAN_AND_MEAN
+#define RAINY_DECL_MAYBE_UNUSED_IF_WINDOWS [[maybe_unused]]
+#define RAINY_DECL_MAYBE_UNUSED_PARAM_IF_WINDOWS(x) x [[maybe_unused]]
+#else
+#define RAINY_DECL_MAYBE_UNUSED_IF_WINDOWS
+#define RAINY_DECL_MAYBE_UNUSED_PARAM_IF_WINDOWS(x) x
+#endif
+
+#if RAINY_USING_LINUX
+#define RAINY_DECL_MAYBE_UNUSED_IF_LINUX [[maybe_unused]]
+#define RAINY_DECL_MAYBE_UNUSED_PARAM_IF_LINUX(x) x [[maybe_unused]]
+#else
+#define RAINY_DECL_MAYBE_UNUSED_IF_LINUX
+#define RAINY_DECL_MAYBE_UNUSED_PARAM_IF_LINUX(x) x
+#endif
+
+#if RAINY_USING_LINUX
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)
+#define RAINY_HAS_IO_URING 1
+#else
+#define RAINY_HAS_IO_URING 0
+#endif
+#endif
+
+#define RAINY_STAMP4(n, x)                                                                                                            \
+    x(n);                                                                                                                             \
+    x(n + 1);                                                                                                                         \
+    x(n + 2);                                                                                                                         \
+    x(n + 3)
+#define RAINY_STAMP16(n, x)                                                                                                           \
+    RAINY_STAMP4(n, x);                                                                                                               \
+    RAINY_STAMP4(n + 4, x);                                                                                                           \
+    RAINY_STAMP4(n + 8, x);                                                                                                           \
+    RAINY_STAMP4(n + 12, x)
+#define RAINY_STAMP64(n, x)                                                                                                           \
+    RAINY_STAMP16(n, x);                                                                                                              \
+    RAINY_STAMP16(n + 16, x);                                                                                                         \
+    RAINY_STAMP16(n + 32, x);                                                                                                         \
+    RAINY_STAMP16(n + 48, x)
+
+#define RAINY_STAMP(n, x) x(RAINY_STAMP##n, n)
+
 namespace rainy::core {
     using errno_t = int;
 }
@@ -395,11 +440,11 @@ namespace rainy::core::builtin {
 #endif
     }
 
-    constexpr int compare_string(const void *string1, const void *string2,const std::size_t count) noexcept {
+    constexpr int compare_string(const void *string1, const void *string2, const std::size_t count) noexcept {
         return compare_memory(string1, string2, count);
     }
 
-    constexpr int compare_string(const wchar_t *string1, const wchar_t *string2,const std::size_t count) noexcept {
+    constexpr int compare_string(const wchar_t *string1, const wchar_t *string2, const std::size_t count) noexcept {
         return compare_wmemory(string1, string2, count);
     }
 
@@ -421,6 +466,11 @@ namespace rainy::core::builtin {
 
         using type = decltype(make_seq<>());
     };
+
+    template <typename Type>
+    void zero_non_value_bits(Type *ptr) noexcept {
+        __builtin_zero_non_value_bits(ptr);
+    }
 }
 
 namespace rainy::core::builtin {
@@ -517,10 +567,13 @@ namespace rainy::core {
     using native_frame_ptr_t = void *;
 
     static inline constexpr std::size_t small_object_num_ptrs = 6 + 16 / sizeof(void *);
-    static inline constexpr std::size_t space_size = (small_object_num_ptrs - 1) * sizeof(void *);
+    static inline constexpr std::size_t small_object_space_size = (small_object_num_ptrs - 1) * sizeof(void *);
 
     using byte_t = unsigned char;
     using handle = std::uintptr_t;
+    using ssize_t = std::intptr_t;
+
+    static inline constexpr handle invalid_handle = 0;
 }
 
 namespace rainy::utility {
@@ -539,11 +592,15 @@ namespace rainy::type_traits::helper {
 
         constexpr basic_constexpr_string() noexcept = default;
 
-        constexpr basic_constexpr_string(std::string_view str) {
-            for (std::size_t i = 0; i < N - 1; ++i) {
-                string[i] = str[i];
+        constexpr basic_constexpr_string(std::string_view str_view) {
+            std::size_t len_to_copy = str_view.length();
+            if (len_to_copy >= N) {
+                len_to_copy = N - 1;
             }
-            string[N - 1] = '\0';
+            for (std::size_t i = 0; i < len_to_copy; ++i) {
+                string[i] = str_view[i];
+            }
+            string[len_to_copy] = '\0';
         }
 
         constexpr basic_constexpr_string(const value_type (&arr)[N]) {
@@ -555,6 +612,14 @@ namespace rainy::type_traits::helper {
 
         constexpr size_type size() const noexcept {
             return N;
+        }
+
+        constexpr size_type length() const noexcept {
+            size_type len = 0;
+            while (len < N && string[len] != '\0') {
+                len++;
+            }
+            return len;
         }
 
         constexpr pointer data() noexcept {
@@ -584,18 +649,21 @@ namespace rainy::type_traits::helper {
         return basic_constexpr_string<CharType, N>(str);
     }
 
-    template <typename CharType,std::size_t N>
+    template <typename CharType, std::size_t N>
     basic_constexpr_string(const CharType (&)[N]) -> basic_constexpr_string<CharType, N>;
 
     template <typename CharType, std::size_t N1, std::size_t N2>
     constexpr auto concat(const basic_constexpr_string<CharType, N1> &lhs, const basic_constexpr_string<CharType, N2> &rhs) {
         basic_constexpr_string<CharType, N1 + N2 - 1> result{};
-        for (std::size_t i = 0; i < N1 - 1; ++i) {
-            result[i] = lhs[i];
+
+        std::size_t current_result_idx = 0;
+        for (std::size_t i = 0; i < lhs.length(); ++i) {
+            result[current_result_idx++] = lhs[i];
         }
-        for (std::size_t i = 0; i < N2; ++i) {
-            result[N1 - 1 + i] = rhs[i];
+        for (std::size_t i = 0; i < rhs.length(); ++i) {
+            result[current_result_idx++] = rhs[i];
         }
+        result[current_result_idx] = '\0';
         return result;
     }
 }
@@ -705,12 +773,6 @@ namespace rainy::core {
     RAINY_CONSTEXPR Ty(min)(std::initializer_list<Ty> ilist, Pred pred) {
         return *(min_element(ilist.begin(), ilist.end(), pred));
     }
-
-    enum class convert_context {
-        as_lvalue,
-        as_rvalue,
-        as_value
-    };
 }
 
 namespace rainy::core::builtin {
@@ -733,6 +795,87 @@ namespace rainy::core {
     inline constexpr std::size_t hardware_destructive_interference_size = 64;
 }
 
-#define RAINY_USE_MODULE(Module) using namespace rainy:: Module
+namespace rainy::core::builtin {
+    constexpr double huge_val() noexcept {
+        return __builtin_huge_val();
+    }
+
+    constexpr float huge_valf() noexcept {
+        return __builtin_huge_valf();
+    }
+}
+
+namespace rainy::type_traits::other_trans {
+    /**
+     * @brief 有条件地为 SFINAE 重载决策设置类型的实例。 当且仅当 enable_if_t<test,Ty> 是 Type 时，嵌套的 typedef
+     * Condition 才存在（并且是 true 的同义词）。
+     * @tparam Test 确定存在产生的类型的值
+     * @tparam Ty test 为 true 时要实例化的类型。
+     * @remark 如果 test 为 true，则 enable_if_t<test, Ty> 结果即为typedef（它是 Ty 的同义词）。如果 test 为
+     * false，则 enable_if_t<test, Ty> 结果不会拥有名为“type”的嵌套 typedef
+     */
+    template <bool Test, typename Ty>
+    struct enable_if {
+        enable_if() = delete;
+        enable_if(const enable_if &) = delete;
+        enable_if(enable_if &&) = delete;
+        enable_if &operator=(const enable_if &) = delete;
+        enable_if &operator=(enable_if &&) = delete;
+    };
+
+    template <typename Ty>
+    struct enable_if<true, Ty> {
+        using type = Ty;
+    };
+
+    /**
+     * @brief 有条件地为 SFINAE 重载决策设置类型的实例。 当且仅当 enable_if_t<test,Ty> 是 Type 时，嵌套的 typedef
+     * Condition 才存在（并且是 true 的同义词）。
+     * @tparam Test 确定存在产生的类型的值
+     * @tparam Ty test 为 true 时要实例化的类型。
+     * @remark 如果 test 为 true，则 enable_if_t<test, Ty> 结果即为typedef（它是 Ty 的同义词）。如果 test 为
+     * false，则 enable_if_t<test, Ty> 结果不会拥有名为“type”的嵌套 typedef
+     */
+    template <bool Test, typename Ty = void>
+    using enable_if_t = typename enable_if<Test, Ty>::type;
+
+    template <bool, typename IfTrue, typename>
+    struct conditional {
+        using type = IfTrue;
+    };
+
+    template <typename IfTrue, typename IfFalse>
+    struct conditional<false, IfTrue, IfFalse> {
+        using type = IfFalse;
+    };
+
+    template <bool Test, typename IfTrue, typename IfFalse>
+    using conditional_t = typename conditional<Test, IfTrue, IfFalse>::type;
+
+    template <typename...>
+    using void_t = void;
+
+    template <bool>
+    struct select {
+        template <typename Ty1, typename>
+        using apply = Ty1;
+    };
+
+    template <>
+    struct select<false> {
+        template <typename, typename Ty2>
+        using apply = Ty2;
+    };
+
+    struct dummy_t {};
+}
+
+namespace rainy::utility {
+    struct auto_deduce_t {
+        explicit constexpr auto_deduce_t() = default;
+    };
+
+    static constexpr auto_deduce_t auto_deduce{};
+}
 
 #endif

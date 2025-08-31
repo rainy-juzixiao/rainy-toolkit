@@ -23,7 +23,7 @@ namespace rainy::meta::reflection::implements {
                 type_traits::other_trans::conditional_t<traits::is_noexcept, return_type(Args...) noexcept, return_type(Args...)>;
         };
 
-        using type = extractor<type_list>;
+        using type = typename extractor<type_list>::type;
     };
 
     /**

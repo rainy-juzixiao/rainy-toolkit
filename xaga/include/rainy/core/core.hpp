@@ -38,6 +38,7 @@
 #define RAINY_CORE_HPP
 #include <rainy/core/platform.hpp>
 #include <rainy/core/type_traits.hpp>
+#include <rainy/core/implements/bit.hpp>
 #include <rainy/core/implements/raw_stringview.hpp>
 #include <rainy/core/implements/collections/array.hpp>
 #include <rainy/core/implements/collections/array_view.hpp>
@@ -62,7 +63,7 @@ namespace rainy::core::implements {
     constexpr std::size_t get_size_of_n(const std::size_t count) noexcept {
         constexpr std::size_t type_size = sizeof(Ty);
         if constexpr (constexpr bool overflow_is_possible = type_size > 1; overflow_is_possible) {
-            if (constexpr size_t max_possible = static_cast<size_t>(-1) / type_size; count > max_possible) {
+            if (constexpr std::size_t max_possible = static_cast<std::size_t>(-1) / type_size; count > max_possible) {
                 std::terminate(); // multiply overflow
             }
         }
@@ -624,7 +625,7 @@ namespace rainy::utility {
             static_assert(type_traits::type_properties::is_trivial_v<Ty>, "Only trivial types can be directly hashed.");
             const auto *const first_binary = reinterpret_cast<const unsigned char *>(first);
             const auto *const last_binary = reinterpret_cast<const unsigned char *>(last);
-            return fnv1a_append_bytes(offset_basis, first_binary, static_cast<size_t>(last_binary - first_binary));
+            return fnv1a_append_bytes(offset_basis, first_binary, static_cast<std::size_t>(last_binary - first_binary));
         }
 
         template <typename Key>
@@ -668,7 +669,7 @@ namespace rainy::utility {
                       key, !type_traits::type_properties::is_const_v<key> && !type_traits::type_properties::is_volatile_v<key> &&
                                (type_traits::primary_types::is_enum_v<key> || type_traits::primary_types::is_integral_v<key> ||
                                 type_traits::primary_types::is_pointer_v<key>)> {
-        static size_t hash_this_val(const key &keyval) noexcept {
+        static std::size_t hash_this_val(const key &keyval) noexcept {
             return implements::hash_representation(keyval);
         }
     };
@@ -700,6 +701,50 @@ namespace rainy::utility {
 
         RAINY_AINLINE_NODISCARD result_type operator()(argument_type val) const {
             return implements::hash_representation(val == 0.0L ? 0.0L : val);
+        }
+    };
+
+    template <>
+    struct hash<std::nullptr_t> {
+        using argument_type = std::nullptr_t;
+        using result_type = std::size_t;
+
+        static std::size_t hash_this_val(std::nullptr_t) noexcept {
+            void *null_pointer{};
+            return implements::hash_representation(null_pointer);
+        }
+
+        RAINY_AINLINE_NODISCARD result_type operator()(std::nullptr_t) const {
+            void *null_pointer{};
+            return implements::hash_representation(null_pointer);
+        }
+    };
+
+    template <typename CharType, typename Traits>
+    struct hash<std::basic_string_view<CharType, Traits>> {
+        using argument_type = std::basic_string_view<CharType, Traits>;
+        using result_type = std::size_t;
+
+        static std::size_t hash_this_val(const argument_type &val) noexcept {
+            return implements::hash_array_representation(val.data(), val.size());
+        }
+
+        RAINY_AINLINE_NODISCARD result_type operator()(argument_type val) const {
+            return hash_this_val(val);
+        }
+    };
+
+    template <typename CharType,typename Traits ,typename Alloc>
+    struct hash<std::basic_string<CharType, Traits, Alloc>> {
+        using argument_type = std::basic_string<CharType, Traits, Alloc>;
+        using result_type = std::size_t;
+
+        static std::size_t hash_this_val(const argument_type &val) noexcept {
+            return implements::hash_array_representation(val.data(), val.size());
+        }
+
+        RAINY_AINLINE_NODISCARD result_type operator()(const argument_type &val) const {
+            return hash_this_val(val);
         }
     };
 

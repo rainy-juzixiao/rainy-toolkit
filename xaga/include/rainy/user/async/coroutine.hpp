@@ -1,4 +1,4 @@
-﻿#ifndef RAINY_COROUTINE_H
+#ifndef RAINY_COROUTINE_H
 #define RAINY_COROUTINE_H
 
 #include <rainy/core/core.hpp>

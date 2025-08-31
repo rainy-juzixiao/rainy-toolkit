@@ -1,1704 +1,1801 @@
-/*
- * Copyright 2025 rainy-juzixiao
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-#ifndef RAINY_CONTAINERS_STRING_HPP
-#define RAINY_CONTAINERS_STRING_HPP
-#include <algorithm>
+#pragma once
+
+#include <array>
+#include <cassert>
+#include <compare>
+#include <concepts>
+#include <cstring>
+#include <cwchar>
+#include <iterator>
+#include <memory>
+#include <stdexcept>
+#include <string_view>
+#include <utility>
+#include <version>
 #include <rainy/core/core.hpp>
-#include <rainy/foundation/system/memory/allocator.hpp>
-#include <rainy/text/char_traits.hpp>
-#include <rainy/utility/iterator.hpp>
-#include <rainy/utility/pair.hpp>
 
-namespace rainy::collections {
-    template <typename CharType, typename Traits, typename Alloc>
-    class basic_string;
-}
 
-namespace rainy::collections::implements {
-    template <typename CharType, typename Traits, typename Alloc>
+namespace rainy::text::implements {
+    template <typename CharType, typename Traits, typename Allocator>
     class basic_string_storage {
     public:
-        template <typename, typename, typename>
-        friend class collections::basic_string;
-
-        using value_type = CharType;
         using traits_type = Traits;
-        using allocator_type = Alloc;
+        using value_type = CharType;
+        using allocator_type = Allocator;
+        using allocator_traits = std::allocator_traits<allocator_type>;
+        using size_type = typename allocator_traits::size_type;
+        using difference_type = typename allocator_traits::difference_type;
         using reference = value_type &;
-        using const_reference = const value_type &;
-        using pointer = value_type *;
-        using const_pointer = const value_type *;
-        using size_type = std::size_t;
-        using difference_type = std::ptrdiff_t;
-        using iterator = utility::iterator<pointer>;
-        using const_iterator = utility::const_iterator<const_pointer>;
-        using reverse_iterator = utility::reverse_iterator<iterator>;
-        using const_reverse_iterator = utility::reverse_iterator<const_iterator>;
+        using const_reference = value_type const &;
+        using pointer = typename allocator_traits::pointer;
+        using const_pointer = typename allocator_traits::const_pointer;
 
         basic_string_storage() = default;
 
-        basic_string_storage(const allocator_type &alloc) : instance_data(alloc, {}) {};
-
-#pragma region basic_string_properites_query
-
-        RAINY_CONSTEXPR20 allocator_type get_allocator() noexcept {
-            return this->instance_data.get_first();
+        basic_string_storage(const Allocator &allocator) : allocator_{allocator} {
         }
 
-        RAINY_CONSTEXPR20 allocator_type get_allocator() const noexcept {
-            return this->instance_data.get_first();
+        constexpr bool empty() const noexcept {
+            return this->is_empty_();
         }
 
-        RAINY_CONSTEXPR20 pointer data() noexcept {
-            return ptr();
+        constexpr std::size_t size() const noexcept {
+            return this->size_();
         }
 
-        RAINY_CONSTEXPR20 const_pointer data() const noexcept {
-            return ptr();
+        constexpr std::size_t length() const noexcept {
+            return this->size_();
         }
 
-        RAINY_CONSTEXPR20 const_pointer c_str() const noexcept {
-            return ptr();
+        /**
+         * @return size_type{ -1 } / sizeof(CharType) / 2
+         */
+        constexpr size_type max_size() const noexcept {
+            return size_type{-1} / sizeof(CharType) / 2;
         }
 
-        RAINY_NODISCARD RAINY_CONSTEXPR20 bool empty() const noexcept {
-            return size() == 0;
+        constexpr size_type capacity() const noexcept {
+            if (this->is_long_()) {
+                auto &&ls = this->stor_.ls_;
+                return ls.last_ - ls.begin_ - 1;
+            } else {
+                return this->short_string_max_;
+            }
         }
-
-        RAINY_NODISCARD RAINY_CONSTEXPR20 size_type size() const noexcept {
-            return size_;
-        }
-
-        RAINY_NODISCARD RAINY_CONSTEXPR20 size_type length() const {
-            return size_;
-        }
-
-        RAINY_NODISCARD RAINY_CONSTEXPR20 size_type max_size() const noexcept {
-            return (std::numeric_limits<size_type>::max)();
-        }
-
-        RAINY_NODISCARD RAINY_CONSTEXPR20 size_type capacity() const noexcept {
-            return capacity_;
-        }
-
-        RAINY_CONSTEXPR20 reference operator[](size_type pos) noexcept {
-            return ptr()[pos];
-        }
-
-        RAINY_CONSTEXPR20 const_reference operator[](size_type pos) const noexcept {
-            return ptr()[pos];
-        }
-
-        RAINY_CONSTEXPR20 reference at(size_type pos) {
-            throw_if_out_range(pos);
-            return ptr()[pos];
-        }
-
-        RAINY_CONSTEXPR20 const_reference at(size_type pos) const {
-            throw_if_out_range(pos);
-            return ptr()[pos];
-        }
-
-        const_reference back() const noexcept {
-            return ptr()[size() - 1];
-        }
-
-        reference back() noexcept {
-            return ptr()[size() - 1];
-        }
-
-        const_reference front() const {
-            return ptr()[0];
-        }
-
-        reference front() {
-            return ptr()[0];
-        }
-
-        iterator begin() noexcept {
-            return iterator{ptr()};
-        }
-
-        const_iterator begin() const noexcept {
-            return const_iterator{ptr()};
-        }
-
-        iterator end() noexcept {
-            return iterator{ptr() + size()};   
-        }
-
-        const_iterator end() const noexcept {
-            return const_iterator{ptr() + size()};
-        }
-
-        reverse_iterator rbegin() noexcept {
-            return reverse_iterator{end()};
-        }
-
-        const_reverse_iterator rbegin() const noexcept {
-            return const_reverse_iterator{end()};
-        }
-
-        reverse_iterator rend() noexcept {
-            return reverse_iterator{begin()};
-        }
-
-        const_reverse_iterator rend() const noexcept {
-            return const_reverse_iterator{begin()};
-        }
-
-        const_iterator cbegin() const noexcept {
-            return const_iterator{ptr()};
-        }
-        
-        const_iterator cend() const noexcept {
-            return const_iterator{ptr() + capacity()};
-        }
-
-        const_reverse_iterator crbegin() const noexcept {
-            return const_reverse_iterator{end()};
-        }
-
-        const_reverse_iterator crend() const noexcept {
-            return const_reverse_iterator{begin()};
-        }
-
-#pragma endregion
     protected:
-        RAINY_NODISCARD RAINY_CONSTEXPR20 bool is_local() const noexcept {
-            return capacity_ < SMALL_BUFFER_SIZE;
-        }
-
-        RAINY_CONSTEXPR20 void activate_sso_buffer() {
-            auto &storage = get_storage();
-#if RAINY_HAS_CXX20
-            if (!std::is_constant_evaluated()) {
-                for (size_type i = 0; i < SMALL_BUFFER_SIZE; ++i) {
-                    storage.sso_buffer[i] = value_type{};
-                }
-                return;
-            }
-            else // NOLINT
-#endif
-            {
-                for (size_type i = 0; i < SMALL_BUFFER_SIZE; ++i) {
-                    storage.sso_buffer[i] = value_type{};
-                }
-            }
-        }
-
-        RAINY_CONSTEXPR20 auto &get_storage() noexcept {
-            return instance_data.get_second();
-        }
-
-        RAINY_CONSTEXPR20 const auto &get_storage() const noexcept {
-            return instance_data.get_second();
-        }
-
-        RAINY_NODISCARD RAINY_CONSTEXPR20 const value_type *ptr() const noexcept {
-            auto &storage = get_storage();
-            const value_type *result = storage.sso_buffer;
-            if (!is_local()) {
-                result = storage.ptr;
-            }
-            return result;
-        }
-
-        RAINY_NODISCARD RAINY_CONSTEXPR20 value_type *ptr() noexcept {
-            return const_cast<value_type *>(static_cast<const basic_string_storage *>(this)->ptr());
-        }
-
-        RAINY_CONSTEXPR20 void throw_if_out_range(const size_type idx) {
-            if (rainy_unlikely(idx >= size())) { // 很多时候，不应该发生
-                foundation::exceptions::logic::throw_out_of_range("Invalid subscript");
-            }
-        }
-
-    private:
-        static constexpr size_type SMALL_BUFFER_SIZE = 16 / sizeof(value_type) < 1 ? 1 : 16 / sizeof(value_type);
-        static constexpr size_type SMALL_STRING_CAPACITY = SMALL_BUFFER_SIZE - 1;
-
-        union resources {
-            RAINY_CONSTEXPR20 resources() noexcept : ptr() {
-            }
-            RAINY_CONSTEXPR20 ~resources() noexcept {
-            }
-
-            pointer ptr;
-            value_type sso_buffer[SMALL_BUFFER_SIZE];
+        /**
+         * @brief type of long string
+         */
+        struct ls_type_ {
+            CharType *begin_{};
+            CharType *end_{};
+            CharType *last_{};
         };
 
-        size_type capacity_{0};
-        size_type size_{0};
+        static inline constexpr std::size_t short_string_max_{sizeof(CharType *) * 4 / sizeof(CharType) - 2};
 
-        utility::compressed_pair<allocator_type, resources> instance_data;
+        /**
+         * @brief union storage long string and short string
+         */
+
+        union storage_type_ {
+            std::array<CharType, short_string_max_ + 1> ss_;
+            ls_type_ ls_;
+        };
+
+        /**
+         * https://github.com/microsoft/STL/issues/1364
+         */
+#ifdef _MSC_VER
+        [[msvc::no_unique_address]] Allocator allocator_{};
+#else
+        [[no_unique_address]] Allocator allocator_{};
+#endif
+
+        /**
+         * @brief storage of string
+         */
+        storage_type_ stor_{};
+
+        /**
+         * @brief flag > 0: 使用小字符串优化，size_flag_将代表当前小字符串使用的大小
+         * @brief flag = 0: 未在使用
+         * @brief flag = MAX: 长字符串，约定使用 end - begin 作为长度
+         */
+        alignas(alignof(CharType)) unsigned char size_flag_{};
+
+        static inline char exception_string_[] = "parameter is out of range, please check it.";
+
+        constexpr bool is_long_() const noexcept {
+            return this->size_flag_ == decltype(this->size_flag_)(-1);
+        }
+
+        constexpr bool is_short_() const noexcept {
+            return this->size_flag_ != decltype(this->size_flag_)(-1);
+        }
+
+        constexpr bool is_empty_() const noexcept {
+            return !this->size_flag_;
+        }
+
+        constexpr std::size_t size_() const noexcept {
+            if (this->is_long_()) {
+                auto &&ls = stor_.ls_;
+
+                return ls.end_ - ls.begin_;
+            } else {
+                return this->size_flag_;
+            }
+        }
     };
 }
-
-namespace rainy::collections::implements {
-    struct rainy_string_concat_ph_t {};
-
-    inline constexpr rainy_string_concat_ph_t rainy_string_concat_ph;
-}
-
-namespace rainy::collections {
-    template <typename CharType, typename Traits = text::char_traits<CharType>, typename Alloc = foundation::system::memory::allocator<CharType>>
-    class basic_string : public implements::basic_string_storage<CharType, Traits, Alloc> {
+namespace rainy::text {
+    template <typename CharType, class Traits = std::char_traits<CharType>, typename Allocator = std::allocator<CharType>>
+    class basic_string : public implements::basic_string_storage<CharType, Traits, Allocator> {
     public:
-        using base_impl = implements::basic_string_storage<CharType, Traits, Alloc>;
-        using value_type = typename base_impl::value_type;
-        using traits_type = typename base_impl::traits_type;
-        using allocator_type = typename base_impl::allocator_type;
-        using reference = typename base_impl::reference;
-        using const_reference = typename base_impl::const_reference;
-        using pointer = typename base_impl::pointer;
-        using const_pointer = typename base_impl::const_pointer;
-        using size_type = typename base_impl::size_type;
-        using difference_type = typename base_impl::difference_type;
-        using iterator = typename base_impl::iterator;
-        using const_iterator = typename base_impl::const_iterator;
-        using reverse_iterator = typename base_impl::reverse_iterator;
-        using const_reverse_iterator = typename base_impl::const_reverse_iterator;
+        using base = implements::basic_string_storage<CharType, Traits, Allocator>;
 
-        static inline constexpr size_type npos = static_cast<size_type>(-1);
+        using traits_type = typename base::traits_type;
+        using value_type = typename base::value_type;
+        using allocator_type = typename base::allocator_type;
+        using allocator_traits = typename base::allocator_traits;
+        using size_type = typename base::size_type;
+        using difference_type = typename base::difference_type;
+        using reference = typename base::reference;
+        using const_reference = typename base::const_reference;
+        using pointer = typename base::pointer;
+        using const_pointer = typename base::const_pointer;
 
-#pragma region basic_string_constrctor
-        RAINY_CONSTEXPR20 basic_string() : base_impl{} {
-            construct_string<construct_strategy::empty>(nullptr, 0);
-        }
+        static inline constexpr size_type npos = -1;
 
-        RAINY_CONSTEXPR20 basic_string(const allocator_type &alloc) : base_impl(alloc) {
-            construct_string<construct_strategy::empty>(nullptr, 0);
-        }
+        // ********************************* begin volume ******************************
 
-        RAINY_CONSTEXPR20 basic_string(const basic_string &right) {
-            construct_string<construct_strategy::from_container>(right.ptr(), right.size());
-        }
 
-        RAINY_CONSTEXPR20 basic_string(basic_string &&right) noexcept {
-            this->instance_data = utility::move(right.instance_data);
-            this->size_ = right.size_;
-            this->capacity_ = right.capacity_;
-            right.size_ = 0;
-            right.capacity_ = 0;
-        }
 
-        RAINY_CONSTEXPR20 basic_string(const basic_string &right, size_type right_offset, size_type count = npos) {
-            if (right_offset > right.size()) {
-                foundation::exceptions::logic::throw_out_of_range("Invalid offset");
+        /**
+         * @brief shrink only occur on short string is enough to storage
+         */
+        constexpr void shrink_to_fit() noexcept {
+            if (this->size() <= this->short_string_max_ && this->is_long_()) {
+                auto ls = this->stor_.ls_;
+#ifdef RAINY_HAS_CXX20
+                if (std::is_constant_evaluated()) {
+                    this->stor_.ss_ = decltype(this->stor_.ss_){};
+                }
+#endif
+                traits_type::copy(this->stor_.ss_.data(), ls.begin_, static_cast<std::size_t>(ls.end_ - ls.begin_));
+                dealloc_(ls);
             }
-            size_type real_count = (std::min)(count, right.size() - right_offset);
-            construct_string<construct_strategy::from_ptr>(right.data() + right_offset, real_count);
         }
 
-        RAINY_CONSTEXPR20 basic_string(const basic_string &right, size_type right_offset, size_type count,
-                                       const allocator_type &alloc) : base_impl(alloc) {
-            if (right_offset > right.size()) {
-                foundation::exceptions::logic::throw_out_of_range("Invalid offset");
+        // ********************************* begin element access ******************************
+
+    private:
+        
+
+    public:
+        constexpr CharType const *data() const noexcept {
+            return begin_();
+        }
+
+        constexpr CharType *data() noexcept {
+            return begin_();
+        }
+
+        constexpr CharType const *c_str() const noexcept {
+            return begin_();
+        }
+
+        constexpr const_reference at(size_type pos) const {
+            if (pos >= this->size_())
+                throw std::out_of_range{this->exception_string_};
+
+            return *(begin_() + pos);
+        }
+
+        constexpr reference at(size_type pos) {
+            return const_cast<CharType &>(const_cast<basic_string const &>(*this).at(pos));
+        }
+
+        constexpr const_reference operator[](size_type pos) const noexcept {
+            assert(("pos >= size, please check the arg", pos < this->size_()));
+            return *(begin_() + pos);
+        }
+
+        constexpr reference operator[](size_type pos) noexcept {
+            return const_cast<CharType &>(const_cast<basic_string const &>(*this)[pos]);
+        }
+
+        constexpr const CharType &front() const noexcept {
+            assert(("string is empty", !this->is_empty_()));
+
+            return *begin_();
+        }
+
+        constexpr CharType &front() {
+            return const_cast<CharType &>(const_cast<basic_string const &>(*this).front());
+        }
+
+        constexpr const CharType &back() const noexcept {
+            assert(("string is empty", !this->is_empty_()));
+
+            return *(end_() - 1);
+        }
+
+        constexpr CharType &back() {
+            return const_cast<CharType &>(const_cast<basic_string const &>(*this).back());
+        }
+
+        constexpr operator std::basic_string_view<CharType, Traits>() const noexcept {
+            return std::basic_string_view<CharType, Traits>(begin_(), end_());
+        }
+
+        // ********************************* begin iterator type ******************************
+
+    private:
+        struct iterator_type_ {
+            using difference_type = std::ptrdiff_t;
+            using value_type = CharType;
+            using pointer = std::add_pointer_t<value_type>;
+            using reference = std::add_lvalue_reference_t<CharType>;
+            using iterator_category = std::random_access_iterator_tag;
+            using iterator_concept = std::contiguous_iterator_tag;
+
+        private:
+            CharType *current_{};
+
+#ifndef NDEBUG
+            basic_string *target_{};
+#endif
+
+            constexpr void check() const noexcept {
+#ifndef NDEBUG
+                if (current_ && current_ <= target_->end_() && current_ >= target_->begin_())
+                    ;
+                else
+                    assert(("iterator is invalidated", false));
+#endif
             }
-            size_type real_count = (std::min)(count, right.size() - right_offset);
-            construct_string<construct_strategy::from_ptr>(right.data() + right_offset, real_count);
+
+            friend class basic_string;
+
+        public:
+            iterator_type_() noexcept = default;
+            iterator_type_(iterator_type_ const &) noexcept = default;
+            iterator_type_(iterator_type_ &&) noexcept = default;
+            iterator_type_ &operator=(iterator_type_ const &) & noexcept = default;
+            iterator_type_ &operator=(iterator_type_ &&) & noexcept = default;
+
+        private:
+#ifndef NDEBUG
+            constexpr iterator_type_(CharType *current, basic_string *target) : current_(current), target_(target) {
+            }
+#else
+            constexpr iterator_type_(CharType *current) : current_(current) {
+            }
+#endif
+
+        public:
+            constexpr iterator_type_ operator+(difference_type n) const & noexcept {
+                auto temp = *this;
+                temp.current_ += n;
+                temp.check();
+
+                return temp;
+            }
+
+            constexpr iterator_type_ operator-(difference_type n) const & noexcept {
+                auto temp = *this;
+                temp.current_ -= n;
+                temp.check();
+
+                return temp;
+            }
+
+            constexpr friend iterator_type_ operator+(difference_type n, iterator_type_ const &right) noexcept {
+                auto temp = right;
+                temp.current_ += n;
+                temp.check();
+
+                return temp;
+            }
+
+            constexpr friend iterator_type_ operator-(difference_type n, iterator_type_ const &right) noexcept {
+                auto temp = right;
+                temp.current_ -= n;
+                temp.check();
+
+                return temp;
+            }
+
+            constexpr friend difference_type operator-(iterator_type_ const &left, iterator_type_ const &right) noexcept {
+                assert(("iter belongs to different strings", left.target_ == right.target_));
+
+                return left.current_ - right.current_;
+            }
+
+            constexpr iterator_type_ &operator+=(difference_type n) & noexcept {
+                current_ += n;
+                check();
+                return *this;
+            }
+
+            constexpr iterator_type_ &operator-=(difference_type n) & noexcept {
+                current_ -= n;
+                check();
+                return *this;
+            }
+
+            constexpr iterator_type_ &operator++() & noexcept {
+                ++current_;
+                check();
+                return *this;
+            }
+
+            constexpr iterator_type_ &operator--() & noexcept {
+                --current_;
+                check();
+                return *this;
+            }
+
+            constexpr iterator_type_ operator++(int) & noexcept {
+                iterator_type_ temp{*this};
+                ++current_;
+                check();
+                return temp;
+            }
+
+            constexpr iterator_type_ operator--(int) & noexcept {
+                iterator_type_ temp{*this};
+                --current_;
+                check();
+                return temp;
+            }
+
+            constexpr CharType &operator[](difference_type n) const noexcept {
+#ifndef NDEBUG
+                iterator_type_ end = (*this) + n;
+                end.check();
+#endif
+
+                return *(current_ + n);
+            }
+
+            constexpr CharType &operator*() const noexcept {
+                return *current_;
+            }
+
+            constexpr CharType *operator->() const noexcept {
+                return current_;
+            }
+
+            friend constexpr std::strong_ordering operator<=>(iterator_type_ const &, iterator_type_ const &) noexcept = default;
+        };
+
+        // ********************************* begin iterator function ******************************
+
+    public:
+        using iterator = iterator_type_;
+        using const_iterator = std::basic_const_iterator<iterator_type_>;
+        using reverse_iterator = std::reverse_iterator<iterator>;
+        using const_reverse_iterator = std::reverse_iterator<const_iterator>;
+
+        constexpr iterator begin() noexcept {
+#ifndef NDEBUG
+            return {begin_(), this};
+#else
+            return {begin_()};
+#endif
         }
 
-        RAINY_CONSTEXPR20 basic_string(const_pointer str, size_type count) {
-            construct_string<construct_strategy::from_ptr>(str, count);
+        constexpr iterator end() noexcept {
+#ifndef NDEBUG
+            return iterator_type_{end_(), this};
+#else
+            return iterator_type_{end_()};
+#endif
         }
 
-        RAINY_CONSTEXPR20 basic_string(const_pointer str, size_type count, const allocator_type &alloc) : base_impl(alloc) {
-            construct_string<construct_strategy::from_ptr>(str, count);
+        constexpr const_iterator begin() const noexcept {
+#ifndef NDEBUG
+            return iterator_type_{const_cast<CharType *>(begin_()), const_cast<basic_string *>(this)};
+#else
+            return iterator_type_{const_cast<CharType *>(begin_())};
+#endif
         }
 
-        template <std::size_t N>
-        RAINY_CONSTEXPR20 basic_string(const value_type (&cstyle_char_array)[N]) {
-            construct_string<construct_strategy::from_ptr>(static_cast<const_pointer>(cstyle_char_array), N - 1);
+        constexpr const_iterator end() const noexcept {
+#ifndef NDEBUG
+            return iterator_type_{const_cast<CharType *>(end_()), const_cast<basic_string *>(this)};
+#else
+            return iterator_type_{const_cast<CharType *>(end_())};
+#endif
         }
 
-        template <typename CharPointer, type_traits::other_trans::enable_if_t<
-            type_traits::type_relations::is_same_v<CharPointer, const_pointer>, int> = 0>
-        RAINY_CONSTEXPR20 basic_string(CharPointer str) : basic_string(str, traits_type::length(str)) {
+        constexpr const_iterator cbegin() noexcept {
+            return begin();
         }
 
-        RAINY_CONSTEXPR20 basic_string(const basic_string &right, const allocator_type &alloc) : base_impl(alloc) {
-            construct_string<construct_strategy::from_container>(right.ptr(), right.size());
+        constexpr const_iterator cend() noexcept {
+            return end();
         }
 
-        template <std::size_t N>
-        RAINY_CONSTEXPR20 basic_string(const collections::array<value_type, N> &array) {
-            construct_string<construct_strategy::from_ptr>(array.data(), N);
+        // ********************************* begin memory management ******************************
+
+    private:
+        /**
+         * @brief allocates memory and automatically adds 1 to store trailing zero
+         * @brief strong exception safety guarantee
+         * @brief not responsible for reclaiming memory
+         * @brief never shrink
+         * @param n, expected number of characters
+         */
+        constexpr void allocate_plus_one_(size_type n) {
+            // strong exception safe grantee
+            if (n <= this->short_string_max_ && !this->is_long_()) {
+                this->size_flag_ = static_cast<signed char>(n);
+                return;
+            }
+            ++n;
+#if defined(__cpp_lib_allocate_at_least) && (__cpp_lib_allocate_at_least >= 202302L)
+            auto [ptr, count] = allocator_traits::allocate_at_least(this->allocator_, n);
+            this->stor_.ls_ = {ptr, nullptr, ptr + count};
+#else
+            auto ptr = allocator_traits::allocate(this->allocator_, n);
+            this->stor_.ls_ = {ptr, nullptr, ptr + n};
+#endif
+            this->size_flag_ = -1;
         }
 
-        RAINY_CONSTEXPR20 basic_string(basic_string &&right, const allocator_type &alloc) : base_impl(alloc) {
-            if (alloc == right.get_allocator()) {
-                this->instance_data.get_second() = utility::move(right.instance_data.get_second());
-                this->size_ = right.size_;
-                this->capacity_ = right.capacity_;
-                right.size_ = 0;
-                right.capacity_ = 0;
+        /**
+         * @brief dealloc the memory of long string
+         * @brief static member function
+         * @param ls, allocated long string
+         */
+        constexpr void dealloc_(typename base::ls_type_ &ls) noexcept {
+            allocator_traits::deallocate(this->allocator_, ls.begin_, ls.last_ - ls.begin_);
+        }
+
+        /**
+         * @brief conditionally sets size correctly. only legal if n < capacity()
+         * @brief write 0 to the tail at the same time
+         * @brief never shrink
+         * @param n, expected string length
+         */
+        constexpr void resize_(size_type n) noexcept {
+            assert(("n > capacity()", n <= this->capacity()));
+            if (this->is_long_()) {
+                // if n = 0, keep storage avilable
+                auto &&ls = this->stor_.ls_;
+                ls.end_ = ls.begin_ + n;
+                // return advance
+                *ls.end_ = CharType{};
             } else {
-                construct_string<construct_strategy::from_container>(right.ptr(), right.size());
+                this->size_flag_ = static_cast<signed int>(n);
+                // gcc thinks it's out of range,
+                // so make gcc happy
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
+                this->stor_.ss_[n] = CharType{};
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
             }
         }
 
-        template <typename Iter, type_traits::other_trans::enable_if_t<type_traits::extras::templates::is_iterator_v<Iter>,int> = 0>
-        RAINY_CONSTEXPR20 basic_string(Iter first, Iter last) {
-            std::size_t count = utility::distance(first, last);
-            construct_string<construct_strategy::from_ptr>(&(*first), count);
+        /**
+         * @brief fill characters to *this
+         * @brief not doing anything else
+         * @param begin begin of characters
+         * @param end end of characters
+         */
+        constexpr void fill_(CharType const *begin, CharType const *end) noexcept {
+            assert(("cannot store string in current allocated storage", static_cast<size_type>(end - begin) <= this->capacity()));
+            traits_type::copy(begin_(), begin, static_cast<std::size_t>(end - begin));
         }
 
-        template <typename Iter, type_traits::other_trans::enable_if_t<type_traits::extras::templates::is_iterator_v<Iter>, int> = 0>
-        RAINY_CONSTEXPR20 basic_string(Iter first, Iter last, const allocator_type &alloc) : base_impl(alloc) {
-            std::size_t count = std::distance(first, last);
-            construct_string<construct_strategy::from_ptr>(&(*first), count);
+        /**
+         * @brief caculate the length of c style string
+         * @param begin begin of characters
+         * @return length
+         */
+        constexpr static size_type c_style_string_length_(CharType const *string) noexcept {
+            return traits_type::length(string);
         }
 
-        RAINY_CONSTEXPR20 basic_string(size_type count, value_type ch) {
-            construct_string<construct_strategy::from_char>(ch, count);
-        }
-
-        RAINY_CONSTEXPR20 basic_string(size_type count, value_type ch, const allocator_type &alloc) : base_impl(alloc) {
-            construct_string<construct_strategy::from_char>(ch, count);
-        }
-
-        RAINY_CONSTEXPR20 basic_string(std::initializer_list<value_type> ilist) {
-            construct_string<construct_strategy::from_ptr>(ilist.begin(), ilist.size());
-        }
-
-        RAINY_CONSTEXPR20 basic_string(std::initializer_list<value_type> ilist, const allocator_type &alloc) : base_impl(alloc) {
-            construct_string<construct_strategy::from_ptr>(ilist.begin(), ilist.size());
-        }
-
-        template <typename StdTraits, typename StdAlloc>
-        RAINY_CONSTEXPR20 basic_string(const std::basic_string<CharType, StdTraits, StdAlloc> &standard_container) {
-            construct_string<construct_strategy::from_container>(standard_container.data(), standard_container.size());
-        }
-
-        RAINY_CONSTEXPR20 basic_string(implements::rainy_string_concat_ph_t, const basic_string &left, const_pointer right_cptr) {
-            construct_link_string<construct_strategy::from_container, construct_strategy::from_ptr>(
-                left.to_char_array(), left.length(), right_cptr, traits_type::length(right_cptr));
-        }
-
-        RAINY_CONSTEXPR20 basic_string(implements::rainy_string_concat_ph_t, const basic_string &left, const basic_string &right) {
-            construct_link_string<construct_strategy::from_container, construct_strategy::from_container>(
-                left.to_char_array(), left.length(), right.to_char_array(), right.length());
-        }
-
-        template <typename StdTraits, typename StdAlloc>
-        RAINY_CONSTEXPR20 basic_string(implements::rainy_string_concat_ph_t, const basic_string &left,
-                                       const std::basic_string<CharType, StdTraits, StdAlloc> &right) {
-            construct_link_string<construct_strategy::from_container, construct_strategy::from_container>(
-                left.to_char_array(), left.length(), right.data(), right.length());
-        }
-
-        RAINY_CONSTEXPR20 ~basic_string() {
-            tidy_helper();
-        }
-#pragma endregion
-
-#pragma region basic_string_assign
-
-        RAINY_CONSTEXPR20 basic_string &assign(const_pointer str) {
-            return assign(str, traits_type::length(str));
-        }
-
-        RAINY_CONSTEXPR20 basic_string &assign(const_pointer str, size_type count) {
-            if (count <= this->capacity()) {
-                traits_type::copy(this->ptr(), str, count);
-                this->size_ = count;
-                traits_type::assign(this->ptr()[count], value_type{});
-                return *this;
-            }
-            auto pair = allocate_for_new_memory(count);
-            auto new_ptr = pair.first;
-            auto new_capacity = pair.second;
-            traits_type::copy(new_ptr, str, count);
-            traits_type::assign(new_ptr[count], value_type{});
-            tidy_helper();
-            auto &storage = this->get_storage();
-            storage.ptr = new_ptr;
-            this->capacity_ = new_capacity;
-            this->size_ = count;
-            return *this;
-        }
-
-        basic_string &assign(const basic_string &right) {
-            if (this != &right) {
-                return assign(right.data(), right.size());
-            }
-            return *this;
-        }
-
-        basic_string &assign(basic_string &&right) noexcept {
-            if (this != &right) {
-                tidy_helper();
-                this->size_ = right.size_;
-                this->capacity_ = right.capacity_;
-                if (right.is_local()) {
-                    traits_type::copy(this->ptr(), right.data(), right.size());
-                    traits_type::assign(this->ptr()[right.size()], value_type{});
+        /**
+         * @brief assign characters to *this
+         * @brief this function can be called with any legal state
+         * @brief strong exception safety guarantee
+         * @brief this function provide for assign and operator=
+         * @param begin begin of characters
+         * @param end end of characters
+         */
+        constexpr void assign_(CharType const *first, CharType const *last) {
+            auto size = last - first;
+            if (this->capacity() < static_cast<size_type>(size)) {
+                if (this->is_long_()) {
+                    auto ls = this->stor_.ls_;
+                    allocate_plus_one_(size);
+                    dealloc_(ls);
                 } else {
-                    this->get_storage().ptr = right.get_storage().ptr;
-                    right.get_storage().ptr = nullptr;
+                    allocate_plus_one_(size);
                 }
-                right.size_ = 0;
-                right.capacity_ = 0;
             }
-            return *this;
+            fill_(first, last);
+            resize_(size);
         }
 
-        template <typename InputIterator>
-        basic_string &assign(InputIterator first, InputIterator last) {
-            size_type count = std::distance(first, last);
-            if (count <= this->capacity()) {
-                core::algorithm::copy(first, last, this->ptr());
-                this->size_ = count;
-                traits_type::assign(this->ptr()[count], value_type{});
-                return *this;
+        /**
+         * @brief insert characters to *this
+         * @brief this function can be called with any legal state
+         * @brief strong exception safety guarantee
+         */
+        constexpr void insert_(size_type index, CharType const *first, CharType const *last) {
+            auto size = this->size_();
+            if (index > size) {
+                throw std::out_of_range{this->exception_string_};
             }
-            auto pair = allocate_for_new_memory(count);
-            auto new_ptr = pair.first;
-            auto new_capacity = pair.second;
-            core::algorithm::copy(first, last, new_ptr);
-            traits_type::assign(new_ptr[count], value_type{});
-            tidy_helper();
-            auto &storage = this->get_storage();
-            storage.ptr = new_ptr;
-            this->capacity_ = new_capacity;
-            this->size_ = count;
-            return *this;
-        }
-
-        basic_string &assign(size_type count, value_type ch) {
-            if (count <= this->capacity()) {
-                traits_type::assign(this->ptr(), count, ch);
-                this->size_ = count;
-                traits_type::assign(this->ptr()[count], value_type{});
-                return *this;
+            auto length = last - first;
+            auto new_size = size + length;
+            auto begin = begin_();
+            auto end = begin + size;
+            auto start = begin + index;
+            // if start is not in range and capacity > length + size
+            if ((start < first || start > last) && this->capacity() > new_size) {
+                traits_type::move(end, start, static_cast<std::size_t>(length));
+                // re-calc first and last, because range is in *this
+                if (first >= start && last <= end) {
+                    first += index;
+                    last += index;
+                }
+                traits_type::copy(start, first, static_cast<std::size_t>(length));
+            } else {
+                basic_string temp{};
+                temp.allocate_plus_one_(new_size);
+                auto temp_begin = temp.begin_();
+                auto temp_start = temp_begin + index;
+                auto temp_end = temp_begin + size;
+                traits_type::copy(temp_begin, begin, static_cast<std::size_t>(index));
+                traits_type::copy(temp_start, first, static_cast<std::size_t>(length));
+                traits_type::copy(temp_start + length, start, static_cast<std::size_t>(end - start));
+                temp.swap(*this);
             }
-            auto pair = allocate_for_new_memory(count);
-            auto new_ptr = pair.first;
-            auto new_capacity = pair.second;
-            traits_type::assign(new_ptr, count, ch);
-            traits_type::assign(new_ptr[count], value_type{});
-            tidy_helper();
-            auto &storage = this->get_storage();
-            storage.ptr = new_ptr;
-            this->capacity_ = new_capacity;
-            this->size_ = count;
-            return *this;
+            resize_(new_size);
         }
 
-        basic_string &assign(const_pointer str, size_type count, const allocator_type &alloc) {
-            if (alloc == this->get_allocator()) {
-                return assign(str, count);
+
+        constexpr void replace_(size_type pos, size_type count, CharType const *first2, CharType const *last2) {
+            auto size = this->size_();
+            if (pos > size) {
+                throw std::out_of_range{this->exception_string_};
             }
-            basic_string tmp(str, count, alloc);
-            *this = utility::move(tmp);
-            return *this;
-        }
-
-        basic_string &assign(const allocator_type &alloc) {
-            if (alloc == this->get_allocator()) {
-                tidy_helper();
-                this->size_ = 0;
-                this->capacity_ = 0;
-                return *this;
+            auto begin = begin_();
+            auto first1 = begin + pos;
+            auto last1 = begin + (core::min)(pos + count, size);
+            auto length1 = last1 - first1;
+            auto length2 = last2 - first2;
+            auto new_size = size + length2 - length1; // 注意！是 length2 - length1
+            auto end = begin + size;
+            if (!(last1 < first2 || last2 < first1) && new_size <= this->capacity()) {
+                auto diff = length2 - length1; // length 变化量
+                if (diff > 0) {
+                    traits_type::move(end + diff, end, static_cast<std::size_t>(-diff));
+                } else if (diff < 0) {
+                    traits_type::move(last1 + diff, last1, static_cast<std::size_t>(-diff));
+                }
+                if (first2 >= last1 && last2 <= end) {
+                    first2 += diff;
+                    last2 += diff;
+                }
+                traits_type::move(first1, first2, static_cast<std::size_t>(length2));
+            } else {
+                basic_string temp{};
+                temp.allocate_plus_one_(new_size);
+                auto temp_begin = temp.begin_();
+                auto temp_start = temp_begin + (first1 - begin);
+                traits_type::copy(temp_begin, begin, static_cast<std::size_t>(first1 - begin));
+                traits_type::copy(temp_start, first2, static_cast<std::size_t>(length2));
+                traits_type::copy(temp_start + length2, last1, static_cast<std::size_t>(end - last1));
+                temp.swap(*this);
             }
-            basic_string tmp(alloc);
-            *this = utility::move(tmp);
-            return *this;
+            resize_(new_size);
         }
 
-#pragma endregion
-
-#pragma region basic_string_append
-        basic_string &append(const_pointer str) {
-            return append(str, traits_type::length(str));
+    public:
+        constexpr ~basic_string() {
+            if (this->is_long_())
+                dealloc_(this->stor_.ls_);
         }
 
-        basic_string &append(const_pointer str, size_type count) {
-            size_type new_size = this->size_ + count;
-            if (new_size <= this->capacity()) {
-                traits_type::copy(this->ptr() + this->size_, str, count);
-                this->size_ = new_size;
-                traits_type::assign(this->ptr()[new_size], value_type{});
-                return *this;
+        /**
+         * @brief reserve memory
+         * @brief strong exception safety guarantee
+         * @brief never shrink
+         * @param new_cap new capacity
+         */
+        constexpr void reserve(size_type new_cap) {
+            if (this->capacity() >= new_cap) {
+                return;
             }
-            auto pair = allocate_for_new_memory(new_size);
-            auto new_ptr = pair.first;
-            auto new_capacity = pair.second;
-            traits_type::copy(new_ptr, this->data(), this->size_);
-            traits_type::copy(new_ptr + this->size_, str, count);
-            traits_type::assign(new_ptr[new_size], value_type{});
-            tidy_helper();
-            auto &storage = this->get_storage();
-            storage.ptr = new_ptr;
-            this->capacity_ = new_capacity;
-            this->size_ = new_size;
-            return *this;
-        }
-
-        basic_string &append(const basic_string &right, size_type offset, size_type count) {
-            if (offset > right.size()) {
-                foundation::exceptions::logic::throw_out_of_range("Invalid offset");
+            if (this->is_long_()) {
+                auto ls = this->stor_.ls_;
+                allocate_plus_one_(new_cap);
+                fill_(ls.begin_, ls.end_);
+                // even though I'm only subtracting two pointers without r/w
+                // gcc still thinks it's use after free, so make gcc happy
+                auto size = ls.end_ - ls.begin_;
+                dealloc_(ls);
+                // resize_(ls.end_ - ls.begin_);
+                resize_(size);
+            } else {
+                auto ss = this->stor_.ss_;
+                auto size = this->size_flag_;
+                auto data = ss.data();
+                allocate_plus_one_(new_cap);
+                fill_(data, data + size);
+                resize_(size);
             }
-            return append(right.data() + offset, (std::min)(count, right.size() - offset));
         }
 
-        basic_string &append(const basic_string &right) {
-            return append(right.data(), right.size());
-        }
+        /**
+         * @brief resize string length
+         * @brief strong exception safety guarantee
+         * @brief never shrink
+         * @param count new size
+         * @param ch character to fill
+         */
+        constexpr void resize(size_type count, CharType ch) {
+            auto size = this->size_();
 
-        basic_string &append(size_type count, value_type ch) {
-            size_type new_size = this->size_ + count;
-            if (new_size <= this->capacity()) {
-                traits_type::assign(this->ptr() + this->size_, count, ch);
-                this->size_ = new_size;
-                traits_type::assign(this->ptr()[new_size], value_type{});
-                return *this;
-            }
-            auto pair = allocate_for_new_memory(new_size);
-            auto new_ptr = pair.first;
-            auto new_capacity = pair.second;
-            traits_type::copy(new_ptr, this->data(), this->size_);
-            traits_type::assign(new_ptr + this->size_, count, ch);
-            traits_type::assign(new_ptr[new_size], value_type{});
-            tidy_helper();
-            auto &storage = this->get_storage();
-            storage.ptr = new_ptr;
-            this->capacity_ = new_capacity;
-            this->size_ = new_size;
-            return *this;
-        }
-
-        template <typename InputIterator>
-        basic_string &append(InputIterator first, InputIterator last) {
-            size_type count = utility::distance(first, last);
-            size_type new_size = this->size_ + count;
-            if (new_size <= this->capacity()) {
-                std::copy(first, last, this->ptr() + this->size_);
-                this->size_ = new_size;
-                traits_type::assign(this->ptr()[new_size], value_type{});
-                return *this;
+            if (count > size) {
+                reserve(count);
+                auto begin = begin_();
+                std::fill(begin + size, begin + count, ch);
             }
 
-            auto pair = allocate_for_new_memory(new_size);
-            auto new_ptr = pair.first;
-            auto new_capacity = pair.second;
-
-            traits_type::copy(new_ptr, this->data(), this->size_);
-            std::copy(first, last, new_ptr + this->size_);
-            traits_type::assign(new_ptr[new_size], value_type{});
-
-            tidy_helper();
-            auto &storage = this->get_storage();
-            storage.ptr = new_ptr;
-            this->capacity_ = new_capacity;
-            this->size_ = new_size;
-
-            return *this;
+            resize_(count);
         }
 
-        basic_string &append(const_pointer first, const_pointer last) {
-            return append(first, static_cast<size_type>(last - first));
+        /**
+         * @brief resize string length
+         * @brief strong exception safety guarantee
+         * @brief never shrink
+         * @param count new size
+         */
+        constexpr void resize(size_type count) {
+            resize(count, CharType{});
         }
 
-        basic_string &append(const_iterator first, const_iterator last) {
-            return append(first, static_cast<size_type>(last - first));
-        }
-#pragma endregion
-
-#pragma region basic_string_compare
-        int compare(const basic_string &right) const {
-            const size_type this_size = this->size();
-            const size_type str_size = right.size();
-            const size_type rlen = (std::min)(this_size, str_size);
-            return traits_type::compare(this->data(), right.data(), rlen);
+        /**
+         * @brief equal to resize(0)
+         * @brief never shrink
+         */
+        constexpr void clear() noexcept {
+            resize_(0);
         }
 
-        int compare(size_type pos, size_type count, const basic_string &right) const {
-            if (pos > this->size()) {
-                foundation::exceptions::logic::throw_out_of_range("Invalid position");
+        /**
+         * @brief use size * 1.5 for growth
+         * @param ch character to fill
+         */
+        constexpr void push_back(CharType ch) {
+            auto size = this->size_();
+            if (this->capacity() == size) {
+                reserve(size * 2 - size / 2);            
             }
-            count = (std::min)(count, this->size() - pos);
-            return substr(pos, count).compare(right);
+            *end_() = ch;
+            resize_(size + 1);
         }
 
-        int compare(size_type pos, size_type count1, const basic_string &right, size_type offset, size_type count2) const {
-            if (pos > this->size() || offset > right.size()) {
-                foundation::exceptions::logic::throw_out_of_range("Invalid position");
+        // ********************************* begin swap ******************************
+
+    private:
+        constexpr void swap_without_ator(basic_string &other) noexcept {
+            auto &&self = *this;
+            std::swap(self.stor_, other.stor_);
+            std::swap(self.size_flag_, other.size_flag_);
+        }
+
+    public:
+        constexpr void swap(basic_string &other) noexcept {
+            if (allocator_traits::propagate_on_container_swap::value) {
+                std::swap(this->allocator_, other.allocator_);
+            } else {
+                assert(other.allocator_ == this->allocator_);
             }
-            count1 = (std::min)(count1, this->size() - pos);
-            count2 = (std::min)(count2, right.size() - offset);
-            return substr(pos, count1).compare(right.substr(offset, count2));
+            other.swap_without_ator(*this);
         }
 
-        int compare(const value_type *ptr) const {
-            return compare(basic_string(ptr));
+        friend void swap(basic_string &self, basic_string &other) noexcept {
+            self.swap(other);
         }
 
-        int compare(size_type pos, size_type count1, const value_type *ptr) const {
-            if (pos > this->size()) {
-                foundation::exceptions::logic::throw_out_of_range("Invalid position");
+        // ********************************* begin constructor ******************************
+    public:
+        constexpr basic_string() noexcept = default;
+
+        constexpr basic_string(allocator_type const &a) noexcept : base(a) {
+        }
+
+        constexpr basic_string(size_type n, CharType ch, allocator_type const &a = allocator_type()) : base(a) {
+            allocate_plus_one_(n);
+            auto begin = begin_();
+            auto end = begin + n;
+            std::fill(begin, end, ch);
+            resize_(n);
+        }
+
+        constexpr basic_string(const basic_string &other, size_type pos, size_type count, allocator_type const &a = allocator_type()) :
+            base(a) {
+            auto other_size = other.size_();
+
+            if (pos > other_size)
+                throw std::out_of_range{this->exception_string_};
+
+            count = (core::min)(other_size - pos, count);
+            allocate_plus_one_(count);
+            auto start = other.begin_() + pos;
+            fill_(start, start + count);
+            resize_(count);
+        }
+
+        constexpr basic_string(const basic_string &other, size_type pos, allocator_type const &a = allocator_type()) :
+            basic_string(other, pos, other.size_() - pos, a) {
+        }
+
+        constexpr basic_string(const CharType *s, size_type count, allocator_type const &a = allocator_type()) : base(a) {
+            allocate_plus_one_(count);
+            fill_(s, s + count);
+            resize_(count);
+        }
+
+        constexpr basic_string(const CharType *s, allocator_type const &a = allocator_type()) :
+            basic_string(s, c_style_string_length_(s), a) {
+        }
+
+        template <class InputIt, std::enable_if_t<std::is_base_of_v<
+                                     std::input_iterator_tag, typename std::iterator_traits<InputIt>::iterator_category>,int> = 0>
+        constexpr basic_string(InputIt first, InputIt last) {
+            using category = typename std::iterator_traits<InputIt>::iterator_category;
+            if (std::is_base_of<std::random_access_iterator_tag, category>::value) {
+                auto length = std::distance(first, last);
+                allocate_plus_one_(length);
+                std::copy(first, last, begin_());
+                resize_(length);
+            } else {
+                for (; first != last; ++first)
+                    push_back(*first);
             }
-            count1 = (std::min)(count1, this->size() - pos);
-            return substr(pos, count1).compare(ptr);
         }
 
-        int compare(size_type pos, size_type count1, const value_type *ptr, size_type count2) const {
-            if (pos > this->size()) {
-                foundation::exceptions::logic::throw_out_of_range("Invalid position");
+        constexpr basic_string(const basic_string &other) :
+            base(allocator_traits::select_on_container_copy_construction(other.allocator_)) {
+            auto other_size = other.size_();
+            allocate_plus_one_(other_size);
+            fill_(other.begin_(), other.end_());
+            resize_(other_size);
+        }
+
+        constexpr basic_string(const basic_string &other, allocator_type const &a) : base(a) {
+            auto other_size = other.size_();
+            allocate_plus_one_(other_size);
+            fill_(other.begin_(), other.end_());
+            resize_(other_size);
+        }
+
+        constexpr basic_string(basic_string &&other, size_type pos, size_type count, allocator_type const &a = allocator_type()) :
+            base(a) {
+            auto other_size = other.size_();
+            if (pos > other_size) {
+                throw std::out_of_range{this->exception_string_};
             }
-            count1 = (std::min)(count1, this->size() - pos);
-            return substr(pos, count1).compare(basic_string(ptr, count2));
+            count = (core::min)(other_size - pos, count);
+            if (pos != 0) {
+                auto other_begin = other.begin_();
+                auto start = other_begin + pos;
+                auto last = start + count;
+#if RAINY_HAS_CXX20
+                if (std::is_constant_evaluated()) {
+                   core::algorithm::copy(start, last, other_begin);
+                }
+#endif
+                else {
+                    std::memmove(other_begin, start, (last - start) * sizeof(CharType));
+                }
+            }
+            other.resize_(count);
+            other.swap(*this);
         }
 
-        template <typename StringViewLike>
-        int compare(const StringViewLike &t) const
-            noexcept(std::is_convertible_v<const StringViewLike &, std::basic_string_view<CharType, Traits>>) {
+        constexpr basic_string(basic_string &&other) noexcept : base{other.allocator_} {
+            other.swap_without_ator(*this);
+        }
+
+        constexpr basic_string(basic_string &&other, allocator_type const &a) : base(a) {
+            if (other.allocator_ == a) {
+                other.swap_without_ator(*this);
+            } else {
+                basic_string temp{other.data(), other.size(), a};
+                temp.swap(*this);
+                other.swap(temp);
+            }
+        }
+
+        constexpr basic_string(std::initializer_list<CharType> ilist, allocator_type const &a = allocator_type()) :
+            basic_string(std::data(ilist), ilist.size(), a) {
+        }
+
+        // clang-format off
+        template <class StringViewLike>
+            requires std::is_convertible_v<const StringViewLike&, std::basic_string_view<CharType, Traits>> && (!std::is_convertible_v<const StringViewLike&, const CharType*>)
+        constexpr basic_string(const StringViewLike& t, allocator_type const& a = allocator_type())
+		     : basic_string(std::basic_string_view<CharType, Traits>{ t }.data(), std::basic_string_view<CharType, Traits>{ t }.size(),a)
+        {
+        }
+
+        // clang-format on
+
+        template <class StringViewLike>
+            requires std::is_convertible_v<const StringViewLike &, std::basic_string_view<CharType, Traits>>
+        constexpr basic_string(const StringViewLike &t, size_type pos, size_type n, allocator_type const &a = allocator_type()) :
+            base(a) {
             std::basic_string_view<CharType, Traits> sv = t;
-            const size_type this_size = this->size();
-            const size_type sv_size = sv.size();
-            const size_type rlen = (std::min)(this_size, sv_size);
-            return traits_type::compare(this->data(), sv.data(), rlen);
+            auto data = sv.data();
+            auto sv_size = sv.size();
+            if (pos > sv_size) {
+                throw std::out_of_range{this->exception_string_};
+            }
+            n = (core::min)(sv_size - pos, n);
+            allocate_plus_one_(n);
+            fill_(data, data + n);
+            resize_(n);
         }
 
-        template <typename StringViewLike>
-        int compare(size_type pos1, size_type count1, const StringViewLike &string_view) const {
-            if (pos1 > this->size()) {
-                foundation::exceptions::logic::throw_out_of_range("Invalid position");
+#if defined(__cpp_lib_containers_ranges) && (__cpp_lib_containers_ranges >= 202202L)
+        // tagged constructors to construct from container compatible range
+        template <class R>
+            requires std::ranges::range<R> && requires {
+                typename R::value_type;
+                requires std::same_as<typename R::value_type, CharType>;
             }
-            std::basic_string_view<CharType, Traits> sv = string_view;
-            count1 = (std::min)(count1, this->size() - pos1);
-            return substr(pos1, count1).compare(basic_string(sv.data(), sv.size()));
+        constexpr basic_string(std::from_range_t, R &&rg, allocator_type const &a = allocator_type()) : base(a) {
+            if constexpr (std::ranges::sized_range<R>) {
+                auto size = std::ranges::size(rg);
+                allocate_plus_one_(size);
+                std::ranges::copy(std::ranges::begin(rg), std::ranges::end(rg), begin_());
+                resize_(size);
+            } else {
+                for (auto first = std::ranges::begin(rg), last = std::ranges::end(rg); first != last; ++first)
+                    push_back(*first);
+            }
         }
+#endif
 
-        template <typename StringViewLike>
-        int compare(size_type pos1, size_type count1, const StringViewLike &string_view, size_type pos2,
-                    size_type count2 = npos) const {
-            if (pos1 > this->size()) {
-                foundation::exceptions::logic::throw_out_of_range("Invalid position");
-            }
-            std::basic_string_view<CharType, Traits> sv = string_view;
-            if (pos2 > sv.size()) {
-                foundation::exceptions::logic::throw_out_of_range("Invalid position");
-            }
-            count1 = (std::min)(count1, this->size() - pos1);
-            count2 = (std::min)(count2, sv.size() - pos2);
-            return substr(pos1, count1).compare(basic_string(sv.data() + pos2, count2));
-        }
-#pragma endregion
+        /**
+         * @brief this version provide for InputIt version of assign, other version of append and operator+=
+         */
+        template <class InputIt, typename = typename std::enable_if<std::is_base_of<
+                                     std::input_iterator_tag, typename std::iterator_traits<InputIt>::iterator_category>::value>::type>
+        constexpr basic_string &append(InputIt first, InputIt last) {
+            using category = typename std::iterator_traits<InputIt>::iterator_category;
 
-#pragma region basic_string_erase
-        iterator erase(iterator first, iterator last) {
-            if (first == last) {
-                return first;
+            if (std::is_base_of<std::random_access_iterator_tag, category>::value) {
+                auto size = this->size_();
+                auto length = std::distance(first, last);
+                auto new_size = size + length;
+                reserve((core::max)(size * 2, new_size));
+                traits_type::copy(begin_() + size, utility::addressof(*first), static_cast<std::size_t>(length));
+                resize_(new_size);
+            } else {
+                for (; first != last; ++first) {
+                    push_back(*first);
+                }
             }
-            size_type pos = first - this->ptr();
-            size_type len = last - first;
-            size_type remaining = this->size_ - (pos + len);
-            traits_type::move(this->ptr() + pos, this->ptr() + pos + len, remaining);
-            this->size_ -= len;
-            traits_type::assign(this->ptr()[this->size_], value_type{});
-            return this->ptr() + pos;
-        }
-
-        iterator erase(iterator iter) {
-            return erase(iter, iter + 1);
-        }
-
-        basic_string &erase(size_type offset = 0, size_type count = npos) {
-            if (offset > this->size_) {
-                foundation::exceptions::logic::throw_out_of_range("Invalid offset");
-            }
-            count = (std::min)(count, this->size_ - offset);
-            size_type remaining = this->size_ - (offset + count);
-            traits_type::move(this->ptr() + offset, this->ptr() + offset + count, remaining);
-            this->size_ -= count;
-            traits_type::assign(this->ptr()[this->size_], value_type{});
             return *this;
         }
-#pragma endregion
 
-#pragma region basic_string_copy
-        size_type copy(value_type *ptr, size_type count, size_type offset = 0) const {
-            if (offset > this->size_) {
-                foundation::exceptions::logic::throw_out_of_range("Invalid offset");
-            }
-            size_type len = (std::min)(count, this->size_ - offset);
-            traits_type::copy(ptr, this->data() + offset, len);
-            return len;
+        // ********************************* begin assign ******************************
+
+        constexpr basic_string &assign(size_type count, CharType ch) {
+            reserve(count);
+            traits_type::assign(begin_(), count, ch);
+            resize_(count);
+            return *this;
         }
 
-        size_type copy(value_type ch, size_type count, size_type offset = 0) {
-            if (offset > this->size_) {
-                foundation::exceptions::logic::throw_out_of_range("Invalid offset");
-            }
-            size_type len = (std::min)(count, this->size_ - offset);
-            traits_type::assign(this->ptr() + offset, len, ch);
-            traits_type::assign(this->ptr()[this->size_], value_type{});
-            return len;
-        }
-
-        size_type copy(const basic_string &right, size_type count = 0, size_type offset = 0) {
-            if (offset > this->size_) {
-                foundation::exceptions::logic::throw_out_of_range("Invalid offset");
-            }
-            count = count == 0 ? right.size() : count;
-            size_type len = (std::min)(count, this->size_ - offset);
-            traits_type::copy(this->ptr() + offset, right.data(), len);
-            traits_type::assign(this->ptr()[this->size_], value_type{});
-            return len;
-        }
-#pragma endregion
-
-#pragma region basic_string_replace
-
-        basic_string &replace(size_type pos1, size_type count1, const value_type *ptr) {
-            return replace(pos1, count1, ptr, traits_type::length(ptr));
-        }
-
-        basic_string &replace(size_type pos1, size_type count1, const basic_string &right) {
-            return replace(pos1, count1, right.data(), right.size());
-        }
-
-        basic_string &replace(size_type pos1, size_type count1, const value_type *ptr, size_type count2) {
-            if (pos1 > this->size_) {
-                foundation::exceptions::logic::throw_out_of_range("Invalid position");
-            }
-            count1 = (std::min)(count1, this->size_ - pos1);
-            size_type new_size = this->size_ - count1 + count2;
-            if (new_size <= this->capacity_) {
-                if (count1 != count2) {
-                    traits_type::move(this->ptr() + pos1 + count2, this->ptr() + pos1 + count1, this->size_ - pos1 - count1);
-                }
-                traits_type::copy(this->ptr() + pos1, ptr, count2);
-                this->size_ = new_size;
-                traits_type::assign(this->ptr()[new_size], value_type{});
+        constexpr basic_string &assign(const basic_string &str) {
+            if (std::addressof(str) == this) {
                 return *this;
             }
-            auto pair = allocate_for_new_memory(new_size);
-            auto new_ptr = pair.first;
-            auto new_capacity = pair.second;
-            traits_type::copy(new_ptr, this->data(), pos1);
-            traits_type::copy(new_ptr + pos1, ptr, count2);
-            traits_type::copy(new_ptr + pos1 + count2, this->data() + pos1 + count1, this->size_ - pos1 - count1);
-            traits_type::assign(new_ptr[new_size], value_type{});
-            tidy_helper();
-            auto &storage = this->get_storage();
-            storage.ptr = new_ptr;
-            this->capacity_ = new_capacity;
-            this->size_ = new_size;
+            if constexpr (allocator_traits::propagate_on_container_copy_assignment::value) {
+                if (this->allocator_ != str.allocator_) {
+                    basic_string temp{this->allocator_};
+                    temp.swap(*this);
+                    this->allocator_ = str.allocator_;
+                }
+            }
+            assign_(str.begin_(), str.end_());
             return *this;
         }
 
-        basic_string &replace(size_type pos1, size_type count1, const basic_string &str, size_type pos2, size_type count2) {
-            if (pos2 > str.size()) {
-                foundation::exceptions::logic::throw_out_of_range("Invalid position");
+        constexpr basic_string &assign(const basic_string &str, size_type pos, size_type count = npos) {
+            auto str_size = str.size_();
+            if (pos > str_size) {
+                throw std::out_of_range{this->exception_string_};
             }
-            count2 = (std::min)(count2, str.size() - pos2);
-            return replace(pos1, count1, str.data() + pos2, count2);
-        }
-
-        basic_string &replace(size_type pos1, size_type count1, size_type count, value_type ch) {
-            if (pos1 > this->size_) {
-                foundation::exceptions::logic::throw_out_of_range("Invalid position");
-            }
-            count1 = (std::min)(count1, this->size_ - pos1);
-
-            size_type new_size = this->size_ - count1 + count;
-            if (new_size <= this->capacity_) {
-                if (count1 != count) {
-                    traits_type::move(this->ptr() + pos1 + count, this->ptr() + pos1 + count1, this->size_ - pos1 - count1);
-                }
-                traits_type::assign(this->ptr() + pos1, count, ch);
-                this->size_ = new_size;
-                traits_type::assign(this->ptr()[new_size], value_type{});
-                return *this;
-            }
-
-            auto pair = allocate_for_new_memory(new_size);
-            auto new_ptr = pair.first;
-            auto new_capacity = pair.second;
-
-            traits_type::copy(new_ptr, this->data(), pos1);
-            traits_type::assign(new_ptr + pos1, count, ch);
-            traits_type::copy(new_ptr + pos1 + count, this->data() + pos1 + count1, this->size_ - pos1 - count1);
-            traits_type::assign(new_ptr[new_size], value_type{});
-
-            tidy_helper();
-            auto &storage = this->get_storage();
-            storage.ptr = new_ptr;
-            this->capacity_ = new_capacity;
-            this->size_ = new_size;
+            count = (core::min)(npos, (core::min)(str_size - pos, count));
+            auto str_begin = begin_();
+            assign_(str_begin + pos, str_begin + pos + count);
             return *this;
         }
 
-        basic_string &replace(iterator begin, iterator end, const value_type *ptr) {
-            return replace(begin - this->ptr(), end - begin, ptr);
-        }
-
-        basic_string &replace(iterator begin, iterator end, const basic_string &right) {
-            return replace(begin - this->ptr(), end - begin, right);
-        }
-
-        basic_string &replace(iterator begin, iterator end, const value_type *ptr, size_type count) {
-            return replace(begin - this->ptr(), end - begin, ptr, count);
-        }
-
-        basic_string &replace(iterator begin, iterator end, size_type count, value_type ch) {
-            return replace(begin - this->ptr(), end - begin, count, ch);
-        }
-
-        template <typename InputIterator>
-        basic_string &replace(iterator begin1, iterator end1, InputIterator begin2, InputIterator end2) {
-            return replace(begin1 - this->ptr(), end1 - begin1, &(*begin2), std::distance(begin2, end2));
-        }
-
-        basic_string &replace(iterator begin1, iterator end1, const_pointer begin2, const_pointer end2) {
-            return replace(begin1 - this->ptr(), end1 - begin1, begin2, end2 - begin2);
-        }
-
-        basic_string &replace(iterator begin1, iterator end1, const_iterator begin2, const_iterator end2) {
-            return replace(begin1 - this->ptr(), end1 - begin1, begin2, end2 - begin2);
-        }
-
-#pragma endregion
-
-#pragma region basic_string_starts_with_and_ends_with
-        bool starts_with(const value_type ch) const noexcept {
-            if (this->empty()) {
-                return false;
-            }
-            return traits_type::eq(&this->front(), ch);
-        }
-
-        bool starts_with(const CharType *const str) const noexcept {
-            size_type str_len = traits_type::length(str);
-            if (str_len > this->size_) {
-                return false;
-            }
-            return traits_type::compare(&this->front(), str, str_len) == 0;
-        }
-
-        bool starts_with(const std::basic_string_view<CharType, Traits> sv) const noexcept {
-            if (sv.size() > this->size_) {
-                return false;
-            }
-            return traits_type::compare(&this->front(), sv.data(), sv.size()) == 0;
-        }
-
-
-        bool ends_with(const value_type ch) const noexcept {
-            if (this->empty()) {
-                return false;
-            }
-            return traits_type::eq(&this->back(), ch);
-        }
-
-        bool ends_with(const CharType *const str) const noexcept {
-            size_type str_len = traits_type::length(str);
-            if (str_len > this->size_) {
-                return false;
-            }
-            return traits_type::compare(&this->back() - str_len + 1, str, str_len) == 0;
-        }
-
-        bool ends_with(const std::basic_string_view<CharType, Traits> sv) const noexcept {
-            if (sv.size() > this->size_) {
-                return false;
-            }
-            return traits_type::compare(&this->back() - sv.size() + 1, sv.data(), sv.size()) == 0;
-        }
-
-#pragma endregion
-
-#pragma region basic_string_find
-        size_type find(value_type ch, size_type offset = 0) const {
-            if (offset > this->size_) {
-                return npos;
-            }
-            const value_type *ptr = traits_type::find(this->ptr() + offset, this->size_ - offset, ch);
-            return ptr ? ptr - this->ptr() : npos;
-        }
-
-        size_type find(const value_type *str, size_type offset = 0) const {
-            return find(str, offset, traits_type::length(str));
-        }
-
-        size_type find(const value_type *str, size_type offset, size_type count) const {
-            if (str == nullptr || count == 0) {
-                return offset <= this->size_ ? offset : npos;
-            }
-            if (offset > this->size_) {
-                return npos;
-            }
-            if (count > this->size_ - offset) {
-                return npos;
-            }
-            const value_type *ptr = this->ptr() + offset;
-            const value_type *end = this->ptr() + this->size_ - count + 1;
-            for (; ptr < end; ++ptr) {
-                if (traits_type::compare(ptr, str, count) == 0) {
-                    return ptr - this->ptr();
+        constexpr basic_string &assign(basic_string &&other) noexcept {
+            if constexpr (allocator_traits::propagate_on_container_move_assignment::value) {
+                other.swap(*this);
+            } else {
+                if (this->allocator_ == other.allocator_) {
+                    other.swap_without_ator(*this);
+                } else {
+                    assign_(other.begin_(), other.end_());
                 }
             }
-            return npos;
-        }
 
-        size_type find(const basic_string &right, size_type offset = 0) const {
-            return find(right.data(), offset, right.size());
-        }
-
-        size_type find_first_of(value_type ch, size_type offset = 0) const {
-            return find(ch, offset);
-        }
-
-        size_type find_first_of(const value_type *str, size_type offset = 0) const {
-            return find_first_of(str, offset, traits_type::length(str));
-        }
-
-        size_type find_first_of(const value_type *str, size_type offset, size_type count) const {
-            if (str == nullptr || count == 0 || offset > this->size_) {
-                return npos;
-            }
-            for (size_type i = offset; i < this->size_; ++i) {
-                const value_type *ptr = traits_type::find(str, count, this->ptr()[i]);
-                if (ptr) {
-                    return i;
-                }
-            }
-            return npos;
-        }
-
-        size_type find_first_of(const basic_string &right, size_type offset = 0) const {
-            return find_first_of(right.data(), offset, right.size());
-        }
-
-        size_type find_first_not_of(value_type ch, size_type offset = 0) const {
-            if (offset > this->size_) {
-                return npos;
-            }
-            for (size_type i = offset; i < this->size_; ++i) {
-                if (!traits_type::eq(this->ptr()[i], ch)) {
-                    return i;
-                }
-            }
-            return npos;
-        }
-
-        size_type find_first_not_of(const value_type *str, size_type offset = 0) const {
-            return find_first_not_of(str, offset, traits_type::length(str));
-        }
-
-        size_type find_first_not_of(const value_type *str, size_type offset, size_type count) const {
-            if (offset > this->size_) {
-                return npos;
-            }
-            if (str == nullptr || count == 0) {
-                return offset;
-            }
-            for (size_type i = offset; i < this->size_; ++i) {
-                if (!traits_type::find(str, count, this->ptr()[i])) {
-                    return i;
-                }
-            }
-            return npos;
-        }
-
-        size_type find_first_not_of(const basic_string &right, size_type offset = 0) const {
-            return find_first_not_of(right.data(), offset, right.size());
-        }
-
-        size_type find_last_of(value_type ch, size_type offset = npos) const {
-            if (this->empty()) {
-                return npos;
-            }
-            if (offset >= this->size_) {
-                offset = this->size_ - 1;
-            }
-            for (size_type i = offset + 1; i > 0;) {
-                --i;
-                if (traits_type::eq(this->ptr()[i], ch)) {
-                    return i;
-                }
-            }
-            return npos;
-        }
-
-        size_type find_last_of(const value_type *str, size_type offset = npos) const {
-            return find_last_of(str, offset, traits_type::length(str));
-        }
-
-        size_type find_last_of(const value_type *str, size_type offset, size_type count) const {
-            if (this->empty() || str == nullptr || count == 0) {
-                return npos;
-            }
-            if (offset >= this->size_) {
-                offset = this->size_ - 1;
-            }
-            for (size_type i = offset + 1; i > 0;) {
-                --i;
-                if (traits_type::find(str, count, this->ptr()[i])) {
-                    return i;
-                }
-            }
-            return npos;
-        }
-
-        size_type find_last_of(const basic_string &right, size_type offset = npos) const {
-            return find_last_of(right.data(), offset, right.size());
-        }
-
-        size_type find_last_not_of(value_type ch, size_type offset = npos) const {
-            if (this->empty()) {
-                return npos;
-            }
-            if (offset >= this->size_) {
-                offset = this->size_ - 1;
-            }
-            for (size_type i = offset + 1; i > 0;) {
-                --i;
-                if (!traits_type::eq(this->ptr()[i], ch)) {
-                    return i;
-                }
-            }
-            return npos;
-        }
-
-        size_type find_last_not_of(const value_type *str, size_type offset = npos) const {
-            return find_last_not_of(str, offset, traits_type::length(str));
-        }
-
-        size_type find_last_not_of(const value_type *str, size_type offset, size_type count) const {
-            if (this->empty()) {
-                return npos;
-            }
-            if (offset >= this->size_) {
-                offset = this->size_ - 1;
-            }
-            if (str == nullptr || count == 0) {
-                return offset;
-            }
-            for (size_type i = offset + 1; i > 0;) {
-                --i;
-                if (!traits_type::find(str, count, this->ptr()[i])) {
-                    return i;
-                }
-            }
-            return npos;
-        }
-
-        size_type find_last_not_of(const basic_string &right, size_type offset = npos) const {
-            return find_last_not_of(right.data(), offset, right.size());
-        }
-
-        size_type rfind(value_type ch, size_type offset = npos) const {
-            if (this->empty()) {
-                return npos;
-            }
-            if (offset >= this->size_) {
-                offset = this->size_ - 1;
-            }
-            for (size_type i = offset + 1; i > 0;) {
-                --i;
-                if (traits_type::eq(this->ptr()[i], ch)) {
-                    return i;
-                }
-            }
-            return npos;
-        }
-
-        size_type rfind(const value_type *str, size_type offset = npos) const {
-            return rfind(str, offset, traits_type::length(str));
-        }
-
-        size_type rfind(const value_type* str, size_type offset, size_type count) const {
-            if (count == 0) {
-                return (offset <= this->size_) ? offset : this->size_;
-            }
-            if (count <= this->size_) {
-                offset = (std::min)(offset, this->size_ - count);
-                for (size_type i = offset + 1; i > 0;) {
-                    --i;
-                    if (traits_type::compare(this->data() + i, str, count) == 0) {
-                        return i;
-                    }
-                }
-            }
-            return npos;
-        }
-
-        size_type rfind(const basic_string &right, size_type offset = npos) const {
-            return rfind(right.data(), offset, right.size());
-        }
-
-#pragma endregion
-
-#pragma region basic_string_insert
-        basic_string &insert(size_type position, const value_type *ptr) {
-            return insert(position, ptr, traits_type::length(ptr));
-        }
-
-        basic_string &insert(size_type position, const value_type *ptr, size_type count) {
-            if (position > this->size_) {
-                foundation::exceptions::logic::throw_out_of_range("Invalid position");
-            }
-
-            size_type new_size = this->size_ + count;
-            if (new_size <= this->capacity_) {
-                traits_type::move(this->ptr() + position + count, this->ptr() + position, this->size_ - position);
-                traits_type::copy(this->ptr() + position, ptr, count);
-                this->size_ = new_size;
-                traits_type::assign(this->ptr()[new_size], value_type{});
-                return *this;
-            }
-            auto pair = allocate_for_new_memory(new_size);
-            auto new_ptr = pair.first;
-            auto new_capacity = pair.second;
-            traits_type::copy(new_ptr, this->data(), position);
-            traits_type::copy(new_ptr + position, ptr, count);
-            traits_type::copy(new_ptr + position + count, this->data() + position, this->size_ - position);
-            traits_type::assign(new_ptr[new_size], value_type{});
-            tidy_helper();
-            auto &storage = this->get_storage();
-            storage.ptr = new_ptr;
-            this->capacity_ = new_capacity;
-            this->size_ = new_size;
             return *this;
         }
 
-        basic_string &insert(size_type position, const basic_string &str) {
-            return insert(position, str.data(), str.size());
-        }
+        constexpr basic_string &assign(const CharType *s, size_type count) {
+            assign_(s, s + count);
 
-        basic_string &insert(size_type position, const basic_string &str, size_type offset, size_type count) {
-            if (offset > str.size()) {
-                foundation::exceptions::logic::throw_out_of_range("Invalid offset");
-            }
-            count = (std::min)(count, str.size() - offset);
-            return insert(position, str.data() + offset, count);
-        }
-
-        basic_string &insert(size_type position, size_type count, value_type char_value) {
-            if (position > this->size_) {
-                foundation::exceptions::logic::throw_out_of_range("Invalid position");
-            }
-
-            size_type new_size = this->size_ + count;
-            if (new_size <= this->capacity_) {
-                traits_type::move(this->ptr() + position + count, this->ptr() + position, this->size_ - position);
-                traits_type::assign(this->ptr() + position, count, char_value);
-                this->size_ = new_size;
-                traits_type::assign(this->ptr()[new_size], value_type{});
-                return *this;
-            }
-
-            auto pair = allocate_for_new_memory(new_size);
-            auto new_ptr = pair.first;
-            auto new_capacity = pair.second;
-
-            traits_type::copy(new_ptr, this->data(), position);
-            traits_type::assign(new_ptr + position, count, char_value);
-            traits_type::copy(new_ptr + position + count, this->data() + position, this->size_ - position);
-            traits_type::assign(new_ptr[new_size], value_type{});
-
-            tidy_helper();
-            auto &storage = this->get_storage();
-            storage.ptr = new_ptr;
-            this->capacity_ = new_capacity;
-            this->size_ = new_size;
             return *this;
         }
 
-        iterator insert(iterator iter, value_type char_value) {
-            size_type pos = iter - this->ptr();
-            insert(pos, 1, char_value);
-            return this->ptr() + pos;
+        constexpr basic_string &assign(const CharType *s) {
+            assign_(s, s + c_style_string_length_(s));
+
+            return *this;
         }
 
-        template <typename InputIterator>
-        void insert(iterator iter, InputIterator first, InputIterator last) {
-            size_type pos = iter - this->ptr();
-            size_type count = std::distance(first, last);
-            insert(pos, &(*first), count);
+        template <class InputIt>
+            requires std::input_iterator<InputIt>
+        constexpr basic_string &assign(InputIt first, InputIt last) {
+            resize_(0);
+
+            return append(first, last);
         }
 
-        void insert(iterator iter, size_type count, value_type char_value) {
-            size_type pos = iter - this->ptr();
-            insert(pos, count, char_value);
+        constexpr basic_string &assign(std::initializer_list<CharType> ilist) {
+            auto data = ilist.begin();
+            assign_(data, data + ilist.size());
+            return *this;
         }
 
-        void insert(iterator iter, const_pointer first, const_pointer last) {
-            size_type pos = iter - this->ptr();
-            insert(pos, first, last - first);
+        // clang-format off
+        template <class StringViewLike>
+            requires std::is_convertible_v<const StringViewLike&, std::basic_string_view<CharType, Traits>> && (!std::is_convertible_v<const StringViewLike&, const CharType*>)
+        basic_string& assign(const StringViewLike& t)
+        {
+            std::basic_string_view<CharType, Traits> sv = t;
+            auto data = sv.data();
+            assign_(data, data + sv.size());
+
+            return *this;
         }
 
-        void insert(iterator iter, const_iterator first, const_iterator last) {
-            size_type pos = iter - this->ptr();
-            insert(pos, first, last - first);
-        }
-        #pragma endregion
+        template <class StringViewLike>
+            requires std::is_convertible_v<const StringViewLike&, std::basic_string_view<CharType, Traits>> && (!std::is_convertible_v<const StringViewLike&, const CharType*>)
+        constexpr basic_string& assign(const StringViewLike& t, size_type pos, size_type count = npos)
+        {
+            std::basic_string_view<CharType, Traits> sv = t;
+            auto sv_size = sv.size();
 
-        RAINY_CONSTEXPR20 void swap(basic_string &right) noexcept {
-            if (this == &right) {
-                return;
-            }
-            if (!this->is_local() && !right.is_local()) {
-                auto &this_resources = this->get_storage();
-                auto &right_resources = right.get_storage();
-                std::swap(this_resources.ptr, right_resources.ptr);
-                std::swap(this->size_, right.size_);
-                std::swap(this->capacity_, right.capacity_);
-                return;
-            }
-            if (this->is_local() && right.is_local()) {
-                value_type temp[internal_storage::SMALL_BUFFER_SIZE]{};
-                traits_type::copy(temp, this->data(), this->size_ + 1);
-                traits_type::copy(this->ptr(), right.data(), right.size_ + 1);
-                traits_type::copy(right.ptr(), temp, this->size_ + 1);
-                std::swap(this->size_, right.size_);
-                std::swap(this->capacity_, right.capacity_);
-                return;
-            }
-            basic_string *sso_string = this->is_local() ? this : &right;
-            basic_string *heap_string = this->is_local() ? &right : this;
-            value_type temp[internal_storage::SMALL_BUFFER_SIZE]{};
-            traits_type::copy(temp, sso_string->data(), sso_string->size_ + 1);
-            size_type sso_size = sso_string->size_;
-            size_type sso_capacity = sso_string->capacity_;
-            auto &heap_resources = heap_string->get_storage();
-            auto &sso_resources = sso_string->get_storage();
-            sso_resources.ptr = heap_resources.ptr;
-            sso_string->size_ = heap_string->size_;
-            sso_string->capacity_ = heap_string->capacity_;
-            traits_type::copy(heap_string->ptr(), temp, sso_size + 1);
-            heap_string->size_ = sso_size;
-            heap_string->capacity_ = sso_capacity;
-            heap_resources.ptr = nullptr;
+            if (pos > sv_size)
+                throw std::out_of_range{ this->exception_string_ };
+
+            count = (core::min)(npos, (core::min)(sv_size - pos, count));
+            auto data = sv.data();
+            assign_(data + pos, data + pos + count);
+
+            return *this;
         }
 
-        RAINY_CONSTEXPR20 void clear() {
-            assign(this->capacity(), value_type{});
-            this->size_ = 0;
+        basic_string(std::nullptr_t) = delete;
+        constexpr basic_string &operator=(std::nullptr_t) = delete;
+
+        constexpr basic_string &operator=(basic_string &&other) noexcept(
+            std::allocator_traits<Allocator>::propagate_on_container_move_assignment::value ||
+            std::allocator_traits<Allocator>::is_always_equal::value) {
+            return assign(utility::move(other));
         }
 
-        RAINY_CONSTEXPR20 void resize(size_type count, value_type ch = value_type{}) {
-            if (count <= this->size_) {
-                this->size_ = count;
-                traits_type::assign(this->ptr()[count], value_type{});
-                return;
-            }
-            if (count <= this->capacity_) {
-                traits_type::assign(this->ptr() + this->size_, count - this->size_, ch);
-                this->size_ = count;
-                traits_type::assign(this->ptr()[count], value_type{});
-                return;
-            }
-            auto pair = allocate_for_new_memory(count);
-            auto new_ptr = pair.first;
-            auto new_capacity = pair.second;
-            traits_type::copy(new_ptr, this->data(), this->size_);
-            traits_type::assign(new_ptr + this->size_, count - this->size_, ch);
-            traits_type::assign(new_ptr[count], value_type{});
-            tidy_helper();
-            auto &storage = this->get_storage();
-            storage.ptr = new_ptr;
-            this->capacity_ = new_capacity;
-            this->size_ = count;
+        constexpr basic_string &operator=(const basic_string &str) {
+            return assign(str);
         }
 
-        RAINY_CONSTEXPR20 void reserve(size_type count = 0) {
-            if (count == 0) {
-                if (this->size_ < internal_storage::SMALL_BUFFER_SIZE) {
-                    this->activate_sso_buffer();
+        constexpr basic_string &operator=(const CharType *s) {
+            return assign(s);
+        }
+
+        constexpr basic_string &operator=(CharType ch) {
+            resize_(1);
+            (*begin_()) = ch;
+
+            return *this;
+        }
+
+        constexpr basic_string &operator=(std::initializer_list<CharType> ilist) {
+            return assign(ilist);
+        }
+
+        template <class StringViewLike>
+            requires std::is_convertible_v<const StringViewLike&, std::basic_string_view<CharType, Traits>> && (!std::is_convertible_v<const StringViewLike&, const CharType*>)
+        constexpr basic_string& operator=(const StringViewLike& t)
+        {
+            return assign(t);
+        }
+
+        friend constexpr std::strong_ordering operator<=>(basic_string const &left, basic_string const &right) noexcept {
+            auto lsize = left.size_();
+            auto rsize = right.size_();
+            if (std::is_constant_evaluated()) {
+                for (auto begin = left.begin_(), end = begin + (core::min)(lsize, rsize), start = right.begin_(); begin != end;
+                     ++begin, ++start) {
+                    if (*begin > *start)
+                        return std::strong_ordering::greater;
+                    else if (*begin < *start)
+                        return std::strong_ordering::less;
                 }
-                return;
+                if (lsize > rsize)
+                    return std::strong_ordering::greater;
+                else if (lsize < rsize)
+                    return std::strong_ordering::less;
+
+                return std::strong_ordering::equal;
+            } else {
+                auto res = basic_string::traits_type::compare(left.begin_(), right.begin_(), (core::min)(rsize, lsize));
+                if (res > 0)
+                    return std::strong_ordering::greater;
+                else if (res < 0)
+                    return std::strong_ordering::less;
+
+                if (lsize > rsize)
+                    return std::strong_ordering::greater;
+                else if (lsize < rsize)
+                    return std::strong_ordering::less;
+                else
+                    return std::strong_ordering::equal;
             }
-            if (count <= this->capacity_) {
-                return;
+        }
+
+        friend constexpr std::strong_ordering operator<=>(basic_string const &left, CharType const *right) noexcept {
+            auto start = right;
+            auto rsize = basic_string::c_style_string_length_(start);
+            auto lsize = left.size_();
+            if (std::is_constant_evaluated()) {
+                for (auto begin = left.begin_(), end = begin + (core::min)(lsize, rsize); begin != end; ++begin, ++start) {
+                    if (*begin > *start)
+                        return std::strong_ordering::greater;
+                    else if (*begin < *start)
+                        return std::strong_ordering::less;
+                }
+
+                if (lsize > rsize)
+                    return std::strong_ordering::greater;
+                else if (lsize < rsize)
+                    return std::strong_ordering::less;
+                else
+                    return std::strong_ordering::equal;
+            } else {
+                auto res = basic_string::traits_type::compare(left.begin_(), start, (core::min)(rsize, lsize));
+                if (res > 0)
+                    return std::strong_ordering::greater;
+                else if (res < 0)
+                    return std::strong_ordering::less;
+
+                if (lsize > rsize)
+                    return std::strong_ordering::greater;
+                else if (lsize < rsize)
+                    return std::strong_ordering::less;
+                else
+                    return std::strong_ordering::equal;
             }
-            auto pair = allocate_for_new_memory(count);
-            auto new_ptr = pair.first;
-            auto new_capacity = pair.second;
-            traits_type::copy(new_ptr, this->data(), this->size_);
-            traits_type::assign(new_ptr[this->size_], value_type{});
-            tidy_helper();
-            auto &storage = this->get_storage();
-            storage.ptr = new_ptr;
-            this->capacity_ = new_capacity;
         }
 
-        RAINY_CONSTEXPR20 void shrink_to_fit() {
-            if (this->size_ == this->capacity_ || this->is_local()) {
-                return;
+        friend constexpr bool operator==(basic_string const &left, basic_string const &right) noexcept {
+            auto lsize = left.size_();
+            auto rsize = right.size_();
+            if (lsize != rsize) {
+                return false;
             }
-            if (this->size_ < internal_storage::SMALL_BUFFER_SIZE) {
-                this->activate_sso_buffer();
-            }
-            auto &allocator = this->instance_data.get_first();
-            pointer new_ptr = allocator.allocate(this->size_ + 1);
-            traits_type::copy(new_ptr, this->data(), this->size_);
-            traits_type::assign(new_ptr[this->size_], value_type{});
-            tidy_helper();
-            auto &storage = this->get_storage();
-            storage.ptr = new_ptr;
-            this->capacity_ = this->size_;
-        }
+#if RAINY_HAS_CXX20
+            if (std::is_constant_evaluated()) {
+                for (auto begin = left.begin_(), end = begin + (core::min)(lsize, rsize), start = right.begin_(); begin != end;
+                     ++begin, ++start) {
+                    if (*begin != *start)
+                        return false;
+                }
 
-        RAINY_CONSTEXPR20 void push_back(const value_type ch) {
-            size_type new_size = this->size_ + 1;
-            if (new_size <= this->capacity()) {
-                traits_type::assign(this->ptr()[this->size_], ch);
-                this->size_ = new_size;
-                traits_type::assign(this->ptr()[new_size], value_type{});
-                return;
-            }
-            auto pair = allocate_for_new_memory(new_size);
-            auto new_ptr = pair.first;
-            auto new_capacity = pair.second;
-            traits_type::copy(new_ptr, this->data(), this->size_);
-            traits_type::assign(new_ptr[this->size_], ch);
-            traits_type::assign(new_ptr[new_size], value_type{});
-            tidy_helper();
-            auto &storage = this->get_storage();
-            storage.ptr = new_ptr;
-            this->capacity_ = new_capacity;
-            this->size_ = new_size;
-        }
-
-        RAINY_CONSTEXPR20 void pop_back() {
-            if (this->empty()) {
-                return;
-            }
-            traits_type::assign(this->ptr()[this->size_--], value_type{});
-        }
-
-        template <typename Pred>
-        RAINY_CONSTEXPR20 basic_string &transform(const Pred &pred) {
-            if (this->empty()) {
-                return *this;
-            }
-            auto it_begin = this->data();
-            auto it_end = this->data() + this->size();
-            core::algorithm::transform(it_begin, it_end, it_begin, pred);
-            return *this;
-        }
-
-        basic_string &to_uppper() {
-            return transform([](const value_type &ch) { return std::toupper(ch); });
-        }
-
-        basic_string &to_lower() {
-            return transform([](const value_type &ch) { return std::tolower(ch); });
-        }
-
-        basic_string &trimmed() {
-            if (this->empty()) {
-                return *this;
-            }
-            erase(this->begin(), std::find_if(this->begin(), this->end(), [](const value_type ch) { return !std::isspace(ch); }));
-            erase(std::find_if(this->rbegin(), this->rend(), [](const value_type ch) { return !std::isspace(ch); }).base(),
-                  this->end());
-            return *this;
-        }
-
-        static basic_string from_std_string(const std::string &standard_str) {
-            if (standard_str.empty()) {
-                return {};
-            }
-            return basic_string(standard_str);
-        }
-
-        RAINY_CONSTEXPR20 basic_string substr(size_type pos = 0, size_type count = npos) const {
-            return basic_string{utility::move(*this), pos, count};
-        }
-
-        bool contains(value_type ch) const noexcept {
-            if (ch == '\0') {
                 return true;
+            } else
+#endif
+            {
+                return !basic_string::traits_type::compare(left.begin_(), right.begin_(), (core::min)(rsize, lsize));
             }
-            if (this->empty()) {
+        }
+
+        friend constexpr bool operator==(basic_string const &left, CharType const *right) noexcept {
+            auto start = right;
+            auto rsize = basic_string::c_style_string_length_(start);
+            auto lsize = left.size_();
+            if (lsize != rsize) {
                 return false;
             }
-            return find(ch) != npos;
-        }
+#if RAINYH_HAS_CXX20
+            if std::is_constant_evaluated()) {
+                for (auto begin = left.begin_(), end = begin + (core::min)(lsize, rsize); begin != end; ++begin, ++start) {
+                    if (*begin != *start)
+                        return false;
+                }
 
-        bool contains(const_pointer str) const noexcept {
-            if (!str || this->empty()) {
-                return false;
+                return true;
+            } else
+#endif
+            {
+                return !basic_string::traits_type::compare(left.begin_(), start, (core::min)(rsize, lsize));
             }
-            return find(str) != npos;
         }
 
-        bool contains(const basic_string &right) const noexcept {
-            if (right.empty()) {
-                return false;
+        // ********************************* begin append ******************************
+
+    private:
+        constexpr void append_(CharType const *first, CharType const *last) {
+            auto length = last - first;
+            auto size = this->size_();
+            reserve(size + length);
+            auto end = begin_() + size;
+
+#if RAINY_HAS_CXX20
+            if (std::is_constant_evaluated()) {
+                std::copy(first, last, end);
+            } else
+#endif
+            {
+                traits_type::copy(end, first, static_cast<std::size_t>(length));
             }
-            return find(right) != npos;
+
+            resize_(size + length);
         }
 
-        template <typename StdTraits>
-        bool contains(std::basic_string_view<CharType, StdTraits> sv) const noexcept {
-            return find(sv.data()) != npos;
+    public:
+        constexpr basic_string &append(size_type count, CharType ch) {
+            auto size = this->size_();
+            reserve(size + count);
+            auto end = begin_() + size;
+            std::fill(end, end + count, ch);
+            resize_(size + count);
+
+            return *this;
         }
 
-        pointer to_char_array() noexcept {
-            return &this->ptr()[0];
+        constexpr basic_string &append(const CharType *s, size_type count) {
+            append_(s, s + count);
+            return *this;
         }
 
-        const_pointer to_char_array() const noexcept {
-            return &this->ptr()[0];
+        constexpr basic_string &append(const basic_string &str) {
+            auto begin = str.begin_();
+            append_(begin, begin + str.size_());
+            return *this;
         }
 
-        void sync_length() noexcept {
-            this->size_ = traits_type::length(this->ptr());
+        constexpr basic_string &append(const basic_string &str, size_type pos, size_type count = npos) {
+            auto str_size = str.size_();
+            if (pos > str_size)
+                throw std::out_of_range{this->exception_string_};
+
+            count = (core::min)(npos, (core::min)(str_size - pos, count));
+
+            return append(str.begin_() + pos, count);
         }
 
-        template <typename Elem_, typename Traits_>
-        friend std::basic_ostream<Elem_, Traits_> &operator<<(std::basic_ostream<Elem_, Traits_> &ostream,
-                                                     const basic_string &str) {
-            ostream.write(str.c_str(), str.size());
-            return ostream;
+        constexpr basic_string &append(const CharType *s) {
+            append_(s, s + c_style_string_length_(s));
+
+            return *this;
         }
 
-        friend bool operator==(const basic_string &left, const basic_string &right) {
-            return left.compare(right) == 0;
+        constexpr basic_string &append(std::initializer_list<CharType> ilist) {
+            auto data = std::data(ilist);
+            append_(data, data + ilist.size());
+
+            return *this;
         }
 
-        friend bool operator!=(const basic_string &left, const basic_string &right) {
-            return left.compare(right) != 0;
+        template <class StringViewLike>
+            requires std::is_convertible_v<const StringViewLike&, std::basic_string_view<CharType, Traits>> && (!std::is_convertible_v<const StringViewLike&, const CharType*>)
+        constexpr basic_string& append(const StringViewLike& t)
+        {
+            std::basic_string_view<CharType, Traits> sv = t;
+            auto data = sv.data();
+            append_(data, data + sv.size());
+
+            return *this;
         }
 
-        basic_string &operator+=(const_pointer str) {
+        template <class StringViewLike>
+            requires std::is_convertible_v<const StringViewLike&, std::basic_string_view<CharType, Traits>> && (!std::is_convertible_v<const StringViewLike&, const CharType*>)
+        constexpr basic_string& append(const StringViewLike& t, size_type pos, size_type count = npos)
+        {
+            std::basic_string_view<CharType, Traits> sv = t;
+            auto sv_size = sv.size();
+
+            if (pos > sv_size)
+                throw std::out_of_range{ this->exception_string_ };
+
+            count = (core::min)(npos, (core::min)(sv_size - count, count));
+
+            return append(sv.data() + pos, count);
+        }
+
+        template <class StringViewLike>
+            requires std::is_convertible_v<const StringViewLike&, std::basic_string_view<CharType, Traits>> && (!std::is_convertible_v<const StringViewLike&, const CharType*>)
+        constexpr basic_string& operator+=(const StringViewLike& t)
+        {
+            return append(t);
+        }
+
+        constexpr basic_string &operator+=(const basic_string &str) {
             return append(str);
         }
 
-        basic_string &operator+=(const basic_string& right) {
-            return append(right);
+        constexpr basic_string &operator+=(CharType ch) {
+            return push_back(ch);
         }
 
-        basic_string &operator+=(value_type ch) {
-            push_back(ch);
+        constexpr basic_string &operator+=(const CharType *s) {
+            return append(s);
+        }
+
+        constexpr basic_string &operator+=(std::initializer_list<CharType> ilist) {
+            return append(ilist);
+        }
+
+    private:
+        constexpr bool static equal_(CharType const *begin, CharType const *end, CharType const *first, CharType const *last) noexcept {
+            if (last - first != end - begin)
+                return false;
+
+            for (; begin != end; ++begin, ++first) {
+                if (*first != *begin) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+    public:
+        constexpr bool starts_with(std::basic_string_view<CharType, Traits> sv) const noexcept {
+            auto sv_size = sv.size();
+            auto data = sv.data();
+            auto begin = begin_();
+
+            if (sv_size > this->size_())
+                return false;
+
+            return equal_(data, data + sv_size, begin, begin + sv_size);
+        }
+
+        constexpr bool starts_with(CharType ch) const noexcept {
+            return *begin_() == ch;
+        }
+
+        constexpr bool starts_with(const CharType *s) const {
+            auto length = c_style_string_length_(s);
+            auto begin = begin_();
+
+            if (length > this->size_())
+                return false;
+
+            return equal_(s, s + length, begin, begin + length);
+        }
+
+        constexpr bool ends_with(std::basic_string_view<CharType, Traits> sv) const noexcept {
+            auto sv_size = sv.size();
+            auto sv_data = sv.data();
+            auto end = end_();
+
+            if (sv_size > this->size_())
+                return false;
+
+            return equal_(sv_data, sv_data + sv_size, end - sv_size, end);
+        }
+
+        constexpr bool ends_with(CharType ch) const noexcept {
+            return *(end_() - 1) == ch;
+        }
+
+        constexpr bool ends_with(CharType const *s) const {
+            auto length = c_style_string_length_(s);
+
+            if (length > this->size_())
+                return false;
+
+            auto end = end_();
+
+            return equal_(s, s + length, end - length, end);
+        }
+
+#if defined(__cpp_lib_string_contains) && (__cpp_lib_string_contains >= 202011L)
+        constexpr bool contains(std::basic_string_view<CharType, Traits> sv) const noexcept {
+            auto size = sv.size();
+            auto begin = begin_();
+            auto data = sv.data();
+
+            if (this->size_() < size)
+                return false;
+
+            // opti for starts_with
+            if (equal_(begin, begin + size, data, data + size))
+                return true;
+
+            return std::basic_string_view<CharType, Traits>{begin + 1, begin + size}.contains(sv);
+        }
+
+        constexpr bool contains(CharType ch) const noexcept {
+            for (auto begin = begin_(), end = end_(); begin != end; ++begin) {
+                if (*begin == ch)
+                    return true;
+            }
+
+            return false;
+        }
+
+        constexpr bool contains(const CharType *s) const noexcept {
+            return std::basic_string_view<CharType, Traits>{begin_(), end_()}.contains(
+                std::basic_string_view<CharType, Traits>{s, s + c_style_string_length_(s)});
+        }
+#endif
+
+        // ********************************* begin insert ******************************
+
+        constexpr basic_string &insert(size_type index, size_type count, CharType ch) {
+            auto size = this->size_();
+
+            if (index > size)
+                throw std::out_of_range{this->exception_string_};
+
+            reserve(size + count);
+            auto start = begin_() + index;
+            auto end = start + size - index;
+            auto last = end + count;
+
+            if (std::is_constant_evaluated()) {
+                std::copy_backward(start, end, last);
+                std::fill(start, start + count, ch);
+            } else {
+                std::memmove(end, start, count * sizeof(CharType));
+                std::fill(start, start + count, ch);
+            }
+
+            resize_(size + count);
+
+            return *this;
+        }
+
+        constexpr basic_string &insert(size_type index, const CharType *s, size_type count) {
+            insert_(index, s, s + count);
+
+            return *this;
+        }
+
+        constexpr basic_string &insert(size_type index, const CharType *s) {
+            insert_(index, s, s + c_style_string_length_(s));
+
+            return *this;
+        }
+
+        constexpr basic_string &insert(size_type index, const basic_string &str) {
+            insert_(index, str.begin_(), str.end_());
+
+            return *this;
+        }
+
+        constexpr basic_string &insert(size_type index, const basic_string &str, size_type s_index, size_type count = npos) {
+            auto s_size = str.size_();
+
+            if (s_index > s_size){
+                throw std::out_of_range{this->exception_string_};
+            }
+
+            count = (core::min)(npos, (core::min)(s_size - s_index, count));
+            auto s_start = str.begin_() + s_index;
+            insert_(index, s_start, s_start + count);
+            return *this;
+        }
+
+        constexpr iterator insert(const_iterator pos, CharType ch) {
+            auto size = this->size_();
+            auto start = pos.base().current_;
+            auto end = end_();
+            auto index = start - begin_();
+            reserve(size + 1);
+            auto begin = begin_();
+            end = begin + size;
+            start = begin + index;
+            if (std::is_constant_evaluated()) {
+                std::copy_backward(start, end, end + 1);
+            } else {
+                traits_type::move(start + 1, start, end - start);
+            }
+            *start = ch;
+            resize_(size + 1);
+#ifndef NDEBUG
+            return {start, this};
+#else
+            return {start};
+#endif
+        }
+
+        constexpr iterator insert(const_iterator pos, size_type count, CharType ch) {
+            auto start = pos.base().current_;
+            auto index = start - begin_();
+            insert(index, count, ch);
+#ifndef NDEBUG
+            return {start, this};
+#else
+            return {start};
+#endif
+        }
+
+        /**
+         * @brief this function use a temp basic_string, so it can't decl in class decl
+         */
+        template <class InputIt>
+            requires std::input_iterator<InputIt>
+        constexpr iterator insert(const_iterator pos, InputIt first, InputIt last) {
+            assert(("pos isn't in this string", pos.base().current_ >= begin_() && pos.base().current_ <= end_()));
+
+            auto size = this->size_();
+            auto start = pos.base().current_;
+            auto end = end_();
+            auto index = start - begin_();
+
+            if constexpr (std::random_access_iterator<InputIt>) {
+                auto length = std::distance(first, last);
+                reserve(size + length);
+                auto begin = begin_();
+                std::copy_backward(begin + index, begin + size, begin + size + length);
+                std::ranges::copy(first, last, begin + index);
+                resize_(size + length);
+            } else {
+                basic_string temp{start, end};
+                resize_(pos - begin_());
+                for (; first != last; ++first)
+                    push_back(*first);
+                append_(temp.begin_(), temp.end_());
+            }
+
+#ifndef NDEBUG
+            return {start, this};
+#else
+            return {start};
+#endif
+        }
+
+        constexpr iterator insert(const_iterator pos, std::initializer_list<CharType> ilist) {
+            auto i_data = std::data(ilist);
+            auto start = pos.base().current_;
+
+            insert_(start - begin_(), i_data, i_data + ilist.size());
+
+#ifndef NDEBUG
+            return {start, this};
+#else
+            return {start};
+#endif
+        }
+
+        // clang-format off
+        template <class StringViewLike>
+            requires std::is_convertible_v<const StringViewLike&, std::basic_string_view<CharType, Traits>> && (!std::is_convertible_v<const StringViewLike&, const CharType*>)
+        constexpr basic_string& insert(size_type pos, const StringViewLike& t)
+        {
+            std::basic_string_view<CharType, Traits> sv = t;
+            auto sv_data = sv.data();
+            insert_(pos, sv_data, sv_data + sv.size());
+
+            return *this;
+        }
+
+        template <class StringViewLike>
+            requires std::is_convertible_v<const StringViewLike&, std::basic_string_view<CharType, Traits>> && (!std::is_convertible_v<const StringViewLike&, const CharType*>)
+        constexpr basic_string& insert(size_type pos, const StringViewLike& t, size_type t_index, size_type count = npos)
+        {
+            std::basic_string_view<CharType, Traits> sv = t;
+            auto sv_size = sv.size();
+            auto size = this->size_();
+
+            if (t_index > sv_size)
+                throw std::out_of_range{ this->exception_string_ };
+
+            count = (core::min)(npos, (core::min)(sv_size - t_index, count));
+            auto sv_data = sv.data();
+            insert_(pos, sv_data + t_index, sv_data + t_index + count);
+
+            return *this;
+        }
+
+        // clang-format on
+
+        // ********************************* begin erase ******************************
+
+    private:
+
+    public:
+        constexpr basic_string &erase(size_type index = 0, size_type count = npos) {
+            auto size = this->size_();
+
+            if (index > size)
+                throw std::out_of_range{this->exception_string_};
+
+            count = (core::min)(npos, (core::min)(size - index, count));
+            auto start = begin_() + index;
+            erase_(start, start + count);
+
+            return *this;
+        }
+
+        constexpr iterator erase(const_iterator position) noexcept {
+            auto start = position.base().current_;
+            erase_(start, start + 1);
+
+#ifndef NDEBUG
+            return {start, this};
+#else
+            return {start};
+#endif
+        }
+
+        constexpr iterator erase(const_iterator first, const_iterator last) noexcept {
+            auto start = first.base().current_;
+            erase_(start, last.base().current_);
+
+#ifndef NDEBUG
+            return {start, this};
+#else
+            return {start};
+#endif
+        }
+
+        // ********************************* begin pop_back ******************************
+
+        constexpr void pop_back() noexcept {
+            assert(("string is empty", !this->is_empty_()));
+            resize_(this->size_() - 1);
+        }
+
+        // ********************************* begin replace ******************************
+
+        constexpr basic_string &replace(size_type pos, size_type count, const basic_string &str) {
+            replace_(pos, count, str.begin_(), str.end_());
+
+            return *pos;
+        }
+
+        constexpr basic_string &replace(const_iterator first, const_iterator last, const basic_string &str) {
+            auto start = first.base().current_;
+            replace_(start - begin_(), last - first, str.begin_(), str.end_());
+
+            return *this;
+        }
+
+        constexpr basic_string &replace(size_type pos, size_type count, const basic_string &str, size_type pos2,
+                                        size_type count2 = npos) {
+            auto str_size = str.size_();
+
+            if (pos2 > str_size)
+                throw std::out_of_range{this->exception_string_};
+
+            count2 = (core::min)(npos, (core::min)(count2, str_size - pos2));
+            auto begin = str.begin_();
+            replace_(pos, count, begin + count2, begin + count2 + pos2);
+
+            return *this;
+        }
+
+        constexpr basic_string &replace(size_type pos, size_type count, const CharType *cstr, size_type count2) {
+            replace_(pos, count, cstr, cstr + count2);
+
+            return *this;
+        }
+
+        constexpr basic_string &replace(const_iterator first, const_iterator last, const CharType *cstr, size_type count2) {
+            auto start = first.base().current_;
+            replace_(start - begin_(), last - first, cstr, cstr + count2);
+
+            return *this;
+        }
+
+        constexpr basic_string &replace(size_type pos, size_type count, const CharType *cstr) {
+            replace_(pos, count, cstr, cstr + c_style_string_length_(cstr));
+
+            return *pos;
+        }
+
+        constexpr basic_string &replace(const_iterator first, const_iterator last, const CharType *cstr) {
+            auto start = first.base().current_;
+            replace_(start - begin_(), last - first, cstr, cstr + c_style_string_length_(cstr));
+
+            return *this;
+        }
+
+        constexpr basic_string &replace(const_iterator first, const_iterator last, std::initializer_list<CharType> ilist) {
+            auto data = std::data(ilist);
+            auto start = first.base().current_;
+            replace_(start - begin_(), last - first, data, data + ilist.size());
+
+            return *this;
+        }
+
+        template <class StringViewLike>
+            requires std::is_convertible_v<const StringViewLike &, std::basic_string_view<CharType, Traits>> &&
+                     (!std::is_convertible_v<const StringViewLike &, const CharType *>)
+        constexpr basic_string &replace(size_type pos, size_type count, const StringViewLike &t) {
+            std::basic_string_view<CharType, Traits> sv = t;
+            auto data = sv.data();
+            replace_(pos, count, data, data + sv.size());
+
+            return *this;
+        }
+
+        template <class StringViewLike>
+            requires std::is_convertible_v<const StringViewLike &, std::basic_string_view<CharType, Traits>> &&
+                     (!std::is_convertible_v<const StringViewLike &, const CharType *>)
+        constexpr basic_string &replace(const_iterator first, const_iterator last, const StringViewLike &t) {
+            std::basic_string_view<CharType, Traits> sv = t;
+            auto sv_data = sv.data();
+            auto start = first.base().current_;
+            replace_(start - begin_(), last - first, sv_data, sv_data + sv.size());
+
+            return *this;
+        }
+
+        template <class StringViewLike>
+            requires std::is_convertible_v<const StringViewLike &, std::basic_string_view<CharType, Traits>> &&
+                     (!std::is_convertible_v<const StringViewLike &, const CharType *>)
+        basic_string &replace(size_type pos, size_type count, const StringViewLike &t, size_type pos2, size_type count2 = npos) {
+            std::basic_string_view<CharType, Traits> sv = t;
+            auto sv_size = sv.size();
+
+            if (pos2 > sv_size)
+                throw std::out_of_range{this->exception_string_};
+
+            count2 = (core::min)(npos, (core::min)(sv_size - pos2, count2));
+
+            auto data = sv.data();
+            replace_(pos, count, data + pos2, data + pos2 + count2);
+
+            return *this;
+        }
+
+        constexpr basic_string &replace(size_type pos, size_type count, size_type count2, CharType ch) {
+            basic_string temp{count2, ch};
+            auto begin = begin_();
+            replace_(pos, count, begin, begin + count2);
+
+            return *this;
+        }
+
+        constexpr basic_string &replace(const_iterator first, const_iterator last, size_type count2, CharType ch) {
+            basic_string temp{count2, ch};
+            auto begin = begin_();
+            auto start = first.base().current_;
+            replace_(start - begin_(), last - first, begin, begin + count2);
+
+            return *this;
+        }
+
+        template <typename InputIt,
+                  std::enable_if_t<std::is_base_of<std::input_iterator_tag,
+                                                 typename std::iterator_traits<InputIt>::iterator_category>::value,int> = 0>
+        constexpr 
+            basic_string &replace(const_iterator first, const_iterator last, InputIt first2, InputIt last2) {
+            auto start = first.base().current_;
+            using category = typename std::iterator_traits<InputIt>::iterator_category;
+            if (std::is_base_of<std::random_access_iterator_tag, category>::value) {
+                auto data = std::addressof(*first2);
+                auto length2 = std::distance(first2, last2);
+                replace_(start - begin_(), last - first, data, data + length2);
+            } else {
+                basic_string temp{first2, last2};
+                auto temp_begin = temp.begin_();
+                auto temp_size = temp.size_();
+                replace_(start - begin_(), last - first, temp_begin, temp_begin + temp_size);
+            }
             return *this;
         }
 
     private:
-#pragma region basic_string_impl
-        using internal_storage = implements::basic_string_storage<CharType, Traits, Alloc>;
-
-        RAINY_CONSTEXPR20 void tidy_helper() {
-            auto &allocator = this->instance_data.get_first();
-            auto &storage = this->get_storage();
-            if (!this->empty() && !this->is_local()) {
-                allocator.deallocate(storage.ptr, this->capacity());
-            }
-            this->activate_sso_buffer();
-        }
-
-        enum class construct_strategy {
-            from_container,
-            from_char,
-            from_ptr,
-            empty
-        };
-
-        static inline constexpr std::size_t border_less = 3;
-
-        static constexpr inline int border_calc(std::size_t start, std::size_t end, std::size_t value) {
-            return core::implements::in_range(start + border_less, end - border_less, value)
-                       ? 0
-                       : (value < start + border_less ? -1 : 1);
-        }
-
-        RAINY_NODISCARD RAINY_CONSTEXPR20 std::size_t calc_growth(std::size_t request) {
-            constexpr collections::array string_allocation_tables({
-                utility::make_pair(utility::make_pair(257ul, 512ul), 1.50f),
-                utility::make_pair(utility::make_pair(129ul, 256ul), 1.42f),
-                utility::make_pair(utility::make_pair(65ul, 128ul), 1.37f),
-                utility::make_pair(utility::make_pair(53ul, 64ul), 1.32f),
-                utility::make_pair(utility::make_pair(43ul, 52ul), 1.27f),
-                utility::make_pair(utility::make_pair(33ul, 42ul), 1.22f),
-                utility::make_pair(utility::make_pair(17ul, 32ul), 1.15f),
-                utility::make_pair(utility::make_pair(1ul, 16ul), 1.1f),
-            });
-            constexpr collections::array extra_allocation_tables({
-                utility::make_pair(utility::make_pair(257ul, 512ul), 24ul),
-                utility::make_pair(utility::make_pair(129ul, 256ul), 18ul),
-                utility::make_pair(utility::make_pair(65ul, 128ul), 14ul),
-                utility::make_pair(utility::make_pair(53ul, 64ul), 12ul),
-                utility::make_pair(utility::make_pair(43ul, 52ul), 10ul),
-                utility::make_pair(utility::make_pair(33ul, 42ul), 7ul),
-                utility::make_pair(utility::make_pair(17ul, 32ul), 5ul),
-                utility::make_pair(utility::make_pair(1ul, 16ul), 2ul),
-            });
-            std::size_t allocation_size = 0;
-            for (const auto &pair: string_allocation_tables) {
-                if (!core::implements::in_range<std::size_t>(pair.first.first, pair.first.second, request)) {
-                    continue;
-                }
-                switch (border_calc(pair.first.first, pair.first.second, request)) {
-                    case -1:
-                        allocation_size = request;
-                        break;
-                    case 0:
-                        allocation_size = static_cast<std::size_t>(request * pair.second); // NOLINT
-                        break;
-                    case 1:
-                        allocation_size = static_cast<std::size_t>(request * pair.second) + (request * 0.07f); // NOLINT
-                        break;
-                }
-            }
-            std::size_t extra_allocation = 0;
-            for (const auto &pair: extra_allocation_tables) {
-                if (!core::implements::in_range<std::size_t>(pair.first.first, pair.first.second, allocation_size)) {
-                    continue;
-                }
-                extra_allocation = pair.second;
-            }
-            return allocation_size + extra_allocation;
-        }
-
-        RAINY_NODISCARD RAINY_CONSTEXPR20 utility::pair<pointer, std::size_t> allocate_at_first(const std::size_t request) {
-            auto &allocator = this->instance_data.get_first();
-            rainy_let new_allocated = static_cast<std::size_t>(request * 1.2f + 1); // NOLINT
-            return utility::make_pair(allocator.allocate(new_allocated), new_allocated);
-        }
-
-        RAINY_NODISCARD RAINY_CONSTEXPR20 utility::pair<pointer, std::size_t> allocate_for_new_memory(const std::size_t request) {
-            auto &allocator = this->instance_data.get_first();
-            rainy_let new_allocated = calc_growth(request); // NOLINT
-            return utility::make_pair(allocator.allocate(new_allocated), new_allocated);
-        }
-
-        template <construct_strategy Strategy, typename CharOrPointer>
-        RAINY_CONSTEXPR20 void construct_string(CharOrPointer arg, size_type count) {
-#if RAINY_USING_MSVC
-#pragma warning(push)
-#pragma warning(disable : 6385)
-#endif
-            if (count == 0) {
-                this->activate_sso_buffer();
-                return;
-            }
-            auto &storage = this->get_storage();
-            auto pair =
-                count < internal_storage::SMALL_BUFFER_SIZE ? utility::make_pair(this->ptr(), count) : allocate_at_first(count);
-            auto &get = pair.first;
-            auto &new_allocated = pair.second;
-            this->size_ = count;
-            this->capacity_ = new_allocated;
-            if (count > internal_storage::SMALL_STRING_CAPACITY) {
-                storage.ptr = get;
-            }
-            auto my_data = this->ptr();
-            if constexpr (Strategy == construct_strategy::from_ptr) {
-                traits_type::copy(my_data, arg, count);
-                traits_type::assign(my_data[count], value_type{});
-            } else if constexpr (Strategy == construct_strategy::from_char) {
-                traits_type::assign(my_data, count, arg);
-                traits_type::assign(my_data[count], value_type{});
-            } else if constexpr (Strategy == construct_strategy::from_container) {
-                traits_type::copy(my_data, arg,
-                                  count < internal_storage::SMALL_BUFFER_SIZE ? internal_storage::SMALL_STRING_CAPACITY : count);
+        /**
+         * @brief internal use
+         * @return a pointer to the first element
+         */
+        constexpr CharType const *begin_() const noexcept {
+            if (this->is_long_()) {
+                return this->stor_.ls_.begin_;
             } else {
-                this->activate_sso_buffer();
+                return this->stor_.ss_.data();
             }
-#if RAINY_USING_MSVC
-#pragma warning(pop)
-#endif
         }
 
-       template <construct_strategy Strategy, construct_strategy Strategy1 = Strategy, typename CharOrPointer>
-        RAINY_CONSTEXPR20 void construct_link_string(CharOrPointer arg1, size_type count1, CharOrPointer arg2, size_type count2) {
-#if RAINY_USING_MSVC
-#pragma warning(push)
-#pragma warning(disable : 6385)
-#endif
-            size_type total_count = count1 + count2;
-            if (total_count == 0) {
-                this->activate_sso_buffer();
-                return;
-            }
-            auto &storage = this->get_storage();
-            auto pair = total_count < internal_storage::SMALL_BUFFER_SIZE ? utility::make_pair(this->ptr(), total_count)
-                                                                          : allocate_at_first(total_count);
-            auto &get = pair.first;
-            auto &new_allocated = pair.second;
-            this->size_ = total_count;
-            this->capacity_ = new_allocated;
-            if (total_count > internal_storage::SMALL_STRING_CAPACITY) {
-                storage.ptr = get;
-            }
-            auto my_data = this->ptr();
-            if constexpr (Strategy == construct_strategy::from_ptr) {
-                traits_type::copy(my_data, arg1, count1);
-            } else if constexpr (Strategy == construct_strategy::from_char) {
-                traits_type::assign(my_data, count1, arg1);
-            } else if constexpr (Strategy == construct_strategy::from_container) {
-                traits_type::copy(my_data, arg1, count1);
-            }
-            if constexpr (Strategy1 == construct_strategy::from_ptr) {
-                traits_type::copy(my_data + count1, arg2, count2);
-            } else if constexpr (Strategy1 == construct_strategy::from_char) {
-                traits_type::assign(my_data + count1, count2, arg2);
-            } else if constexpr (Strategy1 == construct_strategy::from_container) {
-                traits_type::copy(my_data + count1, arg2, count2);
-            }
-            traits_type::assign(my_data[total_count], value_type{});
-#if RAINY_USING_MSVC
-#pragma warning(pop)
-#endif
+        /**
+         * @brief internal use
+         * @return a pointer to the first element
+         */
+        constexpr CharType *begin_() noexcept {
+            return const_cast<CharType *>(const_cast<basic_string const &>(*this).begin_());
         }
 
-#pragma endregion
+        /**
+         * @brief internal use
+         * @return a pointer to the next position of the last element
+         */
+        constexpr CharType const *end_() const noexcept {
+            if (this->is_long_())
+                return this->stor_.ls_.end_;
+            else
+                return this->stor_.ss_.data() + this->size_flag_;
+        }
+
+        /**
+         * @brief internal use
+         * @return a pointer to the next position of the last element
+         */
+        constexpr CharType *end_() noexcept {
+            return const_cast<CharType *>(const_cast<basic_string const &>(*this).end_());
+        }
+
+        constexpr void erase_(CharType *first, CharType const *last) noexcept {
+            assert(("first or last is not in this string", first >= begin_() && last <= end_()));
+            traits_type::move(first, last, static_cast<std::size_t>(const_cast<basic_string const &>(*this).end_() - last));
+            resize_(this->size() - (last - first));
+        }
     };
 
-    using string  = basic_string<char, text::char_traits<char>, foundation::system::memory::allocator<char>>;
-    using wstring = basic_string<wchar_t, text::char_traits<wchar_t>, foundation::system::memory::allocator<wchar_t>>;
-#ifdef __cpp_lib_char8_t
-    using u8string = basic_string<char8_t, text::char_traits<char8_t>, foundation::system::memory::allocator<char8_t>>;
+    using string = basic_string<char>;
+    using wstring = basic_string<wchar_t>;
+    using u16string = basic_string<char16_t>;
+    using u32string = basic_string<char32_t>;
+
+#if RAINY_HAS_CXX20
+    using u8string = basic_string<char8_t>;
 #endif
-    using u16string = basic_string<char16_t, text::char_traits<char16_t>, foundation::system::memory::allocator<char16_t>>;
-    using u32string = basic_string<char32_t, text::char_traits<char32_t>, foundation::system::memory::allocator<char32_t>>;
-}
-
-namespace rainy::collections {
-
-}
-
-namespace rainy::text {
-    using collections::basic_string;
-    using collections::string;
-    using collections::wstring;
-#ifdef __cpp_lib_char8_t
-    using collections::u8string;
-#endif
-    using collections::u16string;
-    using collections::u32string;
 }
 
 namespace std {
     template <typename CharType, typename Traits, typename Alloc>
-    struct hash<rainy::collections::basic_string<CharType, Traits, Alloc>> {
-        using argument_type = rainy::collections::basic_string<CharType, Traits, Alloc>;
+    struct hash<rainy::text::basic_string<CharType, Traits, Alloc>> {
         using result_type = std::size_t;
-        result_type operator()(const argument_type &str) const noexcept {
-            return rainy::utility::implements::hash_array_representation(str.data(), str.size());
+        using argument_type = rainy::text::basic_string<CharType, Traits, Alloc>;
+
+        result_type operator()(const argument_type &val) const {
+            return rainy::utility::implements::hash_array_representation(val.data(), val.size());
         }
     };
 }
 
-#endif
+namespace rainy::utility {
+    template <typename CharType, typename Traits, typename Alloc>
+    struct hash<rainy::text::basic_string<CharType, Traits, Alloc>> {
+        using result_type = std::size_t;
+        using argument_type = text::basic_string<CharType, Traits, Alloc>;
+        
+        result_type operator()(const argument_type& val) const {
+            return implements::hash_array_representation(val.data(), val.size());
+        }
+    };
+}

@@ -63,5 +63,11 @@ export default defineConfig({
         icon: 'bilibili', link: 'https://space.bilibili.com/670859148'
       }
     ]
+  },
+  markdown: {
+    theme: {
+        dark: 'dracula-soft',
+        light: 'github-dark',
+    }
   }
 });

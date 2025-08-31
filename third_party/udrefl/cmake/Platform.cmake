@@ -1,6 +1,0 @@
-if (CMAKE_SYSTEM_NAME MATCHES "Windows" AND "${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" AND "${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
-  set(UDReflBuildBigObj FALSE)
-else()
-  set(UDReflBuildBigObj TRUE)
-endif()
-message(STATUS "UDReflBuildBigObj: ${UDReflBuildBigObj}")

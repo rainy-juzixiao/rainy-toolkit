@@ -1,4 +1,4 @@
-﻿#ifndef RAINY_WINAPI_ENVIRONMENT_H
+#ifndef RAINY_WINAPI_ENVIRONMENT_H
 #define RAINY_WINAPI_ENVIRONMENT_H
 #include <rainy/core/core.hpp>
 #if RAINY_USING_WINDOWS
@@ -90,7 +90,7 @@ namespace rainy::winapi::environment {
             std::size_t start{0};
             if (std::size_t find = path_variable.find(split_chars); find != string_type::npos /* 检查到诸如PATH这样的环境变量 */) {
                 collection_type returns;
-                size_t start, end;
+                std::size_t start, end;
                 for (start = 0, end = path_variable.find(split_chars); end != std::string::npos;
                      start = end + 1, end = path_variable.find(split_chars, start)) {
                     returns.emplace_back(path_variable.substr(start, end - start));

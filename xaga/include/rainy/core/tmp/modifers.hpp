@@ -340,6 +340,61 @@ namespace rainy::type_traits::cv_modify {
 
     template <typename Ty>
     using remove_cvref_t = remove_cv_t<reference_modify::remove_reference_t<Ty>>;
+
+    template <typename To, typename From>
+    struct constness_as {
+        using type = remove_const_t<To>;
+    };
+
+    template <typename To, typename From>
+    struct constness_as<To, const From> {
+        using type = const To;
+    };
+
+    template <typename To, typename From>
+    using constness_as_t = typename constness_as<To, From>::type;
+}
+
+namespace rainy::type_traits::extras::templates {
+    template <typename T, typename NewLast>
+    struct replace_last;
+
+    template <template <typename...> typename Template, typename... Args, typename NewLast>
+    struct replace_last<Template<Args...>, NewLast> {
+    private:
+        // 参数个数
+        static constexpr std::size_t N = sizeof...(Args);
+
+        // 把参数包转成tuple
+        using args_tuple = std::tuple<Args...>;
+
+        // 提取除最后一个以外的参数
+        template <std::size_t... I>
+        static auto extract_prefix(std::index_sequence<I...>) -> Template<std::tuple_element_t<I, args_tuple>...>;
+
+    public:
+        using type = decltype(extract_prefix(std::make_index_sequence<N - 1>{}));
+    };
+
+    // 但是上面返回的类型是 Template<前N-1参数...>，我们需要拼接上NewLast
+
+    // 所以改用辅助实现
+
+    template <typename T, typename NewLast>
+    struct replace_last_correct;
+
+    template <template <typename...> typename Template, typename... Args, typename NewLast>
+    struct replace_last_correct<Template<Args...>, NewLast> {
+    private:
+        static constexpr std::size_t N = sizeof...(Args);
+        using args_tuple = std::tuple<Args...>;
+
+        template <std::size_t... I>
+        static auto helper(std::index_sequence<I...>) -> Template<std::tuple_element_t<I, args_tuple>..., NewLast>;
+
+    public:
+        using type = decltype(helper(std::make_index_sequence<N - 1>{}));
+    };
 }
 
 #endif

@@ -19,7 +19,7 @@ namespace rainy::meta::reflection {
     function::function() noexcept = default;
 
     function::function(function &&right) noexcept {
-        move_from_other(utility::move(right));
+        move_from_other(std::move(right));
     }
 
     function::function(const function &right) noexcept {
@@ -34,9 +34,6 @@ namespace rainy::meta::reflection {
     }
 
     bool function::is_local() const noexcept {
-        if (empty()) {
-            return true;
-        }
         return invoke_accessor() == reinterpret_cast<const void *>(invoker_storage);
     }
 
@@ -67,7 +64,6 @@ namespace rainy::meta::reflection {
         }
         if (right.is_local()) {
             invoke_accessor_ = right.invoke_accessor()->construct_from_this(this->invoker_storage);
-            std::memset(right.invoker_storage, 0, sizeof(right.invoker_storage));
             right.invoke_accessor_ = nullptr;
         } else {
             invoke_accessor_ = utility::exchange(right.invoke_accessor_, nullptr);
@@ -136,6 +132,7 @@ namespace rainy::meta::reflection {
     void function::reset() noexcept {
         if (!empty()) {
             invoke_accessor()->destruct(is_local());
+            invoke_accessor_ = nullptr;
         }
     }
 

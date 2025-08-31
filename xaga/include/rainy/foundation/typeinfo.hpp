@@ -25,56 +25,50 @@
 #include <rainy/core/core.hpp>
 #include <string_view>
 
-#if RAINY_USING_MSVC
-#define RAINY_GENERATE_PRETTY_FUNCTION_NAME_IMPL __FUNCSIG__
-#elif RAINY_USING_CLANG || RAINY_USING_GCC
-#define RAINY_GENERATE_PRETTY_FUNCTION_NAME_IMPL __PRETTY_FUNCTION__
-#else
-#define RAINY_GENERATE_PRETTY_FUNCTION_NAME_IMPL "unsupported compiler"
-#endif
-
 namespace rainy::foundation::ctti {
-    struct traits {
+    enum class traits {
         /* qualifiers */
-        static RAINY_INLINE_CONSTEXPR int is_lref = 1 << 0;
-        static RAINY_INLINE_CONSTEXPR int is_rref = 1 << 1;
-        static RAINY_INLINE_CONSTEXPR int is_const = 1 << 2;
-        static RAINY_INLINE_CONSTEXPR int is_volatile = 1 << 3;
+        is_lref = 1 << 0,
+        is_rref = 1 << 1,
+        is_const = 1 << 2,
+        is_volatile = 1 << 3,
 
         /* fundamental types */
-        static RAINY_INLINE_CONSTEXPR int is_void = 1 << 4;
-        static RAINY_INLINE_CONSTEXPR int is_nullptr_t = 1 << 5;
-        static RAINY_INLINE_CONSTEXPR int is_integer = 1 << 6;
-        static RAINY_INLINE_CONSTEXPR int is_floating_point = 1 << 7;
-        static RAINY_INLINE_CONSTEXPR int is_unsigned = 1 << 8;
-        static RAINY_INLINE_CONSTEXPR int is_arithmetic = 1 << 9;
-        static RAINY_INLINE_CONSTEXPR int is_fundamental = 1 << 10;
-        static RAINY_INLINE_CONSTEXPR int is_trivial = 1 << 11;
+        is_void = 1 << 4,
+        is_nullptr_t = 1 << 5,
+        is_integer = 1 << 6,
+        is_floating_point = 1 << 7,
+        is_unsigned = 1 << 8,
+        is_arithmetic = 1 << 9,
+        is_fundamental = 1 << 10,
+        is_trivial = 1 << 11,
 
         /* pointer-related */
-        static RAINY_INLINE_CONSTEXPR int is_pointer = 1 << 12;
+        is_pointer = 1 << 12,
 
         /* compound types */
-        static RAINY_INLINE_CONSTEXPR int is_array = 1 << 13;
-        static RAINY_INLINE_CONSTEXPR int is_class = 1 << 14;
-        static RAINY_INLINE_CONSTEXPR int is_union = 1 << 15;
-        static RAINY_INLINE_CONSTEXPR int is_enum = 1 << 16;
-        static RAINY_INLINE_CONSTEXPR int is_compound = 1 << 17;
+        is_array = 1 << 13,
+        is_class = 1 << 14,
+        is_union = 1 << 15,
+        is_enum = 1 << 16,
+        is_compound = 1 << 17,
 
         /* function and member pointers */
-        static RAINY_INLINE_CONSTEXPR int is_function = 1 << 18;
-        static RAINY_INLINE_CONSTEXPR int is_function_pointer = 1 << 19;
-        static RAINY_INLINE_CONSTEXPR int is_member_fnptr = 1 << 20;
-        static RAINY_INLINE_CONSTEXPR int is_member_field_ptr = 1 << 21;
+        is_function = 1 << 18,
+        is_function_pointer = 1 << 19,
+        is_member_fnptr = 1 << 20,
+        is_member_field_ptr = 1 << 21,
 
         /* class traits */
-        static RAINY_INLINE_CONSTEXPR int is_template = 1 << 22;
-        static RAINY_INLINE_CONSTEXPR int is_polymorphic = 1 << 23;
-        static RAINY_INLINE_CONSTEXPR int is_abstract = 1 << 24;
+        is_template = 1 << 22,
+        is_polymorphic = 1 << 23,
+        is_abstract = 1 << 24,
 
         /* reflection */
-        static RAINY_INLINE_CONSTEXPR int is_reflection_type = 1 << 25;
+        is_reflection_type = 1 << 25,
     };
+
+    RAINY_ENABLE_ENUM_CLASS_BITMASK_OPERATORS(traits);
 }
 
 namespace rainy::foundation::ctti::implements {
@@ -84,7 +78,13 @@ namespace rainy::foundation::ctti::implements {
 
     template <typename Ty>
     constexpr std::string_view wrapped_type_name() { // NOLINT
-        return RAINY_GENERATE_PRETTY_FUNCTION_NAME_IMPL;
+#if RAINY_USING_MSVC
+        return __FUNCSIG__;
+#elif RAINY_USING_CLANG || RAINY_USING_GCC
+        return __PRETTY_FUNCTION__;
+#else
+        static_assert(false, "unsupported compiler");
+#endif
     }
 
     static constexpr std::size_t wrapped_type_name_prefix_length() { // NOLINT
@@ -108,8 +108,8 @@ namespace rainy::foundation::ctti::implements {
     }
 
     template <typename Ty>
-    static constexpr int eval_traits_for_properties() noexcept {
-        int traits_{0};
+    static constexpr traits eval_traits_for_properties() noexcept {
+        traits traits_{0};
         if constexpr (type_traits::primary_types::is_lvalue_reference_v<Ty>) {
             traits_ |= traits::is_lref;
         }
@@ -126,12 +126,13 @@ namespace rainy::foundation::ctti::implements {
     }
 
     template <typename Ty>
-    static constexpr int eval_traits_for_fundamental() noexcept {
-        int traits_{0};
+    static constexpr traits eval_traits_for_fundamental() noexcept {
+        traits traits_{0};
         if constexpr (type_traits::primary_types::is_void_v<Ty>) {
             traits_ |= traits::is_void;
         }
-        if constexpr (type_traits::primary_types::is_pointer_v<type_traits::cv_modify::remove_cvref_t<Ty>> || type_traits::type_relations::is_same_v<Ty, std::nullptr_t>) {
+        if constexpr (type_traits::primary_types::is_pointer_v<type_traits::cv_modify::remove_cvref_t<Ty>> ||
+                      type_traits::type_relations::is_same_v<Ty, std::nullptr_t>) {
             traits_ |= traits::is_pointer;
         }
         if constexpr (type_traits::primary_types::is_integral_v<Ty>) {
@@ -159,8 +160,8 @@ namespace rainy::foundation::ctti::implements {
     }
 
     template <typename Ty>
-    static constexpr int eval_traits_for_compound() noexcept {
-        int traits_{0};
+    static constexpr traits eval_traits_for_compound() noexcept {
+        traits traits_{0};
         if constexpr (type_traits::primary_types::is_class_v<type_traits::other_trans::decay_t<Ty>>) {
             traits_ |= traits::is_class;
         }
@@ -203,39 +204,53 @@ namespace rainy::foundation::ctti::implements {
     }
 
     template <typename Ty>
-    constexpr std::size_t eval_for_typeinfo() noexcept {
-        std::size_t traits{};
+    constexpr traits eval_for_typeinfo() noexcept {
+        traits traits{};
         traits |= implements::eval_traits_for_properties<Ty>();
         traits |= implements::eval_traits_for_fundamental<Ty>();
         traits |= implements::eval_traits_for_compound<Ty>();
         return traits;
     }
 }
+
 namespace rainy::foundation::ctti {
+    /**
+     * @brief 通过类型获取一个名称
+     * @tparam Ty 要获取的类型
+     * @returns 一个字符串视图，表示对编译时变量的名称
+     */
     template <typename Ty>
     constexpr std::string_view type_name() {
         constexpr auto wrapped_name = implements::wrapped_type_name<Ty>();
         constexpr auto prefix_length = implements::wrapped_type_name_prefix_length();
         constexpr auto suffix_length = implements::wrapped_type_name_suffix_length();
         constexpr auto type_name_length = wrapped_name.length() - prefix_length - suffix_length;
-        return wrapped_name.substr(prefix_length, type_name_length);
+        constexpr auto raw_name_sv = wrapped_name.substr(prefix_length, type_name_length);
+        return raw_name_sv;
     }
-}
 
-namespace rainy::foundation::ctti {
+    /**
+     * @brief 获取一个可在编译时确定的变量名
+     * @tparam Variable 一个常量变量值
+     * @returns 一个字符串视图，表示对编译时变量的名称
+     */
     template <auto Variable>
-    inline constexpr std::string_view variable_name() {
+    inline constexpr std::string_view variable_name() noexcept {
 #if RAINY_USING_MSVC
         constexpr std::string_view func_name = __FUNCSIG__;
 #else
         constexpr std::string_view func_name = __PRETTY_FUNCTION__;
 #endif
 #if RAINY_USING_CLANG
-        auto split = func_name.substr(0, func_name.size() - 2);
-        return split.substr(split.find_last_of(":.") + 1);
+        auto split = func_name.substr(0, func_name.rfind("]"));
+        auto start = split.find("Variable = ") + 11;
+        auto end = split.find(";", start);
+        return split.substr(start, end - start);
 #elif RAINY_USING_GCC
-        auto split = func_name.substr(0, func_name.rfind(")}"));
-        return split.substr(split.find_last_of(':') + 1);
+        auto split = func_name.substr(0, func_name.rfind("]") - 1);
+        auto start = split.find("with auto Variable = ") + 20;
+        auto end = split.find(";", start);
+        return split.substr(start, end - start);
 #elif RAINY_USING_MSVC
         auto split = func_name.substr(func_name.rfind("variable_name<") + 13);
         auto split_again = split.substr(split.rfind("->") + 2);
@@ -244,7 +259,9 @@ namespace rainy::foundation::ctti {
         static_assert(false, "You are using an unsupported compiler. Please use GCC, Clang or MSVC");
 #endif
     }
+}
 
+namespace rainy::foundation::ctti {
     class typeinfo {
     public:
         constexpr typeinfo() = default;
@@ -264,7 +281,7 @@ namespace rainy::foundation::ctti {
             typeinfo info{};
             info._name = type_name<Ty>();
             constexpr std::size_t hash_code = fnv1a_hash(type_name<Ty>());
-            constexpr std::size_t traits = implements::eval_for_typeinfo<Ty>();
+            constexpr traits traits = implements::eval_for_typeinfo<Ty>();
             info._hash_code = hash_code;
             info.traits_ = traits;
             return info;
@@ -308,6 +325,10 @@ namespace rainy::foundation::ctti {
             return hash_code() == right.hash_code();
         }
 
+        operator std::size_t() const noexcept {
+            return _hash_code;
+        }
+
         /**
          * @brief 运算符重载，检查两个类型信息是否相同。等效于is_same()
          * @param left 要比较的左边的类型信息对象
@@ -344,37 +365,6 @@ namespace rainy::foundation::ctti {
          * @return 如果right的类型信息与this存储的类型信息具有兼容性，返回true，否则返回false
          */
         constexpr bool is_compatible(const typeinfo &right) const noexcept {
-            if (is_same(right)) {
-                return true;
-            }
-            if (right.has_traits(traits::is_const) && !has_traits(traits::is_const)) {
-                typeinfo stripped_target = right;
-                stripped_target.traits_ &= ~traits::is_const;
-                if (is_compatible(stripped_target)) {
-                    return true;
-                }
-            }
-            if (has_traits(traits::is_pointer) && right.has_traits(traits::is_pointer)) {
-                if (has_traits(traits::is_lref) || has_traits(traits::is_rref)) {
-                    foundation::ctti::typeinfo target = right;
-                    if (target.has_traits(traits::is_lref) || target.has_traits(traits::is_rref)) {
-                        target = target.remove_reference();
-                    }
-                    return this->remove_reference() == target;
-                }
-                std::string_view tmp = right._name;
-                normalize_name(tmp);
-                if (tmp == "void*") {
-                    return true;
-                }
-            }
-            if ((has_traits(traits::is_array) || right.has_traits(traits::is_array)) &&
-                (has_traits(traits::is_pointer) || right.has_traits(traits::is_pointer))) {
-                return true;
-            }
-            if (has_traits(traits::is_nullptr_t) && right.has_traits(traits::is_pointer)) {
-                return true;
-            }
             return this->remove_all_qualifier() == right.remove_all_qualifier();
         }
 
@@ -383,8 +373,8 @@ namespace rainy::foundation::ctti {
          * @param traits 要检查的traits，从traits枚举中获取
          * @return 如果类型信息具有traits，返回true，否则返回false
          */
-        constexpr bool has_traits(const int traits) const noexcept {
-            return traits_ & traits;
+        constexpr bool has_traits(const traits traits) const noexcept {
+            return static_cast<bool>(traits_ & traits);
         }
 
         /**
@@ -398,24 +388,44 @@ namespace rainy::foundation::ctti {
             typeinfo result = *this;
             result.traits_ &= ~(traits::is_lref | traits::is_rref);
             std::string_view name = _name;
+#if RAINY_USING_CLANG || RAINY_USING_GCC
+            constexpr std::string_view lref_symbol = " &";
+            constexpr std::string_view rref_symbol = " &&";
+#else
+            constexpr std::string_view lref_symbol = "&";
+            constexpr std::string_view rref_symbol = "&&";
+#endif
             if (has_traits(traits::is_lref)) {
-                remove_suffix(name, "&");
+                remove_suffix(name, lref_symbol);
             } else if (has_traits(traits::is_rref)) {
-                remove_suffix(name, "&&");
+                remove_suffix(name, rref_symbol);
             }
             result._hash_code = fnv1a_hash(name);
             result._name = name;
             return result;
         }
 
-        RAINY_NODISCARD static typeinfo create_typeinfo_by_name(std::string_view name) {
+        /**
+         * @brief 通过名称和特征信息创建一个类型信息
+         * @brief 该函数适用于反射中
+         * @param [in] name 类型名称
+         * @param [in] traits 要指定类型特征（可选）
+         * @attention 无论指定了什么类型特征，创建后的类型特征将包含一个is_reflection_type属性用于标识
+         * @returns 返回生成后的类型信息对象
+         */
+        RAINY_NODISCARD static constexpr typeinfo create_typeinfo_by_name(std::string_view name, traits traits = traits::is_reflection_type) {
             typeinfo result;
             result._name = name;
             result._hash_code = fnv1a_hash(name);
             result.traits_ |= traits::is_reflection_type;
+            result.traits_ |= traits;
             return result;
         }
 
+        /**
+         * @brief 移除const、volatile以及reference属性
+         * @brief 
+         */
         RAINY_NODISCARD constexpr typeinfo remove_cvref() const noexcept {
             return remove_cv().remove_reference();
         }
@@ -486,12 +496,11 @@ namespace rainy::foundation::ctti {
         }
 
     private:
-        static constexpr std::size_t fnv1a_hash(std::string_view val,
-                                                std::size_t offset_basis = rainy::utility::implements::fnv_offset_basis) noexcept {
-            std::size_t hash = offset_basis;
+        static constexpr std::size_t fnv1a_hash(std::string_view val) noexcept {
+            std::size_t hash = utility::implements::fnv_offset_basis;
             for (char i: val) {
                 hash ^= static_cast<std::size_t>(static_cast<unsigned char>(i));
-                hash *= rainy::utility::implements::fnv_prime;
+                hash *= utility::implements::fnv_prime;
             }
             return hash;
         }
@@ -524,7 +533,7 @@ namespace rainy::foundation::ctti {
         
         std::string_view _name{};
         std::size_t _hash_code{};
-        int traits_{};
+        traits traits_{};
     };
 }
 
@@ -533,7 +542,7 @@ struct rainy::utility::hash<rainy::foundation::ctti::typeinfo> {
     using argument_type = foundation::ctti::typeinfo;
     using result_type = std::size_t;
 
-    static size_t hash_this_val(const argument_type &val) noexcept {
+    static std::size_t hash_this_val(const argument_type &val) noexcept {
         return val.hash_code();
     }
 };

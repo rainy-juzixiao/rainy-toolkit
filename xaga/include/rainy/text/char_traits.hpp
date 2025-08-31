@@ -45,7 +45,7 @@ namespace rainy::text {
                 const char_type *s1 = string1;
                 const char_type *s2 = string2;
                 const char_type *end = s1 + count;
-                constexpr size_t block_size = 8;
+                constexpr std::size_t block_size = 8;
                 const char_type *block_end = s1 + (count / block_size) * block_size;
                 while (s1 < block_end) {
                     if (s1[0] != s2[0]) {
@@ -169,11 +169,11 @@ namespace rainy::text {
                     }
                 }
                 if (loop_forward) {
-                    for (size_t idx = 0; idx != count; ++idx) {
+                    for (std::size_t idx = 0; idx != count; ++idx) {
                         to[idx] = from[idx];
                     }
                 } else {
-                    for (size_t idx = count; idx != 0; --idx) {
+                    for (std::size_t idx = count; idx != 0; --idx) {
                         to[idx - 1] = from[idx - 1];
                     }
                 }
@@ -243,7 +243,7 @@ namespace rainy::text {
                                         const size_type count) noexcept /* strengthened */ {
 #if RAINY_HAS_CXX20
             if (std::is_constant_evaluated()) {
-                for (size_t idx = 0; idx != count; ++idx) {
+                for (std::size_t idx = 0; idx != count; ++idx) {
                     string1[idx] = string2[idx];
                 }
                 return string1;
@@ -356,7 +356,7 @@ namespace rainy::text {
         }
 
         RAINY_NODISCARD constexpr size_type max_size() const noexcept {
-            return (std::min) (static_cast<size_t>(PTRDIFF_MAX), static_cast<size_t>(-1) / sizeof(value_type));
+            return (std::min) (static_cast<std::size_t>(PTRDIFF_MAX), static_cast<std::size_t>(-1) / sizeof(value_type));
         }
 
         RAINY_NODISCARD constexpr bool empty() const noexcept {

@@ -1,7 +1,7 @@
 //{{NO_DEPENDENCIES}}
 // Microsoft Visual C++ generated include file.
-// Used by windows_dynamic_infos.rc
-//
+// Used by version_template.rc
+// rainy-toolkit project source
 
 // Next default values for new objects
 // 

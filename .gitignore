@@ -42,4 +42,3 @@ cmake-build-*
 node_modules
 docs/.vitepress/cache
 docs/.vitepress/dist
-/SCP-9962 界域虚蚀.md

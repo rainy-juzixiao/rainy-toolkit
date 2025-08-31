@@ -366,3 +366,36 @@ namespace rainy::foundation::pal::threading::implements {
         return mutex->handle;
     }
 }
+
+namespace rainy::foundation::pal::threading::implements {
+    core::handle tss_create() {
+        const core::handle out_of_indexes = TLS_OUT_OF_INDEXES;
+        core::handle tss_key = TlsAlloc();
+        if (tss_key == out_of_indexes) {
+            errno = EFAULT;
+            return core::invalid_handle;
+        }
+        return tss_key;
+    }
+
+    void *tss_get(core::handle tss_key) {
+        if (tss_key == core::invalid_handle) {
+            return nullptr;
+        }
+        return TlsGetValue(tss_key);
+    }
+
+    bool tss_set(core::handle tss_key, void *value) {
+        if (tss_key == core::invalid_handle) {
+            return false;
+        }
+        return TlsSetValue(tss_key, const_cast<void *>(value));
+    }
+
+    bool tss_delete(core::handle tss_key) {
+        if (tss_key == core::invalid_handle) {
+            return false;
+        }
+        return TlsFree(tss_key);
+    }
+}

@@ -1,4 +1,4 @@
-﻿#ifndef RAINY_LINUXAPI_PROC_THRD_MGR_H
+#ifndef RAINY_LINUXAPI_PROC_THRD_MGR_H
 #define RAINY_LINUXAPI_PROC_THRD_MGR_H
 #include <rainy/core/core.hpp>
 #if RAINY_USING_LINUX
@@ -114,7 +114,7 @@ namespace rainy::linux_api::proc_thrd {
             return nullptr;
         }
 
-        template <typename Tuple, size_t... Indices>
+        template <typename Tuple, std::size_t... Indices>
         RAINY_NODISCARD static constexpr auto get_invoke(std::index_sequence<Indices...>) noexcept {
             return &invoke<Tuple, Indices...>;
         }

@@ -18,12 +18,14 @@
 #include <iterator>
 #include <utility>
 #include <rainy/core/platform.hpp>
+#include <rainy/core/tmp/limits.hpp>
 #include <rainy/core/tmp/implements.hpp>
 #include <rainy/core/tmp/helper.hpp>
 #include <rainy/core/tmp/type_relations.hpp>
 #include <rainy/core/tmp/sfinae_base.hpp>
 #include <rainy/core/tmp/modifers.hpp>
 #include <rainy/core/tmp/type_list.hpp>
+#include <rainy/core/tmp/value_list.hpp>
 #include <rainy/core/tmp/iter_traits.hpp>
 #include <rainy/core/tmp/meta_methods.hpp>
 #include <rainy/core/implements/basic_algorithm.hpp>
@@ -39,9 +41,8 @@ namespace rainy::type_traits::other_trans {
         using Ty2 = typename select<implements::_is_function_v<Ty1>>::template apply<
             pointer_modify::add_pointer<Ty1>, cv_modify::remove_cv<std::conditional_t<!implements::_is_function_v<Ty1>, Ty1, void>>>;
 
-        using type =
-            typename select<implements::_is_array_v<Ty1>>::template apply<pointer_modify::add_pointer<array_modify::remove_extent_t<Ty1>>,
-                                                                         Ty2>::type;
+        using type = typename select<implements::_is_array_v<Ty1>>::template apply<
+            pointer_modify::add_pointer<array_modify::remove_extent_t<Ty1>>, Ty2>::type;
     };
 
     template <typename Ty>
@@ -87,6 +88,14 @@ namespace rainy::type_traits::other_trans {
     }
 
 namespace rainy::type_traits::primary_types {
+    template <typename Ty>
+    struct type_identity {
+        using type = Ty;
+    };
+
+    template <typename Ty>
+    using type_identity_t = typename type_identity<Ty>::type;
+
     template <typename Ty>
     RAINY_CONSTEXPR_BOOL is_void_v = type_relations::is_same_v<void, Ty>;
 
@@ -238,7 +247,7 @@ namespace rainy::utility {
 
     template <typename Ty, typename... Args>
     RAINY_CONSTEXPR20 void construct_in_place(Ty &object, Args &&...args) noexcept(
-        type_traits::implements::_is_nothrow_constructible_v<Ty, Args...>) {
+        type_traits::implements::is_nothrow_constructible_v<Ty, Args...>) {
 #if RAINY_HAS_CXX20
         if (std::is_constant_evaluated()) {
             std::construct_at(utility::addressof(object), utility::forward<Args>(args)...);
@@ -307,12 +316,18 @@ namespace rainy::utility {
     constexpr placeholder_type_t<Ty> placeholder_type{};
 
     template <std::size_t>
-    struct placeholder_index_t final {
-        explicit placeholder_index_t() = default;
+    struct in_place_index_t final {
+        explicit in_place_index_t() = default;
     };
 
     template <std::size_t Idx>
-    constexpr placeholder_index_t<Idx> placeholder_index{};
+    constexpr in_place_index_t<Idx> in_place_index{};
+
+    template <class>
+    constexpr bool is_in_place_index_specialization = false;
+
+    template <std::size_t Idx>
+    constexpr bool is_in_place_index_specialization<utility::in_place_index_t<Idx>> = true;
 
     using allocator_arg_t = std::allocator_arg_t;
 
@@ -325,7 +340,7 @@ namespace rainy::type_traits::type_properties {
 
     template <typename From, typename To>
     struct is_invoke_convertible<From, To,
-                                 other_trans::void_t<decltype(implements::_fake_copy_init<To>(implements::_returns_exactly<From>()))>>
+                                 other_trans::void_t<decltype(implements::fake_copy_init<To>(implements::returns_exactly<From>()))>>
         : helper::true_type {};
 
     template <typename From, typename To>
@@ -333,7 +348,7 @@ namespace rainy::type_traits::type_properties {
 
     template <typename From, typename To>
     struct is_invoke_nothrow_convertible
-        : helper::bool_constant<noexcept(implements::_fake_copy_init<To>(implements::_returns_exactly<From>()))> {};
+        : helper::bool_constant<noexcept(implements::fake_copy_init<To>(implements::returns_exactly<From>()))> {};
 
     template <typename From, typename To>
     RAINY_CONSTEXPR_BOOL is_invoke_nothrow_convertible_v = is_invoke_convertible<From, To>::value;
@@ -434,13 +449,13 @@ namespace rainy::type_traits::type_properties {
     struct is_aggregate : helper::bool_constant<is_aggregate_v<Ty>> {};
 
     template <typename Ty>
-    RAINY_CONSTEXPR_BOOL is_signed_v = implements::sign_base<Ty>::_signed;
+    RAINY_CONSTEXPR_BOOL is_signed_v = implements::sign_base<Ty>::is_signed;
 
     template <typename Ty>
     struct is_signed : helper::bool_constant<is_signed_v<Ty>> {};
 
     template <typename Ty>
-    RAINY_CONSTEXPR_BOOL is_unsigned_v = implements::sign_base<Ty>::_unsigned;
+    RAINY_CONSTEXPR_BOOL is_unsigned_v = implements::sign_base<Ty>::is_unsigned;
 
     template <typename Ty>
     struct is_unsigned : helper::bool_constant<is_unsigned_v<Ty>> {};
@@ -611,6 +626,18 @@ namespace rainy::type_traits::type_properties {
 
     template <typename Ty>
     struct is_trivially_move_constructible : helper::bool_constant<is_trivially_move_constructible_v<Ty>> {};
+
+    template <typename Ty, bool = primary_types::is_enum_v<Ty>>
+    RAINY_CONSTEXPR_BOOL is_scoped_enum_v = false;
+
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL is_scoped_enum_v<Ty, true> = !type_relations::is_convertible_v<Ty, other_trans::underlying_type_t<Ty>>;
+
+    template <typename Ty, bool = primary_types::is_enum_v<Ty>>
+    RAINY_CONSTEXPR_BOOL is_unscoped_enum_v = false;
+
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL is_unscoped_enum_v<Ty, true> = !type_relations::is_convertible_v<Ty, other_trans::underlying_type_t<Ty>>;
 }
 
 namespace rainy::utility {
@@ -631,29 +658,28 @@ namespace rainy::utility {
         }
     };
 
-    template <std::size_t Indices, typename T>
-    struct tuple_element;
+    template <std::size_t Indices, typename Tuple>
+    struct tuple_element {};
 
-    template <std::size_t Indices, typename Head, typename... Tail>
-    struct tuple_element<Indices, tuple<Head, Tail...>> : tuple_element<Indices - 1, tuple<Tail...>> {};
-
-    template <typename Head, typename... Tail>
-    struct tuple_element<0, tuple<Head, Tail...>> {
-        using type = Head;
+    template <std::size_t Indices, typename... Types>
+    struct tuple_element<Indices, tuple<Types...>> {
+        using type = typename type_traits::other_trans::type_at<Indices, type_traits::other_trans::type_list<Types...>>::type;
     };
 
-    // 前向声明
-    template <std::size_t I, typename... Types>
-    constexpr typename std::tuple_element<I, tuple<Types...>>::type &get(tuple<Types...> &) noexcept;
+    template <std::size_t Indicies, typename Tuple>
+    using tuple_element_t = typename tuple_element<Indicies, Tuple>::type;
 
     template <std::size_t I, typename... Types>
-    constexpr const typename std::tuple_element<I, tuple<Types...>>::type &get(const tuple<Types...> &) noexcept;
+    constexpr typename tuple_element_t<I, tuple<Types...>> &get(tuple<Types...> &) noexcept;
 
     template <std::size_t I, typename... Types>
-    constexpr typename std::tuple_element<I, tuple<Types...>>::type &&get(tuple<Types...> &&) noexcept;
+    constexpr const typename tuple_element_t<I, tuple<Types...>> &get(const tuple<Types...> &) noexcept;
 
     template <std::size_t I, typename... Types>
-    constexpr const typename std::tuple_element<I, tuple<Types...>>::type &&get(const tuple<Types...> &&) noexcept;
+    constexpr typename tuple_element_t<I, tuple<Types...>> &&get(tuple<Types...> &&) noexcept;
+
+    template <std::size_t I, typename... Types>
+    constexpr const typename tuple_element_t<I, tuple<Types...>> &&get(const tuple<Types...> &&) noexcept;
 }
 
 namespace rainy::utility::implements {
@@ -702,7 +728,7 @@ namespace rainy::utility::implements {
                           std::uses_allocator<Ty, Alloc>, std::is_constructible<Ty, std::allocator_arg_t, const Alloc &, Args...>>,
                       int> = 0>
         constexpr tuple_val(std::allocator_arg_t, const Alloc &allocator, Args &&...args) :
-            value(std::allocator_arg, allocator, std::forward<Args>(args)...) {
+            value(std::allocator_arg, allocator, utility::forward<Args>(args)...) {
         }
 
         template <
@@ -719,7 +745,7 @@ namespace rainy::utility::implements {
         Ty value;
     };
 
-    template <std::size_t I, typename Ty, size_t Index>
+    template <std::size_t I, typename Ty, std::size_t Index>
     struct tuple_leaf_index : tuple_val<Ty> {
         constexpr tuple_leaf_index() : tuple_val<Ty>() {
         }
@@ -729,31 +755,31 @@ namespace rainy::utility::implements {
         }
 
         template <typename Alloc, typename... Args>
-        constexpr tuple_leaf_index(const Alloc &alloc, allocator_arg_t tag, Args &&...args) :
-            tuple_val<Ty>(alloc, tag, utility::forward<Args>(args)...) {
+        constexpr tuple_leaf_index(const Alloc &alloc, std::allocator_arg_t tag, Args &&...args) :
+            tuple_val<Ty>(tag, alloc, utility::forward<Args>(args)...) {
         }
     };
 }
 
 // NOLINTBEGIN
 namespace std {
-    template <size_t I, typename... Types>
-    struct tuple_element<I, rainy::utility::tuple<Types...>>
-        : ::rainy::utility::tuple_element<I, rainy::utility::tuple<Types...>> {};
+    template <std::size_t I, typename... Types>
+    struct tuple_element<I, rainy::utility::tuple<Types...>> : ::rainy::utility::tuple_element<I, ::rainy::utility::tuple<Types...>> {
+    };
 
     template <typename... Types>
-    struct tuple_size<::rainy::utility::tuple<Types...>> : std::integral_constant<size_t, sizeof...(Types)> {};
+    struct tuple_size<::rainy::utility::tuple<Types...>> : std::integral_constant<std::size_t, sizeof...(Types)> {};
 }
 // NOLINTEND
 
 namespace rainy::utility {
     template <typename Head, typename... Rest>
-    class tuple<Head, Rest...> : private implements::tuple_leaf_index<0, Head, sizeof...(Rest)>, private tuple<Rest...> {        
+    class tuple<Head, Rest...> : private implements::tuple_leaf_index<0, Head, sizeof...(Rest)>, private tuple<Rest...> {
     public:
         using head_base = implements::tuple_leaf_index<0, Head, sizeof...(Rest)>;
         using rest_base = tuple<Rest...>;
 
-        constexpr tuple() : head_base(), rest_base() {
+        constexpr tuple() : head_base{}, rest_base{} {
         }
 
         constexpr tuple(const tuple &) = default;
@@ -761,17 +787,18 @@ namespace rainy::utility {
         constexpr tuple(tuple &&) = default;
 
         template <typename HeadArg, typename... RestArgs,
-                  type_traits::other_trans::enable_if_t<sizeof...(RestArgs) == sizeof...(Rest) &&
-                      std::is_constructible_v<Head, HeadArg> && (std::is_constructible_v<Rest, RestArgs> && ...),
-                  int> = 0>
-        constexpr tuple(HeadArg &&head_arg, RestArgs &&...rest_args) :
-            head_base(utility::forward<HeadArg>(head_arg)), rest_base(utility::forward<RestArgs>(rest_args)...) {
+            type_traits::other_trans::enable_if_t<sizeof...(RestArgs) == sizeof...(Rest) && type_traits::type_properties::is_constructible_v<Head, HeadArg> &&
+                                                      (type_traits::type_properties::is_constructible_v<Rest, RestArgs> && ...),
+                                                  int> = 0 > constexpr tuple(HeadArg &&head_arg, RestArgs &&...rest_args) :
+            head_base(utility::forward<HeadArg>(head_arg)),
+                                                  rest_base(utility::forward<RestArgs>(rest_args)...) {
         }
 
         template <typename OtherHead, typename... OtherRest,
                   type_traits::other_trans::enable_if_t<sizeof...(OtherRest) == sizeof...(Rest) &&
-                      std::is_constructible_v<Head, const OtherHead &> && (std::is_constructible_v<Rest, const OtherRest &> && ...),
-                  int> = 0>
+                                                            type_traits::type_properties::is_constructible_v<Head, const OtherHead &> &&
+                                                            (type_traits::type_properties::is_constructible_v<Rest, const OtherRest &> && ...),
+                                                        int> = 0>
         constexpr tuple(const tuple<OtherHead, OtherRest...> &other) :
             head_base(get<0>(other)), rest_base(static_cast<const tuple<OtherRest...> &>(other)) {
         }
@@ -801,8 +828,9 @@ namespace rainy::utility {
 
         template <typename OtherHead, typename... OtherRest,
                   type_traits::other_trans::enable_if_t<sizeof...(OtherRest) == sizeof...(Rest) &&
-                      std::is_assignable_v<Head &, const OtherHead &> && (std::is_assignable_v<Rest &, const OtherRest &> && ...),
-                  int> = 0>
+                                                            std::is_assignable_v<Head &, const OtherHead &> &&
+                                                            (std::is_assignable_v<Rest &, const OtherRest &> && ...),
+                                                        int> = 0>
         constexpr tuple &operator=(const tuple<OtherHead, OtherRest...> &other) {
             head_base::value = get<0>(other);
             static_cast<rest_base &>(*this) = static_cast<const tuple<OtherRest...> &>(other);
@@ -813,38 +841,44 @@ namespace rainy::utility {
             head_base::swap(static_cast<head_base &>(other));
             static_cast<rest_base &>(*this).swap(static_cast<rest_base &>(other));
         }
+
+        template <std::size_t I>
+        constexpr tuple_element_t<I, tuple> &get() noexcept {
+            if constexpr (I == 0) {
+                return head_base::value;
+            } else {
+                return static_cast<rest_base &>(*this).template get<I - 1>();
+            }
+        }
+
+        template <std::size_t I>
+        constexpr const tuple_element_t<I, tuple> &get() const noexcept {
+            if constexpr (I == 0) {
+                return head_base::value;
+            } else {
+                return static_cast<const rest_base &>(*this).template get<I - 1>();
+            }
+        }
     };
 
-    template <size_t I, typename... Types>
-    constexpr std::tuple_element_t<I, tuple<Types...>> &get(tuple<Types...> &t) noexcept {
-        using element_type = std::tuple_element_t<I, tuple<Types...>>;
-        constexpr size_t remain_size = sizeof...(Types) - I - 1;
-        using leaf_type = implements::tuple_leaf_index<I, element_type, remain_size>;
-        return static_cast<leaf_type &>(t).value;
+    template <std::size_t I, typename... Types>
+    constexpr tuple_element_t<I, tuple<Types...>> &get(tuple<Types...> &t) noexcept {
+        return t.template get<I>();
     }
 
-    template <size_t I, typename... Types>
-    constexpr const std::tuple_element_t<I, tuple<Types...>> &get(const tuple<Types...> &t) noexcept {
-        using element_type = std::tuple_element_t<I, tuple<Types...>>;
-        constexpr size_t remain_size = sizeof...(Types) - I - 1;
-        using leaf_type = implements::tuple_leaf_index<I, element_type, remain_size>;
-        return static_cast<const leaf_type &>(t).value;
+    template <std::size_t I, typename... Types>
+    constexpr const tuple_element_t<I, tuple<Types...>> &get(const tuple<Types...> &t) noexcept {
+        return t.template get<I>();
     }
 
-    template <size_t I, typename... Types>
-    constexpr std::tuple_element_t<I, tuple<Types...>> &&get(tuple<Types...> &&t) noexcept { // NOLINT
-        using element_type = std::tuple_element_t<I, tuple<Types...>>;
-        constexpr size_t remain_size = sizeof...(Types) - I - 1;
-        using leaf_type = implements::tuple_leaf_index<I, element_type, remain_size>;
-        return utility::move(static_cast<leaf_type &>(t).value);
+    template <std::size_t I, typename... Types>
+    constexpr tuple_element_t<I, tuple<Types...>> &&get(tuple<Types...> &&t) noexcept { // NOLINT
+        return utility::move(t.template get<I>());
     }
 
-    template <size_t I, typename... Types>
-    constexpr const std::tuple_element_t<I, tuple<Types...>> &&get(const tuple<Types...> &&t) noexcept {
-        using element_type = std::tuple_element_t<I, tuple<Types...>>;
-        constexpr size_t remain_size = sizeof...(Types) - I - 1;
-        using leaf_type = implements::tuple_leaf_index<I, element_type, remain_size>;
-        return utility::move(static_cast<const leaf_type &>(t).value);
+    template <std::size_t I, typename... Types>
+    constexpr const tuple_element_t<I, tuple<Types...>> &&get(const tuple<Types...> &&t) noexcept {
+        return utility::move(t.template get<I>());
     }
 
     template <typename... Types>
@@ -886,7 +920,6 @@ namespace rainy::utility {
         static RAINY_INLINE_CONSTEXPR std::size_t value = sizeof...(Args);
     };
 }
-
 namespace rainy::utility {
     template <typename Callable>
     class finally_impl : Callable { // NOLINT
@@ -1550,15 +1583,17 @@ namespace rainy::type_traits::implements {
         using type = Rx;
         using is_invocable = helper::true_type;
         using is_nothrow_invocable = helper::bool_constant<NoThrow>;
+        
         template <typename Rx_>
         using is_invocable_r = helper::bool_constant<
-            logical_traits::disjunction_v<primary_types::is_void<Rx>, type_properties::is_invoke_convertible<type, Rx>>>;
+            logical_traits::disjunction_v<primary_types::is_void<Rx>, type_properties::is_invoke_convertible<type, Rx_>>>;
+
         template <typename Rx_>
         using is_nothrow_invocable_r = helper::bool_constant<logical_traits::conjunction_v<
             is_nothrow_invocable,
             logical_traits::disjunction<primary_types::is_void<Rx>,
-                                        logical_traits::conjunction<type_properties::is_invoke_convertible<type, Rx>,
-                                                                    type_properties::is_invoke_nothrow_convertible<type, Rx>>>>>;
+                                        logical_traits::conjunction<type_properties::is_invoke_convertible<type, Rx_>,
+                                                                    type_properties::is_invoke_nothrow_convertible<type, Rx_>>>>>;
     };
 
     template <typename Void, typename Callable>
@@ -1610,6 +1645,9 @@ namespace rainy::type_traits::implements {
 
     template <typename Rx,typename Callable,typename... Args>
     using is_invocable_r_helper = typename select_invoke_traits<Callable,Args...>::template is_invocable_r<Rx>;
+
+    template <typename Callable,typename... Args>
+    using is_invocable_helper = typename select_invoke_traits<Callable,Args...>::is_invocable;
 }
 
 namespace rainy::type_traits::type_properties {
@@ -1619,7 +1657,19 @@ namespace rainy::type_traits::type_properties {
     template <typename Rx, typename Callable, typename... Args>
     struct is_invocable_r : helper::bool_constant<is_invocable_r_v<Rx, Callable, Args...>> {};
 
+    template <typename Callable, typename... Args>
+    RAINY_CONSTEXPR_BOOL is_invocable_v = implements::is_invocable_helper<Callable, Args...>::value;
 
+    template <typename Callable, typename... Args>
+    struct is_invocable : helper::bool_constant<is_invocable_v<Callable, Args...>> {};
+
+    template <typename Callable, typename... Args>
+    struct invoke_result {
+        using type = typename implements::select_invoke_traits<Callable, Args...>::type;
+    };
+
+    template <typename Callable, typename... Args>
+    using invoke_result_t = typename invoke_result<Callable, Args...>::type;
 }
 
 namespace rainy::utility {
@@ -1674,12 +1724,12 @@ namespace rainy::utility {
         public:
             using first_type = Ty1;
             using second_type = Ty2;
-            using first_param_type = typename type_traits::implements::_call_traits<first_type>::param_type;
-            using second_param_type = typename type_traits::implements::_call_traits<second_type>::param_type;
-            using first_reference = typename type_traits::implements::_call_traits<first_type>::reference;
-            using second_reference = typename type_traits::implements::_call_traits<second_type>::reference;
-            using first_const_reference = typename type_traits::implements::_call_traits<first_type>::const_reference;
-            using second_const_reference = typename type_traits::implements::_call_traits<second_type>::const_reference;
+            using first_param_type = typename type_traits::implements::call_traits<first_type>::param_type;
+            using second_param_type = typename type_traits::implements::call_traits<second_type>::param_type;
+            using first_reference = typename type_traits::implements::call_traits<first_type>::reference;
+            using second_reference = typename type_traits::implements::call_traits<second_type>::reference;
+            using first_const_reference = typename type_traits::implements::call_traits<first_type>::const_reference;
+            using second_const_reference = typename type_traits::implements::call_traits<second_type>::const_reference;
 
             constexpr compressed_pair_impl() = default;
 
@@ -1722,12 +1772,12 @@ namespace rainy::utility {
         public:
             using first_type = Ty1;
             using second_type = Ty2;
-            using first_param_type = typename type_traits::implements::_call_traits<first_type>::param_type;
-            using second_param_type = typename type_traits::implements::_call_traits<second_type>::param_type;
-            using first_reference = typename type_traits::implements::_call_traits<first_type>::reference;
-            using second_reference = typename type_traits::implements::_call_traits<second_type>::reference;
-            using first_const_reference = typename type_traits::implements::_call_traits<first_type>::const_reference;
-            using second_const_reference = typename type_traits::implements::_call_traits<second_type>::const_reference;
+            using first_param_type = typename type_traits::implements::call_traits<first_type>::param_type;
+            using second_param_type = typename type_traits::implements::call_traits<second_type>::param_type;
+            using first_reference = typename type_traits::implements::call_traits<first_type>::reference;
+            using second_reference = typename type_traits::implements::call_traits<second_type>::reference;
+            using first_const_reference = typename type_traits::implements::call_traits<first_type>::const_reference;
+            using second_const_reference = typename type_traits::implements::call_traits<second_type>::const_reference;
 
             constexpr compressed_pair_impl() = default;
 
@@ -1769,12 +1819,12 @@ namespace rainy::utility {
         public:
             using first_type = Ty1;
             using second_type = Ty2;
-            using first_param_type = typename type_traits::implements::_call_traits<first_type>::param_type;
-            using second_param_type = typename type_traits::implements::_call_traits<second_type>::param_type;
-            using first_reference = typename type_traits::implements::_call_traits<first_type>::reference;
-            using second_reference = typename type_traits::implements::_call_traits<second_type>::reference;
-            using first_const_reference = typename type_traits::implements::_call_traits<first_type>::const_reference;
-            using second_const_reference = typename type_traits::implements::_call_traits<second_type>::const_reference;
+            using first_param_type = typename type_traits::implements::call_traits<first_type>::param_type;
+            using second_param_type = typename type_traits::implements::call_traits<second_type>::param_type;
+            using first_reference = typename type_traits::implements::call_traits<first_type>::reference;
+            using second_reference = typename type_traits::implements::call_traits<second_type>::reference;
+            using first_const_reference = typename type_traits::implements::call_traits<first_type>::const_reference;
+            using second_const_reference = typename type_traits::implements::call_traits<second_type>::const_reference;
 
             constexpr compressed_pair_impl() = default;
 
@@ -1816,12 +1866,12 @@ namespace rainy::utility {
         public:
             using first_type = Ty1;
             using second_type = Ty2;
-            using first_param_type = typename type_traits::implements::_call_traits<first_type>::param_type;
-            using second_param_type = typename type_traits::implements::_call_traits<second_type>::param_type;
-            using first_reference = typename type_traits::implements::_call_traits<first_type>::reference;
-            using second_reference = typename type_traits::implements::_call_traits<second_type>::reference;
-            using first_const_reference = typename type_traits::implements::_call_traits<first_type>::const_reference;
-            using second_const_reference = typename type_traits::implements::_call_traits<second_type>::const_reference;
+            using first_param_type = typename type_traits::implements::call_traits<first_type>::param_type;
+            using second_param_type = typename type_traits::implements::call_traits<second_type>::param_type;
+            using first_reference = typename type_traits::implements::call_traits<first_type>::reference;
+            using second_reference = typename type_traits::implements::call_traits<second_type>::reference;
+            using first_const_reference = typename type_traits::implements::call_traits<first_type>::const_reference;
+            using second_const_reference = typename type_traits::implements::call_traits<second_type>::const_reference;
 
             compressed_pair_impl() = default;
 
@@ -1858,12 +1908,12 @@ namespace rainy::utility {
         public:
             using first_type = Ty1;
             using second_type = Ty2;
-            using first_param_type = typename type_traits::implements::_call_traits<first_type>::param_type;
-            using second_param_type = typename type_traits::implements::_call_traits<second_type>::param_type;
-            using first_reference = typename type_traits::implements::_call_traits<first_type>::reference;
-            using second_reference = typename type_traits::implements::_call_traits<second_type>::reference;
-            using first_const_reference = typename type_traits::implements::_call_traits<first_type>::const_reference;
-            using second_const_reference = typename type_traits::implements::_call_traits<second_type>::const_reference;
+            using first_param_type = typename type_traits::implements::call_traits<first_type>::param_type;
+            using second_param_type = typename type_traits::implements::call_traits<second_type>::param_type;
+            using first_reference = typename type_traits::implements::call_traits<first_type>::reference;
+            using second_reference = typename type_traits::implements::call_traits<second_type>::reference;
+            using first_const_reference = typename type_traits::implements::call_traits<first_type>::const_reference;
+            using second_const_reference = typename type_traits::implements::call_traits<second_type>::const_reference;
 
             compressed_pair_impl() = default;
 
@@ -1901,12 +1951,12 @@ namespace rainy::utility {
         public:
             using first_type = Ty1;
             using second_type = Ty2;
-            using first_param_type = typename type_traits::implements::_call_traits<first_type>::param_type;
-            using second_param_type = typename type_traits::implements::_call_traits<second_type>::param_type;
-            using first_reference = typename type_traits::implements::_call_traits<first_type>::reference;
-            using second_reference = typename type_traits::implements::_call_traits<second_type>::reference;
-            using first_const_reference = typename type_traits::implements::_call_traits<first_type>::const_reference;
-            using second_const_reference = typename type_traits::implements::_call_traits<second_type>::const_reference;
+            using first_param_type = typename type_traits::implements::call_traits<first_type>::param_type;
+            using second_param_type = typename type_traits::implements::call_traits<second_type>::param_type;
+            using first_reference = typename type_traits::implements::call_traits<first_type>::reference;
+            using second_reference = typename type_traits::implements::call_traits<second_type>::reference;
+            using first_const_reference = typename type_traits::implements::call_traits<first_type>::const_reference;
+            using second_const_reference = typename type_traits::implements::call_traits<second_type>::const_reference;
 
             compressed_pair_impl() = default;
 
@@ -1959,6 +2009,19 @@ namespace rainy::utility {
                 type_traits::implements::is_same_v<type_traits::cv_modify::remove_cv_t<Ty1>, type_traits::cv_modify::remove_cv_t<Ty2>>,
                 implements::compressed_pair_empty<Ty1>::value, implements::compressed_pair_empty<Ty2>::value>::value>;
         using base::base;
+
+        compressed_pair &operator=(const compressed_pair &other) {
+            this->get_first() = other.get_first();
+            this->get_second() = other.get_second();
+            return *this;
+        }
+
+        compressed_pair &operator=(compressed_pair &&other) noexcept(std::is_nothrow_move_assignable_v<Ty1> &&
+                                                                     std::is_nothrow_move_assignable_v<Ty2>) {
+            utility::construct_in_place(this->get_first(), utility::move(other.get_first()));
+            utility::construct_in_place(this->get_second(), utility::move(other.get_second()));
+            return *this;
+        }
     };
 
     template <typename Ty>
@@ -1977,6 +2040,18 @@ namespace rainy::utility {
                 type_traits::implements::is_same_v<type_traits::cv_modify::remove_cv_t<Ty>, type_traits::cv_modify::remove_cv_t<Ty>>,
                 implements::compressed_pair_empty<Ty>::value, implements::compressed_pair_empty<Ty>::value>::value>;
         using base::base;
+
+        compressed_pair &operator=(const compressed_pair &other) {
+            this->get_first() = other.get_first();
+            this->get_second() = other.get_second();
+            return *this;
+        }
+
+        compressed_pair &operator=(compressed_pair &&other) noexcept(std::is_nothrow_move_assignable_v<Ty>) {
+            this->get_first() = utility::move(other.get_first());
+            this->get_second() = utility::move(other.get_second());
+            return *this;
+        }
     };
 }
 
@@ -2172,7 +2247,7 @@ namespace rainy::utility {
 
 namespace rainy::type_traits::composite_types {
     template <typename Ty>
-    RAINY_CONSTEXPR_BOOL is_arithmetic_v = implements::_is_arithmetic_v<Ty>;
+    RAINY_CONSTEXPR_BOOL is_arithmetic_v = implements::is_arithmetic_v<Ty>;
 
     template <typename Ty>
     struct is_arithmetic : helper::bool_constant<is_arithmetic_v<Ty>> {};
@@ -2283,7 +2358,7 @@ namespace rainy::type_traits::extras::templates {
 
     template <template <typename...> typename Template, typename... Types>
     struct template_traits<Template<Types...>> : helper::true_type {
-        using type = other_trans::type_list<Types...>;
+        using types = other_trans::type_list<Types...>;
     };
 
     template <typename Ty>
@@ -2359,6 +2434,219 @@ namespace rainy::core {
         }
         return flag;
     }
+}
+
+namespace rainy::core::implements {
+    struct poly_inspector {
+        template <typename Type>
+        operator Type &&() const;
+
+        template <std::size_t Member, typename... Args>
+        RAINY_NODISCARD poly_inspector invoke(Args &&...args) const;
+
+        template <std::size_t Member, typename... Args>
+        RAINY_NODISCARD poly_inspector invoke(Args &&...args);
+    };
+
+    template <typename Concept>
+    struct make_vtable {
+    public:
+        using inspector = typename Concept::template type<implements::poly_inspector>;
+
+        template <auto... Candidate>
+        static auto make(type_traits::other_trans::value_list<Candidate...>) noexcept
+            -> decltype(std::make_tuple(vtable_entry(Candidate)...));
+
+        template <typename... Func>
+        RAINY_NODISCARD static constexpr auto make(type_traits::other_trans::type_list<Func...>) noexcept {
+            if constexpr (sizeof...(Func) == 0u) {
+                return decltype(make_with_vl(typename Concept::template impl<inspector>{}))();
+            } else if constexpr ((std::is_function_v<Func> && ...)) {
+                return decltype(std::make_tuple(vtable_entry(std::declval<Func>())...))();
+            }
+        }
+
+        template <auto... V>
+        RAINY_NODISCARD static constexpr auto make_with_vl(type_traits::other_trans::value_list<V...>) noexcept {
+            return decltype(std::make_tuple(vtable_entry(V)...))();
+        }
+
+        template <typename Ret, typename Clazz, typename... Args>
+        static auto vtable_entry(Ret (*)(Clazz &, Args...))
+            -> std::enable_if_t<std::is_base_of_v<std::remove_const_t<Clazz>, inspector>,
+                                Ret (*)(type_traits::cv_modify::constness_as_t<void, Clazz> *, Args...)> {
+            return nullptr;
+        }
+
+        template <typename Ret, typename... Args>
+        static auto vtable_entry(Ret (*)(Args...)) -> Ret (*)(const void *, Args...) {
+            return nullptr;
+        }
+
+        template <typename Ret, typename Clazz, typename... Args>
+        static auto vtable_entry(Ret (Clazz::*)(Args...))
+            -> std::enable_if_t<std::is_base_of_v<Clazz, inspector>, Ret (*)(void *, Args...)> {
+            return nullptr;
+        }
+
+        template <typename Ret, typename Clazz, typename... Args>
+        static auto vtable_entry(Ret (Clazz::*)(Args...) const)
+            -> std::enable_if_t<std::is_base_of_v<Clazz, inspector>, Ret (*)(const void *, Args...)> {
+            return nullptr;
+        }
+
+        template <typename Type, auto Candidate, typename Ret, typename PtrType, typename... Args>
+        static void fill_vtable_entry(Ret (*&entry)(PtrType, Args...)) noexcept {
+            if constexpr (std::is_invocable_r_v<Ret, decltype(Candidate), Args...>) {
+                entry = +[](PtrType, Args... args) -> Ret { return utility::invoke(Candidate, utility::forward<Args>(args)...); };
+            } else {
+                entry = +[](PtrType instance_ptr, Args... args) -> Ret {
+                    return static_cast<Ret>(utility::invoke(
+                        Candidate,
+                        *static_cast<type_traits::cv_modify::constness_as_t<Type, std::remove_pointer_t<PtrType>> *>(instance_ptr),
+                        utility::forward<Args>(args)...));
+                };
+            }
+        }
+
+        template <typename VtableType, typename Type, auto... Index>
+        RAINY_NODISCARD static auto fill_vtable(std::index_sequence<Index...>) noexcept {
+            VtableType impl{};
+            (fill_vtable_entry<Type, type_traits::other_trans::value_at<Index, typename Concept::template impl<Type>>::value>(
+                 std::get<Index>(impl)),
+             ...);
+            return impl;
+        }
+    };
+}
+
+namespace rainy::core {
+    template <typename Concept>
+    class poly_vtable {
+    public:
+        using inspector = typename Concept::template type<implements::poly_inspector>;
+        using vtable_type = decltype(implements::make_vtable<Concept>::make_with_vl(typename Concept::template impl<inspector>{}));
+        static constexpr bool is_mono = std::tuple_size_v<vtable_type> == 1u;
+
+        using type = std::conditional_t<is_mono, std::tuple_element_t<0u, vtable_type>, const vtable_type *>;
+
+        template <typename Type>
+        RAINY_NODISCARD static type instance() noexcept {
+            static_assert(std::is_same_v<Type, std::decay_t<Type>>, "Type differs from its decayed form");
+            static const vtable_type vtable = implements::make_vtable<Concept>::template fill_vtable<vtable_type, Type>(
+                std::make_index_sequence<type_traits::other_trans::value_list_size_v<typename Concept::template impl<Type>>>{});
+            if constexpr (is_mono) {
+                return std::get<0>(vtable);
+            } else {
+                return &vtable;
+            }
+        }
+    };
+
+    template <typename Poly>
+    struct poly_base {
+        template <std::size_t Member, typename... Args>
+        RAINY_NODISCARD decltype(auto) invoke(const poly_base &self, Args &&...args) const {
+            const auto &poly = static_cast<const Poly &>(self);
+            if constexpr (Poly::vtable_info::is_mono) {
+                return poly.vtable(poly._ptr, utility::forward<Args>(args)...);
+            } else {
+                return std::get<Member>(*poly.vtable)(poly._ptr, utility::forward<Args>(args)...);
+            }
+        }
+
+        template <std::size_t Member, typename... Args>
+        RAINY_NODISCARD decltype(auto) invoke(poly_base &self, Args &&...args) {
+            auto &poly = static_cast<Poly &>(self);
+
+            if constexpr (Poly::vtable_info::is_mono) {
+                static_assert(Member == 0u, "Unknown member");
+                return poly.vtable(poly._ptr, utility::forward<Args>(args)...);
+            } else {
+                return std::get<Member>(*poly.vtable)(poly._ptr, utility::forward<Args>(args)...);
+            }
+        }
+    };
+
+    template <std::size_t Member, typename Poly, typename... Args>
+    decltype(auto) poly_call(Poly &&self, Args &&...args) {
+        return utility::forward<Poly>(self).template invoke<Member>(self, utility::forward<Args>(args)...);
+    }
+
+    template <typename AbstractBody>
+    class basic_poly : private AbstractBody::template type<poly_base<basic_poly<AbstractBody>>> {
+    public:
+        friend struct poly_base<basic_poly>;
+
+        using abstract_type = typename AbstractBody::template type<poly_base<basic_poly>>;
+        using vtable_info = poly_vtable<AbstractBody>;
+        using vtable_type = typename vtable_info::type;
+
+        basic_poly() noexcept : _ptr(nullptr), vtable{} {
+        }
+
+        template <typename Type>
+        basic_poly(Type *ptr) noexcept :
+            _ptr(static_cast<void *>(ptr)), vtable{vtable_info::template instance<std::remove_cv_t<std::remove_pointer_t<Type>>>()} {
+        }
+
+        basic_poly(std::nullptr_t) {
+        }
+
+        basic_poly(basic_poly &&other) noexcept : _ptr(other._ptr), vtable(other.vtable) {
+            other._ptr = nullptr;
+            other.vtable = {};
+        }
+
+        basic_poly &operator=(basic_poly &&other) noexcept {
+            if (this != &other) {
+                _ptr = other._ptr;
+                vtable = other.vtable;
+                other._ptr = nullptr;
+                other.vtable = {};
+            }
+            return *this;
+        }
+
+        basic_poly &operator=(std::nullptr_t) noexcept {
+            _ptr = nullptr;
+            return *this;
+        }
+
+        basic_poly(const basic_poly &) = default;
+        basic_poly &operator=(const basic_poly &) = default;
+
+        void reset() noexcept {
+            _ptr = nullptr;
+            vtable = {};
+        }
+
+        template <typename Type>
+        void reset(Type *ptr) noexcept {
+            _ptr = static_cast<void *>(ptr);
+            vtable = vtable_info::template instance<std::remove_cv_t<std::remove_pointer_t<Type>>>();
+        }
+
+        RAINY_NODISCARD explicit operator bool() const noexcept {
+            return _ptr != nullptr;
+        }
+
+        RAINY_NODISCARD abstract_type *operator->() noexcept {
+            return this;
+        }
+
+        RAINY_NODISCARD const abstract_type *operator->() const noexcept {
+            return this;
+        }
+
+        void *target_as_void_ptr() const noexcept {
+            return _ptr;
+        }
+
+    private:
+        void *_ptr{};
+        vtable_type vtable{};
+    };
 }
 
 #endif

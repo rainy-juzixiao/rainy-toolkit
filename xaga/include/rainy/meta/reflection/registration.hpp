@@ -5,6 +5,7 @@
 #include <rainy/meta/reflection/type.hpp>
 #include <rainy/foundation/pal/threading.hpp>
 #include <rainy/meta/reflection/metadata.hpp>
+#include <rainy/utility/iterator.hpp>
 #include <string_view>
 
 namespace rainy::meta::reflection::implements {
@@ -204,7 +205,6 @@ namespace rainy::meta::reflection {
         template <typename... Args>
         utility::any invoke_method(std::string_view name, object_view instance, Args &&...args) const {
             using namespace foundation::ctti;
-
             auto flag = method_flags::none;
             if (instance.ctti().has_traits(traits::is_const)) {
                 flag = flag | method_flags::const_qualified;

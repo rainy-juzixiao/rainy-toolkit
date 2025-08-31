@@ -75,7 +75,7 @@ namespace rainy::hybrid_jenova::collections::implements {
 
 namespace rainy::hybrid_jenova::collections::implements {
     template <typename Hasher, typename Kty>
-    constexpr bool nothrow_hash = noexcept(static_cast<size_t>(utility::declval<const Hasher &>()(utility::declval<const Kty &>())));
+    constexpr bool nothrow_hash = noexcept(static_cast<std::size_t>(utility::declval<const Hasher &>()(utility::declval<const Kty &>())));
 
     template <typename Traits, std::size_t N>
     class static_hash_table;
@@ -102,8 +102,8 @@ namespace rainy::hybrid_jenova::collections::implements {
         }
 
         template <typename Key>
-        RAINY_NODISCARD size_t operator()(const Key &keyval) const noexcept(nothrow_hash<Hasher, Key>) {
-            return static_cast<size_t>(pair.get_first()(keyval));
+        RAINY_NODISCARD std::size_t operator()(const Key &keyval) const noexcept(nothrow_hash<Hasher, Key>) {
+            return static_cast<std::size_t>(pair.get_first()(keyval));
         }
 
         template <typename Key1, typename Key2>

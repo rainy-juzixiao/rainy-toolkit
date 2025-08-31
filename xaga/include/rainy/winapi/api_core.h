@@ -15,7 +15,6 @@
  */
 #ifndef RAINY_WINAPI_CORE_H
 #define RAINY_WINAPI_CORE_H
-#include <rainy/foundation/comint/model.hpp>
 #include <rainy/meta/templates.hpp>
 #include <rainy/utility.hpp>
 

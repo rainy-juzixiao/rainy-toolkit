@@ -2,6 +2,8 @@
 #define RAINY_FOUNDATION_FUNCTIONAL_HPP
 #include <functional>
 #include <rainy/core/core.hpp>
+#include <rainy/foundation/typeinfo.hpp>
+#include <iostream>
 
 namespace rainy::foundation::exceptions::runtime {
     class invalid_delegate : public runtime_error {
@@ -12,7 +14,7 @@ namespace rainy::foundation::exceptions::runtime {
         }
     };
 
-    void throw_invalid_delegate(utility::source_location loc = utility::source_location::current()) {
+    RAINY_INLINE void throw_invalid_delegate(utility::source_location loc = utility::source_location::current()) {
         throw_exception(invalid_delegate(loc));
     }
 }
@@ -130,20 +132,11 @@ namespace rainy::foundation::functional::implements {
         Fx fn;
     };
 
-    template <typename Fx,
-              typename TypeList =
-                  typename type_traits::other_trans::tuple_like_to_type_list<typename type_traits::primary_types::function_traits<
-                      typename type_traits::other_trans::decay_t<Fx>>::tuple_like_type>::type>
+    template <typename Fx,typename Rx,typename Class,typename... Args>
     struct get_ia_implement_type {
-        using type = void;
-    };
-
-    template <typename Fx, typename... Args>
-    struct get_ia_implement_type<Fx, type_traits::other_trans::type_list<Args...>> {
         using traits = type_traits::primary_types::function_traits<type_traits::other_trans::decay_t<Fx>>;
 
-        using type = invoker_accessor_impl<type_traits::other_trans::decay_t<Fx>, typename traits::return_type,
-                                           typename type_traits::primary_types::member_pointer_traits<Fx>::class_type, Args...>;
+        using type = invoker_accessor_impl<type_traits::other_trans::decay_t<Fx>, Rx, Class, Args...>;
     };
 
     template <typename Fx, typename Rx, typename TypeList>
@@ -181,7 +174,7 @@ namespace rainy::foundation::functional::implements {
         template <typename Class, typename UFx = Fx,
                   type_traits::other_trans::enable_if_t<
                       type_traits::type_properties::is_invocable_r_v<result_type, UFx, Class, Args...>, int> = 0>
-        Rx invoke(Class &&object, Args &&...args) const {
+        Rx invoke(Class &&object, Args...args) const {
             if (empty()) {
                 foundation::exceptions::runtime::throw_invalid_delegate();
             }
@@ -194,14 +187,23 @@ namespace rainy::foundation::functional::implements {
 
         template <typename Class, typename UFx = Fx,
                   type_traits::other_trans::enable_if_t<
-                      type_traits::type_properties::is_invocable_r_v<result_type, UFx, Class, Args...>, int> = 0>
-        Rx operator()(Class &&object, Args &&...args) const {
-            return invoke(utility::forward<Class>(object), utility::forward<Args>(args)...);
+                      type_traits::type_properties::is_invocable_r_v<result_type, UFx, Class, Args...> &&
+                        type_traits::primary_types::is_member_function_pointer_v<Fx>,
+                int> = 0>
+        Rx operator()(Class &&object, Args... args) const {
+            if (empty()) {
+                foundation::exceptions::runtime::throw_invalid_delegate();
+            }
+            if constexpr (rainy::type_traits::type_relations::is_void_v<Rx>) {
+                invoker_accessor()->invoke(const_cast<class_t *>(utility::addressof(object)), utility::forward<Args>(args)...);
+            } else {
+                return invoker_accessor()->invoke(const_cast<class_t *>(utility::addressof(object)), utility::forward<Args>(args)...);
+            }
         }
 
         template <typename UFx = Fx, type_traits::other_trans::enable_if_t<
                                          type_traits::type_properties::is_invocable_r_v<result_type, UFx, Args...>, int> = 0>
-        Rx invoke(Args &&...args) const {
+        Rx invoke(Args...args) const {
             if (empty()) {
                 foundation::exceptions::runtime::throw_invalid_delegate();
             }
@@ -213,9 +215,18 @@ namespace rainy::foundation::functional::implements {
         }
 
         template <typename UFx = Fx, type_traits::other_trans::enable_if_t<
-                                         type_traits::type_properties::is_invocable_r_v<result_type, UFx, Args...>, int> = 0>
-        Rx operator()(Args &&...args) const {
-            return invoke(utility::forward<Args>(args)...);
+            type_traits::type_properties::is_invocable_r_v<result_type,
+                UFx, Args...
+        >, int> = 0>
+        Rx operator()(Args...args) const {
+            if (empty()) {
+                foundation::exceptions::runtime::throw_invalid_delegate();
+            }
+            if constexpr (type_traits::type_relations::is_void_v<Rx>) {
+                invoker_accessor()->invoke(nullptr, utility::forward<Args>(args)...);
+            } else {
+                return invoker_accessor()->invoke(nullptr, utility::forward<Args>(args)...);
+            }
         }
 
         bool empty() const noexcept {
@@ -245,12 +256,11 @@ namespace rainy::foundation::functional::implements {
             if (!empty()) {
                 invoker_accessor_->destruct(is_local());
             }
-            using implemented_type = typename get_ia_implement_type<UFx>::type;
+            using implemented_type = typename get_ia_implement_type<UFx, Rx, class_t, Args...>::type;
             if constexpr (sizeof(implemented_type) > core::fn_obj_soo_buffer_size) {
                 invoker_accessor_ = ::new implemented_type(utility::forward<UFx>(func));
             } else {
-                invoker_accessor_ =
-                    utility::construct_at(reinterpret_cast<implemented_type *>(invoker_storage), utility::forward<UFx>(func));
+                invoker_accessor_ = utility::construct_at(reinterpret_cast<implemented_type *>(invoker_storage), utility::forward<UFx>(func));
             }
         }
 
@@ -368,6 +378,10 @@ namespace rainy::foundation::functional::implements {
             return nullptr;
         }
 
+        explicit operator bool() const noexcept {
+            return !empty();
+        }
+
     private:
         bool is_local() const noexcept {
             return static_cast<const void *>(invoker_accessor_) == reinterpret_cast<const void *>(invoker_storage);
@@ -407,7 +421,7 @@ namespace rainy::foundation::functional {
             this->copy_from_other(right);
         }
 
-        delegate(delegate &&right) {
+        delegate(delegate &&right) noexcept {
             this->move_from_other(utility::move(right));
         }
 
@@ -425,7 +439,7 @@ namespace rainy::foundation::functional {
             return *this;
         }
 
-        delegate &operator=(delegate &&right) {
+        delegate &operator=(delegate &&right) noexcept {
             this->move_from_other(utility::move(right));
             return *this;
         }
@@ -554,11 +568,11 @@ namespace rainy::foundation::functional {
 
         template <>
         struct equal<void> {
-            template <typename Ty, typename U>
-            constexpr auto operator()(const Ty &left, const Ty &right) const
-                noexcept(noexcept(utility::forward<Ty>(left) == utility::forward<U>(right)))
-                    -> decltype(utility::forward<Ty>(left) == utility::forward<U>(right)) {
-                return left == right;
+            template <typename Ty1, typename Ty2>
+            constexpr auto operator()(Ty1 &&left, Ty2 &&right) const
+                noexcept(noexcept(utility::forward<Ty1>(left) == utility::forward<Ty2>(right)))
+                    -> decltype(utility::forward<Ty1>(left) == utility::forward<Ty2>(right)) {
+                return utility::forward<Ty1>(left) == utility::forward<Ty2>(right);
             }
         };
 
@@ -588,11 +602,11 @@ namespace rainy::foundation::functional {
 
         template <>
         struct less<void> {
-            template <typename Ty, typename U>
-            constexpr auto operator()(const Ty &left, const U &right) const
-                noexcept(noexcept(utility::forward<Ty>(left) < utility::forward<U>(right)))
-                    -> decltype(utility::forward<Ty>(left) < utility::forward<U>(right)) {
-                return left < right;
+            template <typename Ty1, typename Ty2>
+            constexpr auto operator()(Ty1 &&left, Ty2 &&right) const
+                noexcept(noexcept(utility::forward<Ty1>(left) < utility::forward<Ty2>(right)))
+                    -> decltype(utility::forward<Ty1>(left) < utility::forward<Ty2>(right)) {
+                return utility::forward<Ty1>(left) < utility::forward<Ty2>(right);
             }
         };
 
@@ -622,11 +636,11 @@ namespace rainy::foundation::functional {
 
         template <>
         struct greater<void> {
-            template <typename Ty, typename U>
-            constexpr auto operator()(const Ty &left, const U &right) const
-                noexcept(noexcept(utility::forward<Ty>(left) > utility::forward<U>(right)))
-                    -> decltype(utility::forward<Ty>(left) > utility::forward<U>(right)) {
-                return left > right;
+            template <typename Ty1, typename Ty2>
+            constexpr auto operator()(Ty1 &&left, Ty2 &&right) const
+                noexcept(noexcept(utility::forward<Ty1>(left) > utility::forward<Ty2>(right)))
+                    -> decltype(utility::forward<Ty1>(left) > utility::forward<Ty2>(right)) {
+                return utility::forward<Ty1>(left) > utility::forward<Ty2>(right);
             }
         };
 

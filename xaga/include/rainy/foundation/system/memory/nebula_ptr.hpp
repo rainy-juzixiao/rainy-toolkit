@@ -82,7 +82,7 @@ namespace rainy::foundation::system::memory {
         }
 
         RAINY_NODISCARD constexpr operator bool() const noexcept {
-            return !static_cast<bool>(pair.second);
+            return static_cast<bool>(pair.second);
         }
 
         RAINY_CONSTEXPR20 void reset(element_type *pointer = nullptr) {

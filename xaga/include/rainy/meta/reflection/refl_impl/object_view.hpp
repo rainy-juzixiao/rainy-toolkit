@@ -17,6 +17,9 @@ namespace rainy::meta::reflection::implements {
             return rainy_typeid(Class);
         }
     }
+
+    struct as_array {};
+    struct as_reference {};
 }
 
 namespace rainy::meta::reflection {
@@ -46,6 +49,14 @@ namespace rainy::meta::reflection {
 
         object_view(void *const object, const foundation::ctti::typeinfo &ctti) noexcept :
             object_{object}, ctti_{&ctti} {
+        }
+
+        object_view(implements::as_array, void *const object, const foundation::ctti::typeinfo &ctti) noexcept :
+            object_{static_cast<void *>(reinterpret_cast< void *const>(object))}, ctti_{&ctti} {
+        }
+
+        object_view(implements::as_reference, void *const object, const foundation::ctti::typeinfo &ctti) noexcept :
+            object_{*static_cast<void *const *>(object)}, ctti_{&ctti} {
         }
 
         object_view(non_exists_instance_t) noexcept :
@@ -88,16 +99,7 @@ namespace rainy::meta::reflection {
 
         template <typename Type>
         RAINY_NODISCARD auto as() noexcept -> decltype(auto) {
-            using namespace foundation::ctti;
-#if RAINY_ENABLE_DEBUG
-            rainy_let ptr = cast_to_pointer<type_traits::other_trans::decay_t<Type>>();
-#else
-            rainy_let ptr = static_cast<type_traits::other_trans::decay_t<Type> *>(const_cast<void *>(target_as_void_ptr()));
-#endif
-            if (!ptr) {
-                std::terminate();
-            }
-            return utility::implements::as_impl<Type>(ptr, ctti());
+            return utility::implements::as_impl<Type>(target_as_void_ptr(), ctti());
         }
         
         template <typename Type, enable_if_t<Type> = 0>
