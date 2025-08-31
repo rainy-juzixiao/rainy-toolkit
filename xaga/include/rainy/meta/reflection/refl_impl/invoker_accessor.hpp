@@ -10,7 +10,20 @@ namespace rainy::meta::reflection::implements {
 
     template <typename Fx>
     struct function_signature<Fx, true> {
-        using type = decltype(&Fx::operator());
+        using traits = type_traits::primary_types::function_traits<Fx>;
+        using return_type = typename traits::return_type;
+        using type_list = typename type_traits::other_trans::tuple_like_to_type_list<typename traits::tuple_like_type>::type;
+
+        template <typename TypeList>
+        struct extractor {};
+
+        template <typename... Args>
+        struct extractor<type_traits::other_trans::type_list<Args...>> {
+            using type =
+                type_traits::other_trans::conditional_t<traits::is_noexcept, return_type(Args...) noexcept, return_type(Args...)>;
+        };
+
+        using type = extractor<type_list>;
     };
 
     /**
