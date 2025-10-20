@@ -26,7 +26,6 @@ void rebind(const function &function) noexcept;
 
 `function`: 待绑定的左值引用function对象。
 
-
 ### 3. `void rebind(std::nullptr_t)`
 
 将当前function对象置空。

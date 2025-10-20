@@ -169,4 +169,18 @@ namespace rainy::type_traits::extras::templates {
     RAINY_CONSTEXPR_BOOL is_iterator_v<Iter, other_trans::void_t<typename utility::iterator_traits<Iter>::iterator_category>> = true;
 }
 
+namespace rainy::type_traits::extras::templates {
+    template <typename Ty, typename = void>
+    RAINY_CONSTEXPR_BOOL has_iterator_v = false;
+
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL has_iterator_v<Ty, other_trans::void_t<typename cv_modify::remove_cvref_t<Ty>::iterator>> = true;
+
+    template <typename Ty, typename = void>
+    RAINY_CONSTEXPR_BOOL has_const_iterator_v = false;
+
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL has_const_iterator_v<Ty, other_trans::void_t<typename cv_modify::remove_cvref_t<Ty>::const_iterator>> = true;
+}
+
 #endif

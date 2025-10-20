@@ -1,4 +1,18 @@
-
+/*
+ * Copyright 2025 rainy-juzixiao
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 #ifndef RAINY_UTILITY_TUPLE_LIKE_TRAITS_HPP
 #define RAINY_UTILITY_TUPLE_LIKE_TRAITS_HPP
 #include <rainy/core/core.hpp>
@@ -156,7 +170,7 @@ namespace rainy::type_traits::extras::tuple::implements {
 }
 
 namespace rainy::type_traits::extras::tuple {
-    template <typename Ty>
+    template <typename Ty, typename = void>
     struct reflectet_for_type {
         static constexpr bool invalid_mark = true;
 
@@ -298,7 +312,7 @@ namespace rainy::type_traits::extras::tuple {
     template <typename Ty>
     struct member_count {
         static inline constexpr std::size_t value =
-            implements::eval_member_count<Ty> == 0 ? (is_reflectet_for_type_valid<Ty> ? reflectet_for_type<Ty>::count : 0) : implements::eval_member_count<Ty>;
+            is_reflectet_for_type_valid<Ty> ? reflectet_for_type<Ty>::count : implements::eval_member_count<Ty>;
     };
 
     template <typename Ty>
@@ -424,6 +438,114 @@ namespace rainy::type_traits::extras::tuple {
             return std::make_tuple(&obj.first, &obj.second);
         }
     };
+
+    template <typename Ty>
+    struct reflectet_for_type<Ty, type_traits::other_trans::enable_if_t<type_traits::primary_types::is_array_v<Ty>>> {
+        static constexpr inline std::size_t count = type_traits::primary_types::array_size_v<Ty>;
+
+        static constexpr auto make() noexcept {
+            return implements::refl_to_tuple_impl<count, Ty>::make();
+        }
+
+        static constexpr auto bind_obj(Ty &obj) noexcept {
+            return implements::refl_to_tuple_impl<count, Ty>::make_ptr(obj);
+        }
+    };
+
+    template <template <typename Ty, std::size_t N> typename ArrayTemplate,typename Ty, std::size_t N>
+    struct reflectet_for_type<ArrayTemplate<Ty, N>,
+        type_traits::other_trans::void_t< 
+            type_traits::other_trans::enable_if_t<type_traits::type_properties::is_aggregate_v<ArrayTemplate<Ty, N>>>, 
+            typename ArrayTemplate<Ty, N>::value_type,
+            typename ArrayTemplate<Ty, N>::iterator
+        >
+    > {
+        static constexpr inline std::size_t count = N;
+
+        static constexpr auto make() noexcept {
+            return implements::refl_to_tuple_impl<count, ArrayTemplate<Ty, N>>::make();
+        }
+
+        static constexpr auto bind_obj(ArrayTemplate<Ty, N> &obj) noexcept {
+            return implements::refl_to_tuple_impl<count, ArrayTemplate<Ty, N>>::make_ptr(obj);
+        }
+    };
+}
+
+namespace rainy::type_traits::extras::tuple::implements {
+    template <typename Tuple>
+    struct tuple_traits_impl {
+        static inline constexpr bool invalid_mark = true;
+    };
+
+    template <typename... Types>
+    struct tuple_traits_impl<std::tuple<Types...>> {
+        using type = std::tuple<Types...>;
+
+        template <std::size_t Idx>
+        using element = std::tuple_element<Idx,type>;
+
+        template <std::size_t Idx>
+        using element_t = std::tuple_element<Idx,type>;
+
+        static inline constexpr std::size_t size = sizeof...(Types);
+    };
+
+    template <typename Tuple>
+    struct pair_traits_impl {
+        static inline constexpr bool invalid_mark = true;
+    };
+
+    template <typename Ty1, typename Ty2>
+    struct pair_traits_impl<std::pair<Ty1, Ty2>> {
+        using type = std::pair<Ty1, Ty2>;
+        using first_type = Ty1;
+        using second_type = Ty2;       
+        static inline constexpr std::size_t size = 2;
+    };
+
+    template <typename Ty1, typename Ty2>
+    struct pair_traits_impl<utility::pair<Ty1, Ty2>> {
+        using type = utility::pair<Ty1, Ty2>;
+        using first_type = Ty1;
+        using second_type = Ty2;
+        static inline constexpr std::size_t size = 2;
+    };
+}
+
+namespace rainy::type_traits::extras::tuple {
+    template <typename Tuple>
+    struct tuple_traits : implements::tuple_traits_impl<type_traits::cv_modify::remove_cvref_t<Tuple>> {};
+
+    template <typename Tuple, typename = void>
+    RAINY_CONSTEXPR_BOOL is_tuple_v = true;
+
+    template <typename Tuple>
+    RAINY_CONSTEXPR_BOOL is_tuple_v<Tuple, other_trans::void_t<decltype(tuple_traits<Tuple>::invalid_mark)>> = false;
+
+    template <typename Tuple>
+    struct is_tuple : helper::bool_constant<is_tuple_v<Tuple>> {};
+
+    template <typename Pair>
+    struct pair_traits : implements::pair_traits_impl<type_traits::cv_modify::remove_cvref_t<Pair>> {};
+
+    template <typename Pair, typename = void>
+    RAINY_CONSTEXPR_BOOL is_pair_v = true;
+
+    template <typename Pair>
+    RAINY_CONSTEXPR_BOOL is_pair_v<Pair, other_trans::void_t<decltype(pair_traits<Pair>::invalid_mark)>> = false;
+
+    template <typename Pair>
+    struct is_pair : helper::bool_constant<is_pair_v<Pair>> {};
+}
+
+namespace rainy::type_traits::primary_types {
+    using extras::tuple::tuple_traits;
+    using extras::tuple::pair_traits;
+    using extras::tuple::is_tuple_v;
+    using extras::tuple::is_pair_v;
+    using extras::tuple::is_tuple;
+    using extras::tuple::is_pair;
 }
 
 #endif

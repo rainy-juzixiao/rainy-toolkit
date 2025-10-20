@@ -132,14 +132,11 @@ namespace rainy::meta::reflection::implements {
     
     template <typename Type>
     RAINY_INLINE Type get_arg(object_view item) {
-        if (item.ctti() == rainy_typeid(Type)) {
+        if (utility::implements::is_as_runnable<Type>(item.ctti())) {
             return item.template as<Type>();
         }
         if constexpr (utility::is_any_convert_invocable<Type>) {
             return utility::any_converter<Type>::basic_convert(item.get_pointer(), item.ctti());
-        }
-        if (item.ctti().is_compatible(rainy_typeid(Type))) {
-            return item.template as<Type>();
         }
         foundation::exceptions::cast::throw_bad_any_cast();
         std::terminate();

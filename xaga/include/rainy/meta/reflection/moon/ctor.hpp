@@ -12,7 +12,7 @@ namespace rainy::meta::reflection::moon::implements {
     struct extract_to_ctor_fn<Traits, type_traits::other_trans::type_list<Args...>> {
         using class_type = typename Traits::return_type;
 
-        static constexpr auto fn = rainy::meta::method::get_ctor_fn<class_type, Args...>();
+        static constexpr auto fn = rainy::utility::get_ctor_fn<class_type, Args...>();
     };
 }
 

@@ -20,7 +20,6 @@
 #include <bitset>
 #include <iomanip>
 #include <ostream>
-#include <rainy/meta/templates.hpp>
 #include <rainy/text/format_wrapper.hpp>
 #include <random>
 #include <sstream>

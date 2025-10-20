@@ -1,6 +1,28 @@
-#include <rainy/component/willow/implements/config.hpp>
+/*
+ * Copyright 2025 rainy-juzixiao
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+#include <rainy/component/willow/json.hpp>
 
 namespace rainy::component::willow {
+    //template class basic_json<>; // json
+    //template class basic_json<collections::dense_map, std::vector, text::string, std::int64_t>; // json64
+    //template class basic_json<collections::dense_map, std::vector, text::wstring>; // wjson
+    //template class basic_json<collections::dense_map, std::vector, text::string, long long>; // wjson64
+    //template class basic_json<collections::dense_map, std::vector, text::u16string>; // u16json
+    //template class basic_json<collections::dense_map, std::vector, text::u16string, std::int64_t>; // u16json
+
     thread_local std::pmr::unsynchronized_pool_resource pool{};
 
     thread_local std::pmr::memory_resource *memory_resource = utility::addressof(pool);

@@ -95,7 +95,7 @@ namespace rainy::meta::reflection::implements {
                 return object_view{implements::as_reference{}, const_cast<void *>(static_cast<const void *>(&arg)),
                                    foundation::ctti::typeinfo::of<Ty>()};
             } else if constexpr (primary_types::is_pointer_v<Ty>) {
-                return object_view{const_cast<void *>(static_cast<const void *>(arg)), foundation::ctti::typeinfo::of<Ty>()};
+                return object_view{const_cast<void *>(static_cast<const void *>(&arg)), foundation::ctti::typeinfo::of<Ty>()};
             } else if constexpr (type_relations::is_same_v<other_trans::decay_t<Ty>, utility::any>) {
                 return object_view{const_cast<void *>(arg.target_as_void_ptr()), arg.type()};
             } else if constexpr (type_relations::is_same_v<other_trans::decay_t<Ty>, object_view>) {

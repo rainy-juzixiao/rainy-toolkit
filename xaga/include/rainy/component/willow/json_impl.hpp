@@ -1,3 +1,18 @@
+/*
+ * Copyright 2025 rainy-juzixiao
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 #ifndef RAINY_COMPONENT_JSON_IMPL
 #define RAINY_COMPONENT_JSON_IMPL
 #include <iomanip>
@@ -691,7 +706,8 @@ namespace rainy::component::willow::implements {
                 return;
             }
             bool negative = value < 0;
-            auto abs_value = negative ? -static_cast<std::uint64_t>(value) : static_cast<std::uint64_t>(value);
+            auto abs_value =
+                static_cast<integer_type>(negative ? -static_cast<std::int64_t>(value) : static_cast<std::uint64_t>(value));
             char_type buffer[32]{};
             std::size_t pos = sizeof(buffer) / sizeof(buffer[0]);
             buffer[--pos] = '\0';
@@ -725,7 +741,7 @@ namespace rainy::component::willow::implements {
                 float_type mantissa = value / std::pow(10.0f, exp10);
                 // 输出整数部分
                 int int_part = static_cast<int>(mantissa);
-                buf[len++] = '0' + int_part;
+                buf[len++] = static_cast<char>('0' + int_part);
                 mantissa -= int_part;
                 // 输出小数部分，只保留有效数字
                 if (mantissa > utility::numeric_limits<float_type>::epsilon()) {
@@ -735,7 +751,7 @@ namespace rainy::component::willow::implements {
                         mantissa *= 10;
                         int digit = static_cast<int>(mantissa);
                         if (digit != 0 || len > 2) { // 避免开头多余零
-                            buf[len++] = '0' + digit;
+                            buf[len++] = static_cast<char>('0' + digit);
                         }
                         mantissa -= digit;
                         if (mantissa < utility::numeric_limits<float_type>::epsilon())
@@ -759,11 +775,11 @@ namespace rainy::component::willow::implements {
                     buf[len++] = '+';
                 }
                 if (exp10 >= 100) {
-                    buf[len++] = '0' + (exp10 / 100);
+                    buf[len++] = static_cast<char>('0' + (exp10 / 100));
                     exp10 %= 100;
                 }
-                buf[len++] = '0' + (exp10 / 10);
-                buf[len++] = '0' + (exp10 % 10);
+                buf[len++] = static_cast<char>('0' + (exp10 / 10));
+                buf[len++] = static_cast<char>('0' + (exp10 % 10));
                 out_->write(buf, len);
                 return;
             }

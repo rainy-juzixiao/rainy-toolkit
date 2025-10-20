@@ -1,16 +1,3 @@
-﻿#define RAINY_OVERLOAD_VOLATILE_METHOD(QUAL) template <typename ClassType, typename ReturnType, typename... Args> constexpr auto overload_volatile_method(ReturnType (ClassType::*volatile_method)(Args...) QUAL) { return volatile_method; }
-#define RAINY_OVERLOAD_CONST_METHOD(QUAL) template <typename ClassType, typename ReturnType, typename... Args> constexpr auto overload_cmethod(ReturnType (ClassType::*cmethod)(Args...) QUAL) { return cmethod; }
-#define RAINY_OVERLOAD_METHOD(QUAL) template <typename ClassType, typename ReturnType, typename... Args> constexpr auto overload_method(ReturnType (ClassType::*method)(Args...) QUAL) { return method; }
-#define RAINY_OVERLOAD_NOEXCEPT_METHOD(QUAL) template <typename ClassType, typename ReturnType, typename... Args> constexpr auto overload_noexcept_method(ReturnType (ClassType::*noexcept_method)(Args...) QUAL) { return noexcept_method; }
-#define RAINY_OVERLOAD_CV_METHOD(QUAL) template <typename ClassType, typename ReturnType, typename... Args>constexpr auto overload_cv_method(ReturnType (ClassType::*cv_method)(Args...) const volatile) { return cv_method;}
-#define RAINY_OVERLOAD_LEFT_CV_METHOD(QUAL) template <typename ClassType, typename ReturnType, typename... Args> constexpr auto overload_left_cv_method(ReturnType (ClassType::*cv_method)(Args...) const volatile) { return cv_method; }
-#define RAINY_OVERLOAD_LEFT_METHOD(QUAL) template <typename ClassType, typename ReturnType, typename... Args> constexpr auto overload_left_method(ReturnType (ClassType::*method)(Args...) QUAL) { return method; }
-#define RAINY_OVERLOAD_LEFT_CONST_METHOD(QUAL) template <typename ClassType, typename ReturnType, typename... Args> constexpr auto overload_left_cmethod(ReturnType (ClassType::*cmethod)(Args...) QUAL) { return cmethod; }
-#define RAINY_OVERLOAD_RIGHT_METHOD(QUAL) template <typename ClassType, typename ReturnType, typename... Args> constexpr auto overload_right_method(ReturnType (ClassType::*method)(Args...) QUAL) { return method; }
-#define RAINY_OVERLOAD_LEFT_NOEXCEPT_METHOD(QUAL) template <typename ClassType, typename ReturnType, typename... Args> constexpr auto overload_left_noexcept_method(ReturnType (ClassType::*noexcept_method)(Args...) QUAL) { return noexcept_method; }
-#define RAINY_OVERLOAD_LEFT_VOLATILE_METHOD(QUAL) template <typename ClassType, typename ReturnType, typename... Args> constexpr auto overload_left_volatile_method(ReturnType (ClassType::*volatile_method)(Args...) QUAL) { return volatile_method; }
-#define RAINY_OVERLOAD_RIGHT_CV_METHOD(QUAL) template <typename ClassType, typename ReturnType, typename... Args> constexpr auto overload_right_cv_method(ReturnType (ClassType::*cv_method)(Args...) const volatile QUAL) { return cv_method; }
-#define RAINY_OVERLOAD_RIGHT_NOEXCEPT_METHOD(QUAL) template <typename ClassType, typename ReturnType, typename... Args> constexpr auto overload_right_noexcept_method(ReturnType (ClassType::*noexcept_method)(Args...) QUAL) { return noexcept_method; }
 #define RAINY_INLINE
 #define RAINY_DECLARE_SIGNLE_INSTANCE(CLASSNAME) static CLASSNAME &instance() noexcept { static CLASSNAME instance;return instance;}
 #define RAINY_IS_MEMBER_FUNCTION_POINTER_HELPER_SPEC(__VA_ARGS__) template <typename Rx, typename Class, typename... Args> struct is_member_function_pointer_helper<Rx (Class::*)(Args...) __VA_ARGS__> { static constexpr bool value = true; }; template <typename Rx, typename Class, typename... Args> struct is_member_function_pointer_helper<Rx (Class::*)(Args..., ...) __VA_ARGS__> { static constexpr bool value = true; };
@@ -18,3 +5,4 @@
 #define RAINY_TOOLKIT_API __declspec(dllimport)
 #define RAINY_TOOLKIT_API
 #define RAINY_TOOLKIT_API __attribute__((visibility("default")))
+#define RAINY_EXTERN_C

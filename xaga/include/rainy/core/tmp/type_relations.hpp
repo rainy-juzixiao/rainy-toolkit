@@ -72,4 +72,19 @@ namespace rainy::type_traits::type_relations {
         !type_traits::type_relations::is_same_v<implements::remove_cvref_t<Ty1>, implements::remove_cvref_t<Ty2>>;
 }
 
+namespace rainy::type_traits::other_trans {
+    template <typename Ty = void, typename... Types>
+    struct forbbiden_instantiant {
+        using type = enable_if_t<!type_relations::is_any_of_v<Ty, Types...>, int>;
+    };
+
+    template <typename Ty = void, typename... Types>
+    using forbbiden_instantiant_t = typename forbbiden_instantiant<Ty, Types...>::type;
+}
+
+namespace rainy::type_traits::concepts {
+    template <typename Ty = void, typename... Types>
+    concept forbbiden_instantiant = !implements::is_any_of_v<Ty, Types...>;
+}
+
 #endif

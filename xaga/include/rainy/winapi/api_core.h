@@ -15,13 +15,14 @@
  */
 #ifndef RAINY_WINAPI_CORE_H
 #define RAINY_WINAPI_CORE_H
-#include <rainy/meta/templates.hpp>
 #include <rainy/utility.hpp>
+#include <windows.h>
 
-#define RAINY_DECLARE_CHARSET_TEMPLATE \
-template<typename CharType = char, \
-          rainy::type_traits::other_trans::enable_if_t<\
-rainy::type_traits::extras::winapi::is_support_charset_v<CharType>, int> = 0>
+#define RAINY_DECLARE_CHARSET_TEMPLATE                                                                                                \
+    template <typename CharType = char,                                                                                               \
+              rainy::type_traits::other_trans::enable_if_t<rainy::type_traits::type_relations::is_same_v<CharType, wchar_t> ||        \
+                                                               rainy::type_traits::type_relations::is_same_v<CharType, char>,         \
+                                                           int> = 0>
 
 #define RAINY_TOOLKIT_WINAPI RAINY_TOOLKIT_API
 
@@ -40,7 +41,8 @@ namespace rainy::winapi::error_process {
      * @param error_code WIn32API错误码
      * @return 以std::string_view形式返回（需立即保存，避免同一线程再次调用导致的未定义行为）
      */
-    RAINY_DECLARE_CHARSET_TEMPLATE RAINY_NODISCARD std::basic_string_view<CharType> last_error_message(unsigned long error_code = 0) noexcept {
+    RAINY_DECLARE_CHARSET_TEMPLATE RAINY_NODISCARD std::basic_string_view<CharType> last_error_message(
+        unsigned long error_code = 0) noexcept {
         if (error_code == 0) {
             error_code = last_error();
         }

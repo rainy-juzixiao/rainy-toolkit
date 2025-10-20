@@ -1,8 +1,8 @@
 #ifndef RAINY_FOUNDATION_PAL_ASIO_IO_CONTEXT_HPP
 #define RAINY_FOUNDATION_PAL_ASIO_IO_CONTEXT_HPP
-#include <WinSock2.h>
 #include <iostream>
 #include <rainy/core/core.hpp>
+#if RAINY_USING_WINDOWS
 #include <rainy/foundation/pal/asio/timer/queue_set.hpp>
 #include <rainy/foundation/pal/threading.hpp>
 #include <rainy/foundation/functional/functional.hpp>
@@ -154,5 +154,7 @@ namespace rainy::foundation::pal::asio {
         handle_type ctx_{0};
     };
 }
+
+#endif
 
 #endif

@@ -42,6 +42,8 @@
 #include <linux/version.h>
 #endif
 
+#define RAINY_EXTERN_C extern "C"
+
 /*-----------
 MSVC编译器区域
 -----------*/
@@ -184,6 +186,9 @@ clang和GNU编译器区域
 #define RAINY_CONSTEXPR_BOOL RAINY_INLINE_CONSTEXPR bool
 #define RAINY_FALLTHROUGH [[fallthrough]]
 #define RAINY_CONSTEXPR constexpr
+
+#define RAINY_STRINGIFY_HELPER(x) #x
+#define RAINY_STRINGIFY(x) RAINY_STRINGIFY_HELPER(x)
 
 #ifndef RAINY_STRINGIZE
 #define RAINY_STRINGIZE(...) #__VA_ARGS__
@@ -362,6 +367,40 @@ static_assert(false, "We detected you are using C++14 and below, and the library
 #endif
 #endif
 
+#if RAINY_USING_MSVC
+#define RAINY_IS_USING_MSVC_STL 1
+#define RAINY_IS_USING_LIBCXX 0
+#define RAINY_IS_USING_LIBSTDCXX 0
+
+#elif RAINY_USING_CLANG
+#if defined(_MSC_VER) && defined(_MSVC_STL_VERSION)
+
+#define RAINY_IS_USING_MSVC_STL 1
+#define RAINY_IS_USING_LIBCXX 0
+#define RAINY_IS_USING_LIBSTDCXX 0
+
+#elif defined(_LIBCPP_VERSION)
+
+#define RAINY_IS_USING_MSVC_STL 0
+#define RAINY_IS_USING_LIBCXX 1
+#define RAINY_IS_USING_LIBSTDCXX 0
+
+#elif defined(__GLIBCXX__)
+
+#define RAINY_IS_USING_MSVC_STL 0
+#define RAINY_IS_USING_LIBCXX 0
+#define RAINY_IS_USING_LIBSTDCXX 1
+
+#endif
+
+#elif RAINY_USING_GCC
+
+#define RAINY_IS_USING_MSVC_STL 0
+#define RAINY_IS_USING_LIBCXX 0
+#define RAINY_IS_USING_LIBSTDCXX 1
+
+#endif
+
 #define RAINY_STAMP4(n, x)                                                                                                            \
     x(n);                                                                                                                             \
     x(n + 1);                                                                                                                         \
@@ -380,8 +419,88 @@ static_assert(false, "We detected you are using C++14 and below, and the library
 
 #define RAINY_STAMP(n, x) x(RAINY_STAMP##n, n)
 
+#define rain_fn auto
+
+namespace rainy::core {
+    constexpr bool is_rainy_enable_debug = RAINY_ENABLE_DEBUG;
+
+#if __cpp_exceptions
+    constexpr bool is_rainy_enable_exception = true;
+#else
+    constexpr bool is_rainy_enable_exception = false;
+#endif
+}
+
 namespace rainy::core {
     using errno_t = int;
+}
+
+namespace rainy::type_traits::other_trans {
+    /**
+     * @brief 有条件地为 SFINAE 重载决策设置类型的实例。 当且仅当 enable_if_t<test,Ty> 是 Type 时，嵌套的 typedef
+     * Condition 才存在（并且是 true 的同义词）。
+     * @tparam Test 确定存在产生的类型的值
+     * @tparam Ty test 为 true 时要实例化的类型。
+     * @remark 如果 test 为 true，则 enable_if_t<test, Ty> 结果即为typedef（它是 Ty 的同义词）。如果 test 为
+     * false，则 enable_if_t<test, Ty> 结果不会拥有名为“type”的嵌套 typedef
+     */
+    template <bool Test, typename Ty>
+    struct enable_if {
+        enable_if() = delete;
+        enable_if(const enable_if &) = delete;
+        enable_if(enable_if &&) = delete;
+        enable_if &operator=(const enable_if &) = delete;
+        enable_if &operator=(enable_if &&) = delete;
+    };
+
+    template <typename Ty>
+    struct enable_if<true, Ty> {
+        using type = Ty;
+    };
+
+    /**
+     * @brief 有条件地为 SFINAE 重载决策设置类型的实例。 当且仅当 enable_if_t<test,Ty> 是 Type 时，嵌套的 typedef
+     * Condition 才存在（并且是 true 的同义词）。
+     * @tparam Test 确定存在产生的类型的值
+     * @tparam Ty test 为 true 时要实例化的类型。
+     * @remark 如果 test 为 true，则 enable_if_t<test, Ty> 结果即为typedef（它是 Ty 的同义词）。如果 test 为
+     * false，则 enable_if_t<test, Ty> 结果不会拥有名为“type”的嵌套 typedef
+     */
+    template <bool Test, typename Ty = void>
+    using enable_if_t = typename enable_if<Test, Ty>::type;
+
+    template <bool, typename IfTrue, typename>
+    struct conditional {
+        using type = IfTrue;
+    };
+
+    template <typename IfTrue, typename IfFalse>
+    struct conditional<false, IfTrue, IfFalse> {
+        using type = IfFalse;
+    };
+
+    template <bool Test, typename IfTrue, typename IfFalse>
+    using conditional_t = typename conditional<Test, IfTrue, IfFalse>::type;
+
+    template <typename...>
+    using void_t = void;
+
+    template <bool>
+    struct select {
+        template <typename Ty1, typename>
+        using apply = Ty1;
+    };
+
+    template <>
+    struct select<false> {
+        template <typename, typename Ty2>
+        using apply = Ty2;
+    };
+
+    struct dummy_t {};
+
+    template <typename Ty>
+    using pointer = Ty*;
 }
 
 namespace rainy::core::builtin {
@@ -549,6 +668,7 @@ namespace rainy::core::builtin {
     };
 
     RAINY_TOOLKIT_API void cpuid(int query[4], int function_id);
+    RAINY_TOOLKIT_API errno_t get_machine_code(); // for future, not implemented
     RAINY_TOOLKIT_API bool has_instruction(instruction_set check);
     RAINY_TOOLKIT_API errno_t get_vendor(char *buffer);
     RAINY_TOOLKIT_API errno_t get_brand(char *buffer);
@@ -805,77 +925,75 @@ namespace rainy::core::builtin {
     }
 }
 
-namespace rainy::type_traits::other_trans {
-    /**
-     * @brief 有条件地为 SFINAE 重载决策设置类型的实例。 当且仅当 enable_if_t<test,Ty> 是 Type 时，嵌套的 typedef
-     * Condition 才存在（并且是 true 的同义词）。
-     * @tparam Test 确定存在产生的类型的值
-     * @tparam Ty test 为 true 时要实例化的类型。
-     * @remark 如果 test 为 true，则 enable_if_t<test, Ty> 结果即为typedef（它是 Ty 的同义词）。如果 test 为
-     * false，则 enable_if_t<test, Ty> 结果不会拥有名为“type”的嵌套 typedef
-     */
-    template <bool Test, typename Ty>
-    struct enable_if {
-        enable_if() = delete;
-        enable_if(const enable_if &) = delete;
-        enable_if(enable_if &&) = delete;
-        enable_if &operator=(const enable_if &) = delete;
-        enable_if &operator=(enable_if &&) = delete;
-    };
-
-    template <typename Ty>
-    struct enable_if<true, Ty> {
-        using type = Ty;
-    };
-
-    /**
-     * @brief 有条件地为 SFINAE 重载决策设置类型的实例。 当且仅当 enable_if_t<test,Ty> 是 Type 时，嵌套的 typedef
-     * Condition 才存在（并且是 true 的同义词）。
-     * @tparam Test 确定存在产生的类型的值
-     * @tparam Ty test 为 true 时要实例化的类型。
-     * @remark 如果 test 为 true，则 enable_if_t<test, Ty> 结果即为typedef（它是 Ty 的同义词）。如果 test 为
-     * false，则 enable_if_t<test, Ty> 结果不会拥有名为“type”的嵌套 typedef
-     */
-    template <bool Test, typename Ty = void>
-    using enable_if_t = typename enable_if<Test, Ty>::type;
-
-    template <bool, typename IfTrue, typename>
-    struct conditional {
-        using type = IfTrue;
-    };
-
-    template <typename IfTrue, typename IfFalse>
-    struct conditional<false, IfTrue, IfFalse> {
-        using type = IfFalse;
-    };
-
-    template <bool Test, typename IfTrue, typename IfFalse>
-    using conditional_t = typename conditional<Test, IfTrue, IfFalse>::type;
-
-    template <typename...>
-    using void_t = void;
-
-    template <bool>
-    struct select {
-        template <typename Ty1, typename>
-        using apply = Ty1;
-    };
-
-    template <>
-    struct select<false> {
-        template <typename, typename Ty2>
-        using apply = Ty2;
-    };
-
-    struct dummy_t {};
-}
-
 namespace rainy::utility {
     struct auto_deduce_t {
         explicit constexpr auto_deduce_t() = default;
     };
 
     static constexpr auto_deduce_t auto_deduce{};
+}
+
+#define RAINY_TOOLKIT_VERSION                                                                                                         \
+    "rainy-toolkit:"                                                                                                         \
+    RAINY_STRINGIFY(RAINY_TOOLKIT_PROJECT_MAJOR)                                                                                      \
+    "." RAINY_STRINGIFY(RAINY_TOOLKIT_PROJECT_MINOR) "." RAINY_STRINGIFY(RAINY_TOOLKIT_PROJECT_PATCH) ".xaga"
+
+#define RAINY_ABI_BRIDGE_CALL_HANDLER_TOTAL_COUNT 0
+#define RAINY_ABI_BRIDGE_CALL_GET_VERSION 1
+#define RAINY_ABI_BRIDGE_CALL_GET_FULLVERSION 2
+#define RAINY_ABI_BRIDGE_CALL_GET_COMPILE_STANDARD 3
+#define RAINY_ABI_BRIDGE_CALL_GET_COMPILE_IDENTIFIER 4
+#define RAINY_ABI_BRIDGE_CALL_GET_VERSION_NAME 5
+
+namespace rainy::core::abi {
+    using abi_bridge_call_func_t = long (*)(std::intptr_t, std::intptr_t, std::intptr_t, std::intptr_t, std::intptr_t, std::intptr_t);
+
+    enum class bridge_version {
+        major,
+        minor,
+        patch
+    };
+
+    struct version {
+        int major;
+        int minor;
+        int patch;
+    };
+
+    enum class standard {
+        cxx17,
+        caxx20,
+        cxx23,
+        cxxlatest
+    };
+
+    enum class compiler_identifier {
+        msvc,
+        llvm_clang,
+        gcc
+    };
+
+    enum class standard_library_id {
+        msvc_stl,
+        libcxx,
+        libstdcxx
+    };
+
+    constexpr const char rainy_toolkit_version_name[] = RAINY_TOOLKIT_VERSION;
+    constexpr const char build_date[] = __DATE__;
+    constexpr const char msvc_stl_name[] = "MSVC-STL package";
+    constexpr const char libcxx_name[] = "libc++ package";
+    constexpr const char libstdcxx_name[] = "libstdc++ package";
+
+    RAINY_EXTERN_C RAINY_TOOLKIT_API long rainy_toolkit_abi_bridge_call(long number, ...);
+    RAINY_EXTERN_C RAINY_TOOLKIT_API long rainy_toolkit_call_handler_total_count(long *total);
+    RAINY_EXTERN_C RAINY_TOOLKIT_API long rainy_toolkit_get_version(bridge_version bridge_version, int *recv);
+    RAINY_EXTERN_C RAINY_TOOLKIT_API long rainy_toolkit_get_fullversion(version *recv);
+    RAINY_EXTERN_C RAINY_TOOLKIT_API long rainy_toolkit_get_compile_standard(standard *recv);
+    RAINY_EXTERN_C RAINY_TOOLKIT_API long rainy_toolkit_get_compile_identifier(compiler_identifier *recv);
+    RAINY_EXTERN_C RAINY_TOOLKIT_API long rainy_toolkit_get_version_name(char *buffer, std::size_t buffer_length);
+    RAINY_EXTERN_C RAINY_TOOLKIT_API long rainy_toolkit_export_library_context(std::uintptr_t* context);
+    RAINY_EXTERN_C RAINY_TOOLKIT_API long rainy_toolkit_is_abi_compatible(std::uintptr_t *context);
 }
 
 #endif

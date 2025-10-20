@@ -1,3 +1,18 @@
+/*
+ * Copyright 2025 rainy-juzixiao
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 #ifndef RAINY_META_REFLECTION_REFL_IMPL_OBJECT_VIEW_HPP
 #define RAINY_META_REFLECTION_REFL_IMPL_OBJECT_VIEW_HPP
 #include <rainy/core/core.hpp>
@@ -52,11 +67,13 @@ namespace rainy::meta::reflection {
         }
 
         object_view(implements::as_array, void *const object, const foundation::ctti::typeinfo &ctti) noexcept :
-            object_{static_cast<void *>(reinterpret_cast< void *const>(object))}, ctti_{&ctti} {
+            object_{nullptr}, ctti_{&ctti} {
+            object_holder_ = object;
+            object_ = static_cast<void *>(&object_holder_);
         }
 
         object_view(implements::as_reference, void *const object, const foundation::ctti::typeinfo &ctti) noexcept :
-            object_{*static_cast<void *const *>(object)}, ctti_{&ctti} {
+            object_{object}, ctti_{&ctti} {
         }
 
         object_view(non_exists_instance_t) noexcept :
@@ -143,6 +160,7 @@ namespace rainy::meta::reflection {
     private:
         void *object_;
         const foundation::ctti::typeinfo *ctti_{&rainy_typeid(void)};
+        void *object_holder_{};
     };
 }
 

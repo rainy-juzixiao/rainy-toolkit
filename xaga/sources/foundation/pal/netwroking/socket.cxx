@@ -53,7 +53,7 @@ namespace rainy::foundation::pal::networking::implements {
         return accept(sock, reinterpret_cast<sockaddr *>(addr), addrlen);
 #else
         socklen_t len = *addrlen;
-        core::handle result = accept(sock, addr, &len);
+        core::handle result = accept(sock, reinterpret_cast<sockaddr *>(addr), &len);
         *addrlen = len;
         return result;
 #endif
@@ -80,7 +80,7 @@ namespace rainy::foundation::pal::networking::implements {
         return recvfrom(sock, reinterpret_cast<char *>(buf), len, flags, reinterpret_cast<sockaddr *>(src_addr), addrlen);
 #else
         socklen_t len_t = *addrlen;
-        int result = recvfrom(sock, buf, len, flags, src_addr, &len_t);
+        int result = recvfrom(sock, buf, len, flags, reinterpret_cast<sockaddr *>(src_addr), &len_t);
         *addrlen = len_t;
         return result;
 #endif
@@ -116,11 +116,11 @@ namespace rainy::foundation::pal::networking::implements {
         return shutdown(sock, how);
 #else
         switch (how) {
-            case SD_SEND:
+            case SHUT_WR:
                 return shutdown(sock, SHUT_WR);
-            case SD_RECEIVE:
+            case SHUT_RD:
                 return shutdown(sock, SHUT_RD);
-            case SD_BOTH:
+            case SHUT_RDWR:
                 return shutdown(sock, SHUT_RDWR);
             default:
                 return -1;

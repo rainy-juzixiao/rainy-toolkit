@@ -231,7 +231,7 @@ namespace rainy::core::pal {
 #endif
     }
 
-    std::int32_t iso_volatile_load32(const volatile int *address) { // NOLINT
+    std::int32_t iso_volatile_load32(const volatile std::int32_t *address) { // NOLINT
         rainy_assume(static_cast<bool>(address));
 #if RAINY_USING_MSVC
         return __iso_volatile_load32(address);
@@ -412,8 +412,8 @@ namespace rainy::core::pal {
                                               comparand_result);
 #else
         bool result{};
-        __int64 comparand_low = comparand_result[0];
-        __int64 comparand_high = comparand_result[1];
+        std::int64_t comparand_low = comparand_result[0];
+        std::int64_t comparand_high = comparand_result[1];
         __asm__ __volatile__("lock cmpxchg16b %1\n\t"
                              "setz %0"
                              : "=q"(result), "+m"(*reinterpret_cast<__int128 volatile *>(destination)), "+d"(comparand_high),

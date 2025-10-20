@@ -1,4 +1,6 @@
 import { defineConfig } from 'vitepress'
+import { change_log_sidebar_item } from './change_log.mts';
+import { utility_toolkit_index } from './utility_document/index.mjs';
 
 export default defineConfig({
   title: "rainy-toolkit 文档",
@@ -7,23 +9,8 @@ export default defineConfig({
   base: '/rainy-toolkit/',
   themeConfig: {
     sidebar: [
-      {
-        text: '更新日志',
-        base: '/change_log',
-        collapsed: true,
-        items: [
-          {
-            text: 'xaga',
-            collapsed: true,
-            items: [
-              {
-                text: '0.7.4',
-                link: '/xaga/xaga-0.7.4'
-              }
-            ]
-          }
-        ]
-      },
+      change_log_sidebar_item,
+      utility_toolkit_index,
       {
         text: '反射',
         base: '/md/reflection/',
@@ -36,13 +23,13 @@ export default defineConfig({
               {
                 text: '&lt;function.hpp&gt;',
                 link: 'function/'
-              },          
+              },
               {
-                text: '<function.hpp> 函数',
+                text: '&lt;function.hpp&gt;函数',
                 link: 'function/pubfn'
               },
               {
-                text: '<function.hpp> 运算符',
+                text: '&lt;function.hpp&gt;运算符',
                 link: 'function/operators'
               },
               {
@@ -66,8 +53,8 @@ export default defineConfig({
   },
   markdown: {
     theme: {
-        dark: 'dracula-soft',
-        light: 'github-dark',
+      dark: 'dracula-soft',
+      light: 'github-dark',
     }
   }
 });

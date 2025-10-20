@@ -365,7 +365,14 @@ namespace rainy::foundation::ctti {
          * @return 如果right的类型信息与this存储的类型信息具有兼容性，返回true，否则返回false
          */
         constexpr bool is_compatible(const typeinfo &right) const noexcept {
-            return this->remove_all_qualifier() == right.remove_all_qualifier();
+            if ((*this) == right) {
+                return true;
+            }
+            typeinfo tmp_left = this->remove_reference();
+            if (tmp_left == right) {
+                return true;
+            }
+            return tmp_left.remove_cv() == right;
         }
 
         /**
@@ -388,7 +395,7 @@ namespace rainy::foundation::ctti {
             typeinfo result = *this;
             result.traits_ &= ~(traits::is_lref | traits::is_rref);
             std::string_view name = _name;
-#if RAINY_USING_CLANG || RAINY_USING_GCC
+#if RAINY_USING_CLANG
             constexpr std::string_view lref_symbol = " &";
             constexpr std::string_view rref_symbol = " &&";
 #else
@@ -542,8 +549,12 @@ struct rainy::utility::hash<rainy::foundation::ctti::typeinfo> {
     using argument_type = foundation::ctti::typeinfo;
     using result_type = std::size_t;
 
+    RAINY_NODISCARD std::size_t operator()(const argument_type &right) const {
+        return right.hash_code();
+    }
+
     static std::size_t hash_this_val(const argument_type &val) noexcept {
-        return val.hash_code();
+        return hash_this_val(val);
     }
 };
 

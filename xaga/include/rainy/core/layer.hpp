@@ -106,8 +106,8 @@ namespace rainy::core::pal {
     /* atomic::iso_volatile_load */
     RAINY_TOOLKIT_API std::intptr_t iso_volatile_load(const volatile std::intptr_t *address);
     RAINY_TOOLKIT_API std::int8_t iso_volatile_load8(const volatile std::int8_t *address);
-    RAINY_TOOLKIT_API std::int16_t iso_volatile_load16(const volatile std::int64_t *address);
-    RAINY_TOOLKIT_API std::int32_t iso_volatile_load32(const volatile int *address);
+    RAINY_TOOLKIT_API std::int16_t iso_volatile_load16(const volatile std::int16_t *address);
+    RAINY_TOOLKIT_API std::int32_t iso_volatile_load32(const volatile std::int32_t *address);
     RAINY_TOOLKIT_API std::int64_t iso_volatile_load64(const volatile long long *address);
     RAINY_TOOLKIT_API long interlocked_exchange(volatile long *target, long value);
     RAINY_TOOLKIT_API std::int8_t interlocked_exchange8(volatile std::int8_t *target, std::int8_t value);

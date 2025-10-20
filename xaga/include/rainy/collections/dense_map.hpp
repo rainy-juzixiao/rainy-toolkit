@@ -279,7 +279,7 @@ namespace rainy::collections {
         dense_map(const dense_map &right, const allocator_type &allocator) :
             storage{node_container_t(right.storage.first, typename alloc_traits::template rebind_alloc<node_type>(allocator)),
                     sparse_container_t(right.storage.second, typename alloc_traits::template rebind_alloc<node_type>(allocator))},
-            load_factor_{right.load_factor_} {
+            tools{right.tools}, load_factor_{right.load_factor_} {
         }
 
         dense_map(dense_map &&right, const allocator_type &allocator) :
@@ -287,6 +287,7 @@ namespace rainy::collections {
                                      typename alloc_traits::template rebind_alloc<node_type>(allocator)),
                     sparse_container_t(utility::move(right.storage.second),
                                        typename alloc_traits::template rebind_alloc<node_type>(allocator))},
+            tools{utility::move(right.tools)},
             load_factor_{right.load_factor_} {
         }
 
@@ -362,7 +363,7 @@ namespace rainy::collections {
             rehash(0u);
         }
 
-        utility::pair<iterator, bool> insert(const value_type &value) {
+        utility::pair<iterator, bool> insert(utility::in<value_type> value) {
             return insert_or_do_nothing(value.first, value.second);
         }
 
@@ -406,8 +407,8 @@ namespace rainy::collections {
 
             } else {
                 auto &node = storage.first.emplace_back(storage.first.size(), utility::forward<Args>(args)...);
-                const auto index = key_to_bucket(node.element.first);
-                if (auto it = constrained_find(node.element.first, index); it != end()) {
+                const auto index = key_to_bucket(node.elem.first);
+                if (auto it = constrained_find(node.elem.first, index); it != end()) {
                     storage.first.pop_back();
                     return utility::make_pair(it, false);
                 }
@@ -441,11 +442,9 @@ namespace rainy::collections {
 
         iterator erase(const_iterator first, const_iterator last) {
             const auto dist = first - cbegin();
-
             for (auto from = last - cbegin(); from != dist; --from) {
                 erase(storage.first[static_cast<size_type>(from) - 1u].elem.first);
             }
-
             return (begin() + dist);
         }
 
@@ -463,19 +462,19 @@ namespace rainy::collections {
             return 0u;
         }
 
-        RAINY_NODISCARD mapped_type &at(const key_type &keyval) {
+        RAINY_NODISCARD mapped_type &at(utility::in<key_type> keyval) {
             auto it = find(keyval);
             assert(it != end() && "Invalid keyval");
             return it->second;
         }
 
-        RAINY_NODISCARD const mapped_type &at(const key_type &keyval) const {
+        RAINY_NODISCARD const mapped_type &at(utility::in<key_type> keyval) const {
             auto it = find(keyval);
             assert(it != cend() && "Invalid keyval");
             return it->second;
         }
 
-        RAINY_NODISCARD mapped_type &operator[](const key_type &keyval) {
+        RAINY_NODISCARD mapped_type &operator[](utility::in<key_type> keyval) {
             return insert_or_do_nothing(keyval).first->second;
         }
 
@@ -495,11 +494,11 @@ namespace rainy::collections {
             return find(keyval) != end();
         }
 
-        RAINY_NODISCARD iterator find(const key_type &keyval) {
+        RAINY_NODISCARD iterator find(utility::in<key_type> keyval) {
             return constrained_find(keyval, key_to_bucket(keyval));
         }
 
-        RAINY_NODISCARD const_iterator find(const key_type &keyval) const {
+        RAINY_NODISCARD const_iterator find(utility::in<key_type> keyval) const {
             return constrained_find(keyval, key_to_bucket(keyval));
         }
 

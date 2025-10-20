@@ -1,6 +1,7 @@
 #ifndef RAINY_COMPONENT_FALLBOOT_APPLICATION_HPP
 #define RAINY_COMPONENT_FALLBOOT_APPLICATION_HPP
 #include <optional>
+#include <mutex>
 #include <filesystem>
 #include <rainy/core/core.hpp>
 #include <rainy/foundation/typeinfo.hpp>

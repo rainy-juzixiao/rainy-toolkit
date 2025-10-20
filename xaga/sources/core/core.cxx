@@ -20,6 +20,33 @@
 #include <intrin.h>
 #endif
 
+namespace rainy::foundation::exceptions {
+    static exception_handler_t global_exception_handler_impl = &std::terminate;
+    thread_local exception_handler_t current_thread_exception_handler_impl = &std::terminate;
+
+    exception_handler_t global_exception_handler(exception_handler_t new_handler) noexcept {
+        return (new_handler ? utility::exchange(global_exception_handler_impl, new_handler) : global_exception_handler_impl);
+    }
+
+    exception_handler_t current_thread_exception_handler(exception_handler_t new_handler) noexcept {
+        return (new_handler ? utility::exchange(current_thread_exception_handler_impl, new_handler)
+                            : current_thread_exception_handler_impl);
+    }
+}
+
+namespace rainy::foundation::exceptions::implements {
+    void invoke_exception_handler() noexcept {
+        {
+            auto invoke_address = current_thread_exception_handler();
+            invoke_address();
+        }
+        {
+            auto invoke_address = global_exception_handler();
+            invoke_address();
+        }
+    }
+}
+
 namespace rainy::core::builtin {
 #if RAINY_USING_AVX2
     std::int32_t ctz_avx2(const std::uint32_t x) noexcept {
@@ -414,5 +441,19 @@ namespace rainy::core::implements {
             pal::deallocate(buffer, required_size);
         }
         std::abort();
+    }
+}
+
+namespace rainy::annotations::lifetime::implements {
+    void atomic_counter::operator++() {
+        core::pal::interlocked_increment32(&this->count);
+    }
+
+    void atomic_counter::operator--() {
+        core::pal::interlocked_decrement32(&this->count);
+    }
+
+    int atomic_counter::get() {
+        return core::pal::iso_volatile_load32(static_cast<const volatile int *>(&this->count));
     }
 }

@@ -8,8 +8,8 @@
 
 namespace rainy::foundation::fact {
     template <typename Prod, typename ProdKey = text::hashed_string,
-              template <typename Prod, typename...> typename ProjHolder = system::memory::nebula_ptr, typename Fx = Prod *(),
-              template <typename Fx, typename...> typename Creater = functional::delegate,
+              template <typename Product, typename...> typename ProjHolder = system::memory::nebula_ptr, typename Fx = Prod *(),
+              template <typename FxType, typename...> typename Creater = functional::delegate,
               template <typename Key, typename Mapped, typename...> typename Map = collections::dense_map,
               template <typename FactoryStorageType> typename Alloc = system::memory::allocator>
     class unsynchronized_factory {
@@ -24,6 +24,10 @@ namespace rainy::foundation::fact {
         using const_iterator = typename map::const_iterator;
         using size_type = typename map::size_type;
         using projection_holder = ProjHolder<Prod>;
+
+        static_assert(
+            type_traits::type_properties::is_constructible_v<projection_holder, type_traits::primary_types::function_return_type<Fx>>,
+            "current function type cannot be used to construct projection_holder");
 
         unsynchronized_factory() noexcept = default;
 
@@ -74,7 +78,7 @@ namespace rainy::foundation::fact {
         }
 
         template <typename... Args, type_traits::other_trans::enable_if_t<
-                                        type_traits::type_properties::is_invocable_r_v<projection_holder, Fx, Args...>, int> = 0>
+                                        type_traits::type_properties::is_invocable_r_v<product*, Fx, Args...>, int> = 0>
         projection_holder make_product(const product_key &id, Args &&...args) const {
             if (const auto res = find(id); res != end()) {
                 return projection_holder{res->second(utility::forward<Args>(args)...)};
@@ -170,8 +174,8 @@ namespace rainy::foundation::fact {
     };
 
     template <typename Prod, typename ProdKey = text::hashed_string,
-              template <typename Prod, typename...> typename ProjHolder = system::memory::nebula_ptr, typename Fx = Prod *(),
-              template <typename Fx, typename...> typename Creater = functional::delegate,
+              template <typename Product, typename...> typename ProjHolder = system::memory::nebula_ptr, typename Fx = Prod *(),
+              template <typename FxType, typename...> typename Creater = functional::delegate,
               template <typename Key, typename Mapped, typename...> typename Map = collections::dense_map,
               template <typename FactoryStorageType> typename Alloc = system::memory::allocator>
     class synchronized_factory {
@@ -235,8 +239,8 @@ namespace rainy::foundation::fact {
             return impl_.end();
         }
 
-        template <typename... Args, type_traits::other_trans::enable_if_t<
-                                        type_traits::type_properties::is_invocable_r_v<projection_holder, Fx, Args...>, int> = 0>
+        template <typename... Args, type_traits::other_trans::enable_if_t<type_traits::type_properties::is_invocable_r_v<product*, Fx, Args...>,
+                                        int> = 0>
         projection_holder make_product(const product_key &id, Args &&...args) const {
             return impl_.make_product(id, utility::forward<Args>(args)...);
         }
@@ -343,8 +347,8 @@ namespace rainy::foundation::fact::implements {
     struct factory_traits_impl {};
 
     template <
-        typename Prod, typename ProdKey, template <typename Prod, typename...> typename ProjHolder, typename Fx,
-        template <typename Fx, typename...> typename Creater, template <typename Key, typename Mapped, typename...> typename Map,
+        typename Prod, typename ProdKey, template <typename Product, typename...> typename ProjHolder, typename Fx,
+        template <typename FxType, typename...> typename Creater, template <typename Key, typename Mapped, typename...> typename Map,
         template <typename FactoryStorageType> typename Alloc,
         template <typename, typename, template <typename, typename...> typename, typename, template <typename, typename...> typename,
                   template <typename, typename, typename...> typename, template <typename> typename> typename FactoryTemplate>
@@ -384,15 +388,15 @@ namespace rainy::foundation::fact {
     template <typename Factory>
     struct factory_traits : type_traits::helper::false_type {};
 
-    template <typename Prod, typename ProdKey, template <typename Prod, typename...> typename ProjHolder, typename Fx,
-              template <typename Fx, typename...> typename Creater, template <typename Key, typename Mapped, typename...> typename Map,
+    template <typename Prod, typename ProdKey, template <typename Product, typename...> typename ProjHolder, typename Fx,
+              template <typename FxType, typename...> typename Creater, template <typename Key, typename Mapped, typename...> typename Map,
               template <typename FactoryStorageType> typename Alloc>
     struct factory_traits<unsynchronized_factory<Prod, ProdKey, ProjHolder, Fx, Creater, Map, Alloc>>
         : type_traits::helper::true_type,
           implements::factory_traits_impl<unsynchronized_factory<Prod, ProdKey, ProjHolder, Fx, Creater, Map, Alloc>> {};
 
-    template <typename Prod, typename ProdKey, template <typename Prod, typename...> typename ProjHolder, typename Fx,
-              template <typename Fx, typename...> typename Creater, template <typename Key, typename Mapped, typename...> typename Map,
+    template <typename Prod, typename ProdKey, template <typename Product, typename...> typename ProjHolder, typename Fx,
+              template <typename FxType, typename...> typename Creater, template <typename Key, typename Mapped, typename...> typename Map,
               template <typename FactoryStorageType> typename Alloc>
     struct factory_traits<synchronized_factory<Prod, ProdKey, ProjHolder, Fx, Creater, Map, Alloc>>
         : type_traits::helper::true_type,

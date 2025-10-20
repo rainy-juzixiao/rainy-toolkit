@@ -109,7 +109,7 @@ namespace rainy::type_traits::implements::gcc_detail_impl {
     struct _is_destructible_safe;
 
     template <typename Ty>
-    struct _is_destructible_safe<Ty, false, false> : _is_destructible_impl<typename array_modify::remove_all_extents<Ty>::type>::type {};
+    struct _is_destructible_safe<Ty, false, false> : _is_destructible_impl<typename modifers::remove_all_extents<Ty>::type>::type {};
 
     template <typename Ty>
     struct _is_destructible_safe<Ty, true, false> : helper:: false_type {};

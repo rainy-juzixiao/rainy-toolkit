@@ -373,4 +373,37 @@ namespace rainy::foundation::pal::threading::implements {
     }
 }
 
+namespace rainy::foundation::pal::threading::implements {
+    core::handle tss_create() {
+        pthread_key_t tss_key;
+        int ret = pthread_key_create(&tss_key, nullptr); // nullptr 表示不指定析构函数
+        if (ret != 0) {
+            errno = ret; // POSIX 错误码
+            return core::invalid_handle;
+        }
+        return tss_key;
+    }
+
+    void *tss_get(core::handle tss_key) {
+        if (tss_key == core::invalid_handle) {
+            return nullptr;
+        }
+        return pthread_getspecific(tss_key);
+    }
+
+    bool tss_set(core::handle tss_key, void *value) {
+        if (tss_key == core::invalid_handle) {
+            return false;
+        }
+        return pthread_setspecific(tss_key, value) == 0;
+    }
+
+    bool tss_delete(core::handle tss_key) {
+        if (tss_key == core::invalid_handle) {
+            return false;
+        }
+        return pthread_key_delete(tss_key) == 0;
+    }
+}
+
 #endif

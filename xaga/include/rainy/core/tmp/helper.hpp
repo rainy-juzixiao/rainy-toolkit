@@ -132,7 +132,7 @@ namespace rainy::type_traits::helper {
     template <typename... Types>
     using index_sequence_for = make_index_sequence<sizeof...(Types)>;
 
-    class non_copyable {
+    class RAINY_TOOLKIT_API non_copyable {
     protected:
         non_copyable() = default;
         ~non_copyable() = default;
@@ -140,6 +140,14 @@ namespace rainy::type_traits::helper {
         non_copyable &operator=(const non_copyable &) = delete;
         non_copyable(non_copyable &&) = default;
         non_copyable &operator=(non_copyable &&) = default;
+    };
+
+    class RAINY_TOOLKIT_API non_moveable {
+    protected:
+        non_moveable() = default;
+        ~non_moveable() = default;
+        non_moveable(non_moveable &&) = delete;
+        non_moveable &operator=(non_moveable &&) = delete;
     };
 
     template <typename Ty>

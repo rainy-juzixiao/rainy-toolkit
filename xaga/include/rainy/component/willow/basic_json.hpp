@@ -9,8 +9,8 @@ namespace rainy::component::willow {
               typename IntegerType, typename FloatingType, typename BooleanType, template <typename Ty> typename Alloc>
     class basic_json {
     public:
-        friend struct iterators::json_iterator<basic_json>;
-        friend struct iterators::json_iterator<const basic_json>;
+        friend class iterators::json_iterator<basic_json>;
+        friend class iterators::json_iterator<const basic_json>;
         friend struct implements::json_serializer<basic_json>;
         friend struct implements::json_parser<basic_json>;
         friend struct implements::value_getter<basic_json>;
@@ -141,7 +141,7 @@ namespace rainy::component::willow {
         }
 
         bool is_primitive() const {
-            switch (value_.type_) {
+            switch (value_.type) {
                 case json_type::number_integer:
                 case json_type::number_float:
                 case json_type::array: 
@@ -241,9 +241,9 @@ namespace rainy::component::willow {
                 case json_type::null:
                     return 0;
                 case json_type::array:
-                    return std::get<array_type>(value_.data).size();
+                    return value_.data.vector->size();
                 case json_type::object:
-                    return std::get<object_type>(value_.data).size();
+                    return value_.data.object->size();
                 default:
                     return 1;
             }
@@ -251,10 +251,10 @@ namespace rainy::component::willow {
 
         bool empty() const {
             if (is_object()) {
-                return std::get<object_type>(value_.data).empty();
+                return value_.data.object->empty();
             }
             if (is_array()) {
-                return std::get<array_type>(value_.data).empty();
+                return value_.data.vector->empty();
             }
             return is_null();
         }
@@ -386,9 +386,9 @@ namespace rainy::component::willow {
                 foundation::exceptions::willow::throw_json_type_error("json value must be integer");
             }
             if (is_float()) {
-                return static_cast<integer_type>(std::get<float_type>(value_.data));
+                return static_cast<integer_type>(value_.data.number_float);
             }
-            return std::get<integer_type>(value_.data);
+            return value_.data.number_integer;
         }
 
         float_type as_float() const {
@@ -404,13 +404,13 @@ namespace rainy::component::willow {
         array_type &as_array() {
             if (!is_array())
                 foundation::exceptions::willow::throw_json_type_error("json value must be array");
-            return std::get<array_type>(value_.data);
+            return (*value_.data.vector);
         }
 
         const array_type &as_array() const {
             if (!is_array())
                 foundation::exceptions::willow::throw_json_type_error("json value must be array");
-            return std::get<array_type>(value_.data);
+            return (*value_.data.vector);
         }
 
         const string_type &as_string() const {
@@ -423,14 +423,14 @@ namespace rainy::component::willow {
             if (!is_object()) {
                 foundation::exceptions::willow::throw_json_type_error("json value must be object");
             }
-            return std::get<object_type>(value_.data);
+            return (*value_.data.object);
         }
 
         const object_type &as_object() const {
             if (!is_object()) {
                 foundation::exceptions::willow::throw_json_type_error("json value must be object");
             }
-            return std::get<object_type>(value_.data);
+            return (*value_.data.object);
         }
 
         template <typename Ty>
@@ -473,18 +473,16 @@ namespace rainy::component::willow {
             if (is_null()) {
                 value_ = json_type::object;
             }
-
             if (!is_object()) {
                 foundation::exceptions::willow::throw_json_invalid_key("operator[] called on a non-object type");
             }
-            return std::get<object_type>(value_.data)[key];
+            return (*value_.data.object)[key];
         }
 
         RAINY_INLINE basic_json &operator[](const typename object_type::key_type &key) const {
             if (!is_object()) {
                 foundation::exceptions::willow::throw_json_invalid_key("operator[] called on a non-object object");
             }
-
             auto iter = value_.data.object->find(key);
             if (iter == value_.data.object->end()) {
                 throw std::out_of_range("operator[] key out of range");
@@ -556,7 +554,7 @@ namespace rainy::component::willow {
 
         friend std::basic_istream<char_type> &operator>>(std::basic_istream<char_type> &in, basic_json &json) {
             adapters::stream_input_adapter<char_type> adapter(in);
-            json_parser<basic_json>(&adapter).parse(json);
+            implements::json_parser<basic_json>(&adapter).parse(json);
             return in;
         }
 
@@ -637,7 +635,7 @@ namespace rainy::component::willow {
             return !(lhs < rhs);
         }
 
-    //private:
+    private:
         implements::value<basic_json> value_;
     };
 }

@@ -17,7 +17,7 @@
 #define RAINY_CORE_TMP_MODIFERS_HPP
 #include <rainy/core/tmp/sfinae_base.hpp>
 
-namespace rainy::type_traits::array_modify {
+namespace rainy::type_traits::modifers {
     template <typename Ty>
     struct remove_extent { // remove array extent
         using type = Ty;
@@ -148,12 +148,12 @@ namespace rainy::type_traits::reference_modify {
 
 namespace rainy::type_traits::pointer_modify {
     template <typename Ty, typename = void>
-    struct add_pointer { // add pointer (pointer type cannot be formed)
+    struct add_pointer {
         using type = Ty;
     };
 
     template <typename Ty>
-    struct add_pointer<Ty, other_trans::void_t<reference_modify::remove_reference_t<Ty> *>> { // (pointer type can be formed)
+    struct add_pointer<Ty, other_trans::void_t<reference_modify::remove_reference_t<Ty> *>> {
         using type = reference_modify::remove_reference_t<Ty> *;
     };
 

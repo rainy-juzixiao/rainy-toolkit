@@ -174,6 +174,16 @@ namespace rainy::type_traits::extras::meta_method {
     struct has_operator_add : helper::bool_constant<has_operator_add_v<Ty>> {};
 
     template <typename Ty, typename = void>
+    RAINY_CONSTEXPR_BOOL has_operator_plus_equal_v = false;
+
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL has_operator_plus_equal_v<
+        Ty, type_traits::other_trans::void_t<decltype(utility::declval<Ty &>() += utility::declval<Ty &>())>> = true;
+
+    template <typename Ty>
+    struct has_operator_plus_equal : helper::bool_constant<has_operator_plus_equal_v<Ty>> {};
+
+    template <typename Ty, typename = void>
     RAINY_CONSTEXPR_BOOL has_operator_sub_v = false;
 
     template <typename Ty>
@@ -182,6 +192,16 @@ namespace rainy::type_traits::extras::meta_method {
 
     template <typename Ty>
     struct has_operator_sub : helper::bool_constant<has_operator_sub_v<Ty>> {};
+
+    template <typename Ty, typename = void>
+    RAINY_CONSTEXPR_BOOL has_operator_sub_equal_v = false;
+
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL has_operator_sub_equal_v<
+        Ty, type_traits::other_trans::void_t<decltype(utility::declval<Ty &>() -= utility::declval<Ty &>())>> = true;
+
+    template <typename Ty>
+    struct has_operator_sub_equal : helper::bool_constant<has_operator_plus_equal_v<Ty>> {};
 
     template <typename Ty, typename = void>
     RAINY_CONSTEXPR_BOOL has_operator_mul_v = false;
@@ -194,6 +214,16 @@ namespace rainy::type_traits::extras::meta_method {
     struct has_operator_mul : helper::bool_constant<has_operator_mul_v<Ty>> {};
 
     template <typename Ty, typename = void>
+    RAINY_CONSTEXPR_BOOL has_operator_mul_equal_v = false;
+
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL has_operator_mul_equal_v<
+        Ty, type_traits::other_trans::void_t<decltype(utility::declval<Ty &>() *= utility::declval<Ty &>())>> = true;
+
+    template <typename Ty>
+    struct has_operator_mul_equal : helper::bool_constant<has_operator_mul_equal_v<Ty>> {};
+
+    template <typename Ty, typename = void>
     RAINY_CONSTEXPR_BOOL has_operator_div_v = false;
 
     template <typename Ty>
@@ -204,6 +234,17 @@ namespace rainy::type_traits::extras::meta_method {
     struct has_operator_div : helper::bool_constant<has_operator_div_v<Ty>> {};
 
     template <typename Ty, typename = void>
+    RAINY_CONSTEXPR_BOOL has_operator_div_equal_v = false;
+
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL
+        has_operator_div_equal_v<Ty, type_traits::other_trans::void_t<decltype(utility::declval<Ty &>() /= utility::declval<Ty &>())>> =
+            true;
+
+    template <typename Ty>
+    struct has_operator_div_equal : helper::bool_constant<has_operator_div_equal_v<Ty>> {};
+
+    template <typename Ty, typename = void>
     RAINY_CONSTEXPR_BOOL has_operator_mod_v = false;
 
     template <typename Ty>
@@ -212,6 +253,16 @@ namespace rainy::type_traits::extras::meta_method {
 
     template <typename Ty>
     struct has_operator_mod : helper::bool_constant<has_operator_mod_v<Ty>> {};
+
+    template <typename Ty, typename = void>
+    RAINY_CONSTEXPR_BOOL has_operator_mod_equal_v = false;
+
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL has_operator_mod_equal_v<
+        Ty, type_traits::other_trans::void_t<decltype(utility::declval<Ty &>() %= utility::declval<Ty &>())>> = true;
+
+    template <typename Ty>
+    struct has_operator_mod_equal : helper::bool_constant<has_operator_mod_equal_v<Ty>> {};
 
     template <typename Ty, typename = void>
     RAINY_CONSTEXPR_BOOL has_operator_eq_v = false;
@@ -289,9 +340,19 @@ namespace rainy::type_traits::extras::meta_method {
     RAINY_CONSTEXPR_BOOL has_operator_index_v = false;
 
     template <typename Ty>
-    RAINY_CONSTEXPR_BOOL has_operator_index_v<
-        Ty, type_traits::other_trans::void_t<decltype(utility::declval<Ty &>()[std::declval<typename Ty::size_type>()])>> = true;
+    RAINY_CONSTEXPR_BOOL
+        has_operator_index_v<Ty, type_traits::other_trans::void_t<decltype(utility::declval<Ty &>()[std::declval<std::size_t>()])>> =
+            true;
 
+    template <typename Ty, typename = void>
+    RAINY_CONSTEXPR_BOOL has_operator_index_for_key_v = false;
+
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL has_operator_index_for_key_v<
+        Ty, type_traits::other_trans::void_t<typename Ty::key_type,
+                                             decltype(utility::declval<Ty &>()[std::declval<typename Ty::key_type>()])>> =
+        true;
+    
     template <typename Ty>
     struct has_operator_index : helper::bool_constant<has_operator_index_v<Ty>> {};
 
@@ -314,6 +375,18 @@ namespace rainy::type_traits::extras::meta_method {
 
     template <typename Ty>
     struct has_operator_arrow : helper::bool_constant<has_operator_arrow_v<Ty>> {};
+
+    template <typename Ty, typename = void>
+    RAINY_CONSTEXPR_BOOL has_operator_three_way_compare_v = false;
+
+#if RAINY_HAS_CXX20
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL has_operator_three_way_compare_v<
+        Ty, type_traits::other_trans::void_t<decltype(utility::declval<Ty &>() <=> utility::declval<Ty &>())>> = true;
+#endif
+
+    template <typename Ty>
+    struct has_operator_three_way_compare : helper::bool_constant<has_operator_three_way_compare_v<Ty>> {};
 
     template <typename Ty, typename = void>
     RAINY_CONSTEXPR_BOOL has_operator_deref_v = false;

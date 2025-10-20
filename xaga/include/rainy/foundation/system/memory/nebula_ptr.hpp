@@ -64,7 +64,8 @@ namespace rainy::foundation::system::memory {
         }
 
         nebula_ptr_base(const nebula_ptr_base &) = delete;
-        nebula_ptr_base(nebula_ptr_base &&) = default;
+        nebula_ptr_base(nebula_ptr_base &&right) noexcept : pair{utility::exchange(right.pair, {})} {
+        }
 
         template <typename Dx2 = Dx,
                   type_traits::other_trans::enable_if_t<
@@ -202,7 +203,10 @@ namespace rainy::foundation::system::memory {
     };
 
     template <typename Ty, typename Dx>
-    class nebula_ptr : public nebula_ptr_base<Ty, Dx> {};
+    class nebula_ptr : public nebula_ptr_base<Ty, Dx> {
+        using nebula_base = nebula_ptr_base<Ty, Dx>;
+        using nebula_base::nebula_base;
+    };
 
     template <typename Ty, typename Dx>
     class nebula_ptr<Ty[], Dx> : public nebula_ptr_base<Ty, Dx> {

@@ -38,10 +38,11 @@ namespace rainy::foundation::pal::atomicinfra::implements {
 
 #if RAINY_USING_64_BIT_PLATFORM
     bool atomic_wait_compare_16_bytes(const void *storage, void *comparand, std::size_t, void *) noexcept {
-        const auto dest = static_cast<long long *>(const_cast<void *>(storage));
+        const auto dest = static_cast<std::int64_t *>(const_cast<void *>(storage));
         const auto cmp = static_cast<const long long *>(comparand);
         alignas(16) long long tmp[2] = {cmp[0], cmp[1]};
-        return core::pal::interlocked_compare_exchange128(dest, tmp[1], tmp[0], tmp) != 0;
+        return core::pal::interlocked_compare_exchange128(reinterpret_cast<volatile std::int64_t *>(dest), tmp[1], tmp[0],
+                                                          const_cast<std::int64_t *>(dest)) != 0;
     }
 #endif
 }

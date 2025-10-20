@@ -146,7 +146,7 @@ namespace rainy::text {
         using pointer = typename base::pointer;
         using const_pointer = typename base::const_pointer;
 
-        static inline constexpr size_type npos = -1;
+        static inline constexpr size_type npos = static_cast<size_type>(-1);
 
         // ********************************* begin volume ******************************
 
@@ -444,7 +444,7 @@ namespace rainy::text {
             auto ptr = allocator_traits::allocate(this->allocator_, n);
             this->stor_.ls_ = {ptr, nullptr, ptr + n};
 #endif
-            this->size_flag_ = -1;
+            this->size_flag_ = static_cast<unsigned char>(-1);
         }
 
         /**
@@ -471,7 +471,7 @@ namespace rainy::text {
                 // return advance
                 *ls.end_ = CharType{};
             } else {
-                this->size_flag_ = static_cast<signed int>(n);
+                this->size_flag_ = static_cast<unsigned char>(n);
                 // gcc thinks it's out of range,
                 // so make gcc happy
 #if defined(__GNUC__) && !defined(__clang__)

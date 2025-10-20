@@ -90,8 +90,8 @@ namespace rainy::meta::reflection::moon::implements {
             return equal_with(val);
         }
 
-        Ty value;
         std::string_view name;
+        Ty value;
     };
 
     template <>

@@ -596,4 +596,14 @@ namespace rainy::utility {
     }
 }
 
+namespace rainy::type_traits::implements {
+    void swap() = delete;
+
+    template <typename, typename = void>
+    RAINY_CONSTEXPR_BOOL has_adl_swap = false;
+
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL has_adl_swap<Ty, void_t<decltype(swap(utility::declval<Ty &>(), utility::declval<Ty &>()))>> = true;
+}
+
 #endif

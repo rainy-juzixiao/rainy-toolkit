@@ -1,6 +1,6 @@
 #ifndef RAINY_META_REFLECTION_REGISTRATION_HPP
 #define RAINY_META_REFLECTION_REGISTRATION_HPP
-#include <rainy/meta/meta_method.hpp>
+#include <rainy/utility/meta_method.hpp>
 #include <rainy/meta/reflection/moon/reflect.hpp>
 #include <rainy/meta/reflection/type.hpp>
 #include <rainy/foundation/pal/threading.hpp>

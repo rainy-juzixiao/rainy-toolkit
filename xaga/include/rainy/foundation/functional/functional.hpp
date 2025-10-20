@@ -465,10 +465,10 @@ namespace rainy::foundation::functional {
 
         template <>
         struct plus<void> {
-            template <typename Ty, typename U>
-            constexpr auto operator()(const Ty &left, const Ty &right) const
-                noexcept(noexcept(utility::forward<Ty>(left) + utility::forward<U>(right)))
-                    -> decltype(utility::forward<Ty>(left) + utility::forward<U>(right)) {
+            template <typename Ty1, typename Ty2>
+            constexpr auto operator()(Ty1 &&left, Ty2 &&right) const
+                noexcept(noexcept(utility::forward<Ty1>(left) + utility::forward<Ty2>(right)))
+                    -> decltype(utility::forward<Ty1>(left) + utility::forward<Ty2>(right)) {
                 return left + right;
             }
         };
@@ -482,10 +482,10 @@ namespace rainy::foundation::functional {
         
         template <>
         struct minus<void> {
-            template <typename Ty, typename U>
-            constexpr auto operator()(const Ty &left, const Ty &right) const
-                noexcept(noexcept(utility::forward<Ty>(left) - utility::forward<U>(right)))
-                    -> decltype(utility::forward<Ty>(left) - utility::forward<U>(right)) {
+            template <typename Ty1, typename Ty2>
+            constexpr auto operator()(Ty1 &&left, Ty2 &&right) const
+                noexcept(noexcept(utility::forward<Ty1>(left) - utility::forward<Ty2>(right)))
+                    -> decltype(utility::forward<Ty1>(left) - utility::forward<Ty2>(right)) {
                 return left - right;
             }
         };
@@ -499,10 +499,10 @@ namespace rainy::foundation::functional {
 
         template <>
         struct multiplies<void> {
-            template <typename Ty, typename U>
-            constexpr auto operator()(const Ty &left, const U &right) const
-                noexcept(noexcept(utility::forward<Ty>(left) * utility::forward<U>(right)))
-                    -> decltype(utility::forward<Ty>(left) * utility::forward<U>(right)) {
+            template <typename Ty1, typename Ty2>
+            constexpr auto operator()(Ty1 &&left, Ty2 &&right) const
+                noexcept(noexcept(utility::forward<Ty1>(left) * utility::forward<Ty2>(right)))
+                    -> decltype(utility::forward<Ty1>(left) * utility::forward<Ty2>(right)) {
                 return left * right;
             }
         };
@@ -516,10 +516,10 @@ namespace rainy::foundation::functional {
 
         template <>
         struct divides<void> {
-            template <typename Ty, typename U>
-            constexpr auto operator()(const Ty &left, const U &right) const
-                noexcept(noexcept(utility::forward<Ty>(left) / utility::forward<U>(right)))
-                    -> decltype(utility::forward<Ty>(left) / utility::forward<U>(right)) {
+            template <typename Ty1, typename Ty2>
+            constexpr auto operator()(Ty1 &&left, Ty2 &&right) const
+                noexcept(noexcept(utility::forward<Ty1>(left) / utility::forward<Ty2>(right)))
+                    -> decltype(utility::forward<Ty1>(left) / utility::forward<Ty2>(right)) {
                 return left / right;
             }
         };
@@ -533,10 +533,10 @@ namespace rainy::foundation::functional {
 
         template <>
         struct modulus<void> {
-            template <typename Ty, typename U>
-            constexpr auto operator()(const Ty &left, const U &right) const
-                noexcept(noexcept(utility::forward<Ty>(left) % utility::forward<U>(right)))
-                    -> decltype(utility::forward<Ty>(left) % utility::forward<U>(right)) {
+            template <typename Ty1, typename Ty2>
+            constexpr auto operator()(Ty1 &&left, Ty2 &&right) const
+                noexcept(noexcept(utility::forward<Ty1>(left) % utility::forward<Ty2>(right)))
+                    -> decltype(utility::forward<Ty1>(left) % utility::forward<Ty2>(right)) {
                 return left % right;
             }
         };
@@ -585,10 +585,10 @@ namespace rainy::foundation::functional {
 
         template <>
         struct not_equal<void> {
-            template <typename Ty, typename U>
-            constexpr auto operator()(const Ty &left, const Ty &right) const
-                noexcept(noexcept(utility::forward<Ty>(left) != utility::forward<U>(right)))
-                    -> decltype(utility::forward<Ty>(left) != utility::forward<U>(right)) {
+            template <typename Ty1, typename Ty2>
+            constexpr auto operator()(Ty1 &&left, Ty2 &&right) const
+                noexcept(noexcept(utility::forward<Ty1>(left) != utility::forward<Ty2>(right)))
+                    -> decltype(utility::forward<Ty1>(left) != utility::forward<Ty2>(right)) {
                 return left != right;
             }
         };
@@ -619,10 +619,10 @@ namespace rainy::foundation::functional {
 
         template <>
         struct less_equal<void> {
-            template <typename Ty, typename U>
-            constexpr auto operator()(const Ty &left, const U &right) const
-                noexcept(noexcept(utility::forward<Ty>(left) <= utility::forward<U>(right)))
-                    -> decltype(utility::forward<Ty>(left) <= utility::forward<U>(right)) {
+            template <typename Ty1, typename Ty2>
+            constexpr auto operator()(Ty1 &&left, Ty2 &&right) const
+                noexcept(noexcept(utility::forward<Ty1>(left) <= utility::forward<Ty2>(right)))
+                    -> decltype(utility::forward<Ty1>(left) <= utility::forward<Ty2>(right)) {
                 return left <= right;
             }
         };
@@ -653,11 +653,11 @@ namespace rainy::foundation::functional {
 
         template <>
         struct greater_equal<void> {
-            template <typename Ty, typename U>
-            constexpr auto operator()(const Ty &left, const U &right) const
-                noexcept(noexcept(utility::forward<Ty>(left) >= utility::forward<U>(right)))
-                    -> decltype(utility::forward<Ty>(left) >= utility::forward<U>(right)) {
-                return left >= right;
+            template <typename Ty1, typename Ty2>
+            constexpr auto operator()(Ty1 &&left, Ty2 &&right) const
+                noexcept(noexcept(utility::forward<Ty1>(left) >= utility::forward<Ty2>(right)))
+                    -> decltype(utility::forward<Ty1>(left) >= utility::forward<Ty2>(right)) {
+                return utility::forward<Ty1>(left) >= utility::forward<Ty2>(right);
             }
         };
 

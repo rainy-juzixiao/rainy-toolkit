@@ -38,6 +38,7 @@
 #define RAINY_CORE_HPP
 #include <rainy/core/platform.hpp>
 #include <rainy/core/type_traits.hpp>
+#include <rainy/core/lifetime_annotation.hpp>
 #include <rainy/core/implements/bit.hpp>
 #include <rainy/core/implements/raw_stringview.hpp>
 #include <rainy/core/implements/collections/array.hpp>
@@ -434,7 +435,7 @@ namespace rainy::foundation::system::memory {
     struct default_deleter {
         constexpr default_deleter() noexcept = default;
 
-        constexpr default_deleter(utility::placeholder) noexcept {
+        constexpr default_deleter(utility::placeholder_t) noexcept {
         }
 
         template <typename U,
@@ -452,7 +453,7 @@ namespace rainy::foundation::system::memory {
     struct default_deleter<Ty[]> {
         constexpr default_deleter() = default;
 
-        constexpr default_deleter(utility::placeholder) noexcept {
+        constexpr default_deleter(utility::placeholder_t) noexcept {
         }
 
         template <typename U,
@@ -471,7 +472,7 @@ namespace rainy::foundation::system::memory {
     struct no_delete {
         constexpr no_delete() noexcept = default;
 
-        constexpr no_delete(utility::placeholder) noexcept {
+        constexpr no_delete(utility::placeholder_t) noexcept {
         }
 
         template <typename U,
@@ -488,7 +489,7 @@ namespace rainy::foundation::system::memory {
     struct no_delete<Ty[]> {
         constexpr no_delete() = default;
 
-        constexpr no_delete(utility::placeholder) noexcept {
+        constexpr no_delete(utility::placeholder_t) noexcept {
         }
 
         template <typename U,

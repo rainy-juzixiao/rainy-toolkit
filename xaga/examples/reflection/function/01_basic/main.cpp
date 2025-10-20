@@ -16,8 +16,122 @@ struct mypair {
     std::string_view data2{};
 };
 
+#include <rainy/meta/reflection/function.hpp>
+#include <rainy/utility/ioc.hpp>
+#include <rainy/annotations/auto_wired.hpp>
+#include <rainy/annotations/anno.hpp>
+
+void test(borrow_out<int> v) {
+    auto v1_c = v.const_ref();
+    auto v2_c = v.const_ref();
+    std::cout << "v1_c + v2_c = " << (v1_c + v2_c) << '\n';
+    {
+        borrow_out<int> v1 = v;
+        {
+            auto v1_c = v.const_ref();
+            auto v2_c = v.const_ref();
+            std::cout << "v1_c + v2_c = " << (v1_c + v2_c) << '\n';
+        }
+        v1_c.release();
+        v2_c.release();
+        auto value = v.mut();
+        int& var = value;
+        var = 30;
+        try {
+            auto v1_c = v.const_ref();
+            auto v2_c = v.const_ref();
+            std::cout << (v1_c + v2_c) << '\n';
+        } catch (const rainy::foundation::exceptions::runtime::runtime_error &e) {
+            std::cout << e.what() << '\n';
+        }
+    }
+    auto value = v.mut();
+    int &var = value;
+    try {
+        int &v2 = value;
+    } catch (const rainy::foundation::exceptions::runtime::runtime_error& e) {
+        std::cout << e.what() << '\n';
+    }
+}
+
+struct datasource {
+    virtual void print_data_sources() noexcept = 0;
+};
+
+struct datasource_impl : datasource {
+    datasource_impl(std::string username, std::string password) : username{username}, password{password} {
+    }
+
+    void print_data_sources() noexcept {
+        std::cout << "this is a datasource\n";
+        std::cout << "username is " << username << "\n";
+        std::cout << "password is " << password << "\n";
+    }
+
+    std::string username;
+    std::string password;
+};
+RAINY_INJECT_SERVICE(datasource, datasource_impl, std::string, std::string)
+
+class user {
+public:
+    user() = default;
+
+    void show_the_database() {
+        datasources->print_data_sources();
+    }
+
+private:
+    annotations::auto_wired<datasource> datasources{std::string{"root"}, std::string{"123456"}};
+};
+
+template <typename T>
+void test_fn(rainy::annotations::dont::non_copyable_if<T, std::is_same<std::string, T>> s) {
+    std::cout << s << '\n';
+}
+#include <any>
+
 int main() {
+
+    {
+        any a{std::array<int, 4>{10, 20, 30, 40}};
+        a.destructure([](int v1, int v2, int v3, int v4) { std::cout << v1 << ',' << v2 << ',' << v3 << ',' << v4 << '\n'; });
+    }
+    user u;
+    u.show_the_database();
+    int value{20};
+    test(&value);
+    std::cout << value << '\n';
     any a = 10;
+    std::cout << (a + 10000 - 10) << '\n';
+    std::cout << (--a) << '\n';
+    std::cout << (a) << '\n';
+    std::cout << (++a) << '\n';
+    std::cout << (a) << '\n';
+    std::cout << (a++) << '\n';
+    std::cout << (a) << '\n';
+    std::cout << (a--) << '\n';
+    std::cout << (a) << '\n';
+    std::cout << (a % 4) << '\n';
+    std::cout << (a / 4) << '\n';
+    std::cout << (a * 10) << '\n';
+    a *= 200;
+    a -= 10;
+    std::cout << a << '\n';
+    int x = 20;
+    a.emplace<int &>(x);
+    a += 10;
+    ++a;
+    std::cout << a << '\n';
+    std::cout << "x = " << x << '\n';
+    a.as<int>() = 42;
+    std::cout << a << '\n';
+    std::cout << x << '\n';
+    a.emplace<std::string>("");
+    a.emplace<std::string>("Cello World");
+    a[0].as<char>() = 'H';
+    std::cout << (a + std::string{", Again!"}) << '\n';
+    a = 10;
     if (a.is<int>()) { // 检查a是否为int
         std::cout << "a is int\n";
     }
@@ -40,11 +154,11 @@ int main() {
     f();
     a = "Hello World"; // 这个会在match的std::string_view分支中自动转换
     f();
-    a = std::vector<int>{}; // 将无法匹配处理
+    a.emplace<std::vector<int>>(); // 将无法匹配处理
     f();
     // destructure() 可以从一个类型中进行解构，类似于结构化绑定
     a = structure{10, 'c', "Hello World"};
-    a.destructure([](int a, char b, std::string_view c) {
+    a.destructure([](int a, char b,const std::string& c) {
         std::cout << "I got var-a here is the value : " << a << '\n';
         std::cout << "I got var-b here is the value : " << b << '\n';
         std::cout << "I got var-c here is the value : " << c << '\n';
@@ -69,13 +183,18 @@ int main() {
     a.destructure(structure);
     std::cout << structure.data1 << '\n';
     std::cout << structure.data2 << '\n';
+    a = std::make_pair(42, "Hello World");
+    auto [dvar1, dvar2] = a.destructure<int, std::string_view>();
+    std::cout << "dvar1 = " << dvar1 << '\n';
+    std::cout << "dvar2 = " << dvar2 << '\n';
     a = 10;
     // match_for允许指定一系列类型作为variant的实例化参数以表明处理handler可能返回的类型。
     auto var = a.match_for<std::string_view, int, double>([](std::string_view str) { return str.size(); },
                                                           [](float x) { return static_cast<int>(x); });
     std::visit([](auto &&value) { std::cout << "I got value! the value is " << value << '\n'; }, var);
     // auto_deduce将会使用每个handler的返回值类型作为variant实例化参数
-    auto var1 = a.match_for(auto_deduce, [](std::string_view str) { return str.size(); }, [](float x) { return static_cast<int>(x); });
+    auto var1 = a.match_for(
+        auto_deduce, [](std::string_view str) { return str.size(); }, [](float x) { return static_cast<int>(x); });
     std::visit([](auto &&value) { std::cout << "I got value! the value is " << value << '\n'; }, var1);
     // 也可以求出哈希值，并用于哈希相关的容器
     std::cout << a.hash_code() << '\n';
@@ -88,5 +207,21 @@ int main() {
     std::cout << any_map[3.14f] << '\n';
     std::cout << any_map['c'] << '\n';
     std::cout << any_map[{std::in_place_type<std::string>, "hello_world_text"}] << '\n';
+    a = std::unordered_map<std::string_view, int>{{"1", 1}};
+    std::cout << a["1"] << '\n';
+    a["2"].as<int>() = 2;
+    std::cout << a["2"] << '\n';
+    a["3"].as<int>() = 3;
+    std::cout << a["3"] << '\n';
+    a["4"].as<int>() = 4;
+    std::cout << a["4"] << '\n';
+    for (auto iter = a.begin(); iter != a.end(); ++iter) {
+        auto [first, second] = (*iter).destructure<std::string_view, int>();
+        std::cout << first << ' ' << second << '\n';
+    }
+    a.emplace<std::tuple<const char *, int, float>>("Hello World", 42, 3.14f);
+    std::cout << a[0] << '\n';
+    std::cout << a[1] << '\n';
+    std::cout << a[2] << '\n';
     return 0;
 }

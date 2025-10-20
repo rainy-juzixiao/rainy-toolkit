@@ -1,3 +1,18 @@
+/*
+ * Copyright 2025 rainy-juzixiao
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 #ifndef RAINY_COMPONENT_JSON_UTILITY_HPP
 #define RAINY_COMPONENT_JSON_UTILITY_HPP
 #include <cmath>
@@ -37,7 +52,7 @@ namespace rainy::component::willow::adapters {
         }
 
         char_int_type get_char() {
-            return std::fgetc(file);
+            return static_cast<char_int_type>(std::fgetc(file));
         }
 
     private:
@@ -165,19 +180,19 @@ namespace rainy::component::willow::adapters {
 		using size_type = typename Ty::size_type;
 		using char_traits = std::char_traits<char_type>;
 
-        explicit string_output_adapter(Ty &str) : str(str) {
+        explicit string_output_adapter(Ty &str) : string(str) {
 		}
 
 		void write(const char_type ch) {
-			str.push_back(ch);
+			string.push_back(ch);
 		}
 
 		void write(const char_type *str, std::size_t size) {
-			this->str.append(str, static_cast<size_type>(size));
+			this->string.append(str, static_cast<size_type>(size));
 		}
 
 	private:
-		Ty &str;
+		Ty &string;
 	};
 
 	template <typename Ty>
@@ -295,7 +310,7 @@ namespace rainy::component::willow::utils {
 
         const string_type &val;
         const bool escape_unicode;
-        uint8_t state = 0;
+        std::uint8_t state = 0;
     };
 
 	template <typename Traits, typename Alloc>

@@ -2,7 +2,7 @@
 #define RAINY_META_REFLECTION_TYPE_HPP
 #include <rainy/collections/string.hpp>
 #include <rainy/foundation/typeinfo.hpp>
-#include <rainy/meta/meta_method.hpp>
+#include <rainy/utility/meta_method.hpp>
 #include <rainy/meta/reflection/function.hpp>
 #include <rainy/meta/reflection/property.hpp>
 #include <unordered_map>

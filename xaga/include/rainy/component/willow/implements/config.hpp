@@ -44,6 +44,7 @@ namespace rainy::component::willow {
      * @return 返回原本的内存资源指针，在memres为空时也会返回原本的内存资源指针
      */
     RAINY_TOOLKIT_API std::pmr::memory_resource *set_memory_resource(std::pmr::memory_resource *memres) noexcept;
+
     /**
      * @brief 获取当前willow使用的内存资源指针
      * @return 返回一个始终有效的内存资源指针

@@ -1,4 +1,5 @@
 #include <rainy/component/fallboot/applocation.hpp>
+#if RAINY_USING_WINDOWS
 #include <WS2spi.h>
 #include <windows.h>
 #include <iostream>
@@ -178,3 +179,4 @@ namespace rainy::component::fallboot {
         
     }
 }
+#endif

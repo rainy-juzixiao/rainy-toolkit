@@ -142,23 +142,23 @@ struct rainy::meta::reflection::moon::reflect<std::basic_string<CharType>>
         expose_ctor<type()>(bind_meta(attach("is_default_constructible", true)))};
 
     static constexpr method_list methods =
-        method_list{expose(rainy::meta::method::cpp_methods::method_append,
+        method_list{expose(rainy::utility::cpp_methods::method_append,
                            utility::get_overloaded_func<type, type &(const CharType *)>(&type::append)),
-                    expose(rainy::meta::method::cpp_methods::method_append,
+                    expose(rainy::utility::cpp_methods::method_append,
                            utility::get_overloaded_func<type, type &(const type &)>(&type::append)),
-                    expose(rainy::meta::method::cpp_methods::method_size, &type::size),
-                    expose(rainy::meta::method::cpp_methods::method_operator_assign,
+                    expose(rainy::utility::cpp_methods::method_size, &type::size),
+                    expose(rainy::utility::cpp_methods::method_operator_assign,
                            utility::get_overloaded_func<type, type &(CharType)>(&type::operator=)),
-                    expose(rainy::meta::method::cpp_methods::method_operator_assign,
+                    expose(rainy::utility::cpp_methods::method_operator_assign,
                            utility::get_overloaded_func<type, type &(const CharType *)>(&type::operator=)),
-                    expose(rainy::meta::method::cpp_methods::method_clear, &type::clear)};
+                    expose(rainy::utility::cpp_methods::method_clear, &type::clear)};
 };
 
 RAINY_REFLECTION_REGISTRATION {
     using std::string;
     using namespace rainy;
     using namespace rainy::meta;
-    using namespace rainy::meta::method::cpp_methods;
+    using namespace rainy::utility::cpp_methods;
     using reflection::registration;
     registration::class_<string>("std::string")
         .method(method_operator_assign, utility::get_overloaded_func<string, string &(char)>(&string::operator=))

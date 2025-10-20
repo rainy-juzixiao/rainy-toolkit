@@ -43,6 +43,11 @@ namespace rainy::type_traits::other_trans {
     template <typename Ty, typename TypeList>
     struct type_list_push_back {};
 
+    template <typename Ty>
+    struct type_list_push_back<Ty, type_list<>> {
+        using type = type_list<Ty>;
+    };
+
     template <typename Ty, typename... Types>
     struct type_list_push_back<Ty, type_list<Types...>> {
         using type = type_list<Types..., Ty>;
@@ -69,19 +74,37 @@ namespace rainy::type_traits::other_trans {
     // pop front/back
 
     template <typename TypeList>
-    struct type_list_pop_front {};
+    struct type_list_pop_front;
+
+    template <>
+    struct type_list_pop_front<type_list<>> {
+        using type = type_list<>;
+    };
 
     template <typename Front, typename... Rest>
     struct type_list_pop_front<type_list<Front, Rest...>> {
-        using type = type_list<Rest...>;
+    public:
+        using tail_type = typename type_list_pop_front<type_list<Rest...>>::type;
+
+        using type = typename type_list_push_front<tail_type, Front>::type;
     };
 
-    template <typename TypeList>
-    struct type_list_pop_back {};
+    template <typename List>
+    struct type_list_pop_back;
 
-    template <typename Back, typename... Rest>
-    struct type_list_pop_back<type_list<Rest..., Back>> {
-        using type = type_list<Rest...>;
+    template <>
+    struct type_list_pop_back<type_list<>> {
+        using type = type_list<>;
+    };
+
+    template <typename Ty>
+    struct type_list_pop_back<type_list<Ty>> {
+        using type = type_list<>;
+    };
+
+    template <typename Head, typename... Tail>
+    struct type_list_pop_back<type_list<Head, Tail...>> {
+        using type = typename type_list_push_front<typename type_list_pop_back<type_list<Tail...>>::type, Head>::type;
     };
 
     template <typename TupleLike>

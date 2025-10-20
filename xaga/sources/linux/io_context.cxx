@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 #include <rainy/core/core.hpp>
-#if RAINY_USING_LINUX
+#if RAINY_USING_WINDOWS
 #include <rainy/foundation/pal/asio/io_context.hpp>
 #include <cstring>
 #include <sys/epoll.h>

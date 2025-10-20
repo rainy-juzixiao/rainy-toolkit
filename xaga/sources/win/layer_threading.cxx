@@ -382,7 +382,7 @@ namespace rainy::foundation::pal::threading::implements {
         if (tss_key == core::invalid_handle) {
             return nullptr;
         }
-        return TlsGetValue(tss_key);
+        return TlsGetValue(static_cast<DWORD>(tss_key));
     }
 
     bool tss_set(core::handle tss_key, void *value) {

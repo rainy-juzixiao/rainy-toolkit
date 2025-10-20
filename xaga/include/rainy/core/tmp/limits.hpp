@@ -1,6 +1,8 @@
 #ifndef RAINY_CORE_LIMITS_HPP
 #define RAINY_CORE_LIMITS_HPP
 #include <rainy/core/platform.hpp>
+#include <climits>
+#include <cfloat>
 
 namespace rainy::utility {
     enum float_denorm_style {
@@ -553,7 +555,6 @@ namespace rainy::utility {
             return 0;
         }
 
-        static_assert(sizeof(int) == sizeof(long), "LLP64 assumption");
         static constexpr bool is_signed = true;
         static constexpr int digits = 31;
         static constexpr int digits10 = 9;
@@ -730,7 +731,6 @@ namespace rainy::utility {
             return 0;
         }
 
-        static_assert(sizeof(unsigned int) == sizeof(unsigned long), "LLP64 assumption");
         static constexpr bool is_modulo = true;
         static constexpr int digits = 32;
         static constexpr int digits10 = 9;
