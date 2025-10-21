@@ -37,6 +37,40 @@ namespace rainy::collections {
         using reverse_iterator = utility::reverse_iterator<iterator>;
         using const_reverse_iterator = utility::reverse_iterator<iterator>;
 
+        constexpr array() noexcept(type_traits::type_properties::is_nothrow_default_constructible_v<Ty>) : elems_{} {
+        }
+
+        template <typename... Inits,
+                  type_traits::other_trans::enable_if_t<
+                type_traits::logical_traits::conjunction_v<type_traits::type_relations::is_convertible<Inits, Ty>...> && sizeof...(Inits) != 0 && N != 0,
+                int> = 0>
+        constexpr array(Inits &&...inits) : elems_{utility::forward<Inits>(inits)...} {
+            static_assert(sizeof...(Inits) <= N, "cannot init this array, because the Inits items is too much, cannot to construct");
+        }
+
+        constexpr array(const array &right) : array(right, type_traits::helper::make_index_sequence<N>{}) {
+        }
+
+        constexpr array(array &&right) noexcept(type_traits::type_properties::is_nothrow_move_constructible_v<value_type>) :
+            array(utility::move(right), type_traits::helper::make_index_sequence<N>{}) {
+        }
+
+        constexpr array(std::in_place_t, std::size_t count, const_reference value) : elems_{} {
+            check_zero_length_array();
+            assert(size < N);
+            for (std::size_t i = 0; i < count; ++i) {
+                elems_[i] = value;
+            }
+        }
+
+        template <typename Iter>
+        constexpr array(std::in_place_t, Iter begin, Iter end) : elems_{} {
+            std::size_t index{0};
+            for (auto iter = begin; iter != end; ++iter, ++index) {
+                elems_[index] = *iter;
+            }
+        }
+
         RAINY_CONSTEXPR20 ~array() = default;
 
         /**
@@ -276,9 +310,15 @@ namespace rainy::collections {
             return const_reverse_iterator(end());
         }
 
-        Ty elems_[N == 0 ? 1 : N];
-
     private:
+        template <std::size_t... I>
+        constexpr array(const array &right, type_traits::helper::index_sequence<I...>) : elems_{right[I]...} {
+        }
+
+        template <std::size_t... I>
+        constexpr array(array &&right, type_traits::helper::index_sequence<I...>) : elems_{utility::move(right[I])...} {
+        }
+
         RAINY_ALWAYS_INLINE static constexpr void range_check(const difference_type offset) {
             if (offset >= N) {
                 std::abort();
@@ -290,6 +330,8 @@ namespace rainy::collections {
                 std::abort();
             }
         }
+
+        Ty elems_[N == 0 ? 1 : N]{};
     };
 
     template <typename Ty, std::size_t N>
@@ -297,7 +339,6 @@ namespace rainy::collections {
 
     template <typename Ty, std::size_t N>
     array(const std::array<Ty, N> &) -> array<Ty, N>;
-
 }
 
 #endif

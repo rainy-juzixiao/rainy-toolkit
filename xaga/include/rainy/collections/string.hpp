@@ -8,11 +8,11 @@
 #include <cwchar>
 #include <iterator>
 #include <memory>
+#include <rainy/core/core.hpp>
 #include <stdexcept>
 #include <string_view>
 #include <utility>
 #include <version>
-#include <rainy/core/core.hpp>
 
 
 namespace rainy::text::implements {
@@ -62,6 +62,7 @@ namespace rainy::text::implements {
                 return this->short_string_max_;
             }
         }
+
     protected:
         /**
          * @brief type of long string
@@ -151,14 +152,13 @@ namespace rainy::text {
         // ********************************* begin volume ******************************
 
 
-
         /**
          * @brief shrink only occur on short string is enough to storage
          */
         constexpr void shrink_to_fit() noexcept {
             if (this->size() <= this->short_string_max_ && this->is_long_()) {
                 auto ls = this->stor_.ls_;
-#ifdef RAINY_HAS_CXX20
+#if RAINY_HAS_CXX20
                 if (std::is_constant_evaluated()) {
                     this->stor_.ss_ = decltype(this->stor_.ss_){};
                 }
@@ -171,8 +171,6 @@ namespace rainy::text {
         // ********************************* begin element access ******************************
 
     private:
-        
-
     public:
         constexpr CharType const *data() const noexcept {
             return begin_();
@@ -239,7 +237,9 @@ namespace rainy::text {
             using pointer = std::add_pointer_t<value_type>;
             using reference = std::add_lvalue_reference_t<CharType>;
             using iterator_category = std::random_access_iterator_tag;
+#if RAINY_HAS_CXX20
             using iterator_concept = std::contiguous_iterator_tag;
+#endif
 
         private:
             CharType *current_{};
@@ -368,15 +368,16 @@ namespace rainy::text {
             constexpr CharType *operator->() const noexcept {
                 return current_;
             }
-
+#if RAINY_HAS_CXX20
             friend constexpr std::strong_ordering operator<=>(iterator_type_ const &, iterator_type_ const &) noexcept = default;
+#endif
         };
 
         // ********************************* begin iterator function ******************************
 
     public:
         using iterator = iterator_type_;
-        using const_iterator = std::basic_const_iterator<iterator_type_>;
+        using const_iterator = iterator_type_;
         using reverse_iterator = std::reverse_iterator<iterator>;
         using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
@@ -606,7 +607,7 @@ namespace rainy::text {
         }
 
     public:
-        constexpr ~basic_string() {
+        RAINY_CONSTEXPR20 ~basic_string() {
             if (this->is_long_())
                 dealloc_(this->stor_.ls_);
         }
@@ -685,7 +686,7 @@ namespace rainy::text {
         constexpr void push_back(CharType ch) {
             auto size = this->size_();
             if (this->capacity() == size) {
-                reserve(size * 2 - size / 2);            
+                reserve(size * 2 - size / 2);
             }
             *end_() = ch;
             resize_(size + 1);
@@ -757,8 +758,9 @@ namespace rainy::text {
             basic_string(s, c_style_string_length_(s), a) {
         }
 
-        template <class InputIt, std::enable_if_t<std::is_base_of_v<
-                                     std::input_iterator_tag, typename std::iterator_traits<InputIt>::iterator_category>,int> = 0>
+        template <class InputIt,
+                  std::enable_if_t<
+                      std::is_base_of_v<std::input_iterator_tag, typename std::iterator_traits<InputIt>::iterator_category>, int> = 0>
         constexpr basic_string(InputIt first, InputIt last) {
             using category = typename std::iterator_traits<InputIt>::iterator_category;
             if (std::is_base_of<std::random_access_iterator_tag, category>::value) {
@@ -800,10 +802,10 @@ namespace rainy::text {
                 auto last = start + count;
 #if RAINY_HAS_CXX20
                 if (std::is_constant_evaluated()) {
-                   core::algorithm::copy(start, last, other_begin);
-                }
+                    core::algorithm::copy(start, last, other_begin);
+                } else
 #endif
-                else {
+                {
                     std::memmove(other_begin, start, (last - start) * sizeof(CharType));
                 }
             }
@@ -830,8 +832,9 @@ namespace rainy::text {
         }
 
         // clang-format off
-        template <class StringViewLike>
-            requires std::is_convertible_v<const StringViewLike&, std::basic_string_view<CharType, Traits>> && (!std::is_convertible_v<const StringViewLike&, const CharType*>)
+        template <typename StringViewLike, type_traits::other_trans::enable_if_t<
+                         std::is_convertible_v<const StringViewLike&, std::basic_string_view<CharType, Traits>> && (!std::is_convertible_v<const StringViewLike&, const CharType*>),int
+            > = 0>
         constexpr basic_string(const StringViewLike& t, allocator_type const& a = allocator_type())
 		     : basic_string(std::basic_string_view<CharType, Traits>{ t }.data(), std::basic_string_view<CharType, Traits>{ t }.size(),a)
         {
@@ -839,8 +842,8 @@ namespace rainy::text {
 
         // clang-format on
 
-        template <class StringViewLike>
-            requires std::is_convertible_v<const StringViewLike &, std::basic_string_view<CharType, Traits>>
+        template <class StringViewLike, type_traits::other_trans::enable_if_t<
+                      std::is_convertible_v<const StringViewLike &, std::basic_string_view<CharType, Traits>>, int> = 0>
         constexpr basic_string(const StringViewLike &t, size_type pos, size_type n, allocator_type const &a = allocator_type()) :
             base(a) {
             std::basic_string_view<CharType, Traits> sv = t;
@@ -960,7 +963,6 @@ namespace rainy::text {
         }
 
         template <class InputIt>
-            requires std::input_iterator<InputIt>
         constexpr basic_string &assign(InputIt first, InputIt last) {
             resize_(0);
 
@@ -974,19 +976,16 @@ namespace rainy::text {
         }
 
         // clang-format off
-        template <class StringViewLike>
-            requires std::is_convertible_v<const StringViewLike&, std::basic_string_view<CharType, Traits>> && (!std::is_convertible_v<const StringViewLike&, const CharType*>)
-        basic_string& assign(const StringViewLike& t)
-        {
+        template <class StringViewLike, type_traits::other_trans::enable_if_t<
+            std::is_convertible_v<const StringViewLike&, std::basic_string_view<CharType, Traits>> && (!std::is_convertible_v<const StringViewLike&, const CharType*>),int> = 0>
+        basic_string& assign(const StringViewLike& t) {
             std::basic_string_view<CharType, Traits> sv = t;
             auto data = sv.data();
             assign_(data, data + sv.size());
-
             return *this;
         }
 
-        template <class StringViewLike>
-            requires std::is_convertible_v<const StringViewLike&, std::basic_string_view<CharType, Traits>> && (!std::is_convertible_v<const StringViewLike&, const CharType*>)
+        template <class StringViewLike, type_traits::other_trans::enable_if_t<std::is_convertible_v<const StringViewLike&, std::basic_string_view<CharType, Traits>> && (!std::is_convertible_v<const StringViewLike&, const CharType*>),int> = 0>
         constexpr basic_string& assign(const StringViewLike& t, size_type pos, size_type count = npos)
         {
             std::basic_string_view<CharType, Traits> sv = t;
@@ -1030,13 +1029,13 @@ namespace rainy::text {
             return assign(ilist);
         }
 
-        template <class StringViewLike>
-            requires std::is_convertible_v<const StringViewLike&, std::basic_string_view<CharType, Traits>> && (!std::is_convertible_v<const StringViewLike&, const CharType*>)
+        template <class StringViewLike, type_traits::other_trans::enable_if_t<std::is_convertible_v<const StringViewLike&, std::basic_string_view<CharType, Traits>> && (!std::is_convertible_v<const StringViewLike&, const CharType*>),int> = 0>
         constexpr basic_string& operator=(const StringViewLike& t)
         {
             return assign(t);
         }
 
+        #if RAINY_HAS_CXX20
         friend constexpr std::strong_ordering operator<=>(basic_string const &left, basic_string const &right) noexcept {
             auto lsize = left.size_();
             auto rsize = right.size_();
@@ -1103,6 +1102,7 @@ namespace rainy::text {
                     return std::strong_ordering::equal;
             }
         }
+        #endif
 
         friend constexpr bool operator==(basic_string const &left, basic_string const &right) noexcept {
             auto lsize = left.size_();
@@ -1133,7 +1133,7 @@ namespace rainy::text {
             if (lsize != rsize) {
                 return false;
             }
-#if RAINYH_HAS_CXX20
+#if RAINY_HAS_CXX20
             if std::is_constant_evaluated()) {
                 for (auto begin = left.begin_(), end = begin + (core::min)(lsize, rsize); begin != end; ++begin, ++start) {
                     if (*begin != *start)
@@ -1214,8 +1214,7 @@ namespace rainy::text {
             return *this;
         }
 
-        template <class StringViewLike>
-            requires std::is_convertible_v<const StringViewLike&, std::basic_string_view<CharType, Traits>> && (!std::is_convertible_v<const StringViewLike&, const CharType*>)
+        template <class StringViewLike, type_traits::other_trans::enable_if_t<std::is_convertible_v<const StringViewLike&, std::basic_string_view<CharType, Traits>> && (!std::is_convertible_v<const StringViewLike&, const CharType*>),int> = 0>
         constexpr basic_string& append(const StringViewLike& t)
         {
             std::basic_string_view<CharType, Traits> sv = t;
@@ -1225,8 +1224,7 @@ namespace rainy::text {
             return *this;
         }
 
-        template <class StringViewLike>
-            requires std::is_convertible_v<const StringViewLike&, std::basic_string_view<CharType, Traits>> && (!std::is_convertible_v<const StringViewLike&, const CharType*>)
+        template <class StringViewLike, type_traits::other_trans::enable_if_t<std::is_convertible_v<const StringViewLike&, std::basic_string_view<CharType, Traits>> && (!std::is_convertible_v<const StringViewLike&, const CharType*>),int> = 0>
         constexpr basic_string& append(const StringViewLike& t, size_type pos, size_type count = npos)
         {
             std::basic_string_view<CharType, Traits> sv = t;
@@ -1240,8 +1238,7 @@ namespace rainy::text {
             return append(sv.data() + pos, count);
         }
 
-        template <class StringViewLike>
-            requires std::is_convertible_v<const StringViewLike&, std::basic_string_view<CharType, Traits>> && (!std::is_convertible_v<const StringViewLike&, const CharType*>)
+        template <class StringViewLike, type_traits::other_trans::enable_if_t<std::is_convertible_v<const StringViewLike&, std::basic_string_view<CharType, Traits>> && (!std::is_convertible_v<const StringViewLike&, const CharType*>),int> = 0>
         constexpr basic_string& operator+=(const StringViewLike& t)
         {
             return append(t);
@@ -1372,17 +1369,17 @@ namespace rainy::text {
             auto start = begin_() + index;
             auto end = start + size - index;
             auto last = end + count;
-
+#if RAINY_HAS_CXX20
             if (std::is_constant_evaluated()) {
                 std::copy_backward(start, end, last);
                 std::fill(start, start + count, ch);
-            } else {
+            }else
+#endif
+             {
                 std::memmove(end, start, count * sizeof(CharType));
                 std::fill(start, start + count, ch);
             }
-
             resize_(size + count);
-
             return *this;
         }
 
@@ -1426,9 +1423,13 @@ namespace rainy::text {
             auto begin = begin_();
             end = begin + size;
             start = begin + index;
+            #if RAINY_HAS_CXX20
             if (std::is_constant_evaluated()) {
                 std::copy_backward(start, end, end + 1);
-            } else {
+            }else
+            #endif
+            
+             {
                 traits_type::move(start + 1, start, end - start);
             }
             *start = ch;
@@ -1455,7 +1456,6 @@ namespace rainy::text {
          * @brief this function use a temp basic_string, so it can't decl in class decl
          */
         template <class InputIt>
-            requires std::input_iterator<InputIt>
         constexpr iterator insert(const_iterator pos, InputIt first, InputIt last) {
             assert(("pos isn't in this string", pos.base().current_ >= begin_() && pos.base().current_ <= end_()));
 
@@ -1463,7 +1463,7 @@ namespace rainy::text {
             auto start = pos.base().current_;
             auto end = end_();
             auto index = start - begin_();
-
+            #if RAINY_HAS_CXX20
             if constexpr (std::random_access_iterator<InputIt>) {
                 auto length = std::distance(first, last);
                 reserve(size + length);
@@ -1471,7 +1471,9 @@ namespace rainy::text {
                 std::copy_backward(begin + index, begin + size, begin + size + length);
                 std::ranges::copy(first, last, begin + index);
                 resize_(size + length);
-            } else {
+            } else 
+            #endif
+            {
                 basic_string temp{start, end};
                 resize_(pos - begin_());
                 for (; first != last; ++first)
@@ -1500,8 +1502,7 @@ namespace rainy::text {
         }
 
         // clang-format off
-        template <class StringViewLike>
-            requires std::is_convertible_v<const StringViewLike&, std::basic_string_view<CharType, Traits>> && (!std::is_convertible_v<const StringViewLike&, const CharType*>)
+        template <class StringViewLike, type_traits::other_trans::enable_if_t<std::is_convertible_v<const StringViewLike&, std::basic_string_view<CharType, Traits>> && (!std::is_convertible_v<const StringViewLike&, const CharType*>),int> = 0>
         constexpr basic_string& insert(size_type pos, const StringViewLike& t)
         {
             std::basic_string_view<CharType, Traits> sv = t;
@@ -1511,8 +1512,7 @@ namespace rainy::text {
             return *this;
         }
 
-        template <class StringViewLike>
-            requires std::is_convertible_v<const StringViewLike&, std::basic_string_view<CharType, Traits>> && (!std::is_convertible_v<const StringViewLike&, const CharType*>)
+        template <class StringViewLike, type_traits::other_trans::enable_if_t<std::is_convertible_v<const StringViewLike&, std::basic_string_view<CharType, Traits>> && (!std::is_convertible_v<const StringViewLike&, const CharType*>),int> = 0>
         constexpr basic_string& insert(size_type pos, const StringViewLike& t, size_type t_index, size_type count = npos)
         {
             std::basic_string_view<CharType, Traits> sv = t;
@@ -1534,7 +1534,6 @@ namespace rainy::text {
         // ********************************* begin erase ******************************
 
     private:
-
     public:
         constexpr basic_string &erase(size_type index = 0, size_type count = npos) {
             auto size = this->size_();
@@ -1641,9 +1640,10 @@ namespace rainy::text {
             return *this;
         }
 
-        template <class StringViewLike>
-            requires std::is_convertible_v<const StringViewLike &, std::basic_string_view<CharType, Traits>> &&
-                     (!std::is_convertible_v<const StringViewLike &, const CharType *>)
+        template <class StringViewLike, type_traits::other_trans::enable_if_t<
+                                            std::is_convertible_v<const StringViewLike &, std::basic_string_view<CharType, Traits>> &&
+                                                (!std::is_convertible_v<const StringViewLike &, const CharType *>),
+                                            int> = 0>
         constexpr basic_string &replace(size_type pos, size_type count, const StringViewLike &t) {
             std::basic_string_view<CharType, Traits> sv = t;
             auto data = sv.data();
@@ -1652,9 +1652,11 @@ namespace rainy::text {
             return *this;
         }
 
-        template <class StringViewLike>
-            requires std::is_convertible_v<const StringViewLike &, std::basic_string_view<CharType, Traits>> &&
-                     (!std::is_convertible_v<const StringViewLike &, const CharType *>)
+                template <class StringViewLike, type_traits::other_trans::enable_if_t<
+                                            std::is_convertible_v<const StringViewLike &, std::basic_string_view<CharType, Traits>> &&
+                                                (!std::is_convertible_v<const StringViewLike &, const CharType *>),
+                                            int> = 0>
+
         constexpr basic_string &replace(const_iterator first, const_iterator last, const StringViewLike &t) {
             std::basic_string_view<CharType, Traits> sv = t;
             auto sv_data = sv.data();
@@ -1664,9 +1666,10 @@ namespace rainy::text {
             return *this;
         }
 
-        template <class StringViewLike>
-            requires std::is_convertible_v<const StringViewLike &, std::basic_string_view<CharType, Traits>> &&
-                     (!std::is_convertible_v<const StringViewLike &, const CharType *>)
+        template <class StringViewLike, type_traits::other_trans::enable_if_t<
+                                            std::is_convertible_v<const StringViewLike &, std::basic_string_view<CharType, Traits>> &&
+                                                (!std::is_convertible_v<const StringViewLike &, const CharType *>),
+                                            int> = 0>
         basic_string &replace(size_type pos, size_type count, const StringViewLike &t, size_type pos2, size_type count2 = npos) {
             std::basic_string_view<CharType, Traits> sv = t;
             auto sv_size = sv.size();
@@ -1699,11 +1702,11 @@ namespace rainy::text {
             return *this;
         }
 
-        template <typename InputIt,
-                  std::enable_if_t<std::is_base_of<std::input_iterator_tag,
-                                                 typename std::iterator_traits<InputIt>::iterator_category>::value,int> = 0>
-        constexpr 
-            basic_string &replace(const_iterator first, const_iterator last, InputIt first2, InputIt last2) {
+        template <
+            typename InputIt,
+            std::enable_if_t<
+                std::is_base_of<std::input_iterator_tag, typename std::iterator_traits<InputIt>::iterator_category>::value, int> = 0>
+        constexpr basic_string &replace(const_iterator first, const_iterator last, InputIt first2, InputIt last2) {
             auto start = first.base().current_;
             using category = typename std::iterator_traits<InputIt>::iterator_category;
             if (std::is_base_of<std::random_access_iterator_tag, category>::value) {
@@ -1793,8 +1796,8 @@ namespace rainy::utility {
     struct hash<rainy::text::basic_string<CharType, Traits, Alloc>> {
         using result_type = std::size_t;
         using argument_type = text::basic_string<CharType, Traits, Alloc>;
-        
-        result_type operator()(const argument_type& val) const {
+
+        result_type operator()(const argument_type &val) const {
             return implements::hash_array_representation(val.data(), val.size());
         }
     };

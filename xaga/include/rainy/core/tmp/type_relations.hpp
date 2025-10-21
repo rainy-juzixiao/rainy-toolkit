@@ -82,9 +82,13 @@ namespace rainy::type_traits::other_trans {
     using forbbiden_instantiant_t = typename forbbiden_instantiant<Ty, Types...>::type;
 }
 
+#if RAINY_HAS_CXX20
+
 namespace rainy::type_traits::concepts {
     template <typename Ty = void, typename... Types>
     concept forbbiden_instantiant = !implements::is_any_of_v<Ty, Types...>;
 }
+
+#endif
 
 #endif

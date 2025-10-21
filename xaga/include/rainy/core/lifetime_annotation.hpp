@@ -341,10 +341,6 @@ namespace rainy::annotations::lifetime {
         take(take &&right) noexcept(is_nothrow_move_construtible) : take_resources{utility::move(right.take_resources)} {
         }
 
-        operator type *() noexcept {
-            return &take_resources;
-        }
-
         operator reference () noexcept {
             return take_resources;
         }

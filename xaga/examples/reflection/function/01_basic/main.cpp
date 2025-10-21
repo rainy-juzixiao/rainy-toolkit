@@ -21,39 +21,6 @@ struct mypair {
 #include <rainy/annotations/auto_wired.hpp>
 #include <rainy/annotations/anno.hpp>
 
-void test(borrow_out<int> v) {
-    auto v1_c = v.const_ref();
-    auto v2_c = v.const_ref();
-    std::cout << "v1_c + v2_c = " << (v1_c + v2_c) << '\n';
-    {
-        borrow_out<int> v1 = v;
-        {
-            auto v1_c = v.const_ref();
-            auto v2_c = v.const_ref();
-            std::cout << "v1_c + v2_c = " << (v1_c + v2_c) << '\n';
-        }
-        v1_c.release();
-        v2_c.release();
-        auto value = v.mut();
-        int& var = value;
-        var = 30;
-        try {
-            auto v1_c = v.const_ref();
-            auto v2_c = v.const_ref();
-            std::cout << (v1_c + v2_c) << '\n';
-        } catch (const rainy::foundation::exceptions::runtime::runtime_error &e) {
-            std::cout << e.what() << '\n';
-        }
-    }
-    auto value = v.mut();
-    int &var = value;
-    try {
-        int &v2 = value;
-    } catch (const rainy::foundation::exceptions::runtime::runtime_error& e) {
-        std::cout << e.what() << '\n';
-    }
-}
-
 struct datasource {
     virtual void print_data_sources() noexcept = 0;
 };
@@ -71,7 +38,14 @@ struct datasource_impl : datasource {
     std::string username;
     std::string password;
 };
-RAINY_INJECT_SERVICE(datasource, datasource_impl, std::string, std::string)
+namespace rainy::utility::ioc {
+    template <>
+    struct factory_inject<datasource> {
+        void inject(factory &fact) {
+            inject_to<datasource, std::string, std::string>(fact)(std::in_place_type<datasource_impl>);
+        }
+    };
+}
 
 class user {
 public:
@@ -85,23 +59,16 @@ private:
     annotations::auto_wired<datasource> datasources{std::string{"root"}, std::string{"123456"}};
 };
 
-template <typename T>
-void test_fn(rainy::annotations::dont::non_copyable_if<T, std::is_same<std::string, T>> s) {
-    std::cout << s << '\n';
-}
-#include <any>
-
 int main() {
+    constexpr collections::array<int, 2> vv2{1, 2};
 
+    constexpr collections::array<int, 4> vv{std::in_place,vv2.begin(), vv2.end()};
     {
         any a{std::array<int, 4>{10, 20, 30, 40}};
         a.destructure([](int v1, int v2, int v3, int v4) { std::cout << v1 << ',' << v2 << ',' << v3 << ',' << v4 << '\n'; });
     }
     user u;
     u.show_the_database();
-    int value{20};
-    test(&value);
-    std::cout << value << '\n';
     any a = 10;
     std::cout << (a + 10000 - 10) << '\n';
     std::cout << (--a) << '\n';

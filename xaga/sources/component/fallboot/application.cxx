@@ -3,6 +3,7 @@
 #include <WS2spi.h>
 #include <windows.h>
 #include <iostream>
+#include <atomic>
 #pragma comment(lib, "ws2_32.lib")
 
 namespace rainy::component::fallboot::implements {

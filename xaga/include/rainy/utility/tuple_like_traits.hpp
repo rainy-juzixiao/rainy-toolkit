@@ -147,26 +147,26 @@ namespace rainy::type_traits::extras::tuple::implements {
 
     template <typename Ty>
     static inline constexpr std::size_t eval_member_count =
-        (std::max)({implements::bind_v<0, Ty>,  implements::bind_v<1, Ty>,  implements::bind_v<2, Ty>,  implements::bind_v<3, Ty>,
-                    implements::bind_v<4, Ty>,  implements::bind_v<5, Ty>,  implements::bind_v<6, Ty>,  implements::bind_v<7, Ty>,
-                    implements::bind_v<8, Ty>,  implements::bind_v<9, Ty>,  implements::bind_v<10, Ty>, implements::bind_v<11, Ty>,
-                    implements::bind_v<12, Ty>, implements::bind_v<13, Ty>, implements::bind_v<14, Ty>, implements::bind_v<15, Ty>,
-                    implements::bind_v<16, Ty>, implements::bind_v<17, Ty>, implements::bind_v<18, Ty>, implements::bind_v<19, Ty>,
-                    implements::bind_v<20, Ty>, implements::bind_v<21, Ty>, implements::bind_v<22, Ty>, implements::bind_v<23, Ty>,
-                    implements::bind_v<24, Ty>, implements::bind_v<25, Ty>, implements::bind_v<26, Ty>, implements::bind_v<27, Ty>,
-                    implements::bind_v<28, Ty>, implements::bind_v<29, Ty>, implements::bind_v<30, Ty>, implements::bind_v<31, Ty>,
-                    implements::bind_v<32, Ty>, implements::bind_v<33, Ty>, implements::bind_v<34, Ty>, implements::bind_v<35, Ty>,
-                    implements::bind_v<36, Ty>, implements::bind_v<37, Ty>, implements::bind_v<38, Ty>, implements::bind_v<39, Ty>,
-                    implements::bind_v<40, Ty>, implements::bind_v<41, Ty>, implements::bind_v<42, Ty>, implements::bind_v<43, Ty>,
-                    implements::bind_v<44, Ty>, implements::bind_v<45, Ty>, implements::bind_v<46, Ty>, implements::bind_v<47, Ty>,
-                    implements::bind_v<48, Ty>, implements::bind_v<49, Ty>, implements::bind_v<50, Ty>, implements::bind_v<51, Ty>,
-                    implements::bind_v<52, Ty>, implements::bind_v<53, Ty>, implements::bind_v<54, Ty>, implements::bind_v<55, Ty>,
-                    implements::bind_v<56, Ty>, implements::bind_v<57, Ty>, implements::bind_v<58, Ty>, implements::bind_v<59, Ty>,
-                    implements::bind_v<60, Ty>, implements::bind_v<61, Ty>, implements::bind_v<62, Ty>, implements::bind_v<63, Ty>,
-                    implements::bind_v<64, Ty>, implements::bind_v<65, Ty>, implements::bind_v<66, Ty>, implements::bind_v<67, Ty>,
-                    implements::bind_v<68, Ty>, implements::bind_v<69, Ty>, implements::bind_v<70, Ty>, implements::bind_v<71, Ty>,
-                    implements::bind_v<72, Ty>, implements::bind_v<73, Ty>, implements::bind_v<74, Ty>, implements::bind_v<75, Ty>,
-                    implements::bind_v<76, Ty>, implements::bind_v<77, Ty>, implements::bind_v<78, Ty>, implements::bind_v<79, Ty>});
+        (core::max)({implements::bind_v<0, Ty>,  implements::bind_v<1, Ty>,  implements::bind_v<2, Ty>,  implements::bind_v<3, Ty>,
+                     implements::bind_v<4, Ty>,  implements::bind_v<5, Ty>,  implements::bind_v<6, Ty>,  implements::bind_v<7, Ty>,
+                     implements::bind_v<8, Ty>,  implements::bind_v<9, Ty>,  implements::bind_v<10, Ty>, implements::bind_v<11, Ty>,
+                     implements::bind_v<12, Ty>, implements::bind_v<13, Ty>, implements::bind_v<14, Ty>, implements::bind_v<15, Ty>,
+                     implements::bind_v<16, Ty>, implements::bind_v<17, Ty>, implements::bind_v<18, Ty>, implements::bind_v<19, Ty>,
+                     implements::bind_v<20, Ty>, implements::bind_v<21, Ty>, implements::bind_v<22, Ty>, implements::bind_v<23, Ty>,
+                     implements::bind_v<24, Ty>, implements::bind_v<25, Ty>, implements::bind_v<26, Ty>, implements::bind_v<27, Ty>,
+                     implements::bind_v<28, Ty>, implements::bind_v<29, Ty>, implements::bind_v<30, Ty>, implements::bind_v<31, Ty>,
+                     implements::bind_v<32, Ty>, implements::bind_v<33, Ty>, implements::bind_v<34, Ty>, implements::bind_v<35, Ty>,
+                     implements::bind_v<36, Ty>, implements::bind_v<37, Ty>, implements::bind_v<38, Ty>, implements::bind_v<39, Ty>,
+                     implements::bind_v<40, Ty>, implements::bind_v<41, Ty>, implements::bind_v<42, Ty>, implements::bind_v<43, Ty>,
+                     implements::bind_v<44, Ty>, implements::bind_v<45, Ty>, implements::bind_v<46, Ty>, implements::bind_v<47, Ty>,
+                     implements::bind_v<48, Ty>, implements::bind_v<49, Ty>, implements::bind_v<50, Ty>, implements::bind_v<51, Ty>,
+                     implements::bind_v<52, Ty>, implements::bind_v<53, Ty>, implements::bind_v<54, Ty>, implements::bind_v<55, Ty>,
+                     implements::bind_v<56, Ty>, implements::bind_v<57, Ty>, implements::bind_v<58, Ty>, implements::bind_v<59, Ty>,
+                     implements::bind_v<60, Ty>, implements::bind_v<61, Ty>, implements::bind_v<62, Ty>, implements::bind_v<63, Ty>,
+                     implements::bind_v<64, Ty>, implements::bind_v<65, Ty>, implements::bind_v<66, Ty>, implements::bind_v<67, Ty>,
+                     implements::bind_v<68, Ty>, implements::bind_v<69, Ty>, implements::bind_v<70, Ty>, implements::bind_v<71, Ty>,
+                     implements::bind_v<72, Ty>, implements::bind_v<73, Ty>, implements::bind_v<74, Ty>, implements::bind_v<75, Ty>,
+                     implements::bind_v<76, Ty>, implements::bind_v<77, Ty>, implements::bind_v<78, Ty>, implements::bind_v<79, Ty>});
 }
 
 namespace rainy::type_traits::extras::tuple {

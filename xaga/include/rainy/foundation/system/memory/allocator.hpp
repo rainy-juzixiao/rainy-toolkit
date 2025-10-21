@@ -17,6 +17,7 @@
 #define RAINY_FOUNDATION_SYSTEM_MEMORY_ALLCATOR_HPP
 #include <rainy/core/core.hpp>
 #include <rainy/foundation/diagnostics/contract.hpp>
+#include <atomic>
 
 namespace rainy::foundation::system::memory {
     enum class allocation_method {

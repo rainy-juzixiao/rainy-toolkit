@@ -410,7 +410,7 @@ namespace rainy::foundation::fact {
 
     template <typename Factory>
     struct product {
-        using type = factory_traits<Factory>::product;
+        using type = typename factory_traits<Factory>::product;
     };
 
     template <typename Factory>
@@ -418,7 +418,7 @@ namespace rainy::foundation::fact {
 
     template <typename Factory>
     struct creater {
-        using type = factory_traits<Factory>::creater;
+        using type = typename factory_traits<Factory>::creater;
     };
 
     template <typename Factory>
@@ -426,7 +426,7 @@ namespace rainy::foundation::fact {
 
     template <typename Factory>
     struct product_key {
-        using type = factory_traits<Factory>::product_key;
+        using type = typename factory_traits<Factory>::product_key;
     };
 
     template <typename Factory>
@@ -434,7 +434,7 @@ namespace rainy::foundation::fact {
 
     template <typename Factory>
     struct projection_holder {
-        using type = factory_traits<Factory>::projection_holder;
+        using type = typename factory_traits<Factory>::projection_holder;
     };
 
     template <typename Factory>

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.22.1)
 project(rainy-toolkit VERSION 0.7.4 LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(RAINY_TOOLKIT_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -27,7 +27,6 @@ if (RAINY_ENABLE_TESTING)
 endif()
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/benchmark)
-add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/entt)
 add_subdirectory(${PROJECT_SOURCE_DIR}/xaga/examples/reflection/)
 add_subdirectory(${PROJECT_SOURCE_DIR}/xaga/benchmark/any/)
 add_subdirectory(${PROJECT_SOURCE_DIR}/xaga/benchmark/reflection/)

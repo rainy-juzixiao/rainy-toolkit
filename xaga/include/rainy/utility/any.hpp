@@ -386,7 +386,7 @@ namespace rainy::utility {
                         auto &handler = std::get<index>(handlers);
                         using handler_t = decltype(handler);
                         static constexpr default_match default_match_obj{};
-                        using type_list = other_trans::tuple_like_to_type_list<
+                        using type_list = typename other_trans::tuple_like_to_type_list<
                             primary_types::param_list_in_tuple<cv_modify::remove_cvref_t<handler_t>>>::type;
                         constexpr std::size_t arity = other_trans::type_list_size_v<type_list>;
                         if constexpr (arity == 1) {
@@ -1753,7 +1753,7 @@ namespace rainy::utility::implements {
             return BasicAny{std::in_place_type<decltype(*iter)>, *iter};
         }
 
-        bool compare_equal(const BasicAny::iterator &right) const {
+        bool compare_equal(const typename BasicAny::iterator &right) const {
             if (right.storage.template is<any_proxy_iterator>()) {
                 return iter == (right.storage.template as<any_proxy_iterator>().iter);
             } else if (right.storage.template is<const_any_proxy_iterator<BasicAny, Type>>()) {
@@ -1784,7 +1784,7 @@ namespace rainy::utility::implements {
             return BasicAny{std::in_place_type<decltype(*iter)>, *iter};
         }
 
-        bool compare_equal(const BasicAny::iterator &right) const {
+        bool compare_equal(const typename BasicAny::iterator &right) const {
             if (right.storage.template is<any_proxy_iterator<BasicAny, Type>>()) {
                 return iter == (right.storage.template as<any_proxy_iterator<BasicAny, Type>>().iter);
             } else if (right.storage.template is<const_any_proxy_iterator>()) {

@@ -145,7 +145,7 @@ namespace rainy::utility {
 namespace rainy::utility {
     class uuid {
     public:
-        constexpr uuid() : resources() {};
+        uuid() : resources() {};
 
         uuid(const unsigned long data1, const unsigned short data2, const unsigned short data3,
              const collections::array<unsigned char, 8> data4) :

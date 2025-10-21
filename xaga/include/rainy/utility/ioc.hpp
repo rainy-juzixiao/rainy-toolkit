@@ -201,8 +201,8 @@ namespace rainy::utility::ioc {
             return nullptr;
         }
 
-        template <typename Impl, typename... Args>
-        friend void inject_to(factory &factory);
+        template <typename Type, typename... Args>
+        friend class injector;
 
     private:
         template <typename Fx, type_traits::other_trans::enable_if_t<type_traits::primary_types::function_traits<Fx>::valid &&

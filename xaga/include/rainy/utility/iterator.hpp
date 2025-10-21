@@ -509,7 +509,7 @@ namespace rainy::utility {
         }
 
         typename base::reference &get_element_impl() noexcept {
-            return const_cast<base::reference &>(this->current_->second);
+            return const_cast<typename base::reference &>(this->current_->second);
         }
     };
 
