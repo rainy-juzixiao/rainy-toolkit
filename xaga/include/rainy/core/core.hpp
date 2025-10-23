@@ -915,32 +915,6 @@ namespace rainy::core::algorithm {
     }
 }
 
-namespace rainy::core {
-    template <typename InputIt, typename Ty>
-    RAINY_INLINE RAINY_CONSTEXPR20 Ty accumulate(InputIt first, InputIt last, Ty init) {
-        for (; first != last; ++first) {
-#if RAINY_HAS_CXX20
-            init = utility::move(init) + *first;
-#else
-            init += *first;
-#endif
-        }
-        return init;
-    }
-
-    template <typename InputIt, typename Ty, typename BinaryOperation>
-    RAINY_INLINE RAINY_CONSTEXPR20 Ty accumulate(InputIt first, InputIt last, Ty init, BinaryOperation op) {
-        for (; first != last; ++first) {
-#if RAINY_HAS_CXX20
-            init = op(utility::move(init), *first);
-#else
-        init = op(init, *first);
-#endif
-        }
-        return init;
-    }
-}
-
 namespace rainy::utility {
     template <typename Iter>
     class sub_range {

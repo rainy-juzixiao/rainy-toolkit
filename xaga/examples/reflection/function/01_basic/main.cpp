@@ -59,12 +59,17 @@ private:
     annotations::auto_wired<datasource> datasources{std::string{"root"}, std::string{"123456"}};
 };
 
-int main() {
-    constexpr collections::array<int, 2> vv2{1, 2};
+constexpr auto test() {
+    collections::array<int, 5> v1{1, 2, 3, 4, 5};
+    collections::array<int, 5> v2{1, 2, 3, 4, 5};
+    collections::array<int, 0> v3{};
+    return v1.concat(v2) == collections::array<int, 10>{1, 2, 3, 4, 5, 1, 2, 3, 4, 5};
+}
 
-    constexpr collections::array<int, 4> vv{std::in_place,vv2.begin(), vv2.end()};
+int main() {
+    constexpr auto vv = test();
     {
-        any a{std::array<int, 4>{10, 20, 30, 40}};
+        any a{collections::array<int, 4>{10, 20, 30, 40}};
         a.destructure([](int v1, int v2, int v3, int v4) { std::cout << v1 << ',' << v2 << ',' << v3 << ',' << v4 << '\n'; });
     }
     user u;

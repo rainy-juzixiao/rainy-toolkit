@@ -22,7 +22,6 @@
 #include <rainy/core/tmp/implements.hpp>
 #include <rainy/core/tmp/helper.hpp>
 #include <rainy/core/tmp/type_relations.hpp>
-#include <rainy/core/tmp/sfinae_base.hpp>
 #include <rainy/core/tmp/modifers.hpp>
 #include <rainy/core/tmp/type_list.hpp>
 #include <rainy/core/tmp/value_list.hpp>
@@ -2888,6 +2887,32 @@ namespace rainy::utility::cpp_methods {
     static constexpr std::string_view method_front = "front";
     static constexpr std::string_view method_back = "back";
     static constexpr std::string_view method_append = "append";
+}
+
+namespace rainy::core {
+    template <typename InputIt, typename Ty>
+    RAINY_INLINE constexpr Ty accumulate(InputIt first, InputIt last, Ty init) {
+        for (; first != last; ++first) {
+#if RAINY_HAS_CXX20
+            init = utility::move(init) + *first;
+#else
+            init += *first;
+#endif
+        }
+        return init;
+    }
+
+    template <typename InputIt, typename Ty, typename BinaryOperation>
+    RAINY_INLINE constexpr Ty accumulate(InputIt first, InputIt last, Ty init, BinaryOperation op) {
+        for (; first != last; ++first) {
+#if RAINY_HAS_CXX20
+            init = op(utility::move(init), *first);
+#else
+            init = op(init, *first);
+#endif
+        }
+        return init;
+    }
 }
 
 #endif

@@ -1134,7 +1134,7 @@ namespace rainy::text {
                 return false;
             }
 #if RAINY_HAS_CXX20
-            if std::is_constant_evaluated()) {
+            if (std::is_constant_evaluated()) {
                 for (auto begin = left.begin_(), end = begin + (core::min)(lsize, rsize); begin != end; ++begin, ++start) {
                     if (*begin != *start)
                         return false;

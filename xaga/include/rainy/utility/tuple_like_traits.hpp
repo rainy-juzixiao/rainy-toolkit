@@ -452,14 +452,12 @@ namespace rainy::type_traits::extras::tuple {
         }
     };
 
-    template <template <typename Ty, std::size_t N> typename ArrayTemplate,typename Ty, std::size_t N>
-    struct reflectet_for_type<ArrayTemplate<Ty, N>,
-        type_traits::other_trans::void_t< 
-            type_traits::other_trans::enable_if_t<type_traits::type_properties::is_aggregate_v<ArrayTemplate<Ty, N>>>, 
-            typename ArrayTemplate<Ty, N>::value_type,
-            typename ArrayTemplate<Ty, N>::iterator
-        >
-    > {
+    template <template <typename Ty, std::size_t N> typename ArrayTemplate, typename Ty, std::size_t N>
+    struct reflectet_for_type<
+        ArrayTemplate<Ty, N>,
+        type_traits::other_trans::void_t<
+            type_traits::other_trans::enable_if_t<type_traits::type_properties::is_aggregate_v<ArrayTemplate<Ty, N>>>,
+            typename ArrayTemplate<Ty, N>::value_type, typename ArrayTemplate<Ty, N>::iterator>> {
         static constexpr inline std::size_t count = N;
 
         static constexpr auto make() noexcept {
@@ -468,6 +466,28 @@ namespace rainy::type_traits::extras::tuple {
 
         static constexpr auto bind_obj(ArrayTemplate<Ty, N> &obj) noexcept {
             return implements::refl_to_tuple_impl<count, ArrayTemplate<Ty, N>>::make_ptr(obj);
+        }
+    };
+
+    template <template <typename Ty, std::size_t N> typename ArrayTemplate, typename Ty, std::size_t N>
+    struct reflectet_for_type<ArrayTemplate<Ty, N>, type_traits::other_trans::enable_if_t<
+                                                        type_relations::is_same_v<ArrayTemplate<Ty, N>, collections::array<Ty, N>>>> {
+        static constexpr inline std::size_t count = N;
+
+        static constexpr auto make() noexcept {
+            if constexpr (count <= 80) {
+                return implements::refl_to_tuple_impl<count, Ty[count]>::make();
+            } else {
+                return std::make_tuple();
+            }
+        }
+
+        static constexpr auto bind_obj(ArrayTemplate<Ty, N> &obj) noexcept {
+            if constexpr (count <= 80) {
+                return implements::refl_to_tuple_impl<count, Ty[count]>::make_ptr(obj.access_carrays());
+            } else {
+                return std::make_tuple();
+            }
         }
     };
 }

@@ -1,6 +1,6 @@
 #ifndef RAINY_CORE_TMP_ITER_TRAITS_HPP
 #define RAINY_CORE_TMP_ITER_TRAITS_HPP
-#include <rainy/core/tmp/sfinae_base.hpp>
+#include <rainy/core/platform.hpp>
 
 namespace rainy::type_traits::extras::templates {
     template <typename Ty, typename = void>
@@ -163,10 +163,7 @@ namespace rainy::type_traits::extras::templates {
     };
 
     template <typename Iter, typename = void>
-    RAINY_CONSTEXPR_BOOL is_iterator_v = false;
-
-    template <typename Iter>
-    RAINY_CONSTEXPR_BOOL is_iterator_v<Iter, other_trans::void_t<typename utility::iterator_traits<Iter>::iterator_category>> = true;
+    RAINY_CONSTEXPR_BOOL is_iterator_v = !type_traits::type_relations::is_same_v<typename utility::iterator_traits<Iter>::iterator_category, utility::invalid_type>;
 }
 
 namespace rainy::type_traits::extras::templates {

@@ -962,7 +962,7 @@ namespace rainy::core::abi {
 
     enum class standard {
         cxx17,
-        caxx20,
+        cxx20,
         cxx23,
         cxxlatest
     };
