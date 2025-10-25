@@ -77,6 +77,7 @@ auto test() {
 }
 
 int main() {
+    _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
     {
         auto map = test();
         for (const auto &i: map) {
@@ -206,6 +207,7 @@ int main() {
         auto [first, second] = (*iter).destructure<std::string_view, int>();
         std::cout << first << ' ' << second << '\n';
     }
+    std::cout << "category = " << (int) a.begin().iterator_category() << '\n';
     a.emplace<std::tuple<const char *, int, float>>("Hello World", 42, 3.14f);
     std::cout << a[0] << '\n';
     std::cout << a[1] << '\n';

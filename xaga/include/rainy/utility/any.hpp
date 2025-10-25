@@ -154,7 +154,7 @@ namespace rainy::utility {
         contiguous_iterator // for cxx 20
     };
 }
-#include <iostream>
+
 namespace rainy::utility::implements {
     enum class any_compare_operation {
         less,
@@ -418,11 +418,11 @@ namespace rainy::utility {
                 virtual basic_any dereference() = 0;
                 virtual basic_any const_dereference() const = 0;
                 virtual foundation::ctti::typeinfo typeinfo() const = 0;
-                virtual void destruct() = 0;
+                virtual void destruct(bool is_local) = 0;
                 virtual iterator_proxy_vtable *construct_from_this(core::byte_t *soo_buffer) const noexcept = 0;
                 virtual bool compare_equal(const iterator_proxy_vtable *right) const = 0;
                 // category
-                //virtual any_iterator_category iterator_category() const noexcept = 0;
+                virtual any_iterator_category iterator_category() const noexcept = 0;
             };
 
             iterator() {
@@ -434,6 +434,12 @@ namespace rainy::utility {
                     proxy = new IterImpl(utility::forward<RealIterator>(iter));
                 } else {
                     proxy = utility::construct_at(reinterpret_cast<IterImpl *>(buffer), utility::forward<RealIterator>(iter));
+                }
+            }
+
+            ~iterator() {
+                if (proxy) {
+                    proxy->destruct(is_local());
                 }
             }
 
@@ -497,6 +503,10 @@ namespace rainy::utility {
                 } else {
                     proxy = utility::exchange(right.proxy, nullptr);
                 }
+            }
+
+            any_iterator_category iterator_category() const noexcept {
+                return proxy->iterator_category();
             }
 
         private:
@@ -1767,6 +1777,25 @@ namespace rainy::utility::implements {
             type_traits::reference_modify::add_lvalue_reference_t<add_const_helper_for_access_element<Ty>>>,
         add_const_helper_for_access_element<Ty>>;
 
+    template <typename Iter>
+    constexpr any_iterator_category get_iterator_category() noexcept {
+        using namespace type_traits::extras::iterators;
+        if (is_contiguous_iterator_v<Iter>) {
+            return any_iterator_category::contiguous_iterator;
+        } else if constexpr (is_random_access_iterator_v<Iter>) {
+            return any_iterator_category::random_access_iterator;
+        } else if constexpr (is_bidirectional_iterator_v<Iter>) {
+            return any_iterator_category::bidirectional_iterator;
+        } else if constexpr (is_bidirectional_iterator_v<Iter>) {
+            return any_iterator_category::forward_iterator;
+        } else if constexpr (is_output_iterator_v<Iter> && !is_input_iterator_v<Iter>) {
+            return any_iterator_category::output_iterator;
+        } else {
+            static_assert(is_input_iterator_v<Iter> && !is_output_iterator_v<Iter>);
+            return any_iterator_category::input_iterator;
+        }
+    }
+
     template <typename BasicAny, typename Type>
     struct any_proxy_iterator : BasicAny::iterator::iterator_proxy_vtable {
         using iterator_t = typename Type::iterator;
@@ -1775,8 +1804,13 @@ namespace rainy::utility::implements {
         any_proxy_iterator(iterator_t iterator) : iter{iterator} {
         }
 
-        void destruct() override {
-            std::destroy_at(&iter);
+        void destruct(bool is_local) override {
+            if (is_local) {
+                std::destroy_at(&iter);
+            } else {
+                std::destroy_at(&iter);
+                delete this;
+            }
         }
 
         void next() {
@@ -1814,7 +1848,8 @@ namespace rainy::utility::implements {
         }
 
         any_iterator_category iterator_category() const noexcept {
-            
+            constexpr any_iterator_category category = get_iterator_category<iterator_t>();        
+            return category;
         }
 
         iterator_t iter;
@@ -1828,8 +1863,13 @@ namespace rainy::utility::implements {
         const_any_proxy_iterator(iterator_t iterator) : iter{iterator} {
         }
 
-        void destruct() override {
-            std::destroy_at(&iter);
+        void destruct(bool is_local) override {
+            if (is_local) {
+                std::destroy_at(&iter);
+            } else {
+                std::destroy_at(&iter);
+                delete this;
+            }
         }
 
         void next() {
@@ -1854,6 +1894,11 @@ namespace rainy::utility::implements {
             } else {
                 return utility::construct_at(reinterpret_cast<const_any_proxy_iterator *>(soo_buffer), this->iter);
             }
+        }
+
+        any_iterator_category iterator_category() const noexcept {
+            constexpr any_iterator_category category = get_iterator_category<iterator_t>();
+            return category;
         }
 
         bool compare_equal(const proxy_t *right) const override {

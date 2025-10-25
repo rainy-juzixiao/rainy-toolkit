@@ -54,11 +54,10 @@ namespace rainy::meta::reflection::implements {
         RAINY_NODISCARD virtual const foundation::ctti::typeinfo &return_type() const noexcept = 0;
         RAINY_NODISCARD virtual const foundation::ctti::typeinfo &function_signature() const noexcept = 0;
         virtual invoker_accessor *construct_from_this(core::byte_t *soo_buffer) const noexcept = 0;
-        RAINY_NODISCARD virtual const rainy::collections::views::array_view<foundation::ctti::typeinfo> &paramlists()
-            const noexcept = 0;
+        RAINY_NODISCARD virtual const collections::views::array_view<foundation::ctti::typeinfo> &paramlists() const noexcept = 0;
         virtual bool equal_with(const invoker_accessor *impl) const noexcept = 0;
         RAINY_NODISCARD virtual bool is_invocable(
-            rainy::collections::views::array_view<foundation::ctti::typeinfo> paramlist) const noexcept = 0;
+            collections::views::array_view<foundation::ctti::typeinfo> paramlist) const noexcept = 0;
         virtual void destruct(bool local) noexcept = 0;
     };
 
