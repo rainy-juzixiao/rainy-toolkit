@@ -237,6 +237,13 @@ namespace rainy::collections {
             return iter == end() ? npos : (iter - begin());
         }
 
+        /**
+         * @brief 根据谓词函数筛选数组元素
+         * @tparam NewSize 返回数组的大小（默认为原数组大小 N）
+         * @tparam Pred 谓词函数类型，接收元素并返回可转换为 bool 的结果
+         * @param pred 用于筛选元素的谓词
+         * @return 返回一个新数组，包含满足谓词的元素；若 NewSize 小于筛选出的元素数，则强制返回空数组
+         */
         template <std::size_t NewSize = N, typename Pred>
         constexpr rain_fn filter(Pred &&pred) -> collections::array<value_type, NewSize> {
             collections::array<value_type, NewSize> array;
@@ -255,11 +262,21 @@ namespace rainy::collections {
             return array;
         }
 
+        /**
+         * @brief 返回数组的逆序版本
+         * @return 返回一个新数组，其元素顺序与当前数组相反
+         */
         constexpr rain_fn reverse() const -> collections::array<value_type, N> {
             collections::array<Ty, N> arr{crbegin(), crend()};
             return arr;
         }
 
+        /**
+         * @brief 对数组中的每个元素应用映射函数
+         * @tparam Fx 映射函数类型
+         * @param func 映射函数
+         * @return 返回一个新数组，其元素为映射函数作用后的结果
+         */
         template <typename Fx>
         constexpr rain_fn map(Fx &&func) const -> collections::array<value_type, N> {
             collections::array<value_type, N> arr{};
@@ -269,21 +286,47 @@ namespace rainy::collections {
             return arr;
         }
 
+        /**
+         * @brief 使用默认初始化值折叠数组元素
+         * @tparam Init 折叠操作的初始值类型
+         * @return 返回折叠计算的结果
+         */
         template <typename Init>
         constexpr rain_fn fold() -> decltype(auto) {
             return core::accumulate(begin(), end(), Init{});
         }
 
+        /**
+         * @brief 使用指定初始值折叠数组元素
+         * @tparam Init 初始值类型
+         * @param init_value 用作折叠计算的初始值
+         * @return 返回折叠计算的结果
+         */
         template <typename Init>
         constexpr rain_fn fold(const Init &init_value) -> decltype(auto) {
             return core::accumulate(begin(), end(), init_value);
         }
 
+        /**
+         * @brief 使用指定初始类型和二元函数折叠数组元素
+         * @tparam Init 初始值类型
+         * @tparam Fx 二元折叠函数类型
+         * @param func 用于折叠的二元函数
+         * @return 返回折叠计算的结果
+         */
         template <typename Init, typename Fx>
         constexpr rain_fn fold(Fx &&func) -> decltype(auto) {
             return core::accumulate(begin(), end(), Init{}, utility::forward<Fx>(func));
         }
 
+        /**
+         * @brief 使用指定初始值和二元函数折叠数组元素
+         * @tparam Fx 二元折叠函数类型
+         * @tparam Init 初始值类型
+         * @param func 用于折叠的二元函数
+         * @param init_value 折叠计算的初始值
+         * @return 返回折叠计算的结果
+         */
         template <typename Fx, typename Init>
         constexpr rain_fn fold(Fx &&func, const Init &init_value) -> decltype(auto) {
             return core::accumulate(begin(), end(), init_value, utility::forward<Fx>(func));
@@ -657,11 +700,11 @@ namespace std {
 }
 
 namespace rainy::collections {
-    template <typename Ty, std::size_t N, typename U, typename Fx>
-    RAINY_NODISCARD constexpr rain_fn zip_with(const array<Ty, N> &left, const array<U, N> &right, Fx &&func) -> auto {
+    template <typename Ty, std::size_t N, typename UTy, typename Fx>
+    RAINY_NODISCARD constexpr rain_fn zip_with(const array<Ty, N> &left, const array<UTy, N> &right, Fx &&func) -> auto {
         using type = decltype(utility::invoke(utility::forward<Fx>(func), left[0], right[0]));
         collections::array<type, N> arr;
-        for (size_t i = 0; i < N; ++i) {
+        for (std::size_t i = 0; i < N; ++i) {
             arr[i] = utility::invoke(utility::forward<Fx>(func), left[i], right[i]);
         }
         return arr;
