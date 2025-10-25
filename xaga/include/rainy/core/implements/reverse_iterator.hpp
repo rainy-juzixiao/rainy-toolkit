@@ -31,31 +31,31 @@ namespace rainy::utility {
         using pointer = typename iterator_traits::pointer;
         using const_pointer = const value_type *;
 
-        RAINY_CONSTEXPR20 reverse_iterator() noexcept = default;
-        RAINY_CONSTEXPR20 reverse_iterator(const reverse_iterator &) noexcept = default;
-        RAINY_CONSTEXPR20 reverse_iterator(reverse_iterator &&) noexcept = default;
-        RAINY_CONSTEXPR20 reverse_iterator &operator=(const reverse_iterator &) noexcept = default;
-        RAINY_CONSTEXPR20 reverse_iterator &operator=(reverse_iterator &&) noexcept = default;
+        constexpr reverse_iterator() noexcept = default;
+        constexpr reverse_iterator(const reverse_iterator &) noexcept = default;
+        constexpr reverse_iterator(reverse_iterator &&) noexcept = default;
+        constexpr reverse_iterator &operator=(const reverse_iterator &) noexcept = default;
+        constexpr reverse_iterator &operator=(reverse_iterator &&) noexcept = default;
         RAINY_CONSTEXPR20 ~reverse_iterator() = default;
 
-        explicit RAINY_CONSTEXPR20 reverse_iterator(iterator_type current) noexcept : current(current) {
+        explicit constexpr reverse_iterator(iterator_type current) noexcept : current(current) {
         }
 
-        RAINY_CONSTEXPR20 iterator_type base() const noexcept {
+        constexpr iterator_type base() const noexcept {
             return current;
         }
 
-        RAINY_CONSTEXPR20 reference operator*() noexcept {
+        constexpr reference operator*() noexcept {
             iterator_type tmp = current;
             return *--tmp;
         }
 
-        RAINY_CONSTEXPR20 const_reference operator*() const noexcept {
+        constexpr const_reference operator*() const noexcept {
             iterator_type tmp = current;
             return *--tmp;
         }
 
-        RAINY_CONSTEXPR20 pointer operator->() noexcept {
+        constexpr pointer operator->() noexcept {
             iterator_type tmp = current;
             --tmp;
             if constexpr (type_traits::primary_types::is_pointer_v<iterator_type>) {
@@ -65,7 +65,7 @@ namespace rainy::utility {
             }
         }
 
-        RAINY_CONSTEXPR20 const_pointer operator->() const noexcept {
+        constexpr const_pointer operator->() const noexcept {
             iterator_type tmp = current;
             --tmp;
             if constexpr (type_traits::primary_types::is_pointer_v<iterator_type>) {
@@ -75,84 +75,84 @@ namespace rainy::utility {
             }
         }
 
-        RAINY_CONSTEXPR20 reverse_iterator &operator++() noexcept {
+        constexpr reverse_iterator &operator++() noexcept {
             --current;
             return *this;
         }
 
-        RAINY_CONSTEXPR20 reverse_iterator operator++(int) noexcept {
+        constexpr reverse_iterator operator++(int) noexcept {
             reverse_iterator tmp = *this;
             --current;
             return tmp;
         }
 
-        RAINY_CONSTEXPR20 reverse_iterator &operator--() noexcept {
+        constexpr reverse_iterator &operator--() noexcept {
             ++current;
             return *this;
         }
 
-        RAINY_CONSTEXPR20 reverse_iterator operator--(int) noexcept {
+        constexpr reverse_iterator operator--(int) noexcept {
             reverse_iterator tmp = *this;
             ++current;
             return tmp;
         }
 
-        RAINY_CONSTEXPR20 reverse_iterator &operator+=(difference_type n) noexcept {
+        constexpr reverse_iterator &operator+=(difference_type n) noexcept {
             current -= n;
             return *this;
         }
 
-        RAINY_CONSTEXPR20 reverse_iterator &operator-=(difference_type n) noexcept {
+        constexpr reverse_iterator &operator-=(difference_type n) noexcept {
             current += n;
             return *this;
         }
 
-        RAINY_CONSTEXPR20 reference operator[](difference_type n) noexcept {
+        constexpr reference operator[](difference_type n) noexcept {
             return current[-n - 1];
         }
 
-        RAINY_CONSTEXPR20 const_reference operator[](difference_type n) const noexcept {
+        constexpr const_reference operator[](difference_type n) const noexcept {
             return current[-n - 1];
         }
 
-        RAINY_CONSTEXPR20 explicit operator bool() const noexcept {
+        constexpr explicit operator bool() const noexcept {
             return current != nullptr;
         }
 
-        friend RAINY_CONSTEXPR20 reverse_iterator operator+(const reverse_iterator &it, difference_type n) {
+        friend constexpr reverse_iterator operator+(const reverse_iterator &it, difference_type n) {
             return reverse_iterator(it.current - n);
         }
 
-        friend RAINY_CONSTEXPR20 reverse_iterator operator-(const reverse_iterator &it, difference_type n) {
+        friend constexpr reverse_iterator operator-(const reverse_iterator &it, difference_type n) {
             return reverse_iterator(it.current + n);
         }
 
-        friend RAINY_CONSTEXPR20 difference_type operator-(const reverse_iterator &lhs, const reverse_iterator &rhs) {
+        friend constexpr difference_type operator-(const reverse_iterator &lhs, const reverse_iterator &rhs) {
             return rhs.current - lhs.current;
         }
 
-        friend RAINY_CONSTEXPR20 bool operator==(const reverse_iterator &lhs, const reverse_iterator &rhs) {
+        friend constexpr bool operator==(const reverse_iterator &lhs, const reverse_iterator &rhs) {
             return lhs.current == rhs.current;
         }
 
-        friend RAINY_CONSTEXPR20 bool operator!=(const reverse_iterator &lhs, const reverse_iterator &rhs) {
+        friend constexpr bool operator!=(const reverse_iterator &lhs, const reverse_iterator &rhs) {
             return lhs.current != rhs.current;
         }
 
-        friend RAINY_CONSTEXPR20 bool operator<(const reverse_iterator &lhs, const reverse_iterator &rhs) {
-            return lhs.current > rhs.current;
-        }
-
-        friend RAINY_CONSTEXPR20 bool operator<=(const reverse_iterator &lhs, const reverse_iterator &rhs) {
-            return lhs.current >= rhs.current;
-        }
-
-        friend RAINY_CONSTEXPR20 bool operator>(const reverse_iterator &lhs, const reverse_iterator &rhs) {
+        friend constexpr bool operator<(const reverse_iterator &lhs, const reverse_iterator &rhs) {
             return lhs.current < rhs.current;
         }
 
-        friend RAINY_CONSTEXPR20 bool operator>=(const reverse_iterator &lhs, const reverse_iterator &rhs) {
+        friend constexpr bool operator<=(const reverse_iterator &lhs, const reverse_iterator &rhs) {
             return lhs.current <= rhs.current;
+        }
+
+        friend constexpr bool operator>(const reverse_iterator &lhs, const reverse_iterator &rhs) {
+            return lhs.current > rhs.current;
+        }
+
+        friend constexpr bool operator>=(const reverse_iterator &lhs, const reverse_iterator &rhs) {
+            return lhs.current >= rhs.current;
         }
 
     private:

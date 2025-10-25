@@ -1,6 +1,7 @@
 #ifndef RAINY_CORE_TMP_META_METHOD_HPP
 #define RAINY_CORE_TMP_META_METHOD_HPP
 #include <rainy/core/platform.hpp>
+#include <rainy/core/tmp/implements.hpp>
 
 namespace rainy::type_traits::extras::meta_method {
     template <typename Ty, typename = void>
@@ -168,10 +169,20 @@ namespace rainy::type_traits::extras::meta_method {
 
     template <typename Ty>
     RAINY_CONSTEXPR_BOOL
-        has_operator_add_v<Ty, type_traits::other_trans::void_t<decltype(utility::declval<Ty &>() + utility::declval<Ty &>())>> = true;
+        has_operator_add_v<Ty, type_traits::other_trans::void_t<decltype(utility::declval<const Ty &>() + utility::declval<const Ty &>())>> = true;
 
     template <typename Ty>
     struct has_operator_add : helper::bool_constant<has_operator_add_v<Ty>> {};
+    
+    template <typename Ty, typename = void>
+    RAINY_CONSTEXPR_BOOL has_operator_addition_v = false;
+
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL
+        has_operator_addition_v<Ty, other_trans::void_t<decltype(utility::declval<Ty &>() + utility::declval<std::ptrdiff_t>())>> = true;
+
+    template <typename Ty>
+    struct has_addition : helper::bool_constant<has_operator_addition_v<Ty>> {};
 
     template <typename Ty, typename = void>
     RAINY_CONSTEXPR_BOOL has_operator_plus_equal_v = false;
@@ -290,7 +301,7 @@ namespace rainy::type_traits::extras::meta_method {
 
     template <typename Ty>
     RAINY_CONSTEXPR_BOOL
-        has_operator_lt_v<Ty, type_traits::other_trans::void_t<decltype(utility::declval<Ty &>() < utility::declval<Ty &>())>> = true;
+        has_operator_lt_v<Ty, type_traits::other_trans::void_t<decltype(utility::declval<const Ty &>() < utility::declval<const Ty &>())>> = true;
 
     template <typename Ty>
     struct has_operator_lt : helper::bool_constant<has_operator_lt_v<Ty>> {};

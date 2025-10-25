@@ -16,11 +16,11 @@
 #ifndef RAINY_CORE_IMPLEMENTS_COLLECTIONS_ARRAY_HPP
 #define RAINY_CORE_IMPLEMENTS_COLLECTIONS_ARRAY_HPP
 #include <array>
-#include <tuple>
+#include <rainy/core/implements/basic_algorithm.hpp>
+#include <rainy/core/implements/reverse_iterator.hpp>
 #include <rainy/core/platform.hpp>
 #include <rainy/core/type_traits.hpp>
-#include <rainy/core/implements/reverse_iterator.hpp>
-#include <rainy/core/implements/basic_algorithm.hpp>
+#include <tuple>
 
 namespace rainy::collections {
     template <typename Ty, std::size_t N>
@@ -73,7 +73,7 @@ namespace rainy::collections {
         using iterator = pointer;
         using const_iterator = const_pointer;
         using reverse_iterator = utility::reverse_iterator<iterator>;
-        using const_reverse_iterator = utility::reverse_iterator<iterator>;
+        using const_reverse_iterator = utility::reverse_iterator<const_iterator>;
 
         using impl_traits = implements::array_traits<Ty, N>;
 
@@ -81,9 +81,21 @@ namespace rainy::collections {
 
         static constexpr std::size_t npos = static_cast<std::size_t>(-1);
 
+        /**
+         * @brief 默认构造函数
+         * @details 以值初始化的方式构造所有元素
+         * @note 若元素类型支持 noexcept 默认构造，则该构造函数同样为 noexcept
+         */
         constexpr array() noexcept(type_traits::type_properties::is_nothrow_default_constructible_v<Ty>) : elements{} {
         }
 
+        /**
+         * @brief 使用可变参数列表初始化数组
+         * @tparam Inits 可转换为 value_type 的参数类型
+         * @param inits 初始化参数包
+         * @details 当传入的参数数量不超过 N 且类型可转换时，可直接初始化数组元素
+         * @note 若传入参数数量超过 N，会触发 static_assert 编译期错误
+         */
         template <typename... Inits,
                   type_traits::other_trans::enable_if_t<
                       type_traits::logical_traits::conjunction_v<type_traits::type_relations::is_convertible<Inits, Ty>...> &&
@@ -93,12 +105,23 @@ namespace rainy::collections {
             static_assert(sizeof...(Inits) <= N, "cannot init this array, because the Inits items is too much, cannot to construct");
         }
 
+        /**
+         * @brief 拷贝构造函数
+         * @param right 另一个同类型数组
+         * @details 将参数数组的所有元素逐个拷贝到当前数组中
+         */
         constexpr array(const array &right) : elements{} {
             for (std::size_t i = 0; i < N; ++i) {
                 elements[i] = right[i];
             }
         }
 
+        /**
+         * @brief 移动构造函数
+         * @param right 另一个同类型数组（将被移动）
+         * @details 将参数数组中的元素逐个移动到当前数组中
+         * @note 若元素类型支持 noexcept 移动构造，则该构造函数同样为 noexcept
+         */
         constexpr array(array &&right) noexcept(type_traits::type_properties::is_nothrow_move_constructible_v<value_type>) :
             elements{} {
             for (std::size_t i = 0; i < N; ++i) {
@@ -106,6 +129,13 @@ namespace rainy::collections {
             }
         }
 
+        /**
+         * @brief 使用固定数量与值进行构造
+         * @param count 要填充的元素数量
+         * @param value 用于填充的值
+         * @details 将前 count 个元素赋值为指定值，其余保持默认初始化
+         * @note 若 count >= N，将触发断言失败
+         */
         constexpr array(std::in_place_t, std::size_t count, const_reference value) : elements{} {
             assert(count < N);
             for (std::size_t i = 0; i < count; ++i) {
@@ -113,14 +143,29 @@ namespace rainy::collections {
             }
         }
 
-        template <typename Iter, type_traits::other_trans::enable_if_t<type_traits::extras::templates::is_iterator_v<Iter>, int> = 0>
+        /**
+         * @brief 使用迭代器区间构造数组
+         * @tparam Iter 满足迭代器概念的类型
+         * @param begin 起始迭代器
+         * @param end 结束迭代器（不含）
+         * @details 从迭代器区间中依次复制元素到数组中，直到到达 end 或填满数组
+         */
+        template <typename Iter, type_traits::other_trans::enable_if_t<type_traits::extras::iterators::is_iterator_v<Iter>, int> = 0>
         constexpr array(Iter begin, Iter end) : elements{} {
             std::size_t index{0};
-            for (auto iter = begin; iter != end; ++iter, ++index) {
-                elements[index] = *iter;
+            for (; begin != end; ++begin, ++index) {
+                elements[index] = *begin;
             }
         }
 
+        /**
+         * @brief 使用两个数组拼接构造新数组
+         * @tparam L 左数组大小
+         * @tparam R 右数组大小
+         * @param left 左侧数组
+         * @param right 右侧数组
+         * @details 当 L + R 不超过当前数组大小 N 时，按顺序将左右数组内容拷贝至当前数组
+         */
         template <std::size_t L, std::size_t R>
         constexpr array(const array<value_type, L> &left, const array<value_type, R> &right) : elements{} {
             if constexpr ((L + R) <= N) {
@@ -135,6 +180,13 @@ namespace rainy::collections {
 
         RAINY_CONSTEXPR20 ~array() = default;
 
+        /**
+         * @brief 截取数组的子区间
+         * @tparam NewSize 新数组的大小（默认为原数组大小 N）
+         * @param begin_slice 起始位置（包含）
+         * @param end_slice 结束位置（不包含）
+         * @return 返回从指定区间复制的子数组；若参数非法则返回空数组
+         */
         template <std::size_t NewSize = N>
         RAINY_NODISCARD constexpr rain_fn slice(std::size_t begin_slice = 0, std::size_t end_slice = N)
             -> collections::array<value_type, NewSize> {
@@ -148,25 +200,101 @@ namespace rainy::collections {
             return {};
         }
 
+        /**
+         * @brief 获取数组左侧的若干元素
+         * @tparam NewSize 新数组的大小（默认为原数组大小 N）
+         * @param n 要截取的元素数量
+         * @return 返回包含前 n 个元素的新数组；若 n 超出范围则返回空数组
+         */
         template <std::size_t NewSize = N>
         RAINY_NODISCARD constexpr rain_fn left(std::size_t n) const -> collections::array<value_type, NewSize> {
             return slice<NewSize>(0, n);
         }
 
+        /**
+         * @brief 获取数组右侧的若干元素
+         * @tparam NewSize 新数组的大小（默认为原数组大小 N）
+         * @param n 要截取的元素数量
+         * @return 返回包含后 n 个元素的新数组；若 n 超出范围则返回空数组
+         */
         template <std::size_t NewSize = N>
         RAINY_NODISCARD constexpr rain_fn right(std::size_t n) const -> collections::array<value_type, NewSize> {
             return slice<NewSize>(N - n, N);
         }
 
+        /**
+         * @brief 查找指定值在数组中的索引
+         * @tparam UTy 待查找的值的类型
+         * @param value 要查找的值
+         * @return 若找到匹配元素则返回其索引，否则返回 npos
+         */
         template <typename UTy,
                   type_traits::other_trans::enable_if_t<type_traits::type_relations::is_convertible_v<UTy, value_type> &&
                                                             type_traits::type_properties::is_equal_comparable_v<value_type, UTy>,
                                                         int> = 0>
-        constexpr rain_fn index_of(UTy &&value) noexcept -> std::size_t {
+        constexpr rain_fn index_of(UTy &&value) const noexcept -> std::size_t {
             auto iter = core::algorithm::find(begin(), end(), utility::forward<UTy>(value));
             return iter == end() ? npos : (iter - begin());
         }
 
+        template <std::size_t NewSize = N, typename Pred>
+        constexpr rain_fn filter(Pred &&pred) -> collections::array<value_type, NewSize> {
+            collections::array<value_type, NewSize> array;
+            std::size_t index_mapping[N]{};
+            std::size_t raw_view_index = 0;
+            for (std::size_t i = 0; i < N; ++i) {
+                if (pred(elements[i])) {
+                    index_mapping[raw_view_index++] = i;
+                }
+            }
+            if (NewSize >= raw_view_index) {
+                for (std::size_t i = 0; i < raw_view_index; ++i) {
+                    array[i] = elements[index_mapping[i]];
+                }
+            }
+            return array;
+        }
+
+        constexpr rain_fn reverse() const -> collections::array<value_type, N> {
+            collections::array<Ty, N> arr{crbegin(), crend()};
+            return arr;
+        }
+
+        template <typename Fx>
+        constexpr rain_fn map(Fx &&func) const -> collections::array<value_type, N> {
+            collections::array<value_type, N> arr{};
+            for (std::size_t i = 0; i < N; ++i) {
+                arr[i] = utility::invoke(utility::forward<Fx>(func), elements[i]);
+            }
+            return arr;
+        }
+
+        template <typename Init>
+        constexpr rain_fn fold() -> decltype(auto) {
+            return core::accumulate(begin(), end(), Init{});
+        }
+
+        template <typename Init>
+        constexpr rain_fn fold(const Init &init_value) -> decltype(auto) {
+            return core::accumulate(begin(), end(), init_value);
+        }
+
+        template <typename Init, typename Fx>
+        constexpr rain_fn fold(Fx &&func) -> decltype(auto) {
+            return core::accumulate(begin(), end(), Init{}, utility::forward<Fx>(func));
+        }
+
+        template <typename Fx, typename Init>
+        constexpr rain_fn fold(Fx &&func, const Init &init_value) -> decltype(auto) {
+            return core::accumulate(begin(), end(), init_value, utility::forward<Fx>(func));
+        }
+
+        /**
+         * @brief 拼接两个数组
+         * @tparam Ni 右侧数组的大小
+         * @param right 右侧待拼接的数组
+         * @return 返回一个包含左侧与右侧元素的新数组，长度为 N + Ni
+         */
         template <std::size_t Ni>
         constexpr rain_fn concat(const array<value_type, Ni> &right) -> array<value_type, N + Ni> {
             constexpr std::size_t size = N + Ni;
@@ -272,6 +400,14 @@ namespace rainy::collections {
             return N;
         }
 
+        RAINY_INLINE constexpr rain_fn max_size() const noexcept -> size_type {
+            return N;
+        }
+
+        RAINY_INLINE constexpr rain_fn length() const noexcept -> size_type {
+            return N;
+        }
+
         /**
          * @brief 检查当前数组容器是否为空
          * @return 容器状态
@@ -348,7 +484,7 @@ namespace rainy::collections {
          * @brief 获取指向当前数组末尾位置的迭代器
          * @return 返回指向末尾的迭代器
          */
-        RAINY_ALWASY_INLINE_NODISCARD constexpr iterator end() {
+        RAINY_ALWASY_INLINE_NODISCARD constexpr rain_fn end() -> iterator {
             return iterator(elements + N);
         }
 
@@ -356,7 +492,7 @@ namespace rainy::collections {
          * @brief 获取指向当前数组末尾位置的迭代器
          * @return 返回指向末尾的迭代器
          */
-        RAINY_ALWASY_INLINE_NODISCARD constexpr const_iterator end() const {
+        RAINY_ALWASY_INLINE_NODISCARD constexpr rain_fn end() const -> const_iterator {
             return const_iterator(elements + N);
         }
 
@@ -364,7 +500,7 @@ namespace rainy::collections {
          * @brief 获取指向当前数组末尾位置的迭代器常量
          * @return 返回指向末尾的迭代器
          */
-        RAINY_ALWASY_INLINE_NODISCARD constexpr const_iterator cend() const {
+        RAINY_ALWASY_INLINE_NODISCARD constexpr rain_fn cend() const -> const_iterator {
             return const_iterator(elements + N);
         }
 
@@ -372,24 +508,24 @@ namespace rainy::collections {
          * @brief 获取指向当前数组末尾位置的反向迭代器
          * @return 返回指向末尾的反向迭代器
          */
-        RAINY_ALWASY_INLINE_NODISCARD constexpr reverse_iterator rend() {
-            return reverse_iterator(end());
+        RAINY_ALWASY_INLINE_NODISCARD constexpr rain_fn rend() -> reverse_iterator {
+            return reverse_iterator(begin());
         }
 
         /**
          * @brief 获取指向当前数组末尾位置的反向迭代器
          * @return 返回指向末尾的反向迭代器
          */
-        RAINY_ALWASY_INLINE_NODISCARD constexpr const_reverse_iterator rend() const {
-            return const_reverse_iterator(end());
+        RAINY_ALWASY_INLINE_NODISCARD constexpr rain_fn rend() const -> const_reverse_iterator {
+            return const_reverse_iterator(begin());
         }
 
         /**
          * @brief 获取指向当前数组末尾位置的反向迭代器常量
          * @return 返回指向末尾的反向迭代器
          */
-        RAINY_ALWASY_INLINE_NODISCARD constexpr const_reverse_iterator crend() const {
-            return const_reverse_iterator(end());
+        RAINY_ALWASY_INLINE_NODISCARD constexpr rain_fn crend() const -> const_reverse_iterator {
+            return const_reverse_iterator(begin());
         }
 
         /**
@@ -408,26 +544,62 @@ namespace rainy::collections {
             return elements;
         }
 
+        /**
+         * @brief 判断两个数组是否相等
+         * @param left 左侧数组
+         * @param right 右侧数组
+         * @return 若两个数组元素一一对应且相等则返回 true，否则返回 false
+         */
         friend constexpr rain_fn operator==(const array &left, const array &right) noexcept -> bool {
             return core::algorithm::equal(left.begin(), left.end(), right.begin(), right.end());
         }
 
+        /**
+         * @brief 判断两个数组是否不相等
+         * @param left 左侧数组
+         * @param right 右侧数组
+         * @return 若两个数组不相等则返回 true，否则返回 false
+         */
         friend constexpr rain_fn operator!=(const array &left, const array &right) noexcept -> bool {
             return !(left == right);
         }
 
+        /**
+         * @brief 判断左侧数组是否小于右侧数组
+         * @param left 左侧数组
+         * @param right 右侧数组
+         * @return 若左侧数组在字典序上小于右侧数组则返回 true，否则返回 false
+         */
         friend constexpr rain_fn operator<(const array &left, const array &right) noexcept -> bool {
             return core::algorithm::lexicographical_compare(left.begin(), left.end(), right.begin(), right.end());
         }
 
+        /**
+         * @brief 判断左侧数组是否大于右侧数组
+         * @param left 左侧数组
+         * @param right 右侧数组
+         * @return 若左侧数组在字典序上大于右侧数组则返回 true，否则返回 false
+         */
         friend constexpr rain_fn operator>(const array &left, const array &right) noexcept -> bool {
             return right < left;
         }
 
+        /**
+         * @brief 判断左侧数组是否小于等于右侧数组
+         * @param left 左侧数组
+         * @param right 右侧数组
+         * @return 若左侧数组小于或等于右侧数组则返回 true，否则返回 false
+         */
         friend constexpr rain_fn operator<=(const array &left, const array &right) noexcept -> bool {
             return !(left > right);
         }
 
+        /**
+         * @brief 判断左侧数组是否大于等于右侧数组
+         * @param left 左侧数组
+         * @param right 右侧数组
+         * @return 若左侧数组大于或等于右侧数组则返回 true，否则返回 false
+         */
         friend constexpr rain_fn operator>=(const array &left, const array &right) noexcept -> bool {
             return !(left < right);
         }
@@ -447,6 +619,53 @@ namespace rainy::collections {
 
     template <typename Ty, std::size_t N>
     array(const std::array<Ty, N> &) -> array<Ty, N>;
+}
+
+namespace std {
+    template <typename Ty, std::size_t N>
+    struct tuple_size<::rainy::collections::array<Ty, N>> : std::integral_constant<std::size_t, N> {};
+
+    template <std::size_t Idx, typename Ty, std::size_t N>
+    struct tuple_element<Idx, ::rainy::collections::array<Ty, N>> {
+        static_assert(Idx < N, "Index out of bounds");
+        using type = Ty;
+    };
+
+    template <std::size_t Idx, typename Ty, size_t N>
+    constexpr rain_fn get(::rainy::collections::array<Ty, N> &val) noexcept -> Ty & {
+        static_assert(Idx < N, "array index is within bounds");
+        return val[Idx];
+    }
+
+    template <std::size_t Idx, typename Ty, size_t N>
+    constexpr rain_fn get(::rainy::collections::array<Ty, N> &&val) noexcept -> Ty && {
+        static_assert(Idx < N, "array index is within bounds");
+        return std::move(val[Idx]);
+    }
+
+    template <std::size_t Idx, typename Ty, size_t N>
+    constexpr rain_fn get(const ::rainy::collections::array<Ty, N> &val) noexcept -> const Ty & {
+        static_assert(Idx < N, "array index is within bounds");
+        return val[Idx];
+    }
+
+    template <std::size_t Idx, typename Ty, size_t N>
+    constexpr rain_fn get(const ::rainy::collections::array<Ty, N> &&val) noexcept -> const Ty && {
+        static_assert(Idx < N, "array index is within bounds");
+        return std::move(val[Idx]);
+    }
+}
+
+namespace rainy::collections {
+    template <typename Ty, std::size_t N, typename U, typename Fx>
+    RAINY_NODISCARD constexpr rain_fn zip_with(const array<Ty, N> &left, const array<U, N> &right, Fx &&func) -> auto {
+        using type = decltype(utility::invoke(utility::forward<Fx>(func), left[0], right[0]));
+        collections::array<type, N> arr;
+        for (size_t i = 0; i < N; ++i) {
+            arr[i] = utility::invoke(utility::forward<Fx>(func), left[i], right[i]);
+        }
+        return arr;
+    }
 }
 
 #endif

@@ -2906,13 +2906,49 @@ namespace rainy::core {
     RAINY_INLINE constexpr Ty accumulate(InputIt first, InputIt last, Ty init, BinaryOperation op) {
         for (; first != last; ++first) {
 #if RAINY_HAS_CXX20
-            init = op(utility::move(init), *first);
+            init = utility::invoke(op, utility::move(init), *first);
 #else
-            init = op(init, *first);
+            init = utility::invoke(op, init, *first);
 #endif
         }
         return init;
     }
+}
+
+namespace rainy::type_traits::extras::iterators {
+    template <typename It>
+    RAINY_CONSTEXPR_BOOL is_input_iterator_v = meta_method::has_operator_deref_v<It> && meta_method::has_operator_preinc_v<It>;
+
+    template <typename It, typename = void>
+    RAINY_CONSTEXPR_BOOL is_output_iterator_v = false;
+
+    template <typename It>
+    RAINY_CONSTEXPR_BOOL
+        is_output_iterator_v<It, other_trans::enable_if_t<meta_method::has_operator_deref_v<It> &&
+                                                          primary_types::is_lvalue_reference_v<decltype(*utility::declval<It &>())>>> =
+            false;
+
+    template <typename It>
+    RAINY_CONSTEXPR_BOOL is_forward_iterator_v =
+        is_input_iterator_v<It> && type_properties::is_copy_constructible_v<It> && type_properties::is_copy_assignable_v<It> &&
+        type_properties::is_default_constructible_v<It>;
+
+    template <typename It>
+    RAINY_CONSTEXPR_BOOL is_bidirectional_iterator_v = is_forward_iterator_v<It> && meta_method::has_operator_predec_v<It>;
+
+    template <typename It>
+    RAINY_CONSTEXPR_BOOL is_random_access_iterator_v = is_bidirectional_iterator_v<It> && meta_method::has_operator_addition_v<It> &&
+                                                       meta_method::has_operator_index_v<It> && meta_method::has_operator_lt_v<It>;
+
+    template <typename It, typename = void>
+    RAINY_CONSTEXPR_BOOL is_contiguous_iterator_v = false;
+
+    template <typename It>
+    RAINY_CONSTEXPR_BOOL is_contiguous_iterator_v<
+        It,
+        type_traits::other_trans::enable_if_t<is_random_access_iterator_v<It> &&
+                                              primary_types::is_pointer_v<decltype(utility::to_address(utility::declval<It>()))>>> =
+        true;
 }
 
 #endif

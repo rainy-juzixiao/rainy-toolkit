@@ -59,15 +59,30 @@ private:
     annotations::auto_wired<datasource> datasources{std::string{"root"}, std::string{"123456"}};
 };
 
-constexpr auto test() {
-    collections::array<int, 5> v1{1, 2, 3, 4, 5};
-    collections::array<int, 5> v2{1, 2, 3, 4, 5};
-    collections::array<int, 0> v3{};
-    return v1.concat(v2) == collections::array<int, 10>{1, 2, 3, 4, 5, 1, 2, 3, 4, 5};
+#include <list>
+
+auto test() {
+    using collections::array;
+    using collections::zip_with;
+    array<int, 5> l1{1, 2, 3, 4, 5};
+    array<float, 5> l2{1.1f, 2.2f, 3.3f, 4.4f, 5.5f};
+    auto arr = zip_with(l1, l2, [](auto integer, auto floating) { return floating + integer; });
+    return arr.filter<4>([](auto v) { return v < 10; })
+        .reverse()
+        .map([](auto &v) { return v * 5; })
+        .fold<std::unordered_map<int, std::string>>([](auto &elem, const int &v) {
+            elem[v] = std::to_string(v);
+            return elem;
+        });
 }
 
 int main() {
-    constexpr auto vv = test();
+    {
+        auto map = test();
+        for (const auto &i: map) {
+            std::cout << i.first << " : " << i.second << '\n';
+        }
+    }
     {
         any a{collections::array<int, 4>{10, 20, 30, 40}};
         a.destructure([](int v1, int v2, int v3, int v4) { std::cout << v1 << ',' << v2 << ',' << v3 << ',' << v4 << '\n'; });

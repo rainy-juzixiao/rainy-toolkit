@@ -52,14 +52,14 @@ namespace rainy::meta::reflection {
     }
 
     void function::copy_from_other(const function &right) noexcept {
-        if (this == utility::addressof(right) && !right.empty()) {
+        if (this == utility::addressof(right)) {
             return;
         }
         invoke_accessor_ = right.invoke_accessor()->construct_from_this(this->invoker_storage);
     }
 
     void function::move_from_other(function &&right) noexcept {
-        if (this == utility::addressof(right) && !right.empty()) {
+        if (this == utility::addressof(right) || right.empty()) {
             return;
         }
         if (right.is_local()) {
@@ -85,7 +85,7 @@ namespace rainy::meta::reflection {
     }
 
     function &function::operator=(const function &right) noexcept {
-        if (this == utility::addressof(right)) {
+        if (this == utility::addressof(right) || right.empty()) {
             return *this;
         }
         copy_from_other(right);
@@ -93,6 +93,9 @@ namespace rainy::meta::reflection {
     }
 
     function &function::operator=(function &&right) noexcept {
+        if (this == utility::addressof(right) || right.empty()) {
+            return *this;
+        }
         move_from_other(utility::move(right));
         return *this;
     }

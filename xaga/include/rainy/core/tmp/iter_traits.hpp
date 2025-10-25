@@ -2,7 +2,7 @@
 #define RAINY_CORE_TMP_ITER_TRAITS_HPP
 #include <rainy/core/platform.hpp>
 
-namespace rainy::type_traits::extras::templates {
+namespace rainy::type_traits::extras::iterators {
     template <typename Ty, typename = void>
     struct has_difference_type : helper::false_type {};
 
@@ -59,7 +59,7 @@ namespace rainy::type_traits::extras::templates {
 }
 
 namespace rainy::utility::implements {
-    template <typename Ty, bool Enable = type_traits::extras::templates::has_value_type_v<Ty>>
+    template <typename Ty, bool Enable = type_traits::extras::iterators::has_value_type_v<Ty>>
     struct try_to_add_value_type {
         using value_type = invalid_type;
     };
@@ -69,7 +69,7 @@ namespace rainy::utility::implements {
         using value_type = typename Ty::value_type;
     };
 
-    template <typename Ty, bool Enable = type_traits::extras::templates::has_difference_type_v<Ty>>
+    template <typename Ty, bool Enable = type_traits::extras::iterators::has_difference_type_v<Ty>>
     struct try_to_add_difference_type {
         using difference_type = invalid_type;
     };
@@ -80,7 +80,7 @@ namespace rainy::utility::implements {
     };
 
     template <typename Ty, bool IsPointer = type_traits::implements::_is_pointer_v<Ty>,
-              bool Enable = type_traits::extras::templates::has_iterator_category_v<Ty>>
+              bool Enable = type_traits::extras::iterators::has_iterator_category_v<Ty>>
     struct try_to_add_iterator_category {
         using iterator_category = invalid_type;
     };
@@ -95,7 +95,7 @@ namespace rainy::utility::implements {
         using iterator_category = typename Ty::iterator_category;
     };
 
-    template <typename Ty, bool Enable = type_traits::extras::templates::has_reference_v<Ty>>
+    template <typename Ty, bool Enable = type_traits::extras::iterators::has_reference_v<Ty>>
     struct try_to_add_reference {
         using reference = invalid_type;
     };
@@ -105,7 +105,7 @@ namespace rainy::utility::implements {
         using reference = typename Ty::reference;
     };
 
-    template <typename Ty, bool Enable = type_traits::extras::templates::has_pointer_v<Ty>>
+    template <typename Ty, bool Enable = type_traits::extras::iterators::has_pointer_v<Ty>>
     struct try_to_add_pointer {
         using pointer = invalid_type;
     };
@@ -115,7 +115,7 @@ namespace rainy::utility::implements {
         using pointer = typename Ty::pointer;
     };
 
-    template <typename Ty, bool Enable = type_traits::extras::templates::has_element_type_v<Ty>>
+    template <typename Ty, bool Enable = type_traits::extras::iterators::has_element_type_v<Ty>>
     struct try_to_add_element_type {
         using element_type = invalid_type;
     };
@@ -156,7 +156,7 @@ namespace rainy::utility {
     };
 }
 
-namespace rainy::type_traits::extras::templates {
+namespace rainy::type_traits::extras::iterators {
     template <typename Iter>
     struct iter_value_type {
         using type = typename utility::iterator_traits<Iter>::value_type;
@@ -166,7 +166,7 @@ namespace rainy::type_traits::extras::templates {
     RAINY_CONSTEXPR_BOOL is_iterator_v = !type_traits::type_relations::is_same_v<typename utility::iterator_traits<Iter>::iterator_category, utility::invalid_type>;
 }
 
-namespace rainy::type_traits::extras::templates {
+namespace rainy::type_traits::extras::iterators {
     template <typename Ty, typename = void>
     RAINY_CONSTEXPR_BOOL has_iterator_v = false;
 
