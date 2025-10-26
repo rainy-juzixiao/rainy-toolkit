@@ -18,7 +18,7 @@
 #include <rainy/core/core.hpp>
 #include <rainy/foundation/typeinfo.hpp>
 #include <rainy/foundation/diagnostics/contract.hpp>
-#include <rainy/utility/implements/any_bad_cast.hpp>
+#include <rainy/utility/implements/any_exceptions.hpp>
 
 namespace rainy::utility::implements {
     template <typename Type>

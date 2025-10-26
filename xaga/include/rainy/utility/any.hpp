@@ -1184,6 +1184,7 @@ namespace rainy::utility {
                 case any_representation::_small:
                     storage.small_any_ctti_manager = right.storage.small_any_ctti_manager;
                     storage.small_any_ctti_manager->move_(&storage.buffer, &right.storage.buffer);
+                    right.storage.type_data = 0;
                     break;
                 case any_representation::big:
                     storage.big_any_ctti_manager = right.storage.big_any_ctti_manager;
@@ -1802,7 +1803,7 @@ namespace rainy::utility::implements {
         using iterator_t = typename Type::iterator;
         using proxy_t = typename BasicAny::iterator::iterator_proxy_vtable;
 
-        any_proxy_iterator(iterator_t iterator) : iter{iterator} {
+        any_proxy_iterator(const iterator_t& iterator) : iter{iterator} {
         }
 
         void destruct(bool is_local) override {
@@ -1869,7 +1870,7 @@ namespace rainy::utility::implements {
         using iterator_t = typename Type::const_iterator;
         using proxy_t = typename BasicAny::iterator::iterator_proxy_vtable;
 
-        const_any_proxy_iterator(iterator_t iterator) : iter{iterator} {
+        const_any_proxy_iterator(const iterator_t &iterator) : iter{iterator} {
         }
 
         void destruct(bool is_local) override {
@@ -2299,6 +2300,7 @@ namespace rainy::utility::implements {
             case operation::call_begin: {
                 if constexpr (type_traits::extras::iterators::has_iterator_v<Ty>) {
                     using tuple_t = std::tuple<bool /* is const */, any * /* value */, typename any::iterator * /* recv */>;
+                    using remove_ref_t = type_traits::reference_modify::remove_reference_t<Ty>;
                     using remove_cvref_t = type_traits::cv_modify::remove_cvref_t<Ty>;
                     using const_as = type_traits::cv_modify::add_const_t<type_traits::reference_modify::remove_reference_t<Ty>>;
                     using iterator = any_proxy_iterator<any, remove_cvref_t>;
@@ -2320,7 +2322,9 @@ namespace rainy::utility::implements {
                     }
                     if constexpr (type_traits::extras::meta_method::has_begin_v<Ty>) {
                         if (!is_const && !value->type().is_const()) {
-                            utility::construct_at(recv, std::in_place_type<iterator>, value->template as<Ty>().begin());
+                            if constexpr (!type_traits::type_properties::is_const_v<remove_ref_t>) {
+                                utility::construct_at(recv, std::in_place_type<iterator>, value->template as<Ty>().begin());
+                            }
                         }
                     }
                     return true;
@@ -2330,8 +2334,9 @@ namespace rainy::utility::implements {
             case operation::call_end: {
                 if constexpr (type_traits::extras::iterators::has_iterator_v<Ty>) {
                     using tuple_t = std::tuple<bool /* is const */, any * /* value */, typename any::iterator * /* recv */>;
+                    using remove_ref_t = type_traits::reference_modify::remove_reference_t<Ty>;
                     using remove_cvref_t = type_traits::cv_modify::remove_cvref_t<Ty>;
-                    using const_as = type_traits::cv_modify::add_const_t<type_traits::reference_modify::remove_reference_t<Ty>>;
+                    using const_as = type_traits::cv_modify::add_const_t<remove_ref_t>;
                     using iterator = any_proxy_iterator<any, remove_cvref_t>;
                     auto *res = static_cast<tuple_t *>(data);
                     bool is_const = std::get<0>(*res);
@@ -2349,7 +2354,9 @@ namespace rainy::utility::implements {
                     }
                     if constexpr (type_traits::extras::meta_method::has_end_v<Ty>) {
                         if (!is_const && !value->type().is_const()) {
-                            utility::construct_at(recv, std::in_place_type<iterator>, value->template as<Ty>().end());
+                            if constexpr (!type_traits::type_properties::is_const_v<remove_ref_t>) {
+                                utility::construct_at(recv, std::in_place_type<iterator>, value->template as<Ty>().end());
+                            }
                         }
                     }
                     return true;
