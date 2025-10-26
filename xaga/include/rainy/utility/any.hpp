@@ -18,7 +18,7 @@
 #include <rainy/core/core.hpp>
 #include <rainy/foundation/functional/functional.hpp>
 #include <rainy/foundation/typeinfo.hpp>
-#include <rainy/utility/implements/any_exceptions.hpp>
+#include <rainy/utility/implements/any_bad_cast.hpp>
 #include <rainy/utility/implements/cast.hpp>
 #include <rainy/utility/tuple_like_traits.hpp>
 #include <utility>
@@ -415,13 +415,13 @@ namespace rainy::utility {
             struct iterator_proxy_vtable {
                 virtual ~iterator_proxy_vtable() = default;
                 virtual void next() = 0;
-                virtual void previous() = 0;
                 virtual basic_any dereference() = 0;
                 virtual basic_any const_dereference() const = 0;
                 virtual foundation::ctti::typeinfo typeinfo() const = 0;
                 virtual void destruct(bool is_local) = 0;
                 virtual iterator_proxy_vtable *construct_from_this(core::byte_t *soo_buffer) const noexcept = 0;
                 virtual bool compare_equal(const iterator_proxy_vtable *right) const = 0;
+                // category
                 virtual any_iterator_category iterator_category() const noexcept = 0;
             };
 
@@ -467,7 +467,6 @@ namespace rainy::utility {
             }
 
             iterator &operator--() {
-                proxy->previous();
                 return *this;
             }
 
@@ -1818,14 +1817,6 @@ namespace rainy::utility::implements {
             ++iter;
         }
 
-        void previous() {
-            if constexpr (get_iterator_category<iterator_t>() <= any_iterator_category::forward_iterator) {
-                foundation::exceptions::logic::throw_any_not_implemented("Current iterator category is not support this operation");
-            } else {
-                --iter;
-            }
-        }
-
         BasicAny dereference() {
             return BasicAny{std::in_place_type<decltype(*iter)>, *iter};
         }
@@ -1885,14 +1876,6 @@ namespace rainy::utility::implements {
             ++iter;
         }
 
-        void previous() {
-            if constexpr (get_iterator_category<iterator_t>() <= any_iterator_category::forward_iterator) {
-                foundation::exceptions::logic::throw_any_not_implemented("Current iterator category is not support this operation");
-            } else {
-                --iter;
-            }
-        }
-
         BasicAny dereference() {
             return BasicAny{std::in_place_type<decltype(*iter)>, *iter};
         }
@@ -1947,7 +1930,7 @@ namespace rainy::utility::implements {
                         if constexpr (is_any_less_compareable_v<Ty, any>) {
                             return any_operator<Ty, any>{}.compare_less(*left, *right);
                         } else {
-                            foundation::exceptions::logic::throw_any_not_implemented("Current type not support this operation: less");
+                            throw_not_implemented();
                         }
                         break;
                     }
@@ -1955,7 +1938,7 @@ namespace rainy::utility::implements {
                         if constexpr (is_any_less_eq_compareable_v<Ty, any>) {
                             return any_operator<Ty, any>{}.compare_less_equal(*left, *right);
                         } else {
-                            foundation::exceptions::logic::throw_any_not_implemented("Current type not support this operation: less_eq");
+                            throw_not_implemented();
                         }
                         break;
                     }
@@ -1963,7 +1946,7 @@ namespace rainy::utility::implements {
                         if constexpr (is_any_eq_compareable_v<Ty, any>) {
                             return any_operator<Ty, any>{}.compare_equal(*left, *right);
                         } else {
-                            foundation::exceptions::logic::throw_any_not_implemented("Current type not support this operation: eq");
+                            throw_not_implemented();
                         }
                         break;
                     }
@@ -1971,7 +1954,7 @@ namespace rainy::utility::implements {
                         if constexpr (is_any_greater_eq_compareable_v<Ty, any>) {
                             return any_operator<Ty, any>{}.compare_greater_equal(*left, *right);
                         } else {
-                            foundation::exceptions::logic::throw_any_not_implemented("Current type not support this operation: greater_eq");
+                            throw_not_implemented();
                         }
                         break;
                     }
@@ -1979,8 +1962,7 @@ namespace rainy::utility::implements {
                         if constexpr (is_any_gt_compareable_v<Ty, any>) {
                             return any_operator<Ty, any>{}.compare_greater(*left, *right);
                         } else {
-                            foundation::exceptions::logic::throw_any_not_implemented(
-                                "Current type not support this operation: greater");
+                            throw_not_implemented();
                         }
                         break;
                     }
