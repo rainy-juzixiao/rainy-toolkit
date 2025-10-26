@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include <optional>
 #include <entt/entt.hpp>
 
 struct structure {
