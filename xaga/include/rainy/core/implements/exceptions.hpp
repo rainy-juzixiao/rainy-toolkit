@@ -228,7 +228,7 @@ namespace rainy::foundation::exceptions::logic {
         throw_exception(out_of_range{message, location});
     }
 
-    class not_implemented final : public logic_error {
+    class not_implemented : public logic_error {
     public:
         using base = logic_error;
 

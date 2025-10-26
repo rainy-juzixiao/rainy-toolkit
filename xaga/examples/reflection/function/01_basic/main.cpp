@@ -16,79 +16,7 @@ struct mypair {
     std::string_view data2{};
 };
 
-#include <rainy/meta/reflection/function.hpp>
-#include <rainy/utility/ioc.hpp>
-#include <rainy/annotations/auto_wired.hpp>
-#include <rainy/annotations/anno.hpp>
-
-struct datasource {
-    virtual void print_data_sources() noexcept = 0;
-};
-
-struct datasource_impl : datasource {
-    datasource_impl(std::string username, std::string password) : username{username}, password{password} {
-    }
-
-    void print_data_sources() noexcept {
-        std::cout << "this is a datasource\n";
-        std::cout << "username is " << username << "\n";
-        std::cout << "password is " << password << "\n";
-    }
-
-    std::string username;
-    std::string password;
-};
-namespace rainy::utility::ioc {
-    template <>
-    struct factory_inject<datasource> {
-        void inject(factory &fact) {
-            inject_to<datasource, std::string, std::string>(fact)(std::in_place_type<datasource_impl>);
-        }
-    };
-}
-
-class user {
-public:
-    user() = default;
-
-    void show_the_database() {
-        datasources->print_data_sources();
-    }
-
-private:
-    annotations::auto_wired<datasource> datasources{std::string{"root"}, std::string{"123456"}};
-};
-
-#include <list>
-
-auto test() {
-    using collections::array;
-    using collections::zip_with;
-    array<int, 5> l1{1, 2, 3, 4, 5};
-    array<float, 5> l2{1.1f, 2.2f, 3.3f, 4.4f, 5.5f};
-    auto arr = zip_with(l1, l2, [](auto integer, auto floating) { return floating + integer; });
-    return arr.filter<4>([](auto v) { return v < 10; })
-        .reverse()
-        .map([](auto &v) { return v * 5; })
-        .fold<std::unordered_map<int, std::string>>([](auto &elem, const int &v) {
-            elem[v] = std::to_string(v);
-            return elem;
-        });
-}
-
 int main() {
-    {
-        auto map = test();
-        for (const auto &i: map) {
-            std::cout << i.first << " : " << i.second << '\n';
-        }
-    }
-    {
-        any a{collections::array<int, 4>{10, 20, 30, 40}};
-        a.destructure([](int v1, int v2, int v3, int v4) { std::cout << v1 << ',' << v2 << ',' << v3 << ',' << v4 << '\n'; });
-    }
-    user u;
-    u.show_the_database();
     any a = 10;
     std::cout << (a + 10000 - 10) << '\n';
     std::cout << (--a) << '\n';
@@ -141,11 +69,11 @@ int main() {
     f();
     a = "Hello World"; // 这个会在match的std::string_view分支中自动转换
     f();
-    a.emplace<std::vector<int>>(); // 将无法匹配处理
+    a = std::vector<int>{}; // 将无法匹配处理
     f();
     // destructure() 可以从一个类型中进行解构，类似于结构化绑定
     a = structure{10, 'c', "Hello World"};
-    a.destructure([](int a, char b,const std::string& c) {
+    a.destructure([](int a, char b, const std::string &c) {
         std::cout << "I got var-a here is the value : " << a << '\n';
         std::cout << "I got var-b here is the value : " << b << '\n';
         std::cout << "I got var-c here is the value : " << c << '\n';
@@ -180,8 +108,7 @@ int main() {
                                                           [](float x) { return static_cast<int>(x); });
     std::visit([](auto &&value) { std::cout << "I got value! the value is " << value << '\n'; }, var);
     // auto_deduce将会使用每个handler的返回值类型作为variant实例化参数
-    auto var1 = a.match_for(
-        auto_deduce, [](std::string_view str) { return str.size(); }, [](float x) { return static_cast<int>(x); });
+    auto var1 = a.match_for(auto_deduce, [](std::string_view str) { return str.size(); }, [](float x) { return static_cast<int>(x); });
     std::visit([](auto &&value) { std::cout << "I got value! the value is " << value << '\n'; }, var1);
     // 也可以求出哈希值，并用于哈希相关的容器
     std::cout << a.hash_code() << '\n';
@@ -207,7 +134,7 @@ int main() {
         std::cout << first << ' ' << second << '\n';
     }
     std::cout << "category = " << (int) a.begin().iterator_category() << '\n';
-    a.emplace<std::tuple<const char *, int, float>>("Hello World", 42, 3.14f);
+    a = std::make_tuple("Hello World", 42, 3.14f);
     std::cout << a[0] << '\n';
     std::cout << a[1] << '\n';
     std::cout << a[2] << '\n';
