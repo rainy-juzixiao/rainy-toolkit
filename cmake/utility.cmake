@@ -1,3 +1,21 @@
+#                                 Apache License
+#                           Version 2.0, January 2004
+#                        http://www.apache.org/licenses/
+#
+#   Copyright 2025 rainy-juzixiao
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+
 function(RAINY_GET_CXX_COMPILER_ID result_var)
     if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
         set(${result_var} "GCC" PARENT_SCOPE)
@@ -64,11 +82,4 @@ function(rainy_load_flodar_files DIRECTORY EXTENSION RESULT_VAR)
     endforeach()
     # 将结果设置到父作用域
     set(${RESULT_VAR} ${FILE_LIST} PARENT_SCOPE)
-endfunction()
-
-function(rainy_module name)
-    add_library(${name} ${ARGN})
-    target_include_directories(${name} PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    )
 endfunction()
