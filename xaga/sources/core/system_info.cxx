@@ -23,7 +23,7 @@
 #include <unistd.h>
 #endif
 
-#include <iostream>
+#include <bitset>
 
 #if RAINY_USING_CLANG
 #pragma clang diagnostic ignored "-Wcast-function-type-mismatch"
@@ -60,202 +60,406 @@ namespace rainy::core::builtin::implements {
 }
 #endif
 
+namespace rainy::core::builtin {
+    class instruction_set_impl {
+    public:
+        class instruction_set_internal;
+
+        static constexpr std::size_t max_ids = 32;
+
+        static bool sse3() {
+            return cpu_rep.f_1_ecx[0];
+        }
+
+        static bool pclmulqdq() {
+            return cpu_rep.f_1_ecx[1];
+        }
+        
+        static bool monitor() {
+            return cpu_rep.f_1_ecx[3];
+        }
+        
+        static bool ssse3() {
+            return cpu_rep.f_1_ecx[9];
+        }
+        
+        static bool fma() {
+            return cpu_rep.f_1_ecx[12];
+        }
+        
+        static bool cmpxchg16b() {
+            return cpu_rep.f_1_ecx[13];
+        }
+        
+        static bool sse41() {
+            return cpu_rep.f_1_ecx[19];
+        }
+        
+        static bool sse42() {
+            return cpu_rep.f_1_ecx[20];
+        }
+        
+        static bool movbe() {
+            return cpu_rep.f_1_ecx[22];
+        }
+        
+        static bool popcnt() {
+            return cpu_rep.f_1_ecx[23];
+        }
+        
+        static bool aes() {
+            return cpu_rep.f_1_ecx[25];
+        }
+        
+        static bool xsave() {
+            return cpu_rep.f_1_ecx[26];
+        }
+        
+        static bool osxsave() {
+            return cpu_rep.f_1_ecx[27];
+        }
+        
+        static bool avx() {
+            return cpu_rep.f_1_ecx[28];
+        }
+        
+        static bool f16c() {
+            return cpu_rep.f_1_ecx[29];
+        }
+        
+        static bool rdrand() {
+            return cpu_rep.f_1_ecx[30];
+        }
+
+        static bool msr() {
+            return cpu_rep.f_1_edx[5];
+        }
+        
+        static bool cx8() {
+            return cpu_rep.f_1_edx[8];
+        }
+        
+        static bool sep() {
+            return cpu_rep.f_1_edx[11];
+        }
+        
+        static bool cmov() {
+            return cpu_rep.f_1_edx[15];
+        }
+        
+        static bool clfsh() {
+            return cpu_rep.f_1_edx[19];
+        }
+        
+        static bool mmx() {
+            return cpu_rep.f_1_edx[23];
+        }
+        
+        static bool fxsr() {
+            return cpu_rep.f_1_edx[24];
+        }
+
+        static bool sse() {
+            return cpu_rep.f_1_edx[25];
+        }
+        
+        static bool sse2() {
+            return cpu_rep.f_1_edx[26];
+        }
+
+        static bool fsgsbase() {
+            return cpu_rep.f_7_ebx[0];
+        }
+        
+        static bool bmi1() {
+            return cpu_rep.f_7_ebx[3];
+        }
+        
+        static bool hle() {
+            return cpu_rep.is_intel && cpu_rep.f_7_ebx[4];
+        }
+        
+        static bool avx2() {
+            return cpu_rep.f_7_ebx[5];
+        }
+        
+        static bool bmi2() {
+            return cpu_rep.f_7_ebx[8];
+        }
+        
+        static bool erms() {
+            return cpu_rep.f_7_ebx[9];
+        }
+        
+        static bool invpcid() {
+            return cpu_rep.f_7_ebx[10];
+        }
+        
+        static bool rtm() {
+            return cpu_rep.is_intel && cpu_rep.f_7_ebx[11];
+        }
+        
+        static bool avx512f() {
+            return cpu_rep.f_7_ebx[16];
+        }
+        
+        static bool rdseed() {
+            return cpu_rep.f_7_ebx[18];
+        }
+        
+        static bool adx() {
+            return cpu_rep.f_7_ebx[19];
+        }
+        
+        static bool avx512pf() {
+            return cpu_rep.f_7_ebx[26];
+        }
+        static bool avx512er() {
+            return cpu_rep.f_7_ebx[27];
+        }
+        static bool avx512cd() {
+            return cpu_rep.f_7_ebx[28];
+        }
+        static bool sha() {
+            return cpu_rep.f_7_ebx[29];
+        }
+
+        static bool prefetchwt1() {
+            return cpu_rep.f_7_ecx[0];
+        }
+
+        static bool lahf() {
+            return cpu_rep.f_81_ecx[0];
+        }
+        static bool lzcnt() {
+            return cpu_rep.is_intel && cpu_rep.f_81_ecx[5];
+        }
+        static bool abm() {
+            return cpu_rep.is_amd && cpu_rep.f_81_ecx[5];
+        }
+        static bool sse4a() {
+            return cpu_rep.is_amd && cpu_rep.f_81_ecx[6];
+        }
+        static bool xop() {
+            return cpu_rep.is_amd && cpu_rep.f_81_ecx[11];
+        }
+        static bool tbm() {
+            return cpu_rep.is_amd && cpu_rep.f_81_ecx[21];
+        }
+
+        static bool syscall() {
+            return cpu_rep.is_intel && cpu_rep.f_81_edx[11];
+        }
+        
+        static bool mmxext() {
+            return cpu_rep.is_amd && cpu_rep.f_81_edx[22];
+        }
+        
+        static bool rdtscp() {
+            return cpu_rep.is_intel && cpu_rep.f_81_edx[27];
+        }
+        
+        static bool _3dnowext() {
+            return cpu_rep.is_amd && cpu_rep.f_81_edx[30];
+        }
+
+        static bool _3dnow() {
+            return cpu_rep.is_amd && cpu_rep.f_81_edx[31];
+        }
+
+        static bool hypervisor() {
+            return cpu_rep.f_1_ecx[31];
+        }
+
+    private:
+        class instruction_set_internal {
+        public:
+            instruction_set_internal() :
+                is_intel(false), is_amd(false), f_1_ecx(0), f_1_edx(0), f_7_ebx(0), f_7_ecx(0), f_81_ecx(0), f_81_edx(0) {
+                int n_ids;
+                int n_ex_ids;
+                std::array<int, 4> cpui{};
+                std::array<std::array<int, 4>, max_ids> data{};
+                cpuid(cpui.data(), 0);
+                n_ids = cpui[0];
+                for (int i = 0; i <= n_ids; ++i) {
+                    cpuidex(cpui.data(), i, 0);
+                    data[i] = cpui;
+                }
+                char vendor[0x20] = {0};
+                if (std::strcmp(vendor, "GenuineIntel") == 0) {
+                    is_intel = true;
+                } else if (std::strcmp(vendor, "AuthenticAMD") == 0) {
+                    is_amd = true;
+                }
+                if (n_ids >= 1) {
+                    f_1_ecx = data[1][2];
+                    f_1_edx = data[1][3];
+                }
+                if (n_ids >= 7) {
+                    f_7_ebx = data[7][1];
+                    f_7_ecx = data[7][2];
+                }
+                cpuid(cpui.data(), 0x80000000);
+                n_ex_ids = cpui[0];
+            }
+
+            bool is_intel;
+            bool is_amd;
+            std::bitset<32> f_1_ecx;
+            std::bitset<32> f_1_edx;
+            std::bitset<32> f_7_ebx;
+            std::bitset<32> f_7_ecx;
+            std::bitset<32> f_81_ecx;
+            std::bitset<32> f_81_edx;
+        };
+
+        static const instruction_set_internal cpu_rep;
+    };
+
+    const instruction_set_impl::instruction_set_internal instruction_set_impl::cpu_rep;
+}
+
 // 硬件检查
 namespace rainy::core::builtin {
-    RAINY_TOOLKIT_API void cpuid(int query[4], int function_id) {
+    void cpuid(int query[4], int function_id) {
 #if RAINY_USING_MSVC
         __cpuid(query, function_id);
 #else
-        (void) query;
-        (void) function_id;
+        () query;
+        () function_id;
 #endif
     }
 
+    void cpuidex(int query[4], int function_id, int subfunction_id) {
+#if RAINY_USING_MSVC
+        __cpuidex(query, function_id, subfunction_id);
+#else
+        () query;
+        () function_id;
+        () subfunction_id;
+#endif
+    }
+
+
     bool has_instruction(instruction_set check) {
-        constexpr int eax = 0;
-        constexpr int ebx = 1;
-        constexpr int ecx = 2;
-
-        int cpu_info[4]{};
-        int leaf = 1;
-        int reg_idx = ecx; // 默认使用ecx寄存器
-        int bit_idx = 0;
-
         switch (check) {
             case instruction_set::sse3:
-                bit_idx = 0;
-                break;
+                return instruction_set_impl::sse3();
             case instruction_set::pclmulqdq:
-                bit_idx = 1;
-                break;
+                return instruction_set_impl::pclmulqdq();
             case instruction_set::monitor:
-                bit_idx = 3;
-                break;
+                return instruction_set_impl::monitor();
             case instruction_set::ssse3:
-                bit_idx = 9;
-                break;
+                return instruction_set_impl::ssse3();
             case instruction_set::fma:
-                bit_idx = 12;
-                break;
+                return instruction_set_impl::fma();
             case instruction_set::cmpxchg16b:
-                bit_idx = 13;
-                break;
+                return instruction_set_impl::cmpxchg16b();
             case instruction_set::sse41:
-                bit_idx = 19;
-                break;
+                return instruction_set_impl::sse41();
             case instruction_set::sse42:
-                bit_idx = 20;
-                break;
+                return instruction_set_impl::sse42();
             case instruction_set::movbe:
-                bit_idx = 22;
-                break;
+                return instruction_set_impl::movbe();
             case instruction_set::popcnt:
-                bit_idx = 23;
-                break;
+                return instruction_set_impl::popcnt();
             case instruction_set::aes:
-                bit_idx = 25;
-                break;
+                return instruction_set_impl::aes();
             case instruction_set::xsave:
-                bit_idx = 26;
-                break;
+                return instruction_set_impl::xsave();
             case instruction_set::osxsave:
-                bit_idx = 27;
-                break;
+                return instruction_set_impl::osxsave();
             case instruction_set::avx:
-                bit_idx = 28;
-                break;
+                return instruction_set_impl::avx();
             case instruction_set::f16c:
-                bit_idx = 29;
-                break;
+                return instruction_set_impl::f16c();
             case instruction_set::rdrand:
-                bit_idx = 30;
-                break;
+                return instruction_set_impl::rdrand();
             case instruction_set::msr:
-                bit_idx = 31;
-                break;
+                return instruction_set_impl::msr();
             case instruction_set::cx8:
-                bit_idx = 8;
-                reg_idx = ebx; // 使用ebx
-                break;
+                return instruction_set_impl::cx8();
             case instruction_set::sep:
-                bit_idx = 11;
-                break;
+                return instruction_set_impl::sep();
             case instruction_set::cmov:
-                bit_idx = 15;
-                break;
+                return instruction_set_impl::cmov();
             case instruction_set::clflush:
-                bit_idx = 19;
-                break;
+                return instruction_set_impl::clfsh();
             case instruction_set::mmx:
-                bit_idx = 23;
-                break;
+                return instruction_set_impl::mmx();
             case instruction_set::fxsr:
-                bit_idx = 24;
-                break;
+                return instruction_set_impl::fxsr();
             case instruction_set::sse:
-                bit_idx = 25;
-                break;
+                return instruction_set_impl::sse();
             case instruction_set::sse2:
-                bit_idx = 26;
-                break;
+                return instruction_set_impl::sse2();
             case instruction_set::fsgsbase:
-                bit_idx = 0;
-                reg_idx = eax; // 使用eax
-                break;
+                return instruction_set_impl::fsgsbase();
             case instruction_set::bmi1:
-                bit_idx = 3;
-                break;
+                return instruction_set_impl::bmi1();
             case instruction_set::hle:
-                bit_idx = 4;
-                break;
+                return instruction_set_impl::hle();
             case instruction_set::avx2:
-                bit_idx = 5;
-                leaf = 7;
-                reg_idx = ebx; // 使用ebx
-                break;
+                return instruction_set_impl::avx2();                
             case instruction_set::bmi2:
-                bit_idx = 8;
-                break;
+                return instruction_set_impl::bmi2();
             case instruction_set::erms:
-                bit_idx = 9;
-                break;
+                return instruction_set_impl::erms();
             case instruction_set::invpcid:
-                bit_idx = 10;
-                break;
+                return instruction_set_impl::invpcid();
             case instruction_set::rtm:
-                bit_idx = 11;
-                break;
+                return instruction_set_impl::rtm();
             case instruction_set::avx512f:
-                bit_idx = 16;
-                leaf = 7;
-                break;
+                return instruction_set_impl::avx512f();
             case instruction_set::rdseed:
-                bit_idx = 18;
-                break;
+                return instruction_set_impl::rdseed();
             case instruction_set::adx:
-                bit_idx = 19;
-                break;
+                return instruction_set_impl::adx();
             case instruction_set::avx512pf:
-                bit_idx = 26;
-                leaf = 7;
-                break;
+                return instruction_set_impl::avx512pf();
             case instruction_set::avx512er:
-                bit_idx = 27;
-                leaf = 7;
-                break;
+                return instruction_set_impl::avx512er();
             case instruction_set::avx512cd:
-                bit_idx = 28;
-                leaf = 7;
-                break;
+                return instruction_set_impl::avx512cd();
             case instruction_set::sha:
-                bit_idx = 29;
-                break;
+                return instruction_set_impl::sha();
             case instruction_set::prefetchwt1:
-                bit_idx = 30;
-                break;
+                return instruction_set_impl::prefetchwt1();
             case instruction_set::lahf:
-                bit_idx = 0;
-                reg_idx = eax; // 使用eax
-                break;
+                return instruction_set_impl::lahf();
             case instruction_set::lzcnt:
-                bit_idx = 5;
-                break;
+                return instruction_set_impl::lzcnt();
             case instruction_set::abm:
-                bit_idx = 5;
-                break;
+                return instruction_set_impl::abm();
             case instruction_set::sse4a:
-                bit_idx = 6;
-                break;
+                return instruction_set_impl::sse4a();
             case instruction_set::xop:
-                bit_idx = 11;
-                break;
+                return instruction_set_impl::xop();
             case instruction_set::tbm:
-                bit_idx = 21;
-                break;
+                return instruction_set_impl::tbm();
             case instruction_set::syscall:
-                bit_idx = 11;
-                break;
+                return instruction_set_impl::syscall();
             case instruction_set::mmxext:
-                bit_idx = 22;
-                break;
+                return instruction_set_impl::mmxext();
             case instruction_set::rdtscp:
-                bit_idx = 27;
-                break;
+                return instruction_set_impl::rdtscp();
             case instruction_set::_3dnowext:
-                bit_idx = 31;
-                break;
+                return instruction_set_impl::_3dnowext();
             case instruction_set::_3dnow:
-                bit_idx = 30;
-                break;
+                return instruction_set_impl::_3dnow();
+            case instruction_set::hypervisor:
+                return instruction_set_impl::hypervisor();
             default:
                 return false;
         }
-        cpuid(cpu_info, leaf);
-        int reg = cpu_info[reg_idx];
-        return (reg & (1 << bit_idx)) != 0;
     }
 
-    errno_t get_vendor(char *buffer) {
+    bool is_hypervisor() {
+        return has_instruction(instruction_set::hypervisor);
+    }
+
+    errno_t get_vendor(char *buffer, std::size_t length) {
         if (!buffer) {
             return EINVAL;
         }
@@ -265,11 +469,15 @@ namespace rainy::core::builtin {
         *reinterpret_cast<int *>(vendor) = cpu_info[1];
         *reinterpret_cast<int *>(vendor + 4) = cpu_info[3];
         *reinterpret_cast<int *>(vendor + 8) = cpu_info[2];
+        std::size_t brand_length = std::strlen(vendor);
+        if (brand_length > length) {
+            return E2BIG;
+        }
         builtin::copy_memory(buffer, vendor, sizeof(vendor));
         return 0;
     }
 
-    errno_t get_brand(char *buffer) {
+    errno_t get_brand(char *buffer, std::size_t length) {
         if (!buffer) {
             return EINVAL;
         }
@@ -283,6 +491,10 @@ namespace rainy::core::builtin {
         for (int i = 0x80000002; i <= 0x80000004; ++i) {
             cpuid(cpu_info, i);
             core::builtin::copy_memory(brand + (i - 0x80000002) * 16, cpu_info, sizeof(cpu_info));
+        }
+        std::size_t brand_length = std::strlen(brand);
+        if (brand_length > length) {
+            return E2BIG;
         }
         core::builtin::copy_memory(buffer, brand, sizeof(brand));
         return 0;

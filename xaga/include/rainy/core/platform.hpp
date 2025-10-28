@@ -650,7 +650,8 @@ namespace rainy::core {
         mmxext,
         rdtscp,
         _3dnowext,
-        _3dnow
+        _3dnow,
+        hypervisor
     };
 }
 
@@ -668,10 +669,12 @@ namespace rainy::core::builtin {
     };
 
     RAINY_TOOLKIT_API void cpuid(int query[4], int function_id);
+    RAINY_TOOLKIT_API void cpuidex(int query[4], int function_id, int subfunction_id);
+    RAINY_TOOLKIT_API bool is_hypervisor();
     RAINY_TOOLKIT_API errno_t get_machine_code(); // for future, not implemented
     RAINY_TOOLKIT_API bool has_instruction(instruction_set check);
-    RAINY_TOOLKIT_API errno_t get_vendor(char *buffer);
-    RAINY_TOOLKIT_API errno_t get_brand(char *buffer);
+    RAINY_TOOLKIT_API errno_t get_vendor(char *buffer, std::size_t length);
+    RAINY_TOOLKIT_API errno_t get_brand(char *buffer, std::size_t length);
     RAINY_TOOLKIT_API std::size_t hardware_concurrency();
     RAINY_TOOLKIT_API version get_os_version();
     RAINY_TOOLKIT_API errno_t get_os_name(char *buffer);

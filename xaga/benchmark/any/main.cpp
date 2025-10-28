@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include <optional>
 #include <entt/entt.hpp>
 
 struct structure {
@@ -30,6 +31,7 @@ struct small {
     ~small() {
     }
 };
+
 static_assert(!std::is_trivially_copyable_v<small>);
 static_assert(std::is_nothrow_move_constructible_v<small>);
 
@@ -202,6 +204,40 @@ static void benchmark_rainytoolkit_any_destructure_tuple(benchmark::State &state
 }
 
 BENCHMARK(benchmark_rainytoolkit_any_destructure_tuple);
+
+static void benchmark_rainytoolkit_any_oprtator_plus_int(benchmark::State &state) {
+    using namespace rainy::utility;
+    any a = 10;
+    for (auto _: state) {
+        benchmark::DoNotOptimize(a + 10);
+    }
+}
+
+BENCHMARK(benchmark_rainytoolkit_any_oprtator_plus_int);
+
+static void benchmark_rainytoolkit_any_oprtator_plus_equal_int(benchmark::State &state) {
+    using namespace rainy::utility;
+    any a = 10;
+    for (auto _: state) {
+        benchmark::DoNotOptimize(a += 10);
+    }
+}
+
+BENCHMARK(benchmark_rainytoolkit_any_oprtator_plus_equal_int);
+
+static void benchmark_rainytoolkit_any_index_oprtator_5times(benchmark::State &state) {
+    using namespace rainy::utility;
+    any a = std::vector<int>{1, 2, 3, 4, 5};
+    for (auto _: state) {
+        benchmark::DoNotOptimize(a[0]);
+        benchmark::DoNotOptimize(a[1]);
+        benchmark::DoNotOptimize(a[2]);
+        benchmark::DoNotOptimize(a[3]);
+        benchmark::DoNotOptimize(a[4]);
+    }
+}
+
+BENCHMARK(benchmark_rainytoolkit_any_index_oprtator_5times);
 
 static void benchmark_entt_any_construct_int(benchmark::State &state) {
     for (auto _: state) {

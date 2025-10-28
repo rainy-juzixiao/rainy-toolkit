@@ -167,7 +167,7 @@ namespace rainy::utility::implements {
     enum class any_operation {
         compare,
         eval_hash,
-        query_for_is_pair_like,
+        query_for_is_tuple_like,
         destructre_this_pack,
         output_any,
         add,
@@ -487,6 +487,10 @@ namespace rainy::utility {
                 return !left.proxy->compare_equal(right.proxy);
             }
 
+            bool empty() const noexcept {
+                return static_cast<bool>(proxy);
+            }
+
             void copy_from_other(const iterator &right) {
                 if (this == utility::addressof(right)) {
                     return;
@@ -671,10 +675,10 @@ namespace rainy::utility {
         }
 
         template <typename Decayed>
-        RAINY_ANY_CAST_TO_POINTER_NODISCARD auto cast_to_pointer() const noexcept
+        RAINY_ANY_CAST_TO_POINTER_NODISCARD rain_fn cast_to_pointer() const noexcept
             -> type_traits::pointer_modify::add_pointer_t<type_traits::cv_modify::add_const_t<
                 type_traits::other_trans::conditional_t<type_traits::composite_types::is_reference_v<Decayed>,
-                                                        type_traits::reference_modify::remove_reference_t<Decayed>, Decayed>>> {
+                                                        type_traits::reference_modify::remove_reference_t<Decayed> *, Decayed *>>> {
             using namespace type_traits;
             using type = other_trans::conditional_t<composite_types::is_reference_v<Decayed>,
                                                     reference_modify::remove_reference_t<Decayed>, Decayed>;
@@ -685,11 +689,16 @@ namespace rainy::utility {
         }
 
         template <typename Decayed>
-        RAINY_ANY_CAST_TO_POINTER_NODISCARD Decayed *cast_to_pointer() noexcept {
-            using type = decltype(std::as_const(*this).template cast_to_pointer<Decayed>());
-            using remove_const_t = type_traits::pointer_modify::add_pointer_t<
-                type_traits::cv_modify::remove_const_t<type_traits::pointer_modify::remove_pointer_t<type>>>;
-            return reinterpret_cast<Decayed *>(const_cast<remove_const_t>(std::as_const(*this).template cast_to_pointer<Decayed>()));
+        RAINY_ANY_CAST_TO_POINTER_NODISCARD rain_fn cast_to_pointer() noexcept -> type_traits::pointer_modify::add_pointer_t <
+            type_traits::other_trans::conditional_t<type_traits::composite_types::is_reference_v<Decayed>,
+                                                    type_traits::reference_modify::remove_reference_t<Decayed>, Decayed>> {
+            using namespace type_traits;
+            using type = other_trans::conditional_t<composite_types::is_reference_v<Decayed>,
+                                                    reference_modify::remove_reference_t<Decayed>, Decayed>;
+            if (!implements::is_as_runnable<type>(this->type())) {
+                return nullptr;
+            }
+            return static_cast<type *>(const_cast<void *>(target_as_void_ptr()));
         }
 
         template <typename TargetType>
@@ -1053,7 +1062,7 @@ namespace rainy::utility {
             static_assert(size != 0, "Cannot process a invalid receiver!");
             collections::array<any_binding_package, size> array;
             std::size_t count{};
-            bool ret = storage.executer->invoke(implements::any_operation::query_for_is_pair_like, &count);
+            bool ret = storage.executer->invoke(implements::any_operation::query_for_is_tuple_like, &count);
             if (!ret || count != size) {
                 return false;
             }
@@ -2007,7 +2016,7 @@ namespace rainy::utility::implements {
                 }
                 break;
             }
-            case operation::query_for_is_pair_like: {
+            case operation::query_for_is_tuple_like: {
                 constexpr std::size_t member_count = member_count_v<type_traits::cv_modify::remove_cvref_t<Ty>>;
                 if constexpr (member_count == 0) {
                     return false;
@@ -2327,7 +2336,7 @@ namespace rainy::utility::implements {
                             }
                         }
                     }
-                    return true;
+                    return !recv->empty();
                 }
                 return false;
             }
@@ -2359,7 +2368,7 @@ namespace rainy::utility::implements {
                             }
                         }
                     }
-                    return true;
+                    return !recv->empty();
                 }
                 return false;
             }

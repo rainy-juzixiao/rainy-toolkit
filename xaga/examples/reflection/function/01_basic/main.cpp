@@ -138,5 +138,9 @@ int main() {
     std::cout << a[0] << '\n';
     std::cout << a[1] << '\n';
     std::cout << a[2] << '\n';
+    a = std::vector<int>{1, 2, 3, 4, 5};
+    for (const auto item: a) {
+        std::cout << item << '\n';
+    }
     return 0;
 }

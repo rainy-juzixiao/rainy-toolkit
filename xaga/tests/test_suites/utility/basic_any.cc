@@ -64,7 +64,7 @@ struct raii_resource {
     std::function<void()> callback;
 };
 
-SCENARIO("lifetime", test_tag) {
+SCENARIO("[lifetime]", test_tag) {
     GIVEN("one any variable") {
         any variable{};
         WHEN("construct a value int") {
@@ -135,7 +135,7 @@ SCENARIO("lifetime", test_tag) {
     }
 }
 
-SCENARIO("construct", test_tag){
+SCENARIO("[construct]", test_tag) {
     GIVEN("one any variable") {
         any variable{};
         WHEN("we construct int") {
@@ -628,7 +628,7 @@ SCENARIO("[target_as_void_ptr]", test_tag) {
 }
 
 SCENARIO("[hash_code]", test_tag) {
-    GIVEN("a empty variable and some variable for test") {
+    GIVEN("a empty variable") {
         any variable{};
         WHEN("variable is 42") {
             variable.emplace<int>(42);
@@ -679,14 +679,40 @@ SCENARIO("[hash_code]", test_tag) {
 }
 
 SCENARIO("[cast_to_pointer]", test_tag) {
-}
-
-SCENARIO("[match]", test_tag) {
-
-}
-
-SCENARIO("[destructure]", test_tag) {
-
+    GIVEN("a empty variable and some variable for test") {
+        any variable;
+        int integer{42};
+        WHEN("variable is int") {
+            variable = 10;
+            THEN("check cast_to_pointer by using value-type") {
+                int *int_ptr = variable.cast_to_pointer<int>();
+                REQUIRE(*int_ptr == 10);
+            }
+            THEN("check cast_to_pointer by using lvalue-ref-type") {
+                int *int_ptr = variable.cast_to_pointer<int&>();
+                REQUIRE(*int_ptr == 10);
+            }
+            THEN("check cast_to_pointer by using rvalue-ref-type") {
+                int *int_ptr = variable.cast_to_pointer<int>();
+                REQUIRE(*int_ptr == 10);
+            }
+        }
+        WHEN("variable is int reference") {
+            variable.emplace<int &>(integer);
+            THEN("check cast_to_pointer by using value-type") {
+                int *int_ptr = variable.cast_to_pointer<int>();
+                REQUIRE(*int_ptr == integer);
+            }
+            THEN("check cast_to_pointer by using lvalue-ref-type") {
+                int *int_ptr = variable.cast_to_pointer<int &>();
+                REQUIRE(*int_ptr == integer);
+            }
+            THEN("check cast_to_pointer by using rvalue-ref-type") {
+                int *int_ptr = variable.cast_to_pointer<int>();
+                REQUIRE(*int_ptr == integer);
+            }
+        }
+    }
 }
 
 #if RAINY_USING_MSVC
