@@ -410,6 +410,82 @@ namespace rainy::utility {
     using type_traits::extras::tuple::struct_bind_tuple;
 }
 
+namespace rainy::type_traits::extras::tuple::implements {
+    template <typename Tuple>
+    struct tuple_traits_impl {
+        static inline constexpr bool invalid_mark = true;
+    };
+
+    template <typename... Types>
+    struct tuple_traits_impl<std::tuple<Types...>> {
+        using type = std::tuple<Types...>;
+
+        template <std::size_t Idx>
+        using element = std::tuple_element<Idx, type>;
+
+        template <std::size_t Idx>
+        using element_t = std::tuple_element<Idx, type>;
+
+        static inline constexpr std::size_t size = sizeof...(Types);
+    };
+
+    template <typename Tuple>
+    struct pair_traits_impl {
+        static inline constexpr bool invalid_mark = true;
+    };
+
+    template <typename Ty1, typename Ty2>
+    struct pair_traits_impl<std::pair<Ty1, Ty2>> {
+        using type = std::pair<Ty1, Ty2>;
+        using first_type = Ty1;
+        using second_type = Ty2;
+        static inline constexpr std::size_t size = 2;
+    };
+
+    template <typename Ty1, typename Ty2>
+    struct pair_traits_impl<utility::pair<Ty1, Ty2>> {
+        using type = utility::pair<Ty1, Ty2>;
+        using first_type = Ty1;
+        using second_type = Ty2;
+        static inline constexpr std::size_t size = 2;
+    };
+}
+
+namespace rainy::type_traits::extras::tuple {
+    template <typename Tuple>
+    struct tuple_traits : implements::tuple_traits_impl<type_traits::cv_modify::remove_cvref_t<Tuple>> {};
+
+    template <typename Tuple, typename = void>
+    RAINY_CONSTEXPR_BOOL is_tuple_v = true;
+
+    template <typename Tuple>
+    RAINY_CONSTEXPR_BOOL is_tuple_v<Tuple, other_trans::void_t<decltype(tuple_traits<Tuple>::invalid_mark)>> = false;
+
+    template <typename Tuple>
+    struct is_tuple : helper::bool_constant<is_tuple_v<Tuple>> {};
+
+    template <typename Pair>
+    struct pair_traits : implements::pair_traits_impl<type_traits::cv_modify::remove_cvref_t<Pair>> {};
+
+    template <typename Pair, typename = void>
+    RAINY_CONSTEXPR_BOOL is_pair_v = true;
+
+    template <typename Pair>
+    RAINY_CONSTEXPR_BOOL is_pair_v<Pair, other_trans::void_t<decltype(pair_traits<Pair>::invalid_mark)>> = false;
+
+    template <typename Pair>
+    struct is_pair : helper::bool_constant<is_pair_v<Pair>> {};
+}
+
+namespace rainy::type_traits::primary_types {
+    using extras::tuple::is_pair;
+    using extras::tuple::is_pair_v;
+    using extras::tuple::is_tuple;
+    using extras::tuple::is_tuple_v;
+    using extras::tuple::pair_traits;
+    using extras::tuple::tuple_traits;
+}
+
 namespace rainy::type_traits::extras::tuple {
     template <typename Ty1, typename Ty2>
     struct reflectet_for_type<std::pair<Ty1, Ty2>> {
@@ -436,6 +512,19 @@ namespace rainy::type_traits::extras::tuple {
 
         static constexpr auto bind_obj(utility::pair<Ty1, Ty2> &obj) noexcept {
             return std::make_tuple(&obj.first, &obj.second);
+        }
+    };
+
+    template <typename Tuple>
+    struct reflectet_for_type<Tuple, type_traits::other_trans::enable_if_t<is_tuple_v<Tuple>>> {
+        static constexpr inline std::size_t count = tuple_traits<type_traits::cv_modify::remove_cvref_t<Tuple>>::size;
+
+        static constexpr auto make() noexcept {
+            return implements::refl_to_tuple_impl<count, Tuple>::make();
+        }
+
+        static constexpr auto bind_obj(Tuple &obj) noexcept {
+            return implements::refl_to_tuple_impl<count, Tuple>::make_ptr(obj);
         }
     };
 
@@ -490,82 +579,6 @@ namespace rainy::type_traits::extras::tuple {
             }
         }
     };
-}
-
-namespace rainy::type_traits::extras::tuple::implements {
-    template <typename Tuple>
-    struct tuple_traits_impl {
-        static inline constexpr bool invalid_mark = true;
-    };
-
-    template <typename... Types>
-    struct tuple_traits_impl<std::tuple<Types...>> {
-        using type = std::tuple<Types...>;
-
-        template <std::size_t Idx>
-        using element = std::tuple_element<Idx,type>;
-
-        template <std::size_t Idx>
-        using element_t = std::tuple_element<Idx,type>;
-
-        static inline constexpr std::size_t size = sizeof...(Types);
-    };
-
-    template <typename Tuple>
-    struct pair_traits_impl {
-        static inline constexpr bool invalid_mark = true;
-    };
-
-    template <typename Ty1, typename Ty2>
-    struct pair_traits_impl<std::pair<Ty1, Ty2>> {
-        using type = std::pair<Ty1, Ty2>;
-        using first_type = Ty1;
-        using second_type = Ty2;       
-        static inline constexpr std::size_t size = 2;
-    };
-
-    template <typename Ty1, typename Ty2>
-    struct pair_traits_impl<utility::pair<Ty1, Ty2>> {
-        using type = utility::pair<Ty1, Ty2>;
-        using first_type = Ty1;
-        using second_type = Ty2;
-        static inline constexpr std::size_t size = 2;
-    };
-}
-
-namespace rainy::type_traits::extras::tuple {
-    template <typename Tuple>
-    struct tuple_traits : implements::tuple_traits_impl<type_traits::cv_modify::remove_cvref_t<Tuple>> {};
-
-    template <typename Tuple, typename = void>
-    RAINY_CONSTEXPR_BOOL is_tuple_v = true;
-
-    template <typename Tuple>
-    RAINY_CONSTEXPR_BOOL is_tuple_v<Tuple, other_trans::void_t<decltype(tuple_traits<Tuple>::invalid_mark)>> = false;
-
-    template <typename Tuple>
-    struct is_tuple : helper::bool_constant<is_tuple_v<Tuple>> {};
-
-    template <typename Pair>
-    struct pair_traits : implements::pair_traits_impl<type_traits::cv_modify::remove_cvref_t<Pair>> {};
-
-    template <typename Pair, typename = void>
-    RAINY_CONSTEXPR_BOOL is_pair_v = true;
-
-    template <typename Pair>
-    RAINY_CONSTEXPR_BOOL is_pair_v<Pair, other_trans::void_t<decltype(pair_traits<Pair>::invalid_mark)>> = false;
-
-    template <typename Pair>
-    struct is_pair : helper::bool_constant<is_pair_v<Pair>> {};
-}
-
-namespace rainy::type_traits::primary_types {
-    using extras::tuple::tuple_traits;
-    using extras::tuple::pair_traits;
-    using extras::tuple::is_tuple_v;
-    using extras::tuple::is_pair_v;
-    using extras::tuple::is_tuple;
-    using extras::tuple::is_pair;
 }
 
 #endif
