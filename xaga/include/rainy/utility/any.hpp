@@ -285,9 +285,37 @@ namespace rainy::utility::implements {
     }
 
     template <typename BasicAny>
+    struct any_reference : public BasicAny {
+        any_reference() : BasicAny{} {
+        }
+
+        template <typename ValueType,
+                  type_traits::other_trans::enable_if_t<
+                      !type_traits::type_relations::is_same_v<type_traits::other_trans::decay_t<ValueType>, BasicAny> &&
+                          !type_traits::type_relations::is_same_v<type_traits::other_trans::decay_t<ValueType>, any_reference>,
+                      int> = 0>
+        any_reference(ValueType &&value) {
+            this->template emplace<ValueType>(utility::forward<ValueType>(value));
+        }
+
+        template <typename ValueType,
+                  type_traits::other_trans::enable_if_t<
+                      !type_traits::type_relations::is_same_v<type_traits::other_trans::decay_t<ValueType>, BasicAny> &&
+                          !type_traits::type_relations::is_same_v<type_traits::other_trans::decay_t<ValueType>, any_reference>,
+                      int> = 0>
+        any_reference &operator=(ValueType &&value) {
+            auto tuple = std::make_tuple(this, BasicAny{utility::forward<ValueType>(value)});
+            this->storage.executer->invoke(any_operation::assign, &tuple);
+            return *this;
+        }
+    };
+
+    template <typename BasicAny>
     class any_iterator_impl {
     public:
         using value_type = BasicAny;
+        using reference = any_reference<value_type>;
+        using const_reference = reference;
 
         static constexpr std::size_t length = sizeof(void *) * 3;
 
@@ -350,11 +378,11 @@ namespace rainy::utility::implements {
             return *this;
         }
 
-        value_type operator*() {
+        reference operator*() {
             return proxy->dereference();
         }
 
-        value_type operator*() const {
+        const_reference operator*() const {
             return proxy->const_dereference();
         }
 
@@ -400,32 +428,6 @@ namespace rainy::utility::implements {
 
         iterator_proxy_vtable *proxy{nullptr};
         core::byte_t buffer[length]{};
-    };
-
-    template <typename BasicAny>
-    struct any_reference : public BasicAny {
-        any_reference() : BasicAny{} {
-        }
-
-        template <typename ValueType,
-                  type_traits::other_trans::enable_if_t<
-                      !type_traits::type_relations::is_same_v<type_traits::other_trans::decay_t<ValueType>, BasicAny> &&
-                          !type_traits::type_relations::is_same_v<type_traits::other_trans::decay_t<ValueType>, any_reference>,
-                      int> = 0>
-        any_reference(ValueType &&value) {
-            this->template emplace<ValueType>(utility::forward<ValueType>(value));
-        }
-
-        template <typename ValueType,
-                  type_traits::other_trans::enable_if_t<
-                      !type_traits::type_relations::is_same_v<type_traits::other_trans::decay_t<ValueType>, BasicAny> &&
-                          !type_traits::type_relations::is_same_v<type_traits::other_trans::decay_t<ValueType>, any_reference>,
-                      int> = 0>
-        any_reference &operator=(ValueType &&value) {
-            auto tuple = std::make_tuple(this, BasicAny{utility::forward<ValueType>(value)});
-            this->storage.executer->invoke(any_operation::assign, &tuple);
-            return *this;
-        }
     };
 }
 
@@ -750,7 +752,7 @@ namespace rainy::utility {
         template <typename Fx>
         basic_any &transform(Fx &&handler) {
             using namespace type_traits;
-            using type_list = typename other_trans::type_list<primary_types::param_list_in_tuple<Fx>>::type;
+            using type_list = typename other_trans::type_list<typename other_trans::tuple_like_to_type_list<primary_types::param_list_in_tuple<Fx>>::type>::type;
             using target_type = typename other_trans::type_at<0, type_list>::type;
             if (is<target_type>()) {
                 basic_any(std::in_place_type<target_type>, handler(this->template as<target_type>())).swap(*this);
