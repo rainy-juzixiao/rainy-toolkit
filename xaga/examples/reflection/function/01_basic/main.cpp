@@ -44,7 +44,7 @@ int main() {
     std::cout << x << '\n';
     a.emplace<std::string>("");
     a.emplace<std::string>("Cello World");
-    a[0].as<char>() = 'H';
+    a[0] = 'H';
     std::cout << (a + std::string{", Again!"}) << '\n';
     a = 10;
     if (a.is<int>()) { // 检查a是否为int
@@ -123,11 +123,11 @@ int main() {
     std::cout << any_map[{std::in_place_type<std::string>, "hello_world_text"}] << '\n';
     a = std::unordered_map<std::string_view, int>{{"1", 1}};
     std::cout << a["1"] << '\n';
-    a["2"].as<int>() = 2;
+    a["2"] = 2;
     std::cout << a["2"] << '\n';
-    a["3"].as<int>() = 3;
+    a["3"] = 3;
     std::cout << a["3"] << '\n';
-    a["4"].as<int>() = 4;
+    a["4"] = 4;
     std::cout << a["4"] << '\n';
     for (auto iter = a.begin(); iter != a.end(); ++iter) {
         auto [first, second] = (*iter).destructure<std::string_view, int>();

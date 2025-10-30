@@ -182,7 +182,9 @@ namespace rainy::utility::implements {
         dereference,
         access_element,
         call_begin,
-        call_end
+        call_end,
+        assign,
+        get_reference
     };
 
     struct any_operater_policy {
@@ -281,6 +283,150 @@ namespace rainy::utility::implements {
             return 0;
         }
     }
+
+    template <typename BasicAny>
+    class any_iterator_impl {
+    public:
+        using value_type = BasicAny;
+
+        static constexpr std::size_t length = sizeof(void *) * 3;
+
+        struct iterator_proxy_vtable {
+            virtual ~iterator_proxy_vtable() = default;
+            virtual void next() = 0;
+            virtual void previous() = 0;
+            virtual value_type dereference() = 0;
+            virtual value_type const_dereference() const = 0;
+            virtual foundation::ctti::typeinfo typeinfo() const = 0;
+            virtual void destruct(bool is_local) = 0;
+            virtual iterator_proxy_vtable *construct_from_this(core::byte_t *soo_buffer) const noexcept = 0;
+            virtual bool compare_equal(const iterator_proxy_vtable *right) const = 0;
+            virtual any_iterator_category iterator_category() const noexcept = 0;
+        };
+
+        any_iterator_impl() {
+        }
+
+        template <typename IterImpl, typename RealIterator>
+        any_iterator_impl(std::in_place_type_t<IterImpl>, RealIterator &&iter) {
+            if constexpr (sizeof(IterImpl) >= length) {
+                proxy = new IterImpl(utility::forward<RealIterator>(iter));
+            } else {
+                proxy = utility::construct_at(reinterpret_cast<IterImpl *>(buffer), utility::forward<RealIterator>(iter));
+            }
+        }
+
+        ~any_iterator_impl() {
+            if (proxy) {
+                proxy->destruct(is_local());
+            }
+        }
+
+        any_iterator_impl(const any_iterator_impl &right) {
+            copy_from_other(right);
+        }
+
+        any_iterator_impl(any_iterator_impl &&right) noexcept {
+            move_from_other(utility::move(right));
+        }
+
+        any_iterator_impl &operator=(const any_iterator_impl &right) {
+            copy_from_other(right);
+            return *this;
+        }
+
+        any_iterator_impl &operator=(any_iterator_impl &&right) noexcept {
+            move_from_other(utility::move(right));
+            return *this;
+        }
+
+        any_iterator_impl &operator++() {
+            proxy->next();
+            return *this;
+        }
+
+        any_iterator_impl &operator--() {
+            proxy->previous();
+            return *this;
+        }
+
+        value_type operator*() {
+            return proxy->dereference();
+        }
+
+        value_type operator*() const {
+            return proxy->const_dereference();
+        }
+
+        friend bool operator==(const any_iterator_impl &left, const any_iterator_impl &right) {
+            return left.proxy->compare_equal(right.proxy);
+        }
+
+        friend bool operator!=(const any_iterator_impl &left, const any_iterator_impl &right) {
+            return !left.proxy->compare_equal(right.proxy);
+        }
+
+        bool empty() const noexcept {
+            return static_cast<bool>(proxy);
+        }
+
+        void copy_from_other(const any_iterator_impl &right) {
+            if (this == utility::addressof(right)) {
+                return;
+            }
+            proxy = right.proxy->construct_from_this(this->buffer);
+        }
+
+        void move_from_other(any_iterator_impl &&right) {
+            if (this == utility::addressof(right) || !right.proxy) {
+                return;
+            }
+            if (right.is_local()) {
+                proxy = right.proxy->construct_from_this(this->buffer);
+                right.proxy = nullptr;
+            } else {
+                proxy = utility::exchange(right.proxy, nullptr);
+            }
+        }
+
+        any_iterator_category iterator_category() const noexcept {
+            return proxy->iterator_category();
+        }
+
+    private:
+        bool is_local() const noexcept {
+            return proxy == reinterpret_cast<const void *>(buffer);
+        }
+
+        iterator_proxy_vtable *proxy{nullptr};
+        core::byte_t buffer[length]{};
+    };
+
+    template <typename BasicAny>
+    struct any_reference : public BasicAny {
+        any_reference() : BasicAny{} {
+        }
+
+        template <typename ValueType,
+                  type_traits::other_trans::enable_if_t<
+                      !type_traits::type_relations::is_same_v<type_traits::other_trans::decay_t<ValueType>, BasicAny> &&
+                          !type_traits::type_relations::is_same_v<type_traits::other_trans::decay_t<ValueType>, any_reference>,
+                      int> = 0>
+        any_reference(ValueType &&value) {
+            this->template emplace<ValueType>(utility::forward<ValueType>(value));
+        }
+
+        template <typename ValueType,
+                  type_traits::other_trans::enable_if_t<
+                      !type_traits::type_relations::is_same_v<type_traits::other_trans::decay_t<ValueType>, BasicAny> &&
+                          !type_traits::type_relations::is_same_v<type_traits::other_trans::decay_t<ValueType>, any_reference>,
+                      int> = 0>
+        any_reference &operator=(ValueType &&value) {
+            auto tuple = std::make_tuple(this, BasicAny{utility::forward<ValueType>(value)});
+            this->storage.executer->invoke(any_operation::assign, &tuple);
+            return *this;
+        }
+    };
 }
 
 namespace rainy::utility {
@@ -408,122 +554,12 @@ namespace rainy::utility {
             std::tuple<Handlers...> handlers;
         };
 
-        class iterator {
-        public:
-            static constexpr std::size_t length = sizeof(void *) * 3;
+        friend struct implements::any_reference<basic_any>;
 
-            struct iterator_proxy_vtable {
-                virtual ~iterator_proxy_vtable() = default;
-                virtual void next() = 0;
-                virtual void previous() = 0;
-                virtual basic_any dereference() = 0;
-                virtual basic_any const_dereference() const = 0;
-                virtual foundation::ctti::typeinfo typeinfo() const = 0;
-                virtual void destruct(bool is_local) = 0;
-                virtual iterator_proxy_vtable *construct_from_this(core::byte_t *soo_buffer) const noexcept = 0;
-                virtual bool compare_equal(const iterator_proxy_vtable *right) const = 0;
-                virtual any_iterator_category iterator_category() const noexcept = 0;
-            };
-
-            iterator() {
-            }
-
-            template <typename IterImpl, typename RealIterator>
-            iterator(std::in_place_type_t<IterImpl>, RealIterator &&iter) {
-                if constexpr (sizeof(IterImpl) >= length) {
-                    proxy = new IterImpl(utility::forward<RealIterator>(iter));
-                } else {
-                    proxy = utility::construct_at(reinterpret_cast<IterImpl *>(buffer), utility::forward<RealIterator>(iter));
-                }
-            }
-
-            ~iterator() {
-                if (proxy) {
-                    proxy->destruct(is_local());
-                }
-            }
-
-            iterator(const iterator &right) {
-                copy_from_other(right);
-            }
-
-            iterator(iterator &&right) noexcept {
-                move_from_other(utility::move(right));
-            }
-
-            iterator &operator=(const iterator &right) {
-                copy_from_other(right);
-                return *this;
-            }
-
-            iterator &operator=(iterator &&right) noexcept {
-                move_from_other(utility::move(right));
-                return *this;
-            }
-
-            iterator &operator++() {
-                proxy->next();
-                return *this;
-            }
-
-            iterator &operator--() {
-                proxy->previous();
-                return *this;
-            }
-
-            basic_any operator*() {
-                return proxy->dereference();
-            }
-
-            basic_any operator*() const {
-                return proxy->const_dereference();
-            }
-
-            friend bool operator==(const iterator &left, const iterator &right) {
-                return left.proxy->compare_equal(right.proxy);
-            }
-
-            friend bool operator!=(const iterator &left, const iterator &right) {
-                return !left.proxy->compare_equal(right.proxy);
-            }
-
-            bool empty() const noexcept {
-                return static_cast<bool>(proxy);
-            }
-
-            void copy_from_other(const iterator &right) {
-                if (this == utility::addressof(right)) {
-                    return;
-                }
-                proxy = right.proxy->construct_from_this(this->buffer);
-            }
-
-            void move_from_other(iterator &&right) {
-                if (this == utility::addressof(right) || !right.proxy) {
-                    return;
-                }
-                if (right.is_local()) {
-                    proxy = right.proxy->construct_from_this(this->buffer);
-                    right.proxy = nullptr;
-                } else {
-                    proxy = utility::exchange(right.proxy, nullptr);
-                }
-            }
-
-            any_iterator_category iterator_category() const noexcept {
-                return proxy->iterator_category();
-            }
-
-        private:
-            bool is_local() const noexcept {
-                return proxy == reinterpret_cast<const void *>(buffer);
-            }
-
-            iterator_proxy_vtable *proxy{nullptr};
-            core::byte_t buffer[length]{};
-        };
-
+        using iterator = implements::any_iterator_impl<basic_any>;
         using const_iterator = iterator;
+        using reference = implements::any_reference<basic_any>;
+        using const_reference = reference;
 
         constexpr basic_any() noexcept {
         }
@@ -889,31 +925,31 @@ namespace rainy::utility {
             return *this;
         }
 
-        basic_any operator[](std::size_t index) {
-            basic_any ret;
+        reference operator[](std::size_t index) {
+            reference ret;
             basic_any the_index{std::in_place_type<std::size_t>, index};
             std::tuple tuple{false, this, &ret, &the_index};
             storage.executer->invoke(implements::any_operation::access_element, &tuple);
             return ret;
         }
 
-        basic_any operator[](std::size_t index) const {
-            basic_any ret;
+        const_reference operator[](std::size_t index) const {
+            const_reference ret;
             basic_any the_index{std::in_place_type<std::size_t>, index};
             std::tuple tuple{true, this, &ret, &the_index};
             storage.executer->invoke(implements::any_operation::access_element, &tuple);
             return ret;
         }
 
-        basic_any operator[](const basic_any &key) {
-            basic_any ret;
+        reference operator[](const basic_any &key) {
+            reference ret;
             std::tuple tuple{false, this, &ret, &key};
             storage.executer->invoke(implements::any_operation::access_element, &tuple);
             return ret;
         }
 
-        basic_any operator[](const basic_any &key) const {
-            basic_any ret;
+        const_reference operator[](const basic_any &key) const {
+            const_reference ret;
             std::tuple tuple{true, this, &ret, &key};
             storage.executer->invoke(implements::any_operation::access_element, &tuple);
             return ret;
@@ -1030,6 +1066,13 @@ namespace rainy::utility {
             return left;
         }
 
+        template <typename CharType, typename AnyReference,
+                  type_traits::other_trans::enable_if_t<
+                      type_traits::type_relations::is_same_v<type_traits::other_trans::decay_t<AnyReference>, reference>, int> = 0>
+        friend std::basic_ostream<CharType> &operator<<(std::basic_ostream<CharType> &left, const AnyReference &right) {
+            return left << static_cast<const basic_any &>(right);
+        }
+
         template <typename Type>
         bool is() const noexcept {
             return type() == rainy_typeid(Type);
@@ -1047,6 +1090,28 @@ namespace rainy::utility {
 
         bool has_ownership() const noexcept {
             return get_representation() != implements::any_representation::reference && has_value();
+        }
+
+        reference as_reference() noexcept {
+            reference reference;
+            auto tuple = std::make_tuple(false, this, &reference);
+            storage.executer->invoke(implements::any_operation::get_reference, &tuple);
+            return reference;
+        }
+
+        const_reference as_reference() const noexcept {
+            reference reference;
+            auto tuple = std::make_tuple(true, this, &reference);
+            storage.executer->invoke(implements::any_operation::get_reference, &tuple);
+            return reference;
+        }
+
+        basic_any &as_value() noexcept {
+            return static_cast<basic_any &>(*this);
+        }
+
+        const basic_any &as_value() const noexcept {
+            return static_cast<const basic_any &>(*this);
         }
 
     private:
@@ -1812,7 +1877,7 @@ namespace rainy::utility::implements {
         using iterator_t = typename Type::iterator;
         using proxy_t = typename BasicAny::iterator::iterator_proxy_vtable;
 
-        any_proxy_iterator(const iterator_t& iterator) : iter{iterator} {
+        any_proxy_iterator(const iterator_t &iterator) : iter{iterator} {
         }
 
         void destruct(bool is_local) override {
@@ -1944,6 +2009,7 @@ namespace rainy::utility::implements {
     template <typename Ty, std::size_t Length, std::size_t Align>
     bool any_operater_policy::invoke_impl(operation op, void *const data) {
         using any = basic_any<Length, Align>;
+        using remove_cvref_t = type_traits::cv_modify::remove_cvref_t<Ty>;
         switch (op) {
             case operation::compare: {
                 using namespace foundation::exceptions::logic;
@@ -1954,16 +2020,16 @@ namespace rainy::utility::implements {
                 any_compare_operation operation = std::get<2>(*res);
                 switch (operation) {
                     case any_compare_operation::less: {
-                        if constexpr (is_any_less_compareable_v<Ty, any>) {
-                            return any_operator<Ty, any>{}.compare_less(*left, *right);
+                        if constexpr (is_any_less_compareable_v<remove_cvref_t, any>) {
+                            return any_operator<remove_cvref_t, any>{}.compare_less(*left, *right);
                         } else {
                             foundation::exceptions::logic::throw_any_not_implemented("Current type not support this operation: less");
                         }
                         break;
                     }
                     case any_compare_operation::less_eq: {
-                        if constexpr (is_any_less_eq_compareable_v<Ty, any>) {
-                            return any_operator<Ty, any>{}.compare_less_equal(*left, *right);
+                        if constexpr (is_any_less_eq_compareable_v<remove_cvref_t, any>) {
+                            return any_operator<remove_cvref_t, any>{}.compare_less_equal(*left, *right);
                         } else {
                             foundation::exceptions::logic::throw_any_not_implemented(
                                 "Current type not support this operation: less_eq");
@@ -1971,16 +2037,16 @@ namespace rainy::utility::implements {
                         break;
                     }
                     case any_compare_operation::eq: {
-                        if constexpr (is_any_eq_compareable_v<Ty, any>) {
-                            return any_operator<Ty, any>{}.compare_equal(*left, *right);
+                        if constexpr (is_any_eq_compareable_v<remove_cvref_t, any>) {
+                            return any_operator<remove_cvref_t, any>{}.compare_equal(*left, *right);
                         } else {
                             foundation::exceptions::logic::throw_any_not_implemented("Current type not support this operation: eq");
                         }
                         break;
                     }
                     case any_compare_operation::greater_eq: {
-                        if constexpr (is_any_greater_eq_compareable_v<Ty, any>) {
-                            return any_operator<Ty, any>{}.compare_greater_equal(*left, *right);
+                        if constexpr (is_any_greater_eq_compareable_v<remove_cvref_t, any>) {
+                            return any_operator<remove_cvref_t, any>{}.compare_greater_equal(*left, *right);
                         } else {
                             foundation::exceptions::logic::throw_any_not_implemented(
                                 "Current type not support this operation: greater_eq");
@@ -1988,8 +2054,8 @@ namespace rainy::utility::implements {
                         break;
                     }
                     case any_compare_operation::greater: {
-                        if constexpr (is_any_gt_compareable_v<Ty, any>) {
-                            return any_operator<Ty, any>{}.compare_greater(*left, *right);
+                        if constexpr (is_any_gt_compareable_v<remove_cvref_t, any>) {
+                            return any_operator<remove_cvref_t, any>{}.compare_greater(*left, *right);
                         } else {
                             foundation::exceptions::logic::throw_any_not_implemented(
                                 "Current type not support this operation: greater");
@@ -2026,15 +2092,14 @@ namespace rainy::utility::implements {
             }
             case operation::destructre_this_pack: {
                 using implements::any_binding_package;
-                constexpr std::size_t member_count = member_count_v<type_traits::cv_modify::remove_cvref_t<Ty>>;
+                constexpr std::size_t member_count = member_count_v<remove_cvref_t>;
                 if constexpr (member_count != 0) {
                     auto *res = static_cast<std::tuple<any *, bool, collections::views::array_view<any_binding_package>> *>(data);
                     any *object = std::get<0>(*res);
                     bool use_const = std::get<1>(*res);
                     auto &view = std::get<2>(*res);
                     if (use_const) {
-                        auto tuple_ptr = utility::struct_bind_tuple(
-                            std::as_const(object)->template as<type_traits::cv_modify::remove_cvref_t<Ty>>());
+                        auto tuple_ptr = utility::struct_bind_tuple(std::as_const(object)->template as<remove_cvref_t>());
                         std::apply(
                             [&](auto *...elems) {
                                 std::size_t idx = 0;
@@ -2044,7 +2109,7 @@ namespace rainy::utility::implements {
                             },
                             tuple_ptr);
                     } else {
-                        auto tuple_ptr = utility::struct_bind_tuple(object->template as<type_traits::cv_modify::remove_cvref_t<Ty>>());
+                        auto tuple_ptr = utility::struct_bind_tuple(object->template as<remove_cvref_t>());
                         std::apply(
                             [&](auto *...elems) {
                                 std::size_t idx = 0;
@@ -2087,12 +2152,12 @@ namespace rainy::utility::implements {
                 auto &right = *std::get<1>(*res);
                 auto &recv = *std::get<2>(*res);
                 if (&recv == &left) {
-                    if constexpr (is_any_addable_v<Ty, any, true>) {
-                        any_operator<Ty, any, true>{}.add(recv, right);
+                    if constexpr (is_any_addable_v<remove_cvref_t, any, true>) {
+                        any_operator<remove_cvref_t, any, true>{}.add(recv, right);
                     }
                     return true;
-                } else if constexpr (is_any_addable_v<Ty, any, false>) {
-                    recv = any_operator<Ty, any, false>{}.add(left, right);
+                } else if constexpr (is_any_addable_v<remove_cvref_t, any, false>) {
+                    recv = any_operator<remove_cvref_t, any, false>{}.add(left, right);
                     return true;
                 }
                 break;
@@ -2104,58 +2169,58 @@ namespace rainy::utility::implements {
                 auto &right = *std::get<1>(*res);
                 auto &recv = *std::get<2>(*res);
                 if (&recv == &left) {
-                    if constexpr (is_any_subable_v<Ty, any, true>) {
-                        any_operator<Ty, any, true>{}.subtract(recv, right);
+                    if constexpr (is_any_subable_v<remove_cvref_t, any, true>) {
+                        any_operator<remove_cvref_t, any, true>{}.subtract(recv, right);
                     }
                     return true;
-                } else if constexpr (is_any_subable_v<Ty, any, false>) {
-                    recv = any_operator<Ty, any, false>{}.subtract(left, right);
+                } else if constexpr (is_any_subable_v<remove_cvref_t, any, false>) {
+                    recv = any_operator<remove_cvref_t, any, false>{}.subtract(left, right);
                     return true;
                 }
                 return true;
                 break;
             }
             case operation::incr_prefix: {
-                if constexpr (is_any_preincable_v<Ty, any>) {
+                if constexpr (is_any_preincable_v<remove_cvref_t, any>) {
                     auto *res = static_cast<std::tuple<any * /* operand */, any * /* recv */
                                                        > *>(data);
                     auto &left = *std::get<0>(*res);
                     auto &recv = *std::get<1>(*res);
-                    recv = any_operator<Ty, any>{}.incr_prefix(left);
+                    recv = any_operator<remove_cvref_t, any>{}.incr_prefix(left);
                     std::cout << "recv.type().name() = " << recv.type().name() << "\n";
                     return true;
                 }
                 break;
             }
             case operation::decr_prefix: {
-                if constexpr (is_any_predecable_v<Ty, any>) {
+                if constexpr (is_any_predecable_v<remove_cvref_t, any>) {
                     auto *res = static_cast<std::tuple<any * /* operand */, any * /* recv */
                                                        > *>(data);
                     auto &left = *std::get<0>(*res);
                     auto &recv = *std::get<1>(*res);
-                    recv = any_operator<Ty, any>{}.decr_prefix(left);
+                    recv = any_operator<remove_cvref_t, any>{}.decr_prefix(left);
                     return true;
                 }
                 break;
             }
             case operation::incr_postfix: {
-                if constexpr (is_any_postincable_v<Ty, any>) {
+                if constexpr (is_any_postincable_v<remove_cvref_t, any>) {
                     auto *res = static_cast<std::tuple<any * /* operand */, any * /* recv */
                                                        > *>(data);
                     auto &left = *std::get<0>(*res);
                     auto &recv = *std::get<1>(*res);
-                    recv = any_operator<Ty, any>{}.incr_postfix(left);
+                    recv = any_operator<remove_cvref_t, any>{}.incr_postfix(left);
                     return true;
                 }
                 break;
             }
             case operation::decr_postfix: {
-                if constexpr (is_any_postdecable_v<Ty, any>) {
+                if constexpr (is_any_postdecable_v<remove_cvref_t, any>) {
                     auto *res = static_cast<std::tuple<any * /* operand */, any * /* recv */
                                                        > *>(data);
                     auto &left = *std::get<0>(*res);
                     auto &recv = *std::get<1>(*res);
-                    recv = any_operator<Ty, any>{}.decr_postfix(left);
+                    recv = any_operator<remove_cvref_t, any>{}.decr_postfix(left);
                     return true;
                 }
                 break;
@@ -2167,12 +2232,12 @@ namespace rainy::utility::implements {
                 auto &right = *std::get<1>(*res);
                 auto &recv = *std::get<2>(*res);
                 if (&recv == &left) {
-                    if constexpr (is_any_multable_v<Ty, any, true>) {
-                        any_operator<Ty, any, true>{}.multiply(recv, right);
+                    if constexpr (is_any_multable_v<remove_cvref_t, any, true>) {
+                        any_operator<remove_cvref_t, any, true>{}.multiply(recv, right);
                     }
                     return true;
-                } else if constexpr (is_any_multable_v<Ty, any, false>) {
-                    recv = any_operator<Ty, any, false>{}.multiply(left, right);
+                } else if constexpr (is_any_multable_v<remove_cvref_t, any, false>) {
+                    recv = any_operator<remove_cvref_t, any, false>{}.multiply(left, right);
                     return true;
                 }
                 break;
@@ -2184,12 +2249,12 @@ namespace rainy::utility::implements {
                 auto &right = *std::get<1>(*res);
                 auto &recv = *std::get<2>(*res);
                 if (&recv == &left) {
-                    if constexpr (is_any_divable_v<Ty, any, true>) {
-                        any_operator<Ty, any, true>{}.divide(recv, right);
+                    if constexpr (is_any_divable_v<remove_cvref_t, any, true>) {
+                        any_operator<remove_cvref_t, any, true>{}.divide(recv, right);
                     }
                     return true;
-                } else if constexpr (is_any_divable_v<Ty, any, false>) {
-                    recv = any_operator<Ty, any, false>{}.divide(left, right);
+                } else if constexpr (is_any_divable_v<remove_cvref_t, any, false>) {
+                    recv = any_operator<remove_cvref_t, any, false>{}.divide(left, right);
                     return true;
                 }
                 break;
@@ -2201,12 +2266,12 @@ namespace rainy::utility::implements {
                 auto &right = *std::get<1>(*res);
                 auto &recv = *std::get<2>(*res);
                 if (&recv == &left) {
-                    if constexpr (is_any_modable_v<Ty, any, true>) {
-                        any_operator<Ty, any, true>{}.mod(recv, right);
+                    if constexpr (is_any_modable_v<remove_cvref_t, any, true>) {
+                        any_operator<remove_cvref_t, any, true>{}.mod(recv, right);
                     }
                     return true;
-                } else if constexpr (is_any_modable_v<Ty, any, false>) {
-                    recv = any_operator<Ty, any, false>{}.mod(left, right);
+                } else if constexpr (is_any_modable_v<remove_cvref_t, any, false>) {
+                    recv = any_operator<remove_cvref_t, any, false>{}.mod(left, right);
                     return true;
                 }
                 break;
@@ -2235,8 +2300,8 @@ namespace rainy::utility::implements {
                 bool has_value{false};
                 using namespace type_traits;
                 using const_as = type_traits::cv_modify::add_const_t<type_traits::reference_modify::remove_reference_t<Ty>>;
-                auto *res =
-                    static_cast<std::tuple<bool /* is_const */, any * /* value */, any * /* recv */, const any * /* index */> *>(data);
+                auto *res = static_cast<std::tuple<bool /* is_const */, any * /* value */, typename any::reference * /* recv */,
+                                                   const any * /* index */> *>(data);
                 bool is_const = std::get<0>(*res);
                 any *value = std::get<1>(*res);
                 auto &recv = *std::get<2>(*res);
@@ -2252,16 +2317,17 @@ namespace rainy::utility::implements {
                     if (is_const || value->type().is_const()) {
                         if constexpr (extras::meta_method::has_operator_index_v<const_as>) {
                             const auto &extract = (*std::get<1>(*res)).template as<const_as>();
-                            recv = {std::in_place_type<access_elements_construct_type<elem_t>>, extract[index]};
+                            utility::construct_in_place(recv,
+                                                        utility::forward<access_elements_construct_type<elem_t>>(extract[index]));
                         }
                     } else {
                         auto &extract = (*std::get<1>(*res)).template as<Ty>();
-                        recv = {std::in_place_type<elem_t>, extract[index]};
+                        utility::construct_in_place(recv, utility::forward<elem_t>(extract[index]));
                     }
                     has_value = recv.has_value();
-                } else if constexpr (extras::meta_method::has_operator_index_for_key_v<type_traits::cv_modify::remove_cvref_t<Ty>>) {
-                    using key_type = typename Ty::key_type;
-                    using elem_t = decltype(utility::declval<Ty &>()[utility::declval<key_type>()]);
+                } else if constexpr (extras::meta_method::has_operator_index_for_key_v<remove_cvref_t>) {
+                    using key_type = typename remove_cvref_t::key_type;
+                    using elem_t = decltype(utility::declval<remove_cvref_t>()[utility::declval<key_type>()]);
                     key_type key_val{};
                     if (key->template is<key_type>()) {
                         key_val = key->template as<key_type>();
@@ -2271,11 +2337,22 @@ namespace rainy::utility::implements {
                     if (is_const || value->type().is_const()) {
                         if constexpr (extras::meta_method::has_operator_index_for_key_v<const_as>) {
                             const auto &extract = (*std::get<1>(*res)).template as<const_as>();
-                            recv = {std::in_place_type<access_elements_construct_type<elem_t>>, extract[utility::move(key_val)]};
+                            utility::construct_in_place(
+                                recv, utility::forward<access_elements_construct_type<elem_t>>(extract[utility::move(key_val)]));
                         }
                     } else {
                         auto &extract = (*std::get<1>(*res)).template as<Ty>();
-                        recv = {std::in_place_type<elem_t>, extract[utility::move(key_val)]};
+                        if constexpr (type_traits::type_properties::is_const_v<
+                                          type_traits::reference_modify::remove_reference_t<Ty>>) {
+                            constexpr bool has_operator_in_const =
+                                extras::meta_method::has_operator_index_for_key_v<type_traits::cv_modify::add_const_t<remove_cvref_t>>;
+                            if constexpr (has_operator_in_const) {
+                                utility::construct_in_place(
+                                    recv, utility::forward<access_elements_construct_type<elem_t>>(extract[utility::move(key_val)]));
+                            }
+                        } else {
+                            utility::construct_in_place(recv, utility::forward<elem_t>(extract[utility::move(key_val)]));
+                        }
                     }
                     has_value = recv.has_value();
                 } else if constexpr (is_index_tuple_v<Ty>) {
@@ -2338,7 +2415,7 @@ namespace rainy::utility::implements {
                     }
                     return !recv->empty();
                 }
-                return false;
+                break;
             }
             case operation::call_end: {
                 if constexpr (type_traits::extras::iterators::has_iterator_v<Ty>) {
@@ -2370,7 +2447,50 @@ namespace rainy::utility::implements {
                     }
                     return !recv->empty();
                 }
-                return false;
+                break;
+            }
+            case operation::assign: {
+                using remove_ref_t = type_traits::reference_modify::remove_reference_t<Ty>;
+                constexpr bool can_assign = type_traits::extras::meta_method::has_operator_assign_v<Ty> &&
+                                            !type_traits::type_properties::is_const_v<remove_ref_t>;
+                if constexpr (can_assign) {
+                    using tuple_t = std::tuple<typename any::reference *, any>;
+                    auto *res = static_cast<tuple_t *>(data);
+                    auto *left = std::get<0>(*res);
+                    auto &right = std::get<1>(*res);
+                    auto &left_operand = *reinterpret_cast<type_traits::cv_modify::remove_cvref_t<Ty> *>(
+                        const_cast<void *>(left->target_as_void_ptr()));
+                    if (right.template is<Ty>()) {
+                        left_operand = right.as<Ty>();
+                    } else if (right.template is_convertible<Ty>()) {
+                        left_operand = right.convert<Ty>();
+                    }
+                    return true;
+                }
+                break;
+            }
+            case operation::get_reference: {
+                using namespace type_traits;
+                using namespace type_traits::other_trans;
+                using namespace type_traits::composite_types;
+                using namespace type_traits::primary_types;
+                using namespace type_traits::reference_modify;
+                using add_const = conditional_t<is_reference_v<Ty>,
+                                                conditional_t<is_rvalue_reference_v<Ty>, add_rvalue_reference_t<remove_cvref_t>,
+                                                              add_lvalue_reference_t<remove_cvref_t>>,
+                                                remove_cvref_t>;
+                using tuple_t = std::tuple<bool, any *, typename any::reference *>;
+                auto *res = static_cast<tuple_t *>(data);
+                bool is_const = std::get<0>(*res);
+                auto *value = std::get<1>(*res);
+                auto *reference = std::get<2>(*res);
+                if (is_const) {
+                    utility::construct_at(reference, utility::forward<type_traits::reference_modify::remove_reference_t<add_const>>(
+                                                         value->as<add_const>()));
+                } else {
+                    utility::construct_at(reference, utility::forward<Ty>(value->as<Ty>()));
+                }
+                return true;
             }
         }
         return false;
