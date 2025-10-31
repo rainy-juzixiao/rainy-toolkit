@@ -323,8 +323,8 @@ namespace rainy::utility::implements {
             virtual ~iterator_proxy_vtable() = default;
             virtual void next() = 0;
             virtual void previous() = 0;
-            virtual value_type dereference() = 0;
-            virtual value_type const_dereference() const = 0;
+            virtual reference dereference() = 0;
+            virtual const_reference const_dereference() const = 0;
             virtual foundation::ctti::typeinfo typeinfo() const = 0;
             virtual void destruct(bool is_local) = 0;
             virtual iterator_proxy_vtable *construct_from_this(core::byte_t *soo_buffer) const noexcept = 0;
@@ -727,7 +727,7 @@ namespace rainy::utility {
         }
 
         template <typename Decayed>
-        RAINY_ANY_CAST_TO_POINTER_NODISCARD rain_fn cast_to_pointer() noexcept -> type_traits::pointer_modify::add_pointer_t <
+        RAINY_ANY_CAST_TO_POINTER_NODISCARD rain_fn cast_to_pointer() noexcept -> type_traits::pointer_modify::add_pointer_t<
             type_traits::other_trans::conditional_t<type_traits::composite_types::is_reference_v<Decayed>,
                                                     type_traits::reference_modify::remove_reference_t<Decayed>, Decayed>> {
             using namespace type_traits;
@@ -1903,12 +1903,12 @@ namespace rainy::utility::implements {
             }
         }
 
-        BasicAny dereference() {
-            return BasicAny{std::in_place_type<decltype(*iter)>, *iter};
+        typename BasicAny::reference dereference() {
+            return *iter;
         }
 
-        BasicAny const_dereference() const {
-            return BasicAny{std::in_place_type<decltype(*iter)>, *iter};
+        typename BasicAny::const_reference const_dereference() const {
+            return *iter;
         }
 
         foundation::ctti::typeinfo typeinfo() const {
@@ -1970,12 +1970,12 @@ namespace rainy::utility::implements {
             }
         }
 
-        BasicAny dereference() {
-            return BasicAny{std::in_place_type<decltype(*iter)>, *iter};
+        typename BasicAny::reference dereference() {
+            return *iter;
         }
 
-        BasicAny const_dereference() const {
-            return BasicAny{std::in_place_type<decltype(*iter)>, *iter};
+        typename BasicAny::const_reference const_dereference() const {
+            return *iter;
         }
 
         foundation::ctti::typeinfo typeinfo() const {
