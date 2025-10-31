@@ -1891,11 +1891,11 @@ namespace rainy::utility::implements {
             }
         }
 
-        void next() {
+        void next() override {
             ++iter;
         }
 
-        void previous() {
+        void previous() override {
             if constexpr (get_iterator_category<iterator_t>() <= any_iterator_category::forward_iterator) {
                 foundation::exceptions::logic::throw_any_not_implemented("Current iterator category is not support this operation");
             } else {
@@ -1903,15 +1903,15 @@ namespace rainy::utility::implements {
             }
         }
 
-        typename BasicAny::reference dereference() {
+        typename BasicAny::reference dereference() override {
             return *iter;
         }
 
-        typename BasicAny::const_reference const_dereference() const {
+        typename BasicAny::const_reference const_dereference() const override {
             return *iter;
         }
 
-        foundation::ctti::typeinfo typeinfo() const {
+        foundation::ctti::typeinfo typeinfo() const override {
             return rainy_typeid(any_proxy_iterator);
         }
 
@@ -1923,7 +1923,7 @@ namespace rainy::utility::implements {
             }
         }
 
-        bool compare_equal(const proxy_t *right) const {
+        bool compare_equal(const proxy_t *right) const override {
             using cit = const_any_proxy_iterator<BasicAny, Type>;
             if (right->typeinfo() == rainy_typeid(any_proxy_iterator)) {
                 return iter == static_cast<const any_proxy_iterator *>(right)->iter;
@@ -1933,7 +1933,7 @@ namespace rainy::utility::implements {
             return false;
         }
 
-        any_iterator_category iterator_category() const noexcept {
+        any_iterator_category iterator_category() const noexcept override {
             constexpr any_iterator_category category = get_iterator_category<iterator_t>();
             return category;
         }
@@ -1958,11 +1958,11 @@ namespace rainy::utility::implements {
             }
         }
 
-        void next() {
+        void next() override {
             ++iter;
         }
 
-        void previous() {
+        void previous() override {
             if constexpr (get_iterator_category<iterator_t>() <= any_iterator_category::forward_iterator) {
                 foundation::exceptions::logic::throw_any_not_implemented("Current iterator category is not support this operation");
             } else {
@@ -1970,15 +1970,15 @@ namespace rainy::utility::implements {
             }
         }
 
-        typename BasicAny::reference dereference() {
+        typename BasicAny::reference dereference() override {
             return *iter;
         }
 
-        typename BasicAny::const_reference const_dereference() const {
+        typename BasicAny::const_reference const_dereference() const override {
             return *iter;
         }
 
-        foundation::ctti::typeinfo typeinfo() const {
+        foundation::ctti::typeinfo typeinfo() const override {
             return rainy_typeid(const_any_proxy_iterator);
         }
 
@@ -1990,7 +1990,7 @@ namespace rainy::utility::implements {
             }
         }
 
-        any_iterator_category iterator_category() const noexcept {
+        any_iterator_category iterator_category() const noexcept override {
             constexpr any_iterator_category category = get_iterator_category<iterator_t>();
             return category;
         }
@@ -2365,17 +2365,20 @@ namespace rainy::utility::implements {
                         index = key->template convert<std::size_t>();
                     }
                     constexpr auto find_fn = [](bool is_const, std::size_t index, auto &&recv, auto &&extract) {
+                        // NOLINT BEGIN
                         std::apply(
                             [&](auto &&...elems) {
                                 std::size_t i{0};
-                                ((i++ == index
-                                      ? (is_const ? recv.template emplace<access_elements_construct_type<decltype(elems)>>(elems)
-                                                  : recv.template emplace<decltype(elems)>(elems),
-                                         true)
-                                      : false) ||
-                                 ...);
+                                (void) ((i++ == index
+                                             ? (is_const
+                                                    ? recv.template emplace<access_elements_construct_type<decltype(elems)>>(elems)
+                                                    : recv.template emplace<decltype(elems)>(elems),
+                                                true)
+                                             : false) ||
+                                        ...);
                             },
                             extract);
+                        // NOLINT END
                     };
                     if (is_const || value->type().is_const()) {
                         find_fn(true, index, recv, value->template as<const_as>());
@@ -2463,9 +2466,9 @@ namespace rainy::utility::implements {
                     auto &left_operand = *reinterpret_cast<type_traits::cv_modify::remove_cvref_t<Ty> *>(
                         const_cast<void *>(left->target_as_void_ptr()));
                     if (right.template is<Ty>()) {
-                        left_operand = right.as<Ty>();
+                        left_operand = right.template as<Ty>();
                     } else if (right.template is_convertible<Ty>()) {
-                        left_operand = right.convert<Ty>();
+                        left_operand = right.template convert<Ty>();
                     }
                     return true;
                 }
@@ -2488,9 +2491,9 @@ namespace rainy::utility::implements {
                 auto *reference = std::get<2>(*res);
                 if (is_const) {
                     utility::construct_at(reference, utility::forward<type_traits::reference_modify::remove_reference_t<add_const>>(
-                                                         value->as<add_const>()));
+                                                         value->template as<add_const>()));
                 } else {
-                    utility::construct_at(reference, utility::forward<Ty>(value->as<Ty>()));
+                    utility::construct_at(reference, utility::forward<Ty>(value->template as<Ty>()));
                 }
                 return true;
             }

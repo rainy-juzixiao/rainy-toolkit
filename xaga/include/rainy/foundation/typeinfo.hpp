@@ -19,9 +19,9 @@
  * @file typeinfo.hpp
  * @brief 类型信息类
  * @brief 此文件定义了一套类型信息类，用于获取类型信息。rainy-toolkit通过此文件提供的接口，用于实现元编程功能
- * @brief 使用此ctti不会带来性能开销，因为它本质只是做一个静态的编译期计算，仅涉及比较基本的元编程操作
+ * @brief 另外，使用此ctti需要承担为信息操作而付出的代价，即生成的二进制文件可能会较大
  * @author rainy-juzixiao
-*/
+ */
 #include <rainy/core/core.hpp>
 #include <string_view>
 
@@ -87,11 +87,11 @@ namespace rainy::foundation::ctti::implements {
 #endif
     }
 
-    static constexpr std::size_t wrapped_type_name_prefix_length() { // NOLINT
+    constexpr std::size_t wrapped_type_name_prefix_length() { // NOLINT
         return wrapped_type_name<type_name_prober>().find(type_name_prober_);
     }
 
-    static constexpr std::size_t wrapped_type_name_suffix_length() { // NOLINT
+    constexpr std::size_t wrapped_type_name_suffix_length() { // NOLINT
         return wrapped_type_name<type_name_prober>().length() - wrapped_type_name_prefix_length() - type_name_prober_.length();
     }
 
@@ -106,7 +106,9 @@ namespace rainy::foundation::ctti::implements {
 #endif
         // 仅支持Clang、MSVC、GCC编译器。因为其它的编译器不在本库的支持范围内。考虑其它实现
     }
+}
 
+namespace rainy::foundation::ctti::implements {
     template <typename Ty>
     static constexpr traits eval_traits_for_properties() noexcept {
         traits traits_{0};
@@ -211,6 +213,157 @@ namespace rainy::foundation::ctti::implements {
         traits |= implements::eval_traits_for_compound<Ty>();
         return traits;
     }
+
+    template <typename Ty>
+    constexpr auto make_type_name_array() {
+        constexpr auto wrapped_name = implements::wrapped_type_name<Ty>();
+        constexpr auto prefix_length = implements::wrapped_type_name_prefix_length();
+        constexpr auto suffix_length = implements::wrapped_type_name_suffix_length();
+        constexpr auto type_name_length = wrapped_name.length() - prefix_length - suffix_length;
+        collections::array<char, type_name_length + 1> arr{};
+        for (std::size_t i = 0; i < type_name_length; ++i) {
+            arr[i] = wrapped_name[prefix_length + i];
+        }
+        arr[type_name_length] = '\0';
+        return arr;
+    }
+
+    template <typename Ty>
+    constexpr auto type_name_array = make_type_name_array<Ty>();
+
+    template <typename Ty>
+    constexpr std::string_view generate_type_name() {
+        return {type_name_array<Ty>.data(), type_name_array<Ty>.size() - 1};
+    }
+
+    RAINY_INLINE static constexpr std::size_t fnv1a_hash(std::string_view val) noexcept {
+        std::size_t hash = utility::implements::fnv_offset_basis;
+        for (char i: val) {
+            hash ^= static_cast<std::size_t>(static_cast<unsigned char>(i));
+            hash *= utility::implements::fnv_prime;
+        }
+        return hash;
+    }
+}
+
+namespace rainy::foundation::ctti::implements {
+#define raw_type_id(x) typeinfo_component::typehash<x>()
+
+    enum class type_operation {
+        remove_pointer,
+        remove_const,
+        remove_volatile,
+        remove_const_volatile,
+        remove_cvref,
+        remove_reference,
+        decay_type
+    };
+
+    struct typeinfo_component {
+        using is_comptaible_fnptr_t = bool (*)(const typeinfo_component &);
+        using type_modifer = const typeinfo_component *(*) (type_operation);
+
+        constexpr typeinfo_component() = default;
+
+        template <typename Ty>
+        static rain_fn constexpr make() -> typeinfo_component {
+            typeinfo_component raw;
+            constexpr std::string_view name = generate_type_name<Ty>();
+            constexpr std::size_t eval_hash_code = fnv1a_hash(name);
+            constexpr traits traits = implements::eval_for_typeinfo<Ty>();
+            raw.name = name;
+            raw.hash_code = eval_hash_code;
+            raw.type_traits = traits;
+            raw.is_comptaible = &is_compatible_impl<Ty>;
+            raw.modfier = &type_modfier_impl<Ty>;
+            return raw;
+        }
+
+        template <typename Ty>
+        static rain_fn constexpr typehash() -> std::size_t {
+            constexpr std::string_view name = generate_type_name<Ty>();
+            constexpr std::size_t eval_hash_code = fnv1a_hash(name);
+            return eval_hash_code;
+        }
+
+        template <typename Type>
+        static constexpr rain_fn is_compatible_impl(const typeinfo_component &type) -> bool;
+
+        template <typename Ty>
+        static constexpr rain_fn type_modfier_impl(type_operation op) -> const typeinfo_component *;
+
+        std::string_view name{};
+        std::size_t hash_code{};
+        traits type_traits{};
+        is_comptaible_fnptr_t is_comptaible{};
+        type_modifer modfier{};
+    };
+
+    template <typename Ty>
+    static constexpr typeinfo_component typeinfo = typeinfo_component::make<Ty>();
+
+    template <typename Ty>
+    constexpr rain_fn typeinfo_component::type_modfier_impl(type_operation op) -> const typeinfo_component * {
+        using namespace type_traits;
+        if constexpr (!type_traits::type_relations::is_void_v<Ty>) {
+            switch (op) {
+                case type_operation::remove_pointer: {
+                    return &typeinfo<type_traits::pointer_modify::remove_pointer_t<Ty>>;
+                }
+                case type_operation::remove_const: {
+                    return &typeinfo<type_traits::cv_modify::remove_const_t<Ty>>;
+                }
+                case type_operation::remove_volatile: {
+                    return &typeinfo<type_traits::cv_modify::remove_volatile_t<Ty>>;
+                }
+                case type_operation::remove_const_volatile: {
+                    return &typeinfo<type_traits::cv_modify::remove_cv_t<Ty>>;
+                }
+                case type_operation::remove_cvref: {
+                    return &typeinfo<type_traits::cv_modify::remove_cvref_t<Ty>>;
+                }
+                case type_operation::remove_reference: {
+                    return &typeinfo<type_traits::reference_modify::remove_reference_t<Ty>>;
+                }
+            }
+        }
+        return &typeinfo<void>;
+    }
+
+    template <typename Type>
+    constexpr rain_fn typeinfo_component::is_compatible_impl(const typeinfo_component &type) -> bool {
+        using namespace type_traits;
+        using match_t = cv_modify::remove_cvref_t<Type>;
+        using real_convert_type =
+            other_trans::conditional_t<composite_types::is_reference_v<Type>, Type, reference_modify::add_lvalue_reference_t<Type>>;
+        if constexpr (type_traits::type_relations::is_void_v<type_traits::cv_modify::remove_cvref_t<Type>>) {
+            return false;
+        } else {
+            switch (type.hash_code) {
+                case raw_type_id(match_t):
+                    return true;
+                case raw_type_id(match_t &):
+                    return type_relations::is_convertible_v<match_t &, real_convert_type>;
+                case raw_type_id(match_t &&):
+                    return type_relations::is_convertible_v<match_t &&, real_convert_type>;
+                case raw_type_id(const match_t):
+                    return true;
+                case raw_type_id(const match_t &):
+                    return type_relations::is_convertible_v<const match_t &, real_convert_type>;
+                case raw_type_id(const match_t &&):
+                    return type_relations::is_convertible_v<const match_t &&, real_convert_type>;
+                case raw_type_id(const volatile match_t):
+                    return true;
+                case raw_type_id(const volatile match_t &):
+                    return type_relations::is_convertible_v<const volatile match_t &, real_convert_type>;
+                case raw_type_id(const volatile match_t &&):
+                    return type_relations::is_convertible_v<const volatile match_t &&, real_convert_type>;
+                default:
+                    return false;
+            }
+        }
+    }
+#undef raw_type_id
 }
 
 namespace rainy::foundation::ctti {
@@ -221,12 +374,7 @@ namespace rainy::foundation::ctti {
      */
     template <typename Ty>
     constexpr std::string_view type_name() {
-        constexpr auto wrapped_name = implements::wrapped_type_name<Ty>();
-        constexpr auto prefix_length = implements::wrapped_type_name_prefix_length();
-        constexpr auto suffix_length = implements::wrapped_type_name_suffix_length();
-        constexpr auto type_name_length = wrapped_name.length() - prefix_length - suffix_length;
-        constexpr auto raw_name_sv = wrapped_name.substr(prefix_length, type_name_length);
-        return raw_name_sv;
+        return implements::generate_type_name<Ty>();
     }
 
     /**
@@ -261,11 +409,18 @@ namespace rainy::foundation::ctti {
     }
 }
 
+#define RAINY_GENERATE_TYPEINFO_METHOD_HELPER(function_name, operation)                                                               \
+    RAINY_NODISCARD constexpr rain_fn function_name() const noexcept -> typeinfo {                                                    \
+        typeinfo ret;                                                                                                                 \
+        ret.internal_type = internal_type->modfier(operation);                                                                        \
+        return ret;                                                                                                                   \
+    }
+
 namespace rainy::foundation::ctti {
     class typeinfo {
     public:
         constexpr typeinfo() = default;
-        constexpr typeinfo(const typeinfo&) = default;
+        constexpr typeinfo(const typeinfo &) = default;
         constexpr typeinfo(typeinfo &&) = default;
 
         typeinfo &operator=(const typeinfo &) = default;
@@ -278,18 +433,14 @@ namespace rainy::foundation::ctti {
          */
         template <typename Ty>
         static constexpr typeinfo create() {
-            typeinfo info{};
-            info._name = type_name<Ty>();
-            constexpr std::size_t hash_code = fnv1a_hash(type_name<Ty>());
-            constexpr traits traits = implements::eval_for_typeinfo<Ty>();
-            info._hash_code = hash_code;
-            info.traits_ = traits;
-            return info;
+            typeinfo type;
+            type.internal_type = &implements::typeinfo<Ty>;
+            return type;
         }
 
         template <typename Ty>
         static constexpr std::size_t get_type_hash() {
-            return fnv1a_hash(type_name<Ty>());
+            return implements::fnv1a_hash(type_name<Ty>());
         }
 
         /**
@@ -306,14 +457,14 @@ namespace rainy::foundation::ctti {
          * @brief 获取类型信息中对应的名称
          */
         RAINY_NODISCARD constexpr std::string_view name() const noexcept {
-            return _name;
+            return internal_type->name;
         }
 
         /**
          * @brief 获取类型信息中对应的哈希值
          */
         RAINY_NODISCARD constexpr std::size_t hash_code() const noexcept {
-            return _hash_code;
+            return internal_type->hash_code;
         }
 
         /**
@@ -323,10 +474,6 @@ namespace rainy::foundation::ctti {
          */
         RAINY_NODISCARD constexpr bool is_same(const typeinfo &right) const noexcept {
             return hash_code() == right.hash_code();
-        }
-
-        operator std::size_t() const noexcept {
-            return _hash_code;
         }
 
         /**
@@ -349,30 +496,15 @@ namespace rainy::foundation::ctti {
             return !left.is_same(right);
         }
 
-        /**
-         * @brief 运算符重载，检查left类型的兼容性。等效于is_compatible()
-         * @param right 要检查的右边的类型信息对象
-         * @remarks 之所以使用 <= 作为比较符号，可以这么理解。right表示它可以内化为left，就这样
-         * @return 如果right的类型信息与this存储的类型信息具有兼容性，返回true，否则返回false
-         */
-        constexpr bool operator<=(const typeinfo &right) const noexcept {
-            return is_compatible(right);
-        }
+        RAINY_GENERATE_TYPEINFO_METHOD_HELPER(remove_const, implements::type_operation::remove_const);
+        RAINY_GENERATE_TYPEINFO_METHOD_HELPER(remove_volatile, implements::type_operation::remove_volatile);
+        RAINY_GENERATE_TYPEINFO_METHOD_HELPER(remove_cv, implements::type_operation::remove_const_volatile);
+        RAINY_GENERATE_TYPEINFO_METHOD_HELPER(remove_reference, implements::type_operation::remove_reference);
+        RAINY_GENERATE_TYPEINFO_METHOD_HELPER(remove_cvref, implements::type_operation::remove_cvref);
+        RAINY_GENERATE_TYPEINFO_METHOD_HELPER(remove_pointer, implements::type_operation::remove_pointer);
 
-        /**
-         * @brief 用于比较两个类型信息是否兼容
-         * @param right 要比较的右边的类型信息对象
-         * @return 如果right的类型信息与this存储的类型信息具有兼容性，返回true，否则返回false
-         */
-        constexpr bool is_compatible(const typeinfo &right) const noexcept {
-            if ((*this) == right) {
-                return true;
-            }
-            typeinfo tmp_left = this->remove_reference();
-            if (tmp_left == right) {
-                return true;
-            }
-            return tmp_left.remove_cv() == right;
+        RAINY_NODISCARD constexpr bool is_compatible(const typeinfo &right) const noexcept {
+            return internal_type->is_comptaible(*right.internal_type);
         }
 
         /**
@@ -380,90 +512,12 @@ namespace rainy::foundation::ctti {
          * @param traits 要检查的traits，从traits枚举中获取
          * @return 如果类型信息具有traits，返回true，否则返回false
          */
-        constexpr bool has_traits(const traits traits) const noexcept {
-            return static_cast<bool>(traits_ & traits);
+        RAINY_NODISCARD constexpr rain_fn has_traits(traits traits) const noexcept -> bool {
+            return static_cast<bool>(internal_type->type_traits & traits);
         }
 
-        /**
-         * @brief 获取类型信息去除引用的类型信息
-         * @return 如果类型不是引用类型，将返回自身的类型信息对象。否则，将返回引用指向的类型信息对象
-         */
-        RAINY_NODISCARD constexpr typeinfo remove_reference() const {
-            if (!has_traits(traits::is_lref) && !has_traits(traits::is_rref)) {
-                return *this;
-            }
-            typeinfo result = *this;
-            result.traits_ &= ~(traits::is_lref | traits::is_rref);
-            std::string_view name = _name;
-#if RAINY_USING_CLANG
-            constexpr std::string_view lref_symbol = " &";
-            constexpr std::string_view rref_symbol = " &&";
-#else
-            constexpr std::string_view lref_symbol = "&";
-            constexpr std::string_view rref_symbol = "&&";
-#endif
-            if (has_traits(traits::is_lref)) {
-                remove_suffix(name, lref_symbol);
-            } else if (has_traits(traits::is_rref)) {
-                remove_suffix(name, rref_symbol);
-            }
-            result._hash_code = fnv1a_hash(name);
-            result._name = name;
-            return result;
-        }
-
-        /**
-         * @brief 通过名称和特征信息创建一个类型信息
-         * @brief 该函数适用于反射中
-         * @param [in] name 类型名称
-         * @param [in] traits 要指定类型特征（可选）
-         * @attention 无论指定了什么类型特征，创建后的类型特征将包含一个is_reflection_type属性用于标识
-         * @returns 返回生成后的类型信息对象
-         */
-        RAINY_NODISCARD static constexpr typeinfo create_typeinfo_by_name(std::string_view name, traits traits = traits::is_reflection_type) {
-            typeinfo result;
-            result._name = name;
-            result._hash_code = fnv1a_hash(name);
-            result.traits_ |= traits::is_reflection_type;
-            result.traits_ |= traits;
-            return result;
-        }
-
-        /**
-         * @brief 移除const、volatile以及reference属性
-         * @brief 
-         */
-        RAINY_NODISCARD constexpr typeinfo remove_cvref() const noexcept {
-            return remove_cv().remove_reference();
-        }
-
-        RAINY_NODISCARD constexpr typeinfo remove_cv() const noexcept {
-            typeinfo result = *this;
-#if RAINY_USING_CLANG || RAINY_USING_GCC
-            remove_prefix(result._name, "const ");
-            remove_prefix(result._name, "volatile ");
-#else
-            remove_prefix(result._name, "volatile ");
-            remove_prefix(result._name, "const ");
-#endif
-            result._hash_code = fnv1a_hash(result._name);
-            result.traits_ &= ~(traits::is_const);
-            result.traits_ &= ~(traits::is_volatile);
-            return result;
-        }
-
-        RAINY_NODISCARD constexpr typeinfo remove_pointer() const noexcept {
-            typeinfo result = *this;
-            if (is_pointer()) {
-                remove_suffix(result._name, "*");
-            }
-            result._hash_code = fnv1a_hash(result._name);
-            result.traits_ &= ~(traits::is_pointer);
-            return result;
-        }
-
-        RAINY_NODISCARD constexpr typeinfo remove_all_qualifier() const noexcept {
-            return this->remove_cvref().remove_pointer();
+        operator std::size_t() const noexcept {
+            return internal_type->hash_code;
         }
 
         RAINY_NODISCARD constexpr bool is_arithmetic() const noexcept {
@@ -503,44 +557,7 @@ namespace rainy::foundation::ctti {
         }
 
     private:
-        static constexpr std::size_t fnv1a_hash(std::string_view val) noexcept {
-            std::size_t hash = utility::implements::fnv_offset_basis;
-            for (char i: val) {
-                hash ^= static_cast<std::size_t>(static_cast<unsigned char>(i));
-                hash *= utility::implements::fnv_prime;
-            }
-            return hash;
-        }
-
-        static constexpr void remove_prefix(std::string_view &str, std::string_view prefix) {
-            if (str.size() >= prefix.size() && str.substr(0, prefix.size()) == prefix) {
-                str.remove_prefix(prefix.size());
-            }
-        }
-
-        static constexpr void remove_suffix(std::string_view &str, std::string_view suffix) {
-            if (str.size() >= suffix.size() && str.substr(str.size() - suffix.size()) == suffix) {
-                str.remove_suffix(suffix.size());
-            }
-        }
-
-        static constexpr void normalize_name(std::string_view &name) {
-#if RAINY_USING_CLANG || RAINY_USING_GCC
-            remove_prefix(name, "const ");
-            remove_prefix(name, "volatile ");
-#else
-            remove_prefix(name, "volatile ");
-            remove_prefix(name, "const ");
-#endif
-            remove_suffix(name, "&");
-            remove_suffix(name, "&");
-            remove_suffix(name, "*");
-            remove_suffix(name, " ");
-        }
-        
-        std::string_view _name{};
-        std::size_t _hash_code{};
-        traits traits_{};
+        const implements::typeinfo_component *internal_type{};
     };
 }
 
@@ -554,7 +571,7 @@ struct rainy::utility::hash<rainy::foundation::ctti::typeinfo> {
     }
 
     static std::size_t hash_this_val(const argument_type &val) noexcept {
-        return hash_this_val(val);
+        return val.hash_code();
     }
 };
 

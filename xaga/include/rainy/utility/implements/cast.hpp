@@ -16,41 +16,14 @@
 #ifndef RAINY_UTILITY_IMPLEMENTS_CAST_HPP
 #define RAINY_UTILITY_IMPLEMENTS_CAST_HPP
 #include <rainy/core/core.hpp>
-#include <rainy/foundation/typeinfo.hpp>
 #include <rainy/foundation/diagnostics/contract.hpp>
+#include <rainy/foundation/typeinfo.hpp>
 #include <rainy/utility/implements/any_exceptions.hpp>
 
 namespace rainy::utility::implements {
     template <typename Type>
     RAINY_INLINE bool is_as_runnable(utility::in<foundation::ctti::typeinfo> type) {
-        using namespace type_traits;
-        using namespace foundation::ctti;
-        using namespace foundation::exceptions::cast;
-        using match_t = cv_modify::remove_cvref_t<Type>;
-        using real_convert_type =
-            other_trans::conditional_t<composite_types::is_reference_v<Type>, Type, reference_modify::add_lvalue_reference_t<Type>>;
-        switch (type) {
-            case rainy_typehash(match_t):
-                return true;
-            case rainy_typehash(match_t &):
-                return type_relations::is_convertible_v<match_t &, real_convert_type>;
-            case rainy_typehash(match_t &&):
-                return type_relations::is_convertible_v<match_t &&, real_convert_type>;
-            case rainy_typehash(const match_t):
-                return true;
-            case rainy_typehash(const match_t &):
-                return type_relations::is_convertible_v<const match_t &, real_convert_type>;
-            case rainy_typehash(const match_t &&):
-                return type_relations::is_convertible_v<const match_t &&, real_convert_type>;
-            case rainy_typehash(const volatile match_t):
-                return true;
-            case rainy_typehash(const volatile match_t &):
-                return type_relations::is_convertible_v<const volatile match_t &, real_convert_type>;
-            case rainy_typehash(const volatile match_t &&):
-                return type_relations::is_convertible_v<const volatile match_t &&, real_convert_type>;
-            default:
-                return false;
-        }
+        return rainy_typeid(Type).is_compatible(type);
     }
 
     template <typename Type>

@@ -2,8 +2,10 @@
 
 #include <array>
 #include <cassert>
+#if RAINY_HAS_CXX20
 #include <compare>
 #include <concepts>
+#endif
 #include <cstring>
 #include <cwchar>
 #include <iterator>

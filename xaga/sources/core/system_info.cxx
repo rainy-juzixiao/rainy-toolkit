@@ -61,12 +61,53 @@ namespace rainy::core::builtin::implements {
 #endif
 
 namespace rainy::core::builtin {
-    class instruction_set_impl {
+    class instruction_set_internal {
     public:
-        class instruction_set_internal;
-
         static constexpr std::size_t max_ids = 32;
 
+        instruction_set_internal() :
+            is_intel(false), is_amd(false), f_1_ecx(0), f_1_edx(0), f_7_ebx(0), f_7_ecx(0), f_81_ecx(0), f_81_edx(0) {
+            std::array<int, 4> cpui{};
+            std::array<std::array<int, 4>, max_ids> data{};
+            cpuid(cpui.data(), 0);
+            n_ids = cpui[0];
+            for (int i = 0; i <= n_ids; ++i) {
+                cpuidex(cpui.data(), i, 0);
+                data[i] = cpui;
+            }
+            char vendor[0x20] = {0};
+            if (std::strcmp(vendor, "GenuineIntel") == 0) {
+                is_intel = true;
+            } else if (std::strcmp(vendor, "AuthenticAMD") == 0) {
+                is_amd = true;
+            }
+            if (n_ids >= 1) {
+                f_1_ecx = data[1][2];
+                f_1_edx = data[1][3];
+            }
+            if (n_ids >= 7) {
+                f_7_ebx = data[7][1];
+                f_7_ecx = data[7][2];
+            }
+            cpuid(cpui.data(), 0x80000000);
+            n_ex_ids = cpui[0];
+
+        }
+
+        bool is_intel;
+        bool is_amd;
+        std::bitset<32> f_1_ecx;
+        std::bitset<32> f_1_edx;
+        std::bitset<32> f_7_ebx;
+        std::bitset<32> f_7_ecx;
+        std::bitset<32> f_81_ecx;
+        std::bitset<32> f_81_edx;
+        int n_ids;
+        int n_ex_ids;
+    };
+
+    class instruction_set_impl {
+    public:
         static bool sse3() {
             return cpu_rep.f_1_ecx[0];
         }
@@ -272,52 +313,10 @@ namespace rainy::core::builtin {
         }
 
     private:
-        class instruction_set_internal {
-        public:
-            instruction_set_internal() :
-                is_intel(false), is_amd(false), f_1_ecx(0), f_1_edx(0), f_7_ebx(0), f_7_ecx(0), f_81_ecx(0), f_81_edx(0) {
-                int n_ids;
-                int n_ex_ids;
-                std::array<int, 4> cpui{};
-                std::array<std::array<int, 4>, max_ids> data{};
-                cpuid(cpui.data(), 0);
-                n_ids = cpui[0];
-                for (int i = 0; i <= n_ids; ++i) {
-                    cpuidex(cpui.data(), i, 0);
-                    data[i] = cpui;
-                }
-                char vendor[0x20] = {0};
-                if (std::strcmp(vendor, "GenuineIntel") == 0) {
-                    is_intel = true;
-                } else if (std::strcmp(vendor, "AuthenticAMD") == 0) {
-                    is_amd = true;
-                }
-                if (n_ids >= 1) {
-                    f_1_ecx = data[1][2];
-                    f_1_edx = data[1][3];
-                }
-                if (n_ids >= 7) {
-                    f_7_ebx = data[7][1];
-                    f_7_ecx = data[7][2];
-                }
-                cpuid(cpui.data(), 0x80000000);
-                n_ex_ids = cpui[0];
-            }
-
-            bool is_intel;
-            bool is_amd;
-            std::bitset<32> f_1_ecx;
-            std::bitset<32> f_1_edx;
-            std::bitset<32> f_7_ebx;
-            std::bitset<32> f_7_ecx;
-            std::bitset<32> f_81_ecx;
-            std::bitset<32> f_81_edx;
-        };
-
         static const instruction_set_internal cpu_rep;
     };
 
-    const instruction_set_impl::instruction_set_internal instruction_set_impl::cpu_rep;
+    const instruction_set_internal instruction_set_impl::cpu_rep;
 }
 
 // 硬件检查
@@ -326,8 +325,8 @@ namespace rainy::core::builtin {
 #if RAINY_USING_MSVC
         __cpuid(query, function_id);
 #else
-        () query;
-        () function_id;
+        (void) query;
+        (void) function_id;
 #endif
     }
 
@@ -335,9 +334,9 @@ namespace rainy::core::builtin {
 #if RAINY_USING_MSVC
         __cpuidex(query, function_id, subfunction_id);
 #else
-        () query;
-        () function_id;
-        () subfunction_id;
+        (void) query;
+        (void) function_id;
+        (void) subfunction_id;
 #endif
     }
 
