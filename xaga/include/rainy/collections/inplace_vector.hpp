@@ -47,9 +47,12 @@ namespace rainy::collections {
         }
 
         constexpr explicit inplace_vector(size_type count) : size_{count} {
+            if (count > N) {
+                std::terminate();
+            }
         }
 
-        constexpr inplace_vector(size_type count, const value_type &value) {
+        constexpr inplace_vector(size_type count, const value_type &value) : size_{count} {
             if (count > N) {
                 std::terminate();
             }
@@ -59,14 +62,14 @@ namespace rainy::collections {
         }
 
         template <typename Iter, type_traits::other_trans::enable_if_t<type_traits::extras::iterators::is_iterator_v<Iter>, int> = 0>
-        constexpr inplace_vector(Iter begin, Iter end) : elements{} {
+        constexpr inplace_vector(Iter begin, Iter end) : elements{}, size_{static_cast<size_type>(utility::distance(begin, end))} {
             std::size_t index{0};
             for (; begin != end; ++begin, ++index) {
                 elements[index] = *begin;
             }
         }
 
-        constexpr inplace_vector(const inplace_vector &right) {
+        constexpr inplace_vector(const inplace_vector &right) : size_{right.size_} {
             for (std::size_t i = 0; i < N; ++i) {
                 elements[i] = right.elements[i];
             }

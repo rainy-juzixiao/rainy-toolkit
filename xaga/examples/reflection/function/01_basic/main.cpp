@@ -28,12 +28,26 @@ static constexpr auto get_() {
     vec.insert(vec.end() - 2, 2, 1);
     vec.insert(vec.end(), vec.begin(), vec.end() - 6);
     vec.erase(vec.end() - 1);
-    return vec.filter([](int value) { return value > 3; });
+    return vec.map([](int value) { return value * 3; }).reverse();
 }
 
 int main() {
+    text::string_view view = "Hello World";
+    std::cout << view << '\n';
+    collections::inplace_vector<int, 10> vec1;
+    vec1.emplace_back(10);
+    vec1.emplace_back(20);
+    vec1.emplace_back(30);
+    vec1.emplace_back(40);
+    auto mapp = vec1.fold<std::unordered_map<int, std::string>>([](std::unordered_map<int, std::string> &map, int value) {
+        map[value] = std::to_string(value);
+        return map;
+    });
+    for (const auto &item: mapp) {
+        std::cout << item.first << ":" << item.second << '\n';
+    }
+
     constexpr auto vec = get_();
-    std::cout << vec.size() << '\n';
     any a = 10;
     std::cout << std::as_const(a).as_lvalue_reference().type().name() << '\n';
     std::cout << std::as_const(a).as_rvalue_reference().type().name() << '\n';

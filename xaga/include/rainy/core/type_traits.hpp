@@ -2912,11 +2912,7 @@ namespace rainy::core {
     template <typename InputIt, typename Ty, typename BinaryOperation>
     RAINY_INLINE constexpr Ty accumulate(InputIt first, InputIt last, Ty init, BinaryOperation op) {
         for (; first != last; ++first) {
-#if RAINY_HAS_CXX20
-            init = utility::invoke(op, utility::move(init), *first);
-#else
             init = utility::invoke(op, init, *first);
-#endif
         }
         return init;
     }

@@ -867,6 +867,7 @@ namespace rainy::utility {
         template <typename TargetType>
         basic_any &transform() {
             if (is<TargetType>()) {
+                basic_any(std::in_place_type<TargetType>, this->template as<TargetType>()).swap(*this);
                 return *this;
             } else if (is_convertible<TargetType>()) {
                 basic_any(std::in_place_type<TargetType>, this->template convert<TargetType>()).swap(*this);
@@ -1377,7 +1378,6 @@ namespace rainy::utility {
         template <bool Const, typename Pair, std::size_t... Is>
         void fill_pair_with_array(Pair &pair, const collections::array<implements::any_binding_package, 2> &array) const {
             using implements::convert_any_binding_package;
-            using utility::swap;
             Pair tmp{};
             auto &[first, second] = tmp; // 从pair中解包
             using first_type = decltype(first);
@@ -1392,7 +1392,7 @@ namespace rainy::utility {
             second = implements::convert_any_binding_package<
                 type_traits::other_trans::conditional_t<Const, type_traits::cv_modify::add_const_t<second_type>, second_type>,
                 1>::impl(array[1]);
-            swap(tmp, pair);
+            std::swap(tmp, pair);
         }
 
         template <std::size_t Idx = 0, typename Variant, typename TypeList>
@@ -1526,7 +1526,10 @@ namespace rainy::utility {
         return any{std::in_place_type<Ty>, initializer_list, utility::forward<Args>(args)...};
     }
 
-    
+    template <std::size_t Length, std::size_t Align>
+    RAINY_INLINE void swap(::rainy::utility::basic_any<Length, Align> &left, ::rainy::utility::basic_any<Length, Align> &right) {
+        left.swap(right);
+    }
 }
 
 namespace std {

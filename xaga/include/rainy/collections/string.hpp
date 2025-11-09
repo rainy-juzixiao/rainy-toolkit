@@ -10,6 +10,8 @@
 #include <iterator>
 #include <memory>
 #include <rainy/core/core.hpp>
+#include <rainy/text/char_traits.hpp>
+#include <rainy/collections/string_view.hpp>
 #include <stdexcept>
 #include <string_view>
 
@@ -158,9 +160,9 @@ namespace rainy::text::implements {
 
         static inline char exception_string_[] = "parameter is out of range, please check it.";
 
-        //RAINY_CONSTEXPR20 bool is_sso_activate() const noexcept {
-        //    return storage.is_sso_activate();
-        //}
+        // RAINY_CONSTEXPR20 bool is_sso_activate() const noexcept {
+        //     return storage.is_sso_activate();
+        // }
 
         RAINY_CONSTEXPR20 bool is_long_() const noexcept {
             return this->size_flag_ == decltype(this->size_flag_)(-1);
@@ -333,13 +335,13 @@ namespace rainy::text {
             resize_(count);
         }
 
-        RAINY_CONSTEXPR20 basic_string(const basic_string &right, size_type pos, size_type count, allocator_type const &a = allocator_type()) :
-            base(a) {
+        RAINY_CONSTEXPR20 basic_string(const basic_string &right, size_type pos, size_type count,
+                                       allocator_type const &a = allocator_type()) : base(a) {
             auto other_size = right.size_();
             if (pos > other_size) {
                 throw std::out_of_range{this->exception_string_};
             }
-            count = (core::min)(other_size - pos, count);
+            count = (core::min) (other_size - pos, count);
             allocate_plus_one_(count);
             auto start = right.begin_() + pos;
             fill_(start, start + count);
@@ -360,7 +362,7 @@ namespace rainy::text {
             basic_string(cstr, c_style_string_length_(cstr), a) {
         }
 
-        template <typename Iter,type_traits::other_trans::enable_if_t<type_traits::extras::iterators::is_iterator_v<Iter>,int> = 0>
+        template <typename Iter, type_traits::other_trans::enable_if_t<type_traits::extras::iterators::is_iterator_v<Iter>, int> = 0>
         RAINY_CONSTEXPR20 basic_string(Iter first, Iter last) {
             if constexpr (type_traits::extras::iterators::is_random_access_iterator_v<Iter>) {
                 auto length = std::distance(first, last);
@@ -389,13 +391,13 @@ namespace rainy::text {
             this->resize_(other_size);
         }
 
-        RAINY_CONSTEXPR20 basic_string(basic_string &&right, size_type pos, size_type count, allocator_type const &a = allocator_type()) :
-            base(a) {
+        RAINY_CONSTEXPR20 basic_string(basic_string &&right, size_type pos, size_type count,
+                                       allocator_type const &a = allocator_type()) : base(a) {
             auto other_size = right.size_();
             if (pos > other_size) {
                 throw std::out_of_range{this->exception_string_};
             }
-            count = (core::min)(other_size - pos, count);
+            count = (core::min) (other_size - pos, count);
             if (pos != 0) {
                 auto other_begin = right.begin_();
                 auto start = other_begin + pos;
@@ -432,11 +434,12 @@ namespace rainy::text {
         }
 
 
-        template <typename StringViewLike,
-                  type_traits::other_trans::enable_if_t<
-                      type_traits::type_relations::is_convertible_v<const StringViewLike &, std::basic_string_view<CharType, Traits>> &&
-                          (!type_traits::type_relations::is_convertible_v<const StringViewLike &, const CharType *>),
-                      int> = 0>
+        template <
+            typename StringViewLike,
+            type_traits::other_trans::enable_if_t<
+                type_traits::type_relations::is_convertible_v<const StringViewLike &, std::basic_string_view<CharType, Traits>> &&
+                    (!type_traits::type_relations::is_convertible_v<const StringViewLike &, const CharType *>),
+                int> = 0>
         RAINY_CONSTEXPR20 basic_string(const StringViewLike &t, allocator_type const &a = allocator_type()) :
             basic_string(std::basic_string_view<CharType, Traits>{t}.data(), std::basic_string_view<CharType, Traits>{t}.size(), a) {
         }
@@ -444,16 +447,17 @@ namespace rainy::text {
 
         template <typename StringViewLike,
                   type_traits::other_trans::enable_if_t<
-                      type_traits::type_relations::is_convertible_v<const StringViewLike &, std::basic_string_view<CharType, Traits>>, int> = 0>
-        RAINY_CONSTEXPR20 basic_string(const StringViewLike &t, size_type pos, size_type count, allocator_type const &a = allocator_type()) :
-            base(a) {
+                      type_traits::type_relations::is_convertible_v<const StringViewLike &, std::basic_string_view<CharType, Traits>>,
+                      int> = 0>
+        RAINY_CONSTEXPR20 basic_string(const StringViewLike &t, size_type pos, size_type count,
+                                       allocator_type const &a = allocator_type()) : base(a) {
             std::basic_string_view<CharType, Traits> sv = t;
             auto data = sv.data();
             auto sv_size = sv.size();
             if (pos > sv_size) {
                 throw std::out_of_range{this->exception_string_};
             }
-            count = (core::min)(sv_size - pos, count);
+            count = (core::min) (sv_size - pos, count);
             allocate_plus_one_(count);
             fill_(data, data + count);
             resize_(count);
@@ -492,11 +496,12 @@ namespace rainy::text {
             return assign(ilist);
         }
 
-        template <typename StringViewLike,
-                  type_traits::other_trans::enable_if_t<
-                      type_traits::type_relations::is_convertible_v<const StringViewLike &, std::basic_string_view<CharType, Traits>> &&
-                          (!type_traits::type_relations::is_convertible_v<const StringViewLike &, const CharType *>),
-                      int> = 0>
+        template <
+            typename StringViewLike,
+            type_traits::other_trans::enable_if_t<
+                type_traits::type_relations::is_convertible_v<const StringViewLike &, std::basic_string_view<CharType, Traits>> &&
+                    (!type_traits::type_relations::is_convertible_v<const StringViewLike &, const CharType *>),
+                int> = 0>
         RAINY_CONSTEXPR20 basic_string &operator=(const StringViewLike &t) {
             return assign(t);
         }
@@ -517,7 +522,7 @@ namespace rainy::text {
             } else
 #endif
             {
-                return basic_string::traits_type::compare(left.begin_(), right.begin_(), (core::min)(lsize, rsize)) == 0 &&
+                return basic_string::traits_type::compare(left.begin_(), right.begin_(), (core::min) (lsize, rsize)) == 0 &&
                        lsize == rsize;
             }
         }
@@ -527,7 +532,7 @@ namespace rainy::text {
             auto rsize = right.size_();
 #if RAINY_HAS_CXX20
             if (std::is_constant_evaluated()) {
-                for (auto l = left.begin_(), r = right.begin_(), end = l + (core::min)(lsize, rsize); l != end; ++l, ++r) {
+                for (auto l = left.begin_(), r = right.begin_(), end = l + (core::min) (lsize, rsize); l != end; ++l, ++r) {
                     if (*l < *r)
                         return true;
                     else if (*l > *r)
@@ -537,7 +542,7 @@ namespace rainy::text {
             } else
 #endif
             {
-                auto res = basic_string::traits_type::compare(left.begin_(), right.begin_(), (core::min)(rsize, lsize));
+                auto res = basic_string::traits_type::compare(left.begin_(), right.begin_(), (core::min) (rsize, lsize));
                 if (res < 0) {
                     return true;
                 } else if (res > 0) {
@@ -590,7 +595,7 @@ namespace rainy::text {
             auto lsize = left.size_();
 #if RAINY_HAS_CXX20
             if (std::is_constant_evaluated()) {
-                for (auto l = left.begin_(), end = l + (core::min)(lsize, rsize); l != end; ++l, ++start) {
+                for (auto l = left.begin_(), end = l + (core::min) (lsize, rsize); l != end; ++l, ++start) {
                     if (*l < *start)
                         return true;
                     else if (*l > *start)
@@ -600,7 +605,7 @@ namespace rainy::text {
             } else
 #endif
             {
-                auto res = basic_string::traits_type::compare(left.begin_(), start, (core::min)(rsize, lsize));
+                auto res = basic_string::traits_type::compare(left.begin_(), start, (core::min) (rsize, lsize));
                 if (res < 0)
                     return true;
                 else if (res > 0)
@@ -625,11 +630,12 @@ namespace rainy::text {
             return !(left < right);
         }
 
-        template <typename StringViewLike,
-                  type_traits::other_trans::enable_if_t<
-                      type_traits::type_relations::is_convertible_v<const StringViewLike &, std::basic_string_view<CharType, Traits>> &&
-                          (!type_traits::type_relations::is_convertible_v<const StringViewLike &, const CharType *>),
-                      int> = 0>
+        template <
+            typename StringViewLike,
+            type_traits::other_trans::enable_if_t<
+                type_traits::type_relations::is_convertible_v<const StringViewLike &, std::basic_string_view<CharType, Traits>> &&
+                    (!type_traits::type_relations::is_convertible_v<const StringViewLike &, const CharType *>),
+                int> = 0>
         RAINY_CONSTEXPR20 basic_string &operator+=(const StringViewLike &t) {
             return append(t);
         }
@@ -751,7 +757,7 @@ namespace rainy::text {
             auto size = this->size_();
             if (count > size) {
                 reserve(count);
-                auto begin =this->begin_();
+                auto begin = this->begin_();
                 std::fill(begin + size, begin + count, ch);
             }
             resize_(count);
@@ -813,7 +819,7 @@ namespace rainy::text {
                 auto size = this->size_();
                 auto length = std::distance(first, last);
                 auto new_size = size + length;
-                reserve((core::max)(size * 2, new_size));
+                reserve((core::max) (size * 2, new_size));
                 traits_type::copy(this->begin_() + size, utility::addressof(*first), static_cast<std::size_t>(length));
                 resize_(new_size);
             } else {
@@ -851,7 +857,7 @@ namespace rainy::text {
             if (pos > str_size) {
                 throw std::out_of_range{this->exception_string_};
             }
-            count = (core::min)(npos, (core::min)(str_size - pos, count));
+            count = (core::min) (npos, (core::min) (str_size - pos, count));
             auto str_begin = this->begin_();
             assign_(str_begin + pos, str_begin + pos + count);
             return *this;
@@ -895,10 +901,12 @@ namespace rainy::text {
         }
 
 
-        template <typename StringViewLike, type_traits::other_trans::enable_if_t<
-                                            type_traits::type_relations::is_convertible_v<const StringViewLike &, std::basic_string_view<CharType, Traits>> &&
-                                                (!type_traits::type_relations::is_convertible_v<const StringViewLike &, const CharType *>),
-                                            int> = 0>
+        template <
+            typename StringViewLike,
+            type_traits::other_trans::enable_if_t<
+                type_traits::type_relations::is_convertible_v<const StringViewLike &, std::basic_string_view<CharType, Traits>> &&
+                    (!type_traits::type_relations::is_convertible_v<const StringViewLike &, const CharType *>),
+                int> = 0>
         basic_string &assign(const StringViewLike &t) {
             std::basic_string_view<CharType, Traits> sv = t;
             auto data = sv.data();
@@ -906,17 +914,19 @@ namespace rainy::text {
             return *this;
         }
 
-        template <typename StringViewLike, type_traits::other_trans::enable_if_t<
-                                            type_traits::type_relations::is_convertible_v<const StringViewLike &, std::basic_string_view<CharType, Traits>> &&
-                                                (!type_traits::type_relations::is_convertible_v<const StringViewLike &, const CharType *>),
-                                            int> = 0>
+        template <
+            typename StringViewLike,
+            type_traits::other_trans::enable_if_t<
+                type_traits::type_relations::is_convertible_v<const StringViewLike &, std::basic_string_view<CharType, Traits>> &&
+                    (!type_traits::type_relations::is_convertible_v<const StringViewLike &, const CharType *>),
+                int> = 0>
         RAINY_CONSTEXPR20 basic_string &assign(const StringViewLike &t, size_type pos, size_type count = npos) {
             std::basic_string_view<CharType, Traits> sv = t;
             auto sv_size = sv.size();
             if (pos > sv_size) {
                 throw std::out_of_range{this->exception_string_};
             }
-            count = (core::min)(npos, (core::min)(sv_size - pos, count));
+            count = (core::min) (npos, (core::min) (sv_size - pos, count));
             auto data = sv.data();
             assign_(data + pos, data + pos + count);
 
@@ -926,7 +936,7 @@ namespace rainy::text {
         RAINY_CONSTEXPR20 basic_string &append(size_type count, CharType ch) {
             auto size = this->size_();
             reserve(size + count);
-            auto end =this->begin_() + size;
+            auto end = this->begin_() + size;
             std::fill(end, end + count, ch);
             resize_(size + count);
             return *this;
@@ -948,7 +958,7 @@ namespace rainy::text {
             if (pos > str_size) {
                 throw std::out_of_range{this->exception_string_};
             }
-            count = (core::min)(npos, (core::min)(str_size - pos, count));
+            count = (core::min) (npos, (core::min) (str_size - pos, count));
             return append(str.begin_() + pos, count);
         }
 
@@ -964,10 +974,12 @@ namespace rainy::text {
             return *this;
         }
 
-        template <typename StringViewLike, type_traits::other_trans::enable_if_t<
-                                            type_traits::type_relations::is_convertible_v<const StringViewLike &, std::basic_string_view<CharType, Traits>> &&
-                                                (!type_traits::type_relations::is_convertible_v<const StringViewLike &, const CharType *>),
-                                            int> = 0>
+        template <
+            typename StringViewLike,
+            type_traits::other_trans::enable_if_t<
+                type_traits::type_relations::is_convertible_v<const StringViewLike &, std::basic_string_view<CharType, Traits>> &&
+                    (!type_traits::type_relations::is_convertible_v<const StringViewLike &, const CharType *>),
+                int> = 0>
         RAINY_CONSTEXPR20 basic_string &append(const StringViewLike &t) {
             std::basic_string_view<CharType, Traits> sv = t;
             auto data = sv.data();
@@ -976,17 +988,19 @@ namespace rainy::text {
             return *this;
         }
 
-        template <typename StringViewLike, type_traits::other_trans::enable_if_t<
-                                            type_traits::type_relations::is_convertible_v<const StringViewLike &, std::basic_string_view<CharType, Traits>> &&
-                                                (!type_traits::type_relations::is_convertible_v<const StringViewLike &, const CharType *>),
-                                            int> = 0>
+        template <
+            typename StringViewLike,
+            type_traits::other_trans::enable_if_t<
+                type_traits::type_relations::is_convertible_v<const StringViewLike &, std::basic_string_view<CharType, Traits>> &&
+                    (!type_traits::type_relations::is_convertible_v<const StringViewLike &, const CharType *>),
+                int> = 0>
         RAINY_CONSTEXPR20 basic_string &append(const StringViewLike &t, size_type pos, size_type count = npos) {
             std::basic_string_view<CharType, Traits> sv = t;
             auto sv_size = sv.size();
             if (pos > sv_size) {
                 throw std::out_of_range{this->exception_string_};
             }
-            count = (core::min)(npos, (core::min)(sv_size - count, count));
+            count = (core::min) (npos, (core::min) (sv_size - count, count));
 
             return append(sv.data() + pos, count);
         }
@@ -994,7 +1008,7 @@ namespace rainy::text {
         RAINY_CONSTEXPR20 bool starts_with(std::basic_string_view<CharType, Traits> sv) const noexcept {
             auto sv_size = sv.size();
             auto data = sv.data();
-            auto begin =this->begin_();
+            auto begin = this->begin_();
             if (sv_size > this->size_()) {
                 return false;
             }
@@ -1007,7 +1021,7 @@ namespace rainy::text {
 
         RAINY_CONSTEXPR20 bool starts_with(const CharType *cstr) const {
             auto length = c_style_string_length_(cstr);
-            auto begin =this->begin_();
+            auto begin = this->begin_();
             if (length > this->size_()) {
                 return false;
             }
@@ -1039,7 +1053,7 @@ namespace rainy::text {
 
         RAINY_CONSTEXPR20 bool contains(std::basic_string_view<CharType, Traits> sv) const noexcept {
             auto size = sv.size();
-            auto begin =this->begin_();
+            auto begin = this->begin_();
             auto data = sv.data();
             if (this->size_() < size) {
                 return false;
@@ -1070,7 +1084,7 @@ namespace rainy::text {
                 throw std::out_of_range{this->exception_string_};
             }
             reserve(size + count);
-            auto start =this->begin_() + index;
+            auto start = this->begin_() + index;
             auto end = start + size - index;
             auto last = end + count;
 #if RAINY_HAS_CXX20
@@ -1107,7 +1121,7 @@ namespace rainy::text {
             if (s_index > s_size) {
                 throw std::out_of_range{this->exception_string_};
             }
-            count = (core::min)(npos, (core::min)(s_size - s_index, count));
+            count = (core::min) (npos, (core::min) (s_size - s_index, count));
             auto s_start = str.begin_() + s_index;
             insert_(index, s_start, s_start + count);
             return *this;
@@ -1117,9 +1131,9 @@ namespace rainy::text {
             auto size = this->size_();
             auto start = pos.base().current_;
             auto end = this->end_();
-            auto index = start -this->begin_();
+            auto index = start - this->begin_();
             reserve(size + 1);
-            auto begin =this->begin_();
+            auto begin = this->begin_();
             end = begin + size;
             start = begin + index;
 #if RAINY_HAS_CXX20
@@ -1137,7 +1151,7 @@ namespace rainy::text {
 
         RAINY_CONSTEXPR20 iterator insert(const_iterator pos, size_type count, CharType ch) {
             auto start = pos.base().current_;
-            auto index = start -this->begin_();
+            auto index = start - this->begin_();
             insert(index, count, ch);
             return {start};
         }
@@ -1173,15 +1187,17 @@ namespace rainy::text {
         RAINY_CONSTEXPR20 iterator insert(const_iterator pos, std::initializer_list<CharType> ilist) {
             auto i_data = std::data(ilist);
             auto start = pos.base().current_;
-            insert_(start -this->begin_(), i_data, i_data + ilist.size());
+            insert_(start - this->begin_(), i_data, i_data + ilist.size());
             return {start};
         }
 
 
-        template <typename StringViewLike, type_traits::other_trans::enable_if_t<
-                                            type_traits::type_relations::is_convertible_v<const StringViewLike &, std::basic_string_view<CharType, Traits>> &&
-                                                (!type_traits::type_relations::is_convertible_v<const StringViewLike &, const CharType *>),
-                                            int> = 0>
+        template <
+            typename StringViewLike,
+            type_traits::other_trans::enable_if_t<
+                type_traits::type_relations::is_convertible_v<const StringViewLike &, std::basic_string_view<CharType, Traits>> &&
+                    (!type_traits::type_relations::is_convertible_v<const StringViewLike &, const CharType *>),
+                int> = 0>
         RAINY_CONSTEXPR20 basic_string &insert(size_type pos, const StringViewLike &t) {
             std::basic_string_view<CharType, Traits> sv = t;
             auto sv_data = sv.data();
@@ -1189,10 +1205,12 @@ namespace rainy::text {
             return *this;
         }
 
-        template <typename StringViewLike, type_traits::other_trans::enable_if_t<
-                                            type_traits::type_relations::is_convertible_v<const StringViewLike &, std::basic_string_view<CharType, Traits>> &&
-                                                (!type_traits::type_relations::is_convertible_v<const StringViewLike &, const CharType *>),
-                                            int> = 0>
+        template <
+            typename StringViewLike,
+            type_traits::other_trans::enable_if_t<
+                type_traits::type_relations::is_convertible_v<const StringViewLike &, std::basic_string_view<CharType, Traits>> &&
+                    (!type_traits::type_relations::is_convertible_v<const StringViewLike &, const CharType *>),
+                int> = 0>
         RAINY_CONSTEXPR20 basic_string &insert(size_type pos, const StringViewLike &t, size_type t_index, size_type count = npos) {
             std::basic_string_view<CharType, Traits> sv = t;
             auto sv_size = sv.size();
@@ -1202,7 +1220,7 @@ namespace rainy::text {
                 throw std::out_of_range{this->exception_string_};
             }
 
-            count = (core::min)(npos, (core::min)(sv_size - t_index, count));
+            count = (core::min) (npos, (core::min) (sv_size - t_index, count));
             auto sv_data = sv.data();
             insert_(pos, sv_data + t_index, sv_data + t_index + count);
 
@@ -1214,8 +1232,8 @@ namespace rainy::text {
             if (index > size) {
                 throw std::out_of_range{this->exception_string_};
             }
-            count = (core::min)(npos, (core::min)(size - index, count));
-            auto start =this->begin_() + index;
+            count = (core::min) (npos, (core::min) (size - index, count));
+            auto start = this->begin_() + index;
             erase_(start, start + count);
 
             return *this;
@@ -1245,17 +1263,17 @@ namespace rainy::text {
 
         RAINY_CONSTEXPR20 basic_string &replace(const_iterator first, const_iterator last, const basic_string &str) {
             auto start = first.base().current_;
-            replace_(start -this->begin_(), last - first, str.begin_(), str.end_());
+            replace_(start - this->begin_(), last - first, str.begin_(), str.end_());
             return *this;
         }
 
         RAINY_CONSTEXPR20 basic_string &replace(size_type pos, size_type count, const basic_string &str, size_type pos2,
-                                        size_type count2 = npos) {
+                                                size_type count2 = npos) {
             auto str_size = str.size_();
             if (pos2 > str_size) {
                 throw std::out_of_range{this->exception_string_};
             }
-            count2 = (core::min)(npos, (core::min)(count2, str_size - pos2));
+            count2 = (core::min) (npos, (core::min) (count2, str_size - pos2));
             auto begin = str.begin_();
             replace_(pos, count, begin + count2, begin + count2 + pos2);
 
@@ -1269,7 +1287,7 @@ namespace rainy::text {
 
         RAINY_CONSTEXPR20 basic_string &replace(const_iterator first, const_iterator last, const CharType *cstr, size_type count2) {
             auto start = first.base().current_;
-            replace_(start -this->begin_(), last - first, cstr, cstr + count2);
+            replace_(start - this->begin_(), last - first, cstr, cstr + count2);
             return *this;
         }
 
@@ -1280,21 +1298,23 @@ namespace rainy::text {
 
         RAINY_CONSTEXPR20 basic_string &replace(const_iterator first, const_iterator last, const CharType *cstr) {
             auto start = first.base().current_;
-            replace_(start -this->begin_(), last - first, cstr, cstr + c_style_string_length_(cstr));
+            replace_(start - this->begin_(), last - first, cstr, cstr + c_style_string_length_(cstr));
             return *this;
         }
 
         RAINY_CONSTEXPR20 basic_string &replace(const_iterator first, const_iterator last, std::initializer_list<CharType> ilist) {
             auto data = std::data(ilist);
             auto start = first.base().current_;
-            replace_(start -this->begin_(), last - first, data, data + ilist.size());
+            replace_(start - this->begin_(), last - first, data, data + ilist.size());
             return *this;
         }
 
-        template <typename StringViewLike, type_traits::other_trans::enable_if_t<
-                                            type_traits::type_relations::is_convertible_v<const StringViewLike &, std::basic_string_view<CharType, Traits>> &&
-                                                (!type_traits::type_relations::is_convertible_v<const StringViewLike &, const CharType *>),
-                                            int> = 0>
+        template <
+            typename StringViewLike,
+            type_traits::other_trans::enable_if_t<
+                type_traits::type_relations::is_convertible_v<const StringViewLike &, std::basic_string_view<CharType, Traits>> &&
+                    (!type_traits::type_relations::is_convertible_v<const StringViewLike &, const CharType *>),
+                int> = 0>
         RAINY_CONSTEXPR20 basic_string &replace(size_type pos, size_type count, const StringViewLike &t) {
             std::basic_string_view<CharType, Traits> sv = t;
             auto data = sv.data();
@@ -1302,30 +1322,34 @@ namespace rainy::text {
             return *this;
         }
 
-        template <typename StringViewLike, type_traits::other_trans::enable_if_t<
-                                            type_traits::type_relations::is_convertible_v<const StringViewLike &, std::basic_string_view<CharType, Traits>> &&
-                                                (!type_traits::type_relations::is_convertible_v<const StringViewLike &, const CharType *>),
-                                            int> = 0>
+        template <
+            typename StringViewLike,
+            type_traits::other_trans::enable_if_t<
+                type_traits::type_relations::is_convertible_v<const StringViewLike &, std::basic_string_view<CharType, Traits>> &&
+                    (!type_traits::type_relations::is_convertible_v<const StringViewLike &, const CharType *>),
+                int> = 0>
 
         RAINY_CONSTEXPR20 basic_string &replace(const_iterator first, const_iterator last, const StringViewLike &t) {
             std::basic_string_view<CharType, Traits> sv = t;
             auto sv_data = sv.data();
             auto start = first.base().current_;
-            replace_(start -this->begin_(), last - first, sv_data, sv_data + sv.size());
+            replace_(start - this->begin_(), last - first, sv_data, sv_data + sv.size());
             return *this;
         }
 
-        template <typename StringViewLike, type_traits::other_trans::enable_if_t<
-                                            type_traits::type_relations::is_convertible_v<const StringViewLike &, std::basic_string_view<CharType, Traits>> &&
-                                                (!type_traits::type_relations::is_convertible_v<const StringViewLike &, const CharType *>),
-                                            int> = 0>
+        template <
+            typename StringViewLike,
+            type_traits::other_trans::enable_if_t<
+                type_traits::type_relations::is_convertible_v<const StringViewLike &, std::basic_string_view<CharType, Traits>> &&
+                    (!type_traits::type_relations::is_convertible_v<const StringViewLike &, const CharType *>),
+                int> = 0>
         basic_string &replace(size_type pos, size_type count, const StringViewLike &t, size_type pos2, size_type count2 = npos) {
             std::basic_string_view<CharType, Traits> sv = t;
             auto sv_size = sv.size();
             if (pos2 > sv_size) {
                 throw std::out_of_range{this->exception_string_};
             }
-            count2 = (core::min)(npos, (core::min)(sv_size - pos2, count2));
+            count2 = (core::min) (npos, (core::min) (sv_size - pos2, count2));
             auto data = sv.data();
             replace_(pos, count, data + pos2, data + pos2 + count2);
             return *this;
@@ -1333,41 +1357,41 @@ namespace rainy::text {
 
         RAINY_CONSTEXPR20 basic_string &replace(size_type pos, size_type count, size_type count2, CharType ch) {
             basic_string temp{count2, ch};
-            auto begin =this->begin_();
+            auto begin = this->begin_();
             replace_(pos, count, begin, begin + count2);
             return *this;
         }
 
         RAINY_CONSTEXPR20 basic_string &replace(const_iterator first, const_iterator last, size_type count2, CharType ch) {
             basic_string temp{count2, ch};
-            auto begin =this->begin_();
+            auto begin = this->begin_();
             auto start = first.base().current_;
-            replace_(start -this->begin_(), last - first, begin, begin + count2);
+            replace_(start - this->begin_(), last - first, begin, begin + count2);
             return *this;
         }
 
         template <
             typename Iter,
-            std::enable_if_t<
-                std::is_base_of<std::input_iterator_tag, typename std::iterator_traits<Iter>::iterator_category>::value, int> = 0>
+            std::enable_if_t<std::is_base_of<std::input_iterator_tag, typename std::iterator_traits<Iter>::iterator_category>::value,
+                             int> = 0>
         RAINY_CONSTEXPR20 basic_string &replace(const_iterator first, const_iterator last, Iter first2, Iter last2) {
             auto start = first.base().current_;
             using category = typename std::iterator_traits<Iter>::iterator_category;
             if (std::is_base_of<std::random_access_iterator_tag, category>::value) {
                 auto data = std::addressof(*first2);
                 auto length2 = std::distance(first2, last2);
-                replace_(start -this->begin_(), last - first, data, data + length2);
+                replace_(start - this->begin_(), last - first, data, data + length2);
             } else {
                 basic_string temp{first2, last2};
                 auto temp_begin = temp.begin_();
                 auto temp_size = temp.size_();
-                replace_(start -this->begin_(), last - first, temp_begin, temp_begin + temp_size);
+                replace_(start - this->begin_(), last - first, temp_begin, temp_begin + temp_size);
             }
             return *this;
         }
 
-        friend std::basic_ostream<value_type, traits_type>& operator<<(std::basic_ostream<value_type, traits_type> &os,
-                                                                      const basic_string &str) {
+        friend std::basic_ostream<value_type, traits_type> &operator<<(std::basic_ostream<value_type, traits_type> &os,
+                                                                       const basic_string &str) {
             return os.write(str.data(), str.size());
         }
 
@@ -1389,7 +1413,7 @@ namespace rainy::text {
         }
 
         RAINY_CONSTEXPR20 bool static equal_(CharType const *begin, CharType const *end, CharType const *first,
-                                     CharType const *last) noexcept {
+                                             CharType const *last) noexcept {
             if (last - first != end - begin) {
                 return false;
             }
@@ -1445,7 +1469,7 @@ namespace rainy::text {
             }
             auto length = last - first;
             auto new_size = size + length;
-            auto begin =this->begin_();
+            auto begin = this->begin_();
             auto end = begin + size;
             auto start = begin + index;
             // if start is not in range and capacity > length + size
@@ -1476,9 +1500,9 @@ namespace rainy::text {
             if (pos > size) {
                 throw std::out_of_range{this->exception_string_};
             }
-            auto begin =this->begin_();
+            auto begin = this->begin_();
             auto first1 = begin + pos;
-            auto last1 = begin + (core::min)(pos + count, size);
+            auto last1 = begin + (core::min) (pos + count, size);
             auto length1 = last1 - first1;
             auto length2 = last2 - first2;
             auto new_size = size + length2 - length1;
@@ -1516,8 +1540,7 @@ namespace rainy::text {
     };
 
     template <typename CharType, typename Traits, typename Allocator>
-    RAINY_CONSTEXPR20 void swap(basic_string<CharType, Traits, Allocator> &left,
-                                       basic_string<CharType, Traits, Allocator> &right) {
+    RAINY_CONSTEXPR20 void swap(basic_string<CharType, Traits, Allocator> &left, basic_string<CharType, Traits, Allocator> &right) {
         left.swap(right);
     }
 
