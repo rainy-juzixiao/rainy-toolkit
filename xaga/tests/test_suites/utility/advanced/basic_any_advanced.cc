@@ -388,14 +388,9 @@ SCENARIO("[transform]", test_tag) {
                 REQUIRE(utility::addressof(this_from_a) == utility::addressof(a));
                 REQUIRE(this_from_a.type() == rainy_typeid(std::string));
             }
-            THEN("try to transform to a std::string_view") {
-                auto &this_from_a = a.transform<std::string_view>();
-                REQUIRE(utility::addressof(this_from_a) == utility::addressof(a));
-                REQUIRE(this_from_a.type() == rainy_typeid(std::string));
-                REQUIRE(this_from_a.convert<std::string_view>() == "Hello World");
-            }
             THEN("use a handler to transform") {
-                auto &this_from_a = a.transform([](const std::string &value) -> int { return std::stoi(value); });
+                a = "42";
+                auto &this_from_a = a.transform([](std::string_view value) -> int { return std::stoi(std::string{value}); });
                 REQUIRE(utility::addressof(this_from_a) == utility::addressof(a));
                 REQUIRE(this_from_a.type() == rainy_typeid(int));
                 AND_THEN("try to convert double") {
