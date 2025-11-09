@@ -441,6 +441,9 @@ namespace rainy::type_traits::implements {
     RAINY_CONSTEXPR_BOOL _is_move_constructible_v = __is_constructible(Ty, Ty);
 
     template <typename Ty>
+    RAINY_CONSTEXPR_BOOL is_copy_constructible_v = __is_constructible(Ty, implements::_add_lvalue_reference_t<const Ty>);
+
+    template <typename Ty>
     RAINY_CONSTEXPR_BOOL is_nothrow_move_constructible_v = __is_nothrow_constructible(Ty, Ty);
 
     template <typename Ty>
@@ -529,7 +532,7 @@ namespace rainy::utility {
      */
     template <typename Ty>
     RAINY_NODISCARD constexpr type_traits::implements::remove_reference_t<Ty> &&move(Ty &&arg) noexcept {
-        return static_cast<type_traits::implements::remove_reference_t<Ty> && > (arg);
+        return static_cast<type_traits::implements::remove_reference_t<Ty> &&>(arg);
     }
 
     /**
@@ -590,8 +593,16 @@ namespace rainy::utility {
     }
 
     template <typename Ty>
-    type_traits::implements::_add_rvalue_reference_t<Ty> declval() noexcept {
-        static_assert(type_traits::implements::always_false<Ty>, "Calling declval is ill-formed, see N4950 [declval]/2.");
+    RAINY_NODISCARD constexpr rain_fn move_if_noexcept(Ty &arg) noexcept
+        -> type_traits::other_trans::conditional_t<!type_traits::implements::is_nothrow_move_constructible_v<Ty> &&
+                                                       type_traits::implements::is_copy_constructible_v<Ty>,
+                                                   const Ty &, Ty &&> {
+        return utility::move(arg);
+    }
+
+    template <typename Ty>
+    rain_fn declval() noexcept -> type_traits::implements::_add_rvalue_reference_t<Ty> {
+        static_assert(type_traits::implements::always_false<Ty>, "Calling declval is ill-formed.");
         std::abort();
     }
 }

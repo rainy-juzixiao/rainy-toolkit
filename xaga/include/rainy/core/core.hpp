@@ -770,58 +770,6 @@ namespace rainy::utility {
     struct monostate {};
 }
 
-namespace rainy::utility::implements {
-    template <typename Ty>
-    constexpr void verify_range(const Ty *const first, const Ty *const last) noexcept {
-        // special case range verification for pointers
-        expects(first <= last, "transposed pointer range");
-    }
-
-    template <typename Iter, typename = void>
-    constexpr bool allow_inheriting_unwrap_v = true;
-
-    template <typename Iter>
-    constexpr bool allow_inheriting_unwrap_v<Iter, type_traits::other_trans::void_t<typename Iter::prevent_inheriting_unwrap>> =
-        type_traits::implements::is_same_v<Iter, typename Iter::prevent_inheriting_unwrap>;
-
-    template <typename Iter, typename Sentinel = Iter, typename = void>
-    constexpr bool range_verifiable_v = false;
-
-    template <typename Iter, typename Sentinel>
-    constexpr bool range_verifiable_v<
-        Iter, Sentinel,
-        type_traits::implements::void_t<decltype(verify_range(declval<const Iter &>(), declval<const Sentinel &>()))>> =
-        allow_inheriting_unwrap_v<Iter>;
-
-    template <typename iter, typename sentinel>
-    constexpr void adl_verify_range(const iter &first, const sentinel &last) {
-        // check that [first, last) forms an iterator range
-        if constexpr (type_traits::implements::_is_pointer_v<iter> && type_traits::implements::_is_pointer_v<sentinel>) {
-            expects(first <= last, "transposed pointer range");
-        } else if constexpr (range_verifiable_v<iter, sentinel>) {
-            verify_range(first, last);
-        }
-    }
-}
-
-namespace rainy::utility {
-    template <typename Iter>
-    RAINY_NODISCARD constexpr std::ptrdiff_t distance(Iter first, Iter last) {
-        if constexpr (std::is_same_v<typename std::iterator_traits<Iter>::iterator_category, std::random_access_iterator_tag>) {
-            return last - first; // assume the iterator will do debug checking
-        } else {
-            implements::adl_verify_range(first, last);
-            auto ufirst = addressof(*first);
-            const auto ulast = addressof(*(last - 1)) + 1;
-            std::ptrdiff_t off = 0;
-            for (; ufirst != ulast; ++ufirst) {
-                ++off;
-            }
-            return off;
-        }
-    }
-}
-
 namespace rainy::core::algorithm {
     template <typename InputIter, typename OutIter>
     constexpr OutIter copy(InputIter begin, InputIter end, OutIter dest) noexcept(

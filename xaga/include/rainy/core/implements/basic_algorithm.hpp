@@ -174,6 +174,40 @@ namespace rainy::core::algorithm {
         }
         return first;
     }
+
+    template <typename InputIt, typename OutputIt>
+    RAINY_CONSTEXPR20 OutputIt move(InputIt first, InputIt last, OutputIt d_first) {
+        for (; first != last; ++d_first, ++first) {
+            *d_first = utility::move(*first);
+        }
+        return d_first;
+    }
+
+    template <typename BidirIt1, typename BidirIt2>
+    RAINY_CONSTEXPR20 inline BidirIt2 move_backward(BidirIt1 first, BidirIt1 last, BidirIt2 d_last) {
+        while (first != last) {
+            *(--d_last) = utility::move(*(--last));
+        }
+        return d_last;
+    }
+
+    template <typename BidirIt1, typename BidirIt2>
+    RAINY_CONSTEXPR20 BidirIt2 copy_backward(BidirIt1 first, BidirIt1 last, BidirIt2 d_last) {
+        while (first != last) {
+            *(--d_last) = *(--last);
+        }
+        return d_last;
+    }
+
+    template <typename InputIt, typename OutputIt>
+    constexpr OutputIt uninitialized_move_backward(InputIt first, InputIt last, OutputIt d_last) {
+        while (first != last) {
+            --d_last;
+            --last;
+            std::construct_at(std::addressof(*d_last), utility::move(*last));
+        }
+        return d_last;
+    }
 }
 
 #endif

@@ -442,7 +442,6 @@ namespace rainy::component::willow::implements {
                     if (last_token != token_type::end_array)
                         throw json_parse_error("unexpected token in array");
                     break;
-
                 case token_type::begin_object:
                     json = json_type::object;
                     while (true) {
@@ -464,9 +463,9 @@ namespace rainy::component::willow::implements {
                     if (last_token != token_type::end_object)
                         throw_exception(json_parse_error("unexpected token in object"));
                     break;
-
-                default:
+                default: {
                     throw_exception(json_parse_error("unexpected token"));
+                }
             }
         }
 
@@ -613,7 +612,6 @@ namespace rainy::component::willow::implements {
             string_buffer_.clear();
             for (const auto &ch: str) {
                 const auto c = static_cast<std::uint32_t>(ch);
-
                 switch (c) {
                     case '\t':
                         string_buffer_.push_back(to_char_type('\\'));

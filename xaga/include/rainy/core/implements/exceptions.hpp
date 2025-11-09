@@ -29,7 +29,7 @@ namespace rainy::foundation::exceptions::implements {
     RAINY_TOOLKIT_API void invoke_exception_handler() noexcept;
 
     template <typename Except, bool NoExceptionHandlerInvoke = false>
-    void report_error(
+    constexpr void report_error(
         const type_traits::other_trans::conditional_t<type_traits::type_relations::is_void_v<Except>, void *, Except> &exception) {
         if constexpr (type_traits::type_relations::is_void_v<Except>) {
             constexpr const char message[] = "Detected error and the program cause a fatal error!";
@@ -114,7 +114,7 @@ namespace rainy::foundation::exceptions {
     constexpr with_this_exception_t<Except> with_this_exception{};
 
     template <typename Except>
-    void throw_exception(const Except &exception) {
+    constexpr void throw_exception(const Except &exception) {
         static_assert(type_traits::type_relations::is_base_of_v<std::exception, Except>,
                       "exception type must be derived from std::exception!");
 #if __cpp_exceptions
@@ -126,7 +126,7 @@ namespace rainy::foundation::exceptions {
     }
 
     template <typename Except, exception_semantic Semantic = exception_semantic::enforce, typename... Args>
-    void throw_exception_if(bool cond, Args &&...args) {
+    constexpr void throw_exception_if(bool cond, Args &&...args) {
         static_assert(type_traits::type_relations::is_base_of_v<std::exception, Except>,
                       "exception type must be derived from std::exception!");
         if (!cond) {
@@ -161,7 +161,7 @@ namespace rainy::foundation::exceptions {
     }
 
     template <exception_semantic Semantic = exception_semantic::enforce, typename Except, typename... Args>
-    RAINY_INLINE void throw_exception_if(with_this_exception_t<Except>, bool cond, Args &&...args) {
+    RAINY_INLINE constexpr void throw_exception_if(with_this_exception_t<Except>, bool cond, Args &&...args) {
         throw_exception_if<Except, Semantic>(cond, utility::forward<Args>(args)...);
     }
 

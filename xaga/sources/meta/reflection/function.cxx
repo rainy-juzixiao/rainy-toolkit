@@ -19,7 +19,7 @@ namespace rainy::meta::reflection {
     function::function() noexcept = default;
 
     function::function(function &&right) noexcept {
-        move_from_other(std::move(right));
+        move_from_other(utility::move(right));
     }
 
     function::function(const function &right) noexcept {
@@ -78,9 +78,9 @@ namespace rainy::meta::reflection {
             std::swap(invoke_accessor_, right.invoke_accessor_);
         } else {
             function temp;
-            temp.move_from_other(std::move(*this));
-            this->move_from_other(std::move(right));
-            right.move_from_other(std::move(temp));
+            temp.move_from_other(utility::move(*this));
+            this->move_from_other(utility::move(right));
+            right.move_from_other(utility::move(temp));
         }
     }
 

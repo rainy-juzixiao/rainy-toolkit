@@ -77,7 +77,7 @@ namespace rainy::foundation::ctti::implements {
     constexpr std::string_view type_name_prober_ = "void";
 
     template <typename Ty>
-    constexpr std::string_view wrapped_type_name() { // NOLINT
+    constexpr rain_fn wrapped_type_name() -> std::string_view { // NOLINT
 #if RAINY_USING_MSVC
         return __FUNCSIG__;
 #elif RAINY_USING_CLANG || RAINY_USING_GCC
@@ -87,16 +87,16 @@ namespace rainy::foundation::ctti::implements {
 #endif
     }
 
-    constexpr std::size_t wrapped_type_name_prefix_length() { // NOLINT
+    constexpr rain_fn wrapped_type_name_prefix_length() -> std::size_t { // NOLINT
         return wrapped_type_name<type_name_prober>().find(type_name_prober_);
     }
 
-    constexpr std::size_t wrapped_type_name_suffix_length() { // NOLINT
+    constexpr rain_fn wrapped_type_name_suffix_length() -> std::size_t { // NOLINT
         return wrapped_type_name<type_name_prober>().length() - wrapped_type_name_prefix_length() - type_name_prober_.length();
     }
 
     template <auto Variable>
-    constexpr std::string_view wrapped_variable_name() {
+    constexpr rain_fn wrapped_variable_name() -> std::string_view {
 #if RAINY_USING_CLANG || RAINY_USING_GCC
         return __PRETTY_FUNCTION__;
 #elif RAINY_USING_MSVC
@@ -110,103 +110,105 @@ namespace rainy::foundation::ctti::implements {
 
 namespace rainy::foundation::ctti::implements {
     template <typename Ty>
-    static constexpr traits eval_traits_for_properties() noexcept {
+    static constexpr rain_fn eval_traits_for_properties() noexcept -> traits {
+        using namespace type_traits;
         traits traits_{0};
-        if constexpr (type_traits::primary_types::is_lvalue_reference_v<Ty>) {
+        if constexpr (primary_types::is_lvalue_reference_v<Ty>) {
             traits_ |= traits::is_lref;
         }
-        if constexpr (type_traits::primary_types::is_rvalue_reference_v<Ty>) {
+        if constexpr (primary_types::is_rvalue_reference_v<Ty>) {
             traits_ |= traits::is_rref;
         }
-        if constexpr (type_traits::type_properties::is_const_v<type_traits::reference_modify::remove_reference_t<Ty>>) {
+        if constexpr (type_properties::is_const_v<reference_modify::remove_reference_t<Ty>>) {
             traits_ |= traits::is_const;
         }
-        if constexpr (type_traits::type_properties::is_volatile_v<type_traits::reference_modify::remove_reference_t<Ty>>) {
+        if constexpr (type_properties::is_volatile_v<reference_modify::remove_reference_t<Ty>>) {
             traits_ |= traits::is_volatile;
         }
         return traits_;
     }
 
     template <typename Ty>
-    static constexpr traits eval_traits_for_fundamental() noexcept {
+    static constexpr rain_fn eval_traits_for_fundamental() noexcept -> traits {
+        using namespace type_traits;
         traits traits_{0};
-        if constexpr (type_traits::primary_types::is_void_v<Ty>) {
+        if constexpr (primary_types::is_void_v<Ty>) {
             traits_ |= traits::is_void;
         }
-        if constexpr (type_traits::primary_types::is_pointer_v<type_traits::cv_modify::remove_cvref_t<Ty>> ||
-                      type_traits::type_relations::is_same_v<Ty, std::nullptr_t>) {
+        if constexpr (primary_types::is_pointer_v<cv_modify::remove_cvref_t<Ty>> || type_relations::is_same_v<Ty, std::nullptr_t>) {
             traits_ |= traits::is_pointer;
         }
-        if constexpr (type_traits::primary_types::is_integral_v<Ty>) {
+        if constexpr (primary_types::is_integral_v<Ty>) {
             traits_ |= traits::is_integer;
         }
-        if constexpr (type_traits::type_relations::is_same_v<Ty, std::nullptr_t>) {
+        if constexpr (type_relations::is_same_v<Ty, std::nullptr_t>) {
             traits_ |= traits::is_nullptr_t;
         }
-        if constexpr (type_traits::primary_types::is_floating_point_v<Ty>) {
+        if constexpr (primary_types::is_floating_point_v<Ty>) {
             traits_ |= traits::is_floating_point;
         }
-        if constexpr (type_traits::type_properties::is_unsigned_v<Ty>) {
+        if constexpr (type_properties::is_unsigned_v<Ty>) {
             traits_ |= traits::is_unsigned;
         }
-        if constexpr (type_traits::composite_types::is_fundamental_v<Ty>) {
+        if constexpr (composite_types::is_fundamental_v<Ty>) {
             traits_ |= traits::is_fundamental;
         }
-        if constexpr (type_traits::type_properties::is_trivial_v<Ty>) {
+        if constexpr (type_properties::is_trivial_v<Ty>) {
             traits_ |= traits::is_trivial;
         }
-        if constexpr (type_traits::composite_types::is_arithmetic_v<Ty>) {
+        if constexpr (composite_types::is_arithmetic_v<Ty>) {
             traits_ |= traits::is_arithmetic;
         }
         return traits_;
     }
 
     template <typename Ty>
-    static constexpr traits eval_traits_for_compound() noexcept {
+    static constexpr rain_fn eval_traits_for_compound() noexcept -> traits {
+        using namespace type_traits;
         traits traits_{0};
-        if constexpr (type_traits::primary_types::is_class_v<type_traits::other_trans::decay_t<Ty>>) {
+        if constexpr (primary_types::is_class_v<other_trans::decay_t<Ty>>) {
             traits_ |= traits::is_class;
         }
-        if constexpr (type_traits::primary_types::is_template_v<type_traits::other_trans::decay_t<Ty>>) {
+        if constexpr (primary_types::is_template_v<other_trans::decay_t<Ty>>) {
             traits_ |= traits::is_template;
         }
-        if constexpr (type_traits::primary_types::is_function_v<Ty> || type_traits::primary_types::is_variadic_function_v<Ty>) {
+        if constexpr (primary_types::is_function_v<Ty> || primary_types::is_variadic_function_v<Ty>) {
             traits_ |= traits::is_function;
         }
-        if constexpr (type_traits::primary_types::function_traits<Ty>::valid) {
+        if constexpr (primary_types::function_traits<Ty>::valid) {
             traits_ |= traits::is_function_pointer;
         }
-        if constexpr (type_traits::composite_types::is_member_pointer_v<Ty>) {
-            if constexpr (type_traits::primary_types::is_member_function_pointer_v<Ty>) {
+        if constexpr (composite_types::is_member_pointer_v<Ty>) {
+            if constexpr (primary_types::is_member_function_pointer_v<Ty>) {
                 traits_ |= traits::is_member_fnptr;
             }
-            if constexpr (!type_traits::primary_types::is_member_function_pointer_v<Ty>) {
+            if constexpr (!primary_types::is_member_function_pointer_v<Ty>) {
                 traits_ |= traits::is_member_field_ptr;
             }
         }
-        if constexpr (type_traits::primary_types::is_array_v<Ty>) {
+        if constexpr (primary_types::is_array_v<Ty>) {
             traits_ |= traits::is_array;
         }
-        if constexpr (type_traits::primary_types::is_enum_v<Ty>) {
+        if constexpr (primary_types::is_enum_v<Ty>) {
             traits_ |= traits::is_enum;
         }
-        if constexpr (type_traits::primary_types::is_union_v<Ty>) {
+        if constexpr (primary_types::is_union_v<Ty>) {
             traits_ |= traits::is_union;
         }
-        if constexpr (type_traits::composite_types::is_compound_v<Ty>) {
+        if constexpr (composite_types::is_compound_v<Ty>) {
             traits_ |= traits::is_compound;
         }
-        if constexpr (type_traits::type_properties::is_polymorphic_v<Ty>) {
+        if constexpr (type_properties::is_polymorphic_v<Ty>) {
             traits_ |= traits::is_polymorphic;
         }
-        if constexpr (type_traits::type_properties::is_abstract_v<Ty>) {
+        if constexpr (type_properties::is_abstract_v<Ty>) {
             traits_ |= traits::is_abstract;
         }
         return traits_;
     }
 
     template <typename Ty>
-    constexpr traits eval_for_typeinfo() noexcept {
+    constexpr rain_fn eval_for_typeinfo() noexcept -> traits {
         traits traits{};
         traits |= implements::eval_traits_for_properties<Ty>();
         traits |= implements::eval_traits_for_fundamental<Ty>();
@@ -215,7 +217,7 @@ namespace rainy::foundation::ctti::implements {
     }
 
     template <typename Ty>
-    constexpr auto make_type_name_array() {
+    constexpr rain_fn make_type_name_array() -> auto {
         constexpr auto wrapped_name = implements::wrapped_type_name<Ty>();
         constexpr auto prefix_length = implements::wrapped_type_name_prefix_length();
         constexpr auto suffix_length = implements::wrapped_type_name_suffix_length();
@@ -232,11 +234,11 @@ namespace rainy::foundation::ctti::implements {
     constexpr auto type_name_array = make_type_name_array<Ty>();
 
     template <typename Ty>
-    constexpr std::string_view generate_type_name() {
+    constexpr rain_fn generate_type_name() -> std::string_view {
         return {type_name_array<Ty>.data(), type_name_array<Ty>.size() - 1};
     }
 
-    RAINY_INLINE static constexpr std::size_t fnv1a_hash(std::string_view val) noexcept {
+    RAINY_INLINE static constexpr std::size_t fnv1a_hash(annotations::lifetime::in<std::string_view> val) noexcept {
         std::size_t hash = utility::implements::fnv_offset_basis;
         for (char i: val) {
             hash ^= static_cast<std::size_t>(static_cast<unsigned char>(i));
@@ -287,10 +289,12 @@ namespace rainy::foundation::ctti::implements {
         }
 
         template <typename Type>
-        static constexpr rain_fn is_compatible_impl(const typeinfo_component &type) -> bool;
-
+        static constexpr rain_fn is_compatible_impl(annotations::lifetime::in<typeinfo_component> type) -> bool;
         template <typename Ty>
-        static constexpr rain_fn type_modfier_impl(type_operation op) -> const typeinfo_component *;
+        static constexpr rain_fn type_modfier_impl(annotations::lifetime::in<type_operation> op) -> const typeinfo_component *;
+
+        static constexpr rain_fn empty_is_compatible(annotations::lifetime::in<typeinfo_component>)->bool;
+        static constexpr rain_fn empty_type_modfier(annotations::lifetime::in<typeinfo_component>)->bool;
 
         std::string_view name{};
         std::size_t hash_code{};
@@ -299,39 +303,110 @@ namespace rainy::foundation::ctti::implements {
         type_modifer modfier{};
     };
 
+    constexpr typeinfo_component empty_component;
+
     template <typename Ty>
     static constexpr typeinfo_component typeinfo = typeinfo_component::make<Ty>();
 
+    constexpr rain_fn typeinfo_component::empty_is_compatible(annotations::lifetime::in<typeinfo_component>) -> bool {
+        return false;
+    }
+
+    constexpr rain_fn typeinfo_component::empty_type_modfier(annotations::lifetime::in<typeinfo_component>) -> bool {
+        return false;
+    }
+
     template <typename Ty>
-    constexpr rain_fn typeinfo_component::type_modfier_impl(type_operation op) -> const typeinfo_component * {
+    constexpr rain_fn typeinfo_component::type_modfier_impl(annotations::lifetime::in<type_operation> op)
+        -> const typeinfo_component * {
         using namespace type_traits;
+        constexpr bool is_reference_ptr =
+            type_traits::composite_types::is_reference_v<Ty> &&
+            type_traits::primary_types::is_pointer_v<type_traits::reference_modify::remove_reference_t<Ty>>;
         if constexpr (!type_traits::type_relations::is_void_v<Ty>) {
             switch (op) {
                 case type_operation::remove_pointer: {
-                    return &typeinfo<type_traits::pointer_modify::remove_pointer_t<Ty>>;
+                    if constexpr (is_reference_ptr) {
+                        using referred_ptr = type_traits::reference_modify::remove_reference_t<Ty>;
+                        using pointer_type = type_traits::pointer_modify::remove_pointer_t<referred_ptr>;
+                        if constexpr (type_traits::primary_types::is_lvalue_reference_v<Ty>) {
+                            return &typeinfo<type_traits::reference_modify::add_lvalue_reference_t<pointer_type>>;
+                        } else {
+                            return &typeinfo<type_traits::reference_modify::add_rvalue_reference_t<pointer_type>>;
+                        }
+                    } else {
+                        return &typeinfo<type_traits::pointer_modify::remove_pointer_t<Ty>>;
+                    }
                 }
                 case type_operation::remove_const: {
-                    return &typeinfo<type_traits::cv_modify::remove_const_t<Ty>>;
+                    if constexpr (is_reference_ptr) {
+                        using referred_ptr = type_traits::reference_modify::remove_reference_t<Ty>;
+                        using pointer_type = type_traits::pointer_modify::remove_pointer_t<referred_ptr>;
+                        using non_const_pointer = type_traits::cv_modify::remove_const_t<pointer_type>;
+                        using non_const_ptr = type_traits::pointer_modify::add_pointer_t<non_const_pointer>;
+                        if constexpr (type_traits::primary_types::is_lvalue_reference_v<Ty>) {
+                            return &typeinfo<type_traits::reference_modify::add_lvalue_reference_t<non_const_ptr>>;
+                        } else {
+                            return &typeinfo<type_traits::reference_modify::add_rvalue_reference_t<non_const_ptr>>;
+                        }
+                    } else {
+                        return &typeinfo<type_traits::cv_modify::remove_const_t<Ty>>;
+                    }
                 }
                 case type_operation::remove_volatile: {
-                    return &typeinfo<type_traits::cv_modify::remove_volatile_t<Ty>>;
+                    if constexpr (is_reference_ptr) {
+                        using referred_ptr = type_traits::reference_modify::remove_reference_t<Ty>;
+                        using pointer_type = type_traits::pointer_modify::remove_pointer_t<referred_ptr>;
+                        using non_volatile_pointer = type_traits::cv_modify::remove_volatile_t<pointer_type>;
+                        using non_volatile_ptr = type_traits::pointer_modify::add_pointer_t<non_volatile_pointer>;
+                        if constexpr (type_traits::primary_types::is_lvalue_reference_v<Ty>) {
+                            return &typeinfo<type_traits::reference_modify::add_lvalue_reference_t<non_volatile_ptr>>;
+                        } else {
+                            return &typeinfo<type_traits::reference_modify::add_rvalue_reference_t<non_volatile_ptr>>;
+                        }
+                    } else {
+                        return &typeinfo<type_traits::cv_modify::remove_volatile_t<Ty>>;
+                    }
                 }
                 case type_operation::remove_const_volatile: {
-                    return &typeinfo<type_traits::cv_modify::remove_cv_t<Ty>>;
+                    if constexpr (is_reference_ptr) {
+                        using referred_ptr = type_traits::reference_modify::remove_reference_t<Ty>;
+                        using pointer_type = type_traits::pointer_modify::remove_pointer_t<referred_ptr>;
+                        using non_cv_pointer = type_traits::cv_modify::remove_cv_t<pointer_type>;
+                        using non_cv_ptr = type_traits::pointer_modify::add_pointer_t<non_cv_pointer>;
+                        if constexpr (type_traits::primary_types::is_lvalue_reference_v<Ty>) {
+                            return &typeinfo<type_traits::reference_modify::add_lvalue_reference_t<non_cv_ptr>>;
+                        } else {
+                            return &typeinfo<type_traits::reference_modify::add_rvalue_reference_t<non_cv_ptr>>;
+                        }
+                    } else {
+                        return &typeinfo<type_traits::cv_modify::remove_cv_t<Ty>>;
+                    }
                 }
                 case type_operation::remove_cvref: {
-                    return &typeinfo<type_traits::cv_modify::remove_cvref_t<Ty>>;
+                    if constexpr (is_reference_ptr) {
+                        using referred_ptr = type_traits::reference_modify::remove_reference_t<Ty>;
+                        using pointer_type = type_traits::pointer_modify::remove_pointer_t<referred_ptr>;
+                        using non_cv_pointer = type_traits::cv_modify::remove_cv_t<pointer_type>;
+                        using non_cv_ptr = type_traits::pointer_modify::add_pointer_t<non_cv_pointer>;
+                        return &typeinfo<non_cv_ptr>;
+                    } else {
+                        return &typeinfo<type_traits::cv_modify::remove_cvref_t<Ty>>;
+                    }
                 }
                 case type_operation::remove_reference: {
                     return &typeinfo<type_traits::reference_modify::remove_reference_t<Ty>>;
                 }
+                case type_operation::decay_type: {
+                    return &typeinfo<type_traits::other_trans::decay_t<Ty>>;
+                }
             }
         }
-        return &typeinfo<void>;
+        return &empty_component;
     }
 
     template <typename Type>
-    constexpr rain_fn typeinfo_component::is_compatible_impl(const typeinfo_component &type) -> bool {
+    constexpr rain_fn typeinfo_component::is_compatible_impl(annotations::lifetime::in<typeinfo_component> type) -> bool {
         using namespace type_traits;
         using match_t = cv_modify::remove_cvref_t<Type>;
         using real_convert_type =
@@ -409,22 +484,27 @@ namespace rainy::foundation::ctti {
     }
 }
 
-#define RAINY_GENERATE_TYPEINFO_METHOD_HELPER(function_name, operation)                                                               \
+#define RAINY_GENERATE_TYPEINFO_MODIFY_METHOD_HELPER(function_name, operation)                                                        \
     RAINY_NODISCARD constexpr rain_fn function_name() const noexcept -> typeinfo {                                                    \
         typeinfo ret;                                                                                                                 \
         ret.internal_type = internal_type->modfier(operation);                                                                        \
         return ret;                                                                                                                   \
     }
 
+#define RAINY_GENERATE_TYPEINFO_TYPEINSPECT_METHOD_HELPER(function_name, traits)                                                      \
+    RAINY_NODISCARD constexpr rain_fn function_name() const noexcept -> bool {                                                        \
+        return has_traits(traits);                                                                                                    \
+    }
+
 namespace rainy::foundation::ctti {
     class typeinfo {
     public:
-        constexpr typeinfo() = default;
-        constexpr typeinfo(const typeinfo &) = default;
-        constexpr typeinfo(typeinfo &&) = default;
+        constexpr typeinfo() noexcept = default;
+        constexpr typeinfo(annotations::lifetime::in<typeinfo>) noexcept = default;
+        constexpr typeinfo(annotations::lifetime::move_from<typeinfo>) noexcept = default;
 
-        typeinfo &operator=(const typeinfo &) = default;
-        typeinfo &operator=(typeinfo &&) = default;
+        constexpr typeinfo &operator=(annotations::lifetime::in<typeinfo>) noexcept = default;
+        constexpr typeinfo &operator=(annotations::lifetime::move_from<typeinfo>) noexcept = default;
 
         /**
          * @brief 从Ty类型信息中构造typeinfo对象
@@ -432,23 +512,24 @@ namespace rainy::foundation::ctti {
          * @return 返回Ty对应的类型信息对象
          */
         template <typename Ty>
-        static constexpr typeinfo create() {
+        static constexpr rain_fn create() noexcept -> typeinfo {
             typeinfo type;
             type.internal_type = &implements::typeinfo<Ty>;
             return type;
         }
 
         template <typename Ty>
-        static constexpr std::size_t get_type_hash() {
+        static constexpr rain_fn get_type_hash() noexcept -> std::size_t {
             return implements::fnv1a_hash(type_name<Ty>());
         }
 
         /**
          * @brief 获取Ty类型信息的静态实例的常量引用，通常由rainy_typeid宏使用（推荐）
          * @tparam Ty 要获取类型信息的类型
+         * @return 一个指向对应类型信息的static只读生命周期对象的引用
          */
         template <typename Ty>
-        static const typeinfo &of() {
+        static rain_fn of() noexcept -> annotations::lifetime::static_read_only<typeinfo> {
             static typeinfo instance = create<Ty>();
             return instance;
         }
@@ -456,14 +537,14 @@ namespace rainy::foundation::ctti {
         /**
          * @brief 获取类型信息中对应的名称
          */
-        RAINY_NODISCARD constexpr std::string_view name() const noexcept {
+        RAINY_NODISCARD constexpr rain_fn name() const noexcept -> std::string_view {
             return internal_type->name;
         }
 
         /**
          * @brief 获取类型信息中对应的哈希值
          */
-        RAINY_NODISCARD constexpr std::size_t hash_code() const noexcept {
+        RAINY_NODISCARD constexpr rain_fn hash_code() const noexcept -> std::size_t {
             return internal_type->hash_code;
         }
 
@@ -472,7 +553,7 @@ namespace rainy::foundation::ctti {
          * @param right 另一个类型信息对象
          * @return 如果类型信息相同，返回true，否则返回false
          */
-        RAINY_NODISCARD constexpr bool is_same(const typeinfo &right) const noexcept {
+        RAINY_NODISCARD constexpr rain_fn is_same(annotations::lifetime::in<typeinfo> right) const noexcept -> bool {
             return hash_code() == right.hash_code();
         }
 
@@ -482,7 +563,8 @@ namespace rainy::foundation::ctti {
          * @param right 要比较的右边的类型信息对象
          * @return 如果类型信息相同，返回true，否则返回false
          */
-        constexpr friend bool operator==(const typeinfo &left, const typeinfo &right) noexcept {
+        constexpr friend rain_fn operator==(annotations::lifetime::in<typeinfo> left,
+                                            annotations::lifetime::in<typeinfo> right) noexcept -> bool {
             return left.is_same(right);
         }
 
@@ -492,18 +574,54 @@ namespace rainy::foundation::ctti {
          * @param right 要比较的右边的类型信息对象
          * @return 如果类型信息不同，返回true，否则返回false
          */
-        constexpr friend bool operator!=(const typeinfo &left, const typeinfo &right) noexcept {
+        constexpr friend rain_fn operator!=(annotations::lifetime::in<typeinfo> left,
+                                            annotations::lifetime::in<typeinfo> right) noexcept -> bool {
             return !left.is_same(right);
         }
 
-        RAINY_GENERATE_TYPEINFO_METHOD_HELPER(remove_const, implements::type_operation::remove_const);
-        RAINY_GENERATE_TYPEINFO_METHOD_HELPER(remove_volatile, implements::type_operation::remove_volatile);
-        RAINY_GENERATE_TYPEINFO_METHOD_HELPER(remove_cv, implements::type_operation::remove_const_volatile);
-        RAINY_GENERATE_TYPEINFO_METHOD_HELPER(remove_reference, implements::type_operation::remove_reference);
-        RAINY_GENERATE_TYPEINFO_METHOD_HELPER(remove_cvref, implements::type_operation::remove_cvref);
-        RAINY_GENERATE_TYPEINFO_METHOD_HELPER(remove_pointer, implements::type_operation::remove_pointer);
+        /**
+         * @brief 对当前类型执行移除const属性操作.
+         * @return 返回被处理后的类型信息
+         */
+        RAINY_GENERATE_TYPEINFO_MODIFY_METHOD_HELPER(remove_const, implements::type_operation::remove_const);
 
-        RAINY_NODISCARD constexpr bool is_compatible(const typeinfo &right) const noexcept {
+        /**
+         * @brief 对当前类型执行移除volatile属性操作.
+         * @return 返回被处理后的类型信息
+         */
+        RAINY_GENERATE_TYPEINFO_MODIFY_METHOD_HELPER(remove_volatile, implements::type_operation::remove_volatile);
+
+        /**
+         * @brief 对当前类型执行移除const和volatile属性操作.
+         * @return 返回被处理后的类型信息
+         */
+        RAINY_GENERATE_TYPEINFO_MODIFY_METHOD_HELPER(remove_cv, implements::type_operation::remove_const_volatile);
+
+        /**
+         * @brief 对当前类型执行移除reference属性操作.
+         * @return 返回被处理后的类型信息
+         */
+        RAINY_GENERATE_TYPEINFO_MODIFY_METHOD_HELPER(remove_reference, implements::type_operation::remove_reference);
+
+        /**
+         * @brief 对当前类型执行移除const、volatile以及reference属性操作.
+         * @return 返回被处理后的类型信息
+         */
+        RAINY_GENERATE_TYPEINFO_MODIFY_METHOD_HELPER(remove_cvref, implements::type_operation::remove_cvref);
+
+        /**
+         * @brief 对当前类型执行移除指针属性操作.
+         * @return 返回被处理后的类型信息
+         */
+        RAINY_GENERATE_TYPEINFO_MODIFY_METHOD_HELPER(remove_pointer, implements::type_operation::remove_pointer);
+
+        /**
+         * @brief 对当前类型执行decay操作.
+         * @return 返回被处理后的类型信息
+         */
+        RAINY_GENERATE_TYPEINFO_MODIFY_METHOD_HELPER(decay, implements::type_operation::decay_type);
+
+        RAINY_NODISCARD constexpr rain_fn is_compatible(annotations::lifetime::in<typeinfo> right) const noexcept -> bool {
             return internal_type->is_comptaible(*right.internal_type);
         }
 
@@ -512,7 +630,7 @@ namespace rainy::foundation::ctti {
          * @param traits 要检查的traits，从traits枚举中获取
          * @return 如果类型信息具有traits，返回true，否则返回false
          */
-        RAINY_NODISCARD constexpr rain_fn has_traits(traits traits) const noexcept -> bool {
+        RAINY_NODISCARD constexpr rain_fn has_traits(annotations::lifetime::in<traits> traits) const noexcept -> bool {
             return static_cast<bool>(internal_type->type_traits & traits);
         }
 
@@ -520,46 +638,79 @@ namespace rainy::foundation::ctti {
             return internal_type->hash_code;
         }
 
-        RAINY_NODISCARD constexpr bool is_arithmetic() const noexcept {
-            return has_traits(traits::is_arithmetic);
-        }
-
-        RAINY_NODISCARD constexpr bool is_floating_point() const noexcept {
-            return has_traits(traits::is_floating_point);
-        }
-
-        RAINY_NODISCARD constexpr bool is_integer() const noexcept {
-            return has_traits(traits::is_integer);
-        }
-
-        RAINY_NODISCARD constexpr bool is_nullptr() const noexcept {
-            return has_traits(traits::is_nullptr_t);
-        }
-
-        RAINY_NODISCARD constexpr bool is_reference() const noexcept {
-            return has_traits(traits::is_lref) || has_traits(traits::is_rref);
-        }
-
-        RAINY_NODISCARD constexpr bool is_pointer() const noexcept {
-            return has_traits(traits::is_pointer);
-        }
-
-        RAINY_NODISCARD constexpr bool is_lvalue_reference() const noexcept {
-            return has_traits(traits::is_lref);
-        }
-
-        RAINY_NODISCARD constexpr bool is_rvalue_reference() const noexcept {
-            return has_traits(traits::is_rref);
-        }
-
-        RAINY_NODISCARD constexpr bool is_const() const noexcept {
-            return has_traits(traits::is_const);
-        }
+        /**
+         * @brief 检查当前是否为算数类型.
+         * @return 如果是返回true，否则false
+         */
+        RAINY_GENERATE_TYPEINFO_TYPEINSPECT_METHOD_HELPER(is_arithmetic, traits::is_arithmetic);
+        
+        /**
+         * @brief 检查当前是否为浮点类型.
+         * @return 如果是返回true，否则false
+         */        
+        RAINY_GENERATE_TYPEINFO_TYPEINSPECT_METHOD_HELPER(is_floating_point, traits::is_floating_point);
+        
+        /**
+         * @brief 检查当前是否为整型类型.
+         * @return 如果是返回true，否则false
+         */
+        RAINY_GENERATE_TYPEINFO_TYPEINSPECT_METHOD_HELPER(is_integer, traits::is_integer);
+        
+        /**
+         * @brief 检查当前是否为空指针类型.
+         * @return 如果是返回true，否则false
+         */
+        RAINY_GENERATE_TYPEINFO_TYPEINSPECT_METHOD_HELPER(is_nullptr, traits::is_nullptr_t);
+        
+        /**
+         * @brief 检查当前是否为引用类型（包括左或右）.
+         * @return 如果是返回true，否则false
+         */
+        RAINY_GENERATE_TYPEINFO_TYPEINSPECT_METHOD_HELPER(is_reference, traits::is_lref | traits::is_rref);
+        
+        /**
+         * @brief 检查当前是否为指针类型.
+         * @return 如果是返回true，否则false
+         */        
+        RAINY_GENERATE_TYPEINFO_TYPEINSPECT_METHOD_HELPER(is_pointer, traits::is_pointer);
+        
+        /**
+         * @brief 检查当前是否为左引用类型.
+         * @return 如果是返回true，否则false
+         */        
+        RAINY_GENERATE_TYPEINFO_TYPEINSPECT_METHOD_HELPER(is_lvalue_reference, traits::is_lref);
+        
+        /**
+         * @brief 检查当前是否为右引用类型.
+         * @return 如果是返回true，否则false
+         */      
+        RAINY_GENERATE_TYPEINFO_TYPEINSPECT_METHOD_HELPER(is_rvalue_reference, traits::is_rref);
+        
+        /**
+         * @brief 检查当前是否为const类型.
+         * @return 如果是返回true，否则false
+         */        
+        RAINY_GENERATE_TYPEINFO_TYPEINSPECT_METHOD_HELPER(is_const, traits::is_const);
+        
+        /**
+         * @brief 检查当前是否为volatile类型.
+         * @return 如果是返回true，否则false
+         */
+        RAINY_GENERATE_TYPEINFO_TYPEINSPECT_METHOD_HELPER(is_volatile, traits::is_volatile);
+        
+        /**
+         * @brief 检查当前是否为const volatile混合的类型.
+         * @return 如果是返回true，否则false
+         */
+        RAINY_GENERATE_TYPEINFO_TYPEINSPECT_METHOD_HELPER(is_const_volatile, traits::is_const & traits::is_volatile);
 
     private:
-        const implements::typeinfo_component *internal_type{};
+        const implements::typeinfo_component *internal_type{&implements::empty_component};
     };
 }
+
+#undef RAINY_GENERATE_TYPEINFO_MODIFY_METHOD_HELPER
+#undef RAINY_GENERATE_TYPEINFO_TYPEINSPECT_METHOD_HELPER
 
 template <>
 struct rainy::utility::hash<rainy::foundation::ctti::typeinfo> {
