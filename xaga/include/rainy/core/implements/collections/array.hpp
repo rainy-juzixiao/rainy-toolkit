@@ -34,6 +34,9 @@ namespace rainy::collections::implements {
 
         using is_swappable = type_traits::type_properties::is_swappable<Ty>;
         using is_nothrow_swappable = type_traits::type_properties::is_nothrow_swappable<Ty>;
+        using is_nothrow_assignable =
+            type_traits::helper::bool_constant<type_traits::type_properties::is_nothrow_move_assignable_v<Ty> &&
+                                               type_traits::type_properties::is_nothrow_move_constructible_v<Ty>>;
     };
 
     template <typename Ty>
@@ -50,6 +53,7 @@ namespace rainy::collections::implements {
 
         using is_swappable = type_traits::helper::true_type;
         using is_nothrow_swappable = type_traits::helper::true_type;
+        using is_nothrow_assignable = type_traits::helper::true_type;
     };
 }
 
@@ -90,19 +94,15 @@ namespace rainy::collections {
         }
 
         /**
-         * @brief 使用可变参数列表初始化数组
-         * @tparam Inits 可转换为 value_type 的参数类型
-         * @param inits 初始化参数包
-         * @details 当传入的参数数量不超过 N 且类型可转换时，可直接初始化数组元素
-         * @note 若传入参数数量超过 N，会触发 static_assert 编译期错误
+         * @brief 使用初始化列表对数组进行初始化
+         * @param ilist 初始化列表
+         * @note 如果初始化列表的大小大于其数组大小，则std::terminate()将被调用
          */
-        template <typename... Inits,
-                  type_traits::other_trans::enable_if_t<
-                      type_traits::logical_traits::conjunction_v<type_traits::type_relations::is_convertible<Inits, Ty>...> &&
-                          sizeof...(Inits) <= N,
-                      int> = 0>
-        constexpr array(Inits &&...inits) : elements{static_cast<value_type>(utility::forward<Inits>(inits))...} {
-            static_assert(sizeof...(Inits) <= N, "cannot init this array, because the Inits items is too much, cannot to construct");
+        constexpr array(std::initializer_list<Ty> ilist) :
+            array{ilist.begin(), ilist.size(), type_traits::helper::make_index_sequence<N>{}} {
+            if (ilist.size() > N) {
+                std::terminate();
+            }
         }
 
         /**
@@ -125,7 +125,7 @@ namespace rainy::collections {
         constexpr array(array &&right) noexcept(type_traits::type_properties::is_nothrow_move_constructible_v<value_type>) :
             elements{} {
             for (std::size_t i = 0; i < N; ++i) {
-                elements[i] = utility::move(right[i]);
+                elements[i] = utility::move_if_noexcept(right[i]);
             }
         }
 
@@ -136,8 +136,10 @@ namespace rainy::collections {
          * @details 将前 count 个元素赋值为指定值，其余保持默认初始化
          * @note 若 count >= N，将触发断言失败
          */
-        constexpr array(std::in_place_t, std::size_t count, const_reference value) : elements{} {
-            assert(count < N);
+        constexpr array(std::size_t count, const_reference value) : elements{} {
+            if (count > N) {
+                std::terminate();
+            }
             for (std::size_t i = 0; i < count; ++i) {
                 elements[i] = value;
             }
@@ -152,6 +154,10 @@ namespace rainy::collections {
          */
         template <typename Iter, type_traits::other_trans::enable_if_t<type_traits::extras::iterators::is_iterator_v<Iter>, int> = 0>
         constexpr array(Iter begin, Iter end) : elements{} {
+            std::size_t distance = utility::distance(begin, end);
+            if (distance > N) {
+                std::terminate();
+            }
             std::size_t index{0};
             for (; begin != end; ++begin, ++index) {
                 elements[index] = *begin;
@@ -648,6 +654,10 @@ namespace rainy::collections {
         }
 
     private:
+        template <std::size_t... I>
+        constexpr array(const_pointer ilist, std::size_t ilist_size,type_traits::helper::index_sequence<I...>) : elements{(I < ilist_size ? ilist[I] : value_type{})...} {
+        }
+
         RAINY_ALWAYS_INLINE static constexpr void range_check(const difference_type offset) noexcept {
             if (offset >= N) {
                 std::abort();

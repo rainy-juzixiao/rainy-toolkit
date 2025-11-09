@@ -16,16 +16,6 @@ namespace rainy::component::willow::implements {
         using array_type = typename basic_json::array_type;
         using object_type = typename basic_json::object_type;
 
-        json_type type;
-        union {
-            object_type *object;
-            array_type *vector;
-            string_type *string;
-            integer_type number_integer;
-            float_type number_float;
-            boolean_type boolean;
-        } data;
-
         value() {
             type = json_type::null;
             data.object = nullptr;
@@ -241,6 +231,16 @@ namespace rainy::component::willow::implements {
             }
             return false;
         }
+
+        json_type type;
+        union {
+            object_type *object;
+            array_type *vector;
+            string_type *string;
+            integer_type number_integer;
+            float_type number_float;
+            boolean_type boolean;
+        } data;
     };
 
     template <typename BasicJson>
@@ -257,35 +257,35 @@ namespace rainy::component::willow::implements {
             if (!json.is_object()) {
                 foundation::exceptions::willow::throw_json_type_error("json value type must be object");
             }
-            value = std::get<object_type>(json.value_.data);
+            value = *json.value_.data.object;
         }
 
         static void assign(const BasicJson &json, array_type &value) {
             if (!json.is_array()) {
                 foundation::exceptions::willow::throw_json_type_error("json value type must be array");
             }
-            value = std::get<array_type>(json.value_.data);
+            value = *json.value_.data.vector;
         }
 
         static void assign(const BasicJson &json, string_type &value) {
             if (!json.is_string()) {
                 foundation::exceptions::willow::throw_json_type_error("json value type must be string");
             }
-            value = std::get<string_type>(json.value_.data);
+            value = *json.value_.data.string;
         }
 
         static void assign(const BasicJson &json, boolean_type &value) {
             if (!json.is_bool()) {
                 foundation::exceptions::willow::throw_json_type_error("json value type must be boolean");
             }
-            value = std::get<boolean_type>(json.value_.data);
+            value = json.value_.data.boolean;
         }
 
         static void assign(const BasicJson &json, integer_type &value) {
             if (!json.is_integer()) {
                 foundation::exceptions::willow::throw_json_type_error("json value type must be integer");
             }
-            value = std::get<integer_type>(json.value_.data);
+            value = json.value_.data.number_integer;
         }
 
         template <typename IntegerType, typename std::enable_if_t<std::is_integral_v<IntegerType>, int> = 0>
@@ -293,14 +293,14 @@ namespace rainy::component::willow::implements {
             if (!json.is_integer()) {
                 foundation::exceptions::willow::throw_json_type_error("json value type must be integer");
             }
-            value = static_cast<IntegerType>(std::get<integer_type>(json.value_.data));
+            value = static_cast<IntegerType>(json.value_.data.number_integer);
         }
 
         static void assign(const BasicJson &json, float_type &value) {
             if (!json.is_float()) {
                 foundation::exceptions::willow::throw_json_type_error("json value type must be float");
             }
-            value = std::get<float_type>(json.value_.data);
+            value = json.value_.data.number_float;
         }
 
         template <typename FloatingType, typename std::enable_if_t<std::is_floating_point<FloatingType>::value, int> = 0>
@@ -308,7 +308,7 @@ namespace rainy::component::willow::implements {
             if (!json.is_float()) {
                 foundation::exceptions::willow::throw_json_type_error("json value type must be float");
             }
-            value = static_cast<FloatingType>(std::get<float_type>(json.value_.data));
+            value = static_cast<FloatingType>(json.value_.data.number_float);
         }
     };
 }

@@ -143,7 +143,7 @@ namespace rainy::type_traits::reference_modify {
     };
 
     template <typename Ty>
-    using add_const_rvalue_ref_t = typename add_const_lvalue_ref<Ty>::type;
+    using add_const_rvalue_ref_t = typename add_const_rvalue_ref<Ty>::type;
 }
 
 namespace rainy::type_traits::pointer_modify {

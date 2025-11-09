@@ -20,6 +20,15 @@ namespace rainy::annotations::lifetime {
         !type_traits::type_relations::is_void_v<Ty>,
         type_traits::other_trans::conditional_t<type_traits::type_properties::prefer_pass_by_value_v<Ty>, Ty const, Ty const &>>;
 
+    template <typename Ty>
+    using move_from = type_traits::other_trans::enable_if_t<!type_traits::type_relations::is_void_v<Ty>,Ty&&>;
+
+    template <typename Ty>
+    using read_only = Ty const&;
+
+    template <typename Ty>
+    using static_read_only = read_only<Ty>;
+
     template <typename T>
     class deferred_init {
     public:
@@ -361,7 +370,7 @@ namespace rainy::annotations::lifetime {
         }
 
         template <type_traits::other_trans::enable_if_t<type_traits::type_properties::is_swappable_v<type>, int> = 0>
-        rain_fn swap(take<type> &right) noexcept(type_traits::type_properties::is_nothrow_swappable_v<type>) -> void {
+        rain_fn swap(type &right) noexcept(type_traits::type_properties::is_nothrow_swappable_v<type>) -> void {
             using utility::swap;
             swap(take_resources, right.take_resources);
         }
@@ -387,6 +396,9 @@ namespace rainy::utility {
     using annotations::lifetime::deferred_init;
     using annotations::lifetime::in;
     using annotations::lifetime::out;
+    using annotations::lifetime::move_from;
+    using annotations::lifetime::read_only;
+    using annotations::lifetime::static_read_only;
     using annotations::lifetime::take;
 }
 

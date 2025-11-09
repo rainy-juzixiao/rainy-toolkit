@@ -53,6 +53,9 @@ namespace rainy::type_traits::type_relations {
     template <typename Ty, typename... Types>
     RAINY_CONSTEXPR_BOOL is_any_of_v = (is_same_v<Ty, Types> || ...); // NOLINT
 
+    template <typename Ty, typename... Types>
+    struct is_any_of : helper::bool_constant<is_any_of_v<Ty, Types...>> {};
+
 #if RAINY_USING_MSVC || RAINY_USING_CLANG
     template <typename From, typename To>
     RAINY_CONSTEXPR_BOOL is_convertible_v = __is_convertible_to(From, To);

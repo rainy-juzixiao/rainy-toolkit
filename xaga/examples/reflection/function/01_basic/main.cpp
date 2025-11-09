@@ -1,6 +1,9 @@
 #include <iostream>
 #include <optional>
+#include <algorithm>
 #include <rainy/utility/any.hpp>
+#include <rainy/collections/inplace_vector.hpp>
+#include <rainy/collections/string.hpp>
 
 using namespace rainy;
 using namespace rainy::utility;
@@ -16,8 +19,49 @@ struct mypair {
     std::string_view data2{};
 };
 
+static constexpr auto get_() {
+    collections::inplace_vector<int, 16> vec{1, 2, 3, 4, 5, 6, 7, 8};
+    vec.resize(4);
+    vec.emplace_back(5);
+    vec.emplace(vec.begin() + 1, 2);
+    vec.insert(vec.begin(), 9);
+    vec.insert(vec.end() - 2, 2, 1);
+    vec.insert(vec.end(), vec.begin(), vec.end() - 6);
+    vec.erase(vec.end() - 1);
+    return vec.map([](int value) { return value * 3; }).reverse();
+}
+
 int main() {
+    text::string_view view = "Hello World";
+    std::cout << view << '\n';
+    collections::inplace_vector<int, 10> vec1;
+    vec1.emplace_back(10);
+    vec1.emplace_back(20);
+    vec1.emplace_back(30);
+    vec1.emplace_back(40);
+    auto mapp = vec1.fold<std::unordered_map<int, std::string>>([](std::unordered_map<int, std::string> &map, int value) {
+        map[value] = std::to_string(value);
+        return map;
+    });
+    for (const auto &item: mapp) {
+        std::cout << item.first << ":" << item.second << '\n';
+    }
+
+    constexpr auto vec = get_();
     any a = 10;
+    std::cout << std::as_const(a).as_lvalue_reference().type().name() << '\n';
+    std::cout << std::as_const(a).as_rvalue_reference().type().name() << '\n';
+    a = std::array<int, 5>{5, 1, 2, 4, 3};
+    for (auto i : a.as_lvalue_reference()) {
+        std::cout << i << ' ';
+    }
+    std::cout.put('\n');
+    std::sort(a.begin(), a.end(), [](const auto &left, const auto &right) { return right > left; });
+    for (auto i: a.as_lvalue_reference()) {
+        std::cout << i << ' ';
+    }
+    std::cout.put('\n');
+    a = 10;
     std::cout << (a + 10000 - 10) << '\n';
     std::cout << (--a) << '\n';
     std::cout << (a) << '\n';
@@ -42,10 +86,10 @@ int main() {
     a.as<int>() = 42;
     std::cout << a << '\n';
     std::cout << x << '\n';
-    a.emplace<std::string>("");
     a.emplace<std::string>("Cello World");
     a[0] = 'H';
     std::cout << (a + std::string{", Again!"}) << '\n';
+    std::cout << a.target_as_void_ptr() << '\n';
     a = 10;
     if (a.is<int>()) { // 检查a是否为int
         std::cout << "a is int\n";
@@ -133,7 +177,7 @@ int main() {
         auto [first, second] = (*iter).destructure<std::string_view, int>();
         std::cout << first << ' ' << second << '\n';
     }
-    std::cout << "category = " << (int) a.begin().iterator_category() << '\n';
+    std::cout << "category = " << (int) a.begin().category() << '\n';
     a = std::make_tuple("Hello World", 42, 3.14f);
     std::cout << a[0] << '\n';
     std::cout << a[1] << '\n';

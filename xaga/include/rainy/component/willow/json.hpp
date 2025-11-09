@@ -12,293 +12,304 @@
 #include <rainy/component/willow/basic_json.hpp>
 
 namespace rainy::component::willow {
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL is_basic_json_v = false;
+
+    template <template <class Key, class Ty, class... Args> class ObjectType, template <class Key, class... Args> class ArrayType,
+              typename StringType, typename IntegerType, typename FloatingType, typename BooleanType, template <class Ty> class Alloc>
+    RAINY_CONSTEXPR_BOOL
+        is_basic_json_v<basic_json<ObjectType, ArrayType, StringType, IntegerType, FloatingType, BooleanType, Alloc>> = true;
+
+    template <typename Ty>
+    struct is_basic_json : type_traits::helper::bool_constant<is_basic_json_v<Ty>> {};
+
+    template <typename Ty, typename BasicJson = basic_json<>, type_traits::other_trans::enable_if_t<is_basic_json_v<BasicJson>, int> = 0>
+    struct json_bind;
+
+    template <typename Ty, typename BasicJson = basic_json<>,
+               type_traits::other_trans::enable_if_t<is_basic_json_v<BasicJson>, int> = 0>
+    inline rain_fn to_json(BasicJson &json, const Ty &value) -> void {
+        json_bind<Ty, BasicJson>{}.to_json(json, value);
+    }
+
+    template <typename Ty, typename Json = basic_json<>,
+              type_traits::other_trans::enable_if_t<is_basic_json_v<Json> && std::is_default_constructible<json_bind<Ty, Json>>::value,
+                                                    int> = 0>
+    inline rain_fn from_json(const Json &json, Ty &value) -> void {
+        json_bind<Ty, Json>{}.from_json(json, value);
+    }
+
+    template <typename Ty>
+    struct json_bind<std::unique_ptr<Ty>> {
+        void to_json(json &json, std::unique_ptr<Ty> const &value) {
+            if (value != nullptr) {
+                to_json(json, *value);
+            } else {
+                json = nullptr;
+            }
+        }
+
+        void from_json(const json &json, std::unique_ptr<Ty> &value) {
+            if (json.is_null()) {
+                value = nullptr;
+            } else {
+                if (!value) {
+                    value.reset(new Ty);
+                }
+                from_json(json, *value);
+            }
+        }
+    };
+
+    template <typename Ty>
+    struct json_bind<std::shared_ptr<Ty>> {
+        void to_json(json &json, std::shared_ptr<Ty> &value) {
+            if (value) {
+                to_json(json, *value);
+            } else {
+                json = nullptr;
+            }
+        }
+
+        void from_json(const json &json, std::shared_ptr<Ty> &value) {
+            if (json.is_null()) {
+                value = nullptr;
+            } else {
+                if (!value) {
+                    value = std::make_shared<Ty>();
+                }
+                from_json(json, *value);
+            }
+        }
+    };
+
+    template <typename Ty>
+    struct json_bind<std::vector<Ty>> {
+        void to_json(json &json, const std::vector<Ty> &value) {
+            json = json_type::array;
+            for (std::size_t i = 0; i < value.size(); i++) {
+                to_json(json[i], value[i]);
+            }
+        }
+
+        template <typename type_traits::other_trans::enable_if_t<type_traits::type_properties::is_default_constructible_v<Ty>, int> = 0>
+        void from_json(const json &json, std::vector<Ty> &value) {
+            value.resize(json.size());
+            for (std::size_t i = 0; i < json.size(); i++) {
+                from_json(json[i], value[i]);
+            }
+        }
+    };
+
+    template <typename Ty>
+    struct json_bind<std::map<std::string, Ty>> {
+        void to_json(json &json, const std::map<std::string, Ty> &value) {
+            json = json_type::object;
+            for (const auto &p: value) {
+                to_json(json[p.first], p.second);
+            }
+        }
+
+        template <typename type_traits::other_trans::enable_if_t<type_traits::type_properties::is_default_constructible_v<Ty>, int> = 0>
+        void from_json(const json &json, std::map<std::string, Ty> &value) {
+            for (auto iter = json.cbegin(); iter != json.cend(); iter++) {
+                Ty item{};
+                from_json(iter->value(), item);
+                value.insert(std::make_pair(iter->key(), item));
+            }
+        }
+    };
+
+    template <>
+    struct json_bind<int> {
+        using value_type = int;
+
+        void to_json(json &json, const value_type &value) {
+            json = value;
+        }
+        void from_json(const json &json, value_type &value) {
+            value = static_cast<value_type>(json);
+        }
+    };
+
+    template <>
+    struct json_bind<unsigned int> {
+        using value_type = unsigned int;
+
+        void to_json(json &json, const value_type &value) {
+            json = value;
+        }
+        void from_json(const json &json, value_type &value) {
+            value = static_cast<value_type>(json);
+        }
+    };
+
+    template <>
+    struct json_bind<short> {
+        using value_type = short;
+
+        void to_json(json &json, const value_type &value) {
+            json = value;
+        }
+        void from_json(const json &json, value_type &value) {
+            value = static_cast<value_type>(json);
+        }
+    };
+
+    template <>
+    struct json_bind<unsigned short> {
+        using value_type = unsigned short;
+
+        void to_json(json &json, const value_type &value) {
+            json = value;
+        }
+        void from_json(const json &json, value_type &value) {
+            value = static_cast<value_type>(json);
+        }
+    };
+
     
-    // namespace traits {
-    //     template <typename>
-    //     struct is_basic_json : std::false_type {};
+    template <>
+    struct json_bind<long> {
+        using value_type = long;
 
-    //    template <template <class Key, class Ty, class... Args> class ObjectType, template <class Key, class... Args> class
-    //    ArrayType,
-    //              typename StringType, typename IntegerType, typename FloatingType, typename BooleanType,
-    //              template <class Ty> class Alloc>
-    //    struct is_basic_json<basic_json<ObjectType, ArrayType, StringType, IntegerType, FloatingType, BooleanType, Alloc>>
-    //        : std::true_type {};
+        void to_json(json &json, const value_type &value) {
+            json = value;
+        }
+        void from_json(const json &json, value_type &value) {
+            value = static_cast<value_type>(json);
+        }
+    };
 
-    //    template <typename Ty, typename basicJson = basic_json<>,
-    //              typename std::enable_if<is_basic_json<basicJson>::value, int>::type = 0>
-    //    struct json_bind;
+    template <>
+    struct json_bind<unsigned long> {
+        using value_type = unsigned long;
 
-    //    template <typename Ty, typename basicJson = basic_json<>,
-    //              typename std::enable_if<is_basic_json<basicJson>::value, int>::type = 0,
-    //              typename std::enable_if<std::is_default_constructible<json_bind<Ty, basicJson>>::value, int>::type = 0>
-    //    inline void to_json(basicJson &j, const Ty &value) {
-    //        json_bind<Ty, basicJson>().to_json(j, value);
-    //    }
+        void to_json(json &json, const value_type &value) {
+            json = value;
+        }
+        void from_json(const json &json, value_type &value) {
+            value = static_cast<value_type>(json);
+        }
+    };
 
-    //    template <typename Ty, typename basicJson = basic_json<>,
-    //              typename std::enable_if<is_basic_json<basicJson>::value, int>::type = 0,
-    //              typename std::enable_if<std::is_default_constructible<json_bind<Ty, basicJson>>::value, int>::type = 0>
-    //    void from_json(const basicJson &j, Ty &value) {
-    //        json_bind<Ty, basicJson>().from_json(j, value);
-    //    }
+    template <>
+    struct json_bind<float> {
+        using value_type = float;
 
-    //    template <typename Ty>
-    //    struct json_bind<std::unique_ptr<Ty>> {
-    //        void to_json(json &j, std::unique_ptr<Ty> const &v) {
-    //            if (v != nullptr) {
-    //                traits::to_json(j, *v);
-    //            } else {
-    //                j = nullptr;
-    //            }
-    //        }
+        void to_json(json &json, const value_type &value) {
+            json = value;
+        }
+        void from_json(const json &json, value_type &value) {
+            value = static_cast<value_type>(json);
+        }
+    };
 
-    //        void from_json(const json &j, std::unique_ptr<Ty> &v) {
-    //            if (j.is_null()) {
-    //                v = nullptr;
-    //            } else {
-    //                if (v == nullptr) {
-    //                    v.reset(new Ty);
-    //                }
-    //                traits::from_json(j, *v);
-    //            }
-    //        }
-    //    };
+    template <>
+    struct json_bind<double> {
+        using value_type = double;
 
-    //    template <typename Ty>
-    //    struct json_bind<std::shared_ptr<Ty>> {
-    //        void to_json(json &j, std::shared_ptr<Ty> const &v) {
-    //            if (v != nullptr) {
-    //                traits::to_json(j, *v);
-    //            } else {
-    //                j = nullptr;
-    //            }
-    //        }
+        void to_json(json &json, const value_type &value) {
+            json = value;
+        }
+        void from_json(const json &json, value_type &value) {
+            value = static_cast<value_type>(json);
+        }
+    };
 
-    //        void from_json(const json &j, std::shared_ptr<Ty> &v) {
-    //            if (j.is_null()) {
-    //                v = nullptr;
-    //            } else {
-    //                if (v == nullptr) {
-    //                    v = std::make_shared<Ty>();
-    //                }
-    //                traits::from_json(j, *v);
-    //            }
-    //        }
-    //    };
+    template <>
+    struct json_bind<bool> {
+        using value_type = bool;
 
-    //    template <typename Ty>
-    //    struct json_bind<std::vector<Ty>> {
-    //        void to_json(json &j, const std::vector<Ty> &v) {
-    //            j = json_type::array;
-    //            for (std::size_t i = 0; i < v.size(); i++) {
-    //                traits::to_json(j[i], v[i]);
-    //            }
-    //        }
+        void to_json(json &json, const value_type &value) {
+            json = value;
+        }
+        void from_json(const json &json, value_type &value) {
+            value = static_cast<value_type>(json);
+        }
+    };
 
-    //        template <typename std::enable_if<std::is_default_constructible<Ty>::value, int>::type = 0>
-    //        void from_json(const json &j, std::vector<Ty> &v) {
-    //            v.resize(j.size());
-    //            for (std::size_t i = 0; i < j.size(); i++) {
-    //                traits::from_json(j[i], v[i]);
-    //            }
-    //        }
-    //    };
+    template <>
+    struct json_bind<json> {
+        using value_type = json;
 
-    //    template <typename Ty>
-    //    struct json_bind<std::map<std::string, Ty>> {
-    //        void to_json(json &j, const std::map<std::string, Ty> &v) {
-    //            j = json_type::object;
-    //            for (const auto &p: v) {
-    //                traits::to_json(j[p.first], p.second);
-    //            }
-    //        }
+        void to_json(json &json, const value_type &value) {
+            json = value;
+        }
+        void from_json(const json &json, value_type &value) {
+            value = json;
+        }
+    };
 
-    //        template <typename std::enable_if<std::is_default_constructible<Ty>::value, int>::type = 0>
-    //        void from_json(const json &j, std::map<std::string, Ty> &v) {
-    //            for (auto iter = j.cbegin(); iter != j.cend(); iter++) {
-    //                Ty item{};
-    //                traits::from_json(iter->value(), item);
-    //                v.insert(std::make_pair(iter->key(), item));
-    //            }
-    //        }
-    //    };
+    template <typename Ty, typename BasicJson = basic_json<>>
+    class read_json_wrapper {
+    public:
+        using char_type = typename BasicJson::char_type;
 
-    //    template <>
-    //    struct json_bind<int> {
-    //        using value_type = int;
+        read_json_wrapper(const Ty &value) : v_(value) {
+        }
 
-    //        void to_json(json &j, const value_type &v) {
-    //            j = v;
-    //        }
-    //        void from_json(const json &j, value_type &v) {
-    //            v = static_cast<value_type>(j);
-    //        }
-    //    };
+        friend std::basic_ostream<char_type> &operator<<(std::basic_ostream<char_type> &out, const read_json_wrapper &wrapper) {
+            BasicJson json{};
+            to_json(json, wrapper.v_);
+            out << json;
+            return out;
+        }
 
-    //    template <>
-    //    struct json_bind<unsigned int> {
-    //        using value_type = unsigned int;
+    private:
+        const Ty &v_;
+    };
 
-    //        void to_json(json &j, const value_type &v) {
-    //            j = v;
-    //        }
-    //        void from_json(const json &j, value_type &v) {
-    //            v = static_cast<value_type>(j);
-    //        }
-    //    };
+    template <typename Ty, typename BasicJson = basic_json<>>
+    class write_json_wrapper : public read_json_wrapper<Ty, BasicJson> {
+    public:
+        using char_type = typename BasicJson::char_type;
 
-    //    template <>
-    //    struct json_bind<short> {
-    //        using value_type = short;
+        write_json_wrapper(Ty &value) : read_json_wrapper<Ty, BasicJson>(value), v_(value) {
+        }
 
-    //        void to_json(json &j, const value_type &v) {
-    //            j = v;
-    //        }
-    //        void from_json(const json &j, value_type &v) {
-    //            v = static_cast<value_type>(j);
-    //        }
-    //    };
+        friend std::basic_istream<char_type> &operator>>(std::basic_istream<char_type> &in, const write_json_wrapper &wrapper) {
+            BasicJson json{};
+            in >> json;
+            from_json(json, const_cast<Ty &>(wrapper.v_));
+            return in;
+        }
 
-    //    template <>
-    //    struct json_bind<unsigned short> {
-    //        using value_type = unsigned short;
+    private:
+        Ty &v_;
+    };
 
-    //        void to_json(json &j, const value_type &v) {
-    //            j = v;
-    //        }
-    //        void from_json(const json &j, value_type &v) {
-    //            v = static_cast<value_type>(j);
-    //        }
-    //    };
+    template <typename Ty, typename BasicJson = basic_json<>, typename std::enable_if<is_basic_json_v<BasicJson>, int>::type = 0,
+              typename std::enable_if<std::is_default_constructible<json_bind<Ty, BasicJson>>::value, int>::type = 0>
+    inline write_json_wrapper<Ty, BasicJson> json_wrap(Ty &value) {
+        return write_json_wrapper<Ty, BasicJson>(value);
+    }
 
-    //    template <>
-    //    struct json_bind<long> {
-    //        using value_type = long;
-
-    //        void to_json(json &j, const value_type &v) {
-    //            j = v;
-    //        }
-    //        void from_json(const json &j, value_type &v) {
-    //            v = static_cast<value_type>(j);
-    //        }
-    //    };
-
-    //    template <>
-    //    struct json_bind<unsigned long> {
-    //        using value_type = unsigned long;
-
-    //        void to_json(json &j, const value_type &v) {
-    //            j = v;
-    //        }
-    //        void from_json(const json &j, value_type &v) {
-    //            v = static_cast<value_type>(j);
-    //        }
-    //    };
-
-    //    template <>
-    //    struct json_bind<float> {
-    //        using value_type = float;
-
-    //        void to_json(json &j, const value_type &v) {
-    //            j = v;
-    //        }
-    //        void from_json(const json &j, value_type &v) {
-    //            v = static_cast<value_type>(j);
-    //        }
-    //    };
-
-    //    template <>
-    //    struct json_bind<double> {
-    //        using value_type = double;
-
-    //        void to_json(json &j, const value_type &v) {
-    //            j = v;
-    //        }
-    //        void from_json(const json &j, value_type &v) {
-    //            v = static_cast<value_type>(j);
-    //        }
-    //    };
-
-    //    template <>
-    //    struct json_bind<bool> {
-    //        using value_type = bool;
-
-    //        void to_json(json &j, const value_type &v) {
-    //            j = v;
-    //        }
-    //        void from_json(const json &j, value_type &v) {
-    //            v = static_cast<value_type>(j);
-    //        }
-    //    };
-
-    //    template <>
-    //    struct json_bind<json> {
-    //        using value_type = json;
-
-    //        void to_json(json &j, const value_type &v) {
-    //            j = v;
-    //        }
-    //        void from_json(const json &j, value_type &v) {
-    //            v = j;
-    //        }
-    //    };
-
-    //    template <typename Ty, typename basicJson = basic_json<>>
-    //    class read_json_wrapper {
-    //    public:
-    //        using char_type = typename basicJson::char_type;
-
-    //        read_json_wrapper(const Ty &v) : v_(v) {
-    //        }
-
-    //        friend std::basic_ostream<char_type> &operator<<(std::basic_ostream<char_type> &out, const read_json_wrapper &wrapper) {
-    //            basicJson j{};
-    //            traits::to_json(j, wrapper.v_);
-    //            out << j;
-    //            return out;
-    //        }
-
-    //    private:
-    //        const Ty &v_;
-    //    };
-
-    //    template <typename Ty, typename basicJson = basic_json<>>
-    //    class write_json_wrapper : public read_json_wrapper<Ty, basicJson> {
-    //    public:
-    //        using char_type = typename basicJson::char_type;
-
-    //        write_json_wrapper(Ty &v) : read_json_wrapper<Ty, basicJson>(v), v_(v) {
-    //        }
-
-    //        friend std::basic_istream<char_type> &operator>>(std::basic_istream<char_type> &in, const write_json_wrapper &wrapper) {
-    //            basicJson j{};
-    //            in >> j;
-    //            traits::from_json(j, const_cast<Ty &>(wrapper.v_));
-    //            return in;
-    //        }
-
-    //    private:
-    //        Ty &v_;
-    //    };
-
-    //    template <typename Ty, typename basicJson = basic_json<>,
-    //              typename std::enable_if<traits::is_basic_json<basicJson>::value, int>::type = 0,
-    //              typename std::enable_if<std::is_default_constructible<traits::json_bind<Ty, basicJson>>::value, int>::type = 0>
-    //    inline write_json_wrapper<Ty, basicJson> json_wrap(Ty &v) {
-    //        return write_json_wrapper<Ty, basicJson>(v);
-    //    }
-
-    //    template <typename Ty, typename basicJson = basic_json<>,
-    //              typename std::enable_if<traits::is_basic_json<basicJson>::value, int>::type = 0,
-    //              typename std::enable_if<std::is_default_constructible<traits::json_bind<Ty, basicJson>>::value, int>::type = 0>
-    //    inline read_json_wrapper<Ty, basicJson> json_wrap(const Ty &v) {
-    //        return read_json_wrapper<Ty, basicJson>(v);
-    //    }
-    //}
+    template <typename Ty, typename BasicJson = basic_json<>,
+              typename std::enable_if<is_basic_json<BasicJson>::value, int>::type = 0,
+              typename std::enable_if<std::is_default_constructible<json_bind<Ty, BasicJson>>::value, int>::type = 0>
+    inline read_json_wrapper<Ty, BasicJson> json_wrap(const Ty &value) {
+        return read_json_wrapper<Ty, BasicJson>(value);
+    }
 
     json operator""_json(const char *str, std::size_t len) {
         std::string_view view{str, len};
         return json::parse(str);
+    }
+
+    json64 operator""_json64(const char *str, std::size_t len) {
+        std::string_view view{str, len};
+        return json64::parse(str);
+    }
+
+    wjson operator""_wjson(const wchar_t *str, std::size_t len) {
+        std::wstring_view view{str, len};
+        return wjson::parse(str);
+    }
+
+    wjson64 operator""_wjson64(const wchar_t *str, std::size_t len) {
+        std::wstring_view view{str, len};
+        return wjson64::parse(str);
     }
 }
 

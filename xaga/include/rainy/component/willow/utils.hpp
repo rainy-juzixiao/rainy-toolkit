@@ -20,7 +20,7 @@
 #include <rainy/component/willow/implements/config.hpp>
 #include <rainy/component/willow/implements/exceptions.hpp>
 #include <rainy/core/core.hpp>
-
+#include <iostream>
 namespace rainy::component::willow::adapters {
 	template <typename Ty>
     struct input_adapter_abstract {

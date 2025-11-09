@@ -49,9 +49,9 @@ namespace rainy::component::willow {
         basic_json(string_type const &value) : value_(value) {
         }
 
-        template <typename Compatible, type_traits::other_trans::enable_if_t<
-                                           type_traits::type_relations::is_same_v<char_type, Compatible>, int> = 0>
-        basic_json(const Compatible &value) : value_{string_type{value}} {
+        template <typename StringViewLike, type_traits::other_trans::enable_if_t<
+                                               type_traits::type_properties::is_constructible_v<string_type, StringViewLike>, int> = 0>
+        basic_json(const StringViewLike &value) : value_{string_type{value}} {
         }
 
         basic_json(array_type const &arr) : value_(arr) {
@@ -148,6 +148,8 @@ namespace rainy::component::willow {
                 case json_type::boolean:
                 case json_type::null:
                     return true;
+                default:
+                    break;
             }
             return false;
         }

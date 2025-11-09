@@ -16,13 +16,6 @@
 #include <rainy/component/willow/json.hpp>
 
 namespace rainy::component::willow {
-    //template class basic_json<>; // json
-    //template class basic_json<collections::dense_map, std::vector, text::string, std::int64_t>; // json64
-    //template class basic_json<collections::dense_map, std::vector, text::wstring>; // wjson
-    //template class basic_json<collections::dense_map, std::vector, text::string, long long>; // wjson64
-    //template class basic_json<collections::dense_map, std::vector, text::u16string>; // u16json
-    //template class basic_json<collections::dense_map, std::vector, text::u16string, std::int64_t>; // u16json
-
     thread_local std::pmr::unsynchronized_pool_resource pool{};
 
     thread_local std::pmr::memory_resource *memory_resource = utility::addressof(pool);

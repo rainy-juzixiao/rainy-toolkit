@@ -182,7 +182,18 @@ namespace rainy::type_traits::extras::meta_method {
         has_operator_addition_v<Ty, other_trans::void_t<decltype(utility::declval<Ty &>() + utility::declval<std::ptrdiff_t>())>> = true;
 
     template <typename Ty>
-    struct has_addition : helper::bool_constant<has_operator_addition_v<Ty>> {};
+    struct has_operator_addition : helper::bool_constant<has_operator_addition_v<Ty>> {};
+
+    template <typename Ty, typename = void>
+    RAINY_CONSTEXPR_BOOL has_operator_subtraction_v = false;
+
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL
+        has_operator_subtraction_v<Ty, other_trans::void_t<decltype(utility::declval<Ty &>() - utility::declval<std::ptrdiff_t>())>> =
+            true;
+
+    template <typename Ty>
+    struct has_operator_subtraction : helper::bool_constant<has_operator_subtraction_v<Ty>> {};
 
     template <typename Ty, typename = void>
     RAINY_CONSTEXPR_BOOL has_operator_plus_equal_v = false;

@@ -36,7 +36,7 @@ namespace rainy::type_traits::extras::iterators {
     template <typename Ty>
     struct has_reference<Ty, other_trans::void_t<typename Ty::reference>> : helper::true_type {};
 
-    template <typename Ty>  
+    template <typename Ty>
     inline constexpr bool has_reference_v = has_reference<Ty>::value;
 
     template <typename Ty, typename = void>
@@ -158,12 +158,16 @@ namespace rainy::utility {
 
 namespace rainy::type_traits::extras::iterators {
     template <typename Iter>
-    struct iter_value_type {
+    struct iter_value {
         using type = typename utility::iterator_traits<Iter>::value_type;
     };
 
+    template <typename Iter>
+    using iter_value_t = typename iter_value<Iter>::type;
+
     template <typename Iter, typename = void>
-    RAINY_CONSTEXPR_BOOL is_iterator_v = !type_traits::type_relations::is_same_v<typename utility::iterator_traits<Iter>::iterator_category, utility::invalid_type>;
+    RAINY_CONSTEXPR_BOOL is_iterator_v =
+        !type_traits::type_relations::is_same_v<typename utility::iterator_traits<Iter>::iterator_category, utility::invalid_type>;
 }
 
 namespace rainy::type_traits::extras::iterators {

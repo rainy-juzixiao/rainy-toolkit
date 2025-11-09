@@ -22,7 +22,9 @@
 namespace rainy::meta::reflection::implements {
     struct fake_class {};
 
-    static const auto static_type = foundation::ctti::typeinfo::create_typeinfo_by_name("static[no-definite-class-type]");
+    struct static_no_definite_class_type {};
+
+    static const auto static_type = foundation::ctti::typeinfo::create<static_no_definite_class_type>();
 
     template <typename Class>
     static const foundation::ctti::typeinfo &which_belongs_res() noexcept {
@@ -46,24 +48,25 @@ namespace rainy::meta::reflection {
     class object_view {
     public:
         template <typename Ty>
-        using enable_if_t = type_traits::other_trans::enable_if_t<!type_traits::type_relations::is_same_v<Ty, object_view> && !type_traits::type_relations::is_same_v<Ty,non_exists_instance_t>, int>;
+        using enable_if_t =
+            type_traits::other_trans::enable_if_t<!type_traits::type_relations::is_same_v<Ty, object_view> &&
+                                                      !type_traits::type_relations::is_same_v<Ty, non_exists_instance_t>,
+                                                  int>;
 
         template <typename Ty, enable_if_t<Ty> = 0>
         object_view(Ty &object) noexcept : // NOLINT
             object_{const_cast<void *>(static_cast<const void *>(utility::addressof(object)))}, ctti_{&rainy_typeid(Ty)} {
         }
 
-        template <typename Ty,
-                  std::enable_if_t<!type_traits::type_relations::is_same_v<std::decay_t<Ty>, object_view> &&
-                      !type_traits::type_relations::is_same_v<std::decay_t<Ty>, non_exists_instance_t> &&
-                      std::is_rvalue_reference_v<Ty &&> && !std::is_lvalue_reference_v<Ty>,
-                  int> = 0>
+        template <typename Ty, std::enable_if_t<!type_traits::type_relations::is_same_v<std::decay_t<Ty>, object_view> &&
+                                                    !type_traits::type_relations::is_same_v<std::decay_t<Ty>, non_exists_instance_t> &&
+                                                    std::is_rvalue_reference_v<Ty &&> && !std::is_lvalue_reference_v<Ty>,
+                                                int> = 0>
         object_view(Ty &&object) : // NOLINT
             object_{const_cast<void *>(static_cast<const void *>(utility::addressof(object)))}, ctti_{&rainy_typeid(Ty &&)} {
         }
 
-        object_view(void *const object, const foundation::ctti::typeinfo &ctti) noexcept :
-            object_{object}, ctti_{&ctti} {
+        object_view(void *const object, const foundation::ctti::typeinfo &ctti) noexcept : object_{object}, ctti_{&ctti} {
         }
 
         object_view(implements::as_array, void *const object, const foundation::ctti::typeinfo &ctti) noexcept :
@@ -76,12 +79,10 @@ namespace rainy::meta::reflection {
             object_{object}, ctti_{&ctti} {
         }
 
-        object_view(non_exists_instance_t) noexcept :
-            object_(nullptr), ctti_(&rainy_typeid(void)) {
+        object_view(non_exists_instance_t) noexcept : object_(nullptr), ctti_(&rainy_typeid(void)) {
         }
 
-        object_view(object_view &&other) noexcept :
-            object_(other.object_), ctti_(other.ctti_) {
+        object_view(object_view &&other) noexcept : object_(other.object_), ctti_(other.ctti_) {
             other.object_ = nullptr;
             other.ctti_ = &rainy_typeid(void);
         }
@@ -110,15 +111,14 @@ namespace rainy::meta::reflection {
         RAINY_NODISCARD RAINY_INLINE const Decayed *cast_to_pointer() const noexcept {
             using namespace foundation::ctti;
             static constexpr typeinfo target_type = typeinfo::create<Decayed>();
-            return ctti().is_compatible(target_type) ? reinterpret_cast<const Decayed *>(target_as_void_ptr())
-                                                                      : nullptr;
+            return ctti().is_compatible(target_type) ? reinterpret_cast<const Decayed *>(target_as_void_ptr()) : nullptr;
         }
 
         template <typename Type>
         RAINY_NODISCARD auto as() noexcept -> decltype(auto) {
             return utility::implements::as_impl<Type>(target_as_void_ptr(), ctti());
         }
-        
+
         template <typename Type, enable_if_t<Type> = 0>
         RAINY_NODISCARD auto as() const -> decltype(auto) {
             using namespace type_traits::cv_modify;
