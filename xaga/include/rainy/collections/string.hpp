@@ -1,8 +1,6 @@
 #ifndef RAINY_COLLECTIONS_STRING_HPP
 #define RAINY_COLLECTIONS_STRING_HPP
 
-#include <array>
-#include <cassert>
 #if RAINY_HAS_CXX20
 #include <compare>
 #include <concepts>
@@ -14,8 +12,6 @@
 #include <rainy/core/core.hpp>
 #include <stdexcept>
 #include <string_view>
-#include <utility>
-#include <version>
 
 #if RAINY_USING_GCC
 #pragma GCC diagnostic push
@@ -291,12 +287,13 @@ namespace rainy::text::implements {
             traits_type::copy(begin_(), begin, static_cast<std::size_t>(end - begin));
         }
 
-        RAINY_CONSTEXPR20 void swap_data(basic_string_storage &other) noexcept {
+        RAINY_CONSTEXPR20 void swap_data(basic_string_storage &right) noexcept {
             auto &my_stor = get_stor();
-            auto &other_stor = other.get_stor();
+            auto &other_stor = right.get_stor();
             small_string_t temp = my_stor;
             my_stor = other_stor;
             other_stor = temp;
+            std::swap(this->size_flag_, right.size_flag_);
         }
     };
 }
@@ -332,25 +329,25 @@ namespace rainy::text {
             allocate_plus_one_(count);
             auto begin = this->begin_();
             auto end = begin + count;
-            std::fill(begin, end, ch);
+            core::algorithm::fill(begin, end, ch);
             resize_(count);
         }
 
-        RAINY_CONSTEXPR20 basic_string(const basic_string &other, size_type pos, size_type count, allocator_type const &a = allocator_type()) :
+        RAINY_CONSTEXPR20 basic_string(const basic_string &right, size_type pos, size_type count, allocator_type const &a = allocator_type()) :
             base(a) {
-            auto other_size = other.size_();
+            auto other_size = right.size_();
             if (pos > other_size) {
                 throw std::out_of_range{this->exception_string_};
             }
             count = (core::min)(other_size - pos, count);
             allocate_plus_one_(count);
-            auto start = other.begin_() + pos;
+            auto start = right.begin_() + pos;
             fill_(start, start + count);
             resize_(count);
         }
 
-        RAINY_CONSTEXPR20 basic_string(const basic_string &other, size_type pos, allocator_type const &a = allocator_type()) :
-            basic_string(other, pos, other.size_() - pos, a) {
+        RAINY_CONSTEXPR20 basic_string(const basic_string &right, size_type pos, allocator_type const &a = allocator_type()) :
+            basic_string(right, pos, right.size_() - pos, a) {
         }
 
         RAINY_CONSTEXPR20 basic_string(const CharType *cstr, size_type count, allocator_type const &a = allocator_type()) : base(a) {
@@ -368,7 +365,7 @@ namespace rainy::text {
             if constexpr (type_traits::extras::iterators::is_random_access_iterator_v<Iter>) {
                 auto length = std::distance(first, last);
                 allocate_plus_one_(length);
-                std::copy(first, last, this->begin_());
+                core::algorithm::copy(first, last, this->begin_());
                 resize_(length);
             } else {
                 for (; first != last; ++first) {
@@ -377,30 +374,30 @@ namespace rainy::text {
             }
         }
 
-        RAINY_CONSTEXPR20 basic_string(const basic_string &other) :
-            base(allocator_traits::select_on_container_copy_construction(other.get_allocator())) {
-            auto other_size = other.size_();
+        RAINY_CONSTEXPR20 basic_string(const basic_string &right) :
+            base(allocator_traits::select_on_container_copy_construction(right.get_allocator())) {
+            auto other_size = right.size_();
             this->allocate_plus_one_(other_size);
-            this->fill_(other.begin_(), other.end_());
+            this->fill_(right.begin_(), right.end_());
             this->resize_(other_size);
         }
 
-        RAINY_CONSTEXPR20 basic_string(const basic_string &other, allocator_type const &a) : base(a) {
-            auto other_size = other.size_();
+        RAINY_CONSTEXPR20 basic_string(const basic_string &right, allocator_type const &a) : base(a) {
+            auto other_size = right.size_();
             this->allocate_plus_one_(other_size);
-            this->fill_(other.begin_(), other.end_());
+            this->fill_(right.begin_(), right.end_());
             this->resize_(other_size);
         }
 
-        RAINY_CONSTEXPR20 basic_string(basic_string &&other, size_type pos, size_type count, allocator_type const &a = allocator_type()) :
+        RAINY_CONSTEXPR20 basic_string(basic_string &&right, size_type pos, size_type count, allocator_type const &a = allocator_type()) :
             base(a) {
-            auto other_size = other.size_();
+            auto other_size = right.size_();
             if (pos > other_size) {
                 throw std::out_of_range{this->exception_string_};
             }
             count = (core::min)(other_size - pos, count);
             if (pos != 0) {
-                auto other_begin = other.begin_();
+                auto other_begin = right.begin_();
                 auto start = other_begin + pos;
                 auto last = start + count;
 #if RAINY_HAS_CXX20
@@ -412,21 +409,21 @@ namespace rainy::text {
                     std::memmove(other_begin, start, (last - start) * sizeof(CharType));
                 }
             }
-            other.resize_(count);
-            other.swap(*this);
+            right.resize_(count);
+            right.swap(*this);
         }
 
-        RAINY_CONSTEXPR20 basic_string(basic_string &&other) noexcept : base{other.get_allocator()} {
-            other.swap_without_ator(*this);
+        RAINY_CONSTEXPR20 basic_string(basic_string &&right) noexcept : base{right.get_allocator()} {
+            right.swap(*this);
         }
 
-        RAINY_CONSTEXPR20 basic_string(basic_string &&other, allocator_type const &a) : base(a) {
-            if (other.allocator_ == a) {
-                other.swap_without_ator(*this);
+        RAINY_CONSTEXPR20 basic_string(basic_string &&right, allocator_type const &a) : base(a) {
+            if (right.allocator_ == a) {
+                right.swap(*this);
             } else {
-                basic_string temp{other.data(), other.size(), a};
+                basic_string temp{right.data(), right.size(), a};
                 temp.swap(*this);
-                other.swap(temp);
+                right.swap(temp);
             }
         }
 
@@ -471,10 +468,10 @@ namespace rainy::text {
         RAINY_CONSTEXPR20 basic_string(std::nullptr_t) = delete;
         RAINY_CONSTEXPR20 basic_string &operator=(std::nullptr_t) = delete;
 
-        RAINY_CONSTEXPR20 basic_string &operator=(basic_string &&other) noexcept(
+        RAINY_CONSTEXPR20 basic_string &operator=(basic_string &&right) noexcept(
             std::allocator_traits<Allocator>::propagate_on_container_move_assignment::value ||
             std::allocator_traits<Allocator>::is_always_equal::value) {
-            return assign(utility::move(other));
+            return assign(utility::move(right));
         }
 
         RAINY_CONSTEXPR20 basic_string &operator=(const basic_string &str) {
@@ -791,21 +788,21 @@ namespace rainy::text {
             this->resize_(size + 1);
         }
 
-        RAINY_CONSTEXPR20 void swap(basic_string &other) noexcept {
+        RAINY_CONSTEXPR20 void swap(basic_string &right) noexcept {
             if constexpr (allocator_traits::propagate_on_container_swap::value) {
-                std::swap(this->get_al(), other.get_al());
+                std::swap(this->get_al(), right.get_al());
             } else {
-                assert(other.get_al() == this->get_al());
+                assert(right.get_al() == this->get_al());
             }
-            other.swap_without_ator(*this);
+            this->swap_data(right);
         }
 
-        friend RAINY_CONSTEXPR20 void swap(basic_string &self, basic_string &other) noexcept {
-            self.swap(other);
+        friend RAINY_CONSTEXPR20 void swap(basic_string &self, basic_string &right) noexcept {
+            self.swap(right);
         }
 
         /**
-         * @brief this version provide for Iter version of assign, other version of append and operator+=
+         * @brief this version provide for Iter version of assign, right version of append and operator+=
          */
         template <typename Iter, typename = typename std::enable_if<std::is_base_of<
                                      std::input_iterator_tag, typename std::iterator_traits<Iter>::iterator_category>::value>::type>
@@ -838,7 +835,7 @@ namespace rainy::text {
             if (std::addressof(str) == this) {
                 return *this;
             }
-            if RAINY_CONSTEXPR20 (allocator_traits::propagate_on_container_copy_assignment::value) {
+            if constexpr (allocator_traits::propagate_on_container_copy_assignment::value) {
                 if (this->allocator_ != str.allocator_) {
                     basic_string temp{this->allocator_};
                     temp.swap(*this);
@@ -860,17 +857,16 @@ namespace rainy::text {
             return *this;
         }
 
-        RAINY_CONSTEXPR20 basic_string &assign(basic_string &&other) noexcept {
-            if RAINY_CONSTEXPR20 (allocator_traits::propagate_on_container_move_assignment::value) {
-                other.swap(*this);
+        RAINY_CONSTEXPR20 basic_string &assign(basic_string &&right) noexcept {
+            if constexpr (allocator_traits::propagate_on_container_move_assignment::value) {
+                right.swap(*this);
             } else {
-                if (this->allocator_ == other.allocator_) {
-                    other.swap_without_ator(*this);
+                if (this->get_al() == right.get_al()) {
+                    this->swap_data(right);
                 } else {
-                    assign_(other.begin_(), other.end_());
+                    assign_(right.begin_(), right.end_());
                 }
             }
-
             return *this;
         }
 
@@ -987,10 +983,9 @@ namespace rainy::text {
         RAINY_CONSTEXPR20 basic_string &append(const StringViewLike &t, size_type pos, size_type count = npos) {
             std::basic_string_view<CharType, Traits> sv = t;
             auto sv_size = sv.size();
-
-            if (pos > sv_size)
+            if (pos > sv_size) {
                 throw std::out_of_range{this->exception_string_};
-
+            }
             count = (core::min)(npos, (core::min)(sv_size - count, count));
 
             return append(sv.data() + pos, count);
@@ -1000,10 +995,9 @@ namespace rainy::text {
             auto sv_size = sv.size();
             auto data = sv.data();
             auto begin =this->begin_();
-
-            if (sv_size > this->size_())
+            if (sv_size > this->size_()) {
                 return false;
-
+            }
             return equal_(data, data + sv_size, begin, begin + sv_size);
         }
 
@@ -1014,10 +1008,9 @@ namespace rainy::text {
         RAINY_CONSTEXPR20 bool starts_with(const CharType *cstr) const {
             auto length = c_style_string_length_(cstr);
             auto begin =this->begin_();
-
-            if (length > this->size_())
+            if (length > this->size_()) {
                 return false;
-
+            }
             return equal_(cstr, cstr + length, begin, begin + length);
         }
 
@@ -1073,10 +1066,9 @@ namespace rainy::text {
 
         RAINY_CONSTEXPR20 basic_string &insert(size_type index, size_type count, CharType ch) {
             auto size = this->size_();
-
-            if (index > size)
+            if (index > size) {
                 throw std::out_of_range{this->exception_string_};
-
+            }
             reserve(size + count);
             auto start =this->begin_() + index;
             auto end = start + size - index;
@@ -1097,29 +1089,24 @@ namespace rainy::text {
 
         RAINY_CONSTEXPR20 basic_string &insert(size_type index, const CharType *cstr, size_type count) {
             insert_(index, cstr, cstr + count);
-
             return *this;
         }
 
         RAINY_CONSTEXPR20 basic_string &insert(size_type index, const CharType *cstr) {
             insert_(index, cstr, cstr + c_style_string_length_(cstr));
-
             return *this;
         }
 
         RAINY_CONSTEXPR20 basic_string &insert(size_type index, const basic_string &str) {
             insert_(index, str.begin_(), str.end_());
-
             return *this;
         }
 
         RAINY_CONSTEXPR20 basic_string &insert(size_type index, const basic_string &str, size_type s_index, size_type count = npos) {
             auto s_size = str.size_();
-
             if (s_index > s_size) {
                 throw std::out_of_range{this->exception_string_};
             }
-
             count = (core::min)(npos, (core::min)(s_size - s_index, count));
             auto s_start = str.begin_() + s_index;
             insert_(index, s_start, s_start + count);
@@ -1140,7 +1127,6 @@ namespace rainy::text {
                 std::copy_backward(start, end, end + 1);
             } else
 #endif
-
             {
                 traits_type::move(start + 1, start, end - start);
             }
@@ -1162,26 +1148,23 @@ namespace rainy::text {
         template <typename Iter>
         RAINY_CONSTEXPR20 iterator insert(const_iterator pos, Iter first, Iter last) {
             assert(("pos isn't in this string", pos >= this->begin_() && pos <= this->end_()));
-
             auto size = this->size_();
             auto start = pos.base().current_;
             auto end = this->end_();
-            auto index = start -this->begin_();
-#if RAINY_HAS_CXX20
-            if RAINY_CONSTEXPR20 (std::random_access_iterator<Iter>) {
+            auto index = start - this->begin_();
+            if constexpr (type_traits::extras::iterators::is_random_access_iterator_v<Iter>) {
                 auto length = std::distance(first, last);
                 reserve(size + length);
-                auto begin =this->begin_();
-                std::copy_backward(begin + index, begin + size, begin + size + length);
-                std::ranges::copy(first, last, begin + index);
+                auto begin = this->begin_();
+                core::algorithm::copy_backward(begin + index, begin + size, begin + size + length);
+                core::algorithm::copy(first, last, begin + index);
                 resize_(size + length);
-            } else
-#endif
-            {
+            } else {
                 basic_string temp{start, end};
-                resize_(pos -this->begin_());
-                for (; first != last; ++first)
+                resize_(pos - this->begin_());
+                for (; first != last; ++first) {
                     push_back(*first);
+                }
                 append_(temp.begin_(), temp.end_());
             }
             return {start};
@@ -1228,10 +1211,9 @@ namespace rainy::text {
 
         RAINY_CONSTEXPR20 basic_string &erase(size_type index = 0, size_type count = npos) {
             auto size = this->size_();
-
-            if (index > size)
+            if (index > size) {
                 throw std::out_of_range{this->exception_string_};
-
+            }
             count = (core::min)(npos, (core::min)(size - index, count));
             auto start =this->begin_() + index;
             erase_(start, start + count);
@@ -1258,24 +1240,21 @@ namespace rainy::text {
 
         RAINY_CONSTEXPR20 basic_string &replace(size_type pos, size_type count, const basic_string &str) {
             replace_(pos, count, str.begin_(), str.end_());
-
             return *pos;
         }
 
         RAINY_CONSTEXPR20 basic_string &replace(const_iterator first, const_iterator last, const basic_string &str) {
             auto start = first.base().current_;
             replace_(start -this->begin_(), last - first, str.begin_(), str.end_());
-
             return *this;
         }
 
         RAINY_CONSTEXPR20 basic_string &replace(size_type pos, size_type count, const basic_string &str, size_type pos2,
                                         size_type count2 = npos) {
             auto str_size = str.size_();
-
-            if (pos2 > str_size)
+            if (pos2 > str_size) {
                 throw std::out_of_range{this->exception_string_};
-
+            }
             count2 = (core::min)(npos, (core::min)(count2, str_size - pos2));
             auto begin = str.begin_();
             replace_(pos, count, begin + count2, begin + count2 + pos2);
@@ -1285,27 +1264,23 @@ namespace rainy::text {
 
         RAINY_CONSTEXPR20 basic_string &replace(size_type pos, size_type count, const CharType *cstr, size_type count2) {
             replace_(pos, count, cstr, cstr + count2);
-
             return *this;
         }
 
         RAINY_CONSTEXPR20 basic_string &replace(const_iterator first, const_iterator last, const CharType *cstr, size_type count2) {
             auto start = first.base().current_;
             replace_(start -this->begin_(), last - first, cstr, cstr + count2);
-
             return *this;
         }
 
         RAINY_CONSTEXPR20 basic_string &replace(size_type pos, size_type count, const CharType *cstr) {
             replace_(pos, count, cstr, cstr + c_style_string_length_(cstr));
-
             return *pos;
         }
 
         RAINY_CONSTEXPR20 basic_string &replace(const_iterator first, const_iterator last, const CharType *cstr) {
             auto start = first.base().current_;
             replace_(start -this->begin_(), last - first, cstr, cstr + c_style_string_length_(cstr));
-
             return *this;
         }
 
@@ -1313,7 +1288,6 @@ namespace rainy::text {
             auto data = std::data(ilist);
             auto start = first.base().current_;
             replace_(start -this->begin_(), last - first, data, data + ilist.size());
-
             return *this;
         }
 
@@ -1325,7 +1299,6 @@ namespace rainy::text {
             std::basic_string_view<CharType, Traits> sv = t;
             auto data = sv.data();
             replace_(pos, count, data, data + sv.size());
-
             return *this;
         }
 
@@ -1339,7 +1312,6 @@ namespace rainy::text {
             auto sv_data = sv.data();
             auto start = first.base().current_;
             replace_(start -this->begin_(), last - first, sv_data, sv_data + sv.size());
-
             return *this;
         }
 
@@ -1350,16 +1322,12 @@ namespace rainy::text {
         basic_string &replace(size_type pos, size_type count, const StringViewLike &t, size_type pos2, size_type count2 = npos) {
             std::basic_string_view<CharType, Traits> sv = t;
             auto sv_size = sv.size();
-
             if (pos2 > sv_size) {
                 throw std::out_of_range{this->exception_string_};
             }
-
             count2 = (core::min)(npos, (core::min)(sv_size - pos2, count2));
-
             auto data = sv.data();
             replace_(pos, count, data + pos2, data + pos2 + count2);
-
             return *this;
         }
 
@@ -1367,7 +1335,6 @@ namespace rainy::text {
             basic_string temp{count2, ch};
             auto begin =this->begin_();
             replace_(pos, count, begin, begin + count2);
-
             return *this;
         }
 
@@ -1376,7 +1343,6 @@ namespace rainy::text {
             auto begin =this->begin_();
             auto start = first.base().current_;
             replace_(start -this->begin_(), last - first, begin, begin + count2);
-
             return *this;
         }
 
@@ -1420,12 +1386,6 @@ namespace rainy::text {
                 traits_type::copy(end, first, static_cast<std::size_t>(length));
             }
             this->resize_(size + length);
-        }
-
-        RAINY_CONSTEXPR20 void swap_without_ator(basic_string &other) noexcept {
-            auto &&self = *this;
-            utility::swap(self.size_flag_, other.size_flag_);
-            this->swap_data(other);
         }
 
         RAINY_CONSTEXPR20 bool static equal_(CharType const *begin, CharType const *end, CharType const *first,

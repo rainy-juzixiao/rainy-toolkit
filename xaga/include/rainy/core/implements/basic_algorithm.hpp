@@ -25,8 +25,6 @@ namespace rainy::utility {
         using std::swap;
         swap(*a, *b);
     }
-
-    using std::swap;
 }
 
 namespace rainy::core::algorithm {

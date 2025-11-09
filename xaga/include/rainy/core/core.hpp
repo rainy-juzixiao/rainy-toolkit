@@ -772,7 +772,7 @@ namespace rainy::utility {
 
 namespace rainy::core::algorithm {
     template <typename InputIter, typename OutIter>
-    constexpr OutIter copy(InputIter begin, InputIter end, OutIter dest) noexcept(
+    RAINY_CONSTEXPR20 OutIter copy(InputIter begin, InputIter end, OutIter dest) noexcept(
         std::is_nothrow_copy_constructible_v<type_traits::other_trans::conditional_t<
             type_traits::implements::_is_pointer_v<InputIter>, type_traits::pointer_modify::remove_pointer_t<InputIter>,
             typename utility::iterator_traits<InputIter>::value_type>>) {
