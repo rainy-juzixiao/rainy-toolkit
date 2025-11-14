@@ -16,23 +16,16 @@
 #ifndef RAINY_CORE_IMPLEMENTS_BASIC_ALGORITHM_HPP
 #define RAINY_CORE_IMPLEMENTS_BASIC_ALGORITHM_HPP
 #include <utility>
+#include <algorithm>
 #include <rainy/core/tmp/iter_traits.hpp>
 #include <rainy/core/tmp/implements.hpp>
 
-namespace rainy::utility {
-    template <typename Iter1, typename Iter2>
-    RAINY_CONSTEXPR20 rain_fn iter_swap(Iter1 a, Iter2 b) -> void {
-        using std::swap;
-        swap(*a, *b);
-    }
-}
-
 namespace rainy::core::algorithm {
-    template <typename Iter1, typename Iter2>
-    RAINY_CONSTEXPR20 rain_fn swap_ranges(Iter1 first1, Iter1 last1, Iter2 first2) -> Iter1 {
+    template<class ForwardIt1, class ForwardIt2>
+    RAINY_CONSTEXPR20 ForwardIt2 swap_ranges(ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2) {
         for (; first1 != last1; ++first1, ++first2) {
-            iter_swap(first1, first2);
-        }
+            std::iter_swap(first1, first2);
+        }    
         return first2;
     }
 

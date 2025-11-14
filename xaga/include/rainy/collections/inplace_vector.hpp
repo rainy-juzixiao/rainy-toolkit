@@ -23,9 +23,120 @@
 #pragma warning(disable : 6386 6385 6031)
 #endif
 
+namespace rainy::collections::implements {
+    template <typename Ty, std::size_t N>
+    struct iv_aligned_storage {
+        RAINY_CONSTEXPR20 Ty *data(std::size_t index) noexcept {
+            return reinterpret_cast<Ty *>(data_) + index;
+        }
+
+        RAINY_CONSTEXPR20 const Ty *data(std::size_t index) const noexcept {
+            return reinterpret_cast<const Ty *>(data_) + index;
+        }
+
+        alignas(Ty) core::byte_t data_[sizeof(Ty) * N];
+    };
+
+    template <typename Ty>
+    struct iv_zero_sized_storage {
+    public:
+        RAINY_CONSTEXPR20 iv_zero_sized_storage() = default;
+        RAINY_CONSTEXPR20 iv_zero_sized_storage(const iv_zero_sized_storage &) = default;
+        RAINY_CONSTEXPR20 iv_zero_sized_storage(iv_zero_sized_storage &&) = default;
+        RAINY_CONSTEXPR20 iv_zero_sized_storage &operator=(const iv_zero_sized_storage &) = default;
+        RAINY_CONSTEXPR20 iv_zero_sized_storage &operator=(iv_zero_sized_storage &&) = default;
+        RAINY_CONSTEXPR20 ~iv_zero_sized_storage() = default;
+
+    protected:
+        static RAINY_CONSTEXPR20 Ty *begin_() noexcept {
+            return nullptr;
+        }
+
+        static RAINY_CONSTEXPR20 std::size_t size_() noexcept {
+            return 0;
+        }
+
+        static RAINY_CONSTEXPR20 void unsafe_set_size(std::size_t new_size) noexcept {
+            std::terminate();
+        }
+    };
+
+    template <typename Ty, std::size_t N>
+    struct iv_trivial_storage {
+    public:
+        RAINY_CONSTEXPR20 iv_trivial_storage() = default;
+        RAINY_CONSTEXPR20 iv_trivial_storage(const iv_trivial_storage &) = default;
+        RAINY_CONSTEXPR20 iv_trivial_storage(iv_trivial_storage &&) = default;
+        RAINY_CONSTEXPR20 iv_trivial_storage &operator=(const iv_trivial_storage &) = default;
+        RAINY_CONSTEXPR20 iv_trivial_storage &operator=(iv_trivial_storage &&) = default;
+        RAINY_CONSTEXPR20 ~iv_trivial_storage() = default;
+
+    protected:
+        constexpr Ty *begin_() noexcept {
+            return data_.begin();
+        }
+
+        constexpr const Ty *begin_() const noexcept {
+            return data_.begin();
+        }
+
+        constexpr std::size_t size_() const noexcept {
+            return size;
+        }
+
+        constexpr void unsafe_set_size(std::size_t new_size) {
+            size = new_size;
+        }
+
+    private:
+        using data_t = collections::array<Ty, N>;
+        alignas(Ty) data_t data_{};
+        std::size_t size = 0;
+    };
+
+    template <typename Ty, std::size_t N>
+    struct iv_non_trivial_storage {
+    public:
+        RAINY_CONSTEXPR20 iv_non_trivial_storage() = default;
+        RAINY_CONSTEXPR20 iv_non_trivial_storage(const iv_non_trivial_storage &) = default;
+        RAINY_CONSTEXPR20 iv_non_trivial_storage(iv_non_trivial_storage &&) = default;
+        RAINY_CONSTEXPR20 iv_non_trivial_storage &operator=(const iv_non_trivial_storage &) = default;
+        RAINY_CONSTEXPR20 iv_non_trivial_storage &operator=(iv_non_trivial_storage &&) = default;
+        RAINY_CONSTEXPR20 ~iv_non_trivial_storage() = default;
+
+    protected:
+        constexpr Ty *begin_() noexcept {
+            return data_.data(0);
+        }
+
+        constexpr const Ty *begin_() const noexcept {
+            return data_.data(0);
+        }
+
+        constexpr std::size_t size_() const noexcept {
+            return size;
+        }
+
+        constexpr void unsafe_set_size(std::size_t new_size) noexcept {
+            size = new_size;
+        }
+
+    private:
+        using data_t = iv_aligned_storage<Ty, N>;
+        data_t data_{};
+        std::size_t size = 0;
+    };
+
+    template <typename Ty, std::size_t N>
+    using select_for_iv_storage = type_traits::other_trans::conditional_t<
+        N == 0, iv_zero_sized_storage<Ty>,
+        type_traits::other_trans::conditional_t<type_traits::type_properties::is_trivial_v<Ty>, iv_trivial_storage<Ty, N>,
+                                                iv_non_trivial_storage<Ty, N>>>;
+}
+
 namespace rainy::collections {
     template <typename Ty, std::size_t N = 8>
-    class inplace_vector {
+    class inplace_vector : public implements::select_for_iv_storage<Ty, N> {
     public:
         using value_type = Ty;
         using pointer = value_type *;
@@ -39,57 +150,78 @@ namespace rainy::collections {
         using reverse_iterator = utility::reverse_iterator<iterator>;
         using const_reverse_iterator = utility::reverse_iterator<const_iterator>;
 
-        using impl_traits = implements::array_traits<Ty, N>;
+        static RAINY_CONSTEXPR20 std::size_t npos = static_cast<std::size_t>(-1);
 
-        static constexpr std::size_t npos = static_cast<std::size_t>(-1);
-
-        constexpr inplace_vector() noexcept : inplace_vector{std::in_place, type_traits::helper::make_index_sequence<N>{}} {
+        RAINY_CONSTEXPR20 inplace_vector() noexcept {
+            assert_type_in_constant_eval();
         }
 
-        constexpr explicit inplace_vector(size_type count) : size_{count} {
+        RAINY_CONSTEXPR20 explicit inplace_vector(size_type count) {
+            assert_type_in_constant_eval();
             if (count > N) {
                 std::terminate();
             }
+            auto elements = this->begin_();
+            this->unsafe_set_size(count);
+            for (size_type i = 0; i < count; ++i) {
+                utility::construct_at(elements + i);
+            }
         }
 
-        constexpr inplace_vector(size_type count, const value_type &value) : size_{count} {
+        RAINY_CONSTEXPR20 inplace_vector(size_type count, const value_type &value) {
+            assert_type_in_constant_eval();
             if (count > N) {
                 std::terminate();
             }
+            auto elements = this->begin_();
+            this->unsafe_set_size(count);
             for (std::size_t i = 0; i < count; ++i) {
                 elements[i] = value;
             }
         }
 
         template <typename Iter, type_traits::other_trans::enable_if_t<type_traits::extras::iterators::is_iterator_v<Iter>, int> = 0>
-        constexpr inplace_vector(Iter begin, Iter end) : elements{}, size_{static_cast<size_type>(utility::distance(begin, end))} {
+        RAINY_CONSTEXPR20 inplace_vector(Iter begin, Iter end) {
+            assert_type_in_constant_eval();
+            this->unsafe_set_size(static_cast<size_type>(utility::distance(begin, end)));
             std::size_t index{0};
+            auto elements = this->begin_();
             for (; begin != end; ++begin, ++index) {
                 elements[index] = *begin;
             }
         }
 
-        constexpr inplace_vector(const inplace_vector &right) : size_{right.size_} {
+        RAINY_CONSTEXPR20 inplace_vector(const inplace_vector &right) {
+            assert_type_in_constant_eval();
+            this->unsafe_set_size(right.size());
+            auto elements = this->begin_();
             for (std::size_t i = 0; i < N; ++i) {
-                elements[i] = right.elements[i];
+                elements[i] = right[i];
             }
         }
 
-        constexpr inplace_vector(inplace_vector &&right) noexcept : elements{}, size_{right.size_} {
-            for (std::size_t i = 0; i < size_; ++i) {
-                elements[i] = utility::move_if_noexcept(right.elements[i]);
+        RAINY_CONSTEXPR20 inplace_vector(inplace_vector &&right) noexcept {
+            assert_type_in_constant_eval();
+            this->unsafe_set_size(right.size());
+            auto elements = this->begin_();
+            auto ilist_elements = right.begin_();
+            for (std::size_t i = 0; i < size(); ++i) {
+                utility::construct_in_place(elements[i], right[i]);
             }
         }
 
-        constexpr inplace_vector(std::initializer_list<value_type> ilist) :
-            inplace_vector{ilist.begin(), ilist.size(), type_traits::helper::make_index_sequence<N>{}} {
-            if (ilist.size() > N) {
-                std::terminate();
+        RAINY_CONSTEXPR20 inplace_vector(std::initializer_list<value_type> ilist) {
+            assert_type_in_constant_eval();
+            this->unsafe_set_size(ilist.size());
+            auto elements = this->begin_();
+            auto ilist_elements = ilist.begin();
+            for (std::size_t i = 0; i < size(); ++i) {
+                utility::construct_in_place(elements[i], ilist_elements[i]);
             }
         }
 
         RAINY_CONSTEXPR20 ~inplace_vector() = default;
-        
+
         /**
          * @brief 截取向量的子区间
          * @tparam NewSize 新向量的大小（默认为原向量大小 N）
@@ -98,12 +230,14 @@ namespace rainy::collections {
          * @return 返回从指定区间复制的子向量；若参数非法则返回空向量
          */
         template <std::size_t NewSize = N>
-        RAINY_NODISCARD constexpr rain_fn slice(std::size_t begin_slice = 0, std::size_t end_slice = N)
+        RAINY_NODISCARD RAINY_CONSTEXPR20 rain_fn slice(std::size_t begin_slice = 0, std::size_t end_slice = N) const
             -> collections::inplace_vector<value_type, NewSize> {
+            assert_type_in_constant_eval();
             if (std::size_t distance = end_slice - begin_slice; begin_slice < end_slice && distance <= NewSize) {
+                auto elements = this->begin_();
                 collections::inplace_vector<value_type, NewSize> new_slice{};
                 for (std::size_t start = begin_slice, i = 0; start < end_slice; ++start, ++i) {
-                    new_slice[i] = elements[start];
+                    new_slice.emplace_back(elements[start]);
                 }
                 return new_slice;
             }
@@ -117,7 +251,7 @@ namespace rainy::collections {
          * @return 返回包含前 n 个元素的新向量；若 n 超出范围则返回空向量
          */
         template <std::size_t NewSize = N>
-        RAINY_NODISCARD constexpr rain_fn left(std::size_t n) const -> collections::inplace_vector<value_type, NewSize> {
+        RAINY_NODISCARD RAINY_CONSTEXPR20 rain_fn left(std::size_t n) const -> collections::inplace_vector<value_type, NewSize> {
             return slice<NewSize>(0, n);
         }
 
@@ -128,7 +262,7 @@ namespace rainy::collections {
          * @return 返回包含后 n 个元素的新向量；若 n 超出范围则返回空向量
          */
         template <std::size_t NewSize = N>
-        RAINY_NODISCARD constexpr rain_fn right(std::size_t n) const -> collections::inplace_vector<value_type, NewSize> {
+        RAINY_NODISCARD RAINY_CONSTEXPR20 rain_fn right(std::size_t n) const -> collections::inplace_vector<value_type, NewSize> {
             return slice<NewSize>(N - n, N);
         }
 
@@ -142,7 +276,8 @@ namespace rainy::collections {
                   type_traits::other_trans::enable_if_t<type_traits::type_relations::is_convertible_v<UTy, value_type> &&
                                                             type_traits::type_properties::is_equal_comparable_v<value_type, UTy>,
                                                         int> = 0>
-        constexpr rain_fn index_of(UTy &&value) const noexcept -> std::size_t {
+        RAINY_CONSTEXPR20 rain_fn index_of(UTy &&value) const noexcept -> std::size_t {
+            assert_type_in_constant_eval();
             auto iter = core::algorithm::find(begin(), end(), utility::forward<UTy>(value));
             return iter == end() ? npos : (iter - begin());
         }
@@ -155,11 +290,13 @@ namespace rainy::collections {
          * @return 返回一个新向量，包含满足谓词的元素；若 NewSize 小于筛选出的元素数，则强制返回空向量
          */
         template <std::size_t NewSize = N, typename Pred>
-        constexpr rain_fn filter(Pred &&pred) const -> collections::inplace_vector<value_type, NewSize> {
+        RAINY_CONSTEXPR20 rain_fn filter(Pred &&pred) const -> collections::inplace_vector<value_type, NewSize> {
+            assert_type_in_constant_eval();
             collections::inplace_vector<value_type, NewSize> inplace_vector;
             std::size_t index_mapping[N]{};
             std::size_t raw_view_index = 0;
-            for (std::size_t i = 0; i < size_; ++i) {
+            auto elements = this->begin_();
+            for (std::size_t i = 0; i < size(); ++i) {
                 if (static_cast<bool>(pred(elements[i]))) {
                     index_mapping[raw_view_index++] = i;
                 }
@@ -176,7 +313,7 @@ namespace rainy::collections {
          * @brief 返回向量的逆序版本
          * @return 返回一个新向量，其元素顺序与当前向量相反
          */
-        constexpr rain_fn reverse() const -> collections::inplace_vector<value_type, N> {
+        RAINY_CONSTEXPR20 rain_fn reverse() const -> collections::inplace_vector<value_type, N> {
             collections::inplace_vector<Ty, N> arr{crbegin(), crend()};
             return arr;
         }
@@ -188,9 +325,10 @@ namespace rainy::collections {
          * @return 返回一个新向量，其元素为映射函数作用后的结果
          */
         template <typename Fx>
-        constexpr rain_fn map(Fx &&func) const -> collections::inplace_vector<value_type, N> {
+        RAINY_CONSTEXPR20 rain_fn map(Fx &&func) const -> collections::inplace_vector<value_type, N> {
             collections::inplace_vector<value_type, N> arr{};
-            for (std::size_t i = 0; i < size_; ++i) {
+            auto elements = this->begin_();
+            for (std::size_t i = 0; i < size(); ++i) {
                 arr.emplace_back(utility::forward<Fx>(func)(elements[i]));
             }
             return arr;
@@ -202,7 +340,8 @@ namespace rainy::collections {
          * @return 返回折叠计算的结果
          */
         template <typename Init>
-        constexpr rain_fn fold() -> decltype(auto) {
+        RAINY_CONSTEXPR20 rain_fn fold() -> decltype(auto) {
+            assert_type_in_constant_eval();
             return core::accumulate(begin(), end(), Init{});
         }
 
@@ -213,7 +352,8 @@ namespace rainy::collections {
          * @return 返回折叠计算的结果
          */
         template <typename Init>
-        constexpr rain_fn fold(const Init &init_value) -> decltype(auto) {
+        RAINY_CONSTEXPR20 rain_fn fold(const Init &init_value) -> decltype(auto) {
+            assert_type_in_constant_eval();
             return core::accumulate(begin(), end(), init_value);
         }
 
@@ -225,7 +365,8 @@ namespace rainy::collections {
          * @return 返回折叠计算的结果
          */
         template <typename Init, typename Fx>
-        constexpr rain_fn fold(Fx &&func) -> decltype(auto) {
+        RAINY_CONSTEXPR20 rain_fn fold(Fx &&func) -> decltype(auto) {
+            assert_type_in_constant_eval();
             return core::accumulate(begin(), end(), Init{}, utility::forward<Fx>(func));
         }
 
@@ -238,7 +379,8 @@ namespace rainy::collections {
          * @return 返回折叠计算的结果
          */
         template <typename Fx, typename Init>
-        constexpr rain_fn fold(Fx &&func, const Init &init_value) -> decltype(auto) {
+        RAINY_CONSTEXPR20 rain_fn fold(Fx &&func, const Init &init_value) -> decltype(auto) {
+            assert_type_in_constant_eval();
             return core::accumulate(begin(), end(), init_value, utility::forward<Fx>(func));
         }
 
@@ -249,91 +391,114 @@ namespace rainy::collections {
          * @return 返回一个包含左侧与右侧元素的新向量，长度为 N + Ni
          */
         template <std::size_t Ni>
-        constexpr rain_fn concat(const inplace_vector<value_type, Ni> &right) -> inplace_vector<value_type, N + Ni> {
+        RAINY_CONSTEXPR20 rain_fn concat(const inplace_vector<value_type, Ni> &right) -> inplace_vector<value_type, N + Ni> {
             constexpr std::size_t size = N + Ni;
             inplace_vector<value_type, size> arr{*this, right};
             return arr;
         }
 
-        constexpr rain_fn operator=(const inplace_vector &right) noexcept(impl_traits::is_nothrow_assignable::value)
-            ->inplace_vector & {
-            for (std::size_t i = 0; i < N; ++i) {
+        RAINY_CONSTEXPR20 rain_fn operator=(const inplace_vector &right)->inplace_vector & {
+            assert_type_in_constant_eval();
+            auto elements = this->begin_();
+            for (std::size_t i = 0; i < size(); ++i) {
                 elements[i] = right[i];
             }
-            return *this;
-        }
-
-        constexpr rain_fn operator=(inplace_vector &&right) noexcept(impl_traits::is_nothrow_assignable::value)->inplace_vector & {
-            for (std::size_t i = 0; i < N; ++i) {
-                elements[i] = utility::move_if_noexcept(right[i]);
+            for (std::size_t i = size(); i < N; ++i) {
+                utility::construct_in_place(elements[i], right[i]);
             }
             return *this;
         }
 
-        constexpr rain_fn operator=(std::initializer_list<value_type> ilist) -> inplace_vector & {
+        // clang-format off
+
+        RAINY_CONSTEXPR20 rain_fn operator=(inplace_vector &&right) noexcept(N == 0 || (
+                                                              type_traits::type_properties::is_nothrow_move_assignable_v<Ty> &&
+                                                              type_traits::type_properties::is_nothrow_move_constructible_v<Ty>))
+            ->inplace_vector & {
+            assert_type_in_constant_eval();
+            auto elements = this->begin_();
+            for (std::size_t i = 0; i < size(); ++i) {
+                elements[i] = utility::move_if_noexcept(right[i]);
+            }
+            for (std::size_t i = size(); i < N; ++i) {
+                utility::construct_in_place(elements[i], utility::move_if_noexcept(right[i]));
+            }
+            return *this;
+        }
+
+        // clang-format on
+
+        RAINY_CONSTEXPR20 rain_fn operator=(std::initializer_list<value_type> ilist)->inplace_vector & {
             assign(ilist);
             return *this;
         }
 
         template <typename Iter, type_traits::other_trans::enable_if_t<type_traits::extras::iterators::is_iterator_v<Iter>, int> = 0>
-        constexpr rain_fn assign(Iter begin, Iter end) -> void {
+        RAINY_CONSTEXPR20 rain_fn assign(Iter begin, Iter end) -> void {
+            assert_type_in_constant_eval();
             std::size_t distance = utility::distance(begin, end);
             if (distance > N) {
                 std::terminate();
             }
+            clear();
+            auto elements = this->begin_();
             std::size_t index{0};
             for (; begin != end; ++begin, ++index) {
                 elements[index] = *begin;
             }
+            this->unsafe_set_size(distance);
         }
 
-        constexpr rain_fn assign(size_type count, const value_type &value) -> void {
+        RAINY_CONSTEXPR20 rain_fn assign(size_type count, const value_type &value) -> void {
+            assert_type_in_constant_eval();
             if (count > N) {
                 std::terminate();
             }
+            clear();
+            auto elements = this->begin_();
             for (std::size_t i = 0; i < count; ++i) {
-                elements[i] = value;
+                utility::construct_in_place(elements[i], value);
             }
+            this->unsafe_set_size(count);
         }
 
-        constexpr rain_fn assign(std::initializer_list<value_type> ilist) -> void {
-            if (ilist.size() > N) {
-                std::terminate();
-            }
-            for (std::size_t i = 0; i < ilist.size(); ++i) {
-                elements[i] = ilist[i];
-            }
+        RAINY_CONSTEXPR20 rain_fn assign(std::initializer_list<value_type> ilist) -> void {
+            assign(ilist.begin(), ilist.end());
         }
 
         /**
          * @brief 获取指向当前向量起始位置的迭代器
          * @return 返回指向起始的迭代器
          */
-        RAINY_ALWASY_INLINE_NODISCARD constexpr rain_fn begin() -> iterator {
-            return iterator(elements);
+        RAINY_ALWASY_INLINE_NODISCARD RAINY_CONSTEXPR20 rain_fn begin() -> iterator {
+            assert_type_in_constant_eval();
+            return iterator(this->begin_());
         }
 
         /**
          * @brief 获取指向当前向量起始位置的迭代器
          * @return 返回指向起始的迭代器
          */
-        RAINY_ALWASY_INLINE_NODISCARD constexpr rain_fn begin() const -> const_iterator {
-            return const_iterator(elements);
+        RAINY_ALWASY_INLINE_NODISCARD RAINY_CONSTEXPR20 rain_fn begin() const -> const_iterator {
+            assert_type_in_constant_eval();
+            return const_iterator(this->begin_());
         }
 
         /**
          * @brief 获取指向当前向量起始位置的迭代器常量
          * @return 返回指向起始的迭代器
          */
-        RAINY_ALWASY_INLINE_NODISCARD constexpr rain_fn cbegin() const -> const_iterator {
-            return const_iterator(elements);
+        RAINY_ALWASY_INLINE_NODISCARD RAINY_CONSTEXPR20 rain_fn cbegin() const -> const_iterator {
+            assert_type_in_constant_eval();
+            return const_iterator(this->begin_());
         }
 
         /**
          * @brief 获取指向当前向量末尾位置的反向迭代器
          * @return 返回指向起始的反向迭代器
          */
-        RAINY_ALWASY_INLINE_NODISCARD constexpr rain_fn rbegin() -> reverse_iterator {
+        RAINY_ALWASY_INLINE_NODISCARD RAINY_CONSTEXPR20 rain_fn rbegin() -> reverse_iterator {
+            assert_type_in_constant_eval();
             return reverse_iterator(end());
         }
 
@@ -341,7 +506,8 @@ namespace rainy::collections {
          * @brief 获取指向当前向量末尾位置的反向迭代器
          * @return 返回指向起始的反向迭代器
          */
-        RAINY_ALWASY_INLINE_NODISCARD constexpr rain_fn rbegin() const -> const_reverse_iterator {
+        RAINY_ALWASY_INLINE_NODISCARD RAINY_CONSTEXPR20 rain_fn rbegin() const -> const_reverse_iterator {
+            assert_type_in_constant_eval();
             return const_reverse_iterator(end());
         }
 
@@ -349,7 +515,8 @@ namespace rainy::collections {
          * @brief 获取指向当前向量末尾位置的反向迭代器常量
          * @return 返回指向起始的反向迭代器
          */
-        RAINY_ALWASY_INLINE_NODISCARD constexpr rain_fn crbegin() const -> const_reverse_iterator {
+        RAINY_ALWASY_INLINE_NODISCARD RAINY_CONSTEXPR20 rain_fn crbegin() const -> const_reverse_iterator {
+            assert_type_in_constant_eval();
             return const_reverse_iterator(end());
         }
 
@@ -357,31 +524,35 @@ namespace rainy::collections {
          * @brief 获取指向当前向量末尾位置的迭代器
          * @return 返回指向末尾的迭代器
          */
-        RAINY_ALWASY_INLINE_NODISCARD constexpr rain_fn end() -> iterator {
-            return iterator(elements + size_);
+        RAINY_ALWASY_INLINE_NODISCARD RAINY_CONSTEXPR20 rain_fn end() -> iterator {
+            assert_type_in_constant_eval();
+            return iterator(this->begin_() + size());
         }
 
         /**
          * @brief 获取指向当前向量末尾位置的迭代器
          * @return 返回指向末尾的迭代器
          */
-        RAINY_ALWASY_INLINE_NODISCARD constexpr rain_fn end() const -> const_iterator {
-            return const_iterator(elements + size_);
+        RAINY_ALWASY_INLINE_NODISCARD RAINY_CONSTEXPR20 rain_fn end() const -> const_iterator {
+            assert_type_in_constant_eval();
+            return const_iterator(this->begin_() + size());
         }
 
         /**
          * @brief 获取指向当前向量末尾位置的迭代器常量
          * @return 返回指向末尾的迭代器
          */
-        RAINY_ALWASY_INLINE_NODISCARD constexpr rain_fn cend() const -> const_iterator {
-            return const_iterator(elements + size_);
+        RAINY_ALWASY_INLINE_NODISCARD RAINY_CONSTEXPR20 rain_fn cend() const -> const_iterator {
+            assert_type_in_constant_eval();
+            return const_iterator(this->begin_() + size());
         }
 
         /**
          * @brief 获取指向当前向量末尾位置的反向迭代器
          * @return 返回指向末尾的反向迭代器
          */
-        RAINY_ALWASY_INLINE_NODISCARD constexpr rain_fn rend() -> reverse_iterator {
+        RAINY_ALWASY_INLINE_NODISCARD RAINY_CONSTEXPR20 rain_fn rend() -> reverse_iterator {
+            assert_type_in_constant_eval();
             return reverse_iterator(begin());
         }
 
@@ -389,7 +560,8 @@ namespace rainy::collections {
          * @brief 获取指向当前向量末尾位置的反向迭代器
          * @return 返回指向末尾的反向迭代器
          */
-        RAINY_ALWASY_INLINE_NODISCARD constexpr rain_fn rend() const -> const_reverse_iterator {
+        RAINY_ALWASY_INLINE_NODISCARD RAINY_CONSTEXPR20 rain_fn rend() const -> const_reverse_iterator {
+            assert_type_in_constant_eval();
             return const_reverse_iterator(begin());
         }
 
@@ -397,16 +569,19 @@ namespace rainy::collections {
          * @brief 获取指向当前向量末尾位置的反向迭代器常量
          * @return 返回指向末尾的反向迭代器
          */
-        RAINY_ALWASY_INLINE_NODISCARD constexpr rain_fn crend() const -> const_reverse_iterator {
+        RAINY_ALWASY_INLINE_NODISCARD RAINY_CONSTEXPR20 rain_fn crend() const -> const_reverse_iterator {
+            assert_type_in_constant_eval();
             return const_reverse_iterator(begin());
         }
 
-        constexpr rain_fn empty() const noexcept -> bool {
-            return size_ == 0;
+        RAINY_CONSTEXPR20 rain_fn empty() const noexcept -> bool {
+            assert_type_in_constant_eval();
+            return size() == 0;
         }
 
-        constexpr rain_fn size() const noexcept -> size_type {
-            return size_;
+        RAINY_CONSTEXPR20 rain_fn size() const noexcept -> size_type {
+            assert_type_in_constant_eval();
+            return this->size_();
         }
 
         static constexpr rain_fn capacity() noexcept -> size_type {
@@ -422,36 +597,36 @@ namespace rainy::collections {
         }
 
         RAINY_CONSTEXPR20 rain_fn resize(size_type new_size, const value_type &value) -> void {
-            if constexpr (N != 0) {
-                if (new_size > N) {
-                    std::terminate();
+            assert_type_in_constant_eval();
+            if (new_size > N) {
+                std::terminate();
+            }
+            if (new_size == size()) {
+                return;
+            }
+            auto elements = this->begin_();
+            if (new_size < size()) { // 则容器将被缩小至其前 count 个元素。
+                size_type old_size = size();
+                this->unsafe_set_size(new_size);
+                for (size_type i = size(); i < old_size; ++i) {
+                    (void) utility::addressof(elements[i])->~value_type();
                 }
-                if (new_size == 0 || new_size == size()) {
-                    return;
-                }
-                if (new_size < size_) { // 则容器将被缩小至其前 count 个元素。
-                    size_type old_size = size_;
-                    size_ = new_size;
-                    for (size_type i = size_; i < old_size; ++i) {
-                        (void) utility::addressof(elements[i])->~value_type();
-                    }
-                } else { // 如果当前大小小于 count，则1) 将追加额外的 默认插入 元素。2) 将追加 value 的额外副本。
-                    size_type old_size = size_;
-                    size_ = new_size;
-                    for (size_type i = old_size; i < size_; ++i) {
-                        elements[i] = value;
-                    }
+            } else { // 如果当前大小小于 count，则1) 将追加额外的 默认插入 元素。2) 将追加 value 的额外副本。
+                size_type old_size = size();
+                this->unsafe_set_size(new_size);
+                for (size_type i = old_size; i < size(); ++i) {
+                    elements[i] = value;
                 }
             }
         }
 
-        static constexpr rain_fn reserve(size_type new_cap) -> void {
+        static RAINY_CONSTEXPR20 rain_fn reserve(size_type new_cap) -> void {
             if (new_cap > N) {
                 std::terminate();
             }
         }
 
-        static constexpr rain_fn shrink_to_fit() noexcept -> void {
+        static RAINY_CONSTEXPR20 rain_fn shrink_to_fit() noexcept -> void {
         }
 
         /**
@@ -460,8 +635,10 @@ namespace rainy::collections {
          * @param off 偏移量
          * @return 返回对应下标的元素引用
          */
-        RAINY_NODISCARD RAINY_ALWAYS_INLINE constexpr rain_fn at(difference_type off) -> reference {
+        RAINY_NODISCARD RAINY_ALWAYS_INLINE RAINY_CONSTEXPR20 rain_fn at(difference_type off) -> reference {
+            assert_type_in_constant_eval();
             range_check(off);
+            auto elements = this->begin_();
             return elements[off];
         }
 
@@ -471,8 +648,10 @@ namespace rainy::collections {
          * @param off 偏移量
          * @return 返回对应下标的元素引用
          */
-        RAINY_NODISCARD RAINY_ALWAYS_INLINE constexpr rain_fn at(difference_type off) const -> const_reference {
+        RAINY_NODISCARD RAINY_ALWAYS_INLINE RAINY_CONSTEXPR20 rain_fn at(difference_type off) const -> const_reference {
+            assert_type_in_constant_eval();
             range_check(off);
+            auto elements = this->begin_();
             return elements[off];
         }
 
@@ -480,7 +659,9 @@ namespace rainy::collections {
          * @brief 获取当前向量第一个元素
          * @return 返回第一个元素的引用
          */
-        RAINY_NODISCARD RAINY_ALWAYS_INLINE constexpr rain_fn front() -> reference {
+        RAINY_NODISCARD RAINY_ALWAYS_INLINE RAINY_CONSTEXPR20 rain_fn front() -> reference {
+            assert_type_in_constant_eval();
+            auto elements = this->begin_();
             return elements[0];
         }
 
@@ -488,7 +669,9 @@ namespace rainy::collections {
          * @brief 获取当前向量第一个元素
          * @return 返回第一个元素的引用
          */
-        RAINY_NODISCARD RAINY_ALWAYS_INLINE constexpr rain_fn front() const -> const_reference {
+        RAINY_NODISCARD RAINY_ALWAYS_INLINE RAINY_CONSTEXPR20 rain_fn front() const -> const_reference {
+            assert_type_in_constant_eval();
+            auto elements = this->begin_();
             return elements[0];
         }
 
@@ -496,16 +679,20 @@ namespace rainy::collections {
          * @brief 获取当前向量最后一个元素
          * @return 返回最后一个元素的引用
          */
-        RAINY_NODISCARD RAINY_ALWAYS_INLINE constexpr rain_fn back() -> reference {
-            return elements[size_ - 1];
+        RAINY_NODISCARD RAINY_ALWAYS_INLINE RAINY_CONSTEXPR20 rain_fn back() -> reference {
+            assert_type_in_constant_eval();
+            auto elements = this->begin_();
+            return elements[size() - 1];
         }
 
         /**
          * @brief 获取当前向量最后一个元素
          * @return 返回最后一个元素的引用
          */
-        RAINY_NODISCARD RAINY_ALWAYS_INLINE constexpr rain_fn back() const -> const_reference {
-            return elements[size_ - 1];
+        RAINY_NODISCARD RAINY_ALWAYS_INLINE RAINY_CONSTEXPR20 rain_fn back() const -> const_reference {
+            assert_type_in_constant_eval();
+            auto elements = this->begin_();
+            return elements[size() - 1];
         }
 
         /**
@@ -514,7 +701,9 @@ namespace rainy::collections {
          * @param idx 索引下标
          * @return 返回对应下标的元素引用
          */
-        RAINY_NODISCARD RAINY_ALWAYS_INLINE constexpr rain_fn operator[](difference_type idx) noexcept -> reference {
+        RAINY_NODISCARD RAINY_ALWAYS_INLINE RAINY_CONSTEXPR20 rain_fn operator[](difference_type idx) noexcept -> reference {
+            assert_type_in_constant_eval();
+            auto elements = this->begin_();
             return elements[idx]; // NOLINT
         }
 
@@ -524,7 +713,10 @@ namespace rainy::collections {
          * @param idx 索引下标
          * @return 返回对应下标的元素引用
          */
-        RAINY_NODISCARD RAINY_ALWAYS_INLINE constexpr rain_fn operator[](difference_type idx) const noexcept -> const_reference {
+        RAINY_NODISCARD RAINY_ALWAYS_INLINE RAINY_CONSTEXPR20 rain_fn operator[](difference_type idx) const noexcept
+            -> const_reference {
+            assert_type_in_constant_eval();
+            auto elements = this->begin_();
             return elements[idx]; // NOLINT
         }
 
@@ -532,109 +724,95 @@ namespace rainy::collections {
          * @brief 获取当前向量地址
          * @return 返回向量的地址，以指针形式
          */
-        RAINY_NODISCARD RAINY_ALWAYS_INLINE constexpr rain_fn data() noexcept -> pointer {
-            return static_cast<pointer>(elements);
+        RAINY_NODISCARD RAINY_ALWAYS_INLINE RAINY_CONSTEXPR20 rain_fn data() noexcept -> pointer {
+            assert_type_in_constant_eval();
+            return static_cast<pointer>(this->begin_());
         }
 
         /**
          * @brief 获取当前向量地址
          * @return 返回向量的地址，以指针形式
          */
-        RAINY_NODISCARD RAINY_ALWAYS_INLINE constexpr rain_fn data() const noexcept -> const_pointer {
-            return static_cast<const_pointer>(elements);
+        RAINY_NODISCARD RAINY_ALWAYS_INLINE RAINY_CONSTEXPR20 rain_fn data() const noexcept -> const_pointer {
+            assert_type_in_constant_eval();
+            return static_cast<const_pointer>(this->begin_());
         }
 
         template <typename... Args>
         RAINY_CONSTEXPR20 rain_fn emplace_back(Args &&...args) -> reference {
-            if (size_ == N) {
+            assert_type_in_constant_eval();
+            if (size() == N) {
                 std::terminate();
             }
-#if RAINY_HAS_CXX20
-            utility::construct_at(&elements[size_++], utility::forward<Args>(args)...);
-#else
-            value_type value{utility::forward<Args>(args)...};
-            elements[size_++] = utility::move_if_noexcept(value);
-#endif
+            utility::construct_at(end(), utility::forward<Args>(args)...);
+            this->unsafe_set_size(size() + 1);
             return back();
         }
 
-        constexpr rain_fn push_back(const value_type &value) -> reference {
-            if (size_ == N) {
-                std::terminate();
-            }
-            elements[size_++] = value;
-            return back();
+        RAINY_CONSTEXPR20 rain_fn push_back(const value_type &value) -> reference {
+            return emplace_back(value);
         }
 
-        constexpr rain_fn push_back(value_type &&value) -> reference {
-            if (size_ == N) {
-                std::terminate();
-            }
-            elements[size_++] = value;
-            return back();
+        RAINY_CONSTEXPR20 rain_fn push_back(value_type &&value) -> reference {
+            return emplace_back(utility::move(value));
         }
 
-        constexpr rain_fn pop_back() -> void {
-            if constexpr (N != 0) {
-#if RAINY_HAS_CXX20
-                utility::addressof(elements[size_--])->~value_type();
-#else
-                elements[size_--] = {};
-#endif
-            }
+        RAINY_CONSTEXPR20 rain_fn pop_back() -> void {
+            unsafe_destroy(end() - 1, end());
+            this->unsafe_set_size(size() - 1);
         }
 
         template <typename... Args>
-        constexpr rain_fn try_emplace_back(Args &&...args) -> pointer {
-            if (size_ == N) {
+        RAINY_CONSTEXPR20 rain_fn try_emplace_back(Args &&...args) -> pointer {
+            if (size() == N) {
                 return nullptr;
             }
             return utility::addressof(emplace_back(utility::forward<Args>(args)...));
         }
 
-        constexpr rain_fn try_push_back(const value_type &value) -> pointer {
-            if (size_ == N) {
+        RAINY_CONSTEXPR20 rain_fn try_push_back(const value_type &value) -> pointer {
+            if (size() == N) {
                 return nullptr;
             }
             return utility::addressof(push_back(value));
         }
 
-        constexpr rain_fn try_push_back(value_type &&value) -> pointer {
-            if (size_ == N) {
+        RAINY_CONSTEXPR20 rain_fn try_push_back(value_type &&value) -> pointer {
+            if (size() == N) {
                 return nullptr;
             }
             return utility::addressof(push_back(utility::move(value)));
         }
 
         template <typename... Args>
-        constexpr rain_fn unchecked_emplace_back(Args &&...args) -> reference {
+        RAINY_CONSTEXPR20 rain_fn unchecked_emplace_back(Args &&...args) -> reference {
             return *try_emplace_back(utility::forward<Args>(args)...);
         }
 
-        constexpr rain_fn unchecked_push_back(const value_type &value) -> reference {
+        RAINY_CONSTEXPR20 rain_fn unchecked_push_back(const value_type &value) -> reference {
             return *try_push_back(value);
         }
 
-        constexpr rain_fn unchecked_push_back(value_type &&value) -> reference {
+        RAINY_CONSTEXPR20 rain_fn unchecked_push_back(value_type &&value) -> reference {
             return *try_push_back(utility::move(value));
         }
 
         template <typename... Args>
         RAINY_CONSTEXPR20 rain_fn emplace(const_iterator position, Args &&...args) -> iterator {
-            if (size_ == N) {
+            assert_type_in_constant_eval();
+            if (size() == N) {
                 std::terminate();
             }
             size_type pos = utility::distance(cbegin(), position);
-            if (pos < size_) {
-                utility::construct_at(elements + size_, std::move(elements[size_ - 1]));
-                if (pos < size_ - 1) {
-                    core::algorithm::move_backward(elements + pos, elements + size_ - 1, elements + size_);
+            auto elements = this->begin_();
+            if (pos < size()) {
+                utility::construct_in_place(elements[size()], utility::move(elements[size() - 1]));
+                if (pos < size() - 1) {
+                    core::algorithm::move_backward(elements + pos, elements + size() - 1, elements + size());
                 }
-                (void) utility::addressof(elements[pos])->~value_type();
             }
-            auto iter = utility::construct_at(elements + pos, std::forward<Args>(args)...);
-            ++size_;
-            return iter;
+            this->unsafe_set_size(size() + 1);
+            return utility::construct_at(&elements[pos], utility::forward<Args>(args)...);
         }
 
         RAINY_CONSTEXPR20 rain_fn insert(const_iterator position, const value_type &value) -> iterator {
@@ -646,17 +824,19 @@ namespace rainy::collections {
         }
 
         RAINY_CONSTEXPR20 rain_fn insert(const_iterator position, size_type count, const value_type &value) -> iterator {
-            if (size_ + count > N) {
+            assert_type_in_constant_eval();
+            if (size() + count > N) {
                 std::terminate();
             }
             if (count == 0) {
                 return const_cast<iterator>(position);
             }
             size_type pos = utility::distance(cbegin(), position);
-            size_type old_size = size_;
+            auto elements = this->begin_();
+            size_type old_size = size();
             if (pos < old_size) {
                 for (size_type i = 0; i < count; ++i) {
-                    utility::construct_at(elements + old_size + i, value);
+                    elements[old_size + i] = value;
                 }
                 core::algorithm::move_backward(elements + pos, elements + old_size, elements + old_size + count);
                 for (size_type i = pos; i < pos + count; ++i) {
@@ -664,67 +844,75 @@ namespace rainy::collections {
                 }
             } else {
                 for (size_type i = 0; i < count; ++i) {
-                    utility::construct_at(elements + pos + i, value);
+                    elements[pos + i] = value;
                 }
             }
-            size_ += count;
+            this->unsafe_set_size(size() + count);
             return iterator{elements + pos};
         }
 
         template <typename Iter, type_traits::other_trans::enable_if_t<type_traits::extras::iterators::is_iterator_v<Iter>, int> = 0>
-        constexpr iterator insert(const_iterator position, Iter first, Iter last) {
+        RAINY_CONSTEXPR20 iterator insert(const_iterator position, Iter first, Iter last) {
+            assert_type_in_constant_eval();
             size_type iter_length = utility::distance(first, last);
-            if (size_ + iter_length > N) {
+            if (size() + iter_length > N) {
                 std::terminate();
             }
             if (iter_length == 0) {
                 return const_cast<iterator>(position);
             }
             size_type pos = utility::distance(cbegin(), position);
-            size_type old_size = size_;
+            auto elements = this->begin_();
+            size_type old_size = size();
             if (pos < old_size) {
                 core::algorithm::move_backward(elements + pos, elements + old_size, elements + old_size + iter_length);
             }
             auto dest = elements + pos;
             for (; first != last; ++first, ++dest) {
-                if (dest < elements + old_size) {
-                    *dest = *first;
-                } else {
-                    utility::construct_at(dest, *first);
-                }
+                *dest = *first;
             }
-            size_ += iter_length;
+            this->unsafe_set_size(size() + iter_length);
             return iterator{elements + pos};
         }
 
         RAINY_CONSTEXPR20 iterator insert(const_iterator position, std::initializer_list<value_type> ilist) {
             return insert(position, ilist.begin(), ilist.end());
         }
-
+        
         RAINY_CONSTEXPR20 iterator erase(const_iterator position) {
             return erase(position, position + 1);
         }
 
         RAINY_CONSTEXPR20 iterator erase(const_iterator first, const_iterator last) {
+            assert_type_in_constant_eval();
             iterator tmp_first = begin() + (first - begin());
             if (first != last) {
                 iterator it = core::algorithm::move(tmp_first + (last - first), end(), tmp_first);
                 end()->~value_type();
-                size_ = (size() - static_cast<size_type>(last - first));
+                this->unsafe_set_size(size() - static_cast<size_type>(last - first));
             }
             return tmp_first;
         }
 
         RAINY_CONSTEXPR20 rain_fn clear() noexcept(type_traits::type_properties::is_nothrow_destructible_v<value_type>) -> void {
+            assert_type_in_constant_eval();
             for (auto &it: *this) {
                 (void) utility::addressof(it)->~value_type();
             }
-            size_ = 0;
+            this->unsafe_set_size(0);
         }
 
-        RAINY_CONSTEXPR20 rain_fn swap(inplace_vector &right) noexcept(impl_traits::is_nothrow_swappable::value) -> void {
-            core::algorithm::swap_ranges(elements, right.elements);
+        // clang-format off
+
+        RAINY_CONSTEXPR20 rain_fn swap(inplace_vector &right) noexcept(N == 0 || (type_traits::type_properties::is_nothrow_swappable_v<Ty> &&
+                                                        type_traits::type_properties::is_nothrow_move_constructible_v<Ty>) ) -> void {
+            assert_type_in_constant_eval();
+            auto tmp = utility::move(right);
+            right = utility::move(*this);
+            (*this) = utility::move(tmp);
         }
+
+        // clang-format on
 
         /**
          * @brief 判断两个向量是否相等
@@ -732,7 +920,8 @@ namespace rainy::collections {
          * @param right 右侧向量
          * @return 若两个向量元素一一对应且相等则返回 true，否则返回 false
          */
-        friend constexpr rain_fn operator==(const inplace_vector &left, const inplace_vector &right) noexcept -> bool {
+        friend RAINY_CONSTEXPR20 rain_fn operator==(const inplace_vector &left, const inplace_vector &right) noexcept -> bool {
+            assert_type_in_constant_eval();
             return core::algorithm::equal(left.begin(), left.end(), right.begin(), right.end());
         }
 
@@ -742,7 +931,8 @@ namespace rainy::collections {
          * @param right 右侧向量
          * @return 若两个向量不相等则返回 true，否则返回 false
          */
-        friend constexpr rain_fn operator!=(const inplace_vector &left, const inplace_vector &right) noexcept -> bool {
+        friend RAINY_CONSTEXPR20 rain_fn operator!=(const inplace_vector &left, const inplace_vector &right) noexcept -> bool {
+            assert_type_in_constant_eval();
             return !(left == right);
         }
 
@@ -752,7 +942,8 @@ namespace rainy::collections {
          * @param right 右侧向量
          * @return 若左侧向量在字典序上小于右侧向量则返回 true，否则返回 false
          */
-        friend constexpr rain_fn operator<(const inplace_vector &left, const inplace_vector &right) noexcept -> bool {
+        friend RAINY_CONSTEXPR20 rain_fn operator<(const inplace_vector &left, const inplace_vector &right) noexcept -> bool {
+            assert_type_in_constant_eval();
             return core::algorithm::lexicographical_compare(left.begin(), left.end(), right.begin(), right.end());
         }
 
@@ -762,7 +953,8 @@ namespace rainy::collections {
          * @param right 右侧向量
          * @return 若左侧向量在字典序上大于右侧向量则返回 true，否则返回 false
          */
-        friend constexpr rain_fn operator>(const inplace_vector &left, const inplace_vector &right) noexcept -> bool {
+        friend RAINY_CONSTEXPR20 rain_fn operator>(const inplace_vector &left, const inplace_vector &right) noexcept -> bool {
+            assert_type_in_constant_eval();
             return right < left;
         }
 
@@ -772,7 +964,8 @@ namespace rainy::collections {
          * @param right 右侧向量
          * @return 若左侧向量小于或等于右侧向量则返回 true，否则返回 false
          */
-        friend constexpr rain_fn operator<=(const inplace_vector &left, const inplace_vector &right) noexcept -> bool {
+        friend RAINY_CONSTEXPR20 rain_fn operator<=(const inplace_vector &left, const inplace_vector &right) noexcept -> bool {
+            assert_type_in_constant_eval();
             return !(left > right);
         }
 
@@ -782,28 +975,44 @@ namespace rainy::collections {
          * @param right 右侧向量
          * @return 若左侧向量大于或等于右侧向量则返回 true，否则返回 false
          */
-        friend constexpr rain_fn operator>=(const inplace_vector &left, const inplace_vector &right) noexcept -> bool {
+        friend RAINY_CONSTEXPR20 rain_fn operator>=(const inplace_vector &left, const inplace_vector &right) noexcept -> bool {
+            assert_type_in_constant_eval();
             return !(left < right);
         }
 
     private:
-        template <std::size_t... I>
-        constexpr inplace_vector(const_pointer ilist, std::size_t ilist_size, type_traits::helper::index_sequence<I...>) :
-            elements{(I < ilist_size ? ilist[I] : value_type{})...}, size_{ilist_size} {
+        /*
+        @brief The API of inplace_vector<T, Capacity> can be used in constexpr-contexts if is_trivially_copyable_v<T>,
+        is_default_constructible_v<T>, and is_trivially_destructible<T> are true.
+        @brief This proposal only supports using the constexpr methods in constant expressions if is_trivial_t<T> is true.
+        @brief See: https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2024/p0843r14.html#constexpr-support
+        */
+        static constexpr void assert_type_in_constant_eval() {
+#if RAINY_HAS_CXX20
+            if (std::is_constant_evaluated()) {
+                constexpr bool assertion_result = type_traits::type_properties::is_trivially_copyable_v<Ty> &&
+                                                  type_traits::type_properties::is_trivially_copyable_v<Ty> &&
+                                                  type_traits::type_properties::is_default_constructible_v<Ty> &&
+                                                  type_traits::type_properties::is_trivially_destructible_v<Ty>;
+                if (!assertion_result) {
+                    throw "This type is unacceptable in compile time";
+                }
+            }
+#endif
         }
 
-        template <std::size_t... I>
-        constexpr inplace_vector(std::in_place_t, type_traits::helper::index_sequence<I...>) : elements{((void) I, value_type{})...} {
+        constexpr void unsafe_destroy(value_type *begin, value_type *end) noexcept(std::is_nothrow_destructible_v<value_type>) {
+            if constexpr (N > 0 && !std::is_trivial_v<value_type>) {
+                for (; begin != end; ++begin)
+                    begin->~value_type();
+            }
         }
 
-        RAINY_ALWAYS_INLINE static constexpr rain_fn range_check(const difference_type offset) noexcept -> void {
+        RAINY_ALWAYS_INLINE static RAINY_CONSTEXPR20 rain_fn range_check(const difference_type offset) noexcept -> void {
             if (offset >= N) {
                 std::abort();
             }
         }
-
-        typename impl_traits::type elements{};
-        std::size_t size_{0};
     };
 
     template <typename Ty, std::size_t N>
@@ -820,8 +1029,8 @@ namespace rainy::collections {
 
 namespace rainy::collections {
     template <typename Ty, std::size_t N, typename UTy, typename Fx>
-    RAINY_NODISCARD constexpr rain_fn zip_with(const inplace_vector<Ty, N> &left, const inplace_vector<UTy, N> &right, Fx &&func)
-        -> auto {
+    RAINY_NODISCARD RAINY_CONSTEXPR20 rain_fn zip_with(const inplace_vector<Ty, N> &left, const inplace_vector<UTy, N> &right,
+                                                       Fx &&func) -> auto {
         using type = decltype(utility::invoke(utility::forward<Fx>(func), left[0], right[0]));
         collections::inplace_vector<type, N> arr;
         for (std::size_t i = 0; i < N; ++i) {

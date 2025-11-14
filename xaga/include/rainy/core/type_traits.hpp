@@ -25,6 +25,7 @@
 #include <rainy/core/tmp/modifers.hpp>
 #include <rainy/core/tmp/type_list.hpp>
 #include <rainy/core/tmp/value_list.hpp>
+#include <rainy/core/tmp/ranges_traits.hpp>
 #include <rainy/core/tmp/iter_traits.hpp>
 #include <rainy/core/tmp/meta_methods.hpp>
 #include <rainy/core/implements/basic_algorithm.hpp>
@@ -2995,15 +2996,33 @@ namespace rainy::utility {
             return last - first; // assume the iterator will do debug checking
         } else {
             implements::adl_verify_range(first, last);
-            auto ufirst = addressof(*first);
-            const auto ulast = addressof(*(last - 1)) + 1;
             std::ptrdiff_t off = 0;
-            for (; ufirst != ulast; ++ufirst) {
+            for (; first != last; ++first) {
                 ++off;
             }
             return off;
         }
     }
+}
+
+namespace rainy::type_traits::type_properties {
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL is_movable_v = composite_types::is_object_v<Ty> && type_properties::is_move_constructible_v<Ty> &&
+                                        type_properties::is_assignable_v<Ty &, Ty> && type_properties::is_swappable_v<Ty>;
+
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL is_copyable_v =
+        type_properties::is_copy_constructible_v<Ty> && is_movable_v<Ty> &&
+        type_traits::type_properties::is_assignable_v<Ty &, Ty &> && type_traits::type_properties::is_assignable_v<Ty &, const Ty &> &&
+        type_traits::type_properties::is_assignable_v<Ty &, const Ty>;
+}
+
+namespace rainy::utility {
+    template <typename Diff>
+    constexpr Diff max_possible_v{static_cast<type_traits::helper::make_unsigned_t<Diff>>(-1) >> 1};
+
+    template <typename Diff>
+    constexpr Diff min_possible_v{-max_possible_v<Diff> - 1};
 }
 
 #endif

@@ -430,7 +430,7 @@ namespace rainy::collections {
          * @param right 待交换的数组对象
          */
         RAINY_ALWAYS_INLINE RAINY_CONSTEXPR20 rain_fn swap(array &right) noexcept(impl_traits::is_nothrow_swappable::value) -> void {
-            core::algorithm::swap_ranges(elements, right.elements);
+            core::algorithm::swap_ranges(elements, elements + N, right.elements);
         }
 
         /**

@@ -299,6 +299,7 @@ namespace rainy::text::implements {
         }
     };
 }
+
 namespace rainy::text {
     template <typename CharType, class Traits = std::char_traits<CharType>, typename Allocator = std::allocator<CharType>>
     class basic_string : public implements::basic_string_storage<CharType, Traits, Allocator> {
@@ -420,7 +421,7 @@ namespace rainy::text {
         }
 
         RAINY_CONSTEXPR20 basic_string(basic_string &&right, allocator_type const &a) : base(a) {
-            if (right.allocator_ == a) {
+            if (right.get_al() == a) {
                 right.swap(*this);
             } else {
                 basic_string temp{right.data(), right.size(), a};
@@ -758,7 +759,7 @@ namespace rainy::text {
             if (count > size) {
                 reserve(count);
                 auto begin = this->begin_();
-                std::fill(begin + size, begin + count, ch);
+                core::algorithm::fill(begin + size, begin + count, ch);
             }
             resize_(count);
         }
@@ -878,13 +879,11 @@ namespace rainy::text {
 
         RAINY_CONSTEXPR20 basic_string &assign(const CharType *cstr, size_type count) {
             assign_(cstr, cstr + count);
-
             return *this;
         }
 
         RAINY_CONSTEXPR20 basic_string &assign(const CharType *cstr) {
             assign_(cstr, cstr + c_style_string_length_(cstr));
-
             return *this;
         }
 
@@ -899,7 +898,6 @@ namespace rainy::text {
             assign_(data, data + ilist.size());
             return *this;
         }
-
 
         template <
             typename StringViewLike,

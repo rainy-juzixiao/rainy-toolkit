@@ -91,6 +91,28 @@ namespace rainy::type_traits::extras::meta_method {
             return container.cend();
         }
     };
+    
+    template <typename Ty, typename = void>
+    struct try_to_invoke_size {
+        static RAINY_CONSTEXPR_BOOL value = false;
+
+        template <typename Uty>
+        static void invoke(const Uty &) {
+            static_assert(rainy::type_traits::implements::always_false<Uty>, "Can not find begin method! "
+                                                                             "rainy::utility::begin"
+                                                                             "only support begin() in Container Type"
+                                                                             "please add begin() method in Container Definition");
+        }
+    };
+
+    template <typename Ty>
+    struct try_to_invoke_size<Ty, type_traits::other_trans::void_t<decltype(utility::declval<const Ty &>().size())>> {
+        static RAINY_CONSTEXPR_BOOL value = true;
+
+        static auto invoke(const Ty &container) noexcept(noexcept(container.size())) -> decltype(container.size()) {
+            return container.size();
+        }
+    };
 }
 
 namespace rainy::utility {
@@ -144,6 +166,13 @@ namespace rainy::utility {
         noexcept(type_traits::extras::meta_method::try_to_invoke_cbegin<const Container>::invoke(cont)))
         -> decltype(type_traits::extras::meta_method::try_to_invoke_cbegin<const Container>::invoke(cont)) {
         return type_traits::extras::meta_method::try_to_invoke_cbegin<const Container>::invoke(cont);
+    }
+
+    template <typename Container>
+    RAINY_NODISCARD constexpr auto size(const Container &cont) noexcept(
+        noexcept(type_traits::extras::meta_method::try_to_invoke_size<const Container>::invoke(cont)))
+        -> decltype(type_traits::extras::meta_method::try_to_invoke_size<const Container>::invoke(cont)) {
+        return type_traits::extras::meta_method::try_to_invoke_size<const Container>::invoke(cont);
     }
 }
 

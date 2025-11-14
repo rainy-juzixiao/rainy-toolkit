@@ -501,6 +501,14 @@ namespace rainy::type_traits::other_trans {
 
     template <typename Ty>
     using pointer = Ty*;
+
+    template <bool IsConst, typename Ty>
+    struct maybe_const {
+        using type = conditional_t<IsConst, const Ty, Ty>;
+    };
+
+    template <bool IsConst, typename Ty> 
+    using maybe_const_t = typename maybe_const<IsConst, Ty>::type;
 }
 
 namespace rainy::core::builtin {

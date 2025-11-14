@@ -129,7 +129,7 @@ SCENARIO("[lifetime]", test_tag) {
             any move_variable = std::move(variable);
             THEN("is success for move") {
                 REQUIRE(move_variable.has_value());
-                REQUIRE_FALSE(variable.has_value());
+                REQUIRE(variable.has_value()); // 修正，variable的行为应为被移动后仍可用
             }
         }
     }

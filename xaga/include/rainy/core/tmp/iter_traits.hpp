@@ -1,3 +1,18 @@
+/*
+ * Copyright 2025 rainy-juzixiao
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 #ifndef RAINY_CORE_TMP_ITER_TRAITS_HPP
 #define RAINY_CORE_TMP_ITER_TRAITS_HPP
 #include <rainy/core/platform.hpp>
@@ -58,10 +73,10 @@ namespace rainy::type_traits::extras::iterators {
     inline constexpr bool has_element_type_v = has_element_type<Ty>::value;
 }
 
-namespace rainy::utility::implements {
+namespace rainy::type_traits::extras::iterators::implements {
     template <typename Ty, bool Enable = type_traits::extras::iterators::has_value_type_v<Ty>>
     struct try_to_add_value_type {
-        using value_type = invalid_type;
+        using value_type =  utility::invalid_type;
     };
 
     template <typename Ty>
@@ -71,7 +86,7 @@ namespace rainy::utility::implements {
 
     template <typename Ty, bool Enable = type_traits::extras::iterators::has_difference_type_v<Ty>>
     struct try_to_add_difference_type {
-        using difference_type = invalid_type;
+        using difference_type = utility::invalid_type;
     };
 
     template <typename Ty>
@@ -82,7 +97,7 @@ namespace rainy::utility::implements {
     template <typename Ty, bool IsPointer = type_traits::implements::_is_pointer_v<Ty>,
               bool Enable = type_traits::extras::iterators::has_iterator_category_v<Ty>>
     struct try_to_add_iterator_category {
-        using iterator_category = invalid_type;
+        using iterator_category = utility::invalid_type;
     };
 
     template <typename Ty>
@@ -97,7 +112,7 @@ namespace rainy::utility::implements {
 
     template <typename Ty, bool Enable = type_traits::extras::iterators::has_reference_v<Ty>>
     struct try_to_add_reference {
-        using reference = invalid_type;
+        using reference = utility::invalid_type;
     };
 
     template <typename Ty>
@@ -107,7 +122,7 @@ namespace rainy::utility::implements {
 
     template <typename Ty, bool Enable = type_traits::extras::iterators::has_pointer_v<Ty>>
     struct try_to_add_pointer {
-        using pointer = invalid_type;
+        using pointer = utility::invalid_type;
     };
 
     template <typename Ty>
@@ -117,7 +132,7 @@ namespace rainy::utility::implements {
 
     template <typename Ty, bool Enable = type_traits::extras::iterators::has_element_type_v<Ty>>
     struct try_to_add_element_type {
-        using element_type = invalid_type;
+        using element_type = utility::invalid_type;
     };
 
     template <typename Ty>
@@ -133,7 +148,7 @@ namespace rainy::utility::implements {
                                   try_to_add_value_type<Ty> {};
 }
 
-namespace rainy::utility {
+namespace rainy::type_traits::extras::iterators {
     template <typename Ty>
     struct iterator_traits : implements::iterator_traits_base<Ty> {};
 
@@ -156,6 +171,11 @@ namespace rainy::utility {
     };
 }
 
+namespace rainy::utility {
+    using type_traits::extras::iterators::iterator_traits;
+    using type_traits::extras::iterators::make_iterator_traits;
+}
+
 namespace rainy::type_traits::extras::iterators {
     template <typename Iter>
     struct iter_value {
@@ -164,6 +184,48 @@ namespace rainy::type_traits::extras::iterators {
 
     template <typename Iter>
     using iter_value_t = typename iter_value<Iter>::type;
+
+    template <typename Iter>
+    struct iterator_difference {
+        using type = typename utility::iterator_traits<Iter>::difference_type;
+    };
+
+    template <typename Iter>
+    using iterator_difference_t = typename iterator_difference<Iter>::type;
+
+    template <typename Iter>
+    struct iterator_reference {
+        using type = typename utility::iterator_traits<Iter>::reference;
+    };
+
+    template <typename Iter>
+    using iterator_reference_t = typename iterator_reference<Iter>::type;
+
+    template <typename Iter>
+    struct iterator_category {
+        using type = typename utility::iterator_traits<Iter>::iterator_category;
+    };
+
+    template <typename Iter>
+    using iterator_category_t = typename iterator_reference<Iter>::type;
+}
+
+namespace rainy::type_traits::extras::iterators {
+    template <typename Ty>
+    struct iterator {
+        using type = type_traits::reference_modify::remove_reference_t<decltype(utility::declval<Ty &>().begin())>;
+    };
+
+    template <typename Ty>
+    using iterator_t = typename iterator<Ty>::type;
+
+    template <typename Ty>
+    struct const_iterator {
+        using type = type_traits::reference_modify::remove_reference_t<decltype(utility::declval<const Ty &>().cbegin())>;
+    };
+
+    template <typename Ty>
+    using const_iterator_t = typename const_iterator<Ty>::type;
 
     template <typename Iter, typename = void>
     RAINY_CONSTEXPR_BOOL is_iterator_v =

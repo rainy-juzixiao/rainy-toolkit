@@ -4,6 +4,10 @@
 #include <rainy/utility/any.hpp>
 #include <rainy/collections/inplace_vector.hpp>
 #include <rainy/collections/string.hpp>
+#include <rainy/collections/views/views_interface.hpp>
+#include <rainy/collections/views/transform_view.hpp>
+#include <rainy/foundation/iterators/move_iterator.hpp>
+#include <ranges>
 
 using namespace rainy;
 using namespace rainy::utility;
@@ -19,35 +23,19 @@ struct mypair {
     std::string_view data2{};
 };
 
-static constexpr auto get_() {
-    collections::inplace_vector<int, 16> vec{1, 2, 3, 4, 5, 6, 7, 8};
-    vec.resize(4);
-    vec.emplace_back(5);
-    vec.emplace(vec.begin() + 1, 2);
-    vec.insert(vec.begin(), 9);
-    vec.insert(vec.end() - 2, 2, 1);
-    vec.insert(vec.end(), vec.begin(), vec.end() - 6);
-    vec.erase(vec.end() - 1);
-    return vec.map([](int value) { return value * 3; }).reverse();
+constexpr auto test1() {
+    collections::inplace_vector<int, 4> vec = {1, 2, 3, 4};
+    return vec.left(3);
 }
 
 int main() {
-    text::string_view view = "Hello World";
-    std::cout << view << '\n';
-    collections::inplace_vector<int, 10> vec1;
-    vec1.emplace_back(10);
-    vec1.emplace_back(20);
-    vec1.emplace_back(30);
-    vec1.emplace_back(40);
-    auto mapp = vec1.fold<std::unordered_map<int, std::string>>([](std::unordered_map<int, std::string> &map, int value) {
-        map[value] = std::to_string(value);
-        return map;
-    });
-    for (const auto &item: mapp) {
-        std::cout << item.first << ":" << item.second << '\n';
+    std::vector<int> cont{1,2,3,4,5,6,7};
+    auto stream = cont | rainy::collections::views::transform([](int value) { return value * 3; }) |
+                  rainy::collections::views::transform([](int value) { return "number : " + std::to_string(value); });
+    std::cout << stream[0] << '\n';
+    for (const auto item: stream) {
+        std::cout << item << '\n';
     }
-
-    constexpr auto vec = get_();
     any a = 10;
     std::cout << std::as_const(a).as_lvalue_reference().type().name() << '\n';
     std::cout << std::as_const(a).as_rvalue_reference().type().name() << '\n';

@@ -388,7 +388,7 @@ namespace rainy::utility::implements {
         using const_pointer = value_type;
         using iterator_category = std::random_access_iterator_tag;
 
-        static constexpr std::size_t length = sizeof(void *) * 3;
+        static constexpr std::size_t length = sizeof(void *) * 5;
 
         struct iterator_proxy_vtable {
             virtual ~iterator_proxy_vtable() = default;
@@ -506,12 +506,18 @@ namespace rainy::utility::implements {
             if (this == utility::addressof(right)) {
                 return;
             }
+            if (proxy) {
+                proxy->destruct(is_local());
+            }
             proxy = right.proxy->construct_from_this(this->buffer);
         }
 
         void move_from_other(any_iterator_impl &&right) {
             if (this == utility::addressof(right) || !right.proxy) {
                 return;
+            }
+            if (proxy) { // 防止内存泄漏
+                proxy->destruct(is_local());
             }
             if (right.is_local()) {
                 proxy = right.proxy->construct_from_this(this->buffer);
@@ -716,10 +722,11 @@ namespace rainy::utility {
         template <typename ValueType, type_traits::other_trans::enable_if_t<
                                           type_traits::logical_traits::conjunction_v<
                                               type_traits::logical_traits::negation<type_traits::type_relations::is_any_of<
-                              type_traits::other_trans::decay_t<ValueType>, basic_any, reference, const_reference>>,
+                                                  type_traits::other_trans::decay_t<ValueType>, basic_any, reference>>,
                                               type_traits::logical_traits::negation<type_traits::primary_types::is_specialization<
                                                   type_traits::other_trans::decay_t<ValueType>, std::in_place_type_t>>,
-                                              type_traits::type_properties::is_copy_constructible<ValueType>>,
+                                              type_traits::type_properties::is_copy_constructible<ValueType>,
+                                              type_traits::logical_traits::negation<is_any<ValueType>>>,
                                           int> = 0>
         RAINY_INLINE basic_any(ValueType &&value) {
             emplace_<ValueType>(utility::forward<ValueType>(value));
@@ -727,19 +734,23 @@ namespace rainy::utility {
 
         template <
             typename ValueType, typename... Types,
-            type_traits::other_trans::enable_if_t<type_traits::type_properties::is_constructible_v<ValueType, Types...>, int> = 0>
+                  type_traits::other_trans::enable_if_t<
+                      type_traits::type_properties::is_constructible_v<ValueType, Types...> &&
+                          !type_traits::type_relations::is_any_of_v<ValueType, basic_any, reference> && !is_any_v<ValueType>,
+                      int> = 0>
         RAINY_INLINE basic_any(std::in_place_type_t<ValueType>, Types &&...args) {
             emplace_<ValueType>(utility::forward<Types>(args)...);
         }
 
         template <typename ValueType, typename Elem, typename... Types,
                   type_traits::other_trans::enable_if_t<
-                      type_traits::type_properties::is_constructible_v<ValueType, std::initializer_list<Elem> &, Types...>, int> = 0>
+                      type_traits::type_properties::is_constructible_v<ValueType, std::initializer_list<Elem> &, Types...> && 
+                        !type_traits::type_relations::is_any_of_v<ValueType, basic_any,reference> && !is_any_v<ValueType>, int> = 0>
         RAINY_INLINE explicit basic_any(std::in_place_type_t<ValueType>, std::initializer_list<Elem> ilist, Types &&...args) {
             emplace_<ValueType>(ilist, utility::forward<Types>(args)...);
         }
 
-        basic_any(reference reference) : basic_any{reference.construct_from_this()} {
+        basic_any(reference right) : basic_any{right.construct_from_this()} {
         }
 
         RAINY_INLINE ~basic_any() {
@@ -1419,7 +1430,6 @@ namespace rainy::utility {
                 case any_representation::_small:
                     storage.small_any_ctti_manager = right.storage.small_any_ctti_manager;
                     storage.small_any_ctti_manager->move_(&storage.buffer, &right.storage.buffer);
-                    right.storage.type_data = 0;
                     break;
                 case any_representation::big:
                     storage.big_any_ctti_manager = right.storage.big_any_ctti_manager;
