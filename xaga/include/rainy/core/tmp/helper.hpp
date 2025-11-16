@@ -18,79 +18,7 @@
 #include <rainy/core/tmp/implements.hpp>
 #include <rainy/core/tmp/modifers.hpp>
 
-// type_traits的帮助程序类和 typedef
 namespace rainy::type_traits::helper {
-    /**
-     * @brief 从类型和值生成整型常量。
-     * @tparam Ty 类型
-     * @tparam Data 值
-     */
-    template <typename Ty, Ty Data>
-    struct integral_constant {
-        using value_type = Ty;
-        using type = integral_constant;
-
-        constexpr explicit operator value_type() const noexcept {
-            return value;
-        }
-        constexpr value_type operator()() const noexcept {
-            return value;
-        }
-
-        static constexpr Ty value = Data;
-    };
-
-    /**
-     * @brief 将 bool 用作 Ty 参数的 integral_constant 的显式部分特化
-     */
-    template <bool Boolean>
-    using bool_constant = integral_constant<bool, Boolean>;
-
-    using true_type = integral_constant<bool, true>;
-    using false_type = integral_constant<bool, false>;
-
-    template <typename>
-    struct char_space : integral_constant<char, ' '> {};
-
-    template <>
-    struct char_space<wchar_t> : integral_constant<wchar_t, ' '> {};
-
-    template <>
-    struct char_space<char16_t> : integral_constant<char16_t, u' '> {};
-
-    template <>
-    struct char_space<char32_t> : integral_constant<char32_t, u' '> {};
-
-    template <typename CharType>
-    RAINY_INLINE_CONSTEXPR CharType char_space_v = char_space<CharType>::value;
-
-#if RAINY_HAS_CXX20 && defined(__cpp_lib_char8_t)
-    template <>
-    struct char_space<char8_t> : integral_constant<char8_t, ' '> {};
-#endif
-    template <typename CharType>
-    struct char_null : integral_constant<char, '\0'> {};
-
-    template <>
-    struct char_null<wchar_t> : integral_constant<wchar_t, '\0'> {};
-
-    template <>
-    struct char_null<char16_t> : integral_constant<char16_t, u'\0'> {};
-
-    template <>
-    struct char_null<char32_t> : integral_constant<char32_t, u'\0'> {};
-
-#if RAINY_HAS_CXX20 && defined(__cpp_lib_char8_t)
-    template <>
-    struct char_null<char8_t> : integral_constant<char8_t, '\0'> {};
-#endif
-
-    template <typename CharType>
-    RAINY_INLINE_CONSTEXPR CharType char_null_v = char_null<CharType>::value;
-
-    template <typename CharType>
-    RAINY_CONSTEXPR_BOOL is_wchar_t = implements::is_same_v<CharType, wchar_t>;
-
     template <typename Ty>
     struct wrapper {
         inline static cv_modify::remove_cvref_t<Ty> value;

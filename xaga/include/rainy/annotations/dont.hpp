@@ -19,7 +19,7 @@ namespace rainy::annotations::dont::implements {
         non_copyable_impl(non_copyable_base_t &&right) noexcept : non_copyable_base_t{utility::move(right)} {
         }
 
-        template <type_traits::other_trans::enable_if_t<type_traits::type_properties::is_move_assignable_v<Ty>,int> = 0>
+        template <type_traits::other_trans::enable_if_t<type_traits::type_properties::is_move_assignable_v<Ty>, int> = 0>
         non_copyable_impl &operator=(non_copyable_base_t &&right) noexcept {
             non_copyable_base_t::operator=(utility::move(right));
             return *this;

@@ -35,6 +35,7 @@
 #include <initializer_list>
 #include <string_view>
 #include <string>
+#include <utility>
 
 #ifdef __linux__
 #include <csignal>
@@ -511,6 +512,32 @@ namespace rainy::type_traits::other_trans {
     using maybe_const_t = typename maybe_const<IsConst, Ty>::type;
 }
 
+namespace rainy::type_traits::implements {
+    template <typename Ty>
+    struct remove_reference {
+        using type = Ty;
+    };
+
+    template <typename Ty>
+    struct remove_reference<Ty &> {
+        using type = Ty;
+    };
+
+    template <typename Ty>
+    struct remove_reference<Ty &&> {
+        using type = Ty;
+    };
+
+    template <typename Ty>
+    using remove_reference_t = typename remove_reference<Ty>::type;
+    
+    template <typename>
+    RAINY_CONSTEXPR_BOOL _is_lvalue_reference_v = false;
+
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL _is_lvalue_reference_v<Ty &> = true;
+}
+
 namespace rainy::core::builtin {
 #if RAINY_USING_AVX2
     RAINY_TOOLKIT_API std::int32_t ctz_avx2(std::uint32_t x) noexcept;
@@ -543,6 +570,38 @@ namespace rainy::core::builtin {
     RAINY_TOOLKIT_API void *fill_memory(void *dest, std::size_t count, const void *src, std::size_t src_count, std::size_t src_offset,
                                         std::size_t dest_offset);
 
+    /**
+     * @brief 使用完美转发（perfect forwarding）实现类型安全的引用转发。
+     *
+     * @tparam Ty 转发对象的类型。
+     * @param arg 要转发的左值引用对象。
+     * @return 返回类型为 `Ty&&` 的转发对象。
+     *
+     * @remark
+     * 这个函数用于将左值引用安全地转发为相应类型的引用（可能是左值引用或右值引用），
+     * 以保留传入参数的左值或右值性质。
+     */
+    template <typename Ty>
+    RAINY_NODISCARD constexpr Ty &&forward(type_traits::implements::remove_reference_t<Ty> &arg) noexcept {
+        return static_cast<Ty &&>(arg);
+    }
+
+    /**
+     * @brief 使用完美转发（perfect forwarding）实现类型安全的引用转发。
+     *
+     * @tparam Ty 转发对象的类型。
+     * @param arg 要转发的右值引用对象。
+     * @return 返回类型为 `Ty&&` 的转发对象。
+     *
+     * @remark
+     * 这个函数用于将右值引用安全地转发为相应类型的引用（可能是左值引用或右值引用），
+     * 以保留传入参数的左值或右值性质。
+     */
+    template <typename Ty>
+    RAINY_NODISCARD constexpr Ty &&forward(type_traits::implements::remove_reference_t<Ty> &&arg) noexcept { // NOLINT
+        static_assert(!type_traits::implements::_is_lvalue_reference_v<Ty>, "bad forward call");
+        return static_cast<Ty &&>(arg);
+    }
 
     template <typename Ty>
     RAINY_NODISCARD constexpr Ty *addressof(Ty &val) noexcept {
@@ -551,6 +610,20 @@ namespace rainy::core::builtin {
 
     template <typename Ty>
     const Ty *addressof(const Ty &&) = delete;
+    
+    template <typename Ty, typename... Args>
+    RAINY_CONSTEXPR20 Ty *construct_at(Ty *location, Args &&...args) noexcept(noexcept(::new(static_cast<void *>(location))
+                                                                                           Ty(builtin::forward<Args>(args)...))) {
+        if (!location) {
+            return nullptr;
+        }
+#if RAINY_HAS_CXX20
+        if (std::is_constant_evaluated()) {
+            return std::construct_at(location, builtin::forward<Args>(args)...);
+        }
+#endif
+        return ::new (static_cast<void *>(location)) Ty(builtin::forward<Args>(args)...);
+    }
 
     constexpr std::size_t string_length(const char *str) {
         return __builtin_strlen(str);
@@ -1005,6 +1078,91 @@ namespace rainy::core::abi {
     RAINY_EXTERN_C RAINY_TOOLKIT_API long rainy_toolkit_get_version_name(char *buffer, std::size_t buffer_length);
     RAINY_EXTERN_C RAINY_TOOLKIT_API long rainy_toolkit_export_library_context(std::uintptr_t* context);
     RAINY_EXTERN_C RAINY_TOOLKIT_API long rainy_toolkit_is_abi_compatible(std::uintptr_t *context);
+}
+
+namespace rainy::type_traits::helper {
+    /**
+     * @brief 从类型和值生成整型常量。
+     * @tparam Ty 类型
+     * @tparam Data 值
+     */
+    template <typename Ty, Ty Data>
+    struct integral_constant {
+        using value_type = Ty;
+        using type = integral_constant;
+
+        constexpr explicit operator value_type() const noexcept {
+            return value;
+        }
+        constexpr value_type operator()() const noexcept {
+            return value;
+        }
+
+        static constexpr Ty value = Data;
+    };
+
+    /**
+     * @brief 将 bool 用作 Ty 参数的 integral_constant 的显式部分特化
+     */
+    template <bool Boolean>
+    using bool_constant = integral_constant<bool, Boolean>;
+
+    using true_type = integral_constant<bool, true>;
+    using false_type = integral_constant<bool, false>;
+
+    template <typename>
+    struct char_space : integral_constant<char, ' '> {};
+
+    template <>
+    struct char_space<wchar_t> : integral_constant<wchar_t, ' '> {};
+
+    template <>
+    struct char_space<char16_t> : integral_constant<char16_t, u' '> {};
+
+    template <>
+    struct char_space<char32_t> : integral_constant<char32_t, u' '> {};
+
+    template <typename CharType>
+    RAINY_INLINE_CONSTEXPR CharType char_space_v = char_space<CharType>::value;
+
+#if RAINY_HAS_CXX20 && defined(__cpp_lib_char8_t)
+    template <>
+    struct char_space<char8_t> : integral_constant<char8_t, ' '> {};
+#endif
+    template <typename CharType>
+    struct char_null : integral_constant<char, '\0'> {};
+
+    template <>
+    struct char_null<wchar_t> : integral_constant<wchar_t, '\0'> {};
+
+    template <>
+    struct char_null<char16_t> : integral_constant<char16_t, u'\0'> {};
+
+    template <>
+    struct char_null<char32_t> : integral_constant<char32_t, u'\0'> {};
+
+#if RAINY_HAS_CXX20 && defined(__cpp_lib_char8_t)
+    template <>
+    struct char_null<char8_t> : integral_constant<char8_t, '\0'> {};
+#endif
+
+    template <typename CharType>
+    RAINY_INLINE_CONSTEXPR CharType char_null_v = char_null<CharType>::value;
+
+    template <typename CharType>
+    RAINY_CONSTEXPR_BOOL is_wchar_t = false;
+
+    template <>
+    RAINY_CONSTEXPR_BOOL is_wchar_t<wchar_t> = true;
+
+    template <>
+    RAINY_CONSTEXPR_BOOL is_wchar_t<const wchar_t> = true;
+
+    template <>
+    RAINY_CONSTEXPR_BOOL is_wchar_t<volatile wchar_t> = true;
+
+    template <>
+    RAINY_CONSTEXPR_BOOL is_wchar_t<const volatile wchar_t> = true;
 }
 
 #endif

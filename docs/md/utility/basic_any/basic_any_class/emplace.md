@@ -52,6 +52,8 @@
 #include <iostream>
 #include <rainy/utility/any.hpp>
 
+using namespace rainy::utility;
+
 int main() {
 	any a;
 	a.emplace<int>(42); // a is int

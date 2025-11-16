@@ -195,7 +195,7 @@ namespace rainy::core::algorithm {
         while (first != last) {
             --d_last;
             --last;
-            std::construct_at(std::addressof(*d_last), utility::move(*last));
+            core::builtin::construct_at(std::addressof(*d_last), utility::move(*last));
         }
         return d_last;
     }

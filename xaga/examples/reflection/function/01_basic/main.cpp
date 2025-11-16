@@ -6,7 +6,7 @@
 #include <rainy/collections/string.hpp>
 #include <rainy/collections/views/views_interface.hpp>
 #include <rainy/collections/views/transform_view.hpp>
-#include <rainy/foundation/iterators/move_iterator.hpp>
+#include <rainy/foundation/container/optional.hpp>
 #include <ranges>
 
 using namespace rainy;
@@ -24,18 +24,19 @@ struct mypair {
 };
 
 constexpr auto test1() {
-    collections::inplace_vector<int, 4> vec = {1, 2, 3, 4};
-    return vec.left(3);
+    foundation::container::optional<std::string_view> v = "hello world";
+    foundation::container::optional<std::string_view> v2;
+    return v2.value_or("SB");
 }
 
 int main() {
-    std::vector<int> cont{1,2,3,4,5,6,7};
-    auto stream = cont | rainy::collections::views::transform([](int value) { return value * 3; }) |
-                  rainy::collections::views::transform([](int value) { return "number : " + std::to_string(value); });
-    std::cout << stream[0] << '\n';
-    for (const auto item: stream) {
-        std::cout << item << '\n';
+    {
+        std::optional<std::string_view> v = "hello world";
+        std::optional<std::string_view> v2(v);
     }
+    constexpr auto vec = test1();
+    
+    std::vector<int> cont{1,2,3,4,5,6,7};
     any a = 10;
     std::cout << std::as_const(a).as_lvalue_reference().type().name() << '\n';
     std::cout << std::as_const(a).as_rvalue_reference().type().name() << '\n';
@@ -89,7 +90,7 @@ int main() {
         a.match([](int a) { std::cout << "Got int! value = " << a << '\n'; },
                 [](std::optional<char> a) { std::cout << "Got char! value = " << a.value() << '\n'; },
                 [](std::string_view s) { std::cout << "Got string_view! value = " << s << '\n'; },
-                [](any::default_match, const any &v /* 允许额外引用一个any的常引用。引用自调用它的对象 */) {
+                [](any_default_match, const any &v /* 允许额外引用一个any的常引用。引用自调用它的对象 */) {
                     // 该handler会在找不到匹配的时候，返回对象
                     std::cout << "This Method will be default match." << '\n';
                     std::cout << "Cause by failed to match type -> " << v.type().name() << '\n';

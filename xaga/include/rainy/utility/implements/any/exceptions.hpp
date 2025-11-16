@@ -13,7 +13,7 @@ namespace rainy::foundation::exceptions::cast {
 
     RAINY_INLINE rain_fn throw_bad_any_cast(const diagnostics::source_location &location = diagnostics::source_location::current())
         -> void {
-        utility::throw_exception(bad_any_cast{location});
+        throw_exception(bad_any_cast{location});
     }
 }
 

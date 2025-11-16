@@ -44,11 +44,11 @@ namespace rainy::type_traits::type_relations {
     template <typename Ty>
     struct is_void : helper::bool_constant<is_void_v<Ty>> {};
 
-    template <typename base, typename Derived>
-    struct is_base_of : helper::bool_constant<__is_base_of(base, Derived)> {};
+    template <typename Base, typename Derived>
+    struct is_base_of : helper::bool_constant<implements::is_base_of_v<Base, Derived>> {};
 
     template <typename Base, typename Derived>
-    RAINY_CONSTEXPR_BOOL is_base_of_v = __is_base_of(Base, Derived);
+    RAINY_CONSTEXPR_BOOL is_base_of_v = implements::is_base_of_v<Base, Derived>;
 
     template <typename Ty, typename... Types>
     RAINY_CONSTEXPR_BOOL is_any_of_v = (is_same_v<Ty, Types> || ...); // NOLINT

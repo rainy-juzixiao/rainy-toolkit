@@ -38,7 +38,7 @@ namespace rainy::collections::implements {
     };
 
     template <typename Ty>
-    struct iv_zero_sized_storage {
+    class iv_zero_sized_storage {
     public:
         RAINY_CONSTEXPR20 iv_zero_sized_storage() = default;
         RAINY_CONSTEXPR20 iv_zero_sized_storage(const iv_zero_sized_storage &) = default;
@@ -62,7 +62,7 @@ namespace rainy::collections::implements {
     };
 
     template <typename Ty, std::size_t N>
-    struct iv_trivial_storage {
+    class iv_trivial_storage {
     public:
         RAINY_CONSTEXPR20 iv_trivial_storage() = default;
         RAINY_CONSTEXPR20 iv_trivial_storage(const iv_trivial_storage &) = default;
@@ -80,22 +80,22 @@ namespace rainy::collections::implements {
             return data_.begin();
         }
 
-        constexpr std::size_t size_() const noexcept {
+        RAINY_NODISCARD constexpr std::size_t size_() const noexcept {
             return size;
         }
 
-        constexpr void unsafe_set_size(std::size_t new_size) {
+        constexpr void unsafe_set_size(const std::size_t new_size) {
             size = new_size;
         }
 
     private:
-        using data_t = collections::array<Ty, N>;
+        using data_t = array<Ty, N>;
         alignas(Ty) data_t data_{};
         std::size_t size = 0;
     };
 
     template <typename Ty, std::size_t N>
-    struct iv_non_trivial_storage {
+    class iv_non_trivial_storage {
     public:
         RAINY_CONSTEXPR20 iv_non_trivial_storage() = default;
         RAINY_CONSTEXPR20 iv_non_trivial_storage(const iv_non_trivial_storage &) = default;
@@ -113,11 +113,11 @@ namespace rainy::collections::implements {
             return data_.data(0);
         }
 
-        constexpr std::size_t size_() const noexcept {
+        RAINY_NODISCARD constexpr std::size_t size_() const noexcept {
             return size;
         }
 
-        constexpr void unsafe_set_size(std::size_t new_size) noexcept {
+        constexpr void unsafe_set_size(const std::size_t new_size) noexcept {
             size = new_size;
         }
 
@@ -150,12 +150,19 @@ namespace rainy::collections {
         using reverse_iterator = utility::reverse_iterator<iterator>;
         using const_reverse_iterator = utility::reverse_iterator<const_iterator>;
 
-        static RAINY_CONSTEXPR20 std::size_t npos = static_cast<std::size_t>(-1);
+        static constexpr std::size_t npos = static_cast<std::size_t>(-1);
 
+        /**
+         * @brief 默认构造一个空向量
+         */
         RAINY_CONSTEXPR20 inplace_vector() noexcept {
             assert_type_in_constant_eval();
         }
 
+        /**
+         * @brief 构造一个指定大小的向量，元素使用默认构造函数初始化
+         * @param count 向量大小
+         */
         RAINY_CONSTEXPR20 explicit inplace_vector(size_type count) {
             assert_type_in_constant_eval();
             if (count > N) {
@@ -168,6 +175,11 @@ namespace rainy::collections {
             }
         }
 
+        /**
+         * @brief 构造一个指定大小的向量，元素使用给定值初始化
+         * @param count 向量大小
+         * @param value 用于初始化元素的值
+         */
         RAINY_CONSTEXPR20 inplace_vector(size_type count, const value_type &value) {
             assert_type_in_constant_eval();
             if (count > N) {
@@ -180,6 +192,12 @@ namespace rainy::collections {
             }
         }
 
+        /**
+         * @brief 使用迭代器区间构造向量
+         * @tparam Iter 迭代器类型，由参数类型自动推导（要求为iterator）
+         * @param begin 迭代器起始位置
+         * @param end 迭代器终止位置
+         */
         template <typename Iter, type_traits::other_trans::enable_if_t<type_traits::extras::iterators::is_iterator_v<Iter>, int> = 0>
         RAINY_CONSTEXPR20 inplace_vector(Iter begin, Iter end) {
             assert_type_in_constant_eval();
@@ -187,29 +205,41 @@ namespace rainy::collections {
             std::size_t index{0};
             auto elements = this->begin_();
             for (; begin != end; ++begin, ++index) {
-                elements[index] = *begin;
+                utility::construct_in_place(elements[index], *begin);
             }
         }
 
+        /**
+         * @brief 拷贝构造函数
+         * @param right 要拷贝的对象
+         */
         RAINY_CONSTEXPR20 inplace_vector(const inplace_vector &right) {
             assert_type_in_constant_eval();
             this->unsafe_set_size(right.size());
             auto elements = this->begin_();
-            for (std::size_t i = 0; i < N; ++i) {
-                elements[i] = right[i];
+            for (std::size_t i = 0; i < right.size(); ++i) {
+                utility::construct_in_place(elements[i], right[i]);
             }
         }
 
+        /**
+         * @brief 移动构造函数
+         * @param right 待移动的对象
+         */
         RAINY_CONSTEXPR20 inplace_vector(inplace_vector &&right) noexcept {
             assert_type_in_constant_eval();
             this->unsafe_set_size(right.size());
             auto elements = this->begin_();
             auto ilist_elements = right.begin_();
             for (std::size_t i = 0; i < size(); ++i) {
-                utility::construct_in_place(elements[i], right[i]);
+                utility::construct_in_place(elements[i], utility::move_if_noexcept(right[i]));
             }
         }
 
+        /**
+         * @brief 使用初始化列表构造向量
+         * @param ilist 初始化列表
+         */
         RAINY_CONSTEXPR20 inplace_vector(std::initializer_list<value_type> ilist) {
             assert_type_in_constant_eval();
             this->unsafe_set_size(ilist.size());
@@ -230,12 +260,12 @@ namespace rainy::collections {
          * @return 返回从指定区间复制的子向量；若参数非法则返回空向量
          */
         template <std::size_t NewSize = N>
-        RAINY_NODISCARD RAINY_CONSTEXPR20 rain_fn slice(std::size_t begin_slice = 0, std::size_t end_slice = N) const
-            -> collections::inplace_vector<value_type, NewSize> {
+        RAINY_NODISCARD RAINY_CONSTEXPR20 rain_fn slice(const std::size_t begin_slice = 0, std::size_t const end_slice = N) const
+            -> inplace_vector<value_type, NewSize> {
             assert_type_in_constant_eval();
-            if (std::size_t distance = end_slice - begin_slice; begin_slice < end_slice && distance <= NewSize) {
+            if (const std::size_t distance = end_slice - begin_slice; begin_slice < end_slice && distance <= NewSize) {
                 auto elements = this->begin_();
-                collections::inplace_vector<value_type, NewSize> new_slice{};
+                inplace_vector<value_type, NewSize> new_slice{};
                 for (std::size_t start = begin_slice, i = 0; start < end_slice; ++start, ++i) {
                     new_slice.emplace_back(elements[start]);
                 }
@@ -251,7 +281,7 @@ namespace rainy::collections {
          * @return 返回包含前 n 个元素的新向量；若 n 超出范围则返回空向量
          */
         template <std::size_t NewSize = N>
-        RAINY_NODISCARD RAINY_CONSTEXPR20 rain_fn left(std::size_t n) const -> collections::inplace_vector<value_type, NewSize> {
+        RAINY_NODISCARD RAINY_CONSTEXPR20 rain_fn left(const std::size_t n) const -> inplace_vector<value_type, NewSize> {
             return slice<NewSize>(0, n);
         }
 
@@ -262,7 +292,7 @@ namespace rainy::collections {
          * @return 返回包含后 n 个元素的新向量；若 n 超出范围则返回空向量
          */
         template <std::size_t NewSize = N>
-        RAINY_NODISCARD RAINY_CONSTEXPR20 rain_fn right(std::size_t n) const -> collections::inplace_vector<value_type, NewSize> {
+        RAINY_NODISCARD RAINY_CONSTEXPR20 rain_fn right(const std::size_t n) const -> inplace_vector<value_type, NewSize> {
             return slice<NewSize>(N - n, N);
         }
 
@@ -276,7 +306,7 @@ namespace rainy::collections {
                   type_traits::other_trans::enable_if_t<type_traits::type_relations::is_convertible_v<UTy, value_type> &&
                                                             type_traits::type_properties::is_equal_comparable_v<value_type, UTy>,
                                                         int> = 0>
-        RAINY_CONSTEXPR20 rain_fn index_of(UTy &&value) const noexcept -> std::size_t {
+        RAINY_CONSTEXPR20 rain_fn index_of(UTy &&value) const noexcept -> std::size_t { // NOLINT
             assert_type_in_constant_eval();
             auto iter = core::algorithm::find(begin(), end(), utility::forward<UTy>(value));
             return iter == end() ? npos : (iter - begin());
@@ -290,9 +320,9 @@ namespace rainy::collections {
          * @return 返回一个新向量，包含满足谓词的元素；若 NewSize 小于筛选出的元素数，则强制返回空向量
          */
         template <std::size_t NewSize = N, typename Pred>
-        RAINY_CONSTEXPR20 rain_fn filter(Pred &&pred) const -> collections::inplace_vector<value_type, NewSize> {
+        RAINY_CONSTEXPR20 rain_fn filter(Pred &&pred) const -> inplace_vector<value_type, NewSize> {
             assert_type_in_constant_eval();
-            collections::inplace_vector<value_type, NewSize> inplace_vector;
+            inplace_vector<value_type, NewSize> inplace_vector;
             std::size_t index_mapping[N]{};
             std::size_t raw_view_index = 0;
             auto elements = this->begin_();
@@ -313,8 +343,8 @@ namespace rainy::collections {
          * @brief 返回向量的逆序版本
          * @return 返回一个新向量，其元素顺序与当前向量相反
          */
-        RAINY_CONSTEXPR20 rain_fn reverse() const -> collections::inplace_vector<value_type, N> {
-            collections::inplace_vector<Ty, N> arr{crbegin(), crend()};
+        RAINY_CONSTEXPR20 rain_fn reverse() const -> inplace_vector {
+            inplace_vector arr{crbegin(), crend()};
             return arr;
         }
 
@@ -325,8 +355,8 @@ namespace rainy::collections {
          * @return 返回一个新向量，其元素为映射函数作用后的结果
          */
         template <typename Fx>
-        RAINY_CONSTEXPR20 rain_fn map(Fx &&func) const -> collections::inplace_vector<value_type, N> {
-            collections::inplace_vector<value_type, N> arr{};
+        RAINY_CONSTEXPR20 rain_fn map(Fx &&func) const -> inplace_vector<value_type, N> {
+            inplace_vector arr{};
             auto elements = this->begin_();
             for (std::size_t i = 0; i < size(); ++i) {
                 arr.emplace_back(utility::forward<Fx>(func)(elements[i]));
@@ -397,6 +427,11 @@ namespace rainy::collections {
             return arr;
         }
 
+        /**
+         * @brief 拷贝赋值运算符
+         * @param right 待拷贝的对象
+         * @return 当前对象的引用
+         */
         RAINY_CONSTEXPR20 rain_fn operator=(const inplace_vector &right)->inplace_vector & {
             assert_type_in_constant_eval();
             auto elements = this->begin_();
@@ -411,7 +446,12 @@ namespace rainy::collections {
 
         // clang-format off
 
-        RAINY_CONSTEXPR20 rain_fn operator=(inplace_vector &&right) noexcept(N == 0 || (
+        /**
+         * @brief 移动赋值运算符
+         * @param right 待移动的对象
+         * @return 当前对象的引用
+         */
+        RAINY_CONSTEXPR20 rain_fn operator=(inplace_vector &&right) noexcept(N == 0 || ( // NOLINT
                                                               type_traits::type_properties::is_nothrow_move_assignable_v<Ty> &&
                                                               type_traits::type_properties::is_nothrow_move_constructible_v<Ty>))
             ->inplace_vector & {
@@ -428,11 +468,22 @@ namespace rainy::collections {
 
         // clang-format on
 
+        /**
+         * @brief 使用初始化列表赋值
+         * @param ilist 初始化列表
+         * @return 当前对象的引用
+         */
         RAINY_CONSTEXPR20 rain_fn operator=(std::initializer_list<value_type> ilist)->inplace_vector & {
             assign(ilist);
             return *this;
         }
 
+        /**
+         * @brief 使用迭代器区间赋值
+         * @tparam Iter 迭代器类型，由参数类型自动推导（要求为iterator）
+         * @param begin 迭代器起始位置
+         * @param end 迭代器终止位置
+         */
         template <typename Iter, type_traits::other_trans::enable_if_t<type_traits::extras::iterators::is_iterator_v<Iter>, int> = 0>
         RAINY_CONSTEXPR20 rain_fn assign(Iter begin, Iter end) -> void {
             assert_type_in_constant_eval();
@@ -449,6 +500,11 @@ namespace rainy::collections {
             this->unsafe_set_size(distance);
         }
 
+        /**
+         * @brief 使用指定数量和初始值赋值
+         * @param count 数量
+         * @param value 初始化的值
+         */
         RAINY_CONSTEXPR20 rain_fn assign(size_type count, const value_type &value) -> void {
             assert_type_in_constant_eval();
             if (count > N) {
@@ -456,12 +512,18 @@ namespace rainy::collections {
             }
             clear();
             auto elements = this->begin_();
+            static_assert(type_traits::type_properties::is_copy_constructible_v<value_type>,
+                          "The value_type must be copy constructible to use this assign method.");
             for (std::size_t i = 0; i < count; ++i) {
                 utility::construct_in_place(elements[i], value);
             }
             this->unsafe_set_size(count);
         }
 
+        /**
+         * @brief 使用初始化列表赋值
+         * @param ilist 初始化列表
+         */
         RAINY_CONSTEXPR20 rain_fn assign(std::initializer_list<value_type> ilist) -> void {
             assign(ilist.begin(), ilist.end());
         }
@@ -574,25 +636,41 @@ namespace rainy::collections {
             return const_reverse_iterator(begin());
         }
 
-        RAINY_CONSTEXPR20 rain_fn empty() const noexcept -> bool {
+        /**
+         * @brief 检查当前向量是否为空
+         * @return 如果是空向量则返回 true，否则返回 false
+         */
+        RAINY_NODISCARD RAINY_CONSTEXPR20 rain_fn empty() const noexcept -> bool {
             assert_type_in_constant_eval();
             return size() == 0;
         }
 
-        RAINY_CONSTEXPR20 rain_fn size() const noexcept -> size_type {
+        /**
+         * @brief 获取当前向量的大小
+         * @return 返回向量中元素的数量
+         */
+        RAINY_NODISCARD RAINY_CONSTEXPR20 rain_fn size() const noexcept -> size_type {
             assert_type_in_constant_eval();
             return this->size_();
         }
 
+        /**
+         * @brief 获取当前向量的容量
+         * @return 返回向量的最大容量（固定为N）
+         */
         static constexpr rain_fn capacity() noexcept -> size_type {
             return N;
         }
 
+        /**
+         * @brief 获取向量的最大可能大小
+         * @return 返回向量的最大可能大小（固定为N）
+         */
         static constexpr rain_fn max_size() noexcept -> size_type {
             return N;
         }
 
-        RAINY_CONSTEXPR20 rain_fn resize(size_type new_size) -> void {
+        RAINY_CONSTEXPR20 rain_fn resize(const size_type new_size) -> void {
             resize(new_size, value_type{});
         }
 
@@ -606,13 +684,13 @@ namespace rainy::collections {
             }
             auto elements = this->begin_();
             if (new_size < size()) { // 则容器将被缩小至其前 count 个元素。
-                size_type old_size = size();
+                const size_type old_size = size();
                 this->unsafe_set_size(new_size);
                 for (size_type i = size(); i < old_size; ++i) {
                     (void) utility::addressof(elements[i])->~value_type();
                 }
             } else { // 如果当前大小小于 count，则1) 将追加额外的 默认插入 元素。2) 将追加 value 的额外副本。
-                size_type old_size = size();
+                const size_type old_size = size();
                 this->unsafe_set_size(new_size);
                 for (size_type i = old_size; i < size(); ++i) {
                     elements[i] = value;
@@ -620,7 +698,7 @@ namespace rainy::collections {
             }
         }
 
-        static RAINY_CONSTEXPR20 rain_fn reserve(size_type new_cap) -> void {
+        static RAINY_CONSTEXPR20 rain_fn reserve(const size_type new_cap) -> void {
             if (new_cap > N) {
                 std::terminate();
             }
@@ -875,7 +953,7 @@ namespace rainy::collections {
             return iterator{elements + pos};
         }
 
-        RAINY_CONSTEXPR20 iterator insert(const_iterator position, std::initializer_list<value_type> ilist) {
+        RAINY_CONSTEXPR20 iterator insert(utility::in<const_iterator> position, std::initializer_list<value_type> ilist) {
             return insert(position, ilist.begin(), ilist.end());
         }
         
@@ -887,7 +965,7 @@ namespace rainy::collections {
             assert_type_in_constant_eval();
             iterator tmp_first = begin() + (first - begin());
             if (first != last) {
-                iterator it = core::algorithm::move(tmp_first + (last - first), end(), tmp_first);
+                core::algorithm::move(tmp_first + (last - first), end(), tmp_first);
                 end()->~value_type();
                 this->unsafe_set_size(size() - static_cast<size_type>(last - first));
             }
@@ -987,7 +1065,7 @@ namespace rainy::collections {
         @brief This proposal only supports using the constexpr methods in constant expressions if is_trivial_t<T> is true.
         @brief See: https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2024/p0843r14.html#constexpr-support
         */
-        static constexpr void assert_type_in_constant_eval() {
+        static constexpr void assert_type_in_constant_eval() noexcept { // NOLINT
 #if RAINY_HAS_CXX20
             if (std::is_constant_evaluated()) {
                 constexpr bool assertion_result = type_traits::type_properties::is_trivially_copyable_v<Ty> &&
@@ -995,7 +1073,8 @@ namespace rainy::collections {
                                                   type_traits::type_properties::is_default_constructible_v<Ty> &&
                                                   type_traits::type_properties::is_trivially_destructible_v<Ty>;
                 if (!assertion_result) {
-                    throw "This type is unacceptable in compile time";
+                    assert(false && "inplace_vector<T, N> can only be used in constant-evaluated contexts if T is trivially copyable, "
+                                  "default constructible, and trivially destructible.");
                 }
             }
 #endif
@@ -1003,8 +1082,9 @@ namespace rainy::collections {
 
         constexpr void unsafe_destroy(value_type *begin, value_type *end) noexcept(std::is_nothrow_destructible_v<value_type>) {
             if constexpr (N > 0 && !std::is_trivial_v<value_type>) {
-                for (; begin != end; ++begin)
+                for (; begin != end; ++begin) {
                     begin->~value_type();
+                }
             }
         }
 
@@ -1016,7 +1096,7 @@ namespace rainy::collections {
     };
 
     template <typename Ty, std::size_t N>
-    void swap(inplace_vector<Ty, N> &left, inplace_vector<Ty, N> &right) {
+    void swap(inplace_vector<Ty, N> &left, inplace_vector<Ty, N> &right) noexcept {
         left.swap(right);
     }
 
@@ -1032,7 +1112,7 @@ namespace rainy::collections {
     RAINY_NODISCARD RAINY_CONSTEXPR20 rain_fn zip_with(const inplace_vector<Ty, N> &left, const inplace_vector<UTy, N> &right,
                                                        Fx &&func) -> auto {
         using type = decltype(utility::invoke(utility::forward<Fx>(func), left[0], right[0]));
-        collections::inplace_vector<type, N> arr;
+        inplace_vector<type, N> arr;
         for (std::size_t i = 0; i < N; ++i) {
             arr[i] = utility::invoke(utility::forward<Fx>(func), left[i], right[i]);
         }

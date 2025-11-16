@@ -18,21 +18,25 @@
 #include <rainy/core/core.hpp>
 #include <rainy/foundation/diagnostics/contract.hpp>
 #include <rainy/foundation/typeinfo.hpp>
-#include <rainy/utility/implements/any_exceptions.hpp>
+#include <rainy/utility/implements/any/exceptions.hpp>
 
 namespace rainy::utility::implements {
     template <typename Type>
-    RAINY_INLINE bool is_as_runnable(utility::in<foundation::ctti::typeinfo> type) {
+    RAINY_INLINE bool is_as_runnable(in<foundation::ctti::typeinfo> type) { // NOLINT
         return rainy_typeid(Type).is_compatible(type);
     }
 
     template <typename Type>
-    RAINY_NODISCARD RAINY_INLINE auto as_impl(utility::in<const void *> target_pointer, utility::in<foundation::ctti::typeinfo> type)
+    RAINY_NODISCARD RAINY_INLINE auto as_impl(in<const void *> target_pointer, in<foundation::ctti::typeinfo> type) // NOLINT
         -> decltype(auto) {
-        utility::throw_exception_if<utility::exception_semantic::ignored_in_release>(
+#if RAINY_ENABLE_DEBUG
+        utility::throw_exception_if<exception_semantic::ignored_in_release>(
             utility::with_this_exception<foundation::exceptions::cast::bad_any_cast>, utility::implements::is_as_runnable<Type>(type));
+#else
+        (void) type;
+#endif
         using namespace foundation::ctti;
-        void *ptr = const_cast<void *>(target_pointer);
+        rainy_let ptr = const_cast<void *>(target_pointer);
         if constexpr (type_traits::primary_types::is_lvalue_reference_v<Type>) {
             if constexpr (type_traits::type_properties::is_const_v<type_traits::reference_modify::remove_reference_t<Type>>) {
                 // 返回 const lvalue 引用

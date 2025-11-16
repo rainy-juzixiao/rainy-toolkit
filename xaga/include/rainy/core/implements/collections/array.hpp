@@ -99,10 +99,28 @@ namespace rainy::collections {
          * @note 如果初始化列表的大小大于其数组大小，则std::terminate()将被调用
          */
         constexpr array(std::initializer_list<Ty> ilist) :
-            array{ilist.begin(), ilist.size(), type_traits::helper::make_index_sequence<N>{}} {
+            array(ilist.begin(), ilist.size(), type_traits::helper::make_index_sequence<N>{}) {
             if (ilist.size() > N) {
                 std::terminate();
             }
+        }
+
+        /**
+         * @brief 就地使用可变参数列表形式初始化数组
+         * @tparam Inits 可转换为 value_type 的参数类型
+         * @param inits 初始化参数包
+         * @details 当传入的参数数量不超过 N 且类型可转换时，可直接初始化数组元素
+         * @note 若传入参数数量超过 N，会触发 static_assert 编译期错误
+         */
+        template <typename... Inits,
+                  type_traits::other_trans::enable_if_t<
+                      type_traits::logical_traits::conjunction_v<type_traits::type_relations::is_convertible<Inits, Ty>...> &&
+                          !type_traits::type_relations::is_any_of_v<std::in_place_t, Inits...> &&
+                          sizeof...(Inits) <= N,
+                      int> = 0>
+        explicit constexpr array(std::in_place_t, Inits &&...inits) :
+            elements{static_cast<value_type>(utility::forward<Inits>(inits))...} {
+            static_assert(sizeof...(Inits) <= N, "cannot init this array, because the Inits items is too much, cannot to construct");
         }
 
         /**
@@ -655,7 +673,8 @@ namespace rainy::collections {
 
     private:
         template <std::size_t... I>
-        constexpr array(const_pointer ilist, std::size_t ilist_size,type_traits::helper::index_sequence<I...>) : elements{(I < ilist_size ? ilist[I] : value_type{})...} {
+        constexpr array(const_pointer ilist, std::size_t ilist_size, type_traits::helper::index_sequence<I...>) :
+            elements{(I < ilist_size ? ilist[I] : value_type{})...} {
         }
 
         RAINY_ALWAYS_INLINE static constexpr void range_check(const difference_type offset) noexcept {

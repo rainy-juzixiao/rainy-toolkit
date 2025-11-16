@@ -144,16 +144,16 @@ namespace rainy::type_traits::primary_types {
     struct is_floating_point : helper::bool_constant<is_floating_point_v<Ty>> {};
 
     template <typename Ty>
-    struct is_union : helper::bool_constant<__is_union(Ty)> {};
+    RAINY_CONSTEXPR_BOOL is_union_v = implements::is_union_v<Ty>;
 
     template <typename Ty>
-    RAINY_CONSTEXPR_BOOL is_union_v = __is_union(Ty);
+    struct is_union : helper::bool_constant<is_union_v<Ty>> {};
 
     template <typename Ty>
-    struct is_class : helper::bool_constant<__is_class(Ty)> {};
+    RAINY_CONSTEXPR_BOOL is_class_v = implements::is_class_v<Ty>;
 
     template <typename Ty>
-    RAINY_CONSTEXPR_BOOL is_class_v = __is_class(Ty);
+    struct is_class : helper::bool_constant<implements::is_class_v<Ty>> {};
 
     template <typename Ty>
     RAINY_CONSTEXPR_BOOL is_function_v = type_traits::implements::_is_function_v<Ty>;
@@ -239,20 +239,8 @@ namespace rainy::type_traits::primary_types {
 
 namespace rainy::utility {
     using core::builtin::addressof;
-
-    template <typename Ty, typename... Args>
-    RAINY_CONSTEXPR20 Ty *construct_at(Ty *location, Args &&...args) noexcept(noexcept(::new(static_cast<void *>(location))
-                                                                                           Ty(utility::forward<Args>(args)...))) {
-        if (!location) {
-            return nullptr;
-        }
-#if RAINY_HAS_CXX20
-        if (std::is_constant_evaluated()) {
-            return std::construct_at(location, utility::forward<Args>(args)...);
-        }
-#endif
-        return ::new (static_cast<void *>(location)) Ty(utility::forward<Args>(args)...);
-    }
+    using core::builtin::forward;
+    using core::builtin::construct_at;
 
     template <typename Ty, typename... Args>
     RAINY_CONSTEXPR20 void construct_in_place(Ty &object, Args &&...args) noexcept(
@@ -3009,12 +2997,18 @@ namespace rainy::type_traits::type_properties {
     template <typename Ty>
     RAINY_CONSTEXPR_BOOL is_movable_v = composite_types::is_object_v<Ty> && type_properties::is_move_constructible_v<Ty> &&
                                         type_properties::is_assignable_v<Ty &, Ty> && type_properties::is_swappable_v<Ty>;
+    
+    template <typename Ty>
+    struct is_movable : helper::bool_constant<is_movable_v<Ty>> {};
 
     template <typename Ty>
     RAINY_CONSTEXPR_BOOL is_copyable_v =
         type_properties::is_copy_constructible_v<Ty> && is_movable_v<Ty> &&
         type_traits::type_properties::is_assignable_v<Ty &, Ty &> && type_traits::type_properties::is_assignable_v<Ty &, const Ty &> &&
         type_traits::type_properties::is_assignable_v<Ty &, const Ty>;
+
+    template <typename Ty>
+    struct is_copyable : helper::bool_constant<is_copyable_v<Ty>> {};
 }
 
 namespace rainy::utility {

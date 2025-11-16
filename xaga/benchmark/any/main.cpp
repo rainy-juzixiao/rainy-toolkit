@@ -163,7 +163,7 @@ static void benchmark_rainytoolkit_any_match(benchmark::State &state) {
     static auto f = [&a]() {
         a.match([](int a) { benchmark::DoNotOptimize(a); }, [](std::optional<char> a) { benchmark::DoNotOptimize(a); },
                 [](std::string_view s) { benchmark::DoNotOptimize(s); },
-                [](any::default_match, const any &v) { benchmark::DoNotOptimize(v); });
+                [](any_default_match, const any &v) { benchmark::DoNotOptimize(v); });
     };
     for (auto _: state) {
         a = 10;

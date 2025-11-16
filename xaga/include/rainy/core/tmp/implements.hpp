@@ -52,24 +52,6 @@ namespace rainy::type_traits::implements {
     constexpr bool _is_function_v = !_is_const_v<const Ty> && !_is_reference_v<Ty>;
 
     template <typename Ty>
-    struct remove_reference {
-        using type = Ty;
-    };
-
-    template <typename Ty>
-    struct remove_reference<Ty &> {
-        using type = Ty;
-    };
-
-    template <typename Ty>
-    struct remove_reference<Ty &&> {
-        using type = Ty;
-    };
-
-    template <typename Ty>
-    using remove_reference_t = typename remove_reference<Ty>::type;
-
-    template <typename Ty>
     struct remove_volatile {
         using type = Ty;
     };
@@ -208,12 +190,6 @@ namespace rainy::type_traits::implements {
     template <typename Ty>
     RAINY_CONSTEXPR_BOOL _is_trivially_destructible_v = std::is_trivially_destructible_v<Ty>;
 #endif
-
-    template <typename>
-    RAINY_CONSTEXPR_BOOL _is_lvalue_reference_v = false;
-
-    template <typename Ty>
-    RAINY_CONSTEXPR_BOOL _is_lvalue_reference_v<Ty &> = true;
 
     template <typename Ty>
     RAINY_CONSTEXPR_BOOL _is_void_v = is_same_v<Ty, void>;
@@ -431,29 +407,6 @@ namespace rainy::type_traits::implements {
 }
 
 namespace rainy::type_traits::implements {
-    template <typename To, typename From>
-    RAINY_CONSTEXPR_BOOL is_assignable_v = __is_assignable(To, From);
-
-    template <typename Ty>
-    RAINY_CONSTEXPR_BOOL is_move_assignable_v = __is_assignable(implements::_add_lvalue_reference_t<Ty>, Ty);
-
-    template <typename Ty>
-    RAINY_CONSTEXPR_BOOL _is_move_constructible_v = __is_constructible(Ty, Ty);
-
-    template <typename Ty>
-    RAINY_CONSTEXPR_BOOL is_copy_constructible_v = __is_constructible(Ty, implements::_add_lvalue_reference_t<const Ty>);
-
-    template <typename Ty>
-    RAINY_CONSTEXPR_BOOL is_nothrow_move_constructible_v = __is_nothrow_constructible(Ty, Ty);
-
-    template <typename Ty>
-    RAINY_CONSTEXPR_BOOL is_nothrow_move_assignable_v = __is_nothrow_assignable(_add_lvalue_reference_t<Ty>, Ty);
-
-    template <typename Ty, typename... Args>
-    RAINY_CONSTEXPR_BOOL is_nothrow_constructible_v = __is_nothrow_constructible(Ty, Args...);
-}
-
-namespace rainy::type_traits::implements {
     template <std::size_t>
     struct make_unsigned_by_size;
 
@@ -517,6 +470,72 @@ namespace rainy::type_traits::implements {
 }
 
 namespace rainy::utility {
+    template <typename Ty>
+    rain_fn declval() noexcept -> type_traits::implements::_add_rvalue_reference_t<Ty> {
+        static_assert(type_traits::implements::always_false<Ty>, "Calling declval is ill-formed.");
+        std::abort();
+    }
+}
+
+namespace rainy::type_traits::implements {
+    struct is_constructible_impl {
+        template <typename Ty, typename... Args, typename = decltype(Ty(utility::declval<Args>()...))>
+        static helper::true_type test(int);
+
+        template <typename, typename...>
+        static helper::false_type test(...);
+
+        template <typename Ty, typename... Args, typename = decltype(noexcept(Ty(utility::declval<Args>()...)))>
+        static helper::true_type test_nothrow(int);
+
+        template <typename, typename...>
+        static helper::false_type test_nothrow(...);
+
+        template <typename Ty, typename Arg, typename = decltype(noexcept(::new(std::nothrow) Ty(utility::declval<Arg>())))>
+        static helper::true_type test_nothrow_for_one_arg(int);
+
+        template <typename, typename...>
+        static helper::false_type test_nothrow_for_one_arg(...);
+
+        template <typename Ty, typename Arg, typename = decltype(::new Ty(utility::declval<Arg>()))>
+        static helper::true_type test_for_one_arg(int);
+
+        template <typename, typename>
+        static helper::false_type test_for_one_arg(...);
+
+        template <typename T>
+        static helper::true_type ref_test(T);
+        template <typename T>
+        static helper::false_type ref_test(...);
+    };
+
+    template <typename Ty, typename... Args>
+    RAINY_CONSTEXPR_BOOL is_constructible_v = decltype(is_constructible_impl::test<Ty, Args...>(0))::value;
+
+    template <typename Ty, typename Arg1>
+    RAINY_CONSTEXPR_BOOL is_constructible_v<Ty, Arg1> = decltype(is_constructible_impl::test<Ty, Arg1>(0))::value;
+
+    template <typename Ty, typename... Args>
+    RAINY_CONSTEXPR_BOOL is_nothrow_constructible_v = decltype(is_constructible_impl::test_nothrow<Ty, Args...>(0))::value;
+
+    template <typename Ty, typename Arg1>
+    RAINY_CONSTEXPR_BOOL is_nothrow_constructible_v<Ty, Arg1> =
+        decltype(is_constructible_impl::test_nothrow_for_one_arg<Ty, Arg1>(0))::value;
+
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL is_copy_constructible_v = is_constructible_v<Ty, _add_lvalue_reference_t<const Ty>>;
+
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL is_move_constructible_v = is_constructible_v<Ty, Ty>;
+
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL is_nothrow_move_constructible_v = is_nothrow_constructible_v<Ty, Ty>;
+
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL is_nothrow_copy_constructible_v = is_nothrow_constructible_v<Ty, _add_lvalue_reference_t<const Ty>>;
+}
+
+namespace rainy::utility {
     /**
      * @brief 将对象转换为右值引用以实现移动语义。
      *
@@ -533,39 +552,6 @@ namespace rainy::utility {
     template <typename Ty>
     RAINY_NODISCARD constexpr type_traits::implements::remove_reference_t<Ty> &&move(Ty &&arg) noexcept {
         return static_cast<type_traits::implements::remove_reference_t<Ty> &&>(arg);
-    }
-
-    /**
-     * @brief 使用完美转发（perfect forwarding）实现类型安全的引用转发。
-     *
-     * @tparam Ty 转发对象的类型。
-     * @param arg 要转发的左值引用对象。
-     * @return 返回类型为 `Ty&&` 的转发对象。
-     *
-     * @remark
-     * 这个函数用于将左值引用安全地转发为相应类型的引用（可能是左值引用或右值引用），
-     * 以保留传入参数的左值或右值性质。
-     */
-    template <typename Ty>
-    RAINY_NODISCARD constexpr Ty &&forward(type_traits::implements::remove_reference_t<Ty> &arg) noexcept {
-        return static_cast<Ty &&>(arg);
-    }
-
-    /**
-     * @brief 使用完美转发（perfect forwarding）实现类型安全的引用转发。
-     *
-     * @tparam Ty 转发对象的类型。
-     * @param arg 要转发的右值引用对象。
-     * @return 返回类型为 `Ty&&` 的转发对象。
-     *
-     * @remark
-     * 这个函数用于将右值引用安全地转发为相应类型的引用（可能是左值引用或右值引用），
-     * 以保留传入参数的左值或右值性质。
-     */
-    template <typename Ty>
-    RAINY_NODISCARD constexpr Ty &&forward(type_traits::implements::remove_reference_t<Ty> &&arg) noexcept { // NOLINT
-        static_assert(!type_traits::implements::_is_lvalue_reference_v<Ty>, "bad forward call");
-        return static_cast<Ty &&>(arg);
     }
 
     /**
@@ -591,19 +577,110 @@ namespace rainy::utility {
         val = static_cast<Other &&>(new_val);
         return old_val;
     }
+}
 
+namespace rainy::type_traits::implements {
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL is_union_v = __is_union(Ty);
+
+    template <typename Ty,typename = void>
+    RAINY_CONSTEXPR_BOOL is_class_v = false;
+
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL is_class_v<Ty, type_traits::other_trans::void_t<int Ty::*>> = !is_union_v<Ty>;
+}
+
+namespace rainy::type_traits::implements {
+    template <typename B>
+    helper::true_type ibo_test_ptr_conv(const volatile B *) {
+        return helper::true_type{};
+    }
+
+    template <typename>
+    helper::false_type ibo_test_ptr_conv(const volatile void *) {
+        return helper::false_type{};
+    }
+
+    template <typename B, typename D>
+    auto test_is_base_of(int) -> decltype(ibo_test_ptr_conv<B>(static_cast<D *>(nullptr))) {
+        return ibo_test_ptr_conv<B>(static_cast<D *>(nullptr))();
+    }
+
+    template <typename, typename>
+    auto test_is_base_of(...) -> helper::true_type {
+        return helper::true_type{};
+    }
+
+    template <typename Base, typename Derived>
+    RAINY_CONSTEXPR_BOOL is_base_of_v =
+        is_class_v<Base> && is_class_v<Derived> && (decltype(test_is_base_of<Base, Derived>(0))::value == true);
+}
+
+namespace rainy::type_traits::implements {
+    template <typename Ty>
+    auto ic_test_returnable(int) -> decltype(void(static_cast<Ty (*)()>(nullptr)), helper::true_type{}) {
+        return helper::true_type{};
+    }
+
+    template <typename>
+    auto ic_test_returnable(...) -> helper::false_type {
+        return helper::false_type{};
+    }
+
+    template <typename From, typename To>
+    auto test_implicitly_convertible(int)
+        -> decltype(void(utility::declval<void (&)(To)>()(utility::declval<From>())), helper::true_type{}) {
+        return helper::true_type{};
+    }
+
+    template <typename, typename>
+    auto test_implicitly_convertible(...) -> helper::false_type {
+        return helper::false_type{};
+    }
+
+    template <typename From, typename To>
+    RAINY_CONSTEXPR_BOOL is_convertible_v =
+        (decltype(ic_test_returnable<To>(0))::value && decltype(test_implicitly_convertible<From, To>(0))::value) ||
+        (_is_void_v<From> && _is_void_v<To>);
+
+    template <typename From, typename To, typename = void>
+    RAINY_CONSTEXPR_BOOL is_nothrow_convertible_v = false;
+
+    template <typename From, typename To>
+    RAINY_CONSTEXPR_BOOL
+        is_nothrow_convertible_v<From, To,
+                                 other_trans::void_t<decltype(static_cast<To (*)()>(nullptr)),
+                                                     decltype(utility::declval<void (&)(To) noexcept>()(utility::declval<From>()))>> =
+            true;
+}
+
+namespace rainy::type_traits::implements {
+    template <typename To, typename From, typename = void>
+    RAINY_CONSTEXPR_BOOL is_assignable_v = false;
+
+    template <typename To, typename From>
+    RAINY_CONSTEXPR_BOOL
+        is_assignable_v<To, From, type_traits::other_trans::void_t<decltype(utility::declval<To>() = utility::declval<From>())>> =
+            true;
+
+    template <typename To, typename From, typename = void>
+    RAINY_CONSTEXPR_BOOL is_nothrow_assignable_v = false;
+
+    template <typename To, typename From>
+    RAINY_CONSTEXPR_BOOL is_nothrow_assignable_v<
+        To, From, type_traits::other_trans::void_t<decltype(noexcept(utility::declval<To>() = utility::declval<From>()))>> = true;
+
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL is_move_assignable_v = is_assignable_v<implements::_add_lvalue_reference_t<Ty>, Ty>;
+}
+
+namespace rainy::utility {
     template <typename Ty>
     RAINY_NODISCARD constexpr rain_fn move_if_noexcept(Ty &arg) noexcept
         -> type_traits::other_trans::conditional_t<!type_traits::implements::is_nothrow_move_constructible_v<Ty> &&
                                                        type_traits::implements::is_copy_constructible_v<Ty>,
                                                    const Ty &, Ty &&> {
         return utility::move(arg);
-    }
-
-    template <typename Ty>
-    rain_fn declval() noexcept -> type_traits::implements::_add_rvalue_reference_t<Ty> {
-        static_assert(type_traits::implements::always_false<Ty>, "Calling declval is ill-formed.");
-        std::abort();
     }
 }
 

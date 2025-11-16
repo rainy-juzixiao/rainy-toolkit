@@ -72,7 +72,7 @@ namespace rainy::meta::reflection::implements {
     public:
         template <typename... Args>
         explicit arg_store([[maybe_unused]] Args &&...args_in) noexcept :
-            args{make_object_view_helper(utility::forward<Args>(args_in))...} {
+            args(std::in_place, make_object_view_helper(utility::forward<Args>(args_in))...) {
             static_assert(sizeof...(Args) == N, "Argument count mismatch with N");
         }
 
