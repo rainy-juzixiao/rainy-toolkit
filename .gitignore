@@ -43,5 +43,5 @@ docs/.vitepress/cache
 docs/.vitepress/dist
 .obsidian
 
-CMakePresets.json
+/CMakePresets.json
 /CMakeSettings.json
