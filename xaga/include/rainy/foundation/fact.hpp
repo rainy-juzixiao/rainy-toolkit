@@ -1,7 +1,7 @@
 #ifndef RAINY_FOUNDATION_FACT_HPP
 #define RAINY_FOUNDATION_FACT_HPP
 #include <rainy/core/core.hpp>
-#include <rainy/foundation/functional/functional.hpp>
+#include <rainy/foundation/functional/delegate.hpp>
 #include <rainy/text/hashed_string.hpp>
 #include <rainy/collections/dense_map.hpp>
 #include <rainy/foundation/system/memory/nebula_ptr.hpp>

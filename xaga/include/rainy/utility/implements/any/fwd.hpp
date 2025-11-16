@@ -19,7 +19,7 @@
 // NOLINTBEGIN
 
 #include <rainy/core/core.hpp>
-#include <rainy/foundation/functional/functional.hpp>
+#include <rainy/foundation/functional/functor.hpp>
 #include <rainy/foundation/typeinfo.hpp>
 #include <rainy/utility/implements/any/exceptions.hpp>
 #include <rainy/utility/tuple_like_traits.hpp>

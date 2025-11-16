@@ -5,7 +5,7 @@
 #if RAINY_USING_WINDOWS
 #include <rainy/foundation/pal/asio/timer/queue_set.hpp>
 #include <rainy/foundation/pal/threading.hpp>
-#include <rainy/foundation/functional/functional.hpp>
+#include <rainy/foundation/functional/delegate.hpp>
 
 namespace rainy::foundation::pal::asio {
     using task_func = void (*)(void *);

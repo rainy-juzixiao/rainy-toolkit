@@ -23,7 +23,7 @@
 #include <queue>
 #include <rainy/foundation/pal/asio/io_context.hpp>
 #include <rainy/collections/dense_set.hpp>
-#include <rainy/foundation/functional/functional.hpp>
+#include <rainy/foundation/functional/delegate.hpp>
 #include <rainy/foundation/pal/atomicinfra.hpp>
 #include <rainy/utility/pair.hpp>
 #include <unordered_set>

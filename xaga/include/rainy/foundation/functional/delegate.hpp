@@ -1,9 +1,23 @@
-#ifndef RAINY_FOUNDATION_FUNCTIONAL_HPP
-#define RAINY_FOUNDATION_FUNCTIONAL_HPP
+/*
+ * Copyright 2025 rainy-juzixiao
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+#ifndef RAINY_FOUNDATION_FUNCTIONAL_DELEGATE_HPP
+#define RAINY_FOUNDATION_FUNCTIONAL_DELEGATE_HPP
 #include <functional>
 #include <rainy/core/core.hpp>
 #include <rainy/foundation/typeinfo.hpp>
-#include <iostream>
 
 namespace rainy::foundation::exceptions::runtime {
     class invalid_delegate : public runtime_error {
@@ -132,7 +146,7 @@ namespace rainy::foundation::functional::implements {
         Fx fn;
     };
 
-    template <typename Fx,typename Rx,typename Class,typename... Args>
+    template <typename Fx, typename Rx, typename Class, typename... Args>
     struct get_ia_implement_type {
         using traits = type_traits::primary_types::function_traits<type_traits::other_trans::decay_t<Fx>>;
 
@@ -174,7 +188,7 @@ namespace rainy::foundation::functional::implements {
         template <typename Class, typename UFx = Fx,
                   type_traits::other_trans::enable_if_t<
                       type_traits::type_properties::is_invocable_r_v<result_type, UFx, Class, Args...>, int> = 0>
-        Rx invoke(Class &&object, Args...args) const {
+        Rx invoke(Class &&object, Args... args) const {
             if (empty()) {
                 foundation::exceptions::runtime::throw_invalid_delegate();
             }
@@ -185,11 +199,11 @@ namespace rainy::foundation::functional::implements {
             }
         }
 
-        template <typename Class, typename UFx = Fx,
-                  type_traits::other_trans::enable_if_t<
-                      type_traits::type_properties::is_invocable_r_v<result_type, UFx, Class, Args...> &&
-                        type_traits::primary_types::is_member_function_pointer_v<Fx>,
-                int> = 0>
+        template <
+            typename Class, typename UFx = Fx,
+            type_traits::other_trans::enable_if_t<type_traits::type_properties::is_invocable_r_v<result_type, UFx, Class, Args...> &&
+                                                      type_traits::primary_types::is_member_function_pointer_v<Fx>,
+                                                  int> = 0>
         Rx operator()(Class &&object, Args... args) const {
             if (empty()) {
                 foundation::exceptions::runtime::throw_invalid_delegate();
@@ -203,7 +217,7 @@ namespace rainy::foundation::functional::implements {
 
         template <typename UFx = Fx, type_traits::other_trans::enable_if_t<
                                          type_traits::type_properties::is_invocable_r_v<result_type, UFx, Args...>, int> = 0>
-        Rx invoke(Args...args) const {
+        Rx invoke(Args... args) const {
             if (empty()) {
                 foundation::exceptions::runtime::throw_invalid_delegate();
             }
@@ -215,10 +229,8 @@ namespace rainy::foundation::functional::implements {
         }
 
         template <typename UFx = Fx, type_traits::other_trans::enable_if_t<
-            type_traits::type_properties::is_invocable_r_v<result_type,
-                UFx, Args...
-        >, int> = 0>
-        Rx operator()(Args...args) const {
+                                         type_traits::type_properties::is_invocable_r_v<result_type, UFx, Args...>, int> = 0>
+        Rx operator()(Args... args) const {
             if (empty()) {
                 foundation::exceptions::runtime::throw_invalid_delegate();
             }
@@ -260,7 +272,8 @@ namespace rainy::foundation::functional::implements {
             if constexpr (sizeof(implemented_type) > core::fn_obj_soo_buffer_size) {
                 invoker_accessor_ = ::new implemented_type(utility::forward<UFx>(func));
             } else {
-                invoker_accessor_ = utility::construct_at(reinterpret_cast<implemented_type *>(invoker_storage), utility::forward<UFx>(func));
+                invoker_accessor_ =
+                    utility::construct_at(reinterpret_cast<implemented_type *>(invoker_storage), utility::forward<UFx>(func));
             }
         }
 
@@ -411,8 +424,8 @@ namespace rainy::foundation::functional {
 
         delegate() noexcept = default;
 
-        template <typename UFx, typename base::template enable_if_callable_t<UFx, delegate> = 0> 
-            // UFx应能被适配，且remove_cvref_t<UFx>不能为delegate类型
+        template <typename UFx, typename base::template enable_if_callable_t<UFx, delegate> = 0>
+        // UFx应能被适配，且remove_cvref_t<UFx>不能为delegate类型
         delegate(UFx &&fn) {
             this->rebind(utility::forward<UFx>(fn));
         }
@@ -452,265 +465,6 @@ namespace rainy::foundation::functional {
 
     template <typename Fx>
     delegate(Fx &&) -> delegate<Fx>;
-}
-
-namespace rainy::foundation::functional {
-    inline namespace operators {
-        template <typename Ty = void>
-        struct plus {
-            constexpr Ty operator()(const Ty &left, const Ty &right) const {
-                return left + right;
-            }
-        };
-
-        template <>
-        struct plus<void> {
-            template <typename Ty1, typename Ty2>
-            constexpr auto operator()(Ty1 &&left, Ty2 &&right) const
-                noexcept(noexcept(utility::forward<Ty1>(left) + utility::forward<Ty2>(right)))
-                    -> decltype(utility::forward<Ty1>(left) + utility::forward<Ty2>(right)) {
-                return left + right;
-            }
-        };
-
-        template <typename Ty = void>
-        struct minus {
-            constexpr Ty operator()(const Ty &left, const Ty &right) const {
-                return left - right;
-            }
-        };
-        
-        template <>
-        struct minus<void> {
-            template <typename Ty1, typename Ty2>
-            constexpr auto operator()(Ty1 &&left, Ty2 &&right) const
-                noexcept(noexcept(utility::forward<Ty1>(left) - utility::forward<Ty2>(right)))
-                    -> decltype(utility::forward<Ty1>(left) - utility::forward<Ty2>(right)) {
-                return left - right;
-            }
-        };
-
-        template <typename Ty = void>
-        struct multiplies {
-            constexpr Ty operator()(const Ty &left, const Ty &right) const {
-                return left * right;
-            }
-        };
-
-        template <>
-        struct multiplies<void> {
-            template <typename Ty1, typename Ty2>
-            constexpr auto operator()(Ty1 &&left, Ty2 &&right) const
-                noexcept(noexcept(utility::forward<Ty1>(left) * utility::forward<Ty2>(right)))
-                    -> decltype(utility::forward<Ty1>(left) * utility::forward<Ty2>(right)) {
-                return left * right;
-            }
-        };
-
-        template <typename Ty = void>
-        struct divides {
-            constexpr Ty operator()(const Ty &left, const Ty &right) const {
-                return left / right;
-            }
-        };
-
-        template <>
-        struct divides<void> {
-            template <typename Ty1, typename Ty2>
-            constexpr auto operator()(Ty1 &&left, Ty2 &&right) const
-                noexcept(noexcept(utility::forward<Ty1>(left) / utility::forward<Ty2>(right)))
-                    -> decltype(utility::forward<Ty1>(left) / utility::forward<Ty2>(right)) {
-                return left / right;
-            }
-        };
-
-        template <typename Ty = void>
-        struct modulus {
-            constexpr Ty operator()(const Ty &left, const Ty &right) const {
-                return left % right;
-            }
-        };
-
-        template <>
-        struct modulus<void> {
-            template <typename Ty1, typename Ty2>
-            constexpr auto operator()(Ty1 &&left, Ty2 &&right) const
-                noexcept(noexcept(utility::forward<Ty1>(left) % utility::forward<Ty2>(right)))
-                    -> decltype(utility::forward<Ty1>(left) % utility::forward<Ty2>(right)) {
-                return left % right;
-            }
-        };
-
-        template <typename Ty = void>
-        struct negate {
-            constexpr Ty operator()(const Ty &object) const {
-                return -object;
-            }
-        };
-
-        template <>
-        struct negate<void> {
-            template <typename Ty>
-            constexpr auto operator()(const Ty &object) const noexcept(noexcept(-utility::forward<Ty>(object)))
-                -> decltype(-utility::forward<Ty>(object)) {
-                return -object;
-            }
-        };
-    }
-
-    inline namespace predicate {
-        template <typename Ty = void>
-        struct equal {
-            constexpr bool operator()(const Ty &left, const Ty &right) const {
-                return left == right;
-            }
-        };
-
-        template <>
-        struct equal<void> {
-            template <typename Ty1, typename Ty2>
-            constexpr auto operator()(Ty1 &&left, Ty2 &&right) const
-                noexcept(noexcept(utility::forward<Ty1>(left) == utility::forward<Ty2>(right)))
-                    -> decltype(utility::forward<Ty1>(left) == utility::forward<Ty2>(right)) {
-                return utility::forward<Ty1>(left) == utility::forward<Ty2>(right);
-            }
-        };
-
-        template <typename Ty = void>
-        struct not_equal {
-            constexpr bool operator()(const Ty &left, const Ty &right) const {
-                return left != right;
-            }
-        };
-
-        template <>
-        struct not_equal<void> {
-            template <typename Ty1, typename Ty2>
-            constexpr auto operator()(Ty1 &&left, Ty2 &&right) const
-                noexcept(noexcept(utility::forward<Ty1>(left) != utility::forward<Ty2>(right)))
-                    -> decltype(utility::forward<Ty1>(left) != utility::forward<Ty2>(right)) {
-                return left != right;
-            }
-        };
-
-        template <typename Ty = void>
-        struct less {
-            constexpr bool operator()(const Ty &left, const Ty &right) const {
-                return left < right;
-            }
-        };
-
-        template <>
-        struct less<void> {
-            template <typename Ty1, typename Ty2>
-            constexpr auto operator()(Ty1 &&left, Ty2 &&right) const
-                noexcept(noexcept(utility::forward<Ty1>(left) < utility::forward<Ty2>(right)))
-                    -> decltype(utility::forward<Ty1>(left) < utility::forward<Ty2>(right)) {
-                return utility::forward<Ty1>(left) < utility::forward<Ty2>(right);
-            }
-        };
-
-        template <typename Ty = void>
-        struct less_equal {
-            constexpr bool operator()(const Ty &left, const Ty &right) const {
-                return left <= right;
-            }
-        };
-
-        template <>
-        struct less_equal<void> {
-            template <typename Ty1, typename Ty2>
-            constexpr auto operator()(Ty1 &&left, Ty2 &&right) const
-                noexcept(noexcept(utility::forward<Ty1>(left) <= utility::forward<Ty2>(right)))
-                    -> decltype(utility::forward<Ty1>(left) <= utility::forward<Ty2>(right)) {
-                return left <= right;
-            }
-        };
-
-        template <typename Ty = void>
-        struct greater {
-            constexpr bool operator()(const Ty &left, const Ty &right) const {
-                return left > right;
-            }
-        };
-
-        template <>
-        struct greater<void> {
-            template <typename Ty1, typename Ty2>
-            constexpr auto operator()(Ty1 &&left, Ty2 &&right) const
-                noexcept(noexcept(utility::forward<Ty1>(left) > utility::forward<Ty2>(right)))
-                    -> decltype(utility::forward<Ty1>(left) > utility::forward<Ty2>(right)) {
-                return utility::forward<Ty1>(left) > utility::forward<Ty2>(right);
-            }
-        };
-
-        template <typename Ty = void>
-        struct greater_equal {
-            constexpr bool operator()(const Ty &left, const Ty &right) const {
-                return left >= right;
-            }
-        };
-
-        template <>
-        struct greater_equal<void> {
-            template <typename Ty1, typename Ty2>
-            constexpr auto operator()(Ty1 &&left, Ty2 &&right) const
-                noexcept(noexcept(utility::forward<Ty1>(left) >= utility::forward<Ty2>(right)))
-                    -> decltype(utility::forward<Ty1>(left) >= utility::forward<Ty2>(right)) {
-                return utility::forward<Ty1>(left) >= utility::forward<Ty2>(right);
-            }
-        };
-
-        template <typename Ty = void>
-        struct logical_and {
-            constexpr bool operator()(const Ty &left, const Ty &right) const {
-                return left && right;
-            }
-        };
-
-        template <>
-        struct logical_and<void> {
-            template <typename Ty, typename U>
-            constexpr auto operator()(const Ty &left, const U &right) const
-                noexcept(noexcept(utility::forward<Ty>(left) && utility::forward<U>(right)))
-                    -> decltype(utility::forward<Ty>(left) && utility::forward<U>(right)) {
-                return left && right;
-            }
-        };
-
-        template <typename Ty = void>
-        struct logical_or {
-            constexpr bool operator()(const Ty &left, const Ty &right) const {
-                return left || right;
-            }
-        };
-
-        template <>
-        struct logical_or<void> {
-            template <typename Ty, typename U>
-            constexpr auto operator()(const Ty &left, const U &right) const
-                noexcept(noexcept(utility::forward<Ty>(left) || utility::forward<U>(right)))
-                    -> decltype(utility::forward<Ty>(left) || utility::forward<U>(right)) {
-                return left || right;
-            }
-        };
-
-        template <typename Ty = void>
-        struct logical_not {
-            constexpr bool operator()(const Ty &object) const {
-                return !object;
-            }
-        };
-
-        template <>
-        struct logical_not<void> {
-            template <typename Ty>
-            constexpr auto operator()(const Ty &object) const noexcept(noexcept(!utility::forward<Ty>(object)))
-                -> decltype(!utility::forward<Ty>(object)) {
-                return !object;
-            }
-        };
-    }
 }
 
 #endif

@@ -4,7 +4,7 @@
 #include <rainy/utility/pair.hpp>
 #include <rainy/utility/iterator.hpp>
 #include <rainy/utility.hpp>
-#include <rainy/foundation/functional/functional.hpp>
+#include <rainy/foundation/functional/functor.hpp>
 #include <rainy/foundation/system/memory/allocator.hpp>
 
 namespace rainy::collections::implements {

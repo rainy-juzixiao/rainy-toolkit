@@ -565,7 +565,6 @@ namespace rainy::utility::implements {
                     auto &left = *std::get<0>(*res);
                     auto &recv = *std::get<1>(*res);
                     recv = any_magic_method<remove_cvref_t, any>{}.incr_prefix(left);
-                    std::cout << "recv.type().name() = " << recv.type().name() << "\n";
                     return true;
                 }
                 break;
