@@ -425,7 +425,6 @@ namespace rainy::foundation::functional {
         delegate() noexcept = default;
 
         template <typename UFx, typename base::template enable_if_callable_t<UFx, delegate> = 0>
-        // UFx应能被适配，且remove_cvref_t<UFx>不能为delegate类型
         delegate(UFx &&fn) {
             this->rebind(utility::forward<UFx>(fn));
         }

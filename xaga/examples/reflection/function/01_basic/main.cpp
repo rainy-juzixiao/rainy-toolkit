@@ -29,7 +29,18 @@ constexpr auto test1() {
     return v2.value_or("SB");
 }
 
+int funccc(int count, ...) {
+    va_list args{};
+    va_start(args, count);
+    int tmp = va_arg(args, int);
+    va_end(args);
+    return 42 + tmp;
+}
+
 int main() {
+    foundation::functional::function_pointer fp = &funccc;
+    std::cout << fp.invoke_variadic(1, 100) << '\n';
+    fp.cast<int(int)>();
     {
         std::optional<std::string_view> v = "hello world";
         std::optional<std::string_view> v2(v);

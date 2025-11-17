@@ -322,4 +322,18 @@ namespace rainy::foundation::exceptions {
     };
 }
 
+namespace rainy::foundation::exceptions::runtime {
+    class nullpointer_exception : public runtime_error {
+    public:
+        using base = runtime_error;
+
+        nullpointer_exception(source loc = source::current()) : base("nullpointer detected", loc) {
+        }
+    };
+
+    RAINY_INLINE void throw_nullpointer_exception(utility::source_location loc = utility::source_location::current()) {
+        throw_exception(nullpointer_exception{loc});
+    }
+}
+
 #endif

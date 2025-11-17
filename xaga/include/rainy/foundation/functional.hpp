@@ -19,4 +19,5 @@
 #include <rainy/foundation/functional/delegate.hpp>
 #include <rainy/foundation/functional/function_pointer.hpp>
 #include <rainy/foundation/functional/functor.hpp>
+#include <rainy/foundation/functional/memfn.hpp>
 #endif

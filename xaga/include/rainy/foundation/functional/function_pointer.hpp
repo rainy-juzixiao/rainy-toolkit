@@ -24,491 +24,326 @@
 #include <ostream>
 #include <rainy/core/core.hpp>
 #include <rainy/foundation/typeinfo.hpp>
+#include <rainy/annotations/smf_control.hpp>
 
 namespace rainy::foundation::functional {
     template <typename Fx>
-    struct function_pointer;
+    class function_pointer;
+
+    using core::method_flags;
 }
 
 namespace rainy::foundation::functional::implements {
-    template <typename Fx,typename ProtoType>
-    struct as_helper {};
+    template <typename Class, typename Pointer, typename... UArgs>
+    RAINY_INLINE constexpr rain_fn fp_invoke_impl(Pointer pointer, Class *object, UArgs &&...args) -> decltype(auto) {
+        using fx_traits = type_traits::primary_types::function_traits<Pointer>;
+        using class_t = Class;
+        using return_type = typename fx_traits::return_type;
+        if constexpr (type_traits::type_relations::is_void_v<Class>) {
+            if constexpr (type_traits::type_relations::is_void_v<return_type>) {
+                utility::invoke(pointer, utility::forward<UArgs>(args)...);
+            } else {
+                return utility::invoke(pointer, utility::forward<UArgs>(args)...);
+            }
+        } else {
+            if constexpr (fx_traits::is_invoke_for_lvalue) {
+                if constexpr (type_traits::type_relations::is_void_v<return_type>) {
+                    utility::invoke(pointer, static_cast<class_t &>(*static_cast<class_t *>(object)),
+                                    utility::forward<UArgs>(args)...);
+                } else {
+                    return utility::invoke(pointer, static_cast<class_t &>(*static_cast<class_t *>(object)),
+                                           utility::forward<UArgs>(args)...);
+                }
+            } else if constexpr (fx_traits::is_invoke_for_rvalue) {
+                if constexpr (type_traits::type_relations::is_void_v<return_type>) {
+                    utility::invoke(pointer, static_cast<class_t &&>(*static_cast<class_t *>(object)),
+                                    utility::forward<UArgs>(args)...);
+                } else {
+                    return utility::invoke(pointer, static_cast<class_t &&>(*static_cast<class_t *>(object)),
+                                           utility::forward<UArgs>(args)...);
+                }
+            } else {
+                if constexpr (type_traits::type_relations::is_void_v<return_type>) {
+                    utility::invoke(this->pointer_, static_cast<class_t *>(object), utility::forward<UArgs>(args)...);
+                } else {
+                    return utility::invoke(this->pointer_, static_cast<class_t *>(object), utility::forward<UArgs>(args)...);
+                }
+            }
+        }
+    }
 
-    template <typename ProtoType,typename Rx,typename...Args>
-    struct as_helper<Rx(Args...), ProtoType> {
-        static constexpr bool is_invocable_v = type_traits::type_properties::is_invocable_r_v<Rx, ProtoType, Args...>;
-    };
+    template <typename Fx, typename Rx, typename Class, typename... Args>
+    struct function_pointer_impl {
+        using fx_traits = type_traits::primary_types::function_traits<Fx>;
+        using paramlist = type_traits::other_trans::type_list<Args...>;
+        using result_type = Rx;
+        using function_type = Fx;
+        using pointer = type_traits::other_trans::conditional_t<type_traits::primary_types::is_pointer_v<Fx>, Fx,
+                                                                type_traits::pointer_modify::add_pointer_t<Fx>>;
+        using class_t = Class;
 
-    template <typename ProtoType, typename Rx, typename... Args>
-    struct as_helper<Rx(Args...,...), ProtoType> {
-        static constexpr bool is_invocable_v = type_traits::type_properties::is_invocable_r_v<Rx, ProtoType, Args...>;
-    };
-}
+        static constexpr bool is_variadic = type_traits::primary_types::is_variadic_function_v<Fx>;
+        static constexpr bool is_member_function = type_traits::primary_types::is_member_function_pointer_v<Fx>;
 
-namespace rainy::foundation::functional::implements {
-    template <typename PointerType>
-    class function_pointer_common {
-    public:
-        using pointer = PointerType;
+        static constexpr std::size_t arity = sizeof...(Args);
 
-        static constexpr std::size_t arity = type_traits::primary_types::function_traits<PointerType>::arity;
+        template <typename UFx, typename FunctionPtr>
+        using enable_if_callable_t = type_traits::other_trans::enable_if_t<
+            !type_traits::type_relations::is_same_v<type_traits::cv_modify::remove_cvref_t<UFx>, FunctionPtr> &&
+                type_traits::type_relations::is_convertible_v<UFx, pointer>,
+            int>;
 
-        constexpr function_pointer_common() : invoker(nullptr) {
+        template <typename UTy>
+        constexpr void assign_impl_(UTy &&right) noexcept {
+            this->pointer_ = right;
         }
 
-        constexpr explicit function_pointer_common(pointer function_address) : invoker(function_address) {
+        template <typename Self>
+        constexpr void construct_impl_(Self &&right) noexcept {
+            this->pointer_ = right.pointer_;
         }
 
-        constexpr function_pointer_common(const function_pointer_common &) noexcept = default;
-        constexpr function_pointer_common(function_pointer_common &&) noexcept = default;
-        RAINY_CONSTEXPR20 ~function_pointer_common() = default;
-
-        RAINY_NODISCARD constexpr pointer get() const noexcept {
-            return invoker;
+        constexpr void reset() noexcept {
+            this->pointer_ = nullptr;
         }
 
-        RAINY_NODISCARD explicit operator pointer() const noexcept {
-            return invoker;
+        constexpr void rebind(function_pointer_impl &&right) {
+            reset();
+            move_from_other(right);
+            right.reset();
+        }
+
+        constexpr void rebind(const function_pointer_impl &right) {
+            reset();
+            copy_from_other(right);
+        }
+
+        template <typename UFx, typename enable_if_callable_t<UFx, function_pointer<Fx>> = 0>
+        constexpr void rebind(UFx &&pointer) {
+            this->pointer_ = pointer;
+        }
+
+        constexpr void move_from_other(function_pointer_impl &&right) noexcept {
+            if (this == utility::addressof(right)) {
+                return;
+            }
+            this->pointer_ = right.pointer_;
+        }
+
+        constexpr void copy_from_other(const function_pointer_impl &right) {
+            if (this == utility::addressof(right)) {
+                return;
+            }
+            this->pointer_ = right.pointer_;
+        }
+
+        constexpr method_flags type() const noexcept {
+            static constexpr method_flags flags = core::deduction_invoker_type<Fx, Args...>();
+            return flags;
+        }
+
+        constexpr const foundation::ctti::typeinfo &target_type() const noexcept {
+            return rainy_typeid(Fx);
         }
 
         /**
          * @brief 检查当前invoker是否为空指针
          * @return 如果指针为空，则为true，反之false
          */
-        RAINY_NODISCARD constexpr bool empty() const noexcept {
-            return !static_cast<bool>(invoker);
+        constexpr bool empty() const noexcept {
+            return !static_cast<bool>(this->pointer_);
+        }
+
+        constexpr pointer get() const noexcept {
+            return this->pointer_;
+        }
+
+        template <typename Class, typename UFx = pointer,
+                  type_traits::other_trans::enable_if_t<
+                      type_traits::type_properties::is_invocable_r_v<result_type, UFx, Class, Args...> && is_member_function, int> = 0>
+        constexpr result_type invoke(Class &&object, Args... args) const {
+            if (empty()) {
+                foundation::exceptions::runtime::throw_nullpointer_exception();
+            }
+            if constexpr (rainy::type_traits::type_relations::is_void_v<Rx>) {
+                fp_invoke_impl<class_t>(this->pointer_, const_cast<class_t *>(utility::addressof(object)),
+                                        utility::forward<Args>(args)...);
+            } else {
+                return invoke_impl<class_t>(this->pointer_, const_cast<class_t *>(utility::addressof(object)),
+                                            utility::forward<Args>(args)...);
+            }
+        }
+
+        template <
+            typename Class, typename UFx = function_type, typename... UArgs,
+            type_traits::other_trans::enable_if_t<type_traits::type_properties::is_invocable_r_v<result_type, UFx, Class, Args...> &&
+                                                      is_variadic && is_member_function,
+                                                  int> = 0>
+        constexpr result_type invoke_variadic(Class &&object, Args... args, UArgs &&...variadic_args) const {
+            if (empty()) {
+                foundation::exceptions::runtime::throw_nullpointer_exception();
+            }
+            if constexpr (rainy::type_traits::type_relations::is_void_v<Rx>) {
+                fp_invoke_impl<class_t>(this->pointer_, const_cast<class_t *>(utility::addressof(object)),
+                                        utility::forward<Args>(args)..., utility::forward<UArgs>(variadic_args)...);
+            } else {
+                return fp_invoke_impl<class_t>(this->pointer_, const_cast<class_t *>(utility::addressof(object)),
+                                               utility::forward<Args>(args)..., utility::forward<UArgs>(variadic_args)...);
+            }
+        }
+
+        template <typename Class, typename UFx = function_type,
+                  type_traits::other_trans::enable_if_t<
+                      type_traits::type_properties::is_invocable_r_v<result_type, UFx, Class, Args...> && is_member_function, int> = 0>
+        constexpr result_type operator()(Class &&object, Args... args) const {
+            return invoke(utility::forward<Class>(object), utility::forward<Args>(args)...);
+        }
+
+        template <
+            typename Class, typename UFx = function_type, typename... UArgs,
+            type_traits::other_trans::enable_if_t<type_traits::type_properties::is_invocable_r_v<result_type, UFx, Class, Args...> &&
+                                                      is_member_function && is_variadic,
+                                                  int> = 0>
+        constexpr result_type operator()(Class &&object, Args... args, UArgs &&...variadic_args) const {
+            return invoke_variadic(utility::forward<Class>(object), utility::forward<Args>(args)...,
+                                   utility::forward<UArgs>(variadic_args)...);
+        }
+
+        template <
+            typename UFx = function_type,
+            type_traits::other_trans::enable_if_t<type_traits::type_properties::is_invocable_r_v<result_type, UFx, Args...>, int> = 0>
+        constexpr result_type invoke(Args... args) const {
+            if (empty()) {
+                foundation::exceptions::runtime::throw_nullpointer_exception();
+            }
+            if constexpr (type_traits::type_relations::is_void_v<Rx>) {
+                fp_invoke_impl<void>(this->pointer_, nullptr, utility::forward<Args>(args)...);
+            } else {
+                return fp_invoke_impl<void>(this->pointer_, nullptr, utility::forward<Args>(args)...);
+            }
+        }
+
+        template <typename UFx = function_type, typename... UArgs,
+                  type_traits::other_trans::enable_if_t<
+                      type_traits::type_properties::is_invocable_r_v<result_type, UFx, Args..., UArgs...> && is_variadic &&
+                          !is_member_function,
+                      int> = 0>
+        constexpr result_type invoke_variadic(Args... args, UArgs &&...variadic_args) const {
+            if (empty()) {
+                foundation::exceptions::runtime::throw_nullpointer_exception();
+            }
+            if constexpr (rainy::type_traits::type_relations::is_void_v<Rx>) {
+                fp_invoke_impl<void>(this->pointer_, nullptr, utility::forward<Args>(args)...,
+                                     utility::forward<UArgs>(variadic_args)...);
+            } else {
+                return fp_invoke_impl<void>(this->pointer_, nullptr, utility::forward<Args>(args)...,
+                                            utility::forward<UArgs>(variadic_args)...);
+            }
+        }
+
+        template <
+            typename UFx = function_type,
+            type_traits::other_trans::enable_if_t<type_traits::type_properties::is_invocable_r_v<result_type, UFx, Args...>, int> = 0>
+        constexpr result_type operator()(Args... args) const {
+            if constexpr (type_traits::type_relations::is_void_v<result_type>) {
+                invoke(utility::forward<Args>(args)...);
+            } else {
+                return invoke(utility::forward<Args>(args)...);
+            }
+        }
+
+        template <typename UFx = function_type, typename... UArgs,
+                  type_traits::other_trans::enable_if_t<
+                      type_traits::type_properties::is_invocable_r_v<result_type, UFx, Args...> && is_variadic, int> = 0>
+        constexpr result_type operator()(Args... args, UArgs &&...variadic_args) const {
+            if constexpr (type_traits::type_relations::is_void_v<result_type>) {
+                invoke_variadic(utility::forward<Args>(args)..., utility::forward<UArgs>(variadic_args)...);
+            } else {
+                return invoke_variadic(utility::forward<Args>(args)..., utility::forward<UArgs>(variadic_args)...);
+            }
+        }
+
+        /**
+         * @brief 将当前函数指针对象转换为另一种函数指针对象类型（确保类型安全）
+         * @tparam Fx 目标函数指针签名类型（必须与当前函数指针签名类型保持兼容性）
+         * @return 目标函数指针对象
+         */
+        template <typename UFx, type_traits::other_trans::enable_if_t<type_traits::type_properties::is_invocable_r_v<Rx,UFx,Args...>, int> = 0>
+        constexpr function_pointer<UFx> cast() noexcept {
+            return function_pointer<UFx>(this->pointer_);
+        }
+
+        pointer pointer_;
+    };
+
+    template <typename Fx>
+    struct get_fp_implement_type {
+        using traits = type_traits::primary_types::function_traits<type_traits::other_trans::decay_t<Fx>>;
+
+        template <typename UFx, typename Rx, typename Class, typename TypeList>
+        struct extract {};
+
+        template <typename UFx, typename Rx, typename Class, typename... Args>
+        struct extract<UFx, Rx, Class, type_traits::other_trans::type_list<Args...>> {
+            using type = function_pointer_impl<UFx, Rx, Class, Args...>;
+        };
+
+        // 修改这里：使用 extract 来展开 type_list
+        using type =
+            typename extract<Fx, typename traits::return_type,
+                             typename type_traits::primary_types::member_pointer_traits<Fx>::class_type,
+                             typename type_traits::other_trans::tuple_like_to_type_list<typename traits::tuple_like_type>::type>::type;
+    };
+}
+
+namespace rainy::foundation::functional {
+    template <typename Fx>
+    class function_pointer : private annotations::smf_control::control<typename implements::get_fp_implement_type<Fx>::type> {
+    public:
+        using base = annotations::smf_control::control<typename implements::get_fp_implement_type<Fx>::type>;
+        
+        using result_type = typename base::result_type;
+        using function_type = typename base::function_type;
+        using pointer = typename base::pointer;
+
+        constexpr function_pointer() noexcept = default;
+
+        template <typename UFx, typename base::template enable_if_callable_t<UFx, function_pointer> = 0>
+        constexpr function_pointer(UFx &&fn) {
+            this->rebind(utility::forward<UFx>(fn));
         }
 
         /**
          * @brief 检查当前invoker是否不为空指针
          * @return 如果指针为空，则为false，反之true
          */
-        explicit operator bool() const noexcept {
-            return !empty();
+        constexpr operator bool() const noexcept {
+            return !this->empty();
         }
 
-        /**
-         * @brief 将当前invoker设置为空指针
-         */
-        constexpr void clear() noexcept {
-            invoker = nullptr;
+        constexpr operator pointer() const noexcept {
+            return this->pointer_;
         }
 
-        /**
-         * @brief 将对象other的invoker进行交换给当前对象
-         * @param other 待交换的对象
-         */
-        constexpr void swap(function_pointer_common &other) noexcept {
-            std::swap(invoker, other.invoker);
+        void swap(function_pointer& right) noexcept {
+            std::swap(this->pointer_, right.pointer_);
         }
 
-        /**
-         * @brief 检查当前对象持有的invoker是否与另一个对象一致
-         * @param other 待检查的对象
-         * @return 如果一致，是true，反之false
-         */
-        RAINY_NODISCARD constexpr bool equal(const function_pointer_common &other) const noexcept {
-            return invoker == other.invoker;
+        friend void swap(function_pointer &left, function_pointer &right) noexcept {
+            left.swap(right);
         }
 
-        /**
-         * @brief 检查当前对象持有的invoker是否与另一个对象不相同
-         * @param other 待检查的对象
-         * @return 如果一致，是true，反之false
-         */
-        RAINY_NODISCARD constexpr bool not_equal(const function_pointer_common &other) const noexcept {
-            return invoker != other.invoker;
-        }
-
-        /**
-         * @brief 检查当前对象持有的invoker是否与另一个对象一致
-         * @param left 待检查的对象
-         * @param right 待检查的对象
-         * @return 如果一致，是true，反之false
-         */
-        friend constexpr bool operator==(const function_pointer_common &left, const function_pointer_common &right) noexcept {
-            return left.equal(right);
-        }
-
-        /**
-         * @brief 检查当前对象持有的invoker是否与另一个对象不相同
-         * @param left 待检查的对象
-         * @param right 待检查的对象
-         * @return 如果一致，是true，反之false
-         */
-        friend constexpr bool operator!=(const function_pointer_common &left, const function_pointer_common &right) noexcept {
-            return left.not_equal(right);
-        }
-
-        /**
-         * @brief 获取invoker的函数签名的类型信息，以静态方式
-         * @return invoker函数签名类型信息
-         */
-        RAINY_NODISCARD static constexpr ctti::typeinfo typeinfo() noexcept {
-            return rainy_typeid(pointer);
-        }
-
-        /**
-         * @brief 将类型信息与函数指针地址一同输出的ostream中
-         * @param ostream 用于输出的ostream对象
-         * @param right 用于输出的函数指针对象
-         * @return 返回ostream自身引用
-         */
-        friend std::ostream &operator<<(std::ostream &ostream, const function_pointer_common &right) {
-            ostream << right.typeinfo().name() << ' ' << right.invoker;
-            return ostream;
-        }
-
-        /**
-         * @brief 将函数指针地址赋值给当前函数指针对象
-         * @param function_address 函数指针地址
-         * @return 返回当前this对象引用
-         */
-        constexpr function_pointer_common &assign(pointer function_address) noexcept {
-            this->invoker = function_address;
-            return *this;
-        }
-
-        constexpr function_pointer_common &assign(std::nullptr_t) noexcept {
-            this->clear();
-            return *this;
-        }
-
-    protected:
-        pointer invoker;
+        using base::empty;
+        using base::get;
+        using base::operator();
+        using base::invoke;
+        using base::invoke_variadic;
+        using base::reset;
+        using base::cast;
     };
 
-    template <typename Signature>
-    class function_pointer_base;
-
-    template <typename Rx, typename... Args>
-    class function_pointer_base<Rx(Args...)> : public function_pointer_common<Rx (*)(Args...)> {
-    public:
-        using base = function_pointer_common<Rx (*)(Args...)>;
-        using pointer = typename base::pointer;
-        using base::operator=;
-
-        constexpr function_pointer_base() = default;
-        constexpr function_pointer_base(std::nullptr_t) : base(nullptr) {
-        }
-        constexpr explicit function_pointer_base(pointer function_address) : base(function_address) {
-        }
-
-        template <typename URx, typename... UArgs,
-                  type_traits::other_trans::enable_if_t<type_traits::type_properties::is_invocable_r_v<Rx, URx (*)(UArgs...), Args...>,
-                                                        int> = 0>
-        constexpr function_pointer_base(URx (*function_address)(UArgs...)) : base(reinterpret_cast<pointer>(function_address)) {
-        }    
-        
-        /**
-         * @brief 调用当前函数指针对象
-         * @param args 用于传入的参数
-         * @return 如果Rx为void，则无返回值。如果不是，则可以接收返回值
-         */
-        constexpr Rx invoke(Args... args) const {
-            if (this->empty()) {
-                exceptions::runtime::throw_runtime_error("Current pointer is null!");
-            }
-            if constexpr (std::is_void_v<Rx>) {
-                this->invoker(args...);
-                return;
-            } else {
-                return this->invoker(args...);
-            }
-        }
-
-        /**
-         * @brief 调用当前函数指针对象
-         * @param args 用于传入的参数
-         * @return 如果Rx为void，则无返回值。如果不是，则可以接收返回值
-         */
-        constexpr Rx operator()(Args... args) const {
-            return invoke(args...);
-        }
-
-        /**
-         * @brief 将当前函数指针对象转换为另一种函数指针对象类型的引用（确保类型安全）
-         * @tparam Fx 目标函数指针签名类型（必须与当前函数指针签名类型保持兼容性）
-         * @return 目标函数指针对象的引用
-         */
-        template <typename Fx, type_traits::other_trans::enable_if_t<as_helper<Fx, Rx(Args...)>::is_invocable_v, int> = 0>
-        constexpr function_pointer_base<Fx> &as() noexcept {
-            return static_cast<function_pointer<Fx> &>(*this);
-        }
-
-        /**
-         * @brief 将函数指针对象制作为一个std::function的包装器
-         * @return 返回包含invoker的std::function包装器
-         */
-        RAINY_NODISCARD std::function<Rx(Args...)> make_function_object() const {
-            return this->invoker;
-        }
-    };
-
-    template <typename Rx, typename... Args>
-    class function_pointer_base<Rx(Args..., ...)> : public function_pointer_common<Rx (*)(Args..., ...)> {
-    public:
-        using base = function_pointer_common<Rx (*)(Args..., ...)>;
-        using pointer = typename base::pointer;
-
-        constexpr function_pointer_base() = default;
-        constexpr function_pointer_base(std::nullptr_t) : base(nullptr) {
-        }
-
-        /**
-         * @brief 初始化函数指针对象
-         * @param function_address 函数指针的地址
-         */
-        constexpr function_pointer_base(pointer function_address) : base(function_address) {
-        }
-
-        /**
-         * @brief 构造函数，用于从函数指针对象构造函数指针对象
-         * @attention 函数指针是必须与原类型兼容的，否则，编译失败
-         * @tparam URx 如果此模板函数指针返回类型为int，而URx与int兼容。则会通过编译
-         * @tparam UArgs 同理，如果与原类型兼容。也会通过编译
-         * @param function_address 函数指针的地址
-         */
-        template <typename URx, typename... UArgs,
-                  type_traits::other_trans::enable_if_t<
-                      type_traits::type_properties::is_invocable_r_v<Rx, URx (*)(UArgs..., ...), Args...>, int> = 0>
-        constexpr function_pointer_base(URx (*function_address)(UArgs..., ...)) : base(function_address) {
-        }
-
-        /**
-         * @brief 调用函数指针对象，并传入参数
-         * @attention 必须确保函数指针是有效的，否则，将会抛出运行时异常。编译时将会导致编译失败
-         * @tparam UArgs 这是特定于C风格的可变参数支持，例如，如果函数指针对象签名为 int(*)(const char*,...) 。则此部分由UArgs提供
-         * @param args 固定的参数
-         * @param uargs 可选的额外参数
-         * @return 如果返回类型为void，则不进行返回。如果返回类型不为void，则返回调用结果
-         */
-        template <typename... UArgs>
-        constexpr Rx invoke(Args... args, UArgs... uargs) const {
-            if (this->empty()) {
-                exceptions::runtime::throw_runtime_error("Current pointer is null!");
-            }
-            if constexpr (type_traits::primary_types::is_void_v<Rx>) {
-                this->invoker(args..., uargs...);
-            } else {
-                return this->invoker(args..., uargs...);
-            }
-        }
-
-        /**
-         * @brief 调用函数指针对象，并传入参数
-         * @attention 必须确保函数指针是有效的，否则，将会抛出运行时异常。编译时将会导致编译失败
-         * @tparam UArgs 这是特定于C风格的可变参数支持，例如，如果函数指针对象签名为 int(*)(const char*,...) 。则此部分由UArgs提供
-         * @param args 固定的参数
-         * @param uargs 可选的额外参数
-         * @return 如果返回类型为void，则不进行返回。如果返回类型不为void，则返回调用结果
-         */
-        template <typename... UArgs>
-        constexpr Rx operator()(Args... args, UArgs... uargs) const {
-            if (this->empty()) {
-                exceptions::runtime::throw_runtime_error("Current pointer is null!");
-            }
-            if constexpr (type_traits::primary_types::is_void_v<Rx>) {
-                this->invoker(args..., uargs...);
-            } else {
-                return this->invoker(args..., uargs...);
-            }
-        }
-
-        /**
-         * @brief 将函数指针对象转换成一种函数指针对象的引用
-         * @tparam Fx 目标类型。它必须兼容原本函数指针的类型
-         * @return 以this引用的形式返回一个函数指针对象，它的类型将会是Fx
-         */
-        template <typename Fx, type_traits::other_trans::enable_if_t<as_helper<Fx, Rx(Args..., ...)>::is_invocable_v, int> = 0>
-        function_pointer_base<Fx> &as() noexcept {
-            return reinterpret_cast<function_pointer<Fx> &>(*this);
-        }
-
-        /**
-         * @brief 此重载将使得当前函数指针成为一个空指针
-         * @return 返回当前对象的this引用
-         */
-        constexpr function_pointer_base &operator=(std::nullptr_t) noexcept {
-            this->assign(nullptr);
-            return *this;
-        }
-    };
-}
-
-namespace rainy::foundation::functional {
-    /**
-     * @brief 此模板允许用户创建一个具有类型安全的函数指针对象
-     * @tparam Rx 函数指针返回值类型
-     * @tparam Args 函数指针参数类型
-     *
-     * @brief 以下代码展示了如何创建一个函数指针对象，并调用它：
-     * @code
-     * int add(int a, int b) {
-     *  return a + b;
-     * }
-     * function_pointer<int(int, int)> fptr = &add;
-     * int result = fptr(1, 2); // result == 3
-     * @endcode
-     */
-    template <typename Rx, typename... Args>
-    struct function_pointer<Rx(Args...)> : implements::function_pointer_base<Rx(Args...)> {
-        using base = implements::function_pointer_base<Rx(Args...)>;
-        using base::base;
-        using base::operator=;
-
-        using pointer = typename base::pointer;
-        
-        /**
-         * @brief 使用新的函数地址替换当前函数指针对象，并返回旧的函数指针对象
-         * @return
-         * 旧的函数指针对象
-         */
-        constexpr function_pointer reset(pointer function_address = nullptr) noexcept {
-            pointer old_ptr = this->invoker;
-            this->invoker = function_address;
-            return function_pointer{old_ptr};
-        }
-
-        /**
-         * @brief 使用新的函数地址替换当前函数指针对象，并返回旧的函数指针对象
-         * @return
-         * 旧的函数指针对象
-         */
-        template <typename URx, typename... UArgs,
-                  type_traits::other_trans::enable_if_t<
-                      type_traits::type_properties::is_invocable_r_v<Rx, URx (*)(UArgs...), Args...>, int> = 0>
-        constexpr function_pointer reset(URx (*function_address)(UArgs...) = nullptr) noexcept {
-            pointer old_ptr = this->invoker;
-            this->invoker = function_address;
-            return function_pointer{old_ptr};
-        }
-
-        constexpr function_pointer &operator=(pointer function_address) noexcept {
-            this->assign(function_address);
-            return *this;
-        }
-
-        template <typename URx, typename... UArgs,
-                  type_traits::other_trans::enable_if_t<
-                      type_traits::type_properties::is_invocable_r_v<Rx, URx (*)(UArgs...), Args...>,
-                      int> = 0>
-        constexpr function_pointer &operator=(URx (*function_address)(UArgs...)) noexcept {
-            this->assign(static_cast<pointer>(function_address));
-            return *this;
-        }
-    };
-
-    template <typename Rx, typename... Args>
-    struct function_pointer<Rx(Args..., ...)> : implements::function_pointer_base<Rx(Args..., ...)> {
-        using base = implements::function_pointer_base<Rx(Args..., ...)>;
-        using base::base;
-        using base::operator=;
-        
-        using pointer = typename base::pointer;
-
-        /**
-         * @brief 使用新的函数地址替换当前函数指针对象，并返回旧的函数指针对象
-         * @return
-         * 旧的函数指针对象
-         */
-        constexpr function_pointer reset(pointer function_address = nullptr) noexcept {
-            pointer old_ptr = this->invoker;
-            this->invoker = function_address;
-            return function_pointer{old_ptr};
-        }
-
-        /**
-         * @brief 使用新的函数地址替换当前函数指针对象，并返回旧的函数指针对象
-         * @return
-         * 旧的函数指针对象
-         */
-        template <typename URx, typename... UArgs,
-                  type_traits::other_trans::enable_if_t<
-                      type_traits::type_properties::is_invocable_r_v<Rx, URx (*)(UArgs..., ...), Args...>, int> = 0>
-        constexpr function_pointer reset(URx (*function_address)(UArgs..., ...) = nullptr) noexcept {
-            pointer old_ptr = this->invoker;
-            this->invoker = function_address;
-            return function_pointer{old_ptr};
-        }
-
-        constexpr function_pointer &operator=(pointer function_address) noexcept {
-            this->assign(function_address);
-            return *this;
-        }
-
-        template <typename URx, typename... UArgs,
-                  type_traits::other_trans::enable_if_t<
-                      type_traits::type_properties::is_invocable_r_v<Rx, URx (*)(UArgs..., ...), Args...>, int> = 0>
-        constexpr function_pointer &operator=(URx (*function_address)(UArgs..., ...)) noexcept {
-            this->assign(function_address);
-            return *this;
-        }
-
-        constexpr function_pointer &operator=(std::nullptr_t) noexcept {
-            this->assign(nullptr);
-            return *this;
-        }
-    };
-
-    /**
-     * @brief 此模板允许用户创建一个具有类型安全的函数指针对象
-     * @tparam Rx 函数指针返回值类型
-     * @tparam Args 函数指针参数类型
-     *
-     * @brief 以下代码展示了如何创建一个函数指针对象，并调用它：
-     * @code
-     * int add(int a, int b) {
-     *  return a + b;
-     * }
-     * function_pointer<int(*)(int, int)> fptr = &add;
-     * int result = fptr(1, 2); // result == 3
-     * @endcode
-     */
-    template <typename Rx, typename... Args>
-    struct function_pointer<Rx (*)(Args...)> : function_pointer<Rx(Args...)> {
-        using base = function_pointer<Rx(Args...)>;
-        using base::base;
-        using base::operator=;
-    };
-
-    template <typename Rx, typename... Args>
-    struct function_pointer<Rx (*)(Args..., ...)> : function_pointer<Rx(Args..., ...)> {
-        using base = function_pointer<Rx(Args..., ...)>;
-        using base::base;
-        using base::operator=;
-    };
-
-    // 在此设置CTAD引导
-    template <typename Fx, type_traits::other_trans::enable_if_t<!type_traits::primary_types::is_variadic_function_v<Fx>, int> = 0>
-    function_pointer(Fx) -> function_pointer<Fx>;
-
-    template <typename Fx, type_traits::other_trans::enable_if_t<type_traits::primary_types::is_variadic_function_v<Fx>, int> = 0>
-    function_pointer(Fx) -> function_pointer<type_traits::pointer_modify::remove_pointer_t<Fx>>;
-
-    /**
-     * @brief   创建一个函数指针对象
-     * @tparam  Rx 函数指针期望的返回类型
-     * @tparam  Args 函数形参列表
-     * @param   ptr 函数地址
-     * @return  函数指针对象
-     */
-    template <typename Rx, typename... Args>
-    constexpr auto make_function_pointer(Rx (*ptr)(Args...)) noexcept -> function_pointer<Rx(Args...)> {
-        return function_pointer<Rx(Args...)>(ptr);
-    }
-
-    /**
-     * @brief   创建一个函数指针对象
-     * @tparam  Rx 函数指针期望的返回类型
-     * @tparam  Args 函数形参列表
-     * @param   ptr 函数地址
-     * @return  函数指针对象
-     */
-    template <typename Rx, typename... Args>
-    constexpr auto make_function_pointer(Rx (*ptr)(Args..., ...)) noexcept -> function_pointer<Rx(Args..., ...)> {
-        return function_pointer<Rx(Args..., ...)>(ptr);
-    }
+    template <typename Fx>
+    function_pointer(Fx &&) -> function_pointer<Fx>;
 }
 
 #endif
