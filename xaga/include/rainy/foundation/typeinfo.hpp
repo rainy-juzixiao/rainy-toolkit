@@ -23,6 +23,7 @@
  * @author rainy-juzixiao
  */
 #include <rainy/core/core.hpp>
+#include <unordered_map>
 #include <string_view>
 
 namespace rainy::foundation::ctti {
@@ -414,27 +415,33 @@ namespace rainy::foundation::ctti::implements {
         if constexpr (type_traits::type_relations::is_void_v<type_traits::cv_modify::remove_cvref_t<Type>>) {
             return false;
         } else {
-            switch (type.hash_code) {
-                case raw_type_id(match_t):
-                    return true;
-                case raw_type_id(match_t &):
-                    return type_relations::is_convertible_v<match_t &, real_convert_type>;
-                case raw_type_id(match_t &&):
-                    return type_relations::is_convertible_v<match_t &&, real_convert_type>;
-                case raw_type_id(const match_t):
-                    return true;
-                case raw_type_id(const match_t &):
-                    return type_relations::is_convertible_v<const match_t &, real_convert_type>;
-                case raw_type_id(const match_t &&):
-                    return type_relations::is_convertible_v<const match_t &&, real_convert_type>;
-                case raw_type_id(const volatile match_t):
-                    return true;
-                case raw_type_id(const volatile match_t &):
-                    return type_relations::is_convertible_v<const volatile match_t &, real_convert_type>;
-                case raw_type_id(const volatile match_t &&):
-                    return type_relations::is_convertible_v<const volatile match_t &&, real_convert_type>;
-                default:
-                    return false;
+
+            using ftraits = primary_types::function_traits<match_t>;
+            if constexpr (ftraits::valid) {
+                return raw_type_id(match_t) == type.hash_code; // 修正对类型信息检测的行为
+            } else {
+                switch (type.hash_code) {
+                    case raw_type_id(match_t):
+                        return true;
+                    case raw_type_id(match_t &):
+                        return type_relations::is_convertible_v<match_t &, real_convert_type>;
+                    case raw_type_id(match_t &&):
+                        return type_relations::is_convertible_v<match_t &&, real_convert_type>;
+                    case raw_type_id(const match_t):
+                        return true;
+                    case raw_type_id(const match_t &):
+                        return type_relations::is_convertible_v<const match_t &, real_convert_type>;
+                    case raw_type_id(const match_t &&):
+                        return type_relations::is_convertible_v<const match_t &&, real_convert_type>;
+                    case raw_type_id(const volatile match_t):
+                        return true;
+                    case raw_type_id(const volatile match_t &):
+                        return type_relations::is_convertible_v<const volatile match_t &, real_convert_type>;
+                    case raw_type_id(const volatile match_t &&):
+                        return type_relations::is_convertible_v<const volatile match_t &&, real_convert_type>;
+                    default:
+                        return false;
+                }
             }
         }
     }
@@ -555,6 +562,15 @@ namespace rainy::foundation::ctti {
          */
         RAINY_NODISCARD constexpr rain_fn is_same(annotations::lifetime::in<typeinfo> right) const noexcept -> bool {
             return hash_code() == right.hash_code();
+        }
+
+        /**
+         * @brief 检查两个类型信息是否为void
+         * @param right 另一个类型信息对象
+         * @return 如果类型信息是void，返回true，否则返回false
+         */
+        RAINY_NODISCARD constexpr rain_fn is_void() const noexcept -> bool {
+            return hash_code() == get_type_hash<void>();
         }
 
         /**
@@ -736,5 +752,75 @@ struct std::hash<rainy::foundation::ctti::typeinfo> {
         return val.hash_code();
     }
 };
+
+namespace rainy::foundation::ctti::implements {
+    using converter_func = void *(*) (void *);
+
+    struct conversion_key {
+        std::size_t source_hash;
+        std::size_t target_hash;
+
+        bool operator==(const conversion_key &other) const {
+            return source_hash == other.source_hash && target_hash == other.target_hash;
+        }
+    };
+
+    struct conversion_key_hash {
+        std::size_t operator()(const conversion_key &k) const {
+            return k.source_hash ^ (k.target_hash + 0x9e3779b9 + (k.source_hash << 6) + (k.source_hash >> 2));
+        }
+    };
+
+    using conversion_map_t = std::unordered_map<conversion_key, converter_func, conversion_key_hash>;
+
+    inline conversion_map_t &get_conversion_map() {
+        static conversion_map_t instance;
+        return instance;
+    }
+
+    inline void register_conversion(std::size_t src, std::size_t tgt, converter_func fn) {
+        get_conversion_map().try_emplace(conversion_key{src, tgt}, fn);
+    }
+
+    inline converter_func find_converter(std::size_t src, std::size_t tgt) {
+        auto &map = get_conversion_map();
+        auto it = map.find(conversion_key{src, tgt});
+        if (it != map.end()) {
+            return it->second;
+        }
+        return nullptr;
+    }
+}
+
+namespace rainy::foundation::ctti {
+    template <typename Derived, typename Base>
+    void register_base() {
+        static_assert(type_traits::type_relations::is_base_of_v<Base, Derived>, "Base must be base of Derived");
+        // 派生类 -> 基类
+        implements::register_conversion(typeinfo::get_type_hash<Derived>(), typeinfo::get_type_hash<Base>(),
+                                        [](void *ptr) -> void * { return static_cast<Base *>(static_cast<Derived *>(ptr)); });
+        // 基类 -> 派生类
+        if constexpr (type_traits::type_properties::is_polymorphic_v<Base>) {
+            implements::register_conversion(typeinfo::get_type_hash<Base>(), typeinfo::get_type_hash<Derived>(),
+                                            [](void *ptr) -> void * { return dynamic_cast<Derived *>(static_cast<Base *>(ptr)); });
+        }
+    }
+
+    RAINY_INLINE void *apply_offset(void *ptr, const typeinfo &source, const typeinfo &target) {
+        if (!ptr) {
+            return nullptr;
+        }
+        if (source.hash_code() == target.hash_code()) {
+            return ptr;
+        }
+        auto converter = implements::find_converter(source.hash_code(), target.hash_code());
+        if (converter) {
+            return converter(ptr);
+        }
+        return nullptr;
+    }
+}
+
+#define RAINY_REGISTER_BASE(Derived, Base) ::rainy::foundation::ctti::register_base<Derived, Base>()
 
 #endif

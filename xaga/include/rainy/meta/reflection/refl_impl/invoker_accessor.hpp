@@ -144,11 +144,19 @@ namespace rainy::meta::reflection::implements {
         }
 
         RAINY_NODISCARD utility::any invoke(object_view &object) override {
-#if RAINY_ENABLE_DEBUG
-            utility::expects(object.ctti().is_compatible(rainy_typeid(Class)));
-#endif
             if constexpr (storage_t::arity == 0) {
-                return access_invoke(utility::forward<Fx>(storage.fn), object.get_pointer());
+                if constexpr (type_traits::type_properties::is_polymorphic_v<Class>) {
+                    auto *ptr = object.template try_dynamic_cast<Class>();
+#if RAINY_ENABLE_DEBUG
+                    utility::expects(ptr != nullptr, "Failure to convert the instance to the target pointer type during runtime");
+#endif
+                    return access_invoke(utility::forward<Fx>(storage.fn), ptr);
+                } else {
+#if RAINY_ENABLE_DEBUG
+                    utility::expects(object.ctti().is_compatible(rainy_typeid(Class)) || object.ctti().is_void());
+#endif
+                    return access_invoke(utility::forward<Fx>(storage.fn), object.get_pointer());
+                }
             } else {
                 if constexpr (!type_traits::type_relations::is_same_v<decltype(storage.arguments.store), std::tuple<>>) {
                     return invoke(object, {});
@@ -158,12 +166,21 @@ namespace rainy::meta::reflection::implements {
         }
 
         RAINY_NODISCARD utility::any invoke(object_view &object, arg_view arg_view) override {
-#if RAINY_ENABLE_DEBUG
-            utility::expects(object.ctti().is_compatible(rainy_typeid(Class)));
-#endif
             const std::size_t size = arg_view.size();
             static constexpr std::size_t arity = storage_t::arity;
             static constexpr std::size_t least = arity - storage_t::default_arity;
+            void *ptr = nullptr;
+            if constexpr (type_traits::type_properties::is_polymorphic_v<Class>) {
+                ptr = static_cast<void *>(object.template try_dynamic_cast<Class>());
+#if RAINY_ENABLE_DEBUG
+                utility::expects(ptr != nullptr, "Failure to convert the instance to the target pointer type during runtime");
+#endif
+            } else {
+#if RAINY_ENABLE_DEBUG
+                utility::expects(object.ctti().is_compatible(rainy_typeid(Class)) || object.ctti().is_void());
+#endif
+                ptr = object.get_pointer();
+            }
             if (size == arity) {
                 const std::size_t args_hash =
                     core::accumulate(arg_view.begin(), arg_view.end(), std::size_t{0},
@@ -193,10 +210,10 @@ namespace rainy::meta::reflection::implements {
                   H_new(S) = ∑ i × hash(item_i) 同时保证元素及其顺序的唯一性，改良了H_old(S)
                 */
                 if (args_hash == storage_t::param_hash) {
-                    return storage.invoke_impl(object.get_pointer(), arg_view, type_traits::helper::make_index_sequence<arity>{});
+                    return storage.invoke_impl(ptr, arg_view, type_traits::helper::make_index_sequence<arity>{});
                 } else {
                     // 如果参数一致，我们或许可以尝试转换参数类型来进行fallback处理
-                    return storage.invoke_with_conv_impl(object.get_pointer(), arg_view,
+                    return storage.invoke_with_conv_impl(ptr, arg_view,
                                                          type_traits::helper::make_index_sequence<arity>{});
                 }
             }
@@ -205,7 +222,7 @@ namespace rainy::meta::reflection::implements {
                 return {};
             }
             // 这里可能会涉及默认参数，不过，可能有些参数是需要转换的，因此，这个路径可能会处理需要转换的参数
-            return storage.invoke_with_defaults(object.get_pointer(), arg_view);
+            return storage.invoke_with_defaults(ptr, arg_view);
         }
 
         RAINY_NODISCARD bool is_invocable(

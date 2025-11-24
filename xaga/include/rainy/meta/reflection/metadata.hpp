@@ -11,14 +11,24 @@ namespace rainy::meta::reflection {
 
         metadata(metadata &&right) noexcept : key_{utility::move(right.key_)}, value_{utility::move(right.value_)} {
         }
-        metadata(const metadata & right) : key_{right.key_}, value_{right.value_} {
+        metadata(const metadata &right) : key_{right.key_}, value_{right.value_} {
         }
 
-        template <typename Ty>
-        metadata(std::string_view key, Ty &&value) : key_(key), value_(utility::forward<Ty>(value)) {
+        metadata &operator=(const metadata &) = default;
+        metadata &operator=(metadata &&) = default;
+
+        template <typename Ty1, typename Ty2>
+        metadata(Ty1 &&key, Ty2 &&value) : key_(), value_(utility::forward<Ty2>(value)) {
+            if (type_traits::type_relations::is_same_v<std::string_view, Ty1>) {
+                this->key_.emplace<std::string_view>(utility::forward<Ty1>(key));
+            } else if constexpr (type_traits::type_properties::is_constructible_v<std::string, Ty1>) {
+                this->key_.emplace<std::string>(utility::forward<Ty1>(key));
+            } else {
+                this->key_.emplace<Ty1>(key);
+            }
         }
 
-        RAINY_NODISCARD const std::string_view& key() const noexcept {
+        RAINY_NODISCARD const utility::any &key() const noexcept {
             return key_;
         }
 
@@ -27,7 +37,7 @@ namespace rainy::meta::reflection {
         }
 
     private:
-        std::string_view key_;
+        utility::any key_;
         utility::any value_;
     };
 }

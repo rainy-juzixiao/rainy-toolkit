@@ -362,13 +362,13 @@ namespace rainy::utility {
 
 namespace rainy::utility::implements {
     template <typename Ty, typename = void>
-        static RAINY_CONSTEXPR_BOOL is_proxy_equal_with_noexcept = false;
+    static RAINY_CONSTEXPR_BOOL is_proxy_equal_with_noexcept = false;
 
     template <typename Ty>
-    static RAINY_CONSTEXPR_BOOL
-        is_proxy_equal_with_noexcept<Ty, type_traits::other_trans::void_t<decltype(utility::declval<const Ty &>().proxy_equal_with(
-                                             utility::declval<const Ty &>()))>> =
-            noexcept(utility::declval<const Ty &>().proxy_equal_with(utility::declval<const Ty &>()));
+    static RAINY_CONSTEXPR_BOOL is_proxy_equal_with_noexcept<
+        Ty, type_traits::other_trans::void_t<decltype(utility::declval<const Ty &>().proxy_equal_with_helper(
+                utility::declval<const Ty &>()))>> =
+        noexcept(utility::declval<const Ty &>().proxy_equal_with_helper(utility::declval<const Ty &>()));
 }
 
 namespace rainy::utility {
@@ -435,7 +435,7 @@ namespace rainy::utility {
 
         friend RAINY_CONSTEXPR20 bool operator==(const bidirectional_iterator &left, const bidirectional_iterator &right) noexcept(
             implements::is_proxy_equal_with_noexcept<bidirectional_iterator>) {
-            return left.proxy_equal_with(right);
+            return left.proxy_equal_with_helper(right);
         }
 
         friend RAINY_CONSTEXPR20 bool operator!=(const bidirectional_iterator &left,
@@ -443,9 +443,7 @@ namespace rainy::utility {
             return !(left == right);
         }
 
-    private:
-
-        RAINY_CONSTEXPR20 bool proxy_equal_with(const bidirectional_iterator &right) const noexcept(
+        RAINY_CONSTEXPR20 bool proxy_equal_with_helper(const bidirectional_iterator &right) const noexcept(
             noexcept(static_cast<const implement_type *>(this)->equal_with_impl(static_cast<const implement_type &>(right)))) {
             return static_cast<const implement_type *>(this)->equal_with_impl(static_cast<const implement_type &>(right));
         }

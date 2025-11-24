@@ -655,16 +655,40 @@ namespace rainy::core::builtin {
 
     template <template <typename U, U...> typename Struct, typename Ty, Ty N>
     struct make_integer_seq {
-        template <Ty... Is>
-        static constexpr auto make_seq() {
-            if constexpr (sizeof...(Is) == N) {
-                return Struct<Ty, Is...>{};
-            } else {
-                return make_seq<Is..., sizeof...(Is)>();
-            }
-        }
+    private:
+        template <typename Seq1, typename Seq2, Ty Offset>
+        struct concat_impl;
 
-        using type = decltype(make_seq<>());
+        template <Ty... Is1, Ty... Is2, Ty Offset>
+        struct concat_impl<Struct<Ty, Is1...>, Struct<Ty, Is2...>, Offset> {
+            using type = Struct<Ty, Is1..., (Offset + Is2)...>;
+        };
+
+        template <Ty Count, typename = void>
+        struct gen {
+            static constexpr Ty Half = Count / 2;
+            using half_seq = typename gen<Half>::type;
+            using type = typename concat_impl<half_seq, half_seq, Half > ::type;
+        };
+
+        template <Ty Count>
+        struct gen<Count, type_traits::other_trans::enable_if_t<(Count > 1) && (Count % 2 == 1)>> {
+            using prev_seq = typename gen<Count - 1>::type;
+            using type = typename concat_impl<prev_seq, Struct<Ty, 0>, Count - 1 > ::type;
+        };
+
+        template <Ty Count>
+        struct gen<Count, type_traits::other_trans::enable_if_t<Count == 0>> {
+            using type = Struct<Ty>;
+        };
+
+        template <Ty Count>
+        struct gen<Count, type_traits::other_trans::enable_if_t<Count == 1>> {
+            using type = Struct<Ty, 0>;
+        };
+
+    public:
+        using type = typename gen<N>::type;
     };
 
     template <typename Type>

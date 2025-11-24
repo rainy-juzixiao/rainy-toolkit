@@ -64,9 +64,9 @@ namespace rainy::foundation::functional::implements {
                 }
             } else {
                 if constexpr (type_traits::type_relations::is_void_v<return_type>) {
-                    utility::invoke(this->pointer_, static_cast<class_t *>(object), utility::forward<UArgs>(args)...);
+                    utility::invoke(pointer, static_cast<class_t *>(object), utility::forward<UArgs>(args)...);
                 } else {
-                    return utility::invoke(this->pointer_, static_cast<class_t *>(object), utility::forward<UArgs>(args)...);
+                    return utility::invoke(pointer, static_cast<class_t *>(object), utility::forward<UArgs>(args)...);
                 }
             }
         }
@@ -94,55 +94,55 @@ namespace rainy::foundation::functional::implements {
             int>;
 
         template <typename UTy>
-        constexpr void assign_impl_(UTy &&right) noexcept {
+        constexpr rain_fn assign_impl_(UTy &&right) noexcept -> void {
             this->pointer_ = right;
         }
 
         template <typename Self>
-        constexpr void construct_impl_(Self &&right) noexcept {
+        constexpr rain_fn construct_impl_(Self &&right) noexcept -> void {
             this->pointer_ = right.pointer_;
         }
 
-        constexpr void reset() noexcept {
+        constexpr rain_fn reset() noexcept -> void {
             this->pointer_ = nullptr;
         }
 
-        constexpr void rebind(function_pointer_impl &&right) {
+        constexpr rain_fn rebind(annotations::lifetime::move_from<function_pointer_impl> right) -> void {
             reset();
             move_from_other(right);
             right.reset();
         }
 
-        constexpr void rebind(const function_pointer_impl &right) {
+        constexpr rain_fn rebind(annotations::lifetime::read_only<function_pointer_impl> right) -> void {
             reset();
             copy_from_other(right);
         }
 
-        template <typename UFx, typename enable_if_callable_t<UFx, function_pointer<Fx>> = 0>
-        constexpr void rebind(UFx &&pointer) {
+        template <typename UFx, enable_if_callable_t<UFx, function_pointer<Fx>> = 0>
+        constexpr rain_fn rebind(UFx &&pointer) -> void {
             this->pointer_ = pointer;
         }
 
-        constexpr void move_from_other(function_pointer_impl &&right) noexcept {
+        constexpr rain_fn move_from_other(annotations::lifetime::move_from<function_pointer_impl> right) noexcept -> void {
             if (this == utility::addressof(right)) {
                 return;
             }
             this->pointer_ = right.pointer_;
         }
 
-        constexpr void copy_from_other(const function_pointer_impl &right) {
+        constexpr rain_fn copy_from_other(annotations::lifetime::read_only<function_pointer_impl> right) -> void {
             if (this == utility::addressof(right)) {
                 return;
             }
             this->pointer_ = right.pointer_;
         }
 
-        constexpr method_flags type() const noexcept {
-            static constexpr method_flags flags = core::deduction_invoker_type<Fx, Args...>();
+        constexpr rain_fn type() const noexcept -> method_flags {
+            constexpr method_flags flags = core::deduction_invoker_type<Fx, Args...>();
             return flags;
         }
 
-        constexpr const foundation::ctti::typeinfo &target_type() const noexcept {
+        constexpr rain_fn target_type() const noexcept -> annotations::lifetime::static_read_only<foundation::ctti::typeinfo> {
             return rainy_typeid(Fx);
         }
 
@@ -150,18 +150,18 @@ namespace rainy::foundation::functional::implements {
          * @brief 检查当前invoker是否为空指针
          * @return 如果指针为空，则为true，反之false
          */
-        constexpr bool empty() const noexcept {
+        constexpr rain_fn empty() const noexcept -> bool {
             return !static_cast<bool>(this->pointer_);
         }
 
-        constexpr pointer get() const noexcept {
+        constexpr rain_fn get() const noexcept -> pointer {
             return this->pointer_;
         }
 
-        template <typename Class, typename UFx = pointer,
+        template <typename Clazz, typename UFx = pointer,
                   type_traits::other_trans::enable_if_t<
                       type_traits::type_properties::is_invocable_r_v<result_type, UFx, Class, Args...> && is_member_function, int> = 0>
-        constexpr result_type invoke(Class &&object, Args... args) const {
+        constexpr rain_fn invoke(Clazz &&object, Args... args) const -> result_type {
             if (empty()) {
                 foundation::exceptions::runtime::throw_nullpointer_exception();
             }
@@ -175,11 +175,11 @@ namespace rainy::foundation::functional::implements {
         }
 
         template <
-            typename Class, typename UFx = function_type, typename... UArgs,
+            typename Clazz, typename UFx = function_type, typename... UArgs,
             type_traits::other_trans::enable_if_t<type_traits::type_properties::is_invocable_r_v<result_type, UFx, Class, Args...> &&
                                                       is_variadic && is_member_function,
                                                   int> = 0>
-        constexpr result_type invoke_variadic(Class &&object, Args... args, UArgs &&...variadic_args) const {
+        constexpr rain_fn invoke_variadic(Clazz &&object, Args... args, UArgs &&...variadic_args) const -> result_type {
             if (empty()) {
                 foundation::exceptions::runtime::throw_nullpointer_exception();
             }
@@ -192,27 +192,27 @@ namespace rainy::foundation::functional::implements {
             }
         }
 
-        template <typename Class, typename UFx = function_type,
+        template <typename Clazz, typename UFx = function_type,
                   type_traits::other_trans::enable_if_t<
                       type_traits::type_properties::is_invocable_r_v<result_type, UFx, Class, Args...> && is_member_function, int> = 0>
-        constexpr result_type operator()(Class &&object, Args... args) const {
-            return invoke(utility::forward<Class>(object), utility::forward<Args>(args)...);
+        constexpr rain_fn operator()(Clazz &&object, Args... args) const -> result_type {
+            return invoke(utility::forward<Clazz>(object), utility::forward<Args>(args)...);
         }
 
         template <
-            typename Class, typename UFx = function_type, typename... UArgs,
+            typename Clazz, typename UFx = function_type, typename... UArgs,
             type_traits::other_trans::enable_if_t<type_traits::type_properties::is_invocable_r_v<result_type, UFx, Class, Args...> &&
                                                       is_member_function && is_variadic,
                                                   int> = 0>
-        constexpr result_type operator()(Class &&object, Args... args, UArgs &&...variadic_args) const {
-            return invoke_variadic(utility::forward<Class>(object), utility::forward<Args>(args)...,
+        constexpr rain_fn operator()(Clazz &&object, Args... args, UArgs &&...variadic_args) const->result_type {
+            return invoke_variadic(utility::forward<Clazz>(object), utility::forward<Args>(args)...,
                                    utility::forward<UArgs>(variadic_args)...);
         }
 
         template <
             typename UFx = function_type,
             type_traits::other_trans::enable_if_t<type_traits::type_properties::is_invocable_r_v<result_type, UFx, Args...>, int> = 0>
-        constexpr result_type invoke(Args... args) const {
+        constexpr rain_fn invoke(Args... args) const -> result_type {
             if (empty()) {
                 foundation::exceptions::runtime::throw_nullpointer_exception();
             }
@@ -228,7 +228,7 @@ namespace rainy::foundation::functional::implements {
                       type_traits::type_properties::is_invocable_r_v<result_type, UFx, Args..., UArgs...> && is_variadic &&
                           !is_member_function,
                       int> = 0>
-        constexpr result_type invoke_variadic(Args... args, UArgs &&...variadic_args) const {
+        constexpr rain_fn invoke_variadic(Args... args, UArgs &&...variadic_args) const -> result_type {
             if (empty()) {
                 foundation::exceptions::runtime::throw_nullpointer_exception();
             }
@@ -244,7 +244,7 @@ namespace rainy::foundation::functional::implements {
         template <
             typename UFx = function_type,
             type_traits::other_trans::enable_if_t<type_traits::type_properties::is_invocable_r_v<result_type, UFx, Args...>, int> = 0>
-        constexpr result_type operator()(Args... args) const {
+        constexpr rain_fn operator()(Args... args) const->result_type {
             if constexpr (type_traits::type_relations::is_void_v<result_type>) {
                 invoke(utility::forward<Args>(args)...);
             } else {
@@ -255,22 +255,12 @@ namespace rainy::foundation::functional::implements {
         template <typename UFx = function_type, typename... UArgs,
                   type_traits::other_trans::enable_if_t<
                       type_traits::type_properties::is_invocable_r_v<result_type, UFx, Args...> && is_variadic, int> = 0>
-        constexpr result_type operator()(Args... args, UArgs &&...variadic_args) const {
+        constexpr rain_fn operator()(Args... args, UArgs &&...variadic_args) const->result_type {
             if constexpr (type_traits::type_relations::is_void_v<result_type>) {
                 invoke_variadic(utility::forward<Args>(args)..., utility::forward<UArgs>(variadic_args)...);
             } else {
                 return invoke_variadic(utility::forward<Args>(args)..., utility::forward<UArgs>(variadic_args)...);
             }
-        }
-
-        /**
-         * @brief 将当前函数指针对象转换为另一种函数指针对象类型（确保类型安全）
-         * @tparam Fx 目标函数指针签名类型（必须与当前函数指针签名类型保持兼容性）
-         * @return 目标函数指针对象
-         */
-        template <typename UFx, type_traits::other_trans::enable_if_t<type_traits::type_properties::is_invocable_r_v<Rx,UFx,Args...>, int> = 0>
-        constexpr function_pointer<UFx> cast() noexcept {
-            return function_pointer<UFx>(this->pointer_);
         }
 
         pointer pointer_;
@@ -339,7 +329,6 @@ namespace rainy::foundation::functional {
         using base::invoke;
         using base::invoke_variadic;
         using base::reset;
-        using base::cast;
     };
 
     template <typename Fx>

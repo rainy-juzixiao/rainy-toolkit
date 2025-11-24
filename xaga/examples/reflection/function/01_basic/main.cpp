@@ -4,9 +4,11 @@
 #include <rainy/utility/any.hpp>
 #include <rainy/collections/inplace_vector.hpp>
 #include <rainy/collections/string.hpp>
-#include <rainy/collections/views/views_interface.hpp>
-#include <rainy/collections/views/transform_view.hpp>
-#include <rainy/foundation/container/optional.hpp>
+#include <rainy/meta/reflection/metadata.hpp>
+#include <rainy/meta/reflection/function.hpp>
+#include <rainy/meta/reflection/type.hpp>
+#include <rainy/meta/reflection/registration.hpp>
+#include <rttr/registration.h>
 #include <ranges>
 
 using namespace rainy;
@@ -23,13 +25,7 @@ struct mypair {
     std::string_view data2{};
 };
 
-constexpr auto test1() {
-    foundation::container::optional<std::string_view> v = "hello world";
-    foundation::container::optional<std::string_view> v2;
-    return v2.value_or("SB");
-}
-
-int funccc(int count, ...) {
+int funccc(std::string_view count, ...) {
     va_list args{};
     va_start(args, count);
     int tmp = va_arg(args, int);
@@ -37,17 +33,106 @@ int funccc(int count, ...) {
     return 42 + tmp;
 }
 
-int main() {
-    foundation::functional::function_pointer fp = &funccc;
-    std::cout << fp.invoke_variadic(1, 100) << '\n';
-    fp.cast<int(int)>();
-    {
-        std::optional<std::string_view> v = "hello world";
-        std::optional<std::string_view> v2(v);
+class mybase1 {
+public:
+    void print_mybase1() {
+        std::cout << "mybase1\n";
     }
-    constexpr auto vec = test1();
-    
-    std::vector<int> cont{1,2,3,4,5,6,7};
+
+    virtual void virtual_fun() {
+        std::cout << "this is mybase1\n";
+    }
+};
+
+class mybase2 : virtual public mybase1 {
+public:
+    void print_mybase2() {
+        std::cout << "mybase1\n";
+    }
+
+    void virtual_fun() override {
+        std::cout << "this is mybase2\n";
+    }
+};
+
+class myclass : virtual public mybase2 {
+public:
+    myclass() {
+    }
+
+    myclass(int value) {
+        this->field = value;
+    }
+
+    void print_field(int value) {
+        std::cout << field + value << '\n';
+    }
+
+    void virtual_fun() override {
+        std::cout << "this is myclass\n";
+    }
+
+private:
+    int field{0};
+};
+
+RAINY_REFLECTION_REGISTRATION {
+    // clang-format off
+    meta::reflection::registration::class_<myclass>("myclass")
+        .constructor<>()
+        .constructor<int>()
+        (
+            meta::reflection::metadata("prop", "ctor")
+        )
+        .method("print_field", &myclass::print_field)
+        (
+            meta::reflection::metadata("prop", "print"),
+            meta::reflection::default_arguments(50)
+        )
+        .method("virtual_fun", &myclass::virtual_fun)
+        .base<mybase1>("mybase1");
+
+    meta::reflection::registration::class_<mybase1>("mybase1")
+        .method("print_mybase1", &mybase1::print_mybase1)
+        .method("virtual_fun", &mybase1::virtual_fun);
+
+    meta::reflection::registration::class_<mybase2>("mybase2")
+        .method("print_mybase2", &mybase2::print_mybase2)
+        .method("virtual_fun", &mybase1::virtual_fun);
+    // clang-format on
+}
+
+int main() {
+    {
+        auto type = meta::reflection::type::get_by_name("myclass");
+        auto type1 = meta::reflection::type::get_by_name("mybase1");
+        myclass object = 50;
+        auto &func = type.get_method("print_field");
+        func.invoke(object);
+        func.invoke(object, 50);
+        std::cout << func.name() << '\n';
+        std::cout << func.get_metadata("prop").value() << '\n';
+        auto &ctor = type.get_construtor({rainy_typeid(int)});
+        std::cout << ctor.name() << '\n';
+        for (const auto &bases: type.bases()) {
+            std::cout << bases.second.get_name() << '\n';
+            for (const auto &item: bases.second.get_methods()) {
+                std::cout << item << '\n';
+            }
+        }
+        std::cout << type.get_method("print_mybase1") << '\n';
+        std::cout << type.get_method("print_mybase2") << '\n';
+        std::cout << "is_base_of " << type.is_base_of(type1) << '\n';
+        std::cout << "is_derived_of " << type1.is_derived_from(type) << '\n';
+        {
+            const auto &vmeth = type.get_method("virtual_fun");
+            vmeth.invoke(object);
+        }
+        {
+            const auto &vmeth = type1.get_method("virtual_fun");
+            vmeth.invoke(object);
+        }
+    }
     any a = 10;
     std::cout << std::as_const(a).as_lvalue_reference().type().name() << '\n';
     std::cout << std::as_const(a).as_rvalue_reference().type().name() << '\n';

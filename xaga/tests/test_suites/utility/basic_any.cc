@@ -255,7 +255,7 @@ SCENARIO("[construct]", test_tag) {
             GIVEN("a corrupt_variable") {
                 any corrupt_variable{};
                 THEN("it should be throw std::runtime_error") {
-                    REQUIRE_THROWS_MATCHES((construct_in_place(corrupt_variable, could_corrupt_variable), false), std::runtime_error,
+                    REQUIRE_THROWS_MATCHES((corrupt_variable = could_corrupt_variable, false), std::runtime_error,
                                            Catch::Matchers::Message("This is a copy error"));
                     REQUIRE_FALSE(corrupt_variable.has_value());
                 }
@@ -265,7 +265,7 @@ SCENARIO("[construct]", test_tag) {
             GIVEN("a corrupt_variable") {
                 any corrupt_variable;
                 THEN("it should be throw std::runtime_error") {
-                    REQUIRE_THROWS_MATCHES((construct_in_place(corrupt_variable, std::in_place_type<error_construct_type>), false),
+                    REQUIRE_THROWS_MATCHES((corrupt_variable.emplace<error_construct_type>(), false),
                                            std::runtime_error, Catch::Matchers::Message("This is a error"));
                     REQUIRE_FALSE(corrupt_variable.has_value());
                 }

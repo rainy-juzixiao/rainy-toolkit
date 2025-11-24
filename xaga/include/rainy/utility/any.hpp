@@ -1052,6 +1052,60 @@ namespace rainy::utility {
             return false;
         }
     };
+
+    template <typename CharType, typename Traits>
+    struct any_converter<std::basic_string<CharType, Traits>> {
+        using target_type = std::basic_string<CharType, Traits>;
+
+        static target_type basic_convert(const void *target_pointer, const foundation::ctti::typeinfo &type) {
+            using namespace foundation::ctti;
+            using namespace foundation::exceptions::cast;
+            using const_pointer = const CharType *;
+            using pointer = CharType *;
+            using pointer_to_const = const CharType *const;
+            using same_type = std::basic_string<CharType, Traits>;
+            using same_type_with_const = const std::basic_string<CharType, Traits>;
+            using basic_string_view_t = std::basic_string_view<CharType, Traits>;
+            using const_basic_string_view_t = const std::basic_string_view<CharType, Traits>;
+            switch (type.remove_reference().hash_code()) {
+                case rainy_typehash(const_pointer):
+                case rainy_typehash(pointer):
+                case rainy_typehash(pointer_to_const):
+                    // return target_type{static_cast<const_pointer>(target_pointer)}; [[deprecated]]
+                    return *static_cast<const const_pointer *>(target_pointer);
+                case rainy_typehash(same_type):
+                case rainy_typehash(same_type_with_const):
+                    return *static_cast<const target_type *>(target_pointer);
+                case rainy_typehash(basic_string_view_t):
+                    RAINY_FALLTHROUGH;
+                case rainy_typehash(const_basic_string_view_t): {
+                    const basic_string_view_t &str = *static_cast<const basic_string_view_t *>(target_pointer);
+                    return {str.data(), str.size()};
+                }
+                default:
+                    break;
+            }
+            throw_bad_any_cast();
+            std::terminate();
+        }
+
+        static bool is_convertible(const foundation::ctti::typeinfo &type) {
+            using namespace foundation::ctti;
+            switch (type.remove_reference().hash_code()) {
+                case rainy_typehash(const CharType *):
+                case rainy_typehash(CharType *):
+                case rainy_typehash(const CharType *const):
+                case rainy_typehash(std::basic_string_view<CharType>):
+                case rainy_typehash(std::basic_string<CharType>):
+                case rainy_typehash(const std::basic_string_view<CharType>):
+                case rainy_typehash(const std::basic_string<CharType>):
+                    return true;
+                default:
+                    break;
+            }
+            return false;
+        }
+    };
 }
 
 namespace std { // NOLINT

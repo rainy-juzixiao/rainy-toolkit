@@ -1,15 +1,36 @@
+/*
+ * Copyright 2025 rainy-juzixiao
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 #ifndef RAINY_META_REFLECTION_TYPE_HPP
 #define RAINY_META_REFLECTION_TYPE_HPP
 #include <rainy/collections/string.hpp>
 #include <rainy/foundation/typeinfo.hpp>
 #include <rainy/meta/reflection/function.hpp>
 #include <rainy/meta/reflection/property.hpp>
+#include <rainy/foundation/pal/threading.hpp>
+#include <rainy/utility/iterator.hpp>
 #include <unordered_map>
+
+namespace rainy::meta::reflection {
+    class type;
+}
 
 namespace rainy::meta::reflection::implements {
     using method_storage_t = std::unordered_multimap<std::string_view, method>;
     using property_storage_t = std::unordered_map<std::string_view, property>;
-    using ctor_storage_t = std::unordered_multimap<std::string_view, method>;
+    using ctor_storage_t = std::vector<constructor>;
 }
 
 namespace rainy::meta::reflection::implements {
@@ -25,11 +46,17 @@ namespace rainy::meta::reflection::implements {
         }
     };
 
-    class dyn_typeinfo {
+    class dyn_typeinfo final : public foundation::ctti::typeinfo {
     public:
+        using base = foundation::ctti::typeinfo;
+
+        template <typename Ty>
+        dyn_typeinfo(std::in_place_type_t<Ty>) : base{base::create<Ty>()} {
+        }
+
         template <typename Ty>
         static dyn_typeinfo create() noexcept {
-            dyn_typeinfo info;
+            dyn_typeinfo info{std::in_place_type<Ty>};
             if constexpr (type_traits::type_relations::is_void_v<Ty>) {
                 info.sizeof_ = 0;
             } else {
@@ -39,16 +66,11 @@ namespace rainy::meta::reflection::implements {
                 info.template_arguemnts_ = template_argument_generater<
                     typename type_traits::primary_types::template_traits<type_traits::cv_modify::remove_cvref_t<Ty>>::types>::get();
             }
-            info.type_ = foundation::ctti::typeinfo::create<Ty>();
             return info;
         }
 
         RAINY_NODISCARD std::size_t get_sizeof() const noexcept {
             return sizeof_;
-        }
-
-        RAINY_NODISCARD const foundation::ctti::typeinfo& typeinfo() const noexcept {
-            return type_;
         }
 
         RAINY_NODISCARD collections::views::array_view<foundation::ctti::typeinfo> template_arguemnts() const noexcept {
@@ -59,7 +81,6 @@ namespace rainy::meta::reflection::implements {
         dyn_typeinfo() noexcept = default;
 
         collections::views::array_view<foundation::ctti::typeinfo> template_arguemnts_;
-        foundation::ctti::typeinfo type_;
         std::size_t sizeof_{0};
     };
 }
@@ -70,7 +91,7 @@ namespace rainy::meta::reflection::implements {
         /* 类型名称标记 */
         RAINY_NODISCARD virtual std::string_view name() const noexcept = 0;
         /* 类型信息 */
-        virtual dyn_typeinfo &type() noexcept = 0;
+        virtual dyn_typeinfo &typeinfo() noexcept = 0;
         /* 方法、静态方法、重载运算符 */
         virtual method_storage_t &methods() noexcept = 0;
         /* 构造函数集合 */
@@ -78,14 +99,363 @@ namespace rainy::meta::reflection::implements {
         /* 属性、静态属性 */
         virtual std::unordered_map<std::string_view, property> &properties() noexcept = 0;
         /* 基类集合 */
-        virtual std::unordered_map<std::string_view, type_accessor *> &bases() noexcept = 0;
+        virtual std::unordered_map<std::string_view, type> &bases() noexcept = 0;
         /* 派生类集合，用于未来设计dynamic_cast */
-        virtual std::unordered_map<std::string_view, type_accessor *> &deriveds() noexcept = 0;
+        virtual std::unordered_map<std::string_view, type> &deriveds() noexcept = 0;
         // 基类/派生类返回的是一张表，其中的指针指向位于反射系统内部的实例（其实是静态示例）
         // const在此部分非一等公民，由面向用户的接口进行const属性添加
         // 不考虑过多性能
     };
+}
 
+namespace rainy::meta::reflection::implements {
+    class register_table {
+    public:
+        template <typename Type>
+        static void register_type(std::string_view name, type_accessor *type) {
+            auto *this_ = &instance();
+            constexpr auto ctti = foundation::ctti::typeinfo::create<Type>();
+            // 从此处开始，进入同步块
+            foundation::pal::threading::create_synchronized_task(this_->lock, [this_, &ctti, &type, name]() {
+#if RAINY_HAS_CXX20
+                if (!this_->data.contains(ctti))
+#else
+                if (this_->data.find(ctti) == this_->data.end())
+#endif
+                {
+                    auto [iter, success] = this_->data.emplace(ctti, type);
+                    utility::ensures(success, "Cannot register type.");
+                    this_->index.emplace(name, ctti);
+                    (void) iter;
+                }
+            });
+            // 同步结束
+        }
+
+        template <typename Type>
+        static type_accessor *get_accessor() {
+            auto *this_ = &instance();
+            if (auto iter = this_->data.find(rainy_typeid(Type)); iter != this_->data.end()) {
+                return iter->second;
+            }
+            return nullptr;
+        }
+
+        RAINY_TOOLKIT_API static void unregister(std::string_view name, foundation::ctti::typeinfo ctti);
+
+        static type_accessor *get_accessor_by_name(std::string_view name);
+
+        template <typename Type>
+        static bool has_register() noexcept {
+            auto *this_ = &instance();
+            return this_->data.find(rainy_typeid(Type)) != this_->data.end();
+        }
+
+    private:
+        RAINY_TOOLKIT_API static register_table &instance();
+
+        std::unordered_map<std::string_view, foundation::ctti::typeinfo> index;
+        std::unordered_map<foundation::ctti::typeinfo, type_accessor *> data;
+        std::mutex lock;
+    };
+}
+
+namespace rainy::meta::reflection::implements {
+    class injector {
+    public:
+        template <typename Type>
+        static void register_type(std::string_view name, type_accessor *type) {
+            register_table::register_type<Type>(name, type);
+            auto *this_ = &instance();
+            constexpr auto ctti = foundation::ctti::typeinfo::create<Type>();
+            std::lock_guard<std::mutex> guard(this_->lock);
+            this_->registered.emplace_back(registration_entry{name, ctti});
+        }
+
+        static void unregister_all() {
+            auto *this_ = &instance();
+            std::lock_guard<std::mutex> guard(this_->lock);
+            for (const auto &entry: this_->registered) {
+                register_table::unregister(entry.name, entry.ctti);
+            }
+            this_->registered.clear();
+        }
+
+    private:
+        struct registration_entry {
+            std::string_view name;
+            foundation::ctti::typeinfo ctti;
+        };
+
+        static injector &instance() {
+            static injector inst;
+            return inst;
+        }
+
+        std::mutex lock;
+        std::vector<registration_entry> registered;
+    };
+}
+
+namespace rainy::meta::reflection {
+    /**
+     * @brief 用于反射的类型
+     * @attention 若需要使用，请确保类型已被注册
+     * @remarks type对象是轻量级的，可以按值传递
+     */
+    class RAINY_TOOLKIT_API type {
+    public:
+        using type_id = std::size_t;
+        using methods_view_t = utility::sub_range<utility::map_mapped_iterator<implements::method_storage_t>>;
+        using property_view_t = utility::sub_range<utility::map_mapped_iterator<implements::property_storage_t>>;
+        using constcutor_view_t = collections::views::array_view<constructor>;
+
+        type() noexcept = default;
+
+        /**
+         * @brief 从Ty类型获取对应的反射类型对象
+         * @tparam Type 要获取反射类型的类型
+         * @return 返回对应的反射类型对象
+         */
+        template <typename Type>
+        static type get() noexcept {
+            type instance{};
+            instance.accessor = implements::register_table::get_accessor<Type>();
+            return instance;
+        }
+
+        /**
+         * @brief 从类型名称获取对应的反射类型对象
+         * @param name 要获取反射类型的类型名称
+         * @return 返回对应的反射类型对象
+         */
+        static type get_by_name(std::string_view name) noexcept;
+
+        /**
+         * @brief 从类型信息获取对应的反射类型对象
+         * @param typeinfo 要获取反射类型的类型信息
+         * @return 返回对应的反射类型对象
+         */
+        RAINY_NODISCARD std::string_view get_name() const noexcept;
+
+        /**
+         * @brief 获取类型的唯一标识符
+         * @return 返回类型的唯一标识符
+         */
+        RAINY_NODISCARD type_id get_id() const noexcept;
+
+        /**
+         * @brief 获取对应类型的大小
+         * @return 返回对应类型的大小
+         */
+        RAINY_NODISCARD std::size_t get_sizeof() const noexcept;
+
+        /**
+         * @brief 获取模板参数列表
+         * @return 返回对应模板参数列表
+         */
+        RAINY_NODISCARD collections::views::array_view<foundation::ctti::typeinfo> get_template_arguments() const noexcept;
+
+        /**
+         * @brief 根据名称，获取指定的方法反射对象
+         * @param name 要获取的方法名称
+         * @return 如果找到对应的方法，返回方法反射对象的常量引用，否则返回一个无效的空对象引用
+         */
+        RAINY_NODISCARD const method &get_method(const std::string_view name) const noexcept;
+
+        /**
+         * @brief 根据名称和参数列表，获取指定的方法反射对象
+         * @param name 要获取的方法名称
+         * @param overload_version_paramlist 要获取的方法的筛选参数类型列表 
+         * @param filter_item 筛选的flag项
+         * @return 如果找到对应的方法，返回方法反射对象的常量引用，否则返回一个无效的空对象引用
+         */
+        RAINY_NODISCARD const method &get_method(
+            const std::string_view name, const collections::views::array_view<foundation::ctti::typeinfo> overload_version_paramlist,
+            const method_flags filter_item = method_flags::none) const noexcept;
+
+        /**
+         * @brief 获取类型的所有方法反射对象
+         * @return 返回类型的所有方法反射对象的视图
+         */
+        RAINY_NODISCARD methods_view_t get_methods() const;
+
+        /**
+         * @brief 获取类型的指定名称的属性反射对象
+         * @param name 要获取的属性名称
+         * @return 如果找到对应的属性，返回属性反射对象的常量引用，否则返回一个无效的空对象引用
+         */
+        RAINY_NODISCARD const property &get_property(const std::string_view name) const noexcept;
+
+        /**
+         * @brief 获取类型的所有属性反射对象
+         * @return name 返回类型的所有属性反射对象的视图
+         */
+        RAINY_NODISCARD property_view_t get_properties() const noexcept;
+
+        /**
+         * @brief 获取类型的所有构造函数反射对象
+         * @return 返回类型的所有构造函数反射对象的视图
+         */
+        RAINY_NODISCARD type::constcutor_view_t get_construtors() const noexcept;
+
+        /**
+         * @brief 根据参数列表，获取指定的构造函数反射对象
+         * @param overload_version_paramlist 
+         * @return 如果找到对应的构造函数，返回构造函数反射对象的常量引用，否则返回一个无效的空对象引用
+         */
+        RAINY_NODISCARD const constructor &get_construtor(
+            const collections::views::array_view<foundation::ctti::typeinfo> overload_version_paramlist) const noexcept;
+        
+        /**
+         * @brief 根据名称，获取基类反射类型对象
+         * @return 返回类型的所有基类反射类型对象的映射表
+         */
+        const std::unordered_map<std::string_view, type> &get_base_classes() noexcept;
+
+        /**
+         * @brief 判断当前类型是否为指定类型的基类
+         * @param typeinfo 类型信息对象
+         * @attention typeinfo必须是已注册类型的信息，且已绑定到继承树，否则将始终返回false
+         * @return 如果是基类，返回true，否则返回false
+         */
+        bool is_base_of(annotations::lifetime::in<foundation::ctti::typeinfo> typeinfo) const noexcept;
+
+        /**
+         * @brief 判断当前类型是否为指定类型的基类
+         * @param type 反射类型信息对象
+         * @return 如果是基类，返回true，否则返回false
+         */
+        bool is_base_of(annotations::lifetime::in<type> type) const noexcept;
+        
+        /**
+         * @brief 判断当前类型是否为指定类型的基类
+         * @tparam Type 要测试的类型
+         * @return 如果是基类，返回true，否则返回false
+         */
+        template <typename Type>
+        bool is_base_of() const noexcept {
+            return is_base_of(rainy_typeid(Type));
+        }
+    
+        /**
+         * @brief 判断当前类型是否为指定类型的派生类
+         * @param typeinfo 类型信息对象
+         * @attention typeinfo必须是已注册类型的信息，且已绑定到继承树，否则将始终返回false
+         * @return 如果是派生类，返回true，否则返回false
+         */
+        bool is_derived_from(annotations::lifetime::in<foundation::ctti::typeinfo> typeinfo) const noexcept;
+        
+        /**
+         * @brief 判断当前类型是否为指定类型的派生类
+         * @param type 反射类型信息对象
+         * @return 如果是派生类，返回true，否则返回false
+         */
+        bool is_derived_from(annotations::lifetime::in<type> type) const noexcept;
+
+        /**
+         * @brief 判断当前类型是否为指定类型的派生类
+         * @tparam Type 要测试的类型
+         * @return 如果是派生类，返回true，否则返回false
+         */
+        template <typename Type>
+        bool is_derived_from() const noexcept {
+            return is_derived_from(rainy_typeid(Type));
+        }
+
+        /**
+         * @brief 获取类型信息对象
+         * @return 返回类型信息对象的常量引用
+         */
+        RAINY_NODISCARD const foundation::ctti::typeinfo &get_typeinfo() noexcept;
+
+        /**
+         * @brief 检查是否包含指定名称的方法
+         * @param name 要检查的方法名称
+         * @return 如果包含该方法，返回true，否则返回false
+         */
+        bool has_method(std::string_view name) const noexcept;
+
+        /**
+         * @brief 检查是否包含指定名称的属性
+         * @param name 要检查的属性名称
+         * @return 如果包含该属性，返回true，否则返回false
+         */
+        bool has_property(std::string_view name) const noexcept;
+
+        template <typename... Args>
+        utility::any create(Args &&...args) const {
+            for (const auto &item: accessor->ctors()) {
+                const function &cur_ctor = item;
+                bool invocable{};
+                constexpr bool has_dynamic =
+                    type_traits::type_relations::is_any_of_v<utility::any, type_traits::other_trans::decay_t<Args>...> ||
+                    type_traits::type_relations::is_any_of_v<object_view, type_traits::other_trans::decay_t<Args>...>;
+                if constexpr (has_dynamic) {
+                    invocable = cur_ctor.is_invocable_with(utility::forward<Args>(args)...);
+                } else {
+                    static implements::make_nondynamic_paramlist<Args...> paramlist;
+                    invocable = cur_ctor.is_invocable(paramlist.get());
+                }
+                if (invocable) {
+                    return cur_ctor.static_invoke(utility::forward<Args>(args)...);
+                }
+            }
+            return {};
+        }
+
+        /**
+         * @brief 检查当前反射类型对象是否有效
+         * @return 如果有效，返回true，否则返回false
+         */
+        RAINY_NODISCARD bool is_valid() const noexcept;
+
+        template <typename... Args>
+        utility::any invoke_method(std::string_view name, object_view instance, Args &&...args) const {
+            using namespace foundation::ctti;
+            auto flag = method_flags::none;
+            if (instance.ctti().has_traits(traits::is_const)) {
+                flag = flag | method_flags::const_qualified;
+            }
+            if (instance.ctti().has_traits(traits::is_volatile)) {
+                flag = flag | method_flags::volatile_qualified;
+            }
+            if (instance.ctti().has_traits(traits::is_rref)) {
+                flag = flag | method_flags::rvalue_qualified;
+            }
+            return invoke_method(flag, name, instance, utility::forward<Args>(args)...);
+        }
+
+        template <typename... Args>
+        utility::any invoke_method(method_flags flag, std::string_view name, object_view instance, Args &&...args) const {
+            using namespace type_traits::other_trans;
+            using namespace type_traits::type_relations;
+            using namespace foundation::ctti;
+            const method *invoker{nullptr};
+            if constexpr (is_any_of_v<utility::any, decay_t<Args>...> || is_any_of_v<object_view, decay_t<Args>...>) {
+                implements::make_paramlist paramlist{utility::forward<Args>(args)...};
+                invoker = &get_method(name, paramlist, flag);
+            } else {
+                static collections::array<foundation::ctti::typeinfo, sizeof...(Args)> paramlist = {
+                    foundation::ctti::typeinfo::create<Args>()...};
+                invoker = &get_method(name, paramlist, flag);
+            }
+            if (invoker->empty()) {
+                errno = EINVAL;
+                return {};
+            }
+            if (invoker->is_static()) {
+                return invoker->static_invoke(utility::forward<Args>(args)...);
+            }
+            return invoker->invoke(instance, utility::forward<Args>(args)...);
+        }
+
+    private:
+        implements::type_accessor *accessor{nullptr};
+    };
+}
+
+namespace rainy::meta::reflection::implements{
     template <typename Type>
     class type_accessor_impl_class final : public type_accessor {
     public:
@@ -96,7 +466,7 @@ namespace rainy::meta::reflection::implements {
             return name_;
         }
 
-        dyn_typeinfo &type() noexcept override {
+        dyn_typeinfo &typeinfo() noexcept override {
             return typeinfo_;
         }
 
@@ -112,11 +482,11 @@ namespace rainy::meta::reflection::implements {
             return properties_;
         }
 
-        std::unordered_map<std::string_view, type_accessor *> &bases() noexcept override {
+        std::unordered_map<std::string_view, type> &bases() noexcept override {
             return bases_;
         }
 
-        std::unordered_map<std::string_view, type_accessor *> &deriveds() noexcept override {
+        std::unordered_map<std::string_view, type> &deriveds() noexcept override {
             return deriveds_;
         }
 
@@ -126,8 +496,8 @@ namespace rainy::meta::reflection::implements {
         method_storage_t methods_;
         ctor_storage_t ctors_;
         std::unordered_map<std::string_view, property> properties_;
-        std::unordered_map<std::string_view, type_accessor *> bases_;
-        std::unordered_map<std::string_view, type_accessor *> deriveds_;
+        std::unordered_map<std::string_view, type> bases_;
+        std::unordered_map<std::string_view, type> deriveds_;
     };
 }
 
@@ -146,7 +516,6 @@ namespace rainy::meta::reflection::implements {
             result[pos++] = '(';
             result[pos++] = ')';
             result[pos++] = '\0';
-
             return result;
         } else {
             constexpr collections::array<std::string_view, sizeof...(Args)> arg_names = {type_name<Args>()...};

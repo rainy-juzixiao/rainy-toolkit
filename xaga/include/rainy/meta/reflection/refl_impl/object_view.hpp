@@ -157,6 +157,24 @@ namespace rainy::meta::reflection {
             return object_;
         }
 
+        template <typename TargetType>
+        RAINY_NODISCARD TargetType *try_dynamic_cast() noexcept {
+            return const_cast<TargetType *>(static_cast<const object_view *>(this)->try_dynamic_cast<TargetType>());
+        }
+
+        template <typename TargetType>
+        RAINY_NODISCARD const TargetType *try_dynamic_cast() const noexcept {
+            using namespace foundation::ctti;
+            static constexpr typeinfo target_type = typeinfo::create<TargetType>();
+            auto *result =
+                static_cast<const TargetType *>(foundation::ctti::apply_offset(const_cast<void *>(object_), ctti(), target_type));
+            if (result) {
+                return result;
+            }
+            return static_cast<const TargetType *>(
+                foundation::ctti::apply_offset(const_cast<void *>(object_), ctti().remove_cvref(), target_type));
+        }
+
     private:
         void *object_;
         const foundation::ctti::typeinfo *ctti_{&rainy_typeid(void)};

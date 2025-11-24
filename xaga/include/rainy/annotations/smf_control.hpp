@@ -37,7 +37,7 @@ namespace rainy::annotations::smf_control {
     struct constructible_base {
     protected:
         template <typename Ty>
-        static constexpr void construct_from(Ty &&other) {
+        constexpr void construct_from(Ty &&other) {
             static_cast<Derived *>(this)->construct_impl_(utility::forward<Ty>(other));
         }
     };
@@ -53,7 +53,7 @@ namespace rainy::annotations::smf_control {
     struct assignable_base {
     protected:
         template <typename Ty>
-        static constexpr void assign_from(Ty &&other) {
+        constexpr void assign_from(Ty &&other) {
             static_cast<Derived *>(this)->assign_impl_(utility::forward<Ty>(other));
         }
     };

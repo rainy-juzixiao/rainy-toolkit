@@ -141,10 +141,7 @@ namespace rainy::collections {
          * @note 若元素类型支持 noexcept 移动构造，则该构造函数同样为 noexcept
          */
         constexpr array(array &&right) noexcept(type_traits::type_properties::is_nothrow_move_constructible_v<value_type>) :
-            elements{} {
-            for (std::size_t i = 0; i < N; ++i) {
-                elements[i] = utility::move_if_noexcept(right[i]);
-            }
+            array(utility::move(right), type_traits::helper::make_index_sequence<N>{}) {
         }
 
         /**
@@ -675,6 +672,10 @@ namespace rainy::collections {
         template <std::size_t... I>
         constexpr array(const_pointer ilist, std::size_t ilist_size, type_traits::helper::index_sequence<I...>) :
             elements{(I < ilist_size ? ilist[I] : value_type{})...} {
+        }
+
+        template <std::size_t... I>
+        constexpr array(array &&right, type_traits::helper::index_sequence<I...>) : elements{utility::move_if_noexcept(right[I])...} {
         }
 
         RAINY_ALWAYS_INLINE static constexpr void range_check(const difference_type offset) noexcept {

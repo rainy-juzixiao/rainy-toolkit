@@ -47,8 +47,10 @@ add_definitions(
 )
 
 target_include_directories(
-    rainy-toolkit PUBLIC
-    ${PROJECT_SOURCE_DIR}/xaga/include
+    rainy-toolkit
+    PUBLIC
+        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/xaga/include>
+        $<INSTALL_INTERFACE:include>
 )
 
 message("Checking compiler...")
@@ -99,22 +101,24 @@ if (MSVC AND NOT (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
         add_compile_options(/arch:AVX2)
     else()
         add_definitions(-DRAINY_USING_AVX2=0)
-    endif() # RAINY_USE_AVX2_BOOST
+    endif()
+
     if (NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-            if (RAINY_USING_UTF8_INPUT_FOR_MSVC)
-                message("Using UTF-8 for input encoding.")
-                target_compile_options(rainy-toolkit PUBLIC /source-charset:utf-8)
-            else()
-                message("Using GBK for input encoding.")
-                target_compile_options(rainy-toolkit PUBLIC /execution-charset:gbk)
-            endif()
-            if (RAINY_USING_UTF8_OUTPUT_FOR_MSVC)
-                message("Using UTF-8 for output encoding.")
-                target_compile_options(rainy-toolkit PUBLIC /source-charset:utf-8)
-            else()
-                message("Using GBK for output encoding.")
-                target_compile_options(rainy-toolkit PUBLIC /execution-charset:gbk)
-            endif()
+        if (RAINY_USING_UTF8_INPUT_FOR_MSVC)
+            message("Using UTF-8 for input encoding.")
+            target_compile_options(rainy-toolkit PUBLIC /source-charset:utf-8)
+        else()
+            message("Using GBK for input encoding.")
+            target_compile_options(rainy-toolkit PUBLIC /execution-charset:gbk)
+        endif()
+
+        if (RAINY_USING_UTF8_OUTPUT_FOR_MSVC)
+            message("Using UTF-8 for output encoding.")
+            target_compile_options(rainy-toolkit PUBLIC /source-charset:utf-8)
+        else()
+            message("Using GBK for output encoding.")
+            target_compile_options(rainy-toolkit PUBLIC /execution-charset:gbk)
+        endif()
     endif()
 endif ()
 
@@ -124,8 +128,8 @@ endif()
 
 if (WIN32)
     message("Linking libraries for windows package")
-	target_link_libraries(rainy-toolkit PRIVATE windowsapp)
-	target_link_libraries(rainy-toolkit PRIVATE synchronization)
+    target_link_libraries(rainy-toolkit PRIVATE windowsapp)
+    target_link_libraries(rainy-toolkit PRIVATE synchronization)
     target_link_libraries(rainy-toolkit PRIVATE dbghelp)
     target_link_libraries(rainy-toolkit PRIVATE dbgeng)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")

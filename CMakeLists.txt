@@ -35,6 +35,7 @@ option(RAINY_USING_UTF8_OUTPUT_FOR_MSVC "Use utf-8 encoding for output. Reason: 
 
 include(${PROJECT_SOURCE_DIR}/cmake/utility.cmake)
 include(${PROJECT_SOURCE_DIR}/cmake/config.cmake)
+include(${PROJECT_SOURCE_DIR}/cmake/install.cmake)
 
 if (RAINY_ENABLE_TESTING)
     message("Testing is enable!")
@@ -47,6 +48,7 @@ endif()
 set( BENCHMARK_ENABLE_TESTING off)
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/benchmark)
+add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/rttr)
 add_subdirectory(${PROJECT_SOURCE_DIR}/xaga/examples/reflection/)
 add_subdirectory(${PROJECT_SOURCE_DIR}/xaga/benchmark/any/)
 add_subdirectory(${PROJECT_SOURCE_DIR}/xaga/benchmark/reflection/)

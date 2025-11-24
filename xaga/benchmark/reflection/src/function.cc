@@ -61,6 +61,46 @@ public:
 //using namespace Ubpa;
 //using namespace Ubpa::UDRefl;
 
+class mybase1 {
+public:
+    void print_mybase1() {
+        std::cout << "mybase1\n";
+    }
+
+    virtual void virtual_fun() {
+    }
+};
+
+class mybase2 : virtual public mybase1 {
+public:
+    void print_mybase2() {
+        std::cout << "mybase1\n";
+    }
+
+    void virtual_fun() override {
+    }
+};
+
+class myclass : virtual public mybase2 {
+public:
+    myclass() {
+    }
+
+    myclass(int value) {
+        this->field = value;
+    }
+
+    void print_field(int value) {
+        std::cout << field + value << '\n';
+    }
+
+    void virtual_fun() override {
+    }
+
+private:
+    int field{0};
+};
+
 struct auto_regsiter {
     auto_regsiter() {
         /*registration::class_<test>("test")
@@ -98,6 +138,33 @@ struct auto_regsiter {
             .method("fun4", &test::fun4)
             .method("fun5", &test::fun5)
             .method("fun6", &test::fun6);
+        {
+            using namespace rainy;
+            // clang-format off
+            meta::reflection::registration::class_<myclass>("myclass")
+                .constructor<>()
+                .constructor<int>()
+                (
+                    meta::reflection::metadata("prop", "ctor")
+                )
+                .method("print_field", &myclass::print_field)
+                (
+                    meta::reflection::metadata("prop", "print"),
+                    meta::reflection::default_arguments(50)
+                )
+                .method("virtual_fun", &myclass::virtual_fun)
+                .base<mybase1>("mybase1")
+                .base<mybase2>("mybase2");
+
+            meta::reflection::registration::class_<mybase1>("mybase1")
+                .method("print_mybase1", &mybase1::print_mybase1)
+                .method("virtual_fun", &mybase1::virtual_fun);
+
+            meta::reflection::registration::class_<mybase2>("mybase2")
+                .method("print_mybase2", &mybase2::print_mybase2)
+                .method("virtual_fun", &mybase1::virtual_fun);
+            // clang-format on
+        }
     }
 };
 
@@ -195,6 +262,20 @@ BENCHMARK(benchmark_rainytoolkit_reflection_invoke_method_3);
 BENCHMARK(benchmark_rainytoolkit_reflection_invoke_method_4);
 BENCHMARK(benchmark_rainytoolkit_reflection_invoke_method_5);
 BENCHMARK(benchmark_rainytoolkit_reflection_invoke_method_6);
+
+static void benchmark_rainytoolkit_reflection_invoke_virtual_method(benchmark::State &state) {
+    using namespace rainy::meta;
+    for (const auto _: state) {
+        static auto type = reflection::type::get<mybase2>();
+        static const auto &fun_rf = type.get_method("virtual_fun");
+        static myclass object_x;
+        benchmark::DoNotOptimize(fun_rf.invoke(object_x));
+        benchmark::ClobberMemory();
+        (void) _;
+    }
+}
+
+BENCHMARK(benchmark_rainytoolkit_reflection_invoke_virtual_method);
 
 //static void benchmark_rttr_reflection_invoke_method(benchmark::State &state) {
 //    for (const auto _: state) {

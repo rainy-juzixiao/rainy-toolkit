@@ -56,16 +56,18 @@ namespace rainy::type_traits::type_relations {
     template <typename Ty, typename... Types>
     struct is_any_of : helper::bool_constant<is_any_of_v<Ty, Types...>> {};
 
-#if RAINY_USING_MSVC || RAINY_USING_CLANG
     template <typename From, typename To>
-    RAINY_CONSTEXPR_BOOL is_convertible_v = __is_convertible_to(From, To);
-#else
-    template <typename From, typename To>
-    RAINY_CONSTEXPR_BOOL is_convertible_v = __is_convertible(From, To);
-#endif
+    RAINY_CONSTEXPR_BOOL is_convertible_v = implements::is_convertible_v<From, To>;
 
     template <typename From ,typename To>
     struct is_convertible : helper::bool_constant<is_convertible_v<From, To>> {};
+
+    template <typename From, typename To>
+    RAINY_CONSTEXPR_BOOL is_nothrow_convertible_v = implements::is_nothrow_convertible_v<From, To>;
+
+    template <typename From, typename To>
+    struct is_nothrow_convertible : helper::bool_constant<is_nothrow_convertible_v<From, To>> {};
+
 
     template <typename Ty, typename... Types>
     RAINY_CONSTEXPR_BOOL is_any_convertible_v = (is_convertible_v<Ty, Types> || ...);

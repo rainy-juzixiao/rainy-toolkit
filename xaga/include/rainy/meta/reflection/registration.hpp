@@ -1,254 +1,46 @@
+/*
+ * Copyright 2025 rainy-juzixiao
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 #ifndef RAINY_META_REFLECTION_REGISTRATION_HPP
 #define RAINY_META_REFLECTION_REGISTRATION_HPP
+#include <rainy/meta/reflection/metadata.hpp>
 #include <rainy/meta/reflection/moon/reflect.hpp>
 #include <rainy/meta/reflection/type.hpp>
-#include <rainy/foundation/pal/threading.hpp>
-#include <rainy/meta/reflection/metadata.hpp>
-#include <rainy/utility/iterator.hpp>
 #include <string_view>
-
-namespace rainy::meta::reflection::implements {
-    class register_table {
-    public:
-        template <typename Type>
-        static void register_type(std::string_view name, type_accessor *type) {
-            auto *this_ = &instance();
-            constexpr auto ctti = foundation::ctti::typeinfo::create<Type>();
-            // 从此处开始，进入同步块
-            foundation::pal::threading::create_synchronized_task(this_->lock, [this_,&ctti,&type,name]() {
-#if RAINY_HAS_CXX20
-                if (!this_->data.contains(ctti))
-#else
-                if (this_->data.find(ctti) == this_->data.end())
-#endif
-                {
-                    auto [iter, success] = this_->data.emplace(ctti, type);
-                    utility::ensures(success, "Cannot register type.");
-                    this_->index.emplace(name, ctti);
-                    (void) iter;
-                }
-            });
-            // 同步结束
-        }
-
-        template <typename Type>
-        static type_accessor *get_accessor() {
-            auto *this_ = &instance();
-            if (auto iter = this_->data.find(rainy_typeid(Type)); iter != this_->data.end()) {
-                return iter->second;
-            }
-            return nullptr;
-        }
-
-        RAINY_TOOLKIT_API static void unregister(std::string_view name, foundation::ctti::typeinfo ctti);
-
-        static type_accessor *get_accessor_by_name(std::string_view name);
-    private:
-        RAINY_TOOLKIT_API static register_table &instance();
-
-        std::unordered_map<std::string_view, foundation::ctti::typeinfo> index;
-        std::unordered_map<foundation::ctti::typeinfo, type_accessor *> data;
-        std::mutex lock;
-    };
-}
-
-namespace rainy::meta::reflection::implements {
-    class injector {
-    public:
-        template <typename Type>
-        static void register_type(std::string_view name, type_accessor *type) {
-            register_table::register_type<Type>(name, type);
-            auto *this_ = &instance();
-            constexpr auto ctti = foundation::ctti::typeinfo::create<Type>();
-            std::lock_guard<std::mutex> guard(this_->lock);
-            this_->registered.emplace_back(registration_entry{name, ctti});
-        }
-
-        static void unregister_all() {
-            auto *this_ = &instance();
-            std::lock_guard<std::mutex> guard(this_->lock);
-            for (const auto &entry: this_->registered) {
-                register_table::unregister(entry.name, entry.ctti);
-            }
-            this_->registered.clear();
-        }
-
-    private:
-        struct registration_entry {
-            std::string_view name;
-            foundation::ctti::typeinfo ctti;
-        };
-
-        static injector &instance() {
-            static injector inst;
-            return inst;
-        }
-
-        std::mutex lock;
-        std::vector<registration_entry> registered;
-    };
-}
 
 namespace rainy::meta::reflection {
     template <typename Any,
               type_traits::other_trans::enable_if_t<
                   type_traits::type_relations::is_same_v<type_traits::cv_modify::remove_cvref_t<Any>, utility::any>, int> = 0>
-    RAINY_INLINE object_view as_object_view(Any&& any) {
-        return object_view{const_cast<void*>(any.target_as_void_ptr()), any.type()};
+    RAINY_INLINE object_view as_object_view(Any &&any) {
+        return object_view{const_cast<void *>(any.target_as_void_ptr()), any.type()};
     }
-
-    class RAINY_TOOLKIT_API type {
-    public:
-        using type_id = std::size_t;
-
-        template <typename Type>
-        static type get() noexcept {
-            type instance{};
-            instance.accessor = implements::register_table::get_accessor<Type>();
-            return instance;
-        }
-
-        static type get_by_name(std::string_view name) noexcept;
-
-        RAINY_NODISCARD std::string_view get_name() const noexcept {
-            if (!accessor) {
-                return {};
-            }
-            return accessor->name();
-        }
-
-        RAINY_NODISCARD type_id get_id() const noexcept {
-            if (!accessor) {
-                return 0;
-            }
-            return accessor->type().typeinfo().hash_code();
-        }
-
-        RAINY_NODISCARD std::size_t get_sizeof() const noexcept {
-            if (!accessor) {
-                return 0;
-            }
-            return accessor->type().get_sizeof();
-        }
-
-        RAINY_NODISCARD collections::views::array_view<foundation::ctti::typeinfo> get_template_arguments() const noexcept {
-            if (!accessor) {
-                return {};
-            }
-            return accessor->type().template_arguemnts();
-        }
-
-        RAINY_NODISCARD const method &get_method(const std::string_view name) const noexcept;
-
-        RAINY_NODISCARD const method &get_method(
-            const std::string_view name, const collections::views::array_view<foundation::ctti::typeinfo> overload_version_paramlist,
-            const method_flags filter_item = method_flags::none) const noexcept;
-
-        RAINY_NODISCARD auto get_methods() const {
-            static implements::method_storage_t empty;
-            if (!accessor) {
-                return utility::mapped_range(empty);
-            }
-            return utility::mapped_range(accessor->methods());
-        }
-
-        RAINY_NODISCARD const property &get_property(const std::string_view name) const noexcept {
-            static const property empty;
-            if (!accessor) {
-                return empty;
-            }
-            const auto &cont = accessor->properties();
-            const auto iter = cont.find(name);
-            return iter != cont.end() ? iter->second : empty;
-        }
-
-        RAINY_NODISCARD auto get_properties() const noexcept {
-            static implements::property_storage_t empty;
-            if (!accessor) {
-                return utility::mapped_range(empty);
-            }
-            return utility::mapped_range(accessor->properties());
-        }
-
-        RAINY_NODISCARD auto get_ctors() const noexcept {
-            static implements::ctor_storage_t empty;
-            if (!accessor) {
-                return utility::mapped_range(empty);
-            }
-            return utility::mapped_range(accessor->ctors());
-        }
-
-        template <typename... Args>
-        utility::any create(Args &&...args) const {
-            for (const auto &item: utility::mapped_range(accessor->ctors())) {
-                const function &cur_ctor = item;
-                bool invocable{};
-                if constexpr (type_traits::type_relations::is_any_of_v<utility::any, type_traits::other_trans::decay_t<Args>...> ||
-                              type_traits::type_relations::is_any_of_v<object_view, type_traits::other_trans::decay_t<Args>...>) {
-                    invocable = cur_ctor.is_invocable_with(utility::forward<Args>(args)...);
-                } else {
-                    static implements::make_nondynamic_paramlist<Args...> paramlist;
-                    invocable = cur_ctor.is_invocable(paramlist.get());
-                }
-                if (invocable) {
-                    return cur_ctor.static_invoke(utility::forward<Args>(args)...);
-                }
-            }
-            return {};
-        }
-
-        RAINY_NODISCARD bool is_valid() const noexcept {
-            return static_cast<bool>(accessor);
-        }
-
-        template <typename... Args>
-        utility::any invoke_method(std::string_view name, object_view instance, Args &&...args) const {
-            using namespace foundation::ctti;
-            auto flag = method_flags::none;
-            if (instance.ctti().has_traits(traits::is_const)) {
-                flag = flag | method_flags::const_qualified;
-            }
-            if (instance.ctti().has_traits(traits::is_volatile)) {
-                flag = flag | method_flags::volatile_qualified;
-            }
-            if (instance.ctti().has_traits(traits::is_rref)) {
-                flag = flag | method_flags::rvalue_qualified;
-            }
-            return invoke_method(flag, name, instance, utility::forward<Args>(args)...);
-        }
-
-        template <typename... Args>
-        utility::any invoke_method(method_flags flag, std::string_view name, object_view instance, Args &&...args) const {
-            using namespace type_traits::other_trans;
-            using namespace type_traits::type_relations;
-            using namespace foundation::ctti;
-            const method *invoker{nullptr};
-            if constexpr (is_any_of_v<utility::any, decay_t<Args>...> || is_any_of_v<object_view, decay_t<Args>...>) {
-                implements::make_paramlist paramlist{utility::forward<Args>(args)...};
-                invoker = &get_method(name, paramlist, flag);
-            } else {
-                static collections::array<foundation::ctti::typeinfo, sizeof...(Args)> paramlist = {
-                    foundation::ctti::typeinfo::create<Args>()...};
-                invoker = &get_method(name, paramlist, flag);
-            }
-            if (invoker->empty()) {
-                errno = EINVAL;
-                return {};
-            }
-            if (invoker->is_static()) {
-                return invoker->static_invoke(utility::forward<Args>(args)...);
-            }
-            return invoker->invoke(instance, utility::forward<Args>(args)...);
-        }
-
-    private:
-        implements::type_accessor *accessor{nullptr};
-    };
 }
 
 namespace rainy::meta::reflection::implements {
     RAINY_TOOLKIT_API bool check_method_field(type_accessor *type, std::string_view name, method &meth);
+    RAINY_TOOLKIT_API bool check_ctor_field(type_accessor *type, method &ctor);
     RAINY_TOOLKIT_API void register_method_helper(type_accessor *type, std::string_view name, method &&meth);
+
+    template <typename Type>
+    static type_accessor *new_type_accessor_instance(std::string_view name) noexcept {
+        static std::once_flag flag;
+        static type_accessor_impl_class<Type> instance{name};
+        std::call_once(flag, [&]() { injector::register_type<Type>(name, &instance); });
+        return &instance;
+    }
 }
 
 namespace rainy::meta::reflection {
@@ -262,7 +54,8 @@ namespace rainy::meta::reflection {
         public:
             using type_accessor = implements::type_accessor;
 
-            explicit class_(const std::string_view name) : type(instance(name)) {
+            explicit class_(const std::string_view name = rainy_typeid(Type).name()) :
+                type(implements::new_type_accessor_instance<Type>(name)) {
             }
 
             explicit class_(core::internal_construct_tag_t, type_accessor *type) : type(type) {
@@ -272,15 +65,15 @@ namespace rainy::meta::reflection {
                 using namespace moon::implements;
                 using reflect = moon::reflect<Type>;
                 if constexpr (has_ctors<Type>) {
-                    //reflect::ctors.for_each([this](auto pack) {
-                    //    /*std::unordered_map<std::string_view, utility::any> metadata;
-                    //    if constexpr (!type_traits::type_relations::is_same_v<decltype(pack.metas), moon::meta_list<>>) {
-                    //        pack.metas.for_each([&metadata](auto meta) {
-                    //            metadata.emplace(meta.name, type_traits::other_trans::decay_t<decltype(meta.value)>{meta.value});
-                    //        });
-                    //    }
-                    //    this->constructor(pack.value, utility::move(metadata));*/
-                    //});
+                    // reflect::ctors.for_each([this](auto pack) {
+                    //     /*std::unordered_map<std::string_view, utility::any> metadata;
+                    //     if constexpr (!type_traits::type_relations::is_same_v<decltype(pack.metas), moon::meta_list<>>) {
+                    //         pack.metas.for_each([&metadata](auto meta) {
+                    //             metadata.emplace(meta.name, type_traits::other_trans::decay_t<decltype(meta.value)>{meta.value});
+                    //         });
+                    //     }
+                    //     this->constructor(pack.value, utility::move(metadata));*/
+                    // });
                 }
                 if constexpr (has_methods<Type>) {
                     reflect::methods.for_each([this](auto pack) {
@@ -307,12 +100,23 @@ namespace rainy::meta::reflection {
                 return *this;
             }
 
+            /**
+             * @brief 向当前类注册成员函数或静态函数
+             * @tparam Fx 函数对象类型
+             */
             template <typename Fx,
                       type_traits::other_trans::enable_if_t<type_traits::type_properties::is_constructible_v<function, Fx>, int> = 0>
             bind<reflection::method, Type, Fx> method(std::string_view name, Fx &&fn) {
                 return bind<reflection::method, Type, Fx>{this->type, name, utility::forward<Fx>(fn)};
             }
 
+            /**
+             * @brief 向当前类注册属性或静态属性
+             * @tparam Property 属性指针类型，可以是成员指针或静态指针
+             * @param name 属性名称
+             * @param property 属性指针
+             * @return 当前注册器实例的引用
+             */
             template <typename Property,
                       type_traits::other_trans::enable_if_t<type_traits::primary_types::is_pointer_v<Property> ||
                                                                 (type_traits::primary_types::is_member_object_pointer_v<Property>),
@@ -331,34 +135,79 @@ namespace rainy::meta::reflection {
                 return *this;
             }
 
-            template <typename... Args, type_traits::other_trans::enable_if_t<type_traits::type_properties::is_constructible_v<Type,Args...>,int> = 0>
-            class_ &constructor(std::unordered_map<std::string_view, utility::any> metadata = {}) {
-                static constexpr auto ctor_name = implements::make_ctor_name<Type, Args...>();
-                // reflection::method ctor{"ctor", rainy::meta::method::get_ctor_fn<Type, Args...>()};
-                // if (implements::check_method_field(type, "ctor", ctor)) {
-                //     type->ctors().emplace(std::string_view{"ctor"}, utility::move(ctor));
-                // }
+            /**
+             * @brief 向当前类注册构造函数
+             * @tparam Args 构造函数参数类型列表
+             * @return 一个绑定构造函数的注册器对象
+             */
+            template <typename... Args,
+                      type_traits::other_trans::enable_if_t<type_traits::type_properties::is_constructible_v<Type, Args...>, int> = 0>
+            bind<reflection::constructor, Type, Type (*)(Args...)> constructor() {
+                static constexpr auto name_var = implements::make_ctor_name<Type, Args...>();
+                std::string_view name{name_var.data(), name_var.size()};
+                return bind<reflection::constructor, Type, Type (*)(Args...)>{this->type, name, utility::get_ctor_fn<Type, Args...>()};
+            }
+
+            /**
+             * @brief 向当前类注册构造函数
+             * @tparam Fx 构造函数类型
+             * @param fn 构造函数对象
+             * @return 一个绑定构造函数的注册器对象
+             * @attention Fx必须是一个可调用对象，且不可为成员函数指针
+             */
+            template <typename Fx, type_traits::other_trans::enable_if_t<
+                                       type_traits::type_properties::is_constructible_v<reflection::function, Fx> &&
+                                           !type_traits::primary_types::is_member_function_pointer_v<Fx>,
+                                       int> = 0>
+            bind<reflection::method, Type, Fx> constructor(Fx &&fn) {
+                return bind<reflection::method, Type, Fx>{this->type, rainy_typeid(Fx).name(), utility::forward<Fx>(fn)};
+            }
+
+            /**
+             * @brief 向当前类注册基类
+             * @tparam Base 基类的类型
+             * @tparam  要求Base必须是目标类型的基类
+             * @param name Base类的名称，默认为类型名称，由CTTI生成
+             * @param reflect_moon 保留参数，暂未使用（未来用于自动反射基类的moon信息）
+             * @return 当前注册器实例的引用
+             */
+            template <typename Base,
+                      type_traits::other_trans::enable_if_t<type_traits::type_relations::is_base_of_v<Base, Type>, int> = 0>
+            class_ &base(std::string_view name = rainy_typeid(Base).name(), bool reflect_moon = false) {
+                auto &bases = this->type->bases();
+                if (bases.find(name) == bases.end()) {
+                    if (!implements::register_table::has_register<Base>()) {
+                        class_<Base>(name).template derive<Type>(type->name()); // 注册一个新类型，并将该类直接注入到表中
+                    }
+                    foundation::ctti::register_base<Type, Base>();
+                    bases.emplace(name, type::get<Base>());
+                }
                 return *this;
             }
 
-            template <typename Fx, type_traits::other_trans::enable_if_t<type_traits::type_properties::is_constructible_v<reflection::function,Fx> && !type_traits::primary_types::is_member_function_pointer_v<Fx>,int> = 0>
-            class_ &constructor(Fx &&fn) {
-                // reflection::method ctor{"ctor", utility::forward<Fx>(fn)};
-                // utility::expects(ctor.is_static(), "Cannot use this constructor fn");
-                // if (implements::check_method_field(type, "ctor", ctor)) {
-                //     type->ctors().emplace(std::string_view{"ctor"}, utility::move(ctor));
-                // }
+            /**
+             * @brief 向当前类注册派生类
+             * @tparam Derive 派生类的类型
+             * @tparam  要求Derive必须是目标类型的派生类
+             * @param name Derive类的名称，默认为类型名称，由CTTI生成
+             * @param reflect_moon 保留参数，暂未使用（未来用于自动反射派生类的moon信息）
+             * @return 当前注册器实例的引用
+             */
+            template <typename Derive,
+                      type_traits::other_trans::enable_if_t<type_traits::type_relations::is_base_of_v<Type, Derive>, int> = 0>
+            class_ &derive(std::string_view name = rainy_typeid(Derive).name(), bool reflect_moon = false) {
+                auto &deriveds = this->type->deriveds();
+                if (deriveds.find(name) == deriveds.end()) {
+                    if (!implements::register_table::has_register<Derive>()) {
+                        class_<Derive>(name).template base<Type>(type->name()); // 注册一个新类型，并将该类直接注入到表中
+                    }
+                    foundation::ctti::register_base<Derive, Type>();
+                    deriveds.emplace(name, type::get<Derive>());
+                }
                 return *this;
             }
 
         private:
-            static type_accessor *instance(std::string_view name) noexcept {
-                static std::once_flag flag;
-                static implements::type_accessor_impl_class<Type> instance{name};
-                std::call_once(flag, [&]() { implements::injector::register_type<Type>(name, &instance); });
-                return &instance;
-            }
-
             type_accessor *type;
         };
 
@@ -366,22 +215,23 @@ namespace rainy::meta::reflection {
     };
 }
 
-#define RAINY_REFLECTION_REGISTRATION                                                                                                             \
-    static void RAINY_CAT(RAINY_CAT(rainytoolkit_auto_register_reflection_, __LINE__),_function_());                                                                            \
-    namespace rainy::meta::implements::auto_regsiter {                                                                                                                       \
-        struct RAINY_CAT(rainytoolkit_reflection_auto_register,__LINE__) {                                                                                               \
-            RAINY_CAT(rainytoolkit_reflection_auto_register, __LINE__)() {                                                                                                \
-                RAINY_CAT(RAINY_CAT(rainytoolkit_auto_register_reflection_, __LINE__),_function_());                                                                            \
+#define RAINY_REFLECTION_REGISTRATION                                                                                                 \
+    static void RAINY_CAT(RAINY_CAT(rainytoolkit_auto_register_reflection_, __LINE__), _function_());                                 \
+    namespace rainy::meta::implements::auto_regsiter {                                                                                \
+        struct RAINY_CAT(rainytoolkit_reflection_auto_register, __LINE__) {                                                           \
+            RAINY_CAT(rainytoolkit_reflection_auto_register, __LINE__)() {                                                            \
+                RAINY_CAT(RAINY_CAT(rainytoolkit_auto_register_reflection_, __LINE__), _function_());                                 \
             }                                                                                                                         \
         };                                                                                                                            \
     }                                                                                                                                 \
-    static const RAINY_CAT(rainy::meta::implements::auto_regsiter::rainytoolkit_reflection_auto_register, __LINE__)                                                           \
-        RAINY_CAT(rainy_toolkit_reflect_auto_register_, __LINE__);                                                          \
-    static void RAINY_CAT(RAINY_CAT(rainytoolkit_auto_register_reflection_, __LINE__),_function_())
+    static const RAINY_CAT(rainy::meta::implements::auto_regsiter::rainytoolkit_reflection_auto_register, __LINE__)                   \
+        RAINY_CAT(rainy_toolkit_reflect_auto_register_, __LINE__);                                                                    \
+    static void RAINY_CAT(RAINY_CAT(rainytoolkit_auto_register_reflection_, __LINE__), _function_())
 
 namespace rainy::meta::reflection::implements {
     template <typename Ty>
-    using registration_derived_t = type_traits::other_trans::conditional_t<type_traits::type_relations::is_void_v<Ty>, registration, registration::class_<Ty>>;
+    using registration_derived_t =
+        type_traits::other_trans::conditional_t<type_traits::type_relations::is_void_v<Ty>, registration, registration::class_<Ty>>;
 
     template <typename Ty>
     struct is_tuple : type_traits::helper::false_type {};
@@ -406,7 +256,8 @@ namespace rainy::meta::reflection::implements {
         static constexpr bool current_is_tuple = is_tuple<std::decay_t<T>>::value;
         static constexpr bool valid = (current_is_tuple && !next::valid) || (!current_is_tuple && next::valid);
 
-        using type = std::conditional_t<current_is_tuple, std::decay_t<T>, typename next::type>;
+        using type =
+            type_traits::other_trans::conditional_t<current_is_tuple, type_traits::other_trans::decay_t<T>, typename next::type>;
     };
 
     template <typename TupleType, typename First, typename... Rest>
@@ -425,7 +276,7 @@ namespace rainy::meta::reflection::implements {
 namespace rainy::meta::reflection {
     template <typename... Args>
     RAINY_NODISCARD std::tuple<Args...> default_arguments(Args &&...args) {
-        return {utility::forward<Args>(args)...};
+        return std::make_tuple(utility::forward<Args>(args)...);
     }
 
     template <typename ClassType, typename Fx>
@@ -440,10 +291,12 @@ namespace rainy::meta::reflection {
             if (type_accessor) {
                 if (meth_.empty()) {
                     static collections::array<metadata, 0> empty{};
-                    std::tuple<> a;
+                    static std::tuple<> a;
                     meth_ = method::make(name, utility::move(fn), a, empty);
                 }
-                type_accessor->methods().emplace(name, utility::move(meth_));
+                if (implements::check_method_field(type_accessor, name, meth_)) {
+                    type_accessor->methods().emplace(name, utility::move(meth_));
+                }
             }
         }
 
@@ -468,6 +321,50 @@ namespace rainy::meta::reflection {
         Fx fn;
         std::string_view name;
         reflection::method meth_;
+    };
+
+    template <typename ClassType, typename Fx>
+    class registration::bind<constructor, ClassType, Fx> : public implements::registration_derived_t<ClassType> {
+    public:
+        bind(implements::type_accessor *type, std::string_view name, Fx &&f) :
+            implements::registration_derived_t<ClassType>(core::internal_construct_tag, type), type_accessor(type),
+            fn(utility::forward<Fx>(f)), name(name), ctor_{} {
+        }
+
+        ~bind() {
+            if (type_accessor) {
+                if (ctor_.empty()) {
+                    static collections::array<metadata, 0> empty{};
+                    static std::tuple<> a;
+                    ctor_ = constructor::make(name, utility::move(fn), a, empty);
+                }
+                if (implements::check_ctor_field(type_accessor, ctor_)) {
+                    type_accessor->ctors().emplace_back(utility::move(ctor_));
+                }
+            }
+        }
+
+        template <typename... Args>
+        implements::registration_derived_t<ClassType> operator()(Args &&...args) {
+            static constexpr std::size_t metadata_count = implements::metadata_count<Args...>;
+            collections::array<metadata, metadata_count> metadatas =
+                utility::extract_args_to_array<metadata>(utility::forward<Args>(args)...);
+            using tuple_type = typename implements::extract_unique_tuple<Args...>::type;
+            if constexpr (!type_traits::type_relations::is_void_v<tuple_type>) {
+                tuple_type arguments = implements::extract_tuple_from_args<tuple_type>(utility::forward<Args>(args)...);
+                ctor_ = reflection::constructor::make(name, utility::forward<Fx>(fn), arguments, metadatas);
+            } else {
+                static std::tuple<> empty_arguments;
+                ctor_ = reflection::constructor::make(name, utility::forward<Fx>(fn), empty_arguments, metadatas);
+            }
+            return implements::registration_derived_t<ClassType>(core::internal_construct_tag, type_accessor);
+        }
+
+    private:
+        implements::type_accessor *type_accessor;
+        Fx fn;
+        std::string_view name;
+        constructor ctor_;
     };
 }
 

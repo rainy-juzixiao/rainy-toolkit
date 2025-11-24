@@ -451,7 +451,7 @@ namespace std {
 }
 
 namespace rainy::meta::reflection {
-    class method : public function {
+    class method : public function , private type_traits::helper::non_copyable {
     public:
         method() noexcept = default;
 
@@ -461,9 +461,6 @@ namespace rainy::meta::reflection {
                            collections::array<metadata, N> &metadatas) {
             return method{name, fn, default_arguemnts, metadatas, type_traits::helper::index_sequence_for<Args...>{}};
         }
-
-        method(const method &) = delete;
-        method &operator=(const method &) = delete;
 
         method(method &&right) noexcept :
             function(utility::move(right)), name_(utility::move(right.name_)), metadata_(utility::move(right.metadata_)) {
@@ -479,9 +476,9 @@ namespace rainy::meta::reflection {
 
         RAINY_TOOLKIT_API std::string_view name() const noexcept;
 
-        RAINY_TOOLKIT_API const metadata &get_metadata(const std::string_view key) const noexcept;
+        RAINY_TOOLKIT_API const metadata &get_metadata(const utility::any& key) const noexcept;
 
-        RAINY_TOOLKIT_API const std::unordered_map<std::string_view, reflection::metadata> &metadatas() const noexcept;
+        RAINY_TOOLKIT_API const std::vector<reflection::metadata> &metadatas() const noexcept;
 
     private:
         template <typename Fx, typename... Args, std::size_t N = 0, std::size_t... I,
@@ -491,14 +488,19 @@ namespace rainy::meta::reflection {
             function(utility::forward<Fx>(fn), std::get<I>(default_arguemnts)...), name_(utility::move(name)), metadata_{} {
             if constexpr (N != 0) {
                 for (metadata &meta: metadatas) {
-                    std::string_view name = meta.key();
-                    this->metadata_.emplace(name, utility::move(meta));
+                    this->metadata_.emplace_back(utility::move(meta));
                 }
             }
         }
 
         std::string_view name_;
-        std::unordered_map<std::string_view, reflection::metadata> metadata_;
+        std::vector<reflection::metadata> metadata_;
+    };
+
+    class constructor : public method {
+    public:
+        using method::method;
+        using method::operator=;
     };
 }
 

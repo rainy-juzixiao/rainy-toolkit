@@ -256,13 +256,14 @@ namespace rainy::meta::reflection {
         return name_;
     }
 
-    const std::unordered_map<std::string_view, metadata> &method::metadatas() const noexcept {
+    const std::vector<metadata> &method::metadatas() const noexcept {
         return metadata_;
     }
 
-    const metadata &method::get_metadata(const std::string_view key) const noexcept {
+    const metadata &method::get_metadata(const utility::any& key) const noexcept {
         static const metadata empty;
-        const auto it = metadata_.find(key);
-        return it != metadata_.end() ? it->second : empty;
+        const auto it =
+            core::algorithm::find_if(metadata_.begin(), metadata_.end(), [&key](const metadata &meta) { return meta.key() == key; });
+        return it != metadata_.end() ? *it : empty;
     }
 }
