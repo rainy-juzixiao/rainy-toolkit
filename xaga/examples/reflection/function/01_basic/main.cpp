@@ -68,6 +68,10 @@ public:
         std::cout << field + value << '\n';
     }
 
+    void print_field(std::string value) const {
+        std::cout << value << '\n';
+    }
+
     void virtual_fun() override {
         std::cout << "this is myclass\n";
     }
@@ -84,13 +88,17 @@ RAINY_REFLECTION_REGISTRATION {
         (
             meta::reflection::metadata("prop", "ctor")
         )
-        .method("print_field", &myclass::print_field)
+        .method("print_field",
+            utility::get_overloaded_func<myclass,void(std::string) const>(&myclass::print_field))
+        .method("print_field", 
+            utility::get_overloaded_func<myclass,void(int)>(&myclass::print_field))
         (
             meta::reflection::metadata("prop", "print"),
             meta::reflection::default_arguments(50)
         )
         .method("virtual_fun", &myclass::virtual_fun)
-        .base<mybase1>("mybase1");
+        .base<mybase1>("mybase1")
+        .base<mybase2>("mybase2");
 
     meta::reflection::registration::class_<mybase1>("mybase1")
         .method("print_mybase1", &mybase1::print_mybase1)
@@ -108,13 +116,15 @@ int main() {
         auto type1 = meta::reflection::type::get_by_name("mybase1");
         myclass object = 50;
         auto &func = type.get_method("print_field");
+        
         func.invoke(object);
         func.invoke(object, 50);
         std::cout << func.name() << '\n';
+        std::cout << func << '\n';
         std::cout << func.get_metadata("prop").value() << '\n';
         auto &ctor = type.get_construtor({rainy_typeid(int)});
         std::cout << ctor.name() << '\n';
-        for (const auto &bases: type.bases()) {
+        for (const auto &bases: type.get_base_classes()) {
             std::cout << bases.second.get_name() << '\n';
             for (const auto &item: bases.second.get_methods()) {
                 std::cout << item << '\n';

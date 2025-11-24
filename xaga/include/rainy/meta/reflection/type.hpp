@@ -208,9 +208,26 @@ namespace rainy::meta::reflection {
         using type_id = std::size_t;
         using methods_view_t = utility::sub_range<utility::map_mapped_iterator<implements::method_storage_t>>;
         using property_view_t = utility::sub_range<utility::map_mapped_iterator<implements::property_storage_t>>;
+        using base_classes_view_t = utility::sub_range<utility::map_mapped_iterator<std::unordered_map<std::string_view, type>>>;
+        using derived_classes_view_t = utility::sub_range<utility::map_mapped_iterator<std::unordered_map<std::string_view, type>>>;
         using constcutor_view_t = collections::views::array_view<constructor>;
 
+        /**
+         * @brief 默认构造函数，无作用.
+         */
         type() noexcept = default;
+
+
+        /**
+         * @brief 默认析构函数，无作用.
+         */
+        ~type() = default;
+
+        type(const type &) = default;
+        type(type &&) = default;
+
+        type &operator=(const type &) = default;
+        type &operator=(type &&) = default;
 
         /**
          * @brief 从Ty类型获取对应的反射类型对象
@@ -259,6 +276,7 @@ namespace rainy::meta::reflection {
         /**
          * @brief 根据名称，获取指定的方法反射对象
          * @param name 要获取的方法名称
+         * @attention 如果目标方法名称存在多个反射对象，则优先选择第一个匹配到的反射函数对象
          * @return 如果找到对应的方法，返回方法反射对象的常量引用，否则返回一个无效的空对象引用
          */
         RAINY_NODISCARD const method &get_method(const std::string_view name) const noexcept;
@@ -308,10 +326,16 @@ namespace rainy::meta::reflection {
             const collections::views::array_view<foundation::ctti::typeinfo> overload_version_paramlist) const noexcept;
         
         /**
-         * @brief 根据名称，获取基类反射类型对象
-         * @return 返回类型的所有基类反射类型对象的映射表
+         * @brief 获取基类反射类型对象
+         * @return 返回类型的所有基类反射类型对象的映射表视图
          */
-        const std::unordered_map<std::string_view, type> &get_base_classes() noexcept;
+        RAINY_NODISCARD base_classes_view_t get_base_classes() const noexcept;
+
+        /**
+         * @brief 获取基类反射类型对象
+         * @return 返回类型的所有基类反射类型对象的映射表视图
+         */
+        RAINY_NODISCARD derived_classes_view_t get_derived_classes() const noexcept;
 
         /**
          * @brief 判断当前类型是否为指定类型的基类

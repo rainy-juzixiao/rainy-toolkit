@@ -41,9 +41,9 @@ namespace rainy::meta::reflection {
             return empty;
         }
         const auto &cont = accessor->methods();
-        const auto iter = cont.find(name);
-        if (iter != cont.end()) {
-            return iter->second;
+        const auto [fst, snd] = cont.equal_range(name);
+        if (fst != snd) {
+            return fst->second;
         }
         for (const auto &bases: accessor->bases()) {
             // 我们将检查父类是否存有目标的注册代码，然后进行深度优先的递归查找，直到找到目标
@@ -149,12 +149,20 @@ namespace rainy::meta::reflection {
         return empty;
     }
 
-    const std::unordered_map<std::string_view, type> &type::get_base_classes() noexcept {
+    type::base_classes_view_t type::get_base_classes() const noexcept {
         if (!accessor) {
             static std::unordered_map<std::string_view, type> empty;
-            return empty;
+            return utility::mapped_range(empty);
         }
-        return accessor->bases();
+        return utility::mapped_range(accessor->bases());
+    }
+
+    type::derived_classes_view_t type::get_derived_classes() const noexcept {
+        if (!accessor) {
+            static std::unordered_map<std::string_view, type> empty;
+            return utility::mapped_range(empty);
+        }
+        return utility::mapped_range(accessor->bases());
     }
 
     bool type::is_base_of(annotations::lifetime::in<foundation::ctti::typeinfo> typeinfo) const noexcept {
