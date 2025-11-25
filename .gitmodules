@@ -5,3 +5,6 @@
 [submodule "third_party/benchmark"]
 	path = third_party/benchmark
 	url = https://github.com/google/benchmark.git
+[submodule "third_party/rttr_ex"]
+	path = third_party/rttr_ex
+	url = https://github.com/rainy-juzixiao/rttr_ex.git
