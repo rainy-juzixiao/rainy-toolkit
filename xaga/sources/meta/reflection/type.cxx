@@ -210,6 +210,17 @@ namespace rainy::meta::reflection {
         return accessor->typeinfo();
     }
 
+    RAINY_NODISCARD const metadata &type::get_metadata(const utility::any &key) const noexcept {
+        static const metadata empty;
+        if (!accessor) {
+            return empty;
+        }
+        const auto &metadatas = accessor->metadatas();
+        const auto it =
+            core::algorithm::find_if(metadatas.begin(), metadatas.end(), [&key](const metadata &meta) { return meta.key() == key; });
+        return it != metadatas.end() ? *it : empty;
+    }
+
     bool type::has_method(std::string_view name) const noexcept {
         if (!accessor) {
             return false;

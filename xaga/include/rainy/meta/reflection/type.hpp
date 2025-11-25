@@ -105,6 +105,7 @@ namespace rainy::meta::reflection::implements {
         // 基类/派生类返回的是一张表，其中的指针指向位于反射系统内部的实例（其实是静态示例）
         // const在此部分非一等公民，由面向用户的接口进行const属性添加
         // 不考虑过多性能
+        virtual std::vector<metadata>& metadatas() noexcept = 0;
     };
 }
 
@@ -394,6 +395,12 @@ namespace rainy::meta::reflection {
         RAINY_NODISCARD const foundation::ctti::typeinfo &get_typeinfo() noexcept;
 
         /**
+         * @brief 获取元数据信息
+         * @return 如果指定的key与注册数据匹配，则获得对应的metadata，否则返回空metadata
+         */
+        RAINY_NODISCARD const metadata &get_metadata(const utility::any &key) const noexcept;
+
+        /**
          * @brief 检查是否包含指定名称的方法
          * @param name 要检查的方法名称
          * @return 如果包含该方法，返回true，否则返回false
@@ -514,6 +521,10 @@ namespace rainy::meta::reflection::implements{
             return deriveds_;
         }
 
+        std::vector<metadata> &metadatas() noexcept override {
+            return metadatas_;
+        }
+
     private:
         std::string_view name_;
         dyn_typeinfo typeinfo_;
@@ -522,6 +533,7 @@ namespace rainy::meta::reflection::implements{
         std::unordered_map<std::string_view, property> properties_;
         std::unordered_map<std::string_view, type> bases_;
         std::unordered_map<std::string_view, type> deriveds_;
+        std::vector<metadata> metadatas_;
     };
 }
 

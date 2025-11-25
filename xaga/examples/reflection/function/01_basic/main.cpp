@@ -8,7 +8,6 @@
 #include <rainy/meta/reflection/function.hpp>
 #include <rainy/meta/reflection/type.hpp>
 #include <rainy/meta/reflection/registration.hpp>
-#include <rttr/registration.h>
 #include <ranges>
 
 using namespace rainy;
@@ -83,6 +82,9 @@ private:
 RAINY_REFLECTION_REGISTRATION {
     // clang-format off
     meta::reflection::registration::class_<myclass>("myclass")
+        (
+            meta::reflection::metadata("prop","virtual public")
+        )
         .constructor<>()
         .constructor<int>()
         (
@@ -90,6 +92,9 @@ RAINY_REFLECTION_REGISTRATION {
         )
         .method("print_field",
             utility::get_overloaded_func<myclass,void(std::string) const>(&myclass::print_field))
+        (
+            meta::reflection::metadata("prop","const print")
+        )
         .method("print_field", 
             utility::get_overloaded_func<myclass,void(int)>(&myclass::print_field))
         (
@@ -124,9 +129,10 @@ int main() {
         std::cout << func.get_metadata("prop").value() << '\n';
         auto &ctor = type.get_construtor({rainy_typeid(int)});
         std::cout << ctor.name() << '\n';
+        std::cout << ctor.get_metadata("prop").value() << '\n';
         for (const auto &bases: type.get_base_classes()) {
-            std::cout << bases.second.get_name() << '\n';
-            for (const auto &item: bases.second.get_methods()) {
+            std::cout << bases.get_name() << '\n';
+            for (const auto &item: bases.get_methods()) {
                 std::cout << item << '\n';
             }
         }
@@ -141,6 +147,9 @@ int main() {
         {
             const auto &vmeth = type1.get_method("virtual_fun");
             vmeth.invoke(object);
+        }
+        {
+            std::cout << type.get_metadata("prop").value() << '\n';
         }
     }
     any a = 10;

@@ -43,7 +43,52 @@ namespace rainy::meta::reflection::implements {
     }
 }
 
+namespace rainy::meta::reflection::implements {
+    
+    template <typename Ty>
+    struct is_tuple : type_traits::helper::false_type {};
+
+    template <typename... Ts>
+    struct is_tuple<std::tuple<Ts...>> : type_traits::helper::true_type {};
+
+    template <typename... Args>
+    struct extract_unique_tuple;
+
+    template <>
+    struct extract_unique_tuple<> {
+        using type = void;
+        static constexpr bool valid = false;
+    };
+
+    template <typename T, typename... Rest>
+    struct extract_unique_tuple<T, Rest...> {
+    public:
+        using next = extract_unique_tuple<Rest...>;
+
+        static constexpr bool current_is_tuple = is_tuple<std::decay_t<T>>::value;
+        static constexpr bool valid = (current_is_tuple && !next::valid) || (!current_is_tuple && next::valid);
+
+        using type =
+            type_traits::other_trans::conditional_t<current_is_tuple, type_traits::other_trans::decay_t<T>, typename next::type>;
+    };
+
+    template <typename TupleType, typename First, typename... Rest>
+    decltype(auto) extract_tuple_from_args(First &&first, Rest &&...rest) {
+        using FirstClean = std::remove_reference_t<First>;
+        using TupleClean = std::remove_reference_t<TupleType>;
+
+        if constexpr (std::is_same_v<FirstClean, TupleClean>) {
+            return static_cast<TupleType>(first); // 保持原类型返回
+        } else {
+            return extract_tuple_from_args<TupleType>(std::forward<Rest>(rest)...);
+        }
+    }
+}
+
 namespace rainy::meta::reflection {
+    /**
+     * @brief registration是一个类似于RTTR库注册的机制，负责提供基本的写法兼容性
+     */
     class registration {
     public:
         template <typename... Types>
@@ -59,6 +104,19 @@ namespace rainy::meta::reflection {
             }
 
             explicit class_(core::internal_construct_tag_t, type_accessor *type) : type(type) {
+            }
+
+            template <typename... Args>
+            class_ &operator()(Args &&...args) {
+                static constexpr std::size_t metadata_count = implements::metadata_count<Args...>;
+                collections::array<metadata, metadata_count> metadatas =
+                    utility::extract_args_to_array<metadata>(utility::forward<Args>(args)...);
+                if constexpr (metadata_count != 0) {
+                    for (auto &&item: metadatas) {
+                        type->metadatas().emplace_back(utility::move(item));
+                    }
+                }
+                return *this;
             }
 
             class_ &reflect_moon() {
@@ -232,45 +290,6 @@ namespace rainy::meta::reflection::implements {
     template <typename Ty>
     using registration_derived_t =
         type_traits::other_trans::conditional_t<type_traits::type_relations::is_void_v<Ty>, registration, registration::class_<Ty>>;
-
-    template <typename Ty>
-    struct is_tuple : type_traits::helper::false_type {};
-
-    template <typename... Ts>
-    struct is_tuple<std::tuple<Ts...>> : type_traits::helper::true_type {};
-
-    template <typename... Args>
-    struct extract_unique_tuple;
-
-    template <>
-    struct extract_unique_tuple<> {
-        using type = void;
-        static constexpr bool valid = false;
-    };
-
-    template <typename T, typename... Rest>
-    struct extract_unique_tuple<T, Rest...> {
-    public:
-        using next = extract_unique_tuple<Rest...>;
-
-        static constexpr bool current_is_tuple = is_tuple<std::decay_t<T>>::value;
-        static constexpr bool valid = (current_is_tuple && !next::valid) || (!current_is_tuple && next::valid);
-
-        using type =
-            type_traits::other_trans::conditional_t<current_is_tuple, type_traits::other_trans::decay_t<T>, typename next::type>;
-    };
-
-    template <typename TupleType, typename First, typename... Rest>
-    decltype(auto) extract_tuple_from_args(First &&first, Rest &&...rest) {
-        using FirstClean = std::remove_reference_t<First>;
-        using TupleClean = std::remove_reference_t<TupleType>;
-
-        if constexpr (std::is_same_v<FirstClean, TupleClean>) {
-            return static_cast<TupleType>(first); // 保持原类型返回
-        } else {
-            return extract_tuple_from_args<TupleType>(std::forward<Rest>(rest)...);
-        }
-    }
 }
 
 namespace rainy::meta::reflection {
