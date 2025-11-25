@@ -4,7 +4,7 @@
 //#include <meta/factory.hpp>
 //#include <meta/meta.hpp>
 #include <rainy/meta/reflection/registration.hpp>
-//#include <rttr/registration.h>
+#include <rttr/registration.h>
 
 class test {
 public:
@@ -57,7 +57,7 @@ public:
     }
 };
 
-//using namespace rttr;
+using namespace rttr;
 //using namespace Ubpa;
 //using namespace Ubpa::UDRefl;
 
