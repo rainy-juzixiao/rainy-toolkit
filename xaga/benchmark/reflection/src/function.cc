@@ -103,7 +103,7 @@ private:
 
 struct auto_regsiter {
     auto_regsiter() {
-        /*registration::class_<test>("test")
+        registration::class_<test>("test")
             .constructor()
             .method("fun", &test::fun)
             .method("fun1", &test::fun1)
@@ -112,7 +112,7 @@ struct auto_regsiter {
             .method("fun4", &test::fun4)
             .method("fun5", &test::fun5)
             .method("fun6", &test::fun6);
-        Mngr.RegisterType<test>();
+       /*Mngr.RegisterType<test>();
         Mngr.AddMethod<&test::fun>("fun");
         Mngr.AddMethod<&test::fun1>("fun1");
         Mngr.AddMethod<&test::fun2>("fun2");
