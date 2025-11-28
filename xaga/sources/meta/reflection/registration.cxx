@@ -1,27 +1,5 @@
 #include <rainy/meta/reflection/registration.hpp>
-
-namespace rainy::meta::reflection::implements {
-    register_table &register_table::instance() {
-        static register_table instance;
-        return instance;
-    }
-
-    type_accessor *register_table::get_accessor_by_name(const std::string_view name) {
-        auto *this_ = &instance();
-        if (const auto idx_iter = this_->index.find(name); idx_iter != this_->index.end()) {
-            if (const auto iter = this_->data.find(idx_iter->second); iter != this_->data.end()) {
-                return iter->second;
-            }
-        }
-        return nullptr;
-    }
-
-    void register_table::unregister(std::string_view name, foundation::ctti::typeinfo ctti) {
-        auto *this_ = &instance();
-        this_->data.erase(ctti);
-        this_->index.erase(name);
-    }
-}
+#include <rainy/meta/reflection/refl_impl/type_register.hpp>
 
 namespace rainy::meta::reflection::implements {
     bool check_method_field(type_accessor *type, std::string_view name, method &meth) {
@@ -74,6 +52,10 @@ namespace rainy::meta::reflection::implements {
         if (check_method_field(type, name, meth)) {
             type->methods().emplace(name, utility::move(meth));
         }
+    }
+
+    void do_inject(std::once_flag &consume, std::string_view name, type_accessor *accessor) {
+        std::call_once(consume, [&]() { injector::register_type(name, accessor); });
     }
 }
 

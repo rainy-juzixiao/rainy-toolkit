@@ -50,6 +50,7 @@ namespace rainy::meta::reflection::implements {
         RAINY_NODISCARD virtual method_flags type() const noexcept = 0;
         virtual utility::any invoke(object_view &object) = 0;
         virtual utility::any invoke(object_view &object, arg_view arg_view) = 0;
+        virtual utility::any dynamic_invoke(object_view &object, collections::views::array_view<utility::any> arg_view) = 0;
         RAINY_NODISCARD virtual const foundation::ctti::typeinfo &which_belongs() const noexcept = 0;
         RAINY_NODISCARD virtual const foundation::ctti::typeinfo &return_type() const noexcept = 0;
         RAINY_NODISCARD virtual const foundation::ctti::typeinfo &function_signature() const noexcept = 0;
@@ -58,6 +59,7 @@ namespace rainy::meta::reflection::implements {
         virtual bool equal_with(const invoker_accessor *impl) const noexcept = 0;
         RAINY_NODISCARD virtual bool is_invocable(
             collections::views::array_view<foundation::ctti::typeinfo> paramlist) const noexcept = 0;
+        RAINY_NODISCARD virtual bool is_invocable_with(collections::views::array_view<utility::any> paramlist) const noexcept = 0;
         virtual void destruct(bool local) noexcept = 0;
     };
 
@@ -153,9 +155,9 @@ namespace rainy::meta::reflection::implements {
                     return access_invoke(utility::forward<Fx>(storage.fn), ptr);
                 } else {
 #if RAINY_ENABLE_DEBUG
-                    utility::expects(object.ctti().is_compatible(rainy_typeid(Class)) || object.ctti().is_void());
+                    utility::expects(object.type().is_compatible(rainy_typeid(Class)) || object.type().is_void());
 #endif
-                    return access_invoke(utility::forward<Fx>(storage.fn), object.get_pointer());
+                    return access_invoke(utility::forward<Fx>(storage.fn), object.target_as_void_ptr());
                 }
             } else {
                 if constexpr (!type_traits::type_relations::is_same_v<decltype(storage.arguments.store), std::tuple<>>) {
@@ -177,15 +179,15 @@ namespace rainy::meta::reflection::implements {
 #endif
             } else {
 #if RAINY_ENABLE_DEBUG
-                utility::expects(object.ctti().is_compatible(rainy_typeid(Class)) || object.ctti().is_void());
+                utility::expects(object.type().is_compatible(rainy_typeid(Class)) || object.type().is_void());
 #endif
-                ptr = object.get_pointer();
+                ptr = object.target_as_void_ptr();
             }
             if (size == arity) {
                 const std::size_t args_hash =
                     core::accumulate(arg_view.begin(), arg_view.end(), std::size_t{0},
                                      [right = std::size_t{1}](const std::size_t acc, const object_view &item) mutable {
-                                         return acc + static_cast<std::size_t>(item.ctti().hash_code() * right++);
+                                         return acc + static_cast<std::size_t>(item.type().hash_code() * right++);
                                      });
                 /*
                 在此处，我们考虑了参数校验的开销影响。例如，基本的遍历，占据n次比较开销用于检查遍历条件。
@@ -225,6 +227,41 @@ namespace rainy::meta::reflection::implements {
             return storage.invoke_with_defaults(ptr, arg_view);
         }
 
+        utility::any dynamic_invoke(object_view &object, collections::views::array_view<utility::any> arg_view) {
+            const std::size_t size = arg_view.size();
+            static constexpr std::size_t arity = storage_t::arity;
+            static constexpr std::size_t least = arity - storage_t::default_arity;
+            void *ptr = nullptr;
+            if constexpr (type_traits::type_properties::is_polymorphic_v<Class>) {
+                ptr = static_cast<void *>(object.template try_dynamic_cast<Class>());
+#if RAINY_ENABLE_DEBUG
+                utility::expects(ptr != nullptr, "Failure to convert the instance to the target pointer type during runtime");
+#endif
+            } else {
+#if RAINY_ENABLE_DEBUG
+                utility::expects(object.type().is_compatible(rainy_typeid(Class)) || object.type().is_void());
+#endif
+                ptr = object.target_as_void_ptr();
+            }
+            if (size == arity) {
+                const std::size_t args_hash =
+                    core::accumulate(arg_view.begin(), arg_view.end(), std::size_t{0},
+                                     [right = std::size_t{1}](const std::size_t acc, const utility::any &item) mutable {
+                                         return acc + static_cast<std::size_t>(item.type().hash_code() * right++);
+                                     });
+                if (args_hash == storage_t::param_hash) {
+                    return storage.invoke_impl(ptr, arg_view, type_traits::helper::make_index_sequence<arity>{});
+                } else {
+                    return storage.invoke_with_conv_impl(ptr, arg_view, type_traits::helper::make_index_sequence<arity>{});
+                }
+            }
+            if (size < least || size > arity) {
+                errno = EINVAL;
+                return {};
+            }
+            return storage.invoke_with_defaults(ptr, arg_view);
+        }
+
         RAINY_NODISCARD bool is_invocable(
             collections::views::array_view<foundation::ctti::typeinfo> paramlist) const noexcept override {
             if (storage_t::arity != paramlist.size()) {
@@ -244,11 +281,36 @@ namespace rainy::meta::reflection::implements {
             return is_invocable_helper(paramlist, type_traits::helper::make_index_sequence<storage_t::arity>{});
         }
 
+        RAINY_NODISCARD bool is_invocable_with(collections::views::array_view<utility::any> paramlist) const noexcept override {
+            if (storage_t::arity != paramlist.size()) {
+                return false;
+            }
+            std::size_t paramhash =
+                core::accumulate(paramlist.begin(), paramlist.end(), std::size_t{0},
+                                 [right = std::size_t{1}](const std::size_t acc, const utility::any &item) mutable {
+                                     return acc + (item.type().hash_code() * right++);
+                                 });
+            if (paramhash == storage.param_hash) {
+                return true;
+            }
+            if (storage.is_compatible(paramlist)) {
+                return true;
+            }
+            return is_invocable_helper(paramlist, type_traits::helper::make_index_sequence<storage_t::arity>{});
+        }
+
         template <std::size_t... I>
         bool is_invocable_helper(collections::views::array_view<foundation::ctti::typeinfo> paramlist,
                                  type_traits::helper::index_sequence<I...>) const noexcept {
             return (... && utility::any_converter<typename type_traits::other_trans::type_at<I, typelist>::type>::is_convertible(
                                paramlist[I]));
+        }
+
+        template <std::size_t... I>
+        bool is_invocable_helper(collections::views::array_view<utility::any> paramlist,
+                                 type_traits::helper::index_sequence<I...>) const noexcept {
+            return (... && utility::any_converter<typename type_traits::other_trans::type_at<I, typelist>::type>::is_convertible(
+                               paramlist[I].type()));
         }
 
         void destruct(const bool local) noexcept override {

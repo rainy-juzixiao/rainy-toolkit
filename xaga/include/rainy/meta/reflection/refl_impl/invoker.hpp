@@ -130,13 +130,13 @@ namespace rainy::meta::reflection::implements {
         }
     }
     
-    template <typename Type>
-    RAINY_INLINE Type get_arg(object_view item) {
-        if (utility::implements::is_as_runnable<Type>(item.ctti())) {
+    template <typename Type, typename UTy>
+    RAINY_INLINE Type get_arg(UTy&& item) {
+        if (utility::implements::is_as_runnable<Type>(item.type())) {
             return item.template as<Type>();
         }
         if constexpr (utility::is_any_convert_invocable<Type>) {
-            return utility::any_converter<Type>::basic_convert(item.get_pointer(), item.ctti());
+            return utility::any_converter<Type>::basic_convert(item.target_as_void_ptr(), item.type());
         }
         foundation::exceptions::cast::throw_bad_any_cast();
         std::terminate();
@@ -183,10 +183,18 @@ namespace rainy::meta::reflection::implements {
             return size >= least && size <= arity && is_compatible_impl(paramlist, type_traits::helper::make_index_sequence<arity>{});
         }
 
+        bool is_compatible(collections::views::array_view<utility::any> paramlist) const {
+            const std::size_t size = paramlist.size();
+            static constexpr std::size_t least = arity - sizeof...(DArgs);
+            return size >= least && size <= arity && is_compatible_impl(paramlist, type_traits::helper::make_index_sequence<arity>{});
+        }
+
+        /*---------------------*/
+
         template <std::size_t... I>
         bool is_compatible_impl(arg_view *view, type_traits::helper::index_sequence<I...>) const {
             static auto &target_paramlist = implements::param_types_res<Args...>();
-            return ((I < view->size() ? view->at(I).ctti().is_compatible(target_paramlist[I]) : true) && ...);
+            return ((I < view->size() ? view->at(I).type().is_compatible(target_paramlist[I]) : true) && ...);
         }
 
         template <std::size_t... I>
@@ -197,34 +205,42 @@ namespace rainy::meta::reflection::implements {
         }
 
         template <std::size_t... I>
-        RAINY_INLINE any invoke_impl(void *object, arg_view &items, type_traits::helper::index_sequence<I...>) {
+        bool is_compatible_impl(collections::views::array_view<utility::any> paramlist,
+                                type_traits::helper::index_sequence<I...>) const {
+            static auto &target_paramlist = implements::param_types_res<Args...>();
+            return ((I < paramlist.size() ? paramlist[I].type().is_compatible(target_paramlist[I]) : true) && ...);
+        }
+
+        template <typename View, std::size_t... I>
+        RAINY_INLINE any invoke_impl(void *object, View &items, type_traits::helper::index_sequence<I...>) {
             using tuple_t = type_traits::other_trans::type_list<Args...>;
             return access_invoke(
                 utility::forward<Fx>(fn), object,
                 utility::forward<Args>(items[I].template as<typename type_traits::other_trans::type_at<I, tuple_t>::type>())...);
         }
 
-        template <std::size_t... I>
-        RAINY_INLINE any invoke_with_conv_impl(void *object, arg_view &items, type_traits::helper::index_sequence<I...>) {
+        template <typename View, std::size_t... I>
+        RAINY_INLINE any invoke_with_conv_impl(void *object, View &items, type_traits::helper::index_sequence<I...>) {
             using tuple_t = type_traits::other_trans::type_list<Args...>;
             return access_invoke(
                 utility::forward<Fx>(fn), object,
                 utility::forward<Args>(get_arg<typename type_traits::other_trans::type_at<I, tuple_t>::type>(items[I]))...);
         }
 
-        RAINY_INLINE any invoke_with_defaults(void *object, arg_view &items) {
+        template <typename View>
+        RAINY_INLINE any invoke_with_defaults(void *object, View &items) {
             using full_list = type_traits::other_trans::type_list<Args...>;
             constexpr std::size_t N = sizeof...(Args);
             return apply_with_defaults(object, items, full_list{}, type_traits::helper::make_index_sequence<N>{});
         }
 
-        template <typename TypeList, std::size_t... I>
-        RAINY_INLINE any apply_with_defaults(void *object, arg_view &items, TypeList, type_traits::helper::index_sequence<I...>) {
+        template <typename View, typename TypeList, std::size_t... I>
+        RAINY_INLINE any apply_with_defaults(void *object, View &items, TypeList, type_traits::helper::index_sequence<I...>) {
             return access_invoke(utility::forward<Fx>(fn), object, utility::forward<Args>(get_or_default<I, TypeList>(items))...);
         }
 
-        template <std::size_t I, typename TypeList>
-        RAINY_INLINE typename type_traits::other_trans::type_at<I, TypeList>::type get_or_default(arg_view &items) {
+        template <std::size_t I, typename TypeList, typename Ty>
+        RAINY_INLINE typename type_traits::other_trans::type_at<I, TypeList>::type get_or_default(Ty&& items) {
             using type = typename type_traits::other_trans::type_at<I, TypeList>::type;
             if (I < items.size()) {
                 return get_arg<type>(items[I]);

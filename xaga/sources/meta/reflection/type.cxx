@@ -1,3 +1,18 @@
+/*
+ * Copyright 2025 rainy-juzixiao
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 #include <rainy/meta/reflection/type.hpp>
 
 namespace rainy::meta::reflection {
@@ -253,6 +268,17 @@ namespace rainy::meta::reflection {
             }
         }
         return false;
+    }
+
+    utility::any type::create_object(collections::views::array_view<utility::any> args) const {
+        for (const auto &item: accessor->ctors()) {
+            const function &cur_ctor = item;
+            bool invocable = cur_ctor.is_invocable_with(args);
+            if (invocable) {
+                return cur_ctor.static_invoke(args);
+            }
+        }
+        return {};
     }
 
     RAINY_NODISCARD bool type::is_valid() const noexcept {

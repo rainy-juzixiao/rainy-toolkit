@@ -45,24 +45,3 @@
 #### 备注
 
 仅当`is_constructible<Ty, std::initializer_list<Elem> &, Types...>`结果为`true`时，该函数才被允许调用。如果Ty为一个引用类型，basic_any将激活借用所有权模式。
-
-<!--@include: @/static/example_code_header_cxx17.md-->
-
-```cpp
-#include <iostream>
-#include <rainy/utility/any.hpp>
-
-using namespace rainy::utility;
-
-int main() {
-	any a;
-	a.emplace<int>(42); // a is int
-	std::cout << a.type().name() << '\n'; // int
-	int value{ 42 };
-	a.emplace<int&>(value); // now a is int&
-	std::cout << a.type().name() << '\n'; // int&
-	return 0;
-}
-```
-
-<!--@include: @/static/example_assertion.md-->

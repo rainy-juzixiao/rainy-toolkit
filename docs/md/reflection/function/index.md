@@ -48,9 +48,9 @@ class examples {
 本库对于仿函数的支持，有需注意的事项。仿函数的反射极为特殊。通常，对于仿函数的处理会检查传入的函数对象类型。进行类型推导。在推导后，有可能是*静态域函数*也可能是*对象实例函数*。
 
 ```cpp
-auto lmb = [/* 带捕获 */] {}; // <-- 可引用，将提取operator()作为对象实例函数，需要lambda对象调用
+auto lmb = [/* 带捕获 */] {}; // <-- 可引用，作为仿函数存在
 
-auto lmb_as_ptr = [/* 无捕获 */]() {}; // <-- 可直接引用并调用，作为静态域函数，不需要提供lambda对象
+auto lmb_as_ptr = [/* 无捕获 */]() {}; // <-- 可引用，作为仿函数存在
 
 struct plus {
     int operator()(int a,int b) {
@@ -58,7 +58,7 @@ struct plus {
     }
 };
 
-plus plus_object; // <-- 可引用，所属类具有默认构造且无成员，可直接引用，以静态域函数形式。不需要提供lambda对象
+plus plus_object; // <-- 可引用，要求所属类可复制构造以用于构造对象
 
 struct plus_not_empty {
     int operator()(int a, int b) {
@@ -69,7 +69,7 @@ struct plus_not_empty {
     int sum;
 };
 
-plus_not_empty plus_not_empty_object; // <-- 可引用，但所属类具有成员，以成员函数形式，需提供实例对象调用
+plus_not_empty plus_not_empty_object; // <-- 可引用，要求所属类可复制构造以用于构造对象，将具有独立的状态
 
 struct not_good {
     int operator(int a, int b) {

@@ -111,12 +111,12 @@ namespace rainy::meta::reflection {
         RAINY_NODISCARD RAINY_INLINE const Decayed *cast_to_pointer() const noexcept {
             using namespace foundation::ctti;
             static constexpr typeinfo target_type = typeinfo::create<Decayed>();
-            return ctti().is_compatible(target_type) ? reinterpret_cast<const Decayed *>(target_as_void_ptr()) : nullptr;
+            return type().is_compatible(target_type) ? reinterpret_cast<const Decayed *>(target_as_void_ptr()) : nullptr;
         }
 
         template <typename Type>
         RAINY_NODISCARD auto as() noexcept -> decltype(auto) {
-            return utility::implements::as_impl<Type>(target_as_void_ptr(), ctti());
+            return utility::implements::as_impl<Type>(target_as_void_ptr(), type());
         }
 
         template <typename Type, enable_if_t<Type> = 0>
@@ -135,7 +135,7 @@ namespace rainy::meta::reflection {
             return valid();
         }
 
-        RAINY_NODISCARD const foundation::ctti::typeinfo &ctti() const noexcept {
+        RAINY_NODISCARD const foundation::ctti::typeinfo &type() const noexcept {
             rainy_assume(ctti_ != nullptr);
             return *ctti_;
         }
@@ -145,11 +145,7 @@ namespace rainy::meta::reflection {
             return !ctti_->is_same(rainy_typeid(void));
         }
 
-        RAINY_NODISCARD void *get_pointer() noexcept {
-            return object_;
-        }
-
-        RAINY_NODISCARD const void *get_pointer() const noexcept {
+        RAINY_NODISCARD void *target_as_void_ptr() noexcept {
             return object_;
         }
 
@@ -167,12 +163,12 @@ namespace rainy::meta::reflection {
             using namespace foundation::ctti;
             static constexpr typeinfo target_type = typeinfo::create<TargetType>();
             auto *result =
-                static_cast<const TargetType *>(foundation::ctti::apply_offset(const_cast<void *>(object_), ctti(), target_type));
+                static_cast<const TargetType *>(foundation::ctti::apply_offset(const_cast<void *>(object_), type(), target_type));
             if (result) {
                 return result;
             }
             return static_cast<const TargetType *>(
-                foundation::ctti::apply_offset(const_cast<void *>(object_), ctti().remove_cvref(), target_type));
+                foundation::ctti::apply_offset(const_cast<void *>(object_), type().remove_cvref(), target_type));
         }
 
     private:

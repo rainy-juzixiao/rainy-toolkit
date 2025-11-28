@@ -101,11 +101,11 @@ namespace rainy::foundation::container {
         }
 
         RAINY_NODISCARD constexpr Ty &operator*() noexcept {
-            core::implements::stl_internal_check(is_valid_);
+            assert(is_valid_);
             return value_;
         }
         RAINY_NODISCARD constexpr const Ty &operator*() const noexcept {
-            core::implements::stl_internal_check(is_valid_);
+            assert(is_valid_);
             return value_;
         }
 

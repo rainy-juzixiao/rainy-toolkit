@@ -15,9 +15,10 @@
  */
 #ifndef RAINY_COLLECTIONS_VIEWS_VIEWS_INTERFACE_HPP
 #define RAINY_COLLECTIONS_VIEWS_VIEWS_INTERFACE_HPP
-#include <rainy/core/core.hpp>
-#include <rainy/collections/views/implements/pipeline.hpp>
-#include <rainy/collections/views/implements/range_closure.hpp>
+#include <rainy/core/platform.hpp>
+#include <rainy/core/type_traits.hpp>
+#include <rainy/core/implements/views/pipeline.hpp>
+#include <rainy/core/implements/views/range_closure.hpp>
 
 namespace rainy::collections::views {
     template <typename Derived>
@@ -64,14 +65,15 @@ namespace rainy::collections::views {
             return !empty(cast_to_derived());
         }
 
-        template <typename D = Derived>
+        template <typename D = Derived, typename = decltype(utility::to_address(utility::begin(utility::declval<view_interface>().cast_to_derived())))>
         RAINY_NODISCARD constexpr auto data() {
             static_assert(
                 type_traits::extras::iterators::is_contiguous_iterator_v<type_traits::extras::iterators::iterator_t<D>>);
             return utility::to_address(utility::begin(cast_to_derived()));
         }
 
-        template <typename D = Derived>
+        template <typename D = Derived,
+                  typename = decltype(utility::to_address(utility::begin(utility::declval<view_interface>().cast_to_derived())))>
         RAINY_NODISCARD constexpr auto data() const {
             static_assert(
                 type_traits::extras::iterators::is_contiguous_iterator_v<type_traits::extras::iterators::iterator_t<D>>);

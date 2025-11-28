@@ -121,7 +121,6 @@ int main() {
         auto type1 = meta::reflection::type::get_by_name("mybase1");
         myclass object = 50;
         auto &func = type.get_method("print_field");
-        
         func.invoke(object);
         func.invoke(object, 50);
         std::cout << func.name() << '\n';
@@ -131,9 +130,9 @@ int main() {
         std::cout << ctor.name() << '\n';
         std::cout << ctor.get_metadata("prop").value() << '\n';
         for (const auto &bases: type.get_base_classes()) {
-            std::cout << bases.get_name() << '\n';
+            std::cout << "base : " << bases.get_name() << '\n';
             for (const auto &item: bases.get_methods()) {
-                std::cout << item << '\n';
+                std::cout << '\t' << item << '\n';
             }
         }
         std::cout << type.get_method("print_mybase1") << '\n';

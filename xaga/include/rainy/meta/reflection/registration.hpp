@@ -33,12 +33,13 @@ namespace rainy::meta::reflection::implements {
     RAINY_TOOLKIT_API bool check_method_field(type_accessor *type, std::string_view name, method &meth);
     RAINY_TOOLKIT_API bool check_ctor_field(type_accessor *type, method &ctor);
     RAINY_TOOLKIT_API void register_method_helper(type_accessor *type, std::string_view name, method &&meth);
+    RAINY_TOOLKIT_API void do_inject(std::once_flag &consume, std::string_view name, type_accessor *accessor);
 
     template <typename Type>
     static type_accessor *new_type_accessor_instance(std::string_view name) noexcept {
         static std::once_flag flag;
         static type_accessor_impl_class<Type> instance{name};
-        std::call_once(flag, [&]() { injector::register_type<Type>(name, &instance); });
+        do_inject(flag, name, &instance);
         return &instance;
     }
 }
@@ -234,7 +235,7 @@ namespace rainy::meta::reflection {
             class_ &base(std::string_view name = rainy_typeid(Base).name(), bool reflect_moon = false) {
                 auto &bases = this->type->bases();
                 if (bases.find(name) == bases.end()) {
-                    if (!implements::register_table::has_register<Base>()) {
+                    if (!implements::register_table::has_register(rainy_typeid(Base))) {
                         class_<Base>(name).template derive<Type>(type->name()); // 注册一个新类型，并将该类直接注入到表中
                     }
                     foundation::ctti::register_base<Type, Base>();
@@ -256,7 +257,7 @@ namespace rainy::meta::reflection {
             class_ &derive(std::string_view name = rainy_typeid(Derive).name(), bool reflect_moon = false) {
                 auto &deriveds = this->type->deriveds();
                 if (deriveds.find(name) == deriveds.end()) {
-                    if (!implements::register_table::has_register<Derive>()) {
+                    if (!implements::register_table::has_register(rainy_typeid(Derive))) {
                         class_<Derive>(name).template base<Type>(type->name()); // 注册一个新类型，并将该类直接注入到表中
                     }
                     foundation::ctti::register_base<Derive, Type>();

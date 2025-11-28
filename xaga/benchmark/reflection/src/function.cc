@@ -277,90 +277,90 @@ static void benchmark_rainytoolkit_reflection_invoke_virtual_method(benchmark::S
 
 BENCHMARK(benchmark_rainytoolkit_reflection_invoke_virtual_method);
 
-//static void benchmark_rttr_reflection_invoke_method(benchmark::State &state) {
-//    for (const auto _: state) {
-//        static auto type = rttr::type::get_by_name("test");
-//        static auto fun1 = type.get_method("fun");
-//        static test object_x;
-//        benchmark::DoNotOptimize(fun1.invoke(object_x));
-//        benchmark::ClobberMemory();
-//        (void) _;
-//    }
-//}
-//
-//static void benchmark_rttr_reflection_invoke_method_1(benchmark::State &state) {
-//    for (const auto _: state) {
-//        static auto type = rttr::type::get_by_name("test");
-//        static auto fun1 = type.get_method("fun1");
-//        static test object_x;
-//        benchmark::DoNotOptimize(fun1.invoke(object_x, 10.0f));
-//        benchmark::ClobberMemory();
-//        (void) _;
-//    }
-//}
-//
-//static void benchmark_rttr_reflection_invoke_method_2(benchmark::State &state) {
-//    for (const auto _: state) {
-//        static auto type = rttr::type::get_by_name("test");
-//        static auto fun2 = type.get_method("fun2");
-//        static test object_x;
-//        benchmark::DoNotOptimize(fun2.invoke(object_x, 10.0f, 20.0f));
-//        benchmark::ClobberMemory();
-//        (void) _;
-//    }
-//}
-//
-//static void benchmark_rttr_reflection_invoke_method_3(benchmark::State &state) {
-//    for (const auto _: state) {
-//        static auto type = rttr::type::get_by_name("test");
-//        static auto fun3 = type.get_method("fun3");
-//        static test object_x;
-//        benchmark::DoNotOptimize(fun3.invoke(object_x, 10.0f, 20.0f, 30.0f));
-//        benchmark::ClobberMemory();
-//        (void) _;
-//    }
-//}
-//
-//static void benchmark_rttr_reflection_invoke_method_4(benchmark::State &state) {
-//    for (const auto _: state) {
-//        static auto type = rttr::type::get_by_name("test");
-//        static auto fun4 = type.get_method("fun4");
-//        static test object_x;
-//        benchmark::DoNotOptimize(fun4.invoke(object_x, 10.0f, 20.0f, 30.0f, 40.0f));
-//        benchmark::ClobberMemory();
-//        (void) _;
-//    }
-//}
-//
-//static void benchmark_rttr_reflection_invoke_method_5(benchmark::State &state) {
-//    for (const auto _: state) {
-//        static auto type = rttr::type::get_by_name("test");
-//        static auto fun5 = type.get_method("fun5");
-//        static test object_x;
-//        benchmark::DoNotOptimize(fun5.invoke(object_x, 10.0f, 20.0f, 30.0f, 40.0f, 50.0f));
-//        benchmark::ClobberMemory();
-//        (void) _;
-//    }
-//}
-//
-//static void benchmark_rttr_reflection_invoke_method_6(benchmark::State &state) {
-//    for (const auto _: state) {
-//        static auto type = rttr::type::get_by_name("test");
-//        static auto fun6 = type.get_method("fun6");
-//        static test object_x;
-//        benchmark::DoNotOptimize(fun6.invoke(object_x, 10.0f, 20.0f, 30.0f, 40.0f, 50.0f, 60.0f));
-//        benchmark::ClobberMemory();
-//        (void) _;
-//    }
-//}
-//
-//BENCHMARK(benchmark_rttr_reflection_invoke_method);
-//BENCHMARK(benchmark_rttr_reflection_invoke_method_1);
-//BENCHMARK(benchmark_rttr_reflection_invoke_method_2);
-//BENCHMARK(benchmark_rttr_reflection_invoke_method_3);
-//BENCHMARK(benchmark_rttr_reflection_invoke_method_4);
-//BENCHMARK(benchmark_rttr_reflection_invoke_method_5);
-//BENCHMARK(benchmark_rttr_reflection_invoke_method_6);
+static void benchmark_rttr_reflection_invoke_method(benchmark::State &state) {
+    for (const auto _: state) {
+        static auto type = rttr::type::get_by_name("test");
+        static auto fun1 = type.get_method("fun");
+        static test object_x;
+        benchmark::DoNotOptimize(fun1.invoke(object_x));
+        benchmark::ClobberMemory();
+        (void) _;
+    }
+}
+
+static void benchmark_rttr_reflection_invoke_method_1(benchmark::State &state) {
+    for (const auto _: state) {
+        static auto type = rttr::type::get_by_name("test");
+        static auto fun1 = type.get_method("fun1");
+        static test object_x;
+        benchmark::DoNotOptimize(fun1.invoke(object_x, 10.0f));
+        benchmark::ClobberMemory();
+        (void) _;
+    }
+}
+
+static void benchmark_rttr_reflection_invoke_method_2(benchmark::State &state) {
+    for (const auto _: state) {
+        static auto type = rttr::type::get_by_name("test");
+        static auto fun2 = type.get_method("fun2");
+        static test object_x;
+        benchmark::DoNotOptimize(fun2.invoke(object_x, 10.0f, 20.0f));
+        benchmark::ClobberMemory();
+        (void) _;
+    }
+}
+
+static void benchmark_rttr_reflection_invoke_method_3(benchmark::State &state) {
+    for (const auto _: state) {
+        static auto type = rttr::type::get_by_name("test");
+        static auto fun3 = type.get_method("fun3");
+        static test object_x;
+        benchmark::DoNotOptimize(fun3.invoke(object_x, 10.0f, 20.0f, 30.0f));
+        benchmark::ClobberMemory();
+        (void) _;
+    }
+}
+
+static void benchmark_rttr_reflection_invoke_method_4(benchmark::State &state) {
+    for (const auto _: state) {
+        static auto type = rttr::type::get_by_name("test");
+        static auto fun4 = type.get_method("fun4");
+        static test object_x;
+        benchmark::DoNotOptimize(fun4.invoke(object_x, 10.0f, 20.0f, 30.0f, 40.0f));
+        benchmark::ClobberMemory();
+        (void) _;
+    }
+}
+
+static void benchmark_rttr_reflection_invoke_method_5(benchmark::State &state) {
+    for (const auto _: state) {
+        static auto type = rttr::type::get_by_name("test");
+        static auto fun5 = type.get_method("fun5");
+        static test object_x;
+        benchmark::DoNotOptimize(fun5.invoke(object_x, 10.0f, 20.0f, 30.0f, 40.0f, 50.0f));
+        benchmark::ClobberMemory();
+        (void) _;
+    }
+}
+
+static void benchmark_rttr_reflection_invoke_method_6(benchmark::State &state) {
+    for (const auto _: state) {
+        static auto type = rttr::type::get_by_name("test");
+        static auto fun6 = type.get_method("fun6");
+        static test object_x;
+        benchmark::DoNotOptimize(fun6.invoke(object_x, 10.0f, 20.0f, 30.0f, 40.0f, 50.0f, 60.0f));
+        benchmark::ClobberMemory();
+        (void) _;
+    }
+}
+
+BENCHMARK(benchmark_rttr_reflection_invoke_method);
+BENCHMARK(benchmark_rttr_reflection_invoke_method_1);
+BENCHMARK(benchmark_rttr_reflection_invoke_method_2);
+BENCHMARK(benchmark_rttr_reflection_invoke_method_3);
+BENCHMARK(benchmark_rttr_reflection_invoke_method_4);
+BENCHMARK(benchmark_rttr_reflection_invoke_method_5);
+BENCHMARK(benchmark_rttr_reflection_invoke_method_6);
 //
 //static void benchmark_skypjack_meta_reflection_invoke_method(benchmark::State &state) {
 //    for (const auto _: state) {

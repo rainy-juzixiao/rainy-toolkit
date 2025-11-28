@@ -202,8 +202,10 @@ namespace rainy::utility {
         template <typename Type>
         RAINY_ANY_AS_NODISCARD auto as() -> decltype(auto) {
             static constexpr auto location = source_location::current();
-            utility::throw_exception_if<foundation::exceptions::cast::bad_any_cast>(implements::is_as_runnable<Type>(type()),
-                                                                                    location);
+            if (!is<Type>()) {
+                utility::throw_exception_if<foundation::exceptions::cast::bad_any_cast>(implements::is_as_runnable<Type>(type()),
+                                                                                        location);
+            }
             return implements::as_impl<Type>(target_as_void_ptr(), type());
         }
 

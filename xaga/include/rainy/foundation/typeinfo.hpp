@@ -415,7 +415,6 @@ namespace rainy::foundation::ctti::implements {
         if constexpr (type_traits::type_relations::is_void_v<type_traits::cv_modify::remove_cvref_t<Type>>) {
             return false;
         } else {
-
             using ftraits = primary_types::function_traits<match_t>;
             if constexpr (ftraits::valid) {
                 return raw_type_id(match_t) == type.hash_code; // 修正对类型信息检测的行为
@@ -495,6 +494,8 @@ namespace rainy::foundation::ctti {
     RAINY_NODISCARD constexpr rain_fn function_name() const noexcept -> typeinfo {                                                    \
         typeinfo ret;                                                                                                                 \
         ret.internal_type = internal_type->modfier(operation);                                                                        \
+        ret.cache_name = ret.internal_type->name;                                                                                     \
+        ret.cache_hash_code = ret.internal_type->hash_code;                                                                           \
         return ret;                                                                                                                   \
     }
 
@@ -521,7 +522,10 @@ namespace rainy::foundation::ctti {
         template <typename Ty>
         static constexpr rain_fn create() noexcept -> typeinfo {
             typeinfo type;
+            // 我们在此处，缓存一些本地数据，以加速性能
             type.internal_type = &implements::typeinfo<Ty>;
+            type.cache_name = type.internal_type->name;
+            type.cache_hash_code = type.internal_type->hash_code;
             return type;
         }
 
@@ -545,14 +549,14 @@ namespace rainy::foundation::ctti {
          * @brief 获取类型信息中对应的名称
          */
         RAINY_NODISCARD constexpr rain_fn name() const noexcept -> std::string_view {
-            return internal_type->name;
+            return cache_name;
         }
 
         /**
          * @brief 获取类型信息中对应的哈希值
          */
         RAINY_NODISCARD constexpr rain_fn hash_code() const noexcept -> std::size_t {
-            return internal_type->hash_code;
+            return cache_hash_code;
         }
 
         /**
@@ -651,7 +655,7 @@ namespace rainy::foundation::ctti {
         }
 
         operator std::size_t() const noexcept {
-            return internal_type->hash_code;
+            return cache_hash_code;
         }
 
         /**
@@ -721,6 +725,8 @@ namespace rainy::foundation::ctti {
         RAINY_GENERATE_TYPEINFO_TYPEINSPECT_METHOD_HELPER(is_const_volatile, traits::is_const & traits::is_volatile);
 
     private:
+        std::string_view cache_name{};
+        std::size_t cache_hash_code{};
         const implements::typeinfo_component *internal_type{&implements::empty_component};
     };
 }
@@ -773,16 +779,16 @@ namespace rainy::foundation::ctti::implements {
 
     using conversion_map_t = std::unordered_map<conversion_key, converter_func, conversion_key_hash>;
 
-    inline conversion_map_t &get_conversion_map() {
+    RAINY_INLINE conversion_map_t &get_conversion_map() {
         static conversion_map_t instance;
         return instance;
     }
 
-    inline void register_conversion(std::size_t src, std::size_t tgt, converter_func fn) {
+    RAINY_INLINE void register_conversion(std::size_t src, std::size_t tgt, converter_func fn) {
         get_conversion_map().try_emplace(conversion_key{src, tgt}, fn);
     }
 
-    inline converter_func find_converter(std::size_t src, std::size_t tgt) {
+    RAINY_INLINE converter_func find_converter(std::size_t src, std::size_t tgt) {
         auto &map = get_conversion_map();
         auto it = map.find(conversion_key{src, tgt});
         if (it != map.end()) {

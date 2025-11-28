@@ -19,9 +19,83 @@
 #include <rainy/foundation/typeinfo.hpp>
 #include <rainy/meta/reflection/function.hpp>
 #include <rainy/meta/reflection/property.hpp>
-#include <rainy/foundation/pal/threading.hpp>
 #include <rainy/utility/iterator.hpp>
+#include <rainy/meta/reflection/refl_impl/type_register.hpp>
 #include <unordered_map>
+
+/*
+Public Member Functions
+    type (const type &other) noexcept
+variant 	create (std::vector< argument > args=std::vector< argument >()) const
+bool 	destroy (variant &obj) const noexcept
+array_range< type > 	get_base_classes () const noexcept
+constructor 	get_constructor (const std::vector< type > &params=std::vector< type >()) const noexcept
+array_range< constructor > 	get_constructors () const noexcept
+array_range< constructor > 	get_constructors (filter_items filter) const noexcept
+array_range< type > 	get_derived_classes () const noexcept
+destructor 	get_destructor () const noexcept
+enumeration 	get_enumeration () const noexcept
+type_id 	get_id () const noexcept
+variant 	get_metadata (const variant &key) const
+method 	get_method (string_view name) const noexcept
+method 	get_method (string_view name, const std::vector< type > &type_list) const noexcept
+array_range< method > 	get_methods () const noexcept
+array_range< method > 	get_methods (filter_items filter) const noexcept
+string_view 	get_name () const noexcept
+array_range< property > 	get_properties () const noexcept
+array_range< property > 	get_properties (filter_items filter) const noexcept
+property 	get_property (string_view name) const noexcept
+variant 	get_property_value (string_view name, instance obj) const
+type 	get_raw_type () const noexcept
+std::size_t 	get_sizeof () const noexcept
+array_range< type > 	get_template_arguments () const noexcept
+type 	get_wrapped_type () const noexcept
+variant 	invoke (string_view name, instance obj, std::vector< argument > args) const
+bool 	is_arithmetic () const noexcept
+bool 	is_array () const noexcept
+bool 	is_associative_container () const noexcept
+bool 	is_base_of (const type &other) const noexcept
+bool 	is_base_of () const noexcept
+bool 	is_class () const noexcept
+bool 	is_derived_from (const type &other) const noexcept
+bool 	is_derived_from () const noexcept
+bool 	is_enumeration () const noexcept
+bool 	is_function_pointer () const noexcept
+bool 	is_member_function_pointer () const noexcept
+bool 	is_member_object_pointer () const noexcept
+bool 	is_pointer () const noexcept
+bool 	is_sequential_container () const noexcept
+bool 	is_template_instantiation () const noexcept
+bool 	is_valid () const noexcept
+bool 	is_wrapper () const noexcept
+    operator bool () const noexcept
+bool 	operator!= (const type &other) const noexcept
+bool 	operator< (const type &other) const noexcept
+bool 	operator<= (const type &other) const noexcept
+type & 	operator= (const type &other) noexcept
+bool 	operator== (const type &other) const noexcept
+bool 	operator> (const type &other) const noexcept
+bool 	operator>= (const type &other) const noexcept
+bool 	set_property_value (string_view name, instance obj, argument arg) const
+Static Public Member Functions
+static type 	get () noexcept
+static type 	get (T &&object) noexcept
+static type 	get_by_name (string_view name) noexcept
+static method 	get_global_method (string_view name) noexcept
+static method 	get_global_method (string_view name, const std::vector< type > &params) noexcept
+static array_range< method > 	get_global_methods () noexcept
+static array_range< property > 	get_global_properties () noexcept
+static property 	get_global_property (string_view name) noexcept
+static variant 	get_property_value (string_view name)
+static array_range< type > 	get_types () noexcept
+static variant 	invoke (string_view name, std::vector< argument > args)
+static void 	register_comparators ()
+static void 	register_converter_func (F func)
+static void 	register_equal_comparator ()
+static void 	register_less_than_comparator ()
+static void 	register_wrapper_converter_for_base_classes ()
+static bool 	set_property_value (string_view name, argument arg)
+*/
 
 namespace rainy::meta::reflection {
     class type;
@@ -109,95 +183,6 @@ namespace rainy::meta::reflection::implements {
     };
 }
 
-namespace rainy::meta::reflection::implements {
-    class register_table {
-    public:
-        template <typename Type>
-        static void register_type(std::string_view name, type_accessor *type) {
-            auto *this_ = &instance();
-            constexpr auto ctti = foundation::ctti::typeinfo::create<Type>();
-            // 从此处开始，进入同步块
-            foundation::pal::threading::create_synchronized_task(this_->lock, [this_, &ctti, &type, name]() {
-#if RAINY_HAS_CXX20
-                if (!this_->data.contains(ctti))
-#else
-                if (this_->data.find(ctti) == this_->data.end())
-#endif
-                {
-                    auto [iter, success] = this_->data.emplace(ctti, type);
-                    utility::ensures(success, "Cannot register type.");
-                    this_->index.emplace(name, ctti);
-                    (void) iter;
-                }
-            });
-            // 同步结束
-        }
-
-        template <typename Type>
-        static type_accessor *get_accessor() {
-            auto *this_ = &instance();
-            if (auto iter = this_->data.find(rainy_typeid(Type)); iter != this_->data.end()) {
-                return iter->second;
-            }
-            return nullptr;
-        }
-
-        RAINY_TOOLKIT_API static void unregister(std::string_view name, foundation::ctti::typeinfo ctti);
-
-        static type_accessor *get_accessor_by_name(std::string_view name);
-
-        template <typename Type>
-        static bool has_register() noexcept {
-            auto *this_ = &instance();
-            return this_->data.find(rainy_typeid(Type)) != this_->data.end();
-        }
-
-    private:
-        RAINY_TOOLKIT_API static register_table &instance();
-
-        std::unordered_map<std::string_view, foundation::ctti::typeinfo> index;
-        std::unordered_map<foundation::ctti::typeinfo, type_accessor *> data;
-        std::mutex lock;
-    };
-}
-
-namespace rainy::meta::reflection::implements {
-    class injector {
-    public:
-        template <typename Type>
-        static void register_type(std::string_view name, type_accessor *type) {
-            register_table::register_type<Type>(name, type);
-            auto *this_ = &instance();
-            constexpr auto ctti = foundation::ctti::typeinfo::create<Type>();
-            std::lock_guard<std::mutex> guard(this_->lock);
-            this_->registered.emplace_back(registration_entry{name, ctti});
-        }
-
-        static void unregister_all() {
-            auto *this_ = &instance();
-            std::lock_guard<std::mutex> guard(this_->lock);
-            for (const auto &entry: this_->registered) {
-                register_table::unregister(entry.name, entry.ctti);
-            }
-            this_->registered.clear();
-        }
-
-    private:
-        struct registration_entry {
-            std::string_view name;
-            foundation::ctti::typeinfo ctti;
-        };
-
-        static injector &instance() {
-            static injector inst;
-            return inst;
-        }
-
-        std::mutex lock;
-        std::vector<registration_entry> registered;
-    };
-}
-
 namespace rainy::meta::reflection {
     /**
      * @brief 用于反射的类型
@@ -207,10 +192,10 @@ namespace rainy::meta::reflection {
     class RAINY_TOOLKIT_API type {
     public:
         using type_id = std::size_t;
-        using methods_view_t = utility::sub_range<utility::map_mapped_iterator<implements::method_storage_t>>;
-        using property_view_t = utility::sub_range<utility::map_mapped_iterator<implements::property_storage_t>>;
-        using base_classes_view_t = utility::sub_range<utility::map_mapped_iterator<std::unordered_map<std::string_view, type>>>;
-        using derived_classes_view_t = utility::sub_range<utility::map_mapped_iterator<std::unordered_map<std::string_view, type>>>;
+        using methods_view_t = collections::views::iterator_range<utility::map_mapped_iterator<implements::method_storage_t>>;
+        using property_view_t = collections::views::iterator_range<utility::map_mapped_iterator<implements::property_storage_t>>;
+        using base_classes_view_t = collections::views::iterator_range<utility::map_mapped_iterator<std::unordered_map<std::string_view, type>>>;
+        using derived_classes_view_t = collections::views::iterator_range<utility::map_mapped_iterator<std::unordered_map<std::string_view, type>>>;
         using constcutor_view_t = collections::views::array_view<constructor>;
 
         /**
@@ -238,7 +223,7 @@ namespace rainy::meta::reflection {
         template <typename Type>
         static type get() noexcept {
             type instance{};
-            instance.accessor = implements::register_table::get_accessor<Type>();
+            instance.accessor = implements::register_table::get_accessor(rainy_typeid(Type));
             return instance;
         }
 
@@ -435,6 +420,8 @@ namespace rainy::meta::reflection {
             return {};
         }
 
+        utility::any create_object(collections::views::array_view<utility::any> args) const;
+
         /**
          * @brief 检查当前反射类型对象是否有效
          * @return 如果有效，返回true，否则返回false
@@ -445,13 +432,13 @@ namespace rainy::meta::reflection {
         utility::any invoke_method(std::string_view name, object_view instance, Args &&...args) const {
             using namespace foundation::ctti;
             auto flag = method_flags::none;
-            if (instance.ctti().has_traits(traits::is_const)) {
+            if (instance.type().has_traits(traits::is_const)) {
                 flag = flag | method_flags::const_qualified;
             }
-            if (instance.ctti().has_traits(traits::is_volatile)) {
+            if (instance.type().has_traits(traits::is_volatile)) {
                 flag = flag | method_flags::volatile_qualified;
             }
-            if (instance.ctti().has_traits(traits::is_rref)) {
+            if (instance.type().has_traits(traits::is_rref)) {
                 flag = flag | method_flags::rvalue_qualified;
             }
             return invoke_method(flag, name, instance, utility::forward<Args>(args)...);

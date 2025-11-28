@@ -107,17 +107,17 @@ namespace rainy::meta::reflection {
             using namespace foundation::ctti;
 #if RAINY_ENABLE_DEBUG
             utility::expects(!empty(), "Cannot call [invoke] method, curent object is empty!");
-            if (instance.ctti().is_const()) {
+            if (instance.type().is_const()) {
                 if (!is_const()) {
                     errno = ECANCELED;
                     return {};
                 }
-            } else if (instance.ctti().has_traits(traits::is_volatile)) {
+            } else if (instance.type().has_traits(traits::is_volatile)) {
                 if (!is_volatile()) {
                     errno = ECANCELED;
                     return {};
                 }
-            } else if (instance.ctti().is_rvalue_reference()) {
+            } else if (instance.type().is_rvalue_reference()) {
                 if (!is_invoke_for_rvalue()) {
                     errno = ECANCELED;
                     return {};
@@ -130,6 +130,8 @@ namespace rainy::meta::reflection {
                 return invoke_accessor()->invoke(instance, implements::arg_store{utility::forward<Args>(args)...});
             }
         }
+
+        RAINY_INLINE utility::any invoke_variadic(object_view instance, collections::views::array_view<utility::any> args) const;
 
         /**
          * @brief 重载函数调用运算符，以调用函数并返回结果。
@@ -350,6 +352,8 @@ namespace rainy::meta::reflection {
             implements::make_paramlist paramlist{utility::forward<Args>(args)...};
             return is_invocable(paramlist.get());
         }
+
+        bool is_variadic_invocable_with(collections::views::array_view<utility::any> args);
 
         /**
          * @brief 获取函数对象的目标函数指针。

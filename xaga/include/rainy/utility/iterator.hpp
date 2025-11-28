@@ -376,9 +376,8 @@ namespace rainy::utility {
     class bidirectional_iterator {
     public:
         using implement_type = Implement;
-        using iterator_traits =
-            Traits; /* 由于编译器的特性，可能无法找到Implement定义的类型，因此，我们此处需要用户提供驱动此迭代器工作用的iterator_traits
-                     */
+        /* 由于编译器的特性，可能无法找到Implement定义的类型，因此，我们此处需要用户提供驱动此迭代器工作用的iterator_traits */
+        using iterator_traits = Traits;
         using iterator_category = typename iterator_traits::iterator_category;
         using value_type = typename iterator_traits::value_type;
         using difference_type = typename iterator_traits::difference_type;
@@ -512,13 +511,17 @@ namespace rainy::utility {
     };
 
     template <typename Map>
-    auto mapped_range(Map & map) {
-        return utility::sub_range{map_mapped_iterator<Map>{map.begin()}, map_mapped_iterator<Map>{map.end()}};
+    rain_fn mapped_range(Map &map) -> collections::views::iterator_range<map_mapped_iterator<Map>> {
+        using iterator = map_mapped_iterator<Map>;
+        using range_view = collections::views::iterator_range<iterator>;
+        return range_view{iterator{map.begin()}, iterator{map.end()}};
     }
 
     template <typename Map>
-    auto mapped_range(const Map &map) {
-        return utility::sub_range{map_mapped_const_iterator<Map>{map.begin()}, map_mapped_const_iterator<Map>{map.end()}};
+    rain_fn mapped_range(const Map &map) -> collections::views::iterator_range<map_mapped_const_iterator<Map>> {
+        using iterator = map_mapped_const_iterator<Map>;
+        using range_view = collections::views::iterator_range<iterator>;
+        return range_view{iterator{map.begin()}, iterator{map.end()}};
     }
 }
 

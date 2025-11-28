@@ -14,39 +14,40 @@
  * limitations under the License.
  */
 /**
-* @file core.hpp
-* @brief 此头文件用于存放核心代码实现。这是rainy-toolkit向库模块，用户提供核心功能的模块。
-* @brief 它将建立一个基本的命名空间结构，并提供基础函数和元编程工具
-* @brief 在此，值得注意的是，rainy-toolkit采用的命名空间结构与C++标准库的命名空间结构不同
-* @brief rainy-toolkit的命名空间及其复杂且规整化。体现如下：
-* @brief 实用工具：rainy::utility
-* @brief 核心：rainy::core
-* @brief 核心平台相关：rainy::core::pal
-* @brief 内部实现：rainy::core::implements
-* @brief 库上层基础设施：rainy::foundation
-* @brief 平台抽象层基础设施相关：rainy::foundation::pal
-* @brief 因此，若无法适应。rainy-toolkit并不会适合你使用
-* @brief 另外。此头文件不会包含具体实现代码。关于平台相关的实现
-* @author rainy-juzixiao
-*
-* @date 2/24/2024 5:50:35 PM 在此进行添加注释（由rainy-juzixiao添加）
-*/
+ * @file core.hpp
+ * @brief 此头文件用于存放核心代码实现。这是rainy-toolkit向库模块，用户提供核心功能的模块。
+ * @brief 它将建立一个基本的命名空间结构，并提供基础函数和元编程工具
+ * @brief 在此，值得注意的是，rainy-toolkit采用的命名空间结构与C++标准库的命名空间结构不同
+ * @brief rainy-toolkit的命名空间及其复杂且规整化。体现如下：
+ * @brief 实用工具：rainy::utility
+ * @brief 核心：rainy::core
+ * @brief 核心平台相关：rainy::core::pal
+ * @brief 内部实现：rainy::core::implements
+ * @brief 库上层基础设施：rainy::foundation
+ * @brief 平台抽象层基础设施相关：rainy::foundation::pal
+ * @brief 因此，若无法适应。rainy-toolkit并不会适合你使用
+ * @brief 另外。此头文件不会包含具体实现代码。关于平台相关的实现
+ * @author rainy-juzixiao
+ *
+ * @date 2/24/2024 5:50:35 PM 在此进行添加注释（由rainy-juzixiao添加）
+ */
 /*-------------------------------
 文件名： core.hpp
 --------------------------------*/
 #ifndef RAINY_CORE_HPP
 #define RAINY_CORE_HPP
-#include <rainy/core/platform.hpp>
-#include <rainy/core/type_traits.hpp>
-#include <rainy/core/lifetime_annotation.hpp>
+#include <rainy/core/expected.hpp>
 #include <rainy/core/implements/bit.hpp>
-#include <rainy/core/implements/raw_stringview.hpp>
 #include <rainy/core/implements/collections/array.hpp>
 #include <rainy/core/implements/collections/array_view.hpp>
 #include <rainy/core/implements/exceptions.hpp>
+#include <rainy/core/implements/raw_stringview.hpp>
 #include <rainy/core/implements/source_location.hpp>
-#include <rainy/core/expected.hpp>
+#include <rainy/core/implements/views/views_interface.hpp>
 #include <rainy/core/layer.hpp>
+#include <rainy/core/lifetime_annotation.hpp>
+#include <rainy/core/platform.hpp>
+#include <rainy/core/type_traits.hpp>
 
 namespace rainy::core {
     static constexpr implements::raw_string_view<char> libray_name("rainy's toolkit");
@@ -96,7 +97,8 @@ namespace rainy::utility::implements {
 }
 
 namespace rainy::core::implements {
-    RAINY_TOOLKIT_API void stl_internal_check(bool result, const internal_source_location &source_location = internal_source_location::current());
+    RAINY_TOOLKIT_API void stl_internal_check(bool result,
+                                              const internal_source_location &source_location = internal_source_location::current());
 }
 
 namespace rainy::core {
@@ -221,16 +223,16 @@ namespace rainy::core {
 namespace rainy::core {
     template <typename... Test>
     RAINY_CONSTEXPR_BOOL check_format_type =
-        (type_traits::type_relations::is_any_convertible_v<type_traits::other_trans::decay_t<Test>, char, int,
-                                                                       double, void *, float, long, long long, unsigned int,
-                                                                       unsigned long, unsigned long long, const char *> ||
+        (type_traits::type_relations::is_any_convertible_v<type_traits::other_trans::decay_t<Test>, char, int, double, void *, float,
+                                                           long, long long, unsigned int, unsigned long, unsigned long long,
+                                                           const char *> ||
          ...);
 
     template <typename... Test>
     RAINY_CONSTEXPR_BOOL check_wformat_type =
-        (type_traits::type_relations::is_any_convertible_v<type_traits::other_trans::decay_t<Test>, char, int,
-                                                                       double, void *, float, long, long long, unsigned int,
-                                                                       unsigned long, unsigned long long, const wchar_t *> ||
+        (type_traits::type_relations::is_any_convertible_v<type_traits::other_trans::decay_t<Test>, char, int, double, void *, float,
+                                                           long, long long, unsigned int, unsigned long, unsigned long long,
+                                                           const wchar_t *> ||
          ...);
 }
 
@@ -238,10 +240,12 @@ namespace rainy::core {
 #include <rainy/core/gnu/source_location.hpp>
 #endif
 
+// clang-format off
+
 #ifndef RAINY_NODISCARD_RAW_PTR_ALLOC
 #define RAINY_NODISCARD_RAW_PTR_ALLOC                                                                                                   \
     RAINY_NODISCARD_MSG("This function allocates memory and returns a raw pointer. "                                                    \
-                           "Discarding the return value will cause a memory leak.")
+                        "Discarding the return value will cause a memory leak.")
 #endif
 
 /* 此部分宏由ChatGPT生成 */
@@ -412,6 +416,8 @@ namespace rainy::core {
 
 #define RAINY_DECLARE_SIGNLE_INSTANCE(CLASSNAME) static CLASSNAME &instance() noexcept { static CLASSNAME instance;return instance;}
 
+// clang-format on
+
 namespace rainy::core::implements {
     constexpr static raw_string_view<char> token_charset("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789");
 }
@@ -569,7 +575,7 @@ namespace rainy::utility {
             data_.get_second() = new_data;
         }
 
-        template <type_traits::other_trans::enable_if_t<implements::is_deleter_invocable_v<Dx, Ty>,int> = 0>
+        template <type_traits::other_trans::enable_if_t<implements::is_deleter_invocable_v<Dx, Ty>, int> = 0>
         RAINY_CONSTEXPR20 void reset(Ty *new_data = nullptr) {
             if (pointer release_data = get(); release_data != nullptr) {
                 data_.get_first()(release_data);
@@ -735,7 +741,7 @@ namespace rainy::utility {
         }
     };
 
-    template <typename CharType,typename Traits ,typename Alloc>
+    template <typename CharType, typename Traits, typename Alloc>
     struct hash<std::basic_string<CharType, Traits, Alloc>> {
         using argument_type = std::basic_string<CharType, Traits, Alloc>;
         using result_type = std::size_t;
@@ -863,24 +869,141 @@ namespace rainy::core::algorithm {
     }
 }
 
-namespace rainy::utility {
+namespace rainy::collections::views::implements {
     template <typename Iter>
-    class sub_range {
+    class iterator_range_iterator {
     public:
-        sub_range(Iter begin, Iter end) : begin_{begin}, end_{end} {
+        using iterator_category = typename utility::iterator_traits<Iter>::iterator_category;
+        using value_type = typename utility::iterator_traits<Iter>::value_type;
+        using difference_type = typename utility::iterator_traits<Iter>::difference_type;
+        using pointer = typename utility::iterator_traits<Iter>::pointer;
+        using reference = typename utility::iterator_traits<Iter>::reference;
+
+        iterator_range_iterator(Iter iter) : iter_{iter} {
         }
 
-        auto begin() const noexcept {
-            return begin_;
+        decltype(auto) operator*() const {
+            return (*iter_);
         }
 
-        auto end() const noexcept {
-            return end_;
+        pointer operator->() const {
+            return utility::addressof(*iter_);
+        }
+
+        rain_fn operator++() -> iterator_range_iterator& {
+            ++iter_;
+            return *this;
+        }
+
+        rain_fn operator++(int) {
+            iterator_range_iterator temp = *this;
+            ++iter_;
+            return temp;
+        }
+
+        rain_fn operator--() {
+            --iter_;
+            return *this;
+        }
+
+        rain_fn operator--(int) {
+            iterator_range_iterator temp = *this;
+            --iter_;
+            return temp;
+        }
+
+        rain_fn operator+(difference_type n) const -> iterator_range_iterator {
+            return iterator_range_iterator(iter_ + n);
+        }
+
+        rain_fn operator-(difference_type n) const -> iterator_range_iterator {
+            return iterator_range_iterator(iter_ - n);
+        }
+
+        rain_fn &operator+=(difference_type n) {
+            iter_ += n;
+            return *this;
+        }
+
+        rain_fn &operator-=(difference_type n) {
+            iter_ -= n;
+            return *this;
+        }
+
+        rain_fn operator-(const iterator_range_iterator &other) const->difference_type {
+            return iter_ - other.iter_;
+        }
+
+        friend bool operator==(const iterator_range_iterator &left, const iterator_range_iterator &right) noexcept {
+            return left.iter_ == right.iter_;
+        }
+
+        friend bool operator!=(const iterator_range_iterator &left, const iterator_range_iterator &right) noexcept {
+            return !(left.iter_ == right.iter_);
+        }
+
+    private:
+        Iter iter_;
+    };
+
+    template <typename Iter>
+    struct adapter_iterator_range : views::view_interface<adapter_iterator_range<Iter>> {
+        using iterator = iterator_range_iterator<Iter>;
+        using const_iterator = const iterator_range_iterator<const Iter>;
+        using reference = type_traits::extras::iterators::iterator_reference_t<iterator>;
+        using const_reference = type_traits::cv_modify::add_const_t<reference>;
+        using difference_type = type_traits::extras::iterators::iterator_difference_t<const_iterator>;
+        using value_type = type_traits::extras::iterators::iter_value_t<const_iterator>;
+
+        adapter_iterator_range(Iter begin, Iter end) : begin_{begin}, end_{end} {
+        }
+
+        RAINY_NODISCARD constexpr adapter_iterator_range &base() const & noexcept {
+            return *this;
+        }
+
+        RAINY_NODISCARD constexpr adapter_iterator_range base() && noexcept {
+            return utility::move(*this);
+        }
+
+        iterator begin() noexcept {
+            return iterator{begin_};
+        }
+
+        iterator end() noexcept {
+            return iterator{end_};
+        }
+
+        const_iterator begin() const noexcept {
+            return const_iterator{begin_};
+        }
+
+        const_iterator end() const noexcept {
+            return const_iterator{end_};
+        }
+
+        const_iterator cbegin() const noexcept {
+            return const_iterator{begin_};
+        }
+
+        const_iterator cend() const noexcept {
+            return const_iterator{end_};
         }
 
     private:
         Iter begin_;
         Iter end_;
+    };
+}
+
+namespace rainy::collections::views {
+    template <typename Iter>
+    class iterator_range : public implements::adapter_iterator_range<Iter> {
+    public:
+        using base = implements::adapter_iterator_range<Iter>;
+
+        iterator_range(Iter begin, Iter end) : base(begin, end) {
+        }
     };
 }
 

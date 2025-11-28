@@ -227,6 +227,38 @@ namespace rainy::meta::reflection {
         return invoke_accessor()->paramlists().at(static_cast<std::ptrdiff_t>(idx));
     }
 
+    bool function::is_variadic_invocable_with(collections::views::array_view<utility::any> args) {
+        utility::expects(!empty(), "You're trying to get the arg type of a empty object!");
+        return invoke_accessor()->is_invocable_with(args);
+    }
+
+    RAINY_INLINE utility::any function::invoke_variadic(object_view instance,
+                                                        collections::views::array_view<utility::any> args) const {
+        using namespace foundation::ctti;
+#if RAINY_ENABLE_DEBUG
+        utility::expects(!empty(), "Cannot call [invoke] method, curent object is empty!");
+        if (instance.type().is_const()) {
+            if (!is_const()) {
+                errno = ECANCELED;
+                return {};
+            }
+        } else if (instance.type().has_traits(traits::is_volatile)) {
+            if (!is_volatile()) {
+                errno = ECANCELED;
+                return {};
+            }
+        } else if (instance.type().is_rvalue_reference()) {
+            if (!is_invoke_for_rvalue()) {
+                errno = ECANCELED;
+                return {};
+            }
+        }
+#endif
+        return invoke_accessor()->dynamic_invoke(instance, args);
+    }
+}
+
+namespace rainy::meta::reflection {
     method &method::operator=(method &&right) noexcept {
         if (this != utility::addressof(right)) {
             function::operator=(utility::move(right));

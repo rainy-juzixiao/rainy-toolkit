@@ -205,10 +205,10 @@ namespace rainy::meta::reflection {
                     if constexpr (type_traits::logical_traits::negation_v<type_traits::type_properties::is_const<Type>>) {
 #if RAINY_ENABLE_DEBUG
                         utility::expects(
-                            object.ctti().is_compatible(rainy_typeid(Type)),
+                            object.type().is_compatible(rainy_typeid(Type)),
                             "We can't set this property because we found the ClassType is not same with your passed instance!");
 #else
-                        if (!object.ctti().is_compatible(rainy_typeid(Type))) {
+                        if (!object.type().is_compatible(rainy_typeid(Type))) {
                             return;
                         }
 #endif
@@ -274,7 +274,7 @@ namespace rainy::meta::reflection {
             }
 
             void set_property(object_view object, const utility::any &any) const override {
-                utility::expects(object.ctti() == any.type(), "Type Is Invalid!");
+                utility::expects(object.type() == any.type(), "Type Is Invalid!");
                 object.as<Type>() = any.as<Type>();
             }
 

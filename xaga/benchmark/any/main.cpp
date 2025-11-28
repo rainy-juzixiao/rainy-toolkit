@@ -32,6 +32,8 @@ struct small {
     }
 };
 
+using entt_any = entt::basic_any<40,alignof(std::max_align_t)>;
+
 static_assert(!std::is_trivially_copyable_v<small>);
 static_assert(std::is_nothrow_move_constructible_v<small>);
 
@@ -241,7 +243,7 @@ BENCHMARK(benchmark_rainytoolkit_any_index_oprtator_5times);
 
 static void benchmark_entt_any_construct_int(benchmark::State &state) {
     for (auto _: state) {
-        entt::any a = 42;
+        entt_any a = 42;
         benchmark::DoNotOptimize(a);
     }
 }
@@ -250,14 +252,14 @@ BENCHMARK(benchmark_entt_any_construct_int);
 
 static void benchmark_entt_any_construct_string(benchmark::State &state) {
     for (auto _: state) {
-        entt::any a = std::string("hello world");
+        entt_any a = std::string("hello world");
         benchmark::DoNotOptimize(a);
     }
 }
 BENCHMARK(benchmark_entt_any_construct_string);
 
 static void benchmark_entt_any_cast_int(benchmark::State &state) {
-    entt::any a = 123;
+    entt_any a = 123;
     for (auto _: state) {
         int value = entt::any_cast<int>(a);
         benchmark::DoNotOptimize(value);
@@ -266,9 +268,9 @@ static void benchmark_entt_any_cast_int(benchmark::State &state) {
 BENCHMARK(benchmark_entt_any_cast_int);
 
 static void benchmark_entt_any_copy(benchmark::State &state) {
-    entt::any a = std::vector<int>{1, 2, 3, 4, 5};
+    entt_any a = std::vector<int>{1, 2, 3, 4, 5};
     for (auto _: state) {
-        entt::any b = a;
+        entt_any b = a;
         benchmark::DoNotOptimize(b);
     }
 }
@@ -276,8 +278,8 @@ BENCHMARK(benchmark_entt_any_copy);
 
 static void benchmark_entt_any_move(benchmark::State &state) {
     for (auto _: state) {
-        entt::any a = std::vector<int>{1, 2, 3, 4, 5};
-        entt::any b = std::move(a);
+        entt_any a = std::vector<int>{1, 2, 3, 4, 5};
+        entt_any b = std::move(a);
         benchmark::DoNotOptimize(b);
     }
 }
