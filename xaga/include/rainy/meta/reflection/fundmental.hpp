@@ -47,8 +47,23 @@ namespace rainy::meta::reflection {
             return this_fund_t.create(value);
         }
 
-        bool is_valid() const noexcept {
+        rain_fn is_valid() const noexcept -> bool {
             return accessor && fundmental_accessor;
+        }
+
+        rain_fn get_metadata(const utility::any &key) const noexcept -> const metadata & {
+            if (!is_valid()) {
+                static metadata empty;
+                return empty;
+            }
+            return implements::find_metadata(accessor->metadatas(), key);
+        }
+
+        rain_fn get_metadatas() const noexcept -> collections::views::array_view<metadata> {
+            if (!is_valid()) {
+                return {};
+            }
+            return accessor->metadatas();
         }
 
     private:

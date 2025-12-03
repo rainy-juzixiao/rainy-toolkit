@@ -251,14 +251,11 @@ namespace rainy::meta::reflection {
     }
 
     RAINY_NODISCARD const metadata &type::get_metadata(const utility::any &key) const noexcept {
-        static const metadata empty;
         if (!accessor) {
+            static metadata empty;
             return empty;
         }
-        const auto &metadatas = accessor->metadatas();
-        const auto it =
-            core::algorithm::find_if(metadatas.begin(), metadatas.end(), [&key](const metadata &meta) { return meta.key() == key; });
-        return it != metadatas.end() ? *it : empty;
+        return implements::find_metadata(accessor->metadatas(), key);
     }
 
     bool type::has_method(std::string_view name) const noexcept {

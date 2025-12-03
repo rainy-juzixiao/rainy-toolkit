@@ -132,7 +132,10 @@ RAINY_REFLECTION_REGISTRATION {
         .method("virtual_fun", &myclass::virtual_fun)
         .base<mybase1>("mybase1")
         .base<mybase2>("mybase2");
-    meta::reflection::registration::fundamental<int>("int");
+    meta::reflection::registration::fundamental<int>("int")
+        (
+            metadata("name", "11111")
+        );
     meta::reflection::registration::class_<mybase1>()
         .method("print_mybase1", &mybase1::print_mybase1)
         .method("virtual_fun", &mybase1::virtual_fun);
@@ -144,7 +147,25 @@ RAINY_REFLECTION_REGISTRATION {
 }
 
 int main() {
-    
+    {
+        using namespace rainy::meta::reflection;
+        type enum_t = type::get<color>();
+        std::cout << enum_t.get_name() << '\n';
+        {
+            enumeration enum_ = enum_t.get_enumeration();
+            for (const auto &item: enum_.get_names()) {
+                std::cout << item << std::endl;
+            }
+            auto enum_var = enum_t.create(color::red);
+            std::cout << enum_.contains("red") << '\n';
+            std::cout << enum_var.type().name() << std::endl;
+            enum_var = enum_t.create(0);
+            std::cout << enum_var.type().name() << std::endl;
+            std::cout << enum_.value_to_name(0) << std::endl;
+            std::cout << enum_.value_to_name(color::red) << std::endl;
+            std::cout << "name_to_value--type : " << enum_.name_to_value("red").type().name() << std::endl;
+        }
+    }
     constexpr collections::views::array_view<foundation::ctti::typeinfo> n =
         foundation::ctti::typeinfo::create<type_traits::other_trans::type_list<int, char, std::string>>().template_arguments();
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
@@ -162,26 +183,13 @@ int main() {
             std::cout << "name: " << meth.get_name() << std::endl;        
         }
 
-        type enum_t = type::get<color>();
-        std::cout << enum_t.get_name() << '\n';
-        {
-            enumeration enum_ = enum_t.get_enumeration();
-            for (const auto &item: enum_.get_names()) {
-                std::cout << item << std::endl;
-            }
-            auto enum_var = enum_t.create(color::red);
-            std::cout << enum_.contains("red") << '\n';
-            std::cout << enum_var.type().name() << std::endl;
-            enum_var = enum_t.create(0);
-            std::cout << enum_var.type().name() << std::endl;
-            std::cout << enum_.value_to_name(0) << std::endl;
-            std::cout << enum_.value_to_name(color::red) << std::endl;
-            std::cout << "name_to_value--type : " << enum_.name_to_value("red").type().name() << std::endl;
-        }
+        
         
         type ty = type::get<int>();
+        std::cout << ty.get_metadata("name").value() << '\n';
         std::cout << ty.get_fundmental().is_valid() << '\n';
         std::cout << ty.get_fundmental().create(10).type().name() << '\n';
+        std::cout << ty.get_fundmental().get_metadata("name").value() << '\n';
         shared_object var = t.create();
         constructor ctor = t.get_constructor();
         var = ctor.invoke();

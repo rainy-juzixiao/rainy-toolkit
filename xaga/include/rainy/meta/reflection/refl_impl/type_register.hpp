@@ -39,8 +39,8 @@ namespace rainy::meta::reflection::implements {
     struct fundmental_type_accessor_impl;
 
     template <typename Type>
-    rain_fn new_fundmental_accessor_instance(std::string_view name) noexcept -> fundmental_type_accessor * {
-        static fundmental_type_accessor_impl<Type> instance{name};
+    rain_fn new_fundmental_accessor_instance(type_accessor *type) noexcept -> fundmental_type_accessor * {
+        static fundmental_type_accessor_impl<Type> instance{type};
         return &instance;
     }
 
@@ -271,7 +271,7 @@ namespace rainy::meta::reflection::implements {
     public:
         explicit type_accessor_impl_fundmental_type(const std::string_view name) noexcept :
             name_(name), typeinfo_(foundation::ctti::typeinfo::create<Type>()),
-            fundmental_type(core::internal_construct_tag, this, new_fundmental_accessor_instance<Type>(name)) {
+            fundmental_type(core::internal_construct_tag, this, new_fundmental_accessor_instance<Type>(this)) {
         }
 
         RAINY_NODISCARD std::string_view name() const noexcept override {

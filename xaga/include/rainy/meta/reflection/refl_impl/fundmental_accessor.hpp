@@ -71,8 +71,8 @@ namespace rainy::meta::reflection::implements {
 namespace rainy::meta::reflection::implements {
     struct fundmental_type_accessor {
         virtual const foundation::ctti::typeinfo &typeinfo() const noexcept = 0;
-        virtual std::string_view name() const noexcept = 0;
         virtual fundmental_category category() const noexcept = 0;
+        virtual std::vector<metadata> &metadatas() const noexcept = 0;
         virtual bool is_arithmetic() const noexcept = 0;
         virtual bool is_integral() const noexcept = 0;
         virtual bool is_floating_point() const noexcept = 0;
@@ -85,19 +85,19 @@ namespace rainy::meta::reflection::implements {
 namespace rainy::meta::reflection::implements {
     template <typename Type>
     struct fundmental_type_accessor_impl final : fundmental_type_accessor {
-        fundmental_type_accessor_impl(std::string_view name) : name_{name} {
+        fundmental_type_accessor_impl(type_accessor* accessor) : accessor{accessor} {
         }
 
         const foundation::ctti::typeinfo &typeinfo() const noexcept {
             return rainy_typeid(Type);
         }
 
-        std::string_view name() const noexcept {
-            return name_;
-        }
-
         fundmental_category category() const noexcept {
             return deduction_category<Type>();
+        }
+
+        std::vector<metadata> &metadatas() const noexcept {
+            return accessor->metadatas();
         }
 
         bool is_arithmetic() const noexcept {
@@ -124,7 +124,7 @@ namespace rainy::meta::reflection::implements {
             return utility::any_converter<Type>::is_convertible(type);
         }
 
-        std::string_view name_;
+        implements::type_accessor* accessor;
     };
 }
 

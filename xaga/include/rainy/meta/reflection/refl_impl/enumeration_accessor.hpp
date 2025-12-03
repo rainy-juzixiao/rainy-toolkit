@@ -54,7 +54,6 @@ namespace rainy::meta::reflection::implements {
         virtual collections::views::array_view<utility::any> values() const = 0;
         virtual std::string_view value_to_name(const utility::any &value) const = 0;
         virtual utility::any name_to_value(std::string_view name) const = 0;
-        virtual std::vector<metadata> &metadatas() = 0;
     };
 
     template <typename Enum>
@@ -109,10 +108,6 @@ namespace rainy::meta::reflection::implements {
                 return Enum{enums_[index]};
             }
             return {};
-        }
-
-        std::vector<metadata> &metadatas() override {
-            return accessor->metadatas();
         }
 
         std::vector<std::string_view> names_;

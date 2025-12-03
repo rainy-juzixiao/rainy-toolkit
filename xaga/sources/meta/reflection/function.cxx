@@ -285,14 +285,11 @@ namespace rainy::meta::reflection {
         return ptr->name;
     }
 
-    const std::vector<metadata> &method::get_metadatas() const noexcept {
+    collections::views::array_view<metadata> method::get_metadatas() const noexcept {
         return ptr->metadata;
     }
 
     const metadata &method::get_metadata(const utility::any& key) const noexcept {
-        static const metadata empty;
-        const auto it =
-            core::algorithm::find_if(ptr->metadata.begin(), ptr->metadata.end(), [&key](const metadata &meta) { return meta.key() == key; });
-        return it != ptr->metadata.end() ? *it : empty;
+        return implements::find_metadata(ptr->metadata, key);
     }
 }

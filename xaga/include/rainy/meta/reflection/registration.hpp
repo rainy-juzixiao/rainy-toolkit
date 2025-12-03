@@ -291,13 +291,13 @@ namespace rainy::meta::reflection {
         template <typename Enum>
         static bind<reflection::enumeration, void, Enum> enumeration(std::string_view name) {
             auto accessor = implements::new_type_accessor_instance<Enum>(name);
-            return bind<reflection::enumeration, void, Enum>{accessor, name};
+            return bind<reflection::enumeration, void, Enum>{accessor, name, implements::global_type_accessor()};
         }
 
         template <typename Type>
         static bind<reflection::fundmental, void, Type> fundamental(std::string_view name) {
             auto accessor = implements::new_type_accessor_instance<Type>(name);
-            return bind<reflection::fundmental, void, Type>{accessor, name};
+            return bind<reflection::fundmental, void, Type>{accessor, name, implements::global_type_accessor()};
         }
 
         template <typename Fx>
@@ -478,7 +478,7 @@ namespace rainy::meta::reflection {
     template <typename ClassType, typename EnumType>
     class registration::bind<enumeration, ClassType, EnumType> : public implements::registration_derived_t<ClassType> {
     public:
-        bind(implements::type_accessor *type, std::string_view name, implements::type_accessor* class_t = nullptr) :
+        bind(implements::type_accessor *type, std::string_view name, implements::type_accessor* class_t) :
             implements::registration_derived_t<ClassType>(core::internal_construct_tag, class_t), name{name},
             enumeration_type_accessor{type}, class_t{class_t} {
         }
@@ -528,12 +528,26 @@ namespace rainy::meta::reflection {
         implements::type_accessor *class_t;
     };
 
-    template <typename ClassType, typename EnumType>
-    class registration::bind<fundmental, ClassType, EnumType> : public implements::registration_derived_t<ClassType> {
+    template <typename ClassType, typename FundType>
+    class registration::bind<fundmental, ClassType, FundType> : public implements::registration_derived_t<ClassType> {
     public:
-        bind(implements::type_accessor *type, std::string_view name, implements::type_accessor *class_t = nullptr) :
+        bind(implements::type_accessor *type, std::string_view name, implements::type_accessor *class_t) :
             implements::registration_derived_t<ClassType>(core::internal_construct_tag, class_t), name{name},
             fundmental_type_accessor{type}, class_t{class_t} {
+        }
+
+        template <typename... Args>
+        implements::registration_derived_t<ClassType> operator()(Args &&...args) {
+            static constexpr std::size_t metadata_count = implements::metadata_count<Args...>;
+            if constexpr (metadata_count != 0) {
+                collections::array<metadata, metadata_count> metadatas =
+                    utility::extract_args_to_array<metadata>(utility::forward<Args>(args)...);
+                auto &metadata_ref = fundmental_type_accessor->metadatas();
+                for (const auto &metadata: metadatas) {
+                    metadata_ref.emplace_back(utility::move(metadata));
+                }
+            }
+            return implements::registration_derived_t<ClassType>(core::internal_construct_tag, class_t);
         }
 
         ~bind() {

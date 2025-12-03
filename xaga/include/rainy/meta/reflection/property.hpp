@@ -266,7 +266,7 @@ namespace rainy::meta::reflection {
 
         const metadata &get_metadata(const utility::any &key) const noexcept;
 
-        const std::vector<reflection::metadata> &get_metadatas() const noexcept;
+        collections::views::array_view<metadata> get_metadatas() const noexcept;
 
     private:
         template <typename Field, typename... Args, std::size_t N = 0,

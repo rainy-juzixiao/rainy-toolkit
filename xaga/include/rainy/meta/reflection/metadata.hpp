@@ -61,6 +61,12 @@ namespace rainy::meta::reflection::implements {
     template <typename... Args>
     RAINY_INLINE_CONSTEXPR std::size_t metadata_count =
         type_traits::other_trans::count_type_v<metadata, type_traits::other_trans::type_list<Args...>>;
+
+    RAINY_INLINE const metadata &find_metadata(const std::vector<metadata> &view, const utility::any &key) {
+        static const metadata empty;
+        const auto it = core::algorithm::find_if(view.begin(), view.end(), [&key](const metadata &meta) { return meta.key() == key; });
+        return it != view.end() ? *it : empty;
+    }
 }
 
 #endif
