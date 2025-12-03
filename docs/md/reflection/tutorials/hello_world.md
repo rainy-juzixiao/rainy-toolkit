@@ -1,3 +1,5 @@
+# Hello World样例
+
 ## 编写Hello World程序
 
 首先，让我们按照常规流程，编写要反射的函数。并包含需要的头文件。
@@ -36,7 +38,7 @@ type::invoke_global("f");
 type::invoke_global("f", 42, 'c');
 ```
 
-其中，如果调用无效，则会通过特定方式进行报告，相关部分参见[此处](/reflection/function/invoke)文档。
+其中，如果调用无效，则会通过特定方式进行报告，相关部分参见[此处](/md/reflection/function/function_class#invoke)文档。
 
 最后，如果没有问题的情况下，那么，你可以直接看到`Hello World`的输出。
 

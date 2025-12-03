@@ -25,7 +25,7 @@ namespace rainy::meta::reflection::implements {
     RAINY_TOOLKIT_API bool check_method_field(type_accessor *type, std::string_view name, method &meth);
     RAINY_TOOLKIT_API bool check_ctor_field(type_accessor *type, constructor &ctor);
     RAINY_TOOLKIT_API void register_method_helper(type_accessor *type, std::string_view name, method &&meth);
-    RAINY_TOOLKIT_API void do_inject(std::once_flag &consume, std::string_view name, type_accessor *accessor);
+    RAINY_TOOLKIT_API type_accessor *do_inject(std::once_flag &consume, std::string_view name, type_accessor *accessor);
     RAINY_TOOLKIT_API type_accessor* global_type_accessor();
 
     template <typename Type>
@@ -36,8 +36,7 @@ namespace rainy::meta::reflection::implements {
             type_traits::other_trans::conditional_t<type_traits::composite_types::is_fundamental_v<Type>,
                                                     type_accessor_impl_fundmental_type<Type>, type_accessor_impl_class<Type>>>;
         static impl_t instance{name};
-        do_inject(flag, name, &instance);
-        return &instance;
+        return do_inject(flag, name, &instance);
     }
 }
 

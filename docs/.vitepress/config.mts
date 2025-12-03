@@ -17,6 +17,16 @@ export default defineConfig({
         collapsed: true,
         items: [
           {
+            text: '序言',
+            link: '/',
+            items: [
+              {
+                text: 'Hello World样例',
+                link: 'tutorials/hello_world'
+              }
+            ]
+          },
+          {
             text: '&lt;function.hpp&gt;',
             collapsed: true,
             items: [

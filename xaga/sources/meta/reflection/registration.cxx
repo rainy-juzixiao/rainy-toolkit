@@ -41,8 +41,9 @@ namespace rainy::meta::reflection::implements {
         }
     }
 
-    void do_inject(std::once_flag &consume, std::string_view name, type_accessor *accessor) {
+    type_accessor* do_inject(std::once_flag &consume, std::string_view name, type_accessor *accessor) {
         std::call_once(consume, [&]() { injector::register_type(name, accessor); });
+        return register_table::get_accessor(accessor->typeinfo());
     }
 
     type_accessor *global_type_accessor() {
