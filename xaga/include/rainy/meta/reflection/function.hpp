@@ -15,9 +15,11 @@
  */
 #ifndef RAINY_META_RELF_IMPL_FUNCTION_HPP
 #define RAINY_META_RELF_IMPL_FUNCTION_HPP
+#include <rainy/core/core.hpp>
 #include <rainy/foundation/diagnostics/contract.hpp>
 #include <rainy/meta/reflection/metadata.hpp>
 #include <rainy/meta/reflection/refl_impl/invoker_accessor.hpp>
+#include <memory>
 
 namespace rainy::meta::reflection {
     /**
@@ -28,6 +30,9 @@ namespace rainy::meta::reflection {
      */
     class RAINY_TOOLKIT_API function {
     public:
+        friend class object_view;
+        friend class type;
+
         /**
          * @brief 构造一个空的反射函数对象。
          */
@@ -131,7 +136,7 @@ namespace rainy::meta::reflection {
             }
         }
 
-        RAINY_INLINE utility::any invoke_variadic(object_view instance, collections::views::array_view<utility::any> args) const;
+        RAINY_INLINE utility::any invoke_variadic(object_view instance, collections::views::array_view<utility::any> args = {}) const;
 
         /**
          * @brief 重载函数调用运算符，以调用函数并返回结果。
@@ -454,9 +459,18 @@ namespace std {
     }
 }
 
+#if RAINY_USING_MSVC
+#pragma warning(push)
+#pragma warning(disable : 4251)
+#endif
+
 namespace rainy::meta::reflection {
-    class method : public function , private type_traits::helper::non_copyable {
+    class RAINY_TOOLKIT_API method : public function {
     public:
+        friend class object_view;
+        friend class type;
+        friend class constructor;
+
         method() noexcept = default;
 
         template <typename Fx, typename... Args, std::size_t N = 0,
@@ -466,46 +480,99 @@ namespace rainy::meta::reflection {
             return method{name, fn, default_arguemnts, metadatas, type_traits::helper::index_sequence_for<Args...>{}};
         }
 
-        method(method &&right) noexcept :
-            function(utility::move(right)), name_(utility::move(right.name_)), metadata_(utility::move(right.metadata_)) {
+        method(method &&right) noexcept : function(utility::move(right)), ptr{utility::move(right.ptr)} {
         }
 
-        RAINY_TOOLKIT_API method &operator=(method &&right) noexcept;
+        method(const method &right) noexcept :
+            function(right), ptr(right.ptr) {
+        }
 
-        RAINY_TOOLKIT_API void rebind(method &&right) noexcept;
+        method &operator=(method &&right) noexcept;
 
-        RAINY_TOOLKIT_API void rebind(std::nullptr_t) noexcept;
+        void rebind(method &&right) noexcept;
 
-        RAINY_TOOLKIT_API void swap(method &right) noexcept;
+        void rebind(std::nullptr_t) noexcept;
 
-        RAINY_TOOLKIT_API std::string_view name() const noexcept;
+        void swap(method &right) noexcept;
 
-        RAINY_TOOLKIT_API const metadata &get_metadata(const utility::any& key) const noexcept;
+        std::string_view get_name() const noexcept;
 
-        RAINY_TOOLKIT_API const std::vector<reflection::metadata> &metadatas() const noexcept;
+        const metadata &get_metadata(const utility::any& key) const noexcept;
 
-    private:
+        const std::vector<reflection::metadata> &get_metadatas() const noexcept;
+
+    protected:
         template <typename Fx, typename... Args, std::size_t N = 0, std::size_t... I,
                   type_traits::other_trans::enable_if_t<type_traits::type_properties::is_constructible_v<function, Fx>, int> = 0>
         method(std::string_view name, Fx &&fn, std::tuple<Args...> &default_arguemnts, collections::array<metadata, N> &metadatas,
                type_traits::helper::index_sequence<I...>) noexcept :
-            function(utility::forward<Fx>(fn), std::get<I>(default_arguemnts)...), name_(utility::move(name)), metadata_{} {
+            function(utility::forward<Fx>(fn), std::get<I>(default_arguemnts)...), ptr(std::make_shared<data>(utility::move(name))) {
             if constexpr (N != 0) {
                 for (metadata &meta: metadatas) {
-                    this->metadata_.emplace_back(utility::move(meta));
+                    ptr->metadata.emplace_back(utility::move(meta));
                 }
             }
         }
 
-        std::string_view name_;
-        std::vector<reflection::metadata> metadata_;
+    private:
+        struct data {
+            std::string_view name;
+            std::vector<reflection::metadata> metadata;
+        };
+
+        std::shared_ptr<data> ptr;
     };
 
-    class constructor : public method {
+    class constructor : private method {
     public:
-        using method::method;
-        using method::operator=;
+        template <typename Fx, typename... Args, std::size_t N = 0,
+                  type_traits::other_trans::enable_if_t<type_traits::type_properties::is_constructible_v<function, Fx>, int> = 0>
+        constructor(core::internal_construct_tag_t, std::string_view name, Fx &&fn, std::tuple<Args...> &default_arguemnts,
+                    collections::array<metadata, N> &metadatas) noexcept :
+            method(name, utility::forward<Fx>(fn), default_arguemnts, metadatas, type_traits::helper::index_sequence_for<Args...>{}) {
+        }
+
+        template <typename Fx, typename... Args, std::size_t N = 0,
+                  type_traits::other_trans::enable_if_t<type_traits::type_properties::is_constructible_v<function, Fx>, int> = 0>
+        static constructor make(std::string_view name, Fx &&fn, std::tuple<Args...> &default_arguemnts,
+                                collections::array<metadata, N> &metadatas) {
+            return constructor{core::internal_construct_tag, name, fn, default_arguemnts, metadatas};
+        }
+
+        constructor() noexcept = default;
+
+        constructor(constructor &&right) noexcept = default;
+        constructor(const constructor &right) noexcept = default;
+
+        constructor &operator=(const constructor &) = default;
+        constructor &operator=(constructor &&) = default;
+
+        using method::arg;
+        using method::arity;
+        using method::function_signature;
+        using method::get_metadata;
+        using method::get_metadatas;
+        using method::empty;
+        using method::paramlists;
+        using method::get_name;
+        using method::swap;
+        using method::is_invocable;
+        using method::is_invocable_with;
+       
+        template <typename... Args>
+        utility::any invoke(Args &&...args) const noexcept {
+            return method::static_invoke(utility::forward<Args>(args)...);
+        }
+
+        template <typename... Args>
+        utility::any construct(Args &&...args) const noexcept {
+            return method::static_invoke(utility::forward<Args>(args)...);
+        }        
     };
 }
+
+#if RAINY_USING_MSVC
+#pragma warning(pop)
+#endif
 
 #endif

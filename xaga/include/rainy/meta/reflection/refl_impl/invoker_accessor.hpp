@@ -49,7 +49,7 @@ namespace rainy::meta::reflection::implements {
         RAINY_NODISCARD virtual std::uintptr_t target(const foundation::ctti::typeinfo &fx_sign) const noexcept = 0;
         RAINY_NODISCARD virtual method_flags type() const noexcept = 0;
         virtual utility::any invoke(object_view &object) = 0;
-        virtual utility::any invoke(object_view &object, arg_view arg_view) = 0;
+        virtual utility::any invoke(object_view &object, arg_view<> arg_view) = 0;
         virtual utility::any dynamic_invoke(object_view &object, collections::views::array_view<utility::any> arg_view) = 0;
         RAINY_NODISCARD virtual const foundation::ctti::typeinfo &which_belongs() const noexcept = 0;
         RAINY_NODISCARD virtual const foundation::ctti::typeinfo &return_type() const noexcept = 0;
@@ -167,7 +167,7 @@ namespace rainy::meta::reflection::implements {
             }
         }
 
-        RAINY_NODISCARD utility::any invoke(object_view &object, arg_view arg_view) override {
+        RAINY_NODISCARD utility::any invoke(object_view &object, arg_view<> arg_view) override {
             const std::size_t size = arg_view.size();
             static constexpr std::size_t arity = storage_t::arity;
             static constexpr std::size_t least = arity - storage_t::default_arity;

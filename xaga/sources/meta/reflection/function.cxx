@@ -262,8 +262,7 @@ namespace rainy::meta::reflection {
     method &method::operator=(method &&right) noexcept {
         if (this != utility::addressof(right)) {
             function::operator=(utility::move(right));
-            name_ = utility::move(right.name_);
-            metadata_ = utility::move(right.metadata_);
+            ptr = utility::move(right.ptr);
         }
         return *this;
     }
@@ -274,28 +273,26 @@ namespace rainy::meta::reflection {
 
     void method::rebind(std::nullptr_t) noexcept {
         function::reset();
-        name_ = {};
-        metadata_ = {};
+        ptr.reset();
     }
 
     void method::swap(method &right) noexcept {
         function::swap(right);
-        name_.swap(right.name_);
-        metadata_.swap(right.metadata_);
+        ptr.swap(right.ptr);
     }
 
-    std::string_view method::name() const noexcept {
-        return name_;
+    std::string_view method::get_name() const noexcept {
+        return ptr->name;
     }
 
-    const std::vector<metadata> &method::metadatas() const noexcept {
-        return metadata_;
+    const std::vector<metadata> &method::get_metadatas() const noexcept {
+        return ptr->metadata;
     }
 
     const metadata &method::get_metadata(const utility::any& key) const noexcept {
         static const metadata empty;
         const auto it =
-            core::algorithm::find_if(metadata_.begin(), metadata_.end(), [&key](const metadata &meta) { return meta.key() == key; });
-        return it != metadata_.end() ? *it : empty;
+            core::algorithm::find_if(ptr->metadata.begin(), ptr->metadata.end(), [&key](const metadata &meta) { return meta.key() == key; });
+        return it != ptr->metadata.end() ? *it : empty;
     }
 }

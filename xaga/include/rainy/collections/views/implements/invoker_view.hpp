@@ -15,7 +15,7 @@
  */
 #ifndef RAINY_COLLECTIONS_VIEWS_IMPLEMENTS_INVOKER_VIEW_HPP
 #define RAINY_COLLECTIONS_VIEWS_IMPLEMENTS_INVOKER_VIEW_HPP
-#include <rainy/collections/views/views_interface.hpp>
+#include <rainy/core/core.hpp>
 #include <rainy/foundation/container/movable_box.hpp>
 
 namespace rainy::collections::views::implements {

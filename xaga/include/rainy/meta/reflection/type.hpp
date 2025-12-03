@@ -19,10 +19,12 @@
 #include <rainy/foundation/typeinfo.hpp>
 #include <rainy/meta/reflection/function.hpp>
 #include <rainy/meta/reflection/property.hpp>
+#include <rainy/meta/reflection/enumeration.hpp>
+#include <rainy/meta/reflection/fundmental.hpp>
 #include <rainy/utility/iterator.hpp>
 #include <rainy/meta/reflection/refl_impl/type_register.hpp>
 #include <unordered_map>
-
+#include <iostream>
 /*
 Public Member Functions
     type (const type &other) noexcept
@@ -99,88 +101,7 @@ static bool 	set_property_value (string_view name, argument arg)
 
 namespace rainy::meta::reflection {
     class type;
-}
-
-namespace rainy::meta::reflection::implements {
-    using method_storage_t = std::unordered_multimap<std::string_view, method>;
-    using property_storage_t = std::unordered_map<std::string_view, property>;
-    using ctor_storage_t = std::vector<constructor>;
-}
-
-namespace rainy::meta::reflection::implements {
-    template <typename TypeList>
-    struct template_argument_generater {};
-
-    template <typename... Types>
-    struct template_argument_generater<type_traits::other_trans::type_list<Types...>> {
-        static collections::views::array_view<foundation::ctti::typeinfo> get() noexcept {
-            static collections::array<foundation::ctti::typeinfo, sizeof...(Types)> list = {
-                foundation::ctti::typeinfo::create<Types>()...};
-            return list;
-        }
-    };
-
-    class dyn_typeinfo final : public foundation::ctti::typeinfo {
-    public:
-        using base = foundation::ctti::typeinfo;
-
-        template <typename Ty>
-        dyn_typeinfo(std::in_place_type_t<Ty>) : base{base::create<Ty>()} {
-        }
-
-        template <typename Ty>
-        static dyn_typeinfo create() noexcept {
-            dyn_typeinfo info{std::in_place_type<Ty>};
-            if constexpr (type_traits::type_relations::is_void_v<Ty>) {
-                info.sizeof_ = 0;
-            } else {
-                info.sizeof_ = sizeof(Ty);
-            }
-            if constexpr (type_traits::primary_types::template_traits<type_traits::cv_modify::remove_cvref_t<Ty>>::value) {
-                info.template_arguemnts_ = template_argument_generater<
-                    typename type_traits::primary_types::template_traits<type_traits::cv_modify::remove_cvref_t<Ty>>::types>::get();
-            }
-            return info;
-        }
-
-        RAINY_NODISCARD std::size_t get_sizeof() const noexcept {
-            return sizeof_;
-        }
-
-        RAINY_NODISCARD collections::views::array_view<foundation::ctti::typeinfo> template_arguemnts() const noexcept {
-            return template_arguemnts_;
-        }
-
-    private:
-        dyn_typeinfo() noexcept = default;
-
-        collections::views::array_view<foundation::ctti::typeinfo> template_arguemnts_;
-        std::size_t sizeof_{0};
-    };
-}
-
-namespace rainy::meta::reflection::implements {
-    struct type_accessor {
-        virtual ~type_accessor() = default;
-        /* 类型名称标记 */
-        RAINY_NODISCARD virtual std::string_view name() const noexcept = 0;
-        /* 类型信息 */
-        virtual dyn_typeinfo &typeinfo() noexcept = 0;
-        /* 方法、静态方法、重载运算符 */
-        virtual method_storage_t &methods() noexcept = 0;
-        /* 构造函数集合 */
-        virtual ctor_storage_t &ctors() noexcept = 0;
-        /* 属性、静态属性 */
-        virtual std::unordered_map<std::string_view, property> &properties() noexcept = 0;
-        /* 基类集合 */
-        virtual std::unordered_map<std::string_view, type> &bases() noexcept = 0;
-        /* 派生类集合，用于未来设计dynamic_cast */
-        virtual std::unordered_map<std::string_view, type> &deriveds() noexcept = 0;
-        // 基类/派生类返回的是一张表，其中的指针指向位于反射系统内部的实例（其实是静态示例）
-        // const在此部分非一等公民，由面向用户的接口进行const属性添加
-        // 不考虑过多性能
-        virtual std::vector<metadata>& metadatas() noexcept = 0;
-    };
+    class shared_object;
 }
 
 namespace rainy::meta::reflection {
@@ -191,11 +112,13 @@ namespace rainy::meta::reflection {
      */
     class RAINY_TOOLKIT_API type {
     public:
+        friend class object_view;
+
         using type_id = std::size_t;
         using methods_view_t = collections::views::iterator_range<utility::map_mapped_iterator<implements::method_storage_t>>;
         using property_view_t = collections::views::iterator_range<utility::map_mapped_iterator<implements::property_storage_t>>;
-        using base_classes_view_t = collections::views::iterator_range<utility::map_mapped_iterator<std::unordered_map<std::string_view, type>>>;
-        using derived_classes_view_t = collections::views::iterator_range<utility::map_mapped_iterator<std::unordered_map<std::string_view, type>>>;
+        using base_classes_view_t = collections::views::iterator_range<utility::map_mapped_iterator<std::unordered_map<foundation::ctti::typeinfo, type>>>;
+        using derived_classes_view_t = collections::views::iterator_range<utility::map_mapped_iterator<std::unordered_map<foundation::ctti::typeinfo, type>>>;
         using constcutor_view_t = collections::views::array_view<constructor>;
 
         /**
@@ -214,6 +137,10 @@ namespace rainy::meta::reflection {
 
         type &operator=(const type &) = default;
         type &operator=(type &&) = default;
+
+        type(core::internal_construct_tag_t, implements::type_accessor *accessor) {
+            this->accessor = accessor;
+        }
 
         /**
          * @brief 从Ty类型获取对应的反射类型对象
@@ -235,11 +162,30 @@ namespace rainy::meta::reflection {
         static type get_by_name(std::string_view name) noexcept;
 
         /**
+         * @brief 从CTTI中获取对应的反射类型对象
+         * @param name 要获取反射类型的类型名称
+         * @return 返回对应的反射类型对象
+         */
+        static type get_by_typeinfo(const foundation::ctti::typeinfo& typeinfo) noexcept;
+        
+        /**
          * @brief 从类型信息获取对应的反射类型对象
          * @param typeinfo 要获取反射类型的类型信息
          * @return 返回对应的反射类型对象
          */
         RAINY_NODISCARD std::string_view get_name() const noexcept;
+
+        /**
+         * @brief 尝试获取枚举反射类型对象
+         * @return 返回对于的枚举反射类型对象
+         */
+        RAINY_NODISCARD enumeration get_enumeration() const noexcept;
+        
+        /**
+         * @brief 尝试获取fundmental反射类型对象
+         * @return 返回对于的fundmental反射类型对象
+         */
+        RAINY_NODISCARD fundmental get_fundmental() const noexcept;
 
         /**
          * @brief 获取类型的唯一标识符
@@ -308,8 +254,8 @@ namespace rainy::meta::reflection {
          * @param overload_version_paramlist 
          * @return 如果找到对应的构造函数，返回构造函数反射对象的常量引用，否则返回一个无效的空对象引用
          */
-        RAINY_NODISCARD const constructor &get_construtor(
-            const collections::views::array_view<foundation::ctti::typeinfo> overload_version_paramlist) const noexcept;
+        RAINY_NODISCARD const constructor &get_constructor(
+            const collections::views::array_view<foundation::ctti::typeinfo> overload_version_paramlist = {}) const noexcept;
         
         /**
          * @brief 获取基类反射类型对象
@@ -399,13 +345,16 @@ namespace rainy::meta::reflection {
          */
         bool has_property(std::string_view name) const noexcept;
 
-        template <typename... Args>
-        utility::any create(Args &&...args) const {
+        template <typename... Args, typename SharedObject = shared_object>
+        SharedObject create(Args &&...args) const {
+            if (!is_valid()) {
+                return {};
+            }
             for (const auto &item: accessor->ctors()) {
-                const function &cur_ctor = item;
+                const constructor &cur_ctor = item;
                 bool invocable{};
                 constexpr bool has_dynamic =
-                    type_traits::type_relations::is_any_of_v<utility::any, type_traits::other_trans::decay_t<Args>...> ||
+                    (implements::is_dynamic_object<Args> || ...) ||
                     type_traits::type_relations::is_any_of_v<object_view, type_traits::other_trans::decay_t<Args>...>;
                 if constexpr (has_dynamic) {
                     invocable = cur_ctor.is_invocable_with(utility::forward<Args>(args)...);
@@ -414,7 +363,7 @@ namespace rainy::meta::reflection {
                     invocable = cur_ctor.is_invocable(paramlist.get());
                 }
                 if (invocable) {
-                    return cur_ctor.static_invoke(utility::forward<Args>(args)...);
+                    return cur_ctor.invoke(utility::forward<Args>(args)...);
                 }
             }
             return {};
@@ -431,6 +380,9 @@ namespace rainy::meta::reflection {
         template <typename... Args>
         utility::any invoke_method(std::string_view name, object_view instance, Args &&...args) const {
             using namespace foundation::ctti;
+            if (!is_valid()) {
+                return {};
+            }
             auto flag = method_flags::none;
             if (instance.type().has_traits(traits::is_const)) {
                 flag = flag | method_flags::const_qualified;
@@ -450,13 +402,12 @@ namespace rainy::meta::reflection {
             using namespace type_traits::type_relations;
             using namespace foundation::ctti;
             const method *invoker{nullptr};
-            if constexpr (is_any_of_v<utility::any, decay_t<Args>...> || is_any_of_v<object_view, decay_t<Args>...>) {
+            if constexpr (is_any_of_v<utility::any, decay_t<Args>...> || (implements::is_dynamic_object<decay_t<Args>> || ...)) {
                 implements::make_paramlist paramlist{utility::forward<Args>(args)...};
-                invoker = &get_method(name, paramlist, flag);
+                invoker = &get_method(name, paramlist.get(), flag);
             } else {
-                static collections::array<foundation::ctti::typeinfo, sizeof...(Args)> paramlist = {
-                    foundation::ctti::typeinfo::create<Args>()...};
-                invoker = &get_method(name, paramlist, flag);
+                static implements::make_nondynamic_paramlist<Args...> paramlist;
+                invoker = &get_method(name, paramlist.get(), flag);
             }
             if (invoker->empty()) {
                 errno = EINVAL;
@@ -467,60 +418,26 @@ namespace rainy::meta::reflection {
             }
             return invoker->invoke(instance, utility::forward<Args>(args)...);
         }
+    
+        template <typename... Args>
+        static utility::any invoke_global(std::string_view name, Args &&...args) {
+            static type global_t = type::get<utility::invalid_type>();
+            return global_t.invoke_method(name, non_exists_instance, utility::forward<Args>(args)...);
+        }
+
+        template <typename... Args>
+        static utility::any invoke_global(method_flags flag, std::string_view name, Args &&...args) {
+            static type global_t = type::get<utility::invalid_type>();
+            return global_t.invoke_method(flag, name, non_exists_instance, utility::forward<Args>(args)...);
+        }
+
+        static methods_view_t get_global_methods() {
+            static type global_t = type::get<utility::invalid_type>();
+            return global_t.get_methods();
+        }
 
     private:
         implements::type_accessor *accessor{nullptr};
-    };
-}
-
-namespace rainy::meta::reflection::implements{
-    template <typename Type>
-    class type_accessor_impl_class final : public type_accessor {
-    public:
-        explicit type_accessor_impl_class(const std::string_view name) noexcept : name_(name), typeinfo_(dyn_typeinfo::create<Type>()) {
-        }
-
-        RAINY_NODISCARD std::string_view name() const noexcept override {
-            return name_;
-        }
-
-        dyn_typeinfo &typeinfo() noexcept override {
-            return typeinfo_;
-        }
-
-        method_storage_t &methods() noexcept override {
-            return methods_;
-        }
-
-        ctor_storage_t &ctors() noexcept override {
-            return ctors_;
-        }
-
-        std::unordered_map<std::string_view, property> &properties() noexcept override {
-            return properties_;
-        }
-
-        std::unordered_map<std::string_view, type> &bases() noexcept override {
-            return bases_;
-        }
-
-        std::unordered_map<std::string_view, type> &deriveds() noexcept override {
-            return deriveds_;
-        }
-
-        std::vector<metadata> &metadatas() noexcept override {
-            return metadatas_;
-        }
-
-    private:
-        std::string_view name_;
-        dyn_typeinfo typeinfo_;
-        method_storage_t methods_;
-        ctor_storage_t ctors_;
-        std::unordered_map<std::string_view, property> properties_;
-        std::unordered_map<std::string_view, type> bases_;
-        std::unordered_map<std::string_view, type> deriveds_;
-        std::vector<metadata> metadatas_;
     };
 }
 

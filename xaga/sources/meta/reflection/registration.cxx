@@ -28,23 +28,10 @@ namespace rainy::meta::reflection::implements {
         return true;
     }
 
-    bool check_ctor_field(type_accessor *type, method &ctor) {
+    bool check_ctor_field(type_accessor *type, constructor &ctor) {
         auto &ctors = type->ctors();
-        auto iter = core::algorithm::find_if(ctors.begin(), ctors.end(), [&ctor](const constructor &item) {
-            const auto &existing_params = item.paramlists();
-            const auto &wiat_for_emplace_params = ctor.paramlists();
-            if (existing_params.size() != wiat_for_emplace_params.size()) {
-                return false;
-            }
-            const bool same = core::algorithm::all_of(wiat_for_emplace_params.begin(), wiat_for_emplace_params.end(),
-                                                      [&, i = std::size_t{0}](const auto &param) mutable {
-                                                          return param == existing_params[static_cast<std::ptrdiff_t>(i++)];
-                                                      });
-            if (same && item.function_signature() == ctor.function_signature()) {
-                return false;
-            }
-            return true;
-        });
+        auto iter = core::algorithm::find_if(ctors.begin(), ctors.end(),
+                                             [&ctor](const constructor &item) { return item.is_invocable(ctor.paramlists()); });
         return iter == ctors.end(); // 如果找不到，意味着可以插入
     }
 
@@ -56,6 +43,10 @@ namespace rainy::meta::reflection::implements {
 
     void do_inject(std::once_flag &consume, std::string_view name, type_accessor *accessor) {
         std::call_once(consume, [&]() { injector::register_type(name, accessor); });
+    }
+
+    type_accessor *global_type_accessor() {
+        return new_type_accessor_instance<utility::invalid_type>("global");
     }
 }
 

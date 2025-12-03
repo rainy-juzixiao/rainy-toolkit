@@ -22,11 +22,37 @@ namespace rainy::meta::reflection {
         return instance;
     }
 
+    type type::get_by_typeinfo(const foundation::ctti::typeinfo &typeinfo) noexcept {
+        type instance{};
+        instance.accessor = implements::register_table::get_accessor(typeinfo);
+        return instance;
+    }
+
     RAINY_NODISCARD std::string_view type::get_name() const noexcept {
         if (!accessor) {
             return {};
         }
         return accessor->name();
+    }
+
+    enumeration type::get_enumeration() const noexcept {
+        if (!accessor) {
+            return {};
+        }
+        if (accessor->typeinfo().has_traits(foundation::ctti::traits::is_enum)) {
+            return accessor->as_enumeration();
+        }
+        return {};
+    }
+    
+    fundmental type::get_fundmental() const noexcept {
+        if (!accessor) {
+            return {};
+        }
+        if (accessor->typeinfo().has_traits(foundation::ctti::traits::is_fundamental)) {
+            return accessor->as_fundmental();
+        }
+        return {};
     }
 
     RAINY_NODISCARD type::type_id type::get_id() const noexcept {
@@ -40,14 +66,14 @@ namespace rainy::meta::reflection {
         if (!accessor) {
             return 0;
         }
-        return accessor->typeinfo().get_sizeof();
+        return accessor->typeinfo().sizeof_the_type();
     }
 
     RAINY_NODISCARD collections::views::array_view<foundation::ctti::typeinfo> type::get_template_arguments() const noexcept {
         if (!accessor) {
             return {};
         }
-        return accessor->typeinfo().template_arguemnts();
+        return accessor->typeinfo().template_arguments();
     }
 
     RAINY_NODISCARD const method &type::get_method(const std::string_view name) const noexcept {
@@ -85,10 +111,6 @@ namespace rainy::meta::reflection {
             return candidate == filter;
         };
         const auto [fst, snd] = accessor->methods().equal_range(name);
-        if (fst == snd) {
-            errno = EACCES;
-            return empty;
-        }
         if (utility::distance(fst, snd) == 1) {
             return fst->second;
         }
@@ -110,6 +132,9 @@ namespace rainy::meta::reflection {
             if (const method &meth = bases.second.get_method(name, overload_version_paramlist, filter_item); !meth.empty()) {
                 return meth;
             }
+        }
+        if (fst != snd) {
+            return fst->second;
         }
         errno = EACCES;
         return empty;
@@ -149,7 +174,7 @@ namespace rainy::meta::reflection {
         return accessor->ctors();
     }
 
-    RAINY_NODISCARD const constructor &type::get_construtor(
+    RAINY_NODISCARD const constructor &type::get_constructor(
         const collections::views::array_view<foundation::ctti::typeinfo> overload_version_paramlist) const noexcept {
         static const constructor empty;
         if (!accessor) {
@@ -166,7 +191,7 @@ namespace rainy::meta::reflection {
 
     type::base_classes_view_t type::get_base_classes() const noexcept {
         if (!accessor) {
-            static std::unordered_map<std::string_view, type> empty;
+            static std::unordered_map<foundation::ctti::typeinfo, type> empty;
             return utility::mapped_range(empty);
         }
         return utility::mapped_range(accessor->bases());
@@ -174,7 +199,7 @@ namespace rainy::meta::reflection {
 
     type::derived_classes_view_t type::get_derived_classes() const noexcept {
         if (!accessor) {
-            static std::unordered_map<std::string_view, type> empty;
+            static std::unordered_map<foundation::ctti::typeinfo, type> empty;
             return utility::mapped_range(empty);
         }
         return utility::mapped_range(accessor->bases());
@@ -272,10 +297,10 @@ namespace rainy::meta::reflection {
 
     utility::any type::create_object(collections::views::array_view<utility::any> args) const {
         for (const auto &item: accessor->ctors()) {
-            const function &cur_ctor = item;
+            const constructor &cur_ctor = item;
             bool invocable = cur_ctor.is_invocable_with(args);
             if (invocable) {
-                return cur_ctor.static_invoke(args);
+                return cur_ctor.invoke(args);
             }
         }
         return {};

@@ -1,99 +1,127 @@
+/*
+ * Copyright 2025 rainy-juzixiao
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 #include <algorithm>
 #include <rainy/core/core.hpp>
 #include <rainy/meta/reflection/property.hpp>
 
 namespace rainy::meta::reflection {
-    property::property(const property &right) noexcept {
+    field::field(const field &right) noexcept {
         if (this == utility::addressof(right)) {
             return;
         }
-        core::builtin::copy_memory(property_storage, right.property_storage, soo_buffer_size);
+        core::builtin::copy_memory(field_storage, right.field_storage, soo_buffer_size);
     }
 
-    property::property(property &&right) noexcept {
+    field::field(field &&right) noexcept {
         if (this == utility::addressof(right)) {
             return;
         }
-        core::builtin::copy_memory(property_storage, right.property_storage, soo_buffer_size);
-        std::memset(right.property_storage, 0, soo_buffer_size);
+        core::builtin::copy_memory(field_storage, right.field_storage, soo_buffer_size);
+        std::memset(right.field_storage, 0, soo_buffer_size);
     }
 
-    RAINY_NODISCARD const foundation::ctti::typeinfo &property::which_belongs() const noexcept {
-        return reinterpret_cast<const property_accessor *>(property_storage)->which_belongs();
+    RAINY_NODISCARD const foundation::ctti::typeinfo &field::which_belongs() const noexcept {
+        return reinterpret_cast<const field_accessor *>(field_storage)->which_belongs();
     }
 
-    RAINY_NODISCARD const foundation::ctti::typeinfo &property::property_ctti_type() const noexcept {
-        return reinterpret_cast<const property_accessor *>(property_storage)->property_ctti_type();
+    RAINY_NODISCARD const foundation::ctti::typeinfo &field::field_ctti_type() const noexcept {
+        return reinterpret_cast<const field_accessor *>(field_storage)->field_ctti_type();
     }
 
-    RAINY_NODISCARD const foundation::ctti::typeinfo &property::compound_type() const noexcept {
-        return reinterpret_cast<const property_accessor *>(property_storage)->compound_ctti();
+    RAINY_NODISCARD const foundation::ctti::typeinfo &field::compound_type() const noexcept {
+        return reinterpret_cast<const field_accessor *>(field_storage)->compound_ctti();
     }
 
-    property &property::operator=(const property &right) noexcept {
+    field &field::operator=(const field &right) noexcept {
         if (this == utility::addressof(right)) {
             return *this;
         }
-        core::builtin::copy_memory(property_storage, right.property_storage, soo_buffer_size);
+        core::builtin::copy_memory(field_storage, right.field_storage, soo_buffer_size);
         return *this;
     }
 
-    property &property::operator=(property &&right) noexcept {
-        core::builtin::copy_memory(property_storage, right.property_storage, soo_buffer_size);
-        std::memset(right.property_storage, 0, soo_buffer_size);
+    field &field::operator=(field &&right) noexcept {
+        core::builtin::copy_memory(field_storage, right.field_storage, soo_buffer_size);
+        std::memset(right.field_storage, 0, soo_buffer_size);
         return *this;
     }
 
-    void property::set_value(object_view object,const utility::any& val) const {
-        reinterpret_cast<const property_accessor *>(property_storage)->set_property(object, val);
+    void field::set_value(object_view object,const utility::any& val) const {
+        reinterpret_cast<const field_accessor *>(field_storage)->set_field(object, val);
     }
 
-    utility::any property::get_value(object_view object) const {
-        return reinterpret_cast<const property_accessor *>(property_storage)->get_property(object);
+    utility::any::reference field::get_value(object_view object) const {
+        return reinterpret_cast<const field_accessor *>(field_storage)->get_field(object);
     }
 
-    bool property::is_const() const noexcept {
-        return static_cast<bool>(type() | property_flags::const_property);
+    bool field::is_const() const noexcept {
+        return static_cast<bool>(type() | field_flags::const_field);
     }
 
-    bool property::is_volatile() const noexcept {
-        return static_cast<bool>(type() | property_flags::volatile_property);
+    bool field::is_volatile() const noexcept {
+        return static_cast<bool>(type() | field_flags::volatile_field);
     }
 
-    bool property::is_member_pointer() const noexcept {
-        return static_cast<bool>(type() | property_flags::member_property);
+    bool field::is_member_pointer() const noexcept {
+        return static_cast<bool>(type() | field_flags::member_field);
     }
 
-    bool property::is_pointer() const noexcept {
-        return property_ctti_type().has_traits(foundation::ctti::traits::is_pointer);
+    bool field::is_pointer() const noexcept {
+        return field_ctti_type().has_traits(foundation::ctti::traits::is_pointer);
     }
 
-    bool property::is_array() const noexcept {
-        return property_ctti_type().has_traits(foundation::ctti::traits::is_array);
+    bool field::is_array() const noexcept {
+        return field_ctti_type().has_traits(foundation::ctti::traits::is_array);
     }
 
-    bool property::is_fundamental() const noexcept {
-        return property_ctti_type().has_traits(foundation::ctti::traits::is_fundamental);
+    bool field::is_fundamental() const noexcept {
+        return field_ctti_type().has_traits(foundation::ctti::traits::is_fundamental);
     }
 
-    property_flags property::type() const noexcept {
-        return reinterpret_cast<const property_accessor *>(property_storage)->type();
+    field_flags field::type() const noexcept {
+        return reinterpret_cast<const field_accessor *>(field_storage)->type();
     }
 
-    bool property::is_enum() const noexcept {
-        return property_ctti_type().has_traits(foundation::ctti::traits::is_enum);
+    bool field::is_compound() const noexcept {
+        return field_ctti_type().has_traits(foundation::ctti::traits::is_compound);
     }
 
-    bool property::is_compound() const noexcept {
-        return property_ctti_type().has_traits(foundation::ctti::traits::is_compound);
+    void field::clear() noexcept {
+        field_storage[0] = '\0';
+        std::memset(field_storage, 0, soo_buffer_size);
     }
 
-    void property::clear() noexcept {
-        property_storage[0] = '\0';
-        std::memset(property_storage, 0, soo_buffer_size);
+    bool field::empty() const noexcept {
+        return std::all_of(utility::begin(field_storage), utility::end(field_storage), +[](core::byte_t c) { return c == '\0'; });
+    }
+}
+
+namespace rainy::meta::reflection {
+    std::string_view property::get_name() const noexcept {
+        return ptr->name;
     }
 
-    bool property::empty() const noexcept {
-        return std::all_of(utility::begin(property_storage), utility::end(property_storage), +[](core::byte_t c) { return c == '\0'; });
+    const metadata &property::get_metadata(const utility::any &key) const noexcept {
+        static const metadata empty;
+        const auto it = core::algorithm::find_if(ptr->metadata.begin(), ptr->metadata.end(),
+                                                 [&key](const metadata &meta) { return meta.key() == key; });
+        return it != ptr->metadata.end() ? *it : empty;
+    }
+
+    const std::vector<reflection::metadata> &property::get_metadatas() const noexcept {
+        return ptr->metadata;
     }
 }

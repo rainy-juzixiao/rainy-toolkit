@@ -18,6 +18,7 @@
 #define RAINY_META_ENUMERATION_HPP
 #include <rainy/core/core.hpp>
 #include <rainy/utility/pair.hpp>
+#include <optional>
 
 #define ENUM_SCAN_BEGIN -127
 #define ENUM_SCAN_END 128
@@ -144,7 +145,7 @@ namespace rainy::meta::enumeration::implements {
 
     template <std::size_t Size, typename E, auto Begin, std::size_t... Is>
     constexpr auto enum_values_impl(std::index_sequence<Is...>) {
-        constexpr collections::array<E, Size> arr = [] constexpr {
+        constexpr collections::array<E, Size> arr = []() constexpr {
             collections::array<E, Size> tmp{};
             std::size_t idx = 0;
             (([&] {
@@ -180,7 +181,7 @@ namespace rainy::meta::enumeration::implements {
 
     template <std::size_t Size, typename E, auto Begin, std::size_t... Is>
     constexpr auto enum_entries_impl(std::index_sequence<Is...>) {
-        constexpr collections::array<utility::pair<E, std::string_view>, Size> arr = [] constexpr {
+        constexpr collections::array<utility::pair<E, std::string_view>, Size> arr = []() constexpr {
             collections::array<utility::pair<E, std::string_view>, Size> tmp{};
             std::size_t idx = 0;
             (([&] {
@@ -197,7 +198,7 @@ namespace rainy::meta::enumeration::implements {
 
     template <std::size_t Size, typename E, auto Begin, std::size_t... Is>
     constexpr auto enum_names_impl(std::index_sequence<Is...>) {
-        constexpr collections::array<std::string_view, Size> arr = [] constexpr {
+        constexpr collections::array<std::string_view, Size> arr = []() constexpr {
             collections::array<std::string_view, Size> tmp{};
             std::size_t idx = 0;
             (([&] {
@@ -213,7 +214,7 @@ namespace rainy::meta::enumeration::implements {
 
     template <typename E, std::underlying_type_t<E> Begin, std::size_t... Is>
     constexpr std::size_t enum_count_impl(std::index_sequence<Is...>) {
-        constexpr std::size_t count = [] constexpr {
+        constexpr std::size_t count = []() constexpr {
             std::size_t total = 0;
             (([&] {
                  if constexpr (is_enum_value_impl<E, Begin + static_cast<std::underlying_type_t<E>>(Is)>::value) {

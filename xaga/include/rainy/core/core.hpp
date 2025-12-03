@@ -36,18 +36,23 @@
 --------------------------------*/
 #ifndef RAINY_CORE_HPP
 #define RAINY_CORE_HPP
+
+// clang-format off
+
+#include <rainy/core/platform.hpp>
+#include <rainy/core/type_traits.hpp>
+#include <rainy/core/lifetime_annotation.hpp>
 #include <rainy/core/expected.hpp>
+#include <rainy/core/layer.hpp>
 #include <rainy/core/implements/bit.hpp>
+#include <rainy/core/implements/raw_stringview.hpp>
 #include <rainy/core/implements/collections/array.hpp>
 #include <rainy/core/implements/collections/array_view.hpp>
 #include <rainy/core/implements/exceptions.hpp>
-#include <rainy/core/implements/raw_stringview.hpp>
 #include <rainy/core/implements/source_location.hpp>
 #include <rainy/core/implements/views/views_interface.hpp>
-#include <rainy/core/layer.hpp>
-#include <rainy/core/lifetime_annotation.hpp>
-#include <rainy/core/platform.hpp>
-#include <rainy/core/type_traits.hpp>
+
+// clang-format on
 
 namespace rainy::core {
     static constexpr implements::raw_string_view<char> libray_name("rainy's toolkit");
@@ -947,13 +952,17 @@ namespace rainy::collections::views::implements {
     };
 
     template <typename Iter>
-    struct adapter_iterator_range : views::view_interface<adapter_iterator_range<Iter>> {
+    class adapter_iterator_range : public views::view_interface<adapter_iterator_range<Iter>> {
+    public:
         using iterator = iterator_range_iterator<Iter>;
         using const_iterator = const iterator_range_iterator<const Iter>;
         using reference = type_traits::extras::iterators::iterator_reference_t<iterator>;
         using const_reference = type_traits::cv_modify::add_const_t<reference>;
         using difference_type = type_traits::extras::iterators::iterator_difference_t<const_iterator>;
         using value_type = type_traits::extras::iterators::iter_value_t<const_iterator>;
+        
+        adapter_iterator_range() : begin_{}, end_{} {
+        }
 
         adapter_iterator_range(Iter begin, Iter end) : begin_{begin}, end_{end} {
         }

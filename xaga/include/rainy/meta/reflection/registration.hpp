@@ -18,34 +18,30 @@
 #include <rainy/meta/reflection/metadata.hpp>
 #include <rainy/meta/reflection/moon/reflect.hpp>
 #include <rainy/meta/reflection/type.hpp>
+#include <rainy/meta/enumeration.hpp>
 #include <string_view>
-
-namespace rainy::meta::reflection {
-    template <typename Any,
-              type_traits::other_trans::enable_if_t<
-                  type_traits::type_relations::is_same_v<type_traits::cv_modify::remove_cvref_t<Any>, utility::any>, int> = 0>
-    RAINY_INLINE object_view as_object_view(Any &&any) {
-        return object_view{const_cast<void *>(any.target_as_void_ptr()), any.type()};
-    }
-}
 
 namespace rainy::meta::reflection::implements {
     RAINY_TOOLKIT_API bool check_method_field(type_accessor *type, std::string_view name, method &meth);
-    RAINY_TOOLKIT_API bool check_ctor_field(type_accessor *type, method &ctor);
+    RAINY_TOOLKIT_API bool check_ctor_field(type_accessor *type, constructor &ctor);
     RAINY_TOOLKIT_API void register_method_helper(type_accessor *type, std::string_view name, method &&meth);
     RAINY_TOOLKIT_API void do_inject(std::once_flag &consume, std::string_view name, type_accessor *accessor);
+    RAINY_TOOLKIT_API type_accessor* global_type_accessor();
 
     template <typename Type>
     static type_accessor *new_type_accessor_instance(std::string_view name) noexcept {
         static std::once_flag flag;
-        static type_accessor_impl_class<Type> instance{name};
+        using impl_t = type_traits::other_trans::conditional_t<
+            type_traits::primary_types::is_enum_v<Type>, type_accessor_impl_enumeration<Type>,
+            type_traits::other_trans::conditional_t<type_traits::composite_types::is_fundamental_v<Type>,
+                                                    type_accessor_impl_fundmental_type<Type>, type_accessor_impl_class<Type>>>;
+        static impl_t instance{name};
         do_inject(flag, name, &instance);
         return &instance;
     }
 }
 
 namespace rainy::meta::reflection::implements {
-    
     template <typename Ty>
     struct is_tuple : type_traits::helper::false_type {};
 
@@ -180,18 +176,8 @@ namespace rainy::meta::reflection {
                       type_traits::other_trans::enable_if_t<type_traits::primary_types::is_pointer_v<Property> ||
                                                                 (type_traits::primary_types::is_member_object_pointer_v<Property>),
                                                             int> = 0>
-            class_ &property(std::string_view name, Property &&property) {
-#if RAINY_HAS_CXX20
-                if (type->properties().contains(name)) {
-                    return *this;
-                }
-#else
-                if (type->properties().find(name) != type->properties().end()) {
-                    return *this;
-                }
-#endif
-                type->properties().emplace(name, property);
-                return *this;
+            bind<reflection::property, Type, Property> property(std::string_view name, Property &&property) {
+                return bind<reflection::property, Type, Property>{this->type, name, utility::forward<Property>(property)};
             }
 
             /**
@@ -205,6 +191,33 @@ namespace rainy::meta::reflection {
                 static constexpr auto name_var = implements::make_ctor_name<Type, Args...>();
                 std::string_view name{name_var.data(), name_var.size()};
                 return bind<reflection::constructor, Type, Type (*)(Args...)>{this->type, name, utility::get_ctor_fn<Type, Args...>()};
+            }
+
+            /**
+             * @brief 向当前类注册拷贝构造函数
+             * @return 一个绑定构造函数的注册器对象
+             * @attention 当前Type必须支持拷贝操作，否则此函数将被禁用
+             */
+            template <typename UTy = Type,type_traits::other_trans::enable_if_t<type_traits::type_properties::is_copy_constructible_v<UTy>, int> = 0>
+            bind<reflection::constructor, Type, UTy (*)(const UTy &)> copy_constructor() {
+                static constexpr auto name_var = implements::make_ctor_name<Type, const UTy &>();
+                std::string_view name{name_var.data(), name_var.size()};
+                return bind<reflection::constructor, Type, UTy (*)(const UTy &)>{this->type, name,
+                                                                                 utility::get_ctor_fn<Type, const UTy &>()};
+            }
+
+            /**
+             * @brief 向当前类注册移动构造函数
+             * @return 一个绑定构造函数的注册器对象
+             * @attention 当前Type必须支持拷贝操作，否则此函数将被禁用
+             */
+            template <typename UTy = Type,
+                      type_traits::other_trans::enable_if_t<type_traits::type_properties::is_copy_constructible_v<UTy>, int> = 0>
+            bind<reflection::constructor, Type, UTy (*)(UTy &&)> move_constructor() {
+                static constexpr auto name_var = implements::make_ctor_name<Type, UTy &&>();
+                std::string_view name{name_var.data(), name_var.size()};
+                return bind<reflection::constructor, Type, UTy (*)(UTy &&)>{this->type, name,
+                                                                                 utility::get_ctor_fn<Type, UTy &&>()};
             }
 
             /**
@@ -222,6 +235,12 @@ namespace rainy::meta::reflection {
                 return bind<reflection::method, Type, Fx>{this->type, rainy_typeid(Fx).name(), utility::forward<Fx>(fn)};
             }
 
+            template <typename Enum>
+            bind<reflection::enumeration, Type, Enum> enumeration(std::string_view name) {
+                auto accessor = implements::new_type_accessor_instance<Enum>(name);
+                return bind<reflection::enumeration, Type, Enum>{accessor, name, this->type};
+            }
+
             /**
              * @brief 向当前类注册基类
              * @tparam Base 基类的类型
@@ -234,12 +253,12 @@ namespace rainy::meta::reflection {
                       type_traits::other_trans::enable_if_t<type_traits::type_relations::is_base_of_v<Base, Type>, int> = 0>
             class_ &base(std::string_view name = rainy_typeid(Base).name(), bool reflect_moon = false) {
                 auto &bases = this->type->bases();
-                if (bases.find(name) == bases.end()) {
+                if (bases.find(rainy_typeid(Base)) == bases.end()) {
                     if (!implements::register_table::has_register(rainy_typeid(Base))) {
                         class_<Base>(name).template derive<Type>(type->name()); // 注册一个新类型，并将该类直接注入到表中
                     }
                     foundation::ctti::register_base<Type, Base>();
-                    bases.emplace(name, type::get<Base>());
+                    bases.emplace(rainy_typeid(Base), type::get<Base>());
                 }
                 return *this;
             }
@@ -256,12 +275,12 @@ namespace rainy::meta::reflection {
                       type_traits::other_trans::enable_if_t<type_traits::type_relations::is_base_of_v<Type, Derive>, int> = 0>
             class_ &derive(std::string_view name = rainy_typeid(Derive).name(), bool reflect_moon = false) {
                 auto &deriveds = this->type->deriveds();
-                if (deriveds.find(name) == deriveds.end()) {
+                if (deriveds.find(rainy_typeid(Derive)) == deriveds.end()) {
                     if (!implements::register_table::has_register(rainy_typeid(Derive))) {
                         class_<Derive>(name).template base<Type>(type->name()); // 注册一个新类型，并将该类直接注入到表中
                     }
                     foundation::ctti::register_base<Derive, Type>();
-                    deriveds.emplace(name, type::get<Derive>());
+                    deriveds.emplace(rainy_typeid(Derive), type::get<Derive>());
                 }
                 return *this;
             }
@@ -270,7 +289,28 @@ namespace rainy::meta::reflection {
             type_accessor *type;
         };
 
-    private:
+        template <typename Enum>
+        static bind<reflection::enumeration, void, Enum> enumeration(std::string_view name) {
+            auto accessor = implements::new_type_accessor_instance<Enum>(name);
+            return bind<reflection::enumeration, void, Enum>{accessor, name};
+        }
+
+        template <typename Type>
+        static bind<reflection::fundmental, void, Type> fundamental(std::string_view name) {
+            auto accessor = implements::new_type_accessor_instance<Type>(name);
+            return bind<reflection::fundmental, void, Type>{accessor, name};
+        }
+
+        template <typename Fx>
+        static bind<reflection::method, utility::invalid_type, Fx> method(std::string_view name, Fx&& fn) {
+            return bind<reflection::method, utility::invalid_type, Fx>{implements::global_type_accessor(), name,
+                                                                       utility::forward<Fx>(fn)};
+        }
+
+    protected:
+        registration() = default;
+        registration(core::internal_construct_tag_t, implements::type_accessor *) {
+        }
     };
 }
 
@@ -385,6 +425,125 @@ namespace rainy::meta::reflection {
         Fx fn;
         std::string_view name;
         constructor ctor_;
+    };
+
+    template <typename ClassType, typename Field>
+    class registration::bind<property, ClassType, Field> : public implements::registration_derived_t<ClassType> {
+    public:
+        bind(implements::type_accessor *type, std::string_view name, Field &&field) :
+            implements::registration_derived_t<ClassType>(core::internal_construct_tag, type), type_accessor(type),
+            field(utility::forward<Field>(field)), name(name), prop_{} {
+        }
+
+        ~bind() {
+            if (type_accessor) {
+#if RAINY_HAS_CXX20
+                if (type_accessor->properties().contains(name)) {
+                    return;
+                }
+#else
+                if (type_accessor->properties().find(name) != type->properties().end()) {
+                    return;
+                }
+#endif
+                if (prop_.empty()) {
+                    static collections::array<metadata, 0> empty{};
+                    prop_ = property::make(name, utility::forward<Field>(field), empty);
+                }
+                type_accessor->properties().emplace(name, utility::move(prop_));
+            }
+        }
+
+        template <typename... Args>
+        implements::registration_derived_t<ClassType> operator()(Args &&...args) {
+            static constexpr std::size_t metadata_count = implements::metadata_count<Args...>;
+            collections::array<metadata, metadata_count> metadatas =
+                utility::extract_args_to_array<metadata>(utility::forward<Args>(args)...);
+            using tuple_type = typename implements::extract_unique_tuple<Args...>::type;
+            if constexpr (!type_traits::type_relations::is_void_v<tuple_type>) {
+                tuple_type arguments = implements::extract_tuple_from_args<tuple_type>(utility::forward<Args>(args)...);
+                prop_ = reflection::method::make(name, utility::forward<Field>(field), metadatas);
+            } else {
+                prop_ = reflection::method::make(name, utility::forward<Field>(field), metadatas);
+            }
+            return implements::registration_derived_t<ClassType>(core::internal_construct_tag, type_accessor);
+        }
+
+    private:
+        implements::type_accessor *type_accessor;
+        Field field;
+        std::string_view name;
+        reflection::property prop_;
+    };
+
+    template <typename ClassType, typename EnumType>
+    class registration::bind<enumeration, ClassType, EnumType> : public implements::registration_derived_t<ClassType> {
+    public:
+        bind(implements::type_accessor *type, std::string_view name, implements::type_accessor* class_t = nullptr) :
+            implements::registration_derived_t<ClassType>(core::internal_construct_tag, class_t), name{name},
+            enumeration_type_accessor{type}, class_t{class_t} {
+        }
+
+        ~bind() {
+            // 如果用户未进行指定，由moon提供注册源（不保证一定返回全部数据）
+            if (rainy_let enum_type_storage = implements::new_enum_type_storage_instance<EnumType>(enumeration_type_accessor);
+                enum_type_storage->enum_count() == 0) {
+                auto enums = meta::enumeration::enum_entries<EnumType>();
+                if constexpr (meta::enumeration::enum_count<EnumType>() != 0) {
+                    enum_type_storage->enums_.reserve(enums.size());
+                    enum_type_storage->items_.reserve(enums.size());
+                    enum_type_storage->names_.reserve(enums.size());
+                    for (const auto &item: enums) {
+                        enum_type_storage->enums_.emplace_back(item.first);
+                        enum_type_storage->items_.emplace_back(item.first);
+                        enum_type_storage->names_.emplace_back(item.second);
+                    }
+                }
+            }
+        }
+
+        template <typename... Args>
+        implements::registration_derived_t<ClassType> operator()(Args &&...args) {
+            rainy_let enum_type_storage = implements::new_enum_type_storage_instance<EnumType>(enumeration_type_accessor);
+            static constexpr std::size_t enum_values_count =
+                type_traits::other_trans::count_type_v<implements::enum_data<EnumType>, type_traits::other_trans::type_list<Args...>>;
+            if constexpr (enum_values_count != -1) {
+                collections::array<implements::enum_data<EnumType>, enum_values_count> enumerations =
+                    utility::extract_args_to_array<implements::enum_data<EnumType>>(utility::forward<Args>(args)...);
+                auto &storage = enumeration_type_accessor->as_enumeration();
+                enum_type_storage->enums_.reserve(enum_values_count);
+                enum_type_storage->items_.reserve(enum_values_count);
+                enum_type_storage->names_.reserve(enum_values_count);
+                for (const implements::enum_data<EnumType> &item: enumerations) {
+                    enum_type_storage->enums_.emplace_back(item.get_value());
+                    enum_type_storage->items_.emplace_back(item.get_value());
+                    enum_type_storage->names_.emplace_back(item.get_name());
+                }
+            }
+            return implements::registration_derived_t<ClassType>(core::internal_construct_tag, class_t);
+        }
+
+    private:
+        std::string_view name;
+        implements::type_accessor *enumeration_type_accessor;
+        implements::type_accessor *class_t;
+    };
+
+    template <typename ClassType, typename EnumType>
+    class registration::bind<fundmental, ClassType, EnumType> : public implements::registration_derived_t<ClassType> {
+    public:
+        bind(implements::type_accessor *type, std::string_view name, implements::type_accessor *class_t = nullptr) :
+            implements::registration_derived_t<ClassType>(core::internal_construct_tag, class_t), name{name},
+            fundmental_type_accessor{type}, class_t{class_t} {
+        }
+
+        ~bind() {
+        }
+
+    private:
+        std::string_view name;
+        implements::type_accessor *fundmental_type_accessor;
+        implements::type_accessor *class_t;
     };
 }
 

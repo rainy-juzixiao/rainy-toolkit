@@ -65,7 +65,7 @@ namespace rainy::collections::views {
             return !empty(cast_to_derived());
         }
 
-        template <typename D = Derived, typename = decltype(utility::to_address(utility::begin(utility::declval<view_interface>().cast_to_derived())))>
+        template <typename D = Derived, typename = decltype(utility::to_address(utility::begin(utility::declval<view_interface<D>>().cast_to_derived())))>
         RAINY_NODISCARD constexpr auto data() {
             static_assert(
                 type_traits::extras::iterators::is_contiguous_iterator_v<type_traits::extras::iterators::iterator_t<D>>);
@@ -73,7 +73,7 @@ namespace rainy::collections::views {
         }
 
         template <typename D = Derived,
-                  typename = decltype(utility::to_address(utility::begin(utility::declval<view_interface>().cast_to_derived())))>
+                  typename = decltype(utility::to_address(utility::begin(utility::declval<view_interface<D>>().cast_to_derived())))>
         RAINY_NODISCARD constexpr auto data() const {
             static_assert(
                 type_traits::extras::iterators::is_contiguous_iterator_v<type_traits::extras::iterators::iterator_t<D>>);

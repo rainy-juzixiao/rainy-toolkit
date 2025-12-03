@@ -17,7 +17,7 @@
 #define RAINY_META_REFL_IMPL_INVOKER_HPP
 #include <rainy/core/core.hpp>
 #include <rainy/utility/any.hpp>
-#include <rainy/meta/reflection/refl_impl/object_view.hpp>
+#include <rainy/meta/reflection/object_view.hpp>
 #include <rainy/meta/reflection/refl_impl/arguments.hpp>
 
 #if RAINY_USING_MSVC
@@ -171,7 +171,7 @@ namespace rainy::meta::reflection::implements {
         explicit invoker(invoker &&right) noexcept : fn(utility::move(right.fn)), arguments(utility::move(right.arguments)) {
         }
 
-        bool is_compatible(arg_view *view) const {
+        bool is_compatible(arg_view<> *view) const {
             const std::size_t size = view->size();
             static constexpr std::size_t least = arity - sizeof...(DArgs);
             return size >= least && size <= arity && is_compatible_impl(view, type_traits::helper::make_index_sequence<arity>{});
@@ -192,7 +192,7 @@ namespace rainy::meta::reflection::implements {
         /*---------------------*/
 
         template <std::size_t... I>
-        bool is_compatible_impl(arg_view *view, type_traits::helper::index_sequence<I...>) const {
+        bool is_compatible_impl(arg_view<> *view, type_traits::helper::index_sequence<I...>) const {
             static auto &target_paramlist = implements::param_types_res<Args...>();
             return ((I < view->size() ? view->at(I).type().is_compatible(target_paramlist[I]) : true) && ...);
         }

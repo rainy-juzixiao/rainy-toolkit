@@ -352,6 +352,15 @@ namespace rainy::type_traits::type_properties {
     template <typename From, typename To>
     RAINY_CONSTEXPR_BOOL is_invoke_nothrow_convertible_v = is_invoke_convertible<From, To>::value;
 
+    template <typename Ty, typename = void>
+    RAINY_CONSTEXPR_BOOL is_complete_v = false;
+    
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL is_complete_v<Ty, type_traits::other_trans::void_t<decltype(sizeof(Ty))>> = true;
+
+    template <typename Ty>
+    struct is_complete : helper::bool_constant<is_complete_v<Ty>> {};
+
     /*
     名称 描述
     is_swappable_with
