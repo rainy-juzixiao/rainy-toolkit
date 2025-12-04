@@ -90,6 +90,10 @@ namespace rainy::meta::reflection {
             return get_value(object);
         }
 
+        utility::any::reference operator()(object_view object) const {
+            return get_value(object);
+        }
+
         void set_value(object_view object, const utility::any &val) const;
 
         template <typename Decayed>

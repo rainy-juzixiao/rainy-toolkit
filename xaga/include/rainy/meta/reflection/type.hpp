@@ -431,9 +431,29 @@ namespace rainy::meta::reflection {
             return global_t.invoke_method(flag, name, non_exists_instance, utility::forward<Args>(args)...);
         }
 
-        static methods_view_t get_global_methods() {
+        static utility::any::reference get_property_value(std::string_view name) noexcept {
+            static type global_t = type::get<utility::invalid_type>();
+            return global_t.get_property(name)(non_exists_instance);
+        }
+
+        static const method& get_global_method(std::string_view name) noexcept {
+            static type global_t = type::get<utility::invalid_type>();
+            return global_t.get_method(name);
+        }
+
+        static const property &get_global_property(std::string_view name) noexcept {
+            static type global_t = type::get<utility::invalid_type>();
+            return global_t.get_property(name);
+        }
+
+        static methods_view_t get_global_methods() noexcept {
             static type global_t = type::get<utility::invalid_type>();
             return global_t.get_methods();
+        }
+
+        static property_view_t get_global_properties() noexcept {
+            static type global_t = type::get<utility::invalid_type>();
+            return global_t.get_properties();
         }
 
     private:

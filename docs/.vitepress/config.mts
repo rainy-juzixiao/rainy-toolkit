@@ -17,12 +17,21 @@ export default defineConfig({
         collapsed: true,
         items: [
           {
-            text: '序言',
-            link: '/',
+            text: '简介',
+            collapsed: true,
             items: [
               {
-                text: 'Hello World样例',
-                link: 'tutorials/hello_world'
+                text: '绪论',
+                link: 'intro/',
+              },
+              {
+                text: '教程',
+                items: [
+                  {
+                    text: 'Hello World样例',
+                    link: 'intro/tutorials/hello_world'
+                  }
+                ]
               }
             ]
           },
@@ -63,8 +72,17 @@ export default defineConfig({
   },
   markdown: {
     theme: {
-      dark: 'dracula-soft',
-      light: 'github-dark',
+      light: 'material-theme-palenight',
+      dark: 'material-theme-palenight'
+    }
+  },
+  vite: {
+    css: {
+      preprocessorOptions: {
+        scss: {
+          api: 'modern',
+        }
+      }
     }
   }
 });

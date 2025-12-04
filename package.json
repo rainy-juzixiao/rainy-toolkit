@@ -9,6 +9,7 @@
     "vitepress": "^1.6.3"
   },
   "devDependencies": {
-    "markdown-it-include": "^2.0.0"
+    "markdown-it-include": "^2.0.0",
+    "sass": "^1.94.2"
   }
 }
