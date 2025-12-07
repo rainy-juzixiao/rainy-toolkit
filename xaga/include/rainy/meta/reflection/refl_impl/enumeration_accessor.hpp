@@ -105,7 +105,8 @@ namespace rainy::meta::reflection::implements {
                 return cond ? true : (++index, false);
             });
             if (it != names_.end()) {
-                return Enum{enums_[index]};
+                Enum value = enums_[index];
+                return value;
             }
             return {};
         }

@@ -34,7 +34,7 @@ namespace rainy::meta::reflection::implements {
 #if RAINY_HAS_CXX20
                 if (!this->data.contains(typeinfo))
 #else
-                if (this_->data.find(typeinfo) == this_->data.end())
+                if (this->data.find(typeinfo) == this->data.end())
 #endif
                 {
                     auto [iter, success] = this->data.emplace(typeinfo, type);

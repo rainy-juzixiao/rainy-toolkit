@@ -15,9 +15,15 @@
  */
 #ifndef RAINY_META_REFLECTION_field_HPP
 #define RAINY_META_REFLECTION_field_HPP
+
+// NOLINTBEGIN
+
+#include <rainy/core/core.hpp>
 #include <rainy/utility/any.hpp>
 #include <rainy/meta/reflection/object_view.hpp>
 #include <rainy/meta/reflection/metadata.hpp>
+
+// NOLINTEND
 
 #if RAINY_USING_MSVC
 #pragma warning(push)
@@ -40,7 +46,7 @@ namespace rainy::meta::reflection {
 namespace rainy::meta::reflection::implements {
     template <typename Type, typename Class>
     static constexpr field_flags deduction_field_type() noexcept {
-        field_flags flags = field_flags::none;
+        auto flags = field_flags::none;
         if constexpr (type_traits::type_relations::is_void_v<Class>) {
             flags |= field_flags::static_field;
         } else {
@@ -62,16 +68,15 @@ namespace rainy::meta::reflection::implements {
 namespace rainy::meta::reflection {
     class RAINY_TOOLKIT_API field {
     public:
-        field() noexcept {
-        }
+        field() noexcept = default;
 
         template <typename Class, typename Type>
-        field(Type Class::*field) {
+        field(Type Class::*field) { // NOLINT
             utility::construct_at(reinterpret_cast<field_accessor_impl<Type, Type Class::*, Class> *>(&field_storage), field);
         }
 
         template <typename Type>
-        field(Type *static_field) {
+        field(Type *static_field) { // NOLINT
             utility::construct_at(reinterpret_cast<field_accessor_impl<Type, Type *, void> *>(&field_storage), static_field);
         }
 
@@ -86,22 +91,28 @@ namespace rainy::meta::reflection {
         field &operator=(const field &right) noexcept;
         field &operator=(field &&right) noexcept;
 
-        utility::any::reference operator()(object_view object) {
+        utility::any::reference operator()(annotations::lifetime::in<object_view> object) { // NOLINT
             return get_value(object);
         }
 
-        utility::any::reference operator()(object_view object) const {
+        utility::any::reference operator()(annotations::lifetime::in<object_view> object) const {
             return get_value(object);
         }
 
-        void set_value(object_view object, const utility::any &val) const;
+        void set_value(annotations::lifetime::in<object_view> object, const utility::any &val) const;
 
         template <typename Decayed>
-        Decayed get_value(object_view object = non_exists_instance) const {
+        Decayed get_value(annotations::lifetime::in<object_view> object = non_exists_instance) {
             return reinterpret_cast<const field_accessor *>(field_storage)->get_field(object).as<Decayed>();
         }
 
-        utility::any::reference get_value(object_view object = non_exists_instance) const;
+        template <typename Decayed>
+        Decayed get_value(annotations::lifetime::in<object_view> object = non_exists_instance) const {
+            return reinterpret_cast<const field_accessor *>(field_storage)->get_field(object).as<Decayed>();
+        }
+
+        utility::any::reference get_value(annotations::lifetime::in<object_view> object = non_exists_instance); // NOLINT
+        utility::any::reference get_value(annotations::lifetime::in<object_view> object = non_exists_instance) const; // NOLINT
 
         template <typename Class, typename Type>
         auto target() const noexcept -> Type Class::* {
@@ -157,10 +168,10 @@ namespace rainy::meta::reflection {
         }
 
         template <typename Type, typename CompoundType, typename Class>
-        struct field_accessor_impl : field_accessor {
+        struct field_accessor_impl final : field_accessor {
             using compound_type = CompoundType;
 
-            field_accessor_impl(compound_type field) noexcept : field_ptr(field) {
+            field_accessor_impl(compound_type field) noexcept : field_ptr(field) { // NOLINT
             }
 
             void set_field(object_view object,const utility::any& any) const override {
@@ -217,8 +228,7 @@ namespace rainy::meta::reflection {
             }
 
             RAINY_NODISCARD std::uintptr_t target(const foundation::ctti::typeinfo &ctti) const noexcept override {
-                constexpr std::size_t typehash = rainy_typehash(compound_type);
-                if (typehash == ctti.hash_code()) {
+                if (constexpr std::size_t typehash = rainy_typehash(compound_type); typehash == ctti.hash_code()) {
                     return reinterpret_cast<std::uintptr_t>(
                         const_cast<type_traits::other_trans::decay_t<compound_type> *>(&field_ptr));
                 }
@@ -242,7 +252,7 @@ namespace rainy::meta::reflection {
     public:
         property() noexcept = default;
 
-        template <typename Field, typename... Args, std::size_t N = 0,
+        template <typename Field, std::size_t N = 0,
                   type_traits::other_trans::enable_if_t<type_traits::type_properties::is_constructible_v<field, Field>, int> = 0>
         static property make(std::string_view name, Field &&field, collections::array<metadata, N> &metadatas) {
             return property{name, field, metadatas};
@@ -275,8 +285,8 @@ namespace rainy::meta::reflection {
     private:
         template <typename Field, typename... Args, std::size_t N = 0,
                   type_traits::other_trans::enable_if_t<type_traits::type_properties::is_constructible_v<field, Field>, int> = 0>
-        property(std::string_view name, Field &&field, collections::array<metadata, N> &metadatas) noexcept :
-            field(utility::forward<Field>(field)), ptr(std::make_shared<data>(utility::move(name))) {
+        property(std::string_view name, Field &&field_, collections::array<metadata, N> &metadatas) noexcept :
+            field(utility::forward<Field>(field_)), ptr(std::make_shared<data>(data{utility::move(name), {}})) {
             if constexpr (N != 0) {
                 for (metadata &meta: metadatas) {
                     ptr->metadata.emplace_back(utility::move(meta));

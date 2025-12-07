@@ -43,6 +43,8 @@
 #include <linux/version.h>
 #endif
 
+#include <rainy/core/implements/generate/marco_gen.hpp>
+
 #define RAINY_EXTERN_C extern "C"
 
 /*-----------
@@ -869,6 +871,70 @@ namespace rainy::type_traits::helper {
         CharType string[N]{};
     };
 
+    template <typename CharType, std::size_t N1, std::size_t N2>
+    constexpr bool operator==(const basic_constexpr_string<CharType, N1> &lhs,
+                              const basic_constexpr_string<CharType, N2> &rhs) noexcept {
+        return std::basic_string_view<CharType>(lhs.data(), lhs.length()) ==
+               std::basic_string_view<CharType>(rhs.data(), rhs.length());
+    }
+
+    // 不相等比较
+    template <typename CharType, std::size_t N1, std::size_t N2>
+    constexpr bool operator!=(const basic_constexpr_string<CharType, N1> &lhs,
+                              const basic_constexpr_string<CharType, N2> &rhs) noexcept {
+        return !(lhs == rhs);
+    }
+
+    // 小于比较
+    template <typename CharType, std::size_t N1, std::size_t N2>
+    constexpr bool operator<(const basic_constexpr_string<CharType, N1> &lhs,
+                             const basic_constexpr_string<CharType, N2> &rhs) noexcept {
+        return std::basic_string_view<CharType>(lhs.data(), lhs.length()) < std::basic_string_view<CharType>(rhs.data(), rhs.length());
+    }
+
+    // 小于等于比较
+    template <typename CharType, std::size_t N1, std::size_t N2>
+    constexpr bool operator<=(const basic_constexpr_string<CharType, N1> &lhs,
+                              const basic_constexpr_string<CharType, N2> &rhs) noexcept {
+        return !(rhs < lhs);
+    }
+
+    // 大于比较
+    template <typename CharType, std::size_t N1, std::size_t N2>
+    constexpr bool operator>(const basic_constexpr_string<CharType, N1> &lhs,
+                             const basic_constexpr_string<CharType, N2> &rhs) noexcept {
+        return rhs < lhs;
+    }
+
+    // 大于等于比较
+    template <typename CharType, std::size_t N1, std::size_t N2>
+    constexpr bool operator>=(const basic_constexpr_string<CharType, N1> &lhs,
+                              const basic_constexpr_string<CharType, N2> &rhs) noexcept {
+        return !(lhs < rhs);
+    }
+
+    // 与 std::string_view 比较的重载
+    template <typename CharType, std::size_t N>
+    constexpr bool operator==(const basic_constexpr_string<CharType, N> &lhs, std::basic_string_view<CharType> rhs) noexcept {
+        return std::basic_string_view<CharType>(lhs.data(), lhs.length()) == rhs;
+    }
+
+    template <typename CharType, std::size_t N>
+    constexpr bool operator==(std::basic_string_view<CharType> lhs, const basic_constexpr_string<CharType, N> &rhs) noexcept {
+        return lhs == std::basic_string_view<CharType>(rhs.data(), rhs.length());
+    }
+
+    // 与 C 风格字符串比较
+    template <typename CharType, std::size_t N>
+    constexpr bool operator==(const basic_constexpr_string<CharType, N> &lhs, const CharType *rhs) noexcept {
+        return std::basic_string_view<CharType>(lhs.data(), lhs.length()) == std::basic_string_view<CharType>(rhs);
+    }
+
+    template <typename CharType, std::size_t N>
+    constexpr bool operator==(const CharType *lhs, const basic_constexpr_string<CharType, N> &rhs) noexcept {
+        return std::basic_string_view<CharType>(lhs) == std::basic_string_view<CharType>(rhs.data(), rhs.length());
+    }
+
     template <std::size_t N>
     using constexpr_string = basic_constexpr_string<char, N>;
 
@@ -883,7 +949,6 @@ namespace rainy::type_traits::helper {
     template <typename CharType, std::size_t N1, std::size_t N2>
     constexpr auto concat(const basic_constexpr_string<CharType, N1> &lhs, const basic_constexpr_string<CharType, N2> &rhs) {
         basic_constexpr_string<CharType, N1 + N2 - 1> result{};
-
         std::size_t current_result_idx = 0;
         for (std::size_t i = 0; i < lhs.length(); ++i) {
             result[current_result_idx++] = lhs[i];

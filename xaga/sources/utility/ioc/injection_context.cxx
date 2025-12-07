@@ -28,7 +28,6 @@ namespace rainy::utility::ioc::implements {
             });
             return {p.first.get(), p.second.get()};
         }
-        return {};
     }
 
     rain_fn injection_context::has_init(const foundation::ctti::typeinfo &new_resources_type) -> bool {

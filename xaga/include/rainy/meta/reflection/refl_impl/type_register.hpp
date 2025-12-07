@@ -28,6 +28,56 @@ namespace rainy::meta::reflection {
 }
 
 namespace rainy::meta::reflection::implements {
+    template <typename Type, typename... Args>
+    constexpr auto make_ctor_name() {
+        using namespace foundation::ctti;
+        constexpr auto type_str = type_name<Type>();
+        if constexpr (sizeof...(Args) == 0) {
+            constexpr std::size_t total_len = type_str.size() + 2 + 1; // "Type()" + '\0'
+            type_traits::helper::constexpr_string<total_len> result{};
+            std::size_t pos = 0;
+            for (char c: type_str) {
+                result[pos++] = c;
+            }
+            result[pos++] = '(';
+            result[pos++] = ')';
+            result[pos++] = '\0';
+            return result;
+        } else {
+            constexpr collections::array<std::string_view, sizeof...(Args)> arg_names = {type_name<Args>()...};
+            constexpr std::size_t args_len = [&arg_names] {
+                std::size_t len = 0;
+                for (auto &arg: arg_names) {
+                    len += arg.size();
+                }
+                len += 2 * (sizeof...(Args) - 1); // ", "
+                return len;
+            }();
+            constexpr std::size_t total_len = type_str.size() + 1 + args_len + 1 + 1; // '(' + args + ')' + '\0'
+            type_traits::helper::constexpr_string<total_len> result{};
+            std::size_t pos = 0;
+            auto append = [&](const std::string_view &s) {
+                for (char c: s) {
+                    result[pos++] = c;
+                }
+            };
+            append(type_str);
+            result[pos++] = '(';
+            for (std::size_t i = 0; i < arg_names.size(); ++i) {
+                append(arg_names[i]);
+                if (i < arg_names.size() - 1) {
+                    result[pos++] = ',';
+                    result[pos++] = ' ';
+                }
+            }
+            result[pos++] = ')';
+            result[pos++] = '\0';
+            return result;
+        }
+    }
+}
+
+namespace rainy::meta::reflection::implements {
     struct type_accessor;
     struct enumeration_accessor;
     struct fundmental_type_accessor;
@@ -190,9 +240,12 @@ namespace rainy::meta::reflection::implements {
         std::vector<metadata> metadatas_;
     };
 
-    template <typename Type>
+    template <typename Type, typename EnumType = enumeration, typename Constrcutor = constructor>
     class type_accessor_impl_enumeration final : public type_accessor {
     public:
+        using enumeration_impl = EnumType;
+        using constructor_impl = Constrcutor;
+
         explicit type_accessor_impl_enumeration(const std::string_view name) noexcept :
             name_(name), typeinfo_(foundation::ctti::typeinfo::create<Type>()),
             enumeration{core::internal_construct_tag, this, new_enum_type_storage_instance<Type>(this)} {
@@ -220,13 +273,13 @@ namespace rainy::meta::reflection::implements {
                 static constexpr auto underlying_ctor_name = make_ctor_name<Type, type_traits::other_trans::underlying_type_t<Type>>();
                 static constexpr auto ctor_name = make_ctor_name<Type, Type>();
                 static constexpr auto default_ctor_name = make_ctor_name<Type>();
-                ctors_.emplace_back(constructor::make(
+                ctors_.emplace_back(constructor_impl::make(
                     {underlying_ctor_name.data(), underlying_ctor_name.size()},
                     [](type_traits::other_trans::underlying_type_t<Type> value) { return Type{value}; }, a, empty));
                 ctors_.emplace_back(
-                    constructor::make({ctor_name.data(), ctor_name.size()}, [](Type value) { return Type{value}; }, a, empty));
+                    constructor_impl::make({ctor_name.data(), ctor_name.size()}, [](Type value) { return Type{value}; }, a, empty));
                 ctors_.emplace_back(
-                    constructor::make({default_ctor_name.data(), default_ctor_name.size()}, []() { return Type{}; }, a, empty));
+                    constructor_impl::make({default_ctor_name.data(), default_ctor_name.size()}, []() { return Type{}; }, a, empty));
             });
             return ctors_;
         }
@@ -263,12 +316,15 @@ namespace rainy::meta::reflection::implements {
     private:
         std::string_view name_;
         foundation::ctti::typeinfo typeinfo_;
-        enumeration enumeration;
+        enumeration_impl enumeration;
     };
 
-    template <typename Type>
+    template <typename Type, typename FundmentalType = fundmental, typename Constrcutor = constructor>
     class type_accessor_impl_fundmental_type final : public type_accessor {
     public:
+        using fundmental_impl = FundmentalType;
+        using constructor_impl = Constrcutor;
+
         explicit type_accessor_impl_fundmental_type(const std::string_view name) noexcept :
             name_(name), typeinfo_(foundation::ctti::typeinfo::create<Type>()),
             fundmental_type(core::internal_construct_tag, this, new_fundmental_accessor_instance<Type>(this)) {
@@ -297,9 +353,9 @@ namespace rainy::meta::reflection::implements {
                     static constexpr auto ctor_name = make_ctor_name<Type, Type>();
                     static constexpr auto default_ctor_name = make_ctor_name<Type>();
                     ctors_.emplace_back(
-                        constructor::make({ctor_name.data(), ctor_name.size()}, [](Type value) { return Type{value}; }, a, empty));
+                        constructor_impl::make({ctor_name.data(), ctor_name.size()}, [](Type value) { return Type{value}; }, a, empty));
                     ctors_.emplace_back(
-                        constructor::make({default_ctor_name.data(), default_ctor_name.size()}, []() { return Type{}; }, a, empty));
+                        constructor_impl::make({default_ctor_name.data(), default_ctor_name.size()}, []() { return Type{}; }, a, empty));
                 }
             });
             return ctors_;
@@ -336,7 +392,7 @@ namespace rainy::meta::reflection::implements {
     private:
         std::string_view name_;
         foundation::ctti::typeinfo typeinfo_;
-        fundmental fundmental_type;
+        fundmental_impl fundmental_type;
         std::vector<metadata> metadatas_;
     };
 }

@@ -506,7 +506,8 @@ namespace rainy::meta::reflection {
                   type_traits::other_trans::enable_if_t<type_traits::type_properties::is_constructible_v<function, Fx>, int> = 0>
         method(std::string_view name, Fx &&fn, std::tuple<Args...> &default_arguemnts, collections::array<metadata, N> &metadatas,
                type_traits::helper::index_sequence<I...>) noexcept :
-            function(utility::forward<Fx>(fn), std::get<I>(default_arguemnts)...), ptr(std::make_shared<data>(utility::move(name))) {
+            function(utility::forward<Fx>(fn), std::get<I>(default_arguemnts)...),
+            ptr(std::make_shared<data>(data{utility::move(name), {}})) {
             if constexpr (N != 0) {
                 for (metadata &meta: metadatas) {
                     ptr->metadata.emplace_back(utility::move(meta));

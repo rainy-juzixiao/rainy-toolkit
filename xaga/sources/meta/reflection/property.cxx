@@ -59,11 +59,15 @@ namespace rainy::meta::reflection {
         return *this;
     }
 
-    void field::set_value(object_view object,const utility::any& val) const {
+    void field::set_value(annotations::lifetime::in<object_view> object,const utility::any& val) const {
         reinterpret_cast<const field_accessor *>(field_storage)->set_field(object, val);
     }
 
-    utility::any::reference field::get_value(object_view object) const {
+    utility::any::reference field::get_value(annotations::lifetime::in<object_view> object) {
+        return reinterpret_cast<field_accessor *>(field_storage)->get_field(object);
+    }
+
+    utility::any::reference field::get_value(annotations::lifetime::in<object_view> object) const {
         return reinterpret_cast<const field_accessor *>(field_storage)->get_field(object);
     }
 
@@ -105,7 +109,7 @@ namespace rainy::meta::reflection {
     }
 
     bool field::empty() const noexcept {
-        return std::all_of(utility::begin(field_storage), utility::end(field_storage), +[](core::byte_t c) { return c == '\0'; });
+        return std::all_of(utility::begin(field_storage), utility::end(field_storage), +[](const core::byte_t c) { return c == '\0'; });
     }
 }
 

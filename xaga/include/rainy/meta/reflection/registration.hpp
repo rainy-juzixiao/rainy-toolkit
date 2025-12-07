@@ -18,7 +18,7 @@
 #include <rainy/meta/reflection/metadata.hpp>
 #include <rainy/meta/reflection/moon/reflect.hpp>
 #include <rainy/meta/reflection/type.hpp>
-#include <rainy/meta/enumeration.hpp>
+#include <rainy/meta/moon/enumeration.hpp>
 #include <string_view>
 
 namespace rainy::meta::reflection::implements {
@@ -242,17 +242,15 @@ namespace rainy::meta::reflection {
 
             /**
              * @brief 向当前类注册基类
-             * @tparam Base 基类的类型
-             * @tparam  要求Base必须是目标类型的基类
+             * @tparam Base 基类的类型，要求Base必须是目标类型的基类
              * @param name Base类的名称，默认为类型名称，由CTTI生成
              * @param reflect_moon 保留参数，暂未使用（未来用于自动反射基类的moon信息）
              * @return 当前注册器实例的引用
              */
             template <typename Base,
                       type_traits::other_trans::enable_if_t<type_traits::type_relations::is_base_of_v<Base, Type>, int> = 0>
-            class_ &base(std::string_view name = rainy_typeid(Base).name(), bool reflect_moon = false) {
-                auto &bases = this->type->bases();
-                if (bases.find(rainy_typeid(Base)) == bases.end()) {
+            class_ &base(std::string_view name = rainy_typeid(Base).name(), bool reflect_moon = false) { // NOLINT
+                if (auto &bases = this->type->bases(); bases.find(rainy_typeid(Base)) == bases.end()) { // NOLINT
                     if (!implements::register_table::has_register(rainy_typeid(Base))) {
                         class_<Base>(name).template derive<Type>(type->name()); // 注册一个新类型，并将该类直接注入到表中
                     }
@@ -264,17 +262,15 @@ namespace rainy::meta::reflection {
 
             /**
              * @brief 向当前类注册派生类
-             * @tparam Derive 派生类的类型
-             * @tparam  要求Derive必须是目标类型的派生类
+             * @tparam Derive 派生类的类型，要求Derive必须是目标类型的派生类
              * @param name Derive类的名称，默认为类型名称，由CTTI生成
              * @param reflect_moon 保留参数，暂未使用（未来用于自动反射派生类的moon信息）
              * @return 当前注册器实例的引用
              */
             template <typename Derive,
                       type_traits::other_trans::enable_if_t<type_traits::type_relations::is_base_of_v<Type, Derive>, int> = 0>
-            class_ &derive(std::string_view name = rainy_typeid(Derive).name(), bool reflect_moon = false) {
-                auto &deriveds = this->type->deriveds();
-                if (deriveds.find(rainy_typeid(Derive)) == deriveds.end()) {
+            class_ &derive(std::string_view name = rainy_typeid(Derive).name(), bool reflect_moon = false) { // NOLINT
+                if (auto &deriveds = type->deriveds(); deriveds.find(rainy_typeid(Derive)) == deriveds.end()) { // NOLINT
                     if (!implements::register_table::has_register(rainy_typeid(Derive))) {
                         class_<Derive>(name).template base<Type>(type->name()); // 注册一个新类型，并将该类直接注入到表中
                     }
@@ -341,7 +337,7 @@ namespace rainy::meta::reflection {
     template <typename ClassType, typename Fx>
     class registration::bind<method, ClassType, Fx> : public implements::registration_derived_t<ClassType> {
     public:
-        bind(implements::type_accessor *type, std::string_view name, Fx &&f) :
+        bind(implements::type_accessor *type,annotations::lifetime::in<std::string_view> name, Fx &&f) :
             implements::registration_derived_t<ClassType>(core::internal_construct_tag, type), type_accessor(type),
             fn(utility::forward<Fx>(f)), name(name), meth_{} {
         }
@@ -385,7 +381,7 @@ namespace rainy::meta::reflection {
     template <typename ClassType, typename Fx>
     class registration::bind<constructor, ClassType, Fx> : public implements::registration_derived_t<ClassType> {
     public:
-        bind(implements::type_accessor *type, std::string_view name, Fx &&f) :
+        bind(implements::type_accessor *type, annotations::lifetime::in<std::string_view> name, Fx &&f) :
             implements::registration_derived_t<ClassType>(core::internal_construct_tag, type), type_accessor(type),
             fn(utility::forward<Fx>(f)), name(name), ctor_{} {
         }
@@ -423,13 +419,13 @@ namespace rainy::meta::reflection {
         implements::type_accessor *type_accessor;
         Fx fn;
         std::string_view name;
-        constructor ctor_;
+        reflection::constructor ctor_;
     };
 
     template <typename ClassType, typename Field>
     class registration::bind<property, ClassType, Field> : public implements::registration_derived_t<ClassType> {
     public:
-        bind(implements::type_accessor *type, std::string_view name, Field &&field) :
+        bind(implements::type_accessor *type, annotations::lifetime::in<std::string_view> name, Field &&field) :
             implements::registration_derived_t<ClassType>(core::internal_construct_tag, type), type_accessor(type),
             field(utility::forward<Field>(field)), name(name), prop_{} {
         }
@@ -441,7 +437,7 @@ namespace rainy::meta::reflection {
                     return;
                 }
 #else
-                if (type_accessor->properties().find(name) != type->properties().end()) {
+                if (type_accessor->properties().find(name) != type_accessor->properties().end()) {
                     return;
                 }
 #endif
@@ -461,9 +457,9 @@ namespace rainy::meta::reflection {
             using tuple_type = typename implements::extract_unique_tuple<Args...>::type;
             if constexpr (!type_traits::type_relations::is_void_v<tuple_type>) {
                 tuple_type arguments = implements::extract_tuple_from_args<tuple_type>(utility::forward<Args>(args)...);
-                prop_ = reflection::method::make(name, utility::forward<Field>(field), metadatas);
+                prop_ = property::make(name, utility::forward<Field>(field), metadatas);
             } else {
-                prop_ = reflection::method::make(name, utility::forward<Field>(field), metadatas);
+                prop_ = property::make(name, utility::forward<Field>(field), metadatas);
             }
             return implements::registration_derived_t<ClassType>(core::internal_construct_tag, type_accessor);
         }
@@ -478,7 +474,7 @@ namespace rainy::meta::reflection {
     template <typename ClassType, typename EnumType>
     class registration::bind<enumeration, ClassType, EnumType> : public implements::registration_derived_t<ClassType> {
     public:
-        bind(implements::type_accessor *type, std::string_view name, implements::type_accessor* class_t) :
+        bind(implements::type_accessor *type, annotations::lifetime::in<std::string_view> name, implements::type_accessor* class_t) :
             implements::registration_derived_t<ClassType>(core::internal_construct_tag, class_t), name{name},
             enumeration_type_accessor{type}, class_t{class_t} {
         }
@@ -487,8 +483,8 @@ namespace rainy::meta::reflection {
             // 如果用户未进行指定，由moon提供注册源（不保证一定返回全部数据）
             if (rainy_let enum_type_storage = implements::new_enum_type_storage_instance<EnumType>(enumeration_type_accessor);
                 enum_type_storage->enum_count() == 0) {
-                auto enums = meta::enumeration::enum_entries<EnumType>();
-                if constexpr (meta::enumeration::enum_count<EnumType>() != 0) {
+                auto enums = meta::moon::enum_entries<EnumType>();
+                if constexpr (meta::moon::enum_count<EnumType>() != 0) {
                     enum_type_storage->enums_.reserve(enums.size());
                     enum_type_storage->items_.reserve(enums.size());
                     enum_type_storage->names_.reserve(enums.size());
@@ -509,7 +505,6 @@ namespace rainy::meta::reflection {
             if constexpr (enum_values_count != -1) {
                 collections::array<implements::enum_data<EnumType>, enum_values_count> enumerations =
                     utility::extract_args_to_array<implements::enum_data<EnumType>>(utility::forward<Args>(args)...);
-                auto &storage = enumeration_type_accessor->as_enumeration();
                 enum_type_storage->enums_.reserve(enum_values_count);
                 enum_type_storage->items_.reserve(enum_values_count);
                 enum_type_storage->names_.reserve(enum_values_count);
@@ -531,7 +526,7 @@ namespace rainy::meta::reflection {
     template <typename ClassType, typename FundType>
     class registration::bind<fundmental, ClassType, FundType> : public implements::registration_derived_t<ClassType> {
     public:
-        bind(implements::type_accessor *type, std::string_view name, implements::type_accessor *class_t) :
+        bind(implements::type_accessor *type, annotations::lifetime::in<std::string_view> name, implements::type_accessor *class_t) :
             implements::registration_derived_t<ClassType>(core::internal_construct_tag, class_t), name{name},
             fundmental_type_accessor{type}, class_t{class_t} {
         }

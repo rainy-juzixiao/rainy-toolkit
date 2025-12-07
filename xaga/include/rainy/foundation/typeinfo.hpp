@@ -23,8 +23,8 @@
  * @author rainy-juzixiao
  */
 #include <rainy/core/core.hpp>
-#include <unordered_map>
 #include <string_view>
+#include <unordered_map>
 
 namespace rainy::foundation::ctti {
     class typeinfo;
@@ -101,7 +101,7 @@ namespace rainy::foundation::ctti::implements {
     }
 
     template <auto Variable>
-    constexpr rain_fn wrapped_variable_name() -> std::string_view {
+    constexpr std::string_view wrapped_variable_name() {
 #if RAINY_USING_CLANG || RAINY_USING_GCC
         return __PRETTY_FUNCTION__;
 #elif RAINY_USING_MSVC
@@ -109,7 +109,6 @@ namespace rainy::foundation::ctti::implements {
 #else
         static_assert(false, "unsupported compiler");
 #endif
-        // 仅支持Clang、MSVC、GCC编译器。因为其它的编译器不在本库的支持范围内。考虑其它实现
     }
 }
 
@@ -243,6 +242,80 @@ namespace rainy::foundation::ctti::implements {
         return {type_name_array<Ty>.data(), type_name_array<Ty>.size() - 1};
     }
 
+    constexpr std::size_t count_prefix_symbols(std::string_view sv) {
+        std::size_t count = 0;
+        for (std::size_t i = 0; i < sv.size(); ++i) {
+            if (sv[i] == '&' || sv[i] == '*' || sv[i] == ' ') {
+                ++count;
+            } else {
+                break;
+            }
+        }
+        return count;
+    }
+
+    template <class T>
+    struct wrapper {
+        using Type = T;
+    
+        T v;
+    };
+
+    template <class T>
+    wrapper(T) -> wrapper<T>;
+
+    // This workaround is necessary for clang.
+    template <class T>
+    inline constexpr auto wrap(const T &arg) noexcept {
+        return wrapper{arg};
+    }
+
+    template <auto Variable>
+    static constexpr std::string_view make_variable_name_ref() {
+        constexpr std::string_view func_name = wrapped_variable_name<Variable>();
+#if RAINY_USING_CLANG
+        constexpr auto split = func_name.substr(0, func_name.rfind("]"));
+        constexpr auto start = split.find("Variable = ") + 11;
+        constexpr auto end = split.find(";", start);
+        return split.substr(start, end - start);
+#elif RAINY_USING_GCC
+        constexpr auto split = func_name.substr(0, func_name.rfind("]") - 1);
+        constexpr auto start = split.find("with auto Variable = ") + 21;
+        constexpr auto end = split.find(";", start);
+        constexpr auto full = split.substr(start, end - start);
+        constexpr auto pos = full.rfind("::");
+        constexpr auto rparen = full.rfind(')');
+        if constexpr (pos != std::string_view::npos) {
+            return full.substr(pos + 2, rparen - (pos + 2));
+        }
+        return full;
+#elif RAINY_USING_MSVC
+        auto split = func_name.substr(func_name.rfind(":"));
+        auto str = split.substr(split.rfind("->") + 2);
+        return str.substr(0, str.rfind("}>(void)"));
+#else
+        static_assert(false, "Unsupported compiler");
+#endif
+    }
+
+    template <auto Variable>
+    constexpr rain_fn make_variable_name_array() -> auto {
+        constexpr auto name_sv = make_variable_name_ref<wrap(Variable)>();
+        collections::array<char, name_sv.size()> arr{};
+        for (std::size_t i = 0; i < name_sv.size(); ++i) {
+            arr[i] = name_sv[i];
+        }
+        return arr;
+    }
+
+    template <auto Variable>
+    static constexpr auto variable_name_array = make_variable_name_array<Variable>();
+
+    template <auto Variable>
+    constexpr rain_fn generate_variable_name() -> std::string_view {
+        return {variable_name_array<Variable>.data(), variable_name_array<Variable>.size()};
+    }
+
     RAINY_INLINE static constexpr std::size_t fnv1a_hash(annotations::lifetime::in<std::string_view> val) noexcept {
         std::size_t hash = utility::implements::fnv_offset_basis;
         for (char i: val) {
@@ -283,7 +356,7 @@ namespace rainy::foundation::ctti::implements {
         };
 
         template <typename Ty>
-        static rain_fn constexpr make() -> typeinfo_component {
+        static rain_fn constexpr make()->typeinfo_component {
             typeinfo_component raw;
             constexpr std::string_view name = generate_type_name<Ty>();
             constexpr std::size_t eval_hash_code = fnv1a_hash(name);
@@ -305,7 +378,7 @@ namespace rainy::foundation::ctti::implements {
         }
 
         template <typename Ty>
-        static rain_fn constexpr typehash() -> std::size_t {
+        static rain_fn constexpr typehash()->std::size_t {
             constexpr std::string_view name = generate_type_name<Ty>();
             constexpr std::size_t eval_hash_code = fnv1a_hash(name);
             return eval_hash_code;
@@ -315,7 +388,8 @@ namespace rainy::foundation::ctti::implements {
         static constexpr rain_fn is_compatible_impl(annotations::lifetime::in<typeinfo_component> type) -> bool;
 
         template <typename Ty>
-        static constexpr rain_fn type_modfier_impl(annotations::lifetime::in<type_operation> op) -> const typeinfo_component<MainTypeInfo> *;
+        static constexpr rain_fn type_modfier_impl(annotations::lifetime::in<type_operation> op)
+            -> const typeinfo_component<MainTypeInfo> *;
 
         static constexpr rain_fn empty_is_compatible(annotations::lifetime::in<typeinfo_component>)->bool;
         static constexpr rain_fn empty_type_modfier(annotations::lifetime::in<typeinfo_component>)->bool;
@@ -347,7 +421,7 @@ namespace rainy::foundation::ctti::implements {
     }
 
     template <typename MainTypeInfo>
-        template <typename Ty>
+    template <typename Ty>
     constexpr rain_fn typeinfo_component<MainTypeInfo>::type_modfier_impl(annotations::lifetime::in<type_operation> op)
         -> const typeinfo_component<MainTypeInfo> * {
         using namespace type_traits;
@@ -366,7 +440,7 @@ namespace rainy::foundation::ctti::implements {
                             return &typeinfo<MainTypeInfo, type_traits::reference_modify::add_rvalue_reference_t<pointer_type>>;
                         }
                     } else {
-                        return &typeinfo<MainTypeInfo,type_traits::pointer_modify::remove_pointer_t<Ty>>;
+                        return &typeinfo<MainTypeInfo, type_traits::pointer_modify::remove_pointer_t<Ty>>;
                     }
                 }
                 case type_operation::remove_const: {
@@ -391,7 +465,7 @@ namespace rainy::foundation::ctti::implements {
                         using non_volatile_pointer = type_traits::cv_modify::remove_volatile_t<pointer_type>;
                         using non_volatile_ptr = type_traits::pointer_modify::add_pointer_t<non_volatile_pointer>;
                         if constexpr (type_traits::primary_types::is_lvalue_reference_v<Ty>) {
-                            return &typeinfo<MainTypeInfo,type_traits::reference_modify::add_lvalue_reference_t<non_volatile_ptr>>;
+                            return &typeinfo<MainTypeInfo, type_traits::reference_modify::add_lvalue_reference_t<non_volatile_ptr>>;
                         } else {
                             return &typeinfo<MainTypeInfo, type_traits::reference_modify::add_rvalue_reference_t<non_volatile_ptr>>;
                         }
@@ -437,8 +511,9 @@ namespace rainy::foundation::ctti::implements {
     }
 
     template <typename MainTypeInfo>
-        template <typename Type>
-    constexpr rain_fn typeinfo_component<MainTypeInfo>::is_compatible_impl(annotations::lifetime::in<typeinfo_component<MainTypeInfo>> type) -> bool {
+    template <typename Type>
+    constexpr rain_fn typeinfo_component<MainTypeInfo>::is_compatible_impl(
+        annotations::lifetime::in<typeinfo_component<MainTypeInfo>> type) -> bool {
         using namespace type_traits;
         using match_t = cv_modify::remove_cvref_t<Type>;
         using real_convert_type =
@@ -495,29 +570,9 @@ namespace rainy::foundation::ctti {
      * @returns 一个字符串视图，表示对编译时变量的名称
      */
     template <auto Variable>
-    inline constexpr std::string_view variable_name() noexcept {
-#if RAINY_USING_MSVC
-        constexpr std::string_view func_name = __FUNCSIG__;
-#else
-        constexpr std::string_view func_name = __PRETTY_FUNCTION__;
-#endif
-#if RAINY_USING_CLANG
-        auto split = func_name.substr(0, func_name.rfind("]"));
-        auto start = split.find("Variable = ") + 11;
-        auto end = split.find(";", start);
-        return split.substr(start, end - start);
-#elif RAINY_USING_GCC
-        auto split = func_name.substr(0, func_name.rfind("]") - 1);
-        auto start = split.find("with auto Variable = ") + 20;
-        auto end = split.find(";", start);
-        return split.substr(start, end - start);
-#elif RAINY_USING_MSVC
-        auto split = func_name.substr(func_name.rfind("variable_name<") + 13);
-        auto split_again = split.substr(split.rfind("->") + 2);
-        return split_again.substr(0, split_again.rfind(">(void"));
-#else
-        static_assert(false, "You are using an unsupported compiler. Please use GCC, Clang or MSVC");
-#endif
+    constexpr std::string_view variable_name() noexcept {
+        constexpr auto name = implements::generate_variable_name<Variable>();
+        return name;
     }
 }
 
@@ -698,7 +753,8 @@ namespace rainy::foundation::ctti {
          * @attention 对于 template <std::size_t> 这类带有NTTP参数的模板，则无法获取，仅支持纯类型的模板
          * @return 返回模板实例化参数类型的列表视图
          */
-        RAINY_NODISCARD constexpr rain_fn template_arguments()const noexcept->collections::views::array_view<foundation::ctti::typeinfo> {
+        RAINY_NODISCARD constexpr rain_fn template_arguments() const noexcept
+            -> collections::views::array_view<foundation::ctti::typeinfo> {
             return internal_type->template_arguemnts;
         }
 
@@ -711,71 +767,72 @@ namespace rainy::foundation::ctti {
          * @return 如果是返回true，否则false
          */
         RAINY_GENERATE_TYPEINFO_TYPEINSPECT_METHOD_HELPER(is_arithmetic, traits::is_arithmetic);
-        
+
         /**
          * @brief 检查当前是否为浮点类型.
          * @return 如果是返回true，否则false
-         */        
+         */
         RAINY_GENERATE_TYPEINFO_TYPEINSPECT_METHOD_HELPER(is_floating_point, traits::is_floating_point);
-        
+
         /**
          * @brief 检查当前是否为整型类型.
          * @return 如果是返回true，否则false
          */
         RAINY_GENERATE_TYPEINFO_TYPEINSPECT_METHOD_HELPER(is_integer, traits::is_integer);
-        
+
         /**
          * @brief 检查当前是否为空指针类型.
          * @return 如果是返回true，否则false
          */
         RAINY_GENERATE_TYPEINFO_TYPEINSPECT_METHOD_HELPER(is_nullptr, traits::is_nullptr_t);
-        
+
         /**
          * @brief 检查当前是否为引用类型（包括左或右）.
          * @return 如果是返回true，否则false
          */
         RAINY_GENERATE_TYPEINFO_TYPEINSPECT_METHOD_HELPER(is_reference, traits::is_lref | traits::is_rref);
-        
+
         /**
          * @brief 检查当前是否为指针类型.
          * @return 如果是返回true，否则false
-         */        
+         */
         RAINY_GENERATE_TYPEINFO_TYPEINSPECT_METHOD_HELPER(is_pointer, traits::is_pointer);
-        
+
         /**
          * @brief 检查当前是否为左引用类型.
          * @return 如果是返回true，否则false
-         */        
+         */
         RAINY_GENERATE_TYPEINFO_TYPEINSPECT_METHOD_HELPER(is_lvalue_reference, traits::is_lref);
-        
+
         /**
          * @brief 检查当前是否为右引用类型.
          * @return 如果是返回true，否则false
-         */      
+         */
         RAINY_GENERATE_TYPEINFO_TYPEINSPECT_METHOD_HELPER(is_rvalue_reference, traits::is_rref);
-        
+
         /**
          * @brief 检查当前是否为const类型.
          * @return 如果是返回true，否则false
-         */        
+         */
         RAINY_GENERATE_TYPEINFO_TYPEINSPECT_METHOD_HELPER(is_const, traits::is_const);
-        
+
         /**
          * @brief 检查当前是否为volatile类型.
          * @return 如果是返回true，否则false
          */
         RAINY_GENERATE_TYPEINFO_TYPEINSPECT_METHOD_HELPER(is_volatile, traits::is_volatile);
-        
+
         /**
          * @brief 检查当前是否为const volatile混合的类型.
          * @return 如果是返回true，否则false
          */
-        RAINY_GENERATE_TYPEINFO_TYPEINSPECT_METHOD_HELPER(is_const_volatile, traits::is_const & traits::is_volatile);
+        RAINY_GENERATE_TYPEINFO_TYPEINSPECT_METHOD_HELPER(is_const_volatile, traits::is_const &traits::is_volatile);
 
     private:
         std::string_view cache_name{};
         std::size_t cache_hash_code{};
-        const implements::typeinfo_component<foundation::ctti::typeinfo> *internal_type{&implements::empty_component<foundation::ctti::typeinfo>};
+        const implements::typeinfo_component<foundation::ctti::typeinfo> *internal_type{
+            &implements::empty_component<foundation::ctti::typeinfo>};
     };
 }
 

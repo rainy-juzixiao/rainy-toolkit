@@ -2475,7 +2475,7 @@ namespace rainy::core {
     RAINY_ENABLE_ENUM_CLASS_BITMASK_OPERATORS(method_flags);
 
     template <typename Fx, typename... Args>
-    constexpr method_flags deduction_invoker_type() noexcept {
+    constexpr rain_fn deduction_invoker_type() noexcept -> method_flags {
         auto flag{method_flags::none};
         using traits = type_traits::primary_types::function_traits<Fx>;
         if constexpr (!traits::valid) {
@@ -2896,7 +2896,7 @@ namespace rainy::utility::cpp_methods {
 
 namespace rainy::core {
     template <typename InputIt, typename Ty>
-    RAINY_INLINE constexpr Ty accumulate(InputIt first, InputIt last, Ty init) {
+    RAINY_INLINE constexpr rain_fn accumulate(InputIt first, InputIt last, Ty init) -> Ty {
         for (; first != last; ++first) {
 #if RAINY_HAS_CXX20
             init = utility::move(init) + *first;
@@ -2908,7 +2908,7 @@ namespace rainy::core {
     }
 
     template <typename InputIt, typename Ty, typename BinaryOperation>
-    RAINY_INLINE constexpr Ty accumulate(InputIt first, InputIt last, Ty init, BinaryOperation op) {
+    RAINY_INLINE constexpr rain_fn accumulate(InputIt first, InputIt last, Ty init, BinaryOperation op) -> Ty {
         for (; first != last; ++first) {
             init = utility::invoke(op, init, *first);
         }

@@ -462,54 +462,6 @@ namespace rainy::meta::reflection {
 }
 
 namespace rainy::meta::reflection::implements {
-    template <typename Type, typename... Args>
-    constexpr auto make_ctor_name() {
-        using namespace foundation::ctti;
-        constexpr auto type_str = type_name<Type>();
-        if constexpr (sizeof...(Args) == 0) {
-            constexpr std::size_t total_len = type_str.size() + 2 + 1; // "Type()" + '\0'
-            type_traits::helper::constexpr_string<total_len> result{};
-            std::size_t pos = 0;
-            for (char c: type_str) {
-                result[pos++] = c;
-            }
-            result[pos++] = '(';
-            result[pos++] = ')';
-            result[pos++] = '\0';
-            return result;
-        } else {
-            constexpr collections::array<std::string_view, sizeof...(Args)> arg_names = {type_name<Args>()...};
-            constexpr std::size_t args_len = [&arg_names] {
-                std::size_t len = 0;
-                for (auto &arg: arg_names) {
-                    len += arg.size();
-                }
-                len += 2 * (sizeof...(Args) - 1); // ", "
-                return len;
-            }();
-            constexpr std::size_t total_len = type_str.size() + 1 + args_len + 1 + 1; // '(' + args + ')' + '\0'
-            type_traits::helper::constexpr_string<total_len> result{};
-            std::size_t pos = 0;
-            auto append = [&](const std::string_view &s) {
-                for (char c: s) {
-                    result[pos++] = c;
-                }
-            };
-            append(type_str);
-            result[pos++] = '(';
-            for (std::size_t i = 0; i < arg_names.size(); ++i) {
-                append(arg_names[i]);
-                if (i < arg_names.size() - 1) {
-                    result[pos++] = ',';
-                    result[pos++] = ' ';
-                }
-            }
-            result[pos++] = ')';
-            result[pos++] = '\0';
-            return result;
-        }
-    }
-
     RAINY_INLINE std::size_t eval_hash_from_paramlist(collections::views::array_view<utility::any> view) {
         return core::accumulate(view.begin(), view.end(), std::size_t{0},
                                 [right = std::size_t{1}](const std::size_t acc, const utility::any &arg) mutable {

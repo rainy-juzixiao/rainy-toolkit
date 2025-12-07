@@ -13,9 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-#ifndef RAINY_META_ENUMERATION_HPP
-#define RAINY_META_ENUMERATION_HPP
+#ifndef RAINY_META_MOON_ENUMERATION_HPP
+#define RAINY_META_MOON_ENUMERATION_HPP
 #include <rainy/core/core.hpp>
 #include <rainy/utility/pair.hpp>
 #include <optional>
@@ -23,7 +22,7 @@
 #define ENUM_SCAN_BEGIN -127
 #define ENUM_SCAN_END 128
 
-namespace rainy::meta::enumeration::implements {
+namespace rainy::meta::moon::implements {
     enum class enum_subtype {
         common,
         flags
@@ -50,7 +49,7 @@ namespace rainy::meta::enumeration::implements {
                                                 Ty>::type;
 }
 
-namespace rainy::meta::enumeration {
+namespace rainy::meta::moon {
 #if RAINY_USING_CLANG && __clang_major__ >= 16
     template <typename E, auto V, typename = void>
     inline constexpr bool is_enum_constexpr_static_cast_valid = false;
@@ -64,13 +63,15 @@ namespace rainy::meta::enumeration {
 
     class customize_t : public utility::pair<implements::customize_tag, std::string_view> {
     public:
-        constexpr customize_t(std::string_view srt) :
-            utility::pair<implements::customize_tag, std::string_view>{implements::customize_tag::custom_tag, srt} {
+        constexpr customize_t(std::string_view srt) : // NOLINT
+            pair{implements::customize_tag::custom_tag, srt} {
         }
-        constexpr customize_t(const char *srt) : customize_t{std::string_view{srt}} {
+
+        constexpr customize_t(const char *srt) : customize_t{std::string_view{srt}} { // NOLINT
         }
-        constexpr customize_t(implements::customize_tag tag) :
-            utility::pair<implements::customize_tag, std::string_view>{tag, std::string_view{}} {
+
+        constexpr customize_t(implements::customize_tag tag) : // NOLINT
+            pair{tag, std::string_view{}} {
             assert(tag != implements::customize_tag::custom_tag);
         }
     };
@@ -89,7 +90,7 @@ namespace rainy::meta::enumeration {
     }
 
     template <typename Enum>
-    constexpr std::string_view enum_type_name() noexcept {
+    constexpr rain_fn enum_type_name() noexcept -> std::string_view {
         [[maybe_unused]] constexpr auto custom = customize_for_enum_type_name<Enum>();
         static_assert(type_traits::type_relations::is_same_v<type_traits::other_trans::decay_t<decltype(custom)>, customize_t>,
                       "oops, so, if you want to customize a name for customize_for_enum_type_name,the return_type of "
@@ -106,10 +107,11 @@ namespace rainy::meta::enumeration {
         } else {
             static_assert(type_traits::implements::always_false<Enum>);
         }
+        return {};
     }
 }
 
-namespace rainy::meta::enumeration::implements {
+namespace rainy::meta::moon::implements {
     template <typename E, E V>
     constexpr bool has_valid_enum_name() noexcept {
         constexpr std::string_view str = foundation::ctti::variable_name<V>();
@@ -160,7 +162,7 @@ namespace rainy::meta::enumeration::implements {
     }
 
     template <typename Enum, Enum V>
-    constexpr auto enum_name_impl() noexcept {
+    constexpr rain_fn enum_name_impl() noexcept -> std::string_view {
         [[maybe_unused]] constexpr auto custom = customize_for_enum_name<Enum>(V);
         static_assert(type_traits::type_relations::is_same_v<type_traits::other_trans::decay_t<decltype(custom)>, customize_t>,
                       "oops, so, if you want to customize a name for customize_for_enum_name,the return_type of "
@@ -177,6 +179,7 @@ namespace rainy::meta::enumeration::implements {
         } else {
             static_assert(type_traits::implements::always_false<Enum>);
         }
+        return {};
     }
 
     template <std::size_t Size, typename E, auto Begin, std::size_t... Is>
@@ -228,7 +231,7 @@ namespace rainy::meta::enumeration::implements {
     }
 }
 
-namespace rainy::meta::enumeration {
+namespace rainy::meta::moon {
     template <typename E, auto V>
     RAINY_CONSTEXPR_BOOL is_enum_value_v = implements::is_enum_value_impl<E, V>::value;
 
@@ -278,8 +281,7 @@ namespace rainy::meta::enumeration {
     template <typename Enum>
     constexpr auto enum_name(Enum EnumValue)
         -> type_traits::other_trans::enable_if_t<type_traits::primary_types::is_enum_v<Enum>, std::string_view> {
-        constexpr auto entries = enum_entries<Enum>();
-        for (const auto &[enum_value, enum_name]: entries) {
+        for (constexpr auto entries = enum_entries<Enum>(); const auto &[enum_value, enum_name]: entries) {
             if (enum_value == EnumValue) {
                 return enum_name;
             }
@@ -297,15 +299,14 @@ namespace rainy::meta::enumeration {
     constexpr auto enum_names() noexcept {
         constexpr int begin = ENUM_SCAN_BEGIN;
         constexpr int end = ENUM_SCAN_END;
-        constexpr std::size_t n = static_cast<std::size_t>(end - begin + 1);
+        constexpr std::size_t n = end - begin + 1;
         return implements::enum_names_impl<enum_count<Enum>(), Enum, begin>(std::make_index_sequence<n>{});
     }
 
     template <typename Enum, typename Pred = foundation::functional::equal<>>
     constexpr auto enum_cast(std::string_view name, Pred pred = {}) noexcept
         -> implements::enable_if_t<Enum, std::optional<Enum>, Pred> {
-        constexpr auto entries = enum_entries<Enum>();
-        for (const auto &[enum_value, enum_name]: entries) {
+        for (constexpr auto entries = enum_entries<Enum>(); const auto &[enum_value, enum_name]: entries) {
             if (std::equal(name.begin(), name.end(), enum_name.begin(), enum_name.end(), pred)) {
                 return enum_value;
             }
@@ -387,9 +388,9 @@ namespace rainy::meta::enumeration {
     }
 }
 
-namespace rainy::meta::enumeration {
+namespace rainy::meta::moon {
     template <typename E>
-    RAINY_NODISCARD auto enum_flags_name(E value, char sep = static_cast<char>('|')) -> implements::enable_if_t<E, std::string> {
+    RAINY_NODISCARD auto enum_flags_name(E value, const char sep = '|') -> implements::enable_if_t<E, std::string> {
         using D = std::decay_t<E>;
         using U = type_traits::other_trans::underlying_type_t<D>;
         std::string name;
