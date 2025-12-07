@@ -12,4 +12,4 @@
 
 | 函数                                               | 描述                    |
 | ------------------------------------------------ | --------------------- |
-| [accumulate](/md/core/public_api_core/accmulate) | 计算给定范围内所有元素与初始值的累计结果。 |
+| [accumulate](/md/core/public_api_core/accumulate) | 计算给定范围内所有元素与初始值的累计结果。 |
