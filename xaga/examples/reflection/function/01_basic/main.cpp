@@ -158,6 +158,7 @@ int main() {
     std::cout << name[0] << '\n';
     std::size_t index = meta::moon::index_of<object>("obj");
     std::cout << index << '\n';
+
     //constexpr std::size_t idx = meta::moon::index_of<object>("obj");
     /*meta::moon::visit_members(sosss, [](auto &&...args) {
         ((std::cout << args << " "), ...);

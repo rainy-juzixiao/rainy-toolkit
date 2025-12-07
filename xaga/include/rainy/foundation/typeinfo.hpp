@@ -101,7 +101,7 @@ namespace rainy::foundation::ctti::implements {
     }
 
     template <auto Variable>
-    constexpr std::string_view wrapped_variable_name() {
+    constexpr rain_fn wrapped_variable_name() -> std::string_view {
 #if RAINY_USING_CLANG || RAINY_USING_GCC
         return __PRETTY_FUNCTION__;
 #elif RAINY_USING_MSVC

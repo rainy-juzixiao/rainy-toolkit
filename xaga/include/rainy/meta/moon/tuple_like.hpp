@@ -23,8 +23,12 @@
     The usual access checking rules do not apply to non-dependent names used to specify template arguments of the simple-template-id of
 the partial specialization. [Note: The template arguments may be private types or objects that would normally not be accessible.
 Dependent names cannot be checked when declaring the partial specialization, but will be checked when substituting into the partial
-specialization. —end note] 通常的访问检查规则不适用于用于指定显式实例化的名称。
-    [注意：特别是，函数声明符中使用的模板参数和名称（包括参数类型、返回类型和异常规范）可能是通常无法访问的私有类型或对象。而模板可能是通常无法访问的成员模板或成员函数。
+specialization. —end note] 
+
+通常的访问检查规则不适用于用于指定显式实例化的名称。
+[注意：
+特别是，函数声明符中使用的模板参数和名称（包括参数类型、返回类型和异常规范）可能是通常无法访问的私有类型或对象。
+而模板可能是通常无法访问的成员模板或成员函数。
 -结束注释]
 */
 namespace rainy::meta::moon {
@@ -197,6 +201,14 @@ namespace rainy::meta::moon::implements {
 }
 
 namespace rainy::meta::moon {
+    /**
+     * @brief 尝试获取指定类型中所有成员的名称
+     * @tparam Ty 要获取的类型
+     * @remark 如果使用RAINY_REFLECT_TUPLE_LIKE注册了一个类型，那么此方法将返回注册宏中指定的成员名称
+     * 
+     * @attention get_member_names以及其依赖的函数在IDE中可能会导致错误的结果在constexpr求值中，但实际编译期求值会得到正确的结果
+     * @attention 因此，如果对IDE中的结果有洁癖，请尽可能避免获取字符串，除非，你定义了注册，这样才能确保IDE生成正确的结果
+     */
     template <typename Ty>
     constexpr auto get_member_names() noexcept {
         if constexpr (is_reflectet_for_type_valid<type_traits::cv_modify::remove_cvref_t<Ty>>) {
@@ -490,7 +502,29 @@ namespace rainy::meta::moon::implements {
     }
 }
 
+namespace rainy::meta::moon::implements {
+    template <typename T, typename Tuple, size_t... Is>
+    auto get_member_offset_arr_impl(T &t, Tuple &tp, type_traits::helper::index_sequence<Is...>) {
+        collections::array<std::size_t, sizeof...(Is)> arr;
+        ((arr[Is] = std::size_t(reinterpret_cast<const char *>(&std::get<Is>(tp)) - reinterpret_cast<char *>(&t))), ...);
+        return arr;
+    }
+
+    template <typename T>
+    const auto &get_member_offset_arr(T &&t) {
+        constexpr size_t Count = member_count_v<T>;
+        auto tp = struct_bind_tuple(utility::forward<T>(t));
+        static std::array<size_t, Count> arr = get_member_offset_arr_impl(t, tp, std::make_index_sequence<Count>{});
+        return arr;
+    }
+}
+
 namespace rainy::meta::moon {
+    template <typename T>
+    inline const auto &get_member_offset_arr() {
+        return implements::get_member_offset_arr(type_traits::helper::get_fake_object<T>());
+    }  
+
     template <typename Type, typename Fx>
     constexpr rain_fn for_each(Fx &&func) -> void {
         if constexpr (type_traits::type_properties::is_invocable_v<Fx, std::string_view, std::size_t>) {
