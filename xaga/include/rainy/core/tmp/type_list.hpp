@@ -349,6 +349,49 @@ namespace rainy::type_traits::other_trans {
 
     template <class _Ty>
     using as_list = typename as_list_impl<_Ty>::type;
+
+    template <typename T, typename List>
+    struct type_list_contains;
+
+    template <typename T>
+    struct type_list_contains<T, type_list<>> : std::false_type {};
+
+    template <typename T, typename First, typename... Rest>
+    struct type_list_contains<T, type_list<First, Rest...>>
+        : std::conditional_t<std::is_same_v<T, First>, std::true_type, type_list_contains<T, type_list<Rest...>>> {};
+
+    template <typename List>
+    struct unique_type_list;
+
+    template <>
+    struct unique_type_list<type_list<>> {
+        using type = type_list<>;
+    };
+
+    template <typename T>
+    struct unique_type_list<type_list<T>> {
+        using type = type_list<T>;
+    };
+
+    template <typename First, typename Second, typename... Rest>
+    struct unique_type_list<type_list<First, Second, Rest...>> {
+    private:
+        using rest_unique = typename unique_type_list<type_list<Second, Rest...>>::type;
+
+        template <typename U, typename V>
+        struct prepend_if_unique;
+
+        template <typename... Us>
+        struct prepend_if_unique<First, type_list<Us...>> {
+            using type = conditional_t<(type_relations::is_same_v<First, Us> || ...), type_list<Us...>, type_list<First, Us...>>;
+        };
+
+    public:
+        using type = typename prepend_if_unique<First, rest_unique>::type;
+    };
+
+    template <typename List>
+    using unique_type_list_t = typename unique_type_list<List>::type;
 }
 
 #endif

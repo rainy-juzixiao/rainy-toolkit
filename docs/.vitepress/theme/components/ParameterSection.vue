@@ -3,7 +3,7 @@
     <div ref="slotContainer" style="display: none;">
       <slot></slot>
     </div>
-    <strong v-if="isTypeParameter" style="font-size: 18px; display: block; margin-bottom: 8px;">类型参数：</strong>
+    <strong v-if="isTypeParameter == true" style="font-size: 18px; display: block; margin-bottom: 8px;">类型参数：</strong>
     <strong v-else style="font-size: 18px; display: block; margin-bottom: 8px;">参数：</strong>
     <div v-html="htmlContent"></div>
   </div>

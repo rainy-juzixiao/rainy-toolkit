@@ -19,31 +19,6 @@
 
 // 类型关系
 namespace rainy::type_traits::type_relations {
-    /**
-     * @brief 测试两个类型是否相同
-     * @tparam Ty1 检索的第一个类型
-     * @tparam Ty2 检索的第二个类型
-     */
-    template <typename Ty1, typename Ty2>
-    RAINY_CONSTEXPR_BOOL is_same_v = false;
-
-    template <typename Ty>
-    RAINY_CONSTEXPR_BOOL is_same_v<Ty, Ty> = true;
-
-    /**
-     * @brief 测试两个类型是否相同。
-     * @tparam Ty1 检索的第一个类型
-     * @tparam Ty2 检索的第二个类型
-     */
-    template <typename Ty1, typename Ty2>
-    struct is_same : helper::bool_constant<is_same_v<Ty1, Ty2>> {};
-
-    template <typename Ty>
-    RAINY_CONSTEXPR_BOOL is_void_v = is_same_v<Ty, void>;
-
-    template <typename Ty>
-    struct is_void : helper::bool_constant<is_void_v<Ty>> {};
-
     template <typename Base, typename Derived>
     struct is_base_of : helper::bool_constant<implements::is_base_of_v<Base, Derived>> {};
 

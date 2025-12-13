@@ -242,34 +242,6 @@ namespace rainy::foundation::ctti::implements {
         return {type_name_array<Ty>.data(), type_name_array<Ty>.size() - 1};
     }
 
-    constexpr std::size_t count_prefix_symbols(std::string_view sv) {
-        std::size_t count = 0;
-        for (std::size_t i = 0; i < sv.size(); ++i) {
-            if (sv[i] == '&' || sv[i] == '*' || sv[i] == ' ') {
-                ++count;
-            } else {
-                break;
-            }
-        }
-        return count;
-    }
-
-    template <class T>
-    struct wrapper {
-        using Type = T;
-    
-        T v;
-    };
-
-    template <class T>
-    wrapper(T) -> wrapper<T>;
-
-    // This workaround is necessary for clang.
-    template <class T>
-    inline constexpr auto wrap(const T &arg) noexcept {
-        return wrapper{arg};
-    }
-
     template <auto Variable>
     static constexpr std::string_view make_variable_name_ref() {
         constexpr std::string_view func_name = wrapped_variable_name<Variable>();
@@ -290,9 +262,9 @@ namespace rainy::foundation::ctti::implements {
         }
         return full;
 #elif RAINY_USING_MSVC
-        auto split = func_name.substr(func_name.rfind(":"));
+        auto split = func_name.substr(func_name.rfind("wrapped_variable_name<(") + 21);
         auto str = split.substr(split.rfind("->") + 2);
-        return str.substr(0, str.rfind("}>(void)"));
+        return str.substr(0, str.rfind(">(void)"));
 #else
         static_assert(false, "Unsupported compiler");
 #endif
@@ -300,7 +272,7 @@ namespace rainy::foundation::ctti::implements {
 
     template <auto Variable>
     constexpr rain_fn make_variable_name_array() -> auto {
-        constexpr auto name_sv = make_variable_name_ref<wrap(Variable)>();
+        constexpr auto name_sv = make_variable_name_ref<Variable>();
         collections::array<char, name_sv.size()> arr{};
         for (std::size_t i = 0; i < name_sv.size(); ++i) {
             arr[i] = name_sv[i];

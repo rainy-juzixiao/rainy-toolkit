@@ -180,9 +180,13 @@ namespace rainy::meta::reflection::implements {
 }
 
 namespace rainy::meta::reflection::implements {
-    template <typename Type>
+    template <typename Type, typename EnumImpl = enumeration, typename FundImpl = fundmental, typename CtorImpl = constructor>
     class type_accessor_impl_class final : public type_accessor {
     public:
+        using enumeration = EnumImpl;
+        using fundmental = FundImpl;
+        using constructor = CtorImpl;
+
         explicit type_accessor_impl_class(const std::string_view name) noexcept :
             name_(name), typeinfo_(foundation::ctti::typeinfo::create<Type>()) {
         }
@@ -240,11 +244,12 @@ namespace rainy::meta::reflection::implements {
         std::vector<metadata> metadatas_;
     };
 
-    template <typename Type, typename EnumType = enumeration, typename Constrcutor = constructor>
+    template <typename Type, typename EnumType = enumeration, typename FundImpl = fundmental, typename Constrcutor = constructor, typename CtorStorageT = ctor_storage_t, typename Metadata = metadata>
     class type_accessor_impl_enumeration final : public type_accessor {
     public:
         using enumeration_impl = EnumType;
         using constructor_impl = Constrcutor;
+        using fundmental = FundImpl;
 
         explicit type_accessor_impl_enumeration(const std::string_view name) noexcept :
             name_(name), typeinfo_(foundation::ctti::typeinfo::create<Type>()),
@@ -264,11 +269,11 @@ namespace rainy::meta::reflection::implements {
             return empty;
         }
 
-        ctor_storage_t &ctors() noexcept override {
-            static ctor_storage_t ctors_;
+        CtorStorageT &ctors() noexcept override {
+            static CtorStorageT ctors_;
             static std::once_flag flag;
             std::call_once(flag, []() {
-                static collections::array<metadata, 0> empty{};
+                static collections::array<Metadata, 0> empty{};
                 static std::tuple<> a;
                 static constexpr auto underlying_ctor_name = make_ctor_name<Type, type_traits::other_trans::underlying_type_t<Type>>();
                 static constexpr auto ctor_name = make_ctor_name<Type, Type>();
@@ -300,7 +305,7 @@ namespace rainy::meta::reflection::implements {
         }
 
         std::vector<metadata> &metadatas() noexcept override {
-            static std::vector<metadata> empty;
+            static std::vector<Metadata> empty;
             return empty;
         }
 
@@ -319,11 +324,12 @@ namespace rainy::meta::reflection::implements {
         enumeration_impl enumeration;
     };
 
-    template <typename Type, typename FundmentalType = fundmental, typename Constrcutor = constructor>
+    template <typename Type, typename FundmentalType = fundmental, typename EnumerationImpl = enumeration, typename Constrcutor = constructor, typename CtorStorageT = ctor_storage_t, typename Metadata = metadata>
     class type_accessor_impl_fundmental_type final : public type_accessor {
     public:
         using fundmental_impl = FundmentalType;
         using constructor_impl = Constrcutor;
+        using enumeration = EnumerationImpl;
 
         explicit type_accessor_impl_fundmental_type(const std::string_view name) noexcept :
             name_(name), typeinfo_(foundation::ctti::typeinfo::create<Type>()),
@@ -343,11 +349,11 @@ namespace rainy::meta::reflection::implements {
             return empty;
         }
 
-        ctor_storage_t &ctors() noexcept override {
-            static ctor_storage_t ctors_;
+        CtorStorageT &ctors() noexcept override {
+            static CtorStorageT ctors_;
             static std::once_flag flag;
             std::call_once(flag, []() {
-                static collections::array<metadata, 0> empty{};
+                static collections::array<Metadata, 0> empty{};
                 static std::tuple<> a;
                 if constexpr (!type_traits::primary_types::is_void_v<Type>) {
                     static constexpr auto ctor_name = make_ctor_name<Type, Type>();

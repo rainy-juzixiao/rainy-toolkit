@@ -85,6 +85,10 @@ namespace rainy::utility {
             storage.type_data = right.storage.type_data;
         }
 
+        /**
+         * @brief 将目标对象进行移动构造
+         * @return 要移动的对象
+         */
         RAINY_INLINE basic_any(basic_any &&right) noexcept {
             move_from(right);
         }
@@ -747,7 +751,6 @@ namespace rainy::utility {
                                       typename type_at<Is, type_list>::type>,
                         Is>::impl(array[Is]))...);
         }
-
 
         template <bool Const, std::size_t N, typename Tuple, std::size_t... Is>
         void fill_structure_with_array(Tuple &so_as_tuple, const collections::array<implements::any_binding_package, N> &array,

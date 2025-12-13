@@ -285,19 +285,19 @@ namespace rainy::meta::reflection {
         };
 
         template <typename Enum>
-        static bind<reflection::enumeration, void, Enum> enumeration(std::string_view name) {
+        static rain_fn enumeration(std::string_view name) -> bind<reflection::enumeration, void, Enum> {
             auto accessor = implements::new_type_accessor_instance<Enum>(name);
             return bind<reflection::enumeration, void, Enum>{accessor, name, implements::global_type_accessor()};
         }
 
         template <typename Type>
-        static bind<reflection::fundmental, void, Type> fundamental(std::string_view name) {
+        static rain_fn fundamental(std::string_view name) -> bind<reflection::fundmental, void, Type> {
             auto accessor = implements::new_type_accessor_instance<Type>(name);
             return bind<reflection::fundmental, void, Type>{accessor, name, implements::global_type_accessor()};
         }
 
         template <typename Fx>
-        static bind<reflection::method, utility::invalid_type, Fx> method(std::string_view name, Fx&& fn) {
+        static rain_fn method(std::string_view name, Fx &&fn) -> bind<reflection::method, utility::invalid_type, Fx> {
             return bind<reflection::method, utility::invalid_type, Fx>{implements::global_type_accessor(), name,
                                                                        utility::forward<Fx>(fn)};
         }
@@ -356,7 +356,7 @@ namespace rainy::meta::reflection {
         }
 
         template <typename... Args>
-        implements::registration_derived_t<ClassType> operator()(Args &&...args) {
+        rain_fn operator()(Args &&...args)->implements::registration_derived_t<ClassType> {
             static constexpr std::size_t metadata_count = implements::metadata_count<Args...>;
             collections::array<metadata, metadata_count> metadatas =
                 utility::extract_args_to_array<metadata>(utility::forward<Args>(args)...);
@@ -400,7 +400,7 @@ namespace rainy::meta::reflection {
         }
 
         template <typename... Args>
-        implements::registration_derived_t<ClassType> operator()(Args &&...args) {
+        rain_fn operator()(Args &&...args)->implements::registration_derived_t<ClassType> {
             static constexpr std::size_t metadata_count = implements::metadata_count<Args...>;
             collections::array<metadata, metadata_count> metadatas =
                 utility::extract_args_to_array<metadata>(utility::forward<Args>(args)...);
@@ -450,7 +450,7 @@ namespace rainy::meta::reflection {
         }
 
         template <typename... Args>
-        implements::registration_derived_t<ClassType> operator()(Args &&...args) {
+        rain_fn operator()(Args &&...args) -> implements::registration_derived_t<ClassType> {
             static constexpr std::size_t metadata_count = implements::metadata_count<Args...>;
             collections::array<metadata, metadata_count> metadatas =
                 utility::extract_args_to_array<metadata>(utility::forward<Args>(args)...);
@@ -498,7 +498,7 @@ namespace rainy::meta::reflection {
         }
 
         template <typename... Args>
-        implements::registration_derived_t<ClassType> operator()(Args &&...args) {
+        rain_fn operator()(Args &&...args)->implements::registration_derived_t<ClassType> {
             rainy_let enum_type_storage = implements::new_enum_type_storage_instance<EnumType>(enumeration_type_accessor);
             static constexpr std::size_t enum_values_count =
                 type_traits::other_trans::count_type_v<implements::enum_data<EnumType>, type_traits::other_trans::type_list<Args...>>;
@@ -532,7 +532,7 @@ namespace rainy::meta::reflection {
         }
 
         template <typename... Args>
-        implements::registration_derived_t<ClassType> operator()(Args &&...args) {
+        rain_fn operator()(Args &&...args)->implements::registration_derived_t<ClassType> {
             static constexpr std::size_t metadata_count = implements::metadata_count<Args...>;
             if constexpr (metadata_count != 0) {
                 collections::array<metadata, metadata_count> metadatas =

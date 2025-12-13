@@ -371,6 +371,7 @@ static_assert(false, "We detected you are using C++14 and below, and the library
 #endif
 
 #if RAINY_USING_MSVC
+
 #define RAINY_IS_USING_MSVC_STL 1
 #define RAINY_IS_USING_LIBCXX 0
 #define RAINY_IS_USING_LIBSTDCXX 0
@@ -1252,6 +1253,33 @@ namespace rainy::type_traits::helper {
 
     template <>
     RAINY_CONSTEXPR_BOOL is_wchar_t<const volatile wchar_t> = true;
+}
+
+namespace rainy::type_traits::type_relations {
+    /**
+     * @brief 测试两个类型是否相同
+     * @tparam Ty1 检索的第一个类型
+     * @tparam Ty2 检索的第二个类型
+     */
+    template <typename Ty1, typename Ty2>
+    RAINY_CONSTEXPR_BOOL is_same_v = false;
+
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL is_same_v<Ty, Ty> = true;
+
+    /**
+     * @brief 测试两个类型是否相同。
+     * @tparam Ty1 检索的第一个类型
+     * @tparam Ty2 检索的第二个类型
+     */
+    template <typename Ty1, typename Ty2>
+    struct is_same : helper::bool_constant<is_same_v<Ty1, Ty2>> {};
+
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL is_void_v = is_same_v<Ty, void>;
+
+    template <typename Ty>
+    struct is_void : helper::bool_constant<is_void_v<Ty>> {};
 }
 
 #endif

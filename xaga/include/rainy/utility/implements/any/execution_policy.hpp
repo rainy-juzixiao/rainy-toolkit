@@ -4,8 +4,8 @@
 // NOLINTBEGIN
 
 #include <rainy/core/core.hpp>
-#include <rainy/utility/implements/any/fwd.hpp>
 #include <rainy/utility/implements/any/cast.hpp>
+#include <rainy/utility/implements/any/fwd.hpp>
 #include <rainy/utility/implements/any/iteator.hpp>
 
 // NOLINTEND
@@ -33,7 +33,7 @@ namespace rainy::utility::implements {
             return any_execution_policy::invoke_impl<Ty, BasicAnyImpl>(op, data);
         }};
 
-        template <typename TargetType, std::size_t Idx, bool IsReference = type_traits::composite_types::is_reference_v<TargetType>>
+    template <typename TargetType, std::size_t Idx, bool IsReference = type_traits::composite_types::is_reference_v<TargetType>>
     struct convert_any_binding_package {
         static decltype(auto) impl(const implements::any_binding_package &pkg) {
             using namespace type_traits;
@@ -376,6 +376,99 @@ namespace rainy::utility::implements {
 }
 
 namespace rainy::utility::implements {
+    template <bool CanEqualFor, bool IsAvaiable, auto WhenIsFalseMemPtr, auto WhenIsTrueMemPtr, typename Any, typename RemoveCVRef>
+    void do_binary_operator_operation_impl(void *const data) {
+        using remove_cvref_t = RemoveCVRef;
+        using any = Any;
+        auto *res = static_cast<std::tuple<const any * /* left */, const any * /* right */, any * /* recv */> *>(data);
+        auto &left = *std::get<0>(*res);
+        auto &right = *std::get<1>(*res);
+        auto &recv = *std::get<2>(*res);
+        if (&recv == &left) {
+            if constexpr (CanEqualFor) {
+                static any_magic_method<remove_cvref_t, any, true> obj{};
+                utility::invoke(WhenIsTrueMemPtr, obj, recv, right);
+            }
+        }
+        if constexpr (IsAvaiable) {
+            static any_magic_method<remove_cvref_t, any, false> obj{};
+            recv = utility::invoke(WhenIsFalseMemPtr, obj, left, right);
+        }
+    }
+
+    template <typename Ty, typename Any, any_execution_policy::operation Operation>
+    void do_binary_operater_operation(void *const data) {
+        using operation = any_execution_policy::operation;
+        using remove_cvref_t = type_traits::cv_modify::remove_cvref_t<Ty>;
+        if constexpr (Operation == operation::add) {
+            do_binary_operator_operation_impl<is_any_addable_v<remove_cvref_t, Any, true>,
+                                              is_any_addable_v<remove_cvref_t, Any, false>,
+                                              &any_magic_method<remove_cvref_t, Any, false>::add,
+                                              &any_magic_method<remove_cvref_t, Any, true>::add, Any, remove_cvref_t>(data);
+        } else if constexpr (Operation == operation::subtract) {
+            do_binary_operator_operation_impl<is_any_subable_v<remove_cvref_t, Any, true>,
+                                              is_any_subable_v<remove_cvref_t, Any, false>,
+                                              &any_magic_method<remove_cvref_t, Any, false>::subtract,
+                                              &any_magic_method<remove_cvref_t, Any, true>::subtract, Any, remove_cvref_t>(data);
+        } else if constexpr (Operation == operation::multiply) {
+            do_binary_operator_operation_impl<is_any_multable_v<remove_cvref_t, Any, true>,
+                                              is_any_multable_v<remove_cvref_t, Any, false>,
+                                              &any_magic_method<remove_cvref_t, Any, false>::multiply,
+                                              &any_magic_method<remove_cvref_t, Any, true>::multiply, Any, remove_cvref_t>(data);
+        } else if constexpr (Operation == operation::divide) {
+            do_binary_operator_operation_impl<is_any_divable_v<remove_cvref_t, Any, true>,
+                                              is_any_divable_v<remove_cvref_t, Any, false>,
+                                              &any_magic_method<remove_cvref_t, Any, false>::divide,
+                                              &any_magic_method<remove_cvref_t, Any, true>::divide, Any, remove_cvref_t>(data);
+        } else if constexpr (Operation == operation::mod) {
+            do_binary_operator_operation_impl<is_any_modable_v<remove_cvref_t, Any, true>,
+                                              is_any_modable_v<remove_cvref_t, Any, false>,
+                                              &any_magic_method<remove_cvref_t, Any, false>::mod,
+                                              &any_magic_method<remove_cvref_t, Any, true>::mod, Any, remove_cvref_t>(data);
+        }
+    }
+
+    template <bool IsCompareable, auto MemPtr, typename Any, typename RemoveCVRef>
+    void do_compare_operater_operation_impl(void *const data) {
+        using any = Any;
+        using pack = const std::tuple<const any *, const any *, any_compare_operation> *;
+        const auto *res = static_cast<pack>(data);
+        const any *left = std::get<0>(*res);
+        const any *right = std::get<1>(*res);
+        if constexpr (IsCompareable) {
+            static any_magic_method<RemoveCVRef, any> obj{};
+            utility::invoke(MemPtr, obj, *left, *right);
+        } else {
+            foundation::exceptions::logic::throw_any_not_implemented("Current type not support this operation");
+        }
+    }
+
+    template <typename Ty, typename Any, any_compare_operation Operation>
+    bool do_compare_operater_operation(void *const data) {
+        using operation = any_compare_operation;
+        using remove_cvref_t = type_traits::cv_modify::remove_cvref_t<Ty>;
+        if constexpr (Operation == operation::less) {
+            do_compare_operater_operation_impl<is_any_less_compareable_v<remove_cvref_t, Any>,
+                                               &any_magic_method<remove_cvref_t, Any>::compare_less, Any, remove_cvref_t>(data);
+        } else if constexpr (Operation == operation::less_eq) {
+            do_compare_operater_operation_impl<is_any_less_eq_compareable_v<remove_cvref_t, Any>,
+                                               &any_magic_method<remove_cvref_t, Any>::compare_less_equal, Any, remove_cvref_t>(data);
+        } else if constexpr (Operation == operation::eq) {
+            do_compare_operater_operation_impl<is_any_eq_compareable_v<remove_cvref_t, Any>,
+                                               &any_magic_method<remove_cvref_t, Any>::compare_equal, Any, remove_cvref_t>(data);
+        } else if constexpr (Operation == operation::greater_eq) {
+            do_compare_operater_operation_impl<is_any_greater_eq_compareable_v<remove_cvref_t, Any>,
+                                               &any_magic_method<remove_cvref_t, Any>::compare_greater_equal, Any, remove_cvref_t>(
+                data);
+        } else if constexpr (Operation == operation::greater) {
+            do_compare_operater_operation_impl<is_any_gt_compareable_v<remove_cvref_t, Any>,
+                                               &any_magic_method<remove_cvref_t, Any>::compare_greater, Any, remove_cvref_t>(data);
+        }
+        return true;
+    }
+}
+
+namespace rainy::utility::implements {
     template <typename Ty, typename BasicAnyImpl>
     bool any_execution_policy::invoke_impl(operation op, void *const data) {
         using namespace type_traits;
@@ -388,56 +481,18 @@ namespace rainy::utility::implements {
         switch (op) {
             case operation::compare: {
                 using namespace foundation::exceptions::logic;
-                using pack = const std::tuple<const any *, const any *, any_compare_operation> *;
-                const auto *res = static_cast<pack>(data);
-                const any *left = std::get<0>(*res);
-                const any *right = std::get<1>(*res);
+                rainy_let res = static_cast<const std::tuple<const any *, const any *, any_compare_operation> *>(data);
                 switch (std::get<2>(*res)) {
-                    case any_compare_operation::less: {
-                        if constexpr (is_any_less_compareable_v<remove_cvref_t, any>) {
-                            return any_magic_method<remove_cvref_t, any>{}.compare_less(*left, *right);
-                        } else {
-                            foundation::exceptions::logic::throw_any_not_implemented("Current type not support this operation: less");
-                        }
-                        break;
-                    }
-                    case any_compare_operation::less_eq: {
-                        if constexpr (is_any_less_eq_compareable_v<remove_cvref_t, any>) {
-                            return any_magic_method<remove_cvref_t, any>{}.compare_less_equal(*left, *right);
-                        } else {
-                            foundation::exceptions::logic::throw_any_not_implemented(
-                                "Current type not support this operation: less_eq");
-                        }
-                        break;
-                    }
-                    case any_compare_operation::eq: {
-                        if constexpr (is_any_eq_compareable_v<remove_cvref_t, any>) {
-                            return any_magic_method<remove_cvref_t, any>{}.compare_equal(*left, *right);
-                        } else {
-                            foundation::exceptions::logic::throw_any_not_implemented("Current type not support this operation: eq");
-                        }
-                        break;
-                    }
-                    case any_compare_operation::greater_eq: {
-                        if constexpr (is_any_greater_eq_compareable_v<remove_cvref_t, any>) {
-                            return any_magic_method<remove_cvref_t, any>{}.compare_greater_equal(*left, *right);
-                        } else {
-                            foundation::exceptions::logic::throw_any_not_implemented(
-                                "Current type not support this operation: greater_eq");
-                        }
-                        break;
-                    }
-                    case any_compare_operation::greater: {
-                        if constexpr (is_any_gt_compareable_v<remove_cvref_t, any>) {
-                            return any_magic_method<remove_cvref_t, any>{}.compare_greater(*left, *right);
-                        } else {
-                            foundation::exceptions::logic::throw_any_not_implemented(
-                                "Current type not support this operation: greater");
-                        }
-                        break;
-                    }
-                    default:
-                        break;
+                    case any_compare_operation::less:
+                        return do_compare_operater_operation<remove_cvref_t, any, any_compare_operation::less>(data);
+                    case any_compare_operation::less_eq:
+                        return do_compare_operater_operation<remove_cvref_t, any, any_compare_operation::less_eq>(data);
+                    case any_compare_operation::eq:
+                        return do_compare_operater_operation<remove_cvref_t, any, any_compare_operation::eq>(data);
+                    case any_compare_operation::greater_eq:
+                        return do_compare_operater_operation<remove_cvref_t, any, any_compare_operation::greater_eq>(data);
+                    case any_compare_operation::greater:
+                        return do_compare_operater_operation<remove_cvref_t, any, any_compare_operation::greater>(data);
                 }
                 break;
             }
@@ -522,41 +577,12 @@ namespace rainy::utility::implements {
                 break;
             }
             case operation::add: {
-                auto *res = static_cast<std::tuple<const any * /* left */, const any * /* right */, any * /* recv */
-
-                                                   > *>(data);
-                auto &left = *std::get<0>(*res);
-                auto &right = *std::get<1>(*res);
-                auto &recv = *std::get<2>(*res);
-                if (&recv == &left) {
-                    if constexpr (is_any_addable_v<remove_cvref_t, any, true>) {
-                        any_magic_method<remove_cvref_t, any, true>{}.add(recv, right);
-                    }
-                    return true;
-                }
-                if constexpr (is_any_addable_v<remove_cvref_t, any, false>) {
-                    recv = any_magic_method<remove_cvref_t, any, false>{}.add(left, right);
-                    return true;
-                }
+                do_binary_operater_operation<Ty, any, operation::add>(data);
                 break;
             }
             case operation::subtract: {
-                auto *res = static_cast<std::tuple<const any * /* left */, const any * /* right */, any * /* recv */
-                                                   > *>(data);
-                auto &left = *std::get<0>(*res);
-                auto &right = *std::get<1>(*res);
-                auto &recv = *std::get<2>(*res);
-                if (&recv == &left) {
-                    if constexpr (is_any_subable_v<remove_cvref_t, any, true>) {
-                        any_magic_method<remove_cvref_t, any, true>{}.subtract(recv, right);
-                    }
-                    return true;
-                }
-                if constexpr (is_any_subable_v<remove_cvref_t, any, false>) {
-                    recv = any_magic_method<remove_cvref_t, any, false>{}.subtract(left, right);
-                    return true;
-                }
-                return true;
+                do_binary_operater_operation<Ty, any, operation::subtract>(data);
+                break;
             }
             case operation::incr_prefix: {
                 if constexpr (is_any_preincable_v<remove_cvref_t, any>) {
@@ -603,57 +629,15 @@ namespace rainy::utility::implements {
                 break;
             }
             case operation::multiply: {
-                auto *res = static_cast<std::tuple<const any * /* left */, const any * /* right */, any * /* recv */
-                                                   > *>(data);
-                auto &left = *std::get<0>(*res);
-                auto &right = *std::get<1>(*res);
-                auto &recv = *std::get<2>(*res);
-                if (&recv == &left) {
-                    if constexpr (is_any_multable_v<remove_cvref_t, any, true>) {
-                        any_magic_method<remove_cvref_t, any, true>{}.multiply(recv, right);
-                    }
-                    return true;
-                }
-                if constexpr (is_any_multable_v<remove_cvref_t, any, false>) {
-                    recv = any_magic_method<remove_cvref_t, any, false>{}.multiply(left, right);
-                    return true;
-                }
+                do_binary_operater_operation<Ty, any, operation::multiply>(data);
                 break;
             }
             case operation::divide: {
-                auto *res = static_cast<std::tuple<const any * /* left */, const any * /* right */, any * /* recv */
-                                                   > *>(data);
-                auto &left = *std::get<0>(*res);
-                auto &right = *std::get<1>(*res);
-                auto &recv = *std::get<2>(*res);
-                if (&recv == &left) {
-                    if constexpr (is_any_divable_v<remove_cvref_t, any, true>) {
-                        any_magic_method<remove_cvref_t, any, true>{}.divide(recv, right);
-                    }
-                    return true;
-                }
-                if constexpr (is_any_divable_v<remove_cvref_t, any, false>) {
-                    recv = any_magic_method<remove_cvref_t, any, false>{}.divide(left, right);
-                    return true;
-                }
+                do_binary_operater_operation<Ty, any, operation::divide>(data);
                 break;
             }
             case operation::mod: {
-                auto *res = static_cast<std::tuple<const any * /* left */, const any * /* right */, any * /* recv */
-                                                   > *>(data);
-                auto &left = *std::get<0>(*res);
-                auto &right = *std::get<1>(*res);
-                auto &recv = *std::get<2>(*res);
-                if (&recv == &left) {
-                    if constexpr (is_any_modable_v<remove_cvref_t, any, true>) {
-                        any_magic_method<remove_cvref_t, any, true>{}.mod(recv, right);
-                    }
-                    return true;
-                }
-                if constexpr (is_any_modable_v<remove_cvref_t, any, false>) {
-                    recv = any_magic_method<remove_cvref_t, any, false>{}.mod(left, right);
-                    return true;
-                }
+                do_binary_operater_operation<Ty, any, operation::mod>(data);
                 break;
             }
             case operation::dereference: {

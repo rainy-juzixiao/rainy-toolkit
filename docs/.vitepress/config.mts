@@ -1,7 +1,8 @@
 import { defineConfig } from 'vitepress'
 import { change_log_sidebar_items } from './change_log.mts';
-import { utility_toolkit_index } from './utility_document/index.mjs';
+import { utility_toolkit_index } from './config/utility_document/index.mjs';
 import { core_toolkit_index } from './core_document/index.mts';
+import { meta_index } from './config/meta_document/index.mts';
 
 export default defineConfig({
   title: "rainy-toolkit 文档",
@@ -10,7 +11,7 @@ export default defineConfig({
   base: '/rainy-toolkit/',
   themeConfig: {
     sidebar: {
-       '/': [
+      '/': [
         {
           text: '首页',
           link: '/md/',
@@ -24,10 +25,15 @@ export default defineConfig({
         {
           text: '核心库',
           link: '/md/core/',
+        },
+        {
+          text: 'meta库',
+          link: '/md/meta/'
         }
-       ],
-       '/md/core/': core_toolkit_index,
-       '/md/reflection/': [
+      ],
+      '/md/meta/': meta_index, 
+      '/md/core/': core_toolkit_index,
+      '/md/reflection/': [
         {
           text: '反射',
           base: '/md/reflection/',
@@ -89,11 +95,22 @@ export default defineConfig({
       }
     ]
   },
-
   markdown: {
     theme: {
       light: 'material-theme-palenight',
       dark: 'material-theme-palenight'
+    },
+    async config(md) {
+      const mod = await import('markdown-it-multimd-table')
+
+      // 关键：CJS 模块在 ESM 下 "mod.default" 有时是 undefined
+      const multi = mod.default || mod
+
+      md.use(multi, {
+        rowspan: true,
+        colspan: true
+      })
+
     }
   },
 

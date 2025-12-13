@@ -488,6 +488,7 @@ namespace rainy::meta::reflection {
         }
 
         method &operator=(method &&right) noexcept;
+        method& operator=(const method & right) = default;
 
         void rebind(method &&right) noexcept;
 
@@ -545,8 +546,15 @@ namespace rainy::meta::reflection {
         constructor(constructor &&right) noexcept = default;
         constructor(const constructor &right) noexcept = default;
 
-        constructor &operator=(const constructor &) = default;
-        constructor &operator=(constructor &&) = default;
+        constructor &operator=(const constructor & right) {
+            method::operator=(right);
+            return *this;
+        }
+
+        constructor &operator=(constructor && right) {
+            method::operator=(utility::move(right));
+            return *this;
+        }
 
         using method::arg;
         using method::arity;

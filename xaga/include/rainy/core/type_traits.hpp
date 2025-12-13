@@ -2704,6 +2704,10 @@ namespace rainy::core {
             vtable = vtable_info::template instance<std::remove_cv_t<std::remove_pointer_t<Type>>>();
         }
 
+        bool empty() const noexcept {
+            return vtable == nullptr;
+        }
+
         RAINY_NODISCARD explicit operator bool() const noexcept {
             return _ptr != nullptr;
         }

@@ -19,7 +19,7 @@ class basic_poly;
 
 `basic_poly` 类定义了如下成员：
 
-<MergeTable>
+<!-- <MergeTable>
 成员函数|说明;;
 [basic_poly](#basic_poly) | 构造并初始化 `basic_poly` 实例。;;
 [reset](#reset) | 重置或重新设置底层的目标指针和虚表。;;
@@ -39,7 +39,7 @@ class basic_poly;
 [operator=](#operator=) | 赋值操作，包括移动赋值和空指针赋值。;;
 [operator bool](#bp-operator-bool) | 显式布尔转换，检查是否持有有效目标。;;
 [operator->](#operator->) | 箭头运算符重载，提供对基类型成员的访问。;;
-</MergeTable>
+</MergeTable> -->
 
 ## basic_poly {#basic_poly}
 
@@ -49,19 +49,23 @@ class basic_poly;
 (1) (since C++17)
 basic_poly() noexcept;
 (2) (since C++17)
+basic_poly(std::nullptr_t);
+(3) (since C++17)
 template <typename Type>
 basic_poly(Type *ptr) noexcept;
-(3) (since C++17)
-basic_poly(std::nullptr_t);
 (4) (since C++17)
 basic_poly(basic_poly &&right) noexcept;
-(5) (since C++17)
+(4) (since C++17)
 basic_poly(const basic_poly &right);
   `
 "
 />
 
+<DescriptSection category="ctor">
+
 执行相关构造操作并生成一个basic_poly对象。
+
+</DescriptSection>
 
 <ParameterSection>
 
@@ -70,35 +74,54 @@ basic_poly(const basic_poly &right);
 
 </ParameterSection>
 
-<ParameterSection isTypeParameter="true">
+<ParameterSection isTypeParameter>
 
 `Type`: 目标指针所指向对象的类型。
 
 </ParameterSection>
 
+| 重载 | 包含值的初始化器 | 构造后empty()                |
+| ---- | ---------------- | ---------------------------- |
+| (1)  | N/A              | true                         |
+| (2)  | ^^               | ^^                           |
+| (3)  | `ptr`            | 如果ptr有效，则为false       |
+| (4)  | `right`          | 如果right.empty()，则为false |
+| (5)  | `right`          | ^^                           |
+
 ## reset
 
-**语法**：
-
-```cpp
-void reset() noexcept; // (1)
+<DeclarationTable 
+  :content="
+`
+(1) (since C++17)
+void reset() noexcept;
+(2) (since C++17)
 template <typename Type>
-void reset(Type *ptr) noexcept; // (2)
-```
+void reset(Type *ptr) noexcept;
+`"
+/>
 
-**(1)**
+<DescriptSection category="modifier">
 
-将 `basic_poly` 实例重置为空状态，释放其当前持有的目标指针和虚表。
+对对象执行重置操作。
 
-**(2)**
+1. 重置为无目标状态。
+2. 重置为指向新目标对象。
 
-将 `basic_poly` 实例重置为持有新目标对象 `ptr` 的状态，并重新初始化虚表。
+</DescriptSection>
 
-**类型参数**
-- `Type`: 新目标指针所指向对象的类型。
+<ParameterSection isTypeParameter>
 
-**参数**
-- `ptr`: 指向新目标对象的指针。
+`Type`: 新目标指针所指向对象的类型。
+
+</ParameterSection>
+
+<ParameterSection>
+
+`ptr`: 指向新目标对象的指针。
+
+</ParameterSection>
+
 ## target_as_void_ptr
 
 返回底层目标指针的 `void*` 形式。
@@ -109,8 +132,10 @@ void reset(Type *ptr) noexcept; // (2)
 void *target_as_void_ptr() const noexcept;
 ```
 
-**备注**
-- 返回值是指向目标对象的原始 `void*` 指针，可能为 `nullptr`。
+<ReturnValueSection>
+指向目标对象的 `void*` 指针，可能为 `nullptr`。
+</ReturnValueSection>
+
 ## operator=
 
 **语法**: 
