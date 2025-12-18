@@ -1,7 +1,7 @@
 #ifndef RAINY_COLLECTIONS_DENSE_SET_HPP
 #define RAINY_COLLECTIONS_DENSE_SET_HPP
 #include <rainy/core/core.hpp>
-#include <rainy/foundation/system/memory/allocator.hpp>
+#include <rainy/foundation/memory/allocator.hpp>
 #include <rainy/utility.hpp>
 #include <rainy/utility/iterator.hpp>
 

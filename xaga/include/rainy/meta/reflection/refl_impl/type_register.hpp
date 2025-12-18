@@ -223,12 +223,12 @@ namespace rainy::meta::reflection::implements {
             return metadatas_;
         }
 
-        enumeration &as_enumeration() noexcept {
+        enumeration &as_enumeration() noexcept override {
             static enumeration empty;
             return empty;
         }
 
-        fundmental &as_fundmental() noexcept {
+        fundmental &as_fundmental() noexcept override {
             static fundmental empty;
             return empty;
         }
@@ -313,7 +313,7 @@ namespace rainy::meta::reflection::implements {
             return enumeration;
         }
 
-        fundmental &as_fundmental() noexcept {
+        fundmental &as_fundmental() noexcept override {
             static fundmental empty;
             return empty;
         }
@@ -391,7 +391,7 @@ namespace rainy::meta::reflection::implements {
             return empty;
         }
 
-        fundmental &as_fundmental() noexcept {
+        fundmental &as_fundmental() noexcept override {
             return fundmental_type;
         }
 

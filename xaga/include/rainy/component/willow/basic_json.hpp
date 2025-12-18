@@ -637,7 +637,7 @@ namespace rainy::component::willow {
             return !(lhs < rhs);
         }
 
-    private:
+    //private:
         implements::value<basic_json> value_;
     };
 }

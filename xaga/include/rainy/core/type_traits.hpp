@@ -2243,7 +2243,7 @@ namespace rainy::type_traits::extras::templates {
     };
 }
 
-namespace rainy::foundation::system::memory::implements {
+namespace rainy::foundation::memory::implements {
     template <typename Ty, typename Elem>
     struct pointer_traits_base {
         using pointer = Ty;
@@ -2273,7 +2273,7 @@ namespace rainy::foundation::system::memory::implements {
         : implements::pointer_traits_base<Ty, typename Ty::element_type> {};
 }
 
-namespace rainy::foundation::system::memory {
+namespace rainy::foundation::memory {
     template <typename Ty>
     struct pointer_traits : implements::ptr_traits_sfinae_layer<Ty> {};
 
@@ -2295,7 +2295,7 @@ namespace rainy::foundation::system::memory {
 }
 
 namespace rainy::utility {
-    using foundation::system::memory::pointer_traits;
+    using foundation::memory::pointer_traits;
 }
 
 namespace rainy::utility::implements {
@@ -2304,7 +2304,7 @@ namespace rainy::utility::implements {
 
     template <typename Ty>
     RAINY_CONSTEXPR_BOOL
-        has_to_address<Ty, type_traits::other_trans::void_t<decltype(foundation::system::memory::pointer_traits<Ty>::to_address(
+        has_to_address<Ty, type_traits::other_trans::void_t<decltype(foundation::memory::pointer_traits<Ty>::to_address(
                                utility::declval<const Ty &>()))>> = true;
 }
 

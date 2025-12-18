@@ -227,7 +227,7 @@ namespace rainy::meta::reflection::implements {
             return storage.invoke_with_defaults(ptr, arg_view);
         }
 
-        utility::any dynamic_invoke(object_view &object, collections::views::array_view<utility::any> arg_view) {
+        utility::any dynamic_invoke(object_view &object, collections::views::array_view<utility::any> arg_view) override {
             const std::size_t size = arg_view.size();
             static constexpr std::size_t arity = storage_t::arity;
             static constexpr std::size_t least = arity - storage_t::default_arity;

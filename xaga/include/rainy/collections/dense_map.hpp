@@ -1,3 +1,18 @@
+/*
+ * Copyright 2025 rainy-juzixiao
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 #ifndef RAINY_COLLECTIONS_DENSE_MAP_HPP
 #define RAINY_COLLECTIONS_DENSE_MAP_HPP
 #include <rainy/core/core.hpp>
@@ -5,7 +20,7 @@
 #include <rainy/utility/iterator.hpp>
 #include <rainy/utility.hpp>
 #include <rainy/foundation/functional/functor.hpp>
-#include <rainy/foundation/system/memory/allocator.hpp>
+#include <rainy/foundation/memory/allocator.hpp>
 
 namespace rainy::collections::implements {
     template <typename Key, typename Mapped>
@@ -57,7 +72,9 @@ namespace rainy::collections::implements {
         constexpr dense_map_iterator(const Iter iter) noexcept : it{iter} {
         }
 
-        template <typename Uty, typename = type_traits::other_trans::enable_if_t<!type_traits::type_relations::is_same_v<Iter, Uty> && type_traits::type_properties::is_constructible_v<Iter, Uty>>>
+        template <typename Uty,
+                  typename = type_traits::other_trans::enable_if_t<!type_traits::type_relations::is_same_v<Iter, Uty> &&
+                                                                   type_traits::type_properties::is_constructible_v<Iter, Uty>>>
         constexpr dense_map_iterator(const dense_map_iterator<Uty> &other) noexcept : it{other.it} {
         }
 
@@ -228,7 +245,7 @@ namespace rainy::collections::implements {
 namespace rainy::collections {
     template <typename Key, typename Mapped, typename Hash = utility::hash<Key>,
               typename KeyEqual = foundation::functional::equal<Key>,
-              typename Allocator = foundation::system::memory::allocator<utility::pair<const Key, Mapped>>>
+              typename Allocator = foundation::memory::allocator<utility::pair<const Key, Mapped>>>
     class dense_map {
     public:
         static constexpr float default_loadfactor = 0.875f;
@@ -640,6 +657,44 @@ namespace rainy::collections {
 
         RAINY_NODISCARD hasher hash_function() const {
             return tools.get_second();
+        }
+
+        void merge(dense_map &right) {
+            for (value_type &&item: right) {
+                insert(item);
+            }
+            right.clear();
+        }
+
+        void merge(dense_map &&right) {
+            for (value_type &&item: right) {
+                insert(utility::move(item));
+            }
+            right.clear();
+        }
+
+        collections::views::iterator_range<iterator> entries() {
+            return {begin(), end()};
+        }
+
+        collections::views::iterator_range<iterator> entries() const {
+            return {begin(), end()};
+        }
+
+        collections::views::iterator_range<utility::map_key_iterator<dense_map>> keys() {
+            return utility::keyed_range(*this);
+        }
+
+        collections::views::iterator_range<utility::map_key_const_iterator<dense_map>> keys() const {
+            return utility::keyed_range(*this);
+        }
+
+        collections::views::iterator_range<utility::map_mapped_iterator<dense_map>> values() {
+            return utility::mapped_range(*this);
+        }
+
+        collections::views::iterator_range<utility::map_mapped_const_iterator<dense_map>> values() const {
+            return utility::mapped_range(*this);
         }
 
     private:

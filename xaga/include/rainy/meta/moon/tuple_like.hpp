@@ -202,9 +202,9 @@ namespace rainy::meta::moon {
         }
     }
 
-    template <std::size_t Idx>
+    template <std::size_t Idx, typename Ty>
     struct tuple_element {
-        using type = std::tuple_element_t<Idx, decltype(struct_to_tuple<any_type>())>;
+        using type = std::tuple_element_t<Idx, decltype(struct_to_tuple<Ty>())>;
     };
 
     template <std::size_t Idx, typename Ty>

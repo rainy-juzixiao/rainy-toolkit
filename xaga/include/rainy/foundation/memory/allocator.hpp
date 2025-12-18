@@ -13,13 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef RAINY_FOUNDATION_SYSTEM_MEMORY_ALLCATOR_HPP
-#define RAINY_FOUNDATION_SYSTEM_MEMORY_ALLCATOR_HPP
+#ifndef RAINY_FOUNDATION_MEMORY_ALLCATOR_HPP
+#define RAINY_FOUNDATION_MEMORY_ALLCATOR_HPP
 #include <rainy/core/core.hpp>
 #include <rainy/foundation/diagnostics/contract.hpp>
 #include <atomic>
 
-namespace rainy::foundation::system::memory {
+namespace rainy::foundation::memory {
     enum class allocation_method {
         std_allocator,
         cstd_allocator,
@@ -93,13 +93,14 @@ namespace rainy::foundation::system::memory {
                     throw_bad_alloc();
                 }
                 return allocated_memory;
+            } else {
+                rainy_let allocated_memory =
+                    static_cast<value_type *>(core::pal::allocate(core::implements::get_size_of_n<value_type>(count), align));
+                if (!allocated_memory) {
+                    throw_bad_alloc();
+                }
+                return allocated_memory;
             }
-            rainy_let allocated_memory =
-                static_cast<value_type *>(core::pal::allocate(core::implements::get_size_of_n<value_type>(count), align));
-            if (!allocated_memory) {
-                throw_bad_alloc();
-            }
-            return allocated_memory;
         }
 
         template <allocation_method Method = allocation_method::rainy_allocator>
@@ -133,7 +134,7 @@ namespace rainy::foundation::system::memory {
             utility::construct_at(ptr, utility::forward<Args>(args)...);
         }
 
-        RAINY_CONSTEXPR20 void destory(value_type *const ptr) const noexcept(std::is_nothrow_destructible_v<value_type>) {
+        RAINY_CONSTEXPR20 void destroy(value_type *const ptr) const noexcept(std::is_nothrow_destructible_v<value_type>) {
             ptr->~value_type();
         }
     };
@@ -149,7 +150,7 @@ namespace rainy::foundation::system::memory {
     }
 }
 
-namespace rainy::foundation::system::memory::pmr {
+namespace rainy::foundation::memory::pmr {
     class memory_resource : public std::pmr::memory_resource {
     public:
         using std::pmr::memory_resource::memory_resource;
@@ -374,17 +375,25 @@ namespace rainy::foundation::system::memory::pmr {
     };
 }
 
-namespace rainy::foundation::system::memory {
+namespace rainy::foundation::memory {
     template <typename Alloc>
-    class allocator_traits;
+    struct allocator_traits;
 }
 
-namespace rainy::foundation::system::memory::implements {
+namespace rainy::foundation::memory::implements {
     template <typename Alloc>
     RAINY_CONSTEXPR_BOOL is_std_allocator = false;
 
     template <typename Elem>
     RAINY_CONSTEXPR_BOOL is_std_allocator<std::allocator<Elem>> = true;
+
+    template <typename Alloc, typename = void>
+    struct has_select_on_container_copy_construction : type_traits::helper::false_type {};
+
+    template <typename Alloc>
+    struct has_select_on_container_copy_construction<
+        Alloc, type_traits::other_trans::void_t<decltype(utility::declval<const Alloc &>().select_on_container_copy_construction())>>
+        : type_traits::helper::true_type {};
 
     template <typename Alloc>
     struct std_allocator_traits;
@@ -435,13 +444,16 @@ namespace rainy::foundation::system::memory::implements {
         RAINY_CONSTEXPR20 static void destory(allocator_type, Uty *ptr) {
             ptr->~value_type();
         }
+
+        RAINY_NODISCARD static RAINY_CONSTEXPR20 allocator_type
+        select_on_container_copy_construction(const allocator_type &allocator) {
+            if constexpr (has_select_on_container_copy_construction<allocator_type>::value) {
+                return allocator.select_on_container_copy_construction();
+            } else {
+                return allocator;
+            }
+        }
     };
-
-    template <typename Alloc>
-    RAINY_CONSTEXPR_BOOL is_default_allocator = false;
-
-    template <typename Type>
-    RAINY_CONSTEXPR_BOOL is_default_allocator<std::allocator<Type>> = true;
 
     template <typename Ty, typename = void>
     struct get_pointer_type {
@@ -606,72 +618,39 @@ namespace rainy::foundation::system::memory::implements {
             }
         }
 
-        // #if _HAS_CXX23
-        //         RAINY_NODISCARD_RAW_PTR_ALLOC static constexpr allocation_result<pointer, size_type> allocate_at_least(
-        //             allocator_type &allocator, _CRT_GUARDOVERFLOW const size_type count) {
-        //             if constexpr (_Has_member_allocate_at_least<allocator_type, size_type>) {
-        //                 return allocator.allocate_at_least(count);
-        //             } else {
-        //                 return {allocator.allocate(count), count};
-        //             }
-        //         }
-        // #endif // _HAS_CXX23
-        //
-        //         static RAINY_CONSTEXPR20 void deallocate(allocator_type &allocator, pointer _Ptr, size_type count) {
-        //             allocator.deallocate(_Ptr, count);
-        //         }
-        //
-        //         template <class _Ty, class... _Types>
-        //         static RAINY_CONSTEXPR20 void construct(allocator_type &allocator, _Ty *_Ptr, _Types &&..._Args) {
-        //             if constexpr (_Uses_default_construct<allocator_type, _Ty *, _Types...>::value) {
-        // #if _HAS_CXX20
-        //                 _STD construct_at(_Ptr, utility::forward<_Types>(_Args)...);
-        // #else // ^^^ _HAS_CXX20 / !_HAS_CXX20 vvv
-        //                 ::new (static_cast<void *>(_Ptr)) _Ty(_STD forward<_Types>(_Args)...);
-        // #endif // ^^^ !_HAS_CXX20 ^^^
-        //             } else {
-        //                 allocator.construct(_Ptr, _STD forward<_Types>(_Args)...);
-        //             }
-        //         }
-        //
-        //         template <class _Ty>
-        //         static RAINY_CONSTEXPR20 void destroy(allocator_type &allocator, _Ty *ptr) {
-        //             if constexpr (_Uses_default_destroy<allocator_type, _Ty *>::value) {
-        // #if RAINY_HAS_CXX20
-        //                 std::destroy_at(ptr);
-        // #else // ^^^ _HAS_CXX20 / !_HAS_CXX20 vvv
-        //                 _Ptr->~_Ty();
-        // #endif // ^^^ !_HAS_CXX20 ^^^
-        //             } else {
-        //                 allocator.destroy(_Ptr);
-        //             }
-        //         }
-        //
-        //         RAINY_NODISCARD static RAINY_CONSTEXPR20 size_type max_size(const allocator_type &allocator) noexcept {
-        //             if constexpr (_Has_max_size<allocator_type>::value) {
-        //                 return allocator.max_size();
-        //             } else {
-        //                 return _STD _Max_limit<size_type>() / sizeof(value_type);
-        //             }
-        //         }
-        //
-        //         RAINY_NODISCARD static RAINY_CONSTEXPR20 allocator_type
-        //         select_on_container_copy_construction(const allocator_type &allocator) {
-        //             if constexpr (has_select_on_container_copy_construction<allocator_type>::value) {
-        //                 return allocator.select_on_container_copy_construction();
-        //             } else {
-        //                 return allocator;
-        //             }
-        //         }
+        static RAINY_CONSTEXPR20 void deallocate(allocator_type &allocator, pointer ptr, size_type count) {
+            allocator.deallocate(ptr, count);
+        }
+
+        template <typename Ty, typename... Args>
+        static RAINY_CONSTEXPR20 void construct(allocator_type &allocator, Ty *_Ptr, Args &&...args) {
+            allocator.construct(_Ptr, utility::forward<Args>(args)...);
+        }
+
+        template <typename Ty>
+        static RAINY_CONSTEXPR20 void destroy(allocator_type &allocator, Ty *ptr) {
+            allocator.destroy(ptr);
+        }
+
+        RAINY_NODISCARD static RAINY_CONSTEXPR20 allocator_type
+        select_on_container_copy_construction(const allocator_type &allocator) {
+            if constexpr (has_select_on_container_copy_construction<allocator_type>::value) {
+                return allocator.select_on_container_copy_construction();
+            } else {
+                return allocator;
+            }
+        }
     };
 }
 
-namespace rainy::foundation::system::memory {
+namespace rainy::foundation::memory {
     template <typename Alloc>
-    class allocator_traits {};
+    struct allocator_traits
+        : type_traits::other_trans::conditional_t<implements::is_std_allocator<Alloc>, implements::std_allocator_traits<Alloc>,
+                                                  implements::normal_allocator_traits<Alloc>> {};
 }
 
-namespace rainy::foundation::system::memory {
+namespace rainy::foundation::memory {
     /**
      * @brief 一个具有静态存储资源的分配器
      * @tparam Ty 要分配资源的类型

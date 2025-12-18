@@ -32,7 +32,7 @@ namespace rainy::utility {
         template <typename, typename>
         friend class iterator;
 
-        friend struct foundation::system::memory::pointer_traits<const_iterator<Iter, Traits>>;
+        friend struct foundation::memory::pointer_traits<const_iterator<Iter, Traits>>;
 
         using iterator_type = Iter;
         using iterator_traits = Traits;
@@ -233,7 +233,7 @@ namespace rainy::utility {
 }
 
 template <typename Iter, typename Traits>
-struct rainy::foundation::system::memory::pointer_traits<rainy::utility::const_iterator<Iter, Traits>> {
+struct rainy::foundation::memory::pointer_traits<rainy::utility::const_iterator<Iter, Traits>> {
     using pointer = typename rainy::utility::const_iterator<Iter, Traits>;
     using elemen_type = typename pointer::value_type;
     using difference_type = typename pointer::difference_type;
@@ -255,7 +255,7 @@ namespace rainy::utility {
 
         using base = const_iterator<Iter, Traits>;
 
-        friend struct foundation::system::memory::pointer_traits<const_iterator<Iter, Traits>>;
+        friend struct foundation::memory::pointer_traits<const_iterator<Iter, Traits>>;
 
         constexpr iterator() noexcept : base() {};
 
@@ -342,7 +342,7 @@ namespace rainy::utility {
 }
 
 template <typename Iter, typename Traits>
-struct rainy::foundation::system::memory::pointer_traits<rainy::utility::iterator<Iter, Traits>> {
+struct rainy::foundation::memory::pointer_traits<rainy::utility::iterator<Iter, Traits>> {
     using pointer = typename rainy::utility::iterator<Iter, Traits>;
     using elemen_type = typename pointer::value_type;
     using difference_type = typename pointer::difference_type;
@@ -520,6 +520,82 @@ namespace rainy::utility {
     template <typename Map>
     rain_fn mapped_range(const Map &map) -> collections::views::iterator_range<map_mapped_const_iterator<Map>> {
         using iterator = map_mapped_const_iterator<Map>;
+        using range_view = collections::views::iterator_range<iterator>;
+        return range_view{iterator{map.begin()}, iterator{map.end()}};
+    }
+
+    template <typename MapContainer>
+    class map_key_const_iterator
+        : public utility::bidirectional_iterator<
+              map_key_const_iterator<MapContainer>,
+              utility::make_iterator_traits<typename MapContainer::iterator::difference_type, std::bidirectional_iterator_tag,
+                                            typename MapContainer::key_type *, typename MapContainer::key_type &,
+                                            typename MapContainer::key_type>> {
+    public:
+        template <typename MapContainer_>
+        friend class map_mapped_iterator;
+
+        using base = utility::bidirectional_iterator<
+            map_key_const_iterator<MapContainer>,
+            utility::make_iterator_traits<typename MapContainer::iterator::difference_type, std::bidirectional_iterator_tag,
+                                          typename MapContainer::key_type *, typename MapContainer::key_type &,
+                                          typename MapContainer::key_type>>;
+
+        template <typename Ty>
+        explicit map_key_const_iterator(Ty it) : current_(it) {
+        }
+
+        typename base::const_reference get_element_impl() const noexcept {
+            return current_->first;
+        }
+
+        typename base::const_pointer get_pointer_impl() const noexcept {
+            return utility::addressof(current_->first);
+        }
+
+        void next_impl() noexcept {
+            ++current_;
+        }
+
+        void back_impl() noexcept {
+            --current_;
+        }
+
+        bool equal_with_impl(const map_key_const_iterator &other) const noexcept {
+            return current_ == other.current_;
+        }
+
+    private:
+        typename MapContainer::const_iterator current_;
+    };
+
+    template <typename MapContainer>
+    class map_key_iterator : public map_key_const_iterator<MapContainer> {
+    public:
+        using base = typename map_key_const_iterator<MapContainer>::base;
+
+        using const_iterator = map_key_const_iterator<MapContainer>;
+        using const_iterator::const_iterator;
+
+        typename base::pointer get_pointer_impl() noexcept {
+            return utility::addressof(this->current_->first);
+        }
+
+        typename base::reference &get_element_impl() noexcept {
+            return const_cast<typename base::reference &>(this->current_->first);
+        }
+    };
+
+    template <typename Map>
+    rain_fn keyed_range(Map &map) -> collections::views::iterator_range<map_key_iterator<Map>> {
+        using iterator = map_key_iterator<Map>;
+        using range_view = collections::views::iterator_range<iterator>;
+        return range_view{iterator{map.begin()}, iterator{map.end()}};
+    }
+
+    template <typename Map>
+    rain_fn keyed_range(const Map &map) -> collections::views::iterator_range<map_key_iterator<Map>> {
+        using iterator = map_key_iterator<Map>;
         using range_view = collections::views::iterator_range<iterator>;
         return range_view{iterator{map.begin()}, iterator{map.end()}};
     }

@@ -11,7 +11,7 @@ namespace rainy::foundation::fact {
               template <typename Product, typename...> typename ProjHolder = system::memory::nebula_ptr, typename Fx = Prod *(),
               template <typename FxType, typename...> typename Creater = functional::delegate,
               template <typename Key, typename Mapped, typename...> typename Map = collections::dense_map,
-              template <typename FactoryStorageType> typename Alloc = system::memory::allocator>
+              template <typename FactoryStorageType> typename Alloc = memory::allocator>
     class unsynchronized_factory {
     public:
         using product = Prod;
@@ -177,7 +177,7 @@ namespace rainy::foundation::fact {
               template <typename Product, typename...> typename ProjHolder = system::memory::nebula_ptr, typename Fx = Prod *(),
               template <typename FxType, typename...> typename Creater = functional::delegate,
               template <typename Key, typename Mapped, typename...> typename Map = collections::dense_map,
-              template <typename FactoryStorageType> typename Alloc = system::memory::allocator>
+              template <typename FactoryStorageType> typename Alloc = memory::allocator>
     class synchronized_factory {
     public:
         using impl_t = unsynchronized_factory<Prod, ProdKey, ProjHolder, Fx, Creater, Map, Alloc>;

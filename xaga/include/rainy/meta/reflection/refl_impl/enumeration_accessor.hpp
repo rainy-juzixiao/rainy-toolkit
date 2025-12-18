@@ -73,7 +73,7 @@ namespace rainy::meta::reflection::implements {
             return items_;
         }
 
-        std::size_t enum_count() const noexcept {
+        std::size_t enum_count() const noexcept override {
             return enums_.size();
         }
 

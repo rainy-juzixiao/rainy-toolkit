@@ -160,10 +160,6 @@ namespace rainy::type_traits::implements {
 
 #undef RAINY_IS_MEMBER_FUNCTION_POINTER_HELPER_SPEC
 
-#if RAINY_USING_MSVC
-#pragma warning(pop)
-#endif
-
 namespace rainy::type_traits::implements {
     template <typename Ty>
     RAINY_CONSTEXPR_BOOL _is_enum_v = __is_enum(Ty);
@@ -693,5 +689,9 @@ namespace rainy::type_traits::implements {
     template <typename Ty>
     RAINY_CONSTEXPR_BOOL has_adl_swap<Ty, void_t<decltype(swap(utility::declval<Ty &>(), utility::declval<Ty &>()))>> = true;
 }
+
+#if RAINY_USING_MSVC
+#pragma warning(pop)
+#endif
 
 #endif

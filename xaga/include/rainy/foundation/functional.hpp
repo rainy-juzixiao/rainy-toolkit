@@ -15,9 +15,12 @@
  */
 #ifndef RAINY_FOUNDATION_FUNCTIONAL_HPP
 #define RAINY_FOUNDATION_FUNCTIONAL_HPP
+
+// 此头文件用于导入foundation.functional的所有库文件
+
 #include <rainy/core/core.hpp>
 #include <rainy/foundation/functional/delegate.hpp>
 #include <rainy/foundation/functional/function_pointer.hpp>
 #include <rainy/foundation/functional/functor.hpp>
-#include <rainy/foundation/functional/memfn.hpp>
+#include <rainy/foundation/functional/bind.hpp>
 #endif
