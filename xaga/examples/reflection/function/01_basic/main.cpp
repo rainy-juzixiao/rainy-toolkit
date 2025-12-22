@@ -55,8 +55,47 @@ public:
     }
 };
 
-class myclass : virtual public mybase2 {
+enum class color {
+    red,
+    green,
+    blue
+};
+
+class myclass : virtual public mybase2, public meta::reflection::reflect_lunar_for_class<myclass> {
 public:
+    RAINY_INTRUSIVE_REFLECTION_REGISTRATION("myclass", this_instance) {
+        this_instance
+        (
+            meta::reflection::metadata("prop", "virtual public")
+        )
+        .constructor<>()
+        .copy_constructor()
+        .move_constructor()
+        .property("field", &myclass::field)
+        .enumeration<color>("color")
+        .constructor<int>()
+        (
+            meta::reflection::metadata("prop", "ctor")
+        )
+        .method("print_field",
+            utility::get_overloaded_func<myclass,void(std::string) const>(&myclass::print_field))
+        (
+            meta::reflection::metadata("prop","const print")
+        )
+        .method("print_field",
+            utility::get_overloaded_func<myclass,void(int)>(&myclass::print_field))
+        (
+            meta::reflection::metadata("prop", "print"),
+            meta::reflection::default_arguments(50)
+        )
+        .method("virtual_fun", &mybase1::virtual_fun)
+        .method("print_field",
+            utility::get_overloaded_func<myclass,void(myclass)>(&myclass::print_field))
+        .method("virtual_fun", &myclass::virtual_fun)
+        .base<mybase1>("mybase1")
+        .base<mybase2>("mybase2");;
+    }
+
     myclass() {
     }
 
@@ -89,12 +128,6 @@ struct MyStruct {
     int data;
 };
 
-enum class color {
-    red,
-    green,
-    blue
-};
-
 RAINY_REFLECTION_REGISTRATION {
     // clang-format off
     using namespace rainy::meta::reflection;
@@ -102,36 +135,7 @@ RAINY_REFLECTION_REGISTRATION {
 		.constructor<>()
 		.property("data", &MyStruct::data)
 		.method("func", &MyStruct::func);
-    meta::reflection::registration::class_<myclass>("myclass")
-        (
-            meta::reflection::metadata("prop","virtual public")
-        )
-        .constructor<>()
-        .copy_constructor()
-        .move_constructor()
-        .property("field", &myclass::field)
-        .enumeration<color>("color")
-        .constructor<int>()
-        (
-            meta::reflection::metadata("prop", "ctor")
-        )
-        .method("print_field",
-            utility::get_overloaded_func<myclass,void(std::string) const>(&myclass::print_field))
-        (
-            meta::reflection::metadata("prop","const print")
-        )
-        .method("print_field", 
-            utility::get_overloaded_func<myclass,void(int)>(&myclass::print_field))
-        (
-            meta::reflection::metadata("prop", "print"),
-            meta::reflection::default_arguments(50)
-        )
-        .method("virtual_fun", &mybase1::virtual_fun)
-        .method("print_field", 
-            utility::get_overloaded_func<myclass,void(myclass)>(&myclass::print_field))
-        .method("virtual_fun", &myclass::virtual_fun)
-        .base<mybase1>("mybase1")
-        .base<mybase2>("mybase2");
+    
     meta::reflection::registration::fundamental<int>("int")
         (
             metadata("name", "11111")

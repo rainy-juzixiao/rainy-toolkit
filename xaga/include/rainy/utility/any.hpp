@@ -778,12 +778,12 @@ namespace rainy::utility {
                           "The first element of pair-like type is not assignable");
             static_assert(type_traits::type_properties::is_copy_assignable_v<second_type>,
                           "The second element of pair-like type is not assignable");
-            first = implements::convert_any_binding_package<
+            first = convert_any_binding_package<
                 type_traits::other_trans::conditional_t<Const, type_traits::cv_modify::add_const_t<first_type>, first_type>,
-                0>::impl(array[0]);
-            second = implements::convert_any_binding_package<
+                0>::impl(array[0]); // NOLINT
+            second = convert_any_binding_package<
                 type_traits::other_trans::conditional_t<Const, type_traits::cv_modify::add_const_t<second_type>, second_type>,
-                1>::impl(array[1]);
+                1>::impl(array[1]); // NOLINT
             std::swap(tmp, pair);
         }
 
@@ -975,6 +975,10 @@ namespace rainy::utility {
                     return static_cast<TargetType>(*static_cast<const std::uint32_t *>(target_pointer));
                 case rainy_typehash(std::uint64_t):
                     return static_cast<TargetType>(*static_cast<const std::uint64_t *>(target_pointer));
+#if RAINY_USING_LINUX
+                case rainy_typehash(long long unsigned int):
+                    return static_cast<TargetType>(*static_cast<const long long unsigned int *>(target_pointer));
+#endif
                 default:
                     break;
             }
@@ -997,6 +1001,9 @@ namespace rainy::utility {
                 case rainy_typehash(std::uint16_t):
                 case rainy_typehash(std::uint32_t):
                 case rainy_typehash(std::uint64_t):
+#if RAINY_USING_LINUX
+                    case rainy_typehash(long long unsigned int):
+#endif
                     return true;
                 default:
                     return false;

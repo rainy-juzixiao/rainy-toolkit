@@ -52,7 +52,7 @@ namespace rainy::meta::reflection {
     }
 
     void function::copy_from_other(const function &right) noexcept {
-        if (this == utility::addressof(right)) {
+        if (this == utility::addressof(right) || right.empty()) {
             return;
         }
         invoke_accessor_ = right.invoke_accessor()->construct_from_this(this->invoker_storage);
@@ -110,7 +110,7 @@ namespace rainy::meta::reflection {
         return invoke_accessor()->function_signature();
     }
 
-    bool function::has(method_flags flag) const noexcept {
+    bool function::has(const method_flags flag) const noexcept {
         return static_cast<bool>(type() & flag);
     }
 
@@ -210,7 +210,7 @@ namespace rainy::meta::reflection {
         return has(method_flags::rvalue_qualified);
     }
 
-    bool function::is_invocable(collections::views::array_view<foundation::ctti::typeinfo> paramlist) const noexcept {
+    bool function::is_invocable(const collections::views::array_view<foundation::ctti::typeinfo> paramlist) const noexcept {
         if (empty()) {
             return false;
         }
@@ -222,18 +222,18 @@ namespace rainy::meta::reflection {
         return invoke_accessor()->paramlists().size();
     }
 
-    const foundation::ctti::typeinfo &function::arg(std::size_t idx) const {
+    const foundation::ctti::typeinfo &function::arg(const std::size_t idx) const {
         utility::expects(!empty(), "You're trying to get the arg type of a empty object!");
         return invoke_accessor()->paramlists().at(static_cast<std::ptrdiff_t>(idx));
     }
 
-    bool function::is_variadic_invocable_with(collections::views::array_view<utility::any> args) {
+    bool function::is_variadic_invocable_with(const collections::views::array_view<utility::any> args) const {
         utility::expects(!empty(), "You're trying to get the arg type of a empty object!");
         return invoke_accessor()->is_invocable_with(args);
     }
 
     RAINY_INLINE utility::any function::invoke_variadic(object_view instance,
-                                                        collections::views::array_view<utility::any> args) const {
+                                                        const collections::views::array_view<utility::any> args) const {
         using namespace foundation::ctti;
 #if RAINY_ENABLE_DEBUG
         utility::expects(!empty(), "Cannot call [invoke] method, curent object is empty!");
@@ -272,7 +272,7 @@ namespace rainy::meta::reflection {
     }
 
     void method::rebind(std::nullptr_t) noexcept {
-        function::reset();
+        reset();
         ptr.reset();
     }
 

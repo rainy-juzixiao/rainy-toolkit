@@ -17,7 +17,6 @@
 #define RAINY_META_REFLECTION_METADATA_HPP
 #include <rainy/core/core.hpp>
 #include <rainy/utility/any.hpp>
-#include <rainy/utility/arg_extractor.hpp>
 
 namespace rainy::meta::reflection {
     class metadata {
@@ -26,14 +25,14 @@ namespace rainy::meta::reflection {
 
         metadata(metadata &&right) noexcept : key_{utility::move(right.key_)}, value_{utility::move(right.value_)} {
         }
-        metadata(const metadata &right) : key_{right.key_}, value_{right.value_} {
-        }
+
+        metadata(const metadata &right) = default;
 
         metadata &operator=(const metadata &) = default;
         metadata &operator=(metadata &&) = default;
 
         template <typename Ty1, typename Ty2>
-        metadata(Ty1 &&key, Ty2 &&value) : key_(), value_(utility::forward<Ty2>(value)) {
+        metadata(Ty1 &&key, Ty2 &&value) : value_(utility::forward<Ty2>(value)) {
             if (type_traits::type_relations::is_same_v<std::string_view, Ty1>) {
                 this->key_.emplace<std::string_view>(utility::forward<Ty1>(key));
             } else if constexpr (type_traits::type_properties::is_constructible_v<std::string, Ty1>) {

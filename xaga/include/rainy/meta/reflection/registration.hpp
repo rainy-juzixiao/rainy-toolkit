@@ -15,10 +15,11 @@
  */
 #ifndef RAINY_META_REFLECTION_REGISTRATION_HPP
 #define RAINY_META_REFLECTION_REGISTRATION_HPP
+#include <rainy/meta/moon/enumeration.hpp>
 #include <rainy/meta/reflection/metadata.hpp>
 #include <rainy/meta/reflection/moon/reflect.hpp>
 #include <rainy/meta/reflection/type.hpp>
-#include <rainy/meta/moon/enumeration.hpp>
+#include <rainy/utility/arg_extractor.hpp>
 #include <string_view>
 
 namespace rainy::meta::reflection::implements {
@@ -58,7 +59,6 @@ namespace rainy::meta::reflection::implements {
 
     template <typename T, typename... Rest>
     struct extract_unique_tuple<T, Rest...> {
-    public:
         using next = extract_unique_tuple<Rest...>;
 
         static constexpr bool current_is_tuple = is_tuple<std::decay_t<T>>::value;
@@ -175,7 +175,7 @@ namespace rainy::meta::reflection {
                       type_traits::other_trans::enable_if_t<type_traits::primary_types::is_pointer_v<Property> ||
                                                                 (type_traits::primary_types::is_member_object_pointer_v<Property>),
                                                             int> = 0>
-            bind<reflection::property, Type, Property> property(std::string_view name, Property &&property) {
+            bind<property, Type, Property> property(std::string_view name, Property &&property) {
                 return bind<reflection::property, Type, Property>{this->type, name, utility::forward<Property>(property)};
             }
 
@@ -186,7 +186,7 @@ namespace rainy::meta::reflection {
              */
             template <typename... Args,
                       type_traits::other_trans::enable_if_t<type_traits::type_properties::is_constructible_v<Type, Args...>, int> = 0>
-            bind<reflection::constructor, Type, Type (*)(Args...)> constructor() {
+            bind<constructor, Type, Type (*)(Args...)> constructor() {
                 static constexpr auto name_var = implements::make_ctor_name<Type, Args...>();
                 std::string_view name{name_var.data(), name_var.size()};
                 return bind<reflection::constructor, Type, Type (*)(Args...)>{this->type, name, utility::get_ctor_fn<Type, Args...>()};
@@ -293,7 +293,7 @@ namespace rainy::meta::reflection {
         template <typename Type>
         static rain_fn fundamental(std::string_view name) -> bind<reflection::fundmental, void, Type> {
             auto accessor = implements::new_type_accessor_instance<Type>(name);
-            return bind<reflection::fundmental, void, Type>{accessor, name, implements::global_type_accessor()};
+            return bind<fundmental, void, Type>{accessor, name, implements::global_type_accessor()};
         }
 
         template <typename Fx>
@@ -310,17 +310,55 @@ namespace rainy::meta::reflection {
 }
 
 #define RAINY_REFLECTION_REGISTRATION                                                                                                 \
-    static void RAINY_CAT(RAINY_CAT(rainytoolkit_auto_register_reflection_, __LINE__), _function_());                                 \
-    namespace rainy::meta::implements::auto_regsiter {                                                                                \
-        struct RAINY_CAT(rainytoolkit_reflection_auto_register, __LINE__) {                                                           \
-            RAINY_CAT(rainytoolkit_reflection_auto_register, __LINE__)() {                                                            \
-                RAINY_CAT(RAINY_CAT(rainytoolkit_auto_register_reflection_, __LINE__), _function_());                                 \
-            }                                                                                                                         \
-        };                                                                                                                            \
+    static void rainytoolkit_auto_register_reflection_function();                                                                     \
+    struct rainytoolkit_auto_register_reflection_ {                                                                                   \
+        rainytoolkit_auto_register_reflection_() {                                                                                    \
+            rainytoolkit_auto_register_reflection_function();                                                                         \
+        }                                                                                                                             \
+    };                                                                                                                                \
+    static const rainytoolkit_auto_register_reflection_ rainy_toolkit_auto_register;                                                  \
+    static void rainytoolkit_auto_register_reflection_function()
+
+namespace rainy::annotations::runtime_assembly {
+    template <typename Ty>
+    class reflect_lunar_for_class {
+    public:
+        virtual ~reflect_lunar_for_class() = default;
+        using lunar_current_register_type = Ty;
+
+    private:
+        struct reflect_register {
+            reflect_register() {
+                meta::reflection::registration::class_<Ty> instance(Ty::impl_get_reflect_lunar_name());
+                Ty::impl_reflect_lunar_for_class(instance);
+            }
+        };
+
+        virtual void *rainy_toolkit_touch_register() {
+            return &register_; // 避免TU链接剪切优化和ODR
+        }
+
+        static reflect_register register_;
+    };
+
+    template <typename Ty>
+    typename reflect_lunar_for_class<Ty>::reflect_register reflect_lunar_for_class<Ty>::register_;
+}
+
+namespace rainy::meta::reflection {
+    using annotations::runtime_assembly::reflect_lunar_for_class;
+}
+
+/**
+ * @brief 用于对类进行侵入式注册
+ * @param name 要侵入的类的名称
+ * @param reg_param 注册器名称
+ */
+#define RAINY_INTRUSIVE_REFLECTION_REGISTRATION(name, reg_param)                                                                      \
+    static std::string_view impl_get_reflect_lunar_name() {                                                                           \
+        return name;                                                                                                                  \
     }                                                                                                                                 \
-    static const RAINY_CAT(rainy::meta::implements::auto_regsiter::rainytoolkit_reflection_auto_register, __LINE__)                   \
-        RAINY_CAT(rainy_toolkit_reflect_auto_register_, __LINE__);                                                                    \
-    static void RAINY_CAT(RAINY_CAT(rainytoolkit_auto_register_reflection_, __LINE__), _function_())
+    static void impl_reflect_lunar_for_class(::rainy::meta::reflection::registration::class_<lunar_current_register_type> &reg_param)
 
 namespace rainy::meta::reflection::implements {
     template <typename Ty>
@@ -383,7 +421,7 @@ namespace rainy::meta::reflection {
     public:
         bind(implements::type_accessor *type, annotations::lifetime::in<std::string_view> name, Fx &&f) :
             implements::registration_derived_t<ClassType>(core::internal_construct_tag, type), type_accessor(type),
-            fn(utility::forward<Fx>(f)), name(name), ctor_{} {
+            fn(utility::forward<Fx>(f)), name(name) {
         }
 
         ~bind() {
@@ -419,7 +457,7 @@ namespace rainy::meta::reflection {
         implements::type_accessor *type_accessor;
         Fx fn;
         std::string_view name;
-        reflection::constructor ctor_;
+        constructor ctor_;
     };
 
     template <typename ClassType, typename Field>
@@ -502,7 +540,7 @@ namespace rainy::meta::reflection {
             rainy_let enum_type_storage = implements::new_enum_type_storage_instance<EnumType>(enumeration_type_accessor);
             static constexpr std::size_t enum_values_count =
                 type_traits::other_trans::count_type_v<implements::enum_data<EnumType>, type_traits::other_trans::type_list<Args...>>;
-            if constexpr (enum_values_count != -1) {
+            if constexpr (enum_values_count != -1u) {
                 collections::array<implements::enum_data<EnumType>, enum_values_count> enumerations =
                     utility::extract_args_to_array<implements::enum_data<EnumType>>(utility::forward<Args>(args)...);
                 enum_type_storage->enums_.reserve(enum_values_count);
@@ -545,8 +583,7 @@ namespace rainy::meta::reflection {
             return implements::registration_derived_t<ClassType>(core::internal_construct_tag, class_t);
         }
 
-        ~bind() {
-        }
+        ~bind() = default;
 
     private:
         std::string_view name;

@@ -16,9 +16,9 @@
 #ifndef RAINY_META_REFLECTION_FUNDMENTAL_HPP
 #define RAINY_META_REFLECTION_FUNDMENTAL_HPP
 #include <rainy/core/core.hpp>
-#include <rainy/utility/any.hpp>
 #include <rainy/meta/reflection/refl_impl/fundmental_accessor.hpp>
 #include <rainy/meta/reflection/refl_impl/type_register.hpp>
+#include <rainy/utility/any.hpp>
 
 namespace rainy::meta::reflection {
     class shared_object;
@@ -47,11 +47,19 @@ namespace rainy::meta::reflection {
             return this_fund_t.create(value);
         }
 
-        rain_fn is_valid() const noexcept -> bool {
+        RAINY_NODISCARD rain_fn is_valid() const noexcept -> bool {
             return accessor && fundmental_accessor;
         }
 
-        rain_fn get_metadata(const utility::any &key) const noexcept -> const metadata & {
+        RAINY_NODISCARD rain_fn type() const noexcept -> annotations::lifetime::read_only<foundation::ctti::typeinfo> {
+            static constexpr foundation::ctti::typeinfo empty;
+            if (!accessor) {
+                return empty;
+            }
+            return fundmental_accessor->typeinfo();
+        }
+
+        RAINY_NODISCARD rain_fn get_metadata(const utility::any &key) const noexcept -> annotations::lifetime::read_only<metadata> {
             if (!is_valid()) {
                 static metadata empty;
                 return empty;
@@ -59,7 +67,7 @@ namespace rainy::meta::reflection {
             return implements::find_metadata(accessor->metadatas(), key);
         }
 
-        rain_fn get_metadatas() const noexcept -> collections::views::array_view<metadata> {
+        RAINY_NODISCARD rain_fn get_metadatas() const noexcept -> collections::views::array_view<metadata> {
             if (!is_valid()) {
                 return {};
             }

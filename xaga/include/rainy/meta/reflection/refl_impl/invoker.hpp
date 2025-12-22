@@ -16,9 +16,8 @@
 #ifndef RAINY_META_REFL_IMPL_INVOKER_HPP
 #define RAINY_META_REFL_IMPL_INVOKER_HPP
 #include <rainy/core/core.hpp>
-#include <rainy/utility/any.hpp>
 #include <rainy/meta/reflection/object_view.hpp>
-#include <rainy/meta/reflection/refl_impl/arguments.hpp>
+#include <rainy/utility/any.hpp>
 
 #if RAINY_USING_MSVC
 #pragma warning(push)
@@ -177,13 +176,13 @@ namespace rainy::meta::reflection::implements {
             return size >= least && size <= arity && is_compatible_impl(view, type_traits::helper::make_index_sequence<arity>{});
         }
 
-        bool is_compatible(collections::views::array_view<foundation::ctti::typeinfo> paramlist) const {
+        RAINY_NODISCARD bool is_compatible(collections::views::array_view<foundation::ctti::typeinfo> paramlist) const {
             const std::size_t size = paramlist.size();
             static constexpr std::size_t least = arity - sizeof...(DArgs);
             return size >= least && size <= arity && is_compatible_impl(paramlist, type_traits::helper::make_index_sequence<arity>{});
         }
 
-        bool is_compatible(collections::views::array_view<utility::any> paramlist) const {
+        RAINY_NODISCARD bool is_compatible(collections::views::array_view<utility::any> paramlist) const {
             const std::size_t size = paramlist.size();
             static constexpr std::size_t least = arity - sizeof...(DArgs);
             return size >= least && size <= arity && is_compatible_impl(paramlist, type_traits::helper::make_index_sequence<arity>{});
@@ -201,14 +200,14 @@ namespace rainy::meta::reflection::implements {
         bool is_compatible_impl(collections::views::array_view<foundation::ctti::typeinfo> paramlist,
                                 type_traits::helper::index_sequence<I...>) const {
             static auto &target_paramlist = implements::param_types_res<Args...>();
-            return ((I < paramlist.size() ? paramlist[I].is_compatible(target_paramlist[I]) : true) && ...);
+            return ((I < paramlist.size() ? paramlist[I].is_compatible(target_paramlist[I]) : true) && ...); // NOLINT
         }
 
         template <std::size_t... I>
         bool is_compatible_impl(collections::views::array_view<utility::any> paramlist,
                                 type_traits::helper::index_sequence<I...>) const {
             static auto &target_paramlist = implements::param_types_res<Args...>();
-            return ((I < paramlist.size() ? paramlist[I].type().is_compatible(target_paramlist[I]) : true) && ...);
+            return ((I < paramlist.size() ? paramlist[I].type().is_compatible(target_paramlist[I]) : true) && ...); // NOLINT
         }
 
         template <typename View, std::size_t... I>
@@ -244,12 +243,11 @@ namespace rainy::meta::reflection::implements {
             using type = typename type_traits::other_trans::type_at<I, TypeList>::type;
             if (I < items.size()) {
                 return get_arg<type>(items[I]);
+            }
+            if constexpr (I >= (arity - sizeof...(DArgs)) && I - (arity - sizeof...(DArgs)) < sizeof...(DArgs)) {
+                return arguments.template get<I - (arity - sizeof...(DArgs))>();
             } else {
-                if constexpr (I >= (arity - sizeof...(DArgs)) && I - (arity - sizeof...(DArgs)) < sizeof...(DArgs)) {
-                    return arguments.template get<I - (arity - sizeof...(DArgs))>();
-                } else {
-                    throw std::runtime_error("Invalid default argument access");
-                }
+                throw std::runtime_error("Invalid default argument access");
             }
         }
 

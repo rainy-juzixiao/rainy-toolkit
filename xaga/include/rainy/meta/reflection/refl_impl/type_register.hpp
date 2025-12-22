@@ -119,7 +119,7 @@ namespace rainy::meta::reflection::implements {
 
         static register_table &instance();
 
-        myimpl *global_ptr;
+        myimpl *global_ptr{};
     };
 }
 
@@ -140,7 +140,7 @@ namespace rainy::meta::reflection::implements {
 
         static injector &instance();
 
-        myimpl *global_ptr;
+        myimpl *global_ptr{};
     };
 }
 
@@ -253,7 +253,7 @@ namespace rainy::meta::reflection::implements {
 
         explicit type_accessor_impl_enumeration(const std::string_view name) noexcept :
             name_(name), typeinfo_(foundation::ctti::typeinfo::create<Type>()),
-            enumeration{core::internal_construct_tag, this, new_enum_type_storage_instance<Type>(this)} {
+            enumeration_{core::internal_construct_tag, this, new_enum_type_storage_instance<Type>(this)} {
         }
 
         RAINY_NODISCARD std::string_view name() const noexcept override {
@@ -310,7 +310,7 @@ namespace rainy::meta::reflection::implements {
         }
 
         enumeration &as_enumeration() noexcept override {
-            return enumeration;
+            return enumeration_;
         }
 
         fundmental &as_fundmental() noexcept override {
@@ -321,7 +321,7 @@ namespace rainy::meta::reflection::implements {
     private:
         std::string_view name_;
         foundation::ctti::typeinfo typeinfo_;
-        enumeration_impl enumeration;
+        enumeration_impl enumeration_;
     };
 
     template <typename Type, typename FundmentalType = fundmental, typename EnumerationImpl = enumeration, typename Constrcutor = constructor, typename CtorStorageT = ctor_storage_t, typename Metadata = metadata>
@@ -329,7 +329,7 @@ namespace rainy::meta::reflection::implements {
     public:
         using fundmental_impl = FundmentalType;
         using constructor_impl = Constrcutor;
-        using enumeration = EnumerationImpl;
+        using enumeration_impl = EnumerationImpl;
 
         explicit type_accessor_impl_fundmental_type(const std::string_view name) noexcept :
             name_(name), typeinfo_(foundation::ctti::typeinfo::create<Type>()),
@@ -387,7 +387,7 @@ namespace rainy::meta::reflection::implements {
         }
 
         enumeration &as_enumeration() noexcept override {
-            static enumeration empty;
+            static enumeration_impl empty;
             return empty;
         }
 

@@ -22,6 +22,7 @@
 #include <rainy/utility/any.hpp>
 #include <rainy/meta/reflection/object_view.hpp>
 #include <rainy/meta/reflection/metadata.hpp>
+#include <memory>
 
 // NOLINTEND
 
@@ -120,29 +121,29 @@ namespace rainy::meta::reflection {
             return *reinterpret_cast<Type Class::**>(ptr);
         }
 
-        field_flags type() const noexcept;
+        RAINY_NODISCARD field_flags type() const noexcept;
 
-        bool is_const() const noexcept;
+        RAINY_NODISCARD bool is_const() const noexcept;
 
-        bool is_static() const noexcept {
+        RAINY_NODISCARD bool is_static() const noexcept {
             return static_cast<bool>(type() | field_flags::static_field);
         }
 
-        bool is_volatile() const noexcept;
+        RAINY_NODISCARD bool is_volatile() const noexcept;
 
-        bool is_member_pointer() const noexcept;
+        RAINY_NODISCARD bool is_member_pointer() const noexcept;
 
-        bool is_pointer() const noexcept;
+        RAINY_NODISCARD bool is_pointer() const noexcept;
 
-        bool is_array() const noexcept;
+        RAINY_NODISCARD bool is_array() const noexcept;
 
-        bool is_fundamental() const noexcept;
+        RAINY_NODISCARD bool is_fundamental() const noexcept;
 
-        bool is_compound() const noexcept;
+        RAINY_NODISCARD bool is_compound() const noexcept;
 
         void clear() noexcept;
 
-        bool empty() const noexcept;
+        RAINY_NODISCARD bool empty() const noexcept;
 
     private:
         struct field_accessor {
@@ -261,32 +262,27 @@ namespace rainy::meta::reflection {
         property(property &&right) noexcept : field(utility::move(right)), ptr{utility::move(right.ptr)} {
         }
 
-        property(const property &right) noexcept : field(right), ptr(right.ptr) {
-        }
+        property(const property &right) noexcept = default;
 
-        property &operator=(const property &right) {
-            field::operator=(right);
-            this->ptr = right.ptr;
-            return *this;
-        }
+        property &operator=(const property &right) = default;
 
-        property &operator=(property &right) {
+        property &operator=(property &&right) noexcept {
             field::operator=(utility::move(right));
             this->ptr = utility::move(right.ptr);
             return *this;
         }
 
-        std::string_view get_name() const noexcept;
+        RAINY_NODISCARD std::string_view get_name() const noexcept;
 
-        const metadata &get_metadata(const utility::any &key) const noexcept;
+        RAINY_NODISCARD const metadata &get_metadata(const utility::any &key) const noexcept;
 
-        collections::views::array_view<metadata> get_metadatas() const noexcept;
+        RAINY_NODISCARD collections::views::array_view<metadata> get_metadatas() const noexcept;
 
     private:
         template <typename Field, typename... Args, std::size_t N = 0,
                   type_traits::other_trans::enable_if_t<type_traits::type_properties::is_constructible_v<field, Field>, int> = 0>
         property(std::string_view name, Field &&field_, collections::array<metadata, N> &metadatas) noexcept :
-            field(utility::forward<Field>(field_)), ptr(std::make_shared<data>(data{utility::move(name), {}})) {
+            field(utility::forward<Field>(field_)), ptr(std::make_shared<data>(data(utility::move(name), {}))) {
             if constexpr (N != 0) {
                 for (metadata &meta: metadatas) {
                     ptr->metadata.emplace_back(utility::move(meta));

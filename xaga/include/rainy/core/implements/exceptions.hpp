@@ -16,7 +16,6 @@
 #ifndef RAINY_BASIC_EXCEPTIONS_HPP
 #define RAINY_BASIC_EXCEPTIONS_HPP
 #include <rainy/core/implements/source_location.hpp>
-#include <stdexcept>
 
 namespace rainy::foundation::exceptions {
     using exception_handler_t = void(*)();
@@ -29,13 +28,13 @@ namespace rainy::foundation::exceptions::implements {
     RAINY_TOOLKIT_API void invoke_exception_handler() noexcept;
 
     template <typename Except, bool NoExceptionHandlerInvoke = false>
-    constexpr void report_error(
+    constexpr void report_error( // NOLINT
         const type_traits::other_trans::conditional_t<type_traits::type_relations::is_void_v<Except>, void *, Except> &exception) {
         if constexpr (type_traits::type_relations::is_void_v<Except>) {
-            constexpr const char message[] = "Detected error and the program cause a fatal error!";
-            std::fwrite(message, sizeof(char), sizeof(char) * core::builtin::string_length(message), stderr);
+            constexpr char message[] = "Detected error and the program cause a fatal error!";
+            std::fwrite(message, sizeof(char), sizeof(char) * core::builtin::string_length(message), stderr); // NOLINT
         } else {
-            std::fwrite(exception.what(), sizeof(char), sizeof(char) * core::builtin::string_length(exception.what()), stderr);
+            std::fwrite(exception.what(), sizeof(char), sizeof(char) * core::builtin::string_length(exception.what()), stderr); // NOLINT
         }
         if constexpr (!NoExceptionHandlerInvoke) {
             invoke_exception_handler();
@@ -118,7 +117,7 @@ namespace rainy::foundation::exceptions {
         static_assert(type_traits::type_relations::is_base_of_v<std::exception, Except>,
                       "exception type must be derived from std::exception!");
 #if __cpp_exceptions
-        throw wrapexcept<Except>{exception}.get_exception(); // 阻止Clang-Tidy的误报
+        throw wrapexcept<Except>{exception}.get_exception(); // 阻止Clang-Tidy的误报 // NOLINT
 #else
         std::fwrite(exception.what(), sizeof(char), sizeof(char) * core::implements::string_length(exception.what()), stderr);
         std::terminate();
@@ -126,7 +125,7 @@ namespace rainy::foundation::exceptions {
     }
 
     template <typename Except, exception_semantic Semantic = exception_semantic::enforce, typename... Args>
-    constexpr void throw_exception_if(bool cond, Args &&...args) {
+    constexpr void throw_exception_if(const bool cond, Args &&...args) {
         static_assert(type_traits::type_relations::is_base_of_v<std::exception, Except>,
                       "exception type must be derived from std::exception!");
         if (!cond) {
@@ -146,13 +145,13 @@ namespace rainy::foundation::exceptions {
                         if constexpr (core::is_rainy_enable_exception) {
                             type_traits::other_trans::decay_t<Except> exception(utility::forward<Args>(args)...);
                             if constexpr (Semantic == exception_semantic::assertion) {
-                                implements::report_error(exception);
+                                implements::report_error<Except>(exception);
                             } else {
                                 throw wrapexcept<Except>{utility::move(exception)}.get_exception();
                             }
                         } else {
                             type_traits::other_trans::decay_t<Except> exception(utility::forward<Args>(args)...);
-                            implements::report_error(exception);
+                            implements::report_error<Except>(exception);
                         }
                     }
                 }
@@ -267,11 +266,10 @@ namespace rainy::foundation::exceptions::cast {
 
 #if RAINY_HAS_CXX20
 template <>
-class std::formatter<rainy::foundation::exceptions::exception, char> {
-public:
+struct std::formatter<rainy::foundation::exceptions::exception, char> {
     explicit formatter() noexcept = default;
 
-    static auto parse(format_parse_context &ctx) noexcept {
+    static auto parse(const format_parse_context &ctx) noexcept {
         return ctx.begin();
     }
 
@@ -307,13 +305,13 @@ namespace rainy::foundation::exceptions::runtime {
 namespace rainy::foundation::exceptions {
     class multiple_exceptions : public exception {
     public:
-        multiple_exceptions(std::exception_ptr first) noexcept;
+        explicit multiple_exceptions(std::exception_ptr first) noexcept;
 
-        const char *what() const noexcept override {
+        RAINY_NODISCARD const char *what() const noexcept override {
             return "multiple exceptions";
         }
 
-        std::exception_ptr first_exception() const {
+        RAINY_NODISCARD std::exception_ptr first_exception() const {
             return first_;
         }
 
@@ -327,11 +325,11 @@ namespace rainy::foundation::exceptions::runtime {
     public:
         using base = runtime_error;
 
-        nullpointer_exception(source loc = source::current()) : base("nullpointer detected", loc) {
+        explicit nullpointer_exception(const source &loc = source::current()) : base("nullpointer detected", loc) {
         }
     };
 
-    RAINY_INLINE void throw_nullpointer_exception(utility::source_location loc = utility::source_location::current()) {
+    RAINY_INLINE void throw_nullpointer_exception(const utility::source_location &loc = utility::source_location::current()) {
         throw_exception(nullpointer_exception{loc});
     }
 }

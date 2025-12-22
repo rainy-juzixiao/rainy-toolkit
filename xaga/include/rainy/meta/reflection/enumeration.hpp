@@ -29,58 +29,58 @@ namespace rainy::meta::reflection {
 
         enumeration(annotations::lifetime::read_only<enumeration>) = default;
 
-        rain_fn get_names() const noexcept -> collections::views::array_view<std::string_view> {
+        RAINY_NODISCARD rain_fn get_names() const noexcept -> collections::views::array_view<std::string_view> {
             if (!accessor) {
                 return {};
             }
             return accessor->names();
         }
 
-        rain_fn get_values() const noexcept -> collections::views::array_view<utility::any> {
+        RAINY_NODISCARD rain_fn get_values() const noexcept -> collections::views::array_view<utility::any> {
             if (!accessor) {
                 return {};
             }
             return accessor->values();
         }
 
-        rain_fn value_to_name(annotations::lifetime::in<utility::any> value) const noexcept -> std::string_view {
+        RAINY_NODISCARD rain_fn value_to_name(annotations::lifetime::in<utility::any> value) const noexcept -> std::string_view {
             if (!accessor) {
                 return {};
             }
             return accessor->value_to_name(value);
         }
 
-        rain_fn name_to_value(std::string_view name) const -> utility::any {
+        RAINY_NODISCARD rain_fn name_to_value(const std::string_view name) const -> utility::any {
             if (!accessor) {
                 return {};
             }
             return accessor->name_to_value(name);
         }
 
-        rain_fn type() const noexcept -> const foundation::ctti::typeinfo & {
-            static const foundation::ctti::typeinfo empty;
+        RAINY_NODISCARD rain_fn type() const noexcept -> const foundation::ctti::typeinfo & {
+            static constexpr foundation::ctti::typeinfo empty;
             if (!accessor) {
                 return empty;
             }
             return type_accessor->typeinfo();
         }
 
-        rain_fn underlying_type() const noexcept -> const foundation::ctti::typeinfo & {
-            static const foundation::ctti::typeinfo empty;
+        RAINY_NODISCARD rain_fn underlying_type() const noexcept -> const foundation::ctti::typeinfo & {
+            static constexpr foundation::ctti::typeinfo empty;
             if (!accessor) {
                 return empty;
             }
             return accessor->underlying_type();
         }
 
-        rain_fn get_name() const noexcept -> std::string_view {
+        RAINY_NODISCARD rain_fn get_name() const noexcept -> std::string_view {
             if (!accessor) {
                 return {};
             }
             return type_accessor->name();
         }
 
-        rain_fn contains(std::string_view name) const noexcept -> bool {
+        RAINY_NODISCARD rain_fn contains(const std::string_view name) const noexcept -> bool {
             if (!accessor) {
                 return false;
             }
@@ -88,25 +88,22 @@ namespace rainy::meta::reflection {
             return core::algorithm::find(names_view.begin(), names_view.end(), name) != names_view.end();
         }
 
-        rain_fn enum_count() const noexcept -> std::size_t {
+        RAINY_NODISCARD rain_fn enum_count() const noexcept -> std::size_t {
             if (!accessor) {
                 return {};
             }
             return accessor->enum_count();
         }
 
-        bool operator==(const enumeration &right) const noexcept {
-            if (!this->accessor || !right.accessor) {
+        friend bool operator==(const enumeration& left,const enumeration &right) noexcept {
+            if (!left.type_accessor || !right.type_accessor) {
                 return false;
             }
-            return type_accessor->typeinfo() == right.type_accessor->typeinfo();
+            return left.type_accessor->typeinfo() == right.type_accessor->typeinfo();
         }
 
-        bool operator!=(const enumeration &right) const noexcept {
-            if (!this->accessor || !right.accessor) {
-                return false;
-            }
-            return type_accessor->typeinfo() != right.type_accessor->typeinfo();
+        friend bool operator!=(const enumeration& left,const enumeration &right) noexcept {
+            return !(left == right);
         }
 
     private:

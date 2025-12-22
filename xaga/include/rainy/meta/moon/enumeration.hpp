@@ -15,9 +15,11 @@
  */
 #ifndef RAINY_META_MOON_ENUMERATION_HPP
 #define RAINY_META_MOON_ENUMERATION_HPP
-#include <rainy/core/core.hpp>
-#include <rainy/utility/pair.hpp>
 #include <optional>
+#include <rainy/core/core.hpp>
+#include <rainy/foundation/functional/functor.hpp>
+#include <rainy/foundation/typeinfo.hpp>
+#include <rainy/utility/pair.hpp>
 
 #define ENUM_SCAN_BEGIN -127
 #define ENUM_SCAN_END 128
@@ -84,7 +86,7 @@ namespace rainy::meta::moon {
         return default_tag;
     }
 
-    template <typename Enum>
+    template <typename>
     constexpr customize_t customize_for_enum_type_name() noexcept {
         return default_tag;
     }
@@ -118,7 +120,7 @@ namespace rainy::meta::moon::implements {
         if (str.empty()) {
             return false;
         }
-        return str[0] != '(';
+        return str[0] != '('; // NOLINT
     }
 
     template <typename E, auto V>
@@ -241,9 +243,9 @@ namespace rainy::meta::moon {
     template <typename E>
     constexpr std::size_t enum_count() noexcept {
         static_assert(std::is_enum_v<E>, "must be enum");
-        constexpr int begin = ENUM_SCAN_BEGIN;
-        constexpr int end = ENUM_SCAN_END;
-        constexpr std::size_t n = static_cast<std::size_t>(end - begin + 1);
+        constexpr rainy_let begin = ENUM_SCAN_BEGIN;
+        constexpr rainy_let end = ENUM_SCAN_END;
+        constexpr rainy_let n = static_cast<std::size_t>(end - begin + 1); // NOLINT
         static_assert(implements::enum_range_checker_impl<E, begin>(std::make_index_sequence<n>{}),
                       "Enum has no valid values in scan range!");
         return implements::enum_count_impl<E, begin>(std::make_index_sequence<n>{});
@@ -251,9 +253,9 @@ namespace rainy::meta::moon {
 
     template <typename E>
     constexpr auto enum_values() noexcept {
-        constexpr int begin = ENUM_SCAN_BEGIN;
-        constexpr int end = ENUM_SCAN_END;
-        constexpr std::size_t n = static_cast<std::size_t>(end - begin + 1);
+        constexpr rainy_let begin = ENUM_SCAN_BEGIN;
+        constexpr rainy_let end = ENUM_SCAN_END;
+        constexpr rainy_let n = static_cast<std::size_t>(end - begin + 1); // NOLINT
         return implements::enum_values_impl<enum_count<E>(), E, begin>(std::make_index_sequence<n>{});
     }
 
@@ -272,9 +274,9 @@ namespace rainy::meta::moon {
 
     template <typename E>
     constexpr auto enum_entries() {
-        constexpr int begin = ENUM_SCAN_BEGIN;
-        constexpr int end = ENUM_SCAN_END;
-        constexpr std::size_t n = static_cast<std::size_t>(end - begin + 1);
+        constexpr rainy_let begin = ENUM_SCAN_BEGIN;
+        constexpr rainy_let end = ENUM_SCAN_END;
+        constexpr rainy_let n = static_cast<std::size_t>(end - begin + 1); // NOLINT
         return implements::enum_entries_impl<enum_count<E>(), E, begin>(std::make_index_sequence<n>{});
     }
 
@@ -360,10 +362,7 @@ namespace rainy::meta::moon {
 
     template <typename Enum, implements::enable_if_t<Enum, int> = 0>
     RAINY_NODISCARD constexpr auto enum_contains(Enum value) noexcept {
-        if (enum_cast<Enum>(value).has_value()) {
-            return true;
-        }
-        return false;
+        return static_cast<bool>(enum_cast<Enum>(value).has_value());
     }
 
     template <typename Enum, Enum Value, implements::enable_if_t<Enum, int> = 0>
@@ -373,18 +372,12 @@ namespace rainy::meta::moon {
 
     template <typename Enum>
     RAINY_NODISCARD constexpr bool enum_contains(type_traits::other_trans::underlying_type_t<Enum> value) noexcept {
-        if (enum_cast<Enum>(value).has_value()) {
-            return true;
-        }
-        return false;
+        return static_cast<bool>(enum_cast<Enum>(value).has_value());
     }
 
     template <typename Enum, typename Pred = foundation::functional::equal<Enum>>
     RAINY_NODISCARD constexpr bool enum_contains(std::string_view name, Pred pred = {}) noexcept {
-        if (enum_cast<Enum>(name, pred).has_value()) {
-            return true;
-        }
-        return false;
+        return static_cast<bool>(enum_cast<Enum>(name, pred).has_value());
     }
 }
 

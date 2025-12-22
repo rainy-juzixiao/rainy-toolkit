@@ -15,11 +15,11 @@
  */
 #ifndef RAINY_META_RELF_IMPL_FUNCTION_HPP
 #define RAINY_META_RELF_IMPL_FUNCTION_HPP
+#include <memory>
 #include <rainy/core/core.hpp>
 #include <rainy/foundation/diagnostics/contract.hpp>
 #include <rainy/meta/reflection/metadata.hpp>
 #include <rainy/meta/reflection/refl_impl/invoker_accessor.hpp>
-#include <memory>
 
 namespace rainy::meta::reflection {
     /**
@@ -76,7 +76,7 @@ namespace rainy::meta::reflection {
 
             using implemented_type = typename implements::get_ia_implement_type<Fx, implements::default_arguments_store<Args...>,
                                                                                 type_traits::primary_types::function_traits<Fx>>::type;
-            invoke_accessor_ = utility::construct_at(reinterpret_cast<implemented_type *>(invoker_storage),
+            invoke_accessor_ = utility::construct_at(reinterpret_cast<implemented_type *>(invoker_storage), // NOLINT
                                                      utility::forward<Fx>(function), utility::forward<Args>(default_arguments)...);
             if constexpr (sizeof(implemented_type) >= core::fn_obj_soo_buffer_size) {
                 invoke_accessor_ =
@@ -136,7 +136,7 @@ namespace rainy::meta::reflection {
             }
         }
 
-        RAINY_INLINE utility::any invoke_variadic(object_view instance, collections::views::array_view<utility::any> args = {}) const;
+        RAINY_INLINE utility::any invoke_variadic(object_view instance, collections::views::array_view<utility::any> args = {}) const; // NOLINT
 
         /**
          * @brief 重载函数调用运算符，以调用函数并返回结果。
@@ -353,12 +353,12 @@ namespace rainy::meta::reflection {
         }
 
         template <typename... Args>
-        bool is_invocable_with(Args &&...args) const noexcept {
+        RAINY_NODISCARD bool is_invocable_with(Args &&...args) const noexcept {
             implements::make_paramlist paramlist{utility::forward<Args>(args)...};
             return is_invocable(paramlist.get());
         }
 
-        bool is_variadic_invocable_with(collections::views::array_view<utility::any> args);
+        RAINY_NODISCARD bool is_variadic_invocable_with(collections::views::array_view<utility::any> args) const;
 
         /**
          * @brief 获取函数对象的目标函数指针。
@@ -410,9 +410,9 @@ namespace rainy::meta::reflection {
         }
 
     private:
-        bool is_local() const noexcept;
+        RAINY_NODISCARD bool is_local() const noexcept;
 
-        RAINY_INLINE implements::invoker_accessor *invoke_accessor() const noexcept {
+        RAINY_NODISCARD RAINY_INLINE implements::invoker_accessor *invoke_accessor() const noexcept {
             return invoke_accessor_;
         }
 
@@ -483,24 +483,22 @@ namespace rainy::meta::reflection {
         method(method &&right) noexcept : function(utility::move(right)), ptr{utility::move(right.ptr)} {
         }
 
-        method(const method &right) noexcept :
-            function(right), ptr(right.ptr) {
-        }
+        method(const method &right) noexcept = default;
 
         method &operator=(method &&right) noexcept;
         method& operator=(const method & right) = default;
 
         void rebind(method &&right) noexcept;
 
-        void rebind(std::nullptr_t) noexcept;
+        void rebind(std::nullptr_t) noexcept; // NOLINT
 
         void swap(method &right) noexcept;
 
-        std::string_view get_name() const noexcept;
+        RAINY_NODISCARD std::string_view get_name() const noexcept;
 
-        const metadata &get_metadata(const utility::any& key) const noexcept;
+        RAINY_NODISCARD const metadata &get_metadata(const utility::any& key) const noexcept;
 
-        collections::views::array_view<metadata> get_metadatas() const noexcept;
+        RAINY_NODISCARD collections::views::array_view<metadata> get_metadatas() const noexcept;
 
     protected:
         template <typename Fx, typename... Args, std::size_t N = 0, std::size_t... I,
@@ -508,7 +506,7 @@ namespace rainy::meta::reflection {
         method(std::string_view name, Fx &&fn, std::tuple<Args...> &default_arguemnts, collections::array<metadata, N> &metadatas,
                type_traits::helper::index_sequence<I...>) noexcept :
             function(utility::forward<Fx>(fn), std::get<I>(default_arguemnts)...),
-            ptr(std::make_shared<data>(data{utility::move(name), {}})) {
+            ptr(std::make_shared<data>(data(utility::move(name), {}))) {
             if constexpr (N != 0) {
                 for (metadata &meta: metadatas) {
                     ptr->metadata.emplace_back(utility::move(meta));
@@ -519,13 +517,13 @@ namespace rainy::meta::reflection {
     private:
         struct data {
             std::string_view name;
-            std::vector<reflection::metadata> metadata;
+            std::vector<metadata> metadata;
         };
 
         std::shared_ptr<data> ptr;
     };
 
-    class constructor : private method {
+    class constructor : method {
     public:
         template <typename Fx, typename... Args, std::size_t N = 0,
                   type_traits::other_trans::enable_if_t<type_traits::type_properties::is_constructible_v<function, Fx>, int> = 0>
@@ -546,12 +544,9 @@ namespace rainy::meta::reflection {
         constructor(constructor &&right) noexcept = default;
         constructor(const constructor &right) noexcept = default;
 
-        constructor &operator=(const constructor & right) {
-            method::operator=(right);
-            return *this;
-        }
+        constructor &operator=(const constructor & right) = default;
 
-        constructor &operator=(constructor && right) {
+        constructor &operator=(constructor && right) noexcept {
             method::operator=(utility::move(right));
             return *this;
         }
