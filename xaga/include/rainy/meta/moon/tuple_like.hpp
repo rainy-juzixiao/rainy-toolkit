@@ -174,6 +174,13 @@ RAINY_GENERATE_MACRO_FOR_256(RAINY_DECLARE_TO_TUPLE)
 #undef RAINY_DECLARE_TO_TUPLE
 
 namespace rainy::meta::moon {
+    /**
+     * @brief 获取聚合类的成员个数。
+     * @tparam 要获取的对应类型
+     * @attention 如果没有定义任何注册宏或是该类并非聚合类的时候，则无法获取
+     * @remark 默认尝试从聚合类中获取大小，如果特化了reflectet_for_type，即is_reflectet_for_type_valid<type_traits::cv_modify::remove_cvref_t<Ty>>表达式结果为true时
+     * @remark 将返回该特化指定的大小，另外，RAINY_REFLECT_TUPLE_LIKE和RAINY_PRIVATE_REFLECT_TUPLE_LIKE定义的注册也同样适用
+     */
     template <typename Ty>
     struct member_count {
         static constexpr rain_fn eval() noexcept -> std::size_t {
@@ -220,14 +227,15 @@ namespace rainy::utility {
 namespace rainy::meta::moon {
     /**
      * @brief 尝试获取指定类型中所有成员的名称
-     * @tparam Ty 要获取的类型
+     * @tparam Ty 要获取的对应类型
      * @remark 如果使用RAINY_REFLECT_TUPLE_LIKE或RAINY_PRIVATE_REFLECT_TUPLE_LIKE注册了一个类型，那么此方法将返回注册宏中指定的成员名称
-     *
+     * @return 返回指定类型中所有成员的名称
+     * 
      * @attention get_member_names以及其依赖的函数在IDE中可能会导致错误的结果在constexpr求值中，但实际编译期求值会得到正确的结果
      * @attention 因此，如果对IDE中的结果有洁癖，请尽可能避免获取字符串，除非，你定义了注册，这样才能确保IDE生成正确的结果
      */
     template <typename Ty>
-    constexpr auto get_member_names() noexcept {
+    constexpr rain_fn get_member_names() noexcept -> auto {
         if constexpr (is_reflectet_for_type_valid<type_traits::cv_modify::remove_cvref_t<Ty>>) {
             return reflectet_for_type<type_traits::cv_modify::remove_cvref_t<Ty>>::member_names();
         } else {
@@ -637,11 +645,13 @@ namespace rainy::meta::moon {
         }
         return idx;
     }
-
+    
+#if RAINY_HAS_CXX20
     template <typename Ty, type_traits::helper::basic_constexpr_string String>
     constexpr rain_fn index_of() noexcept -> std::size_t {
         return index_of<Ty>({String.data(), String.length()});
     }
+#endif
 
     template <std::size_t Idx, typename Ty>
     constexpr rain_fn get(Ty &&object) noexcept -> decltype(auto) {

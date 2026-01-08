@@ -53,6 +53,7 @@ namespace rainy::meta::reflection::implements {
         virtual collections::views::array_view<std::string_view> names() const = 0;
         virtual collections::views::array_view<utility::any> values() const = 0;
         virtual std::string_view value_to_name(const utility::any &value) const = 0;
+        virtual utility::any value_to_enumerator(const utility::any &value) const = 0;
         virtual utility::any name_to_value(std::string_view name) const = 0;
     };
 
@@ -94,6 +95,27 @@ namespace rainy::meta::reflection::implements {
                                                });
             if (it != enums_.end()) {
                 return names_[index];
+            }
+            return {};
+        }
+
+        utility::any value_to_enumerator(const utility::any &value) const override {
+            Enum enum_value{};
+            if (value.is<Enum>()) {
+                enum_value = value.as<Enum>();
+            } else if (value.is_convertible<type_traits::other_trans::underlying_type_t<Enum>>()) {
+                enum_value = Enum{value.convert<type_traits::other_trans::underlying_type_t<Enum>>()};
+            } else {
+                return {};
+            }
+            std::size_t index{};
+            auto it = core::algorithm::find_if(enums_.begin(), enums_.end(),
+                                               [enum_value, &index](const annotations::lifetime::in<Enum> enum_item) {
+                                                   bool cond = enum_item == enum_value;
+                                                   return cond ? true : (++index, false);
+                                               });
+            if (it != enums_.end()) {
+                return items_[index];
             }
             return {};
         }

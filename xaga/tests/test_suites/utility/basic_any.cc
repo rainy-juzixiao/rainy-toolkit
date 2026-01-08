@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 #include <catch2/catch_test_macros.hpp>
-#include <catch2/matchers/catch_matchers_exception.hpp>
 #include <catch2/matchers/catch_matchers_all.hpp>
+#include <catch2/matchers/catch_matchers_exception.hpp>
 #include <rainy/utility/any.hpp>
 
 #if RAINY_USING_MSVC
@@ -210,7 +210,7 @@ SCENARIO("[construct]", test_tag) {
                     std::string str{};
                     WHEN("use as<Ty&&>() to construct this string") {
                         auto &&ref = std::move(variable.as<std::string &&>());
-                        new (&str) std::string{std::move(ref)};
+                        str = std::move(ref);
                         THEN("reference_string is empty") {
                             REQUIRE_FALSE(str.empty());
                             REQUIRE(reference_string.empty());
@@ -265,8 +265,8 @@ SCENARIO("[construct]", test_tag) {
             GIVEN("a corrupt_variable") {
                 any corrupt_variable;
                 THEN("it should be throw std::runtime_error") {
-                    REQUIRE_THROWS_MATCHES((corrupt_variable.emplace<error_construct_type>(), false),
-                                           std::runtime_error, Catch::Matchers::Message("This is a error"));
+                    REQUIRE_THROWS_MATCHES((corrupt_variable.emplace<error_construct_type>(), false), std::runtime_error,
+                                           Catch::Matchers::Message("This is a error"));
                     REQUIRE_FALSE(corrupt_variable.has_value());
                 }
             }
@@ -497,7 +497,7 @@ SCENARIO("[as-cast]", test_tag) {
     }
     GIVEN("a variable with a integer for reference") {
         int integer{42};
-        any variable{std::in_place_type<const int&>, integer};
+        any variable{std::in_place_type<const int &>, integer};
         WHEN("try to cast int") {
             THEN("checking for cast") {
                 REQUIRE_NOTHROW(variable.as<const int>() == 42); // 仅允许在引用对象时以const形式
@@ -534,7 +534,7 @@ SCENARIO("[convert-cast]", test_tag) {
             THEN("chcecking for value-cast when type is int") {
                 REQUIRE_NOTHROW(variable.convert<double>() == 42.);
                 REQUIRE_NOTHROW(variable.convert<float>() == 42.f);
-                REQUIRE_NOTHROW(variable.convert<std::int64_t>() == 42ll);    
+                REQUIRE_NOTHROW(variable.convert<std::int64_t>() == 42ll);
             }
             WHEN("type is std::size_t") {
                 THEN("checking for overflow value-cast when") {
@@ -608,7 +608,7 @@ SCENARIO("[target_as_void_ptr]", test_tag) {
             variable.emplace<int &>(integer);
             THEN("get target_as_void_ptr() for check") {
                 REQUIRE(variable.target_as_void_ptr() == &integer);
-                REQUIRE(*static_cast<const int*>(variable.target_as_void_ptr()) == 42);
+                REQUIRE(*static_cast<const int *>(variable.target_as_void_ptr()) == 42);
             }
         }
         WHEN("variable is int") {
@@ -689,7 +689,7 @@ SCENARIO("[cast_to_pointer]", test_tag) {
                 REQUIRE(*int_ptr == 10);
             }
             THEN("check cast_to_pointer by using lvalue-ref-type") {
-                int *int_ptr = variable.cast_to_pointer<int&>();
+                int *int_ptr = variable.cast_to_pointer<int &>();
                 REQUIRE(*int_ptr == 10);
             }
             THEN("check cast_to_pointer by using rvalue-ref-type") {

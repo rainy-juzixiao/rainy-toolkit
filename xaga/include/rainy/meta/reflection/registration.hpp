@@ -160,7 +160,7 @@ namespace rainy::meta::reflection {
              */
             template <typename Fx,
                       type_traits::other_trans::enable_if_t<type_traits::type_properties::is_constructible_v<function, Fx>, int> = 0>
-            bind<reflection::method, Type, Fx> method(std::string_view name, Fx &&fn) {
+            bind<reflection::method, Type, Fx> method(std::string_view name, Fx &&fn) { // NOLINT
                 return bind<reflection::method, Type, Fx>{this->type, name, utility::forward<Fx>(fn)};
             }
 
@@ -175,8 +175,8 @@ namespace rainy::meta::reflection {
                       type_traits::other_trans::enable_if_t<type_traits::primary_types::is_pointer_v<Property> ||
                                                                 (type_traits::primary_types::is_member_object_pointer_v<Property>),
                                                             int> = 0>
-            bind<property, Type, Property> property(std::string_view name, Property &&property) {
-                return bind<reflection::property, Type, Property>{this->type, name, utility::forward<Property>(property)};
+            bind<reflection::property, Type, Property> property(std::string_view name, Property property) { // NOLINT
+                return bind<reflection::property, Type, Property>{this->type, name, property};
             }
 
             /**
@@ -186,7 +186,7 @@ namespace rainy::meta::reflection {
              */
             template <typename... Args,
                       type_traits::other_trans::enable_if_t<type_traits::type_properties::is_constructible_v<Type, Args...>, int> = 0>
-            bind<constructor, Type, Type (*)(Args...)> constructor() {
+            bind<reflection::constructor, Type, Type (*)(Args...)> constructor() { // NOLINT
                 static constexpr auto name_var = implements::make_ctor_name<Type, Args...>();
                 std::string_view name{name_var.data(), name_var.size()};
                 return bind<reflection::constructor, Type, Type (*)(Args...)>{this->type, name, utility::get_ctor_fn<Type, Args...>()};
@@ -463,9 +463,9 @@ namespace rainy::meta::reflection {
     template <typename ClassType, typename Field>
     class registration::bind<property, ClassType, Field> : public implements::registration_derived_t<ClassType> {
     public:
-        bind(implements::type_accessor *type, annotations::lifetime::in<std::string_view> name, Field &&field) :
+        bind(implements::type_accessor *type, annotations::lifetime::in<std::string_view> name, Field field) :
             implements::registration_derived_t<ClassType>(core::internal_construct_tag, type), type_accessor(type),
-            field(utility::forward<Field>(field)), name(name), prop_{} {
+            field(field), name(name) {
         }
 
         ~bind() {
@@ -481,7 +481,7 @@ namespace rainy::meta::reflection {
 #endif
                 if (prop_.empty()) {
                     static collections::array<metadata, 0> empty{};
-                    prop_ = property::make(name, utility::forward<Field>(field), empty);
+                    prop_ = property::make(name, field, empty);
                 }
                 type_accessor->properties().emplace(name, utility::move(prop_));
             }
@@ -495,9 +495,9 @@ namespace rainy::meta::reflection {
             using tuple_type = typename implements::extract_unique_tuple<Args...>::type;
             if constexpr (!type_traits::type_relations::is_void_v<tuple_type>) {
                 tuple_type arguments = implements::extract_tuple_from_args<tuple_type>(utility::forward<Args>(args)...);
-                prop_ = property::make(name, utility::forward<Field>(field), metadatas);
+                prop_ = property::make(name, field, metadatas);
             } else {
-                prop_ = property::make(name, utility::forward<Field>(field), metadatas);
+                prop_ = property::make(name, field, metadatas);
             }
             return implements::registration_derived_t<ClassType>(core::internal_construct_tag, type_accessor);
         }

@@ -292,22 +292,22 @@ namespace rainy::component::willow {
         return read_json_wrapper<Ty, BasicJson>(value);
     }
 
-    json operator""_json(const char *str, std::size_t len) {
+    RAINY_INLINE json operator""_json(const char *str, std::size_t len) {
         std::string_view view{str, len};
         return json::parse(str);
     }
 
-    json64 operator""_json64(const char *str, std::size_t len) {
+    RAINY_INLINE json64 operator""_json64(const char *str, std::size_t len) {
         std::string_view view{str, len};
         return json64::parse(str);
     }
 
-    wjson operator""_wjson(const wchar_t *str, std::size_t len) {
+    RAINY_INLINE wjson operator""_wjson(const wchar_t *str, std::size_t len) {
         std::wstring_view view{str, len};
         return wjson::parse(str);
     }
 
-    wjson64 operator""_wjson64(const wchar_t *str, std::size_t len) {
+    RAINY_INLINE wjson64 operator""_wjson64(const wchar_t *str, std::size_t len) {
         std::wstring_view view{str, len};
         return wjson64::parse(str);
     }

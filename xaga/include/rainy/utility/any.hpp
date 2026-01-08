@@ -50,11 +50,10 @@ namespace rainy::utility {
     public:
         static_assert(Length != 0, "What? You serious? Why are you input a 0 for Length, It's illegal!");
 
-        
         friend class implements::any_reference<basic_any>;
 
         template <typename... Handlers>
-        using matcher = implements::any_matcher<basic_any,Handlers...>;
+        using matcher = implements::any_matcher<basic_any, Handlers...>;
 
         using iterator = implements::any_iterator_impl<basic_any>;
         using const_iterator = iterator;
@@ -143,6 +142,12 @@ namespace rainy::utility {
             return *this;
         }
 
+        basic_any &operator=(reference ref) noexcept {
+            basic_any tmp = ref.construct_from_this();
+            reset_and_move_from(tmp);
+            return *this;
+        }
+
         template <typename ValueType, type_traits::other_trans::enable_if_t<
                                           !type_traits::type_relations::is_any_of_v<type_traits::other_trans::decay_t<ValueType>,
                                                                                     basic_any, reference, const_reference>,
@@ -201,6 +206,13 @@ namespace rainy::utility {
         RAINY_NODISCARD const foundation::ctti::typeinfo &type() const noexcept {
             const foundation::ctti::typeinfo *const info = type_info();
             return info != nullptr ? *info : rainy_typeid(void);
+        }
+        
+        RAINY_INLINE_NODISCARD foundation::ctti::typeinfo inner_decleartion_type(any_inner_declaertion query) const noexcept {
+            foundation::ctti::typeinfo type;
+            std::tuple tuple{query, &type};
+            storage.executer->invoke(implements::any_operation::query_inner_declaertion_type, &tuple);
+            return type;
         }
 
         template <typename Type>
@@ -299,6 +311,10 @@ namespace rainy::utility {
         template <typename TargetType>
         RAINY_NODISCARD bool is_convertible() const noexcept {
             return is_any_convertible<TargetType>(this->type());
+        }
+
+        RAINY_NODISCARD bool is_convertible(const foundation::ctti::typeinfo& type) const noexcept {
+            return foundation::ctti::is_convertible_to(this->type(), type);
         }
 
         RAINY_NODISCARD const void *target_as_void_ptr() const {
@@ -477,28 +493,28 @@ namespace rainy::utility {
         RAINY_NODISCARD iterator begin() {
             iterator ret{};
             std::tuple tuple{false, this, &ret};
-            storage.executer->invoke(implements::any_operation::call_begin, &tuple);
+            storage.executer->invoke(implements::any_operation::container_begin, &tuple);
             return ret;
         }
 
         RAINY_NODISCARD const_iterator begin() const {
             const_iterator ret{};
             std::tuple tuple{true, this, &ret};
-            storage.executer->invoke(implements::any_operation::call_begin, &tuple);
+            storage.executer->invoke(implements::any_operation::container_begin, &tuple);
             return ret;
         }
 
         RAINY_NODISCARD iterator end() {
             iterator ret{};
             std::tuple tuple{false, this, &ret};
-            storage.executer->invoke(implements::any_operation::call_end, &tuple);
+            storage.executer->invoke(implements::any_operation::container_end, &tuple);
             return ret;
         }
 
         RAINY_NODISCARD const_iterator end() const {
             const_iterator ret{};
             std::tuple tuple{true, this, &ret};
-            storage.executer->invoke(implements::any_operation::call_end, &tuple);
+            storage.executer->invoke(implements::any_operation::container_end, &tuple);
             return ret;
         }
 
@@ -529,7 +545,7 @@ namespace rainy::utility {
         template <typename... Types, typename... Fx>
         std::variant<Types...> match_for(Fx &&...funcs) const {
             auto res = match(utility::forward<Fx>(funcs)...);
-            return match_variant_helper<0, std::variant<Types...>, type_traits::other_trans::type_list<Types...>>(res);
+            return implements::match_variant_helper<0, std::variant<Types...>, type_traits::other_trans::type_list<Types...>>(res);
         }
 
         template <typename... Fx>
@@ -541,17 +557,17 @@ namespace rainy::utility {
             using auto_deduce_type_list = type_list<function_return_type<Fx>...>;
             using variant_type = typename type_list_to_tuple_like<auto_deduce_type_list, std::variant>::type;
             auto res = match(utility::forward<Fx>(funcs)...);
-            return match_variant_helper<0, variant_type, auto_deduce_type_list>(res);
+            return implements::match_variant_helper<0, variant_type, auto_deduce_type_list>(res);
         }
 
         template <typename Ty>
         bool destructure(Ty &&receiver) {
-            return destructure_impl<false>(utility::forward<Ty>(receiver));
+            return implements::destructure_impl<false>(this, storage.executer, utility::forward<Ty>(receiver));
         }
 
         template <typename Ty>
         bool destructure(Ty &&receiver) const {
-            return destructure_impl<true>(utility::forward<Ty>(receiver));
+            return implements::destructure_impl<true>(this, storage.executer, utility::forward<Ty>(receiver));
         }
 
         template <typename... Types>
@@ -582,15 +598,6 @@ namespace rainy::utility {
                 left.setstate(std::ios::ios_base::failbit);
             }
             return left;
-        }
-
-        template <
-            typename CharType, typename AnyReference,
-            type_traits::other_trans::enable_if_t<
-                type_traits::type_relations::is_any_of_v<type_traits::other_trans::decay_t<AnyReference>, reference, const_reference>,
-                int> = 0>
-        friend std::basic_ostream<CharType> &operator<<(std::basic_ostream<CharType> &left, const AnyReference &right) {
-            return left << right.as_value();
         }
 
         template <typename Type>
@@ -653,6 +660,39 @@ namespace rainy::utility {
             storage.executer->invoke(implements::any_operation::swap_value, &tuple);
         }
 
+        const_iterator insert(const const_iterator &pos, const basic_any& value) {
+            const_iterator iterator;
+            std::tuple tuple{this, &iterator, &pos, &value};
+            storage.executer->invoke(implements::any_operation::container_insert_seq_like, &tuple);
+            return iterator;
+        }
+
+        pair<const_iterator, bool> insert_as_maplike(const basic_any &key) {
+            pair<const_iterator, bool> ret_pair;
+            std::tuple tuple{this, &ret_pair, &key, nullptr};
+            storage.executer->invoke(implements::any_operation::container_insert_map_like, &tuple);
+            return ret_pair;
+        }
+
+        pair<const_iterator, bool> insert_as_maplike(const basic_any &key, const basic_any &value) {
+            pair<const_iterator, bool> ret_pair;
+            std::tuple tuple{this, &ret_pair, &key, &value};
+            storage.executer->invoke(implements::any_operation::container_insert_map_like, &tuple);
+            return ret_pair;
+        }
+
+        void resize(const std::size_t new_size) {
+            std::tuple tuple{this, new_size};
+            storage.executer->invoke(implements::any_operation::container_resize, &tuple);
+        }
+
+        RAINY_NODISCARD std::size_t size() const {
+            std::size_t size{};
+            std::tuple tuple{this, &size};
+            storage.executer->invoke(implements::any_operation::container_size, &tuple);
+            return size;
+        }
+
     private:
         static constexpr std::uintptr_t rep_mask = 3;
 
@@ -672,135 +712,12 @@ namespace rainy::utility {
             return reference;
         }
 
-        template <bool UseConst, typename Ty>
-        bool destructure_impl(Ty &&receiver) const {
-            using implements::any_binding_package;
-            using namespace type_traits;
-            using namespace type_traits::primary_types;
-            static_assert(!type_traits::type_properties::is_const_v<Ty>);
-            constexpr std::size_t size = implements::eval_for_destructure_pack_receiver_size<Ty>();
-            static_assert(size != 0, "Cannot process a invalid receiver!");
-            collections::array<any_binding_package, size> array;
-            std::size_t count{};
-            bool ret = storage.executer->invoke(implements::any_operation::query_for_is_tuple_like, &count);
-            if (!ret || count != size) {
-                return false;
-            }
-            std::tuple tuple{this, UseConst, collections::views::make_array_view(array)};
-            ret = storage.executer->invoke(implements::any_operation::destructre_this_pack, &tuple);
-            if (!ret) {
-                return false;
-            }
-            if constexpr (function_traits<Ty>::valid && !is_member_object_pointer_v<Ty>) {
-                this->template call_handler_with_array<UseConst>(utility::forward<Ty>(receiver), array,
-                                                                 type_traits::helper::make_index_sequence<size>{});
-                return true;
-            } else if constexpr (is_pair_v<Ty>) {
-                this->template fill_pair_with_array<UseConst>(utility::forward<Ty>(receiver), array);
-                return true;
-            } else if constexpr (is_tuple_v<Ty>) {
-                this->template fill_tuple_with_array<UseConst>(utility::forward<Ty>(receiver), array,
-                                                               type_traits::helper::make_index_sequence<size>{});
-                return true;
-            } else if constexpr (member_count_v<cv_modify::remove_cvref_t<Ty>> != 0) {
-                auto so_as_tuple = utility::struct_bind_tuple(receiver);
-                this->template fill_structure_with_array<UseConst>(so_as_tuple, array,
-                                                                   type_traits::helper::make_index_sequence<size>{});
-                return true;
-            }
-            return false;
-        }
-
         RAINY_NODISCARD implements::any_representation get_representation() const noexcept {
             return static_cast<implements::any_representation>(storage.type_data & rep_mask);
         }
 
         RAINY_NODISCARD const foundation::ctti::typeinfo *type_info() const noexcept {
             return reinterpret_cast<const foundation::ctti::typeinfo *>(storage.type_data & ~rep_mask);
-        }
-
-        template <bool Const, typename Fx, std::size_t N, std::size_t... Is>
-        void call_handler_with_array(Fx &&handler, const collections::array<implements::any_binding_package, N> &array,
-                                     type_traits::helper::index_sequence<Is...>) const {
-            using namespace type_traits::other_trans;
-            using fn_traits = type_traits::primary_types::function_traits<Fx>;
-            using type_list = typename tuple_like_to_type_list<typename fn_traits::tuple_like_type>::type;
-            utility::invoke(
-                utility::forward<Fx>(handler),
-                utility::forward<conditional_t<Const, type_traits::cv_modify::add_const_t<typename type_at<Is, type_list>::type>,
-                                               typename type_at<Is, type_list>::type>>(
-                    implements::convert_any_binding_package<
-                        conditional_t<Const, type_traits::cv_modify::add_const_t<typename type_at<Is, type_list>::type>,
-                                      typename type_at<Is, type_list>::type>,
-                        Is>::impl(array[Is]))...);
-        }
-
-        template <bool Const, std::size_t N, typename Tuple, std::size_t... Is>
-        void fill_tuple_with_array(Tuple &tuple, const collections::array<implements::any_binding_package, N> &array,
-                                   type_traits::helper::index_sequence<Is...>) const {
-            using namespace type_traits::other_trans;
-            using utility::swap;
-            std::destroy_at(&tuple);
-            using type_list = typename tuple_like_to_type_list<type_traits::cv_modify::remove_cvref_t<Tuple>>::type;
-            utility::construct_in_place(
-                tuple,
-                utility::forward<conditional_t<Const, type_traits::cv_modify::add_const_t<typename type_at<Is, type_list>::type>,
-                                               typename type_at<Is, type_list>::type>>(
-                    implements::convert_any_binding_package<
-                        conditional_t<Const, type_traits::cv_modify::add_const_t<typename type_at<Is, type_list>::type>,
-                                      typename type_at<Is, type_list>::type>,
-                        Is>::impl(array[Is]))...);
-        }
-
-        template <bool Const, std::size_t N, typename Tuple, std::size_t... Is>
-        void fill_structure_with_array(Tuple &so_as_tuple, const collections::array<implements::any_binding_package, N> &array,
-                                       type_traits::helper::index_sequence<Is...>) const {
-            using namespace type_traits::other_trans;
-            using utility::swap;
-            Tuple tmp{so_as_tuple};
-            (((*std::get<Is>(tmp)) = implements::convert_any_binding_package<
-                  type_traits::other_trans::conditional_t<
-                      Const, type_traits::cv_modify::add_const_t<std::remove_pointer_t<std::tuple_element_t<Is, Tuple>>>,
-                      std::remove_pointer_t<std::tuple_element_t<Is, Tuple>>>,
-                  Is>::impl(array[Is])),
-             ...);
-            swap(tmp, so_as_tuple);
-        }
-
-        template <bool Const, typename Pair, std::size_t... Is>
-        void fill_pair_with_array(Pair &pair, const collections::array<implements::any_binding_package, 2> &array) const {
-            using implements::convert_any_binding_package;
-            Pair tmp{};
-            auto &[first, second] = tmp; // 从pair中解包
-            using first_type = decltype(first);
-            using second_type = decltype(second);
-            static_assert(type_traits::type_properties::is_copy_assignable_v<first_type>,
-                          "The first element of pair-like type is not assignable");
-            static_assert(type_traits::type_properties::is_copy_assignable_v<second_type>,
-                          "The second element of pair-like type is not assignable");
-            first = convert_any_binding_package<
-                type_traits::other_trans::conditional_t<Const, type_traits::cv_modify::add_const_t<first_type>, first_type>,
-                0>::impl(array[0]); // NOLINT
-            second = convert_any_binding_package<
-                type_traits::other_trans::conditional_t<Const, type_traits::cv_modify::add_const_t<second_type>, second_type>,
-                1>::impl(array[1]); // NOLINT
-            std::swap(tmp, pair);
-        }
-
-        template <std::size_t Idx = 0, typename Variant, typename TypeList>
-        auto match_variant_helper(const basic_any &res) const {
-            if constexpr (Idx < type_traits::other_trans::type_list_size_v<TypeList>) {
-                using type = typename type_traits::other_trans::type_at<Idx, TypeList>::type;
-                if (res.template is<type>()) {
-                    return Variant{res.template as<type>()};
-                }
-                if (res.template is_convertible<type>()) {
-                    return Variant{res.template convert<type>()};
-                }
-                return match_variant_helper<Idx + 1, Variant, TypeList>(res);
-            } else {
-                return Variant{};
-            }
         }
 
         void move_from(basic_any &right) noexcept {
@@ -945,8 +862,8 @@ namespace rainy::utility {
     };
 
     template <typename TargetType>
-    struct any_converter<TargetType,
-                         type_traits::other_trans::enable_if_t<type_traits::composite_types::is_arithmetic_v<TargetType>>> {
+    struct any_converter<TargetType, type_traits::other_trans::enable_if_t<type_traits::composite_types::is_arithmetic_v<TargetType>>>
+        : annotations::runtime_assembly::enable_for_type_convert<any_converter<TargetType>> {
         static TargetType basic_convert(const void *target_pointer, const foundation::ctti::typeinfo &type) {
             switch (const foundation::ctti::typeinfo target_type = type; target_type.remove_cvref().hash_code()) {
                 case rainy_typehash(int):
@@ -1002,7 +919,7 @@ namespace rainy::utility {
                 case rainy_typehash(std::uint32_t):
                 case rainy_typehash(std::uint64_t):
 #if RAINY_USING_LINUX
-                    case rainy_typehash(long long unsigned int):
+                case rainy_typehash(long long unsigned int):
 #endif
                     return true;
                 default:
@@ -1012,7 +929,8 @@ namespace rainy::utility {
     };
 
     template <typename CharType, typename Traits>
-    struct any_converter<std::basic_string_view<CharType, Traits>> {
+    struct any_converter<std::basic_string_view<CharType, Traits>>
+        : annotations::runtime_assembly::enable_for_type_convert<any_converter<std::basic_string_view<CharType, Traits>>> {
         using target_type = std::basic_string_view<CharType, Traits>;
 
         static target_type basic_convert(const void *target_pointer, const foundation::ctti::typeinfo &type) {
@@ -1066,7 +984,8 @@ namespace rainy::utility {
     };
 
     template <typename CharType, typename Traits>
-    struct any_converter<std::basic_string<CharType, Traits>> {
+    struct any_converter<std::basic_string<CharType, Traits>>
+        : annotations::runtime_assembly::enable_for_type_convert<any_converter<std::basic_string<CharType, Traits>>> {
         using target_type = std::basic_string<CharType, Traits>;
 
         static target_type basic_convert(const void *target_pointer, const foundation::ctti::typeinfo &type) {

@@ -3,7 +3,7 @@
 #include <map>
 #include <memory_resource>
 #include <rainy/collections/dense_map.hpp>
-#include <rainy/collections/string.hpp>
+#include <rainy/text/string.hpp>
 #include <rainy/core/core.hpp>
 
 namespace rainy::component::willow::implements {

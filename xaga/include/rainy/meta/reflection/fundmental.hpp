@@ -42,7 +42,7 @@ namespace rainy::meta::reflection {
         }
 
         template <typename ValueType, typename SharedObject = shared_object, typename Type = type>
-        SharedObject create(ValueType&& value) {
+        SharedObject create(ValueType &&value) {
             auto this_fund_t = Type(core::internal_construct_tag, accessor);
             return this_fund_t.create(value);
         }
@@ -57,6 +57,68 @@ namespace rainy::meta::reflection {
                 return empty;
             }
             return fundmental_accessor->typeinfo();
+        }
+
+
+        RAINY_NODISCARD rain_fn category() -> fundmental_category {
+            if (!fundmental_accessor) {
+                return fundmental_category::none;
+            }
+            return fundmental_accessor->category();
+        }
+
+        RAINY_NODISCARD rain_fn is_arithmetic() -> bool {
+            if (!fundmental_accessor) {
+                return false;
+            }
+            return fundmental_accessor->is_arithmetic();
+        }
+
+        RAINY_NODISCARD rain_fn is_floating_point() -> bool {
+            if (!fundmental_accessor) {
+                return false;
+            }
+            return fundmental_accessor->is_floating_point();
+        }
+
+        RAINY_NODISCARD rain_fn is_integral() -> bool {
+            if (!fundmental_accessor) {
+                return false;
+            }
+            return fundmental_accessor->is_integral();
+        }
+
+        RAINY_NODISCARD rain_fn is_nullptr() -> bool {
+            if (!fundmental_accessor) {
+                return false; 
+            } 
+            return fundmental_accessor->is_nullptr();
+        }
+
+        RAINY_NODISCARD rain_fn is_signed() -> bool {
+            if (!fundmental_accessor) {
+                return false;
+            }
+            return fundmental_accessor->is_signed();
+        }
+
+        RAINY_NODISCARD rain_fn is_unsigned() -> bool {
+            if (!fundmental_accessor) {
+                return false;
+            }
+            return fundmental_accessor->is_unsigned();
+        }
+
+        template <typename From>
+        RAINY_NODISCARD rain_fn is_convertible_from() -> bool {
+            return is_convertible_from(rainy_typeid(From));
+        }
+
+        RAINY_NODISCARD rain_fn is_convertible_from(const foundation::ctti::typeinfo &from) -> bool {
+            if (!fundmental_accessor) {
+                return false;
+            }
+            return fundmental_accessor->is_convertible_from(from);
         }
 
         RAINY_NODISCARD rain_fn get_metadata(const utility::any &key) const noexcept -> annotations::lifetime::read_only<metadata> {

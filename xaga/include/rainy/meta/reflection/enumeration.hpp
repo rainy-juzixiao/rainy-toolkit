@@ -36,6 +36,17 @@ namespace rainy::meta::reflection {
             return accessor->names();
         }
 
+        RAINY_NODISCARD rain_fn value_to_enumerator(annotations::lifetime::in<utility::any> value) const -> utility::any {
+            if (!accessor) {
+                return {};
+            }
+            return accessor->value_to_enumerator(value);
+        }
+
+        RAINY_NODISCARD rain_fn is_valid() const noexcept -> bool {
+            return static_cast<bool>(accessor);
+        }
+
         RAINY_NODISCARD rain_fn get_values() const noexcept -> collections::views::array_view<utility::any> {
             if (!accessor) {
                 return {};

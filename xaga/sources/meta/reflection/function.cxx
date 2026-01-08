@@ -286,10 +286,10 @@ namespace rainy::meta::reflection {
     }
 
     collections::views::array_view<metadata> method::get_metadatas() const noexcept {
-        return ptr->metadata;
+        return ptr->metadata_;
     }
 
     const metadata &method::get_metadata(const utility::any& key) const noexcept {
-        return implements::find_metadata(ptr->metadata, key);
+        return implements::find_metadata(ptr->metadata_, key);
     }
 }

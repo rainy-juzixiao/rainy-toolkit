@@ -71,6 +71,9 @@ namespace rainy::foundation::ctti {
 
         /* reflection */
         is_reflection_type = 1 << 25,
+        is_signed = 1 << 26,
+        is_sequential_container = 1 << 27,
+        is_associative_container = 1 << 28,
     };
 
     RAINY_ENABLE_ENUM_CLASS_BITMASK_OPERATORS(traits);
@@ -129,6 +132,12 @@ namespace rainy::foundation::ctti::implements {
         if constexpr (type_properties::is_volatile_v<reference_modify::remove_reference_t<Ty>>) {
             traits_ |= traits::is_volatile;
         }
+        if constexpr (type_properties::is_associative_container_v<other_trans::decay_t<Ty>>) {
+            traits_ |= traits::is_associative_container;
+        }
+        if constexpr (type_properties::is_sequential_container_v<other_trans::decay_t<Ty>>) {
+            traits_ |= traits::is_sequential_container;
+        }
         return traits_;
     }
 
@@ -153,6 +162,9 @@ namespace rainy::foundation::ctti::implements {
         }
         if constexpr (type_properties::is_unsigned_v<Ty>) {
             traits_ |= traits::is_unsigned;
+        }
+        if constexpr (type_properties::is_signed_v<Ty>) {
+            traits_ |= traits::is_signed;
         }
         if constexpr (composite_types::is_fundamental_v<Ty>) {
             traits_ |= traits::is_fundamental;
@@ -213,7 +225,7 @@ namespace rainy::foundation::ctti::implements {
 
     template <typename Ty>
     constexpr rain_fn eval_for_typeinfo() noexcept -> traits {
-        traits traits{};
+        traits traits{}; // NOLINT
         traits |= implements::eval_traits_for_properties<Ty>();
         traits |= implements::eval_traits_for_fundamental<Ty>();
         traits |= implements::eval_traits_for_compound<Ty>();
@@ -228,9 +240,9 @@ namespace rainy::foundation::ctti::implements {
         constexpr auto type_name_length = wrapped_name.length() - prefix_length - suffix_length;
         collections::array<char, type_name_length + 1> arr{};
         for (std::size_t i = 0; i < type_name_length; ++i) {
-            arr[i] = wrapped_name[prefix_length + i];
+            arr[i] = wrapped_name[prefix_length + i]; // NOLINT
         }
-        arr[type_name_length] = '\0';
+        arr[type_name_length] = '\0'; // NOLINT
         return arr;
     }
 
@@ -251,16 +263,16 @@ namespace rainy::foundation::ctti::implements {
         constexpr auto end = split.find(";", start);
         return split.substr(start, end - start);
 #elif RAINY_USING_GCC
-        constexpr auto split = func_name.substr(0, func_name.rfind("]") - 1);
+        constexpr auto split = func_name.substr(0, func_name.rfind(']') - 1);
         constexpr auto start = split.find("with auto Variable = ") + 21;
-        constexpr auto end = split.find(";", start);
+        constexpr auto end = split.find(';', start);
         constexpr auto full = split.substr(start, end - start);
         constexpr auto pos = full.rfind("::");
         constexpr auto rparen = full.rfind(')');
         if constexpr (pos != std::string_view::npos) {
             return full.substr(pos + 2, rparen - (pos + 2));
         }
-        return full;
+        return full; // NOLINT
 #elif RAINY_USING_MSVC
         auto split = func_name.substr(func_name.rfind("wrapped_variable_name<(") + 21);
         auto str = split.substr(split.rfind("->") + 2);
@@ -290,7 +302,7 @@ namespace rainy::foundation::ctti::implements {
 
     RAINY_INLINE static constexpr std::size_t fnv1a_hash(annotations::lifetime::in<std::string_view> val) noexcept {
         std::size_t hash = utility::implements::fnv_offset_basis;
-        for (char i: val) {
+        for (const char i: val) {
             hash ^= static_cast<std::size_t>(static_cast<unsigned char>(i));
             hash *= utility::implements::fnv_prime;
         }
@@ -361,14 +373,14 @@ namespace rainy::foundation::ctti::implements {
 
         template <typename Ty>
         static constexpr rain_fn type_modfier_impl(annotations::lifetime::in<type_operation> op)
-            -> const typeinfo_component<MainTypeInfo> *;
+            -> const typeinfo_component<MainTypeInfo> *; // NOLINT
 
         static constexpr rain_fn empty_is_compatible(annotations::lifetime::in<typeinfo_component>)->bool;
         static constexpr rain_fn empty_type_modfier(annotations::lifetime::in<typeinfo_component>)->bool;
 
         std::string_view name{};
         std::size_t hash_code{};
-        traits type_traits{};
+        traits type_traits{}; // NOLINT
         is_comptaible_fnptr_t is_comptaible{};
         type_modifer modfier{};
         collections::views::array_view<MainTypeInfo> template_arguemnts{};
@@ -395,87 +407,87 @@ namespace rainy::foundation::ctti::implements {
     template <typename MainTypeInfo>
     template <typename Ty>
     constexpr rain_fn typeinfo_component<MainTypeInfo>::type_modfier_impl(annotations::lifetime::in<type_operation> op)
-        -> const typeinfo_component<MainTypeInfo> * {
+        -> const typeinfo_component<MainTypeInfo> * { // NOLINT
         using namespace type_traits;
         constexpr bool is_reference_ptr =
             type_traits::composite_types::is_reference_v<Ty> &&
-            type_traits::primary_types::is_pointer_v<type_traits::reference_modify::remove_reference_t<Ty>>;
+            type_traits::primary_types::is_pointer_v<reference_modify::remove_reference_t<Ty>>;
         if constexpr (!type_traits::type_relations::is_void_v<Ty>) {
             switch (op) {
                 case type_operation::remove_pointer: {
                     if constexpr (is_reference_ptr) {
-                        using referred_ptr = type_traits::reference_modify::remove_reference_t<Ty>;
-                        using pointer_type = type_traits::pointer_modify::remove_pointer_t<referred_ptr>;
+                        using referred_ptr = reference_modify::remove_reference_t<Ty>;
+                        using pointer_type = pointer_modify::remove_pointer_t<referred_ptr>;
                         if constexpr (type_traits::primary_types::is_lvalue_reference_v<Ty>) {
-                            return &typeinfo<MainTypeInfo, type_traits::reference_modify::add_lvalue_reference_t<pointer_type>>;
+                            return &typeinfo<MainTypeInfo,reference_modify::add_lvalue_reference_t<pointer_type>>;
                         } else {
-                            return &typeinfo<MainTypeInfo, type_traits::reference_modify::add_rvalue_reference_t<pointer_type>>;
+                            return &typeinfo<MainTypeInfo, reference_modify::add_rvalue_reference_t<pointer_type>>;
                         }
                     } else {
-                        return &typeinfo<MainTypeInfo, type_traits::pointer_modify::remove_pointer_t<Ty>>;
+                        return &typeinfo<MainTypeInfo, pointer_modify::remove_pointer_t<Ty>>;
                     }
                 }
                 case type_operation::remove_const: {
                     if constexpr (is_reference_ptr) {
-                        using referred_ptr = type_traits::reference_modify::remove_reference_t<Ty>;
-                        using pointer_type = type_traits::pointer_modify::remove_pointer_t<referred_ptr>;
-                        using non_const_pointer = type_traits::cv_modify::remove_const_t<pointer_type>;
-                        using non_const_ptr = type_traits::pointer_modify::add_pointer_t<non_const_pointer>;
+                        using referred_ptr = reference_modify::remove_reference_t<Ty>;
+                        using pointer_type = pointer_modify::remove_pointer_t<referred_ptr>;
+                        using non_const_pointer = cv_modify::remove_const_t<pointer_type>;
+                        using non_const_ptr = pointer_modify::add_pointer_t<non_const_pointer>;
                         if constexpr (type_traits::primary_types::is_lvalue_reference_v<Ty>) {
-                            return &typeinfo<MainTypeInfo, type_traits::reference_modify::add_lvalue_reference_t<non_const_ptr>>;
+                            return &typeinfo<MainTypeInfo, reference_modify::add_lvalue_reference_t<non_const_ptr>>;
                         } else {
-                            return &typeinfo<MainTypeInfo, type_traits::reference_modify::add_rvalue_reference_t<non_const_ptr>>;
+                            return &typeinfo<MainTypeInfo, reference_modify::add_rvalue_reference_t<non_const_ptr>>;
                         }
                     } else {
-                        return &typeinfo<MainTypeInfo, type_traits::cv_modify::remove_const_t<Ty>>;
+                        return &typeinfo<MainTypeInfo,cv_modify::remove_const_t<Ty>>;
                     }
                 }
                 case type_operation::remove_volatile: {
                     if constexpr (is_reference_ptr) {
-                        using referred_ptr = type_traits::reference_modify::remove_reference_t<Ty>;
-                        using pointer_type = type_traits::pointer_modify::remove_pointer_t<referred_ptr>;
-                        using non_volatile_pointer = type_traits::cv_modify::remove_volatile_t<pointer_type>;
-                        using non_volatile_ptr = type_traits::pointer_modify::add_pointer_t<non_volatile_pointer>;
+                        using referred_ptr = reference_modify::remove_reference_t<Ty>;
+                        using pointer_type = pointer_modify::remove_pointer_t<referred_ptr>;
+                        using non_volatile_pointer = cv_modify::remove_volatile_t<pointer_type>;
+                        using non_volatile_ptr = pointer_modify::add_pointer_t<non_volatile_pointer>;
                         if constexpr (type_traits::primary_types::is_lvalue_reference_v<Ty>) {
-                            return &typeinfo<MainTypeInfo, type_traits::reference_modify::add_lvalue_reference_t<non_volatile_ptr>>;
+                            return &typeinfo<MainTypeInfo, reference_modify::add_lvalue_reference_t<non_volatile_ptr>>;
                         } else {
-                            return &typeinfo<MainTypeInfo, type_traits::reference_modify::add_rvalue_reference_t<non_volatile_ptr>>;
+                            return &typeinfo<MainTypeInfo, reference_modify::add_rvalue_reference_t<non_volatile_ptr>>;
                         }
                     } else {
-                        return &typeinfo<MainTypeInfo, type_traits::cv_modify::remove_volatile_t<Ty>>;
+                        return &typeinfo<MainTypeInfo, cv_modify::remove_volatile_t<Ty>>;
                     }
                 }
                 case type_operation::remove_const_volatile: {
                     if constexpr (is_reference_ptr) {
-                        using referred_ptr = type_traits::reference_modify::remove_reference_t<Ty>;
-                        using pointer_type = type_traits::pointer_modify::remove_pointer_t<referred_ptr>;
-                        using non_cv_pointer = type_traits::cv_modify::remove_cv_t<pointer_type>;
-                        using non_cv_ptr = type_traits::pointer_modify::add_pointer_t<non_cv_pointer>;
+                        using referred_ptr = reference_modify::remove_reference_t<Ty>;
+                        using pointer_type = pointer_modify::remove_pointer_t<referred_ptr>;
+                        using non_cv_pointer = cv_modify::remove_cv_t<pointer_type>;
+                        using non_cv_ptr = pointer_modify::add_pointer_t<non_cv_pointer>;
                         if constexpr (type_traits::primary_types::is_lvalue_reference_v<Ty>) {
-                            return &typeinfo<MainTypeInfo, type_traits::reference_modify::add_lvalue_reference_t<non_cv_ptr>>;
+                            return &typeinfo<MainTypeInfo, reference_modify::add_lvalue_reference_t<non_cv_ptr>>;
                         } else {
-                            return &typeinfo<MainTypeInfo, type_traits::reference_modify::add_rvalue_reference_t<non_cv_ptr>>;
+                            return &typeinfo<MainTypeInfo, reference_modify::add_rvalue_reference_t<non_cv_ptr>>;
                         }
                     } else {
-                        return &typeinfo<MainTypeInfo, type_traits::cv_modify::remove_cv_t<Ty>>;
+                        return &typeinfo<MainTypeInfo, cv_modify::remove_cv_t<Ty>>;
                     }
                 }
                 case type_operation::remove_cvref: {
                     if constexpr (is_reference_ptr) {
-                        using referred_ptr = type_traits::reference_modify::remove_reference_t<Ty>;
-                        using pointer_type = type_traits::pointer_modify::remove_pointer_t<referred_ptr>;
-                        using non_cv_pointer = type_traits::cv_modify::remove_cv_t<pointer_type>;
-                        using non_cv_ptr = type_traits::pointer_modify::add_pointer_t<non_cv_pointer>;
+                        using referred_ptr = reference_modify::remove_reference_t<Ty>;
+                        using pointer_type = pointer_modify::remove_pointer_t<referred_ptr>;
+                        using non_cv_pointer = cv_modify::remove_cv_t<pointer_type>;
+                        using non_cv_ptr = pointer_modify::add_pointer_t<non_cv_pointer>;
                         return &typeinfo<MainTypeInfo, non_cv_ptr>;
                     } else {
-                        return &typeinfo<MainTypeInfo, type_traits::cv_modify::remove_cvref_t<Ty>>;
+                        return &typeinfo<MainTypeInfo, cv_modify::remove_cvref_t<Ty>>;
                     }
                 }
                 case type_operation::remove_reference: {
-                    return &typeinfo<MainTypeInfo, type_traits::reference_modify::remove_reference_t<Ty>>;
+                    return &typeinfo<MainTypeInfo, reference_modify::remove_reference_t<Ty>>;
                 }
                 case type_operation::decay_type: {
-                    return &typeinfo<MainTypeInfo, type_traits::other_trans::decay_t<Ty>>;
+                    return &typeinfo<MainTypeInfo, other_trans::decay_t<Ty>>;
                 }
             }
         }
@@ -485,12 +497,12 @@ namespace rainy::foundation::ctti::implements {
     template <typename MainTypeInfo>
     template <typename Type>
     constexpr rain_fn typeinfo_component<MainTypeInfo>::is_compatible_impl(
-        annotations::lifetime::in<typeinfo_component<MainTypeInfo>> type) -> bool {
+        annotations::lifetime::in<typeinfo_component<MainTypeInfo>> type) -> bool { // NOLINT
         using namespace type_traits;
         using match_t = cv_modify::remove_cvref_t<Type>;
         using real_convert_type =
             other_trans::conditional_t<composite_types::is_reference_v<Type>, Type, reference_modify::add_lvalue_reference_t<Type>>;
-        if constexpr (type_traits::type_relations::is_void_v<type_traits::cv_modify::remove_cvref_t<Type>>) {
+        if constexpr (type_traits::type_relations::is_void_v<cv_modify::remove_cvref_t<Type>>) {
             return false;
         } else {
             using ftraits = primary_types::function_traits<match_t>;
@@ -628,7 +640,6 @@ namespace rainy::foundation::ctti {
 
         /**
          * @brief 检查两个类型信息是否为void
-         * @param right 另一个类型信息对象
          * @return 如果类型信息是void，返回true，否则返回false
          */
         RAINY_NODISCARD constexpr rain_fn is_void() const noexcept -> bool {
@@ -726,11 +737,11 @@ namespace rainy::foundation::ctti {
          * @return 返回模板实例化参数类型的列表视图
          */
         RAINY_NODISCARD constexpr rain_fn template_arguments() const noexcept
-            -> collections::views::array_view<foundation::ctti::typeinfo> {
+            -> collections::views::array_view<typeinfo> {
             return internal_type->template_arguemnts;
         }
 
-        operator std::size_t() const noexcept {
+        operator std::size_t() const noexcept { // NOLINT
             return cache_hash_code;
         }
 
@@ -800,6 +811,24 @@ namespace rainy::foundation::ctti {
          */
         RAINY_GENERATE_TYPEINFO_TYPEINSPECT_METHOD_HELPER(is_const_volatile, traits::is_const &traits::is_volatile);
 
+        /**
+         * @brief 检查当前是否为关联容器类型.
+         * @return 如果是返回true，否则false
+         */
+        RAINY_GENERATE_TYPEINFO_TYPEINSPECT_METHOD_HELPER(is_associative_container, traits::is_associative_container);
+
+        /**
+         *  @brief 检查当前是否为序列容器类型.
+         * @return 如果是返回true，否则false
+         */
+        RAINY_GENERATE_TYPEINFO_TYPEINSPECT_METHOD_HELPER(is_sequential_container, traits::is_sequential_container);
+
+        /**
+         *  @brief 检查当前是否为类类型.
+         * @return 如果是返回true，否则false
+         */
+        RAINY_GENERATE_TYPEINFO_TYPEINSPECT_METHOD_HELPER(is_class, traits::is_class);
+
     private:
         std::string_view cache_name{};
         std::size_t cache_hash_code{};
@@ -861,14 +890,13 @@ namespace rainy::foundation::ctti::implements {
         return instance;
     }
 
-    RAINY_INLINE void register_conversion(std::size_t src, std::size_t tgt, converter_func fn) {
-        get_conversion_map().try_emplace(conversion_key{src, tgt}, fn);
+    RAINY_INLINE void register_conversion(const std::size_t src,const std::size_t tgt, converter_func fn) {
+        get_conversion_map().try_emplace(conversion_key{src, tgt}, fn); // NOLINT
     }
 
-    RAINY_INLINE converter_func find_converter(std::size_t src, std::size_t tgt) {
+    RAINY_INLINE converter_func find_converter(const std::size_t src,const std::size_t tgt) {
         auto &map = get_conversion_map();
-        auto it = map.find(conversion_key{src, tgt});
-        if (it != map.end()) {
+        if (const auto it = map.find(conversion_key{src, tgt}); it != map.end()) { // NOLINT
             return it->second;
         }
         return nullptr;
@@ -896,11 +924,145 @@ namespace rainy::foundation::ctti {
         if (source.hash_code() == target.hash_code()) {
             return ptr;
         }
-        auto converter = implements::find_converter(source.hash_code(), target.hash_code());
-        if (converter) {
+        if (const auto converter = implements::find_converter(source.hash_code(), target.hash_code())) {
             return converter(ptr);
         }
         return nullptr;
+    }
+}
+
+namespace rainy::foundation::ctti::implements {
+    using converter_fn = bool(*)(void* dest,const void* source, const ctti::typeinfo& type);
+
+    class RAINY_TOOLKIT_API dynamic_converter_registry {
+    public:
+        static dynamic_converter_registry &instance();
+
+        void register_converter(const ctti::typeinfo& to_type, converter_fn fn); // NOLINT
+
+        converter_fn find(const ctti::typeinfo&) const; // NOLINT
+
+    private:
+        class impl;
+
+        impl *global_ptr{nullptr};
+    };
+}
+
+namespace rainy::utility {
+    template <typename TargetType, typename = void>
+    struct any_converter {
+        static constexpr bool invalid_mark = true;
+
+        static bool is_convertible(const foundation::ctti::typeinfo &) {
+            return false;
+        }
+    };
+}
+
+namespace rainy::annotations::runtime_assembly::implements {
+    template <typename>
+    struct get_any_converter_target_type {
+        using type = void;
+    };
+
+    template <typename TargetType, typename Void>
+    struct get_any_converter_target_type<utility::any_converter<TargetType, Void>> {
+        using type = TargetType;
+    };
+}
+
+namespace rainy::annotations::runtime_assembly {
+    /**
+     * @tparam ConverterClass 静态类型描述类
+     */
+    template <typename ConverterClass>
+    class enable_for_type_convert {
+    public:
+        virtual ~enable_for_type_convert() = default;
+        enable_for_type_convert() = default;
+    private:
+        using converter_func = bool(*)(void* dest,const void* source, const foundation::ctti::typeinfo& type);
+        using target_type = typename implements::get_any_converter_target_type<ConverterClass>::type;
+
+        template <typename TargetType = target_type>
+        static bool get_converter_func_invoker(void *dest, const void *source, const foundation::ctti::typeinfo &type) {
+            if (!ConverterClass::is_convertible(type)) {
+                return false;
+            }
+            if constexpr (!type_traits::composite_types::is_reference_v<target_type>) {
+                if (dest && source) {
+                    *static_cast<type_traits::cv_modify::remove_const_t<TargetType> *>(dest) = ConverterClass::basic_convert(source, type);
+                }
+            }
+            return true;
+        }
+
+        struct inject {
+            inject() {
+                const converter_func func = &get_converter_func_invoker;
+                foundation::ctti::implements::dynamic_converter_registry::instance().register_converter(rainy_typeid(target_type), func);
+            }
+        };
+
+#if RAINY_USING_MSVC
+        virtual void* rainy_toolkit_touch_register() {
+            return &inject_;
+        }
+#endif
+
+#if RAINY_USING_GCC || RAINY_USING_CLANG
+        inline static inject inject_ __attribute__((used)); // 此处，我们让GCC/Clang不优化这个对象，确保正确初始化
+#else
+        inline static inject inject_;
+#endif
+    };
+}
+
+namespace rainy::foundation::ctti {
+    template <typename Target>
+    rain_fn dynamic_convert(const void *src, const typeinfo &src_type) -> decltype(auto) {
+        if constexpr (type_traits::composite_types::is_reference_v<type_traits::cv_modify::remove_cv_t<Target>>) {
+            rainy_let ptr = const_cast<void *>(src);
+            if constexpr (type_traits::primary_types::is_lvalue_reference_v<Target>) {
+                if constexpr (type_traits::type_properties::is_const_v<type_traits::reference_modify::remove_reference_t<Target>>) {
+                    // 返回 const lvalue 引用
+                    return *static_cast<const type_traits::reference_modify::remove_reference_t<Target> *>(ptr);
+                } else {
+                    // 返回非 const lvalue 引用
+                    return *static_cast<type_traits::reference_modify::remove_reference_t<Target> *>(ptr);
+                }
+            } else if constexpr (type_traits::primary_types::is_rvalue_reference_v<Target>) {
+                if constexpr (type_traits::type_properties::is_const_v<std::remove_reference_t<Target>>) {
+                    // 返回 const rvalue 引用
+                    return utility::move(*static_cast<const type_traits::reference_modify::remove_reference_t<Target> *>(ptr));
+                } else {
+                    // 返回非 const rvalue 引用
+                    return utility::move(*static_cast<type_traits::reference_modify::remove_reference_t<Target> *>(ptr));
+                }
+            } else {
+                return *static_cast<Target *>(ptr);
+            }
+        } else {
+            auto fn = implements::dynamic_converter_registry::instance().find(rainy_typeid(Target));
+            if (!fn) {
+                std::terminate();
+            }
+            type_traits::cv_modify::remove_cvref_t<Target> result{};
+            fn(&result, src, src_type);
+            return result;
+        }
+    }
+
+    RAINY_INLINE bool is_convertible_to(const typeinfo &from, const typeinfo &to) noexcept {
+        const auto &reg = implements::dynamic_converter_registry::instance();
+        if (from.remove_cvref() == to.remove_cvref()) {
+            return true;
+        }
+        if (const auto p = reg.find(to); p != nullptr) {
+            return p(nullptr, nullptr, from);
+        }
+        return false;
     }
 }
 

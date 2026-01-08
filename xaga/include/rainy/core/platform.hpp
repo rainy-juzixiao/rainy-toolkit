@@ -1282,4 +1282,11 @@ namespace rainy::type_traits::type_relations {
     struct is_void : helper::bool_constant<is_void_v<Ty>> {};
 }
 
+namespace rainy::core::builtin {
+    template <typename Ty>
+    constexpr Ty ceil(Ty a, Ty b) {
+        return a / b + ((a % b) != 0 && ((a > 0) == (b > 0)));
+    }
+}
+
 #endif

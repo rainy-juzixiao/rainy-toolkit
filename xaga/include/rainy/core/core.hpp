@@ -362,7 +362,7 @@ namespace rainy::utility::implements {
 
 namespace rainy::utility {
     template <typename Ty, typename Dx = foundation::system::memory::default_deleter<Ty>>
-    class scope_guard {
+    class resource_guard {
     public:
         using value_type = Ty;
         using pointer = value_type *;
@@ -370,37 +370,37 @@ namespace rainy::utility {
 
         static_assert(!type_traits::type_relations::is_same_v<Ty, std::nullptr_t>, "Ty should not be nullptr_t");
 
-        RAINY_CONSTEXPR20 scope_guard() = default;
+        RAINY_CONSTEXPR20 resource_guard() = default;
 
-        scope_guard(const scope_guard &) = delete;
-        scope_guard(scope_guard &&) = delete;
-        scope_guard &operator=(const scope_guard &) = delete;
-        scope_guard &operator=(scope_guard &&) = delete;
-        scope_guard(std::nullptr_t) = delete;
+        resource_guard(const resource_guard &) = delete;
+        resource_guard(resource_guard &&) = delete;
+        resource_guard &operator=(const resource_guard &) = delete;
+        resource_guard &operator=(resource_guard &&) = delete;
+        resource_guard(std::nullptr_t) = delete;
 
-        RAINY_CONSTEXPR20 scope_guard(pointer data) : data_({}, data) {
+        RAINY_CONSTEXPR20 resource_guard(pointer data) : data_({}, data) {
             check_null(data);
         }
 
-        RAINY_CONSTEXPR20 scope_guard(pointer data, Dx deleter) : data_(deleter, data) {
-            check_null(data);
-        }
-
-        template <typename Uty, type_traits::other_trans::enable_if_t<type_traits::type_relations::is_convertible_v<Uty, value_type> &&
-                                                                          implements::is_deleter_invocable_v<Dx, Ty>,
-                                                                      int> = 0>
-        RAINY_CONSTEXPR20 scope_guard(Uty *data) : data_({}, data) {
+        RAINY_CONSTEXPR20 resource_guard(pointer data, Dx deleter) : data_(deleter, data) {
             check_null(data);
         }
 
         template <typename Uty, type_traits::other_trans::enable_if_t<type_traits::type_relations::is_convertible_v<Uty, value_type> &&
                                                                           implements::is_deleter_invocable_v<Dx, Ty>,
                                                                       int> = 0>
-        RAINY_CONSTEXPR20 scope_guard(Uty *data, Dx deleter) : data_(deleter, data) {
+        RAINY_CONSTEXPR20 resource_guard(Uty *data) : data_({}, data) {
             check_null(data);
         }
 
-        RAINY_CONSTEXPR20 ~scope_guard() {
+        template <typename Uty, type_traits::other_trans::enable_if_t<type_traits::type_relations::is_convertible_v<Uty, value_type> &&
+                                                                          implements::is_deleter_invocable_v<Dx, Ty>,
+                                                                      int> = 0>
+        RAINY_CONSTEXPR20 resource_guard(Uty *data, Dx deleter) : data_(deleter, data) {
+            check_null(data);
+        }
+
+        RAINY_CONSTEXPR20 ~resource_guard() {
             reset();
         }
 
@@ -452,6 +452,39 @@ namespace rainy::utility {
 
         utility::compressed_pair<Dx, pointer> data_{};
     };
+
+    template <typename F>
+    class scope_guard {
+    public:
+        explicit scope_guard(F &&f) : func(utility::forward<F>(f)), active(true) {
+        }
+
+        scope_guard(const scope_guard &) = delete;
+        scope_guard &operator=(const scope_guard &) = delete;
+
+        scope_guard(scope_guard &&other) noexcept : func(utility::move(other.func)), active(other.active) {
+            other.active = false;
+        }
+
+        ~scope_guard() {
+            if (active) {
+                func();
+            }
+        }
+
+        void dismiss() noexcept {
+            active = false;
+        }
+
+    private:
+        F func;
+        bool active;
+    };
+
+    template <typename F>
+    scope_guard<F> make_scope_guard(F &&f) {
+        return scope_guard<F>(utility::forward<F>(f));
+    }
 }
 
 namespace rainy::utility {

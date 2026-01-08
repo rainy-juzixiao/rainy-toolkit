@@ -294,7 +294,7 @@ namespace rainy::meta::reflection {
             type_traits::other_trans::enable_if_t<!type_traits::type_relations::is_same_v<Ty, object_view> &&
                                                       !type_traits::type_relations::is_same_v<Ty, non_exists_instance_t>,
                                                   int>;
-        
+
         object_view() = default;
         object_view(std::nullptr_t) = delete;
         object_view &operator=(std::nullptr_t) = delete;
@@ -464,6 +464,14 @@ namespace rainy::meta::reflection {
     template <typename Any,
               type_traits::other_trans::enable_if_t<
                   type_traits::type_relations::is_same_v<type_traits::cv_modify::remove_cvref_t<Any>, utility::any>, int> = 0>
+    RAINY_INLINE object_view as_object_view(Any &&any) {
+        return object_view{const_cast<void *>(any.target_as_void_ptr()), any.type()};
+    }
+
+    template <typename Any,
+              type_traits::other_trans::enable_if_t<type_traits::type_relations::is_same_v<type_traits::cv_modify::remove_cvref_t<Any>,
+                                                                                           typename utility::any::reference>,
+                                                    int> = 0>
     RAINY_INLINE object_view as_object_view(Any &&any) {
         return object_view{const_cast<void *>(any.target_as_void_ptr()), any.type()};
     }

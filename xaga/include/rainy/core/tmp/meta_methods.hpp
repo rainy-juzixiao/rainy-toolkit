@@ -1,3 +1,18 @@
+/*
+ * Copyright 2025 rainy-juzixiao
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 #ifndef RAINY_CORE_TMP_META_METHOD_HPP
 #define RAINY_CORE_TMP_META_METHOD_HPP
 #include <rainy/core/platform.hpp>
@@ -91,7 +106,7 @@ namespace rainy::type_traits::extras::meta_method {
             return container.cend();
         }
     };
-    
+
     template <typename Ty, typename = void>
     struct try_to_invoke_size {
         static RAINY_CONSTEXPR_BOOL value = false;
@@ -197,18 +212,19 @@ namespace rainy::type_traits::extras::meta_method {
     RAINY_CONSTEXPR_BOOL has_operator_add_v = false;
 
     template <typename Ty>
-    RAINY_CONSTEXPR_BOOL
-        has_operator_add_v<Ty, type_traits::other_trans::void_t<decltype(utility::declval<const Ty &>() + utility::declval<const Ty &>())>> = true;
+    RAINY_CONSTEXPR_BOOL has_operator_add_v<
+        Ty, type_traits::other_trans::void_t<decltype(utility::declval<const Ty &>() + utility::declval<const Ty &>())>> = true;
 
     template <typename Ty>
     struct has_operator_add : helper::bool_constant<has_operator_add_v<Ty>> {};
-    
+
     template <typename Ty, typename = void>
     RAINY_CONSTEXPR_BOOL has_operator_addition_v = false;
 
     template <typename Ty>
     RAINY_CONSTEXPR_BOOL
-        has_operator_addition_v<Ty, other_trans::void_t<decltype(utility::declval<Ty &>() + utility::declval<std::ptrdiff_t>())>> = true;
+        has_operator_addition_v<Ty, other_trans::void_t<decltype(utility::declval<Ty &>() + utility::declval<std::ptrdiff_t>())>> =
+            true;
 
     template <typename Ty>
     struct has_operator_addition : helper::bool_constant<has_operator_addition_v<Ty>> {};
@@ -288,9 +304,8 @@ namespace rainy::type_traits::extras::meta_method {
     RAINY_CONSTEXPR_BOOL has_operator_div_equal_v = false;
 
     template <typename Ty>
-    RAINY_CONSTEXPR_BOOL
-        has_operator_div_equal_v<Ty, type_traits::other_trans::void_t<decltype(utility::declval<Ty &>() /= utility::declval<Ty &>())>> =
-            true;
+    RAINY_CONSTEXPR_BOOL has_operator_div_equal_v<
+        Ty, type_traits::other_trans::void_t<decltype(utility::declval<Ty &>() /= utility::declval<Ty &>())>> = true;
 
     template <typename Ty>
     struct has_operator_div_equal : helper::bool_constant<has_operator_div_equal_v<Ty>> {};
@@ -340,8 +355,8 @@ namespace rainy::type_traits::extras::meta_method {
     RAINY_CONSTEXPR_BOOL has_operator_lt_v = false;
 
     template <typename Ty>
-    RAINY_CONSTEXPR_BOOL
-        has_operator_lt_v<Ty, type_traits::other_trans::void_t<decltype(utility::declval<const Ty &>() < utility::declval<const Ty &>())>> = true;
+    RAINY_CONSTEXPR_BOOL has_operator_lt_v<
+        Ty, type_traits::other_trans::void_t<decltype(utility::declval<const Ty &>() < utility::declval<const Ty &>())>> = true;
 
     template <typename Ty>
     struct has_operator_lt : helper::bool_constant<has_operator_lt_v<Ty>> {};
@@ -401,9 +416,8 @@ namespace rainy::type_traits::extras::meta_method {
     template <typename Ty>
     RAINY_CONSTEXPR_BOOL has_operator_index_for_key_v<
         Ty, type_traits::other_trans::void_t<typename Ty::key_type,
-                                             decltype(utility::declval<Ty &>()[std::declval<typename Ty::key_type>()])>> =
-        true;
-    
+                                             decltype(utility::declval<Ty &>()[std::declval<typename Ty::key_type>()])>> = true;
+
     template <typename Ty>
     struct has_operator_index : helper::bool_constant<has_operator_index_v<Ty>> {};
 
@@ -683,9 +697,8 @@ namespace rainy::type_traits::extras::meta_method {
     RAINY_CONSTEXPR_BOOL has_emplace_back_v = false;
 
     template <typename Ty>
-    RAINY_CONSTEXPR_BOOL has_emplace_back_v<
-        Ty, type_traits::other_trans::void_t<decltype(utility::declval<Ty &>().emplace_back(std::declval<typename Ty::value_type>()))>> =
-        true;
+    RAINY_CONSTEXPR_BOOL has_emplace_back_v<Ty, type_traits::other_trans::void_t<decltype(utility::declval<Ty &>().emplace_back(
+                                                    std::declval<typename Ty::value_type>()))>> = true;
 
     template <typename Ty>
     struct has_emplace_back : helper::bool_constant<has_emplace_back_v<Ty>> {};
@@ -709,14 +722,46 @@ namespace rainy::type_traits::extras::meta_method {
     struct has_pop_front : helper::bool_constant<has_pop_front_v<Ty>> {};
 
     template <typename Ty, typename = void>
-    RAINY_CONSTEXPR_BOOL has_insert_v = false;
+    RAINY_CONSTEXPR_BOOL has_insert_for_key_v = false;
 
     template <typename Ty>
-    RAINY_CONSTEXPR_BOOL
-        has_insert_v<Ty, type_traits::other_trans::void_t<decltype(utility::declval<Ty &>().insert(
-                             std::declval<typename Ty::const_iterator>(), std::declval<typename Ty::value_type>()))>> = true;
+    RAINY_CONSTEXPR_BOOL has_insert_for_key_v<
+        Ty, other_trans::void_t<decltype(utility::declval<Ty &>().insert(utility::declval<typename Ty::key_type>()))>> = true;
+
     template <typename Ty>
-    struct has_insert : helper::bool_constant<has_insert_v<Ty>> {};
+    struct has_insert_for_key : helper::bool_constant<has_insert_for_key_v<Ty>> {};
+
+    template <typename Ty, typename = void>
+    RAINY_CONSTEXPR_BOOL has_insert_for_value_v = false;
+
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL has_insert_for_value_v<
+        Ty, other_trans::void_t<decltype(utility::declval<Ty &>().insert(utility::declval<typename Ty::value_type>()))>> = true;
+
+    template <typename Ty>
+    struct has_insert_for_value : helper::bool_constant<has_insert_for_value_v<Ty>> {};
+
+    template <typename Ty, typename = void>
+    RAINY_CONSTEXPR_BOOL has_insert_for_iter_and_value_v = false;
+
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL has_insert_for_iter_and_value_v<
+        Ty, other_trans::void_t<decltype(utility::declval<Ty &>().insert(utility::declval<typename Ty::const_iterator>(),
+                                                                         utility::declval<typename Ty::value_type>()))>> = true;
+
+    template <typename Ty>
+    struct has_insert_for_iter_and_value : helper::bool_constant<has_insert_for_iter_and_value_v<Ty>> {};
+
+    template <typename Ty, typename = void>
+    RAINY_CONSTEXPR_BOOL has_insert_for_key_and_value_v = false;
+
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL has_insert_for_key_and_value_v<
+        Ty, other_trans::void_t<decltype(utility::declval<Ty &>().insert(utility::declval<typename Ty::const_iterator>(),
+                                                                         utility::declval<typename Ty::value_type>()))>> = true;
+
+    template <typename Ty>
+    struct has_insert_for_key_and_value : helper::bool_constant<has_insert_for_key_and_value_v<Ty>> {};
 
     template <typename Ty, typename = void>
     RAINY_CONSTEXPR_BOOL has_erase_v = false;

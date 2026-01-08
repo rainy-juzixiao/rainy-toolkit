@@ -13,6 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+/**
+ * @file bind.hpp
+ * @brief 可调用对象绑定库
+ */
 #ifndef RAINY_FOUNDATION_FUNCTIONAL_BIND_HPP
 #define RAINY_FOUNDATION_FUNCTIONAL_BIND_HPP
 #include <rainy/core/core.hpp>
@@ -164,12 +168,20 @@ namespace rainy::foundation::functional {
 #endif
 
     private:
-        utility::compressed_pair<Fx, utility::tuple<type_traits::other_trans::decay_t<BoundArgs>...>> pair;
+        compressed_pair<Fx, utility::tuple<type_traits::other_trans::decay_t<BoundArgs>...>> pair;
     };
 
     template <typename Fx, typename... Args>
     binder(Fx, Args...) -> binder<Fx, Args...>;
 
+    /**
+     * @brief 将函数和多个参数进行绑定
+     * @tparam Fx 由参数推导，函数的类型
+     * @tparam Args 要绑定的参数的类型
+     * @param fx 要绑定的目标函数
+     * @param args 要绑定的参数
+     * @return 返回一个函数对象用于调用绑定的表达式
+     */
     template <typename Fx, typename... Args>
     rain_fn bind(Fx fx, Args &&...args) -> binder<Fx, Args...> {
         return binder<Fx, Args...>(fx, args...);

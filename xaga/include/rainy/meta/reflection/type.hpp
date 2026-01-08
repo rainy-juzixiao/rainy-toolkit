@@ -15,7 +15,7 @@
  */
 #ifndef RAINY_META_REFLECTION_TYPE_HPP
 #define RAINY_META_REFLECTION_TYPE_HPP
-#include <rainy/collections/string.hpp>
+#include <rainy/text/string.hpp>
 #include <rainy/foundation/typeinfo.hpp>
 #include <rainy/meta/reflection/function.hpp>
 #include <rainy/meta/reflection/property.hpp>
@@ -205,6 +205,10 @@ namespace rainy::meta::reflection {
          */
         RAINY_NODISCARD collections::views::array_view<foundation::ctti::typeinfo> get_template_arguments() const noexcept;
 
+        RAINY_NODISCARD const foundation::ctti::typeinfo &typeinfo() const noexcept {
+            return accessor->typeinfo();
+        }
+
         /**
          * @brief 根据名称，获取指定的方法反射对象
          * @param name 要获取的方法名称
@@ -247,7 +251,7 @@ namespace rainy::meta::reflection {
          * @brief 获取类型的所有构造函数反射对象
          * @return 返回类型的所有构造函数反射对象的视图
          */
-        RAINY_NODISCARD type::constcutor_view_t get_construtors() const noexcept;
+        RAINY_NODISCARD type::constcutor_view_t get_constructors() const noexcept;
 
         /**
          * @brief 根据参数列表，获取指定的构造函数反射对象
@@ -323,7 +327,7 @@ namespace rainy::meta::reflection {
          * @brief 获取类型信息对象
          * @return 返回类型信息对象的常量引用
          */
-        RAINY_NODISCARD const foundation::ctti::typeinfo &get_typeinfo() noexcept;
+        RAINY_NODISCARD const foundation::ctti::typeinfo &get_typeinfo() const noexcept;
 
         /**
          * @brief 获取元数据信息
@@ -369,7 +373,17 @@ namespace rainy::meta::reflection {
             return {};
         }
 
-        utility::any create_object(collections::views::array_view<utility::any> args) const;
+        template <typename SharedObject = shared_object>
+        SharedObject create_object(collections::views::array_view<utility::any> args) const {
+            for (const auto &item: accessor->ctors()) {
+                const constructor &cur_ctor = item;
+                bool invocable = cur_ctor.is_invocable_with(args);
+                if (invocable) {
+                    return cur_ctor.invoke(args);
+                }
+            }
+            return {};
+        }
 
         /**
          * @brief 检查当前反射类型对象是否有效

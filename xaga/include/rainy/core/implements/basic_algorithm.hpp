@@ -15,17 +15,16 @@
  */
 #ifndef RAINY_CORE_IMPLEMENTS_BASIC_ALGORITHM_HPP
 #define RAINY_CORE_IMPLEMENTS_BASIC_ALGORITHM_HPP
-#include <utility>
 #include <algorithm>
-#include <rainy/core/tmp/iter_traits.hpp>
 #include <rainy/core/tmp/implements.hpp>
+#include <rainy/core/tmp/iter_traits.hpp>
 
 namespace rainy::core::algorithm {
     template<class ForwardIt1, class ForwardIt2>
     RAINY_CONSTEXPR20 ForwardIt2 swap_ranges(ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2) {
         for (; first1 != last1; ++first1, ++first2) {
             std::iter_swap(first1, first2);
-        }    
+        }
         return first2;
     }
 
@@ -38,7 +37,7 @@ namespace rainy::core::algorithm {
 
     template <typename Iter, typename Size, typename Ty = typename utility::iterator_traits<Iter>::value_type>
     constexpr rain_fn fill_n(Iter first, Size count, const Ty &value) -> Iter {
-        for (Size i = 0; i < count; i++) {
+        for (Size i = 0; i < count; ++i) {
             *first++ = value;
         }
         return first;
@@ -195,9 +194,23 @@ namespace rainy::core::algorithm {
         while (first != last) {
             --d_last;
             --last;
-            core::builtin::construct_at(std::addressof(*d_last), utility::move(*last));
+            builtin::construct_at(std::addressof(*d_last), utility::move(*last));
         }
         return d_last;
+    }
+
+    template<typename ForwardIt, typename Ty = typename utility::iterator_traits<ForwardIt>::value_type,
+         typename Compare>
+    constexpr bool binary_search(ForwardIt first, ForwardIt last, const Ty& value, Compare comp) {
+        first = algorithm::lower_bound(first, last, value, comp);
+        return (!(first == last) and !(comp(value, *first)));
+    }
+
+    template<typename ForwardIt, typename Ty = typename utility::iterator_traits<ForwardIt>::value_type>
+    constexpr bool binary_search(ForwardIt first, ForwardIt last, const Ty& value) {
+        return algorithm::binary_search(first, last, value, [](auto&& left, auto&& right) {
+            return left < right;
+        });
     }
 }
 

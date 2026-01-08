@@ -509,7 +509,7 @@ namespace rainy::meta::reflection {
             ptr(std::make_shared<data>(data(utility::move(name), {}))) {
             if constexpr (N != 0) {
                 for (metadata &meta: metadatas) {
-                    ptr->metadata.emplace_back(utility::move(meta));
+                    ptr->metadata_.emplace_back(utility::move(meta));
                 }
             }
         }
@@ -517,7 +517,7 @@ namespace rainy::meta::reflection {
     private:
         struct data {
             std::string_view name;
-            std::vector<metadata> metadata;
+            std::vector<metadata> metadata_;
         };
 
         std::shared_ptr<data> ptr;
@@ -562,6 +562,10 @@ namespace rainy::meta::reflection {
         using method::swap;
         using method::is_invocable;
         using method::is_invocable_with;
+
+        const foundation::ctti::typeinfo &instantiated_type() const noexcept {
+            return method::which_belongs();
+        }
        
         template <typename... Args>
         utility::any invoke(Args &&...args) const noexcept {

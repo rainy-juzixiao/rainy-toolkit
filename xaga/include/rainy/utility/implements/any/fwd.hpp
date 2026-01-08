@@ -29,17 +29,15 @@
 // NOLINTEND
 
 namespace rainy::utility {
+    /**
+     * @brief 一个混合所有权的动态变量容器
+     * @brief
+     * 通常用于对不确定的变量或引用进行运算符或访问操作。同时，因其混合所有权的特性，在持有某个对象的时候，basic_any将会采用RAII策略，反之则仅保留使用权，因此，basic_any有大量功能不同于std::any
+     * @param Length 指定any小对象的缓冲区长度（一般留空）
+     * @param Align 指定any小对象的对齐长度（一般留空）
+     */
     template <std::size_t Length = core::small_object_space_size - (sizeof(void *) * 2), std::size_t Align = alignof(std::max_align_t)>
     class basic_any;
-
-    template <typename TargetType, typename = void>
-    struct any_converter {
-        static constexpr bool invalid_mark = true;
-
-        static bool is_convertible(const foundation::ctti::typeinfo &) {
-            return false;
-        }
-    };
 
     template <typename Type, typename = void>
     RAINY_CONSTEXPR_BOOL is_any_convert_invocable = true;
@@ -60,9 +58,9 @@ namespace rainy::utility {
     template <typename TargetType>
     RAINY_NODISCARD bool is_any_convertible(const foundation::ctti::typeinfo &source_type) noexcept {
         if constexpr (is_any_convert_invocable<TargetType>) {
-            return utility::any_converter<TargetType>::is_convertible(source_type);
+            return any_converter<TargetType>::is_convertible(source_type);
         } else {
-            return source_type == rainy_typeid(TargetType);
+            return source_type.is_compatible(rainy_typeid(TargetType));
         }
     }
 
@@ -80,6 +78,12 @@ namespace rainy::utility {
         ~any_default_match() = default;
         any_default_match(const any_default_match &) = default;
         any_default_match(any_default_match &&) = default;
+    };
+
+    enum class any_inner_declaertion {
+        key_type,
+        value_type,
+        size_type
     };
 }
 
@@ -160,7 +164,15 @@ namespace rainy::utility::implements {
         greater
     };
 
+    /**
+     * @brief any操作的调用功能号表
+     */
     enum class any_operation {
+        /**
+         * @brief 调用比较器并执行比较
+         * @param 一个tuple，包装类型为：
+         * std::tuple<typename any::refernece*, typename any::reference*, any_compare_operation>
+         */
         compare,
         eval_hash,
         query_for_is_tuple_like,
@@ -177,14 +189,19 @@ namespace rainy::utility::implements {
         mod,
         dereference,
         access_element,
-        call_begin,
-        call_end,
+        container_begin,
+        container_end,
         assign,
         get_reference,
         get_lvalue_reference,
         get_rvalue_reference,
         construct_from,
-        swap_value
+        swap_value,
+        query_inner_declaertion_type,
+        container_size,
+        container_resize,
+        container_insert_seq_like,
+        container_insert_map_like,
     };
 }
 
@@ -204,6 +221,48 @@ namespace rainy::utility::implements {
             return size;
         } else {
             return 0;
+        }
+    }
+
+    // 执行策略
+    struct any_execution_policy {
+        using operation = any_operation;
+
+        using invoke_fn = bool(operation op, void *data) noexcept;
+
+        template <typename Ty, typename BasicAnyImpl>
+        static bool invoke_impl(operation op, void *data);
+
+        invoke_fn *invoke;
+    };
+
+    /**
+     * @brief 获取一个执行器对象
+     * @tparam Ty 实例类型
+     * @tparam BasicAnyImpl basic_any的实例化类型
+     */
+    template <typename Ty, typename BasicAnyImpl>
+    inline const any_execution_policy any_execution_policy_object = {
+        +[](const any_execution_policy::operation op, void *const data) noexcept -> bool {
+            return any_execution_policy::invoke_impl<Ty, BasicAnyImpl>(op, data);
+        }};
+
+    template <bool UseConst, typename Ty, typename BasicAny>
+    bool destructure_impl(const BasicAny *view, const any_execution_policy *executer, Ty &&receiver);
+
+    template <std::size_t Idx = 0, typename Variant, typename TypeList, typename BasicAny>
+    RAINY_INLINE auto match_variant_helper(const BasicAny &res) {
+        if constexpr (Idx < type_traits::other_trans::type_list_size_v<TypeList>) {
+            using type = typename type_traits::other_trans::type_at<Idx, TypeList>::type;
+            if (res.template is<type>()) {
+                return Variant{res.template as<type>()};
+            }
+            if (res.template is_convertible<type>()) {
+                return Variant{res.template convert<type>()};
+            }
+            return match_variant_helper<Idx + 1, Variant, TypeList>(res);
+        } else {
+            return Variant{};
         }
     }
 }

@@ -37,11 +37,11 @@ namespace rainy::foundation::exceptions {
 namespace rainy::foundation::exceptions::implements {
     void invoke_exception_handler() noexcept {
         {
-            auto invoke_address = current_thread_exception_handler();
+            const auto invoke_address = current_thread_exception_handler();
             invoke_address();
         }
         {
-            auto invoke_address = global_exception_handler();
+            const auto invoke_address = global_exception_handler();
             invoke_address();
         }
     }
@@ -138,7 +138,7 @@ namespace rainy::core::builtin {
             rainy_let source = static_cast<const std::uint8_t *>(src);
             constexpr size_t chunk_size = 16; // 步长调整为 16
             while (len >= chunk_size) {
-                __m128i data = _mm_loadu_si128(reinterpret_cast<const __m128i *>(source)); // 使用未对齐加载
+                const __m128i data = _mm_loadu_si128(reinterpret_cast<const __m128i *>(source)); // 使用未对齐加载
                 _mm_storeu_si128(reinterpret_cast<__m128i *>(dst), data);
                 source += chunk_size;
                 dst += chunk_size;

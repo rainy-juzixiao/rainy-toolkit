@@ -1,5 +1,5 @@
-#include <rainy/meta/reflection/registration.hpp>
 #include <rainy/meta/reflection/refl_impl/type_register.hpp>
+#include <rainy/meta/reflection/registration.hpp>
 
 namespace rainy::meta::reflection::implements {
     bool check_method_field(type_accessor *type, std::string_view name, method &meth) {

@@ -166,7 +166,7 @@ namespace rainy::meta::reflection {
         return utility::mapped_range(accessor->properties());
     }
 
-    RAINY_NODISCARD type::constcutor_view_t type::get_construtors() const noexcept {
+    RAINY_NODISCARD type::constcutor_view_t type::get_constructors() const noexcept {
         static implements::ctor_storage_t empty;
         if (!accessor) {
             return empty;
@@ -243,7 +243,7 @@ namespace rainy::meta::reflection {
         return is_derived_from(type.accessor->typeinfo());
     }
 
-    RAINY_NODISCARD const foundation::ctti::typeinfo &type::get_typeinfo() noexcept {
+    RAINY_NODISCARD const foundation::ctti::typeinfo &type::get_typeinfo() const noexcept {
         if (!accessor) {
             return rainy_typeid(void);
         }
@@ -290,17 +290,6 @@ namespace rainy::meta::reflection {
             }
         }
         return false;
-    }
-
-    utility::any type::create_object(collections::views::array_view<utility::any> args) const {
-        for (const auto &item: accessor->ctors()) {
-            const constructor &cur_ctor = item;
-            bool invocable = cur_ctor.is_invocable_with(args);
-            if (invocable) {
-                return cur_ctor.invoke(args);
-            }
-        }
-        return {};
     }
 
     RAINY_NODISCARD bool type::is_valid() const noexcept {

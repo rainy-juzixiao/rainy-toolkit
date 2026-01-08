@@ -46,3 +46,5 @@ docs/.vitepress/dist
 /CMakePresets.json
 /CMakeSettings.json
 /cpp.hint
+
+/xml/

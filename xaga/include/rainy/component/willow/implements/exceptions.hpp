@@ -19,7 +19,7 @@ namespace rainy::foundation::exceptions::willow {
         }
     };
 
-    void throw_json_type_error(const char *message,
+    RAINY_INLINE void throw_json_type_error(const char *message,
                                const foundation::diagnostics::source_location &loc = foundation::diagnostics::current_location()) {
         throw_exception(json_type_error(message, loc));
     }
@@ -30,7 +30,8 @@ namespace rainy::foundation::exceptions::willow {
         }
     };
 
-    void throw_json_invalid_key(const char *message,
+    RAINY_INLINE void throw_json_invalid_key(
+        const char *message,
                                 const foundation::diagnostics::source_location &loc = foundation::diagnostics::current_location()) {
         throw_exception(json_invalid_key(message, loc));
     }
@@ -43,7 +44,7 @@ namespace rainy::foundation::exceptions::willow {
         }
     };
 
-    void throw_json_invalid_iterator(
+    RAINY_INLINE void throw_json_invalid_iterator(
         const char *message, const foundation::diagnostics::source_location &loc = foundation::diagnostics::current_location()) {
         throw_exception(json_invalid_iterator(message, loc));
     }
@@ -56,7 +57,8 @@ namespace rainy::foundation::exceptions::willow {
         }
     };
 
-    void throw_json_parse_error(const char *message,
+    RAINY_INLINE void throw_json_parse_error(
+        const char *message,
                                 const foundation::diagnostics::source_location &loc = foundation::diagnostics::current_location()) {
         throw_exception(json_parse_error(message, loc));
     }
@@ -69,7 +71,7 @@ namespace rainy::foundation::exceptions::willow {
         }
     };
 
-    void throw_json_serialize_error(
+    RAINY_INLINE void throw_json_serialize_error(
         const char *message, const foundation::diagnostics::source_location &loc = foundation::diagnostics::current_location()) {
         throw_exception(json_serialize_error(message, loc));
     }

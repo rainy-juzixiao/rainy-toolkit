@@ -28,6 +28,7 @@
 #include <rainy/core/tmp/ranges_traits.hpp>
 #include <rainy/core/tmp/iter_traits.hpp>
 #include <rainy/core/tmp/meta_methods.hpp>
+#include <rainy/core/tmp/meta_types.hpp>
 #include <rainy/core/implements/basic_algorithm.hpp>
 #if RAINY_USING_GCC
 #include <rainy/core/gnu/typetraits.hpp>
@@ -2651,7 +2652,7 @@ namespace rainy::core {
     }
 
     template <typename AbstractBody>
-    class basic_poly : private AbstractBody::template type<poly_base<basic_poly<AbstractBody>>> {
+    class basic_poly : AbstractBody::template type<poly_base<basic_poly<AbstractBody>>> {
     public:
         friend struct poly_base<basic_poly>;
 
@@ -2659,15 +2660,14 @@ namespace rainy::core {
         using vtable_info = poly_vtable<AbstractBody>;
         using vtable_type = typename vtable_info::type;
 
-        basic_poly() noexcept : _ptr(nullptr), vtable{} {
-        }
+        basic_poly() noexcept= default;
 
         template <typename Type>
-        basic_poly(Type *ptr) noexcept :
+        basic_poly(Type *ptr) noexcept : // NOLINT
             _ptr(static_cast<void *>(ptr)), vtable{vtable_info::template instance<std::remove_cv_t<std::remove_pointer_t<Type>>>()} {
         }
 
-        basic_poly(std::nullptr_t) {
+        basic_poly(std::nullptr_t) { // NOLINT
         }
 
         basic_poly(basic_poly &&other) noexcept : _ptr(other._ptr), vtable(other.vtable) {
@@ -3030,6 +3030,31 @@ namespace rainy::utility {
 
     template <typename Diff>
     constexpr Diff min_possible_v{-max_possible_v<Diff> - 1};
+}
+
+namespace rainy::type_traits::type_properties {
+    template <typename T>
+    struct is_sequential_container : helper::bool_constant<type_traits::extras::meta_method::has_push_back_v<T> || primary_types::is_array_v<T>> {};
+
+    template <typename T>
+    RAINY_CONSTEXPR_BOOL is_sequential_container_v = is_sequential_container<T>::value;
+
+    template <typename T>
+    struct is_associative_container : helper::bool_constant<type_traits::extras::meta_method::has_insert_for_key_v<T> &&
+                                                            type_traits::extras::meta_method::has_insert_for_key_and_value_v<T> &&
+                                                            !type_traits::extras::meta_method::has_push_back_v<T>> {};
+
+    template <typename T>
+    RAINY_CONSTEXPR_BOOL is_associative_container_v = is_associative_container<T>::value;
+
+    template <typename, typename = void>
+    struct is_map_like : helper::false_type {};
+
+    template <typename T>
+    struct is_map_like<T, other_trans::void_t<typename T::key_type, typename T::mapped_type>> : helper::true_type {};
+
+    template <typename T>
+    inline constexpr bool is_map_like_v = is_map_like<T>::value;
 }
 
 #endif

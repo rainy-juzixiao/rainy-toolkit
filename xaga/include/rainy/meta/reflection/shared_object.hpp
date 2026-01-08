@@ -18,6 +18,7 @@
 #include <rainy/core/core.hpp>
 #include <rainy/utility/any.hpp>
 #include <rainy/meta/reflection/type.hpp>
+#include <rainy/collections/views/transform_view.hpp>
 
 #if RAINY_USING_MSVC
 #pragma warning(push)
@@ -25,11 +26,40 @@
 #endif
 
 namespace rainy::meta::reflection {
+    class shared_object;
+}
+
+namespace rainy::meta::reflection::implements {
+    template <typename SharedObject, bool Const>
+    class shared_object_property {
+    public:
+        using shared_object = SharedObject;
+        using object_storage = type_traits::other_trans::conditional_t<Const,const shared_object, shared_object>;
+
+        shared_object_property(object_storage *object,const property &prop) : property_impl{&prop}, object{object} {
+        }
+
+        const foundation::ctti::typeinfo &which_belongs() const noexcept {
+            return property_impl->which_belongs();
+        }
+
+    private:
+        const property *property_impl;
+        object_storage *object;
+    };
+}
+
+namespace rainy::meta::reflection {
     class shared_object {
     public:
+        using shared_object_property = implements::shared_object_property<shared_object, false>;
+
         shared_object() noexcept = default;
 
         shared_object(utility::any &&object) : internal_storage{std::make_shared<impl>(utility::move(object))} {
+        }
+
+        shared_object(utility::any::reference &&object) : internal_storage{std::make_shared<impl>(object.construct_from_this())} {
         }
 
         const foundation::ctti::typeinfo& type() const noexcept {
@@ -53,10 +83,33 @@ namespace rainy::meta::reflection {
             return as_object_view(internal_storage->object);
         }
 
+        operator object_view() const noexcept {
+            return as_object_view(internal_storage->object.as_const_reference());
+        }
+
+        utility::any& target() noexcept {
+            return internal_storage->object;
+        }
+
+        const utility::any& target() const noexcept {
+            return internal_storage->object;
+        }
+
+        rain_fn get_properties() const noexcept -> type::property_view_t {
+            return internal_storage->type_of_so.get_properties();
+        }
+
+        bool has_value() const noexcept {
+            if (!internal_storage) {
+                return false;
+            }
+            return internal_storage->object.has_value();
+        }
+
     private:
         struct impl {
             impl(utility::any&& object) : type_of_so{}, object(utility::move(object)) {
-                type_of_so = type::get_by_typeinfo(this->object.type());
+                type_of_so = type::get_by_typeinfo(this->object.type().remove_cvref());
             }
 
             reflection::type type_of_so;

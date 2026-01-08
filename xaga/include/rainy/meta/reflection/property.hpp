@@ -208,7 +208,11 @@ namespace rainy::meta::reflection {
                 if constexpr (type_traits::type_relations::is_void_v<Class>) {
                     return {*field_ptr};
                 } else {
-                    return {utility::invoke(field_ptr, object.as<Class>())};
+                    if (object.type().is_const()) {
+                        return {utility::invoke(field_ptr, object.as<const Class>())};
+                    } else {
+                        return {utility::invoke(field_ptr, object.as<Class>())};
+                    }
                 }
             }
 
@@ -255,7 +259,7 @@ namespace rainy::meta::reflection {
 
         template <typename Field, std::size_t N = 0,
                   type_traits::other_trans::enable_if_t<type_traits::type_properties::is_constructible_v<field, Field>, int> = 0>
-        static property make(std::string_view name, Field &&field, collections::array<metadata, N> &metadatas) {
+        static property make(std::string_view name, Field field, collections::array<metadata, N> &metadatas) {
             return property{name, field, metadatas};
         }
 
@@ -281,7 +285,7 @@ namespace rainy::meta::reflection {
     private:
         template <typename Field, typename... Args, std::size_t N = 0,
                   type_traits::other_trans::enable_if_t<type_traits::type_properties::is_constructible_v<field, Field>, int> = 0>
-        property(std::string_view name, Field &&field_, collections::array<metadata, N> &metadatas) noexcept :
+        property(std::string_view name, Field field_, collections::array<metadata, N> &metadatas) noexcept :
             field(utility::forward<Field>(field_)), ptr(std::make_shared<data>(data(utility::move(name), {}))) {
             if constexpr (N != 0) {
                 for (metadata &meta: metadatas) {

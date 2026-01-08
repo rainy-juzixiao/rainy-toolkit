@@ -6,7 +6,7 @@
 #include <rainy/core/core.hpp>
 #include <rainy/foundation/typeinfo.hpp>
 #include <rainy/foundation/system/memory/nebula_ptr.hpp>
-#include <rainy/collections/string.hpp>
+#include <rainy/text/string.hpp>
 
 namespace rainy::component::fallboot {
     class dispatcher;

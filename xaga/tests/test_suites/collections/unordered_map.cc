@@ -15,11 +15,12 @@
  */
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_all.hpp>
-#include <catch2/matchers/catch_matchers_exception.hpp>
 #include <rainy/collections/unordered_map.hpp>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
+
+// NOLINTBEGIN(cppcoreguidelines-avoid-do-while,cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
 
 using MapType = rainy::collections::unordered_map<int, std::string>;
 using PairType = rainy::utility::pair<int, std::string>;
@@ -31,8 +32,8 @@ SCENARIO("std::unordered_map basic operations", "[unordered_map]") {
 
         WHEN("checking if it's empty") {
             THEN("size should be 0 and empty() should return true") {
-                REQUIRE(map.empty());
-                REQUIRE(map.size() == 0);
+                REQUIRE(map.empty()); // NOLINT
+                REQUIRE(map.size() == 0); // NOLINT
             }
         }
 
@@ -94,9 +95,8 @@ SCENARIO("std::unordered_map basic operations", "[unordered_map]") {
 
         WHEN("using operator[] with non-existing key") {
             auto value = map[5];
-
             THEN("default value should be inserted") {
-                REQUIRE(value == "");
+                REQUIRE(value.empty());
                 REQUIRE(map.size() == 4);
                 REQUIRE(map.count(5) == 1);
             }
@@ -126,7 +126,7 @@ SCENARIO("std::unordered_map basic operations", "[unordered_map]") {
 
             THEN("map should be empty") {
                 REQUIRE(map.empty());
-                REQUIRE(map.size() == 0);
+                REQUIRE(map.size() == 0); // NOLINT
             }
         }
     }
@@ -237,8 +237,8 @@ SCENARIO("std::unordered_map capacity operations", "[unordered_map]") {
             }
 
             THEN("load factor should be within valid range") {
-                float load = map.load_factor();
-                float max_load = map.max_load_factor();
+                const float load = map.load_factor();
+                const float max_load = map.max_load_factor();
                 REQUIRE(load <= max_load);
                 REQUIRE(load > 0.0f);
             }
@@ -308,13 +308,14 @@ SCENARIO("std::unordered_map with custom types", "[unordered_map]") {
     };
 
     GIVEN("an unordered_map with custom key type") {
-        std::unordered_map<Point, std::string, PointHash> map;
+        std::unordered_map<Point, std::string, PointHash> map; // NOLINT
 
         WHEN("inserting elements with custom keys") {
+            // NOLINTBEGIN
             map[{0, 0}] = "origin";
             map[{1, 1}] = "diagonal";
             map[{5, 3}] = "point";
-
+            // NOLINTEND
             THEN("elements should be stored and retrievable") {
                 REQUIRE(map.size() == 3);
                 REQUIRE(map[{0, 0}] == "origin");
@@ -326,10 +327,8 @@ SCENARIO("std::unordered_map with custom types", "[unordered_map]") {
 }
 
 SCENARIO("std::unordered_map edge cases", "[unordered_map]") {
-
     GIVEN("an unordered_map") {
-        std::unordered_map<int, int> map;
-
+        std::unordered_map<int, int> map; // NOLINT
         WHEN("inserting and erasing repeatedly") {
             for (int i = 0; i < 100; ++i) {
                 map[i] = i;
@@ -337,20 +336,16 @@ SCENARIO("std::unordered_map edge cases", "[unordered_map]") {
             for (int i = 0; i < 50; ++i) {
                 map.erase(i);
             }
-
             THEN("final size should be correct") {
                 REQUIRE(map.size() == 50);
                 REQUIRE(map.count(25) == 0);
                 REQUIRE(map.count(75) == 1);
             }
         }
-
         WHEN("swapping two maps") {
             std::unordered_map<int, int> map1 = {{1, 10}, {2, 20}};
             std::unordered_map<int, int> map2 = {{3, 30}, {4, 40}, {5, 50}};
-
             map1.swap(map2);
-
             THEN("contents should be swapped") {
                 REQUIRE(map1.size() == 3);
                 REQUIRE(map2.size() == 2);
@@ -360,3 +355,5 @@ SCENARIO("std::unordered_map edge cases", "[unordered_map]") {
         }
     }
 }
+
+// NOLINTEND(cppcoreguidelines-avoid-do-while, cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)

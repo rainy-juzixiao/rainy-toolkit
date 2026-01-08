@@ -16,6 +16,7 @@
 #ifndef RAINY_META_REFLECTION_REFL_IMPL_HPP
 #define RAINY_META_REFLECTION_REFL_IMPL_HPP
 #include <rainy/foundation/typeinfo.hpp>
+#include <mutex>
 
 namespace rainy::meta::reflection {
     class type;

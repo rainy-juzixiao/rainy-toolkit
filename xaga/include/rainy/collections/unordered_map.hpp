@@ -15,6 +15,7 @@
  */
 #ifndef RAINY_COLLECTIONS_UNORDERED_MAP_HPP
 #define RAINY_COLLECTIONS_UNORDERED_MAP_HPP
+#include <cmath>
 #include <rainy/core/core.hpp>
 #include <rainy/utility/pair.hpp>
 #include <rainy/utility/iterator.hpp>
@@ -166,7 +167,7 @@ namespace rainy::collections::implements {
         }
 
         template <bool B = IsConst, typename = std::enable_if_t<B>>
-        unordered_map_local_iterator(const unordered_map_local_iterator<false, ListIterator> &other) : current_(other.current_), end_(other.end_) {
+        unordered_map_local_iterator(const unordered_map_local_iterator<false, ListIterator> &other) : current_(other.current_), end_(other.end_) { // NOLINT
         }
     };
 }
@@ -272,7 +273,7 @@ namespace rainy::collections::implements {
             init_buckets(default_bucket_count_);
         }
 
-        explicit unordered_map(size_type bucket_count, const hasher &hash = hasher(), const key_equal &equal = key_equal(),
+        explicit unordered_map(const size_type bucket_count, const hasher &hash = hasher(), const key_equal &equal = key_equal(),
                                 const allocator_type &alloc = allocator_type()) :
             elements_(alloc), buckets_(), size_(0), max_load_factor_(default_max_load_factor_), hash_(hash), equal_(equal) {
             init_buckets(bucket_count);

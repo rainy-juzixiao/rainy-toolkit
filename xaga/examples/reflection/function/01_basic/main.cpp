@@ -2,11 +2,12 @@
 #include <iostream>
 #include <optional>
 #include <rainy/collections/inplace_vector.hpp>
-#include <rainy/collections/string.hpp>
+#include <rainy/text/string.hpp>
 #include <rainy/meta/reflection/function.hpp>
 #include <rainy/meta/reflection/metadata.hpp>
 #include <rainy/meta/reflection/registration.hpp>
 #include <rainy/meta/reflection/shared_object.hpp>
+#include <rainy/component/willow/json.hpp>
 #include <rainy/meta/reflection/type.hpp>
 #include <rainy/utility/any.hpp>
 #include <ranges>
@@ -64,6 +65,13 @@ enum class color {
 class myclass : virtual public mybase2, public meta::reflection::reflect_lunar_for_class<myclass> {
 public:
     RAINY_INTRUSIVE_REFLECTION_REGISTRATION("myclass", this_instance) {
+        meta::reflection::registration::class_<mybase1>("mybase1")
+            .method("print_mybase1", &mybase1::print_mybase1)
+            .method("virtual_fun", &mybase1::virtual_fun);
+
+        meta::reflection::registration::class_<mybase2>("mybase2")
+            .method("print_mybase2", &mybase2::print_mybase2)
+            .method("virtual_fun", &mybase2::virtual_fun);
         this_instance
         (
             meta::reflection::metadata("prop", "virtual public")
@@ -93,7 +101,7 @@ public:
             utility::get_overloaded_func<myclass,void(myclass)>(&myclass::print_field))
         .method("virtual_fun", &myclass::virtual_fun)
         .base<mybase1>("mybase1")
-        .base<mybase2>("mybase2");;
+        .base<mybase2>("mybase2");
     }
 
     myclass() {
@@ -128,25 +136,24 @@ struct MyStruct {
     int data;
 };
 
+struct Address {
+    std::string city;
+    int zip;
+};
+
+struct User {
+    int id;
+    std::string name;
+    std::vector<int> scores;
+    Address addr;
+};
+
+
 RAINY_REFLECTION_REGISTRATION {
     // clang-format off
     using namespace rainy::meta::reflection;
-	registration::class_<MyStruct>("MyStruct")
-		.constructor<>()
-		.property("data", &MyStruct::data)
-		.method("func", &MyStruct::func);
-    
-    meta::reflection::registration::fundamental<int>("int")
-        (
-            metadata("name", "11111")
-        );
-    meta::reflection::registration::class_<mybase1>()
-        .method("print_mybase1", &mybase1::print_mybase1)
-        .method("virtual_fun", &mybase1::virtual_fun);
-
-    meta::reflection::registration::class_<mybase2>()
-        .method("print_mybase2", &mybase2::print_mybase2)
-        .method("virtual_fun", &mybase2::virtual_fun);
+    registration::class_<Address>("Address").constructor().property("city",&Address::city).property("zip",&Address::zip);
+    registration::class_<User>("User").constructor().property("id",&User::id).property("name",&User::name).property("scores", &User::scores).property("addr",&User::addr);
     // clang-format on
 }
 
@@ -206,99 +213,87 @@ struct S {
     }
 };
 
+#include <rainy/meta/reflection/io.hpp>
+#include <rainy/collections/concurrency/forward_list.hpp>
+#include <forward_list>
+#include <rainy/collections/concurrency/atomic_grow_array.hpp>
+
 int main() {
+    rainy::collections::concurrency::atomic_grow_array<int> arr;
+    arr[0] = 1;
+    arr[1] = 1;
+    arr[2] = 1;
+    arr[5] = 3;
+    auto view = arr.as_view();
+    std::cout << view.size() << '\n';
+    for (const auto &item: view) {
+        std::cout << item << '\n';
+    }
+    /*for (int i = 1; i <= 100;++i) {
+        collections::concurrency::forward_list<int> forward_list;
+        std::vector<std::thread> threads;
+        for (int i = 0; i < 16; ++i) {
+            threads.emplace_back([&forward_list,i]() {
+                for (int j = 0; j < 10; ++j) {
+                    forward_list.push_front(i * 10 + j);
+                }
+            });
+        }
+        for (auto& thread : threads) {
+            thread.join();
+        }
+        std::size_t j = 1;
+        threads.clear();
+        for (int i = 0; i < 16; ++i) {
+            threads.emplace_back([&forward_list]() {
+                for (int j = 0; j < 5; ++j) {
+                    forward_list.pop_front();
+                }
+            });
+        }
+        for (auto& thread : threads) {
+            thread.join();
+        }
+    }*/
     {
-        auto fifty_minus = foundation::functional::bind_front(minus, 50);
-        assert(fifty_minus(3) == 47); // equivalent to: minus(50, 3) == 47
-
-        auto member_minus = foundation::functional::bind_front(&S::minus, S{50});
-        assert(member_minus(3) == 47); //: S tmp{50}; tmp.minus(3) == 47
-
-        // Noexcept-specification is preserved:
-        static_assert(!noexcept(fifty_minus(3)));
-        static_assert(noexcept(member_minus(3)));
-
-        // Binding of a lambda:
-        auto plus = [](int a, int b) { return a + b; };
-        auto forty_plus = foundation::functional::bind_front(plus, 40);
-        assert(forty_plus(7) == 47);
+        auto type = meta::reflection::type::get<User>();
+        auto str = R"({
+           "id": 42,
+           "name": "Alice",
+           "scores": [10, 20, 30],
+           "addr": {
+             "city": "Shanghai",
+             "zip": 200000
+           }
+         }
+        )";
+        auto json = component::willow::json::parse(str);
+        std::cout << json.dump() << '\n';
+        std::cout << json["id"] << '\n';
+        auto obj = type.create();
+        meta::reflection::io::from_json(json, obj);
+        User u = obj.target().as<User>();
+        std::cout << u.id << "\n";
+        std::cout << u.scores.size() << "\n";
+        for (const auto &item: u.scores) {
+            std::cout << item << '\n';
+        }
+        std::cout << u.name << '\n';
+        std::cout << u.addr.city << '\n';
+        std::cout << u.addr.zip << '\n';
+        auto obj1 = type.create();
+        meta::reflection::io::from_json(meta::reflection::io::to_json(obj), obj1);
+        User u2 = obj1.target().as<User>();
+        std::cout << u2.id << "\n";
+        std::cout << u2.scores.size() << "\n";
+        for (const auto &item: u2.scores) {
+            std::cout << item << '\n';
+        }
+        std::cout << u2.name << '\n';
+        std::cout << u2.addr.city << '\n';
+        std::cout << u2.addr.zip << '\n';
     }
-    {
-        using namespace foundation::functional::placeholders; // for _1, _2, _3...
 
-        std::cout << "1) argument reordering and pass-by-reference: ";
-        int n = 7;
-        // (_1 and _2 are from std::placeholders, and represent future
-        // arguments that will be passed to f1)
-        auto f1 = foundation::functional::bind(f, _2, 42, _1, std::cref(n), n);
-        n = 10;
-        const bool c = noexcept(f1(1, 2, 100));
-        f1(1, 2, 1001); // 1 is bound by _1, 2 is bound by _2, 1001 is unused
-                        // makes a call to f(2, 42, 1, n, 7)
-
-        std::cout << "2) achieving the same effect using a lambda: ";
-        n = 7;
-        auto lambda = [&ncref = n, n](auto a, auto b, auto /*unused*/) { f(b, 42, a, ncref, n); };
-        n = 10;
-        lambda(1, 2, 1001); // same as a call to f1(1, 2, 1001)
-
-        std::cout << "3) nested bind subexpressions share the placeholders: ";
-        auto f2 = foundation::functional::bind(f, _3, foundation::functional::bind(g, _3), _3, 4, 5);
-        f2(10, 11, 12); // makes a call to f(12, g(12), 12, 4, 5);
-
-        std::cout << "4) bind a RNG with a distribution: ";
-        std::default_random_engine e;
-        std::uniform_int_distribution<> d(0, 10);
-        auto rnd = bind(d, e); // a copy of e is stored in rnd
-        for (int n = 0; n < 10; ++n)
-            std::cout << rnd() << ' ';
-        std::cout << '\n';
-
-        std::cout << "5) bind to a pointer to member function: ";
-        Foo foo;
-        auto f3 = foundation::functional::bind(&Foo::print_sum, &foo, 95, _1);
-        f3(5);
-
-        std::cout << "6) bind to a mem_fn that is a pointer to member function: ";
-        auto ptr_to_print_sum = &Foo::print_sum;
-        auto f4 = foundation::functional::bind(ptr_to_print_sum, &foo, 95, _1);
-        f4(5);
-
-        std::cout << "7) bind to a pointer to data member: ";
-        auto f5 = foundation::functional::bind(&Foo::data, _1);
-        std::cout << f5(foo) << '\n';
-
-        std::cout << "8) bind to a mem_fn that is a pointer to data member: ";
-        auto ptr_to_data = &Foo::data;
-        auto f6 = foundation::functional::bind(ptr_to_data, _1);
-        std::cout << f6(foo) << '\n';
-
-        std::cout << "9) use smart pointers to call members of the referenced objects: ";
-        std::cout << f6(std::make_shared<Foo>(foo)) << ' ' << f6(std::make_unique<Foo>(foo)) << '\n';
-    }
-    foundation::functional::binder bind_func(
-        [](int a, std::string b) {
-            std::cout << "a = " << a << '\n';
-            std::cout << "b = " << b << '\n';
-        },
-        foundation::functional::placeholders::_2, foundation::functional::placeholders::_1);
-    bind_func("Hello World", 40);
-    //_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-    collections::unordered_map<int, char> map = {{10, '1'}, {20, '2'}};
-    auto node = map.extract(10);
-    std::cout << node.mapped() << '\n';
-    for (const auto &item: map) {
-        std::cout << item.first << " : " << item.second << '\n';
-    }
-    using namespace rainy::meta::moon;
-    for (const std::size_t offset: meta::moon::get_member_offset_arr<structure>()) {
-        std::cout << offset << '\n';
-    }
-    object o{0};
-    meta::moon::get<0>(o) = 10;
-    ++meta::moon::get<1>(o);
-    std::cout << o.value() << '\n';
-    std::cout << o.value2() << '\n';
     /*meta::moon::visit_members(sosss, [](auto &&...args) {
         ((std::cout << args << " "), ...);
         std::cout << "\n";
@@ -327,48 +322,6 @@ int main() {
         foundation::ctti::typeinfo::create<type_traits::other_trans::type_list<int, char, std::string>>().template_arguments();
     {
         using namespace rainy::meta::reflection;
-        for (const auto &item: type::get_global_methods()) {
-            std::cout << item.get_name() << '\n';
-        }
-        std::cout << type::get_global_methods().size() << '\n';
-        type t = type::get<MyStruct>();
-        for (auto &prop: t.get_properties()) {
-            std::cout << "meth: " << prop.get_name() << std::endl;
-        }
-        for (auto &meth: t.get_methods()) {
-            std::cout << "name: " << meth.get_name() << std::endl;
-        }
-
-
-        type ty = type::get<int>();
-        std::cout << ty.get_metadata("name").value() << '\n';
-        std::cout << ty.get_fundmental().is_valid() << '\n';
-        std::cout << ty.get_fundmental().create(10).type().name() << '\n';
-        std::cout << ty.get_fundmental().get_metadata("name").value() << '\n';
-        shared_object var = t.create();
-        constructor ctor = t.get_constructor();
-        var = ctor.invoke();
-        std::cout << var.type().name() << std::endl; // 打印 'MyStruct'
-        {
-            MyStruct obj;
-
-            property prop = type::get<MyStruct>().get_property("data");
-            prop(obj) = 23;
-
-            auto var_prop = prop(obj);
-            std::cout << var_prop << std::endl; // 打印 '23'
-        }
-        {
-            MyStruct obj;
-
-            method meth = type::get<MyStruct>().get_method("func");
-            meth.invoke(obj, 42.0);
-            meth.invoke(obj, 42.f);
-            meth.invoke(obj, 42ull);
-
-            rainy::utility::any dynamic_var = 42;
-            meth.invoke(obj, dynamic_var);
-        }
         auto type = meta::reflection::type::get_by_name("myclass");
         auto type1 = meta::reflection::type::get_by_name("mybase1");
         myclass object = 50;
@@ -400,14 +353,15 @@ int main() {
     }
     any a = 10;
     std::cout << std::as_const(a).as_lvalue_reference().type().name() << '\n';
-    std::cout << std::as_const(a).as_rvalue_reference().type().name() << '\n';
+    std::cout << std::as_const(a).as_rvalue_reference().type().name() << '\n';    
     a = std::array<int, 5>{5, 1, 2, 4, 3};
-    for (auto i: a.as_lvalue_reference()) {
+    auto a_ref = a.as_lvalue_reference();
+    for (const auto i: a_ref) {
         std::cout << i << ' ';
     }
     std::cout.put('\n');
     std::sort(a.begin(), a.end(), [](const auto &left, const auto &right) { return right > left; });
-    for (auto i: a.as_lvalue_reference()) {
+    for (const auto i: a_ref) {
         std::cout << i << ' ';
     }
     std::cout.put('\n');
@@ -488,53 +442,53 @@ int main() {
     std::cout << "Let's test for pair!\n";
     std::cout << "first = " << utility_pair.first << '\n';
     std::cout << "second = " << utility_pair.second << '\n';
-    mypair structure;
-    a.destructure(structure);
-    std::cout << structure.data1 << '\n';
-    std::cout << structure.data2 << '\n';
-    a = std::make_pair(42, "Hello World");
-    auto [dvar1, dvar2] = a.destructure<int, std::string_view>();
-    std::cout << "dvar1 = " << dvar1 << '\n';
-    std::cout << "dvar2 = " << dvar2 << '\n';
-    a = 10;
-    // match_for允许指定一系列类型作为variant的实例化参数以表明处理handler可能返回的类型。
-    auto var = a.match_for<std::string_view, int, double>([](std::string_view str) { return str.size(); },
-                                                          [](float x) { return static_cast<int>(x); });
-    std::visit([](auto &&value) { std::cout << "I got value! the value is " << value << '\n'; }, var);
-    // auto_deduce将会使用每个handler的返回值类型作为variant实例化参数
-    auto var1 = a.match_for(auto_deduce, [](std::string_view str) { return str.size(); }, [](float x) { return static_cast<int>(x); });
-    std::visit([](auto &&value) { std::cout << "I got value! the value is " << value << '\n'; }, var1);
-    // 也可以求出哈希值，并用于哈希相关的容器
-    std::cout << a.hash_code() << '\n';
-    std::cout << std::hash<int>{}.operator()(10) << '\n';
-    std::unordered_map<any, std::string_view> any_map = {{10, "number:10"},
-                                                         {3.14f, "float:3.14f"},
-                                                         {'c', "char:c"},
-                                                         {{std::in_place_type<std::string>, "hello_world_text"}, "Hello World"}};
-    std::cout << any_map[10] << '\n';
-    std::cout << any_map[3.14f] << '\n';
-    std::cout << any_map['c'] << '\n';
-    std::cout << any_map[{std::in_place_type<std::string>, "hello_world_text"}] << '\n';
-    a = std::unordered_map<std::string_view, int>{{"1", 1}};
-    std::cout << a["1"] << '\n';
-    a["2"] = 2;
-    std::cout << a["2"] << '\n';
-    a["3"] = 3;
-    std::cout << a["3"] << '\n';
-    a["4"] = 4;
-    std::cout << a["4"] << '\n';
-    for (auto iter = a.begin(); iter != a.end(); ++iter) {
-        auto [first, second] = (*iter).destructure<std::string_view, int>();
-        std::cout << first << ' ' << second << '\n';
-    }
-    std::cout << "category = " << (int) a.begin().category() << '\n';
-    a = std::make_tuple("Hello World", 42, 3.14f);
-    std::cout << a[0] << '\n';
-    std::cout << a[1] << '\n';
-    std::cout << a[2] << '\n';
-    a = std::vector<int>{1, 2, 3, 4, 5};
-    for (const auto item: a) {
-        std::cout << item << '\n';
-    }
+    //mypair structure;
+    //a.destructure(structure);
+    //std::cout << structure.data1 << '\n';
+    //std::cout << structure.data2 << '\n';
+    //a = std::make_pair(42, "Hello World");
+    //auto [dvar1, dvar2] = a.destructure<int, std::string_view>();
+    //std::cout << "dvar1 = " << dvar1 << '\n';
+    //std::cout << "dvar2 = " << dvar2 << '\n';
+    //a = 10;
+    //// match_for允许指定一系列类型作为variant的实例化参数以表明处理handler可能返回的类型。
+    //auto var = a.match_for<std::string_view, int, double>([](std::string_view str) { return str.size(); },
+    //                                                      [](float x) { return static_cast<int>(x); });
+    //std::visit([](auto &&value) { std::cout << "I got value! the value is " << value << '\n'; }, var);
+    //// auto_deduce将会使用每个handler的返回值类型作为variant实例化参数
+    //auto var1 = a.match_for(auto_deduce, [](std::string_view str) { return str.size(); }, [](float x) { return static_cast<int>(x); });
+    //std::visit([](auto &&value) { std::cout << "I got value! the value is " << value << '\n'; }, var1);
+    //// 也可以求出哈希值，并用于哈希相关的容器
+    //std::cout << a.hash_code() << '\n';
+    //std::cout << std::hash<int>{}.operator()(10) << '\n';
+    //std::unordered_map<any, std::string_view> any_map = {{10, "number:10"},
+    //                                                     {3.14f, "float:3.14f"},
+    //                                                     {'c', "char:c"},
+    //                                                     {{std::in_place_type<std::string>, "hello_world_text"}, "Hello World"}};
+    //std::cout << any_map[10] << '\n';
+    //std::cout << any_map[3.14f] << '\n';
+    //std::cout << any_map['c'] << '\n';
+    //std::cout << any_map[{std::in_place_type<std::string>, "hello_world_text"}] << '\n';
+    //a = std::unordered_map<std::string_view, int>{{"1", 1}};
+    //std::cout << a["1"] << '\n';
+    //a["2"] = 2;
+    //std::cout << a["2"] << '\n';
+    //a["3"] = 3;
+    //std::cout << a["3"] << '\n';
+    //a["4"] = 4;
+    //std::cout << a["4"] << '\n';
+    //for (auto iter = a.begin(); iter != a.end(); ++iter) {
+    //    auto [first, second] = (*iter).destructure<std::string_view, int>();
+    //    std::cout << first << ' ' << second << '\n';
+    //}
+    //std::cout << "category = " << (int) a.begin().category() << '\n';
+    //a = std::make_tuple("Hello World", 42, 3.14f);
+    //std::cout << a[0] << '\n';
+    //std::cout << a[1] << '\n';
+    //std::cout << a[2] << '\n';
+    //a = std::vector<int>{1, 2, 3, 4, 5};
+    //for (const auto item: a) {
+    //    std::cout << item << '\n';
+    //}
     return 0;
 }

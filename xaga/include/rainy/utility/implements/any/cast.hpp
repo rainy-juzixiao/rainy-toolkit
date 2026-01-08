@@ -31,7 +31,7 @@ namespace rainy::utility::implements {
         -> decltype(auto) {
 #if RAINY_ENABLE_DEBUG
         utility::throw_exception_if<exception_semantic::ignored_in_release>(
-            utility::with_this_exception<foundation::exceptions::cast::bad_any_cast>, utility::implements::is_as_runnable<Type>(type));
+            utility::with_this_exception<foundation::exceptions::cast::bad_any_cast>, implements::is_as_runnable<Type>(type));
 #else
         (void) type;
 #endif

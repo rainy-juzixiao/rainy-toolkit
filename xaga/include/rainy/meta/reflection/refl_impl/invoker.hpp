@@ -137,6 +137,9 @@ namespace rainy::meta::reflection::implements {
         if constexpr (utility::is_any_convert_invocable<Type>) {
             return utility::any_converter<Type>::basic_convert(item.target_as_void_ptr(), item.type());
         }
+        if (foundation::ctti::is_convertible_to(item.type(), rainy_typeid(Type))) {
+            return foundation::ctti::dynamic_convert<Type>(item.target_as_void_ptr(), item.type());
+        }
         foundation::exceptions::cast::throw_bad_any_cast();
         std::terminate();
     }

@@ -261,11 +261,24 @@ namespace rainy::component::willow {
             return is_null();
         }
 
+        bool contains(const string_type &key) const noexcept {
+            return find(key) != cend();
+        }
+
         template <typename Key>
         const_iterator find(Key &&key) const {
             if (is_object()) {
                 const_iterator iter(this);
-                iter.object_it_ = value_.data.object->find(std::forward<Key>(key));
+                iter.object_it_ = value_.data.object->find(utility::forward<Key>(key));
+                return iter;
+            }
+            return cend();
+        }
+
+        const_iterator find(std::basic_string_view<char_type> key) const {
+            if (is_object()) {
+                const_iterator iter(this);
+                iter.object_it_ = value_.data.object->find({key.data(), key.size()});
                 return iter;
             }
             return cend();
@@ -273,7 +286,7 @@ namespace rainy::component::willow {
 
         template <typename Key>
         size_type count(Key &&key) const {
-            return is_object() ? value_.data.object->count(std::forward<Key>(key)) : 0;
+            return is_object() ? value_.data.object->count(utility::forward<Key>(key)) : 0;
         }
 
         size_type erase(const typename object_type::key_type &key) {
@@ -404,20 +417,23 @@ namespace rainy::component::willow {
         }
 
         array_type &as_array() {
-            if (!is_array())
+            if (!is_array()) {
                 foundation::exceptions::willow::throw_json_type_error("json value must be array");
+            }
             return (*value_.data.vector);
         }
 
         const array_type &as_array() const {
-            if (!is_array())
+            if (!is_array()) {
                 foundation::exceptions::willow::throw_json_type_error("json value must be array");
+            }
             return (*value_.data.vector);
         }
 
         const string_type &as_string() const {
-            if (!is_string())
+            if (!is_string()) {
                 foundation::exceptions::willow::throw_json_type_error("json value must be string");
+            }
             return (*value_.data.string);
         }
 
@@ -426,6 +442,14 @@ namespace rainy::component::willow {
                 foundation::exceptions::willow::throw_json_type_error("json value must be object");
             }
             return (*value_.data.object);
+        }
+
+        std::basic_string_view<typename string_type::value_type> as_string_view() const {
+            if (!is_string()) {
+                foundation::exceptions::willow::throw_json_type_error("json value must be string");
+            }
+            const string_type &str = *value_.data.string;
+            return {str.data(), str.size()};
         }
 
         const object_type &as_object() const {
@@ -637,7 +661,7 @@ namespace rainy::component::willow {
             return !(lhs < rhs);
         }
 
-    //private:
+    private:
         implements::value<basic_json> value_;
     };
 }

@@ -13,8 +13,8 @@ namespace rainy::utility::implements {
     class any_iterator_impl {
     public:
         using value_type = BasicAny;
-        using reference = any_reference<value_type>;
-        using const_reference = any_reference<value_type>;
+        using reference = typename value_type::reference;
+        using const_reference = typename value_type::const_reference;
         using difference_type = std::ptrdiff_t;
         using pointer = value_type;
         using const_pointer = value_type;
@@ -36,18 +36,24 @@ namespace rainy::utility::implements {
             virtual difference_type subtract(const iterator_proxy_vtable *right) const = 0;
             virtual any_iterator_impl subtract(difference_type diff) const = 0;
             virtual any_iterator_impl add(difference_type diff) const = 0;
+            virtual reference key() = 0;
+            virtual const_reference key() const = 0;
+            virtual reference value() = 0;
+            virtual const_reference value() const = 0;
+            RAINY_NODISCARD virtual const foundation::ctti::typeinfo& target_type() const noexcept = 0;
+            RAINY_NODISCARD virtual const void* target() const noexcept = 0;
             RAINY_NODISCARD virtual any_iterator_category iterator_category() const noexcept = 0;
         };
 
         any_iterator_impl() = default;
 
         template <typename IterImpl, typename RealIterator>
-        any_iterator_impl(std::in_place_type_t<IterImpl>, RealIterator &&iter, value_type *this_pointer) {
+        any_iterator_impl(std::in_place_type_t<IterImpl>, RealIterator &&iter) {
             if constexpr (sizeof(IterImpl) >= length) {
-                proxy = new IterImpl(utility::forward<RealIterator>(iter), this_pointer);
+                proxy = new IterImpl(utility::forward<RealIterator>(iter));
             } else {
                 proxy =
-                    utility::construct_at(reinterpret_cast<IterImpl *>(buffer), utility::forward<RealIterator>(iter), this_pointer);
+                    utility::construct_at(reinterpret_cast<IterImpl *>(buffer), utility::forward<RealIterator>(iter));
             }
         }
 
@@ -167,7 +173,7 @@ namespace rainy::utility::implements {
                 return;
             }
             if (!is_local() && !right.is_local()) {
-                utility::swap(proxy, right.proxy);
+                std::swap(proxy, right.proxy);
             } else {
                 any_iterator_impl temp;
                 temp.move_from_other(utility::move(*this));
@@ -176,8 +182,33 @@ namespace rainy::utility::implements {
             }
         }
 
+        reference key() {
+            return proxy->key();
+        }
+
+        const_reference key() const {
+            return proxy->key();
+        }
+
+        reference value() {
+            return proxy->value();
+        }
+
+        const_reference value() const {
+            return proxy->value();
+        }
+
         friend void swap(any_iterator_impl &left, any_iterator_impl &right) noexcept {
             left.swap(right);
+        }
+
+        template <typename Type>
+        const Type& target_iterator() const {
+            const void* target = proxy->target();
+            if (proxy->target_type() == rainy_typeid(Type)) {
+                return *static_cast<const Type*>(target);
+            }
+            std::terminate();
         }
 
     private:
@@ -197,12 +228,14 @@ namespace rainy::utility::implements {
         using const_iterator_t = typename Type::const_iterator;
         using proxy_t = typename BasicAny::iterator::iterator_proxy_vtable;
         using basic_any = BasicAny;
+        using reference = typename basic_any::reference;
+        using const_reference = typename basic_any::const_reference;
 
         using any_iterator_t = typename basic_any::iterator;
 
         using difference_type = typename any_iterator_t::difference_type;
 
-        any_proxy_iterator(iterator_t iterator, basic_any *this_pointer) : iter{iterator}, this_pointer{this_pointer} {
+        any_proxy_iterator(iterator_t iterator) : iter{iterator} {
         }
 
         void destruct(const bool is_local) override {
@@ -226,12 +259,12 @@ namespace rainy::utility::implements {
             }
         }
 
-        typename BasicAny::reference dereference() override {
-            return {*iter, this_pointer};
+        reference dereference() override {
+            return *iter;
         }
 
-        typename BasicAny::const_reference const_dereference() const override {
-            return {*iter, this_pointer};
+        const_reference const_dereference() const override {
+            return *iter;
         }
 
         RAINY_NODISCARD foundation::ctti::typeinfo typeinfo() const override {
@@ -240,9 +273,9 @@ namespace rainy::utility::implements {
 
         proxy_t *construct_from_this(core::byte_t *soo_buffer) const noexcept override {
             if constexpr (sizeof(type_traits::other_trans::decay_t<decltype(*this)>) >= BasicAny::iterator::length) {
-                return ::new any_proxy_iterator(this->iter, this_pointer);
+                return ::new any_proxy_iterator(this->iter);
             } else {
-                return utility::construct_at(reinterpret_cast<any_proxy_iterator *>(soo_buffer), this->iter, this_pointer);
+                return utility::construct_at(reinterpret_cast<any_proxy_iterator *>(soo_buffer), this->iter);
             }
         }
 
@@ -277,14 +310,14 @@ namespace rainy::utility::implements {
 
         any_iterator_t add(difference_type diff) const override {
             if constexpr (type_traits::extras::meta_method::has_operator_addition_v<iterator_t>) {
-                return {std::in_place_type<any_proxy_iterator>, iter + diff, this_pointer};
+                return {std::in_place_type<any_proxy_iterator>, iter + diff};
             }
             return {};
         }
 
         any_iterator_t subtract(ptrdiff_t diff) const override {
             if constexpr (type_traits::extras::meta_method::has_operator_sub_v<iterator_t>) {
-                return any_iterator_t{std::in_place_type<any_proxy_iterator>, iter - diff, this_pointer};
+                return any_iterator_t{std::in_place_type<any_proxy_iterator>, iter - diff};
             }
             return {};
         }
@@ -302,8 +335,55 @@ namespace rainy::utility::implements {
             return {};
         }
 
+        reference key() override {
+            if constexpr (type_traits::type_properties::is_associative_container_v<Type>) {
+                auto &[key, _] = *iter;
+                (void) _;
+                return key;
+            }
+            foundation::exceptions::logic::throw_any_not_implemented("Cannot invoke value() because it's not a value");
+            std::terminate();
+        }
+
+        const_reference key() const override {
+            if constexpr (type_traits::type_properties::is_associative_container_v<Type>) {
+                const auto &[key, _] = *iter;
+                (void) _;
+                return key;
+            }
+            foundation::exceptions::logic::throw_any_not_implemented("Cannot invoke value() because it's not a value");
+            std::terminate();
+        }
+
+        reference value() override {
+            if constexpr (type_traits::type_properties::is_associative_container_v<Type>) {
+                auto &[key, _] = *iter;
+                (void) _;
+                return key;
+            }
+            foundation::exceptions::logic::throw_any_not_implemented("Cannot invoke value() because it's not a value");
+            std::terminate();
+        }
+
+        const_reference value() const override {
+            if constexpr (type_traits::type_properties::is_associative_container_v<Type>) {
+                const auto &[key, _] = *iter;
+                (void) _;
+                return key;
+            }
+            foundation::exceptions::logic::throw_any_not_implemented("Cannot invoke value() because it's not a value");
+            std::terminate();
+        }
+
+        RAINY_NODISCARD const foundation::ctti::typeinfo& target_type() const noexcept {
+            return rainy_typeid(iterator_t);
+        }
+
+        RAINY_NODISCARD const void* target() const noexcept {
+            return &iter;
+        }
+
         iterator_t iter;
-        basic_any *this_pointer;
     };
 
     template <typename BasicAny, typename Type>
@@ -311,12 +391,14 @@ namespace rainy::utility::implements {
         using iterator_t = typename Type::const_iterator;
         using proxy_t = typename BasicAny::iterator::iterator_proxy_vtable;
         using basic_any = BasicAny;
+        using reference = typename basic_any::reference;
+        using const_reference = typename basic_any::const_reference;
 
         using any_iterator_t = typename basic_any::iterator;
 
         using difference_type = typename any_iterator_t::difference_type;
 
-        const_any_proxy_iterator(const iterator_t &iterator, basic_any *this_pointer) : iter{iterator}, this_pointer{this_pointer} {
+        const_any_proxy_iterator(const iterator_t &iterator) : iter{iterator} {
         }
 
         void destruct(const bool is_local) override {
@@ -340,12 +422,12 @@ namespace rainy::utility::implements {
             }
         }
 
-        typename BasicAny::reference dereference() override {
-            return {*iter, this_pointer};
+        reference dereference() override {
+            return *iter;
         }
 
         typename BasicAny::const_reference const_dereference() const override {
-            return {*iter, this_pointer};
+            return *iter;
         }
 
         RAINY_NODISCARD foundation::ctti::typeinfo typeinfo() const override {
@@ -354,9 +436,9 @@ namespace rainy::utility::implements {
 
         proxy_t *construct_from_this(core::byte_t *soo_buffer) const noexcept override {
             if constexpr (sizeof(type_traits::other_trans::decay_t<decltype(*this)>) >= BasicAny::iterator::length) {
-                return ::new const_any_proxy_iterator(this->iter, this_pointer);
+                return ::new const_any_proxy_iterator(this->iter);
             } else {
-                return utility::construct_at(reinterpret_cast<const_any_proxy_iterator *>(soo_buffer), this->iter, this_pointer);
+                return utility::construct_at(reinterpret_cast<const_any_proxy_iterator *>(soo_buffer), this->iter);
             }
         }
 
@@ -391,14 +473,14 @@ namespace rainy::utility::implements {
 
         any_iterator_t add(difference_type diff) const override {
             if constexpr (type_traits::extras::meta_method::has_operator_addition_v<iterator_t>) {
-                return {std::in_place_type<const_any_proxy_iterator>, iter + diff, this_pointer};
+                return {std::in_place_type<const_any_proxy_iterator>, iter + diff};
             }
             return {};
         }
 
         any_iterator_t subtract(difference_type diff) const override {
             if constexpr (type_traits::extras::meta_method::has_operator_sub_v<iterator_t>) {
-                return {std::in_place_type<const_any_proxy_iterator>, iter - diff, this_pointer};
+                return {std::in_place_type<const_any_proxy_iterator>, iter - diff};
             }
             return {};
         }
@@ -416,8 +498,43 @@ namespace rainy::utility::implements {
             return {};
         }
 
+        reference key() override {
+            if constexpr (type_traits::type_properties::is_associative_container_v<Type>) {
+                const auto &[key, _] = *iter;
+                (void) _;
+                return key;
+            }
+            foundation::exceptions::logic::throw_any_not_implemented("Cannot invoke value() because it's not a value");
+            std::terminate();
+        }
+
+        const_reference key() const override {
+            return const_cast<const_any_proxy_iterator *>(this)->key();
+        }
+
+        reference value() override {
+            if constexpr (type_traits::type_properties::is_associative_container_v<Type>) {
+                const auto &[_, value] = *iter;
+                (void) _;
+                return value;
+            }
+            foundation::exceptions::logic::throw_any_not_implemented("Cannot invoke value() because it's not a value");
+            std::terminate();
+        }
+
+        const_reference value() const override {
+            return const_cast<const_any_proxy_iterator *>(this)->value();
+        }
+
+        RAINY_NODISCARD const foundation::ctti::typeinfo& target_type() const noexcept {
+            return rainy_typeid(iterator_t);
+        }
+
+        RAINY_NODISCARD const void* target() const noexcept {
+            return &iter;
+        }
+
         iterator_t iter;
-        basic_any *this_pointer;
     };
 }
 

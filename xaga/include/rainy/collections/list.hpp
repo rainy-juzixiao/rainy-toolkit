@@ -162,7 +162,7 @@ namespace rainy::collections {
             }
         }
 
-        template <typename InputIter>
+        template <typename InputIter, type_traits::other_trans::enable_if_t<type_traits::extras::iterators::is_iterator_v<InputIter>,int> = 0>
         list(InputIter first, InputIter last, const allocator_type &alloc = allocator_type()) : allocator_(alloc), size_{} {
             create_sentinel();
             for (auto it = first; it != last; ++it) {

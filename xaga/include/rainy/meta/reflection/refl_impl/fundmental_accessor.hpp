@@ -77,6 +77,7 @@ namespace rainy::meta::reflection::implements {
         virtual bool is_integral() const noexcept = 0;
         virtual bool is_floating_point() const noexcept = 0;
         virtual bool is_signed() const noexcept = 0;
+        virtual bool is_unsigned() const noexcept = 0;
         virtual bool is_nullptr() const noexcept = 0;
         virtual bool is_convertible_from(const foundation::ctti::typeinfo& type) const noexcept = 0;
     };
@@ -110,6 +111,10 @@ namespace rainy::meta::reflection::implements {
 
         bool is_floating_point() const noexcept {
             return type_traits::primary_types::is_floating_point_v<Type>;
+        }
+
+        bool is_unsigned() const noexcept {
+            return type_traits::type_properties::is_signed_v<Type>;
         }
 
         bool is_signed() const noexcept {

@@ -5,8 +5,8 @@
     </div>
     <strong style="font-size: 18px; display: block; margin-bottom: 8px;">返回值：</strong>
     <div v-html="htmlContent"></div>
-    <br>
     <div v-if="noDiscardForRet">
+        <br>
         <strong>注意：该方法返回值应被调用方处理。</strong>
         <br>
         <strong v-if="noDiscardReaason != null && typeof noDiscardReaason == String && noDiscardReaason.length > 0">
