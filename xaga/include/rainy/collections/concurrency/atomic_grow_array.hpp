@@ -22,7 +22,7 @@
 #include <span>
 #include <rainy/core/core.hpp>
 #include <rainy/foundation/functional/bind.hpp>
-#include <iostream>
+
 namespace rainy::collections::concurrency {
     template <typename Item, template <typename> class Atom = std::atomic>
     struct atomic_grow_array_policy_default {
@@ -256,7 +256,7 @@ namespace rainy::collections::concurrency {
 
         atomic_grow_array() = default;
         
-        explicit atomic_grow_array(Policy const &policy_) //
+        explicit atomic_grow_array(Policy const &policy_)
             noexcept(noexcept(Policy{policy_})) : Policy{policy_} {
         }
 
@@ -422,8 +422,8 @@ namespace rainy::collections::concurrency {
 
         struct array {
             array *next{};
-            size_type size{}; // logical size
-            size_type capacity{}; // allocation size
+            size_type size{};
+            size_type capacity{};
             value_type **list{};
             value_type *slab{};
         };
@@ -444,7 +444,6 @@ namespace rainy::collections::concurrency {
                     continue;
                 }
                 if (array_.compare_exchange_strong(p, q, mo_acq_rel, mo_acquire)) {
-                    // 删除这行：size_.store(size, mo_release);
                     return q;
                 }
                 del_array(q);
