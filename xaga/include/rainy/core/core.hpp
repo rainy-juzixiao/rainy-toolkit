@@ -275,7 +275,7 @@ namespace rainy::core {
     static const std::size_t max_threads = std::thread::hardware_concurrency();
 }
 
-namespace rainy::foundation::system::memory {
+namespace rainy::foundation::memory {
     template <typename Ty>
     struct default_deleter {
         constexpr default_deleter() noexcept = default;
@@ -361,7 +361,7 @@ namespace rainy::utility::implements {
 }
 
 namespace rainy::utility {
-    template <typename Ty, typename Dx = foundation::system::memory::default_deleter<Ty>>
+    template <typename Ty, typename Dx = foundation::memory::default_deleter<Ty>>
     class resource_guard {
     public:
         using value_type = Ty;

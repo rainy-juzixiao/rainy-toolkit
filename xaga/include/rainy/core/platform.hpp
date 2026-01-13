@@ -823,13 +823,13 @@ namespace rainy::type_traits::helper {
 
         constexpr basic_constexpr_string() noexcept = default;
 
-        constexpr basic_constexpr_string(std::string_view str_view) {
+        constexpr basic_constexpr_string(std::string_view str_view) { // NOLINT
             std::size_t len_to_copy = str_view.length();
             if (len_to_copy >= N) {
                 len_to_copy = N - 1;
             }
             for (std::size_t i = 0; i < len_to_copy; ++i) {
-                string[i] = str_view[i];
+                string[i] = str_view[i]; // NOLINT
             }
             string[len_to_copy] = '\0';
         }
@@ -1030,12 +1030,12 @@ namespace rainy::core {
 
     template <typename Ty>
     RAINY_CONSTEXPR const Ty &(max) (const Ty &a, const Ty &b) {
-        return (a < b) ? b : a;
+        return (a < b) ? b : a; // NOLINT
     }
 
     template <typename Ty, typename Pred>
     RAINY_CONSTEXPR const Ty &(max) (const Ty &a, const Ty &b, Pred comp) {
-        return (comp(a, b)) ? b : a;
+        return (comp(a, b)) ? b : a; // NOLINT
     }
 
     template <typename Ty>

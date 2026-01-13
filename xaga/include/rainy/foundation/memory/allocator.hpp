@@ -15,9 +15,9 @@
  */
 #ifndef RAINY_FOUNDATION_MEMORY_ALLCATOR_HPP
 #define RAINY_FOUNDATION_MEMORY_ALLCATOR_HPP
+#include <atomic>
 #include <rainy/core/core.hpp>
 #include <rainy/foundation/diagnostics/contract.hpp>
-#include <atomic>
 
 namespace rainy::foundation::memory {
     enum class allocation_method {
@@ -304,11 +304,13 @@ namespace rainy::foundation::memory::pmr {
             _resource->deallocate(ptr, core::implements::get_size_of_n<Ty>(count), align);
         }
 
-        RAINY_NODISCARD_RAW_PTR_ALLOC void *allocate_bytes(const std::size_t bytes, const std::size_t align_ = alignof(std::max_align_t)) {
+        RAINY_NODISCARD_RAW_PTR_ALLOC void *allocate_bytes(const std::size_t bytes,
+                                                           const std::size_t align_ = alignof(std::max_align_t)) {
             return _resource->allocate(bytes, align_);
         }
 
-        void deallocate_bytes(void *const ptr, const std::size_t bytes, const std::size_t align_ = alignof(std::max_align_t)) noexcept {
+        void deallocate_bytes(void *const ptr, const std::size_t bytes,
+                              const std::size_t align_ = alignof(std::max_align_t)) noexcept {
             _resource->deallocate(ptr, bytes, align_);
         }
 
@@ -623,8 +625,8 @@ namespace rainy::foundation::memory::implements {
         }
 
         template <typename Ty, typename... Args>
-        static RAINY_CONSTEXPR20 void construct(allocator_type &allocator, Ty *_Ptr, Args &&...args) {
-            allocator.construct(_Ptr, utility::forward<Args>(args)...);
+        static RAINY_CONSTEXPR20 void construct(allocator_type &allocator, Ty *ptr, Args &&...args) {
+            allocator.construct(ptr, utility::forward<Args>(args)...);
         }
 
         template <typename Ty>
@@ -736,6 +738,37 @@ namespace rainy::foundation::memory {
         mutable std::atomic_bool allocated_{false};
         alignas(Ty) core::byte_t resources[N == 0 ? 1 : element_size * N]{};
         // 这是类型无关的一个字节数组，它没有实际内容，确保实际行为与标准库一致
+    };
+}
+
+namespace rainy::foundation::memory::implements {
+    template <typename Alloc>
+    struct alloc_construct_ptr {
+        using pointer = typename allocator_traits<Alloc>::pointer;
+
+        RAINY_CONSTEXPR20 explicit alloc_construct_ptr(Alloc &alloc) : alloc(alloc), ptr(nullptr) {
+        }
+
+        RAINY_NODISCARD RAINY_CONSTEXPR20 pointer release() noexcept {
+            return utility::exchange(ptr, nullptr);
+        }
+
+        RAINY_CONSTEXPR20 void allocate() {
+            ptr = nullptr;
+            ptr = alloc.allocate(1);
+        }
+
+        RAINY_CONSTEXPR20 ~alloc_construct_ptr() {
+            if (ptr) {
+                alloc.deallocate(ptr, 1);
+            }
+        }
+
+        alloc_construct_ptr(const alloc_construct_ptr &) = delete;
+        alloc_construct_ptr &operator=(const alloc_construct_ptr &) = delete;
+
+        Alloc &alloc;
+        pointer ptr;
     };
 }
 

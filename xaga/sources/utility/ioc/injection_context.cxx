@@ -4,8 +4,8 @@ namespace rainy::utility::ioc::implements {
     std::mutex injection_mutex;
 
     using inject_impl_t =
-        collections::dense_map<foundation::ctti::typeinfo, utility::pair<foundation::system::memory::nebula_ptr<any>,
-                                                                         foundation::system::memory::nebula_ptr<std::once_flag>>>;
+        collections::dense_map<foundation::ctti::typeinfo, utility::pair<foundation::memory::nebula_ptr<any>,
+                                                                         foundation::memory::nebula_ptr<std::once_flag>>>;
 
     static rain_fn inject_impl() -> inject_impl_t* {
         static inject_impl_t injection_context_storage;
@@ -19,11 +19,11 @@ namespace rainy::utility::ioc::implements {
         }
         {
             using inject_instance =
-                utility::pair<foundation::system::memory::nebula_ptr<any>, foundation::system::memory::nebula_ptr<std::once_flag>>;
+                utility::pair<foundation::memory::nebula_ptr<any>, foundation::memory::nebula_ptr<std::once_flag>>;
             auto &p = foundation::pal::threading::create_synchronized_task(injection_mutex, [&new_resources_type]() -> decltype(auto) {
                 return inject_impl()
-                    ->emplace(new_resources_type, inject_instance{foundation::system::memory::make_nebula<any>(),
-                                                                  foundation::system::memory::make_nebula<std::once_flag>()})
+                    ->emplace(new_resources_type, inject_instance{foundation::memory::make_nebula<any>(),
+                                                                  foundation::memory::make_nebula<std::once_flag>()})
                     .first->second;
             });
             return {p.first.get(), p.second.get()};

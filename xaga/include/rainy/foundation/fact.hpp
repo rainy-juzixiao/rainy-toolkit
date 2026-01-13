@@ -4,11 +4,11 @@
 #include <rainy/foundation/functional/delegate.hpp>
 #include <rainy/text/hashed_string.hpp>
 #include <rainy/collections/dense_map.hpp>
-#include <rainy/foundation/system/memory/nebula_ptr.hpp>
+#include <rainy/foundation/memory/nebula_ptr.hpp>
 
 namespace rainy::foundation::fact {
     template <typename Prod, typename ProdKey = text::hashed_string,
-              template <typename Product, typename...> typename ProjHolder = system::memory::nebula_ptr, typename Fx = Prod *(),
+              template <typename Product, typename...> typename ProjHolder = memory::nebula_ptr, typename Fx = Prod *(),
               template <typename FxType, typename...> typename Creater = functional::delegate,
               template <typename Key, typename Mapped, typename...> typename Map = collections::dense_map,
               template <typename FactoryStorageType> typename Alloc = memory::allocator>
@@ -174,7 +174,7 @@ namespace rainy::foundation::fact {
     };
 
     template <typename Prod, typename ProdKey = text::hashed_string,
-              template <typename Product, typename...> typename ProjHolder = system::memory::nebula_ptr, typename Fx = Prod *(),
+              template <typename Product, typename...> typename ProjHolder = memory::nebula_ptr, typename Fx = Prod *(),
               template <typename FxType, typename...> typename Creater = functional::delegate,
               template <typename Key, typename Mapped, typename...> typename Map = collections::dense_map,
               template <typename FactoryStorageType> typename Alloc = memory::allocator>

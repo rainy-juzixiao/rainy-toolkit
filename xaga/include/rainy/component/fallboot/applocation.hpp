@@ -5,7 +5,7 @@
 #include <filesystem>
 #include <rainy/core/core.hpp>
 #include <rainy/foundation/typeinfo.hpp>
-#include <rainy/foundation/system/memory/nebula_ptr.hpp>
+#include <rainy/foundation/memory/nebula_ptr.hpp>
 #include <rainy/text/string.hpp>
 
 namespace rainy::component::fallboot {

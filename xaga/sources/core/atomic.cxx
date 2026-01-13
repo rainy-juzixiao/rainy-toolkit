@@ -711,3 +711,35 @@ namespace rainy::core::pal {
 #endif
     }
 }
+
+namespace rainy::core::pal {
+    static inline void fence_before(memory_order order) {
+        if (order == memory_order::release || order == memory_order::acq_rel) {
+            write_barrier(); // sfence
+        }
+    }
+
+    static inline void fence_after(memory_order order) {
+        if (order == memory_order::acquire || order == memory_order::consume || order == memory_order::acq_rel) {
+            read_barrier(); // lfence
+        }
+    }
+}
+
+namespace rainy::core::pal {
+    long interlocked_increment_explicit(volatile long *value, memory_order order) {
+        rainy_assume(static_cast<bool>(value));
+        fence_before(order);
+#if RAINY_USING_MSVC
+        long result = _InterlockedIncrement(value);
+#elif RAINY_USING_GCC || RAINY_USING_CLANG
+        volatile long *avoid_clang_tidy = value;
+        __asm__ __volatile__("lock; incl %0" : "+m"(*avoid_clang_tidy) : : "cc", "memory");
+        long result = *avoid_clang_tidy;
+#else
+        static_assert(false, "rainy-toolkit only supports GCC Clang and MSVC platforms");
+#endif
+        fence_after(order);
+        return result;
+    }
+}

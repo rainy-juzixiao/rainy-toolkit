@@ -89,7 +89,7 @@ namespace rainy::utility::ioc::implements {
 
     template <typename Type, typename... Args>
     struct inject_item_layer : public inject_item {
-        virtual foundation::system::memory::nebula_ptr<Type> construct_new(Args... args) = 0;
+        virtual foundation::memory::nebula_ptr<Type> construct_new(Args... args) = 0;
         virtual Type *get_signleton_with_args(Args... args) = 0;
 
         const foundation::ctti::typeinfo &impl_type() override {
@@ -114,7 +114,7 @@ namespace rainy::utility::ioc::implements {
             return injection_context::get_singleton_with_args<Impl>(utility::forward<Args>(args)...);
         }
 
-        foundation::system::memory::nebula_ptr<Type> construct_new(Args... args) override {
+        foundation::memory::nebula_ptr<Type> construct_new(Args... args) override {
             return injection_context::construct_new_instance<Impl>(utility::forward<Args>(args)...);
         }
     
@@ -192,7 +192,7 @@ namespace rainy::utility::ioc {
         }
 
         template <typename Type, typename... Args>
-        static rain_fn get_new_instance(Args &&...args) -> foundation::system::memory::nebula_ptr<Type> {
+        static rain_fn get_new_instance(Args &&...args) -> foundation::memory::nebula_ptr<Type> {
             factory_key name = rainy_typeid(Type).name();
             if (is_this_type_with_construct_args_type_available_impl<Type(Args...)>()) {
                 return static_cast<implements::inject_item_layer<Type, Args...> *>(impl()->storage->make_product(name))

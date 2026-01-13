@@ -13,23 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/*
-文件名: nebula_ptr.hpp
-此头文件用于存放nebula_ptr智能指针的实现
-
-nebula_ptr:
-一个类模板类型。属于独占所有权语义指针。它的目标在于为用户提供一个比起std::unique_ptr更加灵活的API接口解决方案
-*/
-
-#ifndef RAINY_NEBULA_PTR
-#define RAINY_NEBULA_PTR
+#ifndef RAINY_FOUNDATION_MEMORY_NEBULA_PTR
+#define RAINY_FOUNDATION_MEMORY_NEBULA_PTR
 #include <algorithm>
 #include <rainy/core/core.hpp>
 
-namespace rainy::foundation::system::memory {
+namespace rainy::foundation::memory {
     template <typename Ty, typename Dx = default_deleter<Ty>>
     class nebula_ptr;
+}
 
+namespace rainy::foundation::memory::implements {
     template <typename Ty, typename Dx>
     class nebula_ptr_base {
     public:
@@ -41,7 +35,7 @@ namespace rainy::foundation::system::memory {
         template <typename, typename>
         friend class nebula_ptr;
 
-        constexpr nebula_ptr_base() noexcept : pair(Dx{}, nullptr){};
+        constexpr nebula_ptr_base() noexcept : pair(Dx{}, nullptr) {};
 
         constexpr nebula_ptr_base(std::nullptr_t) noexcept : pair(Dx{}, nullptr) {
         }
@@ -49,7 +43,7 @@ namespace rainy::foundation::system::memory {
         RAINY_CONSTEXPR20 nebula_ptr_base(element_type *pointer) noexcept : pair(Dx{}, pointer) {
         }
 
-        template <type_traits::other_trans::enable_if_t<std::is_copy_constructible_v<deleter_type>, int> = 0>
+        template <type_traits::other_trans::enable_if_t<type_traits::type_properties::is_copy_constructible_v<deleter_type>, int> = 0>
         RAINY_CONSTEXPR20 nebula_ptr_base(element_type *pointer, deleter_type deleter) : pair(deleter, pointer) {
         }
 
@@ -58,8 +52,9 @@ namespace rainy::foundation::system::memory {
         RAINY_CONSTEXPR20 nebula_ptr_base(Uty *pointer) noexcept : pair(Dx{}, pointer) {
         }
 
-        template <typename Uty, type_traits::other_trans::enable_if_t<
-                                    type_traits::type_relations::is_convertible_v<Uty *, pointer> && std::is_copy_constructible_v<deleter_type>, int> = 0>
+        template <typename Uty, type_traits::other_trans::enable_if_t<type_traits::type_relations::is_convertible_v<Uty *, pointer> &&
+                                                                          std::is_copy_constructible_v<deleter_type>,
+                                                                      int> = 0>
         RAINY_CONSTEXPR20 nebula_ptr_base(Uty *pointer, deleter_type deleter) : pair(deleter, pointer) {
         }
 
@@ -67,9 +62,10 @@ namespace rainy::foundation::system::memory {
         nebula_ptr_base(nebula_ptr_base &&right) noexcept : pair{utility::exchange(right.pair, {})} {
         }
 
-        template <typename Dx2 = Dx,
-                  type_traits::other_trans::enable_if_t<
-                      type_traits::logical_traits::conjunction_v<std::is_reference<Dx2>, std::is_constructible<Dx2, std::remove_reference_t<Dx2>>>, int> = 0>
+        template <typename Dx2 = Dx, type_traits::other_trans::enable_if_t<
+                                         type_traits::logical_traits::conjunction_v<
+                                             std::is_reference<Dx2>, std::is_constructible<Dx2, std::remove_reference_t<Dx2>>>,
+                                         int> = 0>
         nebula_ptr_base(pointer, std::remove_reference_t<Dx> &&) = delete;
 
         RAINY_CONSTEXPR20 ~nebula_ptr_base() {
@@ -201,17 +197,19 @@ namespace rainy::foundation::system::memory {
     private:
         utility::compressed_pair<deleter_type, pointer> pair;
     };
+}
 
+namespace rainy::foundation::memory {
     template <typename Ty, typename Dx>
-    class nebula_ptr : public nebula_ptr_base<Ty, Dx> {
-        using nebula_base = nebula_ptr_base<Ty, Dx>;
+    class nebula_ptr : public implements::nebula_ptr_base<Ty, Dx> {
+        using nebula_base = implements::nebula_ptr_base<Ty, Dx>;
         using nebula_base::nebula_base;
     };
 
     template <typename Ty, typename Dx>
-    class nebula_ptr<Ty[], Dx> : public nebula_ptr_base<Ty, Dx> {
+    class nebula_ptr<Ty[], Dx> : public implements::nebula_ptr_base<Ty, Dx> {
     public:
-        using base = nebula_ptr_base<Ty, Dx>;
+        using base = implements::nebula_ptr_base<Ty, Dx>;
         using element_type = typename base::element_type;
         using size_type = std::size_t;
         using pointer = typename base::pointer;
@@ -267,12 +265,12 @@ namespace rainy::foundation::system::memory {
         }
 
         RAINY_CONSTEXPR20 void fill(const Ty &val) noexcept(std::is_nothrow_constructible_v<Ty>) {
-            std::fill_n(this->pair.second, length(), val);
+            core::algorithm::fill_n(this->pair.second, length(), val);
         }
 
         RAINY_CONSTEXPR20 void fill_with_ilist(std::initializer_list<Ty> ilist) noexcept(std::is_nothrow_constructible_v<Ty>) {
             size_type count = ilist.size() > length() ? length() : ilist.size();
-            std::copy_n(ilist.begin(), count, this->pair.second);
+            core::algorithm::copy_n(ilist.begin(), count, this->pair.second);
         }
 
         RAINY_CONSTEXPR20 void reset(element_type *pointer = nullptr) {
@@ -413,9 +411,9 @@ namespace rainy::foundation::system::memory {
         using elem = std::remove_extent_t<Ty>;
         auto data = new elem[num];
         std::size_t count = num > ilist.size() ? ilist.size() : num;
-        std::copy_n(ilist.begin(), count, data);
+        core::algorithm::copy_n(ilist.begin(), count, data);
         return unique_ptr<Ty>(data, num);
     }
 }
 
-#endif // RAINY_NEBULA_PTR
+#endif

@@ -2,13 +2,13 @@
 #include <iostream>
 #include <optional>
 #include <rainy/collections/inplace_vector.hpp>
-#include <rainy/text/string.hpp>
+#include <rainy/component/willow/json.hpp>
 #include <rainy/meta/reflection/function.hpp>
 #include <rainy/meta/reflection/metadata.hpp>
 #include <rainy/meta/reflection/registration.hpp>
 #include <rainy/meta/reflection/shared_object.hpp>
-#include <rainy/component/willow/json.hpp>
 #include <rainy/meta/reflection/type.hpp>
+#include <rainy/text/string.hpp>
 #include <rainy/utility/any.hpp>
 #include <ranges>
 
@@ -213,147 +213,10 @@ struct S {
     }
 };
 
-#include <rainy/meta/reflection/io.hpp>
-#include <rainy/collections/concurrency/forward_list.hpp>
-#include <forward_list>
-#include <rainy/collections/concurrency/atomic_grow_array.hpp>
-
 int main() {
-    rainy::collections::concurrency::atomic_grow_array<int> arr;
-    arr[0] = 1;
-    arr[1] = 1;
-    arr[2] = 1;
-    arr[5] = 3;
-    auto view = arr.as_view();
-    std::cout << view.size() << '\n';
-    for (const auto &item: view) {
-        std::cout << item << '\n';
-    }
-    /*for (int i = 1; i <= 100;++i) {
-        collections::concurrency::forward_list<int> forward_list;
-        std::vector<std::thread> threads;
-        for (int i = 0; i < 16; ++i) {
-            threads.emplace_back([&forward_list,i]() {
-                for (int j = 0; j < 10; ++j) {
-                    forward_list.push_front(i * 10 + j);
-                }
-            });
-        }
-        for (auto& thread : threads) {
-            thread.join();
-        }
-        std::size_t j = 1;
-        threads.clear();
-        for (int i = 0; i < 16; ++i) {
-            threads.emplace_back([&forward_list]() {
-                for (int j = 0; j < 5; ++j) {
-                    forward_list.pop_front();
-                }
-            });
-        }
-        for (auto& thread : threads) {
-            thread.join();
-        }
-    }*/
-    {
-        auto type = meta::reflection::type::get<User>();
-        auto str = R"({
-           "id": 42,
-           "name": "Alice",
-           "scores": [10, 20, 30],
-           "addr": {
-             "city": "Shanghai",
-             "zip": 200000
-           }
-         }
-        )";
-        auto json = component::willow::json::parse(str);
-        std::cout << json.dump() << '\n';
-        std::cout << json["id"] << '\n';
-        auto obj = type.create();
-        meta::reflection::io::from_json(json, obj);
-        User u = obj.target().as<User>();
-        std::cout << u.id << "\n";
-        std::cout << u.scores.size() << "\n";
-        for (const auto &item: u.scores) {
-            std::cout << item << '\n';
-        }
-        std::cout << u.name << '\n';
-        std::cout << u.addr.city << '\n';
-        std::cout << u.addr.zip << '\n';
-        auto obj1 = type.create();
-        meta::reflection::io::from_json(meta::reflection::io::to_json(obj), obj1);
-        User u2 = obj1.target().as<User>();
-        std::cout << u2.id << "\n";
-        std::cout << u2.scores.size() << "\n";
-        for (const auto &item: u2.scores) {
-            std::cout << item << '\n';
-        }
-        std::cout << u2.name << '\n';
-        std::cout << u2.addr.city << '\n';
-        std::cout << u2.addr.zip << '\n';
-    }
-
-    /*meta::moon::visit_members(sosss, [](auto &&...args) {
-        ((std::cout << args << " "), ...);
-        std::cout << "\n";
-    });*/
-    constexpr object ooo = {10};
-    {
-        using namespace rainy::meta::reflection;
-        type enum_t = type::get<color>();
-        std::cout << enum_t.get_name() << '\n';
-        {
-            enumeration enum_ = enum_t.get_enumeration();
-            for (const auto &item: enum_.get_names()) {
-                std::cout << item << std::endl;
-            }
-            auto enum_var = enum_t.create(color::red);
-            std::cout << enum_.contains("red") << '\n';
-            std::cout << enum_var.type().name() << std::endl;
-            enum_var = enum_t.create(0);
-            std::cout << enum_var.type().name() << std::endl;
-            std::cout << enum_.value_to_name(0) << std::endl;
-            std::cout << enum_.value_to_name(color::red) << std::endl;
-            std::cout << "name_to_value--type : " << enum_.name_to_value("red").type().name() << std::endl;
-        }
-    }
-    constexpr collections::views::array_view<foundation::ctti::typeinfo> n =
-        foundation::ctti::typeinfo::create<type_traits::other_trans::type_list<int, char, std::string>>().template_arguments();
-    {
-        using namespace rainy::meta::reflection;
-        auto type = meta::reflection::type::get_by_name("myclass");
-        auto type1 = meta::reflection::type::get_by_name("mybase1");
-        myclass object = 50;
-        rainy::meta::reflection::object_view view{object};
-        {
-            auto so = view.create_shared();
-            std::cout << "create shared_object typename : " << so.type().name() << '\n';
-            view.invoke("print_mybase1");
-            auto &field = type.get_property("field");
-            field.set_value(so, 40);
-            so.invoke("print_field", 20);
-            so.invoke("print_field", so);
-        }
-        std::cout << type.get_method("print_mybase1") << '\n';
-        std::cout << type.get_method("print_mybase2") << '\n';
-        std::cout << "is_base_of " << type.is_base_of(type1) << '\n';
-        std::cout << "is_derived_of " << type1.is_derived_from(type) << '\n';
-        {
-            const auto &vmeth = type.get_method("virtual_fun");
-            vmeth.invoke(object);
-        }
-        {
-            const auto &vmeth = type1.get_method("virtual_fun");
-            vmeth.invoke(object);
-        }
-        {
-            std::cout << type.get_metadata("prop").value() << '\n';
-        }
-    }
     any a = 10;
     std::cout << std::as_const(a).as_lvalue_reference().type().name() << '\n';
-    std::cout << std::as_const(a).as_rvalue_reference().type().name() << '\n';    
+    std::cout << std::as_const(a).as_rvalue_reference().type().name() << '\n';
     a = std::array<int, 5>{5, 1, 2, 4, 3};
     auto a_ref = a.as_lvalue_reference();
     for (const auto i: a_ref) {
@@ -442,53 +305,53 @@ int main() {
     std::cout << "Let's test for pair!\n";
     std::cout << "first = " << utility_pair.first << '\n';
     std::cout << "second = " << utility_pair.second << '\n';
-    //mypair structure;
-    //a.destructure(structure);
-    //std::cout << structure.data1 << '\n';
-    //std::cout << structure.data2 << '\n';
-    //a = std::make_pair(42, "Hello World");
-    //auto [dvar1, dvar2] = a.destructure<int, std::string_view>();
-    //std::cout << "dvar1 = " << dvar1 << '\n';
-    //std::cout << "dvar2 = " << dvar2 << '\n';
-    //a = 10;
-    //// match_for允许指定一系列类型作为variant的实例化参数以表明处理handler可能返回的类型。
-    //auto var = a.match_for<std::string_view, int, double>([](std::string_view str) { return str.size(); },
-    //                                                      [](float x) { return static_cast<int>(x); });
-    //std::visit([](auto &&value) { std::cout << "I got value! the value is " << value << '\n'; }, var);
-    //// auto_deduce将会使用每个handler的返回值类型作为variant实例化参数
-    //auto var1 = a.match_for(auto_deduce, [](std::string_view str) { return str.size(); }, [](float x) { return static_cast<int>(x); });
-    //std::visit([](auto &&value) { std::cout << "I got value! the value is " << value << '\n'; }, var1);
-    //// 也可以求出哈希值，并用于哈希相关的容器
-    //std::cout << a.hash_code() << '\n';
-    //std::cout << std::hash<int>{}.operator()(10) << '\n';
-    //std::unordered_map<any, std::string_view> any_map = {{10, "number:10"},
-    //                                                     {3.14f, "float:3.14f"},
-    //                                                     {'c', "char:c"},
-    //                                                     {{std::in_place_type<std::string>, "hello_world_text"}, "Hello World"}};
-    //std::cout << any_map[10] << '\n';
-    //std::cout << any_map[3.14f] << '\n';
-    //std::cout << any_map['c'] << '\n';
-    //std::cout << any_map[{std::in_place_type<std::string>, "hello_world_text"}] << '\n';
-    //a = std::unordered_map<std::string_view, int>{{"1", 1}};
-    //std::cout << a["1"] << '\n';
-    //a["2"] = 2;
-    //std::cout << a["2"] << '\n';
-    //a["3"] = 3;
-    //std::cout << a["3"] << '\n';
-    //a["4"] = 4;
-    //std::cout << a["4"] << '\n';
-    //for (auto iter = a.begin(); iter != a.end(); ++iter) {
-    //    auto [first, second] = (*iter).destructure<std::string_view, int>();
-    //    std::cout << first << ' ' << second << '\n';
-    //}
-    //std::cout << "category = " << (int) a.begin().category() << '\n';
-    //a = std::make_tuple("Hello World", 42, 3.14f);
-    //std::cout << a[0] << '\n';
-    //std::cout << a[1] << '\n';
-    //std::cout << a[2] << '\n';
-    //a = std::vector<int>{1, 2, 3, 4, 5};
-    //for (const auto item: a) {
-    //    std::cout << item << '\n';
-    //}
+    mypair structure;
+    a.destructure(structure);
+    std::cout << structure.data1 << '\n';
+    std::cout << structure.data2 << '\n';
+    a = std::make_pair(42, "Hello World");
+    auto [dvar1, dvar2] = a.destructure<int, std::string_view>();
+    std::cout << "dvar1 = " << dvar1 << '\n';
+    std::cout << "dvar2 = " << dvar2 << '\n';
+    a = 10;
+    // match_for允许指定一系列类型作为variant的实例化参数以表明处理handler可能返回的类型。
+    auto var = a.match_for<std::string_view, int, double>([](std::string_view str) { return str.size(); },
+                                                          [](float x) { return static_cast<int>(x); });
+    std::visit([](auto &&value) { std::cout << "I got value! the value is " << value << '\n'; }, var);
+    // auto_deduce将会使用每个handler的返回值类型作为variant实例化参数
+    auto var1 = a.match_for(auto_deduce, [](std::string_view str) { return str.size(); }, [](float x) { return static_cast<int>(x); });
+    std::visit([](auto &&value) { std::cout << "I got value! the value is " << value << '\n'; }, var1);
+    // 也可以求出哈希值，并用于哈希相关的容器
+    std::cout << a.hash_code() << '\n';
+    std::cout << std::hash<int>{}.operator()(10) << '\n';
+    std::unordered_map<any, std::string_view> any_map = {{10, "number:10"},
+                                                         {3.14f, "float:3.14f"},
+                                                         {'c', "char:c"},
+                                                         {{std::in_place_type<std::string>, "hello_world_text"}, "Hello World"}};
+    std::cout << any_map[10] << '\n';
+    std::cout << any_map[3.14f] << '\n';
+    std::cout << any_map['c'] << '\n';
+    std::cout << any_map[{std::in_place_type<std::string>, "hello_world_text"}] << '\n';
+    a = std::unordered_map<std::string_view, int>{{"1", 1}};
+    std::cout << a["1"] << '\n';
+    a["2"] = 2;
+    std::cout << a["2"] << '\n';
+    a["3"] = 3;
+    std::cout << a["3"] << '\n';
+    a["4"] = 4;
+    std::cout << a["4"] << '\n';
+    for (auto iter = a.begin(); iter != a.end(); ++iter) {
+        auto [first, second] = (*iter).destructure<std::string_view, int>();
+        std::cout << first << ' ' << second << '\n';
+    }
+    std::cout << "category = " << (int) a.begin().category() << '\n';
+    a = std::make_tuple("Hello World", 42, 3.14f);
+    std::cout << a[0] << '\n';
+    std::cout << a[1] << '\n';
+    std::cout << a[2] << '\n';
+    a = std::vector<int>{1, 2, 3, 4, 5};
+    for (const auto item: a) {
+        std::cout << item << '\n';
+    }
     return 0;
 }

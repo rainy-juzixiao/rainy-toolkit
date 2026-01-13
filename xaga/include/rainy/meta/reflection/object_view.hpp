@@ -18,7 +18,7 @@
 #include <rainy/core/core.hpp>
 #include <rainy/foundation/typeinfo.hpp>
 #include <rainy/meta/reflection/refl_impl/type_register.hpp>
-#include <rainy/foundation/system/memory/nebula_ptr.hpp>
+#include <rainy/foundation/memory/nebula_ptr.hpp>
 #include <rainy/utility/any.hpp>
 
 namespace rainy::meta::reflection {

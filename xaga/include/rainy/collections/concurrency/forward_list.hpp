@@ -88,8 +88,10 @@ namespace rainy::collections::concurrency {
 
             const_iterator() : node_ptr(nullptr) {
             }
+
             explicit const_iterator(const node *ptr) : node_ptr(ptr) {
             }
+
             const_iterator(const iterator &it) : node_ptr(it.node_ptr) {
             }
 
@@ -249,6 +251,7 @@ namespace rainy::collections::concurrency {
         iterator before_begin() noexcept {
             return iterator(head_);
         }
+
         const_iterator before_begin() const noexcept {
             return const_iterator(head_);
         }
@@ -256,6 +259,7 @@ namespace rainy::collections::concurrency {
         iterator begin() noexcept {
             return iterator(head_->next.load(std::memory_order_acquire));
         }
+
         const_iterator begin() const noexcept {
             return const_iterator(head_->next.load(std::memory_order_acquire));
         }
@@ -263,6 +267,7 @@ namespace rainy::collections::concurrency {
         iterator end() noexcept {
             return iterator(nullptr);
         }
+
         const_iterator end() const noexcept {
             return const_iterator(nullptr);
         }
@@ -270,9 +275,11 @@ namespace rainy::collections::concurrency {
         const_iterator cbegin() const noexcept {
             return begin();
         }
+
         const_iterator cbefore_begin() const noexcept {
             return before_begin();
         }
+
         const_iterator cend() const noexcept {
             return end();
         }
@@ -352,13 +359,11 @@ namespace rainy::collections::concurrency {
             node *pos = const_cast<node *>(position.node_ptr);
 
             auto hp = foundation::memory::make_hazard_pointer();
-            node *next;
-
+            node *next = nullptr;
             do {
                 next = hp.protect(pos->next.load());
                 new_node->next.store(next, std::memory_order_relaxed);
             } while (!pos->next.compare_exchange_weak(next, new_node, std::memory_order_release, std::memory_order_acquire));
-
             size_.fetch_add(1, std::memory_order_relaxed);
             return iterator(new_node);
         }

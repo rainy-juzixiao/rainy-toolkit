@@ -23,7 +23,7 @@
 #include <rainy/core/core.hpp>
 #include <rainy/foundation/functional/function_pointer.hpp>
 #include <rainy/foundation/diagnostics/contract.hpp>
-#include <rainy/foundation/system/memory/nebula_ptr.hpp>
+#include <rainy/foundation/memory/nebula_ptr.hpp>
 #include <rainy/foundation/memory/allocator.hpp>
 #include <rainy/utility/any.hpp>
 #include <rainy/foundation/pal/implements/tgc_layer_threading.hpp>
@@ -333,7 +333,7 @@ namespace rainy::foundation::pal::threading {
                 return;
             }
             auto decay_copied =
-                foundation::system::memory::make_nebula<tuple>(utility::forward<Fx>(fn), utility::forward<Args>(args)...);
+                foundation::memory::make_nebula<tuple>(utility::forward<Fx>(fn), utility::forward<Args>(args)...);
             constexpr auto invoker = get_invoke_function_addr<tuple>(std::make_index_sequence<1 + sizeof...(Args)>{});
             thread_handle = implements::create_thread(nullptr, 0, invoker, decay_copied.get(), 0, nullptr);
             if (thread_handle.handle) {
@@ -362,7 +362,7 @@ namespace rainy::foundation::pal::threading {
     private:
         template <typename Tuple, std::size_t... Indices>
         static unsigned int invoke_function(void *arg_list) {
-            foundation::system::memory::nebula_ptr<Tuple> fn_vals(static_cast<Tuple *>(arg_list));
+            foundation::memory::nebula_ptr<Tuple> fn_vals(static_cast<Tuple *>(arg_list));
             Tuple &tuple = *fn_vals.get();
             utility::invoke(utility::move(std::get<Indices>(tuple))...);
             return 0;

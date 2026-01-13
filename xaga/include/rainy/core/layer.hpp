@@ -182,4 +182,116 @@ namespace rainy::core::pal {
 #endif
 }
 
+namespace rainy::core::pal {
+    enum class memory_order {
+        relaxed,
+        consume,
+        acquire,
+        release,
+        acq_rel,
+        seq_cst
+    };
+
+    inline constexpr memory_order memory_order_relaxed = memory_order::relaxed;
+    inline constexpr memory_order memory_order_consume = memory_order::consume;
+    inline constexpr memory_order memory_order_acquire = memory_order::acquire;
+    inline constexpr memory_order memory_order_release = memory_order::release;
+    inline constexpr memory_order memory_order_acq_rel = memory_order::acq_rel;
+    inline constexpr memory_order memory_order_seq_cst = memory_order::seq_cst;
+}
+
+namespace rainy::core::pal {
+    // 带内存序的原子操作声明
+    RAINY_TOOLKIT_API long interlocked_increment_explicit(volatile long *value, memory_order order);
+    RAINY_TOOLKIT_API long interlocked_decrement_explicit(volatile long *value, memory_order order);
+
+    RAINY_TOOLKIT_API std::int8_t interlocked_increment8_explicit(volatile std::int8_t *value, memory_order order);
+    RAINY_TOOLKIT_API std::int16_t interlocked_increment16_explicit(volatile std::int16_t *value, memory_order order);
+    RAINY_TOOLKIT_API std::int32_t interlocked_increment32_explicit(volatile std::int32_t *value, memory_order order);
+    RAINY_TOOLKIT_API std::int64_t interlocked_increment64_explicit(volatile std::int64_t *value, memory_order order);
+
+    RAINY_TOOLKIT_API std::int8_t interlocked_decrement8_explicit(volatile std::int8_t *value, memory_order order);
+    RAINY_TOOLKIT_API std::int16_t interlocked_decrement16_explicit(volatile std::int16_t *value, memory_order order);
+    RAINY_TOOLKIT_API std::int32_t interlocked_decrement32_explicit(volatile std::int32_t *value, memory_order order);
+    RAINY_TOOLKIT_API std::int64_t interlocked_decrement64_explicit(volatile std::int64_t *value, memory_order order);
+
+    // 带内存序的原子加操作
+    RAINY_TOOLKIT_API std::int8_t interlocked_exchange_add8_explicit(volatile std::int8_t *value, std::int8_t amount,
+                                                                     memory_order order);
+    RAINY_TOOLKIT_API std::int16_t interlocked_exchange_add16_explicit(volatile std::int16_t *value, std::int16_t amount,
+                                                                       memory_order order);
+    RAINY_TOOLKIT_API std::int32_t interlocked_exchange_add32_explicit(volatile std::int32_t *value, std::int32_t amount,
+                                                                       memory_order order);
+    RAINY_TOOLKIT_API std::int64_t interlocked_exchange_add64_explicit(volatile std::int64_t *value, std::int64_t amount,
+                                                                       memory_order order);
+
+    // 带内存序的原子减操作
+    RAINY_TOOLKIT_API std::intptr_t interlocked_exchange_subtract_explicit(volatile std::intptr_t *value, const std::intptr_t amount,
+                                                                           memory_order order);
+    RAINY_TOOLKIT_API std::int32_t interlocked_exchange_subtract32_explicit(volatile std::int32_t *value, std::int32_t amount,
+                                                                            memory_order order);
+    RAINY_TOOLKIT_API std::int64_t interlocked_exchange_subtract64_explicit(volatile std::int64_t *value, std::int64_t amount,
+                                                                            memory_order order);
+
+    // 带内存序的原子交换操作
+    RAINY_TOOLKIT_API long interlocked_exchange_explicit(volatile long *target, long value, memory_order order);
+    RAINY_TOOLKIT_API std::int8_t interlocked_exchange8_explicit(volatile std::int8_t *target, std::int8_t value, memory_order order);
+    RAINY_TOOLKIT_API std::int16_t interlocked_exchange16_explicit(volatile std::int16_t *target, std::int16_t value,
+                                                                   memory_order order);
+    RAINY_TOOLKIT_API std::int32_t interlocked_exchange32_explicit(volatile std::int32_t *target, std::int32_t value,
+                                                                   memory_order order);
+    RAINY_TOOLKIT_API std::int64_t interlocked_exchange64_explicit(volatile std::int64_t *target, std::int64_t value,
+                                                                   memory_order order);
+    RAINY_TOOLKIT_API void *interlocked_exchange_pointer_explicit(volatile void **target, void *value, memory_order order);
+
+    // 带内存序的CAS操作
+    RAINY_TOOLKIT_API bool interlocked_compare_exchange_explicit(volatile long *destination, long exchange, long comparand,
+                                                                 memory_order success, memory_order failure);
+
+    RAINY_TOOLKIT_API bool interlocked_compare_exchange8_explicit(volatile std::int8_t *destination, std::int8_t exchange,
+                                                                  std::int8_t comparand, memory_order success, memory_order failure);
+
+    RAINY_TOOLKIT_API bool interlocked_compare_exchange16_explicit(volatile std::int16_t *destination, std::int16_t exchange,
+                                                                   std::int16_t comparand, memory_order success, memory_order failure);
+
+    RAINY_TOOLKIT_API bool interlocked_compare_exchange32_explicit(volatile std::int32_t *destination, std::int32_t exchange,
+                                                                   std::int32_t comparand, memory_order success, memory_order failure);
+
+    RAINY_TOOLKIT_API bool interlocked_compare_exchange64_explicit(volatile std::int64_t *destination, std::int64_t exchange,
+                                                                   std::int64_t comparand, memory_order success, memory_order failure);
+
+    RAINY_TOOLKIT_API bool interlocked_compare_exchange_pointer_explicit(volatile void **destination, void *exchange, void *comparand,
+                                                                         memory_order success, memory_order failure);
+
+    // 带内存序的原子位操作
+    RAINY_TOOLKIT_API int8_t interlocked_and8_explicit(volatile int8_t *value, int8_t mask, memory_order order);
+    RAINY_TOOLKIT_API int16_t interlocked_and16_explicit(volatile int16_t *value, int16_t mask, memory_order order);
+    RAINY_TOOLKIT_API int32_t interlocked_and32_explicit(volatile int32_t *value, int32_t mask, memory_order order);
+    RAINY_TOOLKIT_API int64_t interlocked_and64_explicit(volatile int64_t *value, int64_t mask, memory_order order);
+
+    RAINY_TOOLKIT_API std::int8_t interlocked_or8_explicit(volatile std::int8_t *value, std::int8_t mask, memory_order order);
+    RAINY_TOOLKIT_API std::int16_t interlocked_or16_explicit(volatile std::int16_t *value, std::int16_t mask, memory_order order);
+    RAINY_TOOLKIT_API std::int32_t interlocked_or32_explicit(volatile std::int32_t *value, std::int32_t mask, memory_order order);
+    RAINY_TOOLKIT_API std::int64_t interlocked_or64_explicit(volatile std::int64_t *value, std::int64_t mask, memory_order order);
+
+    RAINY_TOOLKIT_API std::int8_t interlocked_xor8_explicit(volatile std::int8_t *value, std::int8_t mask, memory_order order);
+    RAINY_TOOLKIT_API std::int16_t interlocked_xor16_explicit(volatile std::int16_t *value, std::int16_t mask, memory_order order);
+    RAINY_TOOLKIT_API std::int32_t interlocked_xor32_explicit(volatile std::int32_t *value, std::int32_t mask, memory_order order);
+    RAINY_TOOLKIT_API std::int64_t interlocked_xor64_explicit(volatile std::int64_t *value, std::int64_t mask, memory_order order);
+
+    // 带内存序的原子加载
+    RAINY_TOOLKIT_API std::intptr_t iso_volatile_load_explicit(const volatile std::intptr_t *address, memory_order order);
+    RAINY_TOOLKIT_API std::int8_t iso_volatile_load8_explicit(const volatile std::int8_t *address, memory_order order);
+    RAINY_TOOLKIT_API std::int16_t iso_volatile_load16_explicit(const volatile std::int16_t *address, memory_order order);
+    RAINY_TOOLKIT_API std::int32_t iso_volatile_load32_explicit(const volatile std::int32_t *address, memory_order order);
+    RAINY_TOOLKIT_API std::int64_t iso_volatile_load64_explicit(const volatile long long *address, memory_order order);
+
+    // 带内存序的原子存储
+    RAINY_TOOLKIT_API void iso_volatile_store_explicit(volatile void *address, void *value, memory_order order);
+    RAINY_TOOLKIT_API void iso_volatile_store8_explicit(volatile std::int8_t *address, std::int8_t value, memory_order order);
+    RAINY_TOOLKIT_API void iso_volatile_store16_explicit(volatile std::int16_t *address, std::int16_t value, memory_order order);
+    RAINY_TOOLKIT_API void iso_volatile_store32_explicit(volatile int *address, std::uint32_t value, memory_order order);
+    RAINY_TOOLKIT_API void iso_volatile_store64_explicit(volatile long long *address, std::uint64_t value, memory_order order);
+}
+
 #endif
