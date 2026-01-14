@@ -59,6 +59,9 @@ RAINY_GET_CXX_COMPILER_ID(COMPILER_ID)
 message(STATUS "The rainy-toolkit will use ${COMPILER_ID} complier to compile the sources files")
 message(STATUS "Starting configure the library")
 
+if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+# 仅x86_64架构支持AVX2指令集
+
 if ((COMPILER_ID MATCHES "MSVC") OR (COMPILER_ID MATCHES "MSVC-Clang")) 
     if (RAINY_USE_AVX2_BOOST)
         message("The rainy-toolkit will using avx2 boost")
@@ -71,6 +74,8 @@ if ((COMPILER_ID MATCHES "MSVC") OR (COMPILER_ID MATCHES "MSVC-Clang"))
     configure_file("${PROJECT_SOURCE_DIR}/cmake/msvc/version_template.rc"
                    "${MY_VERSIONINFO_RC}")
     target_sources(rainy-toolkit PRIVATE "${MY_VERSIONINFO_RC}")
+endif()
+
 endif()
 
 if (CMAKE_COMPILER_IS_GNUCXX OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT MSVC))
