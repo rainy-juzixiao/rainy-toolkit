@@ -37,18 +37,18 @@ inline void rainy_dmb_st() {
 
 #define RAINY_ARM64_ATOMIC_BEGIN(ptr, old)                                                                                            \
     do {                                                                                                                              \
-        int _stxr_failed;                                                                                                             \
+        int _stxr_failed = 0;                                                                                                         \
         __asm__ __volatile__("1: ldaxr %0, [%2]\n" : "=&r"(old) : "0"(old), "r"(ptr) : "memory");                                     \
         do {
 
 #define RAINY_ARM64_ATOMIC_END(ptr, newval)                                                                                           \
-    __asm__ __volatile__("stlxr %w0, %2, [%1]\n" : "=&r"(_stxr_failed) : "r"(ptr), "r"(newval) : "memory");                           \
-    }                                                                                                                                 \
-    while (_stxr_failed)                                                                                                              \
-        ;                                                                                                                             \
-    rainy_dmb();                                                                                                                      \
-    }                                                                                                                                 \
-    while (0)
+    do {                                                                                                                              \
+        int _stxr_failed;                                                                                                             \
+        do {                                                                                                                          \
+            __asm__ __volatile__("stlxr %w0, %2, [%1]" : "=&r"(_stxr_failed) : "r"(ptr), "r"(newval) : "memory");                     \
+        } while (_stxr_failed);                                                                                                       \
+        rainy_dmb();                                                                                                                  \
+    } while (0)
 
 #endif
 
@@ -489,10 +489,8 @@ namespace rainy::core::pal {
 }
 
 namespace rainy::core::pal {
-
     bool interlocked_compare_exchange(volatile long *destination, long exchange, long comparand) {
         rainy_assume(destination);
-
 #if RAINY_IS_ARM64 && !RAINY_USING_MSVC
         long old;
         RAINY_ARM64_ATOMIC_BEGIN(destination, old)
@@ -518,7 +516,6 @@ namespace rainy::core::pal {
 
     bool interlocked_compare_exchange8(volatile std::int8_t *destination, std::int8_t exchange, std::int8_t comparand) {
         rainy_assume(destination);
-
 #if RAINY_IS_ARM64 && !RAINY_USING_MSVC
         std::int8_t old;
         RAINY_ARM64_ATOMIC_BEGIN(destination, old)

@@ -1,4 +1,4 @@
-name: ARM64 CMake Catch2 + Benchmark
+name: ARM64 rainy-toolkit TEST TASK WORKFLOW
 
 on:
   push:
