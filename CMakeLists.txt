@@ -37,7 +37,7 @@ include(${PROJECT_SOURCE_DIR}/cmake/utility.cmake)
 include(${PROJECT_SOURCE_DIR}/cmake/config.cmake)
 include(${PROJECT_SOURCE_DIR}/cmake/install.cmake)
 
-set(BENCHMARK_ENABLE_REGEXP_BACKEND OFF CACHE BOOL "Disable regex backend for Benchmark")
+set(BENCHMARK_ENABLE_REGEXP_BACKEND OFF CACHE BOOL "Disable regex backend" FORCE)
 
 if (RAINY_ENABLE_TESTING)
     message("Testing is enable!")
