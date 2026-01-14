@@ -37,18 +37,20 @@ inline void rainy_dmb_st() {
 
 #define RAINY_ARM64_ATOMIC_BEGIN(ptr, old)                                                                                            \
     do {                                                                                                                              \
-        int _stxr_failed = 0;                                                                                                         \
-        __asm__ __volatile__("1: ldaxr %0, [%2]\n" : "=&r"(old) : "0"(old), "r"(ptr) : "memory");                                     \
-        do {
+        int _stxr_failed;                                                                                                             \
+        old = 0; /* 初始化旧值 */                                                                                                     \
+        do {                                                                                                                          \
+            __asm__ __volatile__("ldaxr %0, [%1]" : "=&r"(old) : "r"(ptr) : "memory");                                                \
+            _stxr_failed = 0;
 
 #define RAINY_ARM64_ATOMIC_END(ptr, newval)                                                                                           \
-    do {                                                                                                                              \
-        int _stxr_failed;                                                                                                             \
-        do {                                                                                                                          \
-            __asm__ __volatile__("stlxr %w0, %2, [%1]" : "=&r"(_stxr_failed) : "r"(ptr), "r"(newval) : "memory");                     \
-        } while (_stxr_failed);                                                                                                       \
-        rainy_dmb();                                                                                                                  \
-    } while (0)
+    __asm__ __volatile__("stlxr %w0, %2, [%1]" : "=&r"(_stxr_failed) : "r"(ptr), "r"(newval) : "memory");                             \
+    }                                                                                                                                 \
+    while (_stxr_failed)                                                                                                              \
+        ;                                                                                                                             \
+    rainy_dmb();                                                                                                                      \
+    }                                                                                                                                 \
+    while (0)
 
 #endif
 
