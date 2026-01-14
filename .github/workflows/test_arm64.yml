@@ -27,12 +27,16 @@ jobs:
               set -e
 
               apt update
-              apt install -y \
-                cmake \
-                g++ \
-                ninja-build \
-                git \
-                ca-certificates
+                apt install -y \
+                  cmake \
+                  g++ \
+                  ninja-build \
+                  git \
+                  ca-certificates \
+                  build-essential \
+                  libpthread-stubs0-dev \
+                  libc6-dev \
+                  pkg-config
 
               cmake -B build -S . -DCMAKE_BUILD_TYPE=Release
               cmake --build build
