@@ -78,6 +78,8 @@ endif()
 
 endif()
 
+if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+
 if (CMAKE_COMPILER_IS_GNUCXX OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT MSVC))
     message("Detect Clang compiler or GNU compiler")
     if (RAINY_USE_AVX2_BOOST)
@@ -97,6 +99,8 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND MSVC)
         add_definitions(-DRAINY_USING_AVX2=0)
     endif()
 endif ()
+
+endif()
 
 if (MSVC AND NOT (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
     message("Detect MSVC compiler")
