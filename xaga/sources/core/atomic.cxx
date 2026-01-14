@@ -36,7 +36,6 @@ inline void rainy_dmb_st() {
 #if RAINY_IS_ARM64 && !RAINY_USING_MSVC
 
 #define RAINY_ARM64_ATOMIC_BEGIN(ptr, old)                                                                                            \
-    long old = 0;                                                                                                                     \
     int _stxr_failed;                                                                                                                 \
     do {                                                                                                                              \
         __asm__ __volatile__("ldaxr %0, [%1]" : "=&r"(old) : "r"(ptr) : "memory");                                                    \
@@ -53,15 +52,15 @@ inline void rainy_dmb_st() {
 
 namespace rainy::core::pal {
     long interlocked_increment(volatile long *value) {
-        rainy_assume(value);
 #if RAINY_IS_ARM64 && !RAINY_USING_MSVC
+        rainy_assume(value);
         long old, newv;
         RAINY_ARM64_ATOMIC_BEGIN(value, old)
         newv = old + 1;
         RAINY_ARM64_ATOMIC_END(value, newv);
         return newv;
 #else
-#if RAINY_USING_MSVC
+        #if RAINY_USING_MSVC
         return _InterlockedIncrement(value);
 #elif RAINY_USING_GCC || RAINY_USING_CLANG
         volatile long *avoid_clang_tidy = value;
