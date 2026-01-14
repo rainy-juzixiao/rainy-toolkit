@@ -37,8 +37,6 @@ include(${PROJECT_SOURCE_DIR}/cmake/utility.cmake)
 include(${PROJECT_SOURCE_DIR}/cmake/config.cmake)
 include(${PROJECT_SOURCE_DIR}/cmake/install.cmake)
 
-set(BENCHMARK_ENABLE_REGEXP_BACKEND OFF CACHE BOOL "Disable regex backend" FORCE)
-
 if (RAINY_ENABLE_TESTING)
     message("Testing is enable!")
     enable_testing()
@@ -49,9 +47,9 @@ endif()
 
 set( BENCHMARK_ENABLE_TESTING off)
 
-add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/benchmark)
+#add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/benchmark)
 add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/rttr_ex)
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/xaga/examples/reflection/)
-add_subdirectory(${PROJECT_SOURCE_DIR}/xaga/benchmark/any/)
-add_subdirectory(${PROJECT_SOURCE_DIR}/xaga/benchmark/reflection/)
+#add_subdirectory(${PROJECT_SOURCE_DIR}/xaga/benchmark/any/)
+#add_subdirectory(${PROJECT_SOURCE_DIR}/xaga/benchmark/reflection/)
