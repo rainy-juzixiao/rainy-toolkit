@@ -36,21 +36,18 @@ inline void rainy_dmb_st() {
 #if RAINY_IS_ARM64 && !RAINY_USING_MSVC
 
 #define RAINY_ARM64_ATOMIC_BEGIN(ptr, old)                                                                                            \
+    long old = 0;                                                                                                                     \
+    int _stxr_failed;                                                                                                                 \
     do {                                                                                                                              \
-        int _stxr_failed;                                                                                                             \
-        old = 0; /* 初始化旧值 */                                                                                                     \
-        do {                                                                                                                          \
-            __asm__ __volatile__("ldaxr %0, [%1]" : "=&r"(old) : "r"(ptr) : "memory");                                                \
-            _stxr_failed = 0;
+        __asm__ __volatile__("ldaxr %0, [%1]" : "=&r"(old) : "r"(ptr) : "memory");                                                    \
+        _stxr_failed = 0;
 
 #define RAINY_ARM64_ATOMIC_END(ptr, newval)                                                                                           \
     __asm__ __volatile__("stlxr %w0, %2, [%1]" : "=&r"(_stxr_failed) : "r"(ptr), "r"(newval) : "memory");                             \
     }                                                                                                                                 \
     while (_stxr_failed)                                                                                                              \
         ;                                                                                                                             \
-    rainy_dmb();                                                                                                                      \
-    }                                                                                                                                 \
-    while (0)
+    rainy_dmb();
 
 #endif
 
