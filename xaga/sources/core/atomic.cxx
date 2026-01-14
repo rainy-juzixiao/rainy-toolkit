@@ -38,8 +38,7 @@ inline void rainy_dmb_st() {
 #define RAINY_ARM64_ATOMIC_BEGIN(ptr, old)                                                                                            \
     int _stxr_failed;                                                                                                                 \
     do {                                                                                                                              \
-        __asm__ __volatile__("ldaxr %0, [%1]" : "=&r"(old) : "r"(ptr) : "memory");                                                    \
-        _stxr_failed = 0;
+        __asm__ __volatile__("ldaxr %0, [%1]" : "=&r"(old) : "r"(ptr) : "memory");
 
 #define RAINY_ARM64_ATOMIC_END(ptr, newval)                                                                                           \
     __asm__ __volatile__("stlxr %w0, %2, [%1]" : "=&r"(_stxr_failed) : "r"(ptr), "r"(newval) : "memory");                             \
