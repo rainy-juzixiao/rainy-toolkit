@@ -223,8 +223,10 @@ clang和GNU编译器区域
 #define RAINY_USING_32_BIT_PLATFORM 1
 #endif
 
-#if defined(__arm__) || defined(__aarch64__)
-static_assert(false, "ARM architecture is not supported for this project.");
+#if defined(__aarch64__) || defined(_M_ARM64)
+#define RAINY_IS_ARM64 1
+#else
+#define RAINY_IS_ARM64 0
 #endif
 
 #if RAINY_CURRENT_STANDARD_VERSION < 201703L
