@@ -20,7 +20,7 @@ jobs:
       - name: Run build + tests in ARM64 container
         run: |
           docker run --rm --platform=linux/arm64 \
-            -v ${{ github.workspace }}:/src \
+            -v ${{ github.workspace }}:/ \
             -w /src \
             arm64v8/ubuntu:22.04 \
             bash -c "
