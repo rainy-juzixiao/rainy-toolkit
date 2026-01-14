@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <rainy/core/layer.hpp>
+#include <cerrno>
 #include <cstdio>
-#include <errno.h>
+#include <rainy/core/core.hpp>
 
 #if RAINY_USING_WINDOWS
 #include <DbgEng.h>
@@ -41,12 +41,15 @@ namespace rainy::core::pal {
 #if RAINY_USING_MSVC
         __debugbreak();
 #elif RAINY_USING_GCC || RAINY_USING_CLANG
-#if RAINY_USING_WINDOWS
+#if RAINY_USING_WINDOWS || RAINY_USING_LINUX
 #if defined(__i386__) || defined(__x86_64__)
-        __asm__ __volatile__("int {$}3" :);
-#endif
-#elif RAINY_USING_LINUX
         __asm__ __volatile__("int $0x3");
+#elif RAINY_IS_ARM64
+        // 在 ARM64 上触发断点
+        __builtin_trap();
+#else
+        static_assert(false, "rainy-toolkit only supports x86/x86_64 and ARM64 platforms");
+#endif
 #else
         static_assert(false, "rainy-toolkit only supports Windows and Linux platforms");
 #endif

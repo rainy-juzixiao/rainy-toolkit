@@ -16,7 +16,9 @@ namespace rainy::foundation::pal::atomicinfra::implements {
         while (core::pal::interlocked_exchange(&spinlock, 1) != 0) {
             while (core::pal::iso_volatile_load32(&reinterpret_cast<int &>(spinlock)) != 0) {
                 for (int _Count_down = current_backoff; _Count_down != 0; --_Count_down) {
+#if !RAINY_IS_ARM64
                     _mm_pause();
+#endif
                 }
                 current_backoff = current_backoff < max_backoff ? current_backoff << 1 : max_backoff;
             }

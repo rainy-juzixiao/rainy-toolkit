@@ -15,6 +15,8 @@
  */
 #include <rainy/core/layer.hpp>
 
+// NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
+
 #if RAINY_USING_MSVC
 #include <emmintrin.h>
 #include <intrin.h>
@@ -34,7 +36,21 @@ inline void rainy_dmb_st() {
 
 // arm64的测试代码，用于评估是否可以将rainy-toolkit pal移植到arm64架构上
 #if RAINY_IS_ARM64 && !RAINY_USING_MSVC
+#define RAINY_ARM64_ATOMIC_BEGIN(ptr, old)                                                                                            \
+    int _stxr_failed;                                                                                                                 \
+    do {                                                                                                                              \
+        __asm__ __volatile__("ldaxr %0, [%1]" : "=&r"(old) : "r"(ptr) : "memory");
 
+#define RAINY_ARM64_ATOMIC_END(ptr, newval)                                                                                           \
+    __asm__ __volatile__("stlxr %w0, %2, [%1]" : "=&r"(_stxr_failed) : "r"(ptr), "r"(newval) : "memory");                             \
+    }                                                                                                                                 \
+    while (_stxr_failed)                                                                                                              \
+        ;                                                                                                                             \
+    rainy_dmb();
+#endif
+
+#if RAINY_IS_ARM64 && !RAINY_USING_MSVC
+// 用于 increment/decrement/exchange 等操作的宏
 #define RAINY_ARM64_ATOMIC_BEGIN(ptr, old)                                                                                            \
     int _stxr_failed;                                                                                                                 \
     do {                                                                                                                              \
@@ -47,6 +63,25 @@ inline void rainy_dmb_st() {
         ;                                                                                                                             \
     rainy_dmb();
 
+#define RAINY_ARM64_COMPARE_EXCHANGE(dest, exchange, comparand, result)                                                               \
+    do {                                                                                                                              \
+        int _stxr_failed;                                                                                                             \
+        __typeof__(comparand) _old;                                                                                                   \
+        do {                                                                                                                          \
+            __asm__ __volatile__("ldaxr %0, [%1]" : "=&r"(_old) : "r"(dest) : "memory");                                              \
+            if (_old != (comparand)) {                                                                                                \
+                __asm__ __volatile__("clrex" ::: "memory");                                                                           \
+                rainy_dmb();                                                                                                          \
+                result = false;                                                                                                       \
+                break;                                                                                                                \
+            }                                                                                                                         \
+            __asm__ __volatile__("stlxr %w0, %2, [%1]" : "=&r"(_stxr_failed) : "r"(dest), "r"(exchange) : "memory");                  \
+        } while (_stxr_failed);                                                                                                       \
+        if (_old == (comparand)) {                                                                                                    \
+            rainy_dmb();                                                                                                              \
+            result = true;                                                                                                            \
+        }                                                                                                                             \
+    } while (0)
 #endif
 
 namespace rainy::core::pal {
@@ -59,7 +94,7 @@ namespace rainy::core::pal {
         RAINY_ARM64_ATOMIC_END(value, newv);
         return newv;
 #else
-        #if RAINY_USING_MSVC
+#if RAINY_USING_MSVC
         return _InterlockedIncrement(value);
 #elif RAINY_USING_GCC || RAINY_USING_CLANG
         volatile long *avoid_clang_tidy = value;
@@ -400,9 +435,17 @@ namespace rainy::core::pal {
 }
 
 namespace rainy::core::pal {
+
     long interlocked_exchange(volatile long *target, long value) {
-        rainy_assume(static_cast<bool>(target));
-#if RAINY_USING_MSVC
+        rainy_assume(target);
+
+#if RAINY_IS_ARM64 && !RAINY_USING_MSVC
+        long old;
+        RAINY_ARM64_ATOMIC_BEGIN(target, old)
+        long newv = value;
+        RAINY_ARM64_ATOMIC_END(target, newv);
+        return old;
+#elif RAINY_USING_MSVC
         return _InterlockedExchange(target, value);
 #else
         __asm__ __volatile__("lock xchg %1, %0" : "=r"(value), "+m"(*target) : "0"(value) : "memory");
@@ -411,8 +454,15 @@ namespace rainy::core::pal {
     }
 
     std::int8_t interlocked_exchange8(volatile std::int8_t *target, std::int8_t value) {
-        rainy_assume(static_cast<bool>(target));
-#if RAINY_USING_MSVC
+        rainy_assume(target);
+
+#if RAINY_IS_ARM64 && !RAINY_USING_MSVC
+        std::int8_t old;
+        RAINY_ARM64_ATOMIC_BEGIN(target, old)
+        std::int8_t newv = value;
+        RAINY_ARM64_ATOMIC_END(target, newv);
+        return old;
+#elif RAINY_USING_MSVC
         return _InterlockedExchange8(reinterpret_cast<volatile char *>(target), value);
 #else
         __asm__ __volatile__("lock xchgb %0, %1" : "=q"(value), "+m"(*target) : "0"(value) : "memory");
@@ -421,8 +471,15 @@ namespace rainy::core::pal {
     }
 
     std::int16_t interlocked_exchange16(volatile std::int16_t *target, std::int16_t value) {
-        rainy_assume(static_cast<bool>(target));
-#if RAINY_USING_MSVC
+        rainy_assume(target);
+
+#if RAINY_IS_ARM64 && !RAINY_USING_MSVC
+        std::int16_t old;
+        RAINY_ARM64_ATOMIC_BEGIN(target, old)
+        std::int16_t newv = value;
+        RAINY_ARM64_ATOMIC_END(target, newv);
+        return old;
+#elif RAINY_USING_MSVC
         return _InterlockedExchange16(target, value);
 #else
         __asm__ __volatile__("lock xchgw %0, %1" : "=r"(value), "+m"(*target) : "0"(value) : "memory");
@@ -431,8 +488,15 @@ namespace rainy::core::pal {
     }
 
     std::int32_t interlocked_exchange32(volatile std::int32_t *target, std::int32_t value) {
-        rainy_assume(static_cast<bool>(target));
-#if RAINY_USING_MSVC
+        rainy_assume(target);
+
+#if RAINY_IS_ARM64 && !RAINY_USING_MSVC
+        std::int32_t old;
+        RAINY_ARM64_ATOMIC_BEGIN(target, old)
+        std::int32_t newv = value;
+        RAINY_ARM64_ATOMIC_END(target, newv);
+        return old;
+#elif RAINY_USING_MSVC
         return _InterlockedExchange(reinterpret_cast<volatile long *>(target), static_cast<long>(value));
 #else
         __asm__ __volatile__("lock xchgl %0, %1" : "=r"(value), "+m"(*target) : "0"(value) : "memory");
@@ -441,14 +505,22 @@ namespace rainy::core::pal {
     }
 
     std::int64_t interlocked_exchange64(volatile std::int64_t *target, std::int64_t value) {
-        rainy_assume(static_cast<bool>(target));
-#if RAINY_USING_MSVC
+        rainy_assume(target);
+
+#if RAINY_IS_ARM64 && !RAINY_USING_MSVC
+        std::int64_t old;
+        RAINY_ARM64_ATOMIC_BEGIN(target, old)
+        std::int64_t newv = value;
+        RAINY_ARM64_ATOMIC_END(target, newv);
+        return old;
+#elif RAINY_USING_MSVC
         return _InterlockedExchange64(reinterpret_cast<volatile __int64 *>(target), value);
 #else
         __asm__ __volatile__("lock xchgq %0, %1" : "=r"(value), "+m"(*target) : "0"(value) : "memory");
         return value;
 #endif
     }
+
 }
 
 namespace rainy::core::pal {
@@ -470,8 +542,13 @@ namespace rainy::core::pal {
     }
 
     bool interlocked_compare_exchange_pointer(volatile void **destination, void *exchange, void *comparand) {
-        rainy_assume(static_cast<bool>(destination));
-#if RAINY_USING_MSVC
+        rainy_assume(destination);
+
+#if RAINY_IS_ARM64 && !RAINY_USING_MSVC
+        bool result;
+        RAINY_ARM64_COMPARE_EXCHANGE(destination, exchange, comparand, result);
+        return result;
+#elif RAINY_USING_MSVC
         return _InterlockedCompareExchangePointer(const_cast<void *volatile *>(destination), exchange, comparand) == comparand;
 #else
         char result{};
@@ -489,15 +566,9 @@ namespace rainy::core::pal {
     bool interlocked_compare_exchange(volatile long *destination, long exchange, long comparand) {
         rainy_assume(destination);
 #if RAINY_IS_ARM64 && !RAINY_USING_MSVC
-        long old;
-        RAINY_ARM64_ATOMIC_BEGIN(destination, old)
-        if (old == comparand) {
-            long newv = exchange;
-            RAINY_ARM64_ATOMIC_END(destination, newv);
-            return true;
-        }
-        RAINY_ARM64_ATOMIC_END(destination, old);
-        return false;
+        long result;
+        RAINY_ARM64_COMPARE_EXCHANGE(destination, exchange, comparand, result);
+        return result;
 #elif RAINY_USING_MSVC
         return _InterlockedCompareExchange(destination, exchange, comparand) == comparand;
 #else
@@ -514,15 +585,9 @@ namespace rainy::core::pal {
     bool interlocked_compare_exchange8(volatile std::int8_t *destination, std::int8_t exchange, std::int8_t comparand) {
         rainy_assume(destination);
 #if RAINY_IS_ARM64 && !RAINY_USING_MSVC
-        std::int8_t old;
-        RAINY_ARM64_ATOMIC_BEGIN(destination, old)
-        if (old == comparand) {
-            std::int8_t newv = exchange;
-            RAINY_ARM64_ATOMIC_END(destination, newv);
-            return true;
-        }
-        RAINY_ARM64_ATOMIC_END(destination, old);
-        return false;
+        std::int8_t result;
+        RAINY_ARM64_COMPARE_EXCHANGE(destination, exchange, comparand, result);
+        return result;
 #elif RAINY_USING_MSVC
         return _InterlockedCompareExchange8(reinterpret_cast<volatile char *>(destination), exchange, comparand);
 #else
@@ -540,15 +605,9 @@ namespace rainy::core::pal {
         rainy_assume(destination);
 
 #if RAINY_IS_ARM64 && !RAINY_USING_MSVC
-        std::int16_t old;
-        RAINY_ARM64_ATOMIC_BEGIN(destination, old)
-        if (old == comparand) {
-            std::int16_t newv = exchange;
-            RAINY_ARM64_ATOMIC_END(destination, newv);
-            return true;
-        }
-        RAINY_ARM64_ATOMIC_END(destination, old);
-        return false;
+        std::int16_t result;
+        RAINY_ARM64_COMPARE_EXCHANGE(destination, exchange, comparand, result);
+        return result;
 #elif RAINY_USING_MSVC
         return _InterlockedCompareExchange16(destination, exchange, comparand);
 #else
@@ -564,17 +623,10 @@ namespace rainy::core::pal {
 
     bool interlocked_compare_exchange32(volatile std::int32_t *destination, std::int32_t exchange, std::int32_t comparand) {
         rainy_assume(destination);
-
 #if RAINY_IS_ARM64 && !RAINY_USING_MSVC
-        std::int32_t old;
-        RAINY_ARM64_ATOMIC_BEGIN(destination, old)
-        if (old == comparand) {
-            std::int32_t newv = exchange;
-            RAINY_ARM64_ATOMIC_END(destination, newv);
-            return true;
-        }
-        RAINY_ARM64_ATOMIC_END(destination, old);
-        return false;
+        std::int32_t result;
+        RAINY_ARM64_COMPARE_EXCHANGE(destination, exchange, comparand, result);
+        return result;
 #elif RAINY_USING_MSVC
         return _InterlockedCompareExchange(reinterpret_cast<volatile long *>(destination), exchange, comparand) == comparand;
 #else
@@ -592,15 +644,9 @@ namespace rainy::core::pal {
         rainy_assume(destination);
 
 #if RAINY_IS_ARM64 && !RAINY_USING_MSVC
-        std::int64_t old;
-        RAINY_ARM64_ATOMIC_BEGIN(destination, old)
-        if (old == comparand) {
-            std::int64_t newv = exchange;
-            RAINY_ARM64_ATOMIC_END(destination, newv);
-            return true;
-        }
-        RAINY_ARM64_ATOMIC_END(destination, old);
-        return false;
+        std::int64_t result;
+        RAINY_ARM64_COMPARE_EXCHANGE(destination, exchange, comparand, result);
+        return result;
 #elif RAINY_USING_MSVC
         return _InterlockedCompareExchange64(destination, exchange, comparand) == comparand;
 #else
@@ -1037,19 +1083,21 @@ namespace rainy::core::pal {
 }
 
 namespace rainy::core::pal {
-    long interlocked_increment_explicit(volatile long *value, memory_order order) {
-        rainy_assume(static_cast<bool>(value));
-        fence_before(order);
-#if RAINY_USING_MSVC
-        long result = _InterlockedIncrement(value);
-#elif RAINY_USING_GCC || RAINY_USING_CLANG
-        volatile long *avoid_clang_tidy = value;
-        __asm__ __volatile__("lock; incl %0" : "+m"(*avoid_clang_tidy) : : "cc", "memory");
-        long result = *avoid_clang_tidy;
-#else
-        static_assert(false, "rainy-toolkit only supports GCC Clang and MSVC platforms");
-#endif
-        fence_after(order);
-        return result;
-    }
+//     long interlocked_increment_explicit(volatile long *value, memory_order order) {
+//         rainy_assume(static_cast<bool>(value));
+//         fence_before(order);
+// #if RAINY_USING_MSVC
+//         long result = _InterlockedIncrement(value);
+// #elif RAINY_USING_GCC || RAINY_USING_CLANG
+//         volatile long *avoid_clang_tidy = value;
+//         __asm__ __volatile__("lock; incl %0" : "+m"(*avoid_clang_tidy) : : "cc", "memory");
+//         long result = *avoid_clang_tidy;
+// #else
+//         static_assert(false, "rainy-toolkit only supports GCC Clang and MSVC platforms");
+// #endif
+//         fence_after(order);
+//         return result;
+//     }
 }
+
+// NOLINTEND(cppcoreguidelines-avoid-do-while)

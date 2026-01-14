@@ -13,8 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <immintrin.h>
 #include <rainy/core/core.hpp>
+#include <rainy/core/lifetime_annotation.hpp>
+
+#if !RAINY_IS_ARM64
+#include <immintrin.h>
+#endif
 
 #if RAINY_USING_MSVC
 #include <intrin.h>
@@ -134,6 +138,7 @@ namespace rainy::core::builtin {
                     return fixed_memcpy<24>(dest, src);
             }
         } else if (len > 24 && len < 36) {
+#if !RAINY_IS_ARM64
             rainy_let dst = static_cast<std::uint8_t *>(dest);
             rainy_let source = static_cast<const std::uint8_t *>(src);
             constexpr size_t chunk_size = 16; // 步长调整为 16
@@ -150,6 +155,7 @@ namespace rainy::core::builtin {
             }
             return dest;
         }
+#endif
         rainy_let dst = static_cast<std::uint8_t *>(dest);
         rainy_let source = static_cast<const std::uint8_t *>(src);
 #if RAINY_USING_AVX2
@@ -166,6 +172,7 @@ namespace rainy::core::builtin {
             }
         }
 #endif
+#if !RAINY_IS_ARM64
         // 每次复制16字节，SSE每个寄存器处理128位数据（16字节）
         std::size_t chunk_size = 16;
         // 对齐到16字节
@@ -185,6 +192,7 @@ namespace rainy::core::builtin {
             len--;
         }
         return dst;
+#endif
     }
 
     /*void *move_memory(void *dest, std::size_t dest_size, const void *src, std::size_t src_count) {
@@ -200,7 +208,7 @@ namespace rainy::core::builtin {
     void *fill_memory(void *dest, std::size_t count, const void *src, std::size_t src_count, std::size_t src_offset,
                                         std::size_t dest_offset);*/
 }
-
+}
 
 namespace rainy::core::pal {
     bool is_aligned(void *const ptr, const std::size_t alignment) {
@@ -221,17 +229,17 @@ namespace rainy::core::pal {
 #ifdef __cpp_aligned_new
         return operator new[](size, std::align_val_t{alignment}, std::nothrow); // 由调用它的人，负责处理分配失败的问题
 #else
-        const std::size_t offset = alignment - 1 + sizeof(void *);
-        const std::size_t total = size + offset;
-        void *ptr = operator new[](total, std::nothrow);
-        if (!ptr) {
-            return nullptr; // 由调用它的人，负责处理分配失败的问题
-        }
-        rainy_const raw_location = reinterpret_cast<std::size_t>(ptr);
-        const std::size_t aligned_location = (raw_location + offset) & ~(alignment - 1);
-        rainy_let aligned_ptr = reinterpret_cast<void *>(aligned_location);
-        *(reinterpret_cast<void **>(aligned_location - sizeof(void *))) = ptr;
-        return aligned_ptr;
+            const std::size_t offset = alignment - 1 + sizeof(void *);
+            const std::size_t total = size + offset;
+            void *ptr = operator new[](total, std::nothrow);
+            if (!ptr) {
+                return nullptr; // 由调用它的人，负责处理分配失败的问题
+            }
+            rainy_const raw_location = reinterpret_cast<std::size_t>(ptr);
+            const std::size_t aligned_location = (raw_location + offset) & ~(alignment - 1);
+            rainy_let aligned_ptr = reinterpret_cast<void *>(aligned_location);
+            *(reinterpret_cast<void **>(aligned_location - sizeof(void *))) = ptr;
+            return aligned_ptr;
 #endif
     }
 
@@ -249,11 +257,11 @@ namespace rainy::core::pal {
 #ifdef __cpp_aligned_new
         operator delete[](block, std::align_val_t{alignment});
 #else
-        if (is_aligned(block, alignment)) {
-            rainy_const aligned_location = reinterpret_cast<std::size_t>(block);
-            void *original_ptr = *(reinterpret_cast<void **>(aligned_location - sizeof(void *)));
-            operator delete[](original_ptr);
-        }
+            if (is_aligned(block, alignment)) {
+                rainy_const aligned_location = reinterpret_cast<std::size_t>(block);
+                void *original_ptr = *(reinterpret_cast<void **>(aligned_location - sizeof(void *)));
+                operator delete[](original_ptr);
+            }
 #endif
     }
 
@@ -264,11 +272,11 @@ namespace rainy::core::pal {
 #ifdef __cpp_aligned_new
         operator delete[](block, byte_count, std::align_val_t{alignment});
 #else
-        if (is_aligned(block, alignment)) {
-            rainy_const aligned_location = reinterpret_cast<std::size_t>(block);
-            void *original_ptr = *(reinterpret_cast<void **>(aligned_location - sizeof(void *)));
-            operator delete[](original_ptr, byte_count);
-        }
+            if (is_aligned(block, alignment)) {
+                rainy_const aligned_location = reinterpret_cast<std::size_t>(block);
+                void *original_ptr = *(reinterpret_cast<void **>(aligned_location - sizeof(void *)));
+                operator delete[](original_ptr, byte_count);
+            }
 #endif
     }
 
@@ -411,35 +419,13 @@ namespace rainy::core::pal {
 }
 
 namespace rainy::core::implements {
-    void stl_internal_check(const bool result, const internal_source_location &source_location) {
+    void stl_internal_check(const bool result) {
         if (result) {
             return;
         }
-        bool release{false};
-        constexpr static std::size_t static_memory_size = 120;
-        thread_local char static_memory[static_memory_size]; // For Thread Safety
-        rainy_let buffer = static_cast<char *>(static_memory);
-        std::size_t required_size =
-            1 + std::snprintf(nullptr, 0, "%s:%du in function '%s' found a error\n", source_location.file_name(),
-                              source_location.line(), source_location.function_name());
-        if (required_size > static_memory_size) {
-            buffer = static_cast<char *>(pal::allocate(sizeof(char) * required_size,
-                                                       alignof(char))); // 通过operator new[]获取内存，而不是通过new char
-            release = true;
-            if (!buffer) {
-                constexpr raw_string_view<char> error_info(
-                    "we found a error. and also we can's allocate memory from dynamic_storage. before make more crushing, we must "
-                    "terminate this program. you can commit a issue in github.");
-                (void) std::fwrite(error_info.c_str(), sizeof(char), error_info.size(), stderr);
-                std::abort();
-            }
-        }
-        required_size = std::snprintf(buffer, required_size, "%s:%u in function '%s' found a error\n", source_location.file_name(),
-                                      source_location.line(), source_location.function_name());
-        (void) std::fwrite(buffer, sizeof(char), required_size, stderr);
-        if (release) {
-            pal::deallocate(buffer, required_size);
-        }
+        constexpr char error_info[] = "we found a error. before make more crushing, we must "
+                                      "terminate this program. you can commit a issue in github.";
+        (void) std::fwrite(error_info, sizeof(char), sizeof(error_info), stderr);
         std::abort();
     }
 }

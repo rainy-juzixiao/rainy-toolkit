@@ -24,7 +24,7 @@ else()
     set(rainy_toolkit_libraryname "rainy-toolkit-release-package")
 endif()
 
-if (RAINY_BUILD_WITH_DYNAMIC)
+if (RAINY_BUILD_WITH_DYNAMIC AND NOT RAINY_USE_CROSSCOMPILE)
     message("Build dynamic library target")
     add_library(rainy-toolkit SHARED ${SPECIAL_FILES_LIST})
     set_target_properties(rainy-toolkit PROPERTIES OUTPUT_NAME ${rainy_toolkit_libraryname})
@@ -59,10 +59,10 @@ RAINY_GET_CXX_COMPILER_ID(COMPILER_ID)
 message(STATUS "The rainy-toolkit will use ${COMPILER_ID} complier to compile the sources files")
 message(STATUS "Starting configure the library")
 
-if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" AND NOT RAINY_USE_CROSSCOMPILE)
 # 仅x86_64架构支持AVX2指令集
 
-if ((COMPILER_ID MATCHES "MSVC") OR (COMPILER_ID MATCHES "MSVC-Clang")) 
+if ((COMPILER_ID MATCHES "MSVC") OR (COMPILER_ID MATCHES "MSVC-Clang"))
     if (RAINY_USE_AVX2_BOOST)
         message("The rainy-toolkit will using avx2 boost")
         target_compile_definitions(rainy-toolkit PUBLIC RAINY_USING_AVX2=1)
@@ -78,7 +78,7 @@ endif()
 
 endif()
 
-if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" AND NOT RAINY_USE_CROSSCOMPILE)
 
 if (CMAKE_COMPILER_IS_GNUCXX OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT MSVC))
     message("Detect Clang compiler or GNU compiler")
