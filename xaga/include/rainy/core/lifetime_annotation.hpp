@@ -391,6 +391,53 @@ namespace rainy::annotations::lifetime {
     };
 }
 
+// NOLINTBEGIN
+namespace rainy::annotations::lifetime {
+    template <typename Ty>
+    struct uninitialized {
+        using type = Ty;
+
+        uninitialized() = default;
+        uninitialized(const uninitialized &) = default;
+        uninitialized(uninitialized &&) = default;
+        uninitialized &operator=(const uninitialized &) = default;
+        uninitialized &operator=(uninitialized &&) = default;
+    
+        type value;
+    };
+
+    template <typename Ty>
+    struct uninitialized<const Ty> {
+        uninitialized() = delete;
+    };
+    
+    template <typename Ty>
+    struct uninitialized<Ty &> {
+        uninitialized() = delete;
+    };
+
+    template <typename Ty>
+    struct uninitialized<const Ty &> {
+        uninitialized() = delete;
+    };
+
+    template <typename Ty>
+    struct uninitialized<Ty &&> {
+        uninitialized() = delete;
+    };
+
+    template <typename Ty>
+    struct uninitialized<const Ty &&> {
+        uninitialized() = delete;
+    };
+}
+
+namespace rainy::annotations::lifetime {
+    template <typename Ty>
+    using deferred_init = implements::deferred_init<Ty>;
+}
+// NOLINTEND
+
 namespace rainy::utility {
     using annotations::lifetime::borrow_out;
     using annotations::lifetime::deferred_init;
@@ -400,6 +447,8 @@ namespace rainy::utility {
     using annotations::lifetime::read_only;
     using annotations::lifetime::static_read_only;
     using annotations::lifetime::take;
+    using annotations::lifetime::uninitialized;
+    using annotations::lifetime::deferred_init;
 }
 
 #endif
