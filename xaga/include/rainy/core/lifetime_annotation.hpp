@@ -431,11 +431,6 @@ namespace rainy::annotations::lifetime {
         uninitialized() = delete;
     };
 }
-
-namespace rainy::annotations::lifetime {
-    template <typename Ty>
-    using deferred_init = implements::deferred_init<Ty>;
-}
 // NOLINTEND
 
 namespace rainy::utility {
@@ -448,7 +443,6 @@ namespace rainy::utility {
     using annotations::lifetime::static_read_only;
     using annotations::lifetime::take;
     using annotations::lifetime::uninitialized;
-    using annotations::lifetime::deferred_init;
 }
 
 #endif
