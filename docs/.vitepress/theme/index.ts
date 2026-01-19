@@ -1,5 +1,5 @@
 import DefaultTheme from 'vitepress/theme'
-import { h } from 'vue' // h函数
+import { h, App } from 'vue' // h函数
 // 组件1
 import layout from "./components/layout.vue";
 import './style/index.scss'
@@ -17,7 +17,7 @@ export default {
     return h(layout, null, {
     })
   },
-  enhanceApp({ app }) {
+  enhanceApp({ app }: { app: App }) {
     // 在此引入文档组件
     app.component('DeclarationTable', DeclarationTable);
     app.component('ParameterSection', ParameterSection);

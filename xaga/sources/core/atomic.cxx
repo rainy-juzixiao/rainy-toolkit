@@ -15,12 +15,7 @@
  */
 #include <rainy/core/layer.hpp>
 
-// NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
-
-#if RAINY_USING_MSVC
-#include <emmintrin.h>
-#include <intrin.h>
-#endif
+// NOLINTBEGIN(cppcoreguidelines-avoid-do-while,readability-duplicate-branches,clang-analyzer-core.UndefinedBinaryOperatorResult)
 
 #if RAINY_IS_ARM64 && !RAINY_USING_MSVC
 inline void rainy_dmb() {
@@ -34,10 +29,11 @@ inline void rainy_dmb_st() {
 }
 #endif
 
-// arm64的测试代码，用于评估是否可以将rainy-toolkit pal移植到arm64架构上
+// arm64的宏代码，用于评估是否可以将rainy-toolkit pal移植到arm64架构上
 #if RAINY_IS_ARM64 && !RAINY_USING_MSVC
+
 #define RAINY_ARM64_ATOMIC_BEGIN(ptr, old)                                                                                            \
-    int _stxr_failed;                                                                                                                 \
+    volatile int _stxr_failed;                                                                                                                 \
     do {                                                                                                                              \
         __asm__ __volatile__("ldaxr %0, [%1]" : "=&r"(old) : "r"(ptr) : "memory");
 
@@ -47,25 +43,80 @@ inline void rainy_dmb_st() {
     while (_stxr_failed)                                                                                                              \
         ;                                                                                                                             \
     rainy_dmb();
-#endif
 
-#if RAINY_IS_ARM64 && !RAINY_USING_MSVC
-// 用于 increment/decrement/exchange 等操作的宏
-#define RAINY_ARM64_ATOMIC_BEGIN(ptr, old)                                                                                            \
-    int _stxr_failed;                                                                                                                 \
+#define RAINY_ARM64_ATOMIC_OP_8(ptr, old_out, new_out, op)                                                                            \
     do {                                                                                                                              \
-        __asm__ __volatile__("ldaxr %0, [%1]" : "=&r"(old) : "r"(ptr) : "memory");
+        uint8_t _old_val, _new_val;                                                                                                   \
+        volatile int _stxr_failed;                                                                                                             \
+        do {                                                                                                                          \
+            __asm__ __volatile__("ldaxrb %w0, [%1]" : "=&r"(_old_val) : "r"(ptr) : "memory");                                         \
+            _new_val = _old_val op;                                                                                                   \
+            __asm__ __volatile__("stlxrb %w0, %w2, [%1]" : "=&r"(_stxr_failed) : "r"(ptr), "r"(_new_val) : "memory");                 \
+        } while (_stxr_failed);                                                                                                       \
+        rainy_dmb();                                                                                                                  \
+        old_out = static_cast<std::int8_t>(_old_val);                                                                                 \
+        new_out = static_cast<std::int8_t>(_new_val);                                                                                 \
+    } while (0)
 
-#define RAINY_ARM64_ATOMIC_END(ptr, newval)                                                                                           \
-    __asm__ __volatile__("stlxr %w0, %2, [%1]" : "=&r"(_stxr_failed) : "r"(ptr), "r"(newval) : "memory");                             \
-    }                                                                                                                                 \
-    while (_stxr_failed)                                                                                                              \
-        ;                                                                                                                             \
-    rainy_dmb();
+#define RAINY_ARM64_ATOMIC_OP_16(ptr, old_out, new_out, op)                                                                           \
+    do {                                                                                                                              \
+        uint16_t _old_val, _new_val;                                                                                                  \
+        volatile  _stxr_failed;                                                                                                             \
+        do {                                                                                                                          \
+            __asm__ __volatile__("ldaxrh %w0, [%1]" : "=&r"(_old_val) : "r"(ptr) : "memory");                                         \
+            _new_val = _old_val op;                                                                                                   \
+            __asm__ __volatile__("stlxrh %w0, %w2, [%1]" : "=&r"(_stxr_failed) : "r"(ptr), "r"(_new_val) : "memory");                 \
+        } while (_stxr_failed);                                                                                                       \
+        rainy_dmb();                                                                                                                  \
+        old_out = static_cast<std::int16_t>(_old_val);                                                                                \
+        new_out = static_cast<std::int16_t>(_new_val);                                                                                \
+    } while (0)
+
+#define RAINY_ARM64_ATOMIC_OP_32(ptr, old_out, new_out, op)                                                                           \
+    do {                                                                                                                              \
+        uint32_t _old_val, _new_val;                                                                                                  \
+        volatile int _stxr_failed;                                                                                                             \
+        do {                                                                                                                          \
+            __asm__ __volatile__("ldaxr %w0, [%1]" : "=&r"(_old_val) : "r"(ptr) : "memory");                                          \
+            _new_val = _old_val op;                                                                                                   \
+            __asm__ __volatile__("stlxr %w0, %w2, [%1]" : "=&r"(_stxr_failed) : "r"(ptr), "r"(_new_val) : "memory");                  \
+        } while (_stxr_failed);                                                                                                       \
+        rainy_dmb();                                                                                                                  \
+        old_out = static_cast<std::int32_t>(_old_val);                                                                                \
+        new_out = static_cast<std::int32_t>(_new_val);                                                                                \
+    } while (0)
+
+#define RAINY_ARM64_ATOMIC_OP_64(ptr, old_out, new_out, op)                                                                           \
+    do {                                                                                                                              \
+        uint64_t _old_val, _new_val;                                                                                                  \
+        volatile int _stxr_failed;                                                                                                             \
+        do {                                                                                                                          \
+            __asm__ __volatile__("ldaxr %0, [%1]" : "=&r"(_old_val) : "r"(ptr) : "memory");                                           \
+            _new_val = _old_val op;                                                                                                   \
+            __asm__ __volatile__("stlxr %w0, %2, [%1]" : "=&r"(_stxr_failed) : "r"(ptr), "r"(_new_val) : "memory");                   \
+        } while (_stxr_failed);                                                                                                       \
+        rainy_dmb();                                                                                                                  \
+        old_out = static_cast<std::int64_t>(_old_val);                                                                                \
+        new_out = static_cast<std::int64_t>(_new_val);                                                                                \
+    } while (0)
+
+#define RAINY_ARM64_ATOMIC_OP_LONG(ptr, old_out, new_out, op)                                                                         \
+    do {                                                                                                                              \
+        unsigned long _old_val, _new_val;                                                                                             \
+        volatile int _stxr_failed;                                                                                                             \
+        do {                                                                                                                          \
+            __asm__ __volatile__("ldaxr %w0, [%1]" : "=&r"(_old_val) : "r"(ptr) : "memory");                                          \
+            _new_val = _old_val op;                                                                                                   \
+            __asm__ __volatile__("stlxr %w0, %w2, [%1]" : "=&r"(_stxr_failed) : "r"(ptr), "r"(_new_val) : "memory");                  \
+        } while (_stxr_failed);                                                                                                       \
+        rainy_dmb();                                                                                                                  \
+        old_out = static_cast<long>(_old_val);                                                                                        \
+        new_out = static_cast<long>(_new_val);                                                                                        \
+    } while (0)
 
 #define RAINY_ARM64_COMPARE_EXCHANGE(dest, exchange, comparand, result)                                                               \
     do {                                                                                                                              \
-        int _stxr_failed;                                                                                                             \
+        volatile int _stxr_failed;                                                                                                             \
         __typeof__(comparand) _old;                                                                                                   \
         do {                                                                                                                          \
             __asm__ __volatile__("ldaxr %0, [%1]" : "=&r"(_old) : "r"(dest) : "memory");                                              \
@@ -82,16 +133,88 @@ inline void rainy_dmb_st() {
             result = true;                                                                                                            \
         }                                                                                                                             \
     } while (0)
+
+#define RAINY_ARM64_ATOMIC_EXCHANGE_8(ptr, new_val, old_out)                                                                          \
+    do {                                                                                                                              \
+        uint8_t _old_val;                                                                                                             \
+        uint8_t _new_val = static_cast<uint8_t>(new_val);                                                                             \
+        volatile int _stxr_failed;                                                                                                             \
+        do {                                                                                                                          \
+            __asm__ __volatile__("ldaxrb %w0, [%1]" : "=&r"(_old_val) : "r"(ptr) : "memory");                                         \
+            __asm__ __volatile__("stlxrb %w0, %w2, [%1]" : "=&r"(_stxr_failed) : "r"(ptr), "r"(_new_val) : "memory");                 \
+        } while (_stxr_failed);                                                                                                       \
+        rainy_dmb();                                                                                                                  \
+        old_out = static_cast<std::int8_t>(_old_val);                                                                                 \
+    } while (0)
+
+#define RAINY_ARM64_ATOMIC_EXCHANGE_16(ptr, new_val, old_out)                                                                         \
+    do {                                                                                                                              \
+        uint16_t _old_val;                                                                                                            \
+        uint16_t _new_val = static_cast<uint16_t>(new_val);                                                                           \
+        volatile int _stxr_failed;                                                                                                             \
+        do {                                                                                                                          \
+            __asm__ __volatile__("ldaxrh %w0, [%1]" : "=&r"(_old_val) : "r"(ptr) : "memory");                                         \
+            __asm__ __volatile__("stlxrh %w0, %w2, [%1]" : "=&r"(_stxr_failed) : "r"(ptr), "r"(_new_val) : "memory");                 \
+        } while (_stxr_failed);                                                                                                       \
+        rainy_dmb();                                                                                                                  \
+        old_out = static_cast<std::int16_t>(_old_val);                                                                                \
+    } while (0)
+
+#define RAINY_ARM64_ATOMIC_EXCHANGE_32(ptr, new_val, old_out)                                                                         \
+    do {                                                                                                                              \
+        uint32_t _old_val;                                                                                                            \
+        uint32_t _new_val = static_cast<uint32_t>(new_val);                                                                           \
+        volatile int _stxr_failed;                                                                                                             \
+        do {                                                                                                                          \
+            __asm__ __volatile__("ldaxr %w0, [%1]" : "=&r"(_old_val) : "r"(ptr) : "memory");                                          \
+            __asm__ __volatile__("stlxr %w0, %w2, [%1]" : "=&r"(_stxr_failed) : "r"(ptr), "r"(_new_val) : "memory");                  \
+        } while (_stxr_failed);                                                                                                       \
+        rainy_dmb();                                                                                                                  \
+        old_out = static_cast<std::int32_t>(_old_val);                                                                                \
+    } while (0)
+
+#define RAINY_ARM64_ATOMIC_EXCHANGE_64(ptr, new_val, old_out)                                                                         \
+    do {                                                                                                                              \
+        uint64_t _old_val;                                                                                                            \
+        uint64_t _new_val = static_cast<uint64_t>(new_val);                                                                           \
+        volatile int _stxr_failed;                                                                                                             \
+        do {                                                                                                                          \
+            __asm__ __volatile__("ldaxr %0, [%1]" : "=&r"(_old_val) : "r"(ptr) : "memory");                                           \
+            __asm__ __volatile__("stlxr %w0, %2, [%1]" : "=&r"(_stxr_failed) : "r"(ptr), "r"(_new_val) : "memory");                   \
+        } while (_stxr_failed);                                                                                                       \
+        rainy_dmb();                                                                                                                  \
+        old_out = static_cast<std::int64_t>(_old_val);                                                                                \
+    } while (0)
+
+#define RAINY_ARM64_ATOMIC_EXCHANGE_LONG(ptr, new_val, old_out)                                                                       \
+    do {                                                                                                                              \
+        unsigned long _old_val;                                                                                                       \
+        unsigned long _new_val = static_cast<unsigned long>(new_val);                                                                 \
+        volatile int _stxr_failed;                                                                                                             \
+        if constexpr (sizeof(long) == 8) {                                                                                            \
+            do {                                                                                                                      \
+                __asm__ __volatile__("ldaxr %0, [%1]" : "=&r"(_old_val) : "r"(ptr) : "memory");                                       \
+                __asm__ __volatile__("stlxr %w0, %2, [%1]" : "=&r"(_stxr_failed) : "r"(ptr), "r"(_new_val) : "memory");               \
+            } while (_stxr_failed);                                                                                                   \
+        } else {                                                                                                                      \
+            do {                                                                                                                      \
+                __asm__ __volatile__("ldaxr %w0, [%1]" : "=&r"(_old_val) : "r"(ptr) : "memory");                                      \
+                __asm__ __volatile__("stlxr %w0, %w2, [%1]" : "=&r"(_stxr_failed) : "r"(ptr), "r"(_new_val) : "memory");              \
+            } while (_stxr_failed);                                                                                                   \
+        }                                                                                                                             \
+        rainy_dmb();                                                                                                                  \
+        old_out = static_cast<long>(_old_val);                                                                                        \
+    } while (0)
+
+
 #endif
 
 namespace rainy::core::pal {
     long interlocked_increment(volatile long *value) {
-#if RAINY_IS_ARM64 && !RAINY_USING_MSVC
         rainy_assume(value);
-        long old, newv;
-        RAINY_ARM64_ATOMIC_BEGIN(value, old)
-        newv = old + 1;
-        RAINY_ARM64_ATOMIC_END(value, newv);
+#if RAINY_IS_ARM64 && !RAINY_USING_MSVC
+        volatile long old{}, newv{}; // NOLINT
+        RAINY_ARM64_ATOMIC_OP_LONG(value, old, newv, +1);
         return newv;
 #else
 #if RAINY_USING_MSVC
@@ -106,40 +229,14 @@ namespace rainy::core::pal {
 #endif
     }
 
-    long interlocked_decrement(volatile long *value) {
-        rainy_assume(static_cast<bool>(value));
-#if RAINY_IS_ARM64 && !RAINY_USING_MSVC
-        long old, newv;
-        RAINY_ARM64_ATOMIC_BEGIN(value, old)
-        newv = old - 1;
-        RAINY_ARM64_ATOMIC_END(value, newv);
-        return newv;
-#else
-#if RAINY_USING_MSVC
-        return _InterlockedDecrement(value);
-#elif RAINY_USING_GCC || RAINY_USING_CLANG
-        volatile long *avoid_clangtidy = value;
-        __asm__ __volatile__("lock; decl %0" : "+m"(*avoid_clangtidy) : : "cc");
-        return *avoid_clangtidy;
-#else
-        static_assert(false, "rainy-toolkit only supports GCC Clang and MSVC platforms");
-#endif
-#endif
-    }
-}
-
-namespace rainy::core::pal {
     std::int8_t interlocked_increment8(volatile std::int8_t *value) {
         rainy_assume(value);
-
 #if RAINY_IS_ARM64 && !RAINY_USING_MSVC
-        std::int8_t old, newv;
-        RAINY_ARM64_ATOMIC_BEGIN(value, old)
-        newv = old + 1;
-        RAINY_ARM64_ATOMIC_END(value, newv);
+        volatile std::int8_t old, newv; // NOLINT
+        RAINY_ARM64_ATOMIC_OP_8(value, old, newv, +1);
         return newv;
 #elif RAINY_USING_MSVC
-        return interlocked_exchange_add8(reinterpret_cast<volatile std::int8_t *>(value), 1);
+        return interlocked_exchange_add8(value, 1) + 1;
 #else
         volatile std::int8_t *avoid_clangtidy = value;
         __asm__ __volatile__("lock; incb %0" : "+m"(*avoid_clangtidy) : : "cc");
@@ -149,12 +246,9 @@ namespace rainy::core::pal {
 
     std::int16_t interlocked_increment16(volatile std::int16_t *value) {
         rainy_assume(value);
-
 #if RAINY_IS_ARM64 && !RAINY_USING_MSVC
-        std::int16_t old, newv;
-        RAINY_ARM64_ATOMIC_BEGIN(value, old)
-        newv = old + 1;
-        RAINY_ARM64_ATOMIC_END(value, newv);
+        volatile std::int16_t old, newv; // NOLINT
+        RAINY_ARM64_ATOMIC_OP_16(value, old, newv, +1);
         return newv;
 #elif RAINY_USING_MSVC
         return _InterlockedIncrement16(reinterpret_cast<volatile short *>(value));
@@ -168,10 +262,8 @@ namespace rainy::core::pal {
     std::int32_t interlocked_increment32(volatile std::int32_t *value) {
         rainy_assume(value);
 #if RAINY_IS_ARM64 && !RAINY_USING_MSVC
-        std::int32_t old, newv;
-        RAINY_ARM64_ATOMIC_BEGIN(value, old)
-        newv = old + 1;
-        RAINY_ARM64_ATOMIC_END(value, newv);
+        volatile std::int32_t old, newv; // NOLINT
+        RAINY_ARM64_ATOMIC_OP_32(value, old, newv, +1);
         return newv;
 #elif RAINY_USING_MSVC
         return _InterlockedIncrement(reinterpret_cast<volatile long *>(value));
@@ -185,10 +277,8 @@ namespace rainy::core::pal {
     std::int64_t interlocked_increment64(volatile std::int64_t *value) {
         rainy_assume(value);
 #if RAINY_IS_ARM64 && !RAINY_USING_MSVC
-        std::int64_t old, newv;
-        RAINY_ARM64_ATOMIC_BEGIN(value, old)
-        newv = old + 1;
-        RAINY_ARM64_ATOMIC_END(value, newv);
+        volatile std::int64_t old, newv; // NOLINT
+        RAINY_ARM64_ATOMIC_OP_64(value, old, newv, +1);
         return newv;
 #elif RAINY_USING_MSVC
         return _InterlockedIncrement64(reinterpret_cast<volatile __int64 *>(value));
@@ -201,16 +291,33 @@ namespace rainy::core::pal {
 }
 
 namespace rainy::core::pal {
+    long interlocked_decrement(volatile long *value) {
+        rainy_assume(static_cast<bool>(value));
+#if RAINY_IS_ARM64 && !RAINY_USING_MSVC
+        volatile long old, newv; // NOLINT
+        RAINY_ARM64_ATOMIC_OP_LONG(value, old, newv, -1);
+        return newv;
+#else
+#if RAINY_USING_MSVC
+        return _InterlockedDecrement(value);
+#elif RAINY_USING_GCC || RAINY_USING_CLANG
+        volatile long *avoid_clangtidy = value;
+        __asm__ __volatile__("lock; decl %0" : "+m"(*avoid_clangtidy) : : "cc");
+        return *avoid_clangtidy;
+#else
+        static_assert(false, "rainy-toolkit only supports GCC Clang and MSVC platforms");
+#endif
+#endif
+    }
+
     std::int8_t interlocked_decrement8(volatile std::int8_t *value) {
         rainy_assume(value);
 #if RAINY_IS_ARM64 && !RAINY_USING_MSVC
         std::int8_t old, newv;
-        RAINY_ARM64_ATOMIC_BEGIN(value, old)
-        newv = old - 1;
-        RAINY_ARM64_ATOMIC_END(value, newv);
+        RAINY_ARM64_ATOMIC_OP_8(value, old, newv, -1);
         return newv;
 #elif RAINY_USING_MSVC
-        return interlocked_exchange_add8(reinterpret_cast<volatile std::int8_t *>(value), -1);
+        return interlocked_exchange_add8(value, -1) - 1;
 #else
         volatile std::int8_t *avoid_clangtidy = value;
         __asm__ __volatile__("lock; decb %0" : "+m"(*avoid_clangtidy) : : "cc");
@@ -222,9 +329,7 @@ namespace rainy::core::pal {
         rainy_assume(value);
 #if RAINY_IS_ARM64 && !RAINY_USING_MSVC
         std::int16_t old, newv;
-        RAINY_ARM64_ATOMIC_BEGIN(value, old)
-        newv = old - 1;
-        RAINY_ARM64_ATOMIC_END(value, newv);
+        RAINY_ARM64_ATOMIC_OP_16(value, old, newv, -1);
         return newv;
 #elif RAINY_USING_MSVC
         return _InterlockedDecrement16(reinterpret_cast<volatile short *>(value));
@@ -239,9 +344,7 @@ namespace rainy::core::pal {
         rainy_assume(value);
 #if RAINY_IS_ARM64 && !RAINY_USING_MSVC
         std::int32_t old, newv;
-        RAINY_ARM64_ATOMIC_BEGIN(value, old)
-        newv = old - 1;
-        RAINY_ARM64_ATOMIC_END(value, newv);
+        RAINY_ARM64_ATOMIC_OP_32(value, old, newv, -1);
         return newv;
 #elif RAINY_USING_MSVC
         return _InterlockedDecrement(reinterpret_cast<volatile long *>(value));
@@ -256,9 +359,7 @@ namespace rainy::core::pal {
         rainy_assume(value);
 #if RAINY_IS_ARM64 && !RAINY_USING_MSVC
         std::int64_t old, newv;
-        RAINY_ARM64_ATOMIC_BEGIN(value, old)
-        newv = old - 1;
-        RAINY_ARM64_ATOMIC_END(value, newv);
+        RAINY_ARM64_ATOMIC_OP_64(value, old, newv, -1);
         return newv;
 #elif RAINY_USING_MSVC
         return _InterlockedDecrement64(reinterpret_cast<volatile __int64 *>(value));
@@ -273,12 +374,9 @@ namespace rainy::core::pal {
 namespace rainy::core::pal {
     std::int8_t interlocked_exchange_add8(volatile std::int8_t *value, std::int8_t amount) {
         rainy_assume(value);
-
 #if RAINY_IS_ARM64 && !RAINY_USING_MSVC
-        std::int8_t old, newv;
-        RAINY_ARM64_ATOMIC_BEGIN(value, old)
-        newv = old + amount;
-        RAINY_ARM64_ATOMIC_END(value, newv);
+        volatile std::int8_t old, newv;
+        RAINY_ARM64_ATOMIC_OP_8(value, old, newv, +amount);
         return old;
 #elif RAINY_USING_MSVC
         return _InterlockedExchangeAdd8(reinterpret_cast<volatile char *>(value), amount);
@@ -293,10 +391,8 @@ namespace rainy::core::pal {
         rainy_assume(value);
 
 #if RAINY_IS_ARM64 && !RAINY_USING_MSVC
-        std::int16_t old, newv;
-        RAINY_ARM64_ATOMIC_BEGIN(value, old)
-        newv = old + amount;
-        RAINY_ARM64_ATOMIC_END(value, newv);
+        volatile std::int16_t old, newv; // NOLINT
+        RAINY_ARM64_ATOMIC_OP_16(value, old, newv, +amount);
         return old;
 #elif RAINY_USING_MSVC
         return _InterlockedExchangeAdd16(reinterpret_cast<volatile short *>(value), amount);
@@ -312,9 +408,7 @@ namespace rainy::core::pal {
 
 #if RAINY_IS_ARM64 && !RAINY_USING_MSVC
         std::int32_t old, newv;
-        RAINY_ARM64_ATOMIC_BEGIN(value, old)
-        newv = old + amount;
-        RAINY_ARM64_ATOMIC_END(value, newv);
+        RAINY_ARM64_ATOMIC_OP_32(value, old, newv, +amount);
         return old;
 #elif RAINY_USING_MSVC
         return _InterlockedExchangeAdd(reinterpret_cast<volatile long *>(value), amount);
@@ -329,9 +423,7 @@ namespace rainy::core::pal {
         rainy_assume(value);
 #if RAINY_IS_ARM64 && !RAINY_USING_MSVC
         std::int64_t old, newv;
-        RAINY_ARM64_ATOMIC_BEGIN(value, old)
-        newv = old + amount;
-        RAINY_ARM64_ATOMIC_END(value, newv);
+        RAINY_ARM64_ATOMIC_OP_64(value, old, newv, +amount);
         return old;
 #elif RAINY_USING_MSVC
         return _InterlockedExchangeAdd64(reinterpret_cast<volatile __int64 *>(value), amount);
@@ -352,6 +444,14 @@ namespace rainy::core::pal {
 #endif
     }
 
+    std::int8_t interlocked_exchange_subtract8(volatile std::int8_t *value, std::int8_t amount) {
+        return interlocked_exchange_add8(value, -amount);
+    }
+
+    std::int16_t interlocked_exchange_subtract16(volatile std::int16_t *value, std::int16_t amount) {
+        return interlocked_exchange_add16(value, -amount);
+    }
+
     std::int32_t interlocked_exchange_subtract32(volatile std::int32_t *value, std::int32_t amount) {
         return interlocked_exchange_add32(value, -amount);
     }
@@ -359,23 +459,23 @@ namespace rainy::core::pal {
     std::int64_t interlocked_exchange_subtract64(volatile std::int64_t *value, std::int64_t amount) {
         return interlocked_exchange_add64(value, -amount);
     }
+}
 
+namespace rainy::core::pal {
     std::intptr_t iso_volatile_load(const volatile std::intptr_t *address) {
 #if RAINY_USING_64_BIT_PLATFORM
-        return iso_volatile_load64(reinterpret_cast<const volatile long long *>(address));
+        return iso_volatile_load64(reinterpret_cast<const volatile std::int64_t *>(address)); // NOLINT
 #else
         return iso_volatile_load32(static_cast<const volatile int *>(address));
 #endif
     }
-}
 
-namespace rainy::core::pal {
     std::int8_t iso_volatile_load8(const volatile std::int8_t *address) {
         rainy_assume(address);
 #if RAINY_USING_MSVC
         return __iso_volatile_load8(reinterpret_cast<const volatile char *>(address));
 #elif RAINY_IS_ARM64
-        std::int8_t value;
+        std::int8_t value; // NOLINT
         __asm__ __volatile__("ldarb %w0, [%1]" : "=r"(value) : "r"(address) : "memory");
         return value;
 #else
@@ -387,11 +487,10 @@ namespace rainy::core::pal {
 
     std::int16_t iso_volatile_load16(const volatile std::int16_t *address) {
         rainy_assume(address);
-
 #if RAINY_USING_MSVC
         return __iso_volatile_load16(address);
 #elif RAINY_IS_ARM64
-        std::int16_t value;
+        std::int16_t value; // NOLINT
         __asm__ __volatile__("ldarh %w0, [%1]" : "=r"(value) : "r"(address) : "memory");
         return value;
 #else
@@ -403,11 +502,10 @@ namespace rainy::core::pal {
 
     std::int32_t iso_volatile_load32(const volatile std::int32_t *address) {
         rainy_assume(address);
-
 #if RAINY_USING_MSVC
         return __iso_volatile_load32(address);
 #elif RAINY_IS_ARM64
-        std::int32_t value;
+        std::int32_t value; // NOLINT
         __asm__ __volatile__("ldar %w0, [%1]" : "=r"(value) : "r"(address) : "memory");
         return value;
 #else
@@ -417,13 +515,12 @@ namespace rainy::core::pal {
 #endif
     }
 
-    std::int64_t iso_volatile_load64(const volatile long long *address) {
+    std::int64_t iso_volatile_load64(const volatile std::int64_t *address) {
         rainy_assume(address);
-
 #if RAINY_USING_MSVC
         return __iso_volatile_load64(address);
 #elif RAINY_IS_ARM64
-        std::int64_t value;
+        std::int64_t value; // NOLINT
         __asm__ __volatile__("ldar %0, [%1]" : "=r"(value) : "r"(address) : "memory");
         return value;
 #elif (RAINY_USING_GCC || RAINY_USING_CLANG) && RAINY_USING_64_BIT_PLATFORM
@@ -435,15 +532,11 @@ namespace rainy::core::pal {
 }
 
 namespace rainy::core::pal {
-
     long interlocked_exchange(volatile long *target, long value) {
         rainy_assume(target);
-
 #if RAINY_IS_ARM64 && !RAINY_USING_MSVC
         long old;
-        RAINY_ARM64_ATOMIC_BEGIN(target, old)
-        long newv = value;
-        RAINY_ARM64_ATOMIC_END(target, newv);
+        RAINY_ARM64_ATOMIC_EXCHANGE_LONG(target, value, old);
         return old;
 #elif RAINY_USING_MSVC
         return _InterlockedExchange(target, value);
@@ -455,12 +548,9 @@ namespace rainy::core::pal {
 
     std::int8_t interlocked_exchange8(volatile std::int8_t *target, std::int8_t value) {
         rainy_assume(target);
-
 #if RAINY_IS_ARM64 && !RAINY_USING_MSVC
         std::int8_t old;
-        RAINY_ARM64_ATOMIC_BEGIN(target, old)
-        std::int8_t newv = value;
-        RAINY_ARM64_ATOMIC_END(target, newv);
+        RAINY_ARM64_ATOMIC_EXCHANGE_8(target, value, old);
         return old;
 #elif RAINY_USING_MSVC
         return _InterlockedExchange8(reinterpret_cast<volatile char *>(target), value);
@@ -475,9 +565,7 @@ namespace rainy::core::pal {
 
 #if RAINY_IS_ARM64 && !RAINY_USING_MSVC
         std::int16_t old;
-        RAINY_ARM64_ATOMIC_BEGIN(target, old)
-        std::int16_t newv = value;
-        RAINY_ARM64_ATOMIC_END(target, newv);
+        RAINY_ARM64_ATOMIC_EXCHANGE_16(target, value, old);
         return old;
 #elif RAINY_USING_MSVC
         return _InterlockedExchange16(target, value);
@@ -492,9 +580,7 @@ namespace rainy::core::pal {
 
 #if RAINY_IS_ARM64 && !RAINY_USING_MSVC
         std::int32_t old;
-        RAINY_ARM64_ATOMIC_BEGIN(target, old)
-        std::int32_t newv = value;
-        RAINY_ARM64_ATOMIC_END(target, newv);
+        RAINY_ARM64_ATOMIC_EXCHANGE_32(target, value, old);
         return old;
 #elif RAINY_USING_MSVC
         return _InterlockedExchange(reinterpret_cast<volatile long *>(target), static_cast<long>(value));
@@ -509,9 +595,7 @@ namespace rainy::core::pal {
 
 #if RAINY_IS_ARM64 && !RAINY_USING_MSVC
         std::int64_t old;
-        RAINY_ARM64_ATOMIC_BEGIN(target, old)
-        std::int64_t newv = value;
-        RAINY_ARM64_ATOMIC_END(target, newv);
+        RAINY_ARM64_ATOMIC_EXCHANGE_64(target, value, old);
         return old;
 #elif RAINY_USING_MSVC
         return _InterlockedExchange64(reinterpret_cast<volatile __int64 *>(target), value);
@@ -520,7 +604,6 @@ namespace rainy::core::pal {
         return value;
 #endif
     }
-
 }
 
 namespace rainy::core::pal {
@@ -679,7 +762,7 @@ namespace rainy::core::pal {
         rainy_assume(comparand_result);
 
 #if RAINY_IS_ARM64 && !RAINY_USING_MSVC
-        // ARM64 原子 128 位 CAS 需要 LL/SC 或平台支持，如果不支持可以返回 false
+        // ARM64 原子 128 位 CAS 需要 LL/SC 或平台支持
         return false;
 #elif RAINY_USING_MSVC
         return _InterlockedCompareExchange128(reinterpret_cast<volatile std::int64_t *>(destination), exchange_high, exchange_low,
@@ -705,6 +788,14 @@ namespace rainy::core::pal {
 }
 
 namespace rainy::core::pal {
+    std::intptr_t interlocked_and(volatile std::intptr_t *value, const std::intptr_t mask) {
+#if RAINY_USING_64_BIT_PLATFORM
+        return interlocked_and64(reinterpret_cast<volatile std::intptr_t *>(value), mask);
+#else
+        return interlocked_and32(reinterpret_cast<volatile std::intptr_t *>(value), mask);
+#endif
+    }
+
     std::int8_t interlocked_and8(volatile std::int8_t *value, std::int8_t mask) {
         rainy_assume(value);
 
@@ -792,12 +883,19 @@ namespace rainy::core::pal {
         return old;
 #endif
     }
+}
 
-    // ------------------------ OR ------------------------
+namespace rainy::core::pal {
+    std::intptr_t interlocked_or(volatile std::intptr_t *value, std::intptr_t mask) {
+#if RAINY_USING_64_BIT_PLATFORM
+        return interlocked_or64(reinterpret_cast<volatile std::intptr_t *>(value), mask);
+#else
+        return interlocked_or32(reinterpret_cast<volatile std::intptr_t *>(value), mask);
+#endif
+    }
 
     std::int8_t interlocked_or8(volatile std::int8_t *value, std::int8_t mask) {
         rainy_assume(value);
-
 #if RAINY_IS_ARM64 && !RAINY_USING_MSVC
         std::int8_t old, newv;
         RAINY_ARM64_ATOMIC_BEGIN(value, old)
@@ -882,8 +980,16 @@ namespace rainy::core::pal {
         return old;
 #endif
     }
+}
 
-    // ------------------------ XOR ------------------------
+namespace rainy::core::pal {
+    std::intptr_t interlocked_xor(volatile std::intptr_t *value, std::intptr_t mask) {
+#if RAINY_USING_64_BIT_PLATFORM
+        return interlocked_xor64(reinterpret_cast<volatile std::intptr_t *>(value), mask);
+#else
+        return interlocked_xor32(reinterpret_cast<volatile std::intptr_t *>(value), mask);
+#endif
+    }
 
     std::int8_t interlocked_xor8(volatile std::int8_t *value, std::int8_t mask) {
         rainy_assume(value);
@@ -1083,21 +1189,45 @@ namespace rainy::core::pal {
 }
 
 namespace rainy::core::pal {
-//     long interlocked_increment_explicit(volatile long *value, memory_order order) {
-//         rainy_assume(static_cast<bool>(value));
-//         fence_before(order);
-// #if RAINY_USING_MSVC
-//         long result = _InterlockedIncrement(value);
-// #elif RAINY_USING_GCC || RAINY_USING_CLANG
-//         volatile long *avoid_clang_tidy = value;
-//         __asm__ __volatile__("lock; incl %0" : "+m"(*avoid_clang_tidy) : : "cc", "memory");
-//         long result = *avoid_clang_tidy;
-// #else
-//         static_assert(false, "rainy-toolkit only supports GCC Clang and MSVC platforms");
-// #endif
-//         fence_after(order);
-//         return result;
-//     }
+    void atomic_thread_fence(const memory_order order) noexcept {
+        if (order == memory_order_relaxed) {
+            return;
+        }
+#if RAINY_IS_X86_PLATFORM
+        // x86 / x64 平台
+        rainy_compiler_barrier();
+        if (order == memory_order_seq_cst) {
+            volatile long guard = 0;
+            core::pal::interlocked_increment(&guard);
+            rainy_compiler_barrier();
+        }
+#elif RAINY_IS_ARM64
+        // ARM 平台
+        if (order == memory_order_acquire || order == memory_order_consume) {
+            rainy_dmb_ld();
+        } else {
+            rainy_dmb();
+        }
+#else
+        static_assert(false, "atomic_thread_fence: unsupported architecture");
+#endif
+    }
+
+    //     long interlocked_increment_explicit(volatile long *value, memory_order order) {
+    //         rainy_assume(static_cast<bool>(value));
+    //         fence_before(order);
+    // #if RAINY_USING_MSVC
+    //         long result = _InterlockedIncrement(value);
+    // #elif RAINY_USING_GCC || RAINY_USING_CLANG
+    //         volatile long *avoid_clang_tidy = value;
+    //         __asm__ __volatile__("lock; incl %0" : "+m"(*avoid_clang_tidy) : : "cc", "memory");
+    //         long result = *avoid_clang_tidy;
+    // #else
+    //         static_assert(false, "rainy-toolkit only supports GCC Clang and MSVC platforms");
+    // #endif
+    //         fence_after(order);
+    //         return result;
+    //     }
 }
 
-// NOLINTEND(cppcoreguidelines-avoid-do-while)
+// NOLINTEND(cppcoreguidelines-avoid-do-while,readability-duplicate-branches,clang-analyzer-core.UndefinedBinaryOperatorResult)

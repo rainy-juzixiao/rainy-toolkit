@@ -39,18 +39,10 @@ namespace rainy::foundation::pal::atomicinfra::implements {
     template <typename Ty>
     constexpr bool might_have_non_value_bits =
         !type_traits::type_properties::has_unique_object_representations_v<Ty> && !type_traits::primary_types::is_floating_point_v<Ty>;
-
 }
 
 namespace rainy::foundation::pal::atomicinfra {
-    enum class memory_order {
-        relaxed,
-        consume,
-        acquire,
-        release,
-        acq_rel,
-        seq_cst
-    };
+    using memory_order = core::pal::memory_order;
 
     inline constexpr memory_order memory_order_relaxed = memory_order::relaxed;
     inline constexpr memory_order memory_order_consume = memory_order::consume;

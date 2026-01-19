@@ -68,133 +68,6 @@ namespace rainy::core::builtin {
     }
 #endif
 
-    template <std::size_t N>
-    void *fixed_memcpy(void *dest, const void *src) {
-        return std::memcpy(dest, src, N);
-    }
-
-    template <std::size_t N>
-    void *fixed_memmove(void *dest, const void *src) {
-#if RAINY_USING_MSVC
-        return ::memmove_s(dest, N, src, N);
-#else
-        return std::memmove(dest, src, N);
-#endif
-    }
-
-    void *copy_memory(void *dest, const void *src, std::size_t len) {
-        rainy_assume(static_cast<bool>(dest));
-        if (len <= 24) {
-            switch (len) { // NOLINT
-                case 0:
-                    return dest;
-                case 1:
-                    return fixed_memcpy<1>(dest, src);
-                case 2:
-                    return fixed_memcpy<2>(dest, src);
-                case 3:
-                    return fixed_memcpy<3>(dest, src);
-                case 4:
-                    return fixed_memcpy<4>(dest, src);
-                case 5:
-                    return fixed_memcpy<5>(dest, src);
-                case 6:
-                    return fixed_memcpy<6>(dest, src);
-                case 7:
-                    return fixed_memcpy<7>(dest, src);
-                case 8:
-                    return fixed_memcpy<8>(dest, src);
-                case 9:
-                    return fixed_memcpy<9>(dest, src);
-                case 10:
-                    return fixed_memcpy<10>(dest, src);
-                case 11:
-                    return fixed_memcpy<11>(dest, src);
-                case 12:
-                    return fixed_memcpy<12>(dest, src);
-                case 13:
-                    return fixed_memcpy<13>(dest, src);
-                case 14:
-                    return fixed_memcpy<14>(dest, src);
-                case 15:
-                    return fixed_memcpy<15>(dest, src);
-                case 16:
-                    return fixed_memcpy<16>(dest, src);
-                case 17:
-                    return fixed_memcpy<17>(dest, src);
-                case 18:
-                    return fixed_memcpy<18>(dest, src);
-                case 19:
-                    return fixed_memcpy<19>(dest, src);
-                case 20:
-                    return fixed_memcpy<20>(dest, src);
-                case 21:
-                    return fixed_memcpy<21>(dest, src);
-                case 22:
-                    return fixed_memcpy<22>(dest, src);
-                case 23:
-                    return fixed_memcpy<23>(dest, src);
-                case 24:
-                    return fixed_memcpy<24>(dest, src);
-            }
-        } else if (len > 24 && len < 36) {
-#if !RAINY_IS_ARM64
-            rainy_let dst = static_cast<std::uint8_t *>(dest);
-            rainy_let source = static_cast<const std::uint8_t *>(src);
-            constexpr size_t chunk_size = 16; // 步长调整为 16
-            while (len >= chunk_size) {
-                const __m128i data = _mm_loadu_si128(reinterpret_cast<const __m128i *>(source)); // 使用未对齐加载
-                _mm_storeu_si128(reinterpret_cast<__m128i *>(dst), data);
-                source += chunk_size;
-                dst += chunk_size;
-                len -= chunk_size;
-            }
-            // 处理剩余字节（此时 len < 16）
-            for (size_t i = 0; i < len; ++i) {
-                *dst++ = *source++;
-            }
-            return dest;
-        }
-#endif
-        rainy_let dst = static_cast<std::uint8_t *>(dest);
-        rainy_let source = static_cast<const std::uint8_t *>(src);
-#if RAINY_USING_AVX2
-        constexpr std::size_t block_step[] = {8192, 4096, 2048, 1024, 512, 256, 128, 64}; // 块的步进
-        for (auto block_size: block_step) {
-            while (len >= block_size) {
-                __m256i data1 = _mm256_loadu_si256(reinterpret_cast<const __m256i *>(source));
-                __m256i data2 = _mm256_loadu_si256(reinterpret_cast<const __m256i *>(source + block_size - 32));
-                _mm256_storeu_si256(reinterpret_cast<__m256i *>(dst), data1);
-                _mm256_storeu_si256(reinterpret_cast<__m256i *>(dst + block_size - 32), data2);
-                source += block_size;
-                dst += block_size;
-                len -= block_size;
-            }
-        }
-#endif
-#if !RAINY_IS_ARM64
-        // 每次复制16字节，SSE每个寄存器处理128位数据（16字节）
-        std::size_t chunk_size = 16;
-        // 对齐到16字节
-        while (len >= chunk_size) {
-            // 加载128位（16字节）的数据到SSE寄存器
-            __m128i data = _mm_loadu_si128(reinterpret_cast<const __m128i *>(source));
-            // 存储到目标内存
-            _mm_storeu_si128(reinterpret_cast<__m128i *>(dst), data);
-            // 更新指针和剩余长度
-            source += chunk_size;
-            dst += chunk_size;
-            len -= chunk_size;
-        }
-        // 处理剩余小于16字节的数据
-        while (len > 0) {
-            *dst++ = *source++;
-            len--;
-        }
-        return dst;
-#endif
-    }
-
     /*void *move_memory(void *dest, std::size_t dest_size, const void *src, std::size_t src_count) {
         return nullptr;
     }
@@ -208,7 +81,7 @@ namespace rainy::core::builtin {
     void *fill_memory(void *dest, std::size_t count, const void *src, std::size_t src_count, std::size_t src_offset,
                                         std::size_t dest_offset);*/
 }
-}
+
 
 namespace rainy::core::pal {
     bool is_aligned(void *const ptr, const std::size_t alignment) {
@@ -229,17 +102,17 @@ namespace rainy::core::pal {
 #ifdef __cpp_aligned_new
         return operator new[](size, std::align_val_t{alignment}, std::nothrow); // 由调用它的人，负责处理分配失败的问题
 #else
-            const std::size_t offset = alignment - 1 + sizeof(void *);
-            const std::size_t total = size + offset;
-            void *ptr = operator new[](total, std::nothrow);
-            if (!ptr) {
-                return nullptr; // 由调用它的人，负责处理分配失败的问题
-            }
-            rainy_const raw_location = reinterpret_cast<std::size_t>(ptr);
-            const std::size_t aligned_location = (raw_location + offset) & ~(alignment - 1);
-            rainy_let aligned_ptr = reinterpret_cast<void *>(aligned_location);
-            *(reinterpret_cast<void **>(aligned_location - sizeof(void *))) = ptr;
-            return aligned_ptr;
+        const std::size_t offset = alignment - 1 + sizeof(void *);
+        const std::size_t total = size + offset;
+        void *ptr = operator new[](total, std::nothrow);
+        if (!ptr) {
+            return nullptr; // 由调用它的人，负责处理分配失败的问题
+        }
+        rainy_const raw_location = reinterpret_cast<std::size_t>(ptr);
+        const std::size_t aligned_location = (raw_location + offset) & ~(alignment - 1);
+        rainy_let aligned_ptr = reinterpret_cast<void *>(aligned_location);
+        *(reinterpret_cast<void **>(aligned_location - sizeof(void *))) = ptr;
+        return aligned_ptr;
 #endif
     }
 
@@ -257,11 +130,11 @@ namespace rainy::core::pal {
 #ifdef __cpp_aligned_new
         operator delete[](block, std::align_val_t{alignment});
 #else
-            if (is_aligned(block, alignment)) {
-                rainy_const aligned_location = reinterpret_cast<std::size_t>(block);
-                void *original_ptr = *(reinterpret_cast<void **>(aligned_location - sizeof(void *)));
-                operator delete[](original_ptr);
-            }
+        if (is_aligned(block, alignment)) {
+            rainy_const aligned_location = reinterpret_cast<std::size_t>(block);
+            void *original_ptr = *(reinterpret_cast<void **>(aligned_location - sizeof(void *)));
+            operator delete[](original_ptr);
+        }
 #endif
     }
 
@@ -272,11 +145,11 @@ namespace rainy::core::pal {
 #ifdef __cpp_aligned_new
         operator delete[](block, byte_count, std::align_val_t{alignment});
 #else
-            if (is_aligned(block, alignment)) {
-                rainy_const aligned_location = reinterpret_cast<std::size_t>(block);
-                void *original_ptr = *(reinterpret_cast<void **>(aligned_location - sizeof(void *)));
-                operator delete[](original_ptr, byte_count);
-            }
+        if (is_aligned(block, alignment)) {
+            rainy_const aligned_location = reinterpret_cast<std::size_t>(block);
+            void *original_ptr = *(reinterpret_cast<void **>(aligned_location - sizeof(void *)));
+            operator delete[](original_ptr, byte_count);
+        }
 #endif
     }
 

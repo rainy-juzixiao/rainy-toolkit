@@ -17,7 +17,8 @@
  * @file platform.hpp
  * @brief
  * 这是rainy-toolkit的核心文件的最重要部分。它定义了rainy-toolkit如何与平台进行沟通。没有它，rainy-toolkit的构建系统将无法正常工作
- * @brief 简单点说。它不是给用户使用的。是给库开发者使用的。它包含了一些平台相关的宏定义和函数声明以及非常基础的类型定义和模板元编程代码。它由core.hpp使用
+ * @brief
+ * 简单点说。它不是给用户使用的。是给库开发者使用的。它包含了一些平台相关的宏定义和函数声明以及非常基础的类型定义和模板元编程代码。它由core.hpp使用
  * @brief 它不应该被用户包含，而是考虑使用core.hpp
  * @brief 另外，包含了一系列内建函数。部分内建函数是由core.cxx负责的。直接包含则有可能导致编译失败
  * @author rainy-juzixiao
@@ -30,17 +31,17 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
-#include <cstring>
 #include <cstdlib>
+#include <cstring>
 #include <initializer_list>
-#include <string_view>
 #include <string>
+#include <string_view>
 #include <utility>
 
 #ifdef __linux__
 #include <csignal>
-#include <unistd.h>
 #include <linux/version.h>
+#include <unistd.h>
 #endif
 
 #include <rainy/core/implements/generate/marco_gen.hpp>
@@ -223,14 +224,19 @@ clang和GNU编译器区域
 #define RAINY_USING_32_BIT_PLATFORM 1
 #endif
 
-#if defined(__aarch64__) || defined(_M_ARM64)
+#if defined(_M_ARM) || defined(_M_ARM64) || defined(__arm__) || defined(__aarch64__)
 #define RAINY_IS_ARM64 1
-#else
+#define RAINY_IS_X86_PLATFORM 0
+#elif defined(_M_IX86) || defined(_M_X86_) || defined(__i386__) || defined(__x86_64__) || defined(_M_X64)
 #define RAINY_IS_ARM64 0
+#define RAINY_IS_X86_PLATFORM 1
+#else
+static_assert(false, "Detected invalid architecture,rainy-toolkit is not support on your compile architecture");
 #endif
 
 #if RAINY_CURRENT_STANDARD_VERSION < 201703L
-static_assert(false, "We detected you are using C++14 and below, and the library only supports C++17 and above, please modify your standard version of C++ to C++17 and above before trying to compile!");
+static_assert(false, "We detected you are using C++14 and below, and the library only supports C++17 and above, please modify your "
+                     "standard version of C++ to C++17 and above before trying to compile!");
 #endif
 
 #if RAINY_USING_AVX2
@@ -325,20 +331,20 @@ static_assert(false, "We detected you are using C++14 and below, and the library
 #endif
 
 #define RAINY_CAT_IMPL(a, b) a##b
-#define RAINY_CAT(a,b) RAINY_CAT_IMPL(a,b)
+#define RAINY_CAT(a, b) RAINY_CAT_IMPL(a, b)
 
 #if RAINY_USING_WINDOWS
 #if RAINY_USING_DYNAMIC
-    #ifdef RAINY_DYNAMIC_EXPORTS
-        #define RAINY_TOOLKIT_API __declspec(dllexport)
-    #else
-        #define RAINY_TOOLKIT_API __declspec(dllimport)
-    #endif
+#ifdef RAINY_DYNAMIC_EXPORTS
+#define RAINY_TOOLKIT_API __declspec(dllexport)
 #else
-    #define RAINY_TOOLKIT_API
+#define RAINY_TOOLKIT_API __declspec(dllimport)
 #endif
 #else
-    #define RAINY_TOOLKIT_API __attribute__((visibility("default")))
+#define RAINY_TOOLKIT_API
+#endif
+#else
+#define RAINY_TOOLKIT_API __attribute__((visibility("default")))
 #endif
 
 #ifdef __EDG__
@@ -506,14 +512,14 @@ namespace rainy::type_traits::other_trans {
     struct dummy_t {};
 
     template <typename Ty>
-    using pointer = Ty*;
+    using pointer = Ty *;
 
     template <bool IsConst, typename Ty>
     struct maybe_const {
         using type = conditional_t<IsConst, const Ty, Ty>;
     };
 
-    template <bool IsConst, typename Ty> 
+    template <bool IsConst, typename Ty>
     using maybe_const_t = typename maybe_const<IsConst, Ty>::type;
 }
 
@@ -535,7 +541,7 @@ namespace rainy::type_traits::implements {
 
     template <typename Ty>
     using remove_reference_t = typename remove_reference<Ty>::type;
-    
+
     template <typename>
     RAINY_CONSTEXPR_BOOL _is_lvalue_reference_v = false;
 
@@ -564,7 +570,10 @@ namespace rainy::core::builtin {
 #endif
     }
 
-    RAINY_TOOLKIT_API void *copy_memory(void *dest, const void *src, std::size_t len);
+    RAINY_INLINE void *copy_memory(void *dest, const void *src, std::size_t len) {
+        return std::memcpy(dest, src, len);
+    }
+
     RAINY_TOOLKIT_API void *move_memory(void *dest, std::size_t dest_size, const void *src, std::size_t src_count);
     RAINY_TOOLKIT_API void *set_memory(void *dest, std::size_t count, int new_val);
     RAINY_TOOLKIT_API void *zero_memory(void *dest, std::size_t count);
@@ -615,7 +624,7 @@ namespace rainy::core::builtin {
 
     template <typename Ty>
     const Ty *addressof(const Ty &&) = delete;
-    
+
     template <typename Ty, typename... Args>
     RAINY_CONSTEXPR20 Ty *construct_at(Ty *location, Args &&...args) noexcept(noexcept(::new(static_cast<void *>(location))
                                                                                            Ty(builtin::forward<Args>(args)...))) {
@@ -673,13 +682,13 @@ namespace rainy::core::builtin {
         struct gen {
             static constexpr Ty Half = Count / 2;
             using half_seq = typename gen<Half>::type;
-            using type = typename concat_impl<half_seq, half_seq, Half > ::type;
+            using type = typename concat_impl<half_seq, half_seq, Half>::type;
         };
 
         template <Ty Count>
         struct gen<Count, type_traits::other_trans::enable_if_t<(Count > 1) && (Count % 2 == 1)>> {
             using prev_seq = typename gen<Count - 1>::type;
-            using type = typename concat_impl<prev_seq, Struct<Ty, 0>, Count - 1 > ::type;
+            using type = typename concat_impl<prev_seq, Struct<Ty, 0>, Count - 1>::type;
         };
 
         template <Ty Count>
@@ -1110,9 +1119,8 @@ namespace rainy::utility {
 }
 
 #define RAINY_TOOLKIT_VERSION                                                                                                         \
-    "rainy-toolkit:"                                                                                                         \
-    RAINY_STRINGIFY(RAINY_TOOLKIT_PROJECT_MAJOR)                                                                                      \
-    "." RAINY_STRINGIFY(RAINY_TOOLKIT_PROJECT_MINOR) "." RAINY_STRINGIFY(RAINY_TOOLKIT_PROJECT_PATCH) ".xaga"
+    "rainy-toolkit:" RAINY_STRINGIFY(RAINY_TOOLKIT_PROJECT_MAJOR) "." RAINY_STRINGIFY(                                                \
+        RAINY_TOOLKIT_PROJECT_MINOR) "." RAINY_STRINGIFY(RAINY_TOOLKIT_PROJECT_PATCH) ".xaga"
 
 #define RAINY_ABI_BRIDGE_CALL_HANDLER_TOTAL_COUNT 0
 #define RAINY_ABI_BRIDGE_CALL_GET_VERSION 1
@@ -1168,7 +1176,7 @@ namespace rainy::core::abi {
     RAINY_EXTERN_C RAINY_TOOLKIT_API long rainy_toolkit_get_compile_standard(standard *recv);
     RAINY_EXTERN_C RAINY_TOOLKIT_API long rainy_toolkit_get_compile_identifier(compiler_identifier *recv);
     RAINY_EXTERN_C RAINY_TOOLKIT_API long rainy_toolkit_get_version_name(char *buffer, std::size_t buffer_length);
-    RAINY_EXTERN_C RAINY_TOOLKIT_API long rainy_toolkit_export_library_context(std::uintptr_t* context);
+    RAINY_EXTERN_C RAINY_TOOLKIT_API long rainy_toolkit_export_library_context(std::uintptr_t *context);
     RAINY_EXTERN_C RAINY_TOOLKIT_API long rainy_toolkit_is_abi_compatible(std::uintptr_t *context);
 }
 
