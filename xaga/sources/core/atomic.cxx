@@ -1150,30 +1150,36 @@ namespace rainy::core::pal {
     void read_write_barrier() noexcept {
 #if RAINY_USING_MSVC && !RAINY_IS_ARM64
         _ReadWriteBarrier();
+#elif RAINY_USING_MSVC && RAINY_IS_ARM64
+        __dmb(_ARM64_BARRIER_ISH);
 #elif RAINY_IS_ARM64
-        __asm__ __volatile__("dmb ish" ::: "memory"); // 全屏障，保证所有访问顺序
+        __asm__ __volatile__("dmb ish" ::: "memory");
 #else
-        __asm__ __volatile__("mfence" ::: "memory"); // x86/x64 全屏障
+        __asm__ __volatile__("mfence" ::: "memory");
 #endif
     }
 
     void read_barrier() noexcept {
 #if RAINY_USING_MSVC && !RAINY_IS_ARM64
         _mm_lfence();
+#elif RAINY_USING_MSVC && RAINY_IS_ARM64
+        __dmb(_ARM64_BARRIER_ISHLD);
 #elif RAINY_IS_ARM64
-        __asm__ __volatile__("dmb ishld" ::: "memory"); // 仅读屏障
+        __asm__ __volatile__("dmb ishld" ::: "memory");
 #else
-        __asm__ __volatile__("lfence" ::: "memory"); // x86/x64 读屏障
+        __asm__ __volatile__("lfence" ::: "memory");
 #endif
     }
 
     void write_barrier() noexcept {
 #if RAINY_USING_MSVC && !RAINY_IS_ARM64
         _mm_sfence();
+#elif RAINY_USING_MSVC && RAINY_IS_ARM64
+        __dmb(_ARM64_BARRIER_ISHST);
 #elif RAINY_IS_ARM64
-        __asm__ __volatile__("dmb ishst" ::: "memory"); // 仅写屏障
+        __asm__ __volatile__("dmb ishst" ::: "memory");
 #else
-        __asm__ __volatile__("sfence" ::: "memory"); // x86/x64 写屏障
+        __asm__ __volatile__("sfence" ::: "memory");
 #endif
     }
 }
