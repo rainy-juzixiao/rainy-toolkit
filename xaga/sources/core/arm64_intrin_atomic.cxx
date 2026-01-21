@@ -59,12 +59,6 @@ inline void rainy_dmb_st() {
 #if RAINY_IS_ARM64
 
 #if RAINY_USING_MSVC
-#define RAINY_ATOMIC_OPERATION_RELAXED(x) #x #_nf
-#define RAINY_ATOMIC_OPERATION_ACQUIRE(x) #x #_acq
-#define RAINY_ATOMIC_OPERATION_RELEASE(x) #x #_rel
-#define RAINY_ATOMIC_OPERATION_ACQ_REL(x) #x #_acq_rel
-#define RAINY_ATOMIC_OPERATION_SEQ_CST(x) x
-
 #define RAINY_ATOMIC_DISPATCH(FUNC, obj, val, order)                                                                                  \
     do {                                                                                                                              \
         switch (order) {                                                                                                              \
@@ -75,7 +69,7 @@ inline void rainy_dmb_st() {
             case memory_order_release:                                                                                                \
                 return FUNC##_rel(obj, val);                                                                                          \
             case memory_order_acq_rel:                                                                                                \
-                return FUNC##_acq_rel(obj, val);                                                                                      \
+                return FUNC(obj, val);                                                                                                \
             case memory_order_seq_cst:                                                                                                \
             default:                                                                                                                  \
                 return FUNC(obj, val);                                                                                                \
@@ -87,7 +81,7 @@ inline void rainy_dmb_st() {
 namespace rainy::core::pal::implements {
 #if RAINY_USING_MSVC
     long interlocked_increment_arm64_explicit(volatile long *value, memory_order order) {
-        RAINY_ATOMIC_DISPATCH(_InterlockedExchangeAdd, obj, val, order);
+        RAINY_ATOMIC_DISPATCH(_InterlockedExchangeAdd, value, 1, order);
     }
 #else
     long interlocked_increment_arm64_explicit(volatile long *value, memory_order order) {

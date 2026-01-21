@@ -200,6 +200,7 @@ struct S {
 };
 
 int main() {
+    std::atomic<int>;
     any a = 10;
     std::cout << std::as_const(a).as_lvalue_reference().type().name() << '\n';
     std::cout << std::as_const(a).as_rvalue_reference().type().name() << '\n';

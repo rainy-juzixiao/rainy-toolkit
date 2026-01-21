@@ -52,7 +52,7 @@ namespace rainy::foundation::exceptions::implements {
 }
 
 namespace rainy::core::builtin {
-#if RAINY_USING_AVX2
+#if RAINY_USING_AVX2 && RAINY_IS_X86_PLATFORM
     std::int32_t ctz_avx2(const std::uint32_t x) noexcept {
         if (x == 0) {
             return 32;
