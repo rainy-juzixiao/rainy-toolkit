@@ -1148,7 +1148,7 @@ namespace rainy::core::pal {
 
 namespace rainy::core::pal {
     void read_write_barrier() noexcept {
-#if RAINY_USING_MSVC
+#if RAINY_USING_MSVC && !RAINY_IS_ARM64
         _ReadWriteBarrier();
 #elif RAINY_IS_ARM64
         __asm__ __volatile__("dmb ish" ::: "memory"); // 全屏障，保证所有访问顺序
@@ -1158,7 +1158,7 @@ namespace rainy::core::pal {
     }
 
     void read_barrier() noexcept {
-#if RAINY_USING_MSVC
+#if RAINY_USING_MSVC && !RAINY_IS_ARM64
         _mm_lfence();
 #elif RAINY_IS_ARM64
         __asm__ __volatile__("dmb ishld" ::: "memory"); // 仅读屏障
@@ -1168,7 +1168,7 @@ namespace rainy::core::pal {
     }
 
     void write_barrier() noexcept {
-#if RAINY_USING_MSVC
+#if RAINY_USING_MSVC && !RAINY_IS_ARM64
         _mm_sfence();
 #elif RAINY_IS_ARM64
         __asm__ __volatile__("dmb ishst" ::: "memory"); // 仅写屏障
@@ -1205,7 +1205,7 @@ namespace rainy::core::pal {
             core::pal::interlocked_increment(&guard);
             rainy_compiler_barrier();
         }
-#elif RAINY_IS_ARM64
+#elif RAINY_IS_ARM64 && !RAINY_USING_MSVC
         // ARM 平台
         if (order == memory_order_acquire || order == memory_order_consume) {
             rainy_dmb_ld();

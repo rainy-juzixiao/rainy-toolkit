@@ -93,11 +93,17 @@ namespace rainy::core::pal::implements {
 }
 
 namespace rainy::core::pal::implements {
+#if RAINY_USING_MSVC
+    long interlocked_decrement_arm64_explicit(volatile long *value, memory_order order) {
+        RAINY_ATOMIC_DISPATCH(_InterlockedExchangeAdd, value, -1, order);
+    }
+#else
     long interlocked_decrement_arm64_explicit(volatile long *value, memory_order order) {
         long new_val;
         RAINY_ARM64_ATOMIC_RMW(value, -1, order, new_val);
         return new_val;
     }
+#endif
 }
 
 #endif
