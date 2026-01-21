@@ -15,33 +15,32 @@ jobs:
             uses: docker/setup-qemu-action@v3
             with:
               platforms: arm64
-
           - name: Build + Test in ARM64 container
             run: |
-              docker run --rm --platform=linux/arm64 -m 4g \
-                -v ${{ github.workspace }}:/src \
-                -w /src \
-                arm64v8/ubuntu:22.04 \
-                bash -c "
-                  set -e
-                  apt update
-                  apt install -y software-properties-common build-essential cmake ninja-build git ca-certificates pkg-config
+                docker run --rm --platform=linux/arm64 \
+                  -v ${{ github.workspace }}:/src \
+                  -w /src \
+                  arm64v8/ubuntu:22.04 \
+                  bash -c "
+                    set -e
+                    apt update
+                    apt install -y software-properties-common build-essential cmake ninja-build git ca-certificates pkg-config
 
-                  # 安装 GCC 13
-                  add-apt-repository ppa:ubuntu-toolchain-r/test -y
-                  apt update
-                  apt install -y gcc-13 g++-13
-                  update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 100
-                  update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 100
+                    # 启用 universe 仓库
+                    add-apt-repository universe
+                    apt update
 
-                  gcc --version
-                  g++ --version
+                    # 安装 GCC 13
+                    apt install -y gcc-13 g++-13
+                    update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 100
+                    update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 100
+                    gcc --version
+                    g++ --version
 
-                  # 构建项目
-                  cmake -B build -S . -DCMAKE_BUILD_TYPE=Release
-                  cmake --build build -j2
+                    cmake -B build -S . -DCMAKE_BUILD_TYPE=Release
+                    cmake --build build -j2
 
-                  # 运行测试
-                  cd build
-                  ctest --output-on-failure
-                "
+                    # 运行测试
+                    cd build
+                    ctest --output-on-failure
+                  "

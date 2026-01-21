@@ -29,7 +29,7 @@ jobs:
 
       # Build
       - name: Build
-        run: cmake --build build --config Release
+        run: cmake --build build --config Release --target rainy-toolkit-test
 
       # Run tests
       - name: Run tests
