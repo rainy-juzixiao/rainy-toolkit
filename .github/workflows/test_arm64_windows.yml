@@ -7,23 +7,43 @@ on:
 jobs:
   build:
     runs-on: windows-2022
+
     strategy:
       matrix:
-        arch: [arm64]
+        arch: [ arm64 ]
+
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Set up CMake
-        uses: lukka/get-cmake@v5
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Install CMake and Ninja
+        uses: lukka/get-cmake@latest
         with:
-          cmake-version: '3.27.0'
+          cmakeVersion: latest
+          ninjaVersion: latest
+      - name: Setup MSVC environment
+        shell: powershell
+        run: |
+          echo "Setting up Visual Studio environment"
+          $env:VCToolsVersion = vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 `
+            | ConvertFrom-Json | Select-Object -ExpandProperty installationPath
+          Write-Host "VS tools at: $env:VCToolsVersion"
+          Write-Host "MSVC environment ready"
 
+      # Configure CMake
       - name: Configure CMake
-        run: cmake -S . -B build -A ${{ matrix.arch }}
+        shell: powershell
+        run: |
+          cmake -S . -B build -A ${{ matrix.arch }} -G "Ninja"
 
+      # Build
       - name: Build
-        run: cmake --build build --config Release --target rainy-toolkit-test
+        shell: powershell
+        run: |
+          cmake --build build --config Release
 
+      # Test
       - name: Run tests
-        run: ctest --test-dir build --output-on-failure
+        shell: powershell
+        run: |
+          cd build
+          ctest --output-on-failure
