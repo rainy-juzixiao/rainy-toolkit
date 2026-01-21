@@ -72,36 +72,22 @@ public:
         meta::reflection::registration::class_<mybase2>("mybase2")
             .method("print_mybase2", &mybase2::print_mybase2)
             .method("virtual_fun", &mybase2::virtual_fun);
-        this_instance
-        (
-            meta::reflection::metadata("prop", "virtual public")
-        )
-        .constructor<>()
-        .copy_constructor()
-        .move_constructor()
-        .property("field", &myclass::field)
-        .enumeration<color>("color")
-        .constructor<int>()
-        (
-            meta::reflection::metadata("prop", "ctor")
-        )
-        .method("print_field",
-            utility::get_overloaded_func<myclass,void(std::string) const>(&myclass::print_field))
-        (
-            meta::reflection::metadata("prop","const print")
-        )
-        .method("print_field",
-            utility::get_overloaded_func<myclass,void(int)>(&myclass::print_field))
-        (
-            meta::reflection::metadata("prop", "print"),
-            meta::reflection::default_arguments(50)
-        )
-        .method("virtual_fun", &mybase1::virtual_fun)
-        .method("print_field",
-            utility::get_overloaded_func<myclass,void(myclass)>(&myclass::print_field))
-        .method("virtual_fun", &myclass::virtual_fun)
-        .base<mybase1>("mybase1")
-        .base<mybase2>("mybase2");
+        this_instance(meta::reflection::metadata("prop", "virtual public"))
+            .constructor<>()
+            .copy_constructor()
+            .move_constructor()
+            .property("field", &myclass::field)
+            .enumeration<color>("color")
+            .constructor<int>()(meta::reflection::metadata("prop", "ctor"))
+            .method("print_field", utility::get_overloaded_func<myclass, void(std::string) const>(&myclass::print_field))(
+                meta::reflection::metadata("prop", "const print"))
+            .method("print_field", utility::get_overloaded_func<myclass, void(int)>(&myclass::print_field))(
+                meta::reflection::metadata("prop", "print"), meta::reflection::default_arguments(50))
+            .method("virtual_fun", &mybase1::virtual_fun)
+            .method("print_field", utility::get_overloaded_func<myclass, void(myclass)>(&myclass::print_field))
+            .method("virtual_fun", &myclass::virtual_fun)
+            .base<mybase1>("mybase1")
+            .base<mybase2>("mybase2");
     }
 
     myclass() {

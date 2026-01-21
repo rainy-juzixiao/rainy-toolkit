@@ -397,12 +397,12 @@ namespace rainy::annotations::lifetime {
     struct uninitialized {
         using type = Ty;
 
-        uninitialized() = default;
+        uninitialized() {}
         uninitialized(const uninitialized &) = default;
         uninitialized(uninitialized &&) = default;
         uninitialized &operator=(const uninitialized &) = default;
         uninitialized &operator=(uninitialized &&) = default;
-    
+
         type value;
     };
 

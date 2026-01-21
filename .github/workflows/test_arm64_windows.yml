@@ -1,0 +1,30 @@
+name: Windows ARM64 CMake Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: windows-2022
+    strategy:
+      matrix:
+        arch: [arm64]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up CMake
+        uses: lukka/get-cmake@v5
+        with:
+          cmake-version: '3.27.0'
+
+      - name: Configure CMake
+        run: cmake -S . -B build -A ${{ matrix.arch }}
+
+      - name: Build
+        run: cmake --build build --config Release --target rainy-toolkit-test
+
+      - name: Run tests
+        run: ctest --test-dir build --output-on-failure

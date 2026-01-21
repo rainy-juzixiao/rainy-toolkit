@@ -89,24 +89,6 @@ namespace rainy::core::pal {
 }
 
 namespace rainy::core::pal {
-    enum class memory_order {
-        relaxed,
-        consume,
-        acquire,
-        release,
-        acq_rel,
-        seq_cst
-    };
-
-    inline constexpr memory_order memory_order_relaxed = memory_order::relaxed;
-    inline constexpr memory_order memory_order_consume = memory_order::consume;
-    inline constexpr memory_order memory_order_acquire = memory_order::acquire;
-    inline constexpr memory_order memory_order_release = memory_order::release;
-    inline constexpr memory_order memory_order_acq_rel = memory_order::acq_rel;
-    inline constexpr memory_order memory_order_seq_cst = memory_order::seq_cst;
-}
-
-namespace rainy::core::pal {
     /* debug tool */
     RAINY_TOOLKIT_API void debug_break();
     RAINY_TOOLKIT_API std::size_t collect_stack_frame(native_frame_ptr_t *out_frames, std::size_t max_frames_count,

@@ -2,6 +2,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_all.hpp>
 #include <rainy/core/core.hpp>
+#include <mutex>
 #include <thread>
 #include <vector>
 
@@ -243,9 +244,9 @@ TEMPLATE_TEST_CASE("iso_volatile_load thread safety", "[atomic][multithread]", s
                     }
                 });
             }
-            for (auto &t: threads)
+            for (auto &t: threads) {
                 t.join();
-
+            }
             THEN("The final value should be threads * iterations * delta added to the original value") {
                 REQUIRE(value ==
                         SafeValues<Type>::start + SafeValues<Type>::threads * SafeValues<Type>::iterations * SafeValues<Type>::delta);
@@ -300,7 +301,6 @@ TEMPLATE_TEST_CASE("interlocked_exchange provides atomic replacement semantics",
                 }
                 REQUIRE(match);
             }
-
             THEN("All observed old values must be valid previously-written values") {
                 for (auto old: observed_old_values) {
                     bool valid = (old == static_cast<T>(0));
