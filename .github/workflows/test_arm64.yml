@@ -18,7 +18,7 @@ jobs:
 
           - name: Build + Test in ARM64 container
             run: |
-              docker run --rm --platform=linux/arm64 \
+              docker run --rm --platform=linux/arm64 -m 4g \
                 -v ${{ github.workspace }}:/src \
                 -w /src \
                 arm64v8/ubuntu:22.04 \
@@ -39,7 +39,7 @@ jobs:
 
                   # 构建项目
                   cmake -B build -S . -DCMAKE_BUILD_TYPE=Release
-                  cmake --build build -j
+                  cmake --build build -j2
 
                   # 运行测试
                   cd build
