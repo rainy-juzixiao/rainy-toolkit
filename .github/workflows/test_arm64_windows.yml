@@ -15,35 +15,22 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      # 安装 CMake 和 Ninja
       - name: Install CMake and Ninja
         uses: lukka/get-cmake@latest
         with:
           cmakeVersion: latest
           ninjaVersion: latest
-      - name: Setup MSVC environment
-        shell: powershell
-        run: |
-          echo "Setting up Visual Studio environment"
-          $env:VCToolsVersion = vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 `
-            | ConvertFrom-Json | Select-Object -ExpandProperty installationPath
-          Write-Host "VS tools at: $env:VCToolsVersion"
-          Write-Host "MSVC environment ready"
 
       # Configure CMake
       - name: Configure CMake
-        shell: powershell
-        run: |
-          cmake -S . -B build -A ${{ matrix.arch }} -G "Ninja"
+        run: cmake -S . -B build -A ${{ matrix.arch }} -G "Ninja"
 
       # Build
       - name: Build
-        shell: powershell
-        run: |
-          cmake --build build --config Release
+        run: cmake --build build --config Release
 
-      # Test
+      # Run tests
       - name: Run tests
-        shell: powershell
-        run: |
-          cd build
-          ctest --output-on-failure
+        run: ctest --test-dir build --output-on-failure
