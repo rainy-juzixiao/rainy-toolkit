@@ -102,7 +102,7 @@ if (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" AND NOT RAINY_USE_CROSSCOMPILE)
 
 endif ()
 
-if (MSVC AND NOT (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
+if (MSVC AND NOT (CMAKE_CXX_COMPILER_ID MATCHES "Clang") AND NOT RAINY_USE_CROSSCOMPILE)
     message("Detect MSVC compiler")
     if (RAINY_USE_AVX2_BOOST)
         message("The rainy-toolkit will using avx2 boost")

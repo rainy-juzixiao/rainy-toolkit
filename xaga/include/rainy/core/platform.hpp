@@ -239,7 +239,7 @@ static_assert(false, "We detected you are using C++14 and below, and the library
                      "standard version of C++ to C++17 and above before trying to compile!");
 #endif
 
-#if RAINY_USING_AVX2
+#if RAINY_USING_AVX2 && RAINY_IS_X86_PLATFORM
 #include <immintrin.h> // NOLINT
 #endif
 
@@ -550,7 +550,7 @@ namespace rainy::type_traits::implements {
 }
 
 namespace rainy::core::builtin {
-#if RAINY_USING_AVX2
+#if RAINY_USING_AVX2 && RAINY_IS_X86_PLATFORM
     RAINY_TOOLKIT_API std::int32_t ctz_avx2(std::uint32_t x) noexcept;
 #endif
     constexpr int compare_memory(const void *mem1, const void *mem2, const std::size_t count) {
