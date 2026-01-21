@@ -18,7 +18,9 @@
 #include <rainy/core/platform.hpp>
 
 #if RAINY_USING_MSVC
+#if RAINY_IS_X86_PLATFORM
 #include <emmintrin.h>
+#endif
 #include <intrin.h>
 #endif
 
