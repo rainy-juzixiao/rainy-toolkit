@@ -1211,12 +1211,12 @@ namespace rainy::core::pal {
             core::pal::interlocked_increment(&guard);
             rainy_compiler_barrier();
         }
-#elif RAINY_IS_ARM64 && !RAINY_USING_MSVC
+#elif RAINY_IS_ARM64
         // ARM 平台
         if (order == memory_order_acquire || order == memory_order_consume) {
-            rainy_dmb_ld();
+            read_barrier();
         } else {
-            rainy_dmb();
+            read_write_barrier();
         }
 #else
         static_assert(false, "atomic_thread_fence: unsupported architecture");
