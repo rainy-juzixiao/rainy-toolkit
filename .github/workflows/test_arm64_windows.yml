@@ -2,35 +2,27 @@ name: Windows ARM64 CMake Test
 
 on:
   push:
+    branches: [ 'main' ]
   pull_request:
 
 jobs:
   build:
     runs-on: windows-2022
 
-    strategy:
-      matrix:
-        arch: [ arm64 ]
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 安装 CMake 和 Ninja
-      - name: Install CMake and Ninja
+      - name: Install CMake
         uses: lukka/get-cmake@latest
         with:
           cmakeVersion: latest
-          ninjaVersion: latest
 
-      # Configure CMake
       - name: Configure CMake
-        run: cmake -S . -B build -A ${{ matrix.arch }} -G "Ninja"
+        run: cmake -S . -B build -A arm64 -G "Visual Studio 17 2022"
 
-      # Build
       - name: Build
-        run: cmake --build build --config Release --target rainy-toolkit-test
+        run: cmake --build build --config Release
 
-      # Run tests
       - name: Run tests
         run: ctest --test-dir build --output-on-failure
