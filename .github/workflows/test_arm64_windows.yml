@@ -2,7 +2,6 @@ name: Windows ARM64 CMake Test
 
 on:
   push:
-    branches: [ 'main' ]
   pull_request:
 
 jobs:
