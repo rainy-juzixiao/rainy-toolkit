@@ -232,7 +232,8 @@ namespace rainy::core::pal {
                                                         memory_order success, memory_order failure) {
         rainy_assume(destination);
         void *result;
-        RAINY_ATOMIC_DISPATCH(_InterlockedCompareExchangePointer, result, memory_order_seq_cst, destination, exchange, comparand);
+        RAINY_ATOMIC_DISPATCH(_InterlockedCompareExchangePointer, result, memory_order_seq_cst, const_cast<void *volatile *>(destination),
+                              exchange, comparand);
         if (result) {
             atomic_thread_fence(success);
         } else {
