@@ -15,6 +15,12 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+message("Checking compiler...")
+RAINY_GET_CXX_COMPILER_ID(COMPILER_ID)
+
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64|ARM64)$")
+    message(STATUS "Target architecture is ARM64")
+endif()
 
 rainy_load_flodar_files("${PROJECT_SOURCE_DIR}/xaga/sources" ".cxx" SPECIAL_FILES_LIST)
 
@@ -52,9 +58,6 @@ target_include_directories(
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/xaga/include>
         $<INSTALL_INTERFACE:include>
 )
-
-message("Checking compiler...")
-RAINY_GET_CXX_COMPILER_ID(COMPILER_ID)
 
 message(STATUS "The rainy-toolkit will use ${COMPILER_ID} complier to compile the sources files")
 message(STATUS "Starting configure the library")

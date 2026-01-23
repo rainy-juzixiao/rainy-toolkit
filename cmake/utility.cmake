@@ -15,7 +15,6 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-
 function(RAINY_GET_CXX_COMPILER_ID result_var)
     if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
         set(${result_var} "GCC" PARENT_SCOPE)
@@ -36,30 +35,47 @@ function(RAINY_GET_CXX_COMPILER_ID result_var)
     endif()
 endfunction()
 
-# 定义函数来查找特定目录下的文件（优化不在本库的工程考虑范围内，因为无意义）
+# 查找特定目录下的文件
 # 递归查找特定后缀文件的函数
 # 参数:
 #   DIRECTORY - 要搜索的目录
 #   EXTENSION - 要查找的文件扩展名（如 ".cpp"）
 #   RESULT_VAR - 存储结果的变量名
 function(rainy_load_flodar_files DIRECTORY EXTENSION RESULT_VAR)
+    set(IS_LINUX FALSE)
+    set(IS_ARM64 FALSE)
     # 初始化结果列表
     set(FILE_LIST "")
     # 获取当前目录下的所有条目
     file(GLOB ENTRIES CONFIGURE_DEPENDS "${DIRECTORY}/*")
-    # 因为使用GLOB_RECURSE并不是最佳实践，因此，拒绝使用
     # 遍历所有条目
+    if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64|ARM64)$")
+        set(IS_ARM64 TRUE)
+    endif()
+    if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        set(IS_LINUX TRUE)
+    endif()
+    message("CMAKE_SYSTEM_PROCESS OR is ${CMAKE_CROSSCOMPILING}")
     foreach(ENTRY ${ENTRIES})
         # 初始化排除标志
         set(EXCLUDE_ENTRY FALSE)
         # 检查Linux平台排除条件
-        if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        if (IS_LINUX)
             if("${ENTRY}" MATCHES ".*[/\\\\]win[/\\\\].*")
                 set(EXCLUDE_ENTRY TRUE)
             endif()
         # 检查Windows平台排除条件
         elseif(WIN32)
             if("${ENTRY}" MATCHES ".*[/\\\\]linux[/\\\\].*")
+                set(EXCLUDE_ENTRY TRUE)
+            endif()
+        endif()
+        if(IS_ARM64)
+            if("${ENTRY}" MATCHES ".*[/\\\\]x86_64[/\\\\].*")
+                set(EXCLUDE_ENTRY TRUE)
+            endif()
+        else()
+            if("${ENTRY}" MATCHES ".*[/\\\\]arm64[/\\\\].*")
                 set(EXCLUDE_ENTRY TRUE)
             endif()
         endif()

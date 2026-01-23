@@ -13,7 +13,7 @@ namespace rainy::foundation::pal::atomicinfra::implements {
     void atomic_lock_acquire(long &spinlock) noexcept {
         int current_backoff = 1;
         constexpr int max_backoff = 64;
-        while (core::pal::interlocked_exchange(&spinlock, 1) != 0) {
+        while (core::pal::interlocked_exchange(reinterpret_cast<volatile std::intptr_t*>(&spinlock), 1) != 0) {
             while (core::pal::iso_volatile_load32(&reinterpret_cast<int &>(spinlock)) != 0) {
                 for (int _Count_down = current_backoff; _Count_down != 0; --_Count_down) {
 #if !RAINY_IS_ARM64 && RAINY_USING_WINDOWS
@@ -37,16 +37,6 @@ namespace rainy::foundation::pal::atomicinfra::implements {
     void atomic_lock_release(void **spinlock) noexcept {
         threading::implements::mtx_unlock(spinlock);
     }
-
-#if RAINY_USING_64_BIT_PLATFORM
-    bool atomic_wait_compare_16_bytes(const void *storage, void *comparand, std::size_t, void *) noexcept {
-        const auto dest = static_cast<std::int64_t *>(const_cast<void *>(storage));
-        const auto cmp = static_cast<const long long *>(comparand);
-        alignas(16) long long tmp[2] = {cmp[0], cmp[1]};
-        return core::pal::interlocked_compare_exchange128(reinterpret_cast<volatile std::int64_t *>(dest), tmp[1], tmp[0],
-                                                          const_cast<std::int64_t *>(dest)) != 0;
-    }
-#endif
 }
 
 namespace rainy::foundation::pal::atomicinfra::implements {
