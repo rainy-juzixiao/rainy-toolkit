@@ -392,7 +392,7 @@ namespace rainy::core::pal {
         return value;
     }
 
-    std::int64_t iso_volatile_load64_explicit(const volatile long long *address, memory_order order) {
+    std::int64_t iso_volatile_load64_explicit(const volatile std::int64_t *address, memory_order order) {
         std::int64_t value;
         RAINY_ATOMIC_DISPATCH_ISO_VOLATILE_LOAD(__iso_volatile_load64, value, order, address);
         return value;
@@ -1010,7 +1010,7 @@ namespace rainy::core::pal {
         return value;
     }
 
-    std::int64_t iso_volatile_load64_explicit(const volatile long long *address, memory_order order) {
+    std::int64_t iso_volatile_load64_explicit(const volatile std::int64_t *address, memory_order order) {
         rainy_assume(address);
         std::int64_t value = *address;
         if (order == memory_order_acquire || order == memory_order_seq_cst) {

@@ -304,14 +304,14 @@ namespace rainy::core::pal {
     RAINY_TOOLKIT_API std::int8_t iso_volatile_load8_explicit(const volatile std::int8_t *address, memory_order order);
     RAINY_TOOLKIT_API std::int16_t iso_volatile_load16_explicit(const volatile std::int16_t *address, memory_order order);
     RAINY_TOOLKIT_API std::int32_t iso_volatile_load32_explicit(const volatile std::int32_t *address, memory_order order);
-    RAINY_TOOLKIT_API std::int64_t iso_volatile_load64_explicit(const volatile long long *address, memory_order order);
+    RAINY_TOOLKIT_API std::int64_t iso_volatile_load64_explicit(const volatile std::int64_t *address, memory_order order);
 
     // 带内存序的原子存储
     RAINY_TOOLKIT_API void iso_volatile_store_explicit(volatile void *address, void *value, memory_order order);
     RAINY_TOOLKIT_API void iso_volatile_store8_explicit(volatile std::int8_t *address, std::int8_t value, memory_order order);
     RAINY_TOOLKIT_API void iso_volatile_store16_explicit(volatile std::int16_t *address, std::int16_t value, memory_order order);
-    RAINY_TOOLKIT_API void iso_volatile_store32_explicit(volatile int *address, std::uint32_t value, memory_order order);
-    RAINY_TOOLKIT_API void iso_volatile_store64_explicit(volatile long long *address, std::uint64_t value, memory_order order);
+    RAINY_TOOLKIT_API void iso_volatile_store32_explicit(volatile std::int32_t *address, std::uint32_t value, memory_order order);
+    RAINY_TOOLKIT_API void iso_volatile_store64_explicit(volatile std::int64_t *address, std::uint64_t value, memory_order order);
 }
 
 #endif
