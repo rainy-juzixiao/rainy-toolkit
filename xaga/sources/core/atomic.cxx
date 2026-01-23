@@ -159,7 +159,7 @@ namespace rainy::core::pal {
         return interlocked_exchange_pointer_explicit(target, value, memory_order_seq_cst);
     }
 
-    void *interlocked_compare_exchange_pointer(void *volatile *destination, void *exchange, void *comparand) {
+    void *interlocked_compare_exchange_pointer(volatile void * *destination, void *exchange, void *comparand) {
         return interlocked_compare_exchange_pointer_explicit(destination, exchange, comparand, memory_order_seq_cst,
                                                              memory_order_seq_cst);
     }
@@ -268,9 +268,9 @@ namespace rainy::core::pal {
 namespace rainy::core::pal {
     void iso_volatile_store(volatile void *address, void *value) {
 #if RAINY_USING_64_BIT_PLATFORM
-        iso_volatile_store64(static_cast<volatile long long *>(address), *static_cast<std::uint64_t *>(value));
+        iso_volatile_store64(static_cast<volatile std::int64_t *>(address), *static_cast<std::int64_t *>(value));
 #else
-        iso_volatile_store32(static_cast<volatile int *>(address), *static_cast<std::uint32_t *>(value));
+        iso_volatile_store32(static_cast<volatile std::int32_t *>(address), *static_cast<std::int32_t *>(value));
 #endif
     }
 
@@ -286,7 +286,7 @@ namespace rainy::core::pal {
         return iso_volatile_store32_explicit(address, value, memory_order_seq_cst);
     }
 
-    void iso_volatile_store64(volatile long long *address, std::uint64_t value) {
+    void iso_volatile_store64(volatile std::int64_t *address, std::uint64_t value) {
         return iso_volatile_store64_explicit(address, value, memory_order_seq_cst);
     }
 }
