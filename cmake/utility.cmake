@@ -15,6 +15,8 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+include(CheckCXXSourceCompiles)
+
 function(RAINY_GET_CXX_COMPILER_ID result_var)
     if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
         set(${result_var} "GCC" PARENT_SCOPE)
@@ -43,7 +45,17 @@ endfunction()
 #   RESULT_VAR - 存储结果的变量名
 function(rainy_load_flodar_files DIRECTORY EXTENSION RESULT_VAR)
     set(IS_LINUX FALSE)
-    set(IS_ARM64 FALSE)
+    check_cxx_source_compiles("
+    #if defined(_M_ARM64) || defined(__aarch64__)
+    #error ARM64 not supported
+    #endif
+    int main() { return 0; }
+    " IS_ARM64)
+    if(IS_ARM64)
+        set(IS_ARM64 false)
+    else()
+        set(IS_ARM64 true)
+    endif()
     # 初始化结果列表
     set(FILE_LIST "")
     # 获取当前目录下的所有条目
@@ -55,7 +67,6 @@ function(rainy_load_flodar_files DIRECTORY EXTENSION RESULT_VAR)
     if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
         set(IS_LINUX TRUE)
     endif()
-    message("CMAKE_SYSTEM_PROCESS OR is ${CMAKE_CROSSCOMPILING}")
     foreach(ENTRY ${ENTRIES})
         # 初始化排除标志
         set(EXCLUDE_ENTRY FALSE)

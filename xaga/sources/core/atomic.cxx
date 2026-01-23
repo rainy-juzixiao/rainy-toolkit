@@ -155,11 +155,11 @@ namespace rainy::core::pal {
 }
 
 namespace rainy::core::pal {
-    void* interlocked_exchange_pointer(volatile void **target, void *value) {
+    void *interlocked_exchange_pointer(volatile void **target, void *value) {
         return interlocked_exchange_pointer_explicit(target, value, memory_order_seq_cst);
     }
 
-    void* interlocked_compare_exchange_pointer(volatile void **destination, void *exchange, void *comparand) {
+    void *interlocked_compare_exchange_pointer(void *volatile *destination, void *exchange, void *comparand) {
         return interlocked_compare_exchange_pointer_explicit(destination, exchange, comparand, memory_order_seq_cst,
                                                              memory_order_seq_cst);
     }
