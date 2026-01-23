@@ -19,7 +19,7 @@ jobs:
 
       - name: Configure CMake
         run: |
-            call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat" arm64
+            & "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat" arm64
             cmake -S . -B build -G Ninja
       - name: Build
         run: cmake --build build -- -j2
