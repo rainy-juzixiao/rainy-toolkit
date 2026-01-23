@@ -349,7 +349,7 @@ namespace rainy::core::pal {
 
 
 namespace rainy::core::pal {
-    void* interlocked_exchange_pointer_explicit(volatile void **target, void *value, memory_order order) {
+    void *interlocked_exchange_pointer_explicit(volatile void **target, void *value, memory_order order) {
         void *old;
         RAINY_ATOMIC_BEGIN(order);
 #if RAINY_USING_MSVC
@@ -472,19 +472,24 @@ namespace rainy::core::pal {
                                                         memory_order success, memory_order failure) {
         void *result;
         bool exchanged;
+
         RAINY_ATOMIC_BEGIN(success);
+
 #if RAINY_USING_MSVC
         result = _InterlockedCompareExchangePointer(const_cast<void *volatile *>(destination), exchange, comparand);
         exchanged = (result == comparand);
 #else
-        __asm__ __volatile__("lock cmpxchg %3, %1\n\t"
+        void *old = comparand;
+        __asm__ __volatile__("lock cmpxchg %2, %1\n\t"
                              "sete %0"
-                             : "=q"(exchanged), "+m"(*destination), "+a"(comparand)
+                             : "=q"(exchanged), "+m"(*destination), "+a"(old)
                              : "r"(exchange)
                              : "memory");
-        result = comparand;
+        result = old;
 #endif
+
         RAINY_ATOMIC_END(exchanged ? success : failure);
+
         return result;
     }
 
@@ -799,7 +804,7 @@ namespace rainy::core::pal {
         RAINY_ATOMIC_END(order);
     }
 
-    void iso_volatile_store64_explicit(volatile long long *address, std::uint64_t value, memory_order order) {
+    void iso_volatile_store64_explicit(volatile std::int64_t *address, std::uint64_t value, memory_order order) {
         RAINY_ATOMIC_BEGIN(order);
 #if RAINY_USING_MSVC
 #if RAINY_USING_64_BIT_PLATFORM

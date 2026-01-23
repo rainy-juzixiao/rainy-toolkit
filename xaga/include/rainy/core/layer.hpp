@@ -171,8 +171,8 @@ namespace rainy::core::pal {
     RAINY_TOOLKIT_API void iso_volatile_store(volatile void *address, void *value);
     RAINY_TOOLKIT_API void iso_volatile_store8(volatile std::int8_t *address, std::int8_t value);
     RAINY_TOOLKIT_API void iso_volatile_store16(volatile std::int16_t *address, std::int16_t value);
-    RAINY_TOOLKIT_API void iso_volatile_store32(volatile int *address, std::uint32_t value);
-    RAINY_TOOLKIT_API void iso_volatile_store64(volatile long long *address, std::uint64_t value);
+    RAINY_TOOLKIT_API void iso_volatile_store32(volatile std::int32_t *address, std::uint32_t value);
+    RAINY_TOOLKIT_API void iso_volatile_store64(volatile std::int64_t *address, std::uint64_t value);
 
     RAINY_TOOLKIT_API void atomic_thread_fence(const memory_order order) noexcept;
 
@@ -277,7 +277,7 @@ namespace rainy::core::pal {
                                                                    std::int32_t comparand, memory_order success, memory_order failure);
     RAINY_TOOLKIT_API bool interlocked_compare_exchange64_explicit(volatile std::int64_t *destination, std::int64_t exchange,
                                                                    std::int64_t comparand, memory_order success, memory_order failure);
-    RAINY_TOOLKIT_API void *interlocked_compare_exchange_pointer_explicit(void *volatile *destination, void *exchange, void *comparand,
+    RAINY_TOOLKIT_API void *interlocked_compare_exchange_pointer_explicit(volatile void **destination, void *exchange, void *comparand,
                                                                           memory_order success, memory_order failure);
 
     // 带内存序的原子位操作
