@@ -44,13 +44,10 @@ namespace rainy::collections::views {
         constexpr array_view(const_pointer data, size_type size) noexcept : data_(const_cast<pointer>(data)), size_(size) {
         }
 
-        constexpr array_view(pointer first, pointer last) noexcept : data_(first), size_(last - first) {
+        constexpr array_view(const_pointer first, const_pointer last) noexcept : data_(first), size_(last - first) {
         }
 
-        constexpr array_view(const_pointer first, const_pointer last) noexcept : data_(const_cast<pointer>(first)), size_(last - first) {
-        }
-
-        constexpr array_view(std::initializer_list<value_type> value) noexcept : array_view{const_cast<pointer>(value.begin()), value.size()} {
+        constexpr array_view(std::initializer_list<value_type> value) noexcept : data_(const_cast<pointer>(value.begin())), size_(value.size()) {
         }
 
         template <typename C, size_type N>
