@@ -107,7 +107,7 @@ endif ()
 
 if (MSVC AND NOT (CMAKE_CXX_COMPILER_ID MATCHES "Clang") AND NOT RAINY_USE_CROSSCOMPILE)
     message("Detect MSVC compiler")
-    if (RAINY_USE_AVX2_BOOST)
+    if (RAINY_CAN_USE_AVX2)
         message("The rainy-toolkit will using avx2 boost")
         add_definitions(-DRAINY_USING_AVX2=1)
         add_compile_options(/arch:AVX2)

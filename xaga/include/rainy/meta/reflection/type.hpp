@@ -149,8 +149,9 @@ namespace rainy::meta::reflection {
          */
         template <typename Type>
         static type get() noexcept {
-            type instance{};
-            instance.accessor = implements::register_table::get_accessor(rainy_typeid(Type));
+            static auto accessor = implements::register_table::get_accessor(rainy_typeid(Type));
+            type instance;
+            instance.accessor = accessor;
             return instance;
         }
 
