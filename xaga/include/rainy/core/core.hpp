@@ -37,22 +37,24 @@
 #ifndef RAINY_CORE_HPP
 #define RAINY_CORE_HPP
 
+// NOLINTBEGIN
+
 // clang-format off
 
 #include <rainy/core/platform.hpp>
 #include <rainy/core/type_traits.hpp>
-#include <rainy/core/lifetime_annotation.hpp>
-#include <rainy/core/expected.hpp>
 #include <rainy/core/layer.hpp>
 #include <rainy/core/implements/bit.hpp>
 #include <rainy/core/implements/raw_stringview.hpp>
 #include <rainy/core/implements/collections/array.hpp>
 #include <rainy/core/implements/collections/array_view.hpp>
-#include <rainy/core/implements/exceptions.hpp>
 #include <rainy/core/implements/source_location.hpp>
 #include <rainy/core/implements/views/views_interface.hpp>
+#include <rainy/core/lifetime_annotation.hpp>
 
 // clang-format on
+
+// NOLINTEND
 
 namespace rainy::core {
     static constexpr implements::raw_string_view<char> libray_name("rainy's toolkit");
@@ -102,8 +104,7 @@ namespace rainy::utility::implements {
 }
 
 namespace rainy::core::implements {
-    RAINY_TOOLKIT_API void stl_internal_check(bool result,
-                                              const internal_source_location &source_location = internal_source_location::current());
+    RAINY_TOOLKIT_API void stl_internal_check(bool result);
 }
 
 namespace rainy::core {
@@ -242,7 +243,6 @@ namespace rainy::core {
 }
 
 #if RAINY_USING_GCC
-#include <rainy/core/gnu/source_location.hpp>
 #endif
 
 // clang-format off
@@ -762,7 +762,7 @@ namespace rainy::collections::views::implements {
             return utility::addressof(*iter_);
         }
 
-        rain_fn operator++() -> iterator_range_iterator& {
+        rain_fn operator++()->iterator_range_iterator & {
             ++iter_;
             return *this;
         }
@@ -784,11 +784,11 @@ namespace rainy::collections::views::implements {
             return temp;
         }
 
-        rain_fn operator+(difference_type n) const -> iterator_range_iterator {
+        rain_fn operator+(difference_type n) const->iterator_range_iterator {
             return iterator_range_iterator(iter_ + n);
         }
 
-        rain_fn operator-(difference_type n) const -> iterator_range_iterator {
+        rain_fn operator-(difference_type n) const->iterator_range_iterator {
             return iterator_range_iterator(iter_ - n);
         }
 
@@ -827,7 +827,7 @@ namespace rainy::collections::views::implements {
         using const_reference = type_traits::cv_modify::add_const_t<reference>;
         using difference_type = type_traits::extras::iterators::iterator_difference_t<const_iterator>;
         using value_type = type_traits::extras::iterators::iter_value_t<const_iterator>;
-        
+
         adapter_iterator_range() : begin_{}, end_{} {
         }
 

@@ -11,16 +11,7 @@
 
 namespace rainy::foundation::pal::atomicinfra {
     void atomic_thread_fence(memory_order order) noexcept {
-        using namespace core::pal;
-        if (order == memory_order_relaxed) {
-            return;
-        }
-        read_write_barrier();
-        if (order == memory_order_seq_cst) {
-            volatile long _guard;
-            (void) interlocked_increment(&_guard);
-            read_write_barrier();
-        }
+        return core::pal::atomic_thread_fence(order);
     }
 
     void atomic_signal_fence(const memory_order order) noexcept {

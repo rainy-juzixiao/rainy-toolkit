@@ -26,6 +26,8 @@ set(RAINY_TOOLKIT_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
 message("Starting build rainy's toolkit")
 message("Current C++ Standard Is ${CMAKE_CXX_STANDARD}")
 
+option(RAINY_USE_CROSSCOMPILE "Enable for cross compile" off)
+
 option(RAINY_ENABLE_TESTING "Enable for testing." on)
 option(RAINY_USE_AVX2_BOOST "Enable for avx2 boost." on)
 option(RAINY_BUILD_WITH_DYNAMIC
@@ -47,9 +49,9 @@ endif()
 
 set( BENCHMARK_ENABLE_TESTING off)
 
-add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/benchmark)
+#add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/benchmark)
 add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/rttr_ex)
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/xaga/examples/reflection/)
-add_subdirectory(${PROJECT_SOURCE_DIR}/xaga/benchmark/any/)
-add_subdirectory(${PROJECT_SOURCE_DIR}/xaga/benchmark/reflection/)
+#add_subdirectory(${PROJECT_SOURCE_DIR}/xaga/benchmark/any/)
+#add_subdirectory(${PROJECT_SOURCE_DIR}/xaga/benchmark/reflection/)

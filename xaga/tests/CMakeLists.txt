@@ -7,6 +7,10 @@ set_target_properties(rainy-toolkit-test PROPERTIES EXCLUDE_FROM_ALL OFF)
 target_link_libraries(rainy-toolkit-test PRIVATE rainy-toolkit)
 target_link_libraries(rainy-toolkit-test PRIVATE rainy-toolkit Catch2::Catch2WithMain)
 
+if (RAINY_USE_CROSSCOMPILE)
+    set_target_properties(rainy-toolkit-test PROPERTIES LINK_FLAGS "-static")
+endif()
+
 include(Catch)
 catch_discover_tests(rainy-toolkit-test)
 

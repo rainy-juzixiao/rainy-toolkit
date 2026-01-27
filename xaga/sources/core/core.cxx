@@ -13,8 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <immintrin.h>
 #include <rainy/core/core.hpp>
+#include <rainy/core/lifetime_annotation.hpp>
+
+#if !RAINY_IS_ARM64
+#include <immintrin.h>
+#endif
 
 #if RAINY_USING_MSVC
 #include <intrin.h>
@@ -48,7 +52,7 @@ namespace rainy::foundation::exceptions::implements {
 }
 
 namespace rainy::core::builtin {
-#if RAINY_USING_AVX2
+#if RAINY_USING_AVX2 && RAINY_IS_X86_PLATFORM
     std::int32_t ctz_avx2(const std::uint32_t x) noexcept {
         if (x == 0) {
             return 32;
@@ -63,129 +67,6 @@ namespace rainy::core::builtin {
         return i;
     }
 #endif
-
-    template <std::size_t N>
-    void *fixed_memcpy(void *dest, const void *src) {
-        return std::memcpy(dest, src, N);
-    }
-
-    template <std::size_t N>
-    void *fixed_memmove(void *dest, const void *src) {
-#if RAINY_USING_MSVC
-        return ::memmove_s(dest, N, src, N);
-#else
-        return std::memmove(dest, src, N);
-#endif
-    }
-
-    void *copy_memory(void *dest, const void *src, std::size_t len) {
-        rainy_assume(static_cast<bool>(dest));
-        if (len <= 24) {
-            switch (len) { // NOLINT
-                case 0:
-                    return dest;
-                case 1:
-                    return fixed_memcpy<1>(dest, src);
-                case 2:
-                    return fixed_memcpy<2>(dest, src);
-                case 3:
-                    return fixed_memcpy<3>(dest, src);
-                case 4:
-                    return fixed_memcpy<4>(dest, src);
-                case 5:
-                    return fixed_memcpy<5>(dest, src);
-                case 6:
-                    return fixed_memcpy<6>(dest, src);
-                case 7:
-                    return fixed_memcpy<7>(dest, src);
-                case 8:
-                    return fixed_memcpy<8>(dest, src);
-                case 9:
-                    return fixed_memcpy<9>(dest, src);
-                case 10:
-                    return fixed_memcpy<10>(dest, src);
-                case 11:
-                    return fixed_memcpy<11>(dest, src);
-                case 12:
-                    return fixed_memcpy<12>(dest, src);
-                case 13:
-                    return fixed_memcpy<13>(dest, src);
-                case 14:
-                    return fixed_memcpy<14>(dest, src);
-                case 15:
-                    return fixed_memcpy<15>(dest, src);
-                case 16:
-                    return fixed_memcpy<16>(dest, src);
-                case 17:
-                    return fixed_memcpy<17>(dest, src);
-                case 18:
-                    return fixed_memcpy<18>(dest, src);
-                case 19:
-                    return fixed_memcpy<19>(dest, src);
-                case 20:
-                    return fixed_memcpy<20>(dest, src);
-                case 21:
-                    return fixed_memcpy<21>(dest, src);
-                case 22:
-                    return fixed_memcpy<22>(dest, src);
-                case 23:
-                    return fixed_memcpy<23>(dest, src);
-                case 24:
-                    return fixed_memcpy<24>(dest, src);
-            }
-        } else if (len > 24 && len < 36) {
-            rainy_let dst = static_cast<std::uint8_t *>(dest);
-            rainy_let source = static_cast<const std::uint8_t *>(src);
-            constexpr size_t chunk_size = 16; // 步长调整为 16
-            while (len >= chunk_size) {
-                const __m128i data = _mm_loadu_si128(reinterpret_cast<const __m128i *>(source)); // 使用未对齐加载
-                _mm_storeu_si128(reinterpret_cast<__m128i *>(dst), data);
-                source += chunk_size;
-                dst += chunk_size;
-                len -= chunk_size;
-            }
-            // 处理剩余字节（此时 len < 16）
-            for (size_t i = 0; i < len; ++i) {
-                *dst++ = *source++;
-            }
-            return dest;
-        }
-        rainy_let dst = static_cast<std::uint8_t *>(dest);
-        rainy_let source = static_cast<const std::uint8_t *>(src);
-#if RAINY_USING_AVX2
-        constexpr std::size_t block_step[] = {8192, 4096, 2048, 1024, 512, 256, 128, 64}; // 块的步进
-        for (auto block_size: block_step) {
-            while (len >= block_size) {
-                __m256i data1 = _mm256_loadu_si256(reinterpret_cast<const __m256i *>(source));
-                __m256i data2 = _mm256_loadu_si256(reinterpret_cast<const __m256i *>(source + block_size - 32));
-                _mm256_storeu_si256(reinterpret_cast<__m256i *>(dst), data1);
-                _mm256_storeu_si256(reinterpret_cast<__m256i *>(dst + block_size - 32), data2);
-                source += block_size;
-                dst += block_size;
-                len -= block_size;
-            }
-        }
-#endif
-        // 每次复制16字节，SSE每个寄存器处理128位数据（16字节）
-        std::size_t chunk_size = 16;
-        // 对齐到16字节
-        while (len >= chunk_size) {
-            // 加载128位（16字节）的数据到SSE寄存器
-            __m128i data = _mm_loadu_si128(reinterpret_cast<const __m128i *>(source));
-            // 存储到目标内存
-            _mm_storeu_si128(reinterpret_cast<__m128i *>(dst), data);
-            // 更新指针和剩余长度
-            source += chunk_size;
-            dst += chunk_size;
-            len -= chunk_size;
-        }
-        // 处理剩余小于16字节的数据
-        while (len > 0) {
-            *dst++ = *source++;
-            len--;
-        }
-        return dst;
-    }
 
     /*void *move_memory(void *dest, std::size_t dest_size, const void *src, std::size_t src_count) {
         return nullptr;
@@ -411,35 +292,13 @@ namespace rainy::core::pal {
 }
 
 namespace rainy::core::implements {
-    void stl_internal_check(const bool result, const internal_source_location &source_location) {
+    void stl_internal_check(const bool result) {
         if (result) {
             return;
         }
-        bool release{false};
-        constexpr static std::size_t static_memory_size = 120;
-        thread_local char static_memory[static_memory_size]; // For Thread Safety
-        rainy_let buffer = static_cast<char *>(static_memory);
-        std::size_t required_size =
-            1 + std::snprintf(nullptr, 0, "%s:%du in function '%s' found a error\n", source_location.file_name(),
-                              source_location.line(), source_location.function_name());
-        if (required_size > static_memory_size) {
-            buffer = static_cast<char *>(pal::allocate(sizeof(char) * required_size,
-                                                       alignof(char))); // 通过operator new[]获取内存，而不是通过new char
-            release = true;
-            if (!buffer) {
-                constexpr raw_string_view<char> error_info(
-                    "we found a error. and also we can's allocate memory from dynamic_storage. before make more crushing, we must "
-                    "terminate this program. you can commit a issue in github.");
-                (void) std::fwrite(error_info.c_str(), sizeof(char), error_info.size(), stderr);
-                std::abort();
-            }
-        }
-        required_size = std::snprintf(buffer, required_size, "%s:%u in function '%s' found a error\n", source_location.file_name(),
-                                      source_location.line(), source_location.function_name());
-        (void) std::fwrite(buffer, sizeof(char), required_size, stderr);
-        if (release) {
-            pal::deallocate(buffer, required_size);
-        }
+        constexpr char error_info[] = "we found a error. before make more crushing, we must "
+                                      "terminate this program. you can commit a issue in github.";
+        (void) std::fwrite(error_info, sizeof(char), sizeof(error_info), stderr);
         std::abort();
     }
 }

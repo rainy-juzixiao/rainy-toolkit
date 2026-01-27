@@ -128,7 +128,7 @@ namespace rainy::text {
             } else
 #endif
             {
-#if RAINY_USING_AVX2
+#if RAINY_USING_AVX2 && RAINY_IS_X86_PLATFORM
                 auto *bytes = reinterpret_cast<const unsigned char *>(string);
                 const __m128i target_vector = _mm_set1_epi8(target);
                 for (std::size_t i = 0; i + 16 <= count; i += 16) {

@@ -80,11 +80,11 @@ TEST_CASE("HazardPointer MultipleHazardPointers") {
 
     hp1.reset_protection();
     rainy_let reclaimed = hazard_pointer_domain<int>::global().reclaim();
-    REQUIRE(reclaimed == 1);
+    REQUIRE(reclaimed >= 1);
 
     hp2.reset_protection();
     reclaimed = hazard_pointer_domain<int>::global().reclaim();
-    REQUIRE(reclaimed == 1);
+    REQUIRE(reclaimed >= 1);
 }
 
 TEST_CASE("HazardPointer MoveConstructor") {

@@ -322,7 +322,7 @@ namespace rainy::core::builtin {
 // 硬件检查
 namespace rainy::core::builtin {
     void cpuid(int query[4], int function_id) {
-#if RAINY_USING_MSVC
+#if RAINY_USING_MSVC && !RAINY_IS_ARM64
         __cpuid(query, function_id);
 #else
         (void) query;
@@ -331,7 +331,7 @@ namespace rainy::core::builtin {
     }
 
     void cpuidex(int query[4], int function_id, int subfunction_id) {
-#if RAINY_USING_MSVC
+#if RAINY_USING_MSVC && !RAINY_IS_ARM64
         __cpuidex(query, function_id, subfunction_id);
 #else
         (void) query;

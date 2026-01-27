@@ -18,9 +18,9 @@
 message("Checking compiler...")
 RAINY_GET_CXX_COMPILER_ID(COMPILER_ID)
 
-if (CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64|ARM64)$")
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64|ARM64)$")
     message(STATUS "Target architecture is ARM64")
-endif ()
+endif()
 
 rainy_load_flodar_files("${PROJECT_SOURCE_DIR}/xaga/sources" ".cxx" SPECIAL_FILES_LIST)
 
@@ -62,61 +62,50 @@ target_include_directories(
 message(STATUS "The rainy-toolkit will use ${COMPILER_ID} complier to compile the sources files")
 message(STATUS "Starting configure the library")
 
-check_cxx_source_compiles("
-    #if defined(_M_ARM64) || defined(__aarch64__)
-    #error ARM64 not supported
-    #endif
-    int main() { return 0; }
-    " IS_ARM64)
-
-if (IS_ARM64)
-    set(IS_ARM64 OFF)
-else ()
-    set(IS_ARM64 ON)
-endif ()
-
-if (RAINY_USE_AVX2_BOOST AND NOT RAINY_USE_CROSSCOMPILE AND NOT IS_ARM64 AND CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+if (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" AND NOT RAINY_USE_CROSSCOMPILE)
     # 仅x86_64架构支持AVX2指令集
-    set(RAINY_CAN_USE_AVX2 TRUE)
-else ()
-    set(RAINY_CAN_USE_AVX2 FALSE)
+
+    if ((COMPILER_ID MATCHES "MSVC") OR (COMPILER_ID MATCHES "MSVC-Clang"))
+        if (RAINY_USE_AVX2_BOOST)
+            message("The rainy-toolkit will using avx2 boost")
+            target_compile_definitions(rainy-toolkit PUBLIC RAINY_USING_AVX2=1)
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /arch:AVX2")
+        else ()
+            target_compile_definitions(rainy-toolkit PUBLIC RAINY_USING_AVX2=0)
+        endif ()
+        set(MY_VERSIONINFO_RC "${CMAKE_BINARY_DIR}/version.rc")
+        configure_file("${PROJECT_SOURCE_DIR}/cmake/msvc/version_template.rc"
+                "${MY_VERSIONINFO_RC}")
+        target_sources(rainy-toolkit PRIVATE "${MY_VERSIONINFO_RC}")
+    endif ()
+
 endif ()
 
-if ((COMPILER_ID MATCHES "MSVC") OR (COMPILER_ID MATCHES "MSVC-Clang"))
-    if (RAINY_CAN_USE_AVX2)
-        message("The rainy-toolkit will using avx2 boost")
-        target_compile_definitions(rainy-toolkit PUBLIC RAINY_USING_AVX2=1)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /arch:AVX2")
-    else ()
-        target_compile_definitions(rainy-toolkit PUBLIC RAINY_USING_AVX2=0)
+if (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" AND NOT RAINY_USE_CROSSCOMPILE)
+
+    if (CMAKE_COMPILER_IS_GNUCXX OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT MSVC))
+        message("Detect Clang compiler or GNU compiler")
+        if (RAINY_USE_AVX2_BOOST)
+            message("The rainy-toolkit will using avx2 boost")
+            add_definitions(-DRAINY_USING_AVX2=1)
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2")
+        else ()
+            add_definitions(-DRAINY_USING_AVX2=0)
+        endif ()
+    elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND MSVC)
+        message("Detect Clang-MSVC Cli compiler")
+        if (RAINY_USE_AVX2_BOOST)
+            message("The rainy-toolkit will using avx2 boost")
+            add_definitions(-DRAINY_USING_AVX2=1)
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /arch:AVX2")
+        else ()
+            add_definitions(-DRAINY_USING_AVX2=0)
+        endif ()
     endif ()
-    set(MY_VERSIONINFO_RC "${CMAKE_BINARY_DIR}/version.rc")
-    configure_file("${PROJECT_SOURCE_DIR}/cmake/msvc/version_template.rc"
-            "${MY_VERSIONINFO_RC}")
-    target_sources(rainy-toolkit PRIVATE "${MY_VERSIONINFO_RC}")
+
 endif ()
 
-if (CMAKE_COMPILER_IS_GNUCXX OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT MSVC))
-    message("Detect Clang compiler or GNU compiler")
-    if (RAINY_CAN_USE_AVX2)
-        message("The rainy-toolkit will using avx2 boost")
-        add_definitions(-DRAINY_USING_AVX2=1)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2")
-    else ()
-        add_definitions(-DRAINY_USING_AVX2=0)
-    endif ()
-elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND MSVC)
-    message("Detect Clang-MSVC Cli compiler")
-    if (RAINY_CAN_USE_AVX2)
-        message("The rainy-toolkit will using avx2 boost")
-        add_definitions(-DRAINY_USING_AVX2=1)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /arch:AVX2")
-    else ()
-        add_definitions(-DRAINY_USING_AVX2=0)
-    endif ()
-endif ()
-
-if (MSVC AND NOT (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
+if (MSVC AND NOT (CMAKE_CXX_COMPILER_ID MATCHES "Clang") AND NOT RAINY_USE_CROSSCOMPILE)
     message("Detect MSVC compiler")
     if (RAINY_CAN_USE_AVX2)
         message("The rainy-toolkit will using avx2 boost")
