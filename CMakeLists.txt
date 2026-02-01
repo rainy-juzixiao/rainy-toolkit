@@ -49,9 +49,9 @@ endif()
 
 set( BENCHMARK_ENABLE_TESTING off)
 
-#add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/benchmark)
+add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/benchmark)
 add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/rttr_ex)
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/xaga/examples/reflection/)
 #add_subdirectory(${PROJECT_SOURCE_DIR}/xaga/benchmark/any/)
-#add_subdirectory(${PROJECT_SOURCE_DIR}/xaga/benchmark/reflection/)
+add_subdirectory(${PROJECT_SOURCE_DIR}/xaga/benchmark/reflection/)

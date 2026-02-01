@@ -200,6 +200,7 @@ struct S {
 };
 
 int main() {
+    //get_overloaded_func<void()>(&f);
     any a = 10;
     std::cout << std::as_const(a).as_lvalue_reference().type().name() << '\n';
     std::cout << std::as_const(a).as_rvalue_reference().type().name() << '\n';
