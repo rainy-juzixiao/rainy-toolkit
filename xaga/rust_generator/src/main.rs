@@ -1,88 +1,24 @@
 mod cli;
+mod dev_debug_tools;
+mod gen;
 mod lang;
 mod model;
 mod parser;
 mod utility;
-mod gen;
 
-use crate::cli::{code_rain, find_node_by_range, print_usage, tea_ceremony};
-use crate::lang::{init_translate, translate_string};
-use crate::model::cpp_class::ParseResult;
-use crate::utility::convert_toml_to_fluent;
+use crate::cli::{code_rain, find_node_by_range, print_usage, tea_ceremony, CommandArguments};
+use crate::dev_debug_tools::ast_node_tree::print_node_tree;
+use crate::gen::generate_registration;
+use crate::model::cpp_class::{CppClass, ParseResult};
+use crate::parser::extract_functions_and_ctors;
+use crate::utility::{modify_filename_in_front, write_cpp_file};
 use clap::Parser;
 use parser::parse_cpp;
-use std::fs;
-use tree_sitter::Node;
-use crate::gen::generate_registration;
-use crate::parser::extract_functions;
-
-pub fn print_node_tree(node: Node, source: &str, indent: usize, show_source: bool) {
-    let padding = " ".repeat(indent);
-
-    if show_source {
-        // 获取源码片段并去掉换行和多余空格
-        let text = node
-            .utf8_text(source.as_bytes())
-            .unwrap_or("")
-            .trim()
-            .replace("\n", " ");
-        println!(
-            "{}{} [{}..{}]: {}",
-            padding,
-            node.kind(),
-            node.start_byte(),
-            node.end_byte(),
-            text
-        );
-    } else {
-        println!(
-            "{}{} [{}..{}]",
-            padding,
-            node.kind(),
-            node.start_byte(),
-            node.end_byte()
-        );
-    }
-
-    // 遍历子节点
-    for i in 0..node.child_count() {
-        if let Some(child) = node.child(i as u32) {
-            print_node_tree(child, source, indent + 2, show_source);
-        }
-    }
-}
-
-#[derive(Parser, Debug)]
-#[command(author, version, about, long_about = None)]
-struct Cli {
-    /// 输入文件路径
-    #[arg(short, long)]
-    input: Option<String>,
-
-    /// 是否启用详细模式
-    #[arg(short, long, action = clap::ArgAction::SetTrue)]
-    verbose: bool,
-
-    #[arg(long)]
-    tea: bool,
-
-    #[arg(long)]
-    rain: bool,
-
-    #[arg(short, long, default_value = "30")]
-    rain_duration: u64,
-}
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let lang = "en-US";
-    let toml = fs::read_to_string(format!("misc/{lang}/generator_langpack.toml"))?;
-    let ftl = convert_toml_to_fluent(&toml)?;
-    init_translate(ftl, lang).is_err().then(|| {
-        panic!("Fail to init translate component");
-    });
     let mut exit = false;
-    let cli = Cli::parse();
+    let cli = CommandArguments::parse();
     if cli.tea {
         tea_ceremony().await;
         exit = true;
@@ -90,29 +26,51 @@ async fn main() -> anyhow::Result<()> {
         code_rain(cli.rain_duration).await;
         exit = true;
     }
-    // cli.input.is_none().then(|| {
-    //     if !exit {
-    //         print_usage();
-    //         exit = true;
-    //     }
-    // });
+    cli.input.is_none().then(|| {
+        if !exit {
+            //print_usage();
+            exit = true;
+        }
+    });
     if exit {
         return Ok(());
     }
-    let source = std::fs::read_to_string("misc/example.cc")?;
-    let parse_result: ParseResult = parse_cpp(&source)?;
+    let input_file = cli.input.as_ref().unwrap();
+    let source = std::fs::read_to_string(input_file)?;
+    let parse_result: ParseResult = parse_cpp(&source, &cli)?;
     for class in &parse_result.classes {
-        println!("Class: {}", class.name);
+        if cli.verbose {
+            println!("Found cpp moc class: {}", class.name);
+        }
         if let Some(node) = find_node_by_range(
             parse_result.tree.root_node(),
             class.start_byte,
             class.end_byte,
         ) {
+            if cli.dev {
+                print_node_tree(node, &source, 0, true);
+            }
             let mut functions = Vec::new();
-            extract_functions(node, &source, &mut functions);
-
-            let registration_code = generate_registration(class, &functions, "example.cc");
-            println!("{}", registration_code);
+            let mut ctors = Vec::new();
+            extract_functions_and_ctors(node, &source, &mut functions, &mut ctors);
+            let registration_code = generate_registration(class, &functions, &ctors, input_file);
+            if cli.verbose {
+                println!(
+                    "Generated code for class {} , generated code: \n{}",
+                    class.name, registration_code
+                );
+            }
+            let out_file: String;
+            if cli.out.is_none() {
+                if cli.verbose {
+                    println!("No output file specified, use the original filename to generate.");
+                }
+                out_file = input_file.clone();
+            } else {
+                out_file = cli.out.clone().unwrap();
+            }
+            let file_name = modify_filename_in_front(out_file, "moc_").unwrap();
+            write_cpp_file(&registration_code, file_name.as_str())?;
         }
     }
     Ok(())

@@ -1,28 +1,24 @@
 use tree_sitter::{Parser, Node};
 use tree_sitter_cpp::LANGUAGE;
-use crate::model::cpp_class::{CppFunction, ParseResult};
-use crate::model::CppClass;
+use crate::cli::CommandArguments;
+use crate::model::cpp_class::{CppClass, ParseResult};
 use crate::parser::extract_class_name;
 
-pub fn parse_cpp(source: &str) -> anyhow::Result<ParseResult> {
+pub fn parse_cpp(source: &str, cli: &CommandArguments) -> anyhow::Result<ParseResult> {
     let mut parser = Parser::new();
     let language: tree_sitter::Language = LANGUAGE.into();
     parser.set_language(&language)?;
-
     let tree = parser.parse(source, None).unwrap();
     let root = tree.root_node();
-
     let mut classes = Vec::new();
     visit(root, source, &mut classes);
-
     Ok(ParseResult { tree, classes })
 }
 
 fn visit(node: Node, source: &str, classes: &mut Vec<CppClass>) {
-    if node.kind() == "class_specifier" {
+    if node.kind() == "class_specifier" || node.kind() == "struct_specifier" { // class struct
         if let Some(name) = extract_class_name(node, source) {
-            let has_moc_macro = contains_macro(node, source, "RAINY_ENABLE_MOC");
-
+            let has_moc_macro = contains_macro(node, source, "RAINY_ENABLE_MOC"); // 启用MOC的宏
             if has_moc_macro {
                 classes.push(CppClass {
                     name,
@@ -33,7 +29,6 @@ fn visit(node: Node, source: &str, classes: &mut Vec<CppClass>) {
             }
         }
     }
-
     for i in 0..node.child_count() {
         if let Some(child) = node.child(i as u32) {
             visit(child, source, classes);

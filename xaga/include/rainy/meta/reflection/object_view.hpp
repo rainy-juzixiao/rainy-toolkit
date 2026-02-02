@@ -17,9 +17,17 @@
 #define RAINY_META_REFLECTION_OBJECT_VIEW_HPP
 #include <rainy/core/core.hpp>
 #include <rainy/foundation/typeinfo.hpp>
-#include <rainy/meta/reflection/refl_impl/type_register.hpp>
 #include <rainy/foundation/memory/nebula_ptr.hpp>
 #include <rainy/utility/any.hpp>
+
+namespace rainy::meta::reflection {
+    class type;
+}
+
+namespace rainy::meta::reflection::implements {
+    class register_table;
+    struct type_accessor;
+}
 
 namespace rainy::meta::reflection {
     class object_view;
@@ -430,10 +438,10 @@ namespace rainy::meta::reflection {
                 foundation::ctti::apply_offset(const_cast<void *>(object_), type().remove_cvref(), target_type));
         }
 
-        template <typename... Args, typename Type = reflection::type>
+        template <typename... Args, typename Type = reflection::type, typename RegTable = implements::register_table>
         utility::any invoke(std::string_view name, Args &&...args) {
             if (!impl_) {
-                impl_ = implements::register_table::get_accessor(this->type());
+                impl_ = RegTable::get_accessor(this->type());
                 if (!impl_) {
                     return {}; // 未注册
                 }
@@ -442,10 +450,10 @@ namespace rainy::meta::reflection {
             return mytype.invoke_method(name, *this, utility::forward<Args>(args)...);
         }
 
-        template <typename SharedObject = shared_object, typename Type = reflection::type>
+        template <typename SharedObject = shared_object, typename Type = reflection::type, typename RegTable = implements::register_table>
         SharedObject create_shared() {
             if (!impl_) {
-                impl_ = implements::register_table::get_accessor(this->type());
+                impl_ = RegTable::get_accessor(this->type());
                 if (!impl_) {
                     return {}; // 未注册
                 }

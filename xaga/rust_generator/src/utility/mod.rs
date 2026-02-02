@@ -1,6 +1,4 @@
-mod language;
-mod toml_to_fluent;
+mod file;
 
-
-pub use language::{AppConfig, load_easter_eggs, load_help_sections};
-pub use toml_to_fluent::convert_toml_to_fluent;
+pub use file::write_cpp_file;
+pub use file::modify_filename_in_front;

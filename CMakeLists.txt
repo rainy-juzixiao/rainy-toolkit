@@ -37,6 +37,7 @@ option(RAINY_USING_UTF8_OUTPUT_FOR_MSVC "Use utf-8 encoding for output. Reason: 
 
 include(${PROJECT_SOURCE_DIR}/cmake/utility.cmake)
 include(${PROJECT_SOURCE_DIR}/cmake/config.cmake)
+include(${PROJECT_SOURCE_DIR}/cmake/automoc.cmake)
 include(${PROJECT_SOURCE_DIR}/cmake/install.cmake)
 
 if (RAINY_ENABLE_TESTING)
