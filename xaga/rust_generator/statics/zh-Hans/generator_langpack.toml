@@ -1,0 +1,15 @@
+[[help]]
+print_usage_header = "---- rainy-toolkit C++ 反射工具用例 ----"
+
+[[help.options_desc]]
+input = "指定本次程序运行时moc生成器读取的文件"
+verbose = "显示moc生成器的生成过程"
+out = "让生成器将内容输出到指定文件"
+help = "显示帮助"
+suffix = "使用后缀名作为生成文件名结尾"
+config = "设置本次程序运行时的配置文件目录"
+lang = "设置moc生成器的显示语言，如果它们的语言包可用的情况下"
+
+[[easter_eggs.code_rain]]
+init_text = "🌧️  Initiating Smooth Code Rain 🌧️"
+press_ctrl = "Press Ctrl+C to stop early"

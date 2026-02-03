@@ -1,11 +1,14 @@
 use clap::Parser;
 
 #[derive(Parser, Debug)]
-#[command(author, version, about, long_about = None)]
+#[command(author, version, about, long_about = None, disable_help_flag = true)]
 pub struct CommandArguments {
     /// 输入文件路径
     #[arg(short, long)]
     pub input: Option<String>,
+
+    #[arg(long)]
+    pub lang: Option<String>,
 
     #[arg(short, long, action = clap::ArgAction::SetTrue)]
     pub verbose: bool,
@@ -24,4 +27,7 @@ pub struct CommandArguments {
 
     #[arg(short, long)]
     pub out: Option<String>,
+
+    #[arg(long, action = clap::ArgAction::SetTrue)]
+    pub help: bool,
 }

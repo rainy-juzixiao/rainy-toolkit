@@ -22,3 +22,20 @@ public:
 
     static void bar() {}
 };
+
+class b {
+public:
+    RAINY_ENABLE_MOC();
+
+    b() { }
+
+    void foo() {
+
+    }
+
+    void foo(int, int) {
+
+    }
+
+    static void bar() {}
+};

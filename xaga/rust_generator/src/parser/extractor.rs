@@ -90,7 +90,6 @@ pub fn extract_functions_and_ctors(
             // 判断构造函数：没有返回类型 && ctor_name == current_class
             if return_type.is_none() && ctor_name.as_deref() == current_class {
                 ctors.push(CppCtor {
-                    name: ctor_name.unwrap(),
                     params,
                 });
             }
