@@ -36,10 +36,17 @@ pub struct EasterEggs {
 }
 
 #[derive(Deserialize)]
+pub struct DescriptionSection {
+    pub content: String,
+}
+
+#[derive(Deserialize)]
 pub struct Messages {
     pub help: Vec<Help>,
 
     pub easter_eggs: EasterEggs,
+
+    pub description: Vec<DescriptionSection>,
 }
 
 lazy_static! {
@@ -121,6 +128,28 @@ pub fn load_help_sections() -> Result<(String, OptionsDesc), Box<dyn std::error:
         }
     }
     Ok((help_header, options_desc))
+}
+
+pub fn load_version_description() -> Result<DescriptionSection, Box<dyn std::error::Error>> {
+    let load_res = get_current_lang_res();
+    let content = match load_res {
+        Ok(content) => content,
+        Err(_) => include_statics!("en-US/generator_langpack.toml")
+            .parse()
+            .unwrap(),
+    };
+    let messages: Messages = match toml::from_str(&content) {
+        Ok(content) => content,
+        Err(_) => {
+            let res = include_statics!("en-US/generator_langpack.toml");
+            toml::from_str(res).unwrap()
+        }
+    };
+    messages
+        .description
+        .into_iter()
+        .next()
+        .ok_or_else(|| "description section is empty".into())
 }
 
 pub fn load_easter_eggs() -> Result<CodeRain, Box<dyn std::error::Error>> {

@@ -6,27 +6,6 @@ class Foo {
 class Bar {
 };
 
-class a {
-public:
-    RAINY_ENABLE_MOC();
-
-    a() { }
-
-    void foo() {
-
-    }
-
-    void foo(int, int) {
-
-    }
-
-    int mem() {
-
-    }
-
-    static void bar() {}
-};
-
 class b {
 public:
     RAINY_ENABLE_MOC();

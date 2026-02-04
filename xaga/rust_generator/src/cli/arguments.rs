@@ -1,7 +1,7 @@
 use clap::Parser;
 
 #[derive(Parser, Debug)]
-#[command(author, version, about, long_about = None, disable_help_flag = true)]
+#[command(author, version, about, long_about = None, disable_help_flag = true, disable_version_flag = true)]
 pub struct CommandArguments {
     /// 输入文件路径
     #[arg(short, long)]
@@ -10,7 +10,7 @@ pub struct CommandArguments {
     #[arg(long)]
     pub lang: Option<String>,
 
-    #[arg(short, long, action = clap::ArgAction::SetTrue)]
+    #[arg(long, action = clap::ArgAction::SetTrue)]
     pub verbose: bool,
 
     #[arg(long)]
@@ -30,4 +30,7 @@ pub struct CommandArguments {
 
     #[arg(long, action = clap::ArgAction::SetTrue)]
     pub help: bool,
+
+    #[arg(short, long, action = clap::ArgAction::SetTrue)]
+    pub version: bool,
 }

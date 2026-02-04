@@ -1,5 +1,6 @@
+use crate::utility::{blake3_hash_bytes};
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 pub fn write_cpp_file(output: &str, path: &str) -> anyhow::Result<()> {
     fs::write(path, output)?;
@@ -16,4 +17,9 @@ pub fn modify_filename_in_front<P: AsRef<Path>>(file_path: P, modifier: &str) ->
         None => new_stem,
     };
     Some(new_filename)
+}
+
+pub fn hash_file(path: &Path) -> Result<String, std::io::Error> {
+    let bytes = fs::read(path)?;
+    Ok(blake3_hash_bytes(&bytes))
 }

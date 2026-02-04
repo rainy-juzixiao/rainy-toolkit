@@ -13,3 +13,13 @@ lang = "Set the display language when language packs are available."
 [[easter_eggs.code_rain]]
 init_text = "🌧️  Initiating Smooth Code Rain 🌧️"
 press_ctrl = "Press Ctrl+C to stop early"
+
+[[description]]
+content = '''
+rainy-toolkit reflection moc compiler
+
+authors: {authors}
+hash: {git_hash}
+branch: {git_branch}
+build_time: {build_time}
+'''

@@ -20,6 +20,6 @@
 
 生成器目前预定规划支持如下参数：
 
-- `-i --input <input_file_path>` 指定moc生成器需要生成的目录
-- `-o --out <output_file_path>`
-- `-h --help`
+- `-i --input <input_file_path>` 指定moc生成器需要读取生成的源文件
+- `-o --out <output_file_path>` 指定moc生成器输出到的路径
+- `-h --help` 打印帮助输出
