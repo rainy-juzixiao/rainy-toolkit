@@ -1,9 +1,9 @@
 use colored::*;
+use indicatif::{ProgressBar, ProgressStyle};
+use rand::Rng;
 use std::io::{self, Write};
 use std::time::Duration;
-use rand::Rng;
 use tokio::time::sleep;
-use indicatif::{ProgressBar, ProgressStyle};
 
 const TEA_WISDOM: &[&str] = &[
     "A good programmer is like a good tea - strong, clear, and refreshing.",
@@ -54,5 +54,5 @@ pub async fn tea_ceremony() {
         io::stdout().flush().unwrap();
         sleep(Duration::from_secs(1)).await;
     }
-    println!("\n✅ Time to back home!\n");
+    println!("\nTime to back home!\n");
 }
