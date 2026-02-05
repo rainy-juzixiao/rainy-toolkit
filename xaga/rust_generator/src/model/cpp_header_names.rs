@@ -12,15 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-static CPP_HEADER_EXTENSIONS: &'static [&'static str] = &[
-    ".h",
-    ".hh",
-    ".hpp",
-    ".hxx",
-    ".h++",
-    ".inl",
-];
+use std::path::PathBuf;
 
-pub fn is_cpp_header(file_name: &str) -> bool {
-    CPP_HEADER_EXTENSIONS.iter().any(|ext| file_name.ends_with(ext))
+static CPP_HEADER_EXTENSIONS: &'static [&'static str] =
+    &[".h", ".hh", ".hpp", ".hxx", ".h++", ".inl"];
+
+pub fn is_cpp_header(filepath: &PathBuf) -> bool {
+    let extension = match filepath.extension() {
+        Some(ext) => ext.to_str().unwrap(),
+        None => "",
+    };
+    CPP_HEADER_EXTENSIONS
+        .iter()
+        .any(|ext| extension.eq(ext.to_string().as_str()))
 }

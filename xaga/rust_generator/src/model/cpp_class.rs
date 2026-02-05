@@ -12,18 +12,36 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use tree_sitter::{Node, Tree};
+use tree_sitter::{Tree};
+
+use crate::model::{cpp_ctor::CppCtor, cpp_function::CppFunction};
 
 #[derive(Debug, Clone)]
 pub struct CppClass {
     pub name: String,
-    pub has_moc_macro: bool,
+    pub cpp_ctors: Vec<CppCtor>,
+    pub cpp_functions: Vec<CppFunction>,
     pub start_byte: usize,
     pub end_byte: usize,
+}
+
+impl CppClass {
+    pub fn type_name(&self) -> &String {
+        &self.name
+    }
+
+    pub fn functions(&self) -> &Vec<CppFunction> {
+        &self.cpp_functions
+    }
+
+    pub fn constructors(&self) -> &Vec<CppCtor> {
+        &self.cpp_ctors
+    }
 }
 
 pub struct ParseResult {
     pub tree: Tree,
     pub classes: Vec<CppClass>,
+    pub global_functions: Vec<CppFunction>
 }
 

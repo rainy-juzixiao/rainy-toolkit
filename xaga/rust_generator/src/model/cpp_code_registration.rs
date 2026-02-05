@@ -18,33 +18,53 @@ use crate::model::cpp_function::CppFunction;
 use crate::parser::extract_functions_and_ctors;
 use tree_sitter::Node;
 
-pub struct RegistrationClass {
-    class: CppClass,
-    cpp_ctors: Vec<CppCtor>,
-    cpp_functions: Vec<CppFunction>,
+pub struct RegistrationCode {
+    classes: Vec<CppClass>,
+    global_function: Vec<CppFunction>
 }
 
-impl RegistrationClass {
-    pub fn new(class: &CppClass, node: &Node, source: &String) -> RegistrationClass {
-        let mut cpp_functions = Vec::new();
-        let mut cpp_ctors = Vec::new();
-        extract_functions_and_ctors(*node, &source, &mut cpp_functions, &mut cpp_ctors);
-        RegistrationClass {
-            class: class.clone(),
-            cpp_ctors,
-            cpp_functions,
+impl RegistrationCode {
+    pub fn new(classes: &Vec<CppClass>, node: &Node, source: &String) -> RegistrationCode {
+        let mut clazzes = classes.clone();
+        for item in &mut clazzes {
+            extract_functions_and_ctors(*node, &source, &mut item.cpp_functions, &mut item.cpp_ctors);
+        }
+        RegistrationCode {
+            classes: clazzes,
+            global_function: Vec::new()
         }
     }
 
-    pub fn type_name(&self) -> &String {
-        &self.class.name
+    pub fn make() -> RegistrationCode {
+        RegistrationCode {
+            classes: Vec::new(),
+            global_function: Vec::new()
+        }
     }
 
-    pub fn functions(&self) -> &Vec<CppFunction> {
-        &self.cpp_functions
+    pub fn classes(&self) -> &Vec<CppClass> {
+        &self.classes
     }
 
-    pub fn constructors(&self) -> &Vec<CppCtor> {
-        &self.cpp_ctors
+    pub fn add_class(&mut self, class: CppClass, node: &Node, source: &String) {
+        let mut clazz = class.clone();
+        extract_functions_and_ctors(*node, &source, &mut clazz.cpp_functions, &mut clazz.cpp_ctors);
+        self.classes.push(clazz);
+    }
+
+    pub fn add_global_function(&mut self, function: CppFunction) {
+        self.global_function.push(function);
+    }
+
+    pub fn global_functions(&self) ->&Vec<CppFunction> {
+        &self.global_function
+    }
+
+    pub fn classes_count(&self) -> usize {
+        self.classes.len()
+    }
+
+    pub fn classes_is_empty(&self) -> bool {
+        self.classes.is_empty()
     }
 }

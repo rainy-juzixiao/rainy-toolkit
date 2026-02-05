@@ -1,4 +1,4 @@
-#define RAINY_ENABLE_MOC() static constexpr bool inline this_class_is_enable_for_moc = false
+#define RAINY_ENABLE_MOC(...)
 
 class Foo {
 };
@@ -43,3 +43,8 @@ public:
 
     static void bar() {}
 };
+
+RAINY_ENABLE_MOC()
+void function() {
+
+}

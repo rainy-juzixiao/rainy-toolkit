@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::cli::CommandArguments;
 use crate::utility::{blake3_hash_bytes};
 use std::fs;
 use std::path::Path;
@@ -36,4 +37,19 @@ pub fn modify_filename_in_front<P: AsRef<Path>>(file_path: P, modifier: &str) ->
 pub fn hash_file(path: &Path) -> Result<String, std::io::Error> {
     let bytes = fs::read(path)?;
     Ok(blake3_hash_bytes(&bytes))
+}
+
+pub fn write_file(cli: &CommandArguments, input_file: &String, registration_code: &String) {
+    let out_file: String;
+    if cli.out.is_none() {
+        if cli.verbose {
+            println!("No output file specified, use the original filename to generate.");
+        }
+        out_file = input_file.clone();
+    } else {
+        out_file = cli.out.clone().unwrap();
+    }
+
+    let file_name = modify_filename_in_front(out_file, "moc_").unwrap();
+    write_cpp_file(registration_code, file_name.as_str()).unwrap();
 }

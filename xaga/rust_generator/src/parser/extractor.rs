@@ -128,3 +128,64 @@ pub fn extract_functions_and_ctors(
 
     helper(node, source, functions, ctors, None);
 }
+
+pub fn parse_global_function(node: Node, source: &str) -> Option<CppFunction> {
+    let mut return_type: Option<String> = None;
+    let mut params = Vec::new();
+    let mut is_static = false;
+    let mut func_name: Option<String> = None;
+
+    for i in 0..node.child_count() {
+        let child = node.child(i as u32)?;
+
+        match child.kind() {
+            "primitive_type" | "type_identifier" => {
+                return_type =
+                    Some(child.utf8_text(source.as_bytes()).unwrap_or("").to_string());
+            }
+            "storage_class_specifier" => {
+                if child.utf8_text(source.as_bytes()).unwrap_or("") == "static" {
+                    is_static = true;
+                }
+            }
+            "function_declarator" => {
+                for j in 0..child.child_count() {
+                    let grand = child.child(j as u32)?;
+
+                    match grand.kind() {
+                        "identifier" | "field_identifier" => {
+                            func_name =
+                                Some(grand.utf8_text(source.as_bytes()).unwrap_or("").to_string());
+                        }
+                        "parameter_list" => {
+                            for k in 0..grand.child_count() {
+                                if let Some(param) = grand.child(k as u32) {
+                                    if param.kind() == "parameter_declaration" {
+                                        if let Some(typ) =
+                                            param.child_by_field_name("type")
+                                        {
+                                            params.push(
+                                                typ.utf8_text(source.as_bytes())
+                                                    .unwrap_or("")
+                                                    .to_string(),
+                                            );
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+
+    Some(CppFunction {
+        name: func_name?,
+        return_type: return_type.unwrap_or_default(),
+        params,
+        is_static,
+    })
+}

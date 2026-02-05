@@ -48,7 +48,6 @@ pub struct IncrementalCache {
 pub struct BuildChanges {
     pub needs_full_rebuild: bool,
     pub files_to_regenerate: Vec<PathBuf>,
-    pub stale_outputs: Vec<PathBuf>,
 }
 
 #[derive(Debug)]
@@ -168,8 +167,6 @@ impl IncrementalState {
     pub fn analyze_changes(&self) -> BuildChanges {
         let mut needs_full_rebuild = false;
         let mut files_to_regenerate = Vec::new();
-        let stale_outputs = Vec::new();
-
         // 检查配置是否变化
         if let Some(old_config_hash) = self.cache.target_config_hashes.get("default") {
             if old_config_hash != &self.config_hash {
@@ -191,7 +188,6 @@ impl IncrementalState {
         BuildChanges {
             needs_full_rebuild,
             files_to_regenerate,
-            stale_outputs,
         }
     }
 

@@ -7,13 +7,11 @@ fn copy_dir_recursive(from: &Path, to: &Path) {
     if !to.exists() {
         fs::create_dir_all(to).unwrap();
     }
-
     for entry in fs::read_dir(from).unwrap() {
         let entry = entry.unwrap();
         let file_type = entry.file_type().unwrap();
         let from_path = entry.path();
         let to_path = to.join(entry.file_name());
-
         if file_type.is_dir() {
             copy_dir_recursive(&from_path, &to_path);
         } else if file_type.is_file() {
@@ -53,10 +51,11 @@ fn main() {
 
     let from = manifest_dir.join("statics");
     let to = exe_dir.join("statics");
+    println!("cargo:rustc-env=RESOURCE_PATH={}", exe_dir.to_str().unwrap());
 
     copy_dir_recursive(&from, &to);
 
-    println!("cargo:warning=Copied {:?} to {:?}", from, to);
+    println!("cargo:info=Copied {:?} to {:?}", from, to);
 
     {
         let git_hash = Command::new("git")
@@ -77,5 +76,4 @@ fn main() {
         let branch = git_branch();
         println!("cargo:rustc-env=GIT_BRANCH={}", branch.unwrap_or_else(|| "unknown".into()));
     }
-
 }

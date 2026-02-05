@@ -21,75 +21,15 @@ mod model;
 mod parser;
 mod utility;
 
-use crate::cli::{
-    code_rain, find_node_by_range, print_moc_compiler_description, print_usage, tea_ceremony,
-    CommandArguments,
-};
-use crate::dev_debug_tools::ast_node_tree::print_node_tree;
-use crate::gen::generate_registration;
+use crate::cli::easter_egg::handle_easter_egg;
+use crate::cli::{print_moc_compiler_description, print_usage, CommandArguments};
+use crate::gen::generate_code;
 use crate::lang::language::set_this_session_lang;
-use crate::model::cpp_class::ParseResult;
-use crate::model::cpp_code_registration::RegistrationClass;
 use crate::model::incremental::IncrementalState;
-use crate::utility::{hash_generated_code, modify_filename_in_front, write_cpp_file};
+use crate::utility::{hash_generated_code, modify_filename_in_front, write_cpp_file, write_file};
 use clap::Parser;
-use parser::parse_cpp;
 use std::path::{Path, PathBuf};
 use std::{fs, io};
-
-fn write_file(cli: &CommandArguments, input_file: &String, registration_code: &String) {
-    let out_file: String;
-    if cli.out.is_none() {
-        if cli.verbose {
-            println!("No output file specified, use the original filename to generate.");
-        }
-        out_file = input_file.clone();
-    } else {
-        out_file = cli.out.clone().unwrap();
-    }
-
-    let file_name = modify_filename_in_front(out_file, "moc_").unwrap();
-    write_cpp_file(registration_code, file_name.as_str()).unwrap();
-}
-
-fn generate_code(
-    cli: &CommandArguments,
-    input_path: &PathBuf,
-    input_file: &str,
-) -> anyhow::Result<String> {
-    if cli.verbose {
-        println!("Generating new output...");
-    }
-    let source = fs::read_to_string(&input_path)?;
-    let parse_result: ParseResult = parse_cpp(&source, &cli)?;
-    let mut total_generate: Vec<RegistrationClass> = Vec::new();
-    for class in &parse_result.classes {
-        if cli.verbose {
-            println!("Found cpp moc class: {}", class.name);
-        }
-        if let Some(node) = find_node_by_range(
-            parse_result.tree.root_node(),
-            class.start_byte,
-            class.end_byte,
-        ) {
-            if cli.dev {
-                print_node_tree(node, &source, true);
-            }
-            total_generate.push(RegistrationClass::new(class, &node, &source));
-        }
-    }
-    if cli.verbose {
-        if total_generate.is_empty() {
-            println!(
-                "We didn't see any moc class to generate when we read {:?}",
-                cli.input
-            );
-        }
-        println!("Found {} moc class(es) to generate", total_generate.len());
-    }
-    let registration_code = generate_registration(&cli, &total_generate, input_file);
-    Ok(registration_code)
-}
 
 fn start_generate(
     cli: &CommandArguments,
@@ -113,7 +53,7 @@ fn start_generate(
             if cli.verbose {
                 println!("Input unchanged, found cached temp file: {:?}", cached_temp);
             }
-            if cached_temp.exists() {
+            if !cached_temp.exists() {
                 let out_file = cli
                     .out
                     .as_ref()
@@ -153,8 +93,11 @@ fn start_generate(
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let mut exit = false;
     let cli = CommandArguments::parse();
+
+    if handle_easter_egg(&cli).await {
+        return Ok(());
+    }
 
     if let Some(lang) = &cli.lang {
         set_this_session_lang(&cli, &lang);
@@ -167,17 +110,6 @@ async fn main() -> anyhow::Result<()> {
 
     if cli.version {
         print_moc_compiler_description(&cli);
-    }
-
-    if cli.tea {
-        tea_ceremony().await;
-        exit = true;
-    } else if cli.rain {
-        code_rain(cli.rain_duration).await;
-        exit = true;
-    }
-
-    if exit {
         return Ok(());
     }
 

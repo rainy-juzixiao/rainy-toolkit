@@ -12,10 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use serde::Deserialize;
+use crate::cli::{CommandArguments, code_rain, tea_ceremony};
 
-#[derive(Debug, Deserialize)]
-struct Help {
-    print_usage_header: String,
-    output_options_desc: String
+pub async fn handle_easter_egg(cli: &CommandArguments) -> bool {
+    if cli.tea {
+        tea_ceremony().await;
+        return true;
+    } else if cli.rain {
+        code_rain(cli.rain_duration).await;
+        return true;
+    }
+    false
 }

@@ -12,13 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-static CPP_SOURCE_EXTENSIONS: &'static [&'static str] = &[
-    ".cc",
-    ".cpp",
-    ".cxx",
-    ".c++",
-];
+use std::path::PathBuf;
 
-pub fn is_cpp_source(file_name: &str) -> bool {
-    CPP_SOURCE_EXTENSIONS.iter().any(|ext| file_name.ends_with(ext))
+static CPP_SOURCE_EXTENSIONS: &'static [&'static str] = &[".cc", ".cpp", ".cxx", ".c++"];
+
+pub fn is_cpp_source(filepath: &PathBuf) -> bool {
+    let extension = match filepath.extension() {
+        Some(ext) => ext.to_str().unwrap(),
+        None => "",
+    };
+    CPP_SOURCE_EXTENSIONS
+        .iter()
+        .any(|ext| extension.eq(ext.to_string().as_str()))
 }

@@ -46,3 +46,31 @@ macro_rules! locate_runtime_resources {
         }
     }};
 }
+
+#[macro_export]
+macro_rules! locate_res_path {
+    ($path:literal) => {{
+        let resource_path = option_env!("RESOURCE_PATH");
+        match resource_path {
+            Some(dir) => std::path::Path::new(dir)
+                .join("statics")
+                .join($path)
+                .to_string_lossy()
+                .into_owned(),
+            None => String::new(),
+        }
+    }};
+
+    ($($arg:tt)*) => {{
+        let formatted_path = format!($($arg)*);
+        let resource_path = option_env!("RESOURCE_PATH");
+        match resource_path {
+            Some(dir) => std::path::Path::new(dir)
+                .join("statics")
+                .join(formatted_path)
+                .to_string_lossy()
+                .into_owned(),
+            None => String::new(),
+        }
+    }};
+}

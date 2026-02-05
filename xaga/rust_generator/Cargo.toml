@@ -1,12 +1,16 @@
 [package]
 name = "rt_moc"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2021"
 authors = ["rainy-juzixiao <rainy_juzixiao@outlook.com>"]
 description = "A C++ code analysis and code generation tool"
 license = "Apache-2.0"
 readme = "README.md"
 build = "build.rs"
+
+[package.metadata]
+speical_thanks = ["yun yu", "qing su", "yan qi"]
+speical_thanks_zh_hans = ["与云night", "苏沁", "亓言"]
 
 [[bin]]
 name = "rt_moc"
@@ -44,26 +48,14 @@ bincode = "1"
 pretty_assertions = "1.4"
 
 [build-dependencies]
-walkdir = "2.4" 
+walkdir = "2.4"
 serde_json = "1.0"
 anyhow = "1.0"
 chrono = "0.4.43"
+whoami = "1.4"
 
 [features]
 default = ["cli", "json"]
 cli = ["clap", "colored", "indicatif"]
 json = ["serde", "serde_json"]
 parallel = ["rayon"]
-
-[source.crates-io]
-replace-with = 'tuna'
-
-[source.tuna]
-registry = "https://mirrors.tuna.tsinghua.edu.cn/git/crates.io-index.git"
-
-[package.metadata.bundle]
-name = "your_app"
-identifier = "com.example.yourapp"
-version = "0.1.0"
-
-resources = ["statics"]

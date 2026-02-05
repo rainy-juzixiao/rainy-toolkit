@@ -13,3 +13,20 @@ lang = "设置moc生成器的显示语言，如果它们的语言包可用的情
 [[easter_eggs.code_rain]]
 init_text = "🌧️  Initiating Smooth Code Rain 🌧️"
 press_ctrl = "Press Ctrl+C to stop early"
+complete = "Code Rain Complete"
+welcome_back = "Welcome back to reality"
+interrupted_text = "Rain is not complete, but anyway, welcome back to reality"
+
+[[description]]
+content = '''
+rainy-toolkit reflection moc compiler (rt_moc)
+
+created-by: {authors}
+
+rt_moc is c++ code analysis and code generation tool that use rust program language develop.
+it can be used by accepted the licences APACHE 2.0.
+
+check_hash: {git_hash}
+branch: {git_branch}
+build_time: {build_time}
+'''
