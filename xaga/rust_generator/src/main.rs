@@ -36,9 +36,7 @@ fn start_generate(
     input_path: PathBuf,
     input_file: &str,
 ) -> anyhow::Result<()> {
-    // 创建增量状态
     let mut state = IncrementalState::new(input_path.clone())?;
-    state.print_debug_info(cli.verbose);
     let changes = state.analyze_changes();
     let temp_dir = PathBuf::from("./build/temp");
     fs::create_dir_all(&temp_dir)?;
@@ -48,30 +46,46 @@ fn start_generate(
         .to_string_lossy()
         .to_string();
     let temp_file_path = temp_dir.join(modify_filename_in_front(input_filename, "tmp_").unwrap());
-    if !changes.needs_full_rebuild && changes.files_to_regenerate.is_empty() {
-        if let Some(cached_temp) = state.get_cached_temp_file() {
-            if cli.verbose {
-                println!("Input unchanged, found cached temp file: {:?}", cached_temp);
-            }
-            if !cached_temp.exists() {
-                let out_file = cli
-                    .out
-                    .as_ref()
-                    .map(|s| s.clone())
-                    .unwrap_or_else(|| input_file.to_string());
-
-                let output_file_name = modify_filename_in_front(out_file, "moc_").unwrap();
-                fs::copy(cached_temp, &output_file_name)?;
-
+    if !cli.no_cache {
+        // 创建增量状态
+        state.print_debug_info(cli.verbose);
+        if !changes.needs_full_rebuild && changes.files_to_regenerate.is_empty() {
+            if let Some(cached_temp) = state.get_cached_temp_file() {
                 if cli.verbose {
-                    println!("  Cache hit! Skipped compilation.");
-                    println!("  Copied from: {:?}", cached_temp);
-                    println!("  Output to: {}", output_file_name);
+                    println!("Input unchanged, found cached temp file: {:?}", cached_temp);
                 }
-                return Ok(());
-            } else if cli.verbose {
-                println!("Cached temp file not found, regenerating...");
+                if cached_temp.exists() {
+                    let out_file = cli
+                        .out
+                        .as_ref()
+                        .map(|s| s.clone())
+                        .unwrap_or_else(|| input_file.to_string());
+                    let output_file_name: String;
+                    if cli.out.is_none() {
+                        if cli.verbose {
+                            println!(
+                                "No output file specified, use the original filename to generate."
+                            );
+                        }
+                        output_file_name = modify_filename_in_front(out_file, "moc_").unwrap();
+                    } else {
+                        output_file_name = out_file.clone();
+                    }
+                    fs::copy(cached_temp, &output_file_name)?;
+                    if cli.verbose {
+                        println!("  Cache hit! Skipped compilation.");
+                        println!("  Copied from: {:?}", cached_temp);
+                        println!("  Output to: {}", output_file_name);
+                    }
+                    return Ok(());
+                } else if cli.verbose {
+                    println!("Cached temp file not found, regenerating...");
+                }
             }
+        }
+    } else {
+        if cli.verbose && cli.no_cache {
+            println!("Detected cache is disabled");
         }
     }
     let registration_code = generate_code(&cli, &input_path, input_file)?;
@@ -120,6 +134,7 @@ async fn main() -> anyhow::Result<()> {
             return Ok(());
         }
     };
+    
     let input_path = if Path::new(input_file).is_absolute() {
         PathBuf::from(input_file)
     } else {

@@ -15,7 +15,7 @@
 use std::path::PathBuf;
 
 static CPP_HEADER_EXTENSIONS: &'static [&'static str] =
-    &[".h", ".hh", ".hpp", ".hxx", ".h++", ".inl"];
+    &["h", "hh", "hpp", "hxx", "h++", "inl"];
 
 pub fn is_cpp_header(filepath: &PathBuf) -> bool {
     let extension = match filepath.extension() {

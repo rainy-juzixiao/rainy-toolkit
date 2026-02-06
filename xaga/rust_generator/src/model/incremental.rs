@@ -199,13 +199,13 @@ impl IncrementalState {
         self.current_file_state.generated_code_hash = generated_code_hash;
         self.cache
             .file_states
-            .insert(self.input_path.clone(), self.current_file_state.clone());
+            .insert(self.input_path.canonicalize().unwrap(), self.current_file_state.clone());
         self.cache
             .target_config_hashes
             .insert("default".to_string(), self.config_hash.clone());
         self.cache
             .output_mapping
-            .insert(self.input_path.clone(), temp_file_path);
+            .insert(self.input_path.canonicalize().unwrap(), temp_file_path);
         self.cache.last_build_time = SystemTime::now();
     }
 

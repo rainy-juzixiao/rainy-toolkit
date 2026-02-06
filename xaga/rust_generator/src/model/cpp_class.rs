@@ -12,8 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use tree_sitter::{Tree};
+use tree_sitter::Tree;
 
+use crate::model::cpp_property::CppProperty;
 use crate::model::{cpp_ctor::CppCtor, cpp_function::CppFunction};
 
 #[derive(Debug, Clone)]
@@ -21,6 +22,7 @@ pub struct CppClass {
     pub name: String,
     pub cpp_ctors: Vec<CppCtor>,
     pub cpp_functions: Vec<CppFunction>,
+    pub cpp_public_properties: Vec<CppProperty>,
     pub start_byte: usize,
     pub end_byte: usize,
 }
@@ -37,11 +39,20 @@ impl CppClass {
     pub fn constructors(&self) -> &Vec<CppCtor> {
         &self.cpp_ctors
     }
+
+    pub fn public_properties(&self) -> &Vec<CppProperty> {
+        &self.cpp_public_properties
+    }
+}
+
+pub enum AccessLevel {
+    Public,
+    Protected,
+    Private
 }
 
 pub struct ParseResult {
     pub tree: Tree,
     pub classes: Vec<CppClass>,
-    pub global_functions: Vec<CppFunction>
+    pub global_functions: Vec<CppFunction>,
 }
-

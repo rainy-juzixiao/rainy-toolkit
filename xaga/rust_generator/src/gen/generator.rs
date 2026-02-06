@@ -12,77 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::gen::constructor_stub::generate_ctor_stub;
 use crate::cli::{find_node_by_range, CommandArguments};
 use crate::dev_debug_tools::ast_node_tree::print_node_tree;
+use crate::gen::function_stub::generate_memfun_stub;
+use crate::gen::header_stub::generate_header_stub;
+use crate::gen::property_stub::generate_public_properties_stub;
 use crate::model::cpp_class::ParseResult;
 use crate::model::cpp_code_registration::RegistrationCode;
 use crate::model::cpp_function::CppFunction;
 use crate::model::cpp_header_names::is_cpp_header;
 use crate::model::cpp_sources_names::is_cpp_source;
 use crate::parser::parse_cpp;
-use crate::{include_statics, locate_runtime_resources};
-use std::collections::HashMap;
+use crate::utility::new_line;
 use std::fs;
 use std::path::PathBuf;
-use strfmt::strfmt;
-
-fn new_line(output: &mut String) {
-    output.push_str("\n"); // 插入新行
-}
-
-fn generated_header_stub(cli: &CommandArguments, output: &mut String, path: &PathBuf) {
-    {
-        output.push_str(include_statics!("embed_licences")); // 插入许可证说明
-    }
-    new_line(output);
-    {
-        let version = env!("CARGO_PKG_VERSION").to_string();
-        let absoulte_source = path.display().to_string();
-        let input_source = path.file_name().unwrap();
-
-        let template = match fs::read_to_string(locate_runtime_resources!("embed_warnings")) {
-            Ok(template) => template,
-            Err(_) => {
-                if cli.verbose {
-                    println!("Cannot get embed_warnings template in statics folder, use internal embed_warnings template");
-                }
-                let template = include_statics!("embed_warnings");
-                template.to_string()
-            }
-        };
-        let mut vars: HashMap<String, String> = HashMap::new();
-        vars.insert(
-            "input_source".to_string(),
-            input_source.to_str().unwrap().to_string(),
-        );
-        vars.insert("absoulte_source".to_string(), absoulte_source.to_string());
-        vars.insert("generator_version".to_string(), version.to_string());
-        let result = match strfmt(&template, &vars) {
-            Ok(content) => content,
-            Err(err) => {
-                if cli.verbose {
-                    println!(
-                        "Err: {}\nCannot format liceneces stub, use default stub to generate",
-                        err
-                    );
-                }
-                let res = include_statics!("embed_warnings");
-                res.to_string()
-            }
-        };
-        output.push_str(&*result);
-    }
-    new_line(output);
-    output.push_str(&format!("#include \"{}\"\n", path.to_str().unwrap()));
-    output.push_str("#include <rainy/meta/reflection/registration.hpp>\n");
-    new_line(output);
-    output.push_str("using namespace rainy::meta::reflection;\n");
-    {
-        new_line(output);
-        output.push_str(&format!("#line 1 \"{}\"\n", path.to_str().unwrap()));
-        new_line(output);
-    }
-}
 
 pub fn generate_registration(
     cli: &CommandArguments,
@@ -91,43 +35,35 @@ pub fn generate_registration(
 ) -> String {
     let mut output = String::new();
     let header_path = fs::canonicalize(header_file).unwrap();
-    generated_header_stub(cli, &mut output, &header_path); // 生成头stub节
+    generate_header_stub(cli, &mut output, &header_path); // 生成头stub节
     output.push_str("RAINY_REFLECTION_REGISTRATION {\n");
-    for item in registration_code.classes() {
+    for (index, item) in registration_code.classes().iter().enumerate() {
+        if index == registration_code.classes().len() {
+            new_line(&mut output);
+            output.push_str("    ;");
+        } else {
+            if index != 0 {
+                new_line(&mut output);
+            }
+        }
         let type_name = item.type_name();
         output.push_str(&format!(
             "    registration::class_<{}>(\"{}\")\n",
             type_name, type_name
         ));
-        for ctor in item.constructors() {
-            let param_list = ctor.params.join(", ");
-            output.push_str(&format!("        .constructor<{}>()\n", param_list));
+        if generate_ctor_stub(&mut output, &item) {
+            // 构造函数桩
+            new_line(&mut output); // 如果返回true，则代表生成了代码，回车一行继续追加
         }
-        for func in item.functions() {
-            let param_list = func.params.join(", ");
-            if func.is_static {
-                output.push_str(&format!(
-                    "        .method(\"{}\",rainy::utility::get_overloaded_func<{}()>(&{}::{}))\n",
-                    func.name, func.return_type, type_name, func.name
-                ));
-            } else {
-                output.push_str(&format!(
-                    "        .method(\"{}\",rainy::utility::get_overloaded_func<{}, {}({})>(&{}::{}))\n",
-                    func.name,
-                    type_name,
-                    func.return_type,
-                    if param_list.is_empty() {
-                        "".to_string()
-                    } else {
-                        format!("{}", param_list)
-                    },
-                    type_name,
-                    func.name
-                ));
-            }
+        if generate_memfun_stub(&mut output, &item) {
+            // 成员函数桩
+            new_line(&mut output);
+        }
+        if generate_public_properties_stub(&mut output, &item) {
+            // 成员属性桩
+            new_line(&mut output);
         }
     }
-    output.push_str("    ;");
     let global_functions: &Vec<CppFunction> = registration_code.global_functions();
     if !global_functions.is_empty() {
         new_line(&mut output);
@@ -144,7 +80,8 @@ pub fn generate_registration(
             },
             first_func.name
         ));
-        for func in global_functions.iter().skip(1) { // 从第2个函数开始
+        for func in global_functions.iter().skip(1) {
+            // 从第2个函数开始
             let param_list = func.params.join(", ");
             output.push_str(&format!(
                 "        .method(\"{}\",rainy::utility::get_overloaded_func<{}({})>(&{}))\n",

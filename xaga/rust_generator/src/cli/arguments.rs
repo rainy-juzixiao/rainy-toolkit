@@ -12,10 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use clap::Parser;
+use clap::{Parser};
 
 #[derive(Parser, Debug)]
-#[command(author, version, about, long_about = None, disable_help_flag = true, disable_version_flag = true)]
+#[command(author, version, about, long_about = None, disable_help_flag = true, disable_version_flag = true
+)]
 pub struct CommandArguments {
     /// 输入文件路径
     #[arg(short, long)]
@@ -47,4 +48,7 @@ pub struct CommandArguments {
 
     #[arg(short, long, action = clap::ArgAction::SetTrue)]
     pub version: bool,
+
+    #[arg(long = "no-cache", action = clap::ArgAction::SetTrue)]
+    pub no_cache: bool,
 }

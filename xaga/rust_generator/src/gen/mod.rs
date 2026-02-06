@@ -14,4 +14,9 @@
 
 mod generator;
 
+mod header_stub;
+mod function_stub;
+mod property_stub;
+mod constructor_stub;
+
 pub use generator::generate_code;

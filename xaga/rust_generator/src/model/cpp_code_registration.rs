@@ -12,10 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::model::cpp_class::CppClass;
-use crate::model::cpp_ctor::CppCtor;
+use crate::model::cpp_class::{AccessLevel, CppClass};
 use crate::model::cpp_function::CppFunction;
-use crate::parser::extract_functions_and_ctors;
+use crate::parser::{extract_functions_and_ctors, extract_properties};
 use tree_sitter::Node;
 
 pub struct RegistrationCode {
@@ -24,17 +23,6 @@ pub struct RegistrationCode {
 }
 
 impl RegistrationCode {
-    pub fn new(classes: &Vec<CppClass>, node: &Node, source: &String) -> RegistrationCode {
-        let mut clazzes = classes.clone();
-        for item in &mut clazzes {
-            extract_functions_and_ctors(*node, &source, &mut item.cpp_functions, &mut item.cpp_ctors);
-        }
-        RegistrationCode {
-            classes: clazzes,
-            global_function: Vec::new()
-        }
-    }
-
     pub fn make() -> RegistrationCode {
         RegistrationCode {
             classes: Vec::new(),
@@ -49,6 +37,7 @@ impl RegistrationCode {
     pub fn add_class(&mut self, class: CppClass, node: &Node, source: &String) {
         let mut clazz = class.clone();
         extract_functions_and_ctors(*node, &source, &mut clazz.cpp_functions, &mut clazz.cpp_ctors);
+        extract_properties(*node, &source, &mut clazz.cpp_public_properties, AccessLevel::Public);
         self.classes.push(clazz);
     }
 

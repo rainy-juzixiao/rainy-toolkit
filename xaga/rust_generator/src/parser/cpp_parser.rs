@@ -53,6 +53,7 @@ fn visit(
                     name,
                     cpp_ctors: Vec::new(),
                     cpp_functions: Vec::new(),
+                    cpp_public_properties: Vec::new(),
                     start_byte: node.start_byte(),
                     end_byte: node.end_byte(),
                 });

@@ -40,16 +40,15 @@ pub fn hash_file(path: &Path) -> Result<String, std::io::Error> {
 }
 
 pub fn write_file(cli: &CommandArguments, input_file: &String, registration_code: &String) {
-    let out_file: String;
+    let mut out_file: String;
     if cli.out.is_none() {
         if cli.verbose {
             println!("No output file specified, use the original filename to generate.");
         }
         out_file = input_file.clone();
+        out_file = modify_filename_in_front(out_file, "moc_").unwrap();
     } else {
         out_file = cli.out.clone().unwrap();
     }
-
-    let file_name = modify_filename_in_front(out_file, "moc_").unwrap();
-    write_cpp_file(registration_code, file_name.as_str()).unwrap();
+    write_cpp_file(registration_code, &out_file.as_str()).unwrap();
 }

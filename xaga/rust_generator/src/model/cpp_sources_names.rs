@@ -14,7 +14,7 @@
 
 use std::path::PathBuf;
 
-static CPP_SOURCE_EXTENSIONS: &'static [&'static str] = &[".cc", ".cpp", ".cxx", ".c++"];
+static CPP_SOURCE_EXTENSIONS: &'static [&'static str] = &["cc", "cpp", "cxx", "c++"];
 
 pub fn is_cpp_source(filepath: &PathBuf) -> bool {
     let extension = match filepath.extension() {

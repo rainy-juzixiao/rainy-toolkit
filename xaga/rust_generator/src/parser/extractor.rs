@@ -15,6 +15,8 @@
 use tree_sitter::Node;
 
 use crate::model::{cpp_ctor::CppCtor, cpp_function::CppFunction};
+use crate::model::cpp_class::AccessLevel;
+use crate::model::cpp_property::CppProperty;
 
 pub fn extract_class_name(node: Node, source: &str) -> Option<String> {
     for i in 0..node.child_count() {
@@ -188,4 +190,92 @@ pub fn parse_global_function(node: Node, source: &str) -> Option<CppFunction> {
         params,
         is_static,
     })
+}
+
+pub fn extract_properties(
+    class_node: Node,
+    source: &str,
+    properties: &mut Vec<CppProperty>,
+    access_level: AccessLevel
+) {
+    let access_spec = match access_level {
+        AccessLevel::Private => "private",
+        AccessLevel::Protected => "protected",
+        AccessLevel::Public => "public"
+    };
+
+    for i in 0..class_node.child_count() {
+        let child = match class_node.child(i as u32) {
+            Some(c) => c,
+            None => continue,
+        };
+
+        // 找到 field_declaration_list，在里面查找字段
+        if child.kind() == "field_declaration_list" {
+            extract_from_declaration_list(child, source, properties, access_spec);
+        }
+    }
+}
+
+fn extract_from_declaration_list(
+    list_node: Node,
+    source: &str,
+    properties: &mut Vec<CppProperty>,
+    access_spec: &str
+) {
+    let mut is_hit = false;
+
+    for i in 0..list_node.child_count() {
+        let child = match list_node.child(i as u32) {
+            Some(c) => c,
+            None => continue,
+        };
+
+        match child.kind() {
+            "access_specifier" => {
+                let text = child.utf8_text(source.as_bytes()).unwrap_or("");
+                // access_specifier 可能包含冒号，比如 "public:"
+                let text = text.trim_end_matches(':');
+                is_hit = text == access_spec;
+            }
+            "field_declaration" if is_hit => {
+                let mut typ: Option<String> = None;
+                let mut name: Option<String> = None;
+                let mut is_static = false;
+
+                for j in 0..child.child_count() {
+                    if let Some(grand) = child.child(j as u32) {
+                        match grand.kind() {
+                            "storage_class_specifier" => {
+                                if grand.utf8_text(source.as_bytes()).unwrap_or("") == "static" {
+                                    is_static = true;
+                                }
+                            }
+                            "primitive_type" | "type_identifier" => {
+                                typ = Some(
+                                    grand
+                                        .utf8_text(source.as_bytes())
+                                        .unwrap_or("")
+                                        .to_string(),
+                                );
+                            }
+                            "field_identifier" => {
+                                name = Some(
+                                    grand
+                                        .utf8_text(source.as_bytes())
+                                        .unwrap_or("")
+                                        .to_string(),
+                                );
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+                if let (Some(typ), Some(name)) = (typ, name) {
+                    properties.push(CppProperty { name, property_type: typ, is_static });
+                }
+            }
+            _ => {}
+        }
+    }
 }

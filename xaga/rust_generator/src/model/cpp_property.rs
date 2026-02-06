@@ -11,12 +11,9 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
-pub mod cpp_class;
-pub mod cpp_function;
-pub mod cpp_header_names;
-pub mod cpp_sources_names;
-pub mod cpp_ctor;
-pub mod cpp_code_registration;
-pub mod incremental;
-pub mod cpp_property;
+#[derive(Debug, Clone)]
+pub struct CppProperty {
+    pub name: String,
+    pub property_type: String,
+    pub is_static: bool,
+}

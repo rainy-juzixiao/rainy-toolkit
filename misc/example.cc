@@ -25,6 +25,11 @@ public:
     }
 
     static void bar() {}
+
+    int aa;
+
+private:
+    int b;
 };
 
 class b {
