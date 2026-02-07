@@ -53,3 +53,13 @@ RAINY_ENABLE_MOC()
 void function() {
 
 }
+
+RAINY_ENABLE_MOC()
+void function1() {
+
+}
+
+RAINY_ENABLE_MOC()
+void function2() {
+
+}

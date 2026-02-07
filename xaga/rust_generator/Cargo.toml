@@ -8,6 +8,7 @@ license = "Apache-2.0"
 readme = "README.md"
 build = "build.rs"
 install = "install.rs"
+default-run = "rt_moc"
 
 [package.metadata]
 speical_thanks = ["yun yu", "qing su", "yan qi"]

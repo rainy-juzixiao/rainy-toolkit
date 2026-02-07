@@ -16,6 +16,7 @@ mod file;
 mod config;
 mod hash;
 mod text;
+mod bitset;
 
 pub use file::write_cpp_file;
 pub use file::write_file;
@@ -25,3 +26,4 @@ pub use hash::blake3_hash_bytes;
 pub use hash::hash_generated_code;
 pub use config::hash_build_config;
 pub use text::new_line;
+pub use bitset::BitSet;

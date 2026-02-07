@@ -12,13 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::gen::constructor_stub::generate_ctor_stub;
 use crate::cli::{find_node_by_range, CommandArguments};
 use crate::dev_debug_tools::ast_node_tree::print_node_tree;
-use crate::gen::function_stub::generate_memfun_stub;
+use crate::gen::constructor_stub::generate_ctor_stub;
+use crate::gen::function_stub::{generate_global_fun_stub, generate_memfun_stub};
 use crate::gen::header_stub::generate_header_stub;
 use crate::gen::property_stub::generate_public_properties_stub;
-use crate::model::cpp_class::ParseResult;
+use crate::model::cpp_class::ClazzItemCategory;
+use crate::model::cpp_class::{CppClass, ParseResult};
 use crate::model::cpp_code_registration::RegistrationCode;
 use crate::model::cpp_function::CppFunction;
 use crate::model::cpp_header_names::is_cpp_header;
@@ -28,6 +29,23 @@ use crate::utility::new_line;
 use std::fs;
 use std::path::PathBuf;
 
+fn generate_class_registration_begin_stub(output: &mut String, item: &CppClass) {
+    let type_name = item.type_name();
+    output.push_str(&format!(
+        "    registration::class_<{}>(\"{}\")\n",
+        type_name, type_name
+    ));
+}
+
+fn begin_registration_stub(output: &mut String) {
+    output.push_str("RAINY_REFLECTION_REGISTRATION {");
+    new_line(output);
+}
+
+fn end_registration_stub(output: &mut String) {
+    output.push_str(";\n}\n");
+}
+
 pub fn generate_registration(
     cli: &CommandArguments,
     registration_code: &RegistrationCode,
@@ -36,74 +54,39 @@ pub fn generate_registration(
     let mut output = String::new();
     let header_path = fs::canonicalize(header_file).unwrap();
     generate_header_stub(cli, &mut output, &header_path); // 生成头stub节
-    output.push_str("RAINY_REFLECTION_REGISTRATION {\n");
-    for (index, item) in registration_code.classes().iter().enumerate() {
-        if index == registration_code.classes().len() {
-            new_line(&mut output);
-            output.push_str("    ;");
-        } else {
-            if index != 0 {
+    begin_registration_stub(&mut output);
+    for item in registration_code.classes() {
+        generate_class_registration_begin_stub(&mut output, item);
+        if !item.all_is_empty() {
+            if generate_ctor_stub(&mut output, &item)
+                && item.has_any_after(ClazzItemCategory::Constructors)
+            {
                 new_line(&mut output);
             }
+
+            if generate_memfun_stub(&mut output, &item)
+                && item.has_any_after(ClazzItemCategory::MemberFunctions)
+            {
+                new_line(&mut output);
+            }
+
+            generate_public_properties_stub(&mut output, &item);
         }
-        let type_name = item.type_name();
-        output.push_str(&format!(
-            "    registration::class_<{}>(\"{}\")\n",
-            type_name, type_name
-        ));
-        if generate_ctor_stub(&mut output, &item) {
-            // 构造函数桩
-            new_line(&mut output); // 如果返回true，则代表生成了代码，回车一行继续追加
-        }
-        if generate_memfun_stub(&mut output, &item) {
-            // 成员函数桩
-            new_line(&mut output);
-        }
-        if generate_public_properties_stub(&mut output, &item) {
-            // 成员属性桩
-            new_line(&mut output);
-        }
+        output.push_str(";\n");
     }
     let global_functions: &Vec<CppFunction> = registration_code.global_functions();
-    if !global_functions.is_empty() {
-        new_line(&mut output);
-        let first_func = global_functions.first().unwrap();
-        let param_list = first_func.params.join(", ");
-        output.push_str(&format!(
-            "    registration::method(\"{}\",rainy::utility::get_overloaded_func<{}({})>(&{}))\n",
-            first_func.name,
-            first_func.return_type,
-            if param_list.is_empty() {
-                "".to_string()
-            } else {
-                format!("{}", param_list)
-            },
-            first_func.name
-        ));
-        for func in global_functions.iter().skip(1) {
-            // 从第2个函数开始
-            let param_list = func.params.join(", ");
-            output.push_str(&format!(
-                "        .method(\"{}\",rainy::utility::get_overloaded_func<{}({})>(&{}))\n",
-                func.name,
-                func.return_type,
-                if param_list.is_empty() {
-                    "".to_string()
-                } else {
-                    format!("{}", param_list)
-                },
-                func.name
-            ));
-        }
-    }
-
-    output.push_str("    ;\n}\n");
+    if generate_global_fun_stub(&mut output, &global_functions) {}
+    end_registration_stub(&mut output);
     if cli.verbose {
         println!("Finish generate for file: {}", header_file);
         println!("Generated code for these classes: ");
-        // for item in registration_class {
-        //     println!("{},", item.type_name());
-        // }
+        for item in registration_code.classes() {
+            println!("    class: {} ", item.type_name());
+        }
+        println!("Generated code for these functions: ");
+        for item in registration_code.global_functions() {
+            println!("    functions: {}", item.name);
+        }
         println!("Generated code: \n{}", output);
     }
     output
@@ -117,7 +100,7 @@ pub fn generate_code(
     if cli.verbose {
         println!("Generating new output...");
     }
-    if is_cpp_header(input_path) | is_cpp_source(input_path) {
+    if is_cpp_header(input_path) || is_cpp_source(input_path) {
         if cli.verbose {
             println!(
                 "Scan header / source files : {:?}",
