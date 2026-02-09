@@ -18,6 +18,8 @@
 message("Checking compiler...")
 RAINY_GET_CXX_COMPILER_ID(COMPILER_ID)
 
+set(RAINY_TOOLKIT_CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
+
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64|ARM64)$")
     message(STATUS "Target architecture is ARM64")
 endif()
