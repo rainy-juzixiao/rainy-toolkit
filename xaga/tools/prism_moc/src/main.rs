@@ -38,8 +38,14 @@ fn start_generate(
 ) -> anyhow::Result<()> {
     let mut state = IncrementalState::new(input_path.clone())?;
     let changes = state.analyze_changes();
-    let temp_dir = PathBuf::from("../../../../build/temp");
-    fs::create_dir_all(&temp_dir)?;
+    // Fix: 使用绝对路径或者当前工作目录
+    let temp_dir = std::env::current_dir()?
+        .join("build")
+        .join("temp");
+    // Fix: 确保目录创建成功，添加更详细的错误信息
+    fs::create_dir_all(&temp_dir).map_err(|e| {
+        anyhow::anyhow!("Failed to create temp directory {:?}: {}", temp_dir, e)
+    })?;
     let input_filename = input_path
         .file_name()
         .unwrap()
@@ -47,7 +53,6 @@ fn start_generate(
         .to_string();
     let temp_file_path = temp_dir.join(modify_filename_in_front(input_filename, "tmp_").unwrap());
     if !cli.no_cache {
-        // 创建增量状态
         state.print_debug_info(cli.verbose);
         if !changes.needs_full_rebuild && changes.files_to_regenerate.is_empty() {
             if let Some(cached_temp) = state.get_cached_temp_file() {
@@ -71,7 +76,11 @@ fn start_generate(
                     } else {
                         output_file_name = out_file.clone();
                     }
-                    fs::copy(cached_temp, &output_file_name)?;
+                    // Fix: 添加文件复制的错误处理
+                    fs::copy(&cached_temp, &output_file_name).map_err(|e| {
+                        anyhow::anyhow!("Failed to copy from {:?} to {}: {}", cached_temp, output_file_name, e)
+                    })?;
+
                     if cli.verbose {
                         println!("  Cache hit! Skipped compilation.");
                         println!("  Copied from: {:?}", cached_temp);
@@ -89,7 +98,10 @@ fn start_generate(
         }
     }
     let registration_code = generate_code(&cli, &input_path, input_file)?;
-    write_cpp_file(&registration_code, temp_file_path.to_str().unwrap())?;
+    // Fix: 添加文件写入的错误处理
+    write_cpp_file(&registration_code, temp_file_path.to_str().unwrap()).map_err(|e| {
+        anyhow::anyhow!("Failed to write temp file {:?}: {}", temp_file_path, e)
+    })?;
     let generated_code_hash = hash_generated_code(&registration_code);
     write_file(&cli, &input_file.to_string(), &registration_code);
     state.update_file_state(generated_code_hash, temp_file_path.clone());
@@ -108,25 +120,20 @@ fn start_generate(
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let cli = CommandArguments::parse();
-
     if handle_easter_egg(&cli).await {
         return Ok(());
     }
-
     if let Some(lang) = &cli.lang {
         set_this_session_lang(&cli, &lang);
     }
-
     if cli.help {
         print_usage();
         return Ok(());
     }
-
     if cli.version {
         print_moc_compiler_description(&cli);
         return Ok(());
     }
-
     let input_file = match &cli.input {
         Some(input) => input,
         None => {
@@ -134,7 +141,6 @@ async fn main() -> anyhow::Result<()> {
             return Ok(());
         }
     };
-    
     let input_path = if Path::new(input_file).is_absolute() {
         PathBuf::from(input_file)
     } else {

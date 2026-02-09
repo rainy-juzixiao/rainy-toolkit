@@ -70,9 +70,11 @@ void function1() {
 
 }
 
-RAINY_ENABLE_MOC()
-void function2() {
+namespace test_namespace {
+    RAINY_ENABLE_MOC()
+    void function2() {
 
+    }
 }
 
 namespace test_namespace {

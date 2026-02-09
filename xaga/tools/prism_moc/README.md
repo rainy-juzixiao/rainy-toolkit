@@ -28,7 +28,7 @@
 
 ### 使用
 
-**将rt_moc安装到当前机器中：**
+**将prism-moc安装到当前机器中：**
 
 ```bash
 cargo run --bin install

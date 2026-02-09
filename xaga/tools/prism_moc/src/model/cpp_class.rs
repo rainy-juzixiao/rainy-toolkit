@@ -21,7 +21,7 @@ use crate::utility::BitSet;
 #[derive(Debug, Clone)]
 pub struct CppClass {
     pub name: String,
-    pub namespace_dest: String,
+    pub namespace_location: String,
     pub full_qual_name: String,
     pub cpp_ctors: Vec<CppCtor>,
     pub cpp_functions: Vec<CppFunction>,

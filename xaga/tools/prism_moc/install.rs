@@ -52,5 +52,5 @@ fn main() {
         .expect("Failed to copy statics");
     println!("Installation complete!");
     println!("Config files: {:?}", statics_dst);
-    println!("Now you are able to run with: rt_moc");
+    println!("Now you are able to run with: prism-moc");
 }

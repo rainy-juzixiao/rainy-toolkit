@@ -19,11 +19,11 @@ interrupted_text = "Rain is not complete, but anyway, welcome back to reality"
 
 [[description]]
 content = '''
-rainy-toolkit reflection moc compiler (rt_moc)
+rainy-toolkit reflection moc compiler (prism-moc)
 
 created-by: {authors}
 
-rt_moc is c++ code analysis and code generation tool that use rust program language develop.
+prism-moc is c++ code analysis and code generation tool that use rust program language develop.
 it can be used by accepted the licences APACHE 2.0.
 
 check_hash: {git_hash}

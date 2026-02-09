@@ -48,29 +48,6 @@ fn git_branch() -> Option<String> {
 }
 
 fn main() {
-    println!("cargo:rerun-if-changed=*");
-
-    let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
-
-    // OUT_DIR = target/{debug|release}/build/xxx/out
-    let exe_dir = out_dir
-        .parent()
-        .unwrap() // xxx
-        .parent()
-        .unwrap() // build
-        .parent()
-        .unwrap(); // debug / release
-
-    let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
-
-    let from = manifest_dir.join("statics");
-    let to = exe_dir.join("statics");
-    println!("cargo:rustc-env=RESOURCE_PATH={}", exe_dir.to_str().unwrap());
-
-    copy_dir_recursive(&from, &to);
-
-    println!("cargo:info=Copied {:?} to {:?}", from, to);
-
     {
         let git_hash = Command::new("git")
             .args(["rev-parse", "--short", "HEAD"])

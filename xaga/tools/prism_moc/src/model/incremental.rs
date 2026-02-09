@@ -117,7 +117,10 @@ pub struct IncrementalState {
 impl IncrementalState {
     /// 创建新的增量构建状态
     pub fn new(input_path: PathBuf) -> io::Result<Self> {
-        let cache_path = PathBuf::from("../../../../../build/incremental_cache.bin");
+        // 修复：使用当前工作目录构建缓存路径
+        let cache_path = std::env::current_dir()?
+            .join("build")
+            .join("incremental_cache.bin");
 
         // 加载或创建缓存
         let cache = IncrementalCache::load_from(&cache_path, CACHE_VERSION).unwrap_or_else(|_| {
@@ -197,15 +200,20 @@ impl IncrementalState {
 
     pub fn update_file_state(&mut self, generated_code_hash: String, temp_file_path: PathBuf) {
         self.current_file_state.generated_code_hash = generated_code_hash;
+
+        // 修复：添加错误处理，如果 canonicalize 失败就使用原始路径
+        let canonical_path = self.input_path.canonicalize()
+            .unwrap_or_else(|_| self.input_path.clone());
+
         self.cache
             .file_states
-            .insert(self.input_path.canonicalize().unwrap(), self.current_file_state.clone());
+            .insert(canonical_path.clone(), self.current_file_state.clone());
         self.cache
             .target_config_hashes
             .insert("default".to_string(), self.config_hash.clone());
         self.cache
             .output_mapping
-            .insert(self.input_path.canonicalize().unwrap(), temp_file_path);
+            .insert(canonical_path, temp_file_path);
         self.cache.last_build_time = SystemTime::now();
     }
 

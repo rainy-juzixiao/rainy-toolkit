@@ -31,10 +31,17 @@ use std::path::PathBuf;
 
 fn generate_class_registration_begin_stub(output: &mut String, item: &CppClass) {
     let type_name = item.type_name();
-    output.push_str(&format!(
-        "    registration::class_<{}>(\"{}\")\n",
-        type_name, type_name
-    ));
+    if item.namespace_location.is_empty() {
+        output.push_str(&format!(
+            "    registration::class_<{}>(\"{}\")\n",
+            type_name, type_name
+        ));
+    } else {
+        output.push_str(&format!(
+            "    registration::class_<{}>(\"{}\")\n",
+            item.full_qual_name, item.full_qual_name,
+        ));
+    }
 }
 
 fn generate_class_registration_end_stub(output: &mut String) {
@@ -60,14 +67,6 @@ pub fn generate_registration(
     generate_header_stub(cli, &mut output, &header_path); // 生成头stub节
     begin_registration_stub(&mut output);
     for item in registration_code.classes() {
-        println!("full_name: {}", item.full_qual_name);
-        for i in &item.use_namespaces {
-            println!("use namespace: {}", i);
-        }
-        for i in &item.use_items {
-            println!("use items: {}", i);
-        }
-        println!("namespace location: {}", item.namespace_dest);
         generate_class_registration_begin_stub(&mut output, item);
         if !item.all_is_empty() {
             if generate_ctor_stub(&mut output, &item)
@@ -75,13 +74,11 @@ pub fn generate_registration(
             {
                 new_line(&mut output);
             }
-
             if generate_memfun_stub(&mut output, &item)
                 && item.has_any_after(ClazzItemCategory::MemberFunctions)
             {
                 new_line(&mut output);
             }
-
             generate_public_properties_stub(&mut output, &item);
         }
         generate_class_registration_end_stub(&mut output);

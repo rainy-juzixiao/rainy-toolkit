@@ -93,7 +93,7 @@ fn visit(
                     name,
                     full_qual_name,
                     use_namespaces,
-                    namespace_dest: if namespace_stack.is_empty() {
+                    namespace_location: if namespace_stack.is_empty() {
                         String::new()
                     } else {
                         namespace_stack.join("::")

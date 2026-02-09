@@ -59,34 +59,44 @@ pub fn generate_memfun_stub(output: &mut String, class: &CppClass) -> bool {
 pub fn generate_global_fun_stub(output: &mut String, global_functions: &Vec<CppFunction>) -> bool {
     if !global_functions.is_empty() {
         let first_func = global_functions.first().unwrap();
+        let func_name = if first_func.full_qual_name.is_empty() {
+            &first_func.name
+        } else {
+            &first_func.full_qual_name
+        };
         let param_list = first_func.params.join(", ");
         output.push_str(&format!(
             "    registration::method(\"{}\",rainy::utility::get_overloaded_func<{}({})>(&{}))",
-            first_func.name,
+            func_name,
             first_func.return_type,
             if param_list.is_empty() {
                 "".to_string()
             } else {
                 format!("{}", param_list)
             },
-            first_func.name
+            func_name
         ));
         for (index, func) in global_functions.iter().skip(1).enumerate() {
             if index != global_functions.len() - 1 {
                 output.push('\n');
             }
+            let func_name = if func.full_qual_name.is_empty() {
+                &func.name
+            } else {
+                &func.full_qual_name
+            };
             // 从第2个函数开始
             let param_list = func.params.join(", ");
             output.push_str(&format!(
                 "        .method(\"{}\",rainy::utility::get_overloaded_func<{}({})>(&{}))",
-                func.name,
+                func_name,
                 func.return_type,
                 if param_list.is_empty() {
                     "".to_string()
                 } else {
                     format!("{}", param_list)
                 },
-                func.name
+                func_name
             ));
         }
         return true;
