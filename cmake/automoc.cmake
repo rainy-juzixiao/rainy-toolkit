@@ -12,7 +12,8 @@ find_program(RAINY_MOC_EXECUTABLE
 )
 
 if(NOT RAINY_MOC_EXECUTABLE)
-    message(FATAL_ERROR "prism-moc not found!")
+    message("prism-moc not found! Disable automoc")
+    return()
 endif()
 
 message(STATUS "Found RAINY_MOC_EXECUTABLE: ${RAINY_MOC_EXECUTABLE}")
