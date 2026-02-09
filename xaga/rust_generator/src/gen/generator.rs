@@ -37,6 +37,10 @@ fn generate_class_registration_begin_stub(output: &mut String, item: &CppClass) 
     ));
 }
 
+fn generate_class_registration_end_stub(output: &mut String) {
+    output.push_str(";\n");
+}
+
 fn begin_registration_stub(output: &mut String) {
     output.push_str("RAINY_REFLECTION_REGISTRATION {");
     new_line(output);
@@ -56,6 +60,14 @@ pub fn generate_registration(
     generate_header_stub(cli, &mut output, &header_path); // 生成头stub节
     begin_registration_stub(&mut output);
     for item in registration_code.classes() {
+        println!("full_name: {}", item.full_qual_name);
+        for i in &item.use_namespaces {
+            println!("use namespace: {}", i);
+        }
+        for i in &item.use_items {
+            println!("use items: {}", i);
+        }
+        println!("namespace location: {}", item.namespace_dest);
         generate_class_registration_begin_stub(&mut output, item);
         if !item.all_is_empty() {
             if generate_ctor_stub(&mut output, &item)
@@ -72,7 +84,7 @@ pub fn generate_registration(
 
             generate_public_properties_stub(&mut output, &item);
         }
-        output.push_str(";\n");
+        generate_class_registration_end_stub(&mut output);
     }
     let global_functions: &Vec<CppFunction> = registration_code.global_functions();
     if generate_global_fun_stub(&mut output, &global_functions) {}

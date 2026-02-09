@@ -21,9 +21,13 @@ use crate::utility::BitSet;
 #[derive(Debug, Clone)]
 pub struct CppClass {
     pub name: String,
+    pub namespace_dest: String,
+    pub full_qual_name: String,
     pub cpp_ctors: Vec<CppCtor>,
     pub cpp_functions: Vec<CppFunction>,
     pub cpp_public_properties: Vec<CppProperty>,
+    pub use_namespaces: Vec<String>,
+    pub use_items: Vec<String>,
     pub start_byte: usize,
     pub end_byte: usize,
 }

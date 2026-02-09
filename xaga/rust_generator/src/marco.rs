@@ -24,6 +24,17 @@ macro_rules! include_statics {
 }
 
 #[macro_export]
+macro_rules! include_test_set {
+    ($path:literal) => {
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/dev_samples/",
+            $path
+        ))
+    };
+}
+
+#[macro_export]
 macro_rules! locate_runtime_resources {
     ($path:literal) => {{
         let exe_dir = std::env::current_exe()

@@ -14,9 +14,9 @@
 
 use tree_sitter::Node;
 
-use crate::model::{cpp_ctor::CppCtor, cpp_function::CppFunction};
 use crate::model::cpp_class::AccessLevel;
 use crate::model::cpp_property::CppProperty;
+use crate::model::{cpp_ctor::CppCtor, cpp_function::CppFunction};
 
 pub fn extract_class_name(node: Node, source: &str) -> Option<String> {
     for i in 0..node.child_count() {
@@ -75,18 +75,32 @@ pub fn extract_functions_and_ctors(
                                 if let Some(grand) = child.child(j as u32) {
                                     match grand.kind() {
                                         "identifier" => {
-                                            ctor_name = Some(grand.utf8_text(source.as_bytes()).unwrap_or("").to_string());
+                                            ctor_name = Some(
+                                                grand
+                                                    .utf8_text(source.as_bytes())
+                                                    .unwrap_or("")
+                                                    .to_string(),
+                                            );
                                         }
                                         "field_identifier" => {
-                                            func_name = Some(grand.utf8_text(source.as_bytes()).unwrap_or("").to_string());
+                                            func_name = Some(
+                                                grand
+                                                    .utf8_text(source.as_bytes())
+                                                    .unwrap_or("")
+                                                    .to_string(),
+                                            );
                                         }
                                         "parameter_list" => {
                                             for k in 0..grand.child_count() {
                                                 if let Some(param) = grand.child(k as u32) {
                                                     if param.kind() == "parameter_declaration" {
-                                                        if let Some(typ) = param.child_by_field_name("type") {
+                                                        if let Some(typ) =
+                                                            param.child_by_field_name("type")
+                                                        {
                                                             params.push(
-                                                                typ.utf8_text(source.as_bytes()).unwrap_or("").to_string(),
+                                                                typ.utf8_text(source.as_bytes())
+                                                                    .unwrap_or("")
+                                                                    .to_string(),
                                                             );
                                                         }
                                                     }
@@ -105,16 +119,17 @@ pub fn extract_functions_and_ctors(
 
             // 判断构造函数：没有返回类型 && ctor_name == current_class
             if return_type.is_none() && ctor_name.as_deref() == current_class {
-                ctors.push(CppCtor {
-                    params,
-                });
+                ctors.push(CppCtor { params });
             }
             // 判断普通函数：有 field_identifier 名称
             else if func_name.is_some() {
                 functions.push(CppFunction {
                     name: func_name.unwrap(),
+                    full_qual_name: String::new(),
                     return_type: return_type.unwrap_or_default(),
                     params,
+                    use_namespaces: Vec::new(),
+                    use_items: Vec::new(),
                     is_static,
                 });
             }
@@ -123,7 +138,13 @@ pub fn extract_functions_and_ctors(
         // 遍历子节点，使用当前确定的类名
         for i in 0..node.child_count() {
             if let Some(child) = node.child(i as u32) {
-                helper(child, source, functions, ctors, class_for_children.as_deref());
+                helper(
+                    child,
+                    source,
+                    functions,
+                    ctors,
+                    class_for_children.as_deref(),
+                );
             }
         }
     }
@@ -142,8 +163,7 @@ pub fn parse_global_function(node: Node, source: &str) -> Option<CppFunction> {
 
         match child.kind() {
             "primitive_type" | "type_identifier" => {
-                return_type =
-                    Some(child.utf8_text(source.as_bytes()).unwrap_or("").to_string());
+                return_type = Some(child.utf8_text(source.as_bytes()).unwrap_or("").to_string());
             }
             "storage_class_specifier" => {
                 if child.utf8_text(source.as_bytes()).unwrap_or("") == "static" {
@@ -163,9 +183,7 @@ pub fn parse_global_function(node: Node, source: &str) -> Option<CppFunction> {
                             for k in 0..grand.child_count() {
                                 if let Some(param) = grand.child(k as u32) {
                                     if param.kind() == "parameter_declaration" {
-                                        if let Some(typ) =
-                                            param.child_by_field_name("type")
-                                        {
+                                        if let Some(typ) = param.child_by_field_name("type") {
                                             params.push(
                                                 typ.utf8_text(source.as_bytes())
                                                     .unwrap_or("")
@@ -186,8 +204,11 @@ pub fn parse_global_function(node: Node, source: &str) -> Option<CppFunction> {
 
     Some(CppFunction {
         name: func_name?,
+        full_qual_name: String::new(),
         return_type: return_type.unwrap_or_default(),
         params,
+        use_namespaces: Vec::new(),
+        use_items: Vec::new(),
         is_static,
     })
 }
@@ -196,12 +217,12 @@ pub fn extract_properties(
     class_node: Node,
     source: &str,
     properties: &mut Vec<CppProperty>,
-    access_level: AccessLevel
+    access_level: AccessLevel,
 ) {
     let access_spec = match access_level {
         AccessLevel::Private => "private",
         AccessLevel::Protected => "protected",
-        AccessLevel::Public => "public"
+        AccessLevel::Public => "public",
     };
 
     for i in 0..class_node.child_count() {
@@ -221,7 +242,7 @@ fn extract_from_declaration_list(
     list_node: Node,
     source: &str,
     properties: &mut Vec<CppProperty>,
-    access_spec: &str
+    access_spec: &str,
 ) {
     let mut is_hit = false;
 
@@ -253,18 +274,12 @@ fn extract_from_declaration_list(
                             }
                             "primitive_type" | "type_identifier" => {
                                 typ = Some(
-                                    grand
-                                        .utf8_text(source.as_bytes())
-                                        .unwrap_or("")
-                                        .to_string(),
+                                    grand.utf8_text(source.as_bytes()).unwrap_or("").to_string(),
                                 );
                             }
                             "field_identifier" => {
                                 name = Some(
-                                    grand
-                                        .utf8_text(source.as_bytes())
-                                        .unwrap_or("")
-                                        .to_string(),
+                                    grand.utf8_text(source.as_bytes()).unwrap_or("").to_string(),
                                 );
                             }
                             _ => {}
@@ -272,7 +287,11 @@ fn extract_from_declaration_list(
                     }
                 }
                 if let (Some(typ), Some(name)) = (typ, name) {
-                    properties.push(CppProperty { name, property_type: typ, is_static });
+                    properties.push(CppProperty {
+                        name,
+                        property_type: typ,
+                        is_static,
+                    });
                 }
             }
             _ => {}
