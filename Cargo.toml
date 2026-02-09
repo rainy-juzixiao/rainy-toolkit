@@ -1,3 +1,3 @@
 [workspace]
-members = ["xaga/rust_generator"]
+members = ["xaga/tools/prism_moc"]
 resolver = "2"

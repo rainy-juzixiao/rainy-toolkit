@@ -38,7 +38,7 @@ fn start_generate(
 ) -> anyhow::Result<()> {
     let mut state = IncrementalState::new(input_path.clone())?;
     let changes = state.analyze_changes();
-    let temp_dir = PathBuf::from("./build/temp");
+    let temp_dir = PathBuf::from("../../../../build/temp");
     fs::create_dir_all(&temp_dir)?;
     let input_filename = input_path
         .file_name()

@@ -117,7 +117,7 @@ pub struct IncrementalState {
 impl IncrementalState {
     /// 创建新的增量构建状态
     pub fn new(input_path: PathBuf) -> io::Result<Self> {
-        let cache_path = PathBuf::from("./build/incremental_cache.bin");
+        let cache_path = PathBuf::from("../../../../../build/incremental_cache.bin");
 
         // 加载或创建缓存
         let cache = IncrementalCache::load_from(&cache_path, CACHE_VERSION).unwrap_or_else(|_| {

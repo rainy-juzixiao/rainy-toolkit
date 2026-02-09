@@ -1,5 +1,5 @@
 [package]
-name = "rt_moc"
+name = "prism-moc"
 version = "0.1.5"
 edition = "2021"
 authors = ["rainy-juzixiao <rainy_juzixiao@outlook.com>"]
@@ -7,15 +7,14 @@ description = "A C++ code analysis and code generation tool"
 license = "Apache-2.0"
 readme = "README.md"
 build = "build.rs"
-install = "install.rs"
-default-run = "rt_moc"
+default-run = "prism-moc"
 
 [package.metadata]
 speical_thanks = ["yun yu", "qing su", "yan qi"]
 speical_thanks_zh_hans = ["与云night", "苏沁", "亓言"]
 
 [[bin]]
-name = "rt_moc"
+name = "prism-moc"
 path = "src/main.rs"
 
 [[bin]]
