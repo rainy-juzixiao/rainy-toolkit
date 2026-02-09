@@ -16,6 +16,7 @@
 #ifndef RAINY_META_REFLECTION_ENUMERATION_HPP
 #define RAINY_META_REFLECTION_ENUMERATION_HPP
 #include <rainy/core/core.hpp>
+#include <rainy/meta/reflection/refl_impl/type_register.hpp>
 #include <rainy/meta/reflection/refl_impl/enumeration_accessor.hpp>
 
 namespace rainy::meta::reflection {

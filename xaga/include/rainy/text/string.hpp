@@ -416,7 +416,7 @@ namespace rainy::text {
                   type_traits::other_trans::enable_if_t<type_traits::extras::iterators::is_input_iterator_v<InputIt>, int> = 0>
         RAINY_CONSTEXPR20 basic_string &append(InputIt first, InputIt last) {
             if RAINY_CONSTEXPR20 (type_traits::extras::iterators::is_random_access_iterator_v<InputIt>) {
-                auto size = size();
+                auto size = this->size();
                 auto length = std::ranges::distance(first, last);
                 auto new_size = size + length;
                 reserve(std::max(size * 2, new_size));
@@ -530,7 +530,7 @@ namespace rainy::text {
         }
 
         RAINY_CONSTEXPR20 basic_string &append(size_type count, CharType ch) {
-            auto size = size();
+            auto size = this->size();
             reserve(size + count);
             auto end = begin_() + size;
             std::fill(end, end + count, ch);
@@ -872,7 +872,7 @@ namespace rainy::text {
         }
 
         RAINY_CONSTEXPR20 basic_string &insert(size_type index, size_type count, CharType ch) {
-            auto size = size();
+            auto size = this->size();
             if (index > size) {
                 throw std::out_of_range{exception_string_};
             }
@@ -919,7 +919,7 @@ namespace rainy::text {
         }
 
         RAINY_CONSTEXPR20 iterator insert(const_iterator pos, CharType ch) {
-            auto size = size();
+            auto size = this->size();
             auto start = pos;
             auto end = end_();
             auto index = start - begin_();
@@ -996,7 +996,7 @@ namespace rainy::text {
                       int> = 0>
         RAINY_CONSTEXPR20 basic_string &insert(size_type pos, const StringViewLike &sv, size_type t_index, size_type count = npos) {
             auto sv_size = sv.size();
-            auto size = size();
+            auto size = this->size();
             if (t_index > sv_size) {
                 throw std::out_of_range{exception_string_};
             }
@@ -1019,14 +1019,14 @@ namespace rainy::text {
         }
 
         RAINY_CONSTEXPR20 iterator erase(const_iterator position) noexcept {
-            auto start = position.base().current_;
+            auto start = position;
             erase_(start, start + 1);
             return {start};
         }
 
         RAINY_CONSTEXPR20 iterator erase(const_iterator first, const_iterator last) noexcept {
             auto start = first;
-            erase_(start, last.base().current_);
+            erase_(start, last);
             return {start};
         }
 
@@ -1282,7 +1282,7 @@ namespace rainy::text {
         }
 
     private:
-        static inline RAINY_CONSTEXPR20 std::size_t short_string_max_{sizeof(CharType *) * 4 / sizeof(CharType) - 2};
+        static inline constexpr std::size_t short_string_max_{sizeof(CharType *) * 4 / sizeof(CharType) - 2};
 
         struct ls_type_ {
             CharType *begin_{};
@@ -1395,7 +1395,7 @@ namespace rainy::text {
         }
 
         RAINY_CONSTEXPR20 void insert_(size_type index, value_type const *first, value_type const *last) {
-            auto size = size();
+            auto size = this->size();
 
             if (index > size)
                 throw std::out_of_range{exception_string_};
@@ -1450,7 +1450,7 @@ namespace rainy::text {
         }
 
         RAINY_CONSTEXPR20 void replace_(size_type pos, size_type count, value_type const *first2, value_type const *last2) {
-            auto size = size();
+            auto size = this->size();
 
             if (pos > size)
                 throw std::out_of_range{exception_string_};

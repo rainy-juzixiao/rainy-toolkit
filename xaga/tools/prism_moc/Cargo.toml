@@ -1,0 +1,67 @@
+[package]
+name = "prism-moc"
+version = "0.2.0"
+edition = "2021"
+authors = ["rainy-juzixiao <rainy_juzixiao@outlook.com>"]
+description = "A C++ code analysis and code generation tool"
+license = "Apache-2.0"
+readme = "README.md"
+build = "build.rs"
+default-run = "prism-moc"
+
+[package.metadata]
+speical_thanks = ["yun yu", "qing su", "yan qi"]
+speical_thanks_zh_hans = ["与云night", "苏沁", "亓言"]
+
+[[bin]]
+name = "prism-moc"
+path = "src/main.rs"
+
+[[bin]]
+name = "install"
+path = "install.rs"
+
+[dependencies]
+tree-sitter = "0.26.3"
+tree-sitter-cpp = "0.23.4"
+strfmt = "0.2"
+home = "0.5"
+
+clap = { version = "4.4", features = ["derive"], optional = true }
+colored = { version = "3.1.1", optional = true }
+indicatif = { version = "0.18.3", optional = true }
+
+anyhow = "1.0"
+
+serde = { version = "1.0", features = ["derive"], optional = true }
+serde_json = { version = "1.0", optional = true }
+
+rayon = { version = "1.8", optional = true }
+
+toml = "0.8"
+
+rand = "0.8"
+tokio = { version = "1.0", features = ["full"] }
+terminal_size = "0.2"
+lazy_static = "1.5.0"
+owo-colors = "4.2.3"
+blake3 = "1.8.3"
+memmap2 = "0.9.9"
+log = "0.4.29"
+bincode = "1"
+
+[dev-dependencies]
+pretty_assertions = "1.4"
+
+[build-dependencies]
+walkdir = "2.4"
+serde_json = "1.0"
+anyhow = "1.0"
+chrono = "0.4.43"
+whoami = "1.4"
+
+[features]
+default = ["cli", "json"]
+cli = ["clap", "colored", "indicatif"]
+json = ["serde", "serde_json"]
+parallel = ["rayon"]

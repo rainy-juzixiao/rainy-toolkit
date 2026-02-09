@@ -1,14 +1,14 @@
-# rainy's toolkit 当现代C++面向迅捷组装
+# rainy-toolkit 当现代C++面向多样化需求的基础设施集合
 
 ## 注意
 
-rainy's toolkit仍然是一个在开发中的项目，因此，如果出现bug，请务必提交issues来时刻进行更进！
-
-该分支是用于评估arm64架构的分支，可能会存在一些bug。
+rainy-toolkit仍然是一个在开发中的项目，因此，如果出现bug，请务必提交issues来时刻进行更进！
 
 ## 介绍
 
-rainy's toolkit是一个综合性的基础设施集合，当你使用现代C++开发的时候，如果以下问题能满足您的需要，或许它可以帮到你。
+rainy-toolkit是一个综合性的基础设施集合，它有点类似于boost，但更偏向于使用现代化的标准进行开发。
+
+当你使用现代C++开发的时候，如果以下问题能满足您的需要，或许它可以帮到你。
 
 Q1: 需要一个性能还不赖的反射基础设施？
 
@@ -43,4 +43,36 @@ Q4: 喜欢用更灵活的模板元编程吗？
 
 ## 已知缺陷
 
-rainy's toolkit很可惜，它必定不是一个跨处理器的库。也就是说，你看到的大量代码，都是对于x86架构的，只有amd64被确认可完全工作，而x86可能缺乏一些测试，但仍然可以进行工作。而arm64在此分支仍在进行开发和测试适配
+你看到的大量代码，都是对于x86架构的，只有amd64被确认可完全工作，而x86可能缺乏一些测试，但仍然可以进行工作。
+
+目前，arm64的分支已经完成了第一次的合并，但仍然缺乏大量的测试。如果你想要贡献代码，请按照贡献章节的部分进行。
+
+## 快速开始
+
+目前，rainy-toolkit可以以多种方式进行集成。
+
+如果你使用CMake进行项目构建，那么你可以直接使用FetchContent来集成rainy-toolkit
+
+```cmake
+include(FetchContent)
+
+FetchContent_Declare(
+	rainy-toolkit
+	GIT_REPOSITORY
+	https://github.com/rainy-juzixiao/rainy-toolkit.git
+	GIT_TAG master
+)
+
+FetchContent_MakeAvailable(rainy-toolkit)
+```
+
+或者使用add_subdirectory的方式以子项目形式进行集成，使用git进行clone
+
+```cpp
+git clone https://github.com/rainy-juzixiao/rainy-toolkit.git
+```
+
+
+```cmake
+
+```

@@ -135,6 +135,9 @@ struct User {
 };
 
 
+void fun() {
+}
+
 RAINY_REFLECTION_REGISTRATION {
     // clang-format off
     using namespace rainy::meta::reflection;
@@ -192,14 +195,19 @@ int minus(int a, int b) {
     return a - b;
 }
 
+#include "header.h"
+
 struct S {
     int val;
     int minus(int arg) const noexcept {
-        return val - arg;
+        return arg - val;
     }
 };
 
 int main() {
+    S m{};
+    std::cout << m.val << '\n';
+    // get_overloaded_func<void()>(&f);
     any a = 10;
     std::cout << std::as_const(a).as_lvalue_reference().type().name() << '\n';
     std::cout << std::as_const(a).as_rvalue_reference().type().name() << '\n';

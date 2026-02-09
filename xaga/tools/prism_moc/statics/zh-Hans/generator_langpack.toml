@@ -1,0 +1,32 @@
+[[help]]
+print_usage_header = "---- rainy-toolkit C++ 反射工具用例 ----"
+
+[[help.options_desc]]
+input = "指定本次程序运行时moc生成器读取的文件"
+verbose = "显示moc生成器的生成过程"
+out = "让生成器将内容输出到指定文件"
+help = "显示帮助"
+suffix = "使用后缀名作为生成文件名结尾"
+config = "设置本次程序运行时的配置文件目录"
+lang = "设置moc生成器的显示语言，如果它们的语言包可用的情况下"
+
+[[easter_eggs.code_rain]]
+init_text = "🌧️  Initiating Smooth Code Rain 🌧️"
+press_ctrl = "Press Ctrl+C to stop early"
+complete = "Code Rain Complete"
+welcome_back = "Welcome back to reality"
+interrupted_text = "Rain is not complete, but anyway, welcome back to reality"
+
+[[description]]
+content = '''
+rainy-toolkit reflection moc compiler (prism-moc)
+
+created-by: {authors}
+
+prism-moc is c++ code analysis and code generation tool that use rust program language develop.
+it can be used by accepted the licences APACHE 2.0.
+
+check_hash: {git_hash}
+branch: {git_branch}
+build_time: {build_time}
+'''

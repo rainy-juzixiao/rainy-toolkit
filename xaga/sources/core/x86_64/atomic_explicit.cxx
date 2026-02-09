@@ -118,7 +118,7 @@ namespace rainy::core::pal {
 #if RAINY_USING_MSVC
         result = _InterlockedIncrement64(value);
 #else
-        volatile std::int32_t *avoid_clangtidy = value;
+        volatile std::int64_t *avoid_clangtidy = value;
         __asm__ __volatile__("lock; incq %0" : "+m"(*avoid_clangtidy) : : "cc");
         result = *avoid_clangtidy;
 #endif
@@ -174,7 +174,7 @@ namespace rainy::core::pal {
 #if RAINY_USING_MSVC
         result = _InterlockedDecrement64(value);
 #else
-        volatile std::int32_t *avoid_clangtidy = value;
+        volatile std::int64_t *avoid_clangtidy = value;
         __asm__ __volatile__("lock; decq %0" : "+m"(*avoid_clangtidy) : : "cc");
         result = *avoid_clangtidy;
 #endif

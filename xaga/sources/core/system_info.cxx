@@ -63,7 +63,7 @@ namespace rainy::core::builtin::implements {
 namespace rainy::core::builtin {
     class instruction_set_internal {
     public:
-        static constexpr std::size_t max_ids = 32;
+        static constexpr std::size_t max_ids = 64;
 
         instruction_set_internal() :
             is_intel(false), is_amd(false), f_1_ecx(0), f_1_edx(0), f_7_ebx(0), f_7_ecx(0), f_81_ecx(0), f_81_edx(0) {

@@ -2387,6 +2387,14 @@ namespace rainy::utility {
         assert(memfn != nullptr && "memfn cannot be nullptr");
         return memfn;
     }
+
+    template <typename Fx>
+        requires(!type_traits::primary_types::is_member_function_pointer_v<Fx *> &&
+                 !type_traits::type_relations::is_same_v<Fx, std::nullptr_t>)
+    constexpr auto get_overloaded_func(Fx fn) {
+        assert(fn != nullptr);
+        return fn;
+    }
 #else
     template <typename Class, typename Fx,
               type_traits::other_trans::enable_if_t<type_traits::primary_types::is_member_function_pointer_v<Fx Class::*> &&

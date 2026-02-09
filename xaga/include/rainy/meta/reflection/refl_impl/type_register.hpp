@@ -103,6 +103,27 @@ namespace rainy::meta::reflection::implements {
 }
 
 namespace rainy::meta::reflection::implements {
+    class RAINY_TOOLKIT_API injector {
+    public:
+        static void register_type(std::string_view name, type_accessor *type);
+
+        static void unregister_all();
+
+    private:
+        struct registration_entry {
+            std::string_view name;
+            foundation::ctti::typeinfo ctti;
+        };
+
+        class myimpl;
+
+        static injector &instance();
+
+        myimpl *global_ptr{};
+    };
+}
+
+namespace rainy::meta::reflection::implements {
     class RAINY_TOOLKIT_API register_table {
     public:
         static void register_type(std::string_view name, type_accessor *type);
@@ -119,27 +140,6 @@ namespace rainy::meta::reflection::implements {
         class myimpl;
 
         static register_table &instance();
-
-        myimpl *global_ptr{};
-    };
-}
-
-namespace rainy::meta::reflection::implements {
-    class RAINY_TOOLKIT_API injector {
-    public:
-        static void register_type(std::string_view name, type_accessor *type);
-
-        static void unregister_all();
-
-    private:
-        struct registration_entry {
-            std::string_view name;
-            foundation::ctti::typeinfo ctti;
-        };
-
-        class myimpl;
-
-        static injector &instance();
 
         myimpl *global_ptr{};
     };
