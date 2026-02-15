@@ -15,7 +15,7 @@
  */
 #include <rainy/core/core.hpp>
 
-#if RAINY_USING_WINDOWS
+#if RAINY_USING_LINUX
 #include <dlfcn.h>
 #include <filesystem>
 #include <rainy/foundation/pal/implements/tgc_layer_module_context.hpp>
