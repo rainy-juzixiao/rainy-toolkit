@@ -15,7 +15,9 @@
 use crate::cli::CommandArguments;
 use crate::utility::{blake3_hash_bytes};
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::str::FromStr;
+use crate::model::cpp_header_names::is_cpp_header;
 
 pub fn write_cpp_file(output: &str, path: &str) -> anyhow::Result<()> {
     fs::write(path, output)?;
@@ -35,7 +37,15 @@ pub fn modify_filename_in_front<P: AsRef<Path>>(file_path: P, modifier: &str) ->
 }
 
 pub fn hash_file(path: &Path) -> Result<String, std::io::Error> {
-    let bytes = fs::read(path)?;
+    if !path.exists() {
+        panic!("file doesn't exists!");
+    }
+    let bytes = match fs::read(path) {
+        Ok(bytes) => bytes,
+        Err(e) => {
+            panic!("Cannot read input_path: {}, err: {}", path.to_str().unwrap(), e);
+        }
+    };
     Ok(blake3_hash_bytes(&bytes))
 }
 
@@ -49,6 +59,10 @@ pub fn write_file(cli: &CommandArguments, input_file: &String, registration_code
         out_file = modify_filename_in_front(out_file, "moc_").unwrap();
     } else {
         out_file = cli.out.clone().unwrap();
+        let mut path = PathBuf::from_str(out_file.as_str()).unwrap();
+        if is_cpp_header(&path) || path.extension().is_none() {
+            path.set_extension("cpp"); // 调整为cpp文件
+        }
     }
     write_cpp_file(registration_code, &out_file.as_str()).unwrap();
 }

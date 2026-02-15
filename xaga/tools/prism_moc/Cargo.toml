@@ -1,6 +1,6 @@
 [package]
 name = "prism-moc"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 authors = ["rainy-juzixiao <rainy_juzixiao@outlook.com>"]
 description = "A C++ code analysis and code generation tool"

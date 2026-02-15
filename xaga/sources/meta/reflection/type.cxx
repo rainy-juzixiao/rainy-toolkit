@@ -18,13 +18,13 @@
 namespace rainy::meta::reflection {
     type type::get_by_name(const std::string_view name) noexcept {
         type instance{};
-        instance.accessor = implements::register_table::get_accessor_by_name(name);
+        instance.accessor = get_registration_manager().get_accessor_by_name(name);
         return instance;
     }
 
     type type::get_by_typeinfo(const foundation::ctti::typeinfo &typeinfo) noexcept {
         type instance{};
-        instance.accessor = implements::register_table::get_accessor(typeinfo);
+        instance.accessor = get_registration_manager().get_accessor(typeinfo);
         return instance;
     }
 
@@ -44,7 +44,7 @@ namespace rainy::meta::reflection {
         }
         return {};
     }
-    
+
     fundmental type::get_fundmental() const noexcept {
         if (!accessor) {
             return {};
@@ -82,8 +82,7 @@ namespace rainy::meta::reflection {
             return empty;
         }
         const auto &cont = accessor->methods();
-        const auto [fst, snd] = cont.equal_range(name);
-        if (fst != snd) {
+        if (const auto [fst, snd] = cont.equal_range(name); fst != snd) {
             return fst->second;
         }
         for (const auto &bases: accessor->bases()) {
@@ -131,6 +130,54 @@ namespace rainy::meta::reflection {
         for (const auto &bases: accessor->bases()) {
             if (const method &meth = bases.second.get_method(name, overload_version_paramlist, filter_item); !meth.empty()) {
                 return meth;
+            }
+        }
+        if (fst != snd) {
+            return fst->second;
+        }
+        errno = EACCES;
+        return empty;
+    }
+
+    RAINY_NODISCARD const method &type::get_global_method(const std::string_view name) noexcept {
+        static const method empty;
+        const std::string_view name_key{name.data(), name.size()};
+        const auto &cont = get_registration_manager().global_funs();
+        if (const auto [fst, snd] = cont.equal_range(name_key); fst != snd) {
+            return fst->second;
+        }
+        return empty;
+    }
+
+    RAINY_NODISCARD const method &type::get_global_method(
+        const std::string_view name, const collections::views::array_view<foundation::ctti::typeinfo> overload_version_paramlist,
+        const method_flags filter_item) noexcept {
+        static const method empty;
+        static const auto match_method_type = [](method_flags candidate, method_flags filter) -> bool {
+            if (filter == method_flags::none) {
+                return true;
+            }
+            candidate &= ~(method_flags::noexcept_specified);
+            filter &= ~(method_flags::noexcept_specified);
+            return candidate == filter;
+        };
+        const std::string_view name_key{name.data(), name.size()};
+        const auto [fst, snd] = get_registration_manager().global_funs().equal_range(name_key);
+        if (utility::distance(fst, snd) == 1) {
+            return fst->second;
+        }
+        if (filter_item != method_flags::none) {
+            for (auto iter = fst; iter != snd; ++iter) {
+                if (const auto &method = iter->second;
+                    method.is_invocable(overload_version_paramlist) && match_method_type(method.type(), filter_item)) {
+                    return method;
+                }
+            }
+        } else {
+            for (auto iter = fst; iter != snd; ++iter) {
+                if (const auto &method = iter->second; method.is_invocable(overload_version_paramlist)) {
+                    return method;
+                }
             }
         }
         if (fst != snd) {
@@ -189,20 +236,20 @@ namespace rainy::meta::reflection {
         return empty;
     }
 
-    type::base_classes_view_t type::get_base_classes() const noexcept {
+    type::classes_view_t type::get_base_classes() const noexcept { // NOLINT
         if (!accessor) {
-            static std::unordered_map<foundation::ctti::typeinfo, type> empty;
+            static collections::unordered_map<foundation::ctti::typeinfo, type> empty;
             return utility::mapped_range(empty);
         }
         return utility::mapped_range(accessor->bases());
     }
 
-    type::derived_classes_view_t type::get_derived_classes() const noexcept {
+    type::classes_view_t type::get_derived_classes() const noexcept { // NOLINT
         if (!accessor) {
-            static std::unordered_map<foundation::ctti::typeinfo, type> empty;
+            static collections::unordered_map<foundation::ctti::typeinfo, type> empty;
             return utility::mapped_range(empty);
         }
-        return utility::mapped_range(accessor->bases());
+        return utility::mapped_range(accessor->deriveds());
     }
 
     bool type::is_base_of(annotations::lifetime::in<foundation::ctti::typeinfo> typeinfo) const noexcept {
@@ -212,7 +259,7 @@ namespace rainy::meta::reflection {
         if (typeinfo.hash_code() == this->get_id()) {
             return true;
         }
-        for (auto &item: accessor->bases()) {
+        for (const auto &item: accessor->bases()) {
             if (item.second.is_base_of(typeinfo)) {
                 return true;
             }
@@ -231,7 +278,7 @@ namespace rainy::meta::reflection {
         if (typeinfo.hash_code() == this->get_id()) {
             return true;
         }
-        for (auto &item: accessor->deriveds()) {
+        for (const auto &item: accessor->deriveds()) {
             if (item.second.is_derived_from(typeinfo)) {
                 return true;
             }
@@ -258,13 +305,12 @@ namespace rainy::meta::reflection {
         return implements::find_metadata(accessor->metadatas(), key);
     }
 
-    bool type::has_method(std::string_view name) const noexcept {
+    bool type::has_method(const std::string_view name) const noexcept {
         if (!accessor) {
             return false;
         }
         const auto &cont = accessor->methods();
-        const auto iter = cont.find(name);
-        if (iter != cont.end()) {
+        if (const auto iter = cont.find(name); iter != cont.end()) {
             return true;
         }
         for (const auto &bases: accessor->bases()) {
@@ -275,13 +321,12 @@ namespace rainy::meta::reflection {
         return false;
     }
 
-    bool type::has_property(std::string_view name) const noexcept {
+    bool type::has_property(const std::string_view name) const noexcept {
         if (!accessor) {
             return false;
         }
         const auto &cont = accessor->properties();
-        const auto iter = cont.find(name);
-        if (iter != cont.end()) {
+        if (const auto iter = cont.find(name); iter != cont.end()) {
             return true;
         }
         for (const auto &bases: accessor->bases()) {

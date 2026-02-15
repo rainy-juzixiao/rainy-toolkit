@@ -1,4 +1,11 @@
-set(RAINY_TOOLKIT_INSTALL_DIR "${PROJECT_BINARY_DIR}/install")
+include(CMakePackageConfigHelpers)
+set(RAINY_TOOLKIT_INSTALL_DIR "${CMAKE_BINARY_DIR}/install")
+
+write_basic_package_version_file(
+        "${CMAKE_CURRENT_BINARY_DIR}/rainy-toolkitConfigVersion.cmake"
+        VERSION ${PROJECT_VERSION}
+        COMPATIBILITY AnyNewerVersion
+)
 
 install(
         DIRECTORY ${PROJECT_SOURCE_DIR}/cmake/

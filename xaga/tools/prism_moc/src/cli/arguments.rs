@@ -51,4 +51,7 @@ pub struct CommandArguments {
 
     #[arg(long = "no-cache", action = clap::ArgAction::SetTrue)]
     pub no_cache: bool,
+    
+    #[arg(long = "clear-cache", action = clap::ArgAction::SetTrue)]
+    pub clear_cache: bool
 }

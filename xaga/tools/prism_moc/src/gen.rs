@@ -12,16 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-mod node;
-mod command_help;
-mod arguments;
-mod command_description;
+mod generator;
 
-pub use node::find_node_by_range;
-pub use command_help::print_usage;
-pub use easter_egg::code_rain;
-pub use easter_egg::tea_ceremony;
-pub use arguments::CommandArguments;
-pub use command_description::print_moc_compiler_description;
+mod header_stub;
+mod function_stub;
+mod property_stub;
+mod constructor_stub;
+mod enumeration_stub;
 
-pub mod easter_egg;
+pub use generator::generate_code;

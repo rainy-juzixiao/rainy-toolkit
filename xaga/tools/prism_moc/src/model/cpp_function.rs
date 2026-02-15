@@ -21,4 +21,6 @@ pub struct CppFunction {
     pub use_namespaces: Vec<String>,
     pub use_items: Vec<String>,
     pub is_static: bool,
+    pub start_byte: usize,
+    pub end_byte: usize,
 }

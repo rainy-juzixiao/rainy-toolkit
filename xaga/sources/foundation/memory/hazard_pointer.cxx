@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include <iostream>
 #include <rainy/foundation/memory/hazard_pointer.hpp>
-
 // NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
 
 namespace rainy::foundation::memory::implements {
@@ -111,7 +111,7 @@ namespace rainy::foundation::memory::implements {
         return manager;
     }
 
-    void global_reclamation_manager::add_orphaned_nodes(retire_node *head,const std::size_t count) {
+    void global_reclamation_manager::add_orphaned_nodes(retire_node *head, const std::size_t count) {
         if (!head) {
             return;
         }
@@ -147,6 +147,7 @@ namespace rainy::foundation::memory::implements {
                 is_protected = true;
             }
             if (!is_protected) {
+                std::cout << "curr: " << curr->ptr;
                 curr->deleter(curr->ptr);
                 delete curr;
                 ++reclaimed;
@@ -181,8 +182,8 @@ namespace rainy::foundation::memory {
         auto *thread_list = implements::hazard_pointer_registry::instance().get_thread_list();
         for (std::size_t i = 0; i < implements::thread_hazard_list::MAX_HAZARDS_PER_THREAD; ++i) {
             // NOLINTBEGIN
-            if (void *expected = nullptr; thread_list->hazards[i].compare_exchange_strong(expected, const_cast<void *>(SLOT_OWNED_MARKER),
-                                                                std::memory_order_acquire, std::memory_order_relaxed)) {
+            if (void *expected = nullptr; thread_list->hazards[i].compare_exchange_strong(
+                    expected, const_cast<void *>(SLOT_OWNED_MARKER), std::memory_order_acquire, std::memory_order_relaxed)) {
                 // 寻找一个空槽用于存储hazard_pointer，若当前槽位值不为nullptr，在找到后，我们再将其标记为已占有的hazard_pointer，表示已分配
                 slot_ = &thread_list->hazards[i];
                 slot_index_ = i;

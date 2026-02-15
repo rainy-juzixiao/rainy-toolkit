@@ -11,11 +11,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+pub mod language;
+pub mod structure;
+mod storage;
 
-mod cpp_parser;
-mod extractor;
-
-pub use cpp_parser::parse_cpp;
-pub use extractor::extract_class_name;
-pub use extractor::extract_functions_and_ctors;
-pub use extractor::extract_properties;
+pub use storage::set_this_session_lang;

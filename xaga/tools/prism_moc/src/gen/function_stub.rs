@@ -64,31 +64,15 @@ pub fn generate_global_fun_stub(output: &mut String, global_functions: &Vec<CppF
         } else {
             &first_func.full_qual_name
         };
-        let param_list = first_func.params.join(", ");
-        output.push_str(&format!(
-            "    registration::method(\"{}\",rainy::utility::get_overloaded_func<{}({})>(&{}))",
-            func_name,
-            first_func.return_type,
-            if param_list.is_empty() {
-                "".to_string()
-            } else {
-                format!("{}", param_list)
-            },
-            func_name
-        ));
-        for (index, func) in global_functions.iter().skip(1).enumerate() {
-            if index != global_functions.len() - 1 {
-                output.push('\n');
-            }
+        for (index, func) in global_functions.iter().enumerate() {
             let func_name = if func.full_qual_name.is_empty() {
                 &func.name
             } else {
                 &func.full_qual_name
             };
-            // 从第2个函数开始
             let param_list = func.params.join(", ");
             output.push_str(&format!(
-                "        .method(\"{}\",rainy::utility::get_overloaded_func<{}({})>(&{}))",
+                "    registration::method(\"{}\",rainy::utility::get_overloaded_func<{}({})>(&{}));",
                 func_name,
                 func.return_type,
                 if param_list.is_empty() {
@@ -98,6 +82,9 @@ pub fn generate_global_fun_stub(output: &mut String, global_functions: &Vec<CppF
                 },
                 func_name
             ));
+            if index != global_functions.len() - 1 {
+                output.push('\n');
+            }
         }
         return true;
     }

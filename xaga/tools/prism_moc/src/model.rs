@@ -12,11 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-mod generator;
-
-mod header_stub;
-mod function_stub;
-mod property_stub;
-mod constructor_stub;
-
-pub use generator::generate_code;
+pub mod cpp_class;
+pub mod cpp_function;
+pub mod cpp_header_names;
+pub mod cpp_sources_names;
+pub mod cpp_ctor;
+pub mod cpp_code_registration;
+pub mod incremental;
+pub mod cpp_property;
+pub mod cpp_enumeration;
