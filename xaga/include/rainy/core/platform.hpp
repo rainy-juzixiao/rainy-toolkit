@@ -347,6 +347,23 @@ static_assert(false, "We detected you are using C++14 and below, and the library
 #define RAINY_TOOLKIT_API __attribute__((visibility("default")))
 #endif
 
+#if RAINY_USING_MSVC
+#define RAINY_TOOLKIT_LOCAL_API
+#else
+#define RAINY_TOOLKIT_LOCAL_API __attribute__((visibility("hidden")))
+#endif
+
+#if RAINY_USING_MSVC
+#define RAINY_CTOR_DECLARE_FUNCTION
+#define RAINY_DTOR_DECLARE_FUNCTION
+#elif RAINY_USING_GCC
+#define RAINY_CTOR_DECLARE_FUNCTION __attribute__((constructor))
+#define RAINY_DTOR_DECLARE_FUNCTION __attribute__((destructor))
+#elif RAINY_USING_CLANG
+#define RAINY_CTOR_DECLARE_FUNCTION __attribute__((__constructor__))
+#define RAINY_DTOR_DECLARE_FUNCTION __attribute__((__destructor__))
+#endif
+
 #ifdef __EDG__
 #define RAINY_USING_EDG 1
 #else
@@ -479,7 +496,7 @@ namespace rainy::type_traits::other_trans {
      * false，则 enable_if_t<test, Ty> 结果不会拥有名为“type”的嵌套 typedef
      */
     template <bool Test, typename Ty = void>
-    using enable_if_t = typename enable_if<Test, Ty>::type;
+    using enable_if_t = typename enable_if<Test, Ty>::type; // NOLINT
 
     template <bool, typename IfTrue, typename>
     struct conditional {
@@ -626,7 +643,7 @@ namespace rainy::core::builtin {
     const Ty *addressof(const Ty &&) = delete;
 
     template <typename Ty, typename... Args>
-    RAINY_CONSTEXPR20 Ty *construct_at(Ty *location, Args &&...args) noexcept(noexcept(::new(static_cast<void *>(location))
+    RAINY_CONSTEXPR20 Ty *construct_at(Ty *location, Args &&...args) noexcept(noexcept(::new (static_cast<void *>(location))
                                                                                            Ty(builtin::forward<Args>(args)...))) {
         if (!location) {
             return nullptr;
@@ -667,6 +684,7 @@ namespace rainy::core::builtin {
         throw exception;
     }
 
+    // NOLINTBEGIN
     template <template <typename U, U...> typename Struct, typename Ty, Ty N>
     struct make_integer_seq {
     private:
@@ -704,6 +722,7 @@ namespace rainy::core::builtin {
     public:
         using type = typename gen<N>::type;
     };
+    // NOLINTEND
 
     template <typename Type>
     void zero_non_value_bits(Type *ptr) noexcept {
@@ -1082,7 +1101,7 @@ namespace rainy::core {
 
 namespace rainy::core::builtin {
     static RAINY_INLINE bool almost_equal(double p1, double p2) {
-        return (std::abs(p1 - p2) * 1000000000000. <= (core::min)(std::abs(p1), std::abs(p2)));
+        return (std::abs(p1 - p2) * 1000000000000. <= (core::min) (std::abs(p1), std::abs(p2)));
     }
 }
 

@@ -16,6 +16,7 @@
 #ifndef RAINY_META_REFL_IMPL_ENUMERATION_ACCESSOR_HPP
 #define RAINY_META_REFL_IMPL_ENUMERATION_ACCESSOR_HPP
 #include <rainy/core/core.hpp>
+#include <rainy/meta/reflection/refl_impl/type_register.hpp>
 #include <rainy/meta/reflection/metadata.hpp>
 
 namespace rainy::meta::reflection::implements {
@@ -39,11 +40,6 @@ namespace rainy::meta::reflection::implements {
         std::string_view name{};
         Enum value{};
     };
-
-    template <typename Enum_Type>
-    implements::enum_data<Enum_Type> value(std::string_view name, Enum_Type value) {
-        return {name, value};
-    }
 }
 
 namespace rainy::meta::reflection::implements {
@@ -131,6 +127,14 @@ namespace rainy::meta::reflection::implements {
                 return value;
             }
             return {};
+        }
+
+        template <typename Func>
+            void ensure_initialized(Func&& init_func) {
+            static std::once_flag flag;
+            std::call_once(flag, [this, &init_func]() {
+                init_func(enums_, items_, names_);
+            });
         }
 
         std::vector<std::string_view> names_;

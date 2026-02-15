@@ -20,12 +20,13 @@ mod marco;
 mod model;
 mod parser;
 mod utility;
+mod test;
 
 use crate::cli::easter_egg::handle_easter_egg;
 use crate::cli::{print_moc_compiler_description, print_usage, CommandArguments};
 use crate::gen::generate_code;
-use crate::lang::language::set_this_session_lang;
-use crate::model::incremental::IncrementalState;
+use crate::lang::set_this_session_lang;
+use crate::model::incremental::{clear_cache, IncrementalState};
 use crate::utility::{hash_generated_code, modify_filename_in_front, write_cpp_file, write_file};
 use clap::Parser;
 use std::path::{Path, PathBuf};
@@ -53,7 +54,9 @@ fn start_generate(
         .to_string();
     let temp_file_path = temp_dir.join(modify_filename_in_front(input_filename, "tmp_").unwrap());
     if !cli.no_cache {
-        state.print_debug_info(cli.verbose);
+        if cli.dev {
+            state.print_debug_info(cli.verbose);
+        }
         if !changes.needs_full_rebuild && changes.files_to_regenerate.is_empty() {
             if let Some(cached_temp) = state.get_cached_temp_file() {
                 if cli.verbose {
@@ -126,6 +129,10 @@ async fn main() -> anyhow::Result<()> {
     if let Some(lang) = &cli.lang {
         set_this_session_lang(&cli, &lang);
     }
+    if cli.clear_cache {
+        clear_cache();
+        return Ok(());
+    }
     if cli.help {
         print_usage();
         return Ok(());
@@ -149,7 +156,7 @@ async fn main() -> anyhow::Result<()> {
     let input_path = if input_path.exists() {
         input_path.canonicalize()?
     } else {
-        input_path
+        return Err(anyhow::format_err!("Cannot start generate for {}, file not exists", input_path.display()));
     };
     start_generate(&cli, input_path, input_file)?;
     Ok(())

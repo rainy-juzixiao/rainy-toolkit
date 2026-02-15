@@ -12,11 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub mod cpp_class;
-pub mod cpp_function;
-pub mod cpp_header_names;
-pub mod cpp_sources_names;
-pub mod cpp_ctor;
-pub mod cpp_code_registration;
-pub mod incremental;
-pub mod cpp_property;
+mod command_help;
+mod arguments;
+mod command_description;
+
+pub use crate::parser::node::find_node_by_range;
+pub use command_help::print_usage;
+pub use easter_egg::code_rain;
+pub use easter_egg::tea_ceremony;
+pub use arguments::CommandArguments;
+pub use command_description::print_moc_compiler_description;
+
+pub mod easter_egg;

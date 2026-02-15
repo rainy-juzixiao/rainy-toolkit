@@ -14,13 +14,9 @@
  * limitations under the License.
  */
 #ifndef RAINY_FOUNDATION_PAL_IMPLEMENTS_TGC_LAYER_THREADING_HPP
-#define RAINY_FOUNDATION_PAL_IMPLEMENTS_TGC_LAYER_THREADING_HPP
+#define RAINY_FOUNDATION_PAL_IMPLEMENTS_TGC_LAYER_THREADING_HPP // NOLINT
 #include <rainy/core/core.hpp>
 #include <rainy/foundation/functional/function_pointer.hpp>
-
-#if RAINY_USING_LINUX
-#include <pthread.h>
-#endif
 
 namespace rainy::foundation::pal::threading {
     enum class thrd_result : int {
@@ -152,7 +148,7 @@ namespace rainy::foundation::pal::threading::implements {
 namespace rainy::foundation::pal::threading::implements {
     RAINY_TOOLKIT_API core::handle tss_create();
     RAINY_TOOLKIT_API void *tss_get(core::handle tss_key);
-    RAINY_TOOLKIT_API bool tss_set(core::handle tss_key, void *value);
+    RAINY_TOOLKIT_API bool tss_set(core::handle tss_key, const void *value);
     RAINY_TOOLKIT_API bool tss_delete(core::handle tss_key);
 }
 

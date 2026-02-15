@@ -15,23 +15,26 @@
 use crate::cli::{find_node_by_range, CommandArguments};
 use crate::dev_debug_tools::ast_node_tree::print_node_tree;
 use crate::gen::constructor_stub::generate_ctor_stub;
+use crate::gen::enumeration_stub::generate_enumeration_stub;
 use crate::gen::function_stub::{generate_global_fun_stub, generate_memfun_stub};
 use crate::gen::header_stub::generate_header_stub;
 use crate::gen::property_stub::generate_public_properties_stub;
 use crate::model::cpp_class::ClazzItemCategory;
 use crate::model::cpp_class::{CppClass, ParseResult};
 use crate::model::cpp_code_registration::RegistrationCode;
+use crate::model::cpp_enumeration::CppEnumeration;
 use crate::model::cpp_function::CppFunction;
 use crate::model::cpp_header_names::is_cpp_header;
 use crate::model::cpp_sources_names::is_cpp_source;
 use crate::parser::parse_cpp;
 use crate::utility::new_line;
 use std::fs;
+use std::hash::{DefaultHasher, Hash, Hasher};
 use std::path::PathBuf;
 
 fn generate_class_registration_begin_stub(output: &mut String, item: &CppClass) {
     let type_name = item.type_name();
-    if item.namespace_location.is_empty() {
+    if item.full_qual_name.is_empty() {
         output.push_str(&format!(
             "    registration::class_<{}>(\"{}\")\n",
             type_name, type_name
@@ -48,13 +51,55 @@ fn generate_class_registration_end_stub(output: &mut String) {
     output.push_str(";\n");
 }
 
-fn begin_registration_stub(output: &mut String) {
-    output.push_str("RAINY_REFLECTION_REGISTRATION {");
-    new_line(output);
+fn calculate_hash<T: Hash>(t: &T) -> u64 {
+    let mut s = DefaultHasher::new();
+    t.hash(&mut s);
+    s.finish()
 }
 
-fn end_registration_stub(output: &mut String) {
-    output.push_str(";\n}\n");
+fn begin_registration_stub(output: &mut String, file_path: &PathBuf) {
+    // 计算文件路径的哈希值
+    let hash = calculate_hash(&file_path);
+    // 直接生成代码，不使用宏包装
+    output.push_str(&format!(
+        "static void rainytoolkit_auto_register_reflection_function_{:x}() RAINY_CTOR_DECLARE_FUNCTION;\n",
+        hash
+    ));
+    output.push_str(&format!(
+        "static void rainytoolkit_auto_unregister_reflection_function_{:x}() RAINY_DTOR_DECLARE_FUNCTION;\n",
+        hash
+    ));
+    output.push_str(&format!(
+        "struct rainytoolkit_auto_register_reflection_{:x} {{\n",
+        hash
+    ));
+    output.push_str(&format!(
+        "    rainytoolkit_auto_register_reflection_{:x}() {{\n",
+        hash
+    ));
+    output.push_str(&format!(
+        "        rainytoolkit_auto_register_reflection_function_{:x}();\n",
+        hash
+    ));
+    output.push_str("    }\n");
+    output.push_str("};\n");
+    output.push_str(&format!("static const rainytoolkit_auto_register_reflection_{:x} rainy_toolkit_auto_register_{:x};\n", hash, hash));
+    output.push_str(&format!(
+        "static void rainytoolkit_auto_register_reflection_function_{:x}() {{\n",
+        hash
+    ));
+}
+
+fn end_registration_stub(output: &mut String, file_path: &PathBuf) {
+    let hash = calculate_hash(&file_path);
+    output.push_str("\n}\n\n");
+    // destructor 属性，dlclose 时自动调用
+    output.push_str(&format!(
+        "static void rainytoolkit_auto_unregister_reflection_function_{:x}() {{\n",
+        hash
+    ));
+    output.push_str("    rainy::meta::reflection::implements::module_injector::instance().unregister_all();\n");
+    output.push_str("}\n");
 }
 
 pub fn generate_registration(
@@ -65,7 +110,7 @@ pub fn generate_registration(
     let mut output = String::new();
     let header_path = fs::canonicalize(header_file).unwrap();
     generate_header_stub(cli, &mut output, &header_path); // 生成头stub节
-    begin_registration_stub(&mut output);
+    begin_registration_stub(&mut output, &header_path);
     for item in registration_code.classes() {
         generate_class_registration_begin_stub(&mut output, item);
         if !item.all_is_empty() {
@@ -84,8 +129,12 @@ pub fn generate_registration(
         generate_class_registration_end_stub(&mut output);
     }
     let global_functions: &Vec<CppFunction> = registration_code.global_functions();
-    if generate_global_fun_stub(&mut output, &global_functions) {}
-    end_registration_stub(&mut output);
+    if generate_global_fun_stub(&mut output, &global_functions) {
+        new_line(&mut output);
+    }
+    let enumerations: &Vec<CppEnumeration> = registration_code.enumerations();
+    generate_enumeration_stub(&mut output, &enumerations);
+    end_registration_stub(&mut output, &header_path);
     if cli.verbose {
         println!("Finish generate for file: {}", header_file);
         println!("Generated code for these classes: ");
@@ -143,7 +192,22 @@ pub fn generate_code(
         if cli.verbose {
             println!("Found moc cpp global function: {}", function.name);
         }
+        if cli.dev {
+            if let Some(node) = find_node_by_range(
+                parse_result.tree.root_node(),
+                function.start_byte,
+                function.end_byte,
+            ) {
+                print_node_tree(node, &source, true);
+            }
+        }
         total_generate.add_global_function(function.clone());
+    }
+    for enumeration in &parse_result.global_enumerations {
+        if cli.verbose {
+            println!("Found moc enumeration: {}", enumeration.name);
+        }
+        total_generate.add_enumeration(enumeration.clone());
     }
     if cli.verbose {
         if total_generate.classes_is_empty() {
