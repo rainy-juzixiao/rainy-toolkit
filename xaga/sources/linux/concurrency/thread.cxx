@@ -23,7 +23,7 @@
 #include <signal.h>
 #include <sys/syscall.h>
 
-namespace rainy::foundation::pal::threading::implements {
+namespace rainy::foundation::concurrency::implements {
     void endthread() {
         pthread_exit(nullptr);
     }
