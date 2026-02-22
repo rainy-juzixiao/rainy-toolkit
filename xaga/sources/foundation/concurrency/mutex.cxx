@@ -1,6 +1,13 @@
 #include <rainy/foundation/concurrency/mutex.hpp>
 
 namespace rainy::foundation::concurrency {
+    mutex::mutex() noexcept {
+        if (rainy_const r = implements::mtx_create(&mtx_, implements::mutex_types::plain_mtx | implements::mutex_types::try_mtx);
+            r != thrd_result::success) {
+            std::terminate();
+        }
+    }
+
     mutex::~mutex() {
         if (mtx_) {
             implements::mtx_destroy(&mtx_);
@@ -40,9 +47,7 @@ namespace rainy::foundation::concurrency {
 
 namespace rainy::foundation::concurrency {
     recursive_mutex::recursive_mutex() noexcept {
-        constexpr int flags =
-            implements::mutex_types::plain_mtx | implements::mutex_types::try_mtx | implements::mutex_types::recursive_mtx;
-
+        constexpr int flags = implements::mutex_types::try_mtx | implements::mutex_types::recursive_mtx;
         if (const auto r = implements::mtx_create(&mtx_, flags); r != thrd_result::success) {
             std::terminate();
         }
@@ -88,9 +93,7 @@ namespace rainy::foundation::concurrency {
 
 namespace rainy::foundation::concurrency {
     timed_mutex::timed_mutex() noexcept {
-        constexpr int flags =
-            implements::mutex_types::plain_mtx | implements::mutex_types::try_mtx | implements::mutex_types::timed_mtx;
-
+        constexpr int flags = implements::mutex_types::try_mtx | implements::mutex_types::timed_mtx;
         if (implements::mtx_create(&mtx_, flags) != thrd_result::success) {
             std::terminate();
         }
@@ -114,14 +117,12 @@ namespace rainy::foundation::concurrency {
 
     rain_fn timed_mutex::try_lock() -> bool {
         const auto r = implements::mtx_trylock(&mtx_);
-
         if (r == thrd_result::success) {
             return true;
         }
         if (r == thrd_result::busy) {
             return false;
         }
-
         std::terminate();
     }
 
@@ -137,9 +138,8 @@ namespace rainy::foundation::concurrency {
 }
 namespace rainy::foundation::concurrency {
     recursive_timed_mutex::recursive_timed_mutex() noexcept {
-        constexpr int flags = implements::mutex_types::plain_mtx | implements::mutex_types::try_mtx |
-                              implements::mutex_types::timed_mtx | implements::mutex_types::recursive_mtx;
-
+        constexpr int flags =
+            implements::mutex_types::try_mtx | implements::mutex_types::timed_mtx | implements::mutex_types::recursive_mtx;
         if (implements::mtx_create(&mtx_, flags) != thrd_result::success) {
             std::terminate();
         }

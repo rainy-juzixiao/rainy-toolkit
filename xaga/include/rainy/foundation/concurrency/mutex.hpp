@@ -38,12 +38,7 @@ namespace rainy::foundation::concurrency {
          * 创建底层互斥对象。
          * 失败时调用 std::terminate()。
          */
-        mutex() noexcept {
-            if (rainy_const r = implements::mtx_create(&mtx_, implements::mutex_types::plain_mtx | implements::mutex_types::try_mtx);
-                r != thrd_result::success) {
-                std::terminate();
-            }
-        }
+        mutex() noexcept;
 
         /**
          * @brief 析构互斥量。
@@ -259,8 +254,7 @@ namespace rainy::foundation::concurrency {
          *
          * 出错时调用 std::terminate()。
          */
-        RAINY_NODISCARD
-        rain_fn try_lock() -> bool;
+        RAINY_NODISCARD rain_fn try_lock() -> bool;
 
         /**
          * @brief 在给定时间段内尝试锁定。

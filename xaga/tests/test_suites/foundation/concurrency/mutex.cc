@@ -156,8 +156,6 @@ TEMPLATE_TEST_CASE("Lock types unified BDD tests", "[lock][bdd]", mutex, recursi
     }
 }
 
-
-
 SCENARIO("create_synchronized_task executes callable under mutex", "[create_synchronized_task][bdd]") {
     GIVEN("a mutex and shared counter") {
         mutex m;
@@ -174,7 +172,6 @@ SCENARIO("create_synchronized_task executes callable under mutex", "[create_sync
         }
     }
 }
-
 
 SCENARIO("create_synchronized_task provides mutual exclusion", "[create_synchronized_task][bdd][thread]") {
     GIVEN("a shared counter protected by synchronized task") {
