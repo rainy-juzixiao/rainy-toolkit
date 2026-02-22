@@ -22,7 +22,7 @@ namespace rainy::collections::frozen {
         /**
          * @brief 构造空的 frozen_vector.
          */
-        constexpr frozen_vector() noexcept(std::is_nothrow_constructible_v<Ty>) = default;
+        constexpr frozen_vector() noexcept(type_traits::type_properties::is_nothrow_constructible_v<Ty>) = default;
 
         /**
          * @brief 通过初始化列表,构造一个包含指定元素的 frozen_vector

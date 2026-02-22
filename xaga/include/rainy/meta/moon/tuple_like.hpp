@@ -15,10 +15,10 @@
  */
 #ifndef RAINY_MOON_TUPLE_LIKE_TRAITS_HPP
 #define RAINY_MOON_TUPLE_LIKE_TRAITS_HPP
+#include <rainy/foundation/container/pair.hpp>
 #include <rainy/core/core.hpp>
-#include <rainy/utility/pair.hpp>
-#include <variant>
 #include <tuple>
+#include <variant>
 
 /*
 [N4849 13.7.5 Class template partial specializations(temp.class.spec) - 10]:

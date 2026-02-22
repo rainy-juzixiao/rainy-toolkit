@@ -62,33 +62,8 @@ enum class color {
     blue
 };
 
-class myclass : virtual public mybase2, public meta::reflection::reflect_lunar_for_class<myclass> {
+class myclass : virtual public mybase2 {
 public:
-    RAINY_INTRUSIVE_REFLECTION_REGISTRATION("myclass", this_instance) {
-        meta::reflection::registration::class_<mybase1>("mybase1")
-            .method("print_mybase1", &mybase1::print_mybase1)
-            .method("virtual_fun", &mybase1::virtual_fun);
-
-        meta::reflection::registration::class_<mybase2>("mybase2")
-            .method("print_mybase2", &mybase2::print_mybase2)
-            .method("virtual_fun", &mybase2::virtual_fun);
-        this_instance(meta::reflection::metadata("prop", "virtual public"))
-            .constructor<>()
-            .copy_constructor()
-            .move_constructor()
-            .property("field", &myclass::field)
-            .enumeration<color>("color")
-            .constructor<int>()(meta::reflection::metadata("prop", "ctor"))
-            .method("print_field", utility::get_overloaded_func<myclass, void(std::string) const>(&myclass::print_field))(
-                meta::reflection::metadata("prop", "const print"))
-            .method("print_field", utility::get_overloaded_func<myclass, void(int)>(&myclass::print_field))(
-                meta::reflection::metadata("prop", "print"), meta::reflection::default_arguments(50))
-            .method("virtual_fun", &mybase1::virtual_fun)
-            .method("print_field", utility::get_overloaded_func<myclass, void(myclass)>(&myclass::print_field))
-            .method("virtual_fun", &myclass::virtual_fun)
-            .base<mybase1>("mybase1")
-            .base<mybase2>("mybase2");
-    }
 
     myclass() {
     }
@@ -136,14 +111,6 @@ struct User {
 
 
 void fun() {
-}
-
-RAINY_REFLECTION_REGISTRATION {
-    // clang-format off
-    using namespace rainy::meta::reflection;
-    registration::class_<Address>("Address").constructor().property("city",&Address::city).property("zip",&Address::zip);
-    registration::class_<User>("User").constructor().property("id",&User::id).property("name",&User::name).property("scores", &User::scores).property("addr",&User::addr);
-    // clang-format on
 }
 
 RAINY_REFLECT_TUPLE_LIKE(structure, a, b, c)
@@ -204,7 +171,324 @@ struct S {
     }
 };
 
+#include <rainy/foundation/concurrency/concurrency.hpp>
+
+using namespace rainy::foundation::concurrency;
+
+monad_future<bool> async_check_username(const std::string &username) {
+    auto state = std::make_shared<shared_state<bool>>();
+    std::thread([state, username]() {
+        std::this_thread::sleep_for(std::chrono::milliseconds(500)); // 模拟网络延迟
+
+        // 模拟检查逻辑：admin 已被占用
+        bool available = (username != "admin");
+        state->set_value(available);
+    }).detach();
+
+    return monad_future<bool>(state);
+}
+
+struct MyUser {
+    int id;
+    std::string name;
+    std::string email;
+};
+
+monad_future<MyUser> async_create_user(const std::string &name, const std::string &email) {
+    auto state = std::make_shared<shared_state<MyUser>>();
+
+    std::thread([state, name, email]() {
+        std::this_thread::sleep_for(std::chrono::milliseconds(800));
+
+        static int next_id = 1000;
+        MyUser user{next_id++, name, email};
+        state->set_value(user);
+    }).detach();
+
+    return monad_future<MyUser>(state);
+}
+
+// 模拟异步发送欢迎邮件
+monad_future<void> async_send_welcome_email(const MyUser &user) {
+    auto state = std::make_shared<shared_state<void>>();
+
+    std::thread([state, user]() {
+        std::this_thread::sleep_for(std::chrono::milliseconds(300));
+
+        std::cout << "📧 欢迎邮件已发送给: " << user.name << " (" << user.email << ")" << std::endl;
+        state->set_value();
+    }).detach();
+
+    return monad_future<void>(state);
+}
+
+// 模拟异步记录日志
+monad_future<void> async_log_registration(const MyUser &user) {
+    auto state = std::make_shared<shared_state<void>>();
+
+    std::thread([state, user]() {
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+
+        std::cout << "📝 注册日志已记录: User #" << user.id << std::endl;
+        state->set_value();
+    }).detach();
+
+    return monad_future<void>(state);
+}
+
+// 模拟可能失败的异步操作
+monad_future<int> async_calculate_score(const MyUser &user) {
+    auto state = std::make_shared<shared_state<int>>();
+
+    std::thread([state, user]() {
+        std::this_thread::sleep_for(std::chrono::milliseconds(400));
+
+        // 50% 概率失败
+        static std::random_device rd;
+        static std::mt19937 gen(rd());
+        static std::uniform_int_distribution<> dist(0, 1);
+
+        if (dist(gen) == 0) {
+            // 成功
+            int score = user.id * 10;
+            state->set_value(score);
+        } else {
+            // 失败
+            try {
+                throw std::runtime_error("计算服务暂时不可用");
+            } catch (...) {
+                state->set_exception(std::current_exception());
+            }
+        }
+    }).detach();
+
+    return monad_future<int>(state);
+}
+
+class ThreadPoolExecutor {
+public:
+    void submit(std::function<void()> task) {
+        std::thread([task]() {
+            std::cout << "  [线程池] 执行任务..." << std::endl;
+            task();
+        }).detach();
+    }
+};
+
+// UI线程执行器（模拟在主线程执行）
+class UIThreadExecutor {
+public:
+    void submit(std::function<void()> task) {
+        // 实际应用中会post到UI消息队列
+        std::cout << "  [UI线程] 执行任务..." << std::endl;
+        task(); // 这里简化为直接执行
+    }
+};
+
+
+int demo_program() {
+    std::cout << "=== 异步编程链式调用示例 ===\n\n";
+
+    // ── 场景1：基本的链式调用 ──────────────────────────────────
+    std::cout << "【场景1】基本链式调用：注册流程\n";
+
+    std::string username = "alice";
+    std::string email = "alice@example.com";
+
+    auto registration_flow = async_check_username(username)
+                                 .then([username, email](bool available) -> monad_future<MyUser> {
+                                     if (!available) {
+                                         throw std::runtime_error("用户名已被占用");
+                                     }
+                                     std::cout << "✅ 用户名 '" << username << "' 可用，开始创建用户...\n";
+                                     return async_create_user(username, email);
+                                 })
+                                 .then([](MyUser user) {
+                                     std::cout << "✅ 用户创建成功: " << user.name << " (ID: " << user.id << ")\n";
+                                     return user;
+                                 });
+
+    // 等待注册流程完成
+    try {
+        MyUser user = registration_flow.get();
+        std::cout << "🎉 注册完成！用户ID: " << user.id << "\n\n";
+    } catch (const std::exception &e) {
+        std::cout << "❌ 注册失败: " << e.what() << "\n\n";
+    }
+
+    // ── 场景2：并行处理 + 错误处理 ──────────────────────────────
+    std::cout << "【场景2】并行处理 + 错误处理\n";
+
+    // 创建一个用户用于测试
+    auto test_user_state = std::make_shared<shared_state<MyUser>>();
+    test_user_state->set_value(MyUser{1001, "bob", "bob@example.com"});
+    monad_future<MyUser> test_user(test_user_state);
+
+    auto parallel_flow = test_user
+                             .then([](MyUser user) {
+                                 // 并行发送邮件和记录日志
+                                 auto email_fut = async_send_welcome_email(user);
+                                 auto log_fut = async_log_registration(user);
+
+                                 // when_all 需要你自己实现，这里简化成顺序执行
+                                 email_fut.wait();
+                                 log_fut.wait();
+
+                                 return user;
+                             })
+                             .then([](MyUser user) { return async_calculate_score(user); })
+                             .catch_error([](std::exception_ptr e) {
+                                 try {
+                                     std::rethrow_exception(e);
+                                 } catch (const std::exception &ex) {
+                                     std::cout << "⚠️ 计算分数失败: " << ex.what() << "\n";
+                                     std::cout << "   使用默认分数 0\n";
+                                 }
+                                 return 0; // 提供默认值
+                             })
+                             .then([](int score) {
+                                 std::cout << "📊 用户初始分数: " << score << "\n";
+                                 return score;
+                             })
+                             .finally([]() { std::cout << "🏁 用户初始化流程完成\n"; });
+
+    parallel_flow.wait();
+    std::cout << "\n";
+
+    // ── 场景3：指定执行器 ──────────────────────────────────────
+    std::cout << "【场景3】指定执行器（调度器）\n";
+
+    ThreadPoolExecutor thread_pool;
+    UIThreadExecutor ui_thread;
+
+    auto executor_flow = test_user
+                             .then(thread_pool,
+                                   [](MyUser user) {
+                                       std::cout << "  [后台] 处理用户数据..." << std::endl;
+                                       std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                                       return user.id * 2;
+                                   })
+                             .then(ui_thread,
+                                   [](int processed) {
+                                       std::cout << "  [UI] 更新界面显示: " << processed << std::endl;
+                                       return processed;
+                                   })
+                             .then([](int final_value) { std::cout << "✅ 最终值: " << final_value << "\n"; });
+
+    executor_flow.wait();
+    std::cout << "\n";
+
+    // ── 场景4：复杂的错误恢复链 ──────────────────────────────────
+    std::cout << "【场景4】错误恢复链\n";
+
+    auto retry_flow = async_calculate_score(MyUser{9999, "retry", "retry@test.com"})
+                          .catch_error([](std::exception_ptr e) {
+                              std::cout << "  第一次失败，尝试重试...\n";
+                              // 重试逻辑：返回一个新的future
+                              auto new_state = std::make_shared<shared_state<int>>();
+                              new_state->set_value(42); // 模拟重试成功
+                              return monad_future<int>(new_state);
+                          })
+                          .then([](int score) { std::cout << "  最终分数: " << score << "\n"; });
+
+    retry_flow.wait();
+    std::cout << "\n";
+
+    // ── 场景5：类型转换链 ──────────────────────────────────────
+    std::cout << "【场景5】类型转换\n";
+
+    auto type_conversion = test_user.then([](MyUser user) -> std::string { return user.name + " <" + user.email + ">"; })
+                               .then([](std::string info) -> size_t { return info.length(); })
+                               .then([](size_t len) { std::cout << "用户信息字符串长度: " << len << "\n"; });
+    type_conversion.wait();
+
+    std::cout << "\n=== 示例结束 ===\n";
+    return 0;
+}
+
+void calculate(promise<int> prom) {
+    // 模拟耗时计算
+    std::this_thread::sleep_for(std::chrono::seconds(2));
+    int result = 42;
+
+    // 设置结果
+    prom.set_value(result);
+}
+
+#include <Windows.h>
+#include <DbgHelp.h>
+#pragma comment(lib, "DbgHelp.lib")
+
+
+static std::atomic<int> g_alloc_serial{0};
+static std::once_flag g_sym_init;
+
+//void *operator new(size_t size) {
+//    void *p = malloc(size);
+//    if (size == 184 || size == 200 || size == 160 || size == 112 || size == 72 || size == 32) {
+//        std::call_once(g_sym_init, [] { SymInitialize(GetCurrentProcess(), nullptr, TRUE); });
+//        int serial = g_alloc_serial.fetch_add(1);
+//        void *stack[16]{};
+//        USHORT frames = CaptureStackBackTrace(1, 16, stack, nullptr);
+//        printf("[ALLOC #%d] size=%zu\n", serial, size);
+//
+//        char buf[sizeof(SYMBOL_INFO) + MAX_SYM_NAME] = {};
+//        auto *sym = reinterpret_cast<SYMBOL_INFO *>(buf);
+//        sym->SizeOfStruct = sizeof(SYMBOL_INFO);
+//        sym->MaxNameLen = MAX_SYM_NAME;
+//
+//        for (USHORT i = 0; i < frames; ++i) {
+//            DWORD64 addr = reinterpret_cast<DWORD64>(stack[i]);
+//            DWORD64 disp = 0;
+//            if (SymFromAddr(GetCurrentProcess(), addr, &disp, sym)) {
+//                printf("  %s + 0x%llx\n", sym->Name, disp);
+//            } else {
+//                printf("  %p\n", stack[i]);
+//            }
+//        }
+//    }
+//    return p;
+//}
+
+
+struct PooledExecutorFixture {
+    executor ex;
+
+    PooledExecutorFixture() : ex(make_pooled_executor(8, 32)) {
+    }
+};
+
+void test_catch_error_recovers_from_exceptions() {
+    // Test case 1: upstream throws
+    {
+        executor ex = make_pooled_executor(8, 32);
+        auto f =
+            ex.submit([]() -> int { throw std::runtime_error("boom"); }).catch_error([](std::exception_ptr) -> int { return -1; });
+        assert(f.get() == -1);
+    }
+
+    // Test case 2: no exception occurs
+    {
+        executor ex = make_pooled_executor(8, 32);
+        auto f = ex.submit([] { return 99; }).catch_error([](std::exception_ptr) -> int { return -1; });
+        assert(f.get() == 99);
+    }
+
+    // Test case 3: catch_error is followed by then
+    {
+        executor ex = make_pooled_executor(8, 32);
+        auto f = ex.submit([]() -> int { throw std::logic_error("err"); })
+                     .catch_error([](std::exception_ptr) -> int { return 10; })
+                     .then([](int x) { return x * 2; });
+        assert(f.get() == 20);
+    }
+}
+
 int main() {
+    _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+    test_catch_error_recovers_from_exceptions();
+    return 0;
+
     S m{};
     std::cout << m.val << '\n';
     // get_overloaded_func<void()>(&f);

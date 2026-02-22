@@ -3,8 +3,9 @@
 #include <iostream>
 #include <rainy/core/core.hpp>
 #if RAINY_USING_WINDOWS
+#include <rainy/foundation/concurrency/context.hpp>
 #include <rainy/foundation/pal/asio/timer/queue_set.hpp>
-#include <rainy/foundation/pal/threading.hpp>
+#include <rainy/foundation/concurrency/concurrency.hpp>
 #include <rainy/foundation/functional/delegate.hpp>
 
 namespace rainy::foundation::pal::asio {
@@ -44,11 +45,11 @@ namespace rainy::foundation::pal::asio::implements {
     RAINY_TOOLKIT_API void reset_io_context(io_ctx ctx);
     RAINY_TOOLKIT_API bool io_context_stopped(io_ctx ctx);
     RAINY_TOOLKIT_API core::handle get_callback(callback_t &&callback);
-    using io_context_thread_info = threading::implements::thread_info_base;
+    using io_context_thread_info = concurrency::implements::thread_info_base;
 }
 
 namespace rainy::foundation::pal::asio {
-    class io_context : public threading::thread_context {
+    class io_context : public concurrency::thread_context {
     public:
         using event_type = task_func;
         using event_callback = asio::event_callback;
@@ -147,7 +148,7 @@ namespace rainy::foundation::pal::asio {
         }
 
         bool can_dispatch() noexcept {
-            return threading::thread_context::thread_call_stack::contains(this) != nullptr;
+            return concurrency::thread_context::thread_call_stack::contains(this) != nullptr;
         }
 
     private:

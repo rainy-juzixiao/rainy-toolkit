@@ -538,21 +538,21 @@ namespace rainy::utility {
                           !utility::is_in_place_index_specialization<type_traits::cv_modify::remove_cvref_t<Ty>> &&
                           type_traits::type_properties::is_constructible_v<implements::variant_init_type<Ty, Types...>, Ty>,
                       int> = 0>
-        constexpr variant(Ty &&object) noexcept(std::is_nothrow_constructible_v<implements::variant_init_type<Ty, Types...>, Ty>) :
+        constexpr variant(Ty &&object) noexcept(type_traits::type_properties::is_nothrow_constructible_v<implements::variant_init_type<Ty, Types...>, Ty>) :
             base(utility::in_place_index<implements::variant_init_index<Ty, Types...>::value>, object) {
         }
 
         template <typename Ty, typename... Args, typename Idx = type_traits::other_trans::type_find_unique<Ty, type_list>,
                   type_traits::other_trans::enable_if_t<
                       Idx::value != base::invalid_index && type_traits::type_properties::is_constructible_v<Ty, Args...>, int> = 0>
-        constexpr explicit variant(std::in_place_type_t<Ty>, Args &&...args) noexcept(std::is_nothrow_constructible_v<Ty, Args...>) {
+        constexpr explicit variant(std::in_place_type_t<Ty>, Args &&...args) noexcept(type_traits::type_properties::is_nothrow_constructible_v<Ty, Args...>) {
         }
 
         template <typename Ty, typename... Args, typename Idx = type_traits::other_trans::type_find_unique<Ty, type_list>,
                   type_traits::other_trans::enable_if_t<
                       Idx::value != base::invalid_index && type_traits::type_properties::is_constructible_v<Ty, Args...>, int> = 0>
         constexpr explicit variant(utility::placeholder_type_t<Ty>,
-                                   Args &&...args) noexcept(std::is_nothrow_constructible_v<Ty, Args...>) :
+                                   Args &&...args) noexcept(type_traits::type_properties::is_nothrow_constructible_v<Ty, Args...>) :
             base(utility::in_place_index<Idx::value>, utility::forward<Args>(args)...) {
         }
 
@@ -562,7 +562,7 @@ namespace rainy::utility {
                                                                 base::invalid_index /* 防止类型双关 */,
                                                         int> = 0>
         constexpr explicit variant(std::in_place_index_t<Idx>,
-                                   Args &&...args) noexcept(std::is_nothrow_constructible_v<Type, Args...>) :
+                                   Args &&...args) noexcept(type_traits::type_properties::is_nothrow_constructible_v<Type, Args...>) :
             base(utility::in_place_index<Idx>, utility::forward<Args>(args)...) {
         }
 
@@ -572,7 +572,7 @@ namespace rainy::utility {
                                                                 base::invalid_index /* 防止类型双关 */,
                                                         int> = 0>
         constexpr explicit variant(utility::in_place_index_t<Idx>,
-                                   Args &&...args) noexcept(std::is_nothrow_constructible_v<Type, Args...>) :
+                                   Args &&...args) noexcept(type_traits::type_properties::is_nothrow_constructible_v<Type, Args...>) :
             base(utility::in_place_index<Idx>, utility::forward<Args>(args)...) {
         }
 

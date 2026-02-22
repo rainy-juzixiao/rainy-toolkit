@@ -16,12 +16,12 @@
 #ifndef RAINY_COLLECTIONS_UNORDERED_MAP_HPP
 #define RAINY_COLLECTIONS_UNORDERED_MAP_HPP
 #include <cmath>
+#include <rainy/collections/list.hpp>
 #include <rainy/core/core.hpp>
-#include <rainy/utility/pair.hpp>
-#include <rainy/utility/iterator.hpp>
+#include <rainy/foundation/container/pair.hpp>
 #include <rainy/foundation/functional/functor.hpp>
 #include <rainy/foundation/memory/allocator.hpp>
-#include <rainy/collections/list.hpp>
+#include <rainy/utility/iterator.hpp>
 
 namespace rainy::collections::implements {
     template <typename Iter>
@@ -166,8 +166,9 @@ namespace rainy::collections::implements {
             return current_ != other.current_;
         }
 
-        template <bool B = IsConst, typename = std::enable_if_t<B>>
-        unordered_map_local_iterator(const unordered_map_local_iterator<false, ListIterator> &other) : current_(other.current_), end_(other.end_) { // NOLINT
+        template <bool B = IsConst, typename = type_traits::other_trans::enable_if_t<B>>
+        unordered_map_local_iterator(const unordered_map_local_iterator<false, ListIterator> &other) :
+            current_(other.current_), end_(other.end_) { // NOLINT
         }
     };
 }
@@ -188,8 +189,7 @@ namespace rainy::collections::implements {
         constexpr unordered_map_node_handle() noexcept : node_() {
         }
 
-        unordered_map_node_handle(unordered_map_node_handle &&other) noexcept :
-            node_(utility::move(other.node_)) {
+        unordered_map_node_handle(unordered_map_node_handle &&other) noexcept : node_(utility::move(other.node_)) {
         }
 
         unordered_map_node_handle &operator=(unordered_map_node_handle &&other) noexcept {
@@ -219,7 +219,7 @@ namespace rainy::collections::implements {
 
         mapped_type &mapped() const {
             assert(!empty());
-            return const_cast<mapped_type&>(node_.value().second);
+            return const_cast<mapped_type &>(node_.value().second);
         }
 
         void swap(unordered_map_node_handle &other) noexcept {
@@ -274,7 +274,7 @@ namespace rainy::collections::implements {
         }
 
         explicit unordered_map(const size_type bucket_count, const hasher &hash = hasher(), const key_equal &equal = key_equal(),
-                                const allocator_type &alloc = allocator_type()) :
+                               const allocator_type &alloc = allocator_type()) :
             elements_(alloc), buckets_(), size_(0), max_load_factor_(default_max_load_factor_), hash_(hash), equal_(equal) {
             init_buckets(bucket_count);
         }
@@ -299,8 +299,8 @@ namespace rainy::collections::implements {
         }
 
         unordered_map(std::initializer_list<value_type> init, size_type bucket_count = default_bucket_count_,
-                       const hasher &hash = hasher(), const key_equal &equal = key_equal(),
-                       const allocator_type &alloc = allocator_type()) :
+                      const hasher &hash = hasher(), const key_equal &equal = key_equal(),
+                      const allocator_type &alloc = allocator_type()) :
             elements_(alloc), buckets_(), size_(0), max_load_factor_(default_max_load_factor_), hash_(hash), equal_(equal) {
             size_type actual_count = bucket_count > init.size() ? bucket_count : init.size();
             init_buckets(actual_count);
@@ -407,7 +407,7 @@ namespace rainy::collections::implements {
             }
         }
 
-        template <typename P, typename = std::enable_if_t<std::is_constructible_v<value_type, P &&>>>
+        template <typename P, typename = type_traits::other_trans::enable_if_t<std::is_constructible_v<value_type, P &&>>>
         utility::pair<iterator, bool> insert(P &&value) {
             if constexpr (Multi) {
                 return utility::make_pair(insert_multi(utility::forward<P>(value)), true);
@@ -785,13 +785,6 @@ namespace rainy::collections::implements {
         }
 
     private:
-        list_type elements_; // 存储所有元素
-        std::vector<bucket_type> buckets_; // 每个bucket存储指向elements_的迭代器
-        size_type size_;
-        float max_load_factor_;
-        hasher hash_;
-        key_equal equal_;
-
         static constexpr size_type default_bucket_count_ = 8;
         static constexpr float default_max_load_factor_ = 1.0f;
 
@@ -942,6 +935,13 @@ namespace rainy::collections::implements {
             }
             return iterator(last.base());
         }
+
+        list_type elements_; // 存储所有元素
+        std::vector<bucket_type> buckets_; // 每个bucket存储指向elements_的迭代器
+        size_type size_;
+        float max_load_factor_;
+        hasher hash_;
+        key_equal equal_;
     };
 }
 

@@ -567,7 +567,7 @@ namespace rainy::async::implements {
             return std::suspend_always{};
         }
 
-        template <typename U = T, std::enable_if_t<!std::is_rvalue_reference<U>::value, int> = 0>
+        template <typename U = T, type_traits::other_trans::enable_if_t<!std::is_rvalue_reference<U>::value, int> = 0>
         auto yield_value(std::remove_reference_t<T> &value) noexcept {
             m_value = std::addressof(value);
             return std::suspend_always{};

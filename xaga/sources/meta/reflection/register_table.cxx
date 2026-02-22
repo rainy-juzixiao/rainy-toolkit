@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <rainy/meta/reflection/type.hpp>
+#include <rainy/foundation/concurrency/concurrency.hpp>
 #include <rainy/meta/reflection/refl_impl/type_register.hpp>
-#include <rainy/foundation/pal/threading.hpp>
+#include <rainy/meta/reflection/type.hpp>
 
 namespace rainy::meta::reflection::implements {
     class register_table::myimpl {
@@ -29,7 +29,7 @@ namespace rainy::meta::reflection::implements {
 
         void register_type(std::string_view name, type_accessor *type) {
             // 同步块开始
-            foundation::pal::threading::create_synchronized_task(this->lock, [this, &type, name]() {
+            foundation::concurrency::synchronized_invoke(this->lock, [this, &type, name]() {
                 const auto &typeinfo = type->typeinfo();
 #if RAINY_HAS_CXX20
                 if (!this->data.contains(typeinfo))

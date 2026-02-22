@@ -16,9 +16,10 @@
 #ifndef RAINY_BASIC_EXCEPTIONS_HPP
 #define RAINY_BASIC_EXCEPTIONS_HPP
 #include <rainy/core/implements/source_location.hpp>
+#include <utility>
 
 namespace rainy::foundation::exceptions {
-    using exception_handler_t = void(*)();
+    using exception_handler_t = void (*)();
 
     RAINY_TOOLKIT_API exception_handler_t global_exception_handler(exception_handler_t new_handler = nullptr) noexcept;
     RAINY_TOOLKIT_API exception_handler_t current_thread_exception_handler(exception_handler_t new_handler = nullptr) noexcept;
@@ -34,7 +35,8 @@ namespace rainy::foundation::exceptions::implements {
             constexpr char message[] = "Detected error and the program cause a fatal error!";
             std::fwrite(message, sizeof(char), sizeof(char) * core::builtin::string_length(message), stderr); // NOLINT
         } else {
-            std::fwrite(exception.what(), sizeof(char), sizeof(char) * core::builtin::string_length(exception.what()), stderr); // NOLINT
+            std::fwrite(exception.what(), sizeof(char), sizeof(char) * core::builtin::string_length(exception.what()),
+                        stderr); // NOLINT
         }
         if constexpr (!NoExceptionHandlerInvoke) {
             invoke_exception_handler();
@@ -68,12 +70,12 @@ namespace rainy::foundation::exceptions {
     class wrapexcept final : public std::exception {
     public:
         // 使用完美转发避免不必要的拷贝
-        explicit wrapexcept(Except &&except_instance) noexcept(std::is_nothrow_move_constructible_v<Except>) :
+        explicit wrapexcept(Except &&except_instance) noexcept(type_traits::type_properties::is_nothrow_move_constructible_v<Except>) :
             exception_(utility::move(except_instance)) {
         }
 
-        explicit wrapexcept(const Except &except_instance) noexcept(std::is_nothrow_copy_constructible_v<Except>) :
-            exception_(except_instance) {
+        explicit wrapexcept(const Except &except_instance) noexcept(
+            type_traits::type_properties::is_nothrow_copy_constructible_v<Except>) : exception_(except_instance) {
         }
 
         RAINY_NODISCARD const char *what() const noexcept override {
@@ -215,10 +217,12 @@ namespace rainy::foundation::exceptions::logic {
     public:
         using base = logic_error;
 
-        explicit out_of_range(const char *message = "out_of_range", const source &location = source::current()) : base(message, location) {
+        explicit out_of_range(const char *message = "out_of_range", const source &location = source::current()) :
+            base(message, location) {
         }
 
-        explicit out_of_range(const std::string &message = "out_of_range", const source &location = source::current()) : base(message, location) {
+        explicit out_of_range(const std::string &message = "out_of_range", const source &location = source::current()) :
+            base(message, location) {
         }
     };
 
@@ -241,7 +245,7 @@ namespace rainy::foundation::exceptions::logic {
     };
 
     RAINY_INLINE void throw_not_implemented(const char *message = "not_implemented",
-                                         const diagnostics::source_location &location = diagnostics::source_location::current()) {
+                                            const diagnostics::source_location &location = diagnostics::source_location::current()) {
         throw_exception(not_implemented{message, location});
     }
 }
@@ -280,12 +284,12 @@ struct std::formatter<rainy::foundation::exceptions::exception, char> {
 #endif
 
 namespace rainy::utility {
+    using foundation::exceptions::exception_semantic;
     using foundation::exceptions::stdexcept_to_rexcept;
     using foundation::exceptions::throw_exception;
     using foundation::exceptions::throw_exception_if;
-    using foundation::exceptions::exception_semantic;
-    using foundation::exceptions::with_this_exception_t;
     using foundation::exceptions::with_this_exception;
+    using foundation::exceptions::with_this_exception_t;
 }
 
 namespace rainy::foundation::exceptions::runtime {
@@ -305,10 +309,7 @@ namespace rainy::foundation::exceptions::runtime {
 namespace rainy::foundation::exceptions {
     class multiple_exceptions : public exception {
     public:
-        explicit multiple_exceptions(std::exception_ptr first) noexcept;
-
-        RAINY_NODISCARD const char *what() const noexcept override {
-            return "multiple exceptions";
+        explicit multiple_exceptions(std::exception_ptr first) noexcept : exception("multiple exceptions"), first_(utility::move(first)) {
         }
 
         RAINY_NODISCARD std::exception_ptr first_exception() const {

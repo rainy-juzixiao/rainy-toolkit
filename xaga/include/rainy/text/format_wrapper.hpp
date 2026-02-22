@@ -16,12 +16,12 @@
 #ifndef RAINY_FORMAT_WRAPPER_HPP
 #define RAINY_FORMAT_WRAPPER_HPP
 
+#include <rainy/foundation/container/pair.hpp>
 #include <cmath>
 #include <cstdarg>
 #include <iostream>
 #include <rainy/core/core.hpp>
 #include <rainy/foundation/functional/function_pointer.hpp>
-#include <rainy/utility/pair.hpp>
 #include <string>
 
 #if RAINY_USING_CLANG

@@ -4,7 +4,7 @@
 
 namespace rainy::algorithm::sort {
     template <typename Iter, typename Pred>
-    void insertion_sort(Iter begin, Iter end, Pred _pred) noexcept(std::is_nothrow_constructible_v<Iter>) {
+    void insertion_sort(Iter begin, Iter end, Pred _pred) noexcept(type_traits::type_properties::is_nothrow_constructible_v<Iter>) {
         if (begin == end) {
             return;
         }
@@ -21,7 +21,7 @@ namespace rainy::algorithm::sort {
 
     template <typename Iter, typename Pred>
     void bubble_sort(Iter begin, Iter end,
-                     Pred _pred) noexcept(std::is_nothrow_constructible_v<Iter> && std::is_nothrow_copy_constructible_v<Iter>) {
+                     Pred _pred) noexcept(type_traits::type_properties::is_nothrow_constructible_v<Iter> && type_traits::type_properties::is_nothrow_copy_constructible_v<Iter>) {
         if (begin == end) {
             return;
         }
@@ -40,7 +40,7 @@ namespace rainy::algorithm::sort {
     }
 
     template <typename Iter, typename Pred>
-    void shell_sort(Iter begin, Iter end, Pred _pred) noexcept(std::is_nothrow_constructible_v<Iter>) {
+    void shell_sort(Iter begin, Iter end, Pred _pred) noexcept(type_traits::type_properties::is_nothrow_constructible_v<Iter>) {
         if (begin == end) {
             return;
         }

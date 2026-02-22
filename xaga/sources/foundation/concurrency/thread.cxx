@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 rainy-juzixiao
+* Copyright 2025 rainy-juzixiao
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,15 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <rainy/foundation/pal/threading.hpp>
+#include <rainy/foundation/diagnostics/contract.hpp>
+#include <rainy/foundation/concurrency/thread.hpp>
 
-namespace rainy::foundation::pal::threading {
-    implements::thread_info_base *thread_context::top_of_thread_call_stack() {
-        return thread_call_stack::top();
-    }
-}
-
-namespace rainy::foundation::pal::threading {
+namespace rainy::foundation::concurrency {
     thread::~thread() {
         switch (policy_) {
             case policy::auto_join:
@@ -148,12 +143,11 @@ namespace rainy::foundation::pal::threading {
 }
 
 namespace rainy::foundation::system::this_thread {
-    foundation::pal::threading::thread::id get_id() noexcept {
-        using namespace foundation::pal;
-        return threading::thread::id{threading::implements::get_thread_id()};
+    concurrency::thread::id get_id() noexcept {
+        return concurrency::thread::id{concurrency::implements::get_thread_id()};
     }
 
     void yield() noexcept {
-        return foundation::pal::threading::implements::thread_yield();
+        return concurrency::implements::thread_yield();
     }
 }
