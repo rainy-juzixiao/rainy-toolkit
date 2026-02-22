@@ -20,7 +20,6 @@
 
 #if RAINY_USING_LINUX
 #include <pthread.h>
-#include <rainy/foundation/pal/implements/tgc_layer_threading.hpp>
 #include <signal.h>
 #include <sys/syscall.h>
 
