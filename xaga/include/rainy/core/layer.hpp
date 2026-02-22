@@ -98,7 +98,9 @@ namespace rainy::core::pal {
     RAINY_TOOLKIT_API std::size_t safe_dump_to(void *memory, std::size_t size, std::size_t skip) noexcept;
     RAINY_TOOLKIT_API bool resolve_stack_frame(native_frame_ptr_t frame, cstring buf, std::size_t buf_size) noexcept;
     RAINY_TOOLKIT_API void demangle(czstring name, cstring buf, std::size_t buffer_length);
+}
 
+namespace rainy::core::pal {
     /* atomic:: inc,dec */
     RAINY_TOOLKIT_API long interlocked_increment(volatile long *value);
     RAINY_TOOLKIT_API std::int8_t interlocked_increment8(volatile std::int8_t *value);
@@ -171,14 +173,17 @@ namespace rainy::core::pal {
     RAINY_TOOLKIT_API void iso_volatile_store(volatile void *address, void *value);
     RAINY_TOOLKIT_API void iso_volatile_store8(volatile std::int8_t *address, std::int8_t value);
     RAINY_TOOLKIT_API void iso_volatile_store16(volatile std::int16_t *address, std::int16_t value);
-    RAINY_TOOLKIT_API void iso_volatile_store32(volatile std::int32_t *address, std::uint32_t value);
-    RAINY_TOOLKIT_API void iso_volatile_store64(volatile std::int64_t *address, std::uint64_t value);
+    RAINY_TOOLKIT_API void iso_volatile_store32(volatile std::int32_t *address, std::int32_t value);
+    RAINY_TOOLKIT_API void iso_volatile_store64(volatile std::int64_t *address, std::int64_t value);
 
     RAINY_TOOLKIT_API void atomic_thread_fence(const memory_order order) noexcept;
 
     RAINY_TOOLKIT_API void read_write_barrier() noexcept;
     RAINY_TOOLKIT_API void read_barrier() noexcept;
     RAINY_TOOLKIT_API void write_barrier() noexcept;
+}
+
+namespace rainy::core::pal {
     /* file system */
     RAINY_TOOLKIT_API file_status get_file_status(czstring file_path) noexcept;
     RAINY_TOOLKIT_API file_handle open_file(czstring filepath, open_mode mode);
@@ -310,8 +315,8 @@ namespace rainy::core::pal {
     RAINY_TOOLKIT_API void iso_volatile_store_explicit(volatile void *address, void *value, memory_order order);
     RAINY_TOOLKIT_API void iso_volatile_store8_explicit(volatile std::int8_t *address, std::int8_t value, memory_order order);
     RAINY_TOOLKIT_API void iso_volatile_store16_explicit(volatile std::int16_t *address, std::int16_t value, memory_order order);
-    RAINY_TOOLKIT_API void iso_volatile_store32_explicit(volatile std::int32_t *address, std::uint32_t value, memory_order order);
-    RAINY_TOOLKIT_API void iso_volatile_store64_explicit(volatile std::int64_t *address, std::uint64_t value, memory_order order);
+    RAINY_TOOLKIT_API void iso_volatile_store32_explicit(volatile std::int32_t *address, std::int32_t value, memory_order order);
+    RAINY_TOOLKIT_API void iso_volatile_store64_explicit(volatile std::int64_t *address, std::int64_t value, memory_order order);
 }
 
 #endif

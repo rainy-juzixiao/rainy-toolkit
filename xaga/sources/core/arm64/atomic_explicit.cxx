@@ -412,12 +412,12 @@ namespace rainy::core::pal {
         RAINY_ATOMIC_DISPATCH_ISO_VOLATILE_STORE(__iso_volatile_store16, order, address, value);
     }
 
-    void iso_volatile_store32_explicit(volatile int *address, std::uint32_t value, memory_order order) {
+    void iso_volatile_store32_explicit(volatile int *address, std::int32_t value, memory_order order) {
         RAINY_ATOMIC_DISPATCH_ISO_VOLATILE_STORE(__iso_volatile_store32, order, reinterpret_cast<volatile std::int32_t *>(address),
                                                  value);
     }
 
-    void iso_volatile_store64_explicit(volatile std::int64_t *address, std::uint64_t value, memory_order order) {
+    void iso_volatile_store64_explicit(volatile std::int64_t *address, std::int64_t value, memory_order order) {
         RAINY_ATOMIC_DISPATCH_ISO_VOLATILE_STORE(__iso_volatile_store64, order, reinterpret_cast<volatile long long *>(address), value);
     }
 }
@@ -1051,7 +1051,7 @@ namespace rainy::core::pal {
         }
     }
 
-    void iso_volatile_store32_explicit(volatile std::int32_t *address, std::uint32_t value, memory_order order) {
+    void iso_volatile_store32_explicit(volatile std::int32_t *address, std::int32_t value, memory_order order) {
         rainy_assume(address);
         if (order == memory_order_release || order == memory_order_seq_cst) {
             rainy_dmb_st();
@@ -1062,7 +1062,7 @@ namespace rainy::core::pal {
         }
     }
 
-    void iso_volatile_store64_explicit(volatile std::int64_t *address, std::uint64_t value, memory_order order) {
+    void iso_volatile_store64_explicit(volatile std::int64_t *address, std::int64_t value, memory_order order) {
         rainy_assume(address);
         if (order == memory_order_release || order == memory_order_seq_cst) {
             rainy_dmb_st();

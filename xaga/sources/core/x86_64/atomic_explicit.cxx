@@ -794,7 +794,7 @@ namespace rainy::core::pal {
         RAINY_ATOMIC_END(order);
     }
 
-    void iso_volatile_store32_explicit(volatile int *address, std::uint32_t value, memory_order order) {
+    void iso_volatile_store32_explicit(volatile std::int32_t *address, std::int32_t value, memory_order order) {
         RAINY_ATOMIC_BEGIN(order);
 #if RAINY_USING_MSVC
         _InterlockedExchange(reinterpret_cast<volatile long *>(address), static_cast<long>(value));
@@ -804,7 +804,7 @@ namespace rainy::core::pal {
         RAINY_ATOMIC_END(order);
     }
 
-    void iso_volatile_store64_explicit(volatile std::int64_t *address, std::uint64_t value, memory_order order) {
+    void iso_volatile_store64_explicit(volatile std::int64_t *address, std::int64_t value, memory_order order) {
         RAINY_ATOMIC_BEGIN(order);
 #if RAINY_USING_MSVC
 #if RAINY_USING_64_BIT_PLATFORM

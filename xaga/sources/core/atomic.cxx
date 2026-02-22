@@ -282,11 +282,11 @@ namespace rainy::core::pal {
         return iso_volatile_store16_explicit(address, value, memory_order_seq_cst);
     }
 
-    void iso_volatile_store32(volatile int *address, std::uint32_t value) {
+    void iso_volatile_store32(volatile std::int32_t *address, std::int32_t value) {
         return iso_volatile_store32_explicit(address, value, memory_order_seq_cst);
     }
 
-    void iso_volatile_store64(volatile std::int64_t *address, std::uint64_t value) {
+    void iso_volatile_store64(volatile std::int64_t *address, std::int64_t value) {
         return iso_volatile_store64_explicit(address, value, memory_order_seq_cst);
     }
 }
