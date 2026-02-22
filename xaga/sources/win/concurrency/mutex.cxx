@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 #include <chrono>
-#include <windows.h>
-#include <rainy/foundation/diagnostics/contract.hpp>
 #include <rainy/foundation/concurrency/pal.hpp>
+#include <rainy/foundation/diagnostics/contract.hpp>
+#include <windows.h>
 
 namespace rainy::foundation::concurrency::implements {
     struct mutex_handle {
@@ -26,7 +26,7 @@ namespace rainy::foundation::concurrency::implements {
         int count{0};
     };
 
-    static RAINY_INLINE PSRWLOCK get_srw_lock(mtx_t * const mtx) noexcept {
+    static RAINY_INLINE PSRWLOCK get_srw_lock(mtx_t *const mtx) noexcept {
         if (!mtx) {
             errno = EINVAL;
             return nullptr;
@@ -43,43 +43,29 @@ namespace rainy::foundation::concurrency::implements {
         const auto current_thread_id = static_cast<unsigned long>(GetCurrentThreadId());
 
         if ((mutex->type & ~mutex_types::recursive_mtx) == mutex_types::plain_mtx) {
-            const auto tid = static_cast<unsigned long>(
-                core::pal::iso_volatile_load32(reinterpret_cast<volatile std::int32_t *>(&mutex->thread_id)));
-            if (tid != current_thread_id) {
+            if (mutex->thread_id != current_thread_id) {
                 AcquireSRWLockExclusive(get_srw_lock(mtx));
-                core::pal::write_barrier();
-                core::pal::iso_volatile_store32(reinterpret_cast<volatile std::int32_t *>(&mutex->thread_id),
-                                                static_cast<std::uint32_t>(current_thread_id));
+                mutex->thread_id = current_thread_id;
             }
-            core::pal::interlocked_increment32(reinterpret_cast<volatile std::int32_t *>(&mutex->count));
+            ++mutex->count;
             return thrd_result::success;
         }
 
         int res = WAIT_TIMEOUT;
-
         if (!target) {
-            // mtx_lock 路径：阻塞等待，不检查重入
-            const auto tid = static_cast<unsigned long>(
-                core::pal::iso_volatile_load32(reinterpret_cast<volatile std::int32_t *>(&mutex->thread_id)));
-            if (tid != current_thread_id) {
+            if (mutex->thread_id != current_thread_id) {
                 AcquireSRWLockExclusive(get_srw_lock(mtx));
             }
             res = WAIT_OBJECT_0;
         } else if (target->tv_sec < 0 || (target->tv_sec == 0 && target->tv_nsec <= 0)) {
-            // trylock 路径：不能在已持有 SRW 锁时再次调用 TryAcquireSRWLockExclusive
-            const auto tid = static_cast<unsigned long>(
-                core::pal::iso_volatile_load32(reinterpret_cast<volatile std::int32_t *>(&mutex->thread_id)));
-            if (tid == current_thread_id) {
-                // 同线程重入，不碰 SRW 锁，直接走后面的 count 检查
-                res = WAIT_OBJECT_0;
-            } else {
+            if (mutex->thread_id != current_thread_id) {
                 if (TryAcquireSRWLockExclusive(get_srw_lock(mtx)) != 0) {
                     res = WAIT_OBJECT_0;
                 }
-                // 失败则 res 保持 WAIT_TIMEOUT
+            } else {
+                res = WAIT_OBJECT_0;
             }
         } else {
-            // timedlock 路径
             auto now = std::chrono::system_clock::now();
             while (true) {
                 auto now_duration = now.time_since_epoch();
@@ -89,14 +75,7 @@ namespace rainy::foundation::concurrency::implements {
                     (now_seconds.count() == target->tv_sec && now_nanos.count() >= target->tv_nsec)) {
                     break;
                 }
-                const auto tid_now = static_cast<unsigned long>(
-                    core::pal::iso_volatile_load32(reinterpret_cast<volatile std::int32_t *>(&mutex->thread_id)));
-                if (tid_now == current_thread_id) {
-                    // 同线程重入，不碰 SRW 锁
-                    res = WAIT_OBJECT_0;
-                    break;
-                }
-                if (TryAcquireSRWLockExclusive(get_srw_lock(mtx)) != 0) {
+                if (mutex->thread_id == current_thread_id || TryAcquireSRWLockExclusive(get_srw_lock(mtx)) != 0) {
                     res = WAIT_OBJECT_0;
                     break;
                 }
@@ -105,18 +84,13 @@ namespace rainy::foundation::concurrency::implements {
         }
 
         if (res == WAIT_OBJECT_0) {
-            if (1 < core::pal::interlocked_increment32(reinterpret_cast<volatile std::int32_t *>(&mutex->count))) {
+            if (1 < ++mutex->count) {
                 if ((mutex->type & static_cast<int>(mutex_types::recursive_mtx)) != static_cast<int>(mutex_types::recursive_mtx)) {
-                    // 非递归锁，重入拒绝；注意：同线程重入走到这里时没有额外获取 SRW 锁，不需要 release
-                    core::pal::interlocked_decrement32(reinterpret_cast<volatile std::int32_t *>(&mutex->count));
+                    --mutex->count;
                     res = WAIT_TIMEOUT;
                 }
-                // 递归锁：count > 1 且允许递归，thread_id 已经是自己，不需要重新写
             } else {
-                // count 从 0 -> 1，刚获取了 SRW 锁，写入 thread_id
-                core::pal::write_barrier();
-                core::pal::iso_volatile_store32(reinterpret_cast<volatile std::int32_t *>(&mutex->thread_id),
-                                                static_cast<std::uint32_t>(current_thread_id));
+                mutex->thread_id = current_thread_id;
             }
         }
 
@@ -131,7 +105,7 @@ namespace rainy::foundation::concurrency::implements {
         return thrd_result::timed_out;
     }
 
-    thrd_result mtx_init(mtx_t * const mtx, int flags) noexcept {
+    thrd_result mtx_init(mtx_t *const mtx, int flags) noexcept {
         if (!mtx) {
             return thrd_result::nomem;
         }
@@ -143,7 +117,7 @@ namespace rainy::foundation::concurrency::implements {
         return thrd_result::success;
     }
 
-    thrd_result mtx_create(mtx_t * const mtx, int flags) noexcept {
+    thrd_result mtx_create(mtx_t *const mtx, int flags) noexcept {
         if (!mtx) {
             return thrd_result::nomem;
         }
@@ -152,14 +126,14 @@ namespace rainy::foundation::concurrency::implements {
         return thrd_result::success;
     }
 
-    thrd_result mtx_lock(mtx_t * const mtx) noexcept {
+    thrd_result mtx_lock(mtx_t *const mtx) noexcept {
         if (!mtx) {
             return thrd_result::nomem;
         }
         return implements::mtx_do_lock(mtx, nullptr);
     }
 
-    thrd_result mtx_trylock(mtx_t * const mtx) noexcept {
+    thrd_result mtx_trylock(mtx_t *const mtx) noexcept {
         if (!mtx) {
             return thrd_result::nomem;
         }
@@ -176,12 +150,8 @@ namespace rainy::foundation::concurrency::implements {
             return thrd_result::nomem;
         }
         rainy_let mutex = static_cast<implements::mutex_handle *>(*mtx);
-        if (core::pal::interlocked_decrement32(reinterpret_cast<volatile std::int32_t *>(&mutex->count)) == 0) {
-            // 先清 thread_id，加写屏障，再释放 SRW 锁
-            // 顺序：thread_id 清零必须在 ReleaseSRWLockExclusive 之前完成，
-            // 否则其他线程拿到锁后读到的 thread_id 还是旧值
-            core::pal::iso_volatile_store32(reinterpret_cast<volatile std::int32_t *>(&mutex->thread_id), 0);
-            core::pal::write_barrier();
+        if (--mutex->count == 0) {
+            mutex->thread_id = 0;
             auto *srw_lock = implements::get_srw_lock(mtx);
             _Analysis_assume_lock_held_(*srw_lock);
             ReleaseSRWLockExclusive(srw_lock);
@@ -189,7 +159,7 @@ namespace rainy::foundation::concurrency::implements {
         return thrd_result::success;
     }
 
-    thrd_result mtx_timedlock(mtx_t * const mtx, const ::timespec *xt) noexcept {
+    thrd_result mtx_timedlock(mtx_t *const mtx, const ::timespec *xt) noexcept {
         if (!mtx || !xt) {
             errno = EINVAL;
             return thrd_result::nomem;
@@ -199,7 +169,7 @@ namespace rainy::foundation::concurrency::implements {
         return res == thrd_result::busy ? thrd_result::timed_out : res;
     }
 
-    bool mtx_current_owns(mtx_t * const mtx) noexcept {
+    bool mtx_current_owns(mtx_t *const mtx) noexcept {
         if (!mtx) {
             errno = EINVAL;
             return false;
