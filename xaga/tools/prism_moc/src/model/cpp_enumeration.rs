@@ -11,4 +11,19 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-pub mod language;
+
+#[derive(Debug, Clone)]
+pub struct CppEnumerationItem {
+    pub name: String
+}
+
+#[derive(Debug, Clone)]
+pub struct CppEnumeration {
+    pub items: Vec<CppEnumerationItem>,
+    pub is_enum_class: bool,
+    pub namespace_location: String,
+    pub full_qual_name: String,
+    pub name: String,
+    pub use_namespaces: Vec<String>,
+    pub use_items: Vec<String>,
+}

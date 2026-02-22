@@ -11,28 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
-use std::env;
-use std::fs;
-use std::path::{Path, PathBuf};
 use std::process::Command;
-
-fn copy_dir_recursive(from: &Path, to: &Path) {
-    if !to.exists() {
-        fs::create_dir_all(to).unwrap();
-    }
-    for entry in fs::read_dir(from).unwrap() {
-        let entry = entry.unwrap();
-        let file_type = entry.file_type().unwrap();
-        let from_path = entry.path();
-        let to_path = to.join(entry.file_name());
-        if file_type.is_dir() {
-            copy_dir_recursive(&from_path, &to_path);
-        } else if file_type.is_file() {
-            fs::copy(&from_path, &to_path).unwrap();
-        }
-    }
-}
 
 fn git_branch() -> Option<String> {
     let output = Command::new("git")

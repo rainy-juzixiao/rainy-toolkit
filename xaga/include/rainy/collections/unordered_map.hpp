@@ -269,7 +269,7 @@ namespace rainy::collections::implements {
             node_type node;
         };
 
-        unordered_map() : elements_(), buckets_(), size_(0), max_load_factor_(default_max_load_factor_), hash_(), equal_() {
+        unordered_map() noexcept : elements_(), buckets_(), size_(0), max_load_factor_(default_max_load_factor_), hash_(), equal_() {
             init_buckets(default_bucket_count_);
         }
 

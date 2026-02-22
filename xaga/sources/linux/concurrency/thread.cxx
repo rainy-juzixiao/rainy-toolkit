@@ -18,7 +18,13 @@
 #include <rainy/core/core.hpp>
 #include <rainy/foundation/concurrency/pal.hpp>
 
-namespace rainy::foundation::concurrency::implements {
+#if RAINY_USING_LINUX
+#include <pthread.h>
+#include <rainy/foundation/pal/implements/tgc_layer_threading.hpp>
+#include <signal.h>
+#include <sys/syscall.h>
+
+namespace rainy::foundation::pal::threading::implements {
     void endthread() {
         pthread_exit(nullptr);
     }
@@ -222,3 +228,185 @@ namespace rainy::foundation::concurrency::implements {
         }
     }
 }
+
+namespace rainy::foundation::pal::threading::implements {
+    struct mutex_handle {
+        pthread_mutex_t handle;
+        int type{0};
+        pthread_t thread_id{};
+        int count{0};
+    };
+
+    static inline pthread_mutex_t *get_mutex(mtx_t *mtx) noexcept {
+        if (!mtx) {
+            errno = EINVAL;
+            return nullptr;
+        }
+        return &reinterpret_cast<mutex_handle *>(*mtx)->handle;
+    }
+
+    thrd_result mtx_do_lock(mtx_t *mtx, const ::timespec *target) noexcept {
+        if (!mtx) {
+            errno = EINVAL;
+            return thrd_result::nomem;
+        }
+        auto *mutex = reinterpret_cast<mutex_handle *>(*mtx);
+        pthread_t current_thread_id = pthread_self();
+
+        if ((mutex->type & ~mutex_types::recursive_mtx) == mutex_types::plain_mtx) {
+            if (!pthread_equal(mutex->thread_id, current_thread_id)) {
+                pthread_mutex_lock(&mutex->handle);
+                mutex->thread_id = current_thread_id;
+            }
+            core::pal::interlocked_increment(reinterpret_cast<volatile long *>(&mutex->count));
+            return thrd_result::success;
+        }
+        int res = -1;
+        if (!target) {
+            if (!pthread_equal(mutex->thread_id, current_thread_id)) {
+                res = pthread_mutex_lock(&mutex->handle);
+            } else {
+                res = 0;
+            }
+        } else if (target->tv_sec == 0 && target->tv_nsec == 0) {
+            if (pthread_equal(mutex->thread_id, current_thread_id)) {
+                res = 0;
+            } else {
+                res = pthread_mutex_trylock(&mutex->handle);
+            }
+        } else {
+            if (!pthread_equal(mutex->thread_id, current_thread_id)) {
+                res = pthread_mutex_timedlock(&mutex->handle, target);
+            } else {
+                res = 0;
+            }
+        }
+        if (res == 0) {
+            if (1 < core::pal::interlocked_increment(reinterpret_cast<volatile long *>(&mutex->count))) {
+                if ((mutex->type & static_cast<int>(mutex_types::recursive_mtx)) != static_cast<int>(mutex_types::recursive_mtx)) {
+                    core::pal::interlocked_decrement(reinterpret_cast<volatile long *>(&mutex->count));
+                    pthread_mutex_unlock(&mutex->handle);
+                    errno = EBUSY;
+                    return thrd_result::busy;
+                }
+            } else {
+                mutex->thread_id = current_thread_id;
+            }
+            return thrd_result::success;
+        }
+        errno = (target && target->tv_sec != 0 && target->tv_nsec != 0) ? ETIMEDOUT : EBUSY;
+        return (res == ETIMEDOUT) ? thrd_result::timed_out : thrd_result::busy;
+    }
+
+    thrd_result mtx_init(mtx_t *mtx, int flags) noexcept {
+        if (!mtx)
+            return thrd_result::nomem;
+        auto *mutex = static_cast<mutex_handle *>(*mtx);
+        mutex->type = flags;
+        mutex->count = 0;
+        mutex->thread_id = {};
+        pthread_mutexattr_t attr;
+        pthread_mutexattr_init(&attr);
+
+        if (flags & mutex_types::recursive_mtx) {
+            pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+        } else {
+            pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_NORMAL);
+        }
+
+        pthread_mutex_init(&mutex->handle, &attr);
+        pthread_mutexattr_destroy(&attr);
+        return thrd_result::success;
+    }
+
+    thrd_result mtx_create(mtx_t *mtx, int flags) noexcept {
+        if (!mtx)
+            return thrd_result::nomem;
+        *mtx = core::pal::allocate(sizeof(mutex_handle), alignof(mutex_handle));
+        return mtx_init(mtx, flags);
+    }
+
+    thrd_result mtx_lock(mtx_t *mtx) noexcept {
+        return mtx_do_lock(mtx, nullptr);
+    }
+
+    thrd_result mtx_trylock(mtx_t *mtx) noexcept {
+        ::timespec ts{0, 0};
+        return mtx_do_lock(mtx, &ts);
+    }
+
+    thrd_result mtx_timedlock(mtx_t *mtx, const ::timespec *ts) noexcept {
+        return mtx_do_lock(mtx, ts);
+    }
+
+    thrd_result mtx_unlock(mtx_t *mtx) noexcept {
+        if (!mtx)
+            return thrd_result::nomem;
+        auto *mutex = reinterpret_cast<mutex_handle *>(*mtx);
+        if (--mutex->count == 0) {
+            mutex->thread_id = {};
+            pthread_mutex_unlock(&mutex->handle);
+        }
+        return thrd_result::success;
+    }
+
+    bool mtx_current_owns(mtx_t *mtx) noexcept {
+        if (!mtx) {
+            errno = EINVAL;
+            return false;
+        }
+        auto *mutex = reinterpret_cast<mutex_handle *>(*mtx);
+        return mutex->count != 0 && pthread_equal(mutex->thread_id, pthread_self());
+    }
+
+    thrd_result mtx_destroy(mtx_t *mtx, bool release) noexcept {
+        if (!mtx)
+            return thrd_result::nomem;
+        auto *mutex = reinterpret_cast<mutex_handle *>(*mtx);
+        if (mutex->count != 0) {
+            errno = EBUSY;
+            return thrd_result::busy;
+        }
+        pthread_mutex_destroy(&mutex->handle);
+        if (release) {
+            core::pal::deallocate(mutex, sizeof(mutex_handle), alignof(mutex_handle));
+            *mtx = nullptr;
+        }
+        return thrd_result::success;
+    }
+}
+
+namespace rainy::foundation::pal::threading::implements {
+    core::handle tss_create() {
+        pthread_key_t tss_key;
+        int ret = pthread_key_create(&tss_key, nullptr); // nullptr 表示不指定析构函数
+        if (ret != 0) {
+            errno = ret; // POSIX 错误码
+            return core::invalid_handle;
+        }
+        return tss_key;
+    }
+
+    void *tss_get(core::handle tss_key) {
+        if (tss_key == core::invalid_handle) {
+            return nullptr;
+        }
+        return pthread_getspecific(tss_key);
+    }
+
+    bool tss_set(core::handle tss_key, void *value) {
+        if (tss_key == core::invalid_handle) {
+            return false;
+        }
+        return pthread_setspecific(tss_key, value) == 0;
+    }
+
+    bool tss_delete(core::handle tss_key) {
+        if (tss_key == core::invalid_handle) {
+            return false;
+        }
+        return pthread_key_delete(tss_key) == 0;
+    }
+}
+
+#endif

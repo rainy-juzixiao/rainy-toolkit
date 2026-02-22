@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 #ifndef RAINY_FOUNDATION_TYPEINFO_HPP
-#define RAINY_FOUNDATION_TYPEINFO_HPP
+#define RAINY_FOUNDATION_TYPEINFO_HPP // NOLINT
 /**
  * @file typeinfo.hpp
  * @brief 类型信息类

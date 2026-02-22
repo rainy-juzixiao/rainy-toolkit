@@ -15,16 +15,15 @@
  */
 #ifndef RAINY_META_REFLECTION_TYPE_HPP
 #define RAINY_META_REFLECTION_TYPE_HPP
-#include <rainy/text/string.hpp>
 #include <rainy/foundation/typeinfo.hpp>
-#include <rainy/meta/reflection/function.hpp>
-#include <rainy/meta/reflection/property.hpp>
 #include <rainy/meta/reflection/enumeration.hpp>
+#include <rainy/meta/reflection/function.hpp>
 #include <rainy/meta/reflection/fundmental.hpp>
-#include <rainy/utility/iterator.hpp>
+#include <rainy/meta/reflection/property.hpp>
 #include <rainy/meta/reflection/refl_impl/type_register.hpp>
+#include <rainy/utility/iterator.hpp>
 #include <unordered_map>
-#include <iostream>
+
 /*
 Public Member Functions
     type (const type &other) noexcept
@@ -117,8 +116,8 @@ namespace rainy::meta::reflection {
         using type_id = std::size_t;
         using methods_view_t = collections::views::iterator_range<utility::map_mapped_iterator<implements::method_storage_t>>;
         using property_view_t = collections::views::iterator_range<utility::map_mapped_iterator<implements::property_storage_t>>;
-        using base_classes_view_t = collections::views::iterator_range<utility::map_mapped_iterator<std::unordered_map<foundation::ctti::typeinfo, type>>>;
-        using derived_classes_view_t = collections::views::iterator_range<utility::map_mapped_iterator<std::unordered_map<foundation::ctti::typeinfo, type>>>;
+        using classes_view_t = collections::views::iterator_range<
+            utility::map_mapped_iterator<collections::unordered_map<foundation::ctti::typeinfo, type>>>;
         using constcutor_view_t = collections::views::array_view<constructor>;
 
         /**
@@ -138,8 +137,14 @@ namespace rainy::meta::reflection {
         type &operator=(const type &) = default;
         type &operator=(type &&) = default;
 
-        type(core::internal_construct_tag_t, implements::type_accessor *accessor) {
-            this->accessor = accessor;
+        type(core::internal_construct_tag_t, implements::type_accessor *accessor) : accessor(accessor) {
+        }
+
+        static rain_fn global_types() -> std::vector<type> {
+            std::vector<type> types;
+            get_registration_manager().collect(
+                [&types](implements::type_accessor *accessor) { types.emplace_back(core::internal_construct_tag, accessor); });
+            return types;
         }
 
         /**
@@ -149,7 +154,7 @@ namespace rainy::meta::reflection {
          */
         template <typename Type>
         static type get() noexcept {
-            static auto accessor = implements::register_table::get_accessor(rainy_typeid(Type));
+            static auto accessor = get_registration_manager().get_accessor(rainy_typeid(Type));
             type instance;
             instance.accessor = accessor;
             return instance;
@@ -164,15 +169,14 @@ namespace rainy::meta::reflection {
 
         /**
          * @brief 从CTTI中获取对应的反射类型对象
-         * @param name 要获取反射类型的类型名称
+         * @param typeinfo 要获取反射类型的类型标识
          * @return 返回对应的反射类型对象
          */
-        static type get_by_typeinfo(const foundation::ctti::typeinfo& typeinfo) noexcept;
-        
+        static type get_by_typeinfo(const foundation::ctti::typeinfo &typeinfo) noexcept;
+
         /**
-         * @brief 从类型信息获取对应的反射类型对象
-         * @param typeinfo 要获取反射类型的类型信息
-         * @return 返回对应的反射类型对象
+         * @brief 从类型信息获取对应的注册名称
+         * @return 返回对应的反射类型注册名称
          */
         RAINY_NODISCARD std::string_view get_name() const noexcept;
 
@@ -181,7 +185,7 @@ namespace rainy::meta::reflection {
          * @return 返回对于的枚举反射类型对象
          */
         RAINY_NODISCARD enumeration get_enumeration() const noexcept;
-        
+
         /**
          * @brief 尝试获取fundmental反射类型对象
          * @return 返回对于的fundmental反射类型对象
@@ -221,13 +225,18 @@ namespace rainy::meta::reflection {
         /**
          * @brief 根据名称和参数列表，获取指定的方法反射对象
          * @param name 要获取的方法名称
-         * @param overload_version_paramlist 要获取的方法的筛选参数类型列表 
+         * @param overload_version_paramlist 要获取的方法的筛选参数类型列表
          * @param filter_item 筛选的flag项
          * @return 如果找到对应的方法，返回方法反射对象的常量引用，否则返回一个无效的空对象引用
          */
         RAINY_NODISCARD const method &get_method(
             const std::string_view name, const collections::views::array_view<foundation::ctti::typeinfo> overload_version_paramlist,
             const method_flags filter_item = method_flags::none) const noexcept;
+
+        RAINY_NODISCARD static const method &get_global_method(const std::string_view name) noexcept;
+        RAINY_NODISCARD static const method &get_global_method(
+            const std::string_view name, const collections::views::array_view<foundation::ctti::typeinfo> overload_version_paramlist,
+            const method_flags filter_item) noexcept;
 
         /**
          * @brief 获取类型的所有方法反射对象
@@ -256,23 +265,23 @@ namespace rainy::meta::reflection {
 
         /**
          * @brief 根据参数列表，获取指定的构造函数反射对象
-         * @param overload_version_paramlist 
+         * @param overload_version_paramlist
          * @return 如果找到对应的构造函数，返回构造函数反射对象的常量引用，否则返回一个无效的空对象引用
          */
         RAINY_NODISCARD const constructor &get_constructor(
             const collections::views::array_view<foundation::ctti::typeinfo> overload_version_paramlist = {}) const noexcept;
-        
-        /**
-         * @brief 获取基类反射类型对象
-         * @return 返回类型的所有基类反射类型对象的映射表视图
-         */
-        RAINY_NODISCARD base_classes_view_t get_base_classes() const noexcept;
 
         /**
          * @brief 获取基类反射类型对象
          * @return 返回类型的所有基类反射类型对象的映射表视图
          */
-        RAINY_NODISCARD derived_classes_view_t get_derived_classes() const noexcept;
+        RAINY_NODISCARD classes_view_t get_base_classes() const noexcept;
+
+        /**
+         * @brief 获取基类反射类型对象
+         * @return 返回类型的所有基类反射类型对象的映射表视图
+         */
+        RAINY_NODISCARD classes_view_t get_derived_classes() const noexcept;
 
         /**
          * @brief 判断当前类型是否为指定类型的基类
@@ -280,39 +289,39 @@ namespace rainy::meta::reflection {
          * @attention typeinfo必须是已注册类型的信息，且已绑定到继承树，否则将始终返回false
          * @return 如果是基类，返回true，否则返回false
          */
-        bool is_base_of(annotations::lifetime::in<foundation::ctti::typeinfo> typeinfo) const noexcept;
+        RAINY_NODISCARD bool is_base_of(annotations::lifetime::in<foundation::ctti::typeinfo> typeinfo) const noexcept;
 
         /**
          * @brief 判断当前类型是否为指定类型的基类
          * @param type 反射类型信息对象
          * @return 如果是基类，返回true，否则返回false
          */
-        bool is_base_of(annotations::lifetime::in<type> type) const noexcept;
-        
+        RAINY_NODISCARD bool is_base_of(annotations::lifetime::in<type> type) const noexcept;
+
         /**
          * @brief 判断当前类型是否为指定类型的基类
          * @tparam Type 要测试的类型
          * @return 如果是基类，返回true，否则返回false
          */
         template <typename Type>
-        bool is_base_of() const noexcept {
+        RAINY_NODISCARD bool is_base_of() const noexcept {
             return is_base_of(rainy_typeid(Type));
         }
-    
+
         /**
          * @brief 判断当前类型是否为指定类型的派生类
          * @param typeinfo 类型信息对象
          * @attention typeinfo必须是已注册类型的信息，且已绑定到继承树，否则将始终返回false
          * @return 如果是派生类，返回true，否则返回false
          */
-        bool is_derived_from(annotations::lifetime::in<foundation::ctti::typeinfo> typeinfo) const noexcept;
-        
+        RAINY_NODISCARD bool is_derived_from(annotations::lifetime::in<foundation::ctti::typeinfo> typeinfo) const noexcept;
+
         /**
          * @brief 判断当前类型是否为指定类型的派生类
          * @param type 反射类型信息对象
          * @return 如果是派生类，返回true，否则返回false
          */
-        bool is_derived_from(annotations::lifetime::in<type> type) const noexcept;
+        RAINY_NODISCARD bool is_derived_from(annotations::lifetime::in<type> type) const noexcept;
 
         /**
          * @brief 判断当前类型是否为指定类型的派生类
@@ -320,7 +329,7 @@ namespace rainy::meta::reflection {
          * @return 如果是派生类，返回true，否则返回false
          */
         template <typename Type>
-        bool is_derived_from() const noexcept {
+        RAINY_NODISCARD bool is_derived_from() const noexcept {
             return is_derived_from(rainy_typeid(Type));
         }
 
@@ -341,14 +350,14 @@ namespace rainy::meta::reflection {
          * @param name 要检查的方法名称
          * @return 如果包含该方法，返回true，否则返回false
          */
-        bool has_method(std::string_view name) const noexcept;
+        RAINY_NODISCARD bool has_method(std::string_view name) const noexcept;
 
         /**
          * @brief 检查是否包含指定名称的属性
          * @param name 要检查的属性名称
          * @return 如果包含该属性，返回true，否则返回false
          */
-        bool has_property(std::string_view name) const noexcept;
+        RAINY_NODISCARD bool has_property(std::string_view name) const noexcept;
 
         template <typename... Args, typename SharedObject = shared_object>
         SharedObject create(Args &&...args) const {
@@ -433,27 +442,38 @@ namespace rainy::meta::reflection {
             }
             return invoker->invoke(instance, utility::forward<Args>(args)...);
         }
-    
+
         template <typename... Args>
         static utility::any invoke_global(std::string_view name, Args &&...args) {
-            static type global_t = type::get<utility::invalid_type>();
-            return global_t.invoke_method(name, non_exists_instance, utility::forward<Args>(args)...);
+            return invoke_global(method_flags::none, name, utility::forward<Args>(args)...);
         }
 
         template <typename... Args>
         static utility::any invoke_global(method_flags flag, std::string_view name, Args &&...args) {
-            static type global_t = type::get<utility::invalid_type>();
-            return global_t.invoke_method(flag, name, non_exists_instance, utility::forward<Args>(args)...);
+            using namespace type_traits::other_trans;
+            using namespace type_traits::type_relations;
+            using namespace foundation::ctti;
+            const method *invoker{nullptr};
+            if constexpr (is_any_of_v<utility::any, decay_t<Args>...> || (implements::is_dynamic_object<decay_t<Args>> || ...)) {
+                implements::make_paramlist paramlist{utility::forward<Args>(args)...};
+                invoker = &get_global_method(name, paramlist.get(), flag);
+            } else {
+                static implements::make_nondynamic_paramlist<Args...> paramlist;
+                invoker = &get_global_method(name, paramlist.get(), flag);
+            }
+            if (invoker->empty()) {
+                errno = EINVAL;
+                return {};
+            }
+            if (invoker->is_static()) {
+                return invoker->static_invoke(utility::forward<Args>(args)...);
+            }
+            return {}; // it should be static function
         }
 
         static utility::any::reference get_property_value(std::string_view name) noexcept {
             static type global_t = type::get<utility::invalid_type>();
             return global_t.get_property(name)(non_exists_instance);
-        }
-
-        static const method& get_global_method(std::string_view name) noexcept {
-            static type global_t = type::get<utility::invalid_type>();
-            return global_t.get_method(name);
         }
 
         static const property &get_global_property(std::string_view name) noexcept {
