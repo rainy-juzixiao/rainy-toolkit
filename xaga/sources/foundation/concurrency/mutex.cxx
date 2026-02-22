@@ -2,7 +2,7 @@
 
 namespace rainy::foundation::concurrency {
     mutex::mutex() noexcept {
-        if (rainy_const r = implements::mtx_create(&mtx_, implements::mutex_types::plain_mtx | implements::mutex_types::try_mtx);
+        if (rainy_const r = implements::mtx_create(&mtx_, implements::mutex_types::try_mtx);
             r != thrd_result::success) {
             std::terminate();
         }
