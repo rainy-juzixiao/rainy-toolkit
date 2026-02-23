@@ -12,6 +12,11 @@
 using namespace rainy::foundation::concurrency;
 using namespace std::chrono_literals;
 
+#ifndef RAINY_USING_MSVC
+#pragma warning(push)
+#pragma warning(disable : 26800)
+#endif
+
 namespace {
     template <typename T>
     void resolve_after(promise<T> &p, T value, std::chrono::milliseconds delay = 20ms) {
@@ -738,7 +743,6 @@ SCENARIO("finally() swallows exceptions thrown by its own callback", "[monad_fut
 }
 
 SCENARIO("finally() can be composed in a full pipeline", "[monad_future][finally][chain]") {
-
     GIVEN("a chain: then() → finally() → catch_error()") {
         std::vector<std::string> log;
 
@@ -1094,3 +1098,7 @@ SCENARIO("broken promise triggers exception", "[future][broken]") {
         }
     }
 }
+
+#ifndef RAINY_USING_MSVC
+#pragma warning(pop)
+#endif

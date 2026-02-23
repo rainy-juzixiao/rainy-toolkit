@@ -11,6 +11,6 @@ int main() {
     std::cout << atomics << '\n';
     std::cout << atomics.fetch_sub(10) << '\n';
     rainy::foundation::concurrency::atomic_fetch_add(&atomics, 100);
-    std::cout << atomics << '\n';   
+    std::cout << atomics << '\n';
     return 0;
 }
