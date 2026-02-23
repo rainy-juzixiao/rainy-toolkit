@@ -16,6 +16,25 @@
 #include <rainy/core/core.hpp>
 #include <rainy/core/implements/arm64_intrin.hpp>
 
+#if RAINY_USING_WINDOWS
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+#elif RAINY_USING_LINUX
+#include <errno.h>
+#include <linux/futex.h>
+#include <pthread.h>
+#include <sys/syscall.h>
+#include <time.h>
+#include <unistd.h>
+#endif
+
+#if RAINY_USING_MSVC
+#pragma warning(push)
+#pragma warning(disable : 26110)
+#endif
+
 // NOLINTBEGIN(cppcoreguidelines-avoid-do-while,readability-duplicate-branches,clang-analyzer-core.UndefinedBinaryOperatorResult)
 
 namespace rainy::core::pal {
@@ -159,7 +178,7 @@ namespace rainy::core::pal {
         return interlocked_exchange_pointer_explicit(target, value, memory_order_seq_cst);
     }
 
-    void *interlocked_compare_exchange_pointer(volatile void * *destination, void *exchange, void *comparand) {
+    void *interlocked_compare_exchange_pointer(volatile void **destination, void *exchange, void *comparand) {
         return interlocked_compare_exchange_pointer_explicit(destination, exchange, comparand, memory_order_seq_cst,
                                                              memory_order_seq_cst);
     }
@@ -367,22 +386,274 @@ namespace rainy::core::pal {
         static_assert(false, "atomic_thread_fence: unsupported architecture");
 #endif
     }
-
-    //     long interlocked_increment_explicit(volatile long *value, memory_order order) {
-    //         rainy_assume(static_cast<bool>(value));
-    //         fence_before(order);
-    // #if RAINY_USING_MSVC
-    //         long result = _InterlockedIncrement(value);
-    // #elif RAINY_USING_GCC || RAINY_USING_CLANG
-    //         volatile long *avoid_clang_tidy = value;
-    //         __asm__ __volatile__("lock; incl %0" : "+m"(*avoid_clang_tidy) : : "cc", "memory");
-    //         long result = *avoid_clang_tidy;
-    // #else
-    //         static_assert(false, "rainy-toolkit only supports GCC Clang and MSVC platforms");
-    // #endif
-    //         fence_after(order);
-    //         return result;
-    //     }
 }
+
+namespace rainy::core::pal::implements {
+    struct platform_lock {
+#if RAINY_USING_WINDOWS
+        SRWLOCK lock = SRWLOCK_INIT;
+
+        void acquire() noexcept {
+            ::AcquireSRWLockExclusive(&lock);
+        }
+        
+        void release() noexcept {
+            ::ReleaseSRWLockExclusive(&lock);
+        }
+
+        PSRWLOCK native() noexcept {
+            return &lock;
+        }
+#else
+        pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+
+        void acquire() noexcept {
+            ::pthread_mutex_lock(&lock);
+        }
+        
+        void release() noexcept {
+            ::pthread_mutex_unlock(&lock);
+        }
+
+        pthread_mutex_t *native() noexcept {
+            return &lock;
+        }
+#endif
+        platform_lock() noexcept = default;
+        platform_lock(const platform_lock &) = delete;
+        platform_lock &operator=(const platform_lock &) = delete;
+    };
+
+    struct platform_lock_guard {
+        platform_lock &target;
+
+        explicit platform_lock_guard(platform_lock &target) noexcept : target(target) {
+            target.acquire();
+        }
+        ~platform_lock_guard() noexcept {
+            target.release();
+        }
+
+        platform_lock_guard(const platform_lock_guard &) = delete;
+        platform_lock_guard &operator=(const platform_lock_guard &) = delete;
+    };
+
+    struct wait_context {
+        const void *storage;
+        wait_context *next;
+        wait_context *prev;
+#if RAINY_USING_WINDOWS
+        CONDITION_VARIABLE cond;
+#else
+        pthread_cond_t cond;
+#endif
+    };
+
+    struct scoped_wait_context : wait_context {
+        scoped_wait_context(const void *storage, wait_context *head) noexcept : wait_context{storage, head, head->prev, {}} {
+            prev->next = this;
+            next->prev = this;
+#if RAINY_USING_WINDOWS
+            ::InitializeConditionVariable(&cond);
+#else
+            ::pthread_cond_init(&cond, nullptr);
+#endif
+        }
+
+        ~scoped_wait_context() noexcept {
+            next->prev = prev;
+            prev->next = next;
+#if !RAINY_USING_WINDOWS
+            ::pthread_cond_destroy(&cond);
+#endif
+        }
+
+        scoped_wait_context(const scoped_wait_context &) = delete;
+        scoped_wait_context &operator=(const scoped_wait_context &) = delete;
+    };
+
+    struct alignas(core::hardware_destructive_interference_size) wait_table_entry {
+        wait_context head{nullptr, nullptr, nullptr, {}};
+        platform_lock lock{};
+
+        constexpr wait_table_entry() noexcept = default;
+    };
+
+    constexpr std::size_t table_power = 8;
+    constexpr std::size_t table_size = 1u << table_power;
+    constexpr std::size_t table_mask = table_size - 1;
+
+    static wait_table_entry &entry_for(const void *storage) noexcept {
+        static wait_table_entry table[table_size];
+        auto key = reinterpret_cast<std::uintptr_t>(storage);
+        key ^= key >> (table_power * 2);
+        key ^= key >> table_power;
+        return table[key & table_mask];
+    }
+
+    static void ensure_initialized(wait_table_entry &entry) noexcept {
+        if (!entry.head.next) {
+            entry.head.next = &entry.head;
+            entry.head.prev = &entry.head;
+        }
+    }
+
+    static void verify_timeout() noexcept {
+#if RAINY_ENABLE_DEBUG
+#if RAINY_USING_WINDOWS
+        if (::GetLastError() != ERROR_TIMEOUT) {
+            std::abort();
+        }
+#else
+        if (errno != ETIMEDOUT) {
+            std::abort();
+        }
+#endif
+#endif
+    }
+
+    static bool supports_direct(std::size_t size) noexcept {
+#if RAINY_USING_WINDOWS
+        return size == 1 || size == 2 || size == 4 || size == 8;
+#elif RAINY_USING_LINUX
+        return size == 4;
+#else
+        return false;
+#endif
+    }
+
+    static bool wait_direct(const void *storage, const void *comparand, std::size_t size) noexcept {
+#if RAINY_USING_WINDOWS
+        const BOOL ok =
+            ::WaitOnAddress(const_cast<volatile void *>(storage), const_cast<void *>(comparand), static_cast<SIZE_T>(size), INFINITE);
+        if (!ok)
+            verify_timeout();
+        return static_cast<bool>(ok);
+#elif RAINY_USING_LINUX
+        int val;
+        std::memcpy(&val, comparand, sizeof(int));
+        const long ret = ::syscall(SYS_futex, const_cast<void *>(storage), FUTEX_WAIT_PRIVATE, val, nullptr, nullptr, 0);
+        if (ret == -1 && errno != EAGAIN && errno != EINTR) {
+            verify_timeout();
+        }
+        return true;
+#else
+        (void) storage;
+        (void) comparand;
+        (void) size;
+        std::abort();
+        return false;
+#endif
+    }
+
+    static void notify_one_direct(const void *storage) noexcept {
+#if RAINY_USING_WINDOWS
+        ::WakeByAddressSingle(const_cast<void *>(storage));
+#elif RAINY_USING_LINUX
+        ::syscall(SYS_futex, const_cast<void *>(storage), FUTEX_WAKE_PRIVATE, 1, nullptr, nullptr, 0);
+#endif
+    }
+
+    static void notify_all_direct(const void *storage) noexcept {
+#if RAINY_USING_WINDOWS
+        ::WakeByAddressAll(const_cast<void *>(storage));
+#elif RAINY_USING_LINUX
+        ::syscall(SYS_futex, const_cast<void *>(storage), FUTEX_WAKE_PRIVATE, INT_MAX, nullptr, nullptr, 0);
+#endif
+    }
+
+    static void wait_indirect(const void *storage, const void *comparand, std::size_t size, atomic_wait_equal_fn equal_fn,
+                       void *ctx) noexcept {
+        auto &entry = entry_for(storage);
+        platform_lock_guard guard(entry.lock);
+        ensure_initialized(entry);
+
+        scoped_wait_context wctx{storage, &entry.head};
+
+        for (;;) {
+            const bool still_same = equal_fn ? equal_fn(storage, comparand, size, ctx) : (std::memcmp(storage, comparand, size) == 0);
+
+            if (!still_same)
+                return;
+
+#if RAINY_USING_WINDOWS
+            const BOOL ok = ::SleepConditionVariableSRW(&wctx.cond, entry.lock.native(), INFINITE, 0);
+            if (!ok) {
+                verify_timeout();
+                return;
+            }
+#else
+            const int ret = ::pthread_cond_wait(&wctx.cond, entry.lock.native());
+            if (ret != 0) {
+                verify_timeout();
+                return;
+            }
+#endif
+        }
+    }
+
+    static void notify_one_indirect(const void *storage) noexcept {
+        auto &entry = entry_for(storage);
+        platform_lock_guard guard(entry.lock);
+
+        for (auto *ctx = entry.head.next; ctx != &entry.head; ctx = ctx->next) {
+            if (ctx->storage != storage)
+                continue;
+#if RAINY_USING_WINDOWS
+            ::WakeConditionVariable(&ctx->cond);
+#else
+            ::pthread_cond_signal(&ctx->cond);
+#endif
+            break;
+        }
+    }
+
+    static void notify_all_indirect(const void *storage) noexcept {
+        auto &entry = entry_for(storage);
+        platform_lock_guard guard(entry.lock);
+
+        for (auto *ctx = entry.head.next; ctx != &entry.head; ctx = ctx->next) {
+            if (ctx->storage != storage)
+                continue;
+#if RAINY_USING_WINDOWS
+            ::WakeAllConditionVariable(&ctx->cond);
+#else
+            ::pthread_cond_broadcast(&ctx->cond);
+#endif
+        }
+    }
+}
+
+namespace rainy::core::pal {
+    void atomic_wait(const void *storage, const void *comparand, std::size_t size, atomic_wait_equal_fn equal_fn, void *ctx) noexcept {
+        if (implements::supports_direct(size) && equal_fn == nullptr) {
+            while (std::memcmp(storage, comparand, size) == 0) {
+                implements::wait_direct(storage, comparand, size);
+            }
+        } else {
+            implements::wait_indirect(storage, comparand, size, equal_fn, ctx);
+        }
+    }
+
+    void atomic_notify_one(const void *storage, std::size_t size) noexcept {
+        if (implements::supports_direct(size)) {
+            implements::notify_one_direct(storage);
+        } else {
+            implements::notify_one_indirect(storage);
+        }
+    }
+
+    void atomic_notify_all(const void *storage, std::size_t size) noexcept {
+        if (implements::supports_direct(size)) {
+            implements::notify_all_direct(storage);
+        } else {
+            implements::notify_all_indirect(storage);
+        }
+    }
+}
+
+#if RAINY_USING_MSVC
+#pragma warning(pop)
+#endif
 
 // NOLINTEND(cppcoreguidelines-avoid-do-while,readability-duplicate-branches,clang-analyzer-core.UndefinedBinaryOperatorResult)

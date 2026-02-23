@@ -319,4 +319,59 @@ namespace rainy::core::pal {
     RAINY_TOOLKIT_API void iso_volatile_store64_explicit(volatile std::int64_t *address, std::int64_t value, memory_order order);
 }
 
+namespace rainy::core::pal {
+    using atomic_wait_equal_fn = bool (*)(const void *storage, const void *comparand, std::size_t size, void *ctx) noexcept;
+
+    RAINY_TOOLKIT_API void atomic_wait(const void *storage, const void *comparand, std::size_t size,
+                                       atomic_wait_equal_fn equal_fn = nullptr, void *ctx = nullptr) noexcept;
+
+    RAINY_TOOLKIT_API void atomic_notify_one(const void *storage, std::size_t size) noexcept;
+
+    RAINY_TOOLKIT_API void atomic_notify_all(const void *storage, std::size_t size) noexcept;
+}
+
+namespace rainy::core::pal {
+    template <typename T>
+    struct alignas(sizeof(T) * 2) double_word_t {
+        T lo; // 低字（第一个字）
+        T hi; // 高字（第二个字）
+
+        bool operator==(const double_word_t &other) const noexcept {
+            return lo == other.lo && hi == other.hi;
+        }
+        bool operator!=(const double_word_t &other) const noexcept {
+            return !(*this == other);
+        }
+    };
+
+    static_assert(sizeof(double_word_t<std::uint32_t>) == 8);
+    static_assert(sizeof(double_word_t<std::uint64_t>) == 16);
+    static_assert(sizeof(double_word_t<void *>) == sizeof(void *) * 2);
+
+    // 平台默认双字类型：与指针等宽，直接对应 CMPXCHG8B / CMPXCHG16B
+    using native_double_word_t = double_word_t<std::uintptr_t>;
+
+    // 原子 CAS：成功返回 true，失败时 comparand 被更新为当前值
+    RAINY_TOOLKIT_API bool interlocked_compare_exchange_double_word(volatile native_double_word_t *destination,
+                                                                    native_double_word_t exchange,
+                                                                    native_double_word_t *comparand) noexcept;
+
+    // 原子加载
+    RAINY_TOOLKIT_API native_double_word_t atomic_load_double_word(const volatile native_double_word_t *address,
+                                                                   memory_order order) noexcept;
+
+    // 原子存储
+    RAINY_TOOLKIT_API void atomic_store_double_word(volatile native_double_word_t *address, native_double_word_t value,
+                                                    memory_order order) noexcept;
+
+    static constexpr bool is_always_lock_free =
+#if defined(_MSC_VER) && (defined(_M_X64) || defined(_M_AMD64))
+        true;
+#elif (defined(__GNUC__) || defined(__clang__)) && (defined(__x86_64__) || defined(__amd64__))
+        true;
+#else
+        false; // mutex 回退，包括未加 -mcx16 的 Clang/GCC
+#endif
+}
+
 #endif
