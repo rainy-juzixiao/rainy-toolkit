@@ -265,10 +265,6 @@ namespace rainy::foundation::concurrency {
             implements::cnd_broadcast(&cnd_);
         }
 
-        // -------------------------------------------------------------------------
-        // 无超时等待
-        // -------------------------------------------------------------------------
-
         /**
          * @brief 无条件等待，直到被唤醒
          *
@@ -391,8 +387,7 @@ namespace rainy::foundation::concurrency {
          */
         template <typename Lock, typename Rep, typename Period>
         rain_fn wait_for(Lock &lock, const std::chrono::duration<Rep, Period> &rel_time) -> cv_status {
-            // 直接用 system_clock 算 deadline，避免 steady→system 二次采样误差
-            return wait_until(lock, std::chrono::system_clock::now() + rel_time);
+            return wait_until(lock, std::chrono::system_clock::now() + rel_time + std::chrono::milliseconds(1));
         }
 
         /**
@@ -406,7 +401,7 @@ namespace rainy::foundation::concurrency {
          */
         template <typename Lock, typename Rep, typename Period, typename Pred>
         rain_fn wait_for(Lock &lock, const std::chrono::duration<Rep, Period> &rel_time, Pred pred) -> bool {
-            return wait_until(lock, std::chrono::system_clock::now() + rel_time, utility::move(pred));
+            return wait_until(lock, std::chrono::system_clock::now() + rel_time + std::chrono::milliseconds(1), utility::move(pred));
         }
 
         /**
@@ -466,11 +461,8 @@ namespace rainy::foundation::concurrency {
          * @return pred() 为 true 时返回 true；超时或停止请求且 pred() 为 false 时返回 false
          */
         template <typename Lock, typename Rep, typename Period, typename Pred>
-        rain_fn wait_for(Lock &lock, std::stop_token stoken,
-                         const std::chrono::duration<Rep, Period> &rel_time,
-                         Pred pred) -> bool {
-            return wait_until(lock, utility::move(stoken),
-                              std::chrono::steady_clock::now() + rel_time,
+        rain_fn wait_for(Lock &lock, std::stop_token stoken, const std::chrono::duration<Rep, Period> &rel_time, Pred pred) -> bool {
+            return wait_until(lock, utility::move(stoken), std::chrono::steady_clock::now() + rel_time + std::chrono::milliseconds(1),
                               utility::move(pred));
         }
 
