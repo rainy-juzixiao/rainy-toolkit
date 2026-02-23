@@ -200,8 +200,9 @@ namespace rainy::foundation::concurrency::implements {
         static bool cas(volatile type *p, type &exp, type des, memory_order s, memory_order f) noexcept {
             type old = exp;
             bool ok = core::pal::interlocked_compare_exchange64_explicit(p, des, old, s, f);
-            if (!ok)
+            if (!ok) {
                 exp = core::pal::iso_volatile_load64_explicit(p, f);
+            }
             return ok;
         }
 
@@ -491,8 +492,9 @@ namespace rainy::foundation::concurrency::implements {
         static bool cas(volatile type *p, Ty *&expected, Ty *desired, memory_order s, memory_order f) noexcept {
             std::intptr_t exp_i = to_int(expected);
             bool ok = iops::cas(as_int_ptr(p), exp_i, to_int(desired), s, f);
-            if (!ok)
+            if (!ok) {
                 expected = to_ptr(exp_i);
+            }
             return ok;
         }
 

@@ -46,8 +46,9 @@ SCENARIO("concurrent forward_list basic operations", "[forward_list]") {
 
             THEN("iteration should return elements in correct order") {
                 std::vector<int> values;
-                for (auto &v: list)
+                for (auto &v: list) {
                     values.push_back(v);
+                }
                 REQUIRE(values == std::vector<int>{3, 2, 1});
             }
         }
