@@ -206,7 +206,7 @@ namespace rainy::core::pal {
     bool interlocked_compare_exchange32_explicit(volatile std::int32_t *destination, std::int32_t exchange, std::int32_t comparand,
                                                  memory_order success, memory_order failure) {
         bool result{};
-        RAINY_ATOMIC_DISPATCH(_InterlockedCompareExchange32, result, success, reinterpret_cast<volatile std::int32_t *>(destination),
+        RAINY_ATOMIC_DISPATCH(_InterlockedCompareExchange, result, success, reinterpret_cast<volatile std::int32_t *>(destination),
                               exchange, comparand);
         return result;
     }
