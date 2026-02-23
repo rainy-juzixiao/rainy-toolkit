@@ -17,7 +17,7 @@
 #define RAINY_FOUNDATION_CONCURRENCY_EXECUTOR_HPP
 #include <rainy/foundation/concurrency/future.hpp>
 #include <rainy/foundation/concurrency/pool.hpp>
-#include <rainy/foundation/concurrency/scheduler.hpp>
+#include <rainy/foundation/concurrency/basic/scheduler.hpp>
 
 namespace rainy::foundation::concurrency {
     class RAINY_TOOLKIT_API executor {

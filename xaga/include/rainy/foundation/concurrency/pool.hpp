@@ -16,9 +16,9 @@
 #ifndef RAINY_FOUNDATION_CONCURRENCY_POOL_HPP
 #define RAINY_FOUNDATION_CONCURRENCY_POOL_HPP
 #include <queue>
-#include <rainy/foundation/concurrency/actor.hpp>
+#include <rainy/foundation/concurrency/basic/actor.hpp>
 #include <rainy/foundation/concurrency/condition_variable.hpp>
-#include <rainy/foundation/concurrency/scheduler.hpp>
+#include <rainy/foundation/concurrency/basic/scheduler.hpp>
 #include <rainy/foundation/diagnostics/contract.hpp>
 #include <rainy/foundation/memory/nebula_ptr.hpp>
 

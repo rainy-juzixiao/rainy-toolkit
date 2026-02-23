@@ -19,7 +19,7 @@
 #include <rainy/foundation/functional/delegate.hpp>
 #include <rainy/foundation/concurrency/condition_variable.hpp>
 #include <rainy/foundation/concurrency/thread.hpp>
-#include <rainy/foundation/concurrency/work_stealing_deque.hpp>
+#include <rainy/foundation/concurrency/basic/work_stealing_deque.hpp>
 #include <rainy/foundation/diagnostics/contract.hpp>
 #include <rainy/foundation/memory/nebula_ptr.hpp>
 

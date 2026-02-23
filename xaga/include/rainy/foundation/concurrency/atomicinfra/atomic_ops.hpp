@@ -512,6 +512,41 @@ namespace rainy::foundation::concurrency::implements {
     template <typename Ty>
     struct atomic_ops<Ty *> : atomic_ops_pointer<Ty> {};
 
+    template <>
+    struct atomic_ops<bool> {
+        using type = bool;
+        using iops = atomic_ops<std::int8_t>;
+        using int_type = std::int8_t;
+
+        static volatile int_type *as_int(volatile type *p) noexcept {
+            return reinterpret_cast<volatile int_type *>(p);
+        }
+
+        static const volatile int_type *as_int(const volatile type *p) noexcept {
+            return reinterpret_cast<const volatile int_type *>(p);
+        }
+
+        static type load(const volatile type *p, memory_order o) noexcept {
+            return iops::load(as_int(p), o) != 0;
+        }
+
+        static void store(volatile type *p, type v, memory_order o) noexcept {
+            iops::store(as_int(p), static_cast<int_type>(v), o);
+        }
+
+        static type exch(volatile type *p, type v, memory_order o) noexcept {
+            return iops::exch(as_int(p), static_cast<int_type>(v), o) != 0;
+        }
+
+        static bool cas(volatile type *p, type &expected, type desired, memory_order s, memory_order f) noexcept {
+            int_type exp_i = static_cast<int_type>(expected);
+            bool ok = iops::cas(as_int(p), exp_i, static_cast<int_type>(desired), s, f);
+            if (!ok)
+                expected = (exp_i != 0);
+            return ok;
+        }
+    };
+
     template <typename Ty>
     Ty *atomic_ptr_fetch_max(volatile Ty **p, Ty *val, memory_order order) noexcept {
         using ops = atomic_ops<Ty *>;

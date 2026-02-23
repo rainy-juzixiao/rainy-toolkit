@@ -16,7 +16,7 @@
 #ifndef RAINY_FOUNDATION_CONCURRENCY_CONTEXT_HPP
 #define RAINY_FOUNDATION_CONCURRENCY_CONTEXT_HPP
 #include <rainy/core/core.hpp>
-#include <rainy/foundation/concurrency/tss_ptr.hpp>
+#include <rainy/foundation/concurrency/basic/tss_ptr.hpp>
 
 #ifndef RAINY_RECYCLING_ALLOCATOR_CACHE_SIZE
 #define RAINY_RECYCLING_ALLOCATOR_CACHE_SIZE 2

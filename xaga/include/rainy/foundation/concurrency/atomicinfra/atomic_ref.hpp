@@ -175,13 +175,12 @@ namespace rainy::foundation::concurrency::implements {
 
     template <typename Ty>
     class atomic_ref_floating : public implements::atomic_ref_base<Ty, implements::atomic_ops<Ty>> {
-
+    public:
         using base = implements::atomic_ref_base<Ty, implements::atomic_ops<Ty>>;
 
         static_assert(!std::is_const_v<Ty>);
         static_assert(!std::is_volatile_v<Ty>);
 
-    public:
         using value_type = Ty;
         using difference_type = Ty;
 
@@ -212,13 +211,12 @@ namespace rainy::foundation::concurrency::implements {
 
     template <typename Ty>
     class atomic_ref_pointer : public implements::atomic_ref_base<Ty *, implements::atomic_ops<Ty *>> {
-
+    public:
         using base = implements::atomic_ref_base<Ty *, implements::atomic_ops<Ty *>>;
         using ops = implements::atomic_ops<Ty *>;
 
         static_assert(!std::is_function_v<Ty>);
 
-    public:
         using value_type = Ty *;
         using difference_type = std::ptrdiff_t;
 
@@ -271,7 +269,7 @@ namespace rainy::foundation::concurrency::implements {
         using type = std::conditional_t<
             // 1. bool 独立路由：只有基础操作，无算术/位运算
             //    直接使用 atomic_base，不进入 atomic_integral
-            std::is_same_v<Ty, bool>, atomic_ref_base<bool, atomic_ops<std::int8_t>>,
+            std::is_same_v<Ty, bool>, atomic_ref_base<bool, atomic_ops<bool>>,
             std::conditional_t<
                 // 2. 整数（已排除 bool）
                 std::is_integral_v<Ty>, atomic_ref_integral<Ty>,

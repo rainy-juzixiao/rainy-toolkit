@@ -24,15 +24,15 @@ namespace rainy::foundation::concurrency {
     template <typename Ty>
     class atomic : public implements::select_atomic_base_t<Ty> {
     public:
-        using implements::select_atomic_base_t<Ty>::select_atomic_base_t; // 继承构造
-        using implements::select_atomic_base_t<Ty>::operator=; // 继承赋值
+        using implements::select_atomic_base_t<Ty>::select_atomic_base_t;
+        using implements::select_atomic_base_t<Ty>::operator=;
     };
 
     template <typename Ty>
     class atomic<Ty*> : public implements::select_atomic_base_t<Ty*> {
     public:
-        using implements::select_atomic_base_t<Ty*>::select_atomic_base_t; // 继承构造
-        using implements::select_atomic_base_t<Ty*>::operator=; // 继承赋值
+        using implements::select_atomic_base_t<Ty*>::select_atomic_base_t;
+        using implements::select_atomic_base_t<Ty*>::operator=;
     };
 }
 

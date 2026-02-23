@@ -68,11 +68,11 @@ namespace rainy::foundation::concurrency::implements {
         Ty load(memory_order order = memory_order::seq_cst) const volatile noexcept {
             return Ops::load(ptr(), order);
         }
-        
+
         operator Ty() const noexcept {
             return load();
         }
-        
+
         operator Ty() const volatile noexcept {
             return load();
         }
@@ -167,19 +167,21 @@ namespace rainy::foundation::concurrency::implements {
         using difference_type = Ty;
 
         using base::base;
-        
+
+        using base::operator=;
+
         Ty fetch_add(Ty arg, memory_order order = memory_order::seq_cst) noexcept {
             return ops::add(this->ptr(), arg, order);
         }
-        
+
         Ty fetch_add(Ty arg, memory_order order = memory_order::seq_cst) volatile noexcept {
             return ops::add(this->ptr(), arg, order);
         }
-        
+
         Ty fetch_sub(Ty arg, memory_order order = memory_order::seq_cst) noexcept {
             return ops::sub(this->ptr(), arg, order);
         }
-        
+
         Ty fetch_sub(Ty arg, memory_order order = memory_order::seq_cst) volatile noexcept {
             return ops::sub(this->ptr(), arg, order);
         }
@@ -187,23 +189,23 @@ namespace rainy::foundation::concurrency::implements {
         Ty fetch_and(Ty arg, memory_order order = memory_order::seq_cst) noexcept {
             return ops::band(this->ptr(), arg, order);
         }
-        
+
         Ty fetch_and(Ty arg, memory_order order = memory_order::seq_cst) volatile noexcept {
             return ops::band(this->ptr(), arg, order);
         }
-        
+
         Ty fetch_or(Ty arg, memory_order order = memory_order::seq_cst) noexcept {
             return ops::bor(this->ptr(), arg, order);
         }
-        
+
         Ty fetch_or(Ty arg, memory_order order = memory_order::seq_cst) volatile noexcept {
             return ops::bor(this->ptr(), arg, order);
         }
-        
+
         Ty fetch_xor(Ty arg, memory_order order = memory_order::seq_cst) noexcept {
             return ops::bxor(this->ptr(), arg, order);
         }
-        
+
         Ty fetch_xor(Ty arg, memory_order order = memory_order::seq_cst) volatile noexcept {
             return ops::bxor(this->ptr(), arg, order);
         }
@@ -211,15 +213,15 @@ namespace rainy::foundation::concurrency::implements {
         Ty fetch_max(Ty arg, memory_order order = memory_order::seq_cst) noexcept {
             return implements::atomic_fetch_max<Ty, ops>(this->ptr(), arg, order);
         }
-        
+
         Ty fetch_max(Ty arg, memory_order order = memory_order::seq_cst) volatile noexcept {
             return implements::atomic_fetch_max<Ty, ops>(this->ptr(), arg, order);
         }
-   
+
         Ty fetch_min(Ty arg, memory_order order = memory_order::seq_cst) noexcept {
             return implements::atomic_fetch_min<Ty, ops>(this->ptr(), arg, order);
         }
-        
+
         Ty fetch_min(Ty arg, memory_order order = memory_order::seq_cst) volatile noexcept {
             return implements::atomic_fetch_min<Ty, ops>(this->ptr(), arg, order);
         }
@@ -312,6 +314,8 @@ namespace rainy::foundation::concurrency::implements {
         using value_type = Ty;
         using difference_type = Ty;
 
+        using base::operator=;
+
         using base::base;
 
         Ty fetch_add(Ty operand, memory_order order = memory_order::seq_cst) noexcept {
@@ -366,6 +370,8 @@ namespace rainy::foundation::concurrency::implements {
 
         using value_type = Ty *;
         using difference_type = std::ptrdiff_t;
+
+        using base::operator=;
 
         using base::base;
 
@@ -445,7 +451,7 @@ namespace rainy::foundation::concurrency::implements {
         using type = std::conditional_t<
             // 1. bool 独立路由：只有基础操作，无算术/位运算
             //    直接使用 atomic_base，不进入 atomic_integral
-            std::is_same_v<Ty, bool>, atomic_base<bool, atomic_ops<std::int8_t>>,
+            std::is_same_v<Ty, bool>, atomic_base<bool, atomic_ops<bool>>,
             std::conditional_t<
                 // 2. 整数（已排除 bool）
                 std::is_integral_v<Ty>, atomic_integral<Ty>,

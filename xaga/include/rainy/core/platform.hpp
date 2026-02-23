@@ -1336,4 +1336,12 @@ namespace rainy::core::pal {
     inline constexpr memory_order memory_order_seq_cst = memory_order::seq_cst;
 }
 
+namespace rainy::utility {
+    struct piecewise_construct_t {
+        explicit piecewise_construct_t() = default;
+    };
+
+    inline constexpr piecewise_construct_t piecewise_construct{};
+}
+
 #endif

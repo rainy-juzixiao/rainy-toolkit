@@ -61,7 +61,7 @@
 #include <memory>
 #include <rainy/foundation/concurrency/condition_variable.hpp>
 #include <rainy/foundation/concurrency/mutex.hpp>
-#include <rainy/foundation/concurrency/scheduler.hpp>
+#include <rainy/foundation/concurrency/basic/scheduler.hpp>
 #include <rainy/foundation/functional/delegate.hpp>
 #include <rainy/foundation/memory/nebula_ptr.hpp>
 #include <variant>
