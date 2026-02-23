@@ -190,7 +190,7 @@ namespace rainy::core::pal {
     bool interlocked_compare_exchange8_explicit(volatile std::int8_t *destination, std::int8_t exchange, std::int8_t comparand,
                                                 memory_order success, memory_order failure) {
         bool result{};
-        RAINY_ATOMIC_DISPATCH(_InterlockedCompareExchange8, result, success, reinterpret_cast<volatile std::int8_t *>(destination),
+        RAINY_ATOMIC_DISPATCH(_InterlockedCompareExchange8, result, success, reinterpret_cast<volatile char *>(destination),
                               exchange, comparand);
         return result;
     }
