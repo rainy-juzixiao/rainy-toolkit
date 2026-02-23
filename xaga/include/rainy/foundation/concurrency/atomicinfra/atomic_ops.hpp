@@ -241,10 +241,13 @@ namespace rainy::foundation::concurrency::implements {
 
     template <>
     struct atomic_ops<std::uint8_t> : atomic_ops_unsigned_adapter<std::uint8_t, std::int8_t> {};
+
     template <>
     struct atomic_ops<std::uint16_t> : atomic_ops_unsigned_adapter<std::uint16_t, std::int16_t> {};
+
     template <>
     struct atomic_ops<std::uint32_t> : atomic_ops_unsigned_adapter<std::uint32_t, std::int32_t> {};
+
     template <>
     struct atomic_ops<std::uint64_t> : atomic_ops_unsigned_adapter<std::uint64_t, std::int64_t> {};
 
@@ -317,52 +320,103 @@ namespace rainy::foundation::concurrency::implements {
     };
 
     template <>
+    struct float_int_traits<float> {
+        using float_type = float;
+        using int_type = std::uint32_t;
+        static_assert(sizeof(float_type) == sizeof(int_type));
+    };
+
+    template <>
+    struct float_int_traits<double> {
+        using float_type = double;
+        using int_type = std::uint64_t;
+        static_assert(sizeof(float_type) == sizeof(int_type));
+    };
+
+    template <>
     struct float_int_traits<long double> {
         using float_type = long double;
-        using int_type = std::int64_t;
+
+        using int_type = std::conditional_t<
+            sizeof(long double) == 4, std::uint32_t,
+            std::conditional_t<sizeof(long double) == 8, std::uint64_t,
+                               std::conditional_t<sizeof(long double) == 16, core::pal::native_double_word_t, void>>>;
+
+        static_assert(!std::is_same_v<int_type, void>, "unsupport platform");
         static_assert(sizeof(float_type) == sizeof(int_type));
     };
 
     template <typename Float>
     struct atomic_ops_float {
         using type = Float;
-        using int_type = typename float_int_traits<Float>::int_type;
-        using iops = atomic_ops<int_type>; // 已有的整数 ops
+        using traits = float_int_traits<Float>;
+        using int_type = typename traits::int_type;
+
+        static constexpr bool is_double_word = std::is_same_v<int_type, core::pal::native_double_word_t>;
 
         static int_type to_int(Float f) noexcept {
-            int_type result{};
-            std::memcpy(&result, &f, sizeof(int_type));
+            int_type result;
+            std::memcpy(&result, &f, sizeof(Float));
             return result;
         }
 
         static Float to_float(int_type i) noexcept {
-            Float result{};
+            Float result;
             std::memcpy(&result, &i, sizeof(Float));
             return result;
         }
 
         static Float load(const volatile type *p, memory_order o) noexcept {
-            // 先把浮点指针重解释为整数指针再做原子读
-            return to_float(iops::load(reinterpret_cast<const volatile int_type *>(p), o));
+            if constexpr (is_double_word) {
+                auto raw =
+                    core::pal::atomic_load_double_word(reinterpret_cast<const volatile core::pal::native_double_word_t *>(p), o);
+                return to_float(raw);
+            } else {
+                using iops = atomic_ops<int_type>;
+                return to_float(iops::load(reinterpret_cast<const volatile int_type *>(p), o));
+            }
         }
 
         static void store(volatile type *p, Float v, memory_order o) noexcept {
-            iops::store(reinterpret_cast<volatile int_type *>(p), to_int(v), o);
+            if constexpr (is_double_word) {
+                core::pal::atomic_store_double_word(reinterpret_cast<volatile core::pal::native_double_word_t *>(p), to_int(v), o);
+            } else {
+                using iops = atomic_ops<int_type>;
+                iops::store(reinterpret_cast<volatile int_type *>(p), to_int(v), o);
+            }
         }
 
         static Float exch(volatile type *p, Float v, memory_order o) noexcept {
-            return to_float(iops::exch(reinterpret_cast<volatile int_type *>(p), to_int(v), o));
+            if constexpr (is_double_word) {
+                auto new_dw = to_int(v);
+                auto cur_dw = core::pal::atomic_load_double_word(reinterpret_cast<volatile core::pal::native_double_word_t *>(p),
+                                                                 memory_order::relaxed);
+                while (!core::pal::interlocked_compare_exchange_double_word(
+                    reinterpret_cast<volatile core::pal::native_double_word_t *>(p), new_dw, &cur_dw)) {
+                }
+                return to_float(cur_dw);
+            } else {
+                using iops = atomic_ops<int_type>;
+                return to_float(iops::exch(reinterpret_cast<volatile int_type *>(p), to_int(v), o));
+            }
         }
 
         static bool cas(volatile type *p, Float &expected, Float desired, memory_order s, memory_order f) noexcept {
-            // 将 expected 转为整数，CAS 完成后若失败将当前整数值写回 expected
-            int_type exp_i = to_int(expected);
-            bool ok = iops::cas(reinterpret_cast<volatile int_type *>(p), exp_i, to_int(desired), s, f);
-            if (!ok) {
-                // iops::cas 失败时已把最新整数值写入 exp_i
-                expected = to_float(exp_i);
+            if constexpr (is_double_word) {
+                auto exp_dw = to_int(expected);
+                bool ok = core::pal::interlocked_compare_exchange_double_word(
+                    reinterpret_cast<volatile core::pal::native_double_word_t *>(p), to_int(desired), &exp_dw);
+                if (!ok)
+                    expected = to_float(exp_dw);
+                return ok;
+            } else {
+                using iops = atomic_ops<int_type>;
+                int_type exp_i = to_int(expected);
+                bool ok = iops::cas(reinterpret_cast<volatile int_type *>(p), exp_i, to_int(desired), s, f);
+                if (!ok)
+                    expected = to_float(exp_i);
+                return ok;
             }
-            return ok;
         }
     };
 
