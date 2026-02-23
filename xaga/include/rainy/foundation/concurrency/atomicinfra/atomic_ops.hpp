@@ -18,7 +18,7 @@
 #include <rainy/foundation/concurrency/atomicinfra/fwd.hpp>
 
 namespace rainy::foundation::concurrency::implements {
-    template <typename T>
+    template <typename Ty>
     struct atomic_ops;
 
     template <>
@@ -251,36 +251,36 @@ namespace rainy::foundation::concurrency::implements {
     template <>
     struct atomic_ops<std::uint64_t> : atomic_ops_unsigned_adapter<std::uint64_t, std::int64_t> {};
 
-    template <typename T, typename = void>
+    template <typename Ty, typename = void>
     struct select_ops_type {
-        using type = T;
+        using type = Ty;
     }; // fallback（触发static_assert）
 
-    template <typename T>
-    struct select_ops_type<T, std::enable_if_t<sizeof(T) == 1>> {
+    template <typename Ty>
+    struct select_ops_type<Ty, std::enable_if_t<sizeof(Ty) == 1>> {
         using type = std::int8_t;
     };
-    template <typename T>
-    struct select_ops_type<T,
-                           std::enable_if_t<sizeof(T) == 2 && !std::is_same_v<T, std::int16_t> && !std::is_same_v<T, std::uint16_t>>> {
+    template <typename Ty>
+    struct select_ops_type<Ty,
+                           std::enable_if_t<sizeof(Ty) == 2 && !std::is_same_v<Ty, std::int16_t> && !std::is_same_v<Ty, std::uint16_t>>> {
         using type = std::int16_t;
     };
-    template <typename T>
-    struct select_ops_type<T,
-                           std::enable_if_t<sizeof(T) == 4 && !std::is_same_v<T, std::int32_t> && !std::is_same_v<T, std::uint32_t>>> {
+    template <typename Ty>
+    struct select_ops_type<Ty,
+                           std::enable_if_t<sizeof(Ty) == 4 && !std::is_same_v<Ty, std::int32_t> && !std::is_same_v<Ty, std::uint32_t>>> {
         using type = std::int32_t;
     };
-    template <typename T>
-    struct select_ops_type<T,
-                           std::enable_if_t<sizeof(T) == 8 && !std::is_same_v<T, std::int64_t> && !std::is_same_v<T, std::uint64_t>>> {
+    template <typename Ty>
+    struct select_ops_type<Ty,
+                           std::enable_if_t<sizeof(Ty) == 8 && !std::is_same_v<Ty, std::int64_t> && !std::is_same_v<Ty, std::uint64_t>>> {
         using type = std::int64_t;
     };
 
-    template <typename T, typename Ops>
-    T atomic_fetch_max(volatile T *p, T val, memory_order order) noexcept {
-        T old = Ops::load(p, memory_order::relaxed);
+    template <typename Ty, typename Ops>
+    Ty atomic_fetch_max(volatile Ty *p, Ty val, memory_order order) noexcept {
+        Ty old = Ops::load(p, memory_order::relaxed);
         while (old < val) {
-            T exp = old;
+            Ty exp = old;
             if (Ops::cas(p, exp, val, order, memory_order::relaxed))
                 break;
             old = exp; // cas 失败时 exp 已被更新为当前值
@@ -288,11 +288,11 @@ namespace rainy::foundation::concurrency::implements {
         return old;
     }
 
-    template <typename T, typename Ops>
-    T atomic_fetch_min(volatile T *p, T val, memory_order order) noexcept {
-        T old = Ops::load(p, memory_order::relaxed);
+    template <typename Ty, typename Ops>
+    Ty atomic_fetch_min(volatile Ty *p, Ty val, memory_order order) noexcept {
+        Ty old = Ops::load(p, memory_order::relaxed);
         while (old > val) {
-            T exp = old;
+            Ty exp = old;
             if (Ops::cas(p, exp, val, order, memory_order::relaxed))
                 break;
             old = exp;
@@ -415,33 +415,33 @@ namespace rainy::foundation::concurrency::implements {
 }
 
 namespace rainy::foundation::concurrency::implements {
-    template <typename T>
+    template <typename Ty>
     struct atomic_ops_pointer {
-        using type = T *;
+        using type = Ty *;
         using iops = atomic_ops<std::intptr_t>; // intptr_t 整数 ops
 
         // 辅助转换：指针 <-> intptr_t，无 UB（标准允许指针与整数互转）
-        static std::intptr_t to_int(T *p) noexcept {
+        static std::intptr_t to_int(Ty *p) noexcept {
             return reinterpret_cast<std::intptr_t>(p);
         }
-        static T *to_ptr(std::intptr_t i) noexcept {
-            return reinterpret_cast<T *>(i);
+        static Ty *to_ptr(std::intptr_t i) noexcept {
+            return reinterpret_cast<Ty *>(i);
         }
 
-        static T *load(const volatile type *p, memory_order o) noexcept {
+        static Ty *load(const volatile type *p, memory_order o) noexcept {
             return to_ptr(iops::load(reinterpret_cast<const volatile std::intptr_t *>(p), o));
         }
 
-        static void store(volatile type *p, T *v, memory_order o) noexcept {
+        static void store(volatile type *p, Ty *v, memory_order o) noexcept {
             iops::store(reinterpret_cast<volatile std::intptr_t *>(p), to_int(v), o);
         }
 
-        static T *exch(volatile type *p, T *v, memory_order o) noexcept {
-            return reinterpret_cast<T *>(core::pal::interlocked_exchange_pointer_explicit(reinterpret_cast<volatile void **>(p),
+        static Ty *exch(volatile type *p, Ty *v, memory_order o) noexcept {
+            return reinterpret_cast<Ty *>(core::pal::interlocked_exchange_pointer_explicit(reinterpret_cast<volatile void **>(p),
                                                                                           reinterpret_cast<void *>(v), o));
         }
 
-        static bool cas(volatile type *p, T *&expected, T *desired, memory_order s, memory_order f) noexcept {
+        static bool cas(volatile type *p, Ty *&expected, Ty *desired, memory_order s, memory_order f) noexcept {
             void *exp_v = reinterpret_cast<void *>(expected);
             void *result = core::pal::interlocked_compare_exchange_pointer_explicit(reinterpret_cast<volatile void **>(p),
                                                                                     reinterpret_cast<void *>(desired), exp_v, s, f);
@@ -450,31 +450,31 @@ namespace rainy::foundation::concurrency::implements {
             if (result == exp_v) {
                 return true;
             }
-            expected = reinterpret_cast<T *>(result);
+            expected = reinterpret_cast<Ty *>(result);
             return false;
         }
 
-        static T *ptr_add(volatile type *p, std::ptrdiff_t n, memory_order o) noexcept {
-            std::intptr_t byte_offset = static_cast<std::intptr_t>(n) * static_cast<std::intptr_t>(sizeof(T));
+        static Ty *ptr_add(volatile type *p, std::ptrdiff_t n, memory_order o) noexcept {
+            std::intptr_t byte_offset = static_cast<std::intptr_t>(n) * static_cast<std::intptr_t>(sizeof(Ty));
             return to_ptr(core::pal::interlocked_exchange_add_explicit(reinterpret_cast<volatile std::intptr_t *>(p), byte_offset, o));
         }
 
-        static T *ptr_sub(volatile type *p, std::ptrdiff_t n, memory_order o) noexcept {
-            std::intptr_t byte_offset = static_cast<std::intptr_t>(n) * static_cast<std::intptr_t>(sizeof(T));
+        static Ty *ptr_sub(volatile type *p, std::ptrdiff_t n, memory_order o) noexcept {
+            std::intptr_t byte_offset = static_cast<std::intptr_t>(n) * static_cast<std::intptr_t>(sizeof(Ty));
             return to_ptr(
                 core::pal::interlocked_exchange_subtract_explicit(reinterpret_cast<volatile std::intptr_t *>(p), byte_offset, o));
         }
     };
 
-    template <typename T>
-    struct atomic_ops<T *> : atomic_ops_pointer<T> {};
+    template <typename Ty>
+    struct atomic_ops<Ty *> : atomic_ops_pointer<Ty> {};
 
-    template <typename T>
-    T *atomic_ptr_fetch_max(volatile T **p, T *val, memory_order order) noexcept {
-        using ops = atomic_ops<T *>;
-        T *old = ops::load(p, memory_order::relaxed);
+    template <typename Ty>
+    Ty *atomic_ptr_fetch_max(volatile Ty **p, Ty *val, memory_order order) noexcept {
+        using ops = atomic_ops<Ty *>;
+        Ty *old = ops::load(p, memory_order::relaxed);
         while (old < val) {
-            T *exp = old;
+            Ty *exp = old;
             if (ops::cas(p, exp, val, order, memory_order::relaxed))
                 break;
             old = exp;
@@ -482,12 +482,12 @@ namespace rainy::foundation::concurrency::implements {
         return old;
     }
 
-    template <typename T>
-    T *atomic_ptr_fetch_min(volatile T **p, T *val, memory_order order) noexcept {
-        using ops = atomic_ops<T *>;
-        T *old = ops::load(p, memory_order::relaxed);
+    template <typename Ty>
+    Ty *atomic_ptr_fetch_min(volatile Ty **p, Ty *val, memory_order order) noexcept {
+        using ops = atomic_ops<Ty *>;
+        Ty *old = ops::load(p, memory_order::relaxed);
         while (old > val) {
-            T *exp = old;
+            Ty *exp = old;
             if (ops::cas(p, exp, val, order, memory_order::relaxed))
                 break;
             old = exp;
