@@ -460,7 +460,7 @@ SCENARIO("latch multiple phases", "[latch][multiphase]") {
     }
 }
 
-SCENARIO("latch with try_wait optimization", "[latch][try_wait]") {
+SCENARIO("latch with try_wait", "[latch][try_wait]") {
     GIVEN("a latch with count 100") {
         latch l(100);
 

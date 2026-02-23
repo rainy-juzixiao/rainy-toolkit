@@ -396,7 +396,7 @@ namespace rainy::core::pal::implements {
         void acquire() noexcept {
             ::AcquireSRWLockExclusive(&lock);
         }
-        
+
         void release() noexcept {
             ::ReleaseSRWLockExclusive(&lock);
         }
@@ -410,7 +410,7 @@ namespace rainy::core::pal::implements {
         void acquire() noexcept {
             ::pthread_mutex_lock(&lock);
         }
-        
+
         void release() noexcept {
             ::pthread_mutex_unlock(&lock);
         }
@@ -563,19 +563,16 @@ namespace rainy::core::pal::implements {
     }
 
     static void wait_indirect(const void *storage, const void *comparand, std::size_t size, atomic_wait_equal_fn equal_fn,
-                       void *ctx) noexcept {
+                              void *ctx) noexcept {
         auto &entry = entry_for(storage);
         platform_lock_guard guard(entry.lock);
         ensure_initialized(entry);
-
         scoped_wait_context wctx{storage, &entry.head};
-
         for (;;) {
             const bool still_same = equal_fn ? equal_fn(storage, comparand, size, ctx) : (std::memcmp(storage, comparand, size) == 0);
-
-            if (!still_same)
+            if (!still_same) {
                 return;
-
+            }
 #if RAINY_USING_WINDOWS
             const BOOL ok = ::SleepConditionVariableSRW(&wctx.cond, entry.lock.native(), INFINITE, 0);
             if (!ok) {
@@ -589,6 +586,7 @@ namespace rainy::core::pal::implements {
                 return;
             }
 #endif
+            return;
         }
     }
 
@@ -627,7 +625,7 @@ namespace rainy::core::pal::implements {
 namespace rainy::core::pal {
     void atomic_wait(const void *storage, const void *comparand, std::size_t size, atomic_wait_equal_fn equal_fn, void *ctx) noexcept {
         if (implements::supports_direct(size) && equal_fn == nullptr) {
-            while (std::memcmp(storage, comparand, size) == 0) {
+            if (std::memcmp(storage, comparand, size) == 0) {
                 implements::wait_direct(storage, comparand, size);
             }
         } else {
