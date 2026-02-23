@@ -141,18 +141,18 @@ SCENARIO("concurrent push_front/pop_front in multiple threads", "[forward_list][
                     }
                 });
             }
-
-            for (auto &th: threads)
+            for (auto &th: threads) {
                 th.join();
-
+            }
             THEN("all elements should be present") {
                 REQUIRE(list.size() == num_threads * num_ops_per_thread);
             }
         }
 
         WHEN("multiple threads pop elements concurrently after pushing") {
-            for (int i = 0; i < num_threads * num_ops_per_thread; ++i)
+            for (int i = 0; i < num_threads * num_ops_per_thread; ++i) {
                 list.push_front(i);
+            }
 
             std::vector<std::thread> threads;
             std::atomic<int> pop_count{0};

@@ -179,44 +179,43 @@ namespace rainy::core::pal {
     }
 #endif
 
-    bool interlocked_compare_exchange_explicit(volatile long *destination, long exchange, long comparand, memory_order success,
-                                               memory_order failure) {
-        bool result{};
-        RAINY_ATOMIC_DISPATCH(_InterlockedCompareExchange, result, success, reinterpret_cast<volatile long *>(destination),
-                              exchange, comparand);
-        return result;
+    bool interlocked_compare_exchange_explicit(volatile long *dst, long exchange, long comparand, memory_order success,
+                                               memory_order /*failure*/) noexcept {
+        long result{};
+        RAINY_ATOMIC_DISPATCH(_InterlockedCompareExchange, result, success, dst, exchange, comparand);
+        return result == comparand;
     }
 
-    bool interlocked_compare_exchange8_explicit(volatile std::int8_t *destination, std::int8_t exchange, std::int8_t comparand,
-                                                memory_order success, memory_order failure) {
-        bool result{};
-        RAINY_ATOMIC_DISPATCH(_InterlockedCompareExchange8, result, success, reinterpret_cast<volatile char *>(destination),
-                              exchange, comparand);
-        return result;
+    bool interlocked_compare_exchange8_explicit(volatile std::int8_t *dst, std::int8_t exchange, std::int8_t comparand,
+                                                memory_order success, memory_order /*failure*/) noexcept {
+        char result{};
+        RAINY_ATOMIC_DISPATCH(_InterlockedCompareExchange8, result, success, reinterpret_cast<volatile char *>(dst),
+                              static_cast<char>(exchange), static_cast<char>(comparand));
+        return static_cast<std::int8_t>(result) == comparand;
     }
 
-    bool interlocked_compare_exchange16_explicit(volatile std::int16_t *destination, std::int16_t exchange, std::int16_t comparand,
-                                                 memory_order success, memory_order failure) {
-        bool result{};
-        RAINY_ATOMIC_DISPATCH(_InterlockedCompareExchange16, result, success, reinterpret_cast<volatile std::int16_t *>(destination),
-                              exchange, comparand);
-        return result;
+    bool interlocked_compare_exchange16_explicit(volatile std::int16_t *dst, std::int16_t exchange, std::int16_t comparand,
+                                                 memory_order success, memory_order /*failure*/) noexcept {
+        short result{};
+        RAINY_ATOMIC_DISPATCH(_InterlockedCompareExchange16, result, success, reinterpret_cast<volatile short *>(dst),
+                              static_cast<short>(exchange), static_cast<short>(comparand));
+        return static_cast<std::int16_t>(result) == comparand;
     }
 
-    bool interlocked_compare_exchange32_explicit(volatile std::int32_t *destination, std::int32_t exchange, std::int32_t comparand,
-                                                 memory_order success, memory_order failure) {
-        bool result{};
-        RAINY_ATOMIC_DISPATCH(_InterlockedCompareExchange, result, success, reinterpret_cast<volatile long *>(destination),
-                              exchange, comparand);
-        return result;
+    bool interlocked_compare_exchange32_explicit(volatile std::int32_t *dst, std::int32_t exchange, std::int32_t comparand,
+                                                 memory_order success, memory_order /*failure*/) noexcept {
+        long result{};
+        RAINY_ATOMIC_DISPATCH(_InterlockedCompareExchange, result, success, reinterpret_cast<volatile long *>(dst),
+                              static_cast<long>(exchange), static_cast<long>(comparand));
+        return static_cast<std::int32_t>(result) == comparand;
     }
 
-    bool interlocked_compare_exchange64_explicit(volatile std::int64_t *destination, std::int64_t exchange, std::int64_t comparand,
-                                                 memory_order success, memory_order failure) {
-        bool result{};
-        RAINY_ATOMIC_DISPATCH(_InterlockedCompareExchange64, result, success, reinterpret_cast<volatile std::int64_t *>(destination),
-                              exchange, comparand);
-        return result;
+    bool interlocked_compare_exchange64_explicit(volatile std::int64_t *dst, std::int64_t exchange, std::int64_t comparand,
+                                                 memory_order success, memory_order /*failure*/) noexcept {
+        std::int64_t result{};
+        RAINY_ATOMIC_DISPATCH(_InterlockedCompareExchange64, result, success, reinterpret_cast<volatile std::int64_t *>(dst), exchange,
+                              comparand);
+        return result == comparand;
     }
 
     void *interlocked_exchange_pointer_explicit(volatile void **target, void *value, memory_order order) {
@@ -418,7 +417,8 @@ namespace rainy::core::pal {
     }
 
     void iso_volatile_store64_explicit(volatile std::int64_t *address, std::int64_t value, memory_order order) {
-        RAINY_ATOMIC_DISPATCH_ISO_VOLATILE_STORE(__iso_volatile_store64, order, reinterpret_cast<volatile long long *>(address), value);
+        RAINY_ATOMIC_DISPATCH_ISO_VOLATILE_STORE(__iso_volatile_store64, order, reinterpret_cast<volatile long long *>(address),
+                                                 value);
     }
 }
 
