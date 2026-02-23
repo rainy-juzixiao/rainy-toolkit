@@ -320,20 +320,6 @@ namespace rainy::foundation::concurrency::implements {
     };
 
     template <>
-    struct float_int_traits<float> {
-        using float_type = float;
-        using int_type = std::uint32_t;
-        static_assert(sizeof(float_type) == sizeof(int_type));
-    };
-
-    template <>
-    struct float_int_traits<double> {
-        using float_type = double;
-        using int_type = std::uint64_t;
-        static_assert(sizeof(float_type) == sizeof(int_type));
-    };
-
-    template <>
     struct float_int_traits<long double> {
         using float_type = long double;
 

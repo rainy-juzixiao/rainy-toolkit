@@ -1,41 +1,58 @@
-/*
- * Copyright 2026 rainy-juzixiao
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 #include <rainy/core/layer.hpp>
 
 #if RAINY_USING_MSVC
 #include <intrin.h>
 
+#define RAINY_ATOMIC_DISPATCH(FUNC, result, order, ...)                                                                               \
+    do {                                                                                                                              \
+        switch (order) {                                                                                                              \
+            case memory_order_relaxed:                                                                                                \
+                result = FUNC##_nf(__VA_ARGS__);                                                                                      \
+                break;                                                                                                                \
+            case memory_order_acquire:                                                                                                \
+                result = FUNC##_acq(__VA_ARGS__);                                                                                     \
+                break;                                                                                                                \
+            case memory_order_release:                                                                                                \
+                result = FUNC##_rel(__VA_ARGS__);                                                                                     \
+                break;                                                                                                                \
+            case memory_order_acq_rel:                                                                                                \
+                result = FUNC(__VA_ARGS__);                                                                                           \
+                break;                                                                                                                \
+            case memory_order_seq_cst:                                                                                                \
+            default:                                                                                                                  \
+                result = FUNC(__VA_ARGS__);                                                                                           \
+                break;                                                                                                                \
+        }                                                                                                                             \
+    } while (0)
+
 namespace rainy::core::pal {
     bool interlocked_compare_exchange_double_word(volatile native_double_word_t *destination, native_double_word_t exchange,
                                                   native_double_word_t *comparand) noexcept {
-        return _InterlockedCompareExchange128(reinterpret_cast<volatile long long *>(destination), static_cast<long long>(exchange.hi),
-                                              static_cast<long long>(exchange.lo), reinterpret_cast<long long *>(comparand)) != 0;
+        long long result;
+        RAINY_ATOMIC_DISPATCH(_InterlockedCompareExchange128, result, memory_order::seq_cst,
+                              reinterpret_cast<volatile long long *>(destination), static_cast<long long>(exchange.hi),
+                              static_cast<long long>(exchange.lo), reinterpret_cast<long long *>(comparand));
+        return result != 0;
     }
 
-    native_double_word_t atomic_load_double_word(const volatile native_double_word_t *address, memory_order /*order*/) noexcept {
+    native_double_word_t atomic_load_double_word(const volatile native_double_word_t *address, memory_order order) noexcept {
         native_double_word_t expected{0, 0};
-        _InterlockedCompareExchange128(reinterpret_cast<volatile long long *>(const_cast<volatile native_double_word_t *>(address)),
-                                       0LL, 0LL, reinterpret_cast<long long *>(&expected));
+        long long result;
+        RAINY_ATOMIC_DISPATCH(_InterlockedCompareExchange128, result, order,
+                              reinterpret_cast<volatile long long *>(const_cast<volatile native_double_word_t *>(address)), 0LL, 0LL,
+                              reinterpret_cast<long long *>(&expected));
+        (void) result;
         return expected;
     }
 
     void atomic_store_double_word(volatile native_double_word_t *address, native_double_word_t value, memory_order order) noexcept {
         native_double_word_t expected = atomic_load_double_word(address, memory_order::relaxed);
-        while (!interlocked_compare_exchange_double_word(address, value, &expected)) {
-        }
+        long long result;
+        do {
+            RAINY_ATOMIC_DISPATCH(_InterlockedCompareExchange128, result, order, reinterpret_cast<volatile long long *>(address),
+                                  static_cast<long long>(value.hi), static_cast<long long>(value.lo),
+                                  reinterpret_cast<long long *>(&expected));
+        } while (result == 0);
     }
 }
 
@@ -70,29 +87,66 @@ namespace rainy::core::pal {
         return false;
     }
 
-    native_double_word_t atomic_load_double_word(const volatile native_double_word_t *address, memory_order /*order*/) noexcept {
+    native_double_word_t atomic_load_double_word(const volatile native_double_word_t *address, memory_order order) noexcept {
         std::uintptr_t lo, hi;
-        __asm__ volatile("ldaxp  %[lo], %[hi], [%[src]]\n"
-                         "clrex\n"
-                         : [lo] "=&r"(lo), [hi] "=&r"(hi)
-                         : [src] "r"(address)
-                         : "memory");
+
+        switch (order) {
+            case memory_order::relaxed:
+                __asm__ volatile("ldxp  %[lo], %[hi], [%[src]]\n"
+                                 "clrex\n"
+                                 : [lo] "=&r"(lo), [hi] "=&r"(hi)
+                                 : [src] "r"(address)
+                                 : "memory");
+                break;
+            case memory_order::acquire:
+            case memory_order::seq_cst:
+            default:
+                __asm__ volatile("ldaxp %[lo], %[hi], [%[src]]\n"
+                                 "clrex\n"
+                                 : [lo] "=&r"(lo), [hi] "=&r"(hi)
+                                 : [src] "r"(address)
+                                 : "memory");
+                break;
+        }
 
         return native_double_word_t{lo, hi};
     }
 
-    void atomic_store_double_word(volatile native_double_word_t *address, native_double_word_t value,
-                                  memory_order /*order*/) noexcept {
+    void atomic_store_double_word(volatile native_double_word_t *address, native_double_word_t value, memory_order order) noexcept {
         std::uintptr_t cur_lo, cur_hi;
         int failed;
 
-        __asm__ volatile("1:\n"
-                         "    ldaxp  %[clo], %[chi], [%[dst]]\n"
-                         "    stlxp  %w[fail], %[nlo], %[nhi], [%[dst]]\n"
-                         "    cbnz   %w[fail], 1b\n"
-                         : [clo] "=&r"(cur_lo), [chi] "=&r"(cur_hi), [fail] "=&r"(failed)
-                         : [dst] "r"(address), [nlo] "r"(value.lo), [nhi] "r"(value.hi)
-                         : "memory");
+        switch (order) {
+            case memory_order::relaxed:
+                __asm__ volatile("1:\n"
+                                 "    ldxp  %[clo], %[chi], [%[dst]]\n"
+                                 "    stxp  %w[fail], %[nlo], %[nhi], [%[dst]]\n"
+                                 "    cbnz  %w[fail], 1b\n"
+                                 : [clo] "=&r"(cur_lo), [chi] "=&r"(cur_hi), [fail] "=&r"(failed)
+                                 : [dst] "r"(address), [nlo] "r"(value.lo), [nhi] "r"(value.hi)
+                                 : "memory");
+                break;
+            case memory_order::release:
+                __asm__ volatile("1:\n"
+                                 "    ldxp  %[clo], %[chi], [%[dst]]\n"
+                                 "    stlxp %w[fail], %[nlo], %[nhi], [%[dst]]\n"
+                                 "    cbnz  %w[fail], 1b\n"
+                                 : [clo] "=&r"(cur_lo), [chi] "=&r"(cur_hi), [fail] "=&r"(failed)
+                                 : [dst] "r"(address), [nlo] "r"(value.lo), [nhi] "r"(value.hi)
+                                 : "memory");
+                break;
+            case memory_order::seq_cst:
+            case memory_order::acq_rel:
+            default:
+                __asm__ volatile("1:\n"
+                                 "    ldaxp %[clo], %[chi], [%[dst]]\n"
+                                 "    stlxp %w[fail], %[nlo], %[nhi], [%[dst]]\n"
+                                 "    cbnz  %w[fail], 1b\n"
+                                 : [clo] "=&r"(cur_lo), [chi] "=&r"(cur_hi), [fail] "=&r"(failed)
+                                 : [dst] "r"(address), [nlo] "r"(value.lo), [nhi] "r"(value.hi)
+                                 : "memory");
+                break;
+        }
     }
 }
 
