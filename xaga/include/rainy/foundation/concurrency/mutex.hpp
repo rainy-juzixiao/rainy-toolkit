@@ -267,7 +267,7 @@ namespace rainy::foundation::concurrency {
             if (rel_time <= rel_time.zero()) {
                 return try_lock();
             }
-            auto abs = system_clock::now() + rel_time;
+            auto abs = system_clock::now() + rel_time + milliseconds(1);
             return try_lock_until(abs);
         }
 
