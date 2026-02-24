@@ -25,119 +25,293 @@ namespace rainy::foundation::concurrency::implements {
 
         static constexpr bool is_always_lock_free = true;
 
-        bool is_lock_free() const noexcept {
+        /**
+         * @brief 默认构造函数
+         *
+         * @note 默认构造时会初始化 storage_ 成员为 Ty 类型的默认值。
+         */
+        atomic_base() noexcept(std::is_nothrow_default_constructible_v<Ty>) : storage_(Ty{}) {
+        }
+
+        /**
+         * @brief 使用指定值构造
+         *
+         * @param desired 初始化值。
+         */
+        atomic_base(Ty desired) noexcept : storage_(desired) {
+        }
+
+        /**
+         * @brief 判断是否为无锁类型
+         *
+         * @return 返回 true，表示该类型始终是无锁的。
+         */
+        rain_fn is_lock_free() const noexcept -> bool {
             return true;
         }
 
-        bool is_lock_free() const volatile noexcept {
+        /**
+         * @brief 判断是否为无锁类型（对 volatile 类型的支持）
+         *
+         * @return 返回 true，表示该类型始终是无锁的。
+         */
+        rain_fn is_lock_free() const volatile noexcept -> bool {
             return true;
-        }
-
-        constexpr atomic_base() noexcept(std::is_nothrow_default_constructible_v<Ty>) : storage_(Ty{}) {
-        }
-
-        constexpr atomic_base(Ty desired) noexcept : storage_(desired) {
         }
 
         atomic_base(const atomic_base &) = delete;
         atomic_base &operator=(const atomic_base &) = delete;
         atomic_base &operator=(const atomic_base &) volatile = delete;
 
-        void store(Ty desired, memory_order order = memory_order::seq_cst) noexcept {
+        /**
+         * @brief 存储值
+         *
+         * @param desired 要存储的值。
+         * @param order 存储的内存顺序（默认为 memory_order::seq_cst）。
+         */
+        rain_fn store(Ty desired, memory_order order = memory_order::seq_cst) noexcept -> void {
             Ops::store(ptr(), desired, order);
         }
 
-        void store(Ty desired, memory_order order = memory_order::seq_cst) volatile noexcept {
+        /**
+         * @brief 存储值（对 volatile 类型的支持）
+         *
+         * @param desired 要存储的值。
+         * @param order 存储的内存顺序（默认为 memory_order::seq_cst）。
+         */
+        rain_fn store(Ty desired, memory_order order = memory_order::seq_cst) volatile noexcept -> void {
             Ops::store(ptr(), desired, order);
         }
 
-        Ty operator=(Ty desired) noexcept {
+        /**
+         * @brief 赋值操作符
+         *
+         * @param desired 要赋的值。
+         * @return 返回赋值后的值。
+         */
+        rain_fn operator=(Ty desired) noexcept -> Ty {
             store(desired);
             return desired;
         }
 
-        Ty operator=(Ty desired) volatile noexcept {
+        /**
+         * @brief 赋值操作符（对 volatile 类型的支持）
+         *
+         * @param desired 要赋的值。
+         * @return 返回赋值后的值。
+         */
+        rain_fn operator=(Ty desired) volatile noexcept -> Ty {
             store(desired);
             return desired;
         }
 
-        Ty load(memory_order order = memory_order::seq_cst) const noexcept {
+        /**
+         * @brief 加载值
+         *
+         * @param order 加载的内存顺序（默认为 memory_order::seq_cst）。
+         * @return 返回加载的值。
+         */
+        rain_fn load(memory_order order = memory_order::seq_cst) const noexcept -> Ty {
             return Ops::load(ptr(), order);
         }
 
-        Ty load(memory_order order = memory_order::seq_cst) const volatile noexcept {
+        /**
+         * @brief 加载值（对 volatile 类型的支持）
+         *
+         * @param order 加载的内存顺序（默认为 memory_order::seq_cst）。
+         * @return 返回加载的值。
+         */
+        rain_fn load(memory_order order = memory_order::seq_cst) const volatile noexcept -> Ty {
             return Ops::load(ptr(), order);
         }
 
+        /**
+         * @brief 类型转换操作符
+         *
+         * @return 返回当前值。
+         */
         operator Ty() const noexcept {
             return load();
         }
 
+        /**
+         * @brief 类型转换操作符（对 volatile 类型的支持）
+         *
+         * @return 返回当前值。
+         */
         operator Ty() const volatile noexcept {
             return load();
         }
 
-        Ty exchange(Ty desired, memory_order order = memory_order::seq_cst) noexcept {
+        /**
+         * @brief 交换值
+         *
+         * @param desired 要交换的值。
+         * @param order 交换的内存顺序（默认为 memory_order::seq_cst）。
+         * @return 返回交换前的值。
+         */
+        rain_fn exchange(Ty desired, memory_order order = memory_order::seq_cst) noexcept -> Ty {
             return Ops::exch(ptr(), desired, order);
         }
 
-        Ty exchange(Ty desired, memory_order order = memory_order::seq_cst) volatile noexcept {
+        /**
+         * @brief 交换值（对 volatile 类型的支持）
+         *
+         * @param desired 要交换的值。
+         * @param order 交换的内存顺序（默认为 memory_order::seq_cst）。
+         * @return 返回交换前的值。
+         */
+        rain_fn exchange(Ty desired, memory_order order = memory_order::seq_cst) volatile noexcept -> Ty {
             return Ops::exch(ptr(), desired, order);
         }
 
-        bool compare_exchange_weak(Ty &expected, Ty desired, memory_order success, memory_order failure) noexcept {
+        /**
+         * @brief 弱比较并交换
+         *
+         * @param expected 期望的值。
+         * @param desired 要交换的目标值。
+         * @param success 成功的内存顺序。
+         * @param failure 失败的内存顺序。
+         * @return 返回是否交换成功。
+         */
+        rain_fn compare_exchange_weak(Ty &expected, Ty desired, memory_order success, memory_order failure) noexcept -> bool {
             return Ops::cas(ptr(), expected, desired, success, failure);
         }
 
-        bool compare_exchange_weak(Ty &expected, Ty desired, memory_order success, memory_order failure) volatile noexcept {
+        /**
+         * @brief 弱比较并交换（对 volatile 类型的支持）
+         *
+         * @param expected 期望的值。
+         * @param desired 要交换的目标值。
+         * @param success 成功的内存顺序。
+         * @param failure 失败的内存顺序。
+         * @return 返回是否交换成功。
+         */
+        rain_fn compare_exchange_weak(Ty &expected, Ty desired, memory_order success, memory_order failure) volatile noexcept -> bool {
             return Ops::cas(ptr(), expected, desired, success, failure);
         }
 
-        bool compare_exchange_weak(Ty &expected, Ty desired, memory_order order = memory_order::seq_cst) noexcept {
+        /**
+         * @brief 弱比较并交换（带默认内存顺序）
+         *
+         * @param expected 期望的值。
+         * @param desired 要交换的目标值。
+         * @param order 默认的内存顺序（默认为 memory_order::seq_cst）。
+         * @return 返回是否交换成功。
+         */
+        rain_fn compare_exchange_weak(Ty &expected, Ty desired, memory_order order = memory_order::seq_cst) noexcept -> bool {
             return compare_exchange_weak(expected, desired, order, order);
         }
 
-        bool compare_exchange_weak(Ty &expected, Ty desired, memory_order order = memory_order::seq_cst) volatile noexcept {
+        /**
+         * @brief 弱比较并交换（对 volatile 类型的支持，带默认内存顺序）
+         *
+         * @param expected 期望的值。
+         * @param desired 要交换的目标值。
+         * @param order 默认的内存顺序（默认为 memory_order::seq_cst）。
+         * @return 返回是否交换成功。
+         */
+        rain_fn compare_exchange_weak(Ty &expected, Ty desired, memory_order order = memory_order::seq_cst) volatile noexcept -> bool {
             return compare_exchange_weak(expected, desired, order, order);
         }
 
-        bool compare_exchange_strong(Ty &expected, Ty desired, memory_order success, memory_order failure) noexcept {
+        /**
+         * @brief 强比较并交换
+         *
+         * @param expected 期望的值。
+         * @param desired 要交换的目标值。
+         * @param success 成功的内存顺序。
+         * @param failure 失败的内存顺序。
+         * @return 返回是否交换成功。
+         */
+        rain_fn compare_exchange_strong(Ty &expected, Ty desired, memory_order success, memory_order failure) noexcept -> bool {
             return Ops::cas(ptr(), expected, desired, success, failure);
         }
 
-        bool compare_exchange_strong(Ty &expected, Ty desired, memory_order success, memory_order failure) volatile noexcept {
+        /**
+         * @brief 强比较并交换（对 volatile 类型的支持）
+         *
+         * @param expected 期望的值。
+         * @param desired 要交换的目标值。
+         * @param success 成功的内存顺序。
+         * @param failure 失败的内存顺序。
+         * @return 返回是否交换成功。
+         */
+        rain_fn compare_exchange_strong(Ty &expected, Ty desired, memory_order success, memory_order failure) volatile noexcept
+            -> bool {
             return Ops::cas(ptr(), expected, desired, success, failure);
         }
 
-        bool compare_exchange_strong(Ty &expected, Ty desired, memory_order order = memory_order::seq_cst) noexcept {
+        /**
+         * @brief 强比较并交换（带默认内存顺序）
+         *
+         * @param expected 期望的值。
+         * @param desired 要交换的目标值。
+         * @param order 默认的内存顺序（默认为 memory_order::seq_cst）。
+         * @return 返回是否交换成功。
+         */
+        rain_fn compare_exchange_strong(Ty &expected, Ty desired, memory_order order = memory_order::seq_cst) noexcept -> bool {
             return compare_exchange_strong(expected, desired, order, order);
         }
 
-        bool compare_exchange_strong(Ty &expected, Ty desired, memory_order order = memory_order::seq_cst) volatile noexcept {
+        /**
+         * @brief 强比较并交换（对 volatile 类型的支持，带默认内存顺序）
+         *
+         * @param expected 期望的值。
+         * @param desired 要交换的目标值。
+         * @param order 默认的内存顺序（默认为 memory_order::seq_cst）。
+         * @return 返回是否交换成功。
+         */
+        rain_fn compare_exchange_strong(Ty &expected, Ty desired, memory_order order = memory_order::seq_cst) volatile noexcept
+            -> bool {
             return compare_exchange_strong(expected, desired, order, order);
         }
 
-        void wait(Ty old, memory_order order = memory_order::seq_cst) const noexcept {
+        /**
+         * @brief 等待值发生变化
+         *
+         * @param old 当前值。
+         * @param order 等待的内存顺序（默认为 memory_order::seq_cst）。
+         */
+        rain_fn wait(Ty old, memory_order order = memory_order::seq_cst) const noexcept -> void {
             atomic_wait_impl(ptr(), old, order);
         }
 
-        void wait(Ty old, memory_order order = memory_order::seq_cst) const volatile noexcept {
+        /**
+         * @brief 等待值发生变化（对 volatile 类型的支持）
+         *
+         * @param old 当前值。
+         * @param order 等待的内存顺序（默认为 memory_order::seq_cst）。
+         */
+        rain_fn wait(Ty old, memory_order order = memory_order::seq_cst) const volatile noexcept -> void {
             atomic_wait_impl(ptr(), old, order);
         }
 
-        void notify_one() noexcept {
+        /**
+         * @brief 通知一个等待的线程
+         */
+        rain_fn notify_one() noexcept -> void {
             atomic_notify_one_impl(ptr());
         }
 
-        void notify_one() volatile noexcept {
+        /**
+         * @brief 通知一个等待的线程（对 volatile 类型的支持）
+         */
+        rain_fn notify_one() volatile noexcept -> void {
             atomic_notify_one_impl(ptr());
         }
 
-        void notify_all() noexcept {
+        /**
+         * @brief 通知所有等待的线程
+         */
+        rain_fn notify_all() noexcept -> void {
             atomic_notify_all_impl(ptr());
         }
 
-        void notify_all() volatile noexcept {
+        /**
+         * @brief 通知所有等待的线程（对 volatile 类型的支持）
+         */
+        rain_fn notify_all() volatile noexcept -> void {
             atomic_notify_all_impl(ptr());
         }
 
@@ -169,131 +343,329 @@ namespace rainy::foundation::concurrency::implements {
 
         using base::operator=;
 
-        Ty fetch_add(Ty arg, memory_order order = memory_order::seq_cst) noexcept {
+        /**
+         * @brief 执行加法操作
+         *
+         * @param arg 增加的值。
+         * @param order 加法的内存顺序（默认为 memory_order::seq_cst）。
+         * @return 返回加法操作前的值。
+         */
+        rain_fn fetch_add(Ty arg, memory_order order = memory_order::seq_cst) noexcept -> Ty {
             return ops::add(this->ptr(), arg, order);
         }
 
-        Ty fetch_add(Ty arg, memory_order order = memory_order::seq_cst) volatile noexcept {
+        /**
+         * @brief 执行加法操作（对 volatile 类型的支持）
+         *
+         * @param arg 增加的值。
+         * @param order 加法的内存顺序（默认为 memory_order::seq_cst）。
+         * @return 返回加法操作前的值。
+         */
+        rain_fn fetch_add(Ty arg, memory_order order = memory_order::seq_cst) volatile noexcept -> Ty {
             return ops::add(this->ptr(), arg, order);
         }
 
-        Ty fetch_sub(Ty arg, memory_order order = memory_order::seq_cst) noexcept {
+        /**
+         * @brief 执行减法操作
+         *
+         * @param arg 减少的值。
+         * @param order 减法的内存顺序（默认为 memory_order::seq_cst）。
+         * @return 返回减法操作前的值。
+         */
+        rain_fn fetch_sub(Ty arg, memory_order order = memory_order::seq_cst) noexcept -> Ty {
             return ops::sub(this->ptr(), arg, order);
         }
 
-        Ty fetch_sub(Ty arg, memory_order order = memory_order::seq_cst) volatile noexcept {
+        /**
+         * @brief 执行减法操作（对 volatile 类型的支持）
+         *
+         * @param arg 减少的值。
+         * @param order 减法的内存顺序（默认为 memory_order::seq_cst）。
+         * @return 返回减法操作前的值。
+         */
+        rain_fn fetch_sub(Ty arg, memory_order order = memory_order::seq_cst) volatile noexcept -> Ty {
             return ops::sub(this->ptr(), arg, order);
         }
 
-        Ty fetch_and(Ty arg, memory_order order = memory_order::seq_cst) noexcept {
+        /**
+         * @brief 执行按位与操作
+         *
+         * @param arg 与操作数。
+         * @param order 按位与的内存顺序（默认为 memory_order::seq_cst）。
+         * @return 返回按位与操作前的值。
+         */
+        rain_fn fetch_and(Ty arg, memory_order order = memory_order::seq_cst) noexcept -> Ty {
             return ops::band(this->ptr(), arg, order);
         }
 
-        Ty fetch_and(Ty arg, memory_order order = memory_order::seq_cst) volatile noexcept {
+        /**
+         * @brief 执行按位与操作（对 volatile 类型的支持）
+         *
+         * @param arg 与操作数。
+         * @param order 按位与的内存顺序（默认为 memory_order::seq_cst）。
+         * @return 返回按位与操作前的值。
+         */
+        rain_fn fetch_and(Ty arg, memory_order order = memory_order::seq_cst) volatile noexcept -> Ty {
             return ops::band(this->ptr(), arg, order);
         }
 
-        Ty fetch_or(Ty arg, memory_order order = memory_order::seq_cst) noexcept {
+        /**
+         * @brief 执行按位或操作
+         *
+         * @param arg 或操作数。
+         * @param order 按位或的内存顺序（默认为 memory_order::seq_cst）。
+         * @return 返回按位或操作前的值。
+         */
+        rain_fn fetch_or(Ty arg, memory_order order = memory_order::seq_cst) noexcept -> Ty {
             return ops::bor(this->ptr(), arg, order);
         }
 
-        Ty fetch_or(Ty arg, memory_order order = memory_order::seq_cst) volatile noexcept {
+        /**
+         * @brief 执行按位或操作（对 volatile 类型的支持）
+         *
+         * @param arg 或操作数。
+         * @param order 按位或的内存顺序（默认为 memory_order::seq_cst）。
+         * @return 返回按位或操作前的值。
+         */
+        rain_fn fetch_or(Ty arg, memory_order order = memory_order::seq_cst) volatile noexcept -> Ty {
             return ops::bor(this->ptr(), arg, order);
         }
 
-        Ty fetch_xor(Ty arg, memory_order order = memory_order::seq_cst) noexcept {
+        /**
+         * @brief 执行按位异或操作
+         *
+         * @param arg 异或操作数。
+         * @param order 按位异或的内存顺序（默认为 memory_order::seq_cst）。
+         * @return 返回按位异或操作前的值。
+         */
+        rain_fn fetch_xor(Ty arg, memory_order order = memory_order::seq_cst) noexcept -> Ty {
             return ops::bxor(this->ptr(), arg, order);
         }
 
-        Ty fetch_xor(Ty arg, memory_order order = memory_order::seq_cst) volatile noexcept {
+        /**
+         * @brief 执行按位异或操作（对 volatile 类型的支持）
+         *
+         * @param arg 异或操作数。
+         * @param order 按位异或的内存顺序（默认为 memory_order::seq_cst）。
+         * @return 返回按位异或操作前的值。
+         */
+        rain_fn fetch_xor(Ty arg, memory_order order = memory_order::seq_cst) volatile noexcept -> Ty {
             return ops::bxor(this->ptr(), arg, order);
         }
 
-        Ty fetch_max(Ty arg, memory_order order = memory_order::seq_cst) noexcept {
+        /**
+         * @brief 执行最大值比较并交换操作
+         *
+         * @param arg 比较的值。
+         * @param order 操作的内存顺序（默认为 memory_order::seq_cst）。
+         * @return 返回交换前的值。
+         */
+        rain_fn fetch_max(Ty arg, memory_order order = memory_order::seq_cst) noexcept -> Ty {
             return implements::atomic_fetch_max<Ty, ops>(this->ptr(), arg, order);
         }
 
-        Ty fetch_max(Ty arg, memory_order order = memory_order::seq_cst) volatile noexcept {
+        /**
+         * @brief 执行最大值比较并交换操作（对 volatile 类型的支持）
+         *
+         * @param arg 比较的值。
+         * @param order 操作的内存顺序（默认为 memory_order::seq_cst）。
+         * @return 返回交换前的值。
+         */
+        rain_fn fetch_max(Ty arg, memory_order order = memory_order::seq_cst) volatile noexcept -> Ty {
             return implements::atomic_fetch_max<Ty, ops>(this->ptr(), arg, order);
         }
 
-        Ty fetch_min(Ty arg, memory_order order = memory_order::seq_cst) noexcept {
+        /**
+         * @brief 执行最小值比较并交换操作
+         *
+         * @param arg 比较的值。
+         * @param order 操作的内存顺序（默认为 memory_order::seq_cst）。
+         * @return 返回交换前的值。
+         */
+        rain_fn fetch_min(Ty arg, memory_order order = memory_order::seq_cst) noexcept -> Ty {
             return implements::atomic_fetch_min<Ty, ops>(this->ptr(), arg, order);
         }
 
-        Ty fetch_min(Ty arg, memory_order order = memory_order::seq_cst) volatile noexcept {
+        /**
+         * @brief 执行最小值比较并交换操作（对 volatile 类型的支持）
+         *
+         * @param arg 比较的值。
+         * @param order 操作的内存顺序（默认为 memory_order::seq_cst）。
+         * @return 返回交换前的值。
+         */
+        rain_fn fetch_min(Ty arg, memory_order order = memory_order::seq_cst) volatile noexcept -> Ty {
             return implements::atomic_fetch_min<Ty, ops>(this->ptr(), arg, order);
         }
 
-        Ty operator++(int) noexcept {
+        /**
+         * @brief 后置自增操作
+         *
+         * @return 返回自增前的值。
+         */
+        rain_fn operator++(int) noexcept -> Ty {
             return fetch_add(Ty{1});
         }
 
-        Ty operator++(int) volatile noexcept {
+        /**
+         * @brief 后置自增操作（对 volatile 类型的支持）
+         *
+         * @return 返回自增前的值。
+         */
+        rain_fn operator++(int) volatile noexcept -> Ty {
             return fetch_add(Ty{1});
         }
 
-        Ty operator--(int) noexcept {
+        /**
+         * @brief 后置自减操作
+         *
+         * @return 返回自减前的值。
+         */
+        rain_fn operator--(int) noexcept -> Ty {
             return fetch_sub(Ty{1});
         }
 
-        Ty operator--(int) volatile noexcept {
+        /**
+         * @brief 后置自减操作（对 volatile 类型的支持）
+         *
+         * @return 返回自减前的值。
+         */
+        rain_fn operator--(int) volatile noexcept -> Ty {
             return fetch_sub(Ty{1});
         }
 
-        Ty operator++() noexcept {
+        /**
+         * @brief 前置自增操作
+         *
+         * @return 返回自增后的值。
+         */
+        rain_fn operator++() noexcept -> Ty {
             return ops::inc(this->ptr(), memory_order::seq_cst);
         }
 
-        Ty operator++() volatile noexcept {
+        /**
+         * @brief 前置自增操作（对 volatile 类型的支持）
+         *
+         * @return 返回自增后的值。
+         */
+        rain_fn operator++() volatile noexcept -> Ty {
             return ops::inc(this->ptr(), memory_order::seq_cst);
         }
 
-        Ty operator--() noexcept {
+        /**
+         * @brief 前置自减操作
+         *
+         * @return 返回自减后的值。
+         */
+        rain_fn operator--() noexcept -> Ty {
             return ops::dec(this->ptr(), memory_order::seq_cst);
         }
 
-        Ty operator--() volatile noexcept {
+        /**
+         * @brief 前置自减操作（对 volatile 类型的支持）
+         *
+         * @return 返回自减后的值。
+         */
+        rain_fn operator--() volatile noexcept -> Ty {
             return ops::dec(this->ptr(), memory_order::seq_cst);
         }
 
-        Ty operator+=(Ty arg) noexcept {
+        /**
+         * @brief 执行加法并赋值操作
+         *
+         * @param arg 增加的值。
+         * @return 返回加法操作后的值。
+         */
+        rain_fn operator+=(Ty arg) noexcept -> Ty {
             return fetch_add(arg) + arg;
         }
 
-        Ty operator+=(Ty arg) volatile noexcept {
+        /**
+         * @brief 执行加法并赋值操作（对 volatile 类型的支持）
+         *
+         * @param arg 增加的值。
+         * @return 返回加法操作后的值。
+         */
+        rain_fn operator+=(Ty arg) volatile noexcept -> Ty {
             return fetch_add(arg) + arg;
         }
 
-        Ty operator-=(Ty arg) noexcept {
+        /**
+         * @brief 执行减法并赋值操作
+         *
+         * @param arg 减少的值。
+         * @return 返回减法操作后的值。
+         */
+        rain_fn operator-=(Ty arg) noexcept -> Ty {
             return fetch_sub(arg) - arg;
         }
 
-        Ty operator-=(Ty arg) volatile noexcept {
+        /**
+         * @brief 执行减法并赋值操作（对 volatile 类型的支持）
+         *
+         * @param arg 减少的值。
+         * @return 返回减法操作后的值。
+         */
+        rain_fn operator-=(Ty arg) volatile noexcept -> Ty {
             return fetch_sub(arg) - arg;
         }
 
-        Ty operator&=(Ty arg) noexcept {
+        /**
+         * @brief 执行按位与并赋值操作
+         *
+         * @param arg 与操作数。
+         * @return 返回按位与操作后的值。
+         */
+        rain_fn operator&=(Ty arg) noexcept -> Ty {
             return fetch_and(arg) & arg;
         }
 
-        Ty operator&=(Ty arg) volatile noexcept {
+        /**
+         * @brief 执行按位与并赋值操作（对 volatile 类型的支持）
+         *
+         * @param arg 与操作数。
+         * @return 返回按位与操作后的值。
+         */
+        rain_fn operator&=(Ty arg) volatile noexcept -> Ty {
             return fetch_and(arg) & arg;
         }
 
-        Ty operator|=(Ty arg) noexcept {
+        /**
+         * @brief 执行按位或并赋值操作
+         *
+         * @param arg 或操作数。
+         * @return 返回按位或操作后的值。
+         */
+        rain_fn operator|=(Ty arg) noexcept -> Ty {
             return fetch_or(arg) | arg;
         }
 
-        Ty operator|=(Ty arg) volatile noexcept {
+        /**
+         * @brief 执行按位或并赋值操作（对 volatile 类型的支持）
+         *
+         * @param arg 或操作数。
+         * @return 返回按位或操作后的值。
+         */
+        rain_fn operator|=(Ty arg) volatile noexcept -> Ty {
             return fetch_or(arg) | arg;
         }
 
-        Ty operator^=(Ty arg) noexcept {
+        /**
+         * @brief 执行按位异或并赋值操作
+         *
+         * @param arg 异或操作数。
+         * @return 返回按位异或操作后的值。
+         */
+        rain_fn operator^=(Ty arg) noexcept -> Ty {
             return fetch_xor(arg) ^ arg;
         }
 
-        Ty operator^=(Ty arg) volatile noexcept {
+        /**
+         * @brief 执行按位异或并赋值操作（对 volatile 类型的支持）
+         *
+         * @param arg 异或操作数。
+         * @return 返回按位异或操作后的值。
+         */
+        rain_fn operator^=(Ty arg) volatile noexcept -> Ty {
             return fetch_xor(arg) ^ arg;
         }
     };
@@ -317,46 +689,97 @@ namespace rainy::foundation::concurrency::implements {
 
         using base::base;
 
-        Ty fetch_add(Ty operand, memory_order order = memory_order::seq_cst) noexcept {
+        /**
+         * @brief 执行加法操作
+         *
+         * @param operand 增加的值。
+         * @param order 加法的内存顺序（默认为 memory_order::seq_cst）。
+         * @return 返回加法操作前的值。
+         */
+        rain_fn fetch_add(Ty operand, memory_order order = memory_order::seq_cst) noexcept -> Ty {
             Ty temp = this->load(memory_order::relaxed);
             while (!this->compare_exchange_strong(temp, temp + operand, order)) {
             }
             return temp;
         }
 
-        Ty fetch_add(Ty operand, memory_order order = memory_order::seq_cst) volatile noexcept {
+        /**
+         * @brief 执行加法操作（对 volatile 类型的支持）
+         *
+         * @param operand 增加的值。
+         * @param order 加法的内存顺序（默认为 memory_order::seq_cst）。
+         * @return 返回加法操作前的值。
+         */
+        rain_fn fetch_add(Ty operand, memory_order order = memory_order::seq_cst) volatile noexcept -> Ty {
             return const_cast<atomic_floating *>(this)->fetch_add(operand, order);
         }
 
-        Ty fetch_sub(Ty operand, memory_order order = memory_order::seq_cst) noexcept {
+        /**
+         * @brief 执行减法操作
+         *
+         * @param operand 减少的值。
+         * @param order 减法的内存顺序（默认为 memory_order::seq_cst）。
+         * @return 返回减法操作前的值。
+         */
+        rain_fn fetch_sub(Ty operand, memory_order order = memory_order::seq_cst) noexcept -> Ty {
             Ty temp = this->load(memory_order::relaxed);
             while (!this->compare_exchange_strong(temp, temp - operand, order)) {
             }
             return temp;
         }
 
-        Ty fetch_sub(Ty operand, memory_order order = memory_order::seq_cst) volatile noexcept {
+        /**
+         * @brief 执行减法操作（对 volatile 类型的支持）
+         *
+         * @param operand 减少的值。
+         * @param order 减法的内存顺序（默认为 memory_order::seq_cst）。
+         * @return 返回减法操作前的值。
+         */
+        rain_fn fetch_sub(Ty operand, memory_order order = memory_order::seq_cst) volatile noexcept -> Ty {
             return const_cast<atomic_floating *>(this)->fetch_sub(operand, order);
         }
 
-        Ty operator+=(Ty operand) noexcept {
+        /**
+         * @brief 执行加法并赋值操作
+         *
+         * @param operand 增加的值。
+         * @return 返回加法操作后的值。
+         */
+        rain_fn operator+=(Ty operand) noexcept -> Ty {
             return fetch_add(operand) + operand;
         }
 
-        Ty operator+=(Ty operand) volatile noexcept {
+        /**
+         * @brief 执行加法并赋值操作（对 volatile 类型的支持）
+         *
+         * @param operand 增加的值。
+         * @return 返回加法操作后的值。
+         */
+        rain_fn operator+=(Ty operand) volatile noexcept -> Ty {
             return const_cast<atomic_floating *>(this)->fetch_add(operand) + operand;
         }
 
-        Ty operator-=(Ty operand) noexcept {
+        /**
+         * @brief 执行减法并赋值操作
+         *
+         * @param operand 减少的值。
+         * @return 返回减法操作后的值。
+         */
+        rain_fn operator-=(Ty operand) noexcept -> Ty {
             return fetch_sub(operand) - operand;
         }
 
-        Ty operator-=(Ty operand) volatile noexcept {
+        /**
+         * @brief 执行减法并赋值操作（对 volatile 类型的支持）
+         *
+         * @param operand 减少的值。
+         * @return 返回减法操作后的值。
+         */
+        rain_fn operator-=(Ty operand) volatile noexcept -> Ty {
             return const_cast<atomic_floating *>(this)->fetch_sub(operand) - operand;
         }
     };
 }
-
 
 namespace rainy::foundation::concurrency::implements {
     template <typename Ty>
@@ -374,70 +797,203 @@ namespace rainy::foundation::concurrency::implements {
 
         using base::base;
 
-        Ty *fetch_add(std::ptrdiff_t n, memory_order order = memory_order::seq_cst) noexcept {
+        /**
+         * @brief 执行指针加法操作
+         *
+         * @param n 要增加的指针差值。
+         * @param order 加法的内存顺序（默认为 memory_order::seq_cst）。
+         * @return 返回加法操作前的指针值。
+         */
+        rain_fn fetch_add(std::ptrdiff_t n, memory_order order = memory_order::seq_cst) noexcept -> Ty * {
             return ops::ptr_add(this->ptr(), n, order);
         }
-        Ty *fetch_add(std::ptrdiff_t n, memory_order order = memory_order::seq_cst) volatile noexcept {
+
+        /**
+         * @brief 执行指针加法操作（对 volatile 类型的支持）
+         *
+         * @param n 要增加的指针差值。
+         * @param order 加法的内存顺序（默认为 memory_order::seq_cst）。
+         * @return 返回加法操作前的指针值。
+         */
+        rain_fn fetch_add(std::ptrdiff_t n, memory_order order = memory_order::seq_cst) volatile noexcept -> Ty * {
             return const_cast<atomic_pointer *>(this)->fetch_add(n, order);
         }
 
-        Ty *fetch_sub(std::ptrdiff_t n, memory_order order = memory_order::seq_cst) noexcept {
+        /**
+         * @brief 执行指针减法操作
+         *
+         * @param n 要减少的指针差值。
+         * @param order 减法的内存顺序（默认为 memory_order::seq_cst）。
+         * @return 返回减法操作前的指针值。
+         */
+        rain_fn fetch_sub(std::ptrdiff_t n, memory_order order = memory_order::seq_cst) noexcept -> Ty * {
             return ops::ptr_sub(this->ptr(), n, order);
         }
-        Ty *fetch_sub(std::ptrdiff_t n, memory_order order = memory_order::seq_cst) volatile noexcept {
+
+        /**
+         * @brief 执行指针减法操作（对 volatile 类型的支持）
+         *
+         * @param n 要减少的指针差值。
+         * @param order 减法的内存顺序（默认为 memory_order::seq_cst）。
+         * @return 返回减法操作前的指针值。
+         */
+        rain_fn fetch_sub(std::ptrdiff_t n, memory_order order = memory_order::seq_cst) volatile noexcept -> Ty * {
             return const_cast<atomic_pointer *>(this)->fetch_sub(n, order);
         }
 
-        Ty *fetch_max(Ty *val, memory_order order = memory_order::seq_cst) noexcept {
+        /**
+         * @brief 执行指针最大值比较并交换操作
+         *
+         * @param val 比较的指针值。
+         * @param order 操作的内存顺序（默认为 memory_order::seq_cst）。
+         * @return 返回交换前的指针值。
+         */
+        rain_fn fetch_max(Ty *val, memory_order order = memory_order::seq_cst) noexcept -> Ty * {
             return implements::atomic_ptr_fetch_max(this->ptr(), val, order);
         }
-        Ty *fetch_max(Ty *val, memory_order order = memory_order::seq_cst) volatile noexcept {
+
+        /**
+         * @brief 执行指针最大值比较并交换操作（对 volatile 类型的支持）
+         *
+         * @param val 比较的指针值。
+         * @param order 操作的内存顺序（默认为 memory_order::seq_cst）。
+         * @return 返回交换前的指针值。
+         */
+        rain_fn fetch_max(Ty *val, memory_order order = memory_order::seq_cst) volatile noexcept -> Ty * {
             return const_cast<atomic_pointer *>(this)->fetch_max(val, order);
         }
 
-        Ty *fetch_min(Ty *val, memory_order order = memory_order::seq_cst) noexcept {
+        /**
+         * @brief 执行指针最小值比较并交换操作
+         *
+         * @param val 比较的指针值。
+         * @param order 操作的内存顺序（默认为 memory_order::seq_cst）。
+         * @return 返回交换前的指针值。
+         */
+        rain_fn fetch_min(Ty *val, memory_order order = memory_order::seq_cst) noexcept -> Ty * {
             return implements::atomic_ptr_fetch_min(this->ptr(), val, order);
         }
-        Ty *fetch_min(Ty *val, memory_order order = memory_order::seq_cst) volatile noexcept {
+
+        /**
+         * @brief 执行指针最小值比较并交换操作（对 volatile 类型的支持）
+         *
+         * @param val 比较的指针值。
+         * @param order 操作的内存顺序（默认为 memory_order::seq_cst）。
+         * @return 返回交换前的指针值。
+         */
+        rain_fn fetch_min(Ty *val, memory_order order = memory_order::seq_cst) volatile noexcept -> Ty * {
             return const_cast<atomic_pointer *>(this)->fetch_min(val, order);
         }
 
-        Ty *operator++(int) noexcept {
+        /**
+         * @brief 后置自增操作
+         *
+         * @return 返回自增前的指针值。
+         */
+        rain_fn operator++(int) noexcept -> Ty * {
             return fetch_add(1);
         }
-        Ty *operator++(int) volatile noexcept {
+
+        /**
+         * @brief 后置自增操作（对 volatile 类型的支持）
+         *
+         * @return 返回自增前的指针值。
+         */
+        rain_fn operator++(int) volatile noexcept -> Ty * {
             return fetch_add(1);
         }
-        Ty *operator--(int) noexcept {
-            return fetch_sub(1);
-        }
-        Ty *operator--(int) volatile noexcept {
+
+        /**
+         * @brief 后置自减操作
+         *
+         * @return 返回自减前的指针值。
+         */
+        rain_fn operator--(int) noexcept -> Ty * {
             return fetch_sub(1);
         }
 
-        Ty *operator++() noexcept {
+        /**
+         * @brief 后置自减操作（对 volatile 类型的支持）
+         *
+         * @return 返回自减前的指针值。
+         */
+        rain_fn operator--(int) volatile noexcept -> Ty * {
+            return fetch_sub(1);
+        }
+
+        /**
+         * @brief 前置自增操作
+         *
+         * @return 返回自增后的指针值。
+         */
+        rain_fn operator++() noexcept -> Ty * {
             return fetch_add(1) + 1;
         }
-        Ty *operator++() volatile noexcept {
+
+        /**
+         * @brief 前置自增操作（对 volatile 类型的支持）
+         *
+         * @return 返回自增后的指针值。
+         */
+        rain_fn operator++() volatile noexcept -> Ty * {
             return fetch_add(1) + 1;
         }
-        Ty *operator--() noexcept {
-            return fetch_sub(1) - 1;
-        }
-        Ty *operator--() volatile noexcept {
+
+        /**
+         * @brief 前置自减操作
+         *
+         * @return 返回自减后的指针值。
+         */
+        rain_fn operator--() noexcept -> Ty * {
             return fetch_sub(1) - 1;
         }
 
-        Ty *operator+=(std::ptrdiff_t n) noexcept {
+        /**
+         * @brief 前置自减操作（对 volatile 类型的支持）
+         *
+         * @return 返回自减后的指针值。
+         */
+        rain_fn operator--() volatile noexcept -> Ty * {
+            return fetch_sub(1) - 1;
+        }
+
+        /**
+         * @brief 执行指针加法并赋值操作
+         *
+         * @param n 增加的指针差值。
+         * @return 返回加法操作后的指针值。
+         */
+        rain_fn operator+=(std::ptrdiff_t n) noexcept -> Ty * {
             return fetch_add(n) + n;
         }
-        Ty *operator+=(std::ptrdiff_t n) volatile noexcept {
+
+        /**
+         * @brief 执行指针加法并赋值操作（对 volatile 类型的支持）
+         *
+         * @param n 增加的指针差值。
+         * @return 返回加法操作后的指针值。
+         */
+        rain_fn operator+=(std::ptrdiff_t n) volatile noexcept -> Ty * {
             return fetch_add(n) + n;
         }
-        Ty *operator-=(std::ptrdiff_t n) noexcept {
+
+        /**
+         * @brief 执行指针减法并赋值操作
+         *
+         * @param n 减少的指针差值。
+         * @return 返回减法操作后的指针值。
+         */
+        rain_fn operator-=(std::ptrdiff_t n) noexcept -> Ty * {
             return fetch_sub(n) - n;
         }
-        Ty *operator-=(std::ptrdiff_t n) volatile noexcept {
+
+        /**
+         * @brief 执行指针减法并赋值操作（对 volatile 类型的支持）
+         *
+         * @param n 减少的指针差值。
+         * @return 返回减法操作后的指针值。
+         */
+        rain_fn operator-=(std::ptrdiff_t n) volatile noexcept -> Ty * {
             return fetch_sub(n) - n;
         }
     };

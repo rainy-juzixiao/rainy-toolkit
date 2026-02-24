@@ -643,7 +643,7 @@ namespace rainy::core::builtin {
     const Ty *addressof(const Ty &&) = delete;
 
     template <typename Ty, typename... Args>
-    RAINY_CONSTEXPR20 Ty *construct_at(Ty *location, Args &&...args) noexcept(noexcept(::new (static_cast<void *>(location))
+    RAINY_CONSTEXPR20 Ty *construct_at(Ty *location, Args &&...args) noexcept(noexcept(::new(static_cast<void *>(location))
                                                                                            Ty(builtin::forward<Args>(args)...))) {
         if (!location) {
             return nullptr;
@@ -1101,7 +1101,7 @@ namespace rainy::core {
 
 namespace rainy::core::builtin {
     static RAINY_INLINE bool almost_equal(double p1, double p2) {
-        return (std::abs(p1 - p2) * 1000000000000. <= (core::min) (std::abs(p1), std::abs(p2)));
+        return (std::abs(p1 - p2) * 1000000000000. <= (core::min)(std::abs(p1), std::abs(p2)));
     }
 }
 
@@ -1320,19 +1320,131 @@ namespace rainy::core::builtin {
 
 namespace rainy::core::pal {
     enum class memory_order {
+        /**
+         * @brief 放松的内存顺序
+         *
+         * 允许最大程度的重排，适用于不需要同步的原子操作。
+         */
         relaxed,
+
+        /**
+         * @brief 消费者内存顺序
+         *
+         * 仅对消费者可见的数据产生同步约束，适用于消费者操作。
+         */
         consume,
+
+        /**
+         * @brief 获取内存顺序
+         *
+         * 强制对获取的数据产生同步约束，适用于获取原子值时。
+         */
         acquire,
+
+        /**
+         * @brief 释放内存顺序
+         *
+         * 强制对释放的数据产生同步约束，适用于释放原子值时。
+         */
         release,
+
+        /**
+         * @brief 获取并释放内存顺序
+         *
+         * 结合获取和释放的内存顺序，适用于获取并释放数据的场景。
+         */
         acq_rel,
-        seq_cst
+
+        /**
+         * @brief 顺序一致性内存顺序
+         *
+         * 强制操作按照程序顺序执行，适用于强同步需求的原子操作。
+         */
+        seq_cst,
+
+        /**
+         * @brief relaxed别名，放松的内存顺序
+         *
+         * 允许最大程度的重排，适用于不需要同步的原子操作。
+         */
+        memory_order_relaxed = relaxed,
+
+        /**
+         * @brief 消费者内存顺序
+         *
+         * 仅对消费者可见的数据产生同步约束，适用于消费者操作。
+         */
+        memory_order_consume = consume,
+
+        /**
+         * @brief 获取内存顺序
+         *
+         * 强制对获取的数据产生同步约束，适用于获取原子值时。
+         */
+        memory_order_acquire = acquire,
+
+        /**
+         * @brief 释放内存顺序
+         *
+         * 强制对释放的数据产生同步约束，适用于释放原子值时。
+         */
+        memory_order_release = release,
+
+        /**
+         * @brief 获取并释放内存顺序
+         *
+         * 结合获取和释放的内存顺序，适用于获取并释放数据的场景。
+         */
+        memory_order_acq_rel = acq_rel,
+        
+        /**
+         * @brief 顺序一致性内存顺序
+         *
+         * 强制操作按照程序顺序执行，适用于强同步需求的原子操作。
+         */
+        memory_order_seq_cst = seq_cst
     };
 
+    /**
+     * @brief relaxed 内存顺序常量
+     *
+     * 表示 relaxed 内存顺序，允许最大程度的重排。
+     */
     inline constexpr memory_order memory_order_relaxed = memory_order::relaxed;
+
+    /**
+     * @brief consume 内存顺序常量
+     *
+     * 表示 consume 内存顺序，适用于消费者操作。
+     */
     inline constexpr memory_order memory_order_consume = memory_order::consume;
+
+    /**
+     * @brief acquire 内存顺序常量
+     *
+     * 表示 acquire 内存顺序，适用于获取原子值时的同步约束。
+     */
     inline constexpr memory_order memory_order_acquire = memory_order::acquire;
+
+    /**
+     * @brief release 内存顺序常量
+     *
+     * 表示 release 内存顺序，适用于释放原子值时的同步约束。
+     */
     inline constexpr memory_order memory_order_release = memory_order::release;
+
+    /**
+     * @brief acq_rel 内存顺序常量
+     *
+     * 表示 acquire-release 内存顺序，适用于获取并释放数据的场景。
+     */
     inline constexpr memory_order memory_order_acq_rel = memory_order::acq_rel;
+
+    /**
+     * @brief seq_cst 内存顺序常量
+     *
+     * 表示顺序一致性内存顺序，适用于强同步需求的原子操作。
+     */
     inline constexpr memory_order memory_order_seq_cst = memory_order::seq_cst;
 }
 
