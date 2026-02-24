@@ -38,7 +38,7 @@ namespace rainy::utility::implements {
             using namespace type_traits;
             using namespace type_traits::primary_types;
             using handler_t = std::tuple_element_t<I, std::tuple<Handlers...>>;
-            using argument_t = std::tuple_element_t<0, typename function_traits<handler_t>::tuple_like_type>;
+            using argument_t = typename other_trans::type_at<0, typename function_traits<handler_t>::argument_list>::type;
             if constexpr (type_relations::is_same_v<argument_t, any_default_match>) {
                 return false; // 最后处理
             } else {
@@ -67,8 +67,7 @@ namespace rainy::utility::implements {
         static constexpr std::size_t eval_for_default_match_index(std::index_sequence<Idx...>) {
             using namespace type_traits;
             using namespace type_traits::other_trans;
-            using type_list = type_list<
-                typename type_at<0, typename tuple_like_to_type_list<primary_types::param_list_in_tuple<Handlers>>::type>::type...>;
+            using type_list = type_list<typename type_at<0, primary_types::function_argument_list<Handlers>>::type...>;
             std::size_t index{};
             ((type_relations::is_same_v<cv_modify::remove_cvref_t<typename type_at<Idx, type_list>::type>, any_default_match>
               ? index = Idx,
@@ -81,10 +80,10 @@ namespace rainy::utility::implements {
         static constexpr std::size_t eval_for_default_match(std::index_sequence<Idx...>) {
             using namespace type_traits;
             using namespace type_traits::other_trans;
-            using type_list = type_list<
-                typename type_at<0, typename tuple_like_to_type_list<primary_types::param_list_in_tuple<Handlers>>::type>::type...>;
+            using type_list = type_list<typename type_at<0, primary_types::function_argument_list<Handlers>>::type...>;
             std::size_t count{};
-            ((count += type_relations::is_same_v<cv_modify::remove_cvref_t<typename type_at<Idx, type_list>::type>, any_default_match>),
+            ((count +=
+              type_relations::is_same_v<cv_modify::remove_cvref_t<typename type_at<Idx, type_list>::type>, any_default_match>),
              ...);
             return count;
         }
@@ -105,8 +104,7 @@ namespace rainy::utility::implements {
                     auto &handler = std::get<index>(handlers);
                     using handler_t = decltype(handler);
                     static constexpr any_default_match default_match_obj{};
-                    using type_list = typename other_trans::tuple_like_to_type_list<
-                        primary_types::param_list_in_tuple<cv_modify::remove_cvref_t<handler_t>>>::type;
+                    using type_list = primary_types::function_argument_list<cv_modify::remove_cvref_t<handler_t>>;
                     if constexpr (constexpr std::size_t arity = other_trans::type_list_size_v<type_list>; arity == 1) {
                         handler(default_match_obj);
                     } else if constexpr (arity == 2) {
