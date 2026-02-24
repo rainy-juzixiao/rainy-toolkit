@@ -98,7 +98,9 @@ namespace rainy::core::pal {
     RAINY_TOOLKIT_API std::size_t safe_dump_to(void *memory, std::size_t size, std::size_t skip) noexcept;
     RAINY_TOOLKIT_API bool resolve_stack_frame(native_frame_ptr_t frame, cstring buf, std::size_t buf_size) noexcept;
     RAINY_TOOLKIT_API void demangle(czstring name, cstring buf, std::size_t buffer_length);
+}
 
+namespace rainy::core::pal {
     /* atomic:: inc,dec */
     RAINY_TOOLKIT_API long interlocked_increment(volatile long *value);
     RAINY_TOOLKIT_API std::int8_t interlocked_increment8(volatile std::int8_t *value);
@@ -171,14 +173,17 @@ namespace rainy::core::pal {
     RAINY_TOOLKIT_API void iso_volatile_store(volatile void *address, void *value);
     RAINY_TOOLKIT_API void iso_volatile_store8(volatile std::int8_t *address, std::int8_t value);
     RAINY_TOOLKIT_API void iso_volatile_store16(volatile std::int16_t *address, std::int16_t value);
-    RAINY_TOOLKIT_API void iso_volatile_store32(volatile std::int32_t *address, std::uint32_t value);
-    RAINY_TOOLKIT_API void iso_volatile_store64(volatile std::int64_t *address, std::uint64_t value);
+    RAINY_TOOLKIT_API void iso_volatile_store32(volatile std::int32_t *address, std::int32_t value);
+    RAINY_TOOLKIT_API void iso_volatile_store64(volatile std::int64_t *address, std::int64_t value);
 
     RAINY_TOOLKIT_API void atomic_thread_fence(const memory_order order) noexcept;
 
     RAINY_TOOLKIT_API void read_write_barrier() noexcept;
     RAINY_TOOLKIT_API void read_barrier() noexcept;
     RAINY_TOOLKIT_API void write_barrier() noexcept;
+}
+
+namespace rainy::core::pal {
     /* file system */
     RAINY_TOOLKIT_API file_status get_file_status(czstring file_path) noexcept;
     RAINY_TOOLKIT_API file_handle open_file(czstring filepath, open_mode mode);
@@ -310,8 +315,63 @@ namespace rainy::core::pal {
     RAINY_TOOLKIT_API void iso_volatile_store_explicit(volatile void *address, void *value, memory_order order);
     RAINY_TOOLKIT_API void iso_volatile_store8_explicit(volatile std::int8_t *address, std::int8_t value, memory_order order);
     RAINY_TOOLKIT_API void iso_volatile_store16_explicit(volatile std::int16_t *address, std::int16_t value, memory_order order);
-    RAINY_TOOLKIT_API void iso_volatile_store32_explicit(volatile std::int32_t *address, std::uint32_t value, memory_order order);
-    RAINY_TOOLKIT_API void iso_volatile_store64_explicit(volatile std::int64_t *address, std::uint64_t value, memory_order order);
+    RAINY_TOOLKIT_API void iso_volatile_store32_explicit(volatile std::int32_t *address, std::int32_t value, memory_order order);
+    RAINY_TOOLKIT_API void iso_volatile_store64_explicit(volatile std::int64_t *address, std::int64_t value, memory_order order);
+}
+
+namespace rainy::core::pal {
+    using atomic_wait_equal_fn = bool (*)(const void *storage, const void *comparand, std::size_t size, void *ctx) noexcept;
+
+    RAINY_TOOLKIT_API void atomic_wait(const void *storage, const void *comparand, std::size_t size,
+                                       atomic_wait_equal_fn equal_fn = nullptr, void *ctx = nullptr) noexcept;
+
+    RAINY_TOOLKIT_API void atomic_notify_one(const void *storage, std::size_t size) noexcept;
+
+    RAINY_TOOLKIT_API void atomic_notify_all(const void *storage, std::size_t size) noexcept;
+}
+
+namespace rainy::core::pal {
+    template <typename T>
+    struct alignas(sizeof(T) * 2) double_word_t {
+        T lo; // 低字（第一个字）
+        T hi; // 高字（第二个字）
+
+        bool operator==(const double_word_t &other) const noexcept {
+            return lo == other.lo && hi == other.hi;
+        }
+        bool operator!=(const double_word_t &other) const noexcept {
+            return !(*this == other);
+        }
+    };
+
+    static_assert(sizeof(double_word_t<std::uint32_t>) == 8);
+    static_assert(sizeof(double_word_t<std::uint64_t>) == 16);
+    static_assert(sizeof(double_word_t<void *>) == sizeof(void *) * 2);
+
+    // 平台默认双字类型：与指针等宽，直接对应 CMPXCHG8B / CMPXCHG16B
+    using native_double_word_t = double_word_t<std::uintptr_t>;
+
+    // 原子 CAS：成功返回 true，失败时 comparand 被更新为当前值
+    RAINY_TOOLKIT_API bool interlocked_compare_exchange_double_word(volatile native_double_word_t *destination,
+                                                                    native_double_word_t exchange,
+                                                                    native_double_word_t *comparand) noexcept;
+
+    // 原子加载
+    RAINY_TOOLKIT_API native_double_word_t atomic_load_double_word(const volatile native_double_word_t *address,
+                                                                   memory_order order) noexcept;
+
+    // 原子存储
+    RAINY_TOOLKIT_API void atomic_store_double_word(volatile native_double_word_t *address, native_double_word_t value,
+                                                    memory_order order) noexcept;
+
+    static constexpr bool is_always_lock_free =
+#if defined(_MSC_VER) && (defined(_M_X64) || defined(_M_AMD64))
+        true;
+#elif (defined(__GNUC__) || defined(__clang__)) && (defined(__x86_64__) || defined(__amd64__))
+        true;
+#else
+        false; // mutex 回退，包括未加 -mcx16 的 Clang/GCC
+#endif
 }
 
 #endif

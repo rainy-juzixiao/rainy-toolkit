@@ -40,14 +40,12 @@ namespace rainy::foundation::pal::atomicinfra::implements {
 }
 
 namespace rainy::foundation::pal::atomicinfra::implements {
-    //constexpr unsigned long long atomic_wait_no_deadline = 0xFFFF'FFFF'FFFF'FFFF;
-
     constexpr size_t wait_table_size_power = 8;
     constexpr size_t wait_table_size = 1 << wait_table_size_power;
     constexpr size_t wait_table_index_mask = wait_table_size - 1;
 
     struct wait_context {
-        const void *storage; // Pointer to wait on
+        const void *storage;
         wait_context *next;
         wait_context *prev;
         std::uintptr_t condition_variable;

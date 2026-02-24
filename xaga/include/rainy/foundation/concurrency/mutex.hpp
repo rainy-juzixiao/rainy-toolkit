@@ -267,7 +267,7 @@ namespace rainy::foundation::concurrency {
             if (rel_time <= rel_time.zero()) {
                 return try_lock();
             }
-            auto abs = system_clock::now() + rel_time;
+            auto abs = system_clock::now() + rel_time + milliseconds(1);
             return try_lock_until(abs);
         }
 
@@ -385,7 +385,9 @@ namespace rainy::foundation::concurrency {
             if (rel_time <= rel_time.zero()) {
                 return try_lock();
             }
-            return try_lock_until(system_clock::now() + rel_time);
+            // +1ms 补偿时间转换和进入循环的损耗，保证实际等待时间不短于 rel_time
+            auto abs = system_clock::now() + rel_time + milliseconds(1);
+            return try_lock_until(abs);
         }
 
         /**

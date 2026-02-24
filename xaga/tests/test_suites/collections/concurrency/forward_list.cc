@@ -46,8 +46,9 @@ SCENARIO("concurrent forward_list basic operations", "[forward_list]") {
 
             THEN("iteration should return elements in correct order") {
                 std::vector<int> values;
-                for (auto &v: list)
+                for (auto &v: list) {
                     values.push_back(v);
+                }
                 REQUIRE(values == std::vector<int>{3, 2, 1});
             }
         }
@@ -140,18 +141,18 @@ SCENARIO("concurrent push_front/pop_front in multiple threads", "[forward_list][
                     }
                 });
             }
-
-            for (auto &th: threads)
+            for (auto &th: threads) {
                 th.join();
-
+            }
             THEN("all elements should be present") {
                 REQUIRE(list.size() == num_threads * num_ops_per_thread);
             }
         }
 
         WHEN("multiple threads pop elements concurrently after pushing") {
-            for (int i = 0; i < num_threads * num_ops_per_thread; ++i)
+            for (int i = 0; i < num_threads * num_ops_per_thread; ++i) {
                 list.push_front(i);
+            }
 
             std::vector<std::thread> threads;
             std::atomic<int> pop_count{0};

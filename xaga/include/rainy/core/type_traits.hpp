@@ -16,20 +16,20 @@
 #ifndef RAINY_CORE_TYPETRAITS_HPP
 #define RAINY_CORE_TYPETRAITS_HPP
 #include <iterator>
-#include <utility>
+#include <rainy/core/implements/basic_algorithm.hpp>
 #include <rainy/core/platform.hpp>
-#include <rainy/core/tmp/limits.hpp>
-#include <rainy/core/tmp/implements.hpp>
 #include <rainy/core/tmp/helper.hpp>
-#include <rainy/core/tmp/type_relations.hpp>
-#include <rainy/core/tmp/modifers.hpp>
-#include <rainy/core/tmp/type_list.hpp>
-#include <rainy/core/tmp/value_list.hpp>
-#include <rainy/core/tmp/ranges_traits.hpp>
+#include <rainy/core/tmp/implements.hpp>
 #include <rainy/core/tmp/iter_traits.hpp>
+#include <rainy/core/tmp/limits.hpp>
 #include <rainy/core/tmp/meta_methods.hpp>
 #include <rainy/core/tmp/meta_types.hpp>
-#include <rainy/core/implements/basic_algorithm.hpp>
+#include <rainy/core/tmp/modifers.hpp>
+#include <rainy/core/tmp/ranges_traits.hpp>
+#include <rainy/core/tmp/type_list.hpp>
+#include <rainy/core/tmp/type_relations.hpp>
+#include <rainy/core/tmp/value_list.hpp>
+#include <utility>
 #if RAINY_USING_GCC
 #include <rainy/core/gnu/typetraits.hpp>
 #endif
@@ -42,8 +42,9 @@ namespace rainy::type_traits::other_trans {
         using Ty2 = typename select<implements::_is_function_v<Ty1>>::template apply<
             pointer_modify::add_pointer<Ty1>, cv_modify::remove_cv<std::conditional_t<!implements::_is_function_v<Ty1>, Ty1, void>>>;
 
-        using type = typename select<implements::_is_array_v<Ty1>>::template apply<
-            pointer_modify::add_pointer<modifers::remove_extent_t<Ty1>>, Ty2>::type;
+        using type =
+            typename select<implements::_is_array_v<Ty1>>::template apply<pointer_modify::add_pointer<modifers::remove_extent_t<Ty1>>,
+                                                                          Ty2>::type;
     };
 
     template <typename Ty>
@@ -196,10 +197,10 @@ namespace rainy::type_traits::primary_types {
     RAINY_CONSTEXPR_BOOL is_pointer_reference_v = false;
 
     template <typename Ty>
-    RAINY_CONSTEXPR_BOOL is_pointer_reference_v<Ty*&> = true;
+    RAINY_CONSTEXPR_BOOL is_pointer_reference_v<Ty *&> = true;
 
     template <typename Ty>
-    RAINY_CONSTEXPR_BOOL is_pointer_reference_v<Ty*&&> = true;
+    RAINY_CONSTEXPR_BOOL is_pointer_reference_v<Ty *&&> = true;
 
     template <typename>
     RAINY_CONSTEXPR_BOOL is_null_pointer_v = false;
@@ -231,7 +232,7 @@ namespace rainy::type_traits::primary_types {
     template <typename Ty>
     static RAINY_INLINE_CONSTEXPR std::size_t array_size_v = 0;
 
-    template <typename Ty,std::size_t N>
+    template <typename Ty, std::size_t N>
     static RAINY_INLINE_CONSTEXPR std::size_t array_size_v<Ty[N]> = N;
 
     template <typename Ty>
@@ -240,8 +241,8 @@ namespace rainy::type_traits::primary_types {
 
 namespace rainy::utility {
     using core::builtin::addressof;
-    using core::builtin::forward;
     using core::builtin::construct_at;
+    using core::builtin::forward;
 
     template <typename Ty, typename... Args>
     RAINY_CONSTEXPR20 void construct_in_place(Ty &object, Args &&...args) noexcept(
@@ -255,23 +256,23 @@ namespace rainy::utility {
         ::new (static_cast<void *>(utility::addressof(object))) Ty(utility::forward<Args>(args)...);
     }
 
-    //template <typename Ty>
-    //RAINY_CONSTEXPR20 void destory_range(Ty const* ptr) {
+    // template <typename Ty>
+    // RAINY_CONSTEXPR20 void destory_range(Ty const* ptr) {
     //
-    //}
+    // }
 
-    //template <typename Ty>
-    //RAINY_CONSTEXPR20 void destroy_at(Ty const *ptr) {
-    //    ptr->~Ty();
-    //}
+    // template <typename Ty>
+    // RAINY_CONSTEXPR20 void destroy_at(Ty const *ptr) {
+    //     ptr->~Ty();
+    // }
 
     //// 定义destroy函数
-    //template <typename T>
-    //void destroy(T *first, T *last) {
-    //    for (T *ptr = first; ptr != last; ++ptr) {
-    //        destroy_at(ptr); // 销毁每个元素
-    //    }
-    //}
+    // template <typename T>
+    // void destroy(T *first, T *last) {
+    //     for (T *ptr = first; ptr != last; ++ptr) {
+    //         destroy_at(ptr); // 销毁每个元素
+    //     }
+    // }
 }
 
 namespace rainy::type_traits::logical_traits {
@@ -355,7 +356,7 @@ namespace rainy::type_traits::type_properties {
 
     template <typename Ty, typename = void>
     RAINY_CONSTEXPR_BOOL is_complete_v = false;
-    
+
     template <typename Ty>
     RAINY_CONSTEXPR_BOOL is_complete_v<Ty, type_traits::other_trans::void_t<decltype(sizeof(Ty))>> = true;
 
@@ -801,11 +802,10 @@ namespace rainy::utility::implements {
 // NOLINTBEGIN
 namespace std {
     template <std::size_t I, typename... Types>
-    struct tuple_element<I, rainy::utility::tuple<Types...>> : ::rainy::utility::tuple_element<I, ::rainy::utility::tuple<Types...>> {
-    };
+    struct tuple_element<I, rainy::utility::tuple<Types...>> : rainy::utility::tuple_element<I, rainy::utility::tuple<Types...>> {};
 
     template <typename... Types>
-    struct tuple_size<::rainy::utility::tuple<Types...>> : std::integral_constant<std::size_t, sizeof...(Types)> {};
+    struct tuple_size<rainy::utility::tuple<Types...>> : std::integral_constant<std::size_t, sizeof...(Types)> {};
 }
 // NOLINTEND
 
@@ -824,18 +824,20 @@ namespace rainy::utility {
         constexpr tuple(tuple &&) = default;
 
         template <typename HeadArg, typename... RestArgs,
-            type_traits::other_trans::enable_if_t<sizeof...(RestArgs) == sizeof...(Rest) && type_traits::type_properties::is_constructible_v<Head, HeadArg> &&
-                                                      (type_traits::type_properties::is_constructible_v<Rest, RestArgs> && ...),
-                                                  int> = 0 > constexpr tuple(HeadArg &&head_arg, RestArgs &&...rest_args) :
-            head_base(utility::forward<HeadArg>(head_arg)),
-                                                  rest_base(utility::forward<RestArgs>(rest_args)...) {
+                  type_traits::other_trans::enable_if_t<sizeof...(RestArgs) == sizeof...(Rest) &&
+                                                            type_traits::type_properties::is_constructible_v<Head, HeadArg> &&
+                                                            (type_traits::type_properties::is_constructible_v<Rest, RestArgs> && ...),
+                                                        int> = 0>
+        constexpr tuple(HeadArg &&head_arg, RestArgs &&...rest_args) :
+            head_base(utility::forward<HeadArg>(head_arg)), rest_base(utility::forward<RestArgs>(rest_args)...) {
         }
 
-        template <typename OtherHead, typename... OtherRest,
-                  type_traits::other_trans::enable_if_t<sizeof...(OtherRest) == sizeof...(Rest) &&
-                                                            type_traits::type_properties::is_constructible_v<Head, const OtherHead &> &&
-                                                            (type_traits::type_properties::is_constructible_v<Rest, const OtherRest &> && ...),
-                                                        int> = 0>
+        template <
+            typename OtherHead, typename... OtherRest,
+            type_traits::other_trans::enable_if_t<
+                sizeof...(OtherRest) == sizeof...(Rest) && type_traits::type_properties::is_constructible_v<Head, const OtherHead &> &&
+                    (type_traits::type_properties::is_constructible_v<Rest, const OtherRest &> && ...),
+                int> = 0>
         constexpr tuple(const tuple<OtherHead, OtherRest...> &other) :
             head_base(get<0>(other)), rest_base(static_cast<const tuple<OtherRest...> &>(other)) {
         }
@@ -957,6 +959,11 @@ namespace rainy::utility {
         static RAINY_INLINE_CONSTEXPR std::size_t value = sizeof...(Args);
     };
 }
+
+namespace std {
+    using rainy::utility::get;
+}
+
 namespace rainy::utility {
     template <typename Callable>
     class finally_impl : Callable { // NOLINT
@@ -1075,14 +1082,15 @@ namespace rainy::type_traits::primary_types {
 // NOLINTBEGIN(bugprone-macro-parentheses)
 #define RAINY_DECLARE_NORMAL_FUNCTION_TRAITS(IsNothrowInvocable, IsVolatile, SPEC)                                                    \
     template <typename Rx, typename... Args>                                                                                          \
-    struct function_traits<Rx(Args...) SPEC> : implements::function_traits_base<false, false, IsNothrowInvocable, IsVolatile, false> { \
+    struct function_traits<Rx(Args...) SPEC>                                                                                          \
+        : implements::function_traits_base<false, false, IsNothrowInvocable, IsVolatile, false> {                                     \
         using return_type = Rx;                                                                                                       \
         using tuple_like_type = std::tuple<Args...>;                                                                                  \
         static inline constexpr std::size_t arity = sizeof...(Args);                                                                  \
     };                                                                                                                                \
     template <typename Rx, typename... Args>                                                                                          \
     struct function_traits<Rx(Args..., ...) SPEC>                                                                                     \
-        : implements::function_traits_base<false, false, IsNothrowInvocable, IsVolatile, false> {                                      \
+        : implements::function_traits_base<false, false, IsNothrowInvocable, IsVolatile, false> {                                     \
         using return_type = Rx;                                                                                                       \
         using tuple_like_type = std::tuple<Args...>;                                                                                  \
         static inline constexpr std::size_t arity = sizeof...(Args);                                                                  \
@@ -1091,16 +1099,16 @@ namespace rainy::type_traits::primary_types {
 #define RAINY_DECLARE_MEMBER_FUNCTION_TRAITS(IsNothrowInvocable, IsVolatile, IsConstMemberFunctionPointer, IsLValue, IsRValue, SPEC)  \
     template <typename Rx, typename Class, typename... Args>                                                                          \
     struct function_traits<Rx (Class::*)(Args...) SPEC>                                                                               \
-        : implements::function_traits_base<true, false, IsNothrowInvocable, IsVolatile, IsConstMemberFunctionPointer>,                 \
-          implements::member_function_traits_base<IsLValue, IsRValue> {                                                                \
+        : implements::function_traits_base<true, false, IsNothrowInvocable, IsVolatile, IsConstMemberFunctionPointer>,                \
+          implements::member_function_traits_base<IsLValue, IsRValue> {                                                               \
         using return_type = Rx;                                                                                                       \
         using tuple_like_type = std::tuple<Args...>;                                                                                  \
         static inline constexpr std::size_t arity = sizeof...(Args);                                                                  \
     };                                                                                                                                \
     template <typename Rx, typename Class, typename... Args>                                                                          \
     struct function_traits<Rx (Class::*)(Args..., ...) SPEC>                                                                          \
-        : implements::function_traits_base<true, false, IsNothrowInvocable, IsVolatile, IsConstMemberFunctionPointer>,                 \
-          implements::member_function_traits_base<IsLValue, IsRValue> {                                                                \
+        : implements::function_traits_base<true, false, IsNothrowInvocable, IsVolatile, IsConstMemberFunctionPointer>,                \
+          implements::member_function_traits_base<IsLValue, IsRValue> {                                                               \
         using return_type = Rx;                                                                                                       \
         using tuple_like_type = std::tuple<Args...>;                                                                                  \
         static inline constexpr std::size_t arity = sizeof...(Args);                                                                  \
@@ -1149,7 +1157,7 @@ namespace rainy::type_traits::implements {
         using type = decltype(&type_traits::cv_modify::remove_cv_t<Fx>::operator());
     };
 
-    template <typename Traits,bool Enable = Traits::valid>
+    template <typename Traits, bool Enable = Traits::valid>
     struct fn_obj_traits {
         using tuple_like_type = typename Traits::tuple_like_type;
         using return_type = typename Traits::return_type;
@@ -1169,8 +1177,9 @@ namespace rainy::type_traits::implements {
 
 namespace rainy::type_traits::primary_types {
     template <typename Ty>
-    struct function_traits : implements::fn_obj_traits<function_traits<typename implements::try_to_get_operator<type_traits::cv_modify::remove_cvref_t<Ty>>::type>> {
-    };
+    struct function_traits
+        : implements::fn_obj_traits<
+              function_traits<typename implements::try_to_get_operator<type_traits::cv_modify::remove_cvref_t<Ty>>::type>> {};
 
     template <>
     struct function_traits<void> : implements::empty_function_traits {};
@@ -1223,7 +1232,7 @@ namespace rainy::type_traits::primary_types {
     /*------------------
     [normal]
     ------------------*/
-    RAINY_DECLARE_MEMBER_FUNCTION_TRAITS(false, false, false, false, false,)
+    RAINY_DECLARE_MEMBER_FUNCTION_TRAITS(false, false, false, false, false, )
     RAINY_DECLARE_MEMBER_FUNCTION_TRAITS(false, false, false, true, false, &)
     RAINY_DECLARE_MEMBER_FUNCTION_TRAITS(false, false, false, false, true, &&)
     /*------------------
@@ -1282,7 +1291,7 @@ namespace rainy::type_traits::primary_types {
               typename TypeListEnd = other_trans::type_list<>, typename Tuple = param_list_in_tuple<Fx>>
     struct make_normalfx_type_with_pl {};
 
-    template <typename NewRx, typename Fx, typename... TypeListFrontArgs, typename... TypeListEndArgs,typename... OriginalArgs>
+    template <typename NewRx, typename Fx, typename... TypeListFrontArgs, typename... TypeListEndArgs, typename... OriginalArgs>
     struct make_normalfx_type_with_pl<NewRx, Fx, other_trans::type_list<TypeListFrontArgs...>,
                                       other_trans::type_list<TypeListEndArgs...>, std::tuple<OriginalArgs...>> {
         template <typename UFx, bool IsMemPtr = function_traits<UFx>::is_member_function_pointer>
@@ -1300,10 +1309,9 @@ namespace rainy::type_traits::primary_types {
         struct helper<UFx, true> {
             using fn_traits = function_traits<UFx>;
 
-            using type =
-                other_trans::conditional_t<fn_traits::is_noexcept,
-                                           NewRx(TypeListFrontArgs..., OriginalArgs..., TypeListEndArgs...) noexcept,
-                                           NewRx(TypeListFrontArgs..., OriginalArgs..., TypeListEndArgs...)>;
+            using type = other_trans::conditional_t<fn_traits::is_noexcept,
+                                                    NewRx(TypeListFrontArgs..., OriginalArgs..., TypeListEndArgs...) noexcept,
+                                                    NewRx(TypeListFrontArgs..., OriginalArgs..., TypeListEndArgs...)>;
         };
 
         using type = typename helper<Fx>::type;
@@ -1581,7 +1589,7 @@ namespace rainy::utility::implements {
               invoker_pmf_object,
               std::conditional_t<rainy::type_traits::primary_types::is_specialization_v<type_traits::cv_modify::remove_cvref_t<Ty1>,
                                                                                         std::reference_wrapper>,
-                  invoker_pmf_refwrap, invoker_pmf_pointer>> {};
+                                 invoker_pmf_refwrap, invoker_pmf_pointer>> {};
 
     template <typename Callable, typename Ty1, typename RemoveCvref>
     struct invoker_impl<Callable, Ty1, RemoveCvref, false, true>
@@ -1593,7 +1601,7 @@ namespace rainy::utility::implements {
               invoker_pmd_object,
               std::conditional_t<rainy::type_traits::primary_types::is_specialization_v<type_traits::cv_modify::remove_cvref_t<Ty1>,
                                                                                         std::reference_wrapper>,
-                  invoker_pmd_refwrap, invoker_pmd_pointer>> {};
+                                 invoker_pmd_refwrap, invoker_pmd_pointer>> {};
 
     template <typename Callable, typename Ty1, typename RemoveCvref>
     struct invoker_impl<Callable, Ty1, RemoveCvref, false, false> : invoker_functor {};
@@ -1636,9 +1644,9 @@ namespace rainy::utility::implements {
 
 namespace rainy::utility {
     template <typename Callable, typename Tuple>
-    constexpr decltype(auto) apply(Callable &&obj, Tuple &&tuple) noexcept(noexcept(
-        implements::apply_impl(utility::forward<Callable>(obj), utility::forward<Tuple>(tuple),
-                              type_traits::helper::make_index_sequence<std::tuple_size_v<type_traits::reference_modify::remove_reference_t<Tuple>>>{}))) {
+    constexpr decltype(auto) apply(Callable &&obj, Tuple &&tuple) noexcept(noexcept(implements::apply_impl(
+        utility::forward<Callable>(obj), utility::forward<Tuple>(tuple),
+        type_traits::helper::make_index_sequence<std::tuple_size_v<type_traits::reference_modify::remove_reference_t<Tuple>>>{}))) {
         return implements::apply_impl(
             utility::forward<Callable>(obj), utility::forward<Tuple>(tuple),
             type_traits::helper::make_index_sequence<std::tuple_size_v<type_traits::reference_modify::remove_reference_t<Tuple>>>{});
@@ -1651,7 +1659,7 @@ namespace rainy::type_traits::implements {
         using type = Rx;
         using is_invocable = helper::true_type;
         using is_nothrow_invocable = helper::bool_constant<NoThrow>;
-        
+
         template <typename Rx_>
         using is_invocable_r = helper::bool_constant<
             logical_traits::disjunction_v<primary_types::is_void<Rx>, type_properties::is_invoke_convertible<type, Rx_>>>;
@@ -1698,24 +1706,30 @@ namespace rainy::type_traits::implements {
     };
 
     template <typename Callable, typename Ty1, typename... Args>
-    using decltype_invoke_nonzero =
-        decltype(utility::invoker<Callable, Ty1>::invoke(utility::declval<Callable>(), utility::declval<Ty1>(), utility::declval<Args>()...));
+    using decltype_invoke_nonzero = decltype(utility::invoker<Callable, Ty1>::invoke(
+        utility::declval<Callable>(), utility::declval<Ty1>(), utility::declval<Args>()...));
 
     template <typename Callable, typename Ty1, typename... Args>
     struct invoke_traits_nonzero<other_trans::void_t<decltype_invoke_nonzero<Callable, Ty1, Args...>>, Callable, Ty1, Args...>
         : invoke_traits_common<decltype_invoke_nonzero<Callable, Ty1, Args...>,
                                noexcept(utility::invoker<Callable, Ty1>::invoke(utility::declval<Callable>(), utility::declval<Ty1>(),
-                                                                       utility::declval<Args>()...))> {};
+                                                                                utility::declval<Args>()...))> {};
 
     template <typename Callable, typename... Args>
     using select_invoke_traits = other_trans::conditional_t<sizeof...(Args) == 0, invoke_traits_zero<void, Callable>,
                                                             invoke_traits_nonzero<void, Callable, Args...>>;
 
-    template <typename Rx,typename Callable,typename... Args>
-    using is_invocable_r_helper = typename select_invoke_traits<Callable,Args...>::template is_invocable_r<Rx>;
+    template <typename Rx, typename Callable, typename... Args>
+    using is_invocable_r_helper = typename select_invoke_traits<Callable, Args...>::template is_invocable_r<Rx>;
 
-    template <typename Callable,typename... Args>
-    using is_invocable_helper = typename select_invoke_traits<Callable,Args...>::is_invocable;
+    template <typename Callable, typename... Args>
+    using is_invocable_helper = typename select_invoke_traits<Callable, Args...>::is_invocable;
+
+    template <typename Callable, typename... Args>
+    using is_nothrow_invocable_helper = typename select_invoke_traits<Callable, Args...>::is_nothrow_invocable;
+
+    template <typename Rx, typename Callable, typename... Args>
+    using is_nothrow_invocable_r_helper = typename select_invoke_traits<Callable, Args...>::template is_nothrow_invocable_r<Rx>;
 }
 
 namespace rainy::type_traits::type_properties {
@@ -1738,339 +1752,453 @@ namespace rainy::type_traits::type_properties {
 
     template <typename Callable, typename... Args>
     using invoke_result_t = typename invoke_result<Callable, Args...>::type;
+
+    template <typename Callable, typename... Args>
+    RAINY_CONSTEXPR_BOOL is_nothrow_invocable_v = implements::is_nothrow_invocable_helper<Callable, Args...>::value;
+
+    template <typename Callable, typename... Args>
+    struct is_nothrow_invocable : helper::bool_constant<is_nothrow_invocable_v<Callable, Args...>> {};
+
+    template <typename Rx, typename Callable, typename... Args>
+    RAINY_CONSTEXPR_BOOL is_nothrow_invocable_r_v = implements::is_nothrow_invocable_r_helper<Rx, Callable, Args...>::value;
+
+    template <typename Rx, typename Callable, typename... Args>
+    struct is_nothrow_invocable_r : helper::bool_constant<is_nothrow_invocable_r_v<Rx, Callable, Args...>> {};
 }
 
 namespace rainy::utility {
     template <typename Ty1, typename Ty2>
     class compressed_pair;
-
-    namespace implements {
-        template <typename Ty, bool = std::is_final_v<Ty>>
-        struct compressed_pair_empty : std::false_type {};
-
-        template <typename Ty>
-        struct compressed_pair_empty<Ty, false> : std::is_empty<Ty> {};
-
-        template <typename Ty1, typename Ty2, bool is_same, bool first_empty, bool second_empty>
-        struct compressed_pair_switch;
-
-        template <typename Ty1, typename Ty2>
-        struct compressed_pair_switch<Ty1, Ty2, false, false, false> {
-            RAINY_CONSTEXPR static int value = 0;
-        };
-
-        template <typename Ty1, typename Ty2>
-        struct compressed_pair_switch<Ty1, Ty2, false, true, true> {
-            RAINY_CONSTEXPR static int value = 3;
-        };
-
-        template <typename Ty1, typename Ty2>
-        struct compressed_pair_switch<Ty1, Ty2, false, true, false> {
-            RAINY_CONSTEXPR static int value = 1;
-        };
-
-        template <typename Ty1, typename Ty2>
-        struct compressed_pair_switch<Ty1, Ty2, false, false, true> {
-            RAINY_CONSTEXPR static int value = 2;
-        };
-
-        template <typename Ty1, typename Ty2>
-        struct compressed_pair_switch<Ty1, Ty2, true, true, true> {
-            RAINY_CONSTEXPR static int value = 4;
-        };
-
-        template <typename Ty1, typename Ty2>
-        struct compressed_pair_switch<Ty1, Ty2, true, false, false> {
-            RAINY_CONSTEXPR static int value = 5;
-        };
-
-        template <typename Ty1, typename Ty2, int Version>
-        class compressed_pair_impl;
-
-        template <class Ty1, typename Ty2>
-        class compressed_pair_impl<Ty1, Ty2, 0> {
-        public:
-            using first_type = Ty1;
-            using second_type = Ty2;
-            using first_param_type = typename type_traits::implements::call_traits<first_type>::param_type;
-            using second_param_type = typename type_traits::implements::call_traits<second_type>::param_type;
-            using first_reference = typename type_traits::implements::call_traits<first_type>::reference;
-            using second_reference = typename type_traits::implements::call_traits<second_type>::reference;
-            using first_const_reference = typename type_traits::implements::call_traits<first_type>::const_reference;
-            using second_const_reference = typename type_traits::implements::call_traits<second_type>::const_reference;
-
-            constexpr compressed_pair_impl() = default;
-
-            constexpr compressed_pair_impl(first_param_type x, second_param_type y) : first(x), second(y) {
-            }
-
-            explicit constexpr compressed_pair_impl(first_param_type x) : first(x) {
-            }
-
-            explicit constexpr compressed_pair_impl(second_param_type y) : second(y) {
-            }
-
-            constexpr first_reference get_first() {
-                return first;
-            }
-
-            constexpr first_const_reference get_first() const {
-                return first;
-            }
-
-            constexpr second_reference get_second() {
-                return second;
-            }
-
-            constexpr second_const_reference get_second() const {
-                return second;
-            }
-
-            constexpr void swap(compressed_pair_impl &pair) {
-                using std::swap;
-                swap(first, pair.second);
-                swap(second, pair.second);
-            }
-
-            first_type first;
-            second_type second;
-        };
-
-        template <typename Ty1, typename Ty2>
-        class compressed_pair_impl<Ty1, Ty2, 1> : protected type_traits::implements::remove_cv_t<Ty1> {
-        public:
-            using first_type = Ty1;
-            using second_type = Ty2;
-            using first_param_type = typename type_traits::implements::call_traits<first_type>::param_type;
-            using second_param_type = typename type_traits::implements::call_traits<second_type>::param_type;
-            using first_reference = typename type_traits::implements::call_traits<first_type>::reference;
-            using second_reference = typename type_traits::implements::call_traits<second_type>::reference;
-            using first_const_reference = typename type_traits::implements::call_traits<first_type>::const_reference;
-            using second_const_reference = typename type_traits::implements::call_traits<second_type>::const_reference;
-
-            constexpr compressed_pair_impl() = default;
-
-            explicit constexpr compressed_pair_impl(first_param_type first, second_param_type second) :
-                first_type(first), second(second) {
-            }
-
-            explicit constexpr compressed_pair_impl(first_param_type first) : first_type(first) {
-            }
-
-            explicit constexpr compressed_pair_impl(second_param_type second) : second(second) {
-            }
-
-            constexpr first_reference get_first() {
-                return *this;
-            }
-
-            constexpr first_const_reference get_first() const {
-                return *this;
-            }
-
-            constexpr second_reference get_second() {
-                return second;
-            }
-
-            constexpr second_const_reference get_second() const {
-                return second;
-            }
-
-            constexpr void swap(compressed_pair_impl &pair) {
-                std::swap(second, pair.second);
-            }
-
-            second_type second;
-        };
-
-        template <typename Ty1, typename Ty2>
-        class compressed_pair_impl<Ty1, Ty2, 2> : protected type_traits::implements::remove_cv_t<Ty2> {
-        public:
-            using first_type = Ty1;
-            using second_type = Ty2;
-            using first_param_type = typename type_traits::implements::call_traits<first_type>::param_type;
-            using second_param_type = typename type_traits::implements::call_traits<second_type>::param_type;
-            using first_reference = typename type_traits::implements::call_traits<first_type>::reference;
-            using second_reference = typename type_traits::implements::call_traits<second_type>::reference;
-            using first_const_reference = typename type_traits::implements::call_traits<first_type>::const_reference;
-            using second_const_reference = typename type_traits::implements::call_traits<second_type>::const_reference;
-
-            constexpr compressed_pair_impl() = default;
-
-            constexpr compressed_pair_impl(first_param_type x, second_param_type y) : second_type(y), first(x) {
-            }
-
-            constexpr explicit compressed_pair_impl(first_param_type x) : first(x) {
-            }
-
-            constexpr explicit compressed_pair_impl(second_param_type y) : second_type(y) {
-            }
-
-            constexpr first_reference get_first() {
-                return first;
-            }
-
-            constexpr first_const_reference get_first() const {
-                return first;
-            }
-
-            constexpr second_reference get_second() {
-                return *this;
-            }
-
-            constexpr second_const_reference get_second() const {
-                return *this;
-            }
-
-            constexpr void swap(compressed_pair_impl &pair) {
-                std::swap(first, pair.first);
-            }
-
-            first_type first;
-        };
-
-        template <typename Ty1, typename Ty2>
-        class compressed_pair_impl<Ty1, Ty2, 3> : protected type_traits::implements::remove_cv_t<Ty1>,
-                                                  protected type_traits::implements::remove_cv_t<Ty2> {
-        public:
-            using first_type = Ty1;
-            using second_type = Ty2;
-            using first_param_type = typename type_traits::implements::call_traits<first_type>::param_type;
-            using second_param_type = typename type_traits::implements::call_traits<second_type>::param_type;
-            using first_reference = typename type_traits::implements::call_traits<first_type>::reference;
-            using second_reference = typename type_traits::implements::call_traits<second_type>::reference;
-            using first_const_reference = typename type_traits::implements::call_traits<first_type>::const_reference;
-            using second_const_reference = typename type_traits::implements::call_traits<second_type>::const_reference;
-
-            constexpr compressed_pair_impl() = default;
-
-            constexpr compressed_pair_impl(first_param_type first, second_param_type second) : first_type(first), second_type(second) {
-            }
-
-            explicit constexpr compressed_pair_impl(first_param_type first) : first_type(first) {
-            }
-
-            explicit constexpr compressed_pair_impl(second_param_type second) : second_type(second) {
-            }
-
-            constexpr first_reference get_first() {
-                return *this;
-            }
-
-            constexpr first_const_reference get_first() const {
-                return *this;
-            }
-
-            constexpr second_reference get_second() {
-                return *this;
-            }
-
-            constexpr second_const_reference get_second() const {
-                return *this;
-            }
-
-            constexpr void swap(compressed_pair<Ty1, Ty2> &) {
-            }
-        };
-
-        template <typename Ty1, typename Ty2>
-        class compressed_pair_impl<Ty1, Ty2, 4> : protected type_traits::implements::remove_cv_t<Ty1> {
-        public:
-            using first_type = Ty1;
-            using second_type = Ty2;
-            using first_param_type = typename type_traits::implements::call_traits<first_type>::param_type;
-            using second_param_type = typename type_traits::implements::call_traits<second_type>::param_type;
-            using first_reference = typename type_traits::implements::call_traits<first_type>::reference;
-            using second_reference = typename type_traits::implements::call_traits<second_type>::reference;
-            using first_const_reference = typename type_traits::implements::call_traits<first_type>::const_reference;
-            using second_const_reference = typename type_traits::implements::call_traits<second_type>::const_reference;
-
-            constexpr compressed_pair_impl() = default;
-
-            constexpr compressed_pair_impl(first_param_type x, second_param_type y) : first_type(x), second(y) {
-            }
-
-            explicit compressed_pair_impl(first_param_type x) : first_type(x), second(x) {
-            }
-
-            constexpr first_reference get_first() {
-                return *this;
-            }
-
-            constexpr first_const_reference get_first() const {
-                return *this;
-            }
-
-            constexpr second_reference get_second() {
-                return second;
-            }
-
-            constexpr second_const_reference get_second() const {
-                return second;
-            }
-
-            constexpr void swap(compressed_pair<Ty1, Ty2> &pair) {
-                std::swap(second, pair.second);
-            }
-
-            Ty2 second;
-        };
-
-        template <typename Ty1, typename Ty2>
-        class compressed_pair_impl<Ty1, Ty2, 5> {
-        public:
-            using first_type = Ty1;
-            using second_type = Ty2;
-            using first_param_type = typename type_traits::implements::call_traits<first_type>::param_type;
-            using second_param_type = typename type_traits::implements::call_traits<second_type>::param_type;
-            using first_reference = typename type_traits::implements::call_traits<first_type>::reference;
-            using second_reference = typename type_traits::implements::call_traits<second_type>::reference;
-            using first_const_reference = typename type_traits::implements::call_traits<first_type>::const_reference;
-            using second_const_reference = typename type_traits::implements::call_traits<second_type>::const_reference;
-
-            constexpr compressed_pair_impl() = default;
-
-            constexpr compressed_pair_impl(first_param_type first, second_param_type second) : first(first), second(second) {
-            }
-
-            explicit constexpr compressed_pair_impl(first_param_type first) : first(first), second(first) {
-            }
-
-            constexpr first_reference get_first() {
-                return first;
-            }
-
-            constexpr first_const_reference get_first() const {
-                return first;
-            }
-
-            constexpr second_reference get_second() {
-                return second;
-            }
-
-            constexpr second_const_reference get_second() const {
-                return second;
-            }
-
-            constexpr void swap(compressed_pair<Ty1, Ty2> &y) {
-                std::swap(first, y.first);
-                std::swap(second, y.second);
-            }
-
-            Ty1 first;
-            Ty2 second;
-        };
-    }
-
+}
+
+namespace rainy::utility::implements {
+    template <typename Ty, bool = std::is_final_v<Ty>>
+    struct compressed_pair_empty : std::false_type {};
+
+    template <typename Ty>
+    struct compressed_pair_empty<Ty, false> : std::is_empty<Ty> {};
+
+    template <typename Ty1, typename Ty2, bool is_same, bool first_empty, bool second_empty>
+    struct compressed_pair_switch;
+
+    template <typename Ty1, typename Ty2>
+    struct compressed_pair_switch<Ty1, Ty2, false, false, false> {
+        RAINY_CONSTEXPR static int value = 0;
+    };
+
+    template <typename Ty1, typename Ty2>
+    struct compressed_pair_switch<Ty1, Ty2, false, true, true> {
+        RAINY_CONSTEXPR static int value = 3;
+    };
+
+    template <typename Ty1, typename Ty2>
+    struct compressed_pair_switch<Ty1, Ty2, false, true, false> {
+        RAINY_CONSTEXPR static int value = 1;
+    };
+
+    template <typename Ty1, typename Ty2>
+    struct compressed_pair_switch<Ty1, Ty2, false, false, true> {
+        RAINY_CONSTEXPR static int value = 2;
+    };
+
+    template <typename Ty1, typename Ty2>
+    struct compressed_pair_switch<Ty1, Ty2, true, true, true> {
+        RAINY_CONSTEXPR static int value = 4;
+    };
+
+    template <typename Ty1, typename Ty2>
+    struct compressed_pair_switch<Ty1, Ty2, true, false, false> {
+        RAINY_CONSTEXPR static int value = 5;
+    };
+
+    template <typename Ty1, typename Ty2, int Version>
+    class compressed_pair_impl;
+
+    template <class Ty1, typename Ty2>
+    class compressed_pair_impl<Ty1, Ty2, 0> {
+    public:
+        using first_type = Ty1;
+        using second_type = Ty2;
+        using first_param_type = typename type_traits::implements::call_traits<first_type>::param_type;
+        using second_param_type = typename type_traits::implements::call_traits<second_type>::param_type;
+        using first_reference = typename type_traits::implements::call_traits<first_type>::reference;
+        using second_reference = typename type_traits::implements::call_traits<second_type>::reference;
+        using first_const_reference = typename type_traits::implements::call_traits<first_type>::const_reference;
+        using second_const_reference = typename type_traits::implements::call_traits<second_type>::const_reference;
+
+        constexpr compressed_pair_impl() = default;
+
+        constexpr compressed_pair_impl(first_param_type x, second_param_type y) : first(x), second(y) {
+        }
+
+        explicit constexpr compressed_pair_impl(first_param_type x) : first(x) {
+        }
+
+        explicit constexpr compressed_pair_impl(second_param_type y) : second(y) {
+        }
+
+        template <typename... Args1, typename... Args2>
+        constexpr compressed_pair_impl(utility::piecewise_construct_t, utility::tuple<Args1...> first_args,
+                                       utility::tuple<Args2...> second_args) :
+            compressed_pair_impl(utility::piecewise_construct, utility::move(first_args), utility::move(second_args),
+                                 type_traits::helper::index_sequence_for<Args1...>{},
+                                 type_traits::helper::index_sequence_for<Args2...>{}) {
+        }
+
+        constexpr first_reference get_first() {
+            return first;
+        }
+
+        constexpr first_const_reference get_first() const {
+            return first;
+        }
+
+        constexpr second_reference get_second() {
+            return second;
+        }
+
+        constexpr second_const_reference get_second() const {
+            return second;
+        }
+
+        constexpr void swap(compressed_pair_impl &pair) {
+            using std::swap;
+            swap(first, pair.first);
+            swap(second, pair.second);
+        }
+
+        first_type first;
+        second_type second;
+
+    private:
+        template <typename... Args1, typename... Args2, std::size_t... I1, std::size_t... I2>
+        constexpr compressed_pair_impl(utility::piecewise_construct_t, utility::tuple<Args1...> first_args,
+                                       utility::tuple<Args2...> second_args, type_traits::helper::index_sequence<I1...>,
+                                       type_traits::helper::index_sequence<I2...>) :
+            first(rainy::utility::get<I1>(utility::move(first_args))...), second(std::get<I2>(utility::move(second_args))...) {
+        }
+    };
+
+    template <typename Ty1, typename Ty2>
+    class compressed_pair_impl<Ty1, Ty2, 1> : protected type_traits::implements::remove_cv_t<Ty1> {
+    public:
+        using first_type = Ty1;
+        using second_type = Ty2;
+        using first_param_type = typename type_traits::implements::call_traits<first_type>::param_type;
+        using second_param_type = typename type_traits::implements::call_traits<second_type>::param_type;
+        using first_reference = typename type_traits::implements::call_traits<first_type>::reference;
+        using second_reference = typename type_traits::implements::call_traits<second_type>::reference;
+        using first_const_reference = typename type_traits::implements::call_traits<first_type>::const_reference;
+        using second_const_reference = typename type_traits::implements::call_traits<second_type>::const_reference;
+
+        constexpr compressed_pair_impl() = default;
+
+        explicit constexpr compressed_pair_impl(first_param_type first, second_param_type second) : first_type(first), second(second) {
+        }
+
+        explicit constexpr compressed_pair_impl(first_param_type first) : first_type(first) {
+        }
+
+        explicit constexpr compressed_pair_impl(second_param_type second) : second(second) {
+        }
+
+        template <typename... Args1, typename... Args2>
+        constexpr compressed_pair_impl(utility::piecewise_construct_t, utility::tuple<Args1...> first_args,
+                                       utility::tuple<Args2...> second_args) :
+            compressed_pair_impl(utility::piecewise_construct, utility::move(first_args), utility::move(second_args),
+                                 type_traits::helper::index_sequence_for<Args1...>{},
+                                 type_traits::helper::index_sequence_for<Args2...>{}) {
+        }
+
+        constexpr first_reference get_first() {
+            return *this;
+        }
+
+        constexpr first_const_reference get_first() const {
+            return *this;
+        }
+
+        constexpr second_reference get_second() {
+            return second;
+        }
+
+        constexpr second_const_reference get_second() const {
+            return second;
+        }
+
+        constexpr void swap(compressed_pair_impl &pair) {
+            using std::swap;
+            swap(second, pair.second);
+        }
+
+        second_type second;
+
+    private:
+        template <typename... Args1, typename... Args2, std::size_t... I1, std::size_t... I2>
+        constexpr compressed_pair_impl(utility::piecewise_construct_t, utility::tuple<Args1...> first_args,
+                                       utility::tuple<Args2...> second_args, type_traits::helper::index_sequence<I1...>,
+                                       type_traits::helper::index_sequence<I2...>) :
+            type_traits::cv_modify::remove_cv_t<Ty1>(std::get<I1>(utility::move(first_args))...),
+            second(std::get<I2>(utility::move(second_args))...) {
+        }
+    };
+
+    template <typename Ty1, typename Ty2>
+    class compressed_pair_impl<Ty1, Ty2, 2> : protected type_traits::implements::remove_cv_t<Ty2> {
+    public:
+        using first_type = Ty1;
+        using second_type = Ty2;
+        using first_param_type = typename type_traits::implements::call_traits<first_type>::param_type;
+        using second_param_type = typename type_traits::implements::call_traits<second_type>::param_type;
+        using first_reference = typename type_traits::implements::call_traits<first_type>::reference;
+        using second_reference = typename type_traits::implements::call_traits<second_type>::reference;
+        using first_const_reference = typename type_traits::implements::call_traits<first_type>::const_reference;
+        using second_const_reference = typename type_traits::implements::call_traits<second_type>::const_reference;
+
+        constexpr compressed_pair_impl() = default;
+
+        constexpr compressed_pair_impl(first_param_type x, second_param_type y) : second_type(y), first(x) {
+        }
+
+        constexpr explicit compressed_pair_impl(first_param_type x) : first(x) {
+        }
+
+        constexpr explicit compressed_pair_impl(second_param_type y) : second_type(y) {
+        }
+
+        template <typename... Args1, typename... Args2>
+        constexpr compressed_pair_impl(utility::piecewise_construct_t, utility::tuple<Args1...> first_args,
+                                       utility::tuple<Args2...> second_args) :
+            compressed_pair_impl(utility::piecewise_construct, utility::move(first_args), utility::move(second_args),
+                                 type_traits::helper::index_sequence_for<Args1...>{},
+                                 type_traits::helper::index_sequence_for<Args2...>{}) {
+        }
+
+        constexpr first_reference get_first() {
+            return first;
+        }
+
+        constexpr first_const_reference get_first() const {
+            return first;
+        }
+
+        constexpr second_reference get_second() {
+            return *this;
+        }
+
+        constexpr second_const_reference get_second() const {
+            return *this;
+        }
+
+        constexpr void swap(compressed_pair_impl &pair) {
+            std::swap(first, pair.first);
+        }
+
+        first_type first;
+
+    private:
+        template <typename... Args1, typename... Args2, std::size_t... I1, std::size_t... I2>
+        constexpr compressed_pair_impl(utility::piecewise_construct_t, utility::tuple<Args1...> first_args,
+                                       utility::tuple<Args2...> second_args, type_traits::helper::index_sequence<I1...>,
+                                       type_traits::helper::index_sequence<I2...>) :
+            first(std::get<I1>(utility::move(first_args))...),
+            type_traits::cv_modify::remove_cv_t<Ty2>(std::get<I2>(utility::move(second_args))...) {
+        }
+    };
+
+    template <typename Ty1, typename Ty2>
+    class compressed_pair_impl<Ty1, Ty2, 3> : protected type_traits::implements::remove_cv_t<Ty1>,
+                                              protected type_traits::implements::remove_cv_t<Ty2> {
+    public:
+        using first_type = Ty1;
+        using second_type = Ty2;
+        using first_param_type = typename type_traits::implements::call_traits<first_type>::param_type;
+        using second_param_type = typename type_traits::implements::call_traits<second_type>::param_type;
+        using first_reference = typename type_traits::implements::call_traits<first_type>::reference;
+        using second_reference = typename type_traits::implements::call_traits<second_type>::reference;
+        using first_const_reference = typename type_traits::implements::call_traits<first_type>::const_reference;
+        using second_const_reference = typename type_traits::implements::call_traits<second_type>::const_reference;
+
+        constexpr compressed_pair_impl() = default;
+
+        constexpr compressed_pair_impl(first_param_type first, second_param_type second) : first_type(first), second_type(second) {
+        }
+
+        explicit constexpr compressed_pair_impl(first_param_type first) : first_type(first) {
+        }
+
+        explicit constexpr compressed_pair_impl(second_param_type second) : second_type(second) {
+        }
+
+        template <typename... Args1, typename... Args2>
+        constexpr compressed_pair_impl(utility::piecewise_construct_t, utility::tuple<Args1...> first_args,
+                                       utility::tuple<Args2...> second_args) :
+            compressed_pair_impl(utility::piecewise_construct, utility::move(first_args), utility::move(second_args),
+                                 type_traits::helper::index_sequence_for<Args1...>{},
+                                 type_traits::helper::index_sequence_for<Args2...>{}) {
+        }
+
+        constexpr first_reference get_first() {
+            return *this;
+        }
+
+        constexpr first_const_reference get_first() const {
+            return *this;
+        }
+
+        constexpr second_reference get_second() {
+            return *this;
+        }
+
+        constexpr second_const_reference get_second() const {
+            return *this;
+        }
+
+        constexpr void swap(compressed_pair<Ty1, Ty2> &) {
+        }
+
+    private:
+        template <typename... Args1, typename... Args2, std::size_t... I1, std::size_t... I2>
+        constexpr compressed_pair_impl(utility::piecewise_construct_t, utility::tuple<Args1...> first_args,
+                                       utility::tuple<Args2...> second_args, type_traits::helper::index_sequence<I1...>,
+                                       type_traits::helper::index_sequence<I2...>) :
+            type_traits::cv_modify::remove_cv_t<Ty1>(std::get<I1>(utility::move(first_args))...),
+            type_traits::cv_modify::remove_cv_t<Ty2>(std::get<I2>(utility::move(second_args))...) {
+        }
+    };
+
+    template <typename Ty1, typename Ty2>
+    class compressed_pair_impl<Ty1, Ty2, 4> : protected type_traits::implements::remove_cv_t<Ty1> {
+    public:
+        using first_type = Ty1;
+        using second_type = Ty2;
+        using first_param_type = typename type_traits::implements::call_traits<first_type>::param_type;
+        using second_param_type = typename type_traits::implements::call_traits<second_type>::param_type;
+        using first_reference = typename type_traits::implements::call_traits<first_type>::reference;
+        using second_reference = typename type_traits::implements::call_traits<second_type>::reference;
+        using first_const_reference = typename type_traits::implements::call_traits<first_type>::const_reference;
+        using second_const_reference = typename type_traits::implements::call_traits<second_type>::const_reference;
+
+        constexpr compressed_pair_impl() = default;
+
+        constexpr compressed_pair_impl(first_param_type x, second_param_type y) : first_type(x), second(y) {
+        }
+
+        explicit compressed_pair_impl(first_param_type x) : first_type(x), second(x) {
+        }
+
+        template <typename... Args1, typename... Args2>
+        constexpr compressed_pair_impl(utility::piecewise_construct_t, utility::tuple<Args1...> first_args,
+                                       utility::tuple<Args2...> second_args) :
+            compressed_pair_impl(utility::piecewise_construct, utility::move(first_args), utility::move(second_args),
+                                 type_traits::helper::index_sequence_for<Args1...>{},
+                                 type_traits::helper::index_sequence_for<Args2...>{}) {
+        }
+
+        constexpr first_reference get_first() {
+            return *this;
+        }
+
+        constexpr first_const_reference get_first() const {
+            return *this;
+        }
+
+        constexpr second_reference get_second() {
+            return second;
+        }
+
+        constexpr second_const_reference get_second() const {
+            return second;
+        }
+
+        constexpr void swap(compressed_pair<Ty1, Ty2> &pair) {
+            std::swap(second, pair.second);
+        }
+
+        Ty2 second;
+
+    private:
+        template <typename... Args1, typename... Args2, std::size_t... I1, std::size_t... I2>
+        constexpr compressed_pair_impl(utility::piecewise_construct_t, utility::tuple<Args1...> first_args,
+                                       utility::tuple<Args2...> second_args, type_traits::helper::index_sequence<I1...>,
+                                       type_traits::helper::index_sequence<I2...>) :
+            type_traits::cv_modify::remove_cv_t<Ty1>(std::get<I1>(utility::move(first_args))...),
+            second(std::get<I2>(utility::move(second_args))...) {
+        }
+    };
+
+    template <typename Ty1, typename Ty2>
+    class compressed_pair_impl<Ty1, Ty2, 5> {
+    public:
+        using first_type = Ty1;
+        using second_type = Ty2;
+        using first_param_type = typename type_traits::implements::call_traits<first_type>::param_type;
+        using second_param_type = typename type_traits::implements::call_traits<second_type>::param_type;
+        using first_reference = typename type_traits::implements::call_traits<first_type>::reference;
+        using second_reference = typename type_traits::implements::call_traits<second_type>::reference;
+        using first_const_reference = typename type_traits::implements::call_traits<first_type>::const_reference;
+        using second_const_reference = typename type_traits::implements::call_traits<second_type>::const_reference;
+
+        constexpr compressed_pair_impl() = default;
+
+        constexpr compressed_pair_impl(first_param_type first, second_param_type second) : first(first), second(second) {
+        }
+
+        explicit constexpr compressed_pair_impl(first_param_type first) : first(first), second(first) {
+        }
+
+        template <typename... Args1, typename... Args2>
+        constexpr compressed_pair_impl(utility::piecewise_construct_t, utility::tuple<Args1...> first_args,
+                                       utility::tuple<Args2...> second_args) :
+            compressed_pair_impl(utility::piecewise_construct, utility::move(first_args), utility::move(second_args),
+                                 type_traits::helper::index_sequence_for<Args1...>{},
+                                 type_traits::helper::index_sequence_for<Args2...>{}) {
+        }
+
+        constexpr first_reference get_first() {
+            return first;
+        }
+
+        constexpr first_const_reference get_first() const {
+            return first;
+        }
+
+        constexpr second_reference get_second() {
+            return second;
+        }
+
+        constexpr second_const_reference get_second() const {
+            return second;
+        }
+
+        constexpr void swap(compressed_pair<Ty1, Ty2> &y) {
+            std::swap(first, y.first);
+            std::swap(second, y.second);
+        }
+
+        Ty1 first;
+        Ty2 second;
+
+    private:
+        template <typename... Args1, typename... Args2, std::size_t... I1, std::size_t... I2>
+        constexpr compressed_pair_impl(utility::piecewise_construct_t, utility::tuple<Args1...> first_args,
+                                       utility::tuple<Args2...> second_args, type_traits::helper::index_sequence<I1...>,
+                                       type_traits::helper::index_sequence<I2...>) :
+            first(rainy::utility::get<I1>(utility::move(first_args))...), second(std::get<I2>(utility::move(second_args))...) {
+        }
+    };
+}
+
+namespace rainy::utility {
     template <typename Ty1, typename Ty2>
     class compressed_pair
         : public implements::compressed_pair_impl<
               Ty1, Ty2,
               implements::compressed_pair_switch<Ty1, Ty2,
-                                                type_traits::implements::is_same_v<type_traits::cv_modify::remove_cv_t<Ty1>,
-                                                                                   type_traits::cv_modify::remove_cv_t<Ty2>>,
-                                                implements::compressed_pair_empty<Ty1>::value,
-                                                implements::compressed_pair_empty<Ty2>::value>::value> {
+                                                 type_traits::implements::is_same_v<type_traits::cv_modify::remove_cv_t<Ty1>,
+                                                                                    type_traits::cv_modify::remove_cv_t<Ty2>>,
+                                                 implements::compressed_pair_empty<Ty1>::value,
+                                                 implements::compressed_pair_empty<Ty2>::value>::value> {
     public:
         using base = implements::compressed_pair_impl<
             Ty1, Ty2,
@@ -2090,7 +2218,7 @@ namespace rainy::utility {
         }
 
         constexpr compressed_pair &operator=(compressed_pair &&other) noexcept(std::is_nothrow_move_assignable_v<Ty1> &&
-                                                                     std::is_nothrow_move_assignable_v<Ty2>) {
+                                                                               std::is_nothrow_move_assignable_v<Ty2>) {
             utility::construct_in_place(this->get_first(), utility::move(other.get_first()));
             utility::construct_in_place(this->get_second(), utility::move(other.get_second()));
             return *this;
@@ -2668,7 +2796,7 @@ namespace rainy::core {
         using vtable_info = poly_vtable<AbstractBody>;
         using vtable_type = typename vtable_info::type;
 
-        basic_poly() noexcept= default;
+        basic_poly() noexcept = default;
 
         template <typename Type>
         basic_poly(Type *ptr) noexcept : // NOLINT
@@ -3018,7 +3146,7 @@ namespace rainy::type_traits::type_properties {
     template <typename Ty>
     RAINY_CONSTEXPR_BOOL is_movable_v = composite_types::is_object_v<Ty> && type_properties::is_move_constructible_v<Ty> &&
                                         type_properties::is_assignable_v<Ty &, Ty> && type_properties::is_swappable_v<Ty>;
-    
+
     template <typename Ty>
     struct is_movable : helper::bool_constant<is_movable_v<Ty>> {};
 
@@ -3042,7 +3170,8 @@ namespace rainy::utility {
 
 namespace rainy::type_traits::type_properties {
     template <typename T>
-    struct is_sequential_container : helper::bool_constant<type_traits::extras::meta_method::has_push_back_v<T> || primary_types::is_array_v<T>> {};
+    struct is_sequential_container
+        : helper::bool_constant<type_traits::extras::meta_method::has_push_back_v<T> || primary_types::is_array_v<T>> {};
 
     template <typename T>
     RAINY_CONSTEXPR_BOOL is_sequential_container_v = is_sequential_container<T>::value;

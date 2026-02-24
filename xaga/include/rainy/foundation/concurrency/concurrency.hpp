@@ -22,10 +22,10 @@
 // NOLINTBEGIN
 #include <chrono>
 #include <rainy/core/core.hpp>
-#include <rainy/foundation/concurrency/context.hpp>
+#include <rainy/foundation/concurrency/basic/context.hpp>
 #include <rainy/foundation/concurrency/mutex.hpp>
 #include <rainy/foundation/concurrency/thread.hpp>
-#include <rainy/foundation/concurrency/tss_ptr.hpp>
+#include <rainy/foundation/concurrency/basic/tss_ptr.hpp>
 #include <rainy/foundation/concurrency/condition_variable.hpp>
 #include <rainy/foundation/concurrency/pool.hpp>
 #include <rainy/foundation/concurrency/executor.hpp>
