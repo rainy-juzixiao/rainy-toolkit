@@ -187,8 +187,7 @@ namespace rainy::foundation::concurrency {
 
         void count_down(const std::ptrdiff_t update = 1) noexcept {
             utility::expects(update >= 0, "update >= 0");
-            const std::ptrdiff_t current = counter.fetch_sub(update) - update;
-            if (current == 0) {
+            if (const volatile std::ptrdiff_t current = counter.fetch_sub(update) - update; current == 0) {
                 counter.notify_all();
             } else {
                 utility::ensures(current >= 0, "update <= counter");            

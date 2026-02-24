@@ -118,8 +118,7 @@ namespace rainy::foundation::concurrency::implements {
         }
 
         void wait(Ty old, memory_order order = memory_order::seq_cst) const noexcept {
-            const volatile Ty *addr = const_cast<const volatile Ty *>(&storage_);
-            atomic_wait_impl(addr, old, order);
+            atomic_wait_impl(ptr(), old, order);
         }
 
         void wait(Ty old, memory_order order = memory_order::seq_cst) const volatile noexcept {
@@ -152,7 +151,7 @@ namespace rainy::foundation::concurrency::implements {
         }
 
     private:
-        alignas(sizeof(typename Ops::type)) volatile typename Ops::type storage_;
+        alignas(sizeof(Ty)) volatile Ty storage_;
     };
 }
 
