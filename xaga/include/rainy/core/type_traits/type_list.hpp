@@ -1,5 +1,5 @@
-#ifndef RAINY_META_TMP_TYPE_LIST_HPP
-#define RAINY_META_TMP_TYPE_LIST_HPP
+#ifndef RAINY_META_TYPE_TRAITS_TYPE_LIST_HPP
+#define RAINY_META_TYPE_TRAITS_TYPE_LIST_HPP
 #include <rainy/core/platform.hpp>
 #include <rainy/core/type_traits/helper.hpp>
 

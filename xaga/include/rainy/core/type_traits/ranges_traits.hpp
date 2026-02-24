@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef RAINY_CORE_TMP_RANGES_TRAITS_HPP
-#define RAINY_CORE_TMP_RANGES_TRAITS_HPP
+#ifndef RAINY_CORE_TYPE_TRAITS_RANGES_TRAITS_HPP
+#define RAINY_CORE_TYPE_TRAITS_RANGES_TRAITS_HPP
 #include <rainy/core/platform.hpp>
 
 namespace rainy::type_traits::extras::ranges::implements {

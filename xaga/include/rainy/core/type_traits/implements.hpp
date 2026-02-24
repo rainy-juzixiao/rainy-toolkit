@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef RAINY_CORE_TMP_IMPLEMENTS_HPP
-#define RAINY_CORE_TMP_IMPLEMENTS_HPP
+#ifndef RAINY_CORE_TYPE_TRAITS_IMPLEMENTS_HPP
+#define RAINY_CORE_TYPE_TRAITS_IMPLEMENTS_HPP
 #include <cstdlib>
 #include <rainy/core/platform.hpp>
 
@@ -693,5 +693,102 @@ namespace rainy::type_traits::implements {
 #if RAINY_USING_MSVC
 #pragma warning(pop)
 #endif
+
+namespace rainy::utility {
+    using core::builtin::addressof;
+    using core::builtin::construct_at;
+    using core::builtin::forward;
+
+    /**
+     * @brief Constructs an object in-place at the given memory location.
+     *        在给定的内存位置就地构造对象。
+     *
+     * @tparam Ty Type of object to construct
+     *            要构造的对象类型
+     * @tparam Args Constructor argument types
+     *               构造函数参数类型
+     * @param object Reference to memory location where object will be constructed
+     *               指向将要构造对象的内存位置的引用
+     * @param args Constructor arguments to forward
+     *              要转发的构造函数参数
+     * @throws noexcept if Ty's constructor is noexcept
+     *                  如果 Ty 的构造函数是 noexcept 则不抛出异常
+     */
+    template <typename Ty, typename... Args>
+    RAINY_CONSTEXPR20 rain_fn
+    construct_in_place(Ty &object, Args &&...args) noexcept(type_traits::implements::is_nothrow_constructible_v<Ty, Args...>) -> void {
+#if RAINY_HAS_CXX20
+        if (std::is_constant_evaluated()) {
+            std::construct_at(utility::addressof(object), utility::forward<Args>(args)...);
+            return;
+        }
+#endif
+        ::new (static_cast<void *>(utility::addressof(object))) Ty(utility::forward<Args>(args)...);
+    }
+
+    /**
+     * @brief Destroys an object at the given pointer location.
+     *        销毁给定指针位置的对象。
+     *
+     * @tparam Ty Type of object to destroy
+     *            要销毁的对象类型
+     * @param ptr Pointer to the object to destroy
+     *            指向要销毁对象的指针
+     * @throws noexcept Always noexcept
+     *                  始终不抛出异常
+     */
+    template <typename Ty>
+    RAINY_CONSTEXPR20 rain_fn destroy_at(Ty *ptr) noexcept -> void {
+#if RAINY_HAS_CXX20
+        if (std::is_constant_evaluated()) {
+            std::destroy_at(ptr);
+            return;
+        }
+#endif
+        if constexpr (!type_traits::implements::_is_trivially_destructible_v<Ty>) {
+            ptr->~Ty();
+        }
+    }
+
+    /**
+     * @brief Destroys a range of objects from first to last.
+     *        销毁从 first 到 last 范围内的对象。
+     *
+     * @tparam Ty Type of objects to destroy
+     *            要销毁的对象类型
+     * @param first Pointer to the first object in the range
+     *              指向范围内第一个对象的指针
+     * @param last Pointer to one past the last object in the range
+     *             指向范围内最后一个对象之后位置的指针
+     * @throws noexcept Always noexcept
+     *                  始终不抛出异常
+     */
+    template <typename Ty>
+    RAINY_CONSTEXPR20 rain_fn destroy_range(Ty *first, Ty *last) noexcept -> void {
+        if constexpr (!type_traits::implements::_is_trivially_destructible_v<Ty>) {
+            for (Ty *ptr = first; ptr != last; ++ptr) {
+                destroy_at(ptr);
+            }
+        }
+    }
+
+    /**
+     * @brief Destroys a range of objects (alias for destroy_range).
+     *        销毁范围内的对象（destroy_range 的别名）。
+     *
+     * @tparam Ty Type of objects to destroy
+     *            要销毁的对象类型
+     * @param first Pointer to the first object in the range
+     *              指向范围内第一个对象的指针
+     * @param last Pointer to one past the last object in the range
+     *             指向范围内最后一个对象之后位置的指针
+     * @throws noexcept Always noexcept
+     *                  始终不抛出异常
+     */
+    template <typename Ty>
+    RAINY_CONSTEXPR20 rain_fn destroy(Ty *first, Ty *last) noexcept -> void {
+        destroy_range(first, last);
+    }
+}
 
 #endif

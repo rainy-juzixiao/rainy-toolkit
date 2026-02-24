@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef RAINY_CORE_TMP_TYPE_RELATIONS_HPP
-#define RAINY_CORE_TMP_TYPE_RELATIONS_HPP
+#ifndef RAINY_CORE_TYPE_TRAITS_TYPE_RELATIONS_HPP
+#define RAINY_CORE_TYPE_TRAITS_TYPE_RELATIONS_HPP
 #include <rainy/core/type_traits/implements.hpp>
 
 // 类型关系

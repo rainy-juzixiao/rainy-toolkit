@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef RAINY_CORE_TMP_HELPER_HPP
-#define RAINY_CORE_TMP_HELPER_HPP
+#ifndef RAINY_CORE_TYPE_TRAITS_HELPER_HPP
+#define RAINY_CORE_TYPE_TRAITS_HELPER_HPP
 #include <rainy/core/type_traits/implements.hpp>
 #include <rainy/core/type_traits/modifers.hpp>
 

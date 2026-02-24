@@ -16,10 +16,10 @@
 #ifndef RAINY_CORE_IMPLEMENTS_COLLECTIONS_ARRAY_HPP
 #define RAINY_CORE_IMPLEMENTS_COLLECTIONS_ARRAY_HPP
 #include <array>
-#include <rainy/core/implements/basic_algorithm.hpp>
-#include <rainy/core/implements/reverse_iterator.hpp>
 #include <rainy/core/platform.hpp>
 #include <rainy/core/type_traits.hpp>
+#include <rainy/core/implements/basic_algorithm.hpp>
+#include <rainy/core/implements/reverse_iterator.hpp>
 #include <tuple>
 
 namespace rainy::collections {
