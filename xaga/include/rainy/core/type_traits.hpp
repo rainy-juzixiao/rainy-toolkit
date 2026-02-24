@@ -18,17 +18,17 @@
 #include <iterator>
 #include <rainy/core/implements/basic_algorithm.hpp>
 #include <rainy/core/platform.hpp>
-#include <rainy/core/tmp/helper.hpp>
-#include <rainy/core/tmp/implements.hpp>
-#include <rainy/core/tmp/iter_traits.hpp>
-#include <rainy/core/tmp/limits.hpp>
-#include <rainy/core/tmp/meta_methods.hpp>
-#include <rainy/core/tmp/meta_types.hpp>
-#include <rainy/core/tmp/modifers.hpp>
-#include <rainy/core/tmp/ranges_traits.hpp>
-#include <rainy/core/tmp/type_list.hpp>
-#include <rainy/core/tmp/type_relations.hpp>
-#include <rainy/core/tmp/value_list.hpp>
+#include <rainy/core/type_traits/helper.hpp>
+#include <rainy/core/type_traits/implements.hpp>
+#include <rainy/core/type_traits/iter_traits.hpp>
+#include <rainy/core/type_traits/limits.hpp>
+#include <rainy/core/type_traits/meta_methods.hpp>
+#include <rainy/core/type_traits/meta_types.hpp>
+#include <rainy/core/type_traits/modifers.hpp>
+#include <rainy/core/type_traits/ranges_traits.hpp>
+#include <rainy/core/type_traits/type_list.hpp>
+#include <rainy/core/type_traits/type_relations.hpp>
+#include <rainy/core/type_traits/value_list.hpp>
 #include <utility>
 #if RAINY_USING_GCC
 #include <rainy/core/gnu/typetraits.hpp>
@@ -7214,56 +7214,310 @@ namespace rainy::utility {
 }
 
 namespace rainy::utility::cpp_methods {
+    /**
+     * @brief String representation of operator+
+     *        operator+ 的字符串表示
+     */
     static constexpr std::string_view method_operator_add = "operator+";
+
+    /**
+     * @brief String representation of operator-
+     *        operator- 的字符串表示
+     */
     static constexpr std::string_view method_operator_sub = "operator-";
+
+    /**
+     * @brief String representation of operator*
+     *        operator* 的字符串表示
+     */
     static constexpr std::string_view method_operator_mul = "operator*";
+
+    /**
+     * @brief String representation of operator/
+     *        operator/ 的字符串表示
+     */
     static constexpr std::string_view method_operator_div = "operator/";
+
+    /**
+     * @brief String representation of operator%
+     *        operator% 的字符串表示
+     */
     static constexpr std::string_view method_operator_mod = "operator%";
+
+    /**
+     * @brief String representation of operator==
+     *        operator== 的字符串表示
+     */
     static constexpr std::string_view method_operator_eq = "operator==";
+
+    /**
+     * @brief String representation of operator!=
+     *        operator!= 的字符串表示
+     */
     static constexpr std::string_view method_operator_neq = "operator!=";
+
+    /**
+     * @brief String representation of operator<
+     *        operator< 的字符串表示
+     */
     static constexpr std::string_view method_operator_lt = "operator<";
+
+    /**
+     * @brief String representation of operator>
+     *        operator> 的字符串表示
+     */
     static constexpr std::string_view method_operator_gt = "operator>";
+
+    /**
+     * @brief String representation of operator<=
+     *        operator<= 的字符串表示
+     */
     static constexpr std::string_view method_operator_le = "operator<=";
+
+    /**
+     * @brief String representation of operator>=
+     *        operator>= 的字符串表示
+     */
     static constexpr std::string_view method_operator_ge = "operator>=";
+
+    /**
+     * @brief String representation of operator=
+     *        operator= 的字符串表示
+     */
     static constexpr std::string_view method_operator_assign = "operator=";
+
+    /**
+     * @brief String representation of operator[]
+     *        operator[] 的字符串表示
+     */
     static constexpr std::string_view method_operator_index = "operator[]";
+
+    /**
+     * @brief String representation of operator()
+     *        operator() 的字符串表示
+     */
     static constexpr std::string_view method_operator_call = "operator()";
+
+    /**
+     * @brief String representation of operator->
+     *        operator-> 的字符串表示
+     */
     static constexpr std::string_view method_operator_arrow = "operator->";
+
+    /**
+     * @brief String representation of operator* (dereference)
+     *        operator*（解引用）的字符串表示
+     */
     static constexpr std::string_view method_operator_deref = "operator*";
+
+    /**
+     * @brief String representation of operator& (address-of)
+     *        operator&（取地址）的字符串表示
+     */
     static constexpr std::string_view method_operator_addr = "operator&";
+
+    /**
+     * @brief String representation of operator++ (prefix)
+     *        operator++（前缀）的字符串表示
+     */
     static constexpr std::string_view method_operator_preinc = "operator++";
+
+    /**
+     * @brief String representation of operator++ (postfix)
+     *        operator++（后缀）的字符串表示
+     */
     static constexpr std::string_view method_operator_postinc = "operator++(int)";
+
+    /**
+     * @brief String representation of operator-- (prefix)
+     *        operator--（前缀）的字符串表示
+     */
     static constexpr std::string_view method_operator_predec = "operator--";
+
+    /**
+     * @brief String representation of operator-- (postfix)
+     *        operator--（后缀）的字符串表示
+     */
     static constexpr std::string_view method_operator_postdec = "operator--(int)";
+
+    /**
+     * @brief String representation of operator||
+     *        operator|| 的字符串表示
+     */
     static constexpr std::string_view method_operator_or = "operator||";
+
+    /**
+     * @brief String representation of operator&&
+     *        operator&& 的字符串表示
+     */
     static constexpr std::string_view method_operator_and = "operator&&";
+
+    /**
+     * @brief String representation of operator!
+     *        operator! 的字符串表示
+     */
     static constexpr std::string_view method_operator_not = "operator!";
+
+    /**
+     * @brief String representation of operator|
+     *        operator| 的字符串表示
+     */
     static constexpr std::string_view method_operator_bit_or = "operator|";
+
+    /**
+     * @brief String representation of operator& (bitwise AND)
+     *        operator&（按位与）的字符串表示
+     */
     static constexpr std::string_view method_operator_bit_and = "operator&";
+
+    /**
+     * @brief String representation of operator^
+     *        operator^ 的字符串表示
+     */
     static constexpr std::string_view method_operator_bit_xor = "operator^";
+
+    /**
+     * @brief String representation of operator~
+     *        operator~ 的字符串表示
+     */
     static constexpr std::string_view method_operator_bit_not = "operator~";
+
+    /**
+     * @brief String representation of operator<<
+     *        operator<< 的字符串表示
+     */
     static constexpr std::string_view method_operator_shift_l = "operator<<";
+
+    /**
+     * @brief String representation of operator>>
+     *        operator>> 的字符串表示
+     */
     static constexpr std::string_view method_operator_shift_r = "operator>>";
+
+    /**
+     * @brief String representation of begin()
+     *        begin() 的字符串表示
+     */
     static constexpr std::string_view method_begin = "begin";
+
+    /**
+     * @brief String representation of end()
+     *        end() 的字符串表示
+     */
     static constexpr std::string_view method_end = "end";
+
+    /**
+     * @brief String representation of cbegin()
+     *        cbegin() 的字符串表示
+     */
     static constexpr std::string_view method_cbegin = "cbegin";
+
+    /**
+     * @brief String representation of cend()
+     *        cend() 的字符串表示
+     */
     static constexpr std::string_view method_cend = "cend";
+
+    /**
+     * @brief String representation of rbegin()
+     *        rbegin() 的字符串表示
+     */
     static constexpr std::string_view method_rbegin = "rbegin";
+
+    /**
+     * @brief String representation of rend()
+     *        rend() 的字符串表示
+     */
     static constexpr std::string_view method_rend = "rend";
+
+    /**
+     * @brief String representation of size()
+     *        size() 的字符串表示
+     */
     static constexpr std::string_view method_size = "size";
+
+    /**
+     * @brief String representation of empty()
+     *        empty() 的字符串表示
+     */
     static constexpr std::string_view method_empty = "empty";
+
+    /**
+     * @brief String representation of clear()
+     *        clear() 的字符串表示
+     */
     static constexpr std::string_view method_clear = "clear";
+
+    /**
+     * @brief String representation of push_back()
+     *        push_back() 的字符串表示
+     */
     static constexpr std::string_view method_push_back = "push_back";
+
+    /**
+     * @brief String representation of pop_back()
+     *        pop_back() 的字符串表示
+     */
     static constexpr std::string_view method_pop_back = "pop_back";
+
+    /**
+     * @brief String representation of length()
+     *        length() 的字符串表示
+     */
     static constexpr std::string_view method_length = "length";
+
+    /**
+     * @brief String representation of insert()
+     *        insert() 的字符串表示
+     */
     static constexpr std::string_view method_insert = "insert";
+
+    /**
+     * @brief String representation of erase()
+     *        erase() 的字符串表示
+     */
     static constexpr std::string_view method_erase = "erase";
+
+    /**
+     * @brief String representation of find()
+     *        find() 的字符串表示
+     */
     static constexpr std::string_view method_find = "find";
+
+    /**
+     * @brief String representation of resize()
+     *        resize() 的字符串表示
+     */
     static constexpr std::string_view method_resize = "resize";
+
+    /**
+     * @brief String representation of swap()
+     *        swap() 的字符串表示
+     */
     static constexpr std::string_view method_swap = "swap";
+
+    /**
+     * @brief String representation of at()
+     *        at() 的字符串表示
+     */
     static constexpr std::string_view method_at = "at";
+
+    /**
+     * @brief String representation of front()
+     *        front() 的字符串表示
+     */
     static constexpr std::string_view method_front = "front";
+
+    /**
+     * @brief String representation of back()
+     *        back() 的字符串表示
+     */
     static constexpr std::string_view method_back = "back";
+
+    /**
+     * @brief String representation of append()
+     *        append() 的字符串表示
+     */
     static constexpr std::string_view method_append = "append";
 }
 

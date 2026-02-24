@@ -16,8 +16,8 @@
 #ifndef RAINY_CORE_IMPLEMENTS_BASIC_ALGORITHM_HPP
 #define RAINY_CORE_IMPLEMENTS_BASIC_ALGORITHM_HPP
 #include <algorithm>
-#include <rainy/core/tmp/implements.hpp>
-#include <rainy/core/tmp/iter_traits.hpp>
+#include <rainy/core/type_traits/implements.hpp>
+#include <rainy/core/type_traits/iter_traits.hpp>
 
 namespace rainy::core::algorithm {
     template<class ForwardIt1, class ForwardIt2>

@@ -2,7 +2,7 @@
 #define RAINY_META_TMP_VALUE_LIST_HPP
 #include <cstddef> // For std::size_t
 #include <rainy/core/platform.hpp>
-#include <rainy/core/tmp/helper.hpp>
+#include <rainy/core/type_traits/helper.hpp>
 
 namespace rainy::type_traits::implements {
     template <std::size_t N, auto... Values>

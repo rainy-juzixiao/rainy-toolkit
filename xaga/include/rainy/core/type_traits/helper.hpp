@@ -15,8 +15,8 @@
  */
 #ifndef RAINY_CORE_TMP_HELPER_HPP
 #define RAINY_CORE_TMP_HELPER_HPP
-#include <rainy/core/tmp/implements.hpp>
-#include <rainy/core/tmp/modifers.hpp>
+#include <rainy/core/type_traits/implements.hpp>
+#include <rainy/core/type_traits/modifers.hpp>
 
 namespace rainy::type_traits::helper {
     template <typename Ty>

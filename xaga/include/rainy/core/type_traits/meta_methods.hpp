@@ -16,7 +16,7 @@
 #ifndef RAINY_CORE_TMP_META_METHOD_HPP
 #define RAINY_CORE_TMP_META_METHOD_HPP
 #include <rainy/core/platform.hpp>
-#include <rainy/core/tmp/implements.hpp>
+#include <rainy/core/type_traits/implements.hpp>
 
 namespace rainy::type_traits::extras::meta_method {
     template <typename Ty, typename = void>

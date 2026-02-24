@@ -15,7 +15,7 @@
  */
 #ifndef RAINY_CORE_TMP_TYPE_RELATIONS_HPP
 #define RAINY_CORE_TMP_TYPE_RELATIONS_HPP
-#include <rainy/core/tmp/implements.hpp>
+#include <rainy/core/type_traits/implements.hpp>
 
 // 类型关系
 namespace rainy::type_traits::type_relations {

@@ -17,7 +17,7 @@
 #define RAINY_CORE_TMP_META_TYPE_HPP
 
 #include <rainy/core/platform.hpp>
-#include <rainy/core/tmp/implements.hpp>
+#include <rainy/core/type_traits/implements.hpp>
 
 namespace rainy::type_traits::extras::meta_types {
     template <typename Ty, typename = void>
