@@ -1101,7 +1101,7 @@ namespace rainy::utility::implements {
                                  type_traits::helper::index_sequence<Is...>) {
         using namespace type_traits::other_trans;
         using fn_traits = type_traits::primary_types::function_traits<Fx>;
-        using type_list = typename tuple_like_to_type_list<typename fn_traits::tuple_like_type>::type;
+        using type_list = typename fn_traits::argument_list;
         utility::invoke(
             utility::forward<Fx>(handler),
             utility::forward<conditional_t<Const, type_traits::cv_modify::add_const_t<typename type_at<Is, type_list>::type>,

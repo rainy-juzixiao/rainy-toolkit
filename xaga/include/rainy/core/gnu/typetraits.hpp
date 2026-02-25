@@ -1,7 +1,7 @@
 #ifndef RAINY_CORE_GNU_TYPETRAITS_HPP
 #define RAINY_CORE_GNU_TYPETRAITS_HPP
 
-#include <rainy/core/tmp/implements.hpp>
+#include <rainy/core/type_traits/implements.hpp>
 
 #if RAINY_USING_GCC
 /*

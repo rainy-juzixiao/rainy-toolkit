@@ -417,9 +417,7 @@ namespace rainy::foundation::functional::implements {
 
     template <typename Fx>
     struct get_delegate_impl {
-        using type = delegate_impl<Fx, typename type_traits::primary_types::function_traits<Fx>::return_type,
-                                   typename type_traits::other_trans::tuple_like_to_type_list<
-                                       typename type_traits::primary_types::function_traits<Fx>::tuple_like_type>::type>;
+        using type = delegate_impl<Fx, typename type_traits::primary_types::function_traits<Fx>::return_type, typename type_traits::primary_types::function_traits<Fx>::argument_list>;
     };
 }
 

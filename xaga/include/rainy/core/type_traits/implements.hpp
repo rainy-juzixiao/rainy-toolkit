@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef RAINY_CORE_TMP_IMPLEMENTS_HPP
-#define RAINY_CORE_TMP_IMPLEMENTS_HPP
+#ifndef RAINY_CORE_TYPE_TRAITS_IMPLEMENTS_HPP
+#define RAINY_CORE_TYPE_TRAITS_IMPLEMENTS_HPP
 #include <cstdlib>
 #include <rainy/core/platform.hpp>
 
@@ -466,6 +466,21 @@ namespace rainy::type_traits::implements {
 }
 
 namespace rainy::utility {
+    /**
+     * @brief Returns an rvalue reference to a type without constructing an object.
+     *        返回类型的右值引用而不构造对象。
+     *
+     * This function is intended for use in unevaluated contexts only, such as decltype,
+     * sizeof, or noexcept expressions. Calling this function results in a compile-time error.
+     *
+     * 此函数仅用于未求值上下文中，如decltype、sizeof或noexcept表达式。
+     * 调用此函数会导致编译时错误。
+     *
+     * @tparam Ty The type to get a reference to
+     *            要获取引用的类型
+     * @return An rvalue reference to type Ty
+     *         类型Ty的右值引用
+     */
     template <typename Ty>
     rain_fn declval() noexcept -> type_traits::implements::_add_rvalue_reference_t<Ty> {
         static_assert(type_traits::implements::always_false<Ty>, "Calling declval is ill-formed.");
@@ -533,42 +548,68 @@ namespace rainy::type_traits::implements {
 
 namespace rainy::utility {
     /**
-     * @brief 将对象转换为右值引用以实现移动语义。
+     * @brief Converts an object to an rvalue reference for move semantics.
+     *        将对象转换为右值引用以实现移动语义。
      *
-     * @tparam Ty 要转换的对象的类型。
-     * @param arg 要转换为右值引用的对象。
-     * @return 返回类型为 `remove_reference_t_<Ty>&&` 的右值引用对象。
+     * @tparam Ty The type of the object to convert.
+     *            要转换的对象的类型。
+     * @param arg The object to convert to an rvalue reference.
+     *            要转换为右值引用的对象。
+     * @return An rvalue reference of type `remove_reference_t_<Ty>&&`.
+     *         返回类型为 `remove_reference_t_<Ty>&&` 的右值引用对象。
      *
      * @remark
+     * This function is used to implement move semantics by converting an object
+     * to an rvalue reference, allowing resource transfer instead of copying.
+     *
      * 该函数用于实现移动语义（move semantics），通过将对象转换为右值引用以允许资源移动而非拷贝。
      *
      * @attention
-     * 移动语义通常用于优化对象的复制，尤其是在对象不再需要其原始值时。请注意对象在移动后不可再安全使用。
+     * Move semantics are typically used to optimize copying, especially when the
+     * original value is no longer needed. Note that the moved-from object is in
+     * a valid but unspecified state and should not be used without reinitialization.
+     *
+     * 移动语义通常用于优化对象的复制，尤其是在对象不再需要其原始值时。
+     * 请注意对象在移动后处于有效但未指定的状态，未重新初始化前不可再安全使用。
      */
     template <typename Ty>
-    RAINY_NODISCARD constexpr type_traits::implements::remove_reference_t<Ty> &&move(Ty &&arg) noexcept {
+    RAINY_NODISCARD constexpr rain_fn move(Ty &&arg) noexcept -> type_traits::implements::remove_reference_t<Ty> && {
         return static_cast<type_traits::implements::remove_reference_t<Ty> &&>(arg);
     }
 
     /**
-     * @brief 交换对象的值并返回旧值。
+     * @brief Exchanges the value of an object and returns the old value.
+     *        交换对象的值并返回旧值。
      *
-     * @tparam Ty 交换的对象的类型。
-     * @tparam Other 新值的类型，默认为 `Ty`。
-     * @param val 要被交换的对象。
-     * @param new_val 用于替换的对象的新值。
-     * @return 返回被交换的对象的旧值。
+     * @tparam Ty The type of the object to exchange.
+     *            被交换的对象的类型。
+     * @tparam Other The type of the new value, defaults to `Ty`.
+     *               新值的类型，默认为 `Ty`。
+     * @param val The object to be exchanged.
+     *            要被交换的对象。
+     * @param new_val The new value to replace the object's current value.
+     *                用于替换的对象的新值。
+     * @return The old value of the exchanged object.
+     *         返回被交换的对象的旧值。
      *
      * @remark
+     * This function saves the current value of `val` as `old_val`, then sets `val`
+     * to `new_val`, and finally returns `old_val`.
+     *
      * 该函数将 `val` 的当前值保存为 `old_val`，然后将 `val` 设置为 `new_val`，最后返回 `old_val`。
      *
      * @attention
+     * When using this function, ensure that `val` and `new_val` are move-constructible
+     * and assignable to avoid potential exceptions. This function requires that
+     * `Ty` is move-constructible and that `Ty&` is assignable from type `Other`.
+     *
      * 使用此函数时，需要确保 `val` 和 `new_val` 的类型是可移动构造和可赋值的，以避免潜在的异常。
-     * 因为此函数要求实例化类型的Ty是可移动构造，且Ty的左值引用是能赋值给Other类型的
+     * 因为此函数要求实例化类型的Ty是可移动构造，且Ty的左值引用是能赋值给Other类型的。
      */
     template <typename Ty, typename Other = Ty>
-    constexpr Ty exchange(Ty &val, Other &&new_val) noexcept(type_traits::implements::is_nothrow_move_constructible_v<Ty> &&
-                                                             type_traits::implements::_is_nothrow_assignable_v<Ty &, Other>) {
+    constexpr rain_fn exchange(Ty &val, Other &&new_val) noexcept(type_traits::implements::is_nothrow_move_constructible_v<Ty> &&
+                                                                  type_traits::implements::_is_nothrow_assignable_v<Ty &, Other>)
+        -> Ty {
         Ty old_val = static_cast<Ty &&>(val);
         val = static_cast<Other &&>(new_val);
         return old_val;
@@ -671,6 +712,37 @@ namespace rainy::type_traits::implements {
 }
 
 namespace rainy::utility {
+    /**
+     * @brief Conditionally casts an object to an rvalue reference, falling back to const lvalue reference if move might throw.
+     *        有条件地将对象转换为右值引用，如果移动操作可能抛出异常则回退到常量左值引用。
+     *
+     * @tparam Ty The type of the object to convert.
+     *            要转换的对象的类型。
+     * @param arg The object to convert.
+     *            要转换的对象。
+     * @return Either an rvalue reference (`Ty&&`) if `Ty` is nothrow move constructible,
+     *         or a const lvalue reference (`const Ty&`) if `Ty` is copy constructible but move might throw.
+     *         如果 `Ty` 是不抛异常的移动可构造，则返回右值引用（`Ty&&`）；
+     *         如果 `Ty` 是可拷贝构造但移动可能抛出异常，则返回常量左值引用（`const Ty&`）。
+     *
+     * @remark
+     * This function is useful in generic code where strong exception safety is required.
+     * It ensures that if a move operation might throw, we instead use a copy operation
+     * to maintain the strong exception guarantee.
+     *
+     * 此函数在需要强异常安全保证的泛型代码中非常有用。
+     * 它确保如果移动操作可能抛出异常，我们改用拷贝操作来维持强异常保证。
+     *
+     * @attention
+     * - If `Ty` is nothrow move constructible, returns `Ty&&` (move semantics)
+     * - If `Ty` is not nothrow move constructible but is copy constructible, returns `const Ty&` (copy semantics)
+     * - If neither condition is satisfied, this function participates in overload resolution
+     *   but using it would be ill-formed
+     *
+     * - 如果 `Ty` 是不抛异常的移动可构造，返回 `Ty&&`（移动语义）
+     * - 如果 `Ty` 不是不抛异常的移动可构造但是可拷贝构造，返回 `const Ty&`（拷贝语义）
+     * - 如果两个条件都不满足，此函数参与重载决议但使用它会导致格式错误
+     */
     template <typename Ty>
     RAINY_NODISCARD constexpr rain_fn move_if_noexcept(Ty &arg) noexcept
         -> type_traits::other_trans::conditional_t<!type_traits::implements::is_nothrow_move_constructible_v<Ty> &&
@@ -693,5 +765,102 @@ namespace rainy::type_traits::implements {
 #if RAINY_USING_MSVC
 #pragma warning(pop)
 #endif
+
+namespace rainy::utility {
+    using core::builtin::addressof;
+    using core::builtin::construct_at;
+    using core::builtin::forward;
+
+    /**
+     * @brief Constructs an object in-place at the given memory location.
+     *        在给定的内存位置就地构造对象。
+     *
+     * @tparam Ty Type of object to construct
+     *            要构造的对象类型
+     * @tparam Args Constructor argument types
+     *               构造函数参数类型
+     * @param object Reference to memory location where object will be constructed
+     *               指向将要构造对象的内存位置的引用
+     * @param args Constructor arguments to forward
+     *              要转发的构造函数参数
+     * @throws noexcept if Ty's constructor is noexcept
+     *                  如果 Ty 的构造函数是 noexcept 则不抛出异常
+     */
+    template <typename Ty, typename... Args>
+    RAINY_CONSTEXPR20 rain_fn
+    construct_in_place(Ty &object, Args &&...args) noexcept(type_traits::implements::is_nothrow_constructible_v<Ty, Args...>) -> void {
+#if RAINY_HAS_CXX20
+        if (std::is_constant_evaluated()) {
+            std::construct_at(utility::addressof(object), utility::forward<Args>(args)...);
+            return;
+        }
+#endif
+        ::new (static_cast<void *>(utility::addressof(object))) Ty(utility::forward<Args>(args)...);
+    }
+
+    /**
+     * @brief Destroys an object at the given pointer location.
+     *        销毁给定指针位置的对象。
+     *
+     * @tparam Ty Type of object to destroy
+     *            要销毁的对象类型
+     * @param ptr Pointer to the object to destroy
+     *            指向要销毁对象的指针
+     * @throws noexcept Always noexcept
+     *                  始终不抛出异常
+     */
+    template <typename Ty>
+    RAINY_CONSTEXPR20 rain_fn destroy_at(Ty *ptr) noexcept -> void {
+#if RAINY_HAS_CXX20
+        if (std::is_constant_evaluated()) {
+            std::destroy_at(ptr);
+            return;
+        }
+#endif
+        if constexpr (!type_traits::implements::_is_trivially_destructible_v<Ty>) {
+            ptr->~Ty();
+        }
+    }
+
+    /**
+     * @brief Destroys a range of objects from first to last.
+     *        销毁从 first 到 last 范围内的对象。
+     *
+     * @tparam Ty Type of objects to destroy
+     *            要销毁的对象类型
+     * @param first Pointer to the first object in the range
+     *              指向范围内第一个对象的指针
+     * @param last Pointer to one past the last object in the range
+     *             指向范围内最后一个对象之后位置的指针
+     * @throws noexcept Always noexcept
+     *                  始终不抛出异常
+     */
+    template <typename Ty>
+    RAINY_CONSTEXPR20 rain_fn destroy_range(Ty *first, Ty *last) noexcept -> void {
+        if constexpr (!type_traits::implements::_is_trivially_destructible_v<Ty>) {
+            for (Ty *ptr = first; ptr != last; ++ptr) {
+                destroy_at(ptr);
+            }
+        }
+    }
+
+    /**
+     * @brief Destroys a range of objects (alias for destroy_range).
+     *        销毁范围内的对象（destroy_range 的别名）。
+     *
+     * @tparam Ty Type of objects to destroy
+     *            要销毁的对象类型
+     * @param first Pointer to the first object in the range
+     *              指向范围内第一个对象的指针
+     * @param last Pointer to one past the last object in the range
+     *             指向范围内最后一个对象之后位置的指针
+     * @throws noexcept Always noexcept
+     *                  始终不抛出异常
+     */
+    template <typename Ty>
+    RAINY_CONSTEXPR20 rain_fn destroy(Ty *first, Ty *last) noexcept -> void {
+        destroy_range(first, last);
+    }
+}
 
 #endif

@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 rainy-juzixiao
+ * Copyright 2026 rainy-juzixiao
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,18 +16,50 @@
 #ifndef RAINY_CORE_IMPLEMENTS_BASIC_ALGORITHM_HPP
 #define RAINY_CORE_IMPLEMENTS_BASIC_ALGORITHM_HPP
 #include <algorithm>
-#include <rainy/core/tmp/implements.hpp>
-#include <rainy/core/tmp/iter_traits.hpp>
+#include <rainy/core/type_traits/implements.hpp>
+#include <rainy/core/type_traits/iter_traits.hpp>
 
 namespace rainy::core::algorithm {
-    template<class ForwardIt1, class ForwardIt2>
-    RAINY_CONSTEXPR20 ForwardIt2 swap_ranges(ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2) {
+    /**
+     * @brief Swaps elements between two ranges.
+     *        交换两个范围之间的元素。
+     *
+     * @tparam ForwardIt1 Forward iterator type for the first range
+     *                    第一个范围的前向迭代器类型
+     * @tparam ForwardIt2 Forward iterator type for the second range
+     *                    第二个范围的前向迭代器类型
+     * @param first1 Iterator to the beginning of the first range
+     *               指向第一个范围起始的迭代器
+     * @param last1 Iterator to the end of the first range
+     *              指向第一个范围末尾的迭代器
+     * @param first2 Iterator to the beginning of the second range
+     *               指向第二个范围起始的迭代器
+     * @return Iterator to the element past the last swapped element in the second range
+     *         指向第二个范围中最后一个被交换元素之后位置的迭代器
+     */
+    template <class ForwardIt1, class ForwardIt2>
+    RAINY_CONSTEXPR20 rain_fn swap_ranges(ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2) -> ForwardIt2 {
         for (; first1 != last1; ++first1, ++first2) {
             std::iter_swap(first1, first2);
         }
         return first2;
     }
 
+    /**
+     * @brief Assigns the given value to all elements in a range.
+     *        将给定值赋值给范围内的所有元素。
+     *
+     * @tparam Iter Iterator type
+     *              迭代器类型
+     * @tparam Ty Value type
+     *            值类型
+     * @param first Iterator to the beginning of the range
+     *              指向范围起始的迭代器
+     * @param end Iterator to the end of the range
+     *            指向范围末尾的迭代器
+     * @param value The value to assign
+     *              要赋值的值
+     */
     template <typename Iter, typename Ty = typename utility::iterator_traits<Iter>::value_type>
     constexpr rain_fn fill(Iter first, Iter end, const Ty &value) -> void {
         for (; first != end; ++first) {
@@ -35,6 +67,25 @@ namespace rainy::core::algorithm {
         }
     }
 
+    /**
+     * @brief Assigns the given value to the first count elements in a range.
+     *        将给定值赋值给范围内的前count个元素。
+     *
+     * @tparam Iter Iterator type
+     *              迭代器类型
+     * @tparam Size Size type (integral)
+     *              大小类型（整型）
+     * @tparam Ty Value type
+     *            值类型
+     * @param first Iterator to the beginning of the range
+     *              指向范围起始的迭代器
+     * @param count Number of elements to fill
+     *              要填充的元素数量
+     * @param value The value to assign
+     *              要赋值的值
+     * @return Iterator one past the last element filled
+     *         指向最后一个被填充元素之后位置的迭代器
+     */
     template <typename Iter, typename Size, typename Ty = typename utility::iterator_traits<Iter>::value_type>
     constexpr rain_fn fill_n(Iter first, Size count, const Ty &value) -> Iter {
         for (Size i = 0; i < count; ++i) {
@@ -43,6 +94,23 @@ namespace rainy::core::algorithm {
         return first;
     }
 
+    /**
+     * @brief Checks if a predicate is true for all elements in a range.
+     *        检查谓词是否对范围内的所有元素都为真。
+     *
+     * @tparam Iter Iterator type
+     *              迭代器类型
+     * @tparam Pred Predicate type
+     *              谓词类型
+     * @param first Iterator to the beginning of the range
+     *              指向范围起始的迭代器
+     * @param last Iterator to the end of the range
+     *            指向范围末尾的迭代器
+     * @param pred Predicate to apply
+     *             要应用的谓词
+     * @return true if pred is true for all elements, false otherwise
+     *         如果所有元素都满足谓词则为true，否则为false
+     */
     template <typename Iter, typename Pred>
     RAINY_NODISCARD constexpr rain_fn all_of(Iter first, Iter last, Pred pred) -> bool {
         for (; first != last; ++first) {
@@ -53,6 +121,23 @@ namespace rainy::core::algorithm {
         return true;
     }
 
+    /**
+     * @brief Checks if a predicate is true for any element in a range.
+     *        检查谓词是否对范围内的任意元素为真。
+     *
+     * @tparam Iter Iterator type
+     *              迭代器类型
+     * @tparam Pred Predicate type
+     *              谓词类型
+     * @param first Iterator to the beginning of the range
+     *              指向范围起始的迭代器
+     * @param last Iterator to the end of the range
+     *            指向范围末尾的迭代器
+     * @param pred Predicate to apply
+     *             要应用的谓词
+     * @return true if pred is true for any element, false otherwise
+     *         如果任意元素满足谓词则为true，否则为false
+     */
     template <typename Iter, typename Pred>
     RAINY_NODISCARD constexpr rain_fn any_of(Iter first, Iter last, Pred pred) -> bool {
         for (; first != last; ++first) {
@@ -63,6 +148,23 @@ namespace rainy::core::algorithm {
         return false;
     }
 
+    /**
+     * @brief Checks if a predicate is true for no elements in a range.
+     *        检查谓词是否对范围内没有元素为真。
+     *
+     * @tparam Iter Iterator type
+     *              迭代器类型
+     * @tparam Pred Predicate type
+     *              谓词类型
+     * @param first Iterator to the beginning of the range
+     *              指向范围起始的迭代器
+     * @param last Iterator to the end of the range
+     *            指向范围末尾的迭代器
+     * @param pred Predicate to apply
+     *             要应用的谓词
+     * @return true if pred is false for all elements, false otherwise
+     *         如果所有元素都不满足谓词则为true，否则为false
+     */
     template <typename Iter, typename Pred>
     RAINY_NODISCARD constexpr rain_fn none_of(Iter first, Iter last, Pred pred) -> bool {
         for (; first != last; ++first) {
@@ -73,6 +175,23 @@ namespace rainy::core::algorithm {
         return true;
     }
 
+    /**
+     * @brief Finds the first occurrence of a value in a range.
+     *        查找范围内第一次出现的值。
+     *
+     * @tparam Iter Iterator type
+     *              迭代器类型
+     * @tparam Ty Value type
+     *            值类型
+     * @param first Iterator to the beginning of the range
+     *              指向范围起始的迭代器
+     * @param last Iterator to the end of the range
+     *            指向范围末尾的迭代器
+     * @param value The value to find
+     *              要查找的值
+     * @return Iterator to the first element equal to value, or last if not found
+     *         指向第一个等于value的元素的迭代器，如果未找到则返回last
+     */
     template <typename Iter, typename Ty = typename utility::iterator_traits<Iter>::value_type>
     constexpr rain_fn find(Iter first, Iter last, const Ty &value) -> Iter {
         for (; first != last; ++first) {
@@ -83,6 +202,23 @@ namespace rainy::core::algorithm {
         return last;
     }
 
+    /**
+     * @brief Finds the first element satisfying a predicate.
+     *        查找第一个满足谓词的元素。
+     *
+     * @tparam Iter Iterator type
+     *              迭代器类型
+     * @tparam Pred Predicate type
+     *              谓词类型
+     * @param first Iterator to the beginning of the range
+     *              指向范围起始的迭代器
+     * @param last Iterator to the end of the range
+     *            指向范围末尾的迭代器
+     * @param pred Predicate to apply
+     *             要应用的谓词
+     * @return Iterator to the first element satisfying pred, or last if not found
+     *         指向第一个满足pred的元素的迭代器，如果未找到则返回last
+     */
     template <typename Iter, typename Pred>
     RAINY_NODISCARD constexpr rain_fn find_if(Iter first, Iter last, Pred pred) -> Iter {
         for (; first != last; ++first) {
@@ -93,6 +229,23 @@ namespace rainy::core::algorithm {
         return last;
     }
 
+    /**
+     * @brief Finds the first element not satisfying a predicate.
+     *        查找第一个不满足谓词的元素。
+     *
+     * @tparam Iter Iterator type
+     *              迭代器类型
+     * @tparam Pred Predicate type
+     *              谓词类型
+     * @param first Iterator to the beginning of the range
+     *              指向范围起始的迭代器
+     * @param last Iterator to the end of the range
+     *            指向范围末尾的迭代器
+     * @param pred Predicate to apply
+     *             要应用的谓词
+     * @return Iterator to the first element not satisfying pred, or last if not found
+     *         指向第一个不满足pred的元素的迭代器，如果未找到则返回last
+     */
     template <typename Iter, typename Pred>
     RAINY_NODISCARD constexpr rain_fn find_if_not(Iter first, Iter last, Pred pred) -> Iter {
         for (; first != last; ++first) {
@@ -103,14 +256,52 @@ namespace rainy::core::algorithm {
         return last;
     }
 
+    /**
+     * @brief Checks if two ranges are equal.
+     *        检查两个范围是否相等。
+     *
+     * @tparam Iter1 First range iterator type
+     *               第一个范围的迭代器类型
+     * @tparam Iter2 Second range iterator type
+     *               第二个范围的迭代器类型
+     * @param first1 Iterator to the beginning of the first range
+     *               指向第一个范围起始的迭代器
+     * @param last1 Iterator to the end of the first range
+     *              指向第一个范围末尾的迭代器
+     * @param first2 Iterator to the beginning of the second range
+     *               指向第二个范围起始的迭代器
+     * @param last2 Iterator to the end of the second range
+     *              指向第二个范围末尾的迭代器
+     * @return true if the ranges are equal, false otherwise
+     *         如果范围相等则为true，否则为false
+     */
     template <typename Iter1, typename Iter2>
     RAINY_NODISCARD inline constexpr rain_fn equal(Iter1 first1, Iter1 last1, Iter2 first2, Iter2 last2) -> bool {
         for (; first1 != last1 && first2 != last2 && *first1 == *first2; ++first2) {
-            ++first1; // 避免错误的优化
+            ++first1;
         }
         return first1 == last1 && first2 == last2;
     }
 
+    /**
+     * @brief Lexicographically compares two ranges.
+     *        字典序比较两个范围。
+     *
+     * @tparam Iter1 First range iterator type
+     *               第一个范围的迭代器类型
+     * @tparam Iter2 Second range iterator type
+     *               第二个范围的迭代器类型
+     * @param first1 Iterator to the beginning of the first range
+     *               指向第一个范围起始的迭代器
+     * @param last1 Iterator to the end of the first range
+     *              指向第一个范围末尾的迭代器
+     * @param first2 Iterator to the beginning of the second range
+     *               指向第二个范围起始的迭代器
+     * @param last2 Iterator to the end of the second range
+     *              指向第二个范围末尾的迭代器
+     * @return true if the first range is lexicographically less than the second, false otherwise
+     *         如果第一个范围字典序小于第二个范围则为true，否则为false
+     */
     template <typename Iter1, typename Iter2>
     RAINY_NODISCARD inline constexpr rain_fn lexicographical_compare(Iter1 first1, Iter1 last1, Iter2 first2, Iter2 last2) -> bool {
         for (; (first1 != last1) && (first2 != last2); ++first2) {
@@ -125,6 +316,27 @@ namespace rainy::core::algorithm {
         return (first1 == last1) && (first2 != last2);
     }
 
+    /**
+     * @brief Returns an iterator to the first element not less than the given value.
+     *        返回指向第一个不小于给定值的元素的迭代器。
+     *
+     * @tparam ForwardIt Forward iterator type
+     *                   前向迭代器类型
+     * @tparam Ty Value type
+     *            值类型
+     * @tparam Pred Comparison predicate type
+     *              比较谓词类型
+     * @param first Iterator to the beginning of the range
+     *              指向范围起始的迭代器
+     * @param last Iterator to the end of the range
+     *            指向范围末尾的迭代器
+     * @param value The value to compare against
+     *              要比较的值
+     * @param pred Comparison predicate (returns true if first argument is less than second)
+     *             比较谓词（如果第一个参数小于第二个参数则返回true）
+     * @return Iterator to the first element not less than value, or last if not found
+     *         指向第一个不小于value的元素的迭代器，如果未找到则返回last
+     */
     template <typename ForwardIt, typename Ty, typename Pred>
     RAINY_NODISCARD inline constexpr rain_fn lower_bound(ForwardIt first, ForwardIt last, Ty const &value, Pred pred) -> ForwardIt {
         ForwardIt it;
@@ -145,6 +357,27 @@ namespace rainy::core::algorithm {
         return first;
     }
 
+    /**
+     * @brief Returns an iterator to the first element greater than the given value.
+     *        返回指向第一个大于给定值的元素的迭代器。
+     *
+     * @tparam ForwardIt Forward iterator type
+     *                   前向迭代器类型
+     * @tparam Ty Value type
+     *            值类型
+     * @tparam Pred Comparison predicate type
+     *              比较谓词类型
+     * @param first Iterator to the beginning of the range
+     *              指向范围起始的迭代器
+     * @param last Iterator to the end of the range
+     *            指向范围末尾的迭代器
+     * @param value The value to compare against
+     *              要比较的值
+     * @param pred Comparison predicate (returns true if first argument is less than second)
+     *             比较谓词（如果第一个参数小于第二个参数则返回true）
+     * @return Iterator to the first element greater than value, or last if not found
+     *         指向第一个大于value的元素的迭代器，如果未找到则返回last
+     */
     template <typename ForwardIt, typename Ty, typename Pred>
     RAINY_NODISCARD inline constexpr auto upper_bound(ForwardIt first, ForwardIt last, Ty const &value, Pred pred) -> ForwardIt {
         ForwardIt it;
@@ -165,32 +398,100 @@ namespace rainy::core::algorithm {
         return first;
     }
 
+    /**
+     * @brief Moves elements from one range to another.
+     *        将元素从一个范围移动到另一个范围。
+     *
+     * @tparam InputIt Input iterator type
+     *                 输入迭代器类型
+     * @tparam OutputIt Output iterator type
+     *                  输出迭代器类型
+     * @param first Iterator to the beginning of the source range
+     *              指向源范围起始的迭代器
+     * @param last Iterator to the end of the source range
+     *            指向源范围末尾的迭代器
+     * @param d_first Iterator to the beginning of the destination range
+     *                指向目标范围起始的迭代器
+     * @return Iterator to the element past the last moved element in the destination range
+     *         指向目标范围中最后一个被移动元素之后位置的迭代器
+     */
     template <typename InputIt, typename OutputIt>
-    RAINY_CONSTEXPR20 OutputIt move(InputIt first, InputIt last, OutputIt d_first) {
+    RAINY_CONSTEXPR20 rain_fn move(InputIt first, InputIt last, OutputIt d_first) -> OutputIt {
         for (; first != last; ++d_first, ++first) {
             *d_first = utility::move(*first);
         }
         return d_first;
     }
 
+    /**
+     * @brief Moves elements from one range to another, starting from the end.
+     *        从末尾开始将元素从一个范围移动到另一个范围。
+     *
+     * @tparam BidirIt1 Bidirectional iterator type for source
+     *                  源范围的双向迭代器类型
+     * @tparam BidirIt2 Bidirectional iterator type for destination
+     *                  目标范围的双向迭代器类型
+     * @param first Iterator to the beginning of the source range
+     *              指向源范围起始的迭代器
+     * @param last Iterator to the end of the source range
+     *            指向源范围末尾的迭代器
+     * @param d_last Iterator to the end of the destination range
+     *               指向目标范围末尾的迭代器
+     * @return Iterator to the first moved element in the destination range
+     *         指向目标范围中第一个被移动元素的迭代器
+     */
     template <typename BidirIt1, typename BidirIt2>
-    RAINY_CONSTEXPR20 inline BidirIt2 move_backward(BidirIt1 first, BidirIt1 last, BidirIt2 d_last) {
+    RAINY_CONSTEXPR20 inline rain_fn move_backward(BidirIt1 first, BidirIt1 last, BidirIt2 d_last) -> BidirIt2 {
         while (first != last) {
             *(--d_last) = utility::move(*(--last));
         }
         return d_last;
     }
 
+    /**
+     * @brief Copies elements from one range to another, starting from the end.
+     *        从末尾开始将元素从一个范围复制到另一个范围。
+     *
+     * @tparam BidirIt1 Bidirectional iterator type for source
+     *                  源范围的双向迭代器类型
+     * @tparam BidirIt2 Bidirectional iterator type for destination
+     *                  目标范围的双向迭代器类型
+     * @param first Iterator to the beginning of the source range
+     *              指向源范围起始的迭代器
+     * @param last Iterator to the end of the source range
+     *            指向源范围末尾的迭代器
+     * @param d_last Iterator to the end of the destination range
+     *               指向目标范围末尾的迭代器
+     * @return Iterator to the first copied element in the destination range
+     *         指向目标范围中第一个被复制元素的迭代器
+     */
     template <typename BidirIt1, typename BidirIt2>
-    RAINY_CONSTEXPR20 BidirIt2 copy_backward(BidirIt1 first, BidirIt1 last, BidirIt2 d_last) {
+    RAINY_CONSTEXPR20 rain_fn copy_backward(BidirIt1 first, BidirIt1 last, BidirIt2 d_last) -> BidirIt2 {
         while (first != last) {
             *(--d_last) = *(--last);
         }
         return d_last;
     }
 
+    /**
+     * @brief Moves elements from one range to an uninitialized range, starting from the end.
+     *        从末尾开始将元素从一个范围移动到未初始化的范围。
+     *
+     * @tparam InputIt Input iterator type
+     *                 输入迭代器类型
+     * @tparam OutputIt Output iterator type for uninitialized memory
+     *                  未初始化内存的输出迭代器类型
+     * @param first Iterator to the beginning of the source range
+     *              指向源范围起始的迭代器
+     * @param last Iterator to the end of the source range
+     *            指向源范围末尾的迭代器
+     * @param d_last Iterator to the end of the destination range
+     *               指向目标范围末尾的迭代器
+     * @return Iterator to the first moved element in the destination range
+     *         指向目标范围中第一个被移动元素的迭代器
+     */
     template <typename InputIt, typename OutputIt>
-    constexpr OutputIt uninitialized_move_backward(InputIt first, InputIt last, OutputIt d_last) {
+    constexpr rain_fn uninitialized_move_backward(InputIt first, InputIt last, OutputIt d_last) -> OutputIt {
         while (first != last) {
             --d_last;
             --last;
@@ -199,18 +500,53 @@ namespace rainy::core::algorithm {
         return d_last;
     }
 
-    template<typename ForwardIt, typename Ty = typename utility::iterator_traits<ForwardIt>::value_type,
-         typename Compare>
-    constexpr bool binary_search(ForwardIt first, ForwardIt last, const Ty& value, Compare comp) {
+    /**
+     * @brief Checks if a value exists in a sorted range using binary search.
+     *        使用二分查找检查值是否存在于已排序的范围中。
+     *
+     * @tparam ForwardIt Forward iterator type
+     *                   前向迭代器类型
+     * @tparam Ty Value type
+     *            值类型
+     * @tparam Compare Comparison function type
+     *                 比较函数类型
+     * @param first Iterator to the beginning of the sorted range
+     *              指向已排序范围起始的迭代器
+     * @param last Iterator to the end of the sorted range
+     *            指向已排序范围末尾的迭代器
+     * @param value The value to search for
+     *              要搜索的值
+     * @param comp Comparison function (returns true if first argument is less than second)
+     *             比较函数（如果第一个参数小于第二个参数则返回true）
+     * @return true if the value is found, false otherwise
+     *         如果找到该值则为true，否则为false
+     */
+    template <typename ForwardIt, typename Ty = typename utility::iterator_traits<ForwardIt>::value_type, typename Compare>
+    constexpr rain_fn binary_search(ForwardIt first, ForwardIt last, const Ty &value, Compare comp) -> bool {
         first = algorithm::lower_bound(first, last, value, comp);
         return (!(first == last) and !(comp(value, *first)));
     }
 
-    template<typename ForwardIt, typename Ty = typename utility::iterator_traits<ForwardIt>::value_type>
-    constexpr bool binary_search(ForwardIt first, ForwardIt last, const Ty& value) {
-        return algorithm::binary_search(first, last, value, [](auto&& left, auto&& right) {
-            return left < right;
-        });
+    /**
+     * @brief Checks if a value exists in a sorted range using binary search (default comparison).
+     *        使用二分查找检查值是否存在于已排序的范围中（默认比较）。
+     *
+     * @tparam ForwardIt Forward iterator type
+     *                   前向迭代器类型
+     * @tparam Ty Value type
+     *            值类型
+     * @param first Iterator to the beginning of the sorted range
+     *              指向已排序范围起始的迭代器
+     * @param last Iterator to the end of the sorted range
+     *            指向已排序范围末尾的迭代器
+     * @param value The value to search for
+     *              要搜索的值
+     * @return true if the value is found, false otherwise
+     *         如果找到该值则为true，否则为false
+     */
+    template <typename ForwardIt, typename Ty = typename utility::iterator_traits<ForwardIt>::value_type>
+    constexpr rain_fn binary_search(ForwardIt first, ForwardIt last, const Ty &value) -> bool {
+        return algorithm::binary_search(first, last, value, [](auto &&left, auto &&right) { return left < right; });
     }
 }
 

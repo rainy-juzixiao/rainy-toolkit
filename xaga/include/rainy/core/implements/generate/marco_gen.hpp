@@ -16,6 +16,14 @@
 #ifndef RAINY_CORE_IMPLEMENTS_MARCO_GEN_HPP
 #define RAINY_CORE_IMPLEMENTS_MARCO_GEN_HPP
 
+ /**
+ * @def RAINY_TO_TUPLE_EXPAND_ARGS
+ * @brief Expands to the argument expansion macro for a given number.
+ *        展开为给定参数的参数展开宏。
+ *
+ * @param N The number of arguments to expand
+ *          要展开的参数数量
+ */
 #define RAINY_TO_TUPLE_EXPAND_ARGS(N) RAINY_TO_TUPLE_EXPAND_##N
 #define RAINY_TO_TUPLE_EXPAND_1 _1
 #define RAINY_TO_TUPLE_EXPAND_2 _1, _2
@@ -100,6 +108,21 @@
 
 #define RAINY_ARG_COUNT_EXPAND(x) x
 
+/**
+ * @def RAINY_ARG_COUNT
+ * @brief Counts the number of arguments passed to a variadic macro.
+ *        计算传递给可变参数宏的参数数量。
+ *
+ * This macro uses a common technique of listing many possible counts and
+ * selecting the appropriate one based on the number of arguments.
+ *
+ * 该宏使用常见的技术，列出许多可能的计数，并根据参数数量选择适当的一个。
+ *
+ * @param ... Variable number of arguments
+ *            可变数量的参数
+ * @return The number of arguments (0-80)
+ *         参数数量（0-80）
+ */
 #define RAINY_ARG_COUNT(...)                                                                                                          \
     RAINY_ARG_COUNT_EXPAND(RAINY_ARG_COUNT_IMPL(__VA_ARGS__, 80, 79, 78, 77, 76, 75, 74, 73, 72, 71, 70, 69, 68, 67, 66, 65, 64, 63,  \
                                                 62, 61, 60, 59, 58, 57, 56, 55, 54, 53, 52, 51, 50, 49, 48, 47, 46, 45, 44, 43, 42,   \
@@ -114,6 +137,14 @@
 
 // clang-format off
 
+/**
+ * @def RAINY_FE_EXPAND
+ * @brief Expands its arguments, useful for forcing macro expansion.
+ *        展开其参数，用于强制宏展开。
+ *
+ * @param ... Arguments to expand
+ *            要展开的参数
+ */
 #define RAINY_FE_EXPAND(...) __VA_ARGS__
 #define RAINY_FE_EXPAND1(...) RAINY_FE_EXPAND(__VA_ARGS__)
 #define RAINY_FE_EXPAND2(...) RAINY_FE_EXPAND1(RAINY_FE_EXPAND1(__VA_ARGS__))
@@ -121,6 +152,14 @@
 #define RAINY_FE_EXPAND4(...) RAINY_FE_EXPAND3(RAINY_FE_EXPAND3(__VA_ARGS__))
 #define RAINY_FE_EXPAND5(...) RAINY_FE_EXPAND4(RAINY_FE_EXPAND4(__VA_ARGS__))
 
+/**
+ * @def RAINY_FE_NARG
+ * @brief Counts the number of arguments for the FE (For Each) macros.
+ *        计算FE（For Each）宏的参数数量。
+ *
+ * @param ... Variable number of arguments
+ *            可变数量的参数
+ */
 #define RAINY_FE_NARG(...) RAINY_FE_NARG_(__VA_ARGS__, RAINY_FE_RSEQ_N())
 #define RAINY_FE_NARG_(...) RAINY_FE_EXPAND(RAINY_FE_ARG_N(__VA_ARGS__))
 #define RAINY_FE_ARG_N(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, N, ...) N
@@ -146,8 +185,34 @@
 #define RAINY_FE_CAT(a, b) RAINY_FE_CAT_IMPL(a, b)
 #define RAINY_FE_CAT_IMPL(a, b) a##b
 
+/**
+ * @def RAINY_FE_FOR_EACH
+ * @brief Applies a macro to each argument in a variable argument list.
+ *        将宏应用于可变参数列表中的每个参数。
+ *
+ * @param macro The macro to apply to each argument
+ *              要应用于每个参数的宏
+ * @param obj An additional object to pass to the macro
+ *            传递给宏的额外对象
+ * @param ... The arguments to iterate over
+ *            要迭代的参数
+ */
 #define RAINY_FE_FOR_EACH(macro, obj, ...) RAINY_FE_EXPAND5(RAINY_FE_CAT(RAINY_FE_FOR_EACH_, RAINY_FE_NARG(__VA_ARGS__))(macro, obj, __VA_ARGS__))
 
+/**
+ * @def RAINY_GENERATE_MACRO_FOR_256
+ * @brief Generates repeated invocations of a macro for indices 1 to 256.
+ *        生成宏对索引1到256的重复调用。
+ *
+ * This macro is useful for generating repetitive code patterns for up to 256 items.
+ * 
+ * 该宏用于生成最多256个项目的重复代码模式。
+ *
+ * @param macro The macro to invoke with each index
+ *              要为每个索引调用的宏
+ * @example RAINY_GENERATE_MACRO_FOR_256(MY_MACRO) expands to:
+ *          MY_MACRO(1) MY_MACRO(2) ... MY_MACRO(256)
+ */
 #define RAINY_GENERATE_MACRO_FOR_256(macro) \
     macro(1) macro(2) macro(3) macro(4) macro(5) macro(6) macro(7) macro(8) macro(9) macro(10) \
     macro(11) macro(12) macro(13) macro(14) macro(15) macro(16) macro(17) macro(18) macro(19) macro(20) \
