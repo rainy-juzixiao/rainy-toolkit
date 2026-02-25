@@ -2035,6 +2035,43 @@ namespace rainy::type_traits::extras::templates {
     struct get_rebind_alias<Ty, Other, type_traits::other_trans::void_t<typename Ty::template rebind<Other>>> {
         using type = typename Ty::template rebind<Other>;
     };
+
+        /**
+     * @brief Replaces the last template parameter of a template instantiation.
+     *        替换模板实例化的最后一个模板参数。
+     *
+     * @tparam T The template instantiation type
+     *            模板实例化类型
+     * @tparam NewLast The new type for the last parameter
+     *                 最后一个参数的新类型
+     */
+    template <typename T, typename NewLast>
+    struct replace_last_parameter;
+
+    /**
+     * @brief Specialization that performs the replacement.
+     *        执行替换操作的特化。
+     *
+     * @tparam Template The template template parameter
+     *                  模板模板参数
+     * @tparam Args The original template arguments
+     *              原始的模板参数
+     * @tparam NewLast The new type for the last parameter
+     *                 最后一个参数的新类型
+     */
+    template <template <typename...> typename Template, typename... Args, typename NewLast>
+    struct replace_last_parameter<Template<Args...>, NewLast> {
+    private:
+        static constexpr std::size_t N = sizeof...(Args);
+        using type_list = type_traits::other_trans::type_list<Args...>;
+
+        template <std::size_t... I>
+        static auto helper(type_traits::helper::index_sequence<I...>)
+            -> Template<typename type_traits::other_trans::type_at<I, type_list>::type..., NewLast>;
+
+    public:
+        using type = decltype(helper(type_traits::helper::make_index_sequence<N - 1>{}));
+    };
 }
 
 namespace rainy::foundation::memory::implements {
