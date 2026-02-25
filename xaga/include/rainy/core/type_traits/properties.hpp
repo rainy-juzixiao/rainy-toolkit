@@ -16,6 +16,7 @@
 #ifndef RAINY_CORE_TYPE_TRAITS_PROPERTIES_HPP
 #define RAINY_CORE_TYPE_TRAITS_PROPERTIES_HPP
 #include <rainy/core/platform.hpp>
+#include <rainy/core/gnu/typetraits.hpp>
 #include <rainy/core/type_traits/implements.hpp>
 #include <rainy/core/type_traits/primary_types.hpp>
 
