@@ -133,16 +133,20 @@ namespace rainy::foundation::concurrency {
         template <typename Clock, typename Duration>
         rain_fn wait_until(unique_lock<mutex> &lock, const std::chrono::time_point<Clock, Duration> &abs_time) -> cv_status {
             using namespace concurrency::implements;
-            const ::timespec ts = to_timespec(abs_time);
-            mtx_t *const mtx = lock.mutex()->pal_handle();
-            const thrd_result result = cnd_timedwait(&cnd_, mtx, &ts);
-            if (result == thrd_result::timed_out) {
-                return cv_status::timeout;
+            for (;;) {
+                const auto now = Clock::now();
+                if (now >= abs_time) {
+                    return cv_status::timeout;
+                }
+                const ::timespec ts = to_timespec(abs_time);
+                const thrd_result r = implements::cnd_timedwait(&cnd_, lock.mutex()->pal_handle(), &ts);
+                if (r == thrd_result::success) {
+                    return cv_status::no_timeout;
+                }
+                if (r != thrd_result::timed_out) {
+                    throw std::system_error(static_cast<int>(r), std::system_category(), "condition_variable_any::wait_until failed");
+                }
             }
-            if (result != thrd_result::success) {
-                throw std::system_error(static_cast<int>(result), std::system_category(), "condition_variable::wait_until failed");
-            }
-            return cv_status::no_timeout;
         }
 
         /**
@@ -343,22 +347,28 @@ namespace rainy::foundation::concurrency {
         rain_fn wait_until(Lock &lock, const std::chrono::time_point<Clock, Duration> &abs_time) -> cv_status {
             const std::shared_ptr<mutex> mtx = mtx_;
             unique_lock<mutex> internal_lk(*mtx);
-
             lock.unlock();
+            for (;;) {
+                const auto now = Clock::now();
+                if (now >= abs_time) {
+                    internal_lk.unlock();
+                    lock.lock();
+                    return cv_status::timeout;
+                }
+                const ::timespec ts = to_timespec(abs_time);
+                const thrd_result r = implements::cnd_timedwait(&cnd_, internal_lk.mutex()->pal_handle(), &ts);
+                if (r == thrd_result::success) {
+                    internal_lk.unlock();
+                    lock.lock();
+                    return cv_status::no_timeout;
+                }
 
-            const ::timespec ts = to_timespec(abs_time);
-            const thrd_result r = implements::cnd_timedwait(&cnd_, internal_lk.mutex()->pal_handle(), &ts);
-
-            internal_lk.unlock();
-            lock.lock();
-
-            if (r == thrd_result::timed_out) {
-                return cv_status::timeout;
+                if (r != thrd_result::timed_out) {
+                    internal_lk.unlock();
+                    lock.lock();
+                    throw std::system_error(static_cast<int>(r), std::system_category(), "condition_variable_any::wait_until failed");
+                }
             }
-            if (r != thrd_result::success) {
-                throw std::system_error(static_cast<int>(r), std::system_category(), "condition_variable_any::wait_until failed");
-            }
-            return cv_status::no_timeout;
         }
 
         /**
