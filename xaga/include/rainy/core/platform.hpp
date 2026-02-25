@@ -738,11 +738,11 @@ namespace rainy::core::builtin {
 #if RAINY_USING_AVX2 && RAINY_IS_X86_PLATFORM
     RAINY_TOOLKIT_API std::int32_t ctz_avx2(std::uint32_t x) noexcept;
 #endif
-    constexpr int compare_memory(const void *mem1, const void *mem2, const std::size_t count) {
+    constexpr rain_fn compare_memory(const void *mem1, const void *mem2, const std::size_t count) -> int {
         return __builtin_memcmp(mem1, mem2, count);
     }
 
-    constexpr int compare_wmemory(const wchar_t *mem1, const wchar_t *mem2, const std::size_t count) {
+    constexpr rain_fn compare_wmemory(const wchar_t *mem1, const wchar_t *mem2, const std::size_t count) -> int {
 #if RAINY_USING_GCC
         for (std::size_t i = 0; i < count; ++i) {
             if (mem1[i] != mem2[i]) {
@@ -755,19 +755,20 @@ namespace rainy::core::builtin {
 #endif
     }
 
-    RAINY_INLINE void *copy_memory(void *dest, const void *src, std::size_t len) {
+    RAINY_INLINE rain_fn copy_memory(void *dest, const void *src, std::size_t len) -> void * {
         return std::memcpy(dest, src, len);
     }
 
-    RAINY_TOOLKIT_API void *move_memory(void *dest, std::size_t dest_size, const void *src, std::size_t src_count);
-    RAINY_TOOLKIT_API void *set_memory(void *dest, std::size_t count, int new_val);
-    RAINY_TOOLKIT_API void *zero_memory(void *dest, std::size_t count);
-    RAINY_TOOLKIT_API void *fill_memory(void *dest, std::size_t count, int new_val);
-    RAINY_TOOLKIT_API void *fill_memory(void *dest, std::size_t count, const void *src);
-    RAINY_TOOLKIT_API void *fill_memory(void *dest, std::size_t count, const void *src, std::size_t src_count);
-    RAINY_TOOLKIT_API void *fill_memory(void *dest, std::size_t count, const void *src, std::size_t src_count, std::size_t src_offset);
-    RAINY_TOOLKIT_API void *fill_memory(void *dest, std::size_t count, const void *src, std::size_t src_count, std::size_t src_offset,
-                                        std::size_t dest_offset);
+    RAINY_TOOLKIT_API rain_fn move_memory(void *dest, std::size_t dest_size, const void *src, std::size_t src_count) -> void *;
+    RAINY_TOOLKIT_API rain_fn set_memory(void *dest, std::size_t count, int new_val) -> void *;
+    RAINY_TOOLKIT_API rain_fn zero_memory(void *dest, std::size_t count) -> void *;
+    RAINY_TOOLKIT_API rain_fn fill_memory(void *dest, std::size_t count, int new_val) -> void *;
+    RAINY_TOOLKIT_API rain_fn fill_memory(void *dest, std::size_t count, const void *src) -> void *;
+    RAINY_TOOLKIT_API rain_fn fill_memory(void *dest, std::size_t count, const void *src, std::size_t src_count) -> void *;
+    RAINY_TOOLKIT_API rain_fn fill_memory(void *dest, std::size_t count, const void *src, std::size_t src_count,
+                                          std::size_t src_offset) -> void *;
+    RAINY_TOOLKIT_API rain_fn fill_memory(void *dest, std::size_t count, const void *src, std::size_t src_count,
+                                          std::size_t src_offset, std::size_t dest_offset) -> void *;
 
     /**
      * @brief 使用完美转发（perfect forwarding）实现类型安全的引用转发。
@@ -1372,7 +1373,7 @@ namespace rainy::type_traits::helper {
      */
     template <typename CharType, std::size_t N1, std::size_t N2>
     constexpr rain_fn operator>=(const basic_constexpr_string<CharType, N1> &lhs,
-                              const basic_constexpr_string<CharType, N2> &rhs) noexcept -> bool {
+                                 const basic_constexpr_string<CharType, N2> &rhs) noexcept -> bool {
         return !(lhs < rhs);
     }
 
@@ -1382,7 +1383,8 @@ namespace rainy::type_traits::helper {
      *        constexpr 字符串与 string_view 之间的相等比较。
      */
     template <typename CharType, std::size_t N>
-    constexpr rain_fn operator==(const basic_constexpr_string<CharType, N> &lhs, std::basic_string_view<CharType> rhs) noexcept -> bool {
+    constexpr rain_fn operator==(const basic_constexpr_string<CharType, N> &lhs, std::basic_string_view<CharType> rhs) noexcept
+        -> bool {
         return std::basic_string_view<CharType>(lhs.data(), lhs.length()) == rhs;
     }
 
@@ -1392,7 +1394,8 @@ namespace rainy::type_traits::helper {
      *        string_view 与 constexpr 字符串之间的相等比较。
      */
     template <typename CharType, std::size_t N>
-    constexpr rain_fn operator==(std::basic_string_view<CharType> lhs, const basic_constexpr_string<CharType, N> &rhs) noexcept -> bool {
+    constexpr rain_fn operator==(std::basic_string_view<CharType> lhs, const basic_constexpr_string<CharType, N> &rhs) noexcept
+        -> bool {
         return lhs == std::basic_string_view<CharType>(rhs.data(), rhs.length());
     }
 
