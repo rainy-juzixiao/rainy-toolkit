@@ -493,7 +493,7 @@ namespace rainy::annotations::lifetime {
          * @return Reference to this object
          *         此对象的引用
          */
-        borrow_out &rain_fn operator=(const borrow_out &other)->borrow_out & {
+        rain_fn operator=(const borrow_out &other)->borrow_out & {
             if (this != &other) {
                 release_ctrl();
                 out<Ty>::operator=(other);
