@@ -16,6 +16,7 @@
 #ifndef RAINY_CORE_TYPE_TRAITS_HPP
 #define RAINY_CORE_TYPE_TRAITS_HPP
 #include <iterator>
+#include <utility>
 #include <rainy/core/platform.hpp>
 #include <rainy/core/implements/tuple.hpp>
 #include <rainy/core/implements/basic_algorithm.hpp>
@@ -35,7 +36,6 @@
 #include <rainy/core/type_traits/primary_types.hpp>
 #include <rainy/core/type_traits/logical.hpp>
 #include <rainy/core/type_traits/properties.hpp>
-#include <utility>
 #if RAINY_USING_GCC
 #include <rainy/core/gnu/typetraits.hpp>
 #endif
