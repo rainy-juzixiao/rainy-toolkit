@@ -183,7 +183,7 @@ namespace rainy::foundation::concurrency {
          */
         template <typename Rep, typename Period>
         rain_fn wait_for(unique_lock<mutex> &lock, const std::chrono::duration<Rep, Period> &rel_time) -> cv_status {
-            return wait_until(lock, std::chrono::steady_clock::now() + rel_time);
+            return wait_until(lock, std::chrono::system_clock::now() + rel_time);
         }
 
         /**
@@ -201,7 +201,7 @@ namespace rainy::foundation::concurrency {
          */
         template <typename Rep, typename Period, typename Pred>
         rain_fn wait_for(unique_lock<mutex> &lock, const std::chrono::duration<Rep, Period> &rel_time, Pred pred) -> bool {
-            return wait_until(lock, std::chrono::steady_clock::now() + rel_time, utility::move(pred));
+            return wait_until(lock, std::chrono::system_clock::now() + rel_time, utility::move(pred));
         }
 
         /**
@@ -395,7 +395,7 @@ namespace rainy::foundation::concurrency {
          */
         template <typename Lock, typename Rep, typename Period>
         rain_fn wait_for(Lock &lock, const std::chrono::duration<Rep, Period> &rel_time) -> cv_status {
-            return wait_until(lock, std::chrono::system_clock::now() + rel_time + std::chrono::milliseconds(1));
+            return wait_until(lock, std::chrono::system_clock::now() + rel_time);
         }
 
         /**
@@ -409,7 +409,7 @@ namespace rainy::foundation::concurrency {
          */
         template <typename Lock, typename Rep, typename Period, typename Pred>
         rain_fn wait_for(Lock &lock, const std::chrono::duration<Rep, Period> &rel_time, Pred pred) -> bool {
-            return wait_until(lock, std::chrono::system_clock::now() + rel_time + std::chrono::milliseconds(1), utility::move(pred));
+            return wait_until(lock, std::chrono::system_clock::now() + rel_time, utility::move(pred));
         }
 
         /**
