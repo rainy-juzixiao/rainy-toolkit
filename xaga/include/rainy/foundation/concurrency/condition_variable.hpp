@@ -225,8 +225,8 @@ namespace rainy::foundation::concurrency {
                 ts.tv_nsec = static_cast<long>(ns.count());
                 return ts;
             } else {
-                const auto now_clock = Clock::now();
                 const auto now_sys = std::chrono::system_clock::now();
+                const auto now_clock = Clock::now();
                 const auto delta = tp - now_clock;
                 const auto sys_tp = now_sys + delta;
                 const auto sec = std::chrono::time_point_cast<std::chrono::seconds>(sys_tp);
@@ -250,8 +250,7 @@ namespace rainy::foundation::concurrency {
         condition_variable_any() : mtx_(std::make_shared<mutex>()) {
             using namespace implements;
             if (const thrd_result r = cnd_create(&cnd_); r != thrd_result::success) {
-                throw std::system_error(static_cast<int>(r), std::system_category(),
-                                        "condition_variable_any: cnd_create failed");
+                throw std::system_error(static_cast<int>(r), std::system_category(), "condition_variable_any: cnd_create failed");
             }
         }
 
@@ -260,7 +259,7 @@ namespace rainy::foundation::concurrency {
         }
 
         condition_variable_any(const condition_variable_any &) = delete;
-        rain_fn operator=(const condition_variable_any &) -> condition_variable_any & = delete;
+        rain_fn operator=(const condition_variable_any &)->condition_variable_any & = delete;
 
         /**
          * @brief 唤醒一个正在等待的线程
@@ -301,8 +300,7 @@ namespace rainy::foundation::concurrency {
             lock.unlock();
 
             // (3) 原子地释放内部锁并挂起；唤醒后重新持有内部锁
-            const thrd_result r =
-                implements::cnd_wait(&cnd_, internal_lk.mutex()->pal_handle());
+            const thrd_result r = implements::cnd_wait(&cnd_, internal_lk.mutex()->pal_handle());
 
             // (4) internal_lk 析构，释放内部锁
 
@@ -313,8 +311,7 @@ namespace rainy::foundation::concurrency {
             lock.lock();
 
             if (r != thrd_result::success) {
-                throw std::system_error(static_cast<int>(r), std::system_category(),
-                                        "condition_variable_any::wait failed");
+                throw std::system_error(static_cast<int>(r), std::system_category(), "condition_variable_any::wait failed");
             }
         }
 
@@ -343,16 +340,14 @@ namespace rainy::foundation::concurrency {
          * @throws std::system_error 若底层等待失败（非超时错误）
          */
         template <typename Lock, typename Clock, typename Duration>
-        rain_fn wait_until(Lock &lock,
-                           const std::chrono::time_point<Clock, Duration> &abs_time) -> cv_status {
+        rain_fn wait_until(Lock &lock, const std::chrono::time_point<Clock, Duration> &abs_time) -> cv_status {
             const std::shared_ptr<mutex> mtx = mtx_;
             unique_lock<mutex> internal_lk(*mtx);
 
             lock.unlock();
 
             const ::timespec ts = to_timespec(abs_time);
-            const thrd_result r =
-                implements::cnd_timedwait(&cnd_, internal_lk.mutex()->pal_handle(), &ts);
+            const thrd_result r = implements::cnd_timedwait(&cnd_, internal_lk.mutex()->pal_handle(), &ts);
 
             internal_lk.unlock();
             lock.lock();
@@ -361,8 +356,7 @@ namespace rainy::foundation::concurrency {
                 return cv_status::timeout;
             }
             if (r != thrd_result::success) {
-                throw std::system_error(static_cast<int>(r), std::system_category(),
-                                        "condition_variable_any::wait_until failed");
+                throw std::system_error(static_cast<int>(r), std::system_category(), "condition_variable_any::wait_until failed");
             }
             return cv_status::no_timeout;
         }
@@ -377,9 +371,7 @@ namespace rainy::foundation::concurrency {
          * @return 谓词为 true 时返回 true；超时时返回 pred() 的当前值
          */
         template <typename Lock, typename Clock, typename Duration, typename Pred>
-        rain_fn wait_until(Lock &lock,
-                           const std::chrono::time_point<Clock, Duration> &abs_time,
-                           Pred pred) -> bool {
+        rain_fn wait_until(Lock &lock, const std::chrono::time_point<Clock, Duration> &abs_time, Pred pred) -> bool {
             while (!pred()) {
                 if (wait_until(lock, abs_time) == cv_status::timeout) {
                     return pred();
@@ -447,9 +439,8 @@ namespace rainy::foundation::concurrency {
          * @return pred() 为 true 时返回 true；超时或停止请求且 pred() 为 false 时返回 false
          */
         template <typename Lock, typename Clock, typename Duration, typename Pred>
-        rain_fn wait_until(Lock &lock, std::stop_token stoken,
-                           const std::chrono::time_point<Clock, Duration> &abs_time,
-                           Pred pred) -> bool {
+        rain_fn wait_until(Lock &lock, std::stop_token stoken, const std::chrono::time_point<Clock, Duration> &abs_time, Pred pred)
+            -> bool {
             std::stop_callback cb(stoken, [this] { notify_all(); });
             while (!stoken.stop_requested()) {
                 if (pred()) {
@@ -496,8 +487,8 @@ namespace rainy::foundation::concurrency {
                 ts.tv_nsec = static_cast<long>(ns.count());
                 return ts;
             } else {
-                const auto now_clock = Clock::now();
                 const auto now_sys = std::chrono::system_clock::now();
+                const auto now_clock = Clock::now();
                 const auto delta = tp - now_clock;
                 const auto sys_tp = now_sys + delta;
                 const auto sec = std::chrono::time_point_cast<std::chrono::seconds>(sys_tp);
