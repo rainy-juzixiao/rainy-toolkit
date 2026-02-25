@@ -118,9 +118,12 @@ namespace rainy::foundation::concurrency::implements {
             // 向上取整到毫秒，加 1ms 补偿
             long long total_ms = (total_ns + 999999LL) / 1000000LL;
             if (total_ms > 0) {
-                total_ms += 1; // 补偿 Windows 定时器精度
+                if (total_ms < 100) {
+                    total_ms += 2;
+                } else {
+                    total_ms += 1;
+                }
             }
-
             if (total_ms > (long long) (INFINITE - 1)) {
                 dwMilliseconds = INFINITE - 1;
             } else {
