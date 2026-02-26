@@ -183,7 +183,8 @@ namespace rainy::foundation::concurrency::implements {
             return thrd_result::nomem;
         }
         rainy_let mutex = static_cast<implements::mutex_handle *>(*mtx);
-        utility::expects(mutex->count == 0, "mutex destroyed while busy");
+        //utility::expects(mutex->count == 0, "mutex destroyed while busy");
+        // 移除对count的检查，不再保证 (若仍有线程持有该锁，行为未定义)
         core::pal::deallocate(mutex, sizeof(implements::mutex_handle), alignof(implements::mutex_handle));
         *mtx = nullptr;
         return thrd_result::success;

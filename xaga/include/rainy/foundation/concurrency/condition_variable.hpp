@@ -27,6 +27,32 @@ namespace rainy::foundation::concurrency {
     };
 }
 
+namespace rainy::foundation::concurrency::implements {
+    template <typename Clock, typename Duration>
+    rain_fn to_timespec(const std::chrono::time_point<Clock, Duration> &tp) noexcept -> ::timespec {
+        ::timespec ts{};
+        if constexpr (type_traits::type_relations::is_same_v<Clock, std::chrono::system_clock>) {
+            const auto sec = std::chrono::time_point_cast<std::chrono::seconds>(tp);
+            const auto ns = std::chrono::time_point_cast<std::chrono::nanoseconds>(tp) -
+                            std::chrono::time_point_cast<std::chrono::nanoseconds>(sec);
+            ts.tv_sec = std::chrono::system_clock::to_time_t(sec);
+            ts.tv_nsec = static_cast<long>(ns.count());
+            return ts;
+        } else {
+            const auto now_sys = std::chrono::system_clock::now();
+            const auto now_clock = Clock::now();
+            const auto delta = tp - now_clock;
+            const auto sys_tp = now_sys + delta;
+            const auto sec = std::chrono::time_point_cast<std::chrono::seconds>(sys_tp);
+            const auto ns = std::chrono::time_point_cast<std::chrono::nanoseconds>(sys_tp) -
+                            std::chrono::time_point_cast<std::chrono::nanoseconds>(sec);
+            ts.tv_sec = std::chrono::system_clock::to_time_t(sec);
+            ts.tv_nsec = static_cast<long>(ns.count());
+            return ts;
+        }
+    }
+}
+
 namespace rainy::foundation::concurrency {
     /**
      * @brief 条件变量封装类
@@ -133,12 +159,12 @@ namespace rainy::foundation::concurrency {
         template <typename Clock, typename Duration>
         rain_fn wait_until(unique_lock<mutex> &lock, const std::chrono::time_point<Clock, Duration> &abs_time) -> cv_status {
             using namespace concurrency::implements;
-            for (;;) {
+            rain_loop {
                 const auto now = Clock::now();
                 if (now >= abs_time) {
                     return cv_status::timeout;
                 }
-                const ::timespec ts = to_timespec(abs_time);
+                const ::timespec ts = implements::to_timespec(abs_time);
                 const thrd_result r = implements::cnd_timedwait(&cnd_, lock.mutex()->backend_handle(), &ts);
                 if (r == thrd_result::success) {
                     return cv_status::no_timeout;
@@ -218,30 +244,6 @@ namespace rainy::foundation::concurrency {
         }
 
     private:
-        template <typename Clock, typename Duration>
-        rain_fn to_timespec(const std::chrono::time_point<Clock, Duration> &tp) noexcept -> ::timespec {
-            ::timespec ts{};
-            if constexpr (std::is_same_v<Clock, std::chrono::system_clock>) {
-                const auto sec = std::chrono::time_point_cast<std::chrono::seconds>(tp);
-                const auto ns = std::chrono::time_point_cast<std::chrono::nanoseconds>(tp) -
-                                std::chrono::time_point_cast<std::chrono::nanoseconds>(sec);
-                ts.tv_sec = std::chrono::system_clock::to_time_t(sec);
-                ts.tv_nsec = static_cast<long>(ns.count());
-                return ts;
-            } else {
-                const auto now_sys = std::chrono::system_clock::now();
-                const auto now_clock = Clock::now();
-                const auto delta = tp - now_clock;
-                const auto sys_tp = now_sys + delta;
-                const auto sec = std::chrono::time_point_cast<std::chrono::seconds>(sys_tp);
-                const auto ns = std::chrono::time_point_cast<std::chrono::nanoseconds>(sys_tp) -
-                                std::chrono::time_point_cast<std::chrono::nanoseconds>(sec);
-                ts.tv_sec = std::chrono::system_clock::to_time_t(sec);
-                ts.tv_nsec = static_cast<long>(ns.count());
-                return ts;
-            }
-        }
-
         implements::cnd_t cnd_{};
     };
 }
@@ -348,21 +350,20 @@ namespace rainy::foundation::concurrency {
             const std::shared_ptr<mutex> mtx = mtx_;
             unique_lock<mutex> internal_lk(*mtx);
             lock.unlock();
-            for (;;) {
+            rain_loop {
                 const auto now = Clock::now();
                 if (now >= abs_time) {
                     internal_lk.unlock();
                     lock.lock();
                     return cv_status::timeout;
                 }
-                const ::timespec ts = to_timespec(abs_time);
+                const ::timespec ts = implements::to_timespec(abs_time);
                 const thrd_result r = implements::cnd_timedwait(&cnd_, internal_lk.mutex()->backend_handle(), &ts);
                 if (r == thrd_result::success) {
                     internal_lk.unlock();
                     lock.lock();
                     return cv_status::no_timeout;
                 }
-
                 if (r != thrd_result::timed_out) {
                     internal_lk.unlock();
                     lock.lock();
@@ -486,30 +487,6 @@ namespace rainy::foundation::concurrency {
         }
 
     private:
-        template <typename Clock, typename Duration>
-        rain_fn to_timespec(const std::chrono::time_point<Clock, Duration> &tp) noexcept -> ::timespec {
-            ::timespec ts{};
-            if constexpr (std::is_same_v<Clock, std::chrono::system_clock>) {
-                const auto sec = std::chrono::time_point_cast<std::chrono::seconds>(tp);
-                const auto ns = std::chrono::time_point_cast<std::chrono::nanoseconds>(tp) -
-                                std::chrono::time_point_cast<std::chrono::nanoseconds>(sec);
-                ts.tv_sec = std::chrono::system_clock::to_time_t(sec);
-                ts.tv_nsec = static_cast<long>(ns.count());
-                return ts;
-            } else {
-                const auto now_sys = std::chrono::system_clock::now();
-                const auto now_clock = Clock::now();
-                const auto delta = tp - now_clock;
-                const auto sys_tp = now_sys + delta;
-                const auto sec = std::chrono::time_point_cast<std::chrono::seconds>(sys_tp);
-                const auto ns = std::chrono::time_point_cast<std::chrono::nanoseconds>(sys_tp) -
-                                std::chrono::time_point_cast<std::chrono::nanoseconds>(sec);
-                ts.tv_sec = std::chrono::system_clock::to_time_t(sec);
-                ts.tv_nsec = static_cast<long>(ns.count());
-                return ts;
-            }
-        }
-
         std::shared_ptr<mutex> mtx_{};
         implements::cnd_t cnd_{};
     };
