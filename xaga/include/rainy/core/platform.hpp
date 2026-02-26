@@ -449,6 +449,7 @@ static_assert(false, "We detected you are using C++14 and below, and the library
 #define RAINY_STAMP(n, x) x(RAINY_STAMP##n, n)
 
 #define rain_fn auto
+#define rain_loop for (;;) 
 
 #define RAINY_TOOLKIT_VERSION                                                                                                         \
     "rainy-toolkit:" RAINY_STRINGIFY(RAINY_TOOLKIT_PROJECT_MAJOR) "." RAINY_STRINGIFY(                                                \

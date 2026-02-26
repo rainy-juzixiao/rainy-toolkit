@@ -40,16 +40,58 @@
 
 namespace rainy::foundation::concurrency {
     /**
-     * @brief 线程操作返回值
+     * @brief Thread operation result codes.
+     *        线程操作返回值。
      *
+     * This enumeration unifies error states across different platforms.
      * 该枚举用于统一不同平台的错误状态。
      */
     enum class thrd_result : int {
-        success, ///< 操作成功
-        nomem, ///< 资源不足或参数非法（通常伴随 errno = EINVAL）
-        timed_out, ///< 超时
-        busy, ///< 资源当前不可用
-        error ///< 未分类错误
+        /**
+         * @brief Operation succeeded
+         *        操作成功
+         *
+         * The operation completed successfully.
+         * 操作成功完成。
+         */
+        success,
+
+        /**
+         * @brief Insufficient memory or invalid argument
+         *        资源不足或参数非法
+         *
+         * Typically indicates that memory allocation failed or an invalid parameter was provided.
+         * Usually accompanied by errno = EINVAL.
+         * 通常表示内存分配失败或提供了非法参数，一般伴随 errno = EINVAL。
+         */
+        nomem,
+
+        /**
+         * @brief Operation timed out
+         *        超时
+         *
+         * The operation did not complete within the expected time limit.
+         * 操作未在预期时间内完成。
+         */
+        timed_out,
+
+        /**
+         * @brief Resource is busy
+         *        资源当前不可用
+         *
+         * The required resource is temporarily unavailable or locked.
+         * 所需资源暂时不可用或被锁定。
+         */
+        busy,
+
+        /**
+         * @brief Unclassified error
+         *        未分类错误
+         *
+         * An unspecified error occurred that does not fit other categories.
+         * 发生了不属于其他类别的未指定错误。
+         */
+        error
     };
 }
 
@@ -363,7 +405,7 @@ namespace rainy::foundation::concurrency::implements {
      *  - nomem  无效参数
      *  - timed_out 超时
      */
-    RAINY_TOOLKIT_API thrd_result cnd_wait(cnd_t *const cnd,mtx_t * const mtx) noexcept;
+    RAINY_TOOLKIT_API thrd_result cnd_wait(cnd_t *const cnd, mtx_t *const mtx) noexcept;
 
     /**
      * @brief 条件变量等待，带超时
@@ -376,7 +418,7 @@ namespace rainy::foundation::concurrency::implements {
      *  - timed_out 超时
      *  - nomem 无效参数
      */
-    RAINY_TOOLKIT_API thrd_result cnd_timedwait(cnd_t *const cnd,mtx_t * const mtx, const ::timespec *timeout) noexcept;
+    RAINY_TOOLKIT_API thrd_result cnd_timedwait(cnd_t *const cnd, mtx_t *const mtx, const ::timespec *timeout) noexcept;
 
     /**
      * @brief 唤醒一个等待线程
@@ -410,6 +452,121 @@ namespace rainy::foundation::concurrency::implements {
      * @brief 获取底层平台条件变量原生句柄
      */
     RAINY_TOOLKIT_API void *native_cnd_handle(cnd_t *const cnd) noexcept;
+}
+
+namespace rainy::foundation::concurrency::implements {
+    using smtx_t = void *;
+
+    /**
+     * @brief 初始化 shared_mutex
+     *
+     * @attention
+     * 需要一个有效的实例句柄，该句柄必须指向
+     * implements::shared_mutex_handle。
+     *
+     * 如需自动分配实例，请使用 smtx_create。
+     *
+     * @param smtx shared_mutex 句柄
+     *
+     * @return
+     *  - success 初始化成功
+     *  - nomem   smtx 为空（errno = EINVAL）
+     */
+    RAINY_TOOLKIT_API thrd_result smtx_init(smtx_t *const smtx) noexcept;
+
+    /**
+     * @brief 创建 shared_mutex
+     *
+     * 从动态存储空间分配实例，并自动调用 smtx_init。
+     *
+     * @warning
+     * 若未调用 smtx_destroy，可能导致内存泄漏。
+     *
+     * @param smtx 用于接收实例的句柄
+     *
+     * @return
+     *  - success 创建成功
+     *  - nomem   无效句柄（errno = EINVAL）
+     */
+    RAINY_TOOLKIT_API thrd_result smtx_create(smtx_t *const smtx) noexcept;
+
+    /**
+     * @brief 以独占模式锁定 shared_mutex
+     *
+     * 阻塞直到获得独占访问权限。
+     *
+     * 独占锁与：
+     *  - 所有 shared 锁互斥
+     *  - 其他 exclusive 锁互斥
+     *
+     * @param smtx shared_mutex 句柄
+     */
+    RAINY_TOOLKIT_API thrd_result smtx_lock(smtx_t *const smtx) noexcept;
+
+    /**
+     * @brief 以共享模式锁定 shared_mutex
+     *
+     * 多个线程可同时持有 shared 锁，
+     * 但会与 exclusive 锁互斥。
+     *
+     * @param smtx shared_mutex 句柄
+     */
+    RAINY_TOOLKIT_API thrd_result smtx_lock_shared(smtx_t *const smtx) noexcept;
+
+    /**
+     * @brief 尝试获取独占锁
+     *
+     * @return
+     *  - success 获取成功
+     *  - busy    当前无法获取
+     *  - nomem   smtx 无效（errno = EINVAL）
+     */
+    RAINY_TOOLKIT_API thrd_result smtx_try_lock(smtx_t *const smtx) noexcept;
+
+    /**
+     * @brief 尝试获取共享锁
+     *
+     * @return
+     *  - success 获取成功
+     *  - busy    当前无法获取
+     *  - nomem   smtx 无效（errno = EINVAL）
+     */
+    RAINY_TOOLKIT_API thrd_result smtx_try_lock_shared(smtx_t *const smtx) noexcept;
+
+    /**
+     * @brief 释放独占锁
+     *
+     * 当前线程必须持有 exclusive 锁。
+     */
+    RAINY_TOOLKIT_API thrd_result smtx_unlock(smtx_t *const smtx) noexcept;
+
+    /**
+     * @brief 释放共享锁
+     *
+     * 当前线程必须持有 shared 锁之一。
+     */
+    RAINY_TOOLKIT_API thrd_result smtx_unlock_shared(smtx_t *const smtx) noexcept;
+
+    /**
+     * @brief 销毁 shared_mutex
+     *
+     * 释放关联的系统资源。
+     *
+     * @warning
+     * 若仍有线程持有锁，行为未定义。
+     */
+    RAINY_TOOLKIT_API thrd_result smtx_destroy(smtx_t *const smtx) noexcept;
+
+    /**
+     * @brief 获取底层平台 shared_mutex 句柄
+     *
+     * 返回类型依赖平台：
+     *  - Windows : SRWLOCK*
+     *  - Linux   : pthread_rwlock_t*
+     *
+     * 仅用于底层集成或调试。
+     */
+    RAINY_TOOLKIT_API void *native_smtx_handle(smtx_t *const smtx) noexcept;
 }
 
 #endif

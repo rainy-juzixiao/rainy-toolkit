@@ -93,7 +93,6 @@ namespace rainy::foundation::concurrency::implements {
         return thrd_result::busy;
     }
 
-
     thrd_result mtx_init(mtx_t *mtx, int flags) noexcept {
         if (!mtx) {
             return thrd_result::nomem;
@@ -163,10 +162,7 @@ namespace rainy::foundation::concurrency::implements {
             return thrd_result::nomem;
         }
         auto *mutex = static_cast<mutex_handle *>(*mtx);
-        if (mutex->count != 0) {
-            errno = EBUSY;
-            return thrd_result::busy;
-        }
+        // 移除对count的检查，不再保证 (若仍有线程持有该锁，行为未定义)
         pthread_mutex_destroy(&mutex->handle);
         core::pal::deallocate(mutex, sizeof(mutex_handle), alignof(mutex_handle));
         return thrd_result::success;

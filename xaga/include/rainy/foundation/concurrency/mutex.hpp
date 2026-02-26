@@ -82,16 +82,16 @@ namespace rainy::foundation::concurrency {
         rain_fn native_handle() noexcept -> native_handle_type;
 
         /**
-         * @brief 获取 PAL 层 mtx_t 句柄指针
+         * @brief 获取 rainy-toolkit 抽象层 mtx_t 句柄指针
          *
          * 返回指向内部 mtx_t 成员的指针（即 void**），可直接传给
          * cnd_wait / cnd_timedwait 等同层 PAL 函数。
          *
          * @note 与 native_handle() 的区别：native_handle() 返回的是
-         *       已解引用一层的底层 OS 句柄（pthread_mutex_t*）；
-         *       pal_handle() 返回的是 PAL 句柄本身的地址（mtx_t*）。
+         *       已解引用一层的底层 OS 句柄
+         *       rainy-toolkit() 返回的是 PAL 句柄本身的地址（mtx_t*）。
          */
-        rain_fn pal_handle() noexcept -> implements::mtx_t * {
+        rain_fn backend_handle() noexcept -> implements::mtx_t * {
             return &mtx_;
         }
 
@@ -163,16 +163,16 @@ namespace rainy::foundation::concurrency {
         rain_fn native_handle() noexcept -> native_handle_type;
 
         /**
-         * @brief 获取 PAL 层 mtx_t 句柄指针
+         * @brief 获取 rainy-toolkit 抽象层 mtx_t 句柄指针
          *
          * 返回指向内部 mtx_t 成员的指针（即 void**），可直接传给
          * cnd_wait / cnd_timedwait 等同层 PAL 函数。
          *
          * @note 与 native_handle() 的区别：native_handle() 返回的是
-         *       已解引用一层的底层 OS 句柄（pthread_mutex_t*）；
-         *       pal_handle() 返回的是 PAL 句柄本身的地址（mtx_t*）。
+         *       已解引用一层的底层 OS 句柄
+         *       rainy-toolkit() 返回的是 PAL 句柄本身的地址（mtx_t*）。
          */
-        rain_fn pal_handle() noexcept -> implements::mtx_t * {
+        rain_fn backend_handle() noexcept -> implements::mtx_t * {
             return &mtx_;
         }
 
@@ -306,16 +306,16 @@ namespace rainy::foundation::concurrency {
         rain_fn native_handle() noexcept -> native_handle_type;
 
         /**
-         * @brief 获取 PAL 层 mtx_t 句柄指针
+         * @brief 获取 rainy-toolkit 抽象层 mtx_t 句柄指针
          *
          * 返回指向内部 mtx_t 成员的指针（即 void**），可直接传给
          * cnd_wait / cnd_timedwait 等同层 PAL 函数。
          *
          * @note 与 native_handle() 的区别：native_handle() 返回的是
-         *       已解引用一层的底层 OS 句柄（pthread_mutex_t*）；
-         *       pal_handle() 返回的是 PAL 句柄本身的地址（mtx_t*）。
+         *       已解引用一层的底层 OS 句柄
+         *       rainy-toolkit() 返回的是 PAL 句柄本身的地址（mtx_t*）。
          */
-        rain_fn pal_handle() noexcept -> implements::mtx_t * {
+        rain_fn backend_handle() noexcept -> implements::mtx_t * {
             return &mtx_;
         }
 
@@ -423,16 +423,16 @@ namespace rainy::foundation::concurrency {
         rain_fn native_handle() noexcept -> native_handle_type;
 
         /**
-         * @brief 获取 PAL 层 mtx_t 句柄指针
+         * @brief 获取 rainy-toolkit 抽象层 mtx_t 句柄指针
          *
          * 返回指向内部 mtx_t 成员的指针（即 void**），可直接传给
          * cnd_wait / cnd_timedwait 等同层 PAL 函数。
          *
          * @note 与 native_handle() 的区别：native_handle() 返回的是
-         *       已解引用一层的底层 OS 句柄（pthread_mutex_t*）；
-         *       pal_handle() 返回的是 PAL 句柄本身的地址（mtx_t*）。
+         *       已解引用一层的底层 OS 句柄
+         *       rainy-toolkit() 返回的是 PAL 句柄本身的地址（mtx_t*）。
          */
-        rain_fn pal_handle() noexcept -> implements::mtx_t * {
+        rain_fn backend_handle() noexcept -> implements::mtx_t * {
             return &mtx_;
         }
 
@@ -581,7 +581,6 @@ namespace rainy::foundation::concurrency {
     private:
         std::tuple<MutexTypes &...> pm;
     };
-
 }
 
 namespace rainy::foundation::concurrency {

@@ -23,10 +23,6 @@ namespace rainy::foundation::concurrency {
     public:
         using task_type = functional::delegate<void()>;
 
-        ~work_stealing_deque() {
-            std::deque<task_type>{}.swap(deque_);
-        }
-
         void push(task_type task) {
             lock_guard lk(mutex_);
             deque_.push_back(std::move(task));
@@ -34,8 +30,9 @@ namespace rainy::foundation::concurrency {
 
         std::optional<task_type> pop() {
             lock_guard lk(mutex_);
-            if (deque_.empty())
+            if (deque_.empty()) {
                 return std::nullopt;
+            }
             auto task = std::move(deque_.front());
             deque_.pop_front();
             return task;

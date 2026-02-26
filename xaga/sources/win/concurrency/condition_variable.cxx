@@ -64,12 +64,9 @@ namespace rainy::foundation::concurrency::implements {
         const DWORD saved_tid = mutex->thread_id;
         mutex->count = 0;
         mutex->thread_id = 0;
-
         BOOL ret = SleepConditionVariableSRW(&obj->cond, psrwlock, INFINITE, 0);
-
         mutex->count = saved_count;
         mutex->thread_id = GetCurrentThreadId();
-
         if (ret) {
             return thrd_result::success;
         } else {
@@ -81,8 +78,11 @@ namespace rainy::foundation::concurrency::implements {
         }
     }
 
-    thrd_result cnd_timedwait(cnd_t *const cnd, mtx_t *const mtx, const ::timespec *timeout) noexcept {
-        if (!cnd || !*cnd || !mtx || !*mtx || !timeout) {
+    thrd_result cnd_timedwait(cnd_t *const cnd, mtx_t *const mtx, const ::timespec *abstime) noexcept {
+        if (!cnd || !*cnd || !mtx || !*mtx || !abstime) {
+            return thrd_result::nomem;
+        }
+        if (abstime->tv_sec < 0 || abstime->tv_nsec < 0 || abstime->tv_nsec >= 1000000000) {
             return thrd_result::nomem;
         }
         auto *obj = static_cast<cnd_internal *>(*cnd);
@@ -94,56 +94,48 @@ namespace rainy::foundation::concurrency::implements {
 
         const int saved_count = mutex->count;
         const DWORD saved_tid = mutex->thread_id;
+
         mutex->count = 0;
         mutex->thread_id = 0;
 
-        // 验证 timeout 参数
-        if (timeout->tv_sec < 0 || timeout->tv_nsec < 0 || timeout->tv_nsec >= 1000000000) {
-            mutex->count = saved_count;
-            mutex->thread_id = GetCurrentThreadId();
-            return thrd_result::nomem;
-        }
-
-        // 获取当前时间
         ::timespec now;
         if (::timespec_get(&now, TIME_UTC) == 0) {
             mutex->count = saved_count;
-            mutex->thread_id = GetCurrentThreadId();
+            mutex->thread_id = saved_tid;
             return thrd_result::error;
         }
-
-        // 计算相对超时时间（timeout - now）
-        DWORD dwMilliseconds;
-        long long diff_sec = static_cast<long long>(timeout->tv_sec) - static_cast<long long>(now.tv_sec);
-        long long diff_nsec = static_cast<long long>(timeout->tv_nsec) - static_cast<long long>(now.tv_nsec);
-        // 如果已经超时（deadline 在过去）
-        if (diff_sec < 0 || (diff_sec == 0 && diff_nsec <= 0)) {
-            dwMilliseconds = 0;
-        } else {
-            long long total_ns = diff_sec * 1000000000LL + diff_nsec;
-            // 向上取整到毫秒，再加1补偿两次时钟采样之间的误差
-            long long total_ms = (total_ns + 999999LL) / 1000000LL + 1;
-            if (total_ms > (long long) (INFINITE - 1)) {
-                dwMilliseconds = INFINITE - 1;
+        constexpr std::int64_t NS_PER_SEC = 1000000000LL;
+        constexpr std::int64_t NS_PER_MS = 1000000LL;
+        std::int64_t abs_ns = static_cast<std::int64_t>(abstime->tv_sec * NS_PER_SEC + (std::int64_t) abstime->tv_nsec);
+        std::int64_t now_ns = static_cast<std::int64_t>(now.tv_sec * NS_PER_SEC + (std::int64_t) now.tv_nsec);
+        DWORD timeout_ms;
+        if (abs_ns > now_ns) {
+            std::int64_t delta_ns = abs_ns - now_ns;
+            if (delta_ns >= static_cast<std::int64_t>(INFINITE * NS_PER_MS)) {
+                timeout_ms = INFINITE - 1;
             } else {
-                dwMilliseconds = (DWORD) total_ms;
+                timeout_ms = static_cast<DWORD>((delta_ns + NS_PER_MS - 1) / NS_PER_MS);
             }
+            if (timeout_ms == 0) {
+                timeout_ms = 1;
+            }
+        } else {
+            timeout_ms = 0;
         }
-        BOOL ret = SleepConditionVariableSRW(&obj->cond, psrwlock, dwMilliseconds, 0);
-        // 无论是正常唤醒还是超时，都会重新持有锁
+        BOOL ret = SleepConditionVariableSRW(&obj->cond, psrwlock, timeout_ms, 0);
         mutex->count = saved_count;
-        mutex->thread_id = GetCurrentThreadId();
+        mutex->thread_id = saved_tid;
         if (ret) {
             return thrd_result::success;
-        } else {
-            DWORD error = GetLastError();
-            if (error == ERROR_TIMEOUT) {
-                return thrd_result::timed_out;
-            } else if (error == ERROR_INVALID_PARAMETER) {
-                return thrd_result::nomem;
-            }
-            return thrd_result::error;
         }
+        DWORD error = GetLastError();
+        if (error == ERROR_TIMEOUT) {
+            return thrd_result::timed_out;
+        }
+        if (error == ERROR_INVALID_PARAMETER) {
+            return thrd_result::nomem;
+        }
+        return thrd_result::error;
     }
 
     thrd_result cnd_signal(cnd_t *const cnd) noexcept {

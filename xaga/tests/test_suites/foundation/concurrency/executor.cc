@@ -866,3 +866,69 @@ SCENARIO_METHOD(BlockingActorPoolFixture, "blocking_actor_pool task ordering sem
         }
     }
 }
+
+SCENARIO("async and async_isolated execute functions correctly", "[async]") {
+
+    GIVEN("A simple function returning an integer") {
+        auto simple_func = []() { return 42; };
+
+        WHEN("async is called with the function") {
+            auto fut = async(simple_func);
+
+            THEN("the future should hold the correct result") {
+                REQUIRE(fut.get() == 42);
+            }
+        }
+
+        WHEN("async_isolated is called with the function") {
+            auto fut = async_isolated(simple_func);
+
+            THEN("the future should hold the correct result") {
+                REQUIRE(fut.get() == 42);
+            }
+        }
+    }
+
+    GIVEN("A function with parameters") {
+        auto add = [](int a, int b) { return a + b; };
+
+        WHEN("async is called with parameters") {
+            auto fut = async(add, 2, 3);
+
+            THEN("the future should compute the correct sum") {
+                REQUIRE(fut.get() == 5);
+            }
+        }
+
+        WHEN("async_isolated is called with parameters") {
+            auto fut = async_isolated(add, 10, 5);
+
+            THEN("the future should compute the correct sum") {
+                REQUIRE(fut.get() == 15);
+            }
+        }
+    }
+
+    GIVEN("A function that modifies external state") {
+        int value = 0;
+        auto increment = [&value]() { value += 1; };
+
+        WHEN("async is called") {
+            auto fut = async(increment);
+            fut.get();
+
+            THEN("the external state should be updated") {
+                REQUIRE(value == 1);
+            }
+        }
+
+        WHEN("async_isolated is called") {
+            auto fut = async_isolated(increment);
+            fut.get();
+
+            THEN("the external state should be updated") {
+                REQUIRE(value == 1);
+            }
+        }
+    }
+}
