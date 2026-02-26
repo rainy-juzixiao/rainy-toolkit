@@ -96,7 +96,7 @@ namespace rainy::foundation::concurrency {
          */
         rain_fn wait(unique_lock<mutex> &lock) -> void { // NOLINT
             using namespace concurrency::implements;
-            mtx_t *const mtx = lock.mutex()->pal_handle();
+            mtx_t *const mtx = lock.mutex()->backend_handle();
             if (const thrd_result result = cnd_wait(&cnd_, mtx); result != thrd_result::success) {
                 throw std::system_error(static_cast<int>(result), std::system_category(), "condition_variable::wait failed");
             }
@@ -139,7 +139,7 @@ namespace rainy::foundation::concurrency {
                     return cv_status::timeout;
                 }
                 const ::timespec ts = to_timespec(abs_time);
-                const thrd_result r = implements::cnd_timedwait(&cnd_, lock.mutex()->pal_handle(), &ts);
+                const thrd_result r = implements::cnd_timedwait(&cnd_, lock.mutex()->backend_handle(), &ts);
                 if (r == thrd_result::success) {
                     return cv_status::no_timeout;
                 }
@@ -304,7 +304,7 @@ namespace rainy::foundation::concurrency {
             lock.unlock();
 
             // (3) 原子地释放内部锁并挂起；唤醒后重新持有内部锁
-            const thrd_result r = implements::cnd_wait(&cnd_, internal_lk.mutex()->pal_handle());
+            const thrd_result r = implements::cnd_wait(&cnd_, internal_lk.mutex()->backend_handle());
 
             // (4) internal_lk 析构，释放内部锁
 
@@ -356,7 +356,7 @@ namespace rainy::foundation::concurrency {
                     return cv_status::timeout;
                 }
                 const ::timespec ts = to_timespec(abs_time);
-                const thrd_result r = implements::cnd_timedwait(&cnd_, internal_lk.mutex()->pal_handle(), &ts);
+                const thrd_result r = implements::cnd_timedwait(&cnd_, internal_lk.mutex()->backend_handle(), &ts);
                 if (r == thrd_result::success) {
                     internal_lk.unlock();
                     lock.lock();

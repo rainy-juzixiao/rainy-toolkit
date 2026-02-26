@@ -64,12 +64,9 @@ namespace rainy::foundation::concurrency::implements {
         const DWORD saved_tid = mutex->thread_id;
         mutex->count = 0;
         mutex->thread_id = 0;
-
         BOOL ret = SleepConditionVariableSRW(&obj->cond, psrwlock, INFINITE, 0);
-
         mutex->count = saved_count;
         mutex->thread_id = GetCurrentThreadId();
-
         if (ret) {
             return thrd_result::success;
         } else {
@@ -107,19 +104,17 @@ namespace rainy::foundation::concurrency::implements {
             mutex->thread_id = saved_tid;
             return thrd_result::error;
         }
-
-        constexpr int64_t NS_PER_SEC = 1000000000LL;
-        constexpr int64_t NS_PER_MS = 1000000LL;
-        int64_t abs_ns = static_cast<int64_t>(abstime->tv_sec * NS_PER_SEC + (int64_t) abstime->tv_nsec);
-        int64_t now_ns = static_cast<int64_t>(now.tv_sec * NS_PER_SEC + (int64_t) now.tv_nsec);
+        constexpr std::int64_t NS_PER_SEC = 1000000000LL;
+        constexpr std::int64_t NS_PER_MS = 1000000LL;
+        std::int64_t abs_ns = static_cast<std::int64_t>(abstime->tv_sec * NS_PER_SEC + (std::int64_t) abstime->tv_nsec);
+        std::int64_t now_ns = static_cast<std::int64_t>(now.tv_sec * NS_PER_SEC + (std::int64_t) now.tv_nsec);
         DWORD timeout_ms;
-
         if (abs_ns > now_ns) {
-            int64_t delta_ns = abs_ns - now_ns;
-            if (delta_ns >= (int64_t) INFINITE * NS_PER_MS) {
+            std::int64_t delta_ns = abs_ns - now_ns;
+            if (delta_ns >= static_cast<std::int64_t>(INFINITE * NS_PER_MS)) {
                 timeout_ms = INFINITE - 1;
             } else {
-                timeout_ms = (DWORD) ((delta_ns + NS_PER_MS - 1) / NS_PER_MS);
+                timeout_ms = static_cast<DWORD>((delta_ns + NS_PER_MS - 1) / NS_PER_MS);
             }
             if (timeout_ms == 0) {
                 timeout_ms = 1;
@@ -127,26 +122,19 @@ namespace rainy::foundation::concurrency::implements {
         } else {
             timeout_ms = 0;
         }
-
         BOOL ret = SleepConditionVariableSRW(&obj->cond, psrwlock, timeout_ms, 0);
-
         mutex->count = saved_count;
         mutex->thread_id = saved_tid;
-
         if (ret) {
             return thrd_result::success;
         }
-
         DWORD error = GetLastError();
-
         if (error == ERROR_TIMEOUT) {
             return thrd_result::timed_out;
         }
-
         if (error == ERROR_INVALID_PARAMETER) {
             return thrd_result::nomem;
         }
-
         return thrd_result::error;
     }
 
