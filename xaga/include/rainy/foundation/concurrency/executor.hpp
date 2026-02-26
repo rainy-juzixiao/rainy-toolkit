@@ -20,7 +20,7 @@
 #include <rainy/foundation/concurrency/basic/scheduler.hpp>
 
 namespace rainy::foundation::concurrency {
-    class RAINY_TOOLKIT_API executor {
+    class executor {
     public:
         explicit executor(std::unique_ptr<task_scheduler> scheduler) noexcept : owned_(utility::move(scheduler)), borrowed_(nullptr) {
         }

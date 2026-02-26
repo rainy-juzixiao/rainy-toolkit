@@ -19,11 +19,12 @@
 #include <rainy/foundation/concurrency/basic/actor.hpp>
 #include <rainy/foundation/concurrency/condition_variable.hpp>
 #include <rainy/foundation/concurrency/basic/scheduler.hpp>
+#include <rainy/foundation/concurrency/atomic.hpp>
 #include <rainy/foundation/diagnostics/contract.hpp>
 #include <rainy/foundation/memory/nebula_ptr.hpp>
 
 namespace rainy::foundation::concurrency {
-    class RAINY_TOOLKIT_API pooled_actor_pool final : public task_scheduler {
+    class pooled_actor_pool final : public task_scheduler {
     public:
         explicit pooled_actor_pool(const std::size_t thread_count = std::thread::hardware_concurrency(),
                                    const std::size_t actor_count = 0) :
@@ -38,8 +39,8 @@ namespace rainy::foundation::concurrency {
             // 给每个 actor 注入完成回调——减全局计数，而不是 per-actor 计数
             for (auto &a: actors_) {
                 a->set_on_complete([this] {
-                    const int done = complete_count_.fetch_add(1, std::memory_order_acq_rel) + 1;
-                    if (const int submitted = submit_count_.load(std::memory_order_acquire); done == submitted) {
+                    const int done = complete_count_.fetch_add(1, memory_order_acq_rel) + 1;
+                    if (const int submitted = submit_count_.load(memory_order_acquire); done == submitted) {
                         lock_guard lk(idle_mutex_);
                         idle_cv_.notify_all();
                     }
@@ -61,24 +62,24 @@ namespace rainy::foundation::concurrency {
         }
 
         ~pooled_actor_pool() override {
-            stop_.store(true, std::memory_order_release);
+            stop_.store(true, memory_order_release);
             for (auto &a: actors_) {
                 a->signal_stop();
             }
         }
 
         void submit(functional::move_only_delegate<void()> task) override {
-            submit_count_.fetch_add(1, std::memory_order_relaxed);
+            submit_count_.fetch_add(1, memory_order_relaxed);
             route(utility::move(task));
         }
 
         void wait_all() override {
-            int target = submit_count_.load(std::memory_order_acquire);
+            int target = submit_count_.load(memory_order_acquire);
             if (target == 0) {
                 return;
             }
             unique_lock lk(idle_mutex_);
-            idle_cv_.wait(lk, [this, target] { return complete_count_.load(std::memory_order_acquire) >= target; });
+            idle_cv_.wait(lk, [this, target] { return complete_count_.load(memory_order_acquire) >= target; });
         }
 
         RAINY_NODISCARD scheduler_traits traits() const override {
@@ -91,7 +92,7 @@ namespace rainy::foundation::concurrency {
         }
 
         void submit_to(const std::size_t actor_id, functional::move_only_delegate<void()> task) override {
-            submit_count_.fetch_add(1, std::memory_order_relaxed);
+            submit_count_.fetch_add(1, memory_order_relaxed);
             if (actor_id < actor_count_) {
                 actors_[actor_id]->submit(utility::move(task)); // NOLINT
             } else {
@@ -101,7 +102,7 @@ namespace rainy::foundation::concurrency {
 
     private:
         void route(functional::move_only_delegate<void()> task) {
-            std::size_t idx = round_robin_.fetch_add(1, std::memory_order_relaxed) % actor_count_;
+            std::size_t idx = round_robin_.fetch_add(1, memory_order_relaxed) % actor_count_;
             if (const std::size_t next = (idx + 1) % actor_count_;
                 actors_[next]->queue_size() < actors_[idx]->queue_size()) { // NOLINT
                 idx = next;
@@ -111,7 +112,7 @@ namespace rainy::foundation::concurrency {
 
         void thread_loop(const std::size_t thread_idx) {
             const std::size_t preferred = thread_idx % actor_count_;
-            while (!stop_.load(std::memory_order_acquire)) {
+            while (!stop_.load(memory_order_acquire)) {
                 bool did_work = false;
                 if (actors_[preferred]->run_once()) { // NOLINT
                     did_work = true;
@@ -135,21 +136,21 @@ namespace rainy::foundation::concurrency {
 
         std::size_t thread_count_;
         std::size_t actor_count_;
-        std::atomic<std::size_t> round_robin_;
-        std::atomic<bool> stop_;
+        atomic<std::size_t> round_robin_;
+        atomic<bool> stop_;
 
         mutex idle_mutex_;
         condition_variable idle_cv_;
 
         std::vector<memory::nebula_ptr<actor_worker>> actors_;
         std::vector<memory::nebula_ptr<thread>> threads_;
-        std::atomic<int> submit_count_{0};
-        std::atomic<int> complete_count_{0};
+        atomic<int> submit_count_{0};
+        atomic<int> complete_count_{0};
     };
 }
 
 namespace rainy::foundation::concurrency {
-    class RAINY_TOOLKIT_API dedicated_actor_pool final : public task_scheduler {
+    class dedicated_actor_pool final : public task_scheduler {
     public:
         explicit dedicated_actor_pool(const std::size_t actor_count = std::thread::hardware_concurrency()) :
             actor_count_(actor_count), round_robin_(0), submit_count_(0), complete_count_(0) {
@@ -162,8 +163,8 @@ namespace rainy::foundation::concurrency {
 
             for (auto &a: actors_) {
                 a->set_on_complete([this] {
-                    const int done = complete_count_.fetch_add(1, std::memory_order_acq_rel) + 1;
-                    if (const int submitted = submit_count_.load(std::memory_order_acquire); done == submitted) {
+                    const int done = complete_count_.fetch_add(1, memory_order_acq_rel) + 1;
+                    if (const int submitted = submit_count_.load(memory_order_acquire); done == submitted) {
                         lock_guard lk(idle_mutex_);
                         idle_cv_.notify_all();
                     }
@@ -186,12 +187,12 @@ namespace rainy::foundation::concurrency {
         }
 
         void submit(functional::move_only_delegate<void()> task) override {
-            submit_count_.fetch_add(1, std::memory_order_relaxed);
+            submit_count_.fetch_add(1, memory_order_relaxed);
             route(utility::move(task));
         }
 
         void submit_to(const std::size_t actor_id, functional::move_only_delegate<void()> task) override {
-            submit_count_.fetch_add(1, std::memory_order_relaxed);
+            submit_count_.fetch_add(1, memory_order_relaxed);
             if (actor_id < actor_count_) {
                 actors_[actor_id]->submit(utility::move(task)); // NOLINT
             } else {
@@ -200,12 +201,12 @@ namespace rainy::foundation::concurrency {
         }
 
         void wait_all() override {
-            int target = submit_count_.load(std::memory_order_acquire);
+            int target = submit_count_.load(memory_order_acquire);
             if (target == 0) {
                 return;
             }
             unique_lock lk(idle_mutex_);
-            idle_cv_.wait(lk, [this, target] { return complete_count_.load(std::memory_order_acquire) >= target; });
+            idle_cv_.wait(lk, [this, target] { return complete_count_.load(memory_order_acquire) >= target; });
         }
 
         RAINY_NODISCARD scheduler_traits traits() const override {
@@ -223,7 +224,7 @@ namespace rainy::foundation::concurrency {
 
     private:
         void route(functional::move_only_delegate<void()> task) {
-            std::size_t idx = round_robin_.fetch_add(1, std::memory_order_relaxed) % actor_count_;
+            std::size_t idx = round_robin_.fetch_add(1, memory_order_relaxed) % actor_count_;
             if (const std::size_t next = (idx + 1) % actor_count_;
                 actors_[next]->queue_size() < actors_[idx]->queue_size()) { // NOLINT
                 idx = next;
@@ -232,9 +233,9 @@ namespace rainy::foundation::concurrency {
         }
 
         std::size_t actor_count_;
-        std::atomic<std::size_t> round_robin_;
-        std::atomic<int> submit_count_;
-        std::atomic<int> complete_count_;
+        atomic<std::size_t> round_robin_;
+        atomic<int> submit_count_;
+        atomic<int> complete_count_;
         mutex idle_mutex_;
         condition_variable idle_cv_;
         std::vector<memory::nebula_ptr<actor_worker>> actors_;
@@ -252,7 +253,7 @@ namespace rainy::foundation::concurrency {
      *   - 支持 submit_to(actor_id, task) 直接投递到指定 actor
      *   - actor_count == thread_count，保证一一对应
      */
-    class RAINY_TOOLKIT_API pinned_actor_pool final : public task_scheduler {
+    class pinned_actor_pool final : public task_scheduler {
     public:
         explicit pinned_actor_pool(const std::size_t thread_count = std::thread::hardware_concurrency()) :
             thread_count_(thread_count), round_robin_(0), stop_(false) {
@@ -267,8 +268,8 @@ namespace rainy::foundation::concurrency {
             // 完成回调：全局计数，与 pooled/dedicated 保持一致
             for (auto &a: actors_) {
                 a->set_on_complete([this] {
-                    const int done = complete_count_.fetch_add(1, std::memory_order_acq_rel) + 1;
-                    if (const int submitted = submit_count_.load(std::memory_order_acquire); done == submitted) {
+                    const int done = complete_count_.fetch_add(1, memory_order_acq_rel) + 1;
+                    if (const int submitted = submit_count_.load(memory_order_acquire); done == submitted) {
                         lock_guard lk(idle_mutex_);
                         idle_cv_.notify_all();
                     }
@@ -284,7 +285,7 @@ namespace rainy::foundation::concurrency {
         }
 
         ~pinned_actor_pool() override {
-            stop_.store(true, std::memory_order_release);
+            stop_.store(true, memory_order_release);
             for (auto &a: actors_) {
                 a->signal_stop();
             }
@@ -294,7 +295,7 @@ namespace rainy::foundation::concurrency {
          * @brief 提交任务到 pool，经 round-robin + 轻载选择路由到某个 pinned actor
          */
         void submit(functional::move_only_delegate<void()> task) override {
-            submit_count_.fetch_add(1, std::memory_order_relaxed);
+            submit_count_.fetch_add(1, memory_order_relaxed);
             route(utility::move(task));
         }
 
@@ -303,7 +304,7 @@ namespace rainy::foundation::concurrency {
          *        actor_id 越界时退化为 route()
          */
         void submit_to(const std::size_t actor_id, functional::move_only_delegate<void()> task) override {
-            submit_count_.fetch_add(1, std::memory_order_relaxed);
+            submit_count_.fetch_add(1, memory_order_relaxed);
             if (actor_id < thread_count_) {
                 actors_[actor_id]->submit(utility::move(task)); // NOLINT
             } else {
@@ -312,12 +313,12 @@ namespace rainy::foundation::concurrency {
         }
 
         void wait_all() override {
-            const int target = submit_count_.load(std::memory_order_acquire);
+            const int target = submit_count_.load(memory_order_acquire);
             if (target == 0) {
                 return;
             }
             unique_lock lk(idle_mutex_);
-            idle_cv_.wait(lk, [this, target] { return complete_count_.load(std::memory_order_acquire) >= target; });
+            idle_cv_.wait(lk, [this, target] { return complete_count_.load(memory_order_acquire) >= target; });
         }
 
         RAINY_NODISCARD scheduler_traits traits() const override {
@@ -335,7 +336,7 @@ namespace rainy::foundation::concurrency {
 
     private:
         void route(functional::move_only_delegate<void()> task) {
-            std::size_t idx = round_robin_.fetch_add(1, std::memory_order_relaxed) % thread_count_;
+            std::size_t idx = round_robin_.fetch_add(1, memory_order_relaxed) % thread_count_;
             if (const std::size_t next = (idx + 1) % thread_count_;
                 actors_[next]->queue_size() < actors_[idx]->queue_size()) { // NOLINT
                 idx = next;
@@ -345,7 +346,7 @@ namespace rainy::foundation::concurrency {
 
         void thread_loop(const std::size_t thread_idx) {
             actor_worker *pinned = actors_[thread_idx].get(); // NOLINT
-            while (!stop_.load(std::memory_order_acquire)) {
+            while (!stop_.load(memory_order_acquire)) {
                 if (!pinned->run_once()) { // NOLINT
                     // 本 actor 暂无任务，短暂让出 CPU
                     thread::sleep_for(0);
@@ -354,16 +355,16 @@ namespace rainy::foundation::concurrency {
         }
 
         std::size_t thread_count_;
-        std::atomic<std::size_t> round_robin_;
-        std::atomic<bool> stop_;
+        atomic<std::size_t> round_robin_;
+        atomic<bool> stop_;
 
         mutex idle_mutex_;
         condition_variable idle_cv_;
 
         std::vector<memory::nebula_ptr<actor_worker>> actors_;
         std::vector<memory::nebula_ptr<thread>> threads_;
-        std::atomic<int> submit_count_{0};
-        std::atomic<int> complete_count_{0};
+        atomic<int> submit_count_{0};
+        atomic<int> complete_count_{0};
     };
 }
 
@@ -379,7 +380,7 @@ namespace rainy::foundation::concurrency {
      *   - 层内支持 work stealing（同层 actor 间）
      *   - 跨层不 steal，保证优先级语义不被破坏
      */
-    class RAINY_TOOLKIT_API priority_actor_pool final : public task_scheduler {
+    class priority_actor_pool final : public task_scheduler {
     public:
         /**
          * @param thread_count   工作线程数
@@ -400,7 +401,7 @@ namespace rainy::foundation::concurrency {
                 auto &tier_actors = actors_[tier];
                 auto &rr = round_robin_[tier];
                 // NOLINTEND
-                rr.store(0, std::memory_order_relaxed);
+                rr.store(0, memory_order_relaxed);
 
                 tier_actors.reserve(actors_per_tier_);
                 // actor id 全局唯一：tier * actors_per_tier_ + i
@@ -412,8 +413,8 @@ namespace rainy::foundation::concurrency {
                 // 完成回调
                 for (auto &a: tier_actors) {
                     a->set_on_complete([this] {
-                        const int done = complete_count_.fetch_add(1, std::memory_order_acq_rel) + 1;
-                        if (const int submitted = submit_count_.load(std::memory_order_acquire); done == submitted) {
+                        const int done = complete_count_.fetch_add(1, memory_order_acq_rel) + 1;
+                        if (const int submitted = submit_count_.load(memory_order_acquire); done == submitted) {
                             lock_guard lk(idle_mutex_);
                             idle_cv_.notify_all();
                         }
@@ -440,7 +441,7 @@ namespace rainy::foundation::concurrency {
         }
 
         ~priority_actor_pool() override {
-            stop_.store(true, std::memory_order_release);
+            stop_.store(true, memory_order_release);
             for (auto &tier_actors: actors_) {
                 for (auto &a: tier_actors) {
                     a->signal_stop();
@@ -461,7 +462,7 @@ namespace rainy::foundation::concurrency {
          * @param priority  调度 hint，决定路由到哪个优先级层
          */
         void submit(functional::move_only_delegate<void()> task, const actor_priority priority) override {
-            submit_count_.fetch_add(1, std::memory_order_relaxed);
+            submit_count_.fetch_add(1, memory_order_relaxed);
             route(utility::move(task), priority);
         }
 
@@ -481,7 +482,7 @@ namespace rainy::foundation::concurrency {
          */
         void submit_to(const std::size_t actor_id, functional::move_only_delegate<void()> task,
                        const actor_priority priority) override {
-            submit_count_.fetch_add(1, std::memory_order_relaxed);
+            submit_count_.fetch_add(1, memory_order_relaxed);
             const auto tier = static_cast<std::size_t>(priority);
             if (actor_id < actors_per_tier_) {
                 actors_[tier][actor_id]->submit(utility::move(task)); // NOLINT
@@ -495,12 +496,12 @@ namespace rainy::foundation::concurrency {
         }
 
         void wait_all() override {
-            const int target = submit_count_.load(std::memory_order_acquire);
+            const int target = submit_count_.load(memory_order_acquire);
             if (target == 0) {
                 return;
             }
             unique_lock lk(idle_mutex_);
-            idle_cv_.wait(lk, [this, target] { return complete_count_.load(std::memory_order_acquire) >= target; });
+            idle_cv_.wait(lk, [this, target] { return complete_count_.load(memory_order_acquire) >= target; });
         }
 
         RAINY_NODISCARD scheduler_traits traits() const override {
@@ -526,7 +527,7 @@ namespace rainy::foundation::concurrency {
             auto &rr = round_robin_[tier];
             auto &pool = actors_[tier];
 
-            std::size_t idx = rr.fetch_add(1, std::memory_order_relaxed) % actors_per_tier_;
+            std::size_t idx = rr.fetch_add(1, memory_order_relaxed) % actors_per_tier_;
             const std::size_t next = (idx + 1) % actors_per_tier_;
             if (pool[next]->queue_size() < pool[idx]->queue_size()) {
                 idx = next;
@@ -558,7 +559,7 @@ namespace rainy::foundation::concurrency {
             const std::size_t preferred_base = thread_idx % actors_per_tier_;
             std::uint64_t tick = 0;
 
-            while (!stop_.load(std::memory_order_acquire)) {
+            while (!stop_.load(memory_order_acquire)) {
                 bool did_work = false;
                 for (std::size_t tier = 0; tier < actor_priority_levels; ++tier) {
                     // 按频率掩码决定本 tick 检查哪些层
@@ -598,22 +599,22 @@ namespace rainy::foundation::concurrency {
 
         std::size_t thread_count_;
         std::size_t actors_per_tier_;
-        std::atomic<bool> stop_;
+        atomic<bool> stop_;
 
         mutex idle_mutex_;
         condition_variable idle_cv_;
 
         std::array<std::vector<memory::nebula_ptr<actor_worker>>, actor_priority_levels> actors_;
-        std::array<std::atomic<std::size_t>, actor_priority_levels> round_robin_;
+        std::array<atomic<std::size_t>, actor_priority_levels> round_robin_;
 
         std::vector<memory::nebula_ptr<thread>> threads_;
-        std::atomic<int> submit_count_{0};
-        std::atomic<int> complete_count_{0};
+        atomic<int> submit_count_{0};
+        atomic<int> complete_count_{0};
     };
 }
 
 namespace rainy::foundation::concurrency {
-    class RAINY_TOOLKIT_API blocking_actor_pool final : public task_scheduler {
+    class blocking_actor_pool final : public task_scheduler {
     public:
         explicit blocking_actor_pool(const std::size_t base_threads = 2,
                                      const std::size_t max_threads = std::thread::hardware_concurrency() * 2) :
@@ -626,7 +627,7 @@ namespace rainy::foundation::concurrency {
         }
 
         ~blocking_actor_pool() override {
-            stop_.store(true, std::memory_order_release);
+            stop_.store(true, memory_order_release);
             {
                 lock_guard lk(queue_mutex_);
                 queue_cv_.notify_all();
@@ -636,7 +637,7 @@ namespace rainy::foundation::concurrency {
         }
 
         void submit(functional::move_only_delegate<void()> task) override {
-            pending_tasks_.fetch_add(1, std::memory_order_relaxed);
+            pending_tasks_.fetch_add(1, memory_order_relaxed);
             {
                 lock_guard lk(queue_mutex_);
                 task_queue_.push(utility::move(task));
@@ -651,14 +652,14 @@ namespace rainy::foundation::concurrency {
         }
 
         void wait_all() override {
-            const int target = pending_tasks_.load(std::memory_order_acquire);
+            const int target = pending_tasks_.load(memory_order_acquire);
             if (target == 0) {
                 return;
             }
             unique_lock lk(idle_mutex_);
-            idle_cv_.wait(lk, [this, target] { return complete_count_.load(std::memory_order_acquire) >= target; });
-            pending_tasks_.store(0, std::memory_order_release);
-            complete_count_.store(0, std::memory_order_release);
+            idle_cv_.wait(lk, [this, target] { return complete_count_.load(memory_order_acquire) >= target; });
+            pending_tasks_.store(0, memory_order_release);
+            complete_count_.store(0, memory_order_release);
         }
 
         RAINY_NODISCARD scheduler_traits traits() const override {
@@ -667,7 +668,7 @@ namespace rainy::foundation::concurrency {
                     .supports_stealing = false,
                     .supports_affinity = false,
                     .mode = actor_pool_mode::blocking,
-                    .concurrency = active_threads_.load(std::memory_order_relaxed)};
+                    .concurrency = active_threads_.load(memory_order_relaxed)};
         }
 
         void submit_blocking(functional::move_only_delegate<void()> task) {
@@ -681,18 +682,18 @@ namespace rainy::foundation::concurrency {
                 lock_guard lk(threads_mutex_);
                 threads_.push_back(std::move(thread_ptr));
             }
-            active_threads_.fetch_add(1, std::memory_order_relaxed);
+            active_threads_.fetch_add(1, memory_order_relaxed);
         }
 
         void thread_loop() {
-            while (!stop_.load(std::memory_order_acquire)) {
+            while (!stop_.load(memory_order_acquire)) {
                 functional::move_only_delegate<void()> task;
                 bool has_task = false;
                 {
                     unique_lock lk(queue_mutex_);
                     if (task_queue_.empty()) {
                         queue_cv_.wait_for(lk, std::chrono::milliseconds(100),
-                                           [this] { return !task_queue_.empty() || stop_.load(std::memory_order_acquire); });
+                                           [this] { return !task_queue_.empty() || stop_.load(memory_order_acquire); });
                     }
                     if (!task_queue_.empty()) {
                         task = std::move(task_queue_.front());
@@ -702,8 +703,8 @@ namespace rainy::foundation::concurrency {
                 }
                 if (has_task) {
                     task();
-                    const int done = complete_count_.fetch_add(1, std::memory_order_acq_rel) + 1;
-                    const int pending = pending_tasks_.load(std::memory_order_acquire);
+                    const int done = complete_count_.fetch_add(1, memory_order_acq_rel) + 1;
+                    const int pending = pending_tasks_.load(memory_order_acquire);
                     if (done == pending) {
                         lock_guard lk(idle_mutex_);
                         idle_cv_.notify_all();
@@ -713,7 +714,7 @@ namespace rainy::foundation::concurrency {
         }
 
         void check_expand_pool() {
-            std::size_t current_active = active_threads_.load(std::memory_order_relaxed);
+            std::size_t current_active = active_threads_.load(memory_order_relaxed);
             if (current_active >= max_threads_) {
                 return;
             }
@@ -732,7 +733,7 @@ namespace rainy::foundation::concurrency {
 
         const std::size_t base_threads_;
         const std::size_t max_threads_;
-        std::atomic<bool> stop_;
+        atomic<bool> stop_;
 
         mutable mutex queue_mutex_;
         condition_variable queue_cv_;
@@ -744,9 +745,9 @@ namespace rainy::foundation::concurrency {
         mutable mutex idle_mutex_;
         condition_variable idle_cv_;
 
-        std::atomic<std::size_t> active_threads_;
-        std::atomic<int> pending_tasks_{0};
-        std::atomic<int> complete_count_{0};
+        atomic<std::size_t> active_threads_;
+        atomic<int> pending_tasks_{0};
+        atomic<int> complete_count_{0};
     };
 }
 #endif
