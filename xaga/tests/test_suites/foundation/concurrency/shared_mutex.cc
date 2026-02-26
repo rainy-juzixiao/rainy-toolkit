@@ -257,7 +257,7 @@ SCENARIO("shared_lock provides RAII semantics", "[shared_lock]") {
         }
 
         WHEN("creating a shared_lock with defer_lock") {
-            shared_lock<shared_mutex> lock(mtx, std::defer_lock);
+            shared_lock<shared_mutex> lock(mtx, defer_lock);
 
             THEN("the lock is not acquired initially") {
                 REQUIRE_FALSE(lock.owns_lock());
@@ -273,7 +273,7 @@ SCENARIO("shared_lock provides RAII semantics", "[shared_lock]") {
         }
 
         WHEN("creating a shared_lock with try_to_lock") {
-            shared_lock<shared_mutex> lock(mtx, std::try_to_lock);
+            shared_lock<shared_mutex> lock(mtx, try_to_lock);
 
             THEN("the lock is acquired if available") {
                 REQUIRE(lock.owns_lock());
@@ -282,7 +282,7 @@ SCENARIO("shared_lock provides RAII semantics", "[shared_lock]") {
 
         WHEN("creating a shared_lock with adopt_lock") {
             mtx.lock_shared();
-            shared_lock<shared_mutex> lock(mtx, std::adopt_lock);
+            shared_lock<shared_mutex> lock(mtx, adopt_lock);
 
             THEN("the lock assumes ownership") {
                 REQUIRE(lock.owns_lock());
@@ -324,7 +324,7 @@ SCENARIO("shared_lock supports move semantics", "[shared_lock]") {
 SCENARIO("shared_lock manual locking and unlocking", "[shared_lock]") {
     GIVEN("a shared_lock with deferred locking") {
         shared_mutex mtx;
-        shared_lock<shared_mutex> lock(mtx, std::defer_lock);
+        shared_lock<shared_mutex> lock(mtx, defer_lock);
 
         WHEN("manually locking") {
             lock.lock();
@@ -554,7 +554,7 @@ SCENARIO("shared_lock works with shared_timed_mutex", "[shared_lock][shared_time
         }
 
         WHEN("using try_lock_for with shared_lock") {
-            shared_lock<shared_timed_mutex> lock(mtx, std::defer_lock);
+            shared_lock<shared_timed_mutex> lock(mtx, defer_lock);
             bool acquired = lock.try_lock_for(100ms);
 
             THEN("the lock is acquired") {
@@ -564,7 +564,7 @@ SCENARIO("shared_lock works with shared_timed_mutex", "[shared_lock][shared_time
         }
 
         WHEN("using try_lock_until with shared_lock") {
-            shared_lock<shared_timed_mutex> lock(mtx, std::defer_lock);
+            shared_lock<shared_timed_mutex> lock(mtx, defer_lock);
             auto deadline = std::chrono::steady_clock::now() + 100ms;
             bool acquired = lock.try_lock_until(deadline);
 
@@ -647,7 +647,7 @@ SCENARIO("stress test: multiple readers and writers", "[shared_timed_mutex][stre
             for (int i = 0; i < num_writers; ++i) {
                 threads.emplace_back([&]() {
                     for (int j = 0; j < operations_per_thread; ++j) {
-                        std::unique_lock<shared_timed_mutex> lock(mtx);
+                        unique_lock<shared_timed_mutex> lock(mtx);
                         ++shared_data;
                         ++write_operations;
                     }

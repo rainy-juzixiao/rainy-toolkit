@@ -16,7 +16,7 @@
 #ifndef RAINY_FOUNDATION_CONCURRENCY_SHARED_MUTEX_HPP
 #define RAINY_FOUNDATION_CONCURRENCY_SHARED_MUTEX_HPP
 #include <chrono>
-#include <mutex>
+#include <rainy/foundation/concurrency/mutex.hpp>
 #include <rainy/foundation/concurrency/condition_variable.hpp>
 #include <rainy/foundation/concurrency/pal.hpp>
 #include <system_error>
@@ -128,7 +128,7 @@ namespace rainy::foundation::concurrency {
 
         // exclusive ownership
         void lock() {
-            std::unique_lock<std::mutex> lk(mtx_);
+            unique_lock<mutex> lk(mtx_);
             ++exclusive_waiting_;
             // 等待没有读者和写者
             while (state_ != 0) {
@@ -139,7 +139,7 @@ namespace rainy::foundation::concurrency {
         }
 
         bool try_lock() {
-            std::unique_lock<std::mutex> lk(mtx_, std::try_to_lock);
+            unique_lock<mutex> lk(mtx_, try_to_lock);
             if (!lk.owns_lock()) {
                 return false;
             }
@@ -157,11 +157,11 @@ namespace rainy::foundation::concurrency {
 
         template <class Clock, class Duration>
         bool try_lock_until(const std::chrono::time_point<Clock, Duration> &abs_time) {
-            std::unique_lock<std::mutex> lk(mtx_);
+            unique_lock<mutex> lk(mtx_);
             ++exclusive_waiting_;
             // 等待没有读者和写者，或超时
             while (state_ != 0) {
-                if (writer_queue.wait_until(lk, abs_time) == std::cv_status::timeout) {
+                if (writer_queue.wait_until(lk, abs_time) == cv_status::timeout) {
                     --exclusive_waiting_;
                     return false;
                 }
@@ -173,7 +173,7 @@ namespace rainy::foundation::concurrency {
 
         void unlock() {
             {
-                std::lock_guard<std::mutex> lk(mtx_);
+                lock_guard<mutex> lk(mtx_);
                 state_ = 0;
             }
             // 优先唤醒等待的写者，如果没有则唤醒所有读者
@@ -186,7 +186,7 @@ namespace rainy::foundation::concurrency {
 
         // shared ownership
         void lock_shared() {
-            std::unique_lock<std::mutex> lk(mtx_);
+            unique_lock<mutex> lk(mtx_);
             ++shared_waiting_;
             // 等待没有写者且没有等待的写者
             while ((state_ & write_entered_) || exclusive_waiting_ > 0) {
@@ -197,7 +197,7 @@ namespace rainy::foundation::concurrency {
         }
 
         bool try_lock_shared() {
-            std::unique_lock<std::mutex> lk(mtx_, std::try_to_lock);
+            unique_lock<mutex> lk(mtx_, try_to_lock);
             if (!lk.owns_lock()) {
                 return false;
             }
@@ -216,11 +216,11 @@ namespace rainy::foundation::concurrency {
 
         template <class Clock, class Duration>
         bool try_lock_shared_until(const std::chrono::time_point<Clock, Duration> &abs_time) {
-            std::unique_lock<std::mutex> lk(mtx_);
+            unique_lock<mutex> lk(mtx_);
             ++shared_waiting_;
             // 等待没有写者且没有等待的写者，或超时
             while ((state_ & write_entered_) || exclusive_waiting_ > 0) {
-                if (reader_queue.wait_until(lk, abs_time) == std::cv_status::timeout) {
+                if (reader_queue.wait_until(lk, abs_time) == cv_status::timeout) {
                     --shared_waiting_;
                     return false;
                 }
@@ -233,7 +233,7 @@ namespace rainy::foundation::concurrency {
         void unlock_shared() {
             bool notify = false;
             {
-                std::lock_guard<std::mutex> lk(mtx_);
+                lock_guard<mutex> lk(mtx_);
                 --state_; // 减少读者计数
                 // 如果是最后一个读者且有等待的写者
                 if ((state_ & ~write_entered_) == 0 && exclusive_waiting_ > 0) {
@@ -247,9 +247,9 @@ namespace rainy::foundation::concurrency {
         }
 
     private:
-        std::mutex mtx_;
-        std::condition_variable writer_queue; // 写者等待队列
-        std::condition_variable reader_queue; // 读者等待队列
+        mutex mtx_;
+        condition_variable writer_queue; // 写者等待队列
+        condition_variable reader_queue; // 读者等待队列
 
         unsigned int state_; // 状态字：最高位表示写者，其余位表示读者数量
         unsigned int exclusive_waiting_; // 等待的写者数量
@@ -277,14 +277,14 @@ namespace rainy::foundation::concurrency {
             owns_ = true;
         }
 
-        shared_lock(mutex_type &m, std::defer_lock_t) noexcept : pm_(&m), owns_(false) {
+        shared_lock(mutex_type &m, defer_lock_t) noexcept : pm_(&m), owns_(false) {
         }
 
-        shared_lock(mutex_type &m, std::try_to_lock_t) : pm_(&m), owns_(false) {
+        shared_lock(mutex_type &m, try_to_lock_t) : pm_(&m), owns_(false) {
             owns_ = pm_->try_lock_shared();
         }
 
-        shared_lock(mutex_type &m, std::adopt_lock_t) noexcept : pm_(&m), owns_(true) {
+        shared_lock(mutex_type &m, adopt_lock_t) noexcept : pm_(&m), owns_(true) {
         }
 
         template <class Clock, class Duration>
