@@ -58,14 +58,66 @@ namespace rainy::foundation::container::implements {
         constexpr optional_destruct_base() : dummy{}, has_value_{false} { // NOLINT
         }
 
+        // NOLINTBEGIN
         template <typename... Args>
         constexpr optional_destruct_base(std::in_place_t, Args &&...args) : value_(utility::forward<Args>(args)...), has_value_{true} {
         }
 
-        optional_destruct_base(const optional_destruct_base &) = default;
-        optional_destruct_base(optional_destruct_base &&) = default;
-        optional_destruct_base &operator=(const optional_destruct_base &) = default;
-        optional_destruct_base &operator=(optional_destruct_base &&) = default;
+        constexpr optional_destruct_base(const optional_destruct_base &other)
+            : has_value_{false} {
+            if (other.has_value_) {
+                utility::construct_in_place(value_, other.value_);
+                has_value_ = true;
+            }
+        }
+
+        constexpr optional_destruct_base(optional_destruct_base &&other)
+            noexcept(type_traits::type_properties::is_nothrow_move_constructible_v<Ty>)
+            : has_value_{false} {
+            if (other.has_value_) {
+                utility::construct_in_place(value_, utility::move(other.value_));
+                has_value_ = true;
+            }
+        }
+        // NOLINTEND
+
+        constexpr ~optional_destruct_base() {
+            reset();
+        }
+
+        constexpr optional_destruct_base &operator=(const optional_destruct_base &other) {
+            if (this != &other) {
+                if (other.has_value_) {
+                    if (has_value_) {
+                        value_ = other.value_;
+                    } else {
+                        utility::construct_in_place(value_, other.value_);
+                        has_value_ = true;
+                    }
+                } else {
+                    reset();
+                }
+            }
+            return *this;
+        }
+
+        constexpr optional_destruct_base &operator=(optional_destruct_base &&other) noexcept(
+            type_traits::type_properties::is_nothrow_move_constructible_v<Ty> &&
+            type_traits::type_properties::is_nothrow_move_assignable_v<Ty>) {
+            if (this != &other) {
+                if (other.has_value_) {
+                    if (has_value_) {
+                        value_ = utility::move(other.value_);
+                    } else {
+                        utility::construct_in_place(value_, utility::move(other.value_));
+                        has_value_ = true;
+                    }
+                } else {
+                    reset();
+                }
+            }
+            return *this;
+        }
 
         constexpr void reset() noexcept {
             this->has_value_ = false;
