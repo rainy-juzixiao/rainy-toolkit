@@ -863,4 +863,127 @@ namespace rainy::utility {
     }
 }
 
+namespace rainy::utility {
+    /**
+     * @brief Verifies that a pointer range is valid (first <= last).
+     *        验证指针范围是否有效（first <= last）。
+     *
+     * @tparam Ty The element type
+     *            元素类型
+     * @param first Pointer to the beginning of the range
+     *              指向范围起始的指针
+     * @param last Pointer to the end of the range
+     *             指向范围末尾的指针
+     */
+    template <typename Ty>
+    constexpr rain_fn verify_range(const Ty *const first, const Ty *const last) noexcept -> void {
+        expects(first <= last, "transposed pointer range");
+    }
+
+    /**
+     * @brief Variable template for determining if unwrapping should be allowed.
+     *        Defaults to true unless prevent_inheriting_unwrap is defined.
+     *
+     *        确定是否允许解包的变量模板。
+     *        默认为true，除非定义了 prevent_inheriting_unwrap。
+     *
+     * @tparam Iter The iterator type
+     *              迭代器类型
+     */
+    template <typename Iter, typename = void>
+    constexpr bool allow_inheriting_unwrap_v = true;
+
+    /**
+     * @brief Specialization that checks prevent_inheriting_unwrap.
+     *        检查 prevent_inheriting_unwrap 的特化。
+     *
+     * @tparam Iter The iterator type
+     *              迭代器类型
+     */
+    template <typename Iter>
+    constexpr bool allow_inheriting_unwrap_v<Iter, type_traits::other_trans::void_t<typename Iter::prevent_inheriting_unwrap>> =
+        type_traits::implements::is_same_v<Iter, typename Iter::prevent_inheriting_unwrap>;
+
+    /**
+     * @brief Variable template for checking if a range can be verified (primary template).
+     *        检查范围是否可验证的变量模板（主模板）。
+     *
+     * @tparam Iter The iterator type
+     *              迭代器类型
+     * @tparam Sentinel The sentinel type
+     *                  哨兵类型
+     */
+    template <typename Iter, typename Sentinel = Iter, typename = void>
+    constexpr bool range_verifiable_v = false;
+
+    /**
+     * @brief Specialization that detects if verify_range is callable.
+     *        检测 verify_range 是否可调用的特化。
+     *
+     * @tparam Iter The iterator type
+     *              迭代器类型
+     * @tparam Sentinel The sentinel type
+     *                  哨兵类型
+     */
+    template <typename Iter, typename Sentinel>
+    constexpr bool range_verifiable_v<
+        Iter, Sentinel,
+        type_traits::implements::void_t<decltype(verify_range(declval<const Iter &>(), declval<const Sentinel &>()))>> =
+        allow_inheriting_unwrap_v<Iter>;
+
+    /**
+     * @brief ADL-enabled range verification function.
+     *        Verifies that [first, last) forms a valid iterator range.
+     *
+     *        启用ADL的范围验证函数。
+     *        验证 [first, last) 是否构成有效的迭代器范围。
+     *
+     * @tparam iter The iterator type
+     *              迭代器类型
+     * @tparam sentinel The sentinel type
+     *                  哨兵类型
+     * @param first Iterator to the beginning of the range
+     *              指向范围起始的迭代器
+     * @param last Sentinel to the end of the range
+     *             指向范围末尾的哨兵
+     */
+    template <typename iter, typename sentinel>
+    constexpr rain_fn adl_verify_range(const iter &first, const sentinel &last) -> void {
+        if constexpr (type_traits::implements::_is_pointer_v<iter> && type_traits::implements::_is_pointer_v<sentinel>) {
+            expects(first <= last, "transposed pointer range");
+        } else if constexpr (range_verifiable_v<iter, sentinel>) {
+            verify_range(first, last);
+        }
+    }
+}
+
+namespace rainy::utility {
+    /**
+     * @brief Computes the distance between two iterators.
+     *        计算两个迭代器之间的距离。
+     *
+     * @tparam Iter Iterator type
+     *              迭代器类型
+     * @param first Iterator to the beginning of the range
+     *              指向范围起始的迭代器
+     * @param last Iterator to the end of the range
+     *             指向范围末尾的迭代器
+     * @return The number of elements between first and last
+     *         first 和 last 之间的元素数量
+     */
+    template <typename Iter>
+    RAINY_NODISCARD constexpr rain_fn distance(Iter first, Iter last) -> std::ptrdiff_t {
+        if constexpr (std::is_same_v<typename std::iterator_traits<Iter>::iterator_category, std::random_access_iterator_tag>) {
+            return last - first; // assume the iterator will do debug checking
+        } else {
+            adl_verify_range(first, last);
+            std::ptrdiff_t off = 0;
+            for (; first != last; ++first) {
+                ++off;
+            }
+            return off;
+        }
+    }
+}
+
 #endif

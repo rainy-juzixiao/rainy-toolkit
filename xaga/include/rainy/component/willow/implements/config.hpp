@@ -3,7 +3,6 @@
 #include <map>
 #include <memory_resource>
 #include <rainy/collections/dense_map.hpp>
-#include <rainy/text/string.hpp>
 #include <rainy/core/core.hpp>
 
 namespace rainy::component::willow::implements {
@@ -75,17 +74,18 @@ namespace rainy::component::willow {
      * @tparam Alloc 一个分配器模板，它将会作为所有容器使用的分配器来分配资源
      */
     template <template <typename Key, typename Ty, typename... Args> typename ObjectType = collections::dense_map,
-              template <typename Key, typename... Args> typename ArrayType = std::vector, typename StringType = text::string,
+              template <typename Key, typename... Args> typename ArrayType = std::vector,
+              typename StringType = foundation::text::string,
               typename IntegerType = std::int32_t, typename FloatingType = double, typename BooleanType = bool,
               template <typename Ty> typename Alloc = std::pmr::polymorphic_allocator>
     class basic_json;
 
     using json = basic_json<>;
-    using json64 = basic_json<collections::dense_map, std::vector, text::string, std::int64_t>;
-    using wjson = basic_json<collections::dense_map, std::vector, text::wstring>;
-    using wjson64 = basic_json<collections::dense_map, std::vector, text::wstring, std::int64_t>;
-    using u16json = basic_json<collections::dense_map, std::vector, text::u16string>;
-    using u16json64 = basic_json<collections::dense_map, std::vector, text::u16string, std::int64_t>;
+    using json64 = basic_json<collections::dense_map, std::vector, foundation::text::string, std::int64_t>;
+    using wjson = basic_json<collections::dense_map, std::vector, foundation::text::wstring>;
+    using wjson64 = basic_json<collections::dense_map, std::vector, foundation::text::wstring, std::int64_t>;
+    using u16json = basic_json<collections::dense_map, std::vector, foundation::text::u16string>;
+    using u16json64 = basic_json<collections::dense_map, std::vector, foundation::text::u16string, std::int64_t>;
 
     template <typename BasicJson>
     struct serializer_args {

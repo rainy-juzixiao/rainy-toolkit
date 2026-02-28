@@ -1,9 +1,8 @@
 #ifndef RAINY_TEXT_HASHED_STRING_HPP
 #define RAINY_TEXT_HASHED_STRING_HPP
 #include <rainy/core/core.hpp>
-#include <rainy/text/char_traits.hpp>
 
-namespace rainy::text {
+namespace rainy::foundation::text {
     template <typename CharType, typename Traits = char_traits<CharType>>
     class basic_hashed_string {
     public:
@@ -126,26 +125,26 @@ namespace rainy::text {
 #endif
 }
 
-#define rainy_switch_hashed_string(x) switch (::rainy::text::hashed_string::eval_hash(x))
-#define rainy_switch_whashed_string(x) switch (::rainy::text::whashed_string::eval_hash(x))
-#define rainy_switch_u16hashed_string(x) switch (::rainy::text::u16hashed_string::eval_hash(x))
-#define rainy_switch_u32hashed_string(x) switch (::rainy::text::u32hashed_string::eval_hash(x))
+#define rainy_switch_hashed_string(x) switch (::rainy::foundation::text::hashed_string::eval_hash(x))
+#define rainy_switch_whashed_string(x) switch (::rainy::foundation::text::whashed_string::eval_hash(x))
+#define rainy_switch_u16hashed_string(x) switch (::rainy::foundation::text::u16hashed_string::eval_hash(x))
+#define rainy_switch_u32hashed_string(x) switch (::rainy::foundation::text::u32hashed_string::eval_hash(x))
 #if RAINY_HAS_CXX20
-#define rainy_switch_u8hashed_string(x) switch (::rainy::text::u8hashed_string::eval_hash(x))
+#define rainy_switch_u8hashed_string(x) switch (::rainy::foundation::text::u8hashed_string::eval_hash(x))
 #endif
 
-#define rainy_match_hashed_string(x) ::rainy::text::hashed_string::eval_hash(x)
-#define rainy_match_whashed_string(x) ::rainy::text::whashed_string::eval_hash(x)
-#define rainy_match_u16hashed_string(x) ::rainy::text::u16hashed_string::eval_hash(x)
-#define rainy_match_u32hashed_string(x) ::rainy::text::u32hashed_string::eval_hash(x)
+#define rainy_match_hashed_string(x) ::rainy::foundation::text::hashed_string::eval_hash(x)
+#define rainy_match_whashed_string(x) ::rainy::foundation::text::whashed_string::eval_hash(x)
+#define rainy_match_u16hashed_string(x) ::rainy::foundation::text::u16hashed_string::eval_hash(x)
+#define rainy_match_u32hashed_string(x) ::rainy::foundation::text::u32hashed_string::eval_hash(x)
 #if RAINY_HAS_CXX20
-#define rainy_match_u8hashed_string(x) ::rainy::text::u8hashed_string::eval_hash(x)
+#define rainy_match_u8hashed_string(x) ::rainy::foundation::text::u8hashed_string::eval_hash(x)
 #endif
 
 namespace rainy::utility {
     template <typename CharType>
-    struct hash<text::basic_hashed_string<CharType>> {
-        using argument_type = text::basic_hashed_string<CharType>;
+    struct hash<foundation::text::basic_hashed_string<CharType>> {
+        using argument_type = foundation::text::basic_hashed_string<CharType>;
         using result_type = std::size_t;
 
         static std::size_t hash_this_val(const argument_type &val) noexcept {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 rainy-juzixiao
+ * Copyright 2026 rainy-juzixiao
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,11 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <rainy/core/core.hpp>
-#include <rainy/text/char_traits.hpp>
+#ifndef RAINY_CORE_IMPLEMENTS_TEXT_STRING_VIEW_HPP
+#define RAINY_CORE_IMPLEMENTS_TEXT_STRING_VIEW_HPP
+#include <rainy/core/implements/basic_algorithm.hpp>
+#include <rainy/core/implements/text/char_traits.hpp>
+#include <rainy/core/platform.hpp>
+#include <rainy/core/type_traits.hpp>
 
-namespace rainy::text {
-    template <typename CharType, typename Traits = text::char_traits<CharType>>
+namespace rainy::foundation::text {
+    template <typename CharType, typename Traits = char_traits<CharType>>
     class basic_string_view {
     public:
         using traits_type = Traits;
@@ -45,6 +49,9 @@ namespace rainy::text {
         constexpr basic_string_view(std::nullptr_t) = delete;
 
         constexpr basic_string_view(const value_type *str, size_type length) : data_{str}, size_{length} {
+        }
+
+        constexpr basic_string_view(const_pointer begin, const_pointer end) noexcept : data_(begin), size_(end - begin) {
         }
 
         template <typename It, typename End,
@@ -425,11 +432,6 @@ namespace rainy::text {
             return find_last_not_of(basic_string_view(s), pos);
         }
 
-        template <typename Elem, typename UTy>
-        friend std::basic_ostream<Elem> &operator<<(std::basic_ostream<Elem> & left,basic_string_view<UTy> right) {
-            return left.write(right.data(), right.size());
-        }
-
     private:
         static constexpr bool equal_(CharType const *begin, CharType const *end, CharType const *first,
                                      CharType const *last) noexcept {
@@ -464,4 +466,11 @@ namespace rainy::text {
 #if RAINY_HAS_CXX20
     using u8string_view = basic_string_view<char8_t>;
 #endif
+
+    template <typename Elem, typename UTy>
+    RAINY_INLINE std::basic_ostream<Elem> &operator<<(std::basic_ostream<Elem> &left, basic_string_view<UTy> right) {
+        return left.write(right.data(), right.size());
+    }
 }
+
+#endif

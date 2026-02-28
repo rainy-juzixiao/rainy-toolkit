@@ -50,6 +50,10 @@
 #include <rainy/core/implements/collections/array_view.hpp>
 #include <rainy/core/implements/source_location.hpp>
 #include <rainy/core/implements/views/views_interface.hpp>
+#include <rainy/core/implements/text/char_traits.hpp>
+#include <rainy/core/implements/text/string_view.hpp>
+#include <rainy/core/implements/text/string.hpp>
+#include <rainy/core/implements/hash.hpp>
 #include <rainy/core/lifetime_annotation.hpp>
 
 // clang-format on
@@ -57,10 +61,10 @@
 // NOLINTEND
 
 namespace rainy::core {
-    static constexpr implements::raw_string_view<char> libray_name("rainy's toolkit");
-    static constexpr implements::raw_string_view<char> creator_name("rainy-juzixiao");
-    static constexpr implements::raw_string_view<char> current_version("0.1");
-    static constexpr implements::raw_string_view<char> code_name("xaga");
+    static constexpr foundation::text::string_view libray_name = "rainy-toolkit";
+    static constexpr foundation::text::string_view creator_nam = "rainy-juzixiao";
+    static constexpr foundation::text::string_view current_version = "0.1";
+    static constexpr foundation::text::string_view code_name = "xaga";
 }
 
 namespace rainy::core::implements {
@@ -85,21 +89,6 @@ namespace rainy::core::implements {
             return false;
         }
         return wait_for_check >= start && wait_for_check <= end;
-    }
-}
-
-namespace rainy::utility::implements {
-    inline constexpr std::size_t fnv_offset_basis = static_cast<std::size_t>(14695981039346656037ULL);
-    inline constexpr std::size_t fnv_prime = static_cast<std::size_t>(1099511628211ULL);
-
-    RAINY_INLINE_NODISCARD std::size_t fnv1a_append_bytes(const std::size_t offset_basis, const unsigned char *const first,
-                                                          const std::size_t count) noexcept {
-        std::size_t hash = offset_basis;
-        for (std::size_t i = 0; i < count; ++i) {
-            hash ^= static_cast<std::size_t>(first[i]);
-            hash *= fnv_prime;
-        }
-        return hash;
     }
 }
 
@@ -751,73 +740,6 @@ namespace rainy::utility {
 
 namespace rainy::utility {
     /**
-     * @brief A template for hash function object.
-     *        Provides hash computation for various types.
-     *
-     *        哈希函数对象的模板。
-     *        为各种类型提供哈希计算。
-     *
-     * @tparam key The type to compute hash for
-     *             要计算哈希的类型
-     */
-    template <typename Key>
-    struct hash;
-}
-
-namespace rainy::utility::implements {
-    template <typename Key>
-    RAINY_AINLINE_NODISCARD std::size_t fnv1a_append_value(const std::size_t offset_basis, const Key &keyval) noexcept { // NOLINT
-        static_assert(type_traits::type_properties::is_trivial_v<Key>, "Only trivial types can be directly hashed.");
-        return fnv1a_append_bytes(offset_basis, &reinterpret_cast<const unsigned char &>(keyval), sizeof(Key));
-    }
-
-    template <typename Ty>
-    RAINY_AINLINE_NODISCARD std::size_t fnv1a_append_range(const std::size_t offset_basis, const Ty *const first, // NOLINT
-                                                           const Ty *const last) {
-        static_assert(type_traits::type_properties::is_trivial_v<Ty>, "Only trivial types can be directly hashed.");
-        const auto *const first_binary = reinterpret_cast<const unsigned char *>(first);
-        const auto *const last_binary = reinterpret_cast<const unsigned char *>(last);
-        return fnv1a_append_bytes(offset_basis, first_binary, static_cast<std::size_t>(last_binary - first_binary));
-    }
-
-    template <typename Key>
-    RAINY_AINLINE_NODISCARD std::size_t hash_representation(const Key &keyval) noexcept {
-        return fnv1a_append_value(fnv_offset_basis, keyval);
-    }
-
-    template <typename Key>
-    RAINY_AINLINE_NODISCARD std::size_t hash_array_representation(const Key *const first, const std::size_t count) noexcept {
-        static_assert(type_traits::type_properties::is_trivial_v<Key>, "Only trivial types can be directly hashed.");
-        return fnv1a_append_bytes(fnv_offset_basis, reinterpret_cast<const unsigned char *>(first), count * sizeof(Key));
-    }
-
-    /**
-     * @tparam key
-     * @tparam check 如果为真，此模板将启用
-     */
-    template <typename key, bool check>
-    struct hash_enable_if {
-        using argument_type = key;
-        using result_type = std::size_t;
-
-        RAINY_AINLINE_NODISCARD result_type operator()(const argument_type &val) const
-            noexcept(noexcept(hash<key>::hash_this_val(val))) {
-            return hash<key>::hash_this_val(val);
-        }
-    };
-
-    template <typename key>
-    struct hash_enable_if<key, false> {
-        hash_enable_if() = delete;
-        hash_enable_if(const hash_enable_if &) = delete;
-        hash_enable_if(hash_enable_if &&) = delete;
-        hash_enable_if &operator=(const hash_enable_if &) = delete;
-        hash_enable_if &operator=(hash_enable_if &&) = delete;
-    };
-}
-
-namespace rainy::utility {
-    /**
      * @brief Primary template for hash function object.
      *        Provides hash computation for various types.
      *
@@ -1086,177 +1008,6 @@ namespace rainy::utility {
      *        用于变体等场景的空monostate类型。
      */
     struct monostate {};
-}
-
-namespace rainy::core::algorithm {
-    /**
-     * @brief Copies elements from a range to another range.
-     *        将元素从一个范围复制到另一个范围。
-     *
-     * @tparam InputIter Input iterator type
-     *                   输入迭代器类型
-     * @tparam OutIter Output iterator type
-     *                 输出迭代器类型
-     * @param begin Iterator to the beginning of the source range
-     *              指向源范围起始的迭代器
-     * @param end Iterator to the end of the source range
-     *            指向源范围末尾的迭代器
-     * @param dest Iterator to the beginning of the destination range
-     *             指向目标范围起始的迭代器
-     * @return Iterator to the end of the destination range
-     *         指向目标范围末尾的迭代器
-     */
-    template <typename InputIter, typename OutIter>
-    RAINY_CONSTEXPR20 rain_fn copy(InputIter begin, InputIter end, OutIter dest) noexcept(
-        type_traits::type_properties::is_nothrow_copy_constructible_v<type_traits::other_trans::conditional_t<
-            type_traits::implements::_is_pointer_v<InputIter>, type_traits::pointer_modify::remove_pointer_t<InputIter>,
-            typename utility::iterator_traits<InputIter>::value_type>>) -> OutIter {
-        using value_type = typename utility::iterator_traits<InputIter>::value_type;
-        if (begin == end || (end - 1) == begin) {
-            return dest;
-        }
-#if RAINY_HAS_CXX20
-        if (std::is_constant_evaluated()) {
-            auto input_begin = utility::addressof(*begin);
-            auto input_end = utility::addressof(*(end - 1)) + 1;
-            auto out_dest = utility::addressof(*dest);
-            for (auto i = input_begin; i != input_end; ++i) {
-                *out_dest = *i;
-            }
-            return out_dest;
-        }
-#endif
-        if constexpr (type_traits::type_properties::is_standard_layout_v<value_type> &&
-                      type_traits::type_properties::is_trivial_v<value_type>) {
-            const auto input_begin = utility::addressof(*begin);
-            const auto input_end = utility::addressof(*(end - 1)) + 1;
-            auto out_dest = utility::addressof(*dest);
-            std::memcpy(out_dest, input_begin, sizeof(value_type) * utility::distance(input_begin, input_end));
-        } else {
-            for (InputIter i = begin; begin != end; ++i, ++dest) {
-                *dest = *i;
-            }
-        }
-        return dest;
-    }
-
-    /**
-     * @brief Copies exactly n elements from a range to another range.
-     *        从一个范围精确复制n个元素到另一个范围。
-     *
-     * @tparam InputIter Input iterator type
-     *                   输入迭代器类型
-     * @tparam OutIter Output iterator type
-     *                 输出迭代器类型
-     * @param begin Iterator to the beginning of the source range
-     *              指向源范围起始的迭代器
-     * @param count Number of elements to copy
-     *              要复制的元素数量
-     * @param dest Iterator to the beginning of the destination range
-     *             指向目标范围起始的迭代器
-     * @return Iterator to the end of the destination range
-     *         指向目标范围末尾的迭代器
-     */
-    template <typename InputIter, typename OutIter>
-    constexpr rain_fn copy_n(InputIter begin, const std::size_t count, OutIter dest) noexcept(
-        type_traits::type_properties::is_nothrow_copy_constructible_v<type_traits::other_trans::conditional_t<
-            type_traits::implements::_is_pointer_v<InputIter>, type_traits::pointer_modify::remove_pointer_t<InputIter>,
-            typename utility::iterator_traits<InputIter>::value_type>>) -> OutIter {
-        using value_type = typename utility::iterator_traits<InputIter>::value_type;
-        if (count == 0) {
-            return dest;
-        }
-#if RAINY_HAS_CXX20
-        if (std::is_constant_evaluated()) {
-            auto input_begin = utility::addressof(*begin);
-            for (std::size_t i = 0; i < count; ++i, ++input_begin, ++dest) {
-                *dest = *input_begin;
-            }
-        } else
-#endif
-        {
-            if constexpr (type_traits::type_properties::is_standard_layout_v<value_type> &&
-                          type_traits::type_properties::is_trivial_v<value_type>) {
-                const auto input_begin = utility::addressof(*begin);
-                auto out_dest = utility::addressof(*dest);
-                std::memcpy(out_dest, input_begin, sizeof(value_type) * count);
-            } else {
-                for (std::size_t i = 0; i < count; ++i, ++begin, ++dest) {
-                    *dest = *begin;
-                }
-            }
-        }
-        return dest;
-    }
-
-    /**
-     * @brief Applies a function to each element in a range and stores the results.
-     *        对范围内的每个元素应用函数并存储结果。
-     *
-     * @tparam InputIter Input iterator type
-     *                   输入迭代器类型
-     * @tparam OutIter Output iterator type
-     *                 输出迭代器类型
-     * @tparam Fx Unary function type
-     *            一元函数类型
-     * @param begin Iterator to the beginning of the source range
-     *              指向源范围起始的迭代器
-     * @param end Iterator to the end of the source range
-     *            指向源范围末尾的迭代器
-     * @param dest Iterator to the beginning of the destination range
-     *             指向目标范围起始的迭代器
-     * @param func Function to apply to each element
-     *             应用于每个元素的函数
-     * @return Iterator to the end of the destination range
-     *         指向目标范围末尾的迭代器
-     */
-    template <typename InputIter, typename OutIter, typename Fx>
-    constexpr rain_fn transform(InputIter begin, InputIter end, OutIter dest, Fx func) noexcept(
-        type_traits::type_properties::is_nothrow_copy_assignable_v<type_traits::other_trans::conditional_t<
-            type_traits::implements::_is_pointer_v<InputIter>, type_traits::pointer_modify::remove_pointer_t<InputIter>,
-            typename utility::iterator_traits<InputIter>::value_type>>) -> OutIter {
-        for (InputIter iter = begin; iter != end; ++iter, ++dest) {
-            *dest = func(*iter);
-        }
-        return dest;
-    }
-
-    /**
-     * @brief Applies a binary function to elements from two ranges and stores the results.
-     *        对两个范围的元素应用二元函数并存储结果。
-     *
-     * @tparam InputIter Input iterator type
-     *                   输入迭代器类型
-     * @tparam OutIter Output iterator type
-     *                 输出迭代器类型
-     * @tparam Fx Binary function type
-     *            二元函数类型
-     * @param begin1 Iterator to the beginning of the first source range
-     *               指向第一个源范围起始的迭代器
-     * @param end1 Iterator to the end of the first source range
-     *             指向第一个源范围末尾的迭代器
-     * @param begin2 Iterator to the beginning of the second source range
-     *               指向第二个源范围起始的迭代器
-     * @param dest Iterator to the beginning of the destination range
-     *             指向目标范围起始的迭代器
-     * @param func Binary function to apply to each pair of elements
-     *             应用于每对元素的二元函数
-     * @return Iterator to the end of the destination range
-     *         指向目标范围末尾的迭代器
-     */
-    template <typename InputIter, typename OutIter, typename Fx>
-    constexpr rain_fn transform(InputIter begin1, InputIter end1, InputIter begin2, OutIter dest, Fx func) noexcept(
-        type_traits::type_properties::is_nothrow_copy_assignable_v<type_traits::other_trans::conditional_t<
-            type_traits::implements::_is_pointer_v<InputIter>, type_traits::pointer_modify::remove_pointer_t<InputIter>,
-            typename utility::iterator_traits<InputIter>::value_type>>) -> OutIter {
-        if (begin1 == end1 || (end1 - 1) == begin1) {
-            return dest;
-        }
-        for (InputIter iter = begin1; iter != end1; ++iter, ++dest, ++begin2) {
-            *dest = func(*iter, *begin2);
-        }
-        return dest;
-    }
 }
 
 namespace rainy::collections::views::implements {

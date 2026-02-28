@@ -2281,4 +2281,52 @@ namespace rainy::utility {
     inline constexpr piecewise_construct_t piecewise_construct{};
 }
 
+namespace rainy::utility {
+    template <class Container>
+    class back_insert_iterator {
+    public:
+        using iterator_category = std::output_iterator_tag;
+        using value_type = void;
+        using pointer = void;
+        using reference = void;
+        using difference_type = void;
+
+        using container_type = Container;
+
+        explicit back_insert_iterator(Container &c) : container(std::addressof(c)) {
+        }
+
+        back_insert_iterator &operator=(const typename Container::value_type &value) {
+            container->push_back(value);
+            return *this;
+        }
+
+        back_insert_iterator &operator=(typename Container::value_type &&value) {
+            container->push_back(std::move(value));
+            return *this;
+        }
+
+        back_insert_iterator &operator*() noexcept {
+            return *this;
+        }
+
+        back_insert_iterator &operator++() noexcept {
+            return *this;
+        }
+
+        back_insert_iterator operator++(int) noexcept {
+            return *this;
+        }
+
+    protected:
+        Container *container;
+    };
+
+    // 辅助函数
+    template <class Container>
+    back_insert_iterator<Container> back_inserter(Container &c) {
+        return back_insert_iterator<Container>(c);
+    }
+}
+
 #endif

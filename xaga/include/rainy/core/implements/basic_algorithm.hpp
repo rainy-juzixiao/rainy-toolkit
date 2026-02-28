@@ -18,6 +18,7 @@
 #include <algorithm>
 #include <rainy/core/type_traits/implements.hpp>
 #include <rainy/core/type_traits/iter_traits.hpp>
+#include <rainy/core/type_traits/properties.hpp>
 
 namespace rainy::core::algorithm {
     /**
@@ -547,6 +548,177 @@ namespace rainy::core::algorithm {
     template <typename ForwardIt, typename Ty = typename utility::iterator_traits<ForwardIt>::value_type>
     constexpr rain_fn binary_search(ForwardIt first, ForwardIt last, const Ty &value) -> bool {
         return algorithm::binary_search(first, last, value, [](auto &&left, auto &&right) { return left < right; });
+    }
+}
+
+namespace rainy::core::algorithm {
+    /**
+     * @brief Copies elements from a range to another range.
+     *        将元素从一个范围复制到另一个范围。
+     *
+     * @tparam InputIter Input iterator type
+     *                   输入迭代器类型
+     * @tparam OutIter Output iterator type
+     *                 输出迭代器类型
+     * @param begin Iterator to the beginning of the source range
+     *              指向源范围起始的迭代器
+     * @param end Iterator to the end of the source range
+     *            指向源范围末尾的迭代器
+     * @param dest Iterator to the beginning of the destination range
+     *             指向目标范围起始的迭代器
+     * @return Iterator to the end of the destination range
+     *         指向目标范围末尾的迭代器
+     */
+    template <typename InputIter, typename OutIter>
+    RAINY_CONSTEXPR20 rain_fn copy(InputIter begin, InputIter end, OutIter dest) noexcept(
+        type_traits::type_properties::is_nothrow_copy_constructible_v<type_traits::other_trans::conditional_t<
+            type_traits::implements::_is_pointer_v<InputIter>, type_traits::pointer_modify::remove_pointer_t<InputIter>,
+            typename utility::iterator_traits<InputIter>::value_type>>) -> OutIter {
+        using value_type = typename utility::iterator_traits<InputIter>::value_type;
+        if (begin == end || (end - 1) == begin) {
+            return dest;
+        }
+#if RAINY_HAS_CXX20
+        if (std::is_constant_evaluated()) {
+            auto input_begin = utility::addressof(*begin);
+            auto input_end = utility::addressof(*(end - 1)) + 1;
+            auto out_dest = utility::addressof(*dest);
+            for (auto i = input_begin; i != input_end; ++i) {
+                *out_dest = *i;
+            }
+            return out_dest;
+        }
+#endif
+        if constexpr (type_traits::type_properties::is_standard_layout_v<value_type> &&
+                      type_traits::type_properties::is_trivial_v<value_type>) {
+            const auto input_begin = utility::addressof(*begin);
+            const auto input_end = utility::addressof(*(end - 1)) + 1;
+            auto out_dest = utility::addressof(*dest);
+            std::memcpy(out_dest, input_begin, sizeof(value_type) * utility::distance(input_begin, input_end));
+        } else {
+            for (InputIter i = begin; begin != end; ++i, ++dest) {
+                *dest = *i;
+            }
+        }
+        return dest;
+    }
+
+    /**
+     * @brief Copies exactly n elements from a range to another range.
+     *        从一个范围精确复制n个元素到另一个范围。
+     *
+     * @tparam InputIter Input iterator type
+     *                   输入迭代器类型
+     * @tparam OutIter Output iterator type
+     *                 输出迭代器类型
+     * @param begin Iterator to the beginning of the source range
+     *              指向源范围起始的迭代器
+     * @param count Number of elements to copy
+     *              要复制的元素数量
+     * @param dest Iterator to the beginning of the destination range
+     *             指向目标范围起始的迭代器
+     * @return Iterator to the end of the destination range
+     *         指向目标范围末尾的迭代器
+     */
+    template <typename InputIter, typename OutIter>
+    constexpr rain_fn copy_n(InputIter begin, const std::size_t count, OutIter dest) noexcept(
+        type_traits::type_properties::is_nothrow_copy_constructible_v<type_traits::other_trans::conditional_t<
+            type_traits::implements::_is_pointer_v<InputIter>, type_traits::pointer_modify::remove_pointer_t<InputIter>,
+            typename utility::iterator_traits<InputIter>::value_type>>) -> OutIter {
+        using value_type = typename utility::iterator_traits<InputIter>::value_type;
+        if (count == 0) {
+            return dest;
+        }
+#if RAINY_HAS_CXX20
+        if (std::is_constant_evaluated()) {
+            auto input_begin = utility::addressof(*begin);
+            for (std::size_t i = 0; i < count; ++i, ++input_begin, ++dest) {
+                *dest = *input_begin;
+            }
+        } else
+#endif
+        {
+            if constexpr (type_traits::type_properties::is_standard_layout_v<value_type> &&
+                          type_traits::type_properties::is_trivial_v<value_type>) {
+                const auto input_begin = utility::addressof(*begin);
+                auto out_dest = utility::addressof(*dest);
+                std::memcpy(out_dest, input_begin, sizeof(value_type) * count);
+            } else {
+                for (std::size_t i = 0; i < count; ++i, ++begin, ++dest) {
+                    *dest = *begin;
+                }
+            }
+        }
+        return dest;
+    }
+
+    /**
+     * @brief Applies a function to each element in a range and stores the results.
+     *        对范围内的每个元素应用函数并存储结果。
+     *
+     * @tparam InputIter Input iterator type
+     *                   输入迭代器类型
+     * @tparam OutIter Output iterator type
+     *                 输出迭代器类型
+     * @tparam Fx Unary function type
+     *            一元函数类型
+     * @param begin Iterator to the beginning of the source range
+     *              指向源范围起始的迭代器
+     * @param end Iterator to the end of the source range
+     *            指向源范围末尾的迭代器
+     * @param dest Iterator to the beginning of the destination range
+     *             指向目标范围起始的迭代器
+     * @param func Function to apply to each element
+     *             应用于每个元素的函数
+     * @return Iterator to the end of the destination range
+     *         指向目标范围末尾的迭代器
+     */
+    template <typename InputIter, typename OutIter, typename Fx>
+    constexpr rain_fn transform(InputIter begin, InputIter end, OutIter dest, Fx func) noexcept(
+        type_traits::type_properties::is_nothrow_copy_assignable_v<type_traits::other_trans::conditional_t<
+            type_traits::implements::_is_pointer_v<InputIter>, type_traits::pointer_modify::remove_pointer_t<InputIter>,
+            typename utility::iterator_traits<InputIter>::value_type>>) -> OutIter {
+        for (InputIter iter = begin; iter != end; ++iter, ++dest) {
+            *dest = func(*iter);
+        }
+        return dest;
+    }
+
+    /**
+     * @brief Applies a binary function to elements from two ranges and stores the results.
+     *        对两个范围的元素应用二元函数并存储结果。
+     *
+     * @tparam InputIter Input iterator type
+     *                   输入迭代器类型
+     * @tparam OutIter Output iterator type
+     *                 输出迭代器类型
+     * @tparam Fx Binary function type
+     *            二元函数类型
+     * @param begin1 Iterator to the beginning of the first source range
+     *               指向第一个源范围起始的迭代器
+     * @param end1 Iterator to the end of the first source range
+     *             指向第一个源范围末尾的迭代器
+     * @param begin2 Iterator to the beginning of the second source range
+     *               指向第二个源范围起始的迭代器
+     * @param dest Iterator to the beginning of the destination range
+     *             指向目标范围起始的迭代器
+     * @param func Binary function to apply to each pair of elements
+     *             应用于每对元素的二元函数
+     * @return Iterator to the end of the destination range
+     *         指向目标范围末尾的迭代器
+     */
+    template <typename InputIter, typename OutIter, typename Fx>
+    constexpr rain_fn transform(InputIter begin1, InputIter end1, InputIter begin2, OutIter dest, Fx func) noexcept(
+        type_traits::type_properties::is_nothrow_copy_assignable_v<type_traits::other_trans::conditional_t<
+            type_traits::implements::_is_pointer_v<InputIter>, type_traits::pointer_modify::remove_pointer_t<InputIter>,
+            typename utility::iterator_traits<InputIter>::value_type>>) -> OutIter {
+        if (begin1 == end1 || (end1 - 1) == begin1) {
+            return dest;
+        }
+        for (InputIter iter = begin1; iter != end1; ++iter, ++dest, ++begin2) {
+            *dest = func(*iter, *begin2);
+        }
+        return dest;
     }
 }
 

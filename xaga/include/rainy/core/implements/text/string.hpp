@@ -1,12 +1,28 @@
-#ifndef RAINY_COLLECTIONS_STRING_HPP
-#define RAINY_COLLECTIONS_STRING_HPP
+/*
+ * Copyright 2026 rainy-juzixiao
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+#ifndef RAINY_CORE_IMPLEMENTS_TEXT_STRING_HPP
+#define RAINY_CORE_IMPLEMENTS_TEXT_STRING_HPP
 #include <cstring>
 #include <cwchar>
 #include <iterator>
 #include <memory>
-#include <rainy/text/string_view.hpp>
-#include <rainy/core/core.hpp>
-#include <rainy/text/char_traits.hpp>
+#include <rainy/core/implements/hash.hpp>
+#include <rainy/core/implements/text/char_traits.hpp>
+#include <rainy/core/implements/text/string_view.hpp>
+#include <rainy/core/platform.hpp>
 
 #if RAINY_USING_GCC
 #pragma GCC diagnostic push
@@ -14,8 +30,8 @@
 #pragma GCC diagnostic ignored "-Wstringop-overflow"
 #endif
 
-namespace rainy::text {
-    template <typename CharType, class Traits = std::char_traits<CharType>, class Allocator = std::allocator<CharType>>
+namespace rainy::foundation::text {
+    template <typename CharType, typename Traits = char_traits<CharType>, typename Allocator = std::allocator<CharType>>
     class basic_string {
     public:
         using traits_type = Traits;
@@ -41,7 +57,8 @@ namespace rainy::text {
         RAINY_CONSTEXPR20 basic_string(allocator_type const &allocator) noexcept : pair_{allocator, {}} {
         }
 
-        RAINY_CONSTEXPR20 basic_string(size_type count, CharType ch, allocator_type const &allocator = allocator_type()) : pair_{allocator, {}} {
+        RAINY_CONSTEXPR20 basic_string(size_type count, CharType ch, allocator_type const &allocator = allocator_type()) :
+            pair_{allocator, {}} {
             allocate_plus_one_(count);
             auto begin = begin_();
             auto end = begin + count;
@@ -49,8 +66,8 @@ namespace rainy::text {
             resize_(count);
         }
 
-        RAINY_CONSTEXPR20 basic_string(const basic_string &right, size_type pos, size_type count, allocator_type const &allocator = allocator_type()) :
-            pair_{allocator, {}} {
+        RAINY_CONSTEXPR20 basic_string(const basic_string &right, size_type pos, size_type count,
+                                       allocator_type const &allocator = allocator_type()) : pair_{allocator, {}} {
             auto other_size = right.size();
 
             if (pos > other_size)
@@ -67,7 +84,8 @@ namespace rainy::text {
             basic_string(right, pos, right.size() - pos, allocator) {
         }
 
-        RAINY_CONSTEXPR20 basic_string(const value_type *ptr, size_type count, allocator_type const &allocator = allocator_type()) : pair_{allocator, {}} {
+        RAINY_CONSTEXPR20 basic_string(const value_type *ptr, size_type count, allocator_type const &allocator = allocator_type()) :
+            pair_{allocator, {}} {
             allocate_plus_one_(count);
             fill_(ptr, ptr + count);
             resize_(count);
@@ -106,8 +124,8 @@ namespace rainy::text {
             resize_(other_size);
         }
 
-        RAINY_CONSTEXPR20 basic_string(basic_string &&right, size_type pos, size_type count, allocator_type const &allocator = allocator_type()) :
-            pair_{allocator, {}} {
+        RAINY_CONSTEXPR20 basic_string(basic_string &&right, size_type pos, size_type count,
+                                       allocator_type const &allocator = allocator_type()) : pair_{allocator, {}} {
             auto other_size = right.size();
             if (pos > other_size) {
                 throw std::out_of_range{exception_string_};
@@ -169,8 +187,8 @@ namespace rainy::text {
                       type_traits::type_relations::is_convertible_v<const StringViewLike &, std::basic_string_view<value_type>> &&
                           (!type_traits::type_relations::is_convertible_v<const StringViewLike &, const value_type *>),
                       int> = 0>
-        RAINY_CONSTEXPR20 basic_string(const StringViewLike &sv, size_type pos, size_type count, allocator_type const &allocator = allocator_type()) :
-            pair_{allocator, {}} {
+        RAINY_CONSTEXPR20 basic_string(const StringViewLike &sv, size_type pos, size_type count,
+                                       allocator_type const &allocator = allocator_type()) : pair_{allocator, {}} {
             auto data = sv.data();
             auto sv_size = sv.size();
 
@@ -185,7 +203,7 @@ namespace rainy::text {
 
         RAINY_CONSTEXPR20 ~basic_string() {
             if (is_long_()) {
-                dealloc_(get_storage().ls_);            
+                dealloc_(get_storage().ls_);
             }
         }
 
@@ -323,8 +341,8 @@ namespace rainy::text {
             return const_cast<CharType &>(const_cast<basic_string const &>(*this).back());
         }
 
-        RAINY_CONSTEXPR20 operator std::basic_string_view<value_type>() const noexcept {
-            return std::basic_string_view<value_type>(begin_(), end_());
+        RAINY_CONSTEXPR20 operator basic_string_view<value_type>() const noexcept {
+            return basic_string_view<value_type>(begin_(), end_());
         }
 
         RAINY_CONSTEXPR20 iterator begin() noexcept {
@@ -350,7 +368,7 @@ namespace rainy::text {
         RAINY_CONSTEXPR20 const_iterator cend() noexcept {
             return end();
         }
-    
+
         RAINY_CONSTEXPR20 void reserve(size_type new_cap) {
             if (capacity() >= new_cap) {
                 return;
@@ -419,7 +437,7 @@ namespace rainy::text {
                 auto size = this->size();
                 auto length = std::ranges::distance(first, last);
                 auto new_size = size + length;
-                reserve(std::max(size * 2, new_size));
+                reserve((core::max)(size * 2, new_size));
                 std::ranges::copy(first, last, begin_() + size);
                 resize_(new_size);
             } else {
@@ -471,8 +489,7 @@ namespace rainy::text {
             } else {
                 if (this->get_al() == right.get_al()) {
                     right.swap_without_ator(*this);
-                }
-                else {
+                } else {
                     assign_(right.begin_(), right.end_());
                 }
             }
@@ -521,7 +538,7 @@ namespace rainy::text {
         RAINY_CONSTEXPR20 basic_string &assign(const StringViewLike &sv, size_type pos, size_type count = npos) {
             auto sv_size = sv.size();
             if (pos > sv_size) {
-                throw std::out_of_range{exception_string_};            
+                throw std::out_of_range{exception_string_};
             }
             count = (core::min)(npos, (core::min)(sv_size - pos, count));
             auto data = sv.data();
@@ -579,8 +596,9 @@ namespace rainy::text {
             return *this;
         }
 
-        template <typename StringViewLike, type_traits::other_trans::enable_if_t<
-                                            type_traits::type_relations::is_convertible_v<const StringViewLike &, std::basic_string_view<value_type>> &&
+        template <typename StringViewLike,
+                  type_traits::other_trans::enable_if_t<
+                      type_traits::type_relations::is_convertible_v<const StringViewLike &, std::basic_string_view<value_type>> &&
                           (!type_traits::type_relations::is_convertible_v<const StringViewLike &, const value_type *>),
                       int> = 0>
         RAINY_CONSTEXPR20 basic_string &append(const StringViewLike &sv, size_type pos, size_type count = npos) {
@@ -606,7 +624,8 @@ namespace rainy::text {
         }
 
         RAINY_CONSTEXPR20 basic_string &operator+=(value_type ch) {
-            return push_back(ch);
+            push_back(ch);
+            return *this;
         }
 
         RAINY_CONSTEXPR20 basic_string &operator+=(const value_type *ptr) {
@@ -797,7 +816,7 @@ namespace rainy::text {
         RAINY_CONSTEXPR20 size_type find_last_not_of(const value_type *ptr, size_type pos = npos) const {
             return find_last_not_of(std::basic_string_view<value_type>(ptr), pos);
         }
-        
+
         RAINY_CONSTEXPR20 bool starts_with(std::basic_string_view<value_type> sv) const noexcept {
             auto sv_size = sv.size();
             auto data = sv.data();
@@ -1047,7 +1066,7 @@ namespace rainy::text {
         }
 
         RAINY_CONSTEXPR20 basic_string &replace(size_type pos, size_type count, const basic_string &str, size_type pos2,
-                                        size_type count2 = npos) {
+                                                size_type count2 = npos) {
             auto str_size = str.size();
             if (pos2 > str_size) {
                 throw std::out_of_range{exception_string_};
@@ -1141,7 +1160,8 @@ namespace rainy::text {
             return *this;
         }
 
-        template <typename InputIt, type_traits::other_trans::enable_if_t<type_traits::extras::iterators::is_input_iterator_v<InputIt>, int> = 0>
+        template <typename InputIt,
+                  type_traits::other_trans::enable_if_t<type_traits::extras::iterators::is_input_iterator_v<InputIt>, int> = 0>
         basic_string &replace(const_iterator first, const_iterator last, InputIt first2, InputIt last2) {
             auto start = first;
             if RAINY_CONSTEXPR20 (type_traits::extras::iterators::is_random_access_iterator_v<InputIt>) {
@@ -1329,7 +1349,8 @@ namespace rainy::text {
             resize_(size() - (last - first));
         }
 
-        RAINY_CONSTEXPR20 bool static equal_(value_type const *begin, value_type const *end, value_type const *first, value_type const *last) noexcept {
+        RAINY_CONSTEXPR20 bool static equal_(value_type const *begin, value_type const *end, value_type const *first,
+                                             value_type const *last) noexcept {
             if (last - first != end - begin) {
                 return false;
             }
@@ -1373,7 +1394,6 @@ namespace rainy::text {
             } else {
                 size_flag_ = static_cast<unsigned char>(count);
                 get_storage().ss_[count] = CharType{};
-
             }
         }
 
@@ -1516,7 +1536,7 @@ namespace rainy::text {
 
         RAINY_CONSTEXPR20 value_type const *begin_() const noexcept {
             if (is_long_()) {
-                return get_storage().ls_.begin_;            
+                return get_storage().ls_.begin_;
             } else {
                 return get_storage().ss_.data();
             }
@@ -1536,7 +1556,7 @@ namespace rainy::text {
         RAINY_CONSTEXPR20 CharType *end_() noexcept {
             return const_cast<CharType *>(const_cast<basic_string const &>(*this).end_());
         }
-        
+
         Allocator &get_al() noexcept {
             return pair_.get_first();
         }
@@ -1559,17 +1579,21 @@ namespace rainy::text {
 
     using string = basic_string<char>;
     using wstring = basic_string<wchar_t>;
-    using u8string = basic_string<char8_t>;
     using u16string = basic_string<char16_t>;
     using u32string = basic_string<char32_t>;
+
+#if RAINY_HAS_CXX20
+    using u8string = basic_string<char8_t>;
+#endif
 
     template <typename CharType, typename Traits, typename Allocator>
     RAINY_CONSTEXPR20 void swap(basic_string<CharType, Traits, Allocator> &left, basic_string<CharType, Traits, Allocator> &right) {
         left.swap(right);
     }
 
-    template <typename StandardTraits,typename value_type, typename Traits, typename Alloc>
-    std::basic_ostream<value_type, StandardTraits>& operator<<(std::basic_ostream<value_type, StandardTraits>& ostream, const basic_string<value_type, Traits, Alloc>& str) {
+    template <typename StandardTraits, typename value_type, typename Traits, typename Alloc>
+    std::basic_ostream<value_type, StandardTraits> &operator<<(std::basic_ostream<value_type, StandardTraits> &ostream,
+                                                               const basic_string<value_type, Traits, Alloc> &str) {
         ostream.write(str.data(), str.size());
         return ostream;
     }
@@ -1577,9 +1601,9 @@ namespace rainy::text {
 
 namespace std {
     template <typename value_type, typename Traits, typename Alloc>
-    struct hash<rainy::text::basic_string<value_type, Traits, Alloc>> {
+    struct hash<rainy::foundation::text::basic_string<value_type, Traits, Alloc>> {
         using result_type = std::size_t;
-        using argument_type = rainy::text::basic_string<value_type, Traits, Alloc>;
+        using argument_type = rainy::foundation::text::basic_string<value_type, Traits, Alloc>;
 
         result_type operator()(const argument_type &val) const {
             return rainy::utility::implements::hash_array_representation(val.data(), val.size());
@@ -1589,9 +1613,9 @@ namespace std {
 
 namespace rainy::utility {
     template <typename value_type, typename Traits, typename Alloc>
-    struct hash<rainy::text::basic_string<value_type, Traits, Alloc>> {
+    struct hash<rainy::foundation::text::basic_string<value_type, Traits, Alloc>> {
         using result_type = std::size_t;
-        using argument_type = text::basic_string<value_type, Traits, Alloc>;
+        using argument_type = rainy::foundation::text::basic_string<value_type, Traits, Alloc>;
 
         result_type operator()(const argument_type &val) const {
             return implements::hash_array_representation(val.data(), val.size());
