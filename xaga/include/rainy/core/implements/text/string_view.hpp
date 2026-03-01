@@ -448,7 +448,7 @@ namespace rainy::foundation::text {
 
         constexpr void range_check(const std::size_t offset) const {
             if (size_ <= offset) {
-                foundation::exceptions::logic::throw_out_of_range("Invalid subscript");
+                throw std::out_of_range("");
             }
         }
 

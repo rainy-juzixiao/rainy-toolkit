@@ -16,6 +16,8 @@
 #ifndef RAINY_CORE_IMPLEMENTS_TEXT_CHAR_TRAITS_HPP
 #define RAINY_CORE_IMPLEMENTS_TEXT_CHAR_TRAITS_HPP
 #include <rainy/core/platform.hpp>
+#include <rainy/core/implements/collections/array.hpp>
+#include <rainy/core/implements/collections/array_view.hpp>
 
 namespace rainy::foundation::text {
     template <typename Elem>

@@ -16,6 +16,7 @@
 #ifndef RAINY_CORE_IMPLEMENTS_TEXT_FORMAT_FORMAT_HPP
 #define RAINY_CORE_IMPLEMENTS_TEXT_FORMAT_FORMAT_HPP
 #include <rainy/core/implements/text/format/context.hpp>
+#include <rainy/core/implements/text/format/formatter.hpp>
 
 namespace rainy::foundation::text::implements {
     template <typename CharT>
@@ -58,15 +59,15 @@ namespace rainy::foundation::text::implements {
 
         auto arg = format_ctx.arg(arg_id);
         if (!arg) {
-            throw format_error("argument index out of range");
+            exceptions::runtime::throw_format_error("argument index out of range");
         }
-
         // 使用 visit 来处理不同类型的参数
-        return arg.visit([&](auto &&value) -> OutputIt {
+        return arg.visit([&](auto &&value) -> OutputIt { // NOLINT
             using T = std::decay_t<decltype(value)>;
 
             if constexpr (std::is_same_v<T, std::monostate>) {
-                throw format_error("invalid argument");
+                exceptions::runtime::throw_format_error("invalid argument");
+                return out;
             } else if constexpr (std::is_same_v<T, typename basic_format_arg<basic_format_context<OutputIt, CharT>>::handle>) {
                 // 自定义类型通过 handle 处理
                 value.format(parse_ctx, format_ctx);
@@ -75,10 +76,8 @@ namespace rainy::foundation::text::implements {
                 // 使用对应类型的 formatter
                 using Context = basic_format_context<OutputIt, CharT>;
                 typename Context::template formatter_type<T> f;
-
                 // 解析格式规范
                 parse_ctx.advance_to(f.parse(parse_ctx));
-
                 // 格式化值
                 format_ctx.advance_to(f.format(value, format_ctx));
                 return format_ctx.out();
@@ -120,7 +119,7 @@ namespace rainy::foundation::text::implements {
             // 现在 p 指向 '{'
             ++p;
             if (p == end) {
-                throw format_error("invalid format string: unmatched '{'");
+                exceptions::runtime::throw_format_error("invalid format string: unmatched '{'");
             }
 
             // 检查是否是转义的 {{
@@ -131,7 +130,7 @@ namespace rainy::foundation::text::implements {
             }
 
             // 解析参数 ID
-            size_t arg_id;
+            size_t arg_id = 0;
             const CharT *spec_begin = p; // 先记录位置
 
             if (*p >= CharT('0') && *p <= CharT('9')) {
@@ -147,11 +146,11 @@ namespace rainy::foundation::text::implements {
                 arg_id = next_auto_arg_id++;
                 // spec_begin 已经正确指向当前位置
             } else {
-                throw format_error("invalid format string: expected argument index, ':', or '}'");
+                exceptions::runtime::throw_format_error("invalid format string: expected argument index, ':', or '}'");
             }
 
             if (arg_id >= args.size()) {
-                throw format_error("argument index out of range");
+                exceptions::runtime::throw_format_error("argument index out of range");
             }
 
             // 解析格式规范
@@ -172,19 +171,15 @@ namespace rainy::foundation::text::implements {
                     ++p;
                 }
             }
-
             if (p == end || *p != CharT('}')) {
-                throw format_error("invalid format string: unmatched '{'");
+                exceptions::runtime::throw_format_error("invalid format string: unmatched '{'");
             }
-
             // 创建格式规范的解析上下文
             basic_string_view<CharT> spec(spec_begin, p - spec_begin);
             basic_format_parse_context<CharT> arg_parse_ctx(spec, args.size());
-
             // 格式化参数
             format_ctx.advance_to(out);
             out = format_arg(out, arg_parse_ctx, format_ctx, arg_id);
-
             ++p;
         }
 
@@ -201,53 +196,53 @@ namespace rainy::foundation::text::implements {
         if (loc.has_value()) {
             basic_format_context<OutputIt, CharT> format_ctx(out, args, loc.value());
             return do_vformat(out, fmt, parse_ctx, format_ctx, args);
-        } else {
-            basic_format_context<OutputIt, CharT> format_ctx(out, args);
-            return do_vformat(out, fmt, parse_ctx, format_ctx, args);
         }
+        basic_format_context<OutputIt, CharT> format_ctx(out, args);
+        return do_vformat(out, fmt, parse_ctx, format_ctx, args);
     }
 }
 
 namespace rainy::foundation::text {
     template <typename OutputIt, typename CharT>
-    OutputIt vformat_to(OutputIt out, basic_string_view<CharT> fmt, basic_format_args<basic_format_context<OutputIt, CharT>> args) {
+    OutputIt vformat_to(OutputIt out, basic_string_view<CharT> fmt, // NOLINT
+                        basic_format_args<basic_format_context<OutputIt, CharT>> args) {
         try {
             return implements::vformat_to_impl(out, fmt, args, std::nullopt);
         } catch (const std::exception &e) {
-            throw format_error(std::string("format error: ") + e.what());
+            exceptions::runtime::throw_format_error(e.what());
         }
     }
 
     template <typename OutputIt, typename CharT>
-    OutputIt vformat_to(OutputIt out, const std::locale &loc, basic_string_view<CharT> fmt,
+    OutputIt vformat_to(OutputIt out, const std::locale &loc, basic_string_view<CharT> fmt, // NOLINT
                         basic_format_args<basic_format_context<OutputIt, CharT>> args) {
 
         try {
             return implements::vformat_to_impl(out, fmt, args, loc);
         } catch (const std::exception &e) {
-            throw format_error(std::string("format error: ") + e.what());
+            exceptions::runtime::throw_format_error(e.what());
         }
     }
 
-    RAINY_INLINE string vformat(string_view fmt, format_args args) {
+    RAINY_INLINE string vformat(const string_view fmt, const format_args args) {
         string result;
         text::vformat_to(utility::back_inserter(result), fmt, args);
         return result;
     }
 
-    RAINY_INLINE wstring vformat(wstring_view fmt, wformat_args args) {
+    RAINY_INLINE wstring vformat(const wstring_view fmt, const wformat_args args) {
         wstring result;
         vformat_to(utility::back_inserter(result), fmt, args);
         return result;
     }
 
-    RAINY_INLINE string vformat(const std::locale &loc, string_view fmt, format_args args) {
+    RAINY_INLINE string vformat(const std::locale &loc, const string_view fmt, const format_args args) {
         string result;
         vformat_to(utility::back_inserter(result), loc, fmt, args);
         return result;
     }
 
-    RAINY_INLINE wstring vformat(const std::locale &loc, wstring_view fmt, wformat_args args) {
+    RAINY_INLINE wstring vformat(const std::locale &loc, const wstring_view fmt, const wformat_args args) {
         wstring result;
         vformat_to(utility::back_inserter(result), loc, fmt, args);
         return result;

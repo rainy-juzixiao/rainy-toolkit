@@ -15,19 +15,11 @@
  */
 #ifndef RAINY_CORE_IMPLEMENTS_TEXT_FORMAT_CONTEXT_HPP
 #define RAINY_CORE_IMPLEMENTS_TEXT_FORMAT_CONTEXT_HPP
-#include <array>
-#include <bitset>
-#include <iterator>
-#include <locale>
-#include <optional>
 #include <rainy/core/implements/text/format/format_arg.hpp>
 #include <rainy/core/implements/text/string.hpp>
 #include <rainy/core/implements/text/string_view.hpp>
-#include <stdexcept>
-#include <string>
-#include <type_traits>
-#include <variant>
-#include <vector>
+#include <rainy/core/implements/collections/array.hpp>
+#include <rainy/core/implements/exceptions.hpp>
 
 namespace rainy::foundation::text {
     template <class Context>
@@ -103,15 +95,6 @@ namespace rainy::foundation::text {
         size_t num_args_;
         size_t next_arg_id_;
         bool manual_indexing_;
-    };
-
-    class format_error : public std::runtime_error {
-    public:
-        explicit format_error(const std::string &what_arg) : std::runtime_error(what_arg) {
-        }
-
-        explicit format_error(const char *what_arg) : std::runtime_error(what_arg) {
-        }
     };
 
     template <class Out, class CharT>

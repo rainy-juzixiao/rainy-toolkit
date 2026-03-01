@@ -73,7 +73,7 @@ namespace rainy::foundation::text {
             if (pos > other_size)
                 throw std::out_of_range{exception_string_};
 
-            count = (core::min)(other_size - pos, count);
+            count = (core::min) (other_size - pos, count);
             allocate_plus_one_(count);
             auto start = right.begin_() + pos;
             fill_(start, start + count);
@@ -102,7 +102,6 @@ namespace rainy::foundation::text {
                 auto length = std::ranges::distance(first, last);
                 allocate_plus_one_(length);
                 std::ranges::copy(first, last, begin_());
-                resize_(length);
             } else {
                 for (; first != last; ++first)
                     push_back(*first);
@@ -130,7 +129,7 @@ namespace rainy::foundation::text {
             if (pos > other_size) {
                 throw std::out_of_range{exception_string_};
             }
-            count = (core::min)(other_size - pos, count);
+            count = (core::min) (other_size - pos, count);
 
             if (pos != 0) {
                 auto other_begin = right.begin_();
@@ -195,7 +194,7 @@ namespace rainy::foundation::text {
             if (pos > sv_size)
                 throw std::out_of_range{exception_string_};
 
-            count = (core::min)(sv_size - pos, count);
+            count = (core::min) (sv_size - pos, count);
             allocate_plus_one_(count);
             fill_(data, data + count);
             resize_(count);
@@ -237,7 +236,8 @@ namespace rainy::foundation::text {
 
         template <typename StringViewLike,
                   type_traits::other_trans::enable_if_t<
-                      type_traits::type_relations::is_convertible_v<const StringViewLike &, std::basic_string_view<value_type>> &&
+                      (type_traits::type_relations::is_convertible_v<const StringViewLike &, std::basic_string_view<value_type>> ||
+                       type_traits::type_relations::is_convertible_v<const StringViewLike &, basic_string_view<value_type>>) &&
                           (!type_traits::type_relations::is_convertible_v<const StringViewLike &, const value_type *>),
                       int> = 0>
         RAINY_CONSTEXPR20 basic_string &operator=(const StringViewLike &sv) {
@@ -437,7 +437,7 @@ namespace rainy::foundation::text {
                 auto size = this->size();
                 auto length = std::ranges::distance(first, last);
                 auto new_size = size + length;
-                reserve((core::max)(size * 2, new_size));
+                reserve((core::max) (size * 2, new_size));
                 std::ranges::copy(first, last, begin_() + size);
                 resize_(new_size);
             } else {
@@ -477,7 +477,7 @@ namespace rainy::foundation::text {
             if (pos > str_size) {
                 throw std::out_of_range{exception_string_};
             }
-            count = (core::min)(npos, (core::min)(str_size - pos, count));
+            count = (core::min) (npos, (core::min) (str_size - pos, count));
             auto str_begin = begin_();
             assign_(str_begin + pos, str_begin + pos + count);
             return *this;
@@ -521,7 +521,8 @@ namespace rainy::foundation::text {
 
         template <typename StringViewLike,
                   type_traits::other_trans::enable_if_t<
-                      type_traits::type_relations::is_convertible_v<const StringViewLike &, std::basic_string_view<value_type>> &&
+                      (type_traits::type_relations::is_convertible_v<const StringViewLike &, std::basic_string_view<value_type>> ||
+                       type_traits::type_relations::is_convertible_v<const StringViewLike &, basic_string_view<value_type>>) &&
                           (!type_traits::type_relations::is_convertible_v<const StringViewLike &, const value_type *>),
                       int> = 0>
         basic_string &assign(const StringViewLike &sv) {
@@ -532,7 +533,8 @@ namespace rainy::foundation::text {
 
         template <typename StringViewLike,
                   type_traits::other_trans::enable_if_t<
-                      type_traits::type_relations::is_convertible_v<const StringViewLike &, std::basic_string_view<value_type>> &&
+                      (type_traits::type_relations::is_convertible_v<const StringViewLike &, std::basic_string_view<value_type>> ||
+                       type_traits::type_relations::is_convertible_v<const StringViewLike &, basic_string_view<value_type>>) &&
                           (!type_traits::type_relations::is_convertible_v<const StringViewLike &, const value_type *>),
                       int> = 0>
         RAINY_CONSTEXPR20 basic_string &assign(const StringViewLike &sv, size_type pos, size_type count = npos) {
@@ -540,7 +542,7 @@ namespace rainy::foundation::text {
             if (pos > sv_size) {
                 throw std::out_of_range{exception_string_};
             }
-            count = (core::min)(npos, (core::min)(sv_size - pos, count));
+            count = (core::min) (npos, (core::min) (sv_size - pos, count));
             auto data = sv.data();
             assign_(data + pos, data + pos + count);
             return *this;
@@ -571,7 +573,7 @@ namespace rainy::foundation::text {
             if (pos > str_size) {
                 throw std::out_of_range{exception_string_};
             }
-            count = (core::min)(npos, (core::min)(str_size - pos, count));
+            count = (core::min) (npos, (core::min) (str_size - pos, count));
             return append(str.begin_() + pos, count);
         }
 
@@ -606,7 +608,7 @@ namespace rainy::foundation::text {
             if (pos > sv_size) {
                 throw std::out_of_range{exception_string_};
             }
-            count = (core::min)(npos, (core::min)(sv_size - count, count));
+            count = (core::min) (npos, (core::min) (sv_size - count, count));
             return append(sv.data() + pos, count);
         }
 
@@ -674,12 +676,12 @@ namespace rainy::foundation::text {
 
         RAINY_CONSTEXPR20 size_type rfind(std::basic_string_view<value_type> ptr, size_type pos = npos) const noexcept {
             if (ptr.size() == 0) {
-                return (core::min)(pos, size());
+                return (core::min) (pos, size());
             }
             if (ptr.size() > size()) {
                 return npos;
             }
-            pos = (core::min)(pos, size() - ptr.size());
+            pos = (core::min) (pos, size() - ptr.size());
             for (auto p = this->begin_() + pos; p >= this->begin_(); --p) {
                 if (traits_type::compare(p, ptr.begin_(), ptr.size()) == 0) {
                     return p - this->begin_();
@@ -692,7 +694,7 @@ namespace rainy::foundation::text {
             if (size() == 0) {
                 return npos;
             }
-            pos = (core::min)(pos, size() - 1);
+            pos = (core::min) (pos, size() - 1);
             for (auto p = this->begin_() + pos; p >= this->begin_(); --p) {
                 if (traits_type::eq(*p, c)) {
                     return p - this->begin_();
@@ -734,7 +736,7 @@ namespace rainy::foundation::text {
             if (size() == 0) {
                 return npos;
             }
-            pos = (core::min)(pos, size() - 1);
+            pos = (core::min) (pos, size() - 1);
             for (auto p = this->begin_() + pos; p >= this->begin_(); --p) {
                 if (ptr.find(*p) != npos) {
                     return p - this->begin_();
@@ -785,7 +787,7 @@ namespace rainy::foundation::text {
             if (size() == 0) {
                 return npos;
             }
-            pos = (core::min)(pos, size() - 1);
+            pos = (core::min) (pos, size() - 1);
             for (auto p = this->begin_() + pos; p >= this->begin_(); --p) {
                 if (ptr.find(*p) == npos) {
                     return p - this->begin_();
@@ -931,7 +933,7 @@ namespace rainy::foundation::text {
             if (s_index > s_size)
                 throw std::out_of_range{exception_string_};
 
-            count = (core::min)(npos, (core::min)(s_size - s_index, count));
+            count = (core::min) (npos, (core::min) (s_size - s_index, count));
             auto s_start = str.begin_() + s_index;
             insert_(index, s_start, s_start + count);
             return *this;
@@ -1019,7 +1021,7 @@ namespace rainy::foundation::text {
             if (t_index > sv_size) {
                 throw std::out_of_range{exception_string_};
             }
-            count = (core::min)(npos, (core::min)(sv_size - t_index, count));
+            count = (core::min) (npos, (core::min) (sv_size - t_index, count));
             auto sv_data = sv.data();
             insert_(pos, sv_data + t_index, sv_data + t_index + count);
             return *this;
@@ -1030,7 +1032,7 @@ namespace rainy::foundation::text {
             if (index > size) {
                 throw std::out_of_range{exception_string_};
             }
-            count = (core::min)(npos, (core::min)(size - index, count));
+            count = (core::min) (npos, (core::min) (size - index, count));
             auto start = begin_() + index;
             erase_(start, start + count);
 
@@ -1056,7 +1058,7 @@ namespace rainy::foundation::text {
 
         RAINY_CONSTEXPR20 basic_string &replace(size_type pos, size_type count, const basic_string &str) {
             replace_(pos, count, str.begin_(), str.end_());
-            return *pos;
+            return *this;
         }
 
         RAINY_CONSTEXPR20 basic_string &replace(const_iterator first, const_iterator last, const basic_string &str) {
@@ -1071,7 +1073,7 @@ namespace rainy::foundation::text {
             if (pos2 > str_size) {
                 throw std::out_of_range{exception_string_};
             }
-            count2 = (core::min)(npos, (core::min)(count2, str_size - pos2));
+            count2 = (core::min) (npos, (core::min) (count2, str_size - pos2));
             auto begin = str.begin_();
             replace_(pos, count, begin + count2, begin + count2 + pos2);
             return *this;
@@ -1139,7 +1141,7 @@ namespace rainy::foundation::text {
             if (pos2 > sv_size) {
                 throw std::out_of_range{exception_string_};
             }
-            count2 = (core::min)(npos, (core::min)(sv_size - pos2, count2));
+            count2 = (core::min) (npos, (core::min) (sv_size - pos2, count2));
             auto data = sv.data();
             replace_(pos, count, data + pos2, data + pos2 + count2);
             return *this;
@@ -1193,7 +1195,7 @@ namespace rainy::foundation::text {
             } else
 #endif
             {
-                return basic_string::traits_type::compare(left.begin_(), right.begin_(), (core::min)(lsize, rsize)) == 0 &&
+                return basic_string::traits_type::compare(left.begin_(), right.begin_(), (core::min) (lsize, rsize)) == 0 &&
                        lsize == rsize;
             }
         }
@@ -1203,7 +1205,7 @@ namespace rainy::foundation::text {
             auto rsize = right.size();
 #if RAINY_HAS_CXX20
             if (std::is_constant_evaluated()) {
-                for (auto l = left.begin_(), r = right.begin_(), end = l + (core::min)(lsize, rsize); l != end; ++l, ++r) {
+                for (auto l = left.begin_(), r = right.begin_(), end = l + (core::min) (lsize, rsize); l != end; ++l, ++r) {
                     if (*l < *r)
                         return true;
                     else if (*l > *r)
@@ -1213,7 +1215,7 @@ namespace rainy::foundation::text {
             } else
 #endif
             {
-                auto res = basic_string::traits_type::compare(left.begin_(), right.begin_(), (core::min)(rsize, lsize));
+                auto res = basic_string::traits_type::compare(left.begin_(), right.begin_(), (core::min) (rsize, lsize));
                 if (res < 0) {
                     return true;
                 } else if (res > 0) {
@@ -1266,7 +1268,7 @@ namespace rainy::foundation::text {
             auto lsize = left.size();
 #if RAINY_HAS_CXX20
             if (std::is_constant_evaluated()) {
-                for (auto l = left.begin_(), end = l + (core::min)(lsize, rsize); l != end; ++l, ++start) {
+                for (auto l = left.begin_(), end = l + (core::min) (lsize, rsize); l != end; ++l, ++start) {
                     if (*l < *start)
                         return true;
                     else if (*l > *start)
@@ -1276,7 +1278,7 @@ namespace rainy::foundation::text {
             } else
 #endif
             {
-                auto res = basic_string::traits_type::compare(left.begin_(), start, (core::min)(rsize, lsize));
+                auto res = basic_string::traits_type::compare(left.begin_(), start, (core::min) (rsize, lsize));
                 if (res < 0)
                     return true;
                 else if (res > 0)
@@ -1311,6 +1313,8 @@ namespace rainy::foundation::text {
         };
 
         union storage_type_ {
+            constexpr storage_type_() noexcept : ss_{} {}
+
             std::array<CharType, short_string_max_ + 1> ss_;
             ls_type_ ls_;
         };
@@ -1477,10 +1481,10 @@ namespace rainy::foundation::text {
 
             auto begin = begin_();
             auto first1 = begin + pos;
-            auto last1 = begin + (core::min)(pos + count, size);
+            auto last1 = begin + (core::min) (pos + count, size);
             auto length1 = last1 - first1;
             auto length2 = last2 - first2;
-            auto new_size = size + length1 - length2;
+            auto new_size = size - length1 + length2; // Fix 修复：符号对调
             auto end = begin + size;
 
             if (!(last1 < first2 || last2 < first1) && new_size <= capacity()) {
@@ -1512,14 +1516,15 @@ namespace rainy::foundation::text {
                 basic_string temp{};
                 temp.allocate_plus_one_(new_size);
                 auto temp_begin = temp.begin_();
-                auto temp_start = temp.begin_() + (first1 - begin);
+                auto temp_start = temp_begin + (first1 - begin);
 
                 if (std::is_constant_evaluated()) {
                     std::copy(begin, first1, temp_begin);
                     std::copy(first2, last2, temp_start);
                     std::copy(last1, end, temp_start + length2);
                 } else {
-                    std::memcpy(begin, temp_begin, first1 - begin * sizeof(CharType));
+                    // Fix 修复：dst/src 对调，括号保证优先级正确
+                    std::memcpy(temp_begin, begin, (first1 - begin) * sizeof(CharType));
                     std::memcpy(temp_start, first2, length2 * sizeof(CharType));
                     std::memcpy(temp_start + length2, last1, (end - last1) * sizeof(CharType));
                 }

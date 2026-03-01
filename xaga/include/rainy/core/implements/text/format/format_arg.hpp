@@ -20,7 +20,7 @@
 #include <variant>
 
 namespace rainy::foundation::text {
-    template <class Context, class... Args>
+    template <typename Context, typename... Args>
     class __format_arg_store;
 
     template <typename CharT>
@@ -163,18 +163,8 @@ namespace rainy::foundation::text {
     class basic_format_arg {
     public:
         class handle;
-
-    private:
         using char_type = typename Context::char_type;
 
-        std::variant<std::monostate, bool, char_type, int, unsigned int, long long int, unsigned long long int, float, double,
-                     long double, const char_type *, basic_string<char_type>, basic_string_view<char_type>, const void *, handle>
-            value_;
-
-        // 存储类型信息用于运行时检查
-        implements::arg_type type_;
-
-    public:
         basic_format_arg() noexcept : value_(std::monostate{}), type_(implements::arg_type::none_type) {
         }
 
@@ -275,15 +265,23 @@ namespace rainy::foundation::text {
         }
 
         // visit 实现
-        template <class Visitor>
-        decltype(auto) visit(this basic_format_arg arg, Visitor &&vis) {
-            return std::visit(std::forward<Visitor>(vis), arg.value_);
+        template <typename Visitor>
+        decltype(auto) visit(Visitor &&vis) {
+            return std::visit(std::forward<Visitor>(vis), value_);
         }
 
-        template <class R, class Visitor>
-        R visit(this basic_format_arg arg, Visitor &&vis) {
-            return std::visit<R>(std::forward<Visitor>(vis), arg.value_);
+        template <typename R, typename Visitor>
+        R visit(Visitor &&vis) {
+            return std::visit<R>(std::forward<Visitor>(vis), value_);
         }
+
+    private:
+        std::variant<std::monostate, bool, char_type, int, unsigned int, long long int, unsigned long long int, float, double,
+                     long double, const char_type *, basic_string<char_type>, basic_string_view<char_type>, const void *, handle>
+            value_;
+
+        // 存储类型信息用于运行时检查
+        implements::arg_type type_;
     };
 
     template <class Context>
@@ -334,8 +332,8 @@ namespace rainy::foundation::text {
         basic_format_args() noexcept : size_(0), data_(nullptr) {
         }
 
-        template <class... Args>
-        basic_format_args(const __format_arg_store<Context, Args...> &store) noexcept :
+        template <typename... Args>
+        basic_format_args(const __format_arg_store<Context, Args...> &store) noexcept : // NOLINT
             size_(sizeof...(Args)), data_(store.args.data()) {
         }
 
@@ -346,7 +344,7 @@ namespace rainy::foundation::text {
             return basic_format_arg<Context>{};
         }
 
-        size_t size() const noexcept {
+        RAINY_NODISCARD std::size_t size() const noexcept {
             return size_;
         }
     };

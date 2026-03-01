@@ -19,6 +19,8 @@
 #include <rainy/core/gnu/typetraits.hpp>
 #include <rainy/core/type_traits/implements.hpp>
 #include <rainy/core/type_traits/primary_types.hpp>
+#include <rainy/core/type_traits/type_relations.hpp>
+#include <rainy/core/type_traits/decay.hpp>
 
 namespace rainy::type_traits::implements::swap_adl {
     using std::swap; // ADL
@@ -329,7 +331,22 @@ namespace rainy::type_traits::type_properties {
      *              源类型
      */
     template <typename To, typename From>
-    RAINY_CONSTEXPR_BOOL is_trivially_assignable = __is_trivially_assignable(reference_modify::add_lvalue_reference_t<To>, From);
+    RAINY_CONSTEXPR_BOOL is_trivially_assignable_v = __is_trivially_assignable(reference_modify::add_lvalue_reference_t<To>, From);
+
+    /**
+     * @brief Type template for checking if assignment from From to To is trivially assignable.
+     *        Uses compiler built-in __is_trivially_assignable.
+     *
+     *        检查从 From 到 To 的赋值是否可平凡赋值的类型模板。
+     *        使用编译器内建 __is_trivially_assignable。
+     *
+     * @tparam To Target type
+     *            目标类型
+     * @tparam From Source type
+     *              源类型
+     */
+    template <typename To, typename From>
+    struct is_trivially_assignable : helper::bool_constant<is_trivially_assignable_v<To, From>> {};
 
     /**
      * @brief Variable template for checking if a type is trivially move assignable.

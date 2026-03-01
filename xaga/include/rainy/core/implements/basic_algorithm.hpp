@@ -575,28 +575,34 @@ namespace rainy::core::algorithm {
             type_traits::implements::_is_pointer_v<InputIter>, type_traits::pointer_modify::remove_pointer_t<InputIter>,
             typename utility::iterator_traits<InputIter>::value_type>>) -> OutIter {
         using value_type = typename utility::iterator_traits<InputIter>::value_type;
-        if (begin == end || (end - 1) == begin) {
+
+        if (begin == end) {
             return dest;
         }
+
 #if RAINY_HAS_CXX20
         if (std::is_constant_evaluated()) {
             auto input_begin = utility::addressof(*begin);
             auto input_end = utility::addressof(*(end - 1)) + 1;
             auto out_dest = utility::addressof(*dest);
-            for (auto i = input_begin; i != input_end; ++i) {
+            for (auto i = input_begin; i != input_end; ++i, ++out_dest) {
                 *out_dest = *i;
             }
-            return out_dest;
+            return dest;
         }
 #endif
-        if constexpr (type_traits::type_properties::is_standard_layout_v<value_type> &&
-                      type_traits::type_properties::is_trivial_v<value_type>) {
+        if constexpr (type_traits::type_properties::is_trivially_copyable_v<value_type> &&
+                      type_traits::primary_types::is_pointer_v<InputIter> && type_traits::primary_types::is_pointer_v<OutIter>) {
             const auto input_begin = utility::addressof(*begin);
             const auto input_end = utility::addressof(*(end - 1)) + 1;
             auto out_dest = utility::addressof(*dest);
-            std::memcpy(out_dest, input_begin, sizeof(value_type) * utility::distance(input_begin, input_end));
+            const auto count = utility::distance(input_begin, input_end);
+            std::memcpy(out_dest, input_begin, sizeof(value_type) * count);
+            for (auto i = 0; i < count; ++i, ++dest) {
+            }
+            return dest;
         } else {
-            for (InputIter i = begin; begin != end; ++i, ++dest) {
+            for (InputIter i = begin; i != end; ++i, ++dest) {
                 *dest = *i;
             }
         }
@@ -638,8 +644,8 @@ namespace rainy::core::algorithm {
         } else
 #endif
         {
-            if constexpr (type_traits::type_properties::is_standard_layout_v<value_type> &&
-                          type_traits::type_properties::is_trivial_v<value_type>) {
+            if constexpr (type_traits::type_properties::is_trivially_copyable_v<value_type> &&
+                          type_traits::primary_types::is_pointer_v<InputIter> && type_traits::primary_types::is_pointer_v<OutIter>) {
                 const auto input_begin = utility::addressof(*begin);
                 auto out_dest = utility::addressof(*dest);
                 std::memcpy(out_dest, input_begin, sizeof(value_type) * count);
