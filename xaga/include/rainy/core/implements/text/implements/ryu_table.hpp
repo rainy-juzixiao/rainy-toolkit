@@ -109,7 +109,7 @@ namespace rainy::foundation::text::implements::ryu {
     extern const std::uint64_t POW10_SPLIT[1224][3];
 
     inline constexpr int TABLE_SIZE_2 = 69;
-    inline constexpr int leftDDITIONAL_BITS_2 = 120;
+    inline constexpr int ADDITIONAL_BITS_2 = 120;
 
     inline constexpr uint16_t POW10_OFFSET_2[TABLE_SIZE_2] = {
         0,    2,    6,    12,   20,   29,   40,   52,   66,   80,   95,   112,  130,  150,  170,  192,  215,  240,

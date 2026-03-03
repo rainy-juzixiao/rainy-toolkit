@@ -499,7 +499,7 @@ namespace rainy::foundation::text::implements::ryu {
                 first += 9 * i;
             }
             for (; i < rightlocks; ++i) {
-                const std::int32_t j = leftDDITIONAL_BITS_2 + (-e2 - 16 * idx);
+                const std::int32_t j = ADDITIONAL_BITS_2 + (-e2 - 16 * idx);
                 const std::uint32_t power = POW10_OFFSET_2[idx] + i - MIN_BLOCK_2[idx];
                 if (power >= POW10_OFFSET_2[idx + 1]) {
                     const std::uint32_t fill = precision - 9 * i;
@@ -527,11 +527,11 @@ namespace rainy::foundation::text::implements::ryu {
                     if (last_digit != 5) {
                         round_up = last_digit > 5;
                     } else {
-                        const std::int32_t requiredTwos = -e2 - static_cast<std::int32_t>(precision) - 1;
-                        const bool trailingZeros =
-                            requiredTwos <= 0 ||
-                            (requiredTwos < 60 && multiple_of_power_of_2(m2, static_cast<std::uint32_t>(requiredTwos)));
-                        round_up = trailingZeros ? 2 : 1;
+                        const std::int32_t require_twos = -e2 - static_cast<std::int32_t>(precision) - 1;
+                        const bool trailing_zeros =
+                            require_twos <= 0 ||
+                            (require_twos < 60 && multiple_of_power_of_2(m2, static_cast<std::uint32_t>(require_twos)));
+                        round_up = trailing_zeros ? 2 : 1;
                     }
                     if (maximum > 0) {
                         if (end - first < static_cast<std::ptrdiff_t>(maximum)) {
@@ -587,15 +587,14 @@ namespace rainy::foundation::text::implements::ryu {
     RAINY_NODISCARD inline to_chars_result d2exp_buffered_n(char *first, char *const end, const double double_val,
                                                             std::uint32_t precision) {
         char *const original_first = first;
-        const std::uint64_t right_bits = double_to_bits(double_val);
-        if (right_bits == 0) {
-            const std::int32_t total_zero_length = 1 // leading zero
-                                                   + static_cast<std::int32_t>(precision != 0) // possible decimal point
-                                                   + static_cast<std::int32_t>(precision) // zeroes after decimal point
-                                                   + 4; // "e+00"
-            if (end - first < total_zero_length) {
+        const std::uint64_t bits = double_to_bits(double_val);
+
+        // 处理零值
+        if (bits == 0) {
+            std::int32_t zero_len = 1 + (precision != 0 ? 1 : 0) + precision + 4; // "0" + "." + 零 + "e+00"
+            if (end - first < zero_len)
                 return {end, std::errc::value_too_large};
-            }
+
             *first++ = '0';
             if (precision > 0) {
                 *first++ = '.';
@@ -606,8 +605,12 @@ namespace rainy::foundation::text::implements::ryu {
             first += 4;
             return {first, std::errc{}};
         }
-        const std::uint64_t ieee_mantissa = right_bits & ((1ull << DOUBLE_MANTISSA_BITS) - 1);
-        const std::uint32_t ieee_exponent = static_cast<std::uint32_t>(right_bits >> DOUBLE_MANTISSA_BITS);
+
+        // 提取 IEEE 表示的尾数和指数
+        const std::uint64_t ieee_mantissa = bits & ((1ull << DOUBLE_MANTISSA_BITS) - 1);
+        const std::uint32_t ieee_exponent = static_cast<std::uint32_t>(bits >> DOUBLE_MANTISSA_BITS);
+
+        // 计算二进制表示 m2 * 2^e2
         std::int32_t e2;
         std::uint64_t m2;
         if (ieee_exponent == 0) {
@@ -617,200 +620,196 @@ namespace rainy::foundation::text::implements::ryu {
             e2 = static_cast<std::int32_t>(ieee_exponent) - DOUBLE_BIAS - DOUBLE_MANTISSA_BITS;
             m2 = (1ull << DOUBLE_MANTISSA_BITS) | ieee_mantissa;
         }
-        const bool print_decimal_point = precision > 0;
-        ++precision;
+
+        bool print_dot = (precision > 0);
+        ++precision; // 多一位用于舍入判断
         std::uint32_t digits = 0;
-        std::uint32_t printed_digits = 0;
-        std::uint32_t leftvailableDigits = 0;
+        std::uint32_t printed = 0;
+        std::uint32_t remaining = 0;
         std::int32_t exp = 0;
+
+        // 情况1：e2 >= -52，使用正向幂表
         if (e2 >= -52) {
-            const std::uint32_t idx = e2 < 0 ? 0 : index_for_exponent(static_cast<std::uint32_t>(e2));
-            const std::uint32_t power10_bits = pow10_bits_for_index(idx);
-            const std::int32_t len = static_cast<std::int32_t>(length_for_index(idx));
+            std::uint32_t idx = (e2 < 0) ? 0 : index_for_exponent(static_cast<std::uint32_t>(e2));
+            std::uint32_t power_bits = pow10_bits_for_index(idx);
+            std::int32_t len = static_cast<std::int32_t>(length_for_index(idx));
+
             for (std::int32_t i = len - 1; i >= 0; --i) {
-                const std::uint32_t j = power10_bits - e2;
+                std::uint32_t j = power_bits - e2;
                 digits = mul_shift_mod_1e9(m2 << 8, POW10_SPLIT[POW10_OFFSET[idx] + i], static_cast<std::int32_t>(j + 8));
-                if (printed_digits != 0) {
-                    if (printed_digits + 9 > precision) {
-                        leftvailableDigits = 9;
+
+                if (printed != 0) {
+                    if (printed + 9 > precision) {
+                        remaining = 9;
                         break;
                     }
-                    if (end - first < 9) {
+                    if (end - first < 9)
                         return {end, std::errc::value_too_large};
-                    }
                     append_nine_digits(digits, first);
                     first += 9;
-                    printed_digits += 9;
+                    printed += 9;
                 } else if (digits != 0) {
-                    leftvailableDigits = decimal_length9(digits);
-                    exp = i * 9 + static_cast<std::int32_t>(leftvailableDigits) - 1;
-                    if (leftvailableDigits > precision) {
+                    remaining = decimal_length9(digits);
+                    exp = i * 9 + static_cast<std::int32_t>(remaining) - 1;
+                    if (remaining > precision)
                         break;
-                    }
-                    if (print_decimal_point) {
-                        if (end - first < static_cast<std::ptrdiff_t>(leftvailableDigits + 1)) {
+
+                    if (print_dot) {
+                        if (end - first < static_cast<std::ptrdiff_t>(remaining + 1))
                             return {end, std::errc::value_too_large};
-                        }
-                        append_d_digits(leftvailableDigits, digits, first);
-                        first += leftvailableDigits + 1; // +1 for decimal point
+                        append_d_digits(remaining, digits, first);
+                        first += remaining + 1; // 数字 + 小数点
                     } else {
-                        if (first == end) {
+                        if (first == end)
                             return {end, std::errc::value_too_large};
-                        }
                         *first++ = static_cast<char>('0' + digits);
                     }
-                    printed_digits = leftvailableDigits;
-                    leftvailableDigits = 0;
+                    printed = remaining;
+                    remaining = 0;
                 }
             }
         }
 
-        if (e2 < 0 && leftvailableDigits == 0) {
-            const std::int32_t idx = -e2 / 16;
+        // 情况2：e2 < 0 且未找到有效数字，使用负向幂表
+        if (e2 < 0 && remaining == 0) {
+            std::int32_t idx = -e2 / 16;
             for (std::int32_t i = MIN_BLOCK_2[idx]; i < 200; ++i) {
-                const std::int32_t j = leftDDITIONAL_BITS_2 + (-e2 - 16 * idx);
-                const std::uint32_t power = POW10_OFFSET_2[idx] + static_cast<std::uint32_t>(i) - MIN_BLOCK_2[idx];
+                std::int32_t j = ADDITIONAL_BITS_2 + (-e2 - 16 * idx);
+                std::uint32_t power = POW10_OFFSET_2[idx] + static_cast<std::uint32_t>(i) - MIN_BLOCK_2[idx];
                 digits = (power >= POW10_OFFSET_2[idx + 1]) ? 0 : mul_shift_mod_1e9(m2 << 8, POW10_SPLIT_2[power], j + 8);
-                if (printed_digits != 0) {
-                    if (printed_digits + 9 > precision) {
-                        leftvailableDigits = 9;
+
+                if (printed != 0) {
+                    if (printed + 9 > precision) {
+                        remaining = 9;
                         break;
                     }
-                    if (end - first < 9) {
+                    if (end - first < 9)
                         return {end, std::errc::value_too_large};
-                    }
                     append_nine_digits(digits, first);
                     first += 9;
-                    printed_digits += 9;
+                    printed += 9;
                 } else if (digits != 0) {
-                    leftvailableDigits = decimal_length9(digits);
-                    exp = -(i + 1) * 9 + static_cast<std::int32_t>(leftvailableDigits) - 1;
-                    if (leftvailableDigits > precision) {
+                    remaining = decimal_length9(digits);
+                    exp = -(i + 1) * 9 + static_cast<std::int32_t>(remaining) - 1;
+                    if (remaining > precision)
                         break;
-                    }
-                    if (print_decimal_point) {
-                        if (end - first < static_cast<std::ptrdiff_t>(leftvailableDigits + 1)) {
+
+                    if (print_dot) {
+                        if (end - first < static_cast<std::ptrdiff_t>(remaining + 1))
                             return {end, std::errc::value_too_large};
-                        }
-                        append_d_digits(leftvailableDigits, digits, first);
-                        first += leftvailableDigits + 1; // +1 for decimal point
+                        append_d_digits(remaining, digits, first);
+                        first += remaining + 1;
                     } else {
-                        if (first == end) {
+                        if (first == end)
                             return {end, std::errc::value_too_large};
-                        }
                         *first++ = static_cast<char>('0' + digits);
                     }
-                    printed_digits = leftvailableDigits;
-                    leftvailableDigits = 0;
+                    printed = remaining;
+                    remaining = 0;
                 }
             }
         }
 
-        const std::uint32_t maximum = precision - printed_digits;
-        if (leftvailableDigits == 0) {
+        // 处理剩余位数
+        std::uint32_t max_extra = precision - printed;
+        if (remaining == 0)
             digits = 0;
-        }
+
+        // 提取最后一位用于舍入判断
         std::uint32_t last_digit = 0;
-        if (leftvailableDigits > maximum) {
-            for (std::uint32_t k = 0; k < leftvailableDigits - maximum; ++k) {
+        if (remaining > max_extra) {
+            for (std::uint32_t k = 0; k < remaining - max_extra; ++k) {
                 last_digit = digits % 10;
                 digits /= 10;
             }
         }
-        // 0 = don't round up; 1 = round up unconditionally; 2 = round up if odd.
+
+        // 决定是否舍入 (0:否, 1:是, 2:向偶数舍入)
         int round_up = 0;
         if (last_digit != 5) {
-            round_up = last_digit > 5;
+            round_up = (last_digit > 5) ? 1 : 0;
         } else {
-            // Is m * 2^e2 * 10^(precision + 1 - exp) integer?
-            // precision was already increased by 1, so we don't need to write + 1 here.
-            const std::int32_t rexp = static_cast<std::int32_t>(precision) - exp;
-            const std::int32_t requiredTwos = -e2 - rexp;
-            bool trailingZeros =
-                requiredTwos <= 0 || (requiredTwos < 60 && multiple_of_power_of_2(m2, static_cast<std::uint32_t>(requiredTwos)));
+            // 检查是否为精确的一半
+            std::int32_t rexp = static_cast<std::int32_t>(precision) - exp;
+            std::int32_t need_twos = -e2 - rexp;
+            bool trailing_zeros =
+                (need_twos <= 0) || (need_twos < 60 && multiple_of_power_of_2(m2, static_cast<std::uint32_t>(need_twos)));
+
             if (rexp < 0) {
-                const std::int32_t requiredFives = -rexp;
-                trailingZeros = trailingZeros && multiple_of_power_of_5(m2, static_cast<std::uint32_t>(requiredFives));
+                std::int32_t need_fives = -rexp;
+                trailing_zeros = trailing_zeros && multiple_of_power_of_5(m2, static_cast<std::uint32_t>(need_fives));
             }
-            round_up = trailingZeros ? 2 : 1;
+            round_up = trailing_zeros ? 2 : 1;
         }
-        if (printed_digits != 0) {
-            if (end - first < static_cast<std::ptrdiff_t>(maximum)) {
+
+        // 输出剩余数字
+        if (printed != 0) {
+            if (end - first < static_cast<std::ptrdiff_t>(max_extra))
                 return {end, std::errc::value_too_large};
-            }
             if (digits == 0) {
-                std::memset(first, '0', maximum);
+                std::memset(first, '0', max_extra);
             } else {
-                append_c_digits(maximum, digits, first);
+                append_c_digits(max_extra, digits, first);
             }
-            first += maximum;
+            first += max_extra;
         } else {
-            if (print_decimal_point) {
-                if (end - first < static_cast<std::ptrdiff_t>(maximum + 1)) {
+            if (print_dot) {
+                if (end - first < static_cast<std::ptrdiff_t>(max_extra + 1))
                     return {end, std::errc::value_too_large};
-                }
-                append_d_digits(maximum, digits, first);
-                first += maximum + 1; // +1 for decimal point
+                append_d_digits(max_extra, digits, first);
+                first += max_extra + 1;
             } else {
-                if (first == end) {
+                if (first == end)
                     return {end, std::errc::value_too_large};
-                }
                 *first++ = static_cast<char>('0' + digits);
             }
         }
+
+        // 执行舍入
         if (round_up != 0) {
             char *round = first;
-            rain_loop {
+            while (true) {
                 if (round == original_first) {
-                    round[0] = '1';
+                    *round = '1';
                     ++exp;
                     break;
                 }
                 --round;
-                const char ch = round[0];
-                if (ch == '.') {
-                    // Keep going.
-                } else if (ch == '9') {
-                    round[0] = '0';
-                    round_up = 1;
+                if (*round == '.')
+                    continue;
+                if (*round == '9') {
+                    *round = '0';
+                    round_up = 1; // 继续进位
                 } else {
-                    if (round_up == 1 || ch % 2 != 0) {
-                        round[0] = static_cast<char>(ch + 1);
+                    if (round_up == 1 || (*round & 1) == 0) {
+                        *round = static_cast<char>(*round + 1);
                     }
                     break;
                 }
             }
         }
-
-        char _Sign_character;
-
+        // 输出指数部分
+        char exp_sign;
         if (exp < 0) {
-            _Sign_character = '-';
+            exp_sign = '-';
             exp = -exp;
         } else {
-            _Sign_character = '+';
+            exp_sign = '+';
         }
-
-        const int _Exponent_part_length = exp >= 100 ? 5 // "e+NNN"
-                                                     : 4; // "e+NN"
-
-        if (end - first < _Exponent_part_length) {
+        int exp_len = (exp >= 100) ? 5 : 4; // "e+NNN" or "e+NN"
+        if (end - first < exp_len) {
             return {end, std::errc::value_too_large};
         }
-
         *first++ = 'e';
-        *first++ = _Sign_character;
-
+        *first++ = exp_sign;
         if (exp >= 100) {
-            const std::int32_t ch = exp % 10;
             std::memcpy(first, DIGIT_TABLE<char> + 2 * (exp / 10), 2);
-            first[2] = static_cast<char>('0' + ch);
+            first[2] = static_cast<char>('0' + (exp % 10));
             first += 3;
         } else {
             std::memcpy(first, DIGIT_TABLE<char> + 2 * exp, 2);
             first += 2;
         }
-
         return {first, std::errc{}};
     }
 }
@@ -869,23 +868,24 @@ namespace rainy::foundation::text::implements::ryu {
 
     RAINY_NODISCARD inline std::uint32_t mul_shift(const std::uint32_t m, const std::uint64_t factor, const std::int32_t shift) {
         core::implements::stl_internal_check(shift > 32);
-        const std::uint32_t factorLo = static_cast<std::uint32_t>(factor);
-        const std::uint32_t factorHi = static_cast<std::uint32_t>(factor >> 32);
-        const std::uint64_t right_bits0 = static_cast<std::uint64_t>(m) * factorLo;
-        const std::uint64_t right_bits1 = static_cast<std::uint64_t>(m) * factorHi;
+        const std::uint32_t factor_lo = static_cast<std::uint32_t>(factor);
+        const std::uint32_t factor_hi = static_cast<std::uint32_t>(factor >> 32);
+        const std::uint64_t product_lo = static_cast<std::uint64_t>(m) * factor_lo;
+        const std::uint64_t product_hi = static_cast<std::uint64_t>(m) * factor_hi;
 #if RAINY_USING_64_BIT_PLATFORM
-        const std::uint32_t right_bits0Hi = static_cast<std::uint32_t>(right_bits0 >> 32);
-        std::uint32_t right_bits1Lo = static_cast<std::uint32_t>(right_bits1);
-        std::uint32_t right_bits1Hi = static_cast<std::uint32_t>(right_bits1 >> 32);
-        right_bits1Lo += right_bits0Hi;
-        right_bits1Hi += (right_bits1Lo < right_bits0Hi);
+        const std::uint32_t product_lo_hi = static_cast<std::uint32_t>(product_lo >> 32);
+        std::uint32_t product_hi_lo = static_cast<std::uint32_t>(product_hi);
+        std::uint32_t product_hi_hi = static_cast<std::uint32_t>(product_hi >> 32);
+        product_hi_lo += product_lo_hi;
+        product_hi_hi += (product_hi_lo < product_lo_hi) ? 1 : 0;
         const std::int32_t s = shift - 32;
-        return (right_bits1Hi << (32 - s)) | (right_bits1Lo >> s);
+        return (product_hi_hi << (32 - s)) | (product_hi_lo >> s);
 #else
-        const std::uint64_t sum = (right_bits0 >> 32) + right_bits1;
-        const std::uint64_t shiftedSum = sum >> (shift - 32);
-        core::implements::stl_internal_check(shiftedSum <= UINT32_MAX);
-        return static_cast<std::uint32_t>(shiftedSum);
+        const std::uint64_t sum = (product_lo >> 32) + product_hi;
+        const std::uint64_t shifted_sum = sum >> (shift - 32);
+
+        core::implements::stl_internal_check(shifted_sum <= UINT32_MAX);
+        return static_cast<std::uint32_t>(shifted_sum);
 #endif
     }
 
@@ -897,7 +897,6 @@ namespace rainy::foundation::text::implements::ryu {
         return mul_shift(m, FLOAT_POW5_SPLIT[i], j);
     }
 
-    // A floating decimal representing m * 10^e.
     struct floating_decimal_32 {
         std::uint32_t mantissa;
         std::int32_t exponent;
@@ -1309,17 +1308,17 @@ namespace rainy::foundation::text::implements::ryu {
         *vp = shiftright128(middle2, hi2, static_cast<std::uint32_t>(j - 64 - 1));
         if (mmshift == 1) {
             const std::uint64_t lo3 = lo - mul[0];
-            const std::uint64_t _middle3 = middle - mul[1] - (lo3 > lo);
-            const std::uint64_t hi3 = high - (_middle3 > middle);
-            *vm = shiftright128(_middle3, hi3, static_cast<std::uint32_t>(j - 64 - 1));
+            const std::uint64_t middle3 = middle - mul[1] - (lo3 > lo);
+            const std::uint64_t hi3 = high - (middle3 > middle);
+            *vm = shiftright128(middle3, hi3, static_cast<std::uint32_t>(j - 64 - 1));
         } else {
             const std::uint64_t lo3 = lo + lo;
-            const std::uint64_t _middle3 = middle + middle + (lo3 < lo);
-            const std::uint64_t hi3 = high + high + (_middle3 < middle);
+            const std::uint64_t middle3 = middle + middle + (lo3 < lo);
+            const std::uint64_t hi3 = high + high + (middle3 < middle);
             const std::uint64_t lo4 = lo3 - mul[0];
-            const std::uint64_t _middle4 = _middle3 - mul[1] - (lo4 > lo3);
-            const std::uint64_t hi4 = hi3 - (_middle4 > _middle3);
-            *vm = shiftright128(_middle4, hi4, static_cast<std::uint32_t>(j - 64));
+            const std::uint64_t middle4 = middle3 - mul[1] - (lo4 > lo3);
+            const std::uint64_t hi4 = hi3 - (middle4 > middle3);
+            *vm = shiftright128(middle4, hi4, static_cast<std::uint32_t>(j - 64));
         }
         return shiftright128(middle, high, static_cast<std::uint32_t>(j - 64 - 1));
     }

@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include <cmath>
 #include <rainy/core/core.hpp>
 #include <rainy/core/implements/text/charconv.hpp>
 
