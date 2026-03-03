@@ -101,15 +101,15 @@ namespace rainy::foundation::text::implements::ryu {
     }
 
     RAINY_NODISCARD inline std::uint32_t float_to_bits(const float float_val) {
-        std::uint32_t rightits = 0;
-        std::memcpy(&rightits, &float_val, sizeof(float));
-        return rightits;
+        std::uint32_t right_bits = 0;
+        std::memcpy(&right_bits, &float_val, sizeof(float));
+        return right_bits;
     }
 
     RAINY_NODISCARD inline std::uint64_t double_to_bits(const double double_val) {
-        std::uint64_t rightits = 0;
-        std::memcpy(&rightits, &double_val, sizeof(double));
-        return rightits;
+        std::uint64_t right_bits = 0;
+        std::memcpy(&right_bits, &double_val, sizeof(double));
+        return right_bits;
     }
 
     inline constexpr int DOUBLE_MANTISSA_BITS = 52;
@@ -118,8 +118,8 @@ namespace rainy::foundation::text::implements::ryu {
     inline constexpr int DOUBLE_POW5_INV_BITCOUNT = 122;
     inline constexpr int DOUBLE_POW5_BITCOUNT = 121;
 
-    RAINY_NODISCARD RAINY_ALWAYS_INLINE std::uint64_t umul128(const std::uint64_t left, const std::uint64_t right,
-                                                              std::uint64_t *const producthi) {
+    RAINY_NODISCARD RAINY_INLINE std::uint64_t umul128(const std::uint64_t left, const std::uint64_t right,
+                                                       std::uint64_t *const producthi) {
         const std::uint32_t leftLo = static_cast<std::uint32_t>(left);
         const std::uint32_t leftHi = static_cast<std::uint32_t>(left >> 32);
         const std::uint32_t rightLo = static_cast<std::uint32_t>(right);
@@ -395,8 +395,8 @@ namespace rainy::foundation::text::implements::ryu {
         result[0] = static_cast<CharType>('0' + digits);
     }
 
-    RAINY_NODISCARD inline std::uint32_t index_for_exponent(const std::uint32_t __e) {
-        return (__e + 15) / 16;
+    RAINY_NODISCARD inline std::uint32_t index_for_exponent(const std::uint32_t exp) {
+        return (exp + 15) / 16;
     }
 
     RAINY_NODISCARD inline std::uint32_t pow10_bits_for_index(const std::uint32_t idx) {
@@ -412,9 +412,9 @@ namespace rainy::foundation::text::implements::ryu {
                                                                                        const double double_val,
                                                                                        const std::uint32_t precision) {
         CharType *const original_first = first;
-        const std::uint64_t rightits = double_to_bits(double_val);
+        const std::uint64_t right_bits = double_to_bits(double_val);
         // Case distinction; exit early for the easy cases.
-        if (rightits == 0) {
+        if (right_bits == 0) {
             const std::int32_t total_zero_length = 1 // leading zero
                                                    + static_cast<std::int32_t>(precision != 0) // possible decimal point
                                                    + static_cast<std::int32_t>(precision); // zeroes after decimal point
@@ -429,11 +429,8 @@ namespace rainy::foundation::text::implements::ryu {
             }
             return {first, std::errc{}};
         }
-
-        // Decode rightits into mantissa and exponent.
-        const std::uint64_t ieee_mantissa = rightits & ((1ull << DOUBLE_MANTISSA_BITS) - 1);
-        const std::uint32_t ieee_exponent = static_cast<std::uint32_t>(rightits >> DOUBLE_MANTISSA_BITS);
-
+        const std::uint64_t ieee_mantissa = right_bits & ((1ull << DOUBLE_MANTISSA_BITS) - 1);
+        const std::uint32_t ieee_exponent = static_cast<std::uint32_t>(right_bits >> DOUBLE_MANTISSA_BITS);
         std::int32_t e2;
         std::uint64_t m2;
         if (ieee_exponent == 0) {
@@ -443,19 +440,16 @@ namespace rainy::foundation::text::implements::ryu {
             e2 = static_cast<std::int32_t>(ieee_exponent) - DOUBLE_BIAS - DOUBLE_MANTISSA_BITS;
             m2 = (1ull << DOUBLE_MANTISSA_BITS) | ieee_mantissa;
         }
-
-        bool __nonzero = false;
+        bool nonzero = false;
         if (e2 >= -52) {
             const std::uint32_t idx = e2 < 0 ? 0 : index_for_exponent(static_cast<std::uint32_t>(e2));
             const std::uint32_t power10_bits = pow10_bits_for_index(idx);
-            const std::int32_t __len = static_cast<std::int32_t>(length_for_index(idx));
-            for (std::int32_t i = __len - 1; i >= 0; --i) {
+            const std::int32_t len = static_cast<std::int32_t>(length_for_index(idx));
+            for (std::int32_t i = len - 1; i >= 0; --i) {
                 const std::uint32_t j = power10_bits - e2;
-                // Temporary: j is usually around 128, and by shifting a bit, we push it to 128 or above, which is
-                // a slightly faster code path in mul_shift_mod_1e9. Instead, we can just increase the multipliers.
                 const std::uint32_t digits =
                     mul_shift_mod_1e9(m2 << 8, POW10_SPLIT[POW10_OFFSET[idx] + i], static_cast<std::int32_t>(j + 8));
-                if (__nonzero) {
+                if (nonzero) {
                     if (end - first < 9) {
                         return {end, std::errc::value_too_large};
                     }
@@ -463,16 +457,16 @@ namespace rainy::foundation::text::implements::ryu {
                     first += 9;
                 } else if (digits != 0) {
                     const std::uint32_t output_length = decimal_length9(digits);
-                    if (end - first < static_cast<ptrdiff_t>(output_length)) {
+                    if (end - first < static_cast<std::ptrdiff_t>(output_length)) {
                         return {end, std::errc::value_too_large};
                     }
                     append_n_digits(output_length, digits, first);
                     first += output_length;
-                    __nonzero = true;
+                    nonzero = true;
                 }
             }
         }
-        if (!__nonzero) {
+        if (!nonzero) {
             if (first == end) {
                 return {end, std::errc::value_too_large};
             }
@@ -487,19 +481,18 @@ namespace rainy::foundation::text::implements::ryu {
         if (e2 < 0) {
             const std::int32_t idx = -e2 / 16;
             const std::uint32_t rightlocks = precision / 9 + 1;
-            // 0 = don't round up; 1 = round up unconditionally; 2 = round up if odd.
             int round_up = 0;
             std::uint32_t i = 0;
             if (rightlocks <= MIN_BLOCK_2[idx]) {
                 i = rightlocks;
-                if (end - first < static_cast<ptrdiff_t>(precision)) {
+                if (end - first < static_cast<std::ptrdiff_t>(precision)) {
                     return {end, std::errc::value_too_large};
                 }
                 core::algorithm::fill_n(first, precision, '0');
                 first += precision;
             } else if (i < MIN_BLOCK_2[idx]) {
                 i = MIN_BLOCK_2[idx];
-                if (end - first < static_cast<ptrdiff_t>(9 * i)) {
+                if (end - first < static_cast<std::ptrdiff_t>(9 * i)) {
                     return {end, std::errc::value_too_large};
                 }
                 core::algorithm::fill_n(first, 9 * i, '0');
@@ -509,18 +502,14 @@ namespace rainy::foundation::text::implements::ryu {
                 const std::int32_t j = leftDDITIONAL_BITS_2 + (-e2 - 16 * idx);
                 const std::uint32_t power = POW10_OFFSET_2[idx] + i - MIN_BLOCK_2[idx];
                 if (power >= POW10_OFFSET_2[idx + 1]) {
-                    // If the remaining digits are all 0, then we might as well use memset.
-                    // No rounding required in this case.
-                    const std::uint32_t __fill = precision - 9 * i;
-                    if (end - first < static_cast<ptrdiff_t>(__fill)) {
+                    const std::uint32_t fill = precision - 9 * i;
+                    if (end - first < static_cast<std::ptrdiff_t>(fill)) {
                         return {end, std::errc::value_too_large};
                     }
-                    core::algorithm::fill_n(first, __fill, '0');
-                    first += __fill;
+                    core::algorithm::fill_n(first, fill, '0');
+                    first += fill;
                     break;
                 }
-                // Temporary: j is usually around 128, and by shifting a bit, we push it to 128 or above, which is
-                // a slightly faster code path in mul_shift_mod_1e9. Instead, we can just increase the multipliers.
                 std::uint32_t digits = mul_shift_mod_1e9(m2 << 8, POW10_SPLIT_2[power], j + 8);
                 if (i < rightlocks - 1) {
                     if (end - first < 9) {
@@ -531,22 +520,21 @@ namespace rainy::foundation::text::implements::ryu {
                 } else {
                     const std::uint32_t maximum = precision - 9 * i;
                     std::uint32_t last_digit = 0;
-                    for (std::uint32_t __k = 0; __k < 9 - maximum; ++__k) {
+                    for (std::uint32_t k = 0; k < 9 - maximum; ++k) {
                         last_digit = digits % 10;
                         digits /= 10;
                     }
                     if (last_digit != 5) {
                         round_up = last_digit > 5;
                     } else {
-                        // Is m * 10^(additionalDigits + 1) / 2^(-e2) integer?
-                        const std::int32_t __requiredTwos = -e2 - static_cast<std::int32_t>(precision) - 1;
-                        const bool __trailingZeros =
-                            __requiredTwos <= 0 ||
-                            (__requiredTwos < 60 && multiple_of_power_of_2(m2, static_cast<std::uint32_t>(__requiredTwos)));
-                        round_up = __trailingZeros ? 2 : 1;
+                        const std::int32_t requiredTwos = -e2 - static_cast<std::int32_t>(precision) - 1;
+                        const bool trailingZeros =
+                            requiredTwos <= 0 ||
+                            (requiredTwos < 60 && multiple_of_power_of_2(m2, static_cast<std::uint32_t>(requiredTwos)));
+                        round_up = trailingZeros ? 2 : 1;
                     }
                     if (maximum > 0) {
-                        if (end - first < static_cast<ptrdiff_t>(maximum)) {
+                        if (end - first < static_cast<std::ptrdiff_t>(maximum)) {
                             return {end, std::errc::value_too_large};
                         }
                         append_c_digits(maximum, digits, first);
@@ -587,7 +575,7 @@ namespace rainy::foundation::text::implements::ryu {
                 }
             }
         } else {
-            if (end - first < static_cast<ptrdiff_t>(precision)) {
+            if (end - first < static_cast<std::ptrdiff_t>(precision)) {
                 return {end, std::errc::value_too_large};
             }
             core::algorithm::fill_n(first, precision, '0');
@@ -599,11 +587,8 @@ namespace rainy::foundation::text::implements::ryu {
     RAINY_NODISCARD inline to_chars_result d2exp_buffered_n(char *first, char *const end, const double double_val,
                                                             std::uint32_t precision) {
         char *const original_first = first;
-
-        const std::uint64_t rightits = double_to_bits(double_val);
-
-        // Case distinction; exit early for the easy cases.
-        if (rightits == 0) {
+        const std::uint64_t right_bits = double_to_bits(double_val);
+        if (right_bits == 0) {
             const std::int32_t total_zero_length = 1 // leading zero
                                                    + static_cast<std::int32_t>(precision != 0) // possible decimal point
                                                    + static_cast<std::int32_t>(precision) // zeroes after decimal point
@@ -621,11 +606,8 @@ namespace rainy::foundation::text::implements::ryu {
             first += 4;
             return {first, std::errc{}};
         }
-
-        // Decode rightits into mantissa and exponent.
-        const std::uint64_t ieee_mantissa = rightits & ((1ull << DOUBLE_MANTISSA_BITS) - 1);
-        const std::uint32_t ieee_exponent = static_cast<std::uint32_t>(rightits >> DOUBLE_MANTISSA_BITS);
-
+        const std::uint64_t ieee_mantissa = right_bits & ((1ull << DOUBLE_MANTISSA_BITS) - 1);
+        const std::uint32_t ieee_exponent = static_cast<std::uint32_t>(right_bits >> DOUBLE_MANTISSA_BITS);
         std::int32_t e2;
         std::uint64_t m2;
         if (ieee_exponent == 0) {
@@ -635,24 +617,21 @@ namespace rainy::foundation::text::implements::ryu {
             e2 = static_cast<std::int32_t>(ieee_exponent) - DOUBLE_BIAS - DOUBLE_MANTISSA_BITS;
             m2 = (1ull << DOUBLE_MANTISSA_BITS) | ieee_mantissa;
         }
-
-        const bool __printDecimalPoint = precision > 0;
+        const bool print_decimal_point = precision > 0;
         ++precision;
         std::uint32_t digits = 0;
-        std::uint32_t __printedDigits = 0;
+        std::uint32_t printed_digits = 0;
         std::uint32_t leftvailableDigits = 0;
         std::int32_t exp = 0;
         if (e2 >= -52) {
             const std::uint32_t idx = e2 < 0 ? 0 : index_for_exponent(static_cast<std::uint32_t>(e2));
             const std::uint32_t power10_bits = pow10_bits_for_index(idx);
-            const std::int32_t __len = static_cast<std::int32_t>(length_for_index(idx));
-            for (std::int32_t i = __len - 1; i >= 0; --i) {
+            const std::int32_t len = static_cast<std::int32_t>(length_for_index(idx));
+            for (std::int32_t i = len - 1; i >= 0; --i) {
                 const std::uint32_t j = power10_bits - e2;
-                // Temporary: j is usually around 128, and by shifting a bit, we push it to 128 or above, which is
-                // a slightly faster code path in mul_shift_mod_1e9. Instead, we can just increase the multipliers.
                 digits = mul_shift_mod_1e9(m2 << 8, POW10_SPLIT[POW10_OFFSET[idx] + i], static_cast<std::int32_t>(j + 8));
-                if (__printedDigits != 0) {
-                    if (__printedDigits + 9 > precision) {
+                if (printed_digits != 0) {
+                    if (printed_digits + 9 > precision) {
                         leftvailableDigits = 9;
                         break;
                     }
@@ -661,15 +640,15 @@ namespace rainy::foundation::text::implements::ryu {
                     }
                     append_nine_digits(digits, first);
                     first += 9;
-                    __printedDigits += 9;
+                    printed_digits += 9;
                 } else if (digits != 0) {
                     leftvailableDigits = decimal_length9(digits);
                     exp = i * 9 + static_cast<std::int32_t>(leftvailableDigits) - 1;
                     if (leftvailableDigits > precision) {
                         break;
                     }
-                    if (__printDecimalPoint) {
-                        if (end - first < static_cast<ptrdiff_t>(leftvailableDigits + 1)) {
+                    if (print_decimal_point) {
+                        if (end - first < static_cast<std::ptrdiff_t>(leftvailableDigits + 1)) {
                             return {end, std::errc::value_too_large};
                         }
                         append_d_digits(leftvailableDigits, digits, first);
@@ -680,7 +659,7 @@ namespace rainy::foundation::text::implements::ryu {
                         }
                         *first++ = static_cast<char>('0' + digits);
                     }
-                    __printedDigits = leftvailableDigits;
+                    printed_digits = leftvailableDigits;
                     leftvailableDigits = 0;
                 }
             }
@@ -691,11 +670,9 @@ namespace rainy::foundation::text::implements::ryu {
             for (std::int32_t i = MIN_BLOCK_2[idx]; i < 200; ++i) {
                 const std::int32_t j = leftDDITIONAL_BITS_2 + (-e2 - 16 * idx);
                 const std::uint32_t power = POW10_OFFSET_2[idx] + static_cast<std::uint32_t>(i) - MIN_BLOCK_2[idx];
-                // Temporary: j is usually around 128, and by shifting a bit, we push it to 128 or above, which is
-                // a slightly faster code path in mul_shift_mod_1e9. Instead, we can just increase the multipliers.
                 digits = (power >= POW10_OFFSET_2[idx + 1]) ? 0 : mul_shift_mod_1e9(m2 << 8, POW10_SPLIT_2[power], j + 8);
-                if (__printedDigits != 0) {
-                    if (__printedDigits + 9 > precision) {
+                if (printed_digits != 0) {
+                    if (printed_digits + 9 > precision) {
                         leftvailableDigits = 9;
                         break;
                     }
@@ -704,15 +681,15 @@ namespace rainy::foundation::text::implements::ryu {
                     }
                     append_nine_digits(digits, first);
                     first += 9;
-                    __printedDigits += 9;
+                    printed_digits += 9;
                 } else if (digits != 0) {
                     leftvailableDigits = decimal_length9(digits);
                     exp = -(i + 1) * 9 + static_cast<std::int32_t>(leftvailableDigits) - 1;
                     if (leftvailableDigits > precision) {
                         break;
                     }
-                    if (__printDecimalPoint) {
-                        if (end - first < static_cast<ptrdiff_t>(leftvailableDigits + 1)) {
+                    if (print_decimal_point) {
+                        if (end - first < static_cast<std::ptrdiff_t>(leftvailableDigits + 1)) {
                             return {end, std::errc::value_too_large};
                         }
                         append_d_digits(leftvailableDigits, digits, first);
@@ -723,19 +700,19 @@ namespace rainy::foundation::text::implements::ryu {
                         }
                         *first++ = static_cast<char>('0' + digits);
                     }
-                    __printedDigits = leftvailableDigits;
+                    printed_digits = leftvailableDigits;
                     leftvailableDigits = 0;
                 }
             }
         }
 
-        const std::uint32_t maximum = precision - __printedDigits;
+        const std::uint32_t maximum = precision - printed_digits;
         if (leftvailableDigits == 0) {
             digits = 0;
         }
         std::uint32_t last_digit = 0;
         if (leftvailableDigits > maximum) {
-            for (std::uint32_t __k = 0; __k < leftvailableDigits - maximum; ++__k) {
+            for (std::uint32_t k = 0; k < leftvailableDigits - maximum; ++k) {
                 last_digit = digits % 10;
                 digits /= 10;
             }
@@ -747,18 +724,18 @@ namespace rainy::foundation::text::implements::ryu {
         } else {
             // Is m * 2^e2 * 10^(precision + 1 - exp) integer?
             // precision was already increased by 1, so we don't need to write + 1 here.
-            const std::int32_t __rexp = static_cast<std::int32_t>(precision) - exp;
-            const std::int32_t __requiredTwos = -e2 - __rexp;
-            bool __trailingZeros =
-                __requiredTwos <= 0 || (__requiredTwos < 60 && multiple_of_power_of_2(m2, static_cast<std::uint32_t>(__requiredTwos)));
-            if (__rexp < 0) {
-                const std::int32_t __requiredFives = -__rexp;
-                __trailingZeros = __trailingZeros && multiple_of_power_of_5(m2, static_cast<std::uint32_t>(__requiredFives));
+            const std::int32_t rexp = static_cast<std::int32_t>(precision) - exp;
+            const std::int32_t requiredTwos = -e2 - rexp;
+            bool trailingZeros =
+                requiredTwos <= 0 || (requiredTwos < 60 && multiple_of_power_of_2(m2, static_cast<std::uint32_t>(requiredTwos)));
+            if (rexp < 0) {
+                const std::int32_t requiredFives = -rexp;
+                trailingZeros = trailingZeros && multiple_of_power_of_5(m2, static_cast<std::uint32_t>(requiredFives));
             }
-            round_up = __trailingZeros ? 2 : 1;
+            round_up = trailingZeros ? 2 : 1;
         }
-        if (__printedDigits != 0) {
-            if (end - first < static_cast<ptrdiff_t>(maximum)) {
+        if (printed_digits != 0) {
+            if (end - first < static_cast<std::ptrdiff_t>(maximum)) {
                 return {end, std::errc::value_too_large};
             }
             if (digits == 0) {
@@ -768,8 +745,8 @@ namespace rainy::foundation::text::implements::ryu {
             }
             first += maximum;
         } else {
-            if (__printDecimalPoint) {
-                if (end - first < static_cast<ptrdiff_t>(maximum + 1)) {
+            if (print_decimal_point) {
+                if (end - first < static_cast<std::ptrdiff_t>(maximum + 1)) {
                     return {end, std::errc::value_too_large};
                 }
                 append_d_digits(maximum, digits, first);
@@ -844,7 +821,6 @@ namespace rainy::foundation::text::implements::ryu {
     inline constexpr int FLOAT_MANTISSA_BITS = 23;
     inline constexpr int FLOAT_BIAS = 127;
 
-    // This table is generated by PrintFloatLookupTable.
     inline constexpr int FLOAT_POW5_INV_BITCOUNT = 59;
     inline constexpr std::uint64_t FLOAT_POW5_INV_SPLIT[31] = {
         576460752303423489u, 461168601842738791u, 368934881474191033u, 295147905179352826u, 472236648286964522u, 377789318629571618u,
@@ -881,47 +857,39 @@ namespace rainy::foundation::text::implements::ryu {
         return count;
     }
 
-    // Returns true if value is divisible by 5^power.
     RAINY_NODISCARD inline bool multiple_of_power_of_5(const std::uint32_t value, const std::uint32_t power) {
         return pow5_factor(value) >= power;
     }
 
-    // Returns true if value is divisible by 2^power.
     RAINY_NODISCARD inline bool multiple_of_power_of_2(const std::uint32_t value, const std::uint32_t power) {
         core::implements::stl_internal_check(value != 0);
         core::implements::stl_internal_check(power < 32);
-        // return rightuiltin_ctz(value) >= power;
         return (value & ((1u << power) - 1)) == 0;
     }
 
-    RAINY_NODISCARD inline std::uint32_t mul_shift(const std::uint32_t m, const std::uint64_t __factor, const std::int32_t __shift) {
-        core::implements::stl_internal_check(__shift > 32);
-
-        // The casts here help MSVC to avoid calls to the leftllmul library
-        // function.
-        const std::uint32_t __factorLo = static_cast<std::uint32_t>(__factor);
-        const std::uint32_t __factorHi = static_cast<std::uint32_t>(__factor >> 32);
-        const std::uint64_t rightits0 = static_cast<std::uint64_t>(m) * __factorLo;
-        const std::uint64_t rightits1 = static_cast<std::uint64_t>(m) * __factorHi;
+    RAINY_NODISCARD inline std::uint32_t mul_shift(const std::uint32_t m, const std::uint64_t factor, const std::int32_t shift) {
+        core::implements::stl_internal_check(shift > 32);
+        const std::uint32_t factorLo = static_cast<std::uint32_t>(factor);
+        const std::uint32_t factorHi = static_cast<std::uint32_t>(factor >> 32);
+        const std::uint64_t right_bits0 = static_cast<std::uint64_t>(m) * factorLo;
+        const std::uint64_t right_bits1 = static_cast<std::uint64_t>(m) * factorHi;
 #if RAINY_USING_64_BIT_PLATFORM
-        // On 32-bit platforms we can avoid a 64-bit shift-right since we only
-        // need the upper 32 bits of the result and the shift value is > 32.
-        const std::uint32_t rightits0Hi = static_cast<std::uint32_t>(rightits0 >> 32);
-        std::uint32_t rightits1Lo = static_cast<std::uint32_t>(rightits1);
-        std::uint32_t rightits1Hi = static_cast<std::uint32_t>(rightits1 >> 32);
-        rightits1Lo += rightits0Hi;
-        rightits1Hi += (rightits1Lo < rightits0Hi);
-        const std::int32_t __s = __shift - 32;
-        return (rightits1Hi << (32 - __s)) | (rightits1Lo >> __s);
-#else // ^^^ 32-bit / 64-bit vvv
-        const std::uint64_t __sum = (rightits0 >> 32) + rightits1;
-        const std::uint64_t __shiftedSum = __sum >> (__shift - 32);
-        core::implements::stl_internal_check(__shiftedSum <= UINT32_MAX);
-        return static_cast<std::uint32_t>(__shiftedSum);
-#endif // ^^^ 64-bit ^^^
+        const std::uint32_t right_bits0Hi = static_cast<std::uint32_t>(right_bits0 >> 32);
+        std::uint32_t right_bits1Lo = static_cast<std::uint32_t>(right_bits1);
+        std::uint32_t right_bits1Hi = static_cast<std::uint32_t>(right_bits1 >> 32);
+        right_bits1Lo += right_bits0Hi;
+        right_bits1Hi += (right_bits1Lo < right_bits0Hi);
+        const std::int32_t s = shift - 32;
+        return (right_bits1Hi << (32 - s)) | (right_bits1Lo >> s);
+#else
+        const std::uint64_t sum = (right_bits0 >> 32) + right_bits1;
+        const std::uint64_t shiftedSum = sum >> (shift - 32);
+        core::implements::stl_internal_check(shiftedSum <= UINT32_MAX);
+        return static_cast<std::uint32_t>(shiftedSum);
+#endif
     }
 
-    RAINY_NODISCARD inline std::uint32_t __mulPow5InvDivPow2(const std::uint32_t m, const std::uint32_t q, const std::int32_t j) {
+    RAINY_NODISCARD inline std::uint32_t mul_pow5_inv_div_pow2(const std::uint32_t m, const std::uint32_t q, const std::int32_t j) {
         return mul_shift(m, FLOAT_POW5_INV_SPLIT[q], j);
     }
 
@@ -959,22 +927,17 @@ namespace rainy::foundation::text::implements::ryu {
         if (e2 >= 0) {
             const std::uint32_t q = log10_pow2(e2);
             exp10 = static_cast<std::int32_t>(q);
-            const std::int32_t __k = FLOAT_POW5_INV_BITCOUNT + pow5_bits(static_cast<std::int32_t>(q)) - 1;
-            const std::int32_t i = -e2 + static_cast<std::int32_t>(q) + __k;
-            vr = __mulPow5InvDivPow2(mv, q, i);
-            vp = __mulPow5InvDivPow2(mp, q, i);
-            vm = __mulPow5InvDivPow2(mm, q, i);
+            const std::int32_t k = FLOAT_POW5_INV_BITCOUNT + pow5_bits(static_cast<std::int32_t>(q)) - 1;
+            const std::int32_t i = -e2 + static_cast<std::int32_t>(q) + k;
+            vr = mul_pow5_inv_div_pow2(mv, q, i);
+            vp = mul_pow5_inv_div_pow2(mp, q, i);
+            vm = mul_pow5_inv_div_pow2(mm, q, i);
             if (q != 0 && (vp - 1) / 10 <= vm / 10) {
-                // We need to know one removed digit even if we are not going to loop below. We could use
-                // q = X - 1 above, except that would require 33 bits for the result, and we've found that
-                // 32-bit arithmetic is faster even on 64-bit machines.
-                const std::int32_t __l = FLOAT_POW5_INV_BITCOUNT + pow5_bits(static_cast<std::int32_t>(q - 1)) - 1;
+                const std::int32_t l = FLOAT_POW5_INV_BITCOUNT + pow5_bits(static_cast<std::int32_t>(q - 1)) - 1;
                 last_removed_digit =
-                    static_cast<uint8_t>(__mulPow5InvDivPow2(mv, q - 1, -e2 + static_cast<std::int32_t>(q) - 1 + __l) % 10);
+                    static_cast<uint8_t>(mul_pow5_inv_div_pow2(mv, q - 1, -e2 + static_cast<std::int32_t>(q) - 1 + l) % 10);
             }
             if (q <= 9) {
-                // The largest power of 5 that fits in 24 bits is 5^10, but q <= 9 seems to be safe as well.
-                // Only one of mp, mv, and mm can be a multiple of 5, if any.
                 if (mv % 5 == 0) {
                     vr_is_trailing_zeros = multiple_of_power_of_5(mv, q);
                 } else if (accept_bounds) {
@@ -987,8 +950,8 @@ namespace rainy::foundation::text::implements::ryu {
             const std::uint32_t q = log10_pow5(-e2);
             exp10 = static_cast<std::int32_t>(q) + e2;
             const std::int32_t i = -e2 - static_cast<std::int32_t>(q);
-            const std::int32_t __k = pow5_bits(i) - FLOAT_POW5_BITCOUNT;
-            std::int32_t j = static_cast<std::int32_t>(q) - __k;
+            const std::int32_t k = pow5_bits(i) - FLOAT_POW5_BITCOUNT;
+            std::int32_t j = static_cast<std::int32_t>(q) - k;
             vr = mul_pow5_div_pow2(mv, static_cast<std::uint32_t>(i), j);
             vp = mul_pow5_div_pow2(mp, static_cast<std::uint32_t>(i), j);
             vm = mul_pow5_div_pow2(mm, static_cast<std::uint32_t>(i), j);
@@ -1034,7 +997,6 @@ namespace rainy::foundation::text::implements::ryu {
                 }
             }
             if (vr_is_trailing_zeros && last_removed_digit == 5 && vr % 2 == 0) {
-                // Round even if the exact number is .....50..0.
                 last_removed_digit = 4;
             }
             output = vr + ((vr == vm && (!accept_bounds || !vm_is_trailing_zeros)) || last_removed_digit >= 5);
@@ -1046,7 +1008,6 @@ namespace rainy::foundation::text::implements::ryu {
                 vm /= 10;
                 ++removed;
             }
-            // We need to take vr + 1 if vr is outside bounds or we need to round up.
             output = vr + (vr == vm || last_removed_digit >= 5);
         }
         const std::int32_t exp = exp10 + removed;
@@ -1058,83 +1019,67 @@ namespace rainy::foundation::text::implements::ryu {
 
     template <typename CharType>
     RAINY_NODISCARD utility::compressed_pair<CharType *, std::errc> large_integer_to_chars(CharType *const first, CharType *const end,
-                                                                                           const std::uint32_t mantissa2,
-                                                                                           const std::int32_t exponent2) {
-        core::implements::stl_internal_check(exponent2 > 0);
-        core::implements::stl_internal_check(exponent2 <= 104); // because ieee_exponent <= 254
+                                                                                           const std::uint32_t mantissa,
+                                                                                           const std::int32_t exponent) {
+        core::implements::stl_internal_check(exponent > 0);
+        core::implements::stl_internal_check(exponent <= 104);
         constexpr std::uint32_t data_size = 4;
-        std::uint32_t data[data_size]{};
-        std::uint32_t maxidx = ((24 + static_cast<std::uint32_t>(exponent2) + 31) / 32) - 1;
-        core::implements::stl_internal_check(maxidx < data_size);
-        const std::uint32_t bit_shift = static_cast<std::uint32_t>(exponent2) % 32;
+        std::uint32_t data[data_size] = {};
+        std::uint32_t max_idx = ((24 + static_cast<std::uint32_t>(exponent) + 31) / 32) - 1;
+        core::implements::stl_internal_check(max_idx < data_size);
+        std::uint32_t bit_shift = static_cast<std::uint32_t>(exponent) % 32;
         if (bit_shift <= 8) {
-            data[maxidx] = mantissa2 << bit_shift;
-        } else { // mantissa2's 24 bits cross an element boundary
-            data[maxidx - 1] = mantissa2 << bit_shift;
-            data[maxidx] = mantissa2 >> (32 - bit_shift);
+            // 移位后不跨字边界
+            data[max_idx] = mantissa << bit_shift;
+        } else {
+            // 移位后跨字边界，需要拆分
+            data[max_idx - 1] = mantissa << bit_shift;
+            data[max_idx] = mantissa >> (32 - bit_shift);
         }
-        std::uint32_t blocks[4]{};
-        std::int32_t filled_blocks = 0;
-        if (maxidx != 0) {
+        // 用于存储每次除以1e9后的余数块
+        std::uint32_t blocks[4] = {};
+        std::int32_t block_count = 0;
+        if (max_idx != 0) { // 当大整数还有多个字时，进行除法循环
             rain_loop {
-                const std::uint32_t most_significant_elem = data[maxidx];
-                const std::uint32_t _Initial_remainder = most_significant_elem % 1000000000;
-                const std::uint32_t _Initial_quotient = most_significant_elem / 1000000000;
-                data[maxidx] = _Initial_quotient;
-                std::uint64_t _Remainder = _Initial_remainder;
-
-                // Process less significant elements.
-                std::uint32_t _Idx = maxidx;
+                std::uint32_t most_significant = data[max_idx];
+                std::uint32_t init_rem = most_significant % 1000000000;
+                std::uint32_t init_quot = most_significant / 1000000000;
+                data[max_idx] = init_quot;
+                std::uint64_t remainder = init_rem;
+                std::uint32_t idx = max_idx;
                 do {
-                    --_Idx; // Initially, _Remainder is at most 10^9 - 1.
-
-                    // Now, _Remainder is at most (10^9 - 1) * 2^32 + 2^32 - 1, simplified to 10^9 * 2^32 - 1.
-                    _Remainder = (_Remainder << 32) | data[_Idx];
-
-                    // floor((10^9 * 2^32 - 1) / 10^9) == 2^32 - 1, so std::uint32_t _Quotient is lossless.
-                    const std::uint32_t _Quotient = static_cast<std::uint32_t>(div1e9(_Remainder));
-                    _Remainder = static_cast<std::uint32_t>(_Remainder) - 1000000000u * _Quotient;
-
-                    data[_Idx] = _Quotient;
-                } while (_Idx != 0);
-
-                // Store a 0-filled 9-digit block.
-                blocks[filled_blocks++] = static_cast<std::uint32_t>(_Remainder);
-                if (_Initial_quotient == 0) { // Is the large integer shrinking?
-                    --maxidx; // log2(10^9) is 29.9, so we can't shrink by more than one element.
-                    if (maxidx == 0) {
-                        break; // We've finished long division. Now we need to print data[0].
+                    --idx;
+                    remainder = (remainder << 32) | data[idx];
+                    std::uint32_t quotient = static_cast<std::uint32_t>(div1e9(remainder));
+                    remainder = static_cast<std::uint32_t>(remainder) - 1000000000u * quotient;
+                    data[idx] = quotient;
+                } while (idx != 0);
+                blocks[block_count++] = static_cast<std::uint32_t>(remainder);
+                if (init_quot == 0) {
+                    --max_idx;
+                    if (max_idx == 0) {
+                        break;
                     }
                 }
             }
         }
-
         core::implements::stl_internal_check(data[0] != 0);
-        for (std::uint32_t _Idx = 1; _Idx < data_size; ++_Idx) {
-            core::implements::stl_internal_check(data[_Idx] == 0);
+        for (std::uint32_t idx = 1; idx < data_size; ++idx) {
+            core::implements::stl_internal_check(data[idx] == 0);
         }
-
-        const std::uint32_t _Data_olength = data[0] >= 1000000000 ? 10 : decimal_length9(data[0]);
-        const std::uint32_t total_fixed_length = _Data_olength + 9 * filled_blocks;
-
-        if (end - first < static_cast<ptrdiff_t>(total_fixed_length)) {
+        std::uint32_t first_len = (data[0] >= 1000000000) ? 10 : decimal_length9(data[0]);
+        std::uint32_t total_len = first_len + 9 * block_count;
+        if (end - first < static_cast<std::ptrdiff_t>(total_len)) {
             return {end, std::errc::value_too_large};
         }
-
-        CharType *_Result = first;
-
-        // Print data[0]. While it's up to 10 digits,
-        // which is more than Ryu generates, the code below can handle this.
-        append_n_digits(_Data_olength, data[0], _Result);
-        _Result += _Data_olength;
-
-        // Print 0-filled 9-digit blocks.
-        for (std::int32_t _Idx = filled_blocks - 1; _Idx >= 0; --_Idx) {
-            append_nine_digits(blocks[_Idx], _Result);
-            _Result += 9;
+        CharType *out = first;
+        append_n_digits(first_len, data[0], out);
+        out += first_len;
+        for (std::int32_t i = block_count - 1; i >= 0; --i) {
+            append_nine_digits(blocks[i], out);
+            out += 9;
         }
-
-        return {_Result, std::errc{}};
+        return {out, std::errc{}};
     }
 
     template <typename CharType>
@@ -1143,195 +1088,165 @@ namespace rainy::foundation::text::implements::ryu {
                                                                              const std::uint32_t ieee_mantissa,
                                                                              const std::uint32_t ieee_exponent) {
         std::uint32_t output = value.mantissa;
-        const std::int32_t ryu_exponent = value.exponent;
-        const std::uint32_t output_length = decimal_length9(output);
-        std::int32_t scientific_exponent = ryu_exponent + static_cast<std::int32_t>(output_length) - 1;
+        std::int32_t ryu_exponent = value.exponent;
+        std::uint32_t output_len = decimal_length9(output);
+        std::int32_t scientific_exponent = ryu_exponent + static_cast<std::int32_t>(output_len) - 1;
         if (fmt == chars_format{}) {
-            std::int32_t lower;
-            std::int32_t upper;
-            if (output_length == 1) {
-                // Value | Fixed   | Scientific
-                // 1e-3  | "0.001" | "1e-03"
-                // 1e4   | "10000" | "1e+04"
+            std::int32_t lower, upper;
+            if (output_len == 1) {
                 lower = -3;
                 upper = 4;
             } else {
-                // Value   | Fixed       | Scientific
-                // 1234e-7 | "0.0001234" | "1.234e-04"
-                // 1234e5  | "123400000" | "1.234e+08"
-                lower = -static_cast<std::int32_t>(output_length + 3);
+                lower = -static_cast<std::int32_t>(output_len + 3);
                 upper = 5;
             }
-            if (lower <= ryu_exponent && ryu_exponent <= upper) {
-                fmt = chars_format::fixed;
-            } else {
-                fmt = chars_format::scientific;
-            }
+            fmt = (lower <= ryu_exponent && ryu_exponent <= upper) ? chars_format::fixed : chars_format::scientific;
         } else if (fmt == chars_format::general) {
-            if (-4 <= scientific_exponent && scientific_exponent < 6) {
-                fmt = chars_format::fixed;
-            } else {
-                fmt = chars_format::scientific;
-            }
+            fmt = (-4 <= scientific_exponent && scientific_exponent < 6) ? chars_format::fixed : chars_format::scientific;
         }
         if (fmt == chars_format::fixed) {
-            // ryu_exponent | Printed  | whole_digits | total_fixed_length  | Notes
-            // --------------|----------|---------------|----------------------|---------------------------------------
-            //             2 | 172900   |  6            | whole_digits        | Ryu can't be used for printing
-            //             1 | 17290    |  5            | (sometimes adjusted) | when the trimmed digits are nonzero.
-            // --------------|----------|---------------|----------------------|---------------------------------------
-            //             0 | 1729     |  4            | whole_digits        | Unified length cases.
-            // --------------|----------|---------------|----------------------|---------------------------------------
-            //            -1 | 172.9    |  3            | output_length + 1        | This case can't happen for
-            //            -2 | 17.29    |  2            |                      | output_length == 1, but no additional
-            //            -3 | 1.729    |  1            |                      | code is needed to avoid it.
-            // --------------|----------|---------------|----------------------|---------------------------------------
-            //            -4 | 0.1729   |  0            | 2 - ryu_exponent    | C11 7.21.6.1 "The fprintf function"/8:
-            //            -5 | 0.01729  | -1            |                      | "If a decimal-point character appears,
-            //            -6 | 0.001729 | -2            |                      | at least one digit appears before it."
-            const std::int32_t whole_digits = static_cast<std::int32_t>(output_length) + ryu_exponent;
-            std::uint32_t total_fixed_length;
-            if (ryu_exponent >= 0) { // cases "172900" and "1729"
-                total_fixed_length = static_cast<std::uint32_t>(whole_digits);
+            // 计算整数部分的位数
+            std::int32_t whole_digits = static_cast<std::int32_t>(output_len) + ryu_exponent;
+            std::uint32_t total_fixed_len;
+            if (ryu_exponent >= 0) {
+                // 情况 A：ryu_exponent >= 0，例如 "172900" 或 "1729"
+                total_fixed_len = static_cast<std::uint32_t>(whole_digits);
+                // 针对 ryu_exponent 的特殊修正表（由 Ryu 算法推导得出）
                 if (output == 1) {
                     static constexpr uint8_t adjustment[39] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1,
                                                                0, 0, 1, 1, 0, 1, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1, 1};
-                    total_fixed_length -= adjustment[ryu_exponent];
-                    // whole_digits doesn't need to be adjusted because these cases won't refer to it later.
+                    total_fixed_len -= adjustment[ryu_exponent];
                 }
-            } else if (whole_digits > 0) { // case "17.29"
-                total_fixed_length = output_length + 1;
-            } else { // case "0.001729"
-                total_fixed_length = static_cast<std::uint32_t>(2 - ryu_exponent);
+            } else if (whole_digits > 0) {
+                // 情况 B：ryu_exponent < 0 但整数部分仍有数字，例如 "17.29"
+                total_fixed_len = output_len + 1;
+            } else {
+                // 情况 C：ryu_exponent < 0 且整数部分为零，例如 "0.001729"
+                total_fixed_len = static_cast<std::uint32_t>(2 - ryu_exponent);
             }
-            if (end - first < static_cast<ptrdiff_t>(total_fixed_length)) {
+            // 检查输出缓冲区是否足够
+            if (end - first < static_cast<std::ptrdiff_t>(total_fixed_len)) {
                 return {end, std::errc::value_too_large};
             }
             CharType *middle;
-            if (ryu_exponent > 0) { // case "172900"
+            if (ryu_exponent > 0) {
+                // 对于 ryu_exponent > 0 的情况，需要判断能否直接用 Ryu 结果
                 bool can_use_ryu;
-                if (ryu_exponent > 10) { // 10^10 is the largest power of 10 that's exactly representable as a float.
-                    can_use_ryu = false;
+                if (ryu_exponent > 10) {
+                    can_use_ryu = false; // 10^10 已超出 float 精确表示范围
                 } else {
+                    // 预先计算的最大可移位尾数表（对应 10^ryu_exponent 的倒数）
                     static constexpr std::uint32_t max_shifted_mantissa[11] = {16777215, 3355443, 671088, 134217, 26843, 5368,
                                                                                1073,     214,     42,     8,      1};
                     unsigned long trailing_zero_bits;
                     (void) bit_scan_forward(&trailing_zero_bits, value.mantissa);
-                    const std::uint32_t shifted_mantissa = value.mantissa >> trailing_zero_bits;
+                    std::uint32_t shifted_mantissa = value.mantissa >> trailing_zero_bits;
                     can_use_ryu = shifted_mantissa <= max_shifted_mantissa[ryu_exponent];
                 }
-
                 if (!can_use_ryu) {
-                    const std::uint32_t mantissa2 = ieee_mantissa | (1u << FLOAT_MANTISSA_BITS);
-                    const std::int32_t exponent2 = static_cast<std::int32_t>(ieee_exponent) - FLOAT_BIAS - FLOAT_MANTISSA_BITS;
+                    // Ryu 无法精确处理，回退到通用整数转换方法
+                    std::uint32_t mantissa2 = ieee_mantissa | (1u << FLOAT_MANTISSA_BITS);
+                    std::int32_t exponent2 = static_cast<std::int32_t>(ieee_exponent) - FLOAT_BIAS - FLOAT_MANTISSA_BITS;
                     return large_integer_to_chars(first, end, mantissa2, exponent2);
                 }
-                middle = first + output_length;
-            } else { // "1729", "17.29", and "0.001729"
-                middle = first + total_fixed_length;
+                middle = first + output_len; // 数字部分填充完成后 middle 将指向整数部分末尾
+            } else {
+                // ryu_exponent <= 0：数字可能包含小数点，middle 指向整个 fixed 字符串的末尾
+                middle = first + total_fixed_len;
             }
+            // 每次处理 4 位（两组两位数）
             while (output >= 10000) {
 #if RAINY_USING_CLANG
-                const std::uint32_t ch = output - 10000 * (output / 10000);
+                std::uint32_t chunk = output - 10000 * (output / 10000);
 #else
-                const std::uint32_t ch = output % 10000;
+                std::uint32_t chunk = output % 10000;
 #endif
                 output /= 10000;
-                const std::uint32_t c0 = (ch % 100) << 1;
-                const std::uint32_t c1 = (ch / 100) << 1;
+                std::uint32_t c0 = (chunk % 100) << 1;
+                std::uint32_t c1 = (chunk / 100) << 1;
                 std::memcpy(middle -= 2, DIGIT_TABLE<CharType> + c0, 2 * sizeof(CharType));
                 std::memcpy(middle -= 2, DIGIT_TABLE<CharType> + c1, 2 * sizeof(CharType));
             }
+            // 处理剩余数字
             if (output >= 100) {
-                const std::uint32_t ch = (output % 100) << 1;
+                std::uint32_t chunk = (output % 100) << 1;
                 output /= 100;
-                std::memcpy(middle -= 2, DIGIT_TABLE<CharType> + ch, 2 * sizeof(CharType));
+                std::memcpy(middle -= 2, DIGIT_TABLE<CharType> + chunk, 2 * sizeof(CharType));
             }
             if (output >= 10) {
-                const std::uint32_t ch = output << 1;
-                std::memcpy(middle -= 2, DIGIT_TABLE<CharType> + ch, 2 * sizeof(CharType));
+                std::uint32_t chunk = output << 1;
+                std::memcpy(middle -= 2, DIGIT_TABLE<CharType> + chunk, 2 * sizeof(CharType));
             } else {
                 *--middle = static_cast<CharType>('0' + output);
             }
-
-            if (ryu_exponent > 0) { // case "172900" with can_use_ryu
-                // Performance note: it might be more efficient to do this immediately after setting middle.
-                core::algorithm::fill_n(first + output_length, ryu_exponent, '0');
-            } else if (ryu_exponent == 0) { // case "1729"
-                // Done!
-            } else if (whole_digits > 0) { // case "17.29"
-                // Performance note: moving digits might not be optimal.
+            if (ryu_exponent > 0) {
+                // 情况 A：需要在数字后补零，例如 "1729" + "00"
+                core::algorithm::fill_n(first + output_len, ryu_exponent, '0');
+            } else if (ryu_exponent == 0) {
+                // 情况 A 中无额外零的情况，已经正确
+                // 什么也不做
+            } else if (whole_digits > 0) {
+                // 情况 B：将整数部分与小数部分用小数点分隔
                 std::memmove(first, first + 1, static_cast<std::size_t>(whole_digits) * sizeof(CharType));
                 first[whole_digits] = '.';
-            } else { // case "0.001729"
-                // Performance note: a larger memset() followed by overwriting '.' might be more efficient.
+            } else {
+                // 情况 C：形式为 "0.xxx"，前面填充零
                 first[0] = '0';
                 first[1] = '.';
                 core::algorithm::fill_n(first + 2, -whole_digits, '0');
             }
 
-            return {first + total_fixed_length, std::errc{}};
+            return {first + total_fixed_len, std::errc{}};
         }
-
-        const std::uint32_t total_scientific_length =
-            output_length + (output_length > 1) + 4; // digits + possible decimal point + scientific exponent
-        if (end - first < static_cast<ptrdiff_t>(total_scientific_length)) {
+        std::uint32_t total_scientific_len = output_len + (output_len > 1 ? 1 : 0) + 4; // 数字 + 可能的小数点 + e+/-xx
+        if (end - first < static_cast<std::ptrdiff_t>(total_scientific_len)) {
             return {end, std::errc::value_too_large};
         }
-        CharType *const result = first;
-
-        // Print the decimal digits.
+        CharType *result = first;
         std::uint32_t i = 0;
         while (output >= 10000) {
 #if RAINY_USING_CLANG
-            const std::uint32_t ch = output - 10000 * (output / 10000);
+            std::uint32_t chunk = output - 10000 * (output / 10000);
 #else
-            const std::uint32_t ch = output % 10000;
+            std::uint32_t chunk = output % 10000;
 #endif
             output /= 10000;
-            const std::uint32_t c0 = (ch % 100) << 1;
-            const std::uint32_t c1 = (ch / 100) << 1;
-            std::memcpy(result + output_length - i - 1, DIGIT_TABLE<CharType> + c0, 2 * sizeof(CharType));
-            std::memcpy(result + output_length - i - 3, DIGIT_TABLE<CharType> + c1, 2 * sizeof(CharType));
+            std::uint32_t c0 = (chunk % 100) << 1;
+            std::uint32_t c1 = (chunk / 100) << 1;
+            std::memcpy(result + output_len - i - 1, DIGIT_TABLE<CharType> + c0, 2 * sizeof(CharType));
+            std::memcpy(result + output_len - i - 3, DIGIT_TABLE<CharType> + c1, 2 * sizeof(CharType));
             i += 4;
         }
         if (output >= 100) {
-            const std::uint32_t ch = (output % 100) << 1;
+            std::uint32_t chunk = (output % 100) << 1;
             output /= 100;
-            std::memcpy(result + output_length - i - 1, DIGIT_TABLE<CharType> + ch, 2 * sizeof(CharType));
+            std::memcpy(result + output_len - i - 1, DIGIT_TABLE<CharType> + chunk, 2 * sizeof(CharType));
             i += 2;
         }
         if (output >= 10) {
-            const std::uint32_t ch = output << 1;
-            // We can't use memcpy here: the decimal dot goes between these two digits.
-            result[2] = DIGIT_TABLE<CharType>[ch + 1];
-            result[0] = DIGIT_TABLE<CharType>[ch];
+            std::uint32_t chunk = output << 1;
+            result[0] = DIGIT_TABLE<CharType>[chunk];
+            result[2] = DIGIT_TABLE<CharType>[chunk + 1];
         } else {
             result[0] = static_cast<CharType>('0' + output);
         }
-
-        // Print decimal point if needed.
-        std::uint32_t index;
-        if (output_length > 1) {
+        std::uint32_t idx;
+        if (output_len > 1) {
             result[1] = '.';
-            index = output_length + 1;
+            idx = output_len + 1;
         } else {
-            index = 1;
+            idx = 1;
         }
-
-        // Print the exponent.
-        result[index++] = 'e';
+        result[idx++] = 'e';
         if (scientific_exponent < 0) {
-            result[index++] = '-';
+            result[idx++] = '-';
             scientific_exponent = -scientific_exponent;
         } else {
-            result[index++] = '+';
+            result[idx++] = '+';
         }
-
-        std::memcpy(result + index, DIGIT_TABLE<CharType> + 2 * scientific_exponent, 2 * sizeof(CharType));
-        index += 2;
-
-        return {first + total_scientific_length, std::errc{}};
+        std::memcpy(result + idx, DIGIT_TABLE<CharType> + 2 * scientific_exponent, 2 * sizeof(CharType));
+        idx += 2;
+        return {first + total_scientific_len, std::errc{}};
     }
 
     RAINY_NODISCARD inline to_chars_result convert_to_chars_result(const utility::compressed_pair<char *, std::errc> &pair) {
@@ -1342,8 +1257,8 @@ namespace rainy::foundation::text::implements::ryu {
     RAINY_NODISCARD utility::compressed_pair<CharType *, std::errc> f2s_buffered_n(CharType *const first, CharType *const end,
                                                                                    const float float_val, const chars_format fmt) {
 
-        const std::uint32_t rightits = float_to_bits(float_val);
-        if (rightits == 0) {
+        const std::uint32_t right_bits = float_to_bits(float_val);
+        if (right_bits == 0) {
             if (fmt == chars_format::scientific) {
                 if (end - first < 5) {
                     return {end, std::errc::value_too_large};
@@ -1361,8 +1276,8 @@ namespace rainy::foundation::text::implements::ryu {
             *first = '0';
             return {first + 1, std::errc{}};
         }
-        const std::uint32_t ieee_mantissa = rightits & ((1u << FLOAT_MANTISSA_BITS) - 1);
-        const std::uint32_t ieee_exponent = rightits >> FLOAT_MANTISSA_BITS;
+        const std::uint32_t ieee_mantissa = right_bits & ((1u << FLOAT_MANTISSA_BITS) - 1);
+        const std::uint32_t ieee_exponent = right_bits >> FLOAT_MANTISSA_BITS;
         if (fmt == chars_format::fixed) {
             const std::uint32_t mantissa2 = ieee_mantissa | (1u << FLOAT_MANTISSA_BITS); // restore implicit bit
             const std::int32_t exponent2 =
@@ -1379,9 +1294,9 @@ namespace rainy::foundation::text::implements::ryu {
 // 参考 d2s.c
 // https://github.com/ulfjack/ryu/blob/master/ryu/d2s.c
 namespace rainy::foundation::text::implements::ryu {
-    RAINY_ALWASY_INLINE_NODISCARD std::uint64_t mul_shift_all(std::uint64_t m, const std::uint64_t *const mul, const std::int32_t j,
-                                                              std::uint64_t *const vp, std::uint64_t *const vm,
-                                                              const std::uint32_t mmshift) {
+    RAINY_NODISCARD RAINY_INLINE std::uint64_t mul_shift_all(std::uint64_t m, const std::uint64_t *const mul, const std::int32_t j,
+                                                             std::uint64_t *const vp, std::uint64_t *const vm,
+                                                             const std::uint32_t mmshift) {
         m <<= 1;
         std::uint64_t tmp;
         const std::uint64_t lo = umul128(m, mul[0], &tmp);
@@ -1403,8 +1318,8 @@ namespace rainy::foundation::text::implements::ryu {
             const std::uint64_t hi3 = high + high + (_middle3 < middle);
             const std::uint64_t lo4 = lo3 - mul[0];
             const std::uint64_t _middle4 = _middle3 - mul[1] - (lo4 > lo3);
-            const std::uint64_t __hi4 = hi3 - (_middle4 > _middle3);
-            *vm = shiftright128(_middle4, __hi4, static_cast<std::uint32_t>(j - 64));
+            const std::uint64_t hi4 = hi3 - (_middle4 > _middle3);
+            *vm = shiftright128(_middle4, hi4, static_cast<std::uint32_t>(j - 64));
         }
         return shiftright128(middle, high, static_cast<std::uint32_t>(j - 64 - 1));
     }
@@ -1616,9 +1531,8 @@ namespace rainy::foundation::text::implements::ryu {
             // 决定是否需要进位
             result_mantissa = vr + ((vr == vm || round_up) ? 1 : 0);
         }
-
         // 构造返回结果
-        floating_decimal_64 result;
+        floating_decimal_64 result{};
         result.exponent = exp10 + removed_digits;
         result.mantissa = result_mantissa;
         return result;
@@ -1700,7 +1614,7 @@ namespace rainy::foundation::text::implements::ryu {
             } else { // case "0.001729"
                 total_fixed_length = static_cast<std::uint32_t>(2 - ryu_exponent);
             }
-            if (end - first < static_cast<ptrdiff_t>(total_fixed_length)) {
+            if (end - first < static_cast<std::ptrdiff_t>(total_fixed_length)) {
                 return {end, std::errc::value_too_large};
             }
             CharType *middle;
@@ -1762,11 +1676,11 @@ namespace rainy::foundation::text::implements::ryu {
                 const std::uint32_t c0 = (ch % 100) << 1;
                 const std::uint32_t c1 = (ch / 100) << 1;
                 const std::uint32_t d0 = (double_val % 100) << 1;
-                const std::uint32_t __d1 = (double_val / 100) << 1;
+                const std::uint32_t d1 = (double_val / 100) << 1;
                 std::memcpy(middle -= 2, DIGIT_TABLE<CharType> + c0, 2 * sizeof(CharType));
                 std::memcpy(middle -= 2, DIGIT_TABLE<CharType> + c1, 2 * sizeof(CharType));
                 std::memcpy(middle -= 2, DIGIT_TABLE<CharType> + d0, 2 * sizeof(CharType));
-                std::memcpy(middle -= 2, DIGIT_TABLE<CharType> + __d1, 2 * sizeof(CharType));
+                std::memcpy(middle -= 2, DIGIT_TABLE<CharType> + d1, 2 * sizeof(CharType));
             }
             std::uint32_t output2 = static_cast<std::uint32_t>(output);
             while (output2 >= 10000) {
@@ -1809,7 +1723,7 @@ namespace rainy::foundation::text::implements::ryu {
         const std::uint32_t total_scientific_length =
             output_length + (output_length > 1) // digits + possible decimal point
             + (-100 < scientific_exponent && scientific_exponent < 100 ? 4 : 5); // + scientific exponent
-        if (end - first < static_cast<ptrdiff_t>(total_scientific_length)) {
+        if (end - first < static_cast<std::ptrdiff_t>(total_scientific_length)) {
             return {end, std::errc::value_too_large};
         }
         CharType *const result = first;
@@ -1825,11 +1739,11 @@ namespace rainy::foundation::text::implements::ryu {
             const std::uint32_t c0 = (ch % 100) << 1;
             const std::uint32_t c1 = (ch / 100) << 1;
             const std::uint32_t d0 = (double_val % 100) << 1;
-            const std::uint32_t __d1 = (double_val / 100) << 1;
+            const std::uint32_t d1 = (double_val / 100) << 1;
             std::memcpy(result + output_length - i - 1, DIGIT_TABLE<CharType> + c0, 2 * sizeof(CharType));
             std::memcpy(result + output_length - i - 3, DIGIT_TABLE<CharType> + c1, 2 * sizeof(CharType));
             std::memcpy(result + output_length - i - 5, DIGIT_TABLE<CharType> + d0, 2 * sizeof(CharType));
-            std::memcpy(result + output_length - i - 7, DIGIT_TABLE<CharType> + __d1, 2 * sizeof(CharType));
+            std::memcpy(result + output_length - i - 7, DIGIT_TABLE<CharType> + d1, 2 * sizeof(CharType));
             i += 8;
         }
         std::uint32_t output2 = static_cast<std::uint32_t>(output);
@@ -1896,9 +1810,9 @@ namespace rainy::foundation::text::implements::ryu {
             // f < 1.
             return false;
         }
-        const std::uint64_t __mask = (1ull << -e2) - 1;
-        const std::uint64_t __fraction = m2 & __mask;
-        if (__fraction != 0) {
+        const std::uint64_t mask = (1ull << -e2) - 1;
+        const std::uint64_t fraction = m2 & mask;
+        if (fraction != 0) {
             return false;
         }
         value->mantissa = m2 >> -e2;
@@ -1909,33 +1823,29 @@ namespace rainy::foundation::text::implements::ryu {
     template <typename CharType>
     RAINY_NODISCARD utility::compressed_pair<CharType *, std::errc> d2s_buffered_n(CharType *const first, CharType *const end,
                                                                                    const double float_val, const chars_format fmt) {
-
         // 先解码浮点数，然后进行规范化和次正规情况
-        const std::uint64_t rightits = double_to_bits(float_val);
-        if (rightits == 0) {
+        const std::uint64_t right_bits = double_to_bits(float_val);
+        if (right_bits == 0) {
             if (fmt == chars_format::scientific) {
                 if (end - first < 5) {
                     return {end, std::errc::value_too_large};
                 }
-
                 if constexpr (type_traits::type_relations::is_same_v<CharType, char>) {
                     std::memcpy(first, "0e+00", 5);
                 } else {
                     std::memcpy(first, L"0e+00", 5 * sizeof(wchar_t));
                 }
-
                 return {first + 5, std::errc{}};
             }
             if (first == end) {
                 return {end, std::errc::value_too_large};
             }
             *first = '0';
-
             return {first + 1, std::errc{}};
         }
         // 解出尾数和指数
-        const std::uint64_t ieee_mantissa = rightits & ((1ull << DOUBLE_MANTISSA_BITS) - 1);
-        const std::uint32_t ieee_exponent = static_cast<std::uint32_t>(rightits >> DOUBLE_MANTISSA_BITS);
+        const std::uint64_t ieee_mantissa = right_bits & ((1ull << DOUBLE_MANTISSA_BITS) - 1);
+        const std::uint32_t ieee_exponent = static_cast<std::uint32_t>(right_bits >> DOUBLE_MANTISSA_BITS);
         if (fmt == chars_format::fixed) {
             const std::int32_t exponent2 = static_cast<std::int32_t>(ieee_exponent) - DOUBLE_BIAS - DOUBLE_MANTISSA_BITS;
             if (exponent2 > 0) {
@@ -1957,7 +1867,6 @@ namespace rainy::foundation::text::implements::ryu {
         } else {
             value = d2d(ieee_mantissa, ieee_exponent);
         }
-
         return to_chars(first, end, value, fmt, float_val);
     }
 }
@@ -2001,7 +1910,6 @@ namespace rainy::foundation::text::implements {
         } else {
             return {end, std::errc::value_too_large};
         }
-
         return ryu::d2exp_buffered_n(first, end, value, static_cast<std::uint32_t>(precision));
     }
 
@@ -2074,7 +1982,7 @@ namespace rainy::foundation::text::implements {
         } else {
             exp_len = 4;
         }
-        ptrdiff_t remaining = end - first;
+        std::ptrdiff_t remaining = end - first;
         if (remaining < precision) {
             return {end, std::errc::value_too_large};
         }
@@ -2105,7 +2013,7 @@ namespace rainy::foundation::text::implements {
         // 输出小数部分
         if (precision > 0) {
             *first++ = '.';
-            int bits_left = adjusted_bits; // float 24, double 52
+            int bits_left = adjusted_bits;
             while (precision > 0) {
                 core::implements::stl_internal_check(bits_left >= 4 && bits_left % 4 == 0);
                 bits_left -= 4;
@@ -2137,7 +2045,7 @@ namespace rainy::foundation::text::implements {
         if (uint_value == 0) {
             const char *const str = "0p+0";
             constexpr std::size_t len = 4;
-            if (end - first < static_cast<ptrdiff_t>(len)) {
+            if (end - first < static_cast<std::ptrdiff_t>(len)) {
                 return {end, std::errc::value_too_large};
             }
             std::memcpy(first, str, len);
@@ -2147,7 +2055,7 @@ namespace rainy::foundation::text::implements {
         const std::int32_t ieee_exponent = static_cast<std::int32_t>(uint_value >> traits::exponent_shift);
         char leading_hexit;
         std::int32_t unbiased_exponent;
-        if (ieee_exponent == 0) { // subnormal
+        if (ieee_exponent == 0) {
             leading_hexit = '0';
             unbiased_exponent = 1 - traits::exponent_bias;
         } else { // normal
@@ -2164,33 +2072,30 @@ namespace rainy::foundation::text::implements {
                 return {end, std::errc::value_too_large};
             }
             *first++ = '.';
-            uint_type _Adjusted_mantissa;
-            std::int32_t _Number_of_bits_remaining;
-
+            uint_type adjusted_mantissa;
+            std::int32_t number_of_bits_remaining;
             if constexpr (type_traits::type_relations::is_same_v<Floating, float>) {
-                _Adjusted_mantissa = ieee_mantissa << 1; // align to hexit boundary (23 isn't divisible by 4)
-                _Number_of_bits_remaining = 24; // 23 fraction bits + 1 alignment bit
+                adjusted_mantissa = ieee_mantissa << 1;
+                number_of_bits_remaining = 24;
             } else {
-                _Adjusted_mantissa = ieee_mantissa; // already aligned (52 is divisible by 4)
-                _Number_of_bits_remaining = 52; // 52 fraction bits
+                adjusted_mantissa = ieee_mantissa;
+                number_of_bits_remaining = 52;
             }
             do {
-                core::implements::stl_internal_check(_Number_of_bits_remaining >= 4);
-                core::implements::stl_internal_check(_Number_of_bits_remaining % 4 == 0);
-                _Number_of_bits_remaining -= 4;
-
-                const uint32_t _Nibble = static_cast<uint32_t>(_Adjusted_mantissa >> _Number_of_bits_remaining);
+                core::implements::stl_internal_check(number_of_bits_remaining >= 4);
+                core::implements::stl_internal_check(number_of_bits_remaining % 4 == 0);
+                number_of_bits_remaining -= 4;
+                const uint32_t _Nibble = static_cast<uint32_t>(adjusted_mantissa >> number_of_bits_remaining);
                 core::implements::stl_internal_check(_Nibble < 16);
                 const char _Hexit = charconv_digits[_Nibble];
                 if (first == end) {
                     return {end, std::errc::value_too_large};
                 }
                 *first++ = _Hexit;
+                const uint_type _Mask = (uint_type{1} << number_of_bits_remaining) - 1;
+                adjusted_mantissa &= _Mask;
 
-                const uint_type _Mask = (uint_type{1} << _Number_of_bits_remaining) - 1;
-                _Adjusted_mantissa &= _Mask;
-
-            } while (_Adjusted_mantissa != 0);
+            } while (adjusted_mantissa != 0);
         }
         if (end - first < 2) {
             return {end, std::errc::value_too_large};
@@ -2248,7 +2153,7 @@ namespace rainy::foundation::text::implements {
         } else {
             table_lower_bound = core::algorithm::find_if(table_begin, table_end, [=](uint_type x) { return uint_value <= x; });
         }
-        ptrdiff_t table_index = table_lower_bound - table_begin;
+        std::ptrdiff_t table_index = table_lower_bound - table_begin;
         int scientific_exponent = static_cast<int>(table_index - 5);
         bool use_fixed = (precision > scientific_exponent && scientific_exponent >= -4);
         // 缓冲区大小预计算
@@ -2285,7 +2190,7 @@ namespace rainy::foundation::text::implements {
             }
         }
         // 复制有效数字部分
-        ptrdiff_t sig_len = sig_end - sig_start;
+        std::ptrdiff_t sig_len = sig_end - sig_start;
         if (end - first < sig_len) {
             return {end, std::errc::value_too_large};
         }
@@ -2293,7 +2198,7 @@ namespace rainy::foundation::text::implements {
         first += sig_len;
         // 科学计数法时复制指数部分
         if (!use_fixed) {
-            ptrdiff_t exp_len = exp_end - exp_start;
+            std::ptrdiff_t exp_len = exp_end - exp_start;
             if (end - first < exp_len) {
                 return {end, std::errc::value_too_large};
             }
@@ -2308,7 +2213,7 @@ namespace rainy::foundation::text::implements {
                                                       const int precision) noexcept {
         utility::adl_verify_range(first, end);
         if constexpr (Overload == floating_to_chars_overload::plain) {
-            core::implements::stl_internal_check(fmt == chars_format{}); // plain overload must pass chars_format{} internally
+            core::implements::stl_internal_check(fmt == chars_format{});
         } else {
             assert(fmt == chars_format::general || fmt == chars_format::scientific || fmt == chars_format::fixed ||
                    fmt == chars_format::hex && "invalid format in to_chars()");
@@ -2317,13 +2222,11 @@ namespace rainy::foundation::text::implements {
         using uint_type = typename traits::uint_type;
         uint_type uint_value = core::builtin::bit_cast<uint_type>(value);
         const bool was_negative = (uint_value & traits::shifted_sign_mask) != 0;
-        if (was_negative) { // sign bit detected; write minus sign and clear sign bit
+        if (was_negative) {
             if (first == end) {
                 return {end, std::errc::value_too_large};
             }
-
             *first++ = '-';
-
             uint_value &= ~traits::shifted_sign_mask;
             value = core::builtin::bit_cast<Floating>(uint_value);
         }
@@ -2344,7 +2247,7 @@ namespace rainy::foundation::text::implements {
                 str = "nan(snan)";
                 len = 9;
             }
-            if (end - first < static_cast<ptrdiff_t>(len)) {
+            if (end - first < static_cast<std::ptrdiff_t>(len)) {
                 return {end, std::errc::value_too_large};
             }
             std::memcpy(first, str, len);

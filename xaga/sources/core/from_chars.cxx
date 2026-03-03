@@ -19,18 +19,16 @@
 namespace rainy::foundation::text::implements {
     template <typename Floating>
     inline Floating power_of_10(int exp) noexcept {
-        if (exp == 0)
+        if (exp == 0) {
             return static_cast<Floating>(1.0);
-
+        }
         constexpr int max_exp = std::numeric_limits<Floating>::max_exponent10;
         bool negative = exp < 0;
         int abs_exp = negative ? -exp : exp;
-
         // 正指数超出范围 → 返回 inf（正指数）或 0（负指数）
         if (abs_exp > max_exp) {
             return negative ? static_cast<Floating>(0.0) : std::numeric_limits<Floating>::infinity();
         }
-
         Floating result = static_cast<Floating>(1.0);
         Floating base = static_cast<Floating>(10.0);
         for (int i = 0; i < abs_exp; ++i) {
@@ -343,23 +341,18 @@ namespace rainy::foundation::text::implements {
                 fmt == chars_format::hex) &&
                "invalid format in from_chars()");
         bool minus_sign = false;
-
         const char *next = begin;
-
         if (next == last) {
             return {begin, std::errc::invalid_argument};
         }
-
         if (*next == '-') {
             minus_sign = true;
             ++next;
-
             if (next == last) {
                 return {begin, std::errc::invalid_argument};
             }
         }
         const unsigned char folded_start = static_cast<unsigned char>(static_cast<unsigned char>(*next) | 0x20);
-
         if (folded_start <= 'f') {
             return implements::ordinary_floating_from_chars(begin, last, value, fmt, minus_sign, next);
         } else if (folded_start == 'i') {
