@@ -45,7 +45,7 @@
 #include <rainy/core/type_traits.hpp>
 #include <rainy/core/layer.hpp>
 #include <rainy/core/implements/bit.hpp>
-#include <rainy/core/implements/raw_stringview.hpp>
+#include <rainy/core/implements/text/charconv.hpp>
 #include <rainy/core/implements/collections/array.hpp>
 #include <rainy/core/implements/collections/array_view.hpp>
 #include <rainy/core/implements/source_location.hpp>
@@ -380,7 +380,7 @@ namespace rainy::core {
 // clang-format on
 
 namespace rainy::core::implements {
-    constexpr static raw_string_view<char> token_charset("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789");
+    constexpr static foundation::text::string_view token_charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 }
 
 #include <thread>
