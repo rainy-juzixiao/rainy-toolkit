@@ -1,5 +1,6 @@
 #include <rainy/core/implements/text/format/implements.hpp>
 #include <rainy/core/implements/text/format.hpp>
+#include <rainy/core/implements/text/charconv.hpp>
 
 #if RAINY_USING_WINDOWS
 #include <windows.h>
@@ -26,7 +27,9 @@ int main() {
     } catch (std::exception &e) {
         std::cout << e.what() << '\n';
     }
-
+    char buf[200]{};
+    foundation::text::to_chars(buf, buf + 10, 11111);
+    std::cout << buf << '\n';
     /*rainy::foundation::concurrency::atomic<float> atomics = 10;
     std::cout << atomics << '\n';
     std::cout << atomics + 3.14f << '\n';

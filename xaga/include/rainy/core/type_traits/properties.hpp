@@ -15,12 +15,17 @@
  */
 #ifndef RAINY_CORE_TYPE_TRAITS_PROPERTIES_HPP
 #define RAINY_CORE_TYPE_TRAITS_PROPERTIES_HPP
+
+// NOLINTBEGIN
+
 #include <rainy/core/platform.hpp>
 #include <rainy/core/gnu/typetraits.hpp>
 #include <rainy/core/type_traits/implements.hpp>
 #include <rainy/core/type_traits/primary_types.hpp>
 #include <rainy/core/type_traits/type_relations.hpp>
 #include <rainy/core/type_traits/decay.hpp>
+
+// NOLINTEND
 
 namespace rainy::type_traits::implements::swap_adl {
     using std::swap; // ADL

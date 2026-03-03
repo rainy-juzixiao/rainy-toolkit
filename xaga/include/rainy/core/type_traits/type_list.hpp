@@ -1008,4 +1008,19 @@ namespace rainy::type_traits::other_trans {
     using unique_type_list_t = typename unique_type_list<List>::type;
 }
 
+namespace rainy::type_traits::other_trans {
+    template <size_t Size, typename TypeList>
+    struct select_type;
+
+    template <size_t Size, typename First, typename... Rest>
+    struct select_type<Size, type_list<First, Rest...>> {
+        using type = std::conditional_t<(Size <= sizeof(First)), First, typename select_type<Size, type_list<Rest...>>::type>;
+    };
+
+    template <size_t Size>
+    struct select_type<Size, type_list<>> {
+        using type = void;
+    };
+}
+
 #endif

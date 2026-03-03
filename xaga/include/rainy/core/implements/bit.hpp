@@ -16,23 +16,24 @@
 #ifndef RAINY_CORE_IMPLEMENTS_BIT_HPP
 #define RAINY_CORE_IMPLEMENTS_BIT_HPP
 #include <rainy/core/platform.hpp>
-#include <rainy/core/type_traits/implements.hpp>
+#include <rainy/core/type_traits/properties.hpp>
+#include <rainy/core/type_traits/limits.hpp>
 
 namespace rainy::core::builtin {
     /**
-     * @brief Counts the number of 1 bits in an unsigned integer.
+     * @brief Counts the number of 1 bit in an unsigned integer.
      *        计算无符号整数中1的位数。
      *
      * @tparam Type Unsigned integer type
      *              无符号整数类型
      * @param value The value to count bits for
      *              要计算位数的值
-     * @return Number of 1 bits
+     * @return Number of 1 bit
      *         1的位数
      */
     template <typename Type, type_traits::other_trans::enable_if_t<type_traits::type_properties::is_unsigned_v<Type>, int> = 0>
     RAINY_NODISCARD constexpr rain_fn popcount(const Type value) noexcept -> int {
-        return value ? (int(value & 1) + popcount(static_cast<Type>(value >> 1))) : 0;
+        return value ? (static_cast<int>(value & 1) + popcount(static_cast<Type>(value >> 1))) : 0;
     }
 
     /**
@@ -47,7 +48,7 @@ namespace rainy::core::builtin {
      *         如果值是2的幂则为true，否则为false
      */
     template <typename Type, type_traits::other_trans::enable_if_t<type_traits::type_properties::is_unsigned_v<Type>, int> = 0>
-    RAINY_NODISCARD constexpr rain_fn has_single_bit(const Type value) noexcept -> bool {
+    RAINY_NODISCARD constexpr rain_fn has_single_bit(const Type value) noexcept -> bool { // NOLINT
         return value && ((value & (value - 1)) == 0);
     }
 
@@ -217,6 +218,42 @@ namespace rainy::core::builtin {
         constexpr int bits = utility::numeric_limits<Type>::digits;
         shift %= bits;
         return (value >> shift) | (value << (bits - shift));
+    }
+
+    /**
+     * @brief Reinterpret the object representation of one type as another type.
+     *        将一种类型的对象表示重新解释为另一种类型。
+     *
+     * @details This function forwards to std::bit_cast when C++20 is available.
+     *          It provides a safe way to type-pun between types of the same size
+     *          without violating strict aliasing rules.
+     *          当C++20可用时，此函数转发给std::bit_cast。
+     *          它提供了一种在不违反严格别名规则的情况下，在相同大小的类型之间进行类型双关的安全方式。
+     *
+     * @tparam To The target type to cast to
+     *            要转换到的目标类型
+     * @tparam From The source type to cast from
+     *              要转换的源类型
+     * @param from The source value to cast
+     *             要转换的源值
+     * @return A value of type To with the same object representation as from
+     *         一个类型为To的值，其对象表示与from相同
+     *
+     * @note The types To and From must be trivially copyable and have the same size.
+     *       To和From类型必须是可平凡复制的且具有相同的大小。
+     */
+    template <typename To, typename From>
+    RAINY_NODISCARD RAINY_CONSTEXPR20 rain_fn bit_cast(const From &from) noexcept -> To {
+#if RAINY_HAS_CXX20
+        return std::bit_cast<To>(from);
+#else
+        static_assert(sizeof(To) == sizeof(From), "To and From must have the same size");
+        static_assert(type_traits::type_properties::is_trivially_copyable_v<To>, "To must be trivially copyable");
+        static_assert(type_traits::type_properties::is_trivially_copyable_v<From>, "From must be trivially copyable");
+        To to;
+        std::memcpy(&to, &from, sizeof(To));
+        return to;
+#endif
     }
 }
 

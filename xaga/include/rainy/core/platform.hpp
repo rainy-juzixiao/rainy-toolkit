@@ -139,6 +139,12 @@ clang和GNU编译器区域
 #define RAINY_CONSTEXPR20
 #endif
 
+#if RAINY_HAS_CXX23
+#define RAINY_CONSTEXPR23 constexpr
+#else
+#define RAINY_CONSTEXPR23
+#endif
+
 #ifndef RAINY_NODISCARD_CONSTEXPR20
 #define RAINY_NODISCARD_CONSTEXPR20 RAINY_NODISCARD RAINY_CONSTEXPR20
 #endif
@@ -2327,6 +2333,60 @@ namespace rainy::utility {
     back_insert_iterator<Container> back_inserter(Container &c) {
         return back_insert_iterator<Container>(c);
     }
+}
+
+namespace rainy::utility {
+    template <typename FloatingType>
+    struct floating_type_traits;
+
+    template <>
+    struct floating_type_traits<float> {
+        static constexpr std::int32_t mantissa_bits = 24;
+        static constexpr std::int32_t exponent_bits = 8;
+        static constexpr std::int32_t maximum_binary_exponent = 127;
+        static constexpr std::int32_t minimum_binary_exponent = -126;
+        static constexpr std::int32_t exponent_bias = 127;
+        static constexpr std::int32_t sign_shift = 31;
+        static constexpr std::int32_t exponent_shift = 23;
+
+        using uint_type = std::uint32_t;
+
+        static constexpr std::uint32_t exponent_mask = 0x000000FFu;
+        static constexpr std::uint32_t normal_mantissa_mask = 0x00FFFFFFu;
+        static constexpr std::uint32_t denormal_mantissa_mask = 0x007FFFFFu;
+        static constexpr std::uint32_t special_nan_mantissa_mask = 0x00400000u;
+        static constexpr std::uint32_t shifted_sign_mask = 0x80000000u;
+        static constexpr std::uint32_t shifted_exponent_mask = 0x7F800000u;
+
+        static constexpr float minimum_value = 0x1.000000p-126f;
+        static constexpr float maximum_value = 0x1.FFFFFEp+127f;
+    };
+
+    template <>
+    struct floating_type_traits<double> {
+        static constexpr std::int32_t mantissa_bits = 53;
+        static constexpr std::int32_t exponent_bits = 11;
+        static constexpr std::int32_t maximum_binary_exponent = 1023;
+        static constexpr std::int32_t minimum_binary_exponent = -1022;
+        static constexpr std::int32_t exponent_bias = 1023;
+        static constexpr std::int32_t sign_shift = 63;
+        static constexpr std::int32_t exponent_shift = 52;
+
+        using uint_type = std::uint64_t;
+
+        static constexpr std::uint64_t exponent_mask = 0x00000000000007FFu;
+        static constexpr std::uint64_t normal_mantissa_mask = 0x001FFFFFFFFFFFFFu;
+        static constexpr std::uint64_t denormal_mantissa_mask = 0x000FFFFFFFFFFFFFu;
+        static constexpr std::uint64_t special_nan_mantissa_mask = 0x0008000000000000u;
+        static constexpr std::uint64_t shifted_sign_mask = 0x8000000000000000u;
+        static constexpr std::uint64_t shifted_exponent_mask = 0x7FF0000000000000u;
+
+        static constexpr double minimum_value = 0x1.0000000000000p-1022;
+        static constexpr double maximum_value = 0x1.FFFFFFFFFFFFFp+1023;
+    };
+
+    template <>
+    struct floating_type_traits<long double> : floating_type_traits<double> {};
 }
 
 #endif

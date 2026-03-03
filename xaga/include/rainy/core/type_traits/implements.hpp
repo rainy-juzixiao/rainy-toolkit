@@ -950,7 +950,7 @@ namespace rainy::utility {
     template <typename iter, typename sentinel>
     constexpr rain_fn adl_verify_range(const iter &first, const sentinel &last) -> void {
         if constexpr (type_traits::implements::_is_pointer_v<iter> && type_traits::implements::_is_pointer_v<sentinel>) {
-            expects(first <= last, "transposed pointer range");
+            assert(first <= last && "transposed pointer range");
         } else if constexpr (range_verifiable_v<iter, sentinel>) {
             verify_range(first, last);
         }
