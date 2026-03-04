@@ -15,6 +15,8 @@
  */
 #include <rainy/core/layer.hpp>
 
+// NOLINTBEGIN(cppcoreguidelines-avoid-do-while,readability-duplicate-branches,clang-analyzer-core.UndefinedBinaryOperatorResult)
+
 #if RAINY_IS_ARM64
 
 #if RAINY_USING_MSVC
@@ -179,44 +181,43 @@ namespace rainy::core::pal {
     }
 #endif
 
-    bool interlocked_compare_exchange_explicit(volatile long *destination, long exchange, long comparand, memory_order success,
-                                               memory_order failure) {
-        bool result{};
-        RAINY_ATOMIC_DISPATCH(_InterlockedCompareExchange, result, memory_order_seq_cst,
-                              reinterpret_cast<volatile long *>(destination), exchange, comparand);
-        return result;
+    bool interlocked_compare_exchange_explicit(volatile long *dst, long exchange, long comparand, memory_order success,
+                                               memory_order /*failure*/) {
+        long result{};
+        RAINY_ATOMIC_DISPATCH(_InterlockedCompareExchange, result, success, dst, exchange, comparand);
+        return result == comparand;
     }
 
-    bool interlocked_compare_exchange8_explicit(volatile std::int8_t *destination, std::int8_t exchange, std::int8_t comparand,
-                                                memory_order success, memory_order failure) {
-        bool result{};
-        RAINY_ATOMIC_DISPATCH(_InterlockedCompareExchange8, result, memory_order_seq_cst,
-                              reinterpret_cast<volatile char *>(destination), exchange, comparand);
-        return result;
+    bool interlocked_compare_exchange8_explicit(volatile std::int8_t *dst, std::int8_t exchange, std::int8_t comparand,
+                                                memory_order success, memory_order /*failure*/) {
+        char result{};
+        RAINY_ATOMIC_DISPATCH(_InterlockedCompareExchange8, result, success, reinterpret_cast<volatile char *>(dst),
+                              static_cast<char>(exchange), static_cast<char>(comparand));
+        return static_cast<std::int8_t>(result) == comparand;
     }
 
-    bool interlocked_compare_exchange16_explicit(volatile std::int16_t *destination, std::int16_t exchange, std::int16_t comparand,
-                                                 memory_order success, memory_order failure) {
-        bool result{};
-        RAINY_ATOMIC_DISPATCH(_InterlockedCompareExchange16, result, memory_order_seq_cst,
-                              reinterpret_cast<volatile std::int16_t *>(destination), exchange, comparand);
-        return result;
+    bool interlocked_compare_exchange16_explicit(volatile std::int16_t *dst, std::int16_t exchange, std::int16_t comparand,
+                                                 memory_order success, memory_order /*failure*/) {
+        short result{};
+        RAINY_ATOMIC_DISPATCH(_InterlockedCompareExchange16, result, success, reinterpret_cast<volatile short *>(dst),
+                              static_cast<short>(exchange), static_cast<short>(comparand));
+        return static_cast<std::int16_t>(result) == comparand;
     }
 
-    bool interlocked_compare_exchange32_explicit(volatile std::int32_t *destination, std::int32_t exchange, std::int32_t comparand,
-                                                 memory_order success, memory_order failure) {
-        bool result{};
-        RAINY_ATOMIC_DISPATCH(_InterlockedCompareExchange, result, memory_order_seq_cst,
-                              reinterpret_cast<volatile long *>(destination), exchange, comparand);
-        return result;
+    bool interlocked_compare_exchange32_explicit(volatile std::int32_t *dst, std::int32_t exchange, std::int32_t comparand,
+                                                 memory_order success, memory_order /*failure*/) {
+        long result{};
+        RAINY_ATOMIC_DISPATCH(_InterlockedCompareExchange, result, success, reinterpret_cast<volatile long *>(dst),
+                              static_cast<long>(exchange), static_cast<long>(comparand));
+        return static_cast<std::int32_t>(result) == comparand;
     }
 
-    bool interlocked_compare_exchange64_explicit(volatile std::int64_t *destination, std::int64_t exchange, std::int64_t comparand,
-                                                 memory_order success, memory_order failure) {
-        bool result{};
-        RAINY_ATOMIC_DISPATCH(_InterlockedCompareExchange64, result, memory_order_seq_cst,
-                              reinterpret_cast<volatile std::int64_t *>(destination), exchange, comparand);
-        return result;
+    bool interlocked_compare_exchange64_explicit(volatile std::int64_t *dst, std::int64_t exchange, std::int64_t comparand,
+                                                 memory_order success, memory_order /*failure*/) {
+        std::int64_t result{};
+        RAINY_ATOMIC_DISPATCH(_InterlockedCompareExchange64, result, success, reinterpret_cast<volatile std::int64_t *>(dst), exchange,
+                              comparand);
+        return result == comparand;
     }
 
     void *interlocked_exchange_pointer_explicit(volatile void **target, void *value, memory_order order) {
@@ -412,13 +413,14 @@ namespace rainy::core::pal {
         RAINY_ATOMIC_DISPATCH_ISO_VOLATILE_STORE(__iso_volatile_store16, order, address, value);
     }
 
-    void iso_volatile_store32_explicit(volatile int *address, std::uint32_t value, memory_order order) {
+    void iso_volatile_store32_explicit(volatile int *address, std::int32_t value, memory_order order) {
         RAINY_ATOMIC_DISPATCH_ISO_VOLATILE_STORE(__iso_volatile_store32, order, reinterpret_cast<volatile std::int32_t *>(address),
                                                  value);
     }
 
-    void iso_volatile_store64_explicit(volatile std::int64_t *address, std::uint64_t value, memory_order order) {
-        RAINY_ATOMIC_DISPATCH_ISO_VOLATILE_STORE(__iso_volatile_store64, order, reinterpret_cast<volatile long long *>(address), value);
+    void iso_volatile_store64_explicit(volatile std::int64_t *address, std::int64_t value, memory_order order) {
+        RAINY_ATOMIC_DISPATCH_ISO_VOLATILE_STORE(__iso_volatile_store64, order, reinterpret_cast<volatile long long *>(address),
+                                                 value);
     }
 }
 
@@ -485,7 +487,7 @@ inline void rainy_dmb_st() {
         volatile int _stxr_failed;                                                                                                    \
         do {                                                                                                                          \
             __asm__ __volatile__("ldaxrb %w0, [%1]" : "=&r"(_old_val) : "r"(ptr) : "memory");                                         \
-            _new_val = _old_val op;                                                                                                   \
+            _new_val = static_cast<uint8_t>(static_cast<int8_t>(_old_val) op);                                                        \
             __asm__ __volatile__("stlxrb %w0, %w2, [%1]" : "=&r"(_stxr_failed) : "r"(ptr), "r"(_new_val) : "memory");                 \
         } while (_stxr_failed);                                                                                                       \
         rainy_dmb();                                                                                                                  \
@@ -499,7 +501,7 @@ inline void rainy_dmb_st() {
         volatile int _stxr_failed;                                                                                                    \
         do {                                                                                                                          \
             __asm__ __volatile__("ldaxrh %w0, [%1]" : "=&r"(_old_val) : "r"(ptr) : "memory");                                         \
-            _new_val = _old_val op;                                                                                                   \
+            _new_val = static_cast<uint16_t>(static_cast<int16_t>(_old_val) op);                                                      \
             __asm__ __volatile__("stlxrh %w0, %w2, [%1]" : "=&r"(_stxr_failed) : "r"(ptr), "r"(_new_val) : "memory");                 \
         } while (_stxr_failed);                                                                                                       \
         rainy_dmb();                                                                                                                  \
@@ -513,7 +515,7 @@ inline void rainy_dmb_st() {
         volatile int _stxr_failed;                                                                                                    \
         do {                                                                                                                          \
             __asm__ __volatile__("ldaxr %w0, [%1]" : "=&r"(_old_val) : "r"(ptr) : "memory");                                          \
-            _new_val = _old_val op;                                                                                                   \
+            _new_val = static_cast<uint32_t>(static_cast<int32_t>(_old_val) op);                                                      \
             __asm__ __volatile__("stlxr %w0, %w2, [%1]" : "=&r"(_stxr_failed) : "r"(ptr), "r"(_new_val) : "memory");                  \
         } while (_stxr_failed);                                                                                                       \
         rainy_dmb();                                                                                                                  \
@@ -527,7 +529,7 @@ inline void rainy_dmb_st() {
         volatile int _stxr_failed;                                                                                                    \
         do {                                                                                                                          \
             __asm__ __volatile__("ldaxr %0, [%1]" : "=&r"(_old_val) : "r"(ptr) : "memory");                                           \
-            _new_val = _old_val op;                                                                                                   \
+            _new_val = static_cast<uint64_t>(static_cast<int64_t>(_old_val) op);                                                      \
             __asm__ __volatile__("stlxr %w0, %2, [%1]" : "=&r"(_stxr_failed) : "r"(ptr), "r"(_new_val) : "memory");                   \
         } while (_stxr_failed);                                                                                                       \
         rainy_dmb();                                                                                                                  \
@@ -541,7 +543,7 @@ inline void rainy_dmb_st() {
         volatile int _stxr_failed;                                                                                                    \
         do {                                                                                                                          \
             __asm__ __volatile__("ldaxr %w0, [%1]" : "=&r"(_old_val) : "r"(ptr) : "memory");                                          \
-            _new_val = _old_val op;                                                                                                   \
+            _new_val = static_cast<unsigned long>(static_cast<long>(_old_val) op);                                                    \
             __asm__ __volatile__("stlxr %w0, %w2, [%1]" : "=&r"(_stxr_failed) : "r"(ptr), "r"(_new_val) : "memory");                  \
         } while (_stxr_failed);                                                                                                       \
         rainy_dmb();                                                                                                                  \
@@ -567,6 +569,90 @@ inline void rainy_dmb_st() {
             rainy_dmb();                                                                                                              \
             result = true;                                                                                                            \
         }                                                                                                                             \
+    } while (0)
+
+#define RAINY_ARM64_COMPARE_EXCHANGE_8(dest, exchange, comparand, result)                                                             \
+    do {                                                                                                                              \
+        volatile int _stxr_failed;                                                                                                    \
+        uint8_t _old;                                                                                                                 \
+        uint8_t _exp = static_cast<uint8_t>(comparand);                                                                               \
+        uint8_t _new = static_cast<uint8_t>(exchange);                                                                                \
+        do {                                                                                                                          \
+            __asm__ __volatile__("ldaxrb %w0, [%1]" : "=&r"(_old) : "r"(dest) : "memory");                                            \
+            if (_old != _exp) {                                                                                                       \
+                __asm__ __volatile__("clrex" ::: "memory");                                                                           \
+                rainy_dmb();                                                                                                          \
+                result = false;                                                                                                       \
+                goto _cas8_done_;                                                                                                     \
+            }                                                                                                                         \
+            __asm__ __volatile__("stlxrb %w0, %w2, [%1]" : "=&r"(_stxr_failed) : "r"(dest), "r"(_new) : "memory");                    \
+        } while (_stxr_failed);                                                                                                       \
+        rainy_dmb();                                                                                                                  \
+        result = true;                                                                                                                \
+    _cas8_done_:;                                                                                                                     \
+    } while (0)
+
+#define RAINY_ARM64_COMPARE_EXCHANGE_16(dest, exchange, comparand, result)                                                            \
+    do {                                                                                                                              \
+        volatile int _stxr_failed;                                                                                                    \
+        uint16_t _old;                                                                                                                \
+        uint16_t _exp = static_cast<uint16_t>(comparand);                                                                             \
+        uint16_t _new = static_cast<uint16_t>(exchange);                                                                              \
+        do {                                                                                                                          \
+            __asm__ __volatile__("ldaxrh %w0, [%1]" : "=&r"(_old) : "r"(dest) : "memory");                                            \
+            if (_old != _exp) {                                                                                                       \
+                __asm__ __volatile__("clrex" ::: "memory");                                                                           \
+                rainy_dmb();                                                                                                          \
+                result = false;                                                                                                       \
+                goto _cas16_done_;                                                                                                    \
+            }                                                                                                                         \
+            __asm__ __volatile__("stlxrh %w0, %w2, [%1]" : "=&r"(_stxr_failed) : "r"(dest), "r"(_new) : "memory");                    \
+        } while (_stxr_failed);                                                                                                       \
+        rainy_dmb();                                                                                                                  \
+        result = true;                                                                                                                \
+    _cas16_done_:;                                                                                                                    \
+    } while (0)
+
+#define RAINY_ARM64_COMPARE_EXCHANGE_32(dest, exchange, comparand, result)                                                            \
+    do {                                                                                                                              \
+        volatile int _stxr_failed;                                                                                                    \
+        uint32_t _old;                                                                                                                \
+        uint32_t _exp = static_cast<uint32_t>(comparand);                                                                             \
+        uint32_t _new = static_cast<uint32_t>(exchange);                                                                              \
+        do {                                                                                                                          \
+            __asm__ __volatile__("ldaxr %w0, [%1]" : "=&r"(_old) : "r"(dest) : "memory");                                             \
+            if (_old != _exp) {                                                                                                       \
+                __asm__ __volatile__("clrex" ::: "memory");                                                                           \
+                rainy_dmb();                                                                                                          \
+                result = false;                                                                                                       \
+                goto _cas32_done_;                                                                                                    \
+            }                                                                                                                         \
+            __asm__ __volatile__("stlxr %w0, %w2, [%1]" : "=&r"(_stxr_failed) : "r"(dest), "r"(_new) : "memory");                     \
+        } while (_stxr_failed);                                                                                                       \
+        rainy_dmb();                                                                                                                  \
+        result = true;                                                                                                                \
+    _cas32_done_:;                                                                                                                    \
+    } while (0)
+
+#define RAINY_ARM64_COMPARE_EXCHANGE_64(dest, exchange, comparand, result)                                                            \
+    do {                                                                                                                              \
+        volatile int _stxr_failed;                                                                                                    \
+        uint64_t _old;                                                                                                                \
+        uint64_t _exp = static_cast<uint64_t>(comparand);                                                                             \
+        uint64_t _new = static_cast<uint64_t>(exchange);                                                                              \
+        do {                                                                                                                          \
+            __asm__ __volatile__("ldaxr %0, [%1]" : "=&r"(_old) : "r"(dest) : "memory");                                              \
+            if (_old != _exp) {                                                                                                       \
+                __asm__ __volatile__("clrex" ::: "memory");                                                                           \
+                rainy_dmb();                                                                                                          \
+                result = false;                                                                                                       \
+                goto _cas64_done_;                                                                                                    \
+            }                                                                                                                         \
+            __asm__ __volatile__("stlxr %w0, %2, [%1]" : "=&r"(_stxr_failed) : "r"(dest), "r"(_new) : "memory");                      \
+        } while (_stxr_failed);                                                                                                       \
+        rainy_dmb();                                                                                                                  \
+        result = true;                                                                                                                \
+    _cas64_done_:;                                                                                                                    \
     } while (0)
 
 #define RAINY_ARM64_ATOMIC_EXCHANGE_8(ptr, new_val, old_out)                                                                          \
@@ -802,38 +888,42 @@ namespace rainy::core::pal {
         return old_val;
     }
 
-    bool interlocked_compare_exchange_explicit(volatile long *destination, long exchange, long comparand, memory_order success,
-                                               memory_order failure) {
-        bool result;
-        RAINY_ARM64_COMPARE_EXCHANGE(destination, exchange, comparand, result);
-        return result;
-    }
-
     bool interlocked_compare_exchange8_explicit(volatile std::int8_t *destination, std::int8_t exchange, std::int8_t comparand,
                                                 memory_order success, memory_order failure) {
         bool result;
-        RAINY_ARM64_COMPARE_EXCHANGE(destination, exchange, comparand, result);
+        RAINY_ARM64_COMPARE_EXCHANGE_8(destination, exchange, comparand, result);
         return result;
     }
 
     bool interlocked_compare_exchange16_explicit(volatile std::int16_t *destination, std::int16_t exchange, std::int16_t comparand,
                                                  memory_order success, memory_order failure) {
         bool result;
-        RAINY_ARM64_COMPARE_EXCHANGE(destination, exchange, comparand, result);
+        RAINY_ARM64_COMPARE_EXCHANGE_16(destination, exchange, comparand, result);
         return result;
     }
 
     bool interlocked_compare_exchange32_explicit(volatile std::int32_t *destination, std::int32_t exchange, std::int32_t comparand,
                                                  memory_order success, memory_order failure) {
         bool result;
-        RAINY_ARM64_COMPARE_EXCHANGE(destination, exchange, comparand, result);
+        RAINY_ARM64_COMPARE_EXCHANGE_32(destination, exchange, comparand, result);
         return result;
     }
 
     bool interlocked_compare_exchange64_explicit(volatile std::int64_t *destination, std::int64_t exchange, std::int64_t comparand,
                                                  memory_order success, memory_order failure) {
         bool result;
-        RAINY_ARM64_COMPARE_EXCHANGE(destination, exchange, comparand, result);
+        RAINY_ARM64_COMPARE_EXCHANGE_64(destination, exchange, comparand, result);
+        return result;
+    }
+
+    bool interlocked_compare_exchange_explicit(volatile long *destination, long exchange, long comparand, memory_order success,
+                                               memory_order failure) {
+        bool result;
+        if constexpr (sizeof(long) == 8) {
+            RAINY_ARM64_COMPARE_EXCHANGE_64(destination, exchange, comparand, result);
+        } else {
+            RAINY_ARM64_COMPARE_EXCHANGE_32(destination, exchange, comparand, result);
+        }
         return result;
     }
 
@@ -1051,7 +1141,7 @@ namespace rainy::core::pal {
         }
     }
 
-    void iso_volatile_store32_explicit(volatile std::int32_t *address, std::uint32_t value, memory_order order) {
+    void iso_volatile_store32_explicit(volatile std::int32_t *address, std::int32_t value, memory_order order) {
         rainy_assume(address);
         if (order == memory_order_release || order == memory_order_seq_cst) {
             rainy_dmb_st();
@@ -1062,7 +1152,7 @@ namespace rainy::core::pal {
         }
     }
 
-    void iso_volatile_store64_explicit(volatile std::int64_t *address, std::uint64_t value, memory_order order) {
+    void iso_volatile_store64_explicit(volatile std::int64_t *address, std::int64_t value, memory_order order) {
         rainy_assume(address);
         if (order == memory_order_release || order == memory_order_seq_cst) {
             rainy_dmb_st();
@@ -1073,5 +1163,7 @@ namespace rainy::core::pal {
         }
     }
 }
+
+// NOLINTEND(cppcoreguidelines-avoid-do-while,readability-duplicate-branches,clang-analyzer-core.UndefinedBinaryOperatorResult)
 
 #endif

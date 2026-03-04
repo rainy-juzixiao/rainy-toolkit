@@ -46,9 +46,9 @@ namespace rainy::collections::views::implements {
             iterator_t current_) noexcept(type_traits::type_properties::is_nothrow_move_constructible_v<iterator_t>) // strengthened
             : current{utility::move(current_)}, parent{utility::addressof(parent_)} {
 #if RAINY_ENABLE_DEBUG
-            utility::implements::adl_verify_range(current, utility::end(parent_.range));
+            utility::adl_verify_range(current, utility::end(parent_.range));
             if constexpr (type_traits::extras::iterators::is_forward_iterator_v<iterator_t>) {
-                utility::implements::adl_verify_range(utility::begin(parent_.range), current);
+                utility::adl_verify_range(utility::begin(parent_.range), current);
             }
 #endif
         }

@@ -42,7 +42,7 @@ namespace rainy::collections::views::implements {
         : std::integral_constant<bool, !is_range<typename std::remove_cv<Ty>::type>::value> {};
 
     template <typename Ty>
-    using enable_if_range_adaptor_closure = std::enable_if_t<is_range_adaptor_closure_object<Ty>::value, int>;
+    using enable_if_range_adaptor_closure = type_traits::other_trans::enable_if_t<is_range_adaptor_closure_object<Ty>::value, int>;
 
     template <typename ClosureLeft, typename ClosureRight>
     struct pipeline : base<pipeline<ClosureLeft, ClosureRight>> {
@@ -90,7 +90,7 @@ namespace rainy::collections::views::implements {
 namespace rainy::collections::views::implements {
 #if RAINY_HAS_CXX20
     template <typename L, typename R, enable_if_range_adaptor_closure<L> = 0, enable_if_range_adaptor_closure<R> = 0,
-              typename = std::enable_if_t<std::is_constructible<typename std::remove_cv<L>::type, L>::value &&
+              typename = type_traits::other_trans::enable_if_t<std::is_constructible<typename std::remove_cv<L>::type, L>::value &&
                                           std::is_constructible<typename std::remove_cv<R>::type, R>::value>>
     constexpr auto operator|(L &&l, R &&r) {
         return pipeline{utility::forward<L>(l), utility::forward<R>(r)};

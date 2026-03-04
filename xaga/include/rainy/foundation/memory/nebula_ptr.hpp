@@ -264,11 +264,11 @@ namespace rainy::foundation::memory {
             return this->pair.second + length();
         }
 
-        RAINY_CONSTEXPR20 void fill(const Ty &val) noexcept(std::is_nothrow_constructible_v<Ty>) {
+        RAINY_CONSTEXPR20 void fill(const Ty &val) noexcept(type_traits::type_properties::is_nothrow_constructible_v<Ty>) {
             core::algorithm::fill_n(this->pair.second, length(), val);
         }
 
-        RAINY_CONSTEXPR20 void fill_with_ilist(std::initializer_list<Ty> ilist) noexcept(std::is_nothrow_constructible_v<Ty>) {
+        RAINY_CONSTEXPR20 void fill_with_ilist(std::initializer_list<Ty> ilist) noexcept(type_traits::type_properties::is_nothrow_constructible_v<Ty>) {
             size_type count = ilist.size() > length() ? length() : ilist.size();
             core::algorithm::copy_n(ilist.begin(), count, this->pair.second);
         }
@@ -354,7 +354,7 @@ namespace rainy::foundation::memory {
      *
      */
     template <typename Ty, typename... Args, type_traits::other_trans::enable_if_t<!std::is_array_v<Ty>, int> = 0>
-    nebula_ptr<Ty> make_nebula(Args &&...args) noexcept(std::is_nothrow_constructible_v<Ty, Args...>) {
+    nebula_ptr<Ty> make_nebula(Args &&...args) noexcept(type_traits::type_properties::is_nothrow_constructible_v<Ty, Args...>) {
         return nebula_ptr<Ty>(new Ty(utility::forward<Args>(args)...));
     }
 
@@ -373,7 +373,7 @@ namespace rainy::foundation::memory {
      */
     template <typename Ty, typename... Args,
               type_traits::other_trans::enable_if_t<std::is_array_v<Ty> && std::extent_v<Ty> == 0, int> = 0>
-    nebula_ptr<Ty> make_nebula(const std::size_t num, Args... args) noexcept(std::is_nothrow_constructible_v<Ty>) {
+    nebula_ptr<Ty> make_nebula(const std::size_t num, Args... args) noexcept(type_traits::type_properties::is_nothrow_constructible_v<Ty>) {
         using elem = std::remove_extent_t<Ty>;
         return nebula_ptr<Ty>(new elem[num](args...), num);
     }
@@ -381,7 +381,7 @@ namespace rainy::foundation::memory {
     template <typename Ty, typename... Args,
               type_traits::other_trans::enable_if_t<std::is_array_v<Ty> && std::extent_v<Ty> == 0, int> = 0>
     nebula_ptr<Ty> make_nebula(const std::size_t num, std::initializer_list<std::remove_extent_t<Ty>> ilist = {}) noexcept(
-        std::is_nothrow_constructible_v<Ty>) {
+        type_traits::type_properties::is_nothrow_constructible_v<Ty>) {
         using elem = std::remove_extent_t<Ty>;
         auto data = new elem[num];
         std::size_t count = num > ilist.size() ? ilist.size() : num;
@@ -393,13 +393,13 @@ namespace rainy::foundation::memory {
     using unique_ptr = nebula_ptr<Ty, Dx>;
 
     template <typename Ty, typename... Args, type_traits::other_trans::enable_if_t<!std::is_array_v<Ty>, int> = 0>
-    unique_ptr<Ty> make_unique(Args &&...args) noexcept(std::is_nothrow_constructible_v<Ty, Args...>) {
+    unique_ptr<Ty> make_unique(Args &&...args) noexcept(type_traits::type_properties::is_nothrow_constructible_v<Ty, Args...>) {
         return unique_ptr<Ty>(new Ty(utility::forward<Args>(args)...));
     }
 
     template <typename Ty, typename... Args,
               type_traits::other_trans::enable_if_t<std::is_array_v<Ty> && std::extent_v<Ty> == 0, int> = 0>
-    unique_ptr<Ty> make_unique(const std::size_t num, Args... args) noexcept(std::is_nothrow_constructible_v<Ty>) {
+    unique_ptr<Ty> make_unique(const std::size_t num, Args... args) noexcept(type_traits::type_properties::is_nothrow_constructible_v<Ty>) {
         using elem = std::remove_extent_t<Ty>;
         return unique_ptr<Ty>(new elem[num](args...), num);
     }
@@ -407,7 +407,7 @@ namespace rainy::foundation::memory {
     template <typename Ty, typename... Args,
               type_traits::other_trans::enable_if_t<std::is_array_v<Ty> && std::extent_v<Ty> == 0, int> = 0>
     unique_ptr<Ty> make_unique(const std::size_t num, std::initializer_list<std::remove_extent_t<Ty>> ilist = {}) noexcept(
-        std::is_nothrow_constructible_v<Ty>) {
+        type_traits::type_properties::is_nothrow_constructible_v<Ty>) {
         using elem = std::remove_extent_t<Ty>;
         auto data = new elem[num];
         std::size_t count = num > ilist.size() ? ilist.size() : num;

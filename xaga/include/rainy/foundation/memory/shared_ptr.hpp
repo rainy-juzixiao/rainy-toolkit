@@ -15,11 +15,11 @@
  */
 #ifndef RAINY_FOUNDATION_MEMORY_SHARED_PTR_HPP
 #define RAINY_FOUNDATION_MEMORY_SHARED_PTR_HPP
+#include <rainy/foundation/container/pair.hpp>
 #include <rainy/core/core.hpp>
 #include <rainy/foundation/memory/allocator.hpp>
 #include <rainy/foundation/memory/nebula_ptr.hpp>
 #include <rainy/foundation/typeinfo.hpp>
-#include <rainy/utility/pair.hpp>
 
 namespace rainy::foundation::memory {
     template <typename Ty>

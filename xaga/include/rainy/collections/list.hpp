@@ -16,8 +16,6 @@
 #ifndef RAINY_COLLECTIONS_LIST_HPP
 #define RAINY_COLLECTIONS_LIST_HPP
 #include <rainy/core/core.hpp>
-#include <rainy/utility/pair.hpp>
-#include <rainy/utility/iterator.hpp>
 #include <rainy/foundation/functional/functor.hpp>
 #include <rainy/foundation/memory/allocator.hpp>
 

@@ -279,7 +279,7 @@ namespace rainy::utility {
         template <typename Fx>
         basic_any &transform(Fx &&handler) {
             using namespace type_traits;
-            using type_list = typename other_trans::tuple_like_to_type_list<primary_types::param_list_in_tuple<Fx>>::type;
+            using type_list = primary_types::function_argument_list<Fx>;
             using target_type = typename other_trans::type_at<0, type_list>::type;
             if (is<target_type>()) {
                 basic_any(utility::invoke(handler, this->template as<target_type>())).swap(*this);

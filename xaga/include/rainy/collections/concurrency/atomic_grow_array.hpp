@@ -78,7 +78,7 @@ namespace rainy::collections::concurrency {
             basic_iterator(array const *const a, end_tag) noexcept : array_{a}, index_{a ? a->size : 0} {
             }
 
-            template <bool ThatC, typename ThatDown, bool ThisC = Const, typename = std::enable_if_t<!ThatC && ThisC>>
+            template <bool ThatC, typename ThatDown, bool ThisC = Const, typename = type_traits::other_trans::enable_if_t<!ThatC && ThisC>>
             explicit basic_iterator(basic_iterator<ThatC, ThatDown> that) noexcept : array_{that.array_}, index_{that.index_} {
             }
 

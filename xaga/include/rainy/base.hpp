@@ -96,7 +96,7 @@ namespace rainy::component {
             return *this;
         }
 
-        RAINY_NODISCARD virtual std::shared_ptr<object_type> clone() const noexcept(std::is_nothrow_copy_constructible_v<object_type>) {
+        RAINY_NODISCARD virtual std::shared_ptr<object_type> clone() const noexcept(type_traits::type_properties::is_nothrow_copy_constructible_v<object_type>) {
             if (std::is_copy_constructible_v<object_type>) {
                 return std::shared_ptr<object_type>(new object_type(*static_cast<const object_type *>(this)));
             }

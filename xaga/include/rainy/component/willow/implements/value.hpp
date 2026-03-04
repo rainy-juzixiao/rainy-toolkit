@@ -288,7 +288,7 @@ namespace rainy::component::willow::implements {
             value = json.value_.data.number_integer;
         }
 
-        template <typename IntegerType, typename std::enable_if_t<std::is_integral_v<IntegerType>, int> = 0>
+        template <typename IntegerType, typename type_traits::other_trans::enable_if_t<std::is_integral_v<IntegerType>, int> = 0>
         static void assign(const BasicJson &json, IntegerType &value) {
             if (!json.is_integer()) {
                 foundation::exceptions::willow::throw_json_type_error("json value type must be integer");
@@ -303,7 +303,7 @@ namespace rainy::component::willow::implements {
             value = json.value_.data.number_float;
         }
 
-        template <typename FloatingType, typename std::enable_if_t<std::is_floating_point<FloatingType>::value, int> = 0>
+        template <typename FloatingType, typename type_traits::other_trans::enable_if_t<std::is_floating_point<FloatingType>::value, int> = 0>
         static void assign(const BasicJson &json, FloatingType &value) {
             if (!json.is_float()) {
                 foundation::exceptions::willow::throw_json_type_error("json value type must be float");

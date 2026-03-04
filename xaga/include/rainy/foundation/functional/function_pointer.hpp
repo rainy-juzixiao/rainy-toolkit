@@ -281,7 +281,7 @@ namespace rainy::foundation::functional::implements {
         using type =
             typename extract<Fx, typename traits::return_type,
                              typename type_traits::primary_types::member_pointer_traits<Fx>::class_type,
-                             typename type_traits::other_trans::tuple_like_to_type_list<typename traits::tuple_like_type>::type>::type;
+                             typename traits::argument_list>::type;
     };
 }
 
