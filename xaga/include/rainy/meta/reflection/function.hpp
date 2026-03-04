@@ -82,7 +82,7 @@ namespace rainy::meta::reflection {
                   type_traits::other_trans::enable_if_t<type_traits::primary_types::function_traits<Fx>::valid, int> = 0>
         function(Fx &&function, Args &&...default_arguments) noexcept : invoke_accessor_{} { // NOLINT
             using traits = type_traits::primary_types::function_traits<Fx>;
-            using paramlist = typename type_traits::other_trans::tuple_like_to_type_list<typename traits::tuple_like_type>::type;
+            using paramlist = typename traits::argument_list;
 
             static constexpr std::size_t arity = traits::arity;
             static constexpr std::size_t default_arg_count = sizeof...(Args);
