@@ -294,7 +294,7 @@ namespace rainy::foundation::text {
 
         template <class T>
         static void format_impl(basic_format_parse_context<char_type> &parse_ctx, Context &format_ctx, const void *ptr) {
-            typename Context::template formatter_type<T> f;
+            typename Context::template formatter_type<type_traits::cv_modify::remove_cvref_t<T>> f;
             parse_ctx.advance_to(f.parse(parse_ctx));
             format_ctx.advance_to(f.format(*static_cast<const T *>(ptr), format_ctx));
         }

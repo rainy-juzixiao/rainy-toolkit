@@ -103,8 +103,9 @@ namespace rainy::foundation::text {
                 allocate_plus_one_(length);
                 std::ranges::copy(first, last, begin_());
             } else {
-                for (; first != last; ++first)
+                for (; first != last; ++first) {
                     push_back(*first);
+                }
             }
         }
 
@@ -130,19 +131,16 @@ namespace rainy::foundation::text {
                 throw std::out_of_range{exception_string_};
             }
             count = (core::min) (other_size - pos, count);
-
             if (pos != 0) {
                 auto other_begin = right.begin_();
                 auto start = other_begin + pos;
                 auto last = start + count;
-
                 if (std::is_constant_evaluated()) {
                     std::copy(start, last, other_begin);
                 } else {
                     std::memmove(other_begin, start, (last - start) * sizeof(CharType));
                 }
             }
-
             right.resize_(count);
             right.swap(*this);
         }
@@ -1331,7 +1329,12 @@ namespace rainy::foundation::text {
 
         RAINY_CONSTEXPR20 void fill_(value_type const *begin, value_type const *end) noexcept {
             assert(("cannot storage string in current allocated storage", static_cast<size_type>(end - begin) <= capacity()));
-            traits_type::move(begin_(), begin, end - begin);
+
+            size_type count = end - begin;
+            if (count > 0) {
+                traits_type::copy(begin_(), begin, count); // 使用 copy 而不是 move
+            }
+            // 不要在这里添加 null 终止符，让 resize_ 处理
         }
 
         RAINY_CONSTEXPR20 void append_(value_type const *first, value_type const *last) {
@@ -1552,10 +1555,12 @@ namespace rainy::foundation::text {
         }
 
         RAINY_CONSTEXPR20 value_type const *end_() const noexcept {
-            if (is_long_())
+            if (is_long_()) {
                 return get_storage().ls_.end_;
-            else
+            }
+            else {
                 return get_storage().ss_.data() + size_flag_;
+            }
         }
 
         RAINY_CONSTEXPR20 CharType *end_() noexcept {

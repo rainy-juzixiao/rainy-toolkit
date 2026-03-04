@@ -30,11 +30,11 @@ namespace rainy::foundation::text {
                 return it;
             }
             auto next_it = it + 1;
-            if (next_it != end && implements::is_align_char(*next_it)) {
+            if (next_it != end && implements::is_align_char(static_cast<char>(*next_it))) {
                 specs_.fill = *it;
                 specs_.align = parse_align(*next_it);
                 it = next_it + 1;
-            } else if (implements::is_align_char(*it)) {
+            } else if (implements::is_align_char(static_cast<char>(*it))) {
                 specs_.align = parse_align(*it);
                 ++it;
             }
@@ -171,6 +171,7 @@ namespace rainy::foundation::text {
 
         template <typename Arg>
         static int extract_int_arg(Arg &&arg, const char *name) {
+            (void) name;
             if (!arg.is_integral()) {
                 exceptions::runtime::throw_format_error("argument must be an integer");
             }
@@ -401,10 +402,10 @@ namespace rainy::foundation::text {
             // 解析对齐和填充
             auto next = it;
             ++next;
-            if (next != end && implements::is_align_char(*next)) {
+            if (next != end && implements::is_align_char(static_cast<char>(*next))) {
                 specs_.fill = *it++;
                 set_align(*it++);
-            } else if (implements::is_align_char(*it)) {
+            } else if (implements::is_align_char(static_cast<char>(*it))) {
                 set_align(*it++);
             }
 
@@ -415,8 +416,9 @@ namespace rainy::foundation::text {
             }
 
             // 解析宽度
-            if (it != end && *it >= '0' && *it <= '9')
+            if (it != end && *it >= '0' && *it <= '9') {
                 specs_.width = static_cast<int>(implements::parse_nonnegative_int<CharType>(it, end));
+            }
 
             // 解析类型
             if (it != end && *it != '}') {
@@ -463,7 +465,6 @@ namespace rainy::foundation::text {
         }
 
     private:
-        // ── parse 辅助 ───────────────────────────────────────────────────
         constexpr void set_align(CharType c) noexcept {
             switch (c) {
                 case '<':
@@ -610,7 +611,7 @@ namespace rainy::foundation::text {
                 }
 
                 // 把转换结果写进 sep_data（最多 8 字节，截断保护）
-                sep_len = static_cast<int>(std::min(utf8_sep.size(), static_cast<std::size_t>(8)));
+                sep_len = static_cast<int>((core::min)(utf8_sep.size(), static_cast<std::size_t>(8)));
                 for (int i = 0; i < sep_len; ++i)
                     sep_data[i] = utf8_sep[i];
             } else {
@@ -708,11 +709,6 @@ namespace rainy::foundation::text {
 namespace rainy::foundation::text {
     template <typename T, typename CharType>
     struct formatter<T, CharType, std::enable_if_t<std::is_floating_point_v<T>>> {
-    private:
-        implements::format_specs<CharType> specs_;
-        char presentation_type_ = '\0'; // 'f','F','e','E','g','G','a','A'
-        bool use_locale_ = false; // ← 新增
-
     public:
         constexpr auto parse(basic_format_parse_context<CharType> &ctx) -> typename basic_format_parse_context<CharType>::iterator {
             auto it = ctx.begin();
@@ -725,7 +721,7 @@ namespace rainy::foundation::text {
             auto next_it = it;
             if (next_it != end)
                 ++next_it;
-            if (next_it != end && implements::is_align_char(*next_it)) {
+            if (next_it != end && implements::is_align_char(static_cast<char>(*next_it))) {
                 specs_.fill = *it++;
                 switch (*it++) {
                     case '<':
@@ -738,7 +734,7 @@ namespace rainy::foundation::text {
                         specs_.align = implements::align_type::center;
                         break;
                 }
-            } else if (implements::is_align_char(*it)) {
+            } else if (implements::is_align_char(static_cast<char>(*it))) {
                 switch (*it++) {
                     case '<':
                         specs_.align = implements::align_type::left;
@@ -763,8 +759,7 @@ namespace rainy::foundation::text {
                 ++it;
                 if (it != end && *it >= '0' && *it <= '9') {
                     specs_.precision = static_cast<int>(implements::parse_nonnegative_int<CharType>(it, end));
-                }
-                else {
+                } else {
                     specs_.precision = 6;
                 }
             }
@@ -848,7 +843,7 @@ namespace rainy::foundation::text {
                     dest[0] = static_cast<char>(wc);
                     return 1;
                 }
-                int n = static_cast<int>(std::min(utf8.size(), static_cast<std::size_t>(8)));
+                int n = static_cast<int>((core::min)(utf8.size(), static_cast<std::size_t>(8)));
                 for (int i = 0; i < n; ++i)
                     dest[i] = utf8[i];
                 return n;
@@ -982,12 +977,10 @@ namespace rainy::foundation::text {
         static void format_general(T value, basic_string<CharType> &str, const int precision, const bool uppercase) {
             char buf[64]{};
             int prec = precision < 0 ? 6 : precision;
-            auto fmt = uppercase ? std::chars_format::general // to_chars 无 uppercase general
-                                 : std::chars_format::general;
             auto [ptr, ec] = to_chars(buf, buf + sizeof(buf), value, std::chars_format::general, prec);
-            if (ec != std::errc{})
+            if (ec != std::errc{}) {
                 foundation::exceptions::runtime::throw_format_error("floating-point to_chars failed");
-
+            }
             if (uppercase) {
                 for (char *p = buf; p != ptr; ++p)
                     if (*p == 'e') {
@@ -995,14 +988,14 @@ namespace rainy::foundation::text {
                         break;
                     }
             }
-
             if constexpr (type_traits::type_relations::is_same_v<CharType, char>) {
                 str.assign(buf, static_cast<std::size_t>(ptr - buf));
             } else {
                 std::size_t n = static_cast<std::size_t>(ptr - buf);
                 CharType wbuf[64]{};
-                for (std::size_t i = 0; i < n; ++i)
+                for (std::size_t i = 0; i < n; ++i) {
                     wbuf[i] = static_cast<CharType>(buf[i]);
+                }
                 str.assign(wbuf, n);
             }
         }
@@ -1070,7 +1063,10 @@ namespace rainy::foundation::text {
                 buffer[len++] = CharType('.');
                 int frac_bits = highest_bit > 0 ? highest_bit : mantissa_bits;
                 int digits_to_output = precision >= 0 ? precision : (frac_bits + 3) / 4;
-
+#if RAINY_USING_MSVC
+#pragma warning(push)
+#pragma warning(disable : 4244)
+#endif
                 for (int i = 0; i < digits_to_output; ++i) {
                     int hex_digit = 0;
                     for (int bit = 0; bit < 4; ++bit) {
@@ -1079,13 +1075,15 @@ namespace rainy::foundation::text {
                             hex_digit |= (1 << (3 - bit));
                         }
                     }
-
                     if (hex_digit < 10) {
                         buffer[len++] = CharType('0' + hex_digit);
                     } else {
                         buffer[len++] = (uppercase ? CharType('A') : CharType('a')) + (hex_digit - 10);
                     }
                 }
+#if RAINY_USING_MSVC
+#pragma warning(pop)
+#endif
             }
             buffer[len++] = uppercase ? CharType('P') : CharType('p');
             if (exponent >= 0) {
@@ -1139,6 +1137,11 @@ namespace rainy::foundation::text {
                     return core::algorithm::copy(str.begin(), str.end(), out);
             }
         }
+
+    private:
+        implements::format_specs<CharType> specs_;
+        char presentation_type_ = '\0'; // 'f','F','e','E','g','G','a','A'
+        bool use_locale_ = false;
     };
 }
 

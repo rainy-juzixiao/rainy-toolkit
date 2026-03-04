@@ -60,7 +60,7 @@ namespace rainy::foundation::text {
                           type_traits::type_relations::is_same_v<type_traits::extras::iterators::iter_value_t<It>, value_type> &&
                           !type_traits::type_relations::is_convertible_v<It, size_type>,
                       int> = 0>
-        constexpr basic_string_view(It begin, End end) : data_{begin}, size_{utility::distance(begin, end)} {
+        constexpr basic_string_view(It begin, End end) : data_{begin}, size_{static_cast<size_type>(utility::distance(begin, end))} {
         }
 
         constexpr const_iterator begin() const noexcept {

@@ -1,7 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
-#include <rainy/core/implements/text/format.hpp>
+#include <rainy/core/core.hpp>
 
 namespace text = rainy::foundation::text;
 
@@ -245,6 +245,11 @@ SCENARIO("Locale-aware floating-point formatting", "[format][locale][float]") {
     }
 }
 
+#if RAINY_USING_MSVC
+#pragma warning(push)
+#pragma warning(disable : 4566)
+#endif
+
 SCENARIO("Edge cases for string formatting", "[format][string][edge]") {
 
     GIVEN("A format string where the placeholder is at the very start") {
@@ -286,3 +291,7 @@ SCENARIO("Edge cases for string formatting", "[format][string][edge]") {
         }
     }
 }
+
+#if RAINY_USING_MSVC
+#pragma warning(pop)
+#endif

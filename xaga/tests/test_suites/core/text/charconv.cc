@@ -5,10 +5,12 @@
 #include <cmath>
 #include <cstring>
 #include <limits>
-#include <rainy/core/implements/text/charconv.hpp>
+#include <rainy/core/core.hpp>
 #include <string>
 
+using namespace rainy;
 using namespace rainy::foundation::text;
+
 using Catch::Matchers::WithinAbs;
 using Catch::Matchers::WithinRel;
 
@@ -234,30 +236,64 @@ SCENARIO("Integer to_chars - Buffer boundary tests", "[to_chars][integer][buffer
 // ============================================================================
 
 SCENARIO("Integer from_chars - All signed types boundaries", "[from_chars][integer][extreme]") {
+    using utility::begin;
+    using utility::end;
+
+    constexpr string_view sc_max = "127";
+    constexpr string_view sc_min = "-128";
+    constexpr string_view sc_ovf = "128";
+    constexpr string_view sc_unf = "-129";
+
+    constexpr string_view uc_max = "255";
+    constexpr string_view uc_ovf = "256";
+    constexpr string_view uc_neg = "-1";
+
+    constexpr string_view s_max = "32767";
+    constexpr string_view s_min = "-32768";
+    constexpr string_view s_ovf = "32768";
+
+    constexpr string_view us_max = "65535";
+    constexpr string_view us_ovf = "65536";
+
+    constexpr string_view i_max = "2147483647";
+    constexpr string_view i_min = "-2147483648";
+    constexpr string_view i_ovf = "2147483648";
+    constexpr string_view i_unf = "-2147483649";
+
+    constexpr string_view ui_max = "4294967295";
+    constexpr string_view ui_ovf = "4294967296";
+
+    constexpr string_view ll_max = "9223372036854775807";
+    constexpr string_view ll_min = "-9223372036854775808";
+    constexpr string_view ll_ovf = "9223372036854775808";
+
+    constexpr string_view ull_max = "18446744073709551615";
+    constexpr string_view ull_ovf = "18446744073709551616";
+
     WHEN("Parsing to signed char") {
         THEN("Max value") {
             signed char val = 0;
-            auto r = from_chars("127", "127" + 3, val);
+            auto r = from_chars(begin(sc_max), end(sc_max), val);
             REQUIRE(r.ec == std::errc{});
             REQUIRE(val == 127);
         }
 
         THEN("Min value") {
             signed char val = 0;
-            auto r = from_chars("-128", "-128" + 4, val);
+            auto r = from_chars(begin(sc_min), end(sc_min), val);
             REQUIRE(r.ec == std::errc{});
             REQUIRE(val == -128);
         }
 
         THEN("Overflow") {
             signed char val = 0;
-            auto r = from_chars("128", "128" + 3, val);
+            auto r = from_chars(begin(sc_ovf), end(sc_ovf), val);
             REQUIRE(r.ec == std::errc::result_out_of_range);
         }
 
         THEN("Underflow") {
             signed char val = 0;
-            auto r = from_chars("-129", "-129" + 4, val);
+            auto r = from_chars(begin(sc_unf), end(sc_unf), val);
             REQUIRE(r.ec == std::errc::result_out_of_range);
         }
     }
@@ -265,158 +301,183 @@ SCENARIO("Integer from_chars - All signed types boundaries", "[from_chars][integ
     WHEN("Parsing to unsigned char") {
         THEN("Max value") {
             unsigned char val = 0;
-            auto r = from_chars("255", "255" + 3, val);
+            auto r = from_chars(begin(uc_max), end(uc_max), val);
             REQUIRE(r.ec == std::errc{});
             REQUIRE(val == 255);
         }
 
         THEN("Overflow") {
             unsigned char val = 0;
-            auto r = from_chars("256", "256" + 3, val);
+            auto r = from_chars(begin(uc_ovf), end(uc_ovf), val);
             REQUIRE(r.ec == std::errc::result_out_of_range);
         }
 
         THEN("Negative on unsigned") {
             unsigned char val = 0;
-            auto r = from_chars("-1", "-1" + 2, val);
+            auto r = from_chars(begin(uc_neg), end(uc_neg), val);
             REQUIRE(r.ec == std::errc::invalid_argument);
         }
     }
 
     WHEN("Parsing to short") {
-        THEN("Max value (32767)") {
+        THEN("Max value") {
             short val = 0;
-            auto r = from_chars("32767", "32767" + 5, val);
+            auto r = from_chars(begin(s_max), end(s_max), val);
             REQUIRE(r.ec == std::errc{});
             REQUIRE(val == 32767);
         }
 
-        THEN("Min value (-32768)") {
+        THEN("Min value") {
             short val = 0;
-            auto r = from_chars("-32768", "-32768" + 6, val);
+            auto r = from_chars(begin(s_min), end(s_min), val);
             REQUIRE(r.ec == std::errc{});
             REQUIRE(val == -32768);
         }
 
         THEN("Overflow") {
             short val = 0;
-            auto r = from_chars("32768", "32768" + 5, val);
+            auto r = from_chars(begin(s_ovf), end(s_ovf), val);
             REQUIRE(r.ec == std::errc::result_out_of_range);
         }
     }
 
     WHEN("Parsing to unsigned short") {
-        THEN("Max value (65535)") {
+        THEN("Max value") {
             unsigned short val = 0;
-            auto r = from_chars("65535", "65535" + 5, val);
+            auto r = from_chars(begin(us_max), end(us_max), val);
             REQUIRE(r.ec == std::errc{});
             REQUIRE(val == 65535);
         }
 
         THEN("Overflow") {
             unsigned short val = 0;
-            auto r = from_chars("65536", "65536" + 5, val);
+            auto r = from_chars(begin(us_ovf), end(us_ovf), val);
             REQUIRE(r.ec == std::errc::result_out_of_range);
         }
     }
 
     WHEN("Parsing to int") {
-        THEN("Max int32 (2147483647)") {
+        THEN("Max int32") {
             int val = 0;
-            auto r = from_chars("2147483647", "2147483647" + 10, val);
+            auto r = from_chars(begin(i_max), end(i_max), val);
             REQUIRE(r.ec == std::errc{});
             REQUIRE(val == 2147483647);
         }
 
-        THEN("Min int32 (-2147483648)") {
+        THEN("Min int32") {
             int val = 0;
-            auto r = from_chars("-2147483648", "-2147483648" + 11, val);
+            auto r = from_chars(begin(i_min), end(i_min), val);
             REQUIRE(r.ec == std::errc{});
-            REQUIRE(val == (int) -2147483648);
+            REQUIRE(val == static_cast<int>(-2147483648));
         }
 
         THEN("Overflow by 1") {
             int val = 0;
-            auto r = from_chars("2147483648", "2147483648" + 10, val);
+            auto r = from_chars(begin(i_ovf), end(i_ovf), val);
             REQUIRE(r.ec == std::errc::result_out_of_range);
         }
 
         THEN("Underflow by 1") {
             int val = 0;
-            auto r = from_chars("-2147483649", "-2147483649" + 11, val);
+            auto r = from_chars(begin(i_unf), end(i_unf), val);
             REQUIRE(r.ec == std::errc::result_out_of_range);
         }
     }
 
     WHEN("Parsing to unsigned int") {
-        THEN("Max uint32 (4294967295)") {
+        THEN("Max uint32") {
             unsigned int val = 0;
-            auto r = from_chars("4294967295", "4294967295" + 10, val);
+            auto r = from_chars(begin(ui_max), end(ui_max), val);
             REQUIRE(r.ec == std::errc{});
             REQUIRE(val == 4294967295U);
         }
 
         THEN("Overflow") {
             unsigned int val = 0;
-            auto r = from_chars("4294967296", "4294967296" + 10, val);
+            auto r = from_chars(begin(ui_ovf), end(ui_ovf), val);
             REQUIRE(r.ec == std::errc::result_out_of_range);
         }
     }
 
     WHEN("Parsing to long long") {
-        THEN("Max int64 (9223372036854775807)") {
+        THEN("Max int64") {
             long long val = 0;
-            auto r = from_chars("9223372036854775807", "9223372036854775807" + 19, val);
+            auto r = from_chars(begin(ll_max), end(ll_max), val);
             REQUIRE(r.ec == std::errc{});
             REQUIRE(val == 9223372036854775807LL);
         }
 
-        THEN("Min int64 (-9223372036854775808)") {
+        THEN("Min int64") {
             long long val = 0;
-            auto r = from_chars("-9223372036854775808", "-9223372036854775808" + 20, val);
+            auto r = from_chars(begin(ll_min), end(ll_min), val);
             REQUIRE(r.ec == std::errc{});
+            REQUIRE(val == -9223372036854775807LL - 1);
         }
 
         THEN("Overflow") {
             long long val = 0;
-            auto r = from_chars("9223372036854775808", "9223372036854775808" + 19, val);
+            auto r = from_chars(begin(ll_ovf), end(ll_ovf), val);
             REQUIRE(r.ec == std::errc::result_out_of_range);
         }
     }
 
     WHEN("Parsing to unsigned long long") {
-        THEN("Max uint64 (18446744073709551615)") {
+        THEN("Max uint64") {
             unsigned long long val = 0;
-            auto r = from_chars("18446744073709551615", "18446744073709551615" + 20, val);
+            auto r = from_chars(begin(ull_max), end(ull_max), val);
             REQUIRE(r.ec == std::errc{});
             REQUIRE(val == 18446744073709551615ULL);
         }
 
         THEN("Overflow") {
             unsigned long long val = 0;
-            auto r = from_chars("18446744073709551616", "18446744073709551616" + 20, val);
+            auto r = from_chars(begin(ull_ovf), end(ull_ovf), val);
             REQUIRE(r.ec == std::errc::result_out_of_range);
         }
     }
 }
 
 SCENARIO("Integer from_chars - All bases exhaustive", "[from_chars][integer][bases]") {
+    using utility::begin;
+    using utility::end;
+
+    constexpr string_view zero = "0";
+    constexpr string_view one = "1";
+
+    // Power-of-2 bases
+    constexpr string_view bin10 = "10";
+    constexpr string_view bin255 = "11111111";
+    constexpr string_view base4_255 = "3333";
+    constexpr string_view oct511 = "777";
+    constexpr string_view hex_ff = "ff";
+    constexpr string_view hex_FF = "FF";
+    constexpr string_view hex_long = "aAbBcCdDeEfF";
+    constexpr string_view base32_vv = "vv";
+
+    // Non-power-of-2 bases <= 10
+    constexpr string_view base3_2222 = "2222";
+    constexpr string_view base5_444 = "444";
+    constexpr string_view base10_9999 = "9999";
+
+    // Non-power-of-2 bases > 10
+    constexpr string_view base11_aa = "aa";
+    constexpr string_view base13_cc = "cc";
+    constexpr string_view base36_zz = "zz";
+
     WHEN("Testing each base 2-36") {
         for (int base = 2; base <= 36; ++base) {
             THEN("Base " + std::to_string(base) + " parses correctly") {
                 int val = 0;
 
-                // Test "0"
-                auto r0 = from_chars("0", "0" + 1, val, base);
+                auto r0 = from_chars(begin(zero), end(zero), val, base);
                 REQUIRE(r0.ec == std::errc{});
                 REQUIRE(val == 0);
 
-                // Test "1"
-                auto r1 = from_chars("1", "1" + 1, val, base);
+                auto r1 = from_chars(begin(one), end(one), val, base);
                 REQUIRE(r1.ec == std::errc{});
                 REQUIRE(val == 1);
 
-                // Test base-1 digit (max single digit)
+                // base-1 digit
                 if (base <= 10) {
                     char digit[2] = {char('0' + base - 1), 0};
                     auto r = from_chars(digit, digit + 1, val, base);
@@ -435,25 +496,25 @@ SCENARIO("Integer from_chars - All bases exhaustive", "[from_chars][integer][bas
     WHEN("Testing power-of-2 bases <= 8") {
         THEN("Base 2 edge cases") {
             int val = 0;
-            auto r1 = from_chars("10", "10" + 2, val, 2);
+            auto r1 = from_chars(begin(bin10), end(bin10), val, 2);
             REQUIRE(r1.ec == std::errc{});
             REQUIRE(val == 2);
 
-            auto r2 = from_chars("11111111", "11111111" + 8, val, 2);
+            auto r2 = from_chars(begin(bin255), end(bin255), val, 2);
             REQUIRE(r2.ec == std::errc{});
             REQUIRE(val == 255);
         }
 
         THEN("Base 4 edge cases") {
             int val = 0;
-            auto r = from_chars("3333", "3333" + 4, val, 4);
+            auto r = from_chars(begin(base4_255), end(base4_255), val, 4);
             REQUIRE(r.ec == std::errc{});
             REQUIRE(val == 255);
         }
 
         THEN("Base 8 edge cases") {
             int val = 0;
-            auto r = from_chars("777", "777" + 3, val, 8);
+            auto r = from_chars(begin(oct511), end(oct511), val, 8);
             REQUIRE(r.ec == std::errc{});
             REQUIRE(val == 511);
         }
@@ -462,21 +523,21 @@ SCENARIO("Integer from_chars - All bases exhaustive", "[from_chars][integer][bas
     WHEN("Testing power-of-2 bases > 8") {
         THEN("Base 16 hex digits") {
             int val = 0;
-            auto r1 = from_chars("ff", "ff" + 2, val, 16);
+            auto r1 = from_chars(begin(hex_ff), end(hex_ff), val, 16);
             REQUIRE(r1.ec == std::errc{});
             REQUIRE(val == 255);
 
-            auto r2 = from_chars("FF", "FF" + 2, val, 16);
+            auto r2 = from_chars(begin(hex_FF), end(hex_FF), val, 16);
             REQUIRE(r2.ec == std::errc{});
             REQUIRE(val == 255);
 
-            auto r3 = from_chars("aAbBcCdDeEfF", "aAbBcCdDeEfF" + 12, val, 16);
+            auto r3 = from_chars(begin(hex_long), end(hex_long), val, 16);
             REQUIRE(r3.ec == std::errc::result_out_of_range);
         }
 
         THEN("Base 32 edge cases") {
             int val = 0;
-            auto r = from_chars("vv", "vv" + 2, val, 32);
+            auto r = from_chars(begin(base32_vv), end(base32_vv), val, 32);
             REQUIRE(r.ec == std::errc{});
             REQUIRE(val == 1023);
         }
@@ -485,21 +546,21 @@ SCENARIO("Integer from_chars - All bases exhaustive", "[from_chars][integer][bas
     WHEN("Testing non-power-of-2 bases <= 10") {
         THEN("Base 3") {
             int val = 0;
-            auto r = from_chars("2222", "2222" + 4, val, 3);
+            auto r = from_chars(begin(base3_2222), end(base3_2222), val, 3);
             REQUIRE(r.ec == std::errc{});
             REQUIRE(val == 80);
         }
 
         THEN("Base 5") {
             int val = 0;
-            auto r = from_chars("444", "444" + 3, val, 5);
+            auto r = from_chars(begin(base5_444), end(base5_444), val, 5);
             REQUIRE(r.ec == std::errc{});
             REQUIRE(val == 124);
         }
 
         THEN("Base 10") {
             int val = 0;
-            auto r = from_chars("9999", "9999" + 4, val, 10);
+            auto r = from_chars(begin(base10_9999), end(base10_9999), val, 10);
             REQUIRE(r.ec == std::errc{});
             REQUIRE(val == 9999);
         }
@@ -508,21 +569,21 @@ SCENARIO("Integer from_chars - All bases exhaustive", "[from_chars][integer][bas
     WHEN("Testing non-power-of-2 bases > 10") {
         THEN("Base 11") {
             int val = 0;
-            auto r = from_chars("aa", "aa" + 2, val, 11);
+            auto r = from_chars(begin(base11_aa), end(base11_aa), val, 11);
             REQUIRE(r.ec == std::errc{});
             REQUIRE(val == 120);
         }
 
         THEN("Base 13") {
             int val = 0;
-            auto r = from_chars("cc", "cc" + 2, val, 13);
+            auto r = from_chars(begin(base13_cc), end(base13_cc), val, 13);
             REQUIRE(r.ec == std::errc{});
             REQUIRE(val == 168);
         }
 
         THEN("Base 36 with all digits") {
             int val = 0;
-            auto r = from_chars("zz", "zz" + 2, val, 36);
+            auto r = from_chars(begin(base36_zz), end(base36_zz), val, 36);
             REQUIRE(r.ec == std::errc{});
             REQUIRE(val == 1295);
         }
@@ -530,23 +591,39 @@ SCENARIO("Integer from_chars - All bases exhaustive", "[from_chars][integer][bas
 }
 
 SCENARIO("Integer from_chars - Invalid input coverage", "[from_chars][integer][invalid]") {
+    using utility::begin;
+    using utility::end;
+
+    constexpr string_view empty = "";
+    constexpr string_view ws3 = "   ";
+    constexpr string_view lead_ws = " 42";
+    constexpr string_view abc = "abc";
+    constexpr string_view special = "@#$";
+    constexpr string_view plus_42 = "+42";
+    constexpr string_view digits_then_letters = "123abc";
+    constexpr string_view neg_then_letters = "-45xyz";
+    constexpr string_view oct_invalid = "1239";
+    constexpr string_view only_minus = "-";
+    constexpr string_view multi_minus = "--5";
+    constexpr string_view minus_middle = "12-34";
+
     WHEN("Empty or whitespace input") {
         THEN("Empty string") {
             int val = 99;
-            auto r = from_chars("", "", val);
+            auto r = from_chars(begin(empty), end(empty), val);
             REQUIRE(r.ec == std::errc::invalid_argument);
-            REQUIRE(r.ptr == "");
+            REQUIRE(r.ptr == begin(empty));
         }
 
         THEN("Only whitespace") {
             int val = 99;
-            auto r = from_chars("   ", "   " + 3, val);
+            auto r = from_chars(begin(ws3), end(ws3), val);
             REQUIRE(r.ec == std::errc::invalid_argument);
         }
 
         THEN("Leading whitespace") {
             int val = 99;
-            auto r = from_chars(" 42", " 42" + 3, val);
+            auto r = from_chars(begin(lead_ws), end(lead_ws), val);
             REQUIRE(r.ec == std::errc::invalid_argument);
         }
     }
@@ -554,19 +631,19 @@ SCENARIO("Integer from_chars - Invalid input coverage", "[from_chars][integer][i
     WHEN("Invalid characters") {
         THEN("Pure alphabetic") {
             int val = 99;
-            auto r = from_chars("abc", "abc" + 3, val);
+            auto r = from_chars(begin(abc), end(abc), val);
             REQUIRE(r.ec == std::errc::invalid_argument);
         }
 
         THEN("Special characters") {
             int val = 99;
-            auto r = from_chars("@#$", "@#$" + 3, val);
+            auto r = from_chars(begin(special), end(special), val);
             REQUIRE(r.ec == std::errc::invalid_argument);
         }
 
         THEN("Plus sign (not supported)") {
             int val = 99;
-            auto r = from_chars("+42", "+42" + 3, val);
+            auto r = from_chars(begin(plus_42), end(plus_42), val);
             REQUIRE(r.ec == std::errc::invalid_argument);
         }
     }
@@ -574,76 +651,95 @@ SCENARIO("Integer from_chars - Invalid input coverage", "[from_chars][integer][i
     WHEN("Partial valid input") {
         THEN("Digits then letters") {
             int val = 0;
-            auto r = from_chars("123abc", "123abc" + 6, val);
+            auto r = from_chars(begin(digits_then_letters), end(digits_then_letters), val);
             REQUIRE(r.ec == std::errc{});
             REQUIRE(val == 123);
-            REQUIRE(r.ptr == "123abc" + 3);
+            REQUIRE(r.ptr == begin(digits_then_letters) + 3);
         }
 
         THEN("Negative then invalid") {
             int val = 0;
-            auto r = from_chars("-45xyz", "-45xyz" + 6, val);
+            auto r = from_chars(begin(neg_then_letters), end(neg_then_letters), val);
             REQUIRE(r.ec == std::errc{});
             REQUIRE(val == -45);
-            REQUIRE(r.ptr == "-45xyz" + 3);
+            REQUIRE(r.ptr == begin(neg_then_letters) + 3);
         }
 
         THEN("Stop at first invalid in base") {
             int val = 0;
-            auto r = from_chars("1239", "1239" + 4, val, 8); // 9 invalid in octal
+            auto r = from_chars(begin(oct_invalid), end(oct_invalid), val, 8); // 9 invalid in octal
             REQUIRE(r.ec == std::errc{});
             REQUIRE(val == 83); // 123 in octal
-            REQUIRE(r.ptr == "1239" + 3);
+            REQUIRE(r.ptr == begin(oct_invalid) + 3);
         }
     }
 
     WHEN("Minus sign edge cases") {
         THEN("Only minus") {
             int val = 99;
-            auto r = from_chars("-", "-" + 1, val);
+            auto r = from_chars(begin(only_minus), end(only_minus), val);
             REQUIRE(r.ec == std::errc::invalid_argument);
         }
 
         THEN("Multiple minus") {
             int val = 99;
-            auto r = from_chars("--5", "--5" + 3, val);
+            auto r = from_chars(begin(multi_minus), end(multi_minus), val);
             REQUIRE(r.ec == std::errc::invalid_argument);
         }
 
         THEN("Minus in middle") {
             int val = 0;
-            auto r = from_chars("12-34", "12-34" + 5, val);
+            auto r = from_chars(begin(minus_middle), end(minus_middle), val);
             REQUIRE(r.ec == std::errc{});
             REQUIRE(val == 12);
-            REQUIRE(r.ptr == "12-34" + 2);
+            REQUIRE(r.ptr == begin(minus_middle) + 2);
         }
     }
 }
 
 SCENARIO("Integer from_chars - Overflow detection exhaustive", "[from_chars][integer][overflow]") {
+    using utility::begin;
+    using utility::end;
+
+    // Signed values
+    constexpr string_view sc_1000 = "1000";
+    constexpr string_view sc_neg1000 = "-1000";
+    constexpr string_view sc_max = "127";
+    constexpr string_view sc_over = "128";
+
+    // Unsigned values
+    constexpr string_view uc_256 = "256";
+    constexpr string_view uc_max = "255";
+    constexpr string_view us_large = "999999999";
+
+    // Base-specific overflows
+    constexpr string_view bin_256 = "100000000"; // binary 256
+    constexpr string_view hex_256 = "100"; // hex 256
+    constexpr string_view base36_ovf = "zzzzzz";
+
     WHEN("Testing signed overflow paths") {
         THEN("Multiplication overflow in signed") {
             signed char val = 0;
-            auto r = from_chars("1000", "1000" + 4, val);
+            auto r = from_chars(begin(sc_1000), end(sc_1000), val);
             REQUIRE(r.ec == std::errc::result_out_of_range);
         }
 
         THEN("Negative multiplication overflow") {
             signed char val = 0;
-            auto r = from_chars("-1000", "-1000" + 5, val);
+            auto r = from_chars(begin(sc_neg1000), end(sc_neg1000), val);
             REQUIRE(r.ec == std::errc::result_out_of_range);
         }
 
         THEN("Just at boundary (no overflow)") {
             signed char val = 0;
-            auto r = from_chars("127", "127" + 3, val);
+            auto r = from_chars(begin(sc_max), end(sc_max), val);
             REQUIRE(r.ec == std::errc{});
             REQUIRE(val == 127);
         }
 
         THEN("One past boundary") {
             signed char val = 0;
-            auto r = from_chars("128", "128" + 3, val);
+            auto r = from_chars(begin(sc_over), end(sc_over), val);
             REQUIRE(r.ec == std::errc::result_out_of_range);
         }
     }
@@ -651,20 +747,20 @@ SCENARIO("Integer from_chars - Overflow detection exhaustive", "[from_chars][int
     WHEN("Testing unsigned overflow paths") {
         THEN("Unsigned type narrower than accumulator") {
             unsigned char val = 0;
-            auto r = from_chars("256", "256" + 3, val);
+            auto r = from_chars(begin(uc_256), end(uc_256), val);
             REQUIRE(r.ec == std::errc::result_out_of_range);
         }
 
         THEN("At exact max") {
             unsigned char val = 0;
-            auto r = from_chars("255", "255" + 3, val);
+            auto r = from_chars(begin(uc_max), end(uc_max), val);
             REQUIRE(r.ec == std::errc{});
             REQUIRE(val == 255);
         }
 
         THEN("Large overflow") {
             unsigned short val = 0;
-            auto r = from_chars("999999999", "999999999" + 9, val);
+            auto r = from_chars(begin(us_large), end(us_large), val);
             REQUIRE(r.ec == std::errc::result_out_of_range);
         }
     }
@@ -672,19 +768,19 @@ SCENARIO("Integer from_chars - Overflow detection exhaustive", "[from_chars][int
     WHEN("Testing overflow in different bases") {
         THEN("Binary overflow") {
             unsigned char val = 0;
-            auto r = from_chars("100000000", "100000000" + 9, val, 2); // 256
+            auto r = from_chars(begin(bin_256), end(bin_256), val, 2); // 256
             REQUIRE(r.ec == std::errc::result_out_of_range);
         }
 
         THEN("Hex overflow") {
             unsigned char val = 0;
-            auto r = from_chars("100", "100" + 3, val, 16); // 256
+            auto r = from_chars(begin(hex_256), end(hex_256), val, 16); // 256
             REQUIRE(r.ec == std::errc::result_out_of_range);
         }
 
         THEN("Base 36 overflow") {
             unsigned short val = 0;
-            auto r = from_chars("zzzzzz", "zzzzzz" + 6, val, 36);
+            auto r = from_chars(begin(base36_ovf), end(base36_ovf), val, 36);
             REQUIRE(r.ec == std::errc::result_out_of_range);
         }
     }
@@ -949,10 +1045,30 @@ SCENARIO("Float to_chars - Precision edge cases", "[to_chars][float][precision]"
 // ============================================================================
 
 SCENARIO("Float from_chars - All special value strings", "[from_chars][float][special]") {
+    using utility::begin;
+    using utility::end;
+
+    // Infinity variants
+    constexpr string_view inf_lc = "inf";
+    constexpr string_view inf_cap = "Inf";
+    constexpr string_view inf_uc = "INF";
+    constexpr string_view infinity = "infinity";
+    constexpr string_view neg_inf = "-inf";
+
+    // NaN variants
+    constexpr string_view nan_lc = "nan";
+    constexpr string_view nan_mixed = "NaN";
+    constexpr string_view nan_uc = "NAN";
+
+    // Zero variants
+    constexpr string_view zero = "0.0";
+    constexpr string_view neg_zero = "-0.0";
+    constexpr string_view zero_e = "0e0";
+
     WHEN("Parsing infinity variants") {
         THEN("inf lowercase") {
             float val = 0.0f;
-            auto r = from_chars("inf", "inf" + 3, val);
+            auto r = from_chars(begin(inf_lc), end(inf_lc), val);
             REQUIRE(r.ec == std::errc{});
             REQUIRE(std::isinf(val));
             REQUIRE(val > 0);
@@ -960,28 +1076,28 @@ SCENARIO("Float from_chars - All special value strings", "[from_chars][float][sp
 
         THEN("Inf capitalized") {
             float val = 0.0f;
-            auto r = from_chars("Inf", "Inf" + 3, val);
+            auto r = from_chars(begin(inf_cap), end(inf_cap), val);
             REQUIRE(r.ec == std::errc{});
             REQUIRE(std::isinf(val));
         }
 
         THEN("INF uppercase") {
             float val = 0.0f;
-            auto r = from_chars("INF", "INF" + 3, val);
+            auto r = from_chars(begin(inf_uc), end(inf_uc), val);
             REQUIRE(r.ec == std::errc{});
             REQUIRE(std::isinf(val));
         }
 
         THEN("infinity full word") {
             float val = 0.0f;
-            auto r = from_chars("infinity", "infinity" + 8, val);
+            auto r = from_chars(begin(infinity), end(infinity), val);
             REQUIRE(r.ec == std::errc{});
             REQUIRE(std::isinf(val));
         }
 
         THEN("-inf negative") {
             float val = 0.0f;
-            auto r = from_chars("-inf", "-inf" + 4, val);
+            auto r = from_chars(begin(neg_inf), end(neg_inf), val);
             REQUIRE(r.ec == std::errc{});
             REQUIRE(std::isinf(val));
             REQUIRE(val < 0);
@@ -991,21 +1107,21 @@ SCENARIO("Float from_chars - All special value strings", "[from_chars][float][sp
     WHEN("Parsing NaN variants") {
         THEN("nan lowercase") {
             float val = 0.0f;
-            auto r = from_chars("nan", "nan" + 3, val);
+            auto r = from_chars(begin(nan_lc), end(nan_lc), val);
             REQUIRE(r.ec == std::errc{});
             REQUIRE(std::isnan(val));
         }
 
         THEN("NaN mixed case") {
             float val = 0.0f;
-            auto r = from_chars("NaN", "NaN" + 3, val);
+            auto r = from_chars(begin(nan_mixed), end(nan_mixed), val);
             REQUIRE(r.ec == std::errc{});
             REQUIRE(std::isnan(val));
         }
 
         THEN("NAN uppercase") {
             float val = 0.0f;
-            auto r = from_chars("NAN", "NAN" + 3, val);
+            auto r = from_chars(begin(nan_uc), end(nan_uc), val);
             REQUIRE(r.ec == std::errc{});
             REQUIRE(std::isnan(val));
         }
@@ -1014,21 +1130,21 @@ SCENARIO("Float from_chars - All special value strings", "[from_chars][float][sp
     WHEN("Parsing zero variants") {
         THEN("0.0") {
             float val = 1.0f;
-            auto r = from_chars("0.0", "0.0" + 3, val);
+            auto r = from_chars(begin(zero), end(zero), val);
             REQUIRE(r.ec == std::errc{});
             REQUIRE(val == 0.0f);
         }
 
         THEN("-0.0") {
             float val = 1.0f;
-            auto r = from_chars("-0.0", "-0.0" + 4, val);
+            auto r = from_chars(begin(neg_zero), end(neg_zero), val);
             REQUIRE(r.ec == std::errc{});
-            // Check for negative zero
+            REQUIRE(std::signbit(val));
         }
 
         THEN("0e0") {
             float val = 1.0f;
-            auto r = from_chars("0e0", "0e0" + 3, val);
+            auto r = from_chars(begin(zero_e), end(zero_e), val);
             REQUIRE(r.ec == std::errc{});
             REQUIRE(val == 0.0f);
         }
@@ -1036,22 +1152,40 @@ SCENARIO("Float from_chars - All special value strings", "[from_chars][float][sp
 }
 
 SCENARIO("Float from_chars - Extreme magnitudes", "[from_chars][float][magnitude]") {
+    using utility::begin;
+    using utility::end;
+
+    // Very large floats
+    constexpr string_view fl_max = "3.4e38";
+    constexpr string_view fl_ovf_bound = "3.5e38";
+    constexpr string_view fl_def_ovf = "1e100";
+
+    // Very small floats
+    constexpr string_view fl_min_norm = "1.17549e-38";
+    constexpr string_view fl_denorm = "1e-45";
+    constexpr string_view fl_underflow = "1e-100";
+
+    // Double extremes
+    constexpr string_view db_max = "1.7e308";
+    constexpr string_view db_ovf = "1e500";
+    constexpr string_view db_denorm = "5e-324";
+
     WHEN("Parsing very large values") {
         THEN("Near float max") {
             float val = 0.0f;
-            auto r = from_chars("3.4e38", "3.4e38" + 6, val);
+            auto r = from_chars(begin(fl_max), end(fl_max), val);
             REQUIRE(r.ec == std::errc{});
         }
 
         THEN("At overflow boundary") {
             float val = 0.0f;
-            auto r = from_chars("3.5e38", "3.5e38" + 6, val);
+            auto r = from_chars(begin(fl_ovf_bound), end(fl_ovf_bound), val);
             // May overflow to infinity
         }
 
         THEN("Definite overflow") {
             float val = 0.0f;
-            auto r = from_chars("1e100", "1e100" + 5, val);
+            auto r = from_chars(begin(fl_def_ovf), end(fl_def_ovf), val);
             if (r.ec == std::errc{}) {
                 REQUIRE(std::isinf(val));
             }
@@ -1061,19 +1195,19 @@ SCENARIO("Float from_chars - Extreme magnitudes", "[from_chars][float][magnitude
     WHEN("Parsing very small values") {
         THEN("Near float min normalized") {
             float val = 0.0f;
-            auto r = from_chars("1.17549e-38", "1.17549e-38" + 11, val);
+            auto r = from_chars(begin(fl_min_norm), end(fl_min_norm), val);
             REQUIRE(r.ec == std::errc{});
         }
 
         THEN("Denormalized range") {
             float val = 0.0f;
-            auto r = from_chars("1e-45", "1e-45" + 5, val);
+            auto r = from_chars(begin(fl_denorm), end(fl_denorm), val);
             REQUIRE(r.ec == std::errc{});
         }
 
         THEN("Underflow to zero") {
             float val = 1.0f;
-            auto r = from_chars("1e-100", "1e-100" + 6, val);
+            auto r = from_chars(begin(fl_underflow), end(fl_underflow), val);
             if (r.ec == std::errc{}) {
                 REQUIRE(val == 0.0f);
             }
@@ -1083,13 +1217,13 @@ SCENARIO("Float from_chars - Extreme magnitudes", "[from_chars][float][magnitude
     WHEN("Parsing double extremes") {
         THEN("Near double max") {
             double val = 0.0;
-            auto r = from_chars("1.7e308", "1.7e308" + 7, val);
+            auto r = from_chars(begin(db_max), end(db_max), val);
             REQUIRE(r.ec == std::errc{});
         }
 
         THEN("Double overflow") {
             double val = 0.0;
-            auto r = from_chars("1e500", "1e500" + 5, val);
+            auto r = from_chars(begin(db_ovf), end(db_ovf), val);
             if (r.ec == std::errc{}) {
                 REQUIRE(std::isinf(val));
             }
@@ -1097,50 +1231,75 @@ SCENARIO("Float from_chars - Extreme magnitudes", "[from_chars][float][magnitude
 
         THEN("Double denormalized") {
             double val = 0.0;
-            auto r = from_chars("5e-324", "5e-324" + 6, val);
+            auto r = from_chars(begin(db_denorm), end(db_denorm), val);
             REQUIRE(r.ec == std::errc{});
         }
     }
 }
 
 SCENARIO("Float from_chars - All format strings", "[from_chars][float][formats]") {
+    using utility::begin;
+    using utility::end;
+
+    // Scientific notation
+    constexpr string_view sci_e_lc = "1.5e10";
+    constexpr string_view sci_E_uc = "1.5E10";
+    constexpr string_view sci_e_plus = "1.5e+10";
+    constexpr string_view sci_e_minus = "1.5e-10";
+    constexpr string_view sci_no_decimal = "15e9";
+    constexpr string_view sci_no_fraction = "1.e10";
+
+    // Fixed point
+    constexpr string_view int_only = "123";
+    constexpr string_view frac_only = ".456";
+    constexpr string_view both_parts = "123.456";
+    constexpr string_view leading_zeros = "00123.45600";
+    constexpr string_view neg_frac = "-123.456";
+
+    // Hexadecimal floats
+    constexpr string_view hex_lc_prefix = "0x1.8p3";
+    constexpr string_view hex_uc_prefix = "0X1.8P3";
+    constexpr string_view hex_digits_lc = "0x1.abcp3";
+    constexpr string_view hex_digits_uc = "0x1.ABCp3";
+    constexpr string_view hex_neg = "-0x1.8p3";
+
     WHEN("Parsing scientific notation variants") {
         THEN("Lowercase e") {
             float val = 0.0f;
-            auto r = from_chars("1.5e10", "1.5e10" + 6, val);
+            auto r = from_chars(begin(sci_e_lc), end(sci_e_lc), val);
             REQUIRE(r.ec == std::errc{});
             REQUIRE_THAT(val, WithinRel(1.5e10f, 0.001f));
         }
 
         THEN("Uppercase E") {
             float val = 0.0f;
-            auto r = from_chars("1.5E10", "1.5E10" + 6, val);
+            auto r = from_chars(begin(sci_E_uc), end(sci_E_uc), val);
             REQUIRE(r.ec == std::errc{});
             REQUIRE_THAT(val, WithinRel(1.5e10f, 0.001f));
         }
 
         THEN("Positive exponent with +") {
             float val = 0.0f;
-            auto r = from_chars("1.5e+10", "1.5e+10" + 7, val);
+            auto r = from_chars(begin(sci_e_plus), end(sci_e_plus), val);
             REQUIRE(r.ec == std::errc{});
         }
 
         THEN("Negative exponent") {
             float val = 0.0f;
-            auto r = from_chars("1.5e-10", "1.5e-10" + 7, val);
+            auto r = from_chars(begin(sci_e_minus), end(sci_e_minus), val);
             REQUIRE(r.ec == std::errc{});
             REQUIRE_THAT(val, WithinRel(1.5e-10f, 0.001e-10f));
         }
 
         THEN("No decimal point") {
             float val = 0.0f;
-            auto r = from_chars("15e9", "15e9" + 4, val);
+            auto r = from_chars(begin(sci_no_decimal), end(sci_no_decimal), val);
             REQUIRE(r.ec == std::errc{});
         }
 
         THEN("No mantissa fraction") {
             float val = 0.0f;
-            auto r = from_chars("1.e10", "1.e10" + 5, val);
+            auto r = from_chars(begin(sci_no_fraction), end(sci_no_fraction), val);
             REQUIRE(r.ec == std::errc{});
         }
     }
@@ -1148,35 +1307,35 @@ SCENARIO("Float from_chars - All format strings", "[from_chars][float][formats]"
     WHEN("Parsing fixed point variants") {
         THEN("Integer part only") {
             float val = 0.0f;
-            auto r = from_chars("123", "123" + 3, val);
+            auto r = from_chars(begin(int_only), end(int_only), val);
             REQUIRE(r.ec == std::errc{});
             REQUIRE(val == 123.0f);
         }
 
         THEN("Fraction part only") {
             float val = 0.0f;
-            auto r = from_chars(".456", ".456" + 4, val);
+            auto r = from_chars(begin(frac_only), end(frac_only), val);
             REQUIRE(r.ec == std::errc{});
             REQUIRE_THAT(val, WithinRel(0.456f, 0.001f));
         }
 
         THEN("Both parts") {
             float val = 0.0f;
-            auto r = from_chars("123.456", "123.456" + 7, val);
+            auto r = from_chars(begin(both_parts), end(both_parts), val);
             REQUIRE(r.ec == std::errc{});
             REQUIRE_THAT(val, WithinRel(123.456f, 0.001f));
         }
 
         THEN("Leading zeros") {
             float val = 0.0f;
-            auto r = from_chars("00123.45600", "00123.45600" + 11, val);
+            auto r = from_chars(begin(leading_zeros), end(leading_zeros), val);
             REQUIRE(r.ec == std::errc{});
             REQUIRE_THAT(val, WithinRel(123.456f, 0.001f));
         }
 
         THEN("Negative with fraction") {
             float val = 0.0f;
-            auto r = from_chars("-123.456", "-123.456" + 8, val);
+            auto r = from_chars(begin(neg_frac), end(neg_frac), val);
             REQUIRE(r.ec == std::errc{});
             REQUIRE_THAT(val, WithinRel(-123.456f, 0.001f));
         }
@@ -1185,32 +1344,32 @@ SCENARIO("Float from_chars - All format strings", "[from_chars][float][formats]"
     WHEN("Parsing hexadecimal float") {
         THEN("0x prefix lowercase") {
             float val = 0.0f;
-            auto r = from_chars("0x1.8p3", "0x1.8p3" + 7, val, chars_format::hex);
+            auto r = from_chars(begin(hex_lc_prefix), end(hex_lc_prefix), val, chars_format::hex);
             REQUIRE(r.ec == std::errc{});
             REQUIRE_THAT(val, WithinRel(12.0f, 0.001f));
         }
 
         THEN("0X prefix uppercase") {
             float val = 0.0f;
-            auto r = from_chars("0X1.8P3", "0X1.8P3" + 7, val, chars_format::hex);
+            auto r = from_chars(begin(hex_uc_prefix), end(hex_uc_prefix), val, chars_format::hex);
             REQUIRE(r.ec == std::errc{});
         }
 
         THEN("Hex digits A-F lowercase") {
             float val = 0.0f;
-            auto r = from_chars("0x1.abcp3", "0x1.abcp3" + 9, val, chars_format::hex);
+            auto r = from_chars(begin(hex_digits_lc), end(hex_digits_lc), val, chars_format::hex);
             REQUIRE(r.ec == std::errc{});
         }
 
         THEN("Hex digits A-F uppercase") {
             float val = 0.0f;
-            auto r = from_chars("0x1.ABCp3", "0x1.ABCp3" + 9, val, chars_format::hex);
+            auto r = from_chars(begin(hex_digits_uc), end(hex_digits_uc), val, chars_format::hex);
             REQUIRE(r.ec == std::errc{});
         }
 
         THEN("Negative hex float") {
             float val = 0.0f;
-            auto r = from_chars("-0x1.8p3", "-0x1.8p3" + 8, val, chars_format::hex);
+            auto r = from_chars(begin(hex_neg), end(hex_neg), val, chars_format::hex);
             REQUIRE(r.ec == std::errc{});
             REQUIRE(val < 0);
         }
@@ -1218,16 +1377,29 @@ SCENARIO("Float from_chars - All format strings", "[from_chars][float][formats]"
 }
 
 SCENARIO("Float from_chars - Invalid input exhaustive", "[from_chars][float][invalid]") {
+    using utility::begin;
+    using utility::end;
+
+    constexpr string_view empty = "";
+    constexpr string_view ws3 = "   ";
+    constexpr string_view alpha = "abc";
+    constexpr string_view special = "@#$";
+    constexpr string_view num_then_text = "12.5abc";
+    constexpr string_view sci_then_text = "1.5e10xyz";
+    constexpr string_view malformed_e = "1.5e";
+    constexpr string_view multi_e = "1.5e10e5";
+    constexpr string_view multi_dot = "1.2.3";
+
     WHEN("Empty or whitespace") {
         THEN("Empty string") {
             float val = 99.0f;
-            auto r = from_chars("", "", val);
+            auto r = from_chars(begin(empty), end(empty), val);
             REQUIRE(r.ec == std::errc::invalid_argument);
         }
 
         THEN("Only whitespace") {
             float val = 99.0f;
-            auto r = from_chars("   ", "   " + 3, val);
+            auto r = from_chars(begin(ws3), end(ws3), val);
             REQUIRE(r.ec == std::errc::invalid_argument);
         }
     }
@@ -1235,13 +1407,13 @@ SCENARIO("Float from_chars - Invalid input exhaustive", "[from_chars][float][inv
     WHEN("Invalid characters") {
         THEN("Pure alphabetic") {
             float val = 99.0f;
-            auto r = from_chars("abc", "abc" + 3, val);
+            auto r = from_chars(begin(alpha), end(alpha), val);
             REQUIRE(r.ec == std::errc::invalid_argument);
         }
 
         THEN("Special characters") {
             float val = 99.0f;
-            auto r = from_chars("@#$", "@#$" + 3, val);
+            auto r = from_chars(begin(special), end(special), val);
             REQUIRE(r.ec == std::errc::invalid_argument);
         }
     }
@@ -1249,15 +1421,15 @@ SCENARIO("Float from_chars - Invalid input exhaustive", "[from_chars][float][inv
     WHEN("Partial valid input") {
         THEN("Number then text") {
             float val = 0.0f;
-            auto r = from_chars("12.5abc", "12.5abc" + 7, val);
+            auto r = from_chars(begin(num_then_text), end(num_then_text), val);
             REQUIRE(r.ec == std::errc{});
             REQUIRE_THAT(val, WithinRel(12.5f, 0.001f));
-            REQUIRE(r.ptr == "12.5abc" + 4);
+            REQUIRE(r.ptr == begin(num_then_text) + 4);
         }
 
         THEN("Scientific then invalid") {
             float val = 0.0f;
-            auto r = from_chars("1.5e10xyz", "1.5e10xyz" + 9, val);
+            auto r = from_chars(begin(sci_then_text), end(sci_then_text), val);
             REQUIRE(r.ec == std::errc{});
         }
     }
@@ -1265,13 +1437,13 @@ SCENARIO("Float from_chars - Invalid input exhaustive", "[from_chars][float][inv
     WHEN("Malformed scientific notation") {
         THEN("e without exponent") {
             float val = 0.0f;
-            auto r = from_chars("1.5e", "1.5e" + 4, val);
+            auto r = from_chars(begin(malformed_e), end(malformed_e), val);
             // Behavior depends on implementation
         }
 
         THEN("Multiple e's") {
             float val = 0.0f;
-            auto r = from_chars("1.5e10e5", "1.5e10e5" + 8, val);
+            auto r = from_chars(begin(multi_e), end(multi_e), val);
             // Should stop at first complete valid parse
         }
     }
@@ -1279,10 +1451,9 @@ SCENARIO("Float from_chars - Invalid input exhaustive", "[from_chars][float][inv
     WHEN("Multiple decimal points") {
         THEN("Two dots") {
             float val = 0.0f;
-            auto r = from_chars("1.2.3", "1.2.3" + 5, val);
-            // Should stop at first invalid point
+            auto r = from_chars(begin(multi_dot), end(multi_dot), val);
             if (r.ec == std::errc{}) {
-                REQUIRE(r.ptr < "1.2.3" + 5);
+                REQUIRE(r.ptr < end(multi_dot));
             }
         }
     }

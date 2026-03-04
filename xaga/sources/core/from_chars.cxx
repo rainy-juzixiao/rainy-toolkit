@@ -63,7 +63,7 @@ namespace rainy::foundation::text::implements {
     }
 
     template <typename Floating>
-    RAINY_NODISCARD from_chars_result ordinary_floating_from_chars(const char *const begin, const char *const end, Floating &value,
+    RAINY_NODISCARD RAINY_INLINE from_chars_result ordinary_floating_from_chars(const char *const begin, const char *const end, Floating &value,
                                                                    const chars_format fmt, const bool minus_sign, const char *next) {
         Floating integer_part = static_cast<Floating>(0.0);
         Floating fractional_part = static_cast<Floating>(0.0);
@@ -255,7 +255,7 @@ namespace rainy::foundation::text::implements {
     }
 
     template <typename Floating>
-    RAINY_NODISCARD from_chars_result infinity_from_chars(const char *const begin, const char *const end, Floating &value,
+    RAINY_NODISCARD RAINY_INLINE from_chars_result infinity_from_chars(const char *const begin, const char *const end, Floating &value,
                                                           const bool minus_sign, const char *next) noexcept {
 
         // 检查 "inf" 或 "infinity"
@@ -288,7 +288,8 @@ namespace rainy::foundation::text::implements {
 
     // 处理 NaN 的转换
     template <typename Floating>
-    RAINY_NODISCARD from_chars_result nan_from_chars(const char *const begin, const char *const end, Floating &value, bool minus_sign,
+    RAINY_NODISCARD RAINY_INLINE from_chars_result nan_from_chars(const char *const begin, const char *const end, Floating &value,
+                                                                  bool minus_sign,
                                                      const char *next) {
 
         // 检查 "nan" 或 "nan(...)"
@@ -337,7 +338,6 @@ namespace rainy::foundation::text::implements {
     template <typename Floating>
     RAINY_NODISCARD from_chars_result floating_from_chars(const char *const begin, const char *const last, Floating &value,
                                                           const chars_format fmt) noexcept {
-        utility::adl_verify_range(begin, last);
         assert((fmt == chars_format::general || fmt == chars_format::scientific || fmt == chars_format::fixed ||
                 fmt == chars_format::hex) &&
                "invalid format in from_chars()");

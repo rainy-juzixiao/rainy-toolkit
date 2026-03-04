@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 rainy-juzixiao
+ * Copyright 2026 rainy-juzixiao
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -158,6 +158,13 @@ namespace rainy::utility {
     private:
         iterator_type current;
     };
+}
+
+namespace rainy::utility {
+    template <typename Iter>
+    constexpr reverse_iterator<Iter> make_reverse_iterator(Iter it) noexcept {
+        return reverse_iterator<Iter>(it);
+    }
 }
 
 #endif

@@ -45,7 +45,6 @@
 #include <rainy/core/type_traits.hpp>
 #include <rainy/core/layer.hpp>
 #include <rainy/core/implements/bit.hpp>
-#include <rainy/core/implements/text/charconv.hpp>
 #include <rainy/core/implements/collections/array.hpp>
 #include <rainy/core/implements/collections/array_view.hpp>
 #include <rainy/core/implements/source_location.hpp>
@@ -53,6 +52,8 @@
 #include <rainy/core/implements/text/char_traits.hpp>
 #include <rainy/core/implements/text/string_view.hpp>
 #include <rainy/core/implements/text/string.hpp>
+#include <rainy/core/implements/text/format.hpp>
+#include <rainy/core/implements/text/charconv.hpp>
 #include <rainy/core/implements/hash.hpp>
 #include <rainy/core/lifetime_annotation.hpp>
 

@@ -328,7 +328,7 @@ namespace rainy::foundation::text::implements {
             return table;
         }
 
-        static constexpr type value = (DecOnly, make_table());
+        static constexpr type value = make_table();
     };
 
     template <bool DecOnly = false>
@@ -340,7 +340,7 @@ namespace rainy::foundation::text::implements {
         }
     }
 
-   template <bool DecOnly, typename Ty>
+    template <bool DecOnly, typename Ty>
     RAINY_CONSTEXPR23 bool from_chars_pow2_base(const char *&begin, const char *end, Ty &value, const int base) {
         static_assert(type_traits::primary_types::is_integral<Ty>::value, "implementation bug");
         static_assert(type_traits::type_properties::is_unsigned<Ty>::value, "implementation bug");

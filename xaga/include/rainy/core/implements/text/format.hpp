@@ -89,6 +89,7 @@ namespace rainy::foundation::text::implements {
     OutputIt do_vformat(OutputIt out, basic_string_view<CharT> fmt, basic_format_parse_context<CharT> &parse_ctx,
                         basic_format_context<OutputIt, CharT> &format_ctx,
                         basic_format_args<basic_format_context<OutputIt, CharT>> args) {
+        (void) parse_ctx;
         const CharT *p = fmt.data();
         const CharT *end = p + fmt.size();
         size_t next_auto_arg_id = 0;
