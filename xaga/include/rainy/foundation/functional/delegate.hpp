@@ -15,7 +15,6 @@
  */
 #ifndef RAINY_FOUNDATION_FUNCTIONAL_DELEGATE_HPP
 #define RAINY_FOUNDATION_FUNCTIONAL_DELEGATE_HPP
-#include <functional>
 #include <rainy/core/core.hpp>
 #include <rainy/foundation/typeinfo.hpp>
 
@@ -43,57 +42,57 @@ namespace rainy::foundation::functional {
 namespace rainy::foundation::functional::implements {
     template <typename Rx, typename Class, typename... Args>
     struct invoker_accessor {
+        virtual ~invoker_accessor() = default;
         virtual Rx invoke(Class *object, Args &&...args) = 0;
-        RAINY_NODISCARD virtual std::uintptr_t target(const foundation::ctti::typeinfo &fx_sign, bool no_check) const noexcept = 0;
-        RAINY_NODISCARD virtual const foundation::ctti::typeinfo &target_type() const noexcept = 0;
+        RAINY_NODISCARD virtual std::uintptr_t target(const ctti::typeinfo &fx_sign) const noexcept = 0;
+        RAINY_NODISCARD virtual const ctti::typeinfo &target_type() const noexcept = 0;
         virtual void destruct(bool local) noexcept = 0;
         virtual invoker_accessor *move(core::byte_t *soo_buffer) noexcept = 0;
         virtual invoker_accessor *copy(core::byte_t *soo_buffer) const = 0;
-        virtual method_flags type() const noexcept = 0;
+        RAINY_NODISCARD virtual method_flags type() const noexcept = 0;
     };
 
     template <typename Fx, typename Rx, typename Class, typename... Args>
     struct invoker_accessor_impl : invoker_accessor<Rx, Class, Args...> {
-    public:
         using fx_traits = type_traits::primary_types::function_traits<Fx>;
         using instance_t = Class;
         using base = invoker_accessor<Rx, Class, Args...>;
 
         template <typename UFx>
-        invoker_accessor_impl(UFx &&fn) : fn(utility::forward<UFx>(fn)) {
+        invoker_accessor_impl(UFx &&fn) : fn(utility::forward<UFx>(fn)) { // NOLINT
         }
 
-        Rx invoke(Class *object, Args &&...args) override {
+        Rx invoke(Class *object, Args &&...args) override { // NOLINT
             // 调用始终是无线程安全的，始终考虑执行的函数是否为线程安全
             if constexpr (type_traits::type_relations::is_void_v<Class>) {
                 if constexpr (type_traits::type_relations::is_void_v<Rx>) {
-                    utility::invoke(utility::forward<Fx>(this->fn), utility::forward<Args>(args)...);
+                    utility::invoke(this->fn, utility::forward<Args>(args)...);
                 } else {
-                    return utility::invoke(utility::forward<Fx>(this->fn), utility::forward<Args>(args)...);
+                    return utility::invoke(this->fn, utility::forward<Args>(args)...);
                 }
             } else {
                 if constexpr (fx_traits::is_invoke_for_lvalue) {
                     if constexpr (type_traits::type_relations::is_void_v<Rx>) {
-                        utility::invoke(utility::forward<Fx>(fn), static_cast<instance_t &>(*static_cast<instance_t *>(object)),
+                        utility::invoke(this->fn, static_cast<instance_t &>(*static_cast<instance_t *>(object)),
                                         utility::forward<Args>(args)...);
                     } else {
-                        return utility::invoke(utility::forward<Fx>(fn), static_cast<instance_t &>(*static_cast<instance_t *>(object)),
+                        return utility::invoke(this->fn, static_cast<instance_t &>(*static_cast<instance_t *>(object)),
                                                utility::forward<Args>(args)...);
                     }
                 } else if constexpr (fx_traits::is_invoke_for_rvalue) {
                     if constexpr (type_traits::type_relations::is_void_v<Rx>) {
-                        utility::invoke(utility::forward<Fx>(fn), static_cast<instance_t &&>(*static_cast<instance_t *>(object)),
+                        utility::invoke(this->fn, static_cast<instance_t &&>(*static_cast<instance_t *>(object)),
                                         utility::forward<Args>(args)...);
                     } else {
-                        return utility::invoke(utility::forward<Fx>(fn),
+                        return utility::invoke(this->fn,
                                                static_cast<instance_t &&>(*static_cast<instance_t *>(object)),
                                                utility::forward<Args>(args)...);
                     }
                 } else {
                     if constexpr (type_traits::type_relations::is_void_v<Rx>) {
-                        utility::invoke(utility::forward<Fx>(fn), static_cast<instance_t *>(object), utility::forward<Args>(args)...);
+                        utility::invoke(this->fn, static_cast<instance_t *>(object), utility::forward<Args>(args)...);
                     } else {
-                        return utility::invoke(utility::forward<Fx>(fn), static_cast<instance_t *>(object),
+                        return utility::invoke(this->fn, static_cast<instance_t *>(object),
                                                utility::forward<Args>(args)...);
                     }
                 }
@@ -101,19 +100,20 @@ namespace rainy::foundation::functional::implements {
         }
 
         void destruct(bool local) noexcept override {
-            this->~invoker_accessor_impl();
-            if (!local) {
+            if (local) {
+                this->~invoker_accessor_impl();
+            } else {
                 delete this;
             }
         }
 
-        method_flags type() const noexcept override {
+        RAINY_NODISCARD method_flags type() const noexcept override {
             static constexpr method_flags flags = core::deduction_invoker_type<Fx, Args...>();
             return flags;
         }
 
-        std::uintptr_t target(const foundation::ctti::typeinfo &fx_sign, bool no_check) const noexcept override {
-            if (fx_sign == rainy_typeid(Fx) || no_check) {
+        RAINY_NODISCARD std::uintptr_t target(const foundation::ctti::typeinfo &fx_sign) const noexcept override {
+            if (fx_sign == rainy_typeid(Fx)) {
                 return reinterpret_cast<std::uintptr_t>(utility::addressof(fn));
             }
             return 0;
@@ -128,13 +128,14 @@ namespace rainy::foundation::functional::implements {
         }
 
         base *copy(core::byte_t *soo_buffer) const override {
-            if constexpr (!type_traits::type_properties::is_copy_constructible_v<Fx>) {
-                std::terminate();
-            }
-            if constexpr (sizeof(invoker_accessor_impl) >= core::fn_obj_soo_buffer_size) {
-                return ::new invoker_accessor_impl(fn);
+            if constexpr (type_traits::type_properties::is_copy_constructible_v<Fx>) {
+                if constexpr (sizeof(invoker_accessor_impl) >= core::fn_obj_soo_buffer_size) {
+                    return ::new invoker_accessor_impl(fn);
+                } else {
+                    return utility::construct_at(reinterpret_cast<invoker_accessor_impl *>(soo_buffer), fn);
+                }
             } else {
-                return utility::construct_at(reinterpret_cast<invoker_accessor_impl *>(soo_buffer), fn);
+                std::terminate();
             }
         }
 
@@ -267,6 +268,7 @@ namespace rainy::foundation::functional::implements {
         void rebind(UFx &&func) {
             if (!empty()) {
                 invoker_accessor_->destruct(is_local());
+                invoker_accessor_ = nullptr;
             }
             using implemented_type = typename get_ia_implement_type<UFx, Rx, class_t, Args...>::type;
             if constexpr (sizeof(implemented_type) > core::fn_obj_soo_buffer_size) {
@@ -279,7 +281,7 @@ namespace rainy::foundation::functional::implements {
 
         void rebind(delegate_impl &&right) {
             reset();
-            move_from_other(right);
+            move_from_other(utility::move(right));
             right.reset();
         }
 
@@ -295,7 +297,12 @@ namespace rainy::foundation::functional::implements {
             if (!right.empty()) {
                 if (right.is_local()) {
                     invoker_accessor_ = right.invoker_accessor()->move(invoker_storage);
-                    right.reset();
+                    if (invoker_accessor_) {
+                        right.invoker_accessor()->destruct(true);
+                    } else {
+                        invoker_accessor_ = right.invoker_accessor_;
+                    }
+                    right.invoker_accessor_ = nullptr;
                 } else {
                     invoker_accessor_ = right.invoker_accessor_;
                     right.invoker_accessor_ = nullptr;
@@ -372,16 +379,9 @@ namespace rainy::foundation::functional::implements {
             if (empty()) {
                 return nullptr;
             }
-            if constexpr (type_traits::primary_types::is_member_function_pointer_v<UFx>) {
-                if constexpr (type_traits::type_relations::is_convertible_v<Fx, UFx>) {
-                    return reinterpret_cast<UFx *>(invoker_accessor()->target(rainy_typeid(Fx), true));
-                }
-            } else {
-                auto ptr = reinterpret_cast<UFx *>(invoker_accessor()->target(rainy_typeid(UFx), false));
-                if (ptr) {
-                    return ptr;
-                }
-                return nullptr;
+            auto ptr = reinterpret_cast<UFx *>(invoker_accessor()->target(rainy_typeid(UFx)));
+            if (ptr) {
+                return ptr;
             }
             return nullptr;
         }
@@ -391,16 +391,9 @@ namespace rainy::foundation::functional::implements {
             if (empty()) {
                 return nullptr;
             }
-            if constexpr (type_traits::primary_types::is_member_function_pointer_v<UFx>) {
-                if constexpr (type_traits::type_relations::is_convertible_v<Fx, UFx>) {
-                    return reinterpret_cast<UFx *>(invoker_accessor()->target(rainy_typeid(Fx), true));
-                }
-            } else {
-                auto ptr = reinterpret_cast<UFx *>(invoker_accessor()->target(rainy_typeid(UFx), false));
-                if (ptr) {
-                    return ptr;
-                }
-                return nullptr;
+            auto ptr = reinterpret_cast<UFx *>(invoker_accessor()->target(rainy_typeid(UFx)));
+            if (ptr) {
+                return ptr;
             }
             return nullptr;
         }
@@ -414,19 +407,17 @@ namespace rainy::foundation::functional::implements {
             return static_cast<const void *>(invoker_accessor_) == reinterpret_cast<const void *>(invoker_storage);
         }
 
-        implements::invoker_accessor<Rx, class_t, Args...> *invoker_accessor() const {
+        implements::invoker_accessor<Rx, class_t, Args...> *invoker_accessor() const { // NOLINT
             return invoker_accessor_;
         }
 
         alignas(std::max_align_t) core::byte_t invoker_storage[core::fn_obj_soo_buffer_size]{};
-        implements::invoker_accessor<Rx, class_t, Args...> *invoker_accessor_{nullptr};
+        implements::invoker_accessor<Rx, class_t, Args...> *invoker_accessor_{nullptr}; // NOLINT
     };
 
     template <typename Fx>
     struct get_delegate_impl {
-        using type = implements::delegate_impl<Fx, typename type_traits::primary_types::function_traits<Fx>::return_type,
-                                               typename type_traits::other_trans::tuple_like_to_type_list<
-                                                   typename type_traits::primary_types::function_traits<Fx>::tuple_like_type>::type>;
+        using type = delegate_impl<Fx, typename type_traits::primary_types::function_traits<Fx>::return_type, typename type_traits::primary_types::function_traits<Fx>::argument_list>;
     };
 }
 
@@ -454,6 +445,10 @@ namespace rainy::foundation::functional {
         delegate(std::nullptr_t) noexcept {
         }
 
+        ~delegate() {
+            this->reset();
+        }
+
         template <typename UFx, typename base::template enable_if_callable_t<UFx, delegate> = 0>
         delegate &operator=(UFx &&fn) {
             this->rebind(utility::forward<UFx>(fn));
@@ -466,7 +461,7 @@ namespace rainy::foundation::functional {
         }
 
         delegate &operator=(delegate &&right) noexcept {
-            this->move_from_other(utility::move(right));
+            this->rebind(utility::move(right));
             return *this;
         }
 
@@ -478,6 +473,54 @@ namespace rainy::foundation::functional {
 
     template <typename Fx>
     delegate(Fx &&) -> delegate<Fx>;
+}
+
+namespace rainy::foundation::functional {
+    template <typename Fx>
+    class move_only_delegate final : public implements::get_delegate_impl<Fx>::type {
+    public:
+        using base = typename implements::get_delegate_impl<Fx>::type;
+
+        move_only_delegate() noexcept = default;
+
+        move_only_delegate(const move_only_delegate &) = delete;
+        move_only_delegate &operator=(const move_only_delegate &) = delete;
+
+        move_only_delegate(move_only_delegate &&right) noexcept {
+            this->move_from_other(utility::move(right));
+        }
+
+        ~move_only_delegate() {
+            this->reset();
+        }
+
+        move_only_delegate &operator=(move_only_delegate &&right) noexcept {
+            this->rebind(utility::move(right));
+            return *this;
+        }
+
+        template <typename UFx, typename base::template enable_if_callable_t<UFx, move_only_delegate> = 0>
+        move_only_delegate(UFx &&fn) {
+            this->rebind(utility::forward<UFx>(fn));
+        }
+
+        template <typename UFx, typename base::template enable_if_callable_t<UFx, move_only_delegate> = 0>
+        move_only_delegate &operator=(UFx &&fn) {
+            this->rebind(utility::forward<UFx>(fn));
+            return *this;
+        }
+
+        move_only_delegate(std::nullptr_t) noexcept { // NOLINT
+        }
+
+        move_only_delegate &operator=(std::nullptr_t) noexcept {
+            this->reset();
+            return *this;
+        }
+    };
+
+    template <typename Fx>
+    move_only_delegate(Fx &&) -> move_only_delegate<Fx>;
 }
 
 #endif

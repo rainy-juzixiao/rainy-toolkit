@@ -10,7 +10,7 @@ namespace rainy::utility {
         using pointer = Ty *;
         using reference = Ty &;
 
-        constexpr input_iterator_pointer(value_type &&val) noexcept(std::is_nothrow_move_constructible_v<value_type>) :
+        constexpr input_iterator_pointer(value_type &&val) noexcept(type_traits::type_properties::is_nothrow_move_constructible_v<value_type>) :
             value{std::move(val)} {
         }
 
@@ -484,14 +484,14 @@ namespace rainy::utility {
         // 非 const 访问（仅当 Iterator 是非 const 时可用）
         template <
             typename Iter = Iterator,
-            typename = std::enable_if_t<!std::is_const_v<std::remove_reference_t<typename std::iterator_traits<Iter>::reference>> >>
+            typename = type_traits::other_trans::enable_if_t<!std::is_const_v<std::remove_reference_t<typename std::iterator_traits<Iter>::reference>> >>
                        typename base::reference get_element_impl() noexcept {
             return current_->second;
         }
 
         template <
             typename Iter = Iterator,
-            typename = std::enable_if_t<!std::is_const_v<std::remove_reference_t<typename std::iterator_traits<Iter>::reference>> >>
+            typename = type_traits::other_trans::enable_if_t<!std::is_const_v<std::remove_reference_t<typename std::iterator_traits<Iter>::reference>> >>
                        typename base::pointer get_pointer_impl() noexcept {
             return utility::addressof(current_->second);
         }

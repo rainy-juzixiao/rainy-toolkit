@@ -1,6 +1,6 @@
+#include <rainy/foundation/concurrency/concurrency.hpp>
 #include <rainy/core/core.hpp>
 #include <rainy/foundation/pal/atomicinfra.hpp>
-#include <rainy/foundation/pal/implements/tgc_layer_threading.hpp>
 #if RAINY_USING_WINDOWS
 #include <windows.h>
 #endif

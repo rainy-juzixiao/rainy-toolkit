@@ -3,7 +3,8 @@
 #include <optional>
 #include <rainy/core/core.hpp>
 #include <rainy/hybrid_jenova/constexpr_hash.hpp>
-#include <rainy/utility/pair.hpp>
+#include <rainy/utility/iterator.hpp>
+#include <rainy/foundation/container/pair.hpp>
 
 namespace rainy::hybrid_jenova::collections {
 #if RAINY_HAS_CXX23

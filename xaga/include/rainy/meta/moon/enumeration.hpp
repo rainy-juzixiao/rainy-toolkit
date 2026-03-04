@@ -15,11 +15,11 @@
  */
 #ifndef RAINY_META_MOON_ENUMERATION_HPP
 #define RAINY_META_MOON_ENUMERATION_HPP
+#include <rainy/foundation/container/pair.hpp>
 #include <optional>
 #include <rainy/core/core.hpp>
 #include <rainy/foundation/functional/functor.hpp>
 #include <rainy/foundation/typeinfo.hpp>
-#include <rainy/utility/pair.hpp>
 
 #define ENUM_SCAN_BEGIN -127
 #define ENUM_SCAN_END 128

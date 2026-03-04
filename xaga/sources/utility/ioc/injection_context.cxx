@@ -20,7 +20,7 @@ namespace rainy::utility::ioc::implements {
         {
             using inject_instance =
                 utility::pair<foundation::memory::nebula_ptr<any>, foundation::memory::nebula_ptr<std::once_flag>>;
-            auto &p = foundation::pal::threading::create_synchronized_task(injection_mutex, [&new_resources_type]() -> decltype(auto) {
+            auto &p = foundation::concurrency::synchronized_invoke(injection_mutex, [&new_resources_type]() -> decltype(auto) {
                 return inject_impl()
                     ->emplace(new_resources_type, inject_instance{foundation::memory::make_nebula<any>(),
                                                                   foundation::memory::make_nebula<std::once_flag>()})

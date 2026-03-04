@@ -19,7 +19,7 @@ namespace rainy::foundation::fact {
         using product_key = ProdKey;
         using value_type = typename Map<product_key, creater>::value_type;
         using allocator_type = Alloc<value_type>;
-        using map = typename type_traits::extras::templates::replace_last_correct<Map<product_key, creater>, allocator_type>::type;
+        using map = typename type_traits::extras::templates::replace_last_parameter<Map<product_key, creater>, allocator_type>::type;
         using iterator = typename map::iterator;
         using const_iterator = typename map::const_iterator;
         using size_type = typename map::size_type;

@@ -16,7 +16,7 @@
 #ifndef RAINY_UTILITY_TIME_HPP
 #define RAINY_UTILITY_TIME_HPP
 #include <rainy/core/core.hpp>
-#include <rainy/utility/pair.hpp>
+#include <rainy/foundation/container/pair.hpp>
 
 namespace rainy::utility::time {
     enum class format {

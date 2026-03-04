@@ -20,12 +20,12 @@ namespace rainy::component::willow {
         using size_type = std::size_t;
         using difference_type = std::ptrdiff_t;
         using char_type = typename StringType::value_type; 
-        using string_type = typename type_traits::extras::templates::replace_last_correct<StringType,allocator_type<char_type>>::type;
+        using string_type = typename type_traits::extras::templates::replace_last_parameter<StringType,allocator_type<char_type>>::type;
         using integer_type = IntegerType;
         using float_type = FloatingType;
         using boolean_type = BooleanType;
         using array_type = ArrayType<basic_json, allocator_type<basic_json>>;
-        using object_type = typename type_traits::extras::templates::replace_last_correct<ObjectType<string_type, basic_json>,allocator_type<std::pair<const string_type, basic_json>>>::type;
+        using object_type = typename type_traits::extras::templates::replace_last_parameter<ObjectType<string_type, basic_json>,allocator_type<std::pair<const string_type, basic_json>>>::type;
         using initializer_list = std::initializer_list<basic_json>;
         using iterator = iterators::json_iterator<basic_json>;
         using const_iterator = iterators::json_iterator<const basic_json>;

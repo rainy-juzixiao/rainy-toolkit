@@ -35,6 +35,18 @@ namespace rainy::foundation::memory::implements {
         }
     }
 
+    namespace {
+        struct thread_cleanup {
+            thread_hazard_list *list = nullptr;
+            ~thread_cleanup() {
+                if (list) {
+                    hazard_pointer_registry::instance().mark_inactive();
+                }
+            }
+        };
+        thread_local thread_cleanup tl_cleanup;
+    }
+
     thread_hazard_list *hazard_pointer_registry::get_thread_list() {
         thread_local thread_hazard_list *thread_list = nullptr;
         if (thread_list == nullptr) {
@@ -57,15 +69,7 @@ namespace rainy::foundation::memory::implements {
                 thread_count_.fetch_add(1, std::memory_order_relaxed);
             }
             // Register thread cleanup
-            thread_local struct thread_cleanup {
-                thread_hazard_list *list;
-
-                ~thread_cleanup() {
-                    if (list) {
-                        instance().mark_inactive();
-                    }
-                }
-            } cleanup{thread_list};
+            tl_cleanup.list = thread_list;
         }
         return thread_list;
     }

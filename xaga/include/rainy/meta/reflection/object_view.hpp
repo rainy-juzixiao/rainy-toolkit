@@ -312,7 +312,7 @@ namespace rainy::meta::reflection {
             object_{const_cast<void *>(static_cast<const void *>(utility::addressof(object)))}, ctti_{&rainy_typeid(Ty)} {
         }
 
-        template <typename Ty, std::enable_if_t<!type_traits::type_relations::is_same_v<std::decay_t<Ty>, object_view> &&
+        template <typename Ty, type_traits::other_trans::enable_if_t<!type_traits::type_relations::is_same_v<std::decay_t<Ty>, object_view> &&
                                                     !type_traits::type_relations::is_same_v<std::decay_t<Ty>, non_exists_instance_t> &&
                                                     std::is_rvalue_reference_v<Ty &&> && !std::is_lvalue_reference_v<Ty>,
                                                 int> = 0>

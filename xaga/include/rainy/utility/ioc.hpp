@@ -1,9 +1,9 @@
 #ifndef RAINY_UTILITY_IOC_HPP
 #define RAINY_UTILITY_IOC_HPP
+#include <rainy/foundation/concurrency/concurrency.hpp>
 #include <rainy/core/core.hpp>
 #include <rainy/foundation/fact.hpp>
 #include <rainy/utility/any.hpp>
-#include <rainy/foundation/pal/threading.hpp>
 
 namespace rainy::utility::ioc::implements {
     struct inject_item {
@@ -143,7 +143,7 @@ namespace rainy::utility::ioc {
 
         template <typename Type, typename Impl = Type, typename... Args>
         static rain_fn register_type() -> void {
-            foundation::pal::threading::create_synchronized_task(implements::injection_context::get_mutex(), []() {
+            foundation::concurrency::synchronized_invoke(implements::injection_context::get_mutex(), []() {
                 if constexpr (implements::is_factory_inject_available<Type>) {
                     factory_inject<Type>{}.inject(*impl()->storage);
                 } else {

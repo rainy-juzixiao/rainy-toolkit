@@ -130,7 +130,7 @@ namespace rainy::foundation::memory {
 
         template <typename... Args>
         RAINY_CONSTEXPR20 void construct(value_type *const ptr, Args &&...args) const
-            noexcept(std::is_nothrow_constructible_v<value_type, Args...>) {
+            noexcept(type_traits::type_properties::is_nothrow_constructible_v<value_type, Args...>) {
             utility::construct_at(ptr, utility::forward<Args>(args)...);
         }
 
@@ -726,7 +726,7 @@ namespace rainy::foundation::memory {
 
         template <typename... Args>
         RAINY_CONSTEXPR20 void construct(value_type *const ptr, Args &&...args) const
-            noexcept(std::is_nothrow_constructible_v<value_type, Args...>) {
+            noexcept(type_traits::type_properties::is_nothrow_constructible_v<value_type, Args...>) {
             utility::construct_at(ptr, utility::forward<Args>(args)...);
         }
 

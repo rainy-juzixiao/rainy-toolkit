@@ -1,5 +1,5 @@
+#include <rainy/foundation/concurrency/concurrency.hpp>
 #include <rainy/foundation/pal/implements/tgc_atomicinfra.hpp>
-#include <rainy/foundation/pal/threading.hpp>
 
 #if RAINY_USING_WINDOWS
 #include <windows.h>
@@ -31,23 +31,21 @@ namespace rainy::foundation::pal::atomicinfra::implements {
     }
 
     void atomic_lock_acquire(void **spinlock) noexcept {
-        threading::implements::mtx_lock(spinlock);
+        concurrency::implements::mtx_lock(spinlock);
     }
 
     void atomic_lock_release(void **spinlock) noexcept {
-        threading::implements::mtx_unlock(spinlock);
+        concurrency::implements::mtx_unlock(spinlock);
     }
 }
 
 namespace rainy::foundation::pal::atomicinfra::implements {
-    //constexpr unsigned long long atomic_wait_no_deadline = 0xFFFF'FFFF'FFFF'FFFF;
-
     constexpr size_t wait_table_size_power = 8;
     constexpr size_t wait_table_size = 1 << wait_table_size_power;
     constexpr size_t wait_table_index_mask = wait_table_size - 1;
 
     struct wait_context {
-        const void *storage; // Pointer to wait on
+        const void *storage;
         wait_context *next;
         wait_context *prev;
         std::uintptr_t condition_variable;
@@ -72,14 +70,14 @@ namespace rainy::foundation::pal::atomicinfra::implements {
 
     class lock_auard : type_traits::helper::non_copyable {
     public:
-        using mtx_t = threading::implements::mtx_t;
+        using mtx_t = concurrency::implements::mtx_t;
 
         explicit lock_auard(mtx_t locked) noexcept : locked(locked) {
-            threading::implements::mtx_lock(&locked);
+            concurrency::implements::mtx_lock(&locked);
         }
 
         ~lock_auard() {
-            threading::implements::mtx_unlock(&locked);
+            concurrency::implements::mtx_unlock(&locked);
         }
 
     private:
@@ -91,7 +89,7 @@ namespace rainy::foundation::pal::atomicinfra::implements {
 
         constexpr wait_table_entry() noexcept = default;
 
-        threading::implements::mtx_t lock{};
+        concurrency::implements::mtx_t lock{};
     };
 
     wait_table_entry &atomic_wait_table_entry(const void *const storage) noexcept {
@@ -241,7 +239,7 @@ namespace rainy::foundation::pal::atomicinfra::implements {
                 return 1;
             }
             if (!SleepConditionVariableSRW(reinterpret_cast<PCONDITION_VARIABLE>(&context.condition_variable),
-                                           reinterpret_cast<PSRWLOCK>(threading::implements::native_mtx_handle(&entry.lock)),
+                                           reinterpret_cast<PSRWLOCK>(concurrency::implements::native_mtx_handle(&entry.lock)),
                                            remaining_timeout, 0)) {
                 implements::assume_timeout();
                 return 0;

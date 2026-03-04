@@ -19,6 +19,7 @@
 #include <rainy/foundation/functional/functor.hpp>
 #include <rainy/foundation/memory/allocator.hpp>
 #include <rainy/foundation/memory/hazard_pointer.hpp>
+#include <rainy/foundation/concurrency/atomic.hpp>
 
 #if RAINY_USING_MSVC
 #pragma warning(push)
@@ -56,7 +57,7 @@ namespace rainy::collections::concurrency {
 
         struct node {
             Ty value;
-            std::atomic<node *> next;
+            foundation::concurrency::atomic<node *> next;
 
             template <typename... Args>
             explicit node(Args &&...args) : value(utility::forward<Args>(args)...), next(nullptr) {
@@ -104,7 +105,7 @@ namespace rainy::collections::concurrency {
 
             const_iterator &operator++() {
                 if (node_ptr) {
-                    node_ptr = node_ptr->next.load(std::memory_order_acquire);
+                    node_ptr = node_ptr->next.load(foundation::concurrency::memory_order_acquire);
                 }
                 return *this;
             }
@@ -149,7 +150,7 @@ namespace rainy::collections::concurrency {
 
             iterator &operator++() {
                 if (node_ptr) {
-                    node_ptr = node_ptr->next.load(std::memory_order_acquire);
+                    node_ptr = node_ptr->next.load(foundation::concurrency::memory_order_acquire);
                 }
                 return *this;
             }
@@ -257,11 +258,11 @@ namespace rainy::collections::concurrency {
         }
 
         iterator begin() noexcept {
-            return iterator(head_->next.load(std::memory_order_acquire));
+            return iterator(head_->next.load(foundation::concurrency::memory_order_acquire));
         }
 
         const_iterator begin() const noexcept {
-            return const_iterator(head_->next.load(std::memory_order_acquire));
+            return const_iterator(head_->next.load(foundation::concurrency::memory_order_acquire));
         }
 
         iterator end() noexcept {
@@ -285,7 +286,7 @@ namespace rainy::collections::concurrency {
         }
 
         RAINY_NODISCARD bool empty() const noexcept {
-            return head_->next.load(std::memory_order_acquire) == nullptr;
+            return head_->next.load(foundation::concurrency::memory_order_acquire) == nullptr;
         }
 
         RAINY_NODISCARD size_type max_size() const noexcept {
@@ -293,16 +294,16 @@ namespace rainy::collections::concurrency {
         }
 
         RAINY_NODISCARD size_type size() const noexcept {
-            return size_.load(std::memory_order_relaxed);
+            return size_.load(foundation::concurrency::memory_order_relaxed);
         }
 
         reference front() {
-            node *f = head_->next.load(std::memory_order_acquire);
+            node *f = head_->next.load(foundation::concurrency::memory_order_acquire);
             return f->value;
         }
 
         const_reference front() const {
-            const node *f = head_->next.load(std::memory_order_acquire);
+            const node *f = head_->next.load(foundation::concurrency::memory_order_acquire);
             return f->value;
         }
 
@@ -320,12 +321,12 @@ namespace rainy::collections::concurrency {
                     }
                 }
             } guard{new_node, &allocator_};
-            node *old_head = head_->next.load(std::memory_order_acquire);
+            node *old_head = head_->next.load(foundation::concurrency::memory_order_acquire);
             do {
-                new_node->next.store(old_head, std::memory_order_relaxed);
-            } while (!head_->next.compare_exchange_weak(old_head, new_node, std::memory_order_release, std::memory_order_acquire));
+                new_node->next.store(old_head, foundation::concurrency::memory_order_relaxed);
+            } while (!head_->next.compare_exchange_weak(old_head, new_node, foundation::concurrency::memory_order_release, foundation::concurrency::memory_order_acquire));
             guard.released = true;
-            size_.fetch_add(1, std::memory_order_relaxed);
+            size_.fetch_add(1, foundation::concurrency::memory_order_relaxed);
             return new_node->value;
         }
 
@@ -345,12 +346,12 @@ namespace rainy::collections::concurrency {
                 first = hp.protect(head_->next.load());
                 if (!first)
                     return;
-            } while (!head_->next.compare_exchange_strong(first, first->next.load(std::memory_order_acquire),
-                                                          std::memory_order_release, std::memory_order_acquire));
+            } while (!head_->next.compare_exchange_strong(first, first->next.load(foundation::concurrency::memory_order_acquire),
+                                                          foundation::concurrency::memory_order_release, foundation::concurrency::memory_order_acquire));
             hp.reset_protection();
             // 使用自定义删除器
             foundation::memory::hazard_pointer_domain<node>::global().retire(first);
-            size_.fetch_sub(1, std::memory_order_relaxed);
+            size_.fetch_sub(1, foundation::concurrency::memory_order_relaxed);
         }
 
         template <typename... Args>
@@ -362,9 +363,9 @@ namespace rainy::collections::concurrency {
             node *next = nullptr;
             do {
                 next = hp.protect(pos->next.load());
-                new_node->next.store(next, std::memory_order_relaxed);
-            } while (!pos->next.compare_exchange_weak(next, new_node, std::memory_order_release, std::memory_order_acquire));
-            size_.fetch_add(1, std::memory_order_relaxed);
+                new_node->next.store(next, foundation::concurrency::memory_order_relaxed);
+            } while (!pos->next.compare_exchange_weak(next, new_node, foundation::concurrency::memory_order_release, foundation::concurrency::memory_order_acquire));
+            size_.fetch_add(1, foundation::concurrency::memory_order_relaxed);
             return iterator(new_node);
         }
 
@@ -406,37 +407,37 @@ namespace rainy::collections::concurrency {
                 to_erase = hp.protect(pos->next.load());
                 if (!to_erase)
                     return iterator(nullptr);
-            } while (!pos->next.compare_exchange_weak(to_erase, to_erase->next.load(std::memory_order_acquire),
-                                                      std::memory_order_release, std::memory_order_acquire));
+            } while (!pos->next.compare_exchange_weak(to_erase, to_erase->next.load(foundation::concurrency::memory_order_acquire),
+                                                      foundation::concurrency::memory_order_release, foundation::concurrency::memory_order_acquire));
 
             hp.reset_protection();
             foundation::memory::hazard_pointer_domain<node>::global().retire(to_erase);
-            size_.fetch_sub(1, std::memory_order_relaxed);
-            return iterator(pos->next.load(std::memory_order_acquire));
+            size_.fetch_sub(1, foundation::concurrency::memory_order_relaxed);
+            return iterator(pos->next.load(foundation::concurrency::memory_order_acquire));
         }
 
         iterator erase_after(const_iterator position, const_iterator last) noexcept {
             node *pos = const_cast<node *>(position.node_ptr);
             node *l = const_cast<node *>(last.node_ptr);
 
-            node *to_erase = pos->next.load(std::memory_order_acquire);
+            node *to_erase = pos->next.load(foundation::concurrency::memory_order_acquire);
             size_type count = 0;
 
             while (to_erase && to_erase != l) {
-                node *next = to_erase->next.load(std::memory_order_acquire);
+                node *next = to_erase->next.load(foundation::concurrency::memory_order_acquire);
                 // 使用自定义删除器
                 foundation::memory::hazard_pointer_domain<node>::global().retire(to_erase);
                 to_erase = next;
                 ++count;
             }
 
-            pos->next.store(l, std::memory_order_release);
-            size_.fetch_sub(count, std::memory_order_relaxed);
+            pos->next.store(l, foundation::concurrency::memory_order_release);
+            size_.fetch_sub(count, foundation::concurrency::memory_order_relaxed);
             return iterator(l);
         }
 
         void resize(size_type sz) {
-            size_type current = size_.load(std::memory_order_relaxed);
+            size_type current = size_.load(foundation::concurrency::memory_order_relaxed);
             if (sz < current) {
                 auto it = before_begin();
                 std::advance(it, static_cast<difference_type>(sz));
@@ -451,7 +452,7 @@ namespace rainy::collections::concurrency {
         }
 
         void resize(size_type sz, const value_type &c) {
-            size_type current = size_.load(std::memory_order_relaxed);
+            size_type current = size_.load(foundation::concurrency::memory_order_relaxed);
             if (sz < current) {
                 auto it = before_begin();
                 std::advance(it, static_cast<difference_type>(sz));
@@ -466,14 +467,14 @@ namespace rainy::collections::concurrency {
         }
 
         void clear() noexcept {
-            node *curr = head_->next.exchange(nullptr, std::memory_order_acquire);
+            node *curr = head_->next.exchange(nullptr, foundation::concurrency::memory_order_acquire);
             while (curr) {
-                node *next = curr->next.load(std::memory_order_acquire);
+                node *next = curr->next.load(foundation::concurrency::memory_order_acquire);
                 // 使用自定义删除器
                 foundation::memory::hazard_pointer_domain<node>::global().retire(curr);
                 curr = next;
             }
-            size_.store(0, std::memory_order_relaxed);
+            size_.store(0, foundation::concurrency::memory_order_relaxed);
             foundation::memory::hazard_pointer_domain<node>::global().reclaim();
         }
 
@@ -502,14 +503,14 @@ namespace rainy::collections::concurrency {
             node *pos = const_cast<node *>(position.node_ptr);
             node *f = const_cast<node *>(first.node_ptr);
             node *l = const_cast<node *>(last.node_ptr);
-            node *f_next = f->next.load(std::memory_order_acquire);
+            node *f_next = f->next.load(foundation::concurrency::memory_order_acquire);
             if (f_next == l) {
                 return;
             }
             // 找到最后一个节点（last 前的节点），同时用 CAS 防止并发修改
             node *before_last = f_next;
             while (true) {
-                node *next = before_last->next.load(std::memory_order_acquire);
+                node *next = before_last->next.load(foundation::concurrency::memory_order_acquire);
                 if (next == l) {
                     break;
                 }
@@ -518,19 +519,19 @@ namespace rainy::collections::concurrency {
             // 将 f..before_last 从 x 中取出
             node *old_pos_next = nullptr;
             do {
-                old_pos_next = pos->next.load(std::memory_order_acquire);
-                before_last->next.store(old_pos_next, std::memory_order_release);
-            } while (!pos->next.compare_exchange_weak(old_pos_next, f_next, std::memory_order_release, std::memory_order_relaxed));
-            f->next.store(l, std::memory_order_release);
+                old_pos_next = pos->next.load(foundation::concurrency::memory_order_acquire);
+                before_last->next.store(old_pos_next, foundation::concurrency::memory_order_release);
+            } while (!pos->next.compare_exchange_weak(old_pos_next, f_next, foundation::concurrency::memory_order_release, foundation::concurrency::memory_order_relaxed));
+            f->next.store(l, foundation::concurrency::memory_order_release);
             // 更新大小
             size_type count = 0;
             node *it = f_next;
             while (it != l) {
                 ++count;
-                it = it->next.load(std::memory_order_acquire);
+                it = it->next.load(foundation::concurrency::memory_order_acquire);
             }
-            x.size_.fetch_sub(count, std::memory_order_relaxed);
-            size_.fetch_add(count, std::memory_order_relaxed);
+            x.size_.fetch_sub(count, foundation::concurrency::memory_order_relaxed);
+            size_.fetch_add(count, foundation::concurrency::memory_order_relaxed);
         }
 
 
@@ -548,7 +549,7 @@ namespace rainy::collections::concurrency {
             size_type count = 0;
             auto it = before_begin();
             while (true) {
-                node *next_node = it.node_ptr->next.load(std::memory_order_acquire);
+                node *next_node = it.node_ptr->next.load(foundation::concurrency::memory_order_acquire);
                 if (!next_node) {
                     break;
                 }
@@ -577,8 +578,8 @@ namespace rainy::collections::concurrency {
             }
             size_type count = 0;
             auto it = begin();
-            while (it.node_ptr->next.load(std::memory_order_acquire) != nullptr) {
-                node *next_node = it.node_ptr->next.load(std::memory_order_acquire);
+            while (it.node_ptr->next.load(foundation::concurrency::memory_order_acquire) != nullptr) {
+                node *next_node = it.node_ptr->next.load(foundation::concurrency::memory_order_acquire);
                 if (binary_pred(it.node_ptr->value, next_node->value)) {
                     if (erase_after(const_iterator(it.node_ptr)) != end()) {
                         ++count;
@@ -608,7 +609,7 @@ namespace rainy::collections::concurrency {
             auto pos = before_begin();
             auto x_it = x.begin();
             while (x_it != x.end()) {
-                node *pos_next = pos.node_ptr->next.load(std::memory_order_acquire);
+                node *pos_next = pos.node_ptr->next.load(foundation::concurrency::memory_order_acquire);
                 if (!pos_next) {
                     break;
                 }
@@ -634,15 +635,15 @@ namespace rainy::collections::concurrency {
         }
 
         void reverse() noexcept {
-            if (size_.load(std::memory_order_relaxed) <= 1) {
+            if (size_.load(foundation::concurrency::memory_order_relaxed) <= 1) {
                 return;
             }
             node *prev = nullptr;
-            node *current = head_->next.load(std::memory_order_acquire);
+            node *current = head_->next.load(foundation::concurrency::memory_order_acquire);
             while (current) {
-                node *next = current->next.load(std::memory_order_acquire);
+                node *next = current->next.load(foundation::concurrency::memory_order_acquire);
                 // CAS 循环确保安全修改
-                while (!current->next.compare_exchange_weak(next, prev, std::memory_order_release, std::memory_order_relaxed)) {
+                while (!current->next.compare_exchange_weak(next, prev, foundation::concurrency::memory_order_release, foundation::concurrency::memory_order_relaxed)) {
                     // 如果修改失败，next 被其他线程改变，重新读取
                 }
                 prev = current;
@@ -651,17 +652,17 @@ namespace rainy::collections::concurrency {
             // CAS 更新 head_->next
             node *old_head_next = nullptr;
             do {
-                old_head_next = head_->next.load(std::memory_order_acquire);
-            } while (!head_->next.compare_exchange_weak(old_head_next, prev, std::memory_order_release, std::memory_order_relaxed));
+                old_head_next = head_->next.load(foundation::concurrency::memory_order_acquire);
+            } while (!head_->next.compare_exchange_weak(old_head_next, prev, foundation::concurrency::memory_order_release, foundation::concurrency::memory_order_relaxed));
         }
 
         void swap(forward_list &right) noexcept {
             node *old_head = head_;
             head_ = right.head_;
             right.head_ = old_head;
-            const size_type old_size = size_.load(std::memory_order_relaxed);
-            size_.store(right.size_.load(std::memory_order_relaxed), std::memory_order_relaxed);
-            right.size_.store(old_size, std::memory_order_relaxed);
+            const size_type old_size = size_.load(foundation::concurrency::memory_order_relaxed);
+            size_.store(right.size_.load(foundation::concurrency::memory_order_relaxed), foundation::concurrency::memory_order_relaxed);
+            right.size_.store(old_size, foundation::concurrency::memory_order_relaxed);
         }
 
     private:
@@ -679,7 +680,7 @@ namespace rainy::collections::concurrency {
         node *allocate_node_dummy() {
             node *p = new node;
             try {
-                p->next.store(nullptr, std::memory_order_relaxed);
+                p->next.store(nullptr, foundation::concurrency::memory_order_relaxed);
             } catch (...) {
                 allocator_.deallocate(p, 1);
                 throw;
@@ -696,7 +697,7 @@ namespace rainy::collections::concurrency {
 
         node_allocator_type allocator_;
         node *head_;
-        std::atomic<size_t> size_;
+        foundation::concurrency::atomic<size_t> size_;
     };
 
     template <typename Ty, typename Allocator>

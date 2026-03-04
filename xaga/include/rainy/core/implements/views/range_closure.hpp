@@ -27,7 +27,7 @@ namespace rainy::collections::views::implements {
                       "Fx must be empty and default constructible");
 
         template <typename... UTypes,
-                  typename = std::enable_if_t<(std::is_same<typename std::decay<UTypes>::type, Types>::value && ...)>>
+                  typename = type_traits::other_trans::enable_if_t<(std::is_same<typename std::decay<UTypes>::type, Types>::value && ...)>>
         constexpr explicit range_closure(UTypes &&...args) noexcept(
             std::conjunction<std::is_nothrow_constructible<Types, UTypes>...>::value) : captures(utility::forward<UTypes>(args)...) {
         }

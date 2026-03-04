@@ -105,7 +105,7 @@ namespace rainy::utility {
 
         template <
             typename Uty, typename... Args,
-            std::enable_if_t<type_traits::type_properties::is_constructible_v<Err, std::initializer_list<Uty> &, Args...>, int> = 0>
+            type_traits::other_trans::enable_if_t<type_traits::type_properties::is_constructible_v<Err, std::initializer_list<Uty> &, Args...>, int> = 0>
         explicit constexpr unexpected(std::in_place_t, std::initializer_list<Uty> ilist, Args &&...vals) noexcept(
             std::is_nothrow_constructible<Err, std::initializer_list<Uty> &, Args...>::value) :
             unexpected_value(ilist, utility::forward<Args>(vals)...) {
