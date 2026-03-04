@@ -712,7 +712,7 @@ namespace rainy::core::pal {
 
     std::intptr_t iso_volatile_load_explicit(const volatile std::intptr_t *address, memory_order order) {
 #if RAINY_USING_64_BIT_PLATFORM
-        return iso_volatile_load64_explicit(reinterpret_cast<const volatile long long *>(address), order);
+        return iso_volatile_load64_explicit(reinterpret_cast<const volatile std::int64_t *>(address), order);
 #else
         return iso_volatile_load32_explicit(reinterpret_cast<const volatile std::int32_t *>(address), order);
 #endif
@@ -754,7 +754,7 @@ namespace rainy::core::pal {
         return value;
     }
 
-    std::int64_t iso_volatile_load64_explicit(const volatile long long *address, memory_order order) {
+    std::int64_t iso_volatile_load64_explicit(const volatile std::int64_t *address, memory_order order) {
         std::int64_t value;
         RAINY_ATOMIC_BEGIN(order);
 #if RAINY_USING_MSVC
@@ -768,7 +768,7 @@ namespace rainy::core::pal {
 
     void iso_volatile_store_explicit(volatile void *address, void *value, memory_order order) {
 #if RAINY_USING_64_BIT_PLATFORM
-        iso_volatile_store64_explicit(static_cast<volatile long long *>(address), *static_cast<std::uint64_t *>(value), order);
+        iso_volatile_store64_explicit(static_cast<volatile std::int64_t *>(address), *static_cast<std::uint64_t *>(value), order);
 #else
         iso_volatile_store32_explicit(static_cast<volatile int *>(address), *static_cast<std::uint32_t *>(value), order);
 #endif

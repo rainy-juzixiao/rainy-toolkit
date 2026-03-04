@@ -3,6 +3,7 @@
 #include <rainy/core/core.hpp>
 #include <rainy/foundation/memory/allocator.hpp>
 #include <rainy/utility.hpp>
+#include <rainy/foundation/functional/functor.hpp>
 #include <rainy/utility/iterator.hpp>
 
 namespace rainy::collections::implements {

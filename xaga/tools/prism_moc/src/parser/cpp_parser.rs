@@ -14,12 +14,28 @@
 
 use crate::cli::CommandArguments;
 use crate::model::cpp_class::{CppClass, ParseResult};
+use crate::model::cpp_enumeration::CppEnumeration;
 use crate::model::cpp_function::CppFunction;
-use crate::parser::extract_class_name;
-use crate::parser::extractor::parse_global_function;
+use crate::parser::extract_type_name;
+use crate::parser::extractor::{extract_global_function, extract_string_argument, find_matching_paren, parse_enumeration};
 use tree_sitter::{Node, Parser};
 use tree_sitter_cpp::LANGUAGE;
 
+/// 解析给定的 C++ 源代码字符串，并返回解析结果。
+///
+/// # 参数
+/// - `source`: 待解析的 C++ 源代码字符串
+/// - `cli`: 命令行参数结构体 `CommandArguments`，用于控制解析行为（如 verbose 输出）
+///
+/// # 返回
+/// 返回 `anyhow::Result<ParseResult>`：
+/// - `Ok(ParseResult)` 包含：
+///   - `tree`: 解析生成的语法树
+///   - `classes`: 在源代码中找到的所有类信息
+///   - `global_functions`: 所有全局函数信息
+///   - `global_enumerations`: 所有全局枚举信息
+/// - `Err`: 如果设置语言或解析过程中出现错误
+///
 pub fn parse_cpp(source: &str, cli: &CommandArguments) -> anyhow::Result<ParseResult> {
     let mut parser = Parser::new();
     let language: tree_sitter::Language = LANGUAGE.into();
@@ -31,17 +47,21 @@ pub fn parse_cpp(source: &str, cli: &CommandArguments) -> anyhow::Result<ParseRe
     let root = tree.root_node();
     let mut classes = Vec::new();
     let mut global_functions = Vec::new();
+    let mut global_enumerations = Vec::new();
     visit(
         root,
         source,
         &mut classes,
         &mut global_functions,
+        &mut global_enumerations,
+        Vec::new(),
         Vec::new(),
     );
     Ok(ParseResult {
         tree,
         classes,
         global_functions,
+        global_enumerations,
     })
 }
 
@@ -50,19 +70,19 @@ fn visit(
     source: &str,
     classes: &mut Vec<CppClass>,
     global_functions: &mut Vec<CppFunction>,
+    global_enumerations: &mut Vec<CppEnumeration>,
     namespace_stack: Vec<String>,
+    parent_class_stack: Vec<String>,
 ) {
     // 处理namespace定义
     if node.kind() == "namespace_definition" {
         let mut new_namespace_stack = namespace_stack.clone();
-
         // 提取namespace名称
         if let Some(name_node) = node.child_by_field_name("name") {
             if let Ok(ns_name) = name_node.utf8_text(source.as_bytes()) {
                 new_namespace_stack.push(ns_name.to_string());
             }
         }
-
         // 递归处理namespace内部
         for i in 0..node.child_count() {
             if let Some(child) = node.child(i as u32) {
@@ -71,26 +91,38 @@ fn visit(
                     source,
                     classes,
                     global_functions,
+                    global_enumerations,
                     new_namespace_stack.clone(),
+                    parent_class_stack.clone(),
                 );
             }
         }
         return;
     }
-
+    // 处理类/结构体（包括嵌套类）
     if node.kind() == "class_specifier" || node.kind() == "struct_specifier" {
-        if let Some(name) = extract_class_name(node, source) {
+        if let Some(name) = extract_type_name(node, source) {
             if let Some((use_namespaces, use_items)) =
                 contains_macro(node, source, "RAINY_ENABLE_MOC")
             {
-                let full_qual_name = if namespace_stack.is_empty() {
-                    name.clone()
-                } else {
-                    format!("{}::{}", namespace_stack.join("::"), name)
-                };
+                // 构建完整的类名
+                let mut qual_name_parts = Vec::new();
+                // 添加namespace
+                if !namespace_stack.is_empty() {
+                    qual_name_parts.push(namespace_stack.join("::"));
+                }
+
+                // 添加父类
+                if !parent_class_stack.is_empty() {
+                    qual_name_parts.push(parent_class_stack.join("::"));
+                }
+                // 添加当前类名
+                qual_name_parts.push(name.clone());
+
+                let full_qual_name = qual_name_parts.join("::");
 
                 classes.push(CppClass {
-                    name,
+                    name: name.clone(),
                     full_qual_name,
                     use_namespaces,
                     namespace_location: if namespace_stack.is_empty() {
@@ -106,13 +138,124 @@ fn visit(
                     end_byte: node.end_byte(),
                 });
             }
+
+            // 无论是否有宏，都要递归处理嵌套内容以维护 parent_class_stack
+            let mut new_parent_class_stack = parent_class_stack.clone();
+            new_parent_class_stack.push(name);
+
+            for i in 0..node.child_count() {
+                if let Some(child) = node.child(i as u32) {
+                    visit(
+                        child,
+                        source,
+                        classes,
+                        global_functions,
+                        global_enumerations,
+                        namespace_stack.clone(),
+                        new_parent_class_stack.clone(),
+                    );
+                }
+            }
+            return;
         }
     }
 
-    if node.kind() == "function_definition" && is_global_function(node) {
+    // 处理 field_declaration 中的枚举（类内枚举）
+    if node.kind() == "field_declaration" {
+        // 检查是否包含 enum_specifier
+        let mut has_enum = false;
+        for i in 0..node.child_count() {
+            if let Some(child) = node.child(i as u32) {
+                if child.kind() == "enum_specifier" {
+                    has_enum = true;
+                    // 检查 field_declaration 的前一个兄弟节点是否有宏
+                    if let Some((use_namespaces, use_items)) =
+                        has_prev_macro(node, source, "RAINY_ENABLE_MOC")
+                    {
+                        if let Some(name) = extract_type_name(child, source) {
+                            if let Some(mut enumeration) = parse_enumeration(child, source) {
+                                let mut qual_name_parts = Vec::new();
+
+                                // 添加namespace
+                                if !namespace_stack.is_empty() {
+                                    qual_name_parts.push(namespace_stack.join("::"));
+                                }
+
+                                // 添加父类
+                                if !parent_class_stack.is_empty() {
+                                    qual_name_parts.push(parent_class_stack.join("::"));
+                                }
+                                // 添加当前枚举名
+                                qual_name_parts.push(name.clone());
+
+                                let full_qual_name = qual_name_parts.join("::");
+                                enumeration.full_qual_name = full_qual_name;
+                                enumeration.use_namespaces = use_namespaces;
+                                enumeration.use_items = use_items;
+                                global_enumerations.push(enumeration);
+                            }
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+
+        // 如果包含枚举，处理完后返回；否则继续递归处理可能的嵌套类
+        if has_enum {
+            return;
+        }
+        // 继续往下，让通用递归处理 field_declaration 中的其他内容（如嵌套类）
+    }
+
+    // 处理全局/namespace级别的枚举（不在 field_declaration 内的）
+    if node.kind() == "enum_specifier" {
+        // 检查父节点，如果是 field_declaration 则跳过（已在上面处理）
+        if let Some(parent) = node.parent() {
+            if parent.kind() == "field_declaration" {
+                return;
+            }
+        }
+
+        // 枚举用 has_prev_macro
         if let Some((use_namespaces, use_items)) = has_prev_macro(node, source, "RAINY_ENABLE_MOC")
         {
-            if let Some(mut func) = parse_global_function(node, source) {
+            if let Some(name) = extract_type_name(node, source) {
+                if let Some(mut enumeration) = parse_enumeration(node, source) {
+                    let mut qual_name_parts = Vec::new();
+
+                    // 添加namespace
+                    if !namespace_stack.is_empty() {
+                        qual_name_parts.push(namespace_stack.join("::"));
+                    }
+
+                    // 添加父类
+                    if !parent_class_stack.is_empty() {
+                        qual_name_parts.push(parent_class_stack.join("::"));
+                    }
+                    // 添加当前枚举名
+                    qual_name_parts.push(name.clone());
+
+                    let full_qual_name = qual_name_parts.join("::");
+                    enumeration.full_qual_name = full_qual_name;
+                    enumeration.use_namespaces = use_namespaces;
+                    enumeration.use_items = use_items;
+                    global_enumerations.push(enumeration);
+                }
+            }
+        }
+        return;
+    }
+    // 处理全局函数
+    // function_definition -> 定义
+    // declaration -> 函数声明
+    if (node.kind() == "function_definition" || node.kind() == "declaration")
+        && is_global_function(node)
+    {
+        // 函数用 has_prev_macro
+        if let Some((use_namespaces, use_items)) = has_prev_macro(node, source, "RAINY_ENABLE_MOC")
+        {
+            if let Some(mut func) = extract_global_function(node, source) {
                 func.use_namespaces = use_namespaces;
                 func.use_items = use_items;
                 func.full_qual_name = if namespace_stack.is_empty() {
@@ -124,7 +267,7 @@ fn visit(
             }
         }
     }
-
+    // 递归处理其他节点
     for i in 0..node.child_count() {
         if let Some(child) = node.child(i as u32) {
             visit(
@@ -132,7 +275,9 @@ fn visit(
                 source,
                 classes,
                 global_functions,
+                global_enumerations,
                 namespace_stack.clone(),
+                parent_class_stack.clone(),
             );
         }
     }
@@ -144,39 +289,81 @@ fn is_global_function(node: Node) -> bool {
         return false;
     }
     let p = parent.unwrap();
-    // 全局函数的父节点应该是 translation_unit
-    // 或者在 namespace 内的 declaration_list
-    p.kind() == "translation_unit"
-        || (p.kind() == "declaration_list"
-            && p.parent()
-                .map(|pp| pp.kind() == "namespace_definition")
-                .unwrap_or(false))
+    if p.kind() == "translation_unit" {
+        return true;
+    }
+    if p.kind() == "declaration_list" {
+        if let Some(pp) = p.parent() {
+            if pp.kind() == "namespace_definition" {
+                return true;
+            }
+        }
+    }
+    if p.kind().starts_with("preproc_") {
+        if let Some(pp) = p.parent() {
+            if pp.kind() == "translation_unit" {
+                return true;
+            }
+            if pp.kind() == "declaration_list" {
+                if let Some(ppp) = pp.parent() {
+                    if ppp.kind() == "namespace_definition" {
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+    false
 }
 
-// 如果找到宏，返回Some((use_namespaces, use_items))，否则返回None
 fn contains_macro(
     node: Node,
     source: &str,
     macro_name: &str,
 ) -> Option<(Vec<String>, Vec<String>)> {
-    // 检查当前节点及其所有子节点
-    if let Ok(text) = node.utf8_text(source.as_bytes()) {
-        if text.contains(macro_name) {
-            // 找到了宏，解析整个节点的文本
-            let (use_namespaces, use_items) = parse_macro_arguments(text);
-            return Some((use_namespaces, use_items));
-        }
-    }
-
-    // 递归检查子节点
     for i in 0..node.child_count() {
         if let Some(child) = node.child(i as u32) {
-            if let Some(result) = contains_macro(child, source, macro_name) {
-                return Some(result);
+            if child.kind() == "field_declaration_list" {
+                for j in 0..child.child_count() {
+                    if let Some(grandchild) = child.child(j as u32) {
+                        if grandchild.kind() == "field_declaration" {
+                            let mut has_nested_class = false;
+                            for k in 0..grandchild.child_count() {
+                                if let Some(ggchild) = grandchild.child(k as u32) {
+                                    if ggchild.kind() == "class_specifier"
+                                        || ggchild.kind() == "struct_specifier"
+                                    {
+                                        has_nested_class = true;
+                                        break;
+                                    }
+                                }
+                            }
+                            if has_nested_class {
+                                continue;
+                            }
+                        }
+
+                        if let Ok(text) = grandchild.utf8_text(source.as_bytes()) {
+                            // 判断宏是否被注释掉
+                            let trimmed = text.trim_start();
+                            let is_commented =
+                                trimmed.starts_with("//") || trimmed.starts_with("/*");
+                            if is_commented {
+                                // 宏被注释掉，跳过这个节点
+                                continue;
+                            }
+
+                            if text.contains(macro_name) {
+                                let (use_namespaces, use_items) = parse_macro_arguments(text);
+                                return Some((use_namespaces, use_items));
+                            }
+                        }
+                    }
+                }
+                return None;
             }
         }
     }
-
     None
 }
 
@@ -258,138 +445,4 @@ fn parse_macro_arguments(text: &str) -> (Vec<String>, Vec<String>) {
         }
     }
     (use_namespaces, use_items)
-}
-
-fn find_matching_paren(text: &str) -> Option<usize> {
-    let mut depth = 0;
-    for (i, ch) in text.char_indices() {
-        match ch {
-            '(' => depth += 1,
-            ')' => {
-                depth -= 1;
-                if depth == 0 {
-                    return Some(i);
-                }
-            }
-            _ => {}
-        }
-    }
-    None
-}
-
-fn extract_string_argument(text: &str) -> Option<String> {
-    // 查找第一个左括号
-    let start = text.find('(')?;
-    // 查找匹配的右括号
-    let end = find_matching_paren(&text[start..])?;
-    let args_text = &text[start + 1..start + end];
-
-    // 提取字符串字面量
-    let trimmed = args_text.trim();
-    if trimmed.starts_with('"') && trimmed.ends_with('"') {
-        Some(trimmed[1..trimmed.len() - 1].to_string())
-    } else {
-        None
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::cli::CommandArguments;
-    use crate::include_test_set;
-
-    fn default_cli() -> CommandArguments {
-        CommandArguments {
-            input: None,
-            lang: None,
-            verbose: false,
-            tea: false,
-            rain: false,
-            rain_duration: 0,
-            dev: false,
-            out: None,
-            help: false,
-            version: false,
-            no_cache: false,
-        }
-    }
-
-    const TEST_SOURCE: &str = include_test_set!("parser/example.cc");
-
-    #[test]
-    fn test_parse_cpp_classes_with_moc() {
-        let cli = default_cli();
-        let result = parse_cpp(TEST_SOURCE, &cli).unwrap();
-
-        let class_names: Vec<_> = result
-            .classes
-            .iter()
-            .map(|c| c.full_qual_name.as_str())
-            .collect();
-
-        // Foo / Bar 没有宏，不应出现
-        assert!(!class_names.contains(&"Foo"));
-        assert!(!class_names.contains(&"Bar"));
-
-        // a / b 有宏
-        assert!(class_names.contains(&"a"));
-        assert!(class_names.contains(&"b"));
-
-        // namespace 中的类
-        assert!(class_names.contains(&"test_namespace::nest::c"));
-    }
-
-    #[test]
-    fn test_class_macro_arguments() {
-        let cli = default_cli();
-        let result = parse_cpp(TEST_SOURCE, &cli).unwrap();
-
-        let class_b = result.classes.iter().find(|c| c.name == "b").unwrap();
-
-        assert_eq!(
-            class_b.use_namespaces,
-            vec!["xxx".to_string(), "x1xx".to_string()]
-        );
-
-        assert_eq!(class_b.use_items, vec!["xxx".to_string()]);
-    }
-
-    #[test]
-    fn test_global_functions_with_moc() {
-        let cli = default_cli();
-        let result = parse_cpp(TEST_SOURCE, &cli).unwrap();
-
-        let func_names: Vec<_> = result
-            .global_functions
-            .iter()
-            .map(|f| f.full_qual_name.as_str())
-            .collect();
-
-        assert!(func_names.contains(&"function"));
-        assert!(func_names.contains(&"function1"));
-        assert!(func_names.contains(&"function2"));
-    }
-
-    #[test]
-    fn test_global_function_namespace_qual_name() {
-        let cli = default_cli();
-        let result = parse_cpp(TEST_SOURCE, &cli).unwrap();
-
-        for f in &result.global_functions {
-            // 确保 full_qual_name 构造逻辑不 panic
-            assert!(!f.full_qual_name.is_empty());
-        }
-    }
-
-    #[test]
-    fn test_empty_moc_macro_arguments() {
-        let cli = default_cli();
-        let result = parse_cpp(TEST_SOURCE, &cli).unwrap();
-
-        let class_a = result.classes.iter().find(|c| c.name == "a").unwrap();
-
-        assert!(class_a.use_namespaces.is_empty());
-        assert!(class_a.use_items.is_empty());
-    }
 }

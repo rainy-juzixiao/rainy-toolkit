@@ -16,6 +16,7 @@ use tree_sitter::Tree;
 
 use crate::model::cpp_property::CppProperty;
 use crate::model::{cpp_ctor::CppCtor, cpp_function::CppFunction};
+use crate::model::cpp_enumeration::{CppEnumeration};
 use crate::utility::BitSet;
 
 #[derive(Debug, Clone)]
@@ -105,4 +106,5 @@ pub struct ParseResult {
     pub tree: Tree,
     pub classes: Vec<CppClass>,
     pub global_functions: Vec<CppFunction>,
+    pub global_enumerations: Vec<CppEnumeration>,
 }

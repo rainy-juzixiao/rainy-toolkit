@@ -6,7 +6,6 @@
 #include <rainy/meta/reflection/function.hpp>
 #include <rainy/meta/reflection/metadata.hpp>
 #include <rainy/meta/reflection/registration.hpp>
-#include <rainy/meta/reflection/shared_object.hpp>
 #include <rainy/meta/reflection/type.hpp>
 #include <rainy/text/string.hpp>
 #include <rainy/utility/any.hpp>
@@ -77,7 +76,6 @@ public:
             .copy_constructor()
             .move_constructor()
             .property("field", &myclass::field)
-            .enumeration<color>("color")
             .constructor<int>()(meta::reflection::metadata("prop", "ctor"))
             .method("print_field", utility::get_overloaded_func<myclass, void(std::string) const>(&myclass::print_field))(
                 meta::reflection::metadata("prop", "const print"))
@@ -143,6 +141,9 @@ RAINY_REFLECTION_REGISTRATION {
     using namespace rainy::meta::reflection;
     registration::class_<Address>("Address").constructor().property("city",&Address::city).property("zip",&Address::zip);
     registration::class_<User>("User").constructor().property("id",&User::id).property("name",&User::name).property("scores", &User::scores).property("addr",&User::addr);
+    registration::enumeration<color>("color")(
+        enum_value("blue", color::blue)
+        );
     // clang-format on
 }
 
@@ -205,6 +206,14 @@ struct S {
 };
 
 int main() {
+    {
+        meta::reflection::type t = meta::reflection::type::get<color>();
+        meta::reflection::enumeration type = t.get_enumeration();
+        std::cout << type.get_name() << std::endl;
+        for (const auto &item: type.get_names()) {
+            std::cout << item << std::endl;
+        }
+    }
     S m{};
     std::cout << m.val << '\n';
     // get_overloaded_func<void()>(&f);

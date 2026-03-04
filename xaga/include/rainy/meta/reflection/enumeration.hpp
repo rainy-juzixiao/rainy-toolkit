@@ -16,8 +16,8 @@
 #ifndef RAINY_META_REFLECTION_ENUMERATION_HPP
 #define RAINY_META_REFLECTION_ENUMERATION_HPP
 #include <rainy/core/core.hpp>
-#include <rainy/meta/reflection/refl_impl/type_register.hpp>
 #include <rainy/meta/reflection/refl_impl/enumeration_accessor.hpp>
+#include <rainy/meta/reflection/refl_impl/type_register.hpp>
 
 namespace rainy::meta::reflection {
     class RAINY_TOOLKIT_API enumeration {
@@ -122,6 +122,13 @@ namespace rainy::meta::reflection {
         implements::type_accessor *type_accessor{nullptr};
         implements::enumeration_accessor *accessor{nullptr};
     };
+}
+
+namespace rainy::meta::reflection {
+    template <typename EnumType>
+    implements::enum_data<EnumType> enum_value(std::string_view name, EnumType value) {
+        return {name, value};
+    }
 }
 
 #endif

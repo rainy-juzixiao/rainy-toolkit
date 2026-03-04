@@ -18,8 +18,7 @@
 #if RAINY_USING_LINUX
 #include <pthread.h>
 #include <rainy/foundation/pal/implements/tgc_layer_threading.hpp>
-#include <signal.h>
-#include <sys/syscall.h>
+#include <csignal>
 
 namespace rainy::foundation::pal::threading::implements {
     void endthread() {
@@ -391,7 +390,7 @@ namespace rainy::foundation::pal::threading::implements {
         return pthread_getspecific(tss_key);
     }
 
-    bool tss_set(core::handle tss_key, void *value) {
+    bool tss_set(core::handle tss_key, const void *value) {
         if (tss_key == core::invalid_handle) {
             return false;
         }

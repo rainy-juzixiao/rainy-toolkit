@@ -270,3 +270,17 @@ impl IncrementalState {
         }
     }
 }
+
+pub fn clear_cache()  {
+    let cache_path = std::env::current_dir().unwrap()
+        .join("build")
+        .join("incremental_cache.bin");
+    if cache_path.exists() {
+        match fs::remove_file(&cache_path) {
+            Ok(_) => {},
+            Err(e) => {
+                panic!("Cannot remove file: {}, Err: {}", cache_path.to_str().unwrap(), e);
+            }
+        };
+    }
+}

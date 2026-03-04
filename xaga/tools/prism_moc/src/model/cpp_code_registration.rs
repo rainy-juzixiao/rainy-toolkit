@@ -13,20 +13,23 @@
 // limitations under the License.
 
 use crate::model::cpp_class::{AccessLevel, CppClass};
+use crate::model::cpp_enumeration::CppEnumeration;
 use crate::model::cpp_function::CppFunction;
 use crate::parser::{extract_functions_and_ctors, extract_properties};
 use tree_sitter::Node;
 
 pub struct RegistrationCode {
     classes: Vec<CppClass>,
-    global_function: Vec<CppFunction>
+    global_function: Vec<CppFunction>,
+    enumerations: Vec<CppEnumeration>,
 }
 
 impl RegistrationCode {
     pub fn make() -> RegistrationCode {
         RegistrationCode {
             classes: Vec::new(),
-            global_function: Vec::new()
+            global_function: Vec::new(),
+            enumerations: Vec::new(),
         }
     }
 
@@ -36,16 +39,34 @@ impl RegistrationCode {
 
     pub fn add_class(&mut self, class: CppClass, node: &Node, source: &String) {
         let mut clazz = class.clone();
-        extract_functions_and_ctors(*node, &source, &mut clazz.cpp_functions, &mut clazz.cpp_ctors);
-        extract_properties(*node, &source, &mut clazz.cpp_public_properties, AccessLevel::Public);
+        extract_functions_and_ctors(
+            *node,
+            &source,
+            &mut clazz.cpp_functions,
+            &mut clazz.cpp_ctors,
+        );
+        extract_properties(
+            *node,
+            &source,
+            &mut clazz.cpp_public_properties,
+            AccessLevel::Public,
+        );
         self.classes.push(clazz);
+    }
+
+    pub fn enumerations(&self) -> &Vec<CppEnumeration> {
+        &self.enumerations
     }
 
     pub fn add_global_function(&mut self, function: CppFunction) {
         self.global_function.push(function);
     }
 
-    pub fn global_functions(&self) ->&Vec<CppFunction> {
+    pub fn add_enumeration(&mut self, enumeration: CppEnumeration) {
+        self.enumerations.push(enumeration);
+    }
+
+    pub fn global_functions(&self) -> &Vec<CppFunction> {
         &self.global_function
     }
 

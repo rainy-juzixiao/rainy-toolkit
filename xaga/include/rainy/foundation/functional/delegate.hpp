@@ -44,7 +44,7 @@ namespace rainy::foundation::functional::implements {
     template <typename Rx, typename Class, typename... Args>
     struct invoker_accessor {
         virtual Rx invoke(Class *object, Args &&...args) = 0;
-        RAINY_NODISCARD virtual std::uintptr_t target(const foundation::ctti::typeinfo &fx_sign) const noexcept = 0;
+        RAINY_NODISCARD virtual std::uintptr_t target(const foundation::ctti::typeinfo &fx_sign, bool no_check) const noexcept = 0;
         RAINY_NODISCARD virtual const foundation::ctti::typeinfo &target_type() const noexcept = 0;
         virtual void destruct(bool local) noexcept = 0;
         virtual invoker_accessor *move(core::byte_t *soo_buffer) noexcept = 0;
@@ -112,8 +112,8 @@ namespace rainy::foundation::functional::implements {
             return flags;
         }
 
-        std::uintptr_t target(const foundation::ctti::typeinfo &fx_sign) const noexcept override {
-            if (fx_sign == rainy_typeid(Fx)) {
+        std::uintptr_t target(const foundation::ctti::typeinfo &fx_sign, bool no_check) const noexcept override {
+            if (fx_sign == rainy_typeid(Fx) || no_check) {
                 return reinterpret_cast<std::uintptr_t>(utility::addressof(fn));
             }
             return 0;
@@ -372,9 +372,16 @@ namespace rainy::foundation::functional::implements {
             if (empty()) {
                 return nullptr;
             }
-            auto ptr = reinterpret_cast<UFx *>(invoker_accessor()->target(rainy_typeid(UFx)));
-            if (ptr) {
-                return ptr;
+            if constexpr (type_traits::primary_types::is_member_function_pointer_v<UFx>) {
+                if constexpr (type_traits::type_relations::is_convertible_v<Fx, UFx>) {
+                    return reinterpret_cast<UFx *>(invoker_accessor()->target(rainy_typeid(Fx), true));
+                }
+            } else {
+                auto ptr = reinterpret_cast<UFx *>(invoker_accessor()->target(rainy_typeid(UFx), false));
+                if (ptr) {
+                    return ptr;
+                }
+                return nullptr;
             }
             return nullptr;
         }
@@ -384,9 +391,16 @@ namespace rainy::foundation::functional::implements {
             if (empty()) {
                 return nullptr;
             }
-            auto ptr = reinterpret_cast<UFx *>(invoker_accessor()->target(rainy_typeid(UFx)));
-            if (ptr) {
-                return ptr;
+            if constexpr (type_traits::primary_types::is_member_function_pointer_v<UFx>) {
+                if constexpr (type_traits::type_relations::is_convertible_v<Fx, UFx>) {
+                    return reinterpret_cast<UFx *>(invoker_accessor()->target(rainy_typeid(Fx), true));
+                }
+            } else {
+                auto ptr = reinterpret_cast<UFx *>(invoker_accessor()->target(rainy_typeid(UFx), false));
+                if (ptr) {
+                    return ptr;
+                }
+                return nullptr;
             }
             return nullptr;
         }

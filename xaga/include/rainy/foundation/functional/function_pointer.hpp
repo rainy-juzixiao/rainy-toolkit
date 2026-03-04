@@ -21,7 +21,6 @@
 #ifndef RAINY_FOUNDATION_FUNCTIONAL_FUNCTION_POINTER_HPP
 #define RAINY_FOUNDATION_FUNCTIONAL_FUNCTION_POINTER_HPP
 #include <functional>
-#include <ostream>
 #include <rainy/core/core.hpp>
 #include <rainy/foundation/typeinfo.hpp>
 #include <rainy/annotations/smf_control.hpp>

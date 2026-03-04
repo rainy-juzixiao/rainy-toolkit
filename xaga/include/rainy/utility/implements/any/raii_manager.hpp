@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 #ifndef RAINY_UTILITY_IMPLEMENTS_ANY_RAII_MANAGER_HPP
-#define RAINY_UTILITY_IMPLEMENTS_ANY_RAII_MANAGER_HPP
+#define RAINY_UTILITY_IMPLEMENTS_ANY_RAII_MANAGER_HPP // NOLINT
 #include <rainy/core/core.hpp>
 
 namespace rainy::utility::implements {
