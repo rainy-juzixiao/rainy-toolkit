@@ -125,8 +125,11 @@ namespace rainy::meta::reflection::implements {
                 return std::memcmp(reinterpret_cast<const void *>(&storage.fn), reinterpret_cast<const void *>(&cast_impl->storage.fn),
                                    sizeof(storage.fn)) == 0;
             } else {
-                return storage.fn == cast_impl->storage.fn;
+                if constexpr (type_traits::extras::meta_method::has_operator_eq_v<Fx>) {
+                    return storage.fn == cast_impl->storage.fn;
+                }
             }
+            return false;
         }
 
         RAINY_NODISCARD std::uintptr_t target(const foundation::ctti::typeinfo &fx_sign) const noexcept override {
