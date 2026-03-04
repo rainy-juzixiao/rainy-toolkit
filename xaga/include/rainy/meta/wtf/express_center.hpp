@@ -259,7 +259,7 @@ namespace rainy::meta::wtf {
         subscription subscribe(Fx &&slot) {
             using namespace type_traits;
             using traits = primary_types::function_traits<other_trans::decay_t<Fx>>;
-            using type_list = typename other_trans::tuple_like_to_type_list<typename traits::tuple_like_type>::type; // NOLINT
+            using type_list = typename traits::argument_list; // NOLINT
 
             static_assert(traits::arity != 0, "You pass an empty slot. It can't proceed your event!");
             static_assert(type_relations::is_convertible_v<const typename other_trans::type_at<0, type_list>::type &, // NOLINT

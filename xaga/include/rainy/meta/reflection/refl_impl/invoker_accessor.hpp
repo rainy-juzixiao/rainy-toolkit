@@ -27,7 +27,7 @@ namespace rainy::meta::reflection::implements {
     struct function_signature<Fx, true> {
         using traits = type_traits::primary_types::function_traits<Fx>;
         using return_type = typename traits::return_type;
-        using type_list = typename type_traits::other_trans::tuple_like_to_type_list<typename traits::tuple_like_type>::type;
+        using type_list = typename traits::argument_list;
 
         template <typename TypeList>
         struct extractor {};
@@ -330,7 +330,7 @@ namespace rainy::meta::reflection::implements {
     };
 
     template <typename Fx, typename DefaultArguments, typename Traits,
-              typename TypeList = typename type_traits::other_trans::tuple_like_to_type_list<typename Traits::tuple_like_type>::type>
+              typename TypeList = typename  Traits::argument_list>
     struct get_ia_implement_type {
         using unused_type1 = Fx;
         using unused_type2 = DefaultArguments;
