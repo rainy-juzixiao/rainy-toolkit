@@ -93,9 +93,7 @@ namespace rainy::meta::reflection {
                           "Default arguments are not compatible with corresponding function parameters.");
 
             using implemented_type = typename implements::get_ia_implement_type<Fx, implements::default_arguments_store<Args...>,
-                                                                                type_traits::primary_types::function_traits<Fx>>::type;
-            invoke_accessor_ = utility::construct_at(reinterpret_cast<implemented_type *>(invoker_storage), // NOLINT
-                                                     utility::forward<Fx>(function), utility::forward<Args>(default_arguments)...);
+                                                                                type_traits::primary_types::function_traits<Fx>>::type;a
             if constexpr (sizeof(implemented_type) >= core::fn_obj_soo_buffer_size) {
                 invoke_accessor_ =
                     ::new implemented_type(utility::forward<Fx>(function), utility::forward<Args>(default_arguments)...);
