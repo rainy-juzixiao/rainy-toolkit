@@ -82,7 +82,7 @@ namespace rainy::meta::reflection {
                   type_traits::other_trans::enable_if_t<type_traits::primary_types::function_traits<Fx>::valid, int> = 0>
         function(Fx &&function, Args &&...default_arguments) noexcept : invoke_accessor_{} { // NOLINT
             using traits = type_traits::primary_types::function_traits<Fx>;
-            using paramlist = typename type_traits::other_trans::tuple_like_to_type_list<typename traits::tuple_like_type>::type;
+            using paramlist = typename traits::argument_list;
 
             static constexpr std::size_t arity = traits::arity;
             static constexpr std::size_t default_arg_count = sizeof...(Args);
@@ -94,8 +94,6 @@ namespace rainy::meta::reflection {
 
             using implemented_type = typename implements::get_ia_implement_type<Fx, implements::default_arguments_store<Args...>,
                                                                                 type_traits::primary_types::function_traits<Fx>>::type;
-            invoke_accessor_ = utility::construct_at(reinterpret_cast<implemented_type *>(invoker_storage), // NOLINT
-                                                     utility::forward<Fx>(function), utility::forward<Args>(default_arguments)...);
             if constexpr (sizeof(implemented_type) >= core::fn_obj_soo_buffer_size) {
                 invoke_accessor_ =
                     ::new implemented_type(utility::forward<Fx>(function), utility::forward<Args>(default_arguments)...);
@@ -108,13 +106,13 @@ namespace rainy::meta::reflection {
         /**
          * @brief 为rainy-toolkit委托对象特化的构造函数。
          * @tparam Fx 委托对象签名
-         * @param function 委托对象。
+         * @param object 委托对象。
          */
         template <typename Fx, typename... Args,
                   type_traits::other_trans::enable_if_t<type_traits::primary_types::function_traits<Fx>::valid, int> = 0>
         function(const foundation::functional::delegate<Fx> &object, Args &&...default_arguments) noexcept { // NOLINT
             using traits = type_traits::primary_types::function_traits<Fx>;
-            using paramlist = typename type_traits::other_trans::tuple_like_to_type_list<typename traits::tuple_like_type>::type;
+            using paramlist = typename traits::argument_list;
 
             static constexpr std::size_t arity = traits::arity;
             static constexpr std::size_t default_arg_count = sizeof...(Args);
@@ -138,9 +136,13 @@ namespace rainy::meta::reflection {
                 using implemented_type =
                     typename implements::get_ia_implement_type<wrapper, implements::default_arguments_store<Args...>,
                                                                type_traits::primary_types::function_traits<Fx>>::type;
-
-                invoke_accessor_ = utility::construct_at(reinterpret_cast<implemented_type *>(invoker_storage), // NOLINT
-                                                         wrapper{object}, utility::forward<Args>(default_arguments)...);
+                if constexpr (sizeof(implemented_type) >= core::fn_obj_soo_buffer_size) {
+                    invoke_accessor_ = ::new implemented_type(wrapper{object}, utility::forward<Args>(default_arguments)...);
+                } else {
+                    invoke_accessor_ = utility::construct_at(
+                        reinterpret_cast<implemented_type *>(invoker_storage),
+                        wrapper{object}, utility::forward<Args>(default_arguments)...);
+                }
             }
         }
 

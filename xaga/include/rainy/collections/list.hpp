@@ -181,14 +181,14 @@ namespace rainy::collections {
             right.create_sentinel();
         }
 
-        list(const list &right, const std::type_identity_t<allocator_type> &alloc) : allocator_(alloc), size_(0) {
+        list(const list &right, const type_traits::primary_types::type_identity_t<allocator_type> &alloc) : allocator_(alloc), size_(0) {
             create_sentinel();
             for (const auto &item: right) {
                 push_back(item);
             }
         }
 
-        list(list &&right, const std::type_identity_t<allocator_type> &alloc) : allocator_(alloc), size_(0) {
+        list(list &&right, const type_traits::primary_types::type_identity_t<allocator_type> &alloc) : allocator_(alloc), size_(0) {
             create_sentinel();
             if (allocator_ == right.allocator_) {
                 std::swap(sentinel_, right.sentinel_);
