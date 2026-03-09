@@ -9,6 +9,8 @@
     "markdown-it-multimd-table": "^4.2.3",
     "marked": "^16.2.0",
     "node-addon-api": "^8.6.0",
+    "node-api-headers": "^1.8.0",
+    "node-gyp": "^12.2.0",
     "vitepress": "^1.6.3"
   },
   "devDependencies": {
