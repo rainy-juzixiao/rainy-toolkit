@@ -1,0 +1,7 @@
+[
+  {
+    "directory": ".",
+    "command": "clang++ -std=c++20 -Isrc -c misc/sleepy/foo.cpp",
+    "file": "foo.cpp"
+  }
+]
