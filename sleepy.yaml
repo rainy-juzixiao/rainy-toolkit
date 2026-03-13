@@ -1,0 +1,20 @@
+output_dir: docs/api
+lang: chinese
+
+sources:
+  - name: sleepy_test
+    include_dirs:
+      - "xaga/include/"
+    extensions:
+      - h
+      - hpp
+    compile_flags:
+      std: c++20
+      defines: []
+      includes: []
+      extra: []
+    files:
+      - xaga/include/rainy/foundation/typeinfo.hpp
+      - xaga/include/rainy/core/core.hpp
+      - xaga/include/rainy/core/implements/bit.hpp
+      - xaga/include/rainy/core/implements/basic_algorithm.hpp

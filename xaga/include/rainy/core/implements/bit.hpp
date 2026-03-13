@@ -13,6 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+/**
+ * @mergeto rainy/core/core.hpp
+ */
 #ifndef RAINY_CORE_IMPLEMENTS_BIT_HPP
 #define RAINY_CORE_IMPLEMENTS_BIT_HPP
 #include <rainy/core/platform.hpp>
