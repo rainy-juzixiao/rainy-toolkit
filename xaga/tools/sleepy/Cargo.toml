@@ -1,0 +1,24 @@
+[package]
+name = "MuZiYan"
+version = "0.1.0"
+edition = "2021"
+
+[package.metadata]
+speical_thanks = ["yun yu", "qing su", "yan qi"]
+speical_thanks_zh_hans = ["与云night", "苏沁", "亓言"]
+
+[dependencies]
+clang = { version = "2", features = ["clang_3_9", "clang_6_0", "clang_9_0"] }
+
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+shell-words = "1"
+
+anyhow = "1"
+indexmap = "2.13.0"
+which = "8.0.2"
+config = "0.15.19"
+walkdir = "2.5.0"
+tempfile = "3.27.0"
+serde_yaml = "0.9.34+deprecated"
