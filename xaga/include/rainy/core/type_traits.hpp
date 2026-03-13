@@ -2651,11 +2651,12 @@ namespace rainy::core {
     template <typename Fx, typename... Args>
     constexpr rain_fn deduction_invoker_type() noexcept -> method_flags {
         auto flag{method_flags::none};
-        using traits = type_traits::primary_types::function_traits<Fx>;
+        using fx = type_traits::cv_modify::remove_cvref_t<Fx>;
+        using traits = type_traits::primary_types::function_traits<fx>;
         if constexpr (!traits::valid) {
             return flag;
         }
-        if constexpr (!type_traits::primary_types::is_member_function_pointer_v<Fx>) {
+        if constexpr (!type_traits::primary_types::is_member_function_pointer_v<fx>) {
             constexpr bool noexcept_invoke = noexcept(utility::invoke(utility::declval<Fx>(), utility::declval<Args>()...));
             flag |=
                 (noexcept_invoke ? method_flags::static_specified | method_flags::noexcept_specified : method_flags::static_specified);
@@ -2667,14 +2668,14 @@ namespace rainy::core {
             if constexpr (traits::is_invoke_for_lvalue || traits::is_invoke_for_rvalue) {
                 if constexpr (traits::is_invoke_for_lvalue) {
                     noexcept_invoke = noexcept(
-                        utility::invoke(utility::declval<Fx>(), utility::declval<raw_class_type &>(), utility::declval<Args>()...));
+                        utility::invoke(utility::declval<fx>(), utility::declval<raw_class_type &>(), utility::declval<Args>()...));
                 } else {
                     noexcept_invoke = noexcept(
-                        utility::invoke(utility::declval<Fx>(), utility::declval<raw_class_type &&>(), utility::declval<Args>()...));
+                        utility::invoke(utility::declval<fx>(), utility::declval<raw_class_type &&>(), utility::declval<Args>()...));
                 }
             } else {
                 noexcept_invoke = noexcept(
-                    utility::invoke(utility::declval<Fx>(), utility::declval<raw_class_type *>(), utility::declval<Args>()...));
+                    utility::invoke(utility::declval<fx>(), utility::declval<raw_class_type *>(), utility::declval<Args>()...));
             }
             if constexpr (traits::is_const_member_function) {
                 flag |= method_flags::const_qualified;
