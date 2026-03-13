@@ -151,3 +151,25 @@ elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
 else ()
     message(FATAL_ERROR "Unsupported platform: ${CMAKE_SYSTEM_NAME}")
 endif ()
+
+if(RAINY_USE_NODE_ADDON)
+    message(STATUS "RAINY_USE_NODE_ADDON is ON: attempting to integrate node-addon-api")
+    if(EXISTS "${PROJECT_SOURCE_DIR}/node_modules/node-addon-api")
+        set(NODE_ADDON_API_DIR "${PROJECT_SOURCE_DIR}/node_modules/node-addon-api")
+        message(STATUS "Found node-addon-api in ${NODE_ADDON_API_DIR}")
+    else()
+        message(FATAL_ERROR "node-addon-api not found in node_modules. Please run 'npm install'")
+    endif()
+
+    target_include_directories(rainy-toolkit
+            PUBLIC
+            $<BUILD_INTERFACE:${NODE_ADDON_API_DIR}>
+            $<INSTALL_INTERFACE:include/node-addon-api>
+    )
+
+    target_compile_definitions(rainy-toolkit PUBLIC NAPI_CPP_EXCEPTIONS)
+    target_compile_definitions(rainy-toolkit PUBLIC NAPI_VERSION=8)
+    message(STATUS "rainy-toolkit will be built with node-addon-api support")
+    message("[rainy-toolkit] Node addon support enabled")
+    rainy_find_nodejs()
+endif()
