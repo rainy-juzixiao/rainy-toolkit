@@ -22,18 +22,18 @@
 
 namespace rainy::type_traits::concepts::implements {
     template <typename Ty, typename UTy>
-    concept partially_ordered_with_impl = requires(const type_traits::reference_modify::remove_reference_t<Ty> &Ty,
-                                                   const type_traits::reference_modify::remove_reference_t<UTy> &UTy) {
-        { Ty <=> UTy } -> std::convertible_to<std::partial_ordering>;
-        { UTy <=> Ty } -> std::convertible_to<std::partial_ordering>;
+    concept partially_ordered_with_impl = requires(const type_traits::reference_modify::remove_reference_t<Ty> &left,
+                                                   const type_traits::reference_modify::remove_reference_t<UTy> &right) {
+        { left <=> right } -> std::convertible_to<std::partial_ordering>;
+        { right <=> left } -> std::convertible_to<std::partial_ordering>;
     };
 }
 
 namespace rainy::type_traits::concepts {
     template <typename Ty, typename Cat = std::partial_ordering>
-    concept three_way_comparable = requires(const type_traits::reference_modify::remove_reference_t<Ty> &a,
-                                            const type_traits::reference_modify::remove_reference_t<Ty> &b) {
-        { a <=> b } -> std::convertible_to<Cat>;
+    concept three_way_comparable = requires(const type_traits::reference_modify::remove_reference_t<Ty> &left,
+                                            const type_traits::reference_modify::remove_reference_t<Ty> &right) {
+        { left <=> right } -> std::convertible_to<Cat>;
     };
 
     template <typename Ty, typename UTy, typename Cat = std::partial_ordering>
