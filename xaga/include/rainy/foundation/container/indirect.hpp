@@ -55,12 +55,12 @@ namespace rainy::foundation::container {
         }
 
         template <type_traits::other_trans::enable_if_t<type_traits::type_properties::is_default_constructible_v<Ty>, int> = 0>
-        RAINY_CONSTEXPR20 indirect(defered_init_t) noexcept : pair(allocator_type{}, nullptr) {
+        RAINY_CONSTEXPR20 indirect(defered_init_t) noexcept : pair(allocator_type{}, nullptr) { // NOLINT
         }
 
         template <typename... Args,
                   type_traits::other_trans::enable_if_t<type_traits::type_properties::is_constructible_v<Ty, Args...>, int> = 0>
-        RAINY_CONSTEXPR20 indirect(std::in_place_t,
+        RAINY_CONSTEXPR20 indirect(std::in_place_t, // NOLINT
                                    Args &&...args) noexcept(type_traits::type_properties::is_nothrow_default_constructible_v<Ty>) :
             pair(allocator_type{}, nullptr) {
             pointer ptr = std::allocator_traits<allocator_type>::allocate(pair.get_first(), 1);
@@ -170,8 +170,8 @@ namespace rainy::foundation::container {
                           !type_traits::type_relations::is_same_v<type_traits::other_trans::decay_t<U>, indirect> &&
                           !type_traits::type_relations::is_same_v<type_traits::other_trans::decay_t<U>, std::in_place_t>,
                       int> = 0>
-        RAINY_CONSTEXPR20 explicit indirect(U &&u) noexcept(type_traits::type_properties::is_nothrow_constructible_v<Ty, U &&>) :
-            pair(allocator_type{}, nullptr) {
+        RAINY_CONSTEXPR20 explicit indirect(U &&u) noexcept( // NOLINT
+            type_traits::type_properties::is_nothrow_constructible_v<Ty, U &&>) : pair(allocator_type{}, nullptr) {
             pointer ptr = std::allocator_traits<allocator_type>::allocate(pair.get_first(), 1);
             try {
                 std::allocator_traits<allocator_type>::construct(pair.get_first(), ptr, utility::forward<U>(u));
@@ -204,7 +204,7 @@ namespace rainy::foundation::container {
             }
         }
 
-        RAINY_CONSTEXPR20 indirect(indirect &&right) noexcept : pair(std::move(right.pair.get_first()), right.pair.get_second()) {
+        RAINY_CONSTEXPR20 indirect(indirect &&right) noexcept : pair(utility::move(right.pair.get_first()), right.pair.get_second()) {
             right.pair.get_second() = nullptr;
         }
 
@@ -212,7 +212,7 @@ namespace rainy::foundation::container {
                   type_traits::other_trans::enable_if_t<type_traits::type_properties::is_constructible_v<Ty, const Uy &> &&
                                                             type_traits::type_relations::is_convertible_v<const Uy &, Ty>,
                                                         int> = 0>
-        RAINY_CONSTEXPR20 indirect(const indirect<Uy, UAlloc> &right) noexcept(
+        RAINY_CONSTEXPR20 indirect(const indirect<Uy, UAlloc> &right) noexcept( // NOLINT
             type_traits::type_properties::is_nothrow_constructible_v<Ty, const Uy &>) : pair(allocator_type{}, nullptr) {
             if (!right.empty()) {
                 pointer ptr = std::allocator_traits<allocator_type>::allocate(pair.first(), 1);
@@ -230,12 +230,12 @@ namespace rainy::foundation::container {
                   type_traits::other_trans::enable_if_t<type_traits::type_properties::is_constructible_v<Ty, Uy &&> &&
                                                             type_traits::type_relations::is_convertible_v<Uy &&, Ty>,
                                                         int> = 0>
-        RAINY_CONSTEXPR20 indirect(indirect<Uy, UAlloc> &&right) noexcept(
+        RAINY_CONSTEXPR20 indirect(indirect<Uy, UAlloc> &&right) noexcept( // NOLINT
             type_traits::type_properties::is_nothrow_constructible_v<Ty, Uy &&>) : pair(allocator_type{}, nullptr) {
             if (!right.empty()) {
                 pointer ptr = std::allocator_traits<allocator_type>::allocate(pair.first(), 1);
                 try {
-                    std::allocator_traits<allocator_type>::construct(pair.first(), ptr, std::move(*right));
+                    std::allocator_traits<allocator_type>::construct(pair.first(), ptr, utility::move(*right));
                     pair.get_second() = ptr;
                     right.reset();
                 } catch (...) {
@@ -273,7 +273,7 @@ namespace rainy::foundation::container {
         RAINY_CONSTEXPR20 indirect &operator=(indirect &&right) noexcept {
             if (this != &right) {
                 reset();
-                pair.get_first() = std::move(right.pair.get_first());
+                pair.get_first() = utility::move(right.pair.get_first());
                 pair.get_second() = right.pair.get_second();
                 right.pair.get_second() = nullptr;
             }
@@ -328,12 +328,12 @@ namespace rainy::foundation::container {
             if (right.empty()) {
                 reset();
             } else if (pair.get_second() != nullptr) {
-                *pair.get_second() = std::move(*right);
+                *pair.get_second() = utility::move(*right);
                 right.reset();
             } else {
                 pointer ptr = std::allocator_traits<allocator_type>::allocate(pair.first(), 1);
                 try {
-                    std::allocator_traits<allocator_type>::construct(pair.first(), ptr, std::move(*right));
+                    std::allocator_traits<allocator_type>::construct(pair.first(), ptr, utility::move(*right));
                     pair.get_second() = ptr;
                     right.reset();
                 } catch (...) {
@@ -421,7 +421,7 @@ namespace rainy::foundation::container {
             return *pair.get_second();
         }
 
-        RAINY_CONSTEXPR20 bool empty() const noexcept {
+        RAINY_NODISCARD RAINY_CONSTEXPR20 bool empty() const noexcept {
             return pair.get_second() == nullptr;
         }
 
@@ -466,13 +466,13 @@ namespace rainy::foundation::container {
                 pointer temp_ptr = pair.get_second();
                 pair.get_second() = right.pair.get_second();
                 right.pair.get_second() = temp_ptr;
-                allocator_type temp_alloc = std::move(pair.get_first());
-                pair.get_first() = std::move(right.pair.get_first());
-                right.pair.get_first() = std::move(temp_alloc);
+                allocator_type temp_alloc = utility::move(pair.get_first());
+                pair.get_first() = utility::move(right.pair.get_first());
+                right.pair.get_first() = utility::move(temp_alloc);
             }
         }
 
-        RAINY_CONSTEXPR20 bool valueless_after_move() const noexcept {
+        RAINY_NODISCARD RAINY_CONSTEXPR20 bool valueless_after_move() const noexcept {
             return empty();
         }
 

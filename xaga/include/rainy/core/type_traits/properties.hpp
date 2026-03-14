@@ -936,7 +936,7 @@ namespace rainy::type_traits::type_properties {
      *            要检查的类型
      */
     template <typename Ty>
-    RAINY_CONSTEXPR_BOOL is_trivially_destructible_v = implements::gcc_detail_impl::_is_destructible_safe<Ty>::value;
+    RAINY_CONSTEXPR_BOOL is_trivially_destructible_v = __has_trivial_destructor(Ty);
 #endif
 
     /**
