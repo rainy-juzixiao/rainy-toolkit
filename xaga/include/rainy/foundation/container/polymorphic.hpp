@@ -23,8 +23,10 @@ namespace rainy::foundation::container {
     public:
         using value_type = Ty;
         using allocator_type = Alloc;
-        using pointer = Ty*;
-        using const_pointer = const Ty*;
+        using pointer = Ty *;
+        using const_pointer = const Ty *;
+        using reference = Ty&;
+        using const_reference = const Ty&;
 
         static_assert(type_traits::composite_types::is_object_v<Ty>, "Ty must be an object type");
         static_assert(!type_traits::composite_types::is_reference_v<Ty>, "Ty cannot be a reference type");
@@ -75,19 +77,21 @@ namespace rainy::foundation::container {
             }
         }
 
-        template <typename UTy = Ty, type_traits::other_trans::enable_if_t<
-                                      type_traits::type_relations::is_base_of_v<Ty, type_traits::other_trans::decay_t<UTy>> &&
-                                          !type_traits::type_relations::is_same_v<type_traits::other_trans::decay_t<UTy>, polymorphic>,
-                                      int> = 0>
+        template <typename UTy = Ty,
+                  type_traits::other_trans::enable_if_t<
+                      type_traits::type_relations::is_base_of_v<Ty, type_traits::other_trans::decay_t<UTy>> &&
+                          !type_traits::type_relations::is_same_v<type_traits::other_trans::decay_t<UTy>, polymorphic>,
+                      int> = 0>
         RAINY_CONSTEXPR20 explicit polymorphic(UTy &&object) : pair(allocator_type{}, nullptr) { // NOLINT
             using DecayU = type_traits::other_trans::decay_t<UTy>;
             construct_from_value<DecayU>(utility::forward<UTy>(object));
         }
 
-        template <typename UTy = Ty, type_traits::other_trans::enable_if_t<
-                                      type_traits::type_relations::is_base_of_v<Ty, type_traits::other_trans::decay_t<UTy>> &&
-                                          !type_traits::type_relations::is_same_v<type_traits::other_trans::decay_t<UTy>, polymorphic>,
-                                      int> = 0>
+        template <typename UTy = Ty,
+                  type_traits::other_trans::enable_if_t<
+                      type_traits::type_relations::is_base_of_v<Ty, type_traits::other_trans::decay_t<UTy>> &&
+                          !type_traits::type_relations::is_same_v<type_traits::other_trans::decay_t<UTy>, polymorphic>,
+                      int> = 0>
         RAINY_CONSTEXPR20 explicit polymorphic(std::allocator_arg_t, const Alloc &a, UTy &&object) : pair(a, nullptr) {
             using DecayU = type_traits::other_trans::decay_t<UTy>;
             construct_from_value<DecayU>(utility::forward<UTy>(object));
@@ -144,8 +148,7 @@ namespace rainy::foundation::container {
             return *this;
         }
 
-        RAINY_CONSTEXPR20 polymorphic &operator=(polymorphic &&other) noexcept(
-            std::allocator_traits<Alloc>::is_always_equal::value) {
+        RAINY_CONSTEXPR20 polymorphic &operator=(polymorphic &&other) noexcept(std::allocator_traits<Alloc>::is_always_equal::value) {
             if (this != &other) {
                 reset();
                 if constexpr (std::allocator_traits<Alloc>::is_always_equal::value) {
@@ -165,20 +168,24 @@ namespace rainy::foundation::container {
             return *this;
         }
 
-        RAINY_CONSTEXPR20 const Ty &operator*() const noexcept {
-            return *static_cast<const Ty *>(pair.get_second());
+        RAINY_CONSTEXPR20 const_reference operator*() const noexcept {
+            auto* block = static_cast<control_block_base*>(pair.get_second());
+            return *block->get_value_ptr();
         }
 
-        RAINY_CONSTEXPR20 Ty &operator*() noexcept {
-            return *static_cast<Ty *>(pair.get_second());
+        RAINY_CONSTEXPR20 reference operator*() noexcept {
+            auto* block = static_cast<control_block_base*>(pair.get_second());
+            return *block->get_value_ptr();
         }
 
         RAINY_CONSTEXPR20 const_pointer operator->() const noexcept {
-            return static_cast<const_pointer>(pair.get_second());
+            auto* block = static_cast<const control_block_base*>(pair.get_second());
+            return static_cast<const_pointer>(block->get_value_ptr());
         }
 
         RAINY_CONSTEXPR20 pointer operator->() noexcept {
-            return static_cast<pointer>(pair.get_second());
+            auto* block = static_cast<control_block_base*>(pair.get_second());
+            return static_cast<pointer>(block->get_value_ptr());
         }
 
         RAINY_NODISCARD RAINY_CONSTEXPR20 bool valueless_after_move() const noexcept {
@@ -213,23 +220,25 @@ namespace rainy::foundation::container {
             virtual void destroy(allocator_type &alloc) noexcept = 0;
             virtual control_block_base *clone(allocator_type &alloc) const = 0;
             virtual Ty *get_value_ptr() noexcept = 0;
+            virtual const Ty *get_value_ptr() const noexcept = 0;
         };
 
-        template <typename UTy>
+        template <typename U>
         struct control_block : control_block_base {
             template <typename... Args>
             control_block(Args &&...args) : value(utility::forward<Args>(args)...) { // NOLINT
             }
 
             void destroy(allocator_type &alloc) noexcept override {
-                using BlockAlloc = typename std::allocator_traits<allocator_type>::template rebind_alloc<control_block>; // NOLINT
+                using BlockAlloc = typename std::allocator_traits<allocator_type>::template rebind_alloc<control_block>;
                 BlockAlloc block_alloc(alloc);
-                std::allocator_traits<BlockAlloc>::destroy(block_alloc, this);
-                std::allocator_traits<BlockAlloc>::deallocate(block_alloc, this, 1);
+                auto *derived_this = static_cast<control_block *>(this);
+                std::allocator_traits<BlockAlloc>::destroy(block_alloc, derived_this);
+                std::allocator_traits<BlockAlloc>::deallocate(block_alloc, derived_this, 1);
             }
 
             control_block_base *clone(allocator_type &alloc) const override {
-                using BlockAlloc = typename std::allocator_traits<allocator_type>::template rebind_alloc<control_block>; // NOLINT
+                using BlockAlloc = typename std::allocator_traits<allocator_type>::template rebind_alloc<control_block>;
                 BlockAlloc block_alloc(alloc);
                 auto *ptr = std::allocator_traits<BlockAlloc>::allocate(block_alloc, 1);
                 try {
@@ -245,7 +254,11 @@ namespace rainy::foundation::container {
                 return &value;
             }
 
-            UTy value;
+            const Ty *get_value_ptr() const noexcept override {
+                return &value;
+            }
+
+            U value;
         };
 
         void construct_default() {

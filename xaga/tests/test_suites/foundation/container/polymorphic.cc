@@ -1,5 +1,5 @@
 /*
-* Copyright 2026 rainy-juzixiao
+ * Copyright 2026 rainy-juzixiao
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,12 +36,15 @@ struct Base {
 struct Derived : Base {
     explicit Derived(int v = 42) : value(v) {
     }
+
     std::string identify() const override {
         return "Derived";
     }
+
     int get_value() const override {
         return value;
     }
+
     int value;
 };
 
@@ -70,9 +73,37 @@ struct ThrowingConstructor {
     };
 
     explicit ThrowingConstructor(bool shouldThrow) {
-        if (shouldThrow)
+        if (shouldThrow) {
             throw exception();
+        }
     }
+};
+
+template <typename T>
+struct ThrowingAllocator : std::allocator<T> {
+    using value_type = T;
+    using propagate_on_container_copy_assignment = std::true_type;
+    using propagate_on_container_move_assignment = std::true_type;
+    using propagate_on_container_swap = std::true_type;
+
+    ThrowingAllocator() = default;
+
+    template <typename U>
+    ThrowingAllocator(const ThrowingAllocator<U> &other) : should_throw(other.should_throw) {
+    }
+
+    T *allocate(size_t n) {
+        if (should_throw) {
+            throw std::bad_alloc();
+        }
+        return std::allocator<T>::allocate(n);
+    }
+
+    void deallocate(T *p, size_t n) {
+        std::allocator<T>::deallocate(p, n);
+    }
+
+    bool should_throw = false;
 };
 
 using namespace rainy::foundation::container;
@@ -328,21 +359,87 @@ TEMPLATE_TEST_CASE("polymorphic works with different allocator types", "[polymor
 }
 
 SCENARIO("polymorphic exception safety", "[polymorphic][exception]") {
-    GIVEN("a throwing constructor type") {
-        using ThrowingBase = Base;
+    GIVEN("a type that throws during construction") {
+        struct ThrowingDerived : Base {
+            explicit ThrowingDerived(bool shouldThrow) {
+                if (shouldThrow) {
+                    throw std::runtime_error("construction failed");
+                }
+            }
+            std::string identify() const override {
+                return "ThrowingDerived";
+            }
+        };
 
-        THEN("construction should propagate exceptions") {
-            REQUIRE_THROWS_AS(polymorphic<Base>(std::in_place_type<Derived>), std::exception);
+        THEN("in_place construction should propagate the exception") {
+            REQUIRE_THROWS_AS(polymorphic<Base>(std::in_place_type<ThrowingDerived>, true), std::runtime_error);
+        }
+
+        THEN("direct construction from value should propagate the exception") {
+            REQUIRE_THROWS_AS(polymorphic<Base>(ThrowingDerived(true)), std::runtime_error);
+        }
+
+        AND_WHEN("construction throws") {
+            polymorphic<Base> poly;
+            bool exception_caught = false;
+
+            try {
+                polymorphic<Base> throwing(std::in_place_type<ThrowingDerived>, true);
+            } catch (const std::runtime_error &) {
+                exception_caught = true;
+            }
+
+            THEN("the original object should remain unchanged") {
+                REQUIRE(exception_caught == true);
+                // Original poly still valid
+                REQUIRE(poly.valueless_after_move() == false);
+            }
         }
     }
 
     GIVEN("a polymorphic in valid state") {
         polymorphic<Base> poly(std::in_place_type<Derived>, 1400);
 
-        THEN("operations should not throw") {
+        THEN("basic operations should not throw") {
             REQUIRE_NOTHROW(poly->identify());
             REQUIRE_NOTHROW(*poly);
             REQUIRE_NOTHROW(poly.valueless_after_move());
+            REQUIRE_NOTHROW(poly.get_allocator());
+        }
+
+        THEN("copy operations may throw but should be safe") {
+            REQUIRE_NOTHROW(polymorphic<Base>(poly));
+
+            polymorphic<Base> poly2;
+            REQUIRE_NOTHROW(poly2 = poly);
+        }
+
+        THEN("move operations should not throw") {
+            REQUIRE_NOTHROW(polymorphic<Base>(std::move(poly)));
+
+            polymorphic<Base> poly2;
+            REQUIRE_NOTHROW(poly2 = std::move(poly));
+        }
+    }
+}
+
+SCENARIO("polymorphic strong exception guarantee", "[polymorphic][exception][guarantee]") {
+    GIVEN("an allocator that throws on copy") {
+
+        using ThrowingBase = Base;
+        using ThrowingAlloc = ThrowingAllocator<Base>;
+
+        WHEN("construction throws due to allocator") {
+            using TestAlloc = ThrowingAllocator<char>; // 注意：这里使用char，实际会被rebind
+            TestAlloc alloc;
+            alloc.should_throw = true;
+
+            THEN("construction should throw") {
+                auto f = [&alloc]() {
+                    (void) polymorphic<Base, TestAlloc>(std::allocator_arg, alloc, std::in_place_type<Derived>, 1500);
+                };
+                REQUIRE_THROWS_AS(f(), std::bad_alloc);
+            }
         }
     }
 }
