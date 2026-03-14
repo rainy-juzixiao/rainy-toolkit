@@ -469,3 +469,299 @@ SCENARIO("optional handles complex types", "[optional][complex]") {
         }
     }
 }
+
+SCENARIO("optional comparison operators", "[optional][comparison]") {
+    GIVEN("two optionals with values") {
+        optional<int> opt1{42};
+        optional<int> opt2{42};
+        optional<int> opt3{100};
+
+        WHEN("comparing equal optionals") {
+            THEN("equality comparison should work") {
+                REQUIRE(opt1 == opt2);
+#if !RAINY_HAS_CXX20
+                REQUIRE_FALSE(opt1 != opt2);
+#endif
+            }
+        }
+
+        WHEN("comparing different optionals") {
+            THEN("inequality comparison should work") {
+#if !RAINY_HAS_CXX20
+                REQUIRE(opt1 != opt3);
+#endif
+                REQUIRE_FALSE(opt1 == opt3);
+            }
+            THEN("relational comparisons should work") {
+                REQUIRE(opt1 < opt3);
+#if !RAINY_HAS_CXX20
+                REQUIRE(opt1 <= opt3);
+                REQUIRE(opt3 > opt1);
+                REQUIRE(opt3 >= opt1);
+#endif
+            }
+        }
+    }
+
+    GIVEN("optionals with and without values") {
+        optional<int> empty;
+        optional<int> has_value{42};
+
+        WHEN("comparing empty and non-empty optionals") {
+            THEN("empty should be less than non-empty") {
+                REQUIRE(empty < has_value);
+#if !RAINY_HAS_CXX20
+                REQUIRE(empty <= has_value);
+                REQUIRE(has_value > empty);
+                REQUIRE(has_value >= empty);
+                REQUIRE(empty != has_value);
+#endif
+            }
+        }
+
+        WHEN("comparing two empty optionals") {
+            optional<int> empty2;
+            THEN("they should be equal") {
+                REQUIRE(empty == empty2);
+                REQUIRE_FALSE(empty < empty2);
+#if !RAINY_HAS_CXX20
+                REQUIRE(empty <= empty2);
+                REQUIRE(empty >= empty2);
+#endif
+            }
+        }
+    }
+
+    GIVEN("optionals with different types") {
+        optional<int> opt_int{42};
+        optional<long> opt_long{42L};
+        optional<double> opt_double{42.0};
+
+        WHEN("comparing compatible types") {
+            THEN("cross-type equality should work") {
+                REQUIRE(opt_int == opt_long);
+                REQUIRE(opt_int == opt_double);
+            }
+            THEN("cross-type relational comparisons should work") {
+                REQUIRE_FALSE(opt_int < opt_long);
+#if !RAINY_HAS_CXX20
+                REQUIRE(opt_int <= opt_long);
+#endif
+            }
+        }
+    }
+}
+
+SCENARIO("optional comparison with nullopt", "[optional][comparison][nullopt]") {
+    GIVEN("an empty optional") {
+        optional<int> empty;
+
+        WHEN("comparing with nullopt") {
+            THEN("it should be equal to nullopt") {
+                REQUIRE(empty == nullopt);
+#if !RAINY_HAS_CXX20
+                REQUIRE(nullopt == empty);
+                REQUIRE_FALSE(empty != nullopt);
+                REQUIRE_FALSE(nullopt != empty);
+#endif
+            }
+#if !RAINY_HAS_CXX20
+            THEN("relational comparisons should work") {
+                REQUIRE_FALSE(empty < nullopt);
+                REQUIRE_FALSE(nullopt > empty);
+                REQUIRE(empty <= nullopt);
+                REQUIRE(nullopt <= empty);
+                REQUIRE(empty >= nullopt);
+                REQUIRE(nullopt >= empty);
+            }
+#endif
+        }
+    }
+
+    GIVEN("an optional with value") {
+        optional<int> has_value{42};
+
+        WHEN("comparing with nullopt") {
+            THEN("it should not be equal to nullopt") {
+#if !RAINY_HAS_CXX20
+                REQUIRE(has_value != nullopt);
+                REQUIRE(nullopt != has_value);
+#endif
+                REQUIRE_FALSE(has_value == nullopt);
+#if !RAINY_HAS_CXX20
+                REQUIRE_FALSE(nullopt == has_value);
+#endif
+            }
+#if !RAINY_HAS_CXX20
+            THEN("non-empty should be greater than nullopt") {
+                REQUIRE(has_value > nullopt);
+                REQUIRE(nullopt < has_value);
+                REQUIRE(has_value >= nullopt);
+                REQUIRE(nullopt <= has_value);
+            }
+#endif
+        }
+    }
+}
+
+SCENARIO("optional comparison with values", "[optional][comparison][value]") {
+    GIVEN("an optional with value") {
+        optional<int> opt{42};
+
+        WHEN("comparing with equal value") {
+            THEN("equality should hold") {
+                REQUIRE(opt == 42);
+                REQUIRE(42 == opt);
+#if !RAINY_HAS_CXX20
+                REQUIRE_FALSE(opt != 42);
+                REQUIRE_FALSE(42 != opt);
+#endif
+            }
+        }
+
+        WHEN("comparing with different value") {
+            THEN("inequality should hold") {
+#if !RAINY_HAS_CXX20
+                REQUIRE(opt != 100);
+                REQUIRE(100 != opt);
+#endif
+                REQUIRE_FALSE(opt == 100);
+                REQUIRE_FALSE(100 == opt);
+            }
+            THEN("relational comparisons should work") {
+                REQUIRE(opt < 100);
+#if !RAINY_HAS_CXX20
+                REQUIRE(100 > opt);
+                REQUIRE(opt > 10);
+#endif
+                REQUIRE(10 < opt);
+#if !RAINY_HAS_CXX20
+                REQUIRE(opt <= 100);
+                REQUIRE(opt >= 10);
+                REQUIRE(100 >= opt);
+                REQUIRE(10 <= opt);
+#endif
+            }
+        }
+    }
+
+    GIVEN("an empty optional") {
+        optional<int> empty;
+
+        WHEN("comparing with any value") {
+            THEN("it should not be equal") {
+                REQUIRE_FALSE(empty == 42);
+                REQUIRE_FALSE(42 == empty);
+#if !RAINY_HAS_CXX20
+                REQUIRE(empty != 42);
+                REQUIRE(42 != empty);
+#endif
+            }
+            THEN("empty should be less than any value") {
+                REQUIRE(empty < 42);
+                REQUIRE(empty < -100);
+                REQUIRE_FALSE(42 < empty);
+#if !RAINY_HAS_CXX20
+                REQUIRE(42 > empty);
+                REQUIRE(empty <= 42);
+                REQUIRE_FALSE(42 <= empty);
+#endif
+            }
+        }
+    }
+
+    GIVEN("optional with string") {
+        optional<std::string> opt{"hello"};
+
+        WHEN("comparing with string values") {
+            THEN("string comparison should work") {
+                REQUIRE(opt == "hello");
+                REQUIRE("hello" == opt);
+                REQUIRE(opt < "world");
+                REQUIRE("apple" < opt);
+#if !RAINY_HAS_CXX20
+                REQUIRE(opt > "apple");
+                REQUIRE("world" > opt);
+                REQUIRE(opt <= "hello");
+                REQUIRE(opt >= "hello");
+#endif
+            }
+        }
+    }
+}
+
+#if RAINY_HAS_CXX20
+SCENARIO("optional three-way comparison (C++20)", "[optional][comparison][spaceship]") {
+    GIVEN("optionals with values") {
+        optional<int> opt1{42};
+        optional<int> opt2{42};
+        optional<int> opt3{100};
+
+        WHEN("using spaceship operator") {
+            THEN("equal values should have strong equality") {
+                REQUIRE((opt1 <=> opt2) == std::strong_ordering::equal);
+            }
+            THEN("different values should compare correctly") {
+                REQUIRE((opt1 <=> opt3) == std::strong_ordering::less);
+                REQUIRE((opt3 <=> opt1) == std::strong_ordering::greater);
+            }
+        }
+    }
+
+    GIVEN("empty and non-empty optionals") {
+        optional<int> empty;
+        optional<int> has_value{42};
+
+        WHEN("using spaceship operator") {
+            THEN("empty should be less than non-empty") {
+                REQUIRE((empty <=> has_value) == std::strong_ordering::less);
+                REQUIRE((has_value <=> empty) == std::strong_ordering::greater);
+            }
+        }
+
+        WHEN("comparing two empty optionals") {
+            optional<int> empty2;
+            THEN("they should be equal") {
+                REQUIRE((empty <=> empty2) == std::strong_ordering::equal);
+            }
+        }
+    }
+
+    GIVEN("optional and nullopt") {
+        optional<int> empty;
+        optional<int> has_value{42};
+
+        WHEN("using spaceship with nullopt") {
+            THEN("comparisons should work") {
+                REQUIRE((empty <=> nullopt) == std::strong_ordering::equal);
+                REQUIRE((has_value <=> nullopt) == std::strong_ordering::greater);
+            }
+        }
+    }
+
+    GIVEN("optional and raw value") {
+        optional<int> opt{42};
+        optional<int> empty;
+
+        WHEN("using spaceship with values") {
+            THEN("comparisons should work correctly") {
+                REQUIRE((opt <=> 42) == std::strong_ordering::equal);
+                REQUIRE((opt <=> 100) == std::strong_ordering::less);
+                REQUIRE((opt <=> 10) == std::strong_ordering::greater);
+                REQUIRE((empty <=> 42) == std::strong_ordering::less);
+            }
+        }
+    }
+
+    GIVEN("optionals with different comparable types") {
+        optional<int> opt_int{42};
+        optional<long> opt_long{42L};
+
+        WHEN("using spaceship across types") {
+            THEN("cross-type comparison should work") {
+                REQUIRE((opt_int <=> opt_long) == std::strong_ordering::equal);
+            }
+        }
+    }
+}
+#endif

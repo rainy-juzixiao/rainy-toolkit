@@ -16,26 +16,26 @@
 #ifndef RAINY_CORE_TYPE_TRAITS_HPP
 #define RAINY_CORE_TYPE_TRAITS_HPP
 #include <iterator>
-#include <utility>
-#include <rainy/core/platform.hpp>
-#include <rainy/core/implements/tuple.hpp>
 #include <rainy/core/implements/basic_algorithm.hpp>
 #include <rainy/core/implements/compressed_pair.hpp>
+#include <rainy/core/implements/tuple.hpp>
+#include <rainy/core/platform.hpp>
+#include <rainy/core/type_traits/decay.hpp>
 #include <rainy/core/type_traits/helper.hpp>
 #include <rainy/core/type_traits/implements.hpp>
 #include <rainy/core/type_traits/iter_traits.hpp>
 #include <rainy/core/type_traits/limits.hpp>
+#include <rainy/core/type_traits/logical.hpp>
 #include <rainy/core/type_traits/meta_methods.hpp>
 #include <rainy/core/type_traits/meta_types.hpp>
 #include <rainy/core/type_traits/modifers.hpp>
+#include <rainy/core/type_traits/primary_types.hpp>
+#include <rainy/core/type_traits/properties.hpp>
 #include <rainy/core/type_traits/ranges_traits.hpp>
 #include <rainy/core/type_traits/type_list.hpp>
 #include <rainy/core/type_traits/type_relations.hpp>
 #include <rainy/core/type_traits/value_list.hpp>
-#include <rainy/core/type_traits/decay.hpp>
-#include <rainy/core/type_traits/primary_types.hpp>
-#include <rainy/core/type_traits/logical.hpp>
-#include <rainy/core/type_traits/properties.hpp>
+#include <utility>
 #if RAINY_USING_GCC
 #include <rainy/core/gnu/typetraits.hpp>
 #endif
@@ -2036,7 +2036,7 @@ namespace rainy::type_traits::extras::templates {
         using type = typename Ty::template rebind<Other>;
     };
 
-        /**
+    /**
      * @brief Replaces the last template parameter of a template instantiation.
      *        替换模板实例化的最后一个模板参数。
      *

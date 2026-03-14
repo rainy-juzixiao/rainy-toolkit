@@ -1,5 +1,21 @@
-#ifndef RAINY_VARIANT_HPP
-#define RAINY_VARIANT_HPP
+/*
+ * Copyright 2026 rainy-juzixiao
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+#ifndef RAINY_FOUNDATION_CONTAINER_VARIANT_HPP
+#define RAINY_FOUNDATION_CONTAINER_VARIANT_HPP
+#include <rainy/annotations/smf_control.hpp>
 #include <rainy/core/core.hpp>
 
 #if RAINY_USING_MSVC
@@ -7,7 +23,7 @@
 #pragma warning(disable : 26495 4715)
 #endif
 
-namespace rainy::utility {
+namespace rainy::foundation::container {
     template <typename... Types>
     class variant; // 前置声明
 
@@ -38,7 +54,7 @@ namespace rainy::foundation::exceptions::runtime {
     }
 }
 
-namespace rainy::utility::implements {
+namespace rainy::foundation::container::implements {
     template <bool TrivialTestruction, typename... Types>
     struct variant_storage {};
 
@@ -58,12 +74,11 @@ namespace rainy::utility::implements {
         constexpr variant_storage() noexcept {
         }
 
-        RAINY_CONSTEXPR20 ~variant_storage() noexcept {
-        }
+        RAINY_CONSTEXPR20 ~variant_storage() = default;
 
         constexpr variant_storage(variant_storage &&) noexcept = default;
-        constexpr variant_storage(const variant_storage &) noexcept = default;
-        constexpr variant_storage &operator=(const variant_storage &) noexcept = default;
+        constexpr variant_storage(const variant_storage &) = default;
+        constexpr variant_storage &operator=(const variant_storage &) = default;
         constexpr variant_storage &operator=(variant_storage &&) noexcept = default;
 
         template <typename... Types>
@@ -114,8 +129,8 @@ namespace rainy::utility::implements {
         }
 
         constexpr variant_storage(variant_storage &&) noexcept = default;
-        constexpr variant_storage(const variant_storage &) noexcept = default;
-        constexpr variant_storage &operator=(const variant_storage &) noexcept = default;
+        constexpr variant_storage(const variant_storage &) = default;
+        constexpr variant_storage &operator=(const variant_storage &) = default;
         constexpr variant_storage &operator=(variant_storage &&) noexcept = default;
 
         template <typename... Types>
@@ -156,7 +171,7 @@ namespace rainy::utility::implements {
         variant_storage<type_traits::logical_traits::conjunction_v<std::is_trivially_destructible<Types>...>, Types...>;
 }
 
-namespace rainy::utility::implements {
+namespace rainy::foundation::container::implements {
     template <std::size_t Idx, typename VariantStorage>
     constexpr decltype(auto) variant_raw_get(VariantStorage &&obj) noexcept {
         if constexpr (Idx == 0) {
@@ -176,16 +191,16 @@ namespace rainy::utility::implements {
         } else if constexpr (Idx == 7) {
             return static_cast<VariantStorage &&>(obj).tail.tail.tail.tail.tail.tail.tail.get();
         } else if constexpr (Idx < 16) {
-            return variant_rawget<Idx - 8>(static_cast<VariantStorage &&>(obj).tail.tail.tail.tail.tail.tail.tail.tail);
+            return variant_raw_get<Idx - 8>(static_cast<VariantStorage &&>(obj).tail.tail.tail.tail.tail.tail.tail.tail);
         } else if constexpr (Idx < 32) {
-            return variant_rawget<Idx - 16>(
+            return variant_raw_get<Idx - 16>(
                 static_cast<VariantStorage &&>(obj).tail.tail.tail.tail.tail.tail.tail.tail.tail.tail.tail.tail.tail.tail.tail.tail);
         } else if constexpr (Idx < 64) {
-            return variant_rawget<Idx - 32>(static_cast<VariantStorage &&>(obj)
-                                                .tail.tail.tail.tail.tail.tail.tail.tail.tail.tail.tail.tail.tail.tail.tail.tail.tail
-                                                .tail.tail.tail.tail.tail.tail.tail.tail.tail.tail.tail.tail.tail.tail.tail);
+            return variant_raw_get<Idx - 32>(static_cast<VariantStorage &&>(obj)
+                                                 .tail.tail.tail.tail.tail.tail.tail.tail.tail.tail.tail.tail.tail.tail.tail.tail.tail
+                                                 .tail.tail.tail.tail.tail.tail.tail.tail.tail.tail.tail.tail.tail.tail.tail);
         } else { // Idx >= 64
-            return variant_rawget<Idx - 64>(
+            return variant_raw_get<Idx - 64>(
                 static_cast<VariantStorage &&>(obj)
                     .tail.tail.tail.tail.tail.tail.tail.tail.tail.tail.tail.tail.tail.tail.tail.tail.tail.tail.tail.tail.tail.tail.tail
                     .tail.tail.tail.tail.tail.tail.tail.tail.tail.tail.tail.tail.tail.tail.tail.tail.tail.tail.tail.tail.tail.tail.tail
@@ -194,29 +209,13 @@ namespace rainy::utility::implements {
     }
 }
 
-namespace rainy::utility::implements {
-#if RAINY_HAS_CXX20
-    template <std::size_t Index, class TargetType>
-    auto construct_array(TargetType (&&)[1])
-        -> type_traits::other_trans::type_list<type_traits::helper::integral_constant<std::size_t, Index>, TargetType> {
-    }
-
-    template <std::size_t Index, class TargetType, class InitializerType>
-    using variant_type_resolver = decltype(construct_array<Index, TargetType>({utility::declval<InitializerType>()}));
-#endif
-
+namespace rainy::foundation::container::implements {
     template <std::size_t Index, typename TargetType>
     struct variant_init_single_overload {
-#if RAINY_HAS_CXX20
-        template <typename InitializerType>
-        auto operator()(TargetType, InitializerType &&) -> variant_type_resolver<Index, TargetType, InitializerType> {
-        }
-#else
         template <typename InitializerType>
         auto operator()(TargetType, InitializerType &&)
             -> type_traits::other_trans::type_list<type_traits::helper::integral_constant<std::size_t, Index>, TargetType> {
         }
-#endif
     };
 
     template <typename Indices, typename... Types>
@@ -279,7 +278,7 @@ namespace rainy::utility::implements {
             rainy_assume(false);                                                                                                      \
     }
 
-namespace rainy::utility::implements {
+namespace rainy::foundation::container::implements {
     template <typename _Fn, class VariantStorage>
     using variant_raw_visit_t = decltype(utility::declval<_Fn>()(utility::declval<variant_tagged_ref_t<VariantStorage, 0>>()));
 
@@ -293,28 +292,27 @@ namespace rainy::utility::implements {
                                                    std::is_nothrow_invocable<_Fn, variant_tagged_ref_t<VariantStorage, _Idxs>>...>;
 
     template <std::size_t _Idx, class _Fn, class VariantStorage>
-    RAINY_NODISCARD constexpr variant_raw_visit_t<_Fn, VariantStorage> variant_raw_visit_dispatch(_Fn &&_Func, VariantStorage &&_Var) noexcept(
-        std::is_nothrow_invocable_v<_Fn, variant_tagged_ref_t<VariantStorage, _Idx>>) {
+    RAINY_NODISCARD constexpr variant_raw_visit_t<_Fn, VariantStorage> variant_raw_visit_dispatch(
+        _Fn &&_Func, VariantStorage &&_Var) noexcept(std::is_nothrow_invocable_v<_Fn, variant_tagged_ref_t<VariantStorage, _Idx>>) {
         return static_cast<_Fn &&>(_Func)(
             variant_tagged_ref_t<VariantStorage, _Idx>{variant_raw_get<_Idx>(static_cast<VariantStorage &&>(_Var))});
     }
 
-    template <class _Fn, class VariantStorage>
-    RAINY_NODISCARD constexpr variant_raw_visit_t<_Fn, VariantStorage> variant_raw_visit_valueless(_Fn &&_Func, VariantStorage &&_Obj) noexcept(
-        std::is_nothrow_invocable_v<_Fn, variant_tagged<VariantStorage &&, variant_npos>>) {
-        return static_cast<_Fn &&>(_Func)(variant_tagged<VariantStorage &&, variant_npos>{static_cast<VariantStorage &&>(_Obj)});
-    }
-
     template <class _Fn, class VariantStorage,
-              class _Indices = type_traits::helper::make_index_sequence<type_traits::reference_modify::remove_reference_t<VariantStorage>::size>>
+              class _Indices =
+                  type_traits::helper::make_index_sequence<type_traits::reference_modify::remove_reference_t<VariantStorage>::size>>
     struct variant_raw_dispatch_table; // undefined
 
     template <class _Fn, class VariantStorage, std::size_t... _Idxs>
     struct variant_raw_dispatch_table<_Fn, VariantStorage, type_traits::helper::index_sequence<_Idxs...>> {
-        // map from canonical index to visitation target
-        using dispatch_t = variant_raw_visit_t<_Fn, VariantStorage> (*)(_Fn &&,VariantStorage &&) noexcept(variant_raw_visit_noexcept<_Fn, VariantStorage>);
-        static constexpr dispatch_t table[] = {&variant_raw_visit_valueless<_Fn, VariantStorage>,
-                                                 &variant_raw_visit_dispatch<_Idxs, _Fn, VariantStorage>...};
+        using dispatch_t = variant_raw_visit_t<_Fn, VariantStorage> (*)(_Fn &&, VariantStorage &&) noexcept(
+            variant_raw_visit_noexcept<_Fn, VariantStorage>);
+
+        // table[0] 对应 idx==0（valueless），直接用抛异常的 stub 替代
+        static constexpr dispatch_t table[] = {[](_Fn &&, VariantStorage &&) -> variant_raw_visit_t<_Fn, VariantStorage> {
+                                                   foundation::exceptions::runtime::throw_bad_variant_access();
+                                               },
+                                               &variant_raw_visit_dispatch<_Idxs, _Fn, VariantStorage>...};
     };
 
     template <int Strategy>
@@ -323,8 +321,8 @@ namespace rainy::utility::implements {
     template <>
     struct variant_raw_visit_impl<-1> {
         template <class _Fn, class VariantStorage>
-        RAINY_NODISCARD static constexpr variant_raw_visit_t<_Fn, VariantStorage> invoke(std::size_t idx, _Fn &&func, VariantStorage &&obj) noexcept(
-            variant_raw_visit_noexcept<_Fn, VariantStorage>) {
+        RAINY_NODISCARD static constexpr variant_raw_visit_t<_Fn, VariantStorage> invoke(
+            std::size_t idx, _Fn &&func, VariantStorage &&obj) noexcept(variant_raw_visit_noexcept<_Fn, VariantStorage>) {
             constexpr std::size_t size = type_traits::reference_modify::remove_reference_t<VariantStorage>::size;
             static_assert(size > 64);
             constexpr auto &array = variant_raw_dispatch_table<_Fn, VariantStorage>::table;
@@ -335,8 +333,8 @@ namespace rainy::utility::implements {
     template <>
     struct variant_raw_visit_impl<1> {
         template <typename Fx, class VariantStorage>
-        RAINY_NODISCARD static constexpr variant_raw_visit_t<Fx, VariantStorage> invoke(std::size_t idx, Fx &&func, VariantStorage &&obj) noexcept(
-            variant_raw_visit_noexcept<Fx, VariantStorage>) {
+        RAINY_NODISCARD static constexpr variant_raw_visit_t<Fx, VariantStorage> invoke(
+            std::size_t idx, Fx &&func, VariantStorage &&obj) noexcept(variant_raw_visit_noexcept<Fx, VariantStorage>) {
             RAINY_STAMP(4, RAINY_VARIANT_VISIT_STAMP);
         }
     };
@@ -344,8 +342,8 @@ namespace rainy::utility::implements {
     template <>
     struct variant_raw_visit_impl<2> {
         template <class Fx, class VariantStorage>
-        RAINY_NODISCARD static constexpr variant_raw_visit_t<Fx, VariantStorage> invoke(std::size_t idx, Fx &&func, VariantStorage &&obj) noexcept(
-            variant_raw_visit_noexcept<Fx, VariantStorage>) {
+        RAINY_NODISCARD static constexpr variant_raw_visit_t<Fx, VariantStorage> invoke(
+            std::size_t idx, Fx &&func, VariantStorage &&obj) noexcept(variant_raw_visit_noexcept<Fx, VariantStorage>) {
             RAINY_STAMP(16, RAINY_VARIANT_VISIT_STAMP);
         }
     };
@@ -353,8 +351,8 @@ namespace rainy::utility::implements {
     template <>
     struct variant_raw_visit_impl<3> {
         template <class Fx, class VariantStorage>
-        RAINY_NODISCARD static constexpr variant_raw_visit_t<Fx, VariantStorage> invoke(std::size_t idx, Fx &&func, VariantStorage &&obj) noexcept(
-            variant_raw_visit_noexcept<Fx, VariantStorage>) {
+        RAINY_NODISCARD static constexpr variant_raw_visit_t<Fx, VariantStorage> invoke(
+            std::size_t idx, Fx &&func, VariantStorage &&obj) noexcept(variant_raw_visit_noexcept<Fx, VariantStorage>) {
             RAINY_STAMP(64, RAINY_VARIANT_VISIT_STAMP);
         }
     };
@@ -364,6 +362,9 @@ namespace rainy::utility::implements {
         std::size_t idx, VariantStorage &&_Obj, _Fn &&_Func) noexcept(variant_raw_visit_noexcept<_Fn, VariantStorage>) {
         constexpr std::size_t size = type_traits::reference_modify::remove_reference_t<VariantStorage>::size;
         constexpr int strategy = size <= 4 ? 1 : size <= 16 ? 2 : size <= 64 ? 3 : -1;
+        if (idx == variant_npos) {
+            foundation::exceptions::runtime::throw_bad_variant_access();
+        }
         ++idx;
         return variant_raw_visit_impl<strategy>::invoke(idx, static_cast<_Fn &&>(_Func), static_cast<VariantStorage &&>(_Obj));
     }
@@ -372,15 +373,18 @@ namespace rainy::utility::implements {
 #undef RAINY_VARIANT_VISIT_STAMP
 #undef RAINY_VARIANT_CASE
 
-namespace rainy::utility::implements {
+namespace rainy::foundation::container::implements {
     template <typename... Types>
     class variant_base : private variant_storage_t<Types...> {
     public:
         RAINY_NODISCARD constexpr bool valueless_by_exception() const noexcept {
-            return idx == variant_npos;
+            return idx == invalid_index;
         }
 
         RAINY_NODISCARD constexpr std::size_t index() const noexcept {
+            if (idx == invalid_index) {
+                return variant_npos; // -1 as index_t -> SIZE_MAX as size_t
+            }
             return static_cast<std::size_t>(idx);
         }
 
@@ -405,8 +409,12 @@ namespace rainy::utility::implements {
 
         RAINY_CONSTEXPR20 void construct_from(const variant_base &right) noexcept(
             type_traits::logical_traits::conjunction_v<type_traits::type_properties::is_nothrow_copy_constructible<Types>...>) {
-            variant_raw_visit(right.index(), right.storage(), [this](auto source) {
-                using source_t = decltype(source);
+            if (right.valueless_by_exception()) {
+                this->idx = invalid_index;
+                return; // 直接返回，不尝试访问
+            }
+            variant_raw_visit(right.index(), right.storage(), [this](auto &&source) { // ← auto &&
+                using source_t = type_traits::cv_modify::remove_cvref_t<decltype(source)>;
                 if constexpr (source_t::idx != variant_npos) {
                     utility::construct_in_place(this->storage(), type_traits::helper::integral_constant<std::size_t, source_t::idx>{},
                                                 utility::forward<decltype(source.val)>(source.val));
@@ -417,13 +425,19 @@ namespace rainy::utility::implements {
 
         RAINY_CONSTEXPR20 void construct_from(variant_base &&right) noexcept(
             type_traits::logical_traits::conjunction_v<type_traits::type_properties::is_nothrow_move_constructible<Types>...>) {
-            variant_raw_visit(right.index(), utility::move(right).storage(), [&right, this](auto source) {
-                using source_t = decltype(source);
+
+            if (right.valueless_by_exception()) {
+                this->idx = invalid_index;
+                return;
+            }
+
+            variant_raw_visit(right.index(), utility::move(right).storage(), [&right, this](auto &&source) { // ← 改为 auto &&
+                using source_t = type_traits::cv_modify::remove_cvref_t<decltype(source)>; // ← 需要 remove_cvref
                 if constexpr (source_t::idx != variant_npos) {
                     utility::construct_in_place(this->storage(), type_traits::helper::integral_constant<std::size_t, source_t::idx>{},
                                                 utility::move(source.val));
                     this->idx = source_t::idx;
-                    right.idx = 0;
+                    right.idx = invalid_index;
                 }
             });
         }
@@ -431,24 +445,52 @@ namespace rainy::utility::implements {
         template <std::size_t Idx>
         RAINY_CONSTEXPR20 void destroy() noexcept {
             using indexed_value_type = type_traits::cv_modify::remove_cv_t<
-                typename type_traits::other_trans::type_at<Idx, type_traits::other_trans::type_list<Types...>>::type, Idx>;
+                typename type_traits::other_trans::type_at<Idx, type_traits::other_trans::type_list<Types...>>::type>;
             if constexpr (Idx != variant_npos && !type_traits::type_properties::is_trivially_destructible_v<indexed_value_type>) {
                 variant_raw_get<Idx>(storage()).~indexed_value_type();
             }
         }
 
         RAINY_CONSTEXPR20 void destroy() noexcept {
-            constexpr bool is_trivially_destructible =
+            constexpr bool has_non_trivial_dtor =
                 !type_traits::logical_traits::conjunction_v<type_traits::type_properties::is_trivially_destructible<Types>...>;
-            if constexpr (is_trivially_destructible) {
-                if (index() != variant_npos) {
-                    variant_raw_visit(index(), storage(), [](auto ref) noexcept {
+            if constexpr (has_non_trivial_dtor) {
+                if (!valueless_by_exception()) {
+                    variant_raw_visit(index(), storage(), [](auto &&ref) noexcept {
                         using indexed_value_type = type_traits::cv_modify::remove_cvref_t<decltype(ref.val)>;
                         ref.val.~indexed_value_type();
                     });
                 }
             }
         }
+
+        RAINY_CONSTEXPR20 void swap_with(variant_base &other) noexcept(
+            type_traits::logical_traits::conjunction_v<type_traits::type_properties::is_nothrow_move_constructible<Types>...,
+                                                       type_traits::type_properties::is_nothrow_swappable<Types>...>) {
+            if (this == &other)
+                return;
+            if (valueless_by_exception() && other.valueless_by_exception())
+                return;
+            if (index() == other.index() && !valueless_by_exception()) {
+                variant_raw_visit(index(), storage(), [&other](auto lhs_ref) {
+                    using tagged = decltype(lhs_ref);
+                    if constexpr (tagged::idx != variant_npos) {
+                        using std::swap;
+                        swap(lhs_ref.val, variant_raw_get<tagged::idx>(other.storage()));
+                    }
+                });
+            } else {
+                variant_base tmp;
+                tmp.construct_from(utility::move(*this));
+                destroy();
+                idx = variant_npos;
+                construct_from(utility::move(other));
+                other.destroy();
+                other.idx = variant_npos;
+                other.construct_from(utility::move(tmp));
+            }
+        }
+
     private:
         template <typename Visitor, typename Variant, std::size_t Index>
         friend constexpr void visit_impl(Visitor &&visitor, Variant &&var);
@@ -463,11 +505,11 @@ namespace rainy::utility::implements {
         friend struct variant_dispatcher;
 
         friend class variant<Types...>;
-        
-        template <typename... Types>
+
+        template <typename...>
         friend class variant_destroy_layer;
 
-        static inline constexpr std::size_t invalid_index = static_cast<index_t>(-1);
+        static inline constexpr index_t invalid_index = static_cast<index_t>(-1);
 
         RAINY_CONSTEXPR20 variant_base() noexcept : storage_t{}, idx(invalid_index) {
         }
@@ -478,7 +520,7 @@ namespace rainy::utility::implements {
                 type_traits::type_properties::is_constructible_v<
                     typename type_traits::other_trans::type_at<Idx, type_traits::other_trans::type_list<Types...>>::type, Args...>,
                 int> = 0>
-        constexpr explicit variant_base(utility::in_place_index_t<Idx>, Args &&...args) noexcept(
+        constexpr explicit variant_base(std::in_place_index_t<Idx>, Args &&...args) noexcept(
             type_traits::type_properties::is_nothrow_constructible_v<
                 typename type_traits::other_trans::type_at<Idx, type_traits::other_trans::type_list<Types...>>::type, Args...>) :
             storage_t(type_traits::helper::integral_constant<std::size_t, Idx>{}, utility::forward<Args>(args)...) {
@@ -492,7 +534,7 @@ namespace rainy::utility::implements {
             this->idx = static_cast<index_t>(index);
         }
 
-        std::size_t idx{variant_npos};
+        index_t idx{invalid_index};
     };
 
     template <typename... Types>
@@ -500,23 +542,18 @@ namespace rainy::utility::implements {
         using base = variant_base<Types...>;
         using base::base;
 
-        RAINY_CONSTEXPR20 ~variant_destroy_layer() noexcept { // Destroy contained value, if any
+        RAINY_CONSTEXPR20 ~variant_destroy_layer() noexcept {
             base::destroy();
+            this->idx = base::invalid_index; // 析构后标记，防止 double-destroy
         }
-
-        variant_destroy_layer() = default;
-        variant_destroy_layer(const variant_destroy_layer &) = default;
-        variant_destroy_layer(variant_destroy_layer &&) = default;
-        variant_destroy_layer &operator=(const variant_destroy_layer &) = default;
-        variant_destroy_layer &operator=(variant_destroy_layer &&) = default;
     };
 
     template <typename... Types>
-    using variant_destroy_layer_t = std::conditional_t<std::conjunction_v<std::is_trivially_destructible<Types>...>, variant_base<Types...>,
-                                                 variant_destroy_layer<Types...>>;
+    using variant_destroy_layer_t = std::conditional_t<std::conjunction_v<std::is_trivially_destructible<Types>...>,
+                                                       variant_base<Types...>, variant_destroy_layer<Types...>>;
 }
 
-namespace rainy::utility {
+namespace rainy::foundation::container {
     template <typename... Types>
     class variant : public implements::variant_destroy_layer_t<Types...> {
     public:
@@ -526,7 +563,7 @@ namespace rainy::utility {
 
         template <typename First = typename type_traits::other_trans::type_at<0, type_list>::type,
                   type_traits::other_trans::enable_if_t<type_traits::type_properties::is_default_constructible_v<First>, int> = 0>
-        constexpr variant() : base(utility::in_place_index<0>) {
+        constexpr variant() : base(std::in_place_index<0>) {
         }
 
         template <typename Ty,
@@ -538,79 +575,186 @@ namespace rainy::utility {
                           !utility::is_in_place_index_specialization<type_traits::cv_modify::remove_cvref_t<Ty>> &&
                           type_traits::type_properties::is_constructible_v<implements::variant_init_type<Ty, Types...>, Ty>,
                       int> = 0>
-        constexpr variant(Ty &&object) noexcept(type_traits::type_properties::is_nothrow_constructible_v<implements::variant_init_type<Ty, Types...>, Ty>) :
-            base(utility::in_place_index<implements::variant_init_index<Ty, Types...>::value>, object) {
+        constexpr variant(Ty &&object) noexcept(
+            type_traits::type_properties::is_nothrow_constructible_v<implements::variant_init_type<Ty, Types...>, Ty>) :
+            base(std::in_place_index<implements::variant_init_index<Ty, Types...>::value>, utility::forward<Ty>(object)) {
         }
 
         template <typename Ty, typename... Args, typename Idx = type_traits::other_trans::type_find_unique<Ty, type_list>,
                   type_traits::other_trans::enable_if_t<
                       Idx::value != base::invalid_index && type_traits::type_properties::is_constructible_v<Ty, Args...>, int> = 0>
-        constexpr explicit variant(std::in_place_type_t<Ty>, Args &&...args) noexcept(type_traits::type_properties::is_nothrow_constructible_v<Ty, Args...>) {
-        }
-
-        template <typename Ty, typename... Args, typename Idx = type_traits::other_trans::type_find_unique<Ty, type_list>,
-                  type_traits::other_trans::enable_if_t<
-                      Idx::value != base::invalid_index && type_traits::type_properties::is_constructible_v<Ty, Args...>, int> = 0>
-        constexpr explicit variant(utility::placeholder_type_t<Ty>,
+        constexpr explicit variant(std::in_place_type_t<Ty>,
                                    Args &&...args) noexcept(type_traits::type_properties::is_nothrow_constructible_v<Ty, Args...>) :
-            base(utility::in_place_index<Idx::value>, utility::forward<Args>(args)...) {
+            base(std::in_place_index<Idx::value>, utility::forward<Args>(args)...) {
         }
 
         template <std::size_t Idx, typename... Args, typename Type = typename type_traits::other_trans::type_at<Idx, type_list>::type,
-                  type_traits::other_trans::enable_if_t<type_traits::type_properties::is_constructible_v<Type, Args...> &&
-                                                            type_traits::other_trans::type_find_unique<Type, variant>::value !=
-                                                                base::invalid_index /* 防止类型双关 */,
-                                                        int> = 0>
+                  type_traits::other_trans::enable_if_t<
+                      type_traits::type_properties::is_constructible_v<Type, Args...> &&
+                          type_traits::other_trans::type_find_unique<Type, type_traits::other_trans::type_list<Types...>>::value !=
+                              base::invalid_index /* 防止类型双关 */,
+                      int> = 0>
         constexpr explicit variant(std::in_place_index_t<Idx>,
                                    Args &&...args) noexcept(type_traits::type_properties::is_nothrow_constructible_v<Type, Args...>) :
-            base(utility::in_place_index<Idx>, utility::forward<Args>(args)...) {
+            base(std::in_place_index<Idx>, utility::forward<Args>(args)...) {
         }
 
-        template <std::size_t Idx, typename... Args, typename Type = typename type_traits::other_trans::type_at<Idx, type_list>::type,
-                  type_traits::other_trans::enable_if_t<type_traits::type_properties::is_constructible_v<Type, Args...> &&
-                                                            type_traits::other_trans::type_find_unique<Type, variant>::value !=
-                                                                base::invalid_index /* 防止类型双关 */,
-                                                        int> = 0>
-        constexpr explicit variant(utility::in_place_index_t<Idx>,
-                                   Args &&...args) noexcept(type_traits::type_properties::is_nothrow_constructible_v<Type, Args...>) :
-            base(utility::in_place_index<Idx>, utility::forward<Args>(args)...) {
+        template <typename Ty, typename U, typename... Args,
+                  typename Idx = type_traits::other_trans::type_find_unique<Ty, type_traits::other_trans::type_list<Types...>>,
+                  type_traits::other_trans::enable_if_t<
+                      Idx::value != base::invalid_index &&
+                          type_traits::type_properties::is_constructible_v<Ty, std::initializer_list<U> &, Args...>,
+                      int> = 0>
+        constexpr explicit variant(std::in_place_type_t<Ty>, std::initializer_list<U> il, Args &&...args) noexcept(
+            type_traits::type_properties::is_nothrow_constructible_v<Ty, std::initializer_list<U> &, Args...>) :
+            base(std::in_place_index<Idx::value>, il, utility::forward<Args>(args)...) {
         }
 
-        variant(const variant &right) noexcept(
+        template <std::size_t Idx, typename U, typename... Args,
+                  typename Ty = typename type_traits::other_trans::type_at<Idx, type_traits::other_trans::type_list<Types...>>::type,
+                  type_traits::other_trans::enable_if_t<
+                      type_traits::type_properties::is_constructible_v<Ty, std::initializer_list<U> &, Args...>, int> = 0>
+        constexpr explicit variant(std::in_place_index_t<Idx>, std::initializer_list<U> il, Args &&...args) noexcept(
+            type_traits::type_properties::is_nothrow_constructible_v<Ty, std::initializer_list<U> &, Args...>) :
+            base(std::in_place_index<Idx>, il, utility::forward<Args>(args)...) {
+        }
+
+        constexpr variant(const variant &right) noexcept(
             type_traits::logical_traits::conjunction_v<type_traits::type_properties::is_nothrow_copy_constructible<Types>...>) {
             this->construct_from(right);
         }
 
-        variant(variant &&right) noexcept(
+        constexpr variant(variant &&right) noexcept(
             type_traits::logical_traits::conjunction_v<type_traits::type_properties::is_nothrow_move_constructible<Types>...>) {
             this->construct_from(utility::move(right));
         }
 
-        variant &operator=(const variant & right) {
-            base::destroy();
-            this->idx = variant_npos;
-            this->construct_from(right);
+        ~variant() = default;
+
+        constexpr variant &operator=(const variant &right) {
+            if (this == &right) {
+                return *this;
+            }
+            if (right.valueless_by_exception()) {
+                base::destroy();
+                this->idx = variant_npos;
+                return *this;
+            }
+            if (this->index() == right.index()) {
+                implements::variant_raw_visit(right.index(), right.storage(), [this](auto rhs_ref) {
+                    using tagged = decltype(rhs_ref);
+                    if constexpr (tagged::idx != variant_npos) {
+                        implements::variant_raw_get<tagged::idx>(this->storage()) = rhs_ref.val;
+                    }
+                });
+            } else {
+                base::destroy();
+                this->idx = variant_npos;
+                try {
+                    this->construct_from(right);
+                } catch (...) {
+                    // left 已经是 valueless，idx 已经是 variant_npos，保持现状
+                    // 异常继续往上抛，符合标准行为
+                    throw;
+                }
+            }
+
             return *this;
         }
 
-        variant &operator=(variant&& right) {
-            base::destroy();
-            this->idx = variant_npos;
-            this->construct_from(utility::move(right));
+        constexpr variant &operator=(variant &&right) noexcept(
+            type_traits::logical_traits::conjunction_v<type_traits::type_properties::is_nothrow_move_constructible<Types>...,
+                                                       type_traits::type_properties::is_nothrow_move_assignable<Types>...>) {
+            if (this == &right) {
+                return *this;
+            }
+            if (right.valueless_by_exception()) {
+                base::destroy();
+                this->idx = variant_npos;
+                return *this;
+            }
+            if (this->index() == right.index()) {
+                implements::variant_raw_visit(right.index(), utility::move(right).storage(), [this](auto rhs_ref) {
+                    using tagged = decltype(rhs_ref);
+                    if constexpr (tagged::idx != variant_npos) {
+                        implements::variant_raw_get<tagged::idx>(this->storage()) = utility::move(rhs_ref.val);
+                    }
+                });
+            } else {
+                base::destroy();
+                this->idx = variant_npos;
+                this->construct_from(utility::move(right));
+            }
             return *this;
         }
 
         template <typename Ty>
-        variant &operator=(Ty&& object) {
+        constexpr variant &operator=(Ty &&object) {
+            try {
+                variant tmp(utility::forward<Ty>(object));
+                base::destroy();
+                this->idx = variant_npos;
+                this->construct_from(utility::move(tmp));
+            } catch (...) {
+                base::destroy();
+                this->idx = variant_npos;
+                throw;
+            }
+            return *this;
+        }
+
+        template <typename Ty, typename... Args,
+                  typename Idx = type_traits::other_trans::type_find_unique<Ty, type_traits::other_trans::type_list<Types...>>,
+                  type_traits::other_trans::enable_if_t<
+                      Idx::value != base::invalid_index && type_traits::type_properties::is_constructible_v<Ty, Args...>, int> = 0>
+        constexpr Ty &emplace(Args &&...args) {
+            return emplace<Idx::value>(utility::forward<Args>(args)...);
+        }
+
+        template <typename Ty, typename U, typename... Args,
+                  typename Idx = type_traits::other_trans::type_find_unique<Ty, type_traits::other_trans::type_list<Types...>>,
+                  type_traits::other_trans::enable_if_t<
+                      Idx::value != base::invalid_index &&
+                          type_traits::type_properties::is_constructible_v<Ty, std::initializer_list<U> &, Args...>,
+                      int> = 0>
+        constexpr Ty &emplace(std::initializer_list<U> il, Args &&...args) {
+            return emplace<Idx::value>(il, utility::forward<Args>(args)...);
+        }
+
+        template <std::size_t Idx, typename... Args,
+                  typename Ty = typename type_traits::other_trans::type_at<Idx, type_traits::other_trans::type_list<Types...>>::type,
+                  type_traits::other_trans::enable_if_t<type_traits::type_properties::is_constructible_v<Ty, Args...>, int> = 0>
+        constexpr Ty &emplace(Args &&...args) {
             base::destroy();
             this->idx = variant_npos;
-            this->construct_from(variant{object});
-            return *this;
+            utility::construct_in_place(this->storage(), type_traits::helper::integral_constant<std::size_t, Idx>{},
+                                        utility::forward<Args>(args)...);
+            this->set_index(Idx);
+            return implements::variant_raw_get<Idx>(this->storage());
+        }
+
+        template <std::size_t Idx, typename U, typename... Args,
+                  typename Ty = typename type_traits::other_trans::type_at<Idx, type_traits::other_trans::type_list<Types...>>::type,
+                  type_traits::other_trans::enable_if_t<
+                      type_traits::type_properties::is_constructible_v<Ty, std::initializer_list<U> &, Args...>, int> = 0>
+        constexpr Ty &emplace(std::initializer_list<U> il, Args &&...args) {
+            base::destroy();
+            this->idx = variant_npos;
+            utility::construct_in_place(this->storage(), type_traits::helper::integral_constant<std::size_t, Idx>{}, il,
+                                        utility::forward<Args>(args)...);
+            this->set_index(Idx);
+            return implements::variant_raw_get<Idx>(this->storage());
+        }
+
+        constexpr void swap(variant &other) noexcept(
+            type_traits::logical_traits::conjunction_v<type_traits::type_properties::is_nothrow_move_constructible<Types>...,
+                                                       type_traits::type_properties::is_nothrow_swappable<Types>...>) {
+            this->swap_with(other);
         }
     };
 }
 
-namespace rainy::utility {
+namespace rainy::foundation::container {
     template <std::size_t Index, typename... Types>
     constexpr decltype(auto) get(variant<Types...> &var) {
         static_assert(Index < sizeof...(Types), "Index out of bounds");
@@ -635,7 +779,7 @@ namespace rainy::utility {
         if (var.index() != Index) {
             foundation::exceptions::runtime::throw_bad_variant_access();
         }
-        return implements::variant_raw_get<Index>(std::move(var).storage());
+        return implements::variant_raw_get<Index>(utility::move(var).storage());
     }
 
     template <std::size_t Index, typename... Types>
@@ -644,11 +788,12 @@ namespace rainy::utility {
         if (var.index() != Index) {
             foundation::exceptions::runtime::throw_bad_variant_access();
         }
-        return implements::variant_raw_get<Index>(std::move(var).storage());
+        return implements::variant_raw_get<Index>(utility::move(var).storage());
     }
 
     template <std::size_t Index, typename... Types>
-    constexpr auto *get_if(variant<Types...> *var) noexcept {
+    constexpr auto get_if(variant<Types...> *var) noexcept
+        -> decltype(&implements::variant_raw_get<Index>(std::declval<variant<Types...> &>().storage())) {
         static_assert(Index < sizeof...(Types), "Index out of bounds");
         if (!var || var->index() != Index) {
             return nullptr;
@@ -657,7 +802,8 @@ namespace rainy::utility {
     }
 
     template <std::size_t Index, typename... Types>
-    constexpr auto *get_if(const variant<Types...> *var) noexcept {
+    constexpr auto get_if(const variant<Types...> *var) noexcept
+        -> decltype(&implements::variant_raw_get<Index>(std::declval<const variant<Types...> &>().storage())) {
         static_assert(Index < sizeof...(Types), "Index out of bounds");
         if (!var || var->index() != Index) {
             return nullptr;
@@ -673,19 +819,64 @@ namespace rainy::utility {
     }
 }
 
-namespace rainy::utility::implements {
+namespace rainy::foundation::container {
+    template <typename Ty, typename... Types>
+    constexpr Ty &get(variant<Types...> &var) {
+        constexpr auto index = type_traits::other_trans::type_find_unique<Ty, type_traits::other_trans::type_list<Types...>>::value;
+        static_assert(index != variant_npos, "Type not found in variant");
+        return get<index>(var);
+    }
+
+    template <typename Ty, typename... Types>
+    constexpr Ty &&get(variant<Types...> &&var) {
+        constexpr auto index = type_traits::other_trans::type_find_unique<Ty, type_traits::other_trans::type_list<Types...>>::value;
+        static_assert(index != variant_npos, "Type not found in variant");
+        return get<index>(utility::move(var));
+    }
+
+    template <typename Ty, typename... Types>
+    constexpr const Ty &get(const variant<Types...> &var) {
+        constexpr auto index = type_traits::other_trans::type_find_unique<Ty, type_traits::other_trans::type_list<Types...>>::value;
+        static_assert(index != variant_npos, "Type not found in variant");
+        return get<index>(var);
+    }
+
+    template <typename Ty, typename... Types>
+    constexpr const Ty &&get(const variant<Types...> &&var) {
+        constexpr auto index = type_traits::other_trans::type_find_unique<Ty, type_traits::other_trans::type_list<Types...>>::value;
+        static_assert(index != variant_npos, "Type not found in variant");
+        return get<index>(utility::move(var));
+    }
+
+    template <typename Ty, typename... Types>
+    constexpr auto *get_if(variant<Types...> *var) noexcept {
+        constexpr auto index = type_traits::other_trans::type_find_unique<Ty, type_traits::other_trans::type_list<Types...>>::value;
+        static_assert(index != variant_npos, "Type not found in variant");
+        return get_if<index>(var);
+    }
+
+    template <typename Ty, typename... Types>
+    constexpr const auto *get_if(const variant<Types...> *var) noexcept {
+        constexpr auto index = type_traits::other_trans::type_find_unique<Ty, type_traits::other_trans::type_list<Types...>>::value;
+        static_assert(index != variant_npos, "Type not found in variant");
+        return get_if<index>(var);
+    }
+}
+
+namespace rainy::foundation::container::implements {
     template <typename Visitor, typename Variant>
     constexpr decltype(auto) visit_single_impl(Visitor &&visitor, Variant &&var) {
-        using variant_type = std::remove_reference_t<Variant>;
         if (var.valueless_by_exception()) {
             foundation::exceptions::runtime::throw_bad_variant_access();
         }
         return variant_raw_visit(var.index(), utility::forward<Variant>(var).storage(),
                                  [&visitor](auto &&tagged_ref) -> decltype(auto) {
-                                     using tagged_type = std::remove_reference_t<decltype(tagged_ref)>;
+                                     using tagged_type = type_traits::reference_modify::remove_reference_t<decltype(tagged_ref)>;
                                      if constexpr (tagged_type::idx != variant_npos) {
                                          return utility::invoke(utility::forward<Visitor>(visitor),
                                                                 utility::forward<decltype(tagged_ref.val)>(tagged_ref.val));
+                                     } else {
+                                         foundation::exceptions::runtime::throw_bad_variant_access();
                                      }
                                  });
     }
@@ -710,7 +901,7 @@ namespace rainy::utility::implements {
     }
 }
 
-namespace rainy::utility {
+namespace rainy::foundation::container {
     template <typename Visitor, typename... Variants>
     constexpr decltype(auto) visit(Visitor &&visitor, Variants &&...variants) {
         if constexpr (sizeof...(Variants) == 1) {
@@ -724,6 +915,82 @@ namespace rainy::utility {
     constexpr Rx visit(Visitor &&visitor, Variants &&...variants) {
         return static_cast<Rx>(visit(utility::forward<Visitor>(visitor), utility::forward<Variants>(variants)...));
     }
+}
+
+namespace rainy::foundation::container {
+    template <typename... Types>
+    constexpr bool operator==(const variant<Types...> &left, const variant<Types...> &right) {
+        if (left.index() != right.index()) {
+            return false;
+        }
+        if (left.valueless_by_exception()) {
+            return true; // 两者都 valueless
+        }
+        bool result = false;
+        implements::variant_raw_visit(left.index(), left.storage(), [&](auto lhs_ref) {
+            using tagged = decltype(lhs_ref);
+            if constexpr (tagged::idx != variant_npos) {
+                result = (lhs_ref.val == implements::variant_raw_get<tagged::idx>(right.storage()));
+            }
+        });
+        return result;
+    }
+
+    template <typename... Types>
+    constexpr bool operator!=(const variant<Types...> &left, const variant<Types...> &right) {
+        return !(left == right);
+    }
+
+    template <typename... Types>
+    constexpr bool operator<(const variant<Types...> &left, const variant<Types...> &right) {
+        if (right.valueless_by_exception()) {
+            return false;
+        }
+        if (left.valueless_by_exception()) {
+            return true;
+        }
+        if (left.index() != right.index()) {
+            return left.index() < right.index();
+        }
+        bool result = false;
+        implements::variant_raw_visit(left.index(), left.storage(), [&](auto lhs_ref) {
+            using tagged = decltype(lhs_ref);
+            if constexpr (tagged::idx != variant_npos) {
+                result = (lhs_ref.val < implements::variant_raw_get<tagged::idx>(right.storage()));
+            }
+        });
+        return result;
+    }
+
+    template <typename... Types>
+    constexpr bool operator>(const variant<Types...> &left, const variant<Types...> &right) {
+        return right < left;
+    }
+
+    template <typename... Types>
+    constexpr bool operator<=(const variant<Types...> &left, const variant<Types...> &right) {
+        return !(right < left);
+    }
+
+    template <typename... Types>
+    constexpr bool operator>=(const variant<Types...> &left, const variant<Types...> &right) {
+        return !(left < right);
+    }
+}
+
+namespace std {
+    using rainy::foundation::container::get;
+}
+
+namespace rainy::utility {
+    using foundation::container::get;
+    using foundation::container::get_if;
+    using foundation::container::visit;
+    using foundation::container::variant;
+    using foundation::container::variant_npos;
+    using foundation::container::variant_size;
+    using foundation::container::variant_size_v;
+    using foundation::container::holds_alternative;
 }
 
 #if RAINY_USING_MSVC

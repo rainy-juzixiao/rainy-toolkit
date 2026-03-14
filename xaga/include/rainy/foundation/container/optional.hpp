@@ -53,6 +53,10 @@ namespace rainy::foundation::exceptions::runtime {
 }
 
 namespace rainy::foundation::container::implements {
+    template <typename UTy>
+    concept is_derived_from_optional =
+        requires { typename UTy::value_type; } && type_traits::type_relations::is_same_v<UTy, optional<typename UTy::value_type>>;
+    
     template <typename Ty, bool = type_traits::type_properties::is_trivially_destructible_v<Ty>>
     struct optional_destruct_base {
         constexpr optional_destruct_base() : dummy{}, has_value_{false} { // NOLINT
@@ -63,17 +67,15 @@ namespace rainy::foundation::container::implements {
         constexpr optional_destruct_base(std::in_place_t, Args &&...args) : value_(utility::forward<Args>(args)...), has_value_{true} {
         }
 
-        constexpr optional_destruct_base(const optional_destruct_base &other)
-            : has_value_{false} {
+        constexpr optional_destruct_base(const optional_destruct_base &other) : has_value_{false} {
             if (other.has_value_) {
                 utility::construct_in_place(value_, other.value_);
                 has_value_ = true;
             }
         }
 
-        constexpr optional_destruct_base(optional_destruct_base &&other)
-            noexcept(type_traits::type_properties::is_nothrow_move_constructible_v<Ty>)
-            : has_value_{false} {
+        constexpr optional_destruct_base(optional_destruct_base &&other) noexcept(
+            type_traits::type_properties::is_nothrow_move_constructible_v<Ty>) : has_value_{false} {
             if (other.has_value_) {
                 utility::construct_in_place(value_, utility::move(other.value_));
                 has_value_ = true;
@@ -132,25 +134,25 @@ namespace rainy::foundation::container::implements {
 
     template <typename Ty>
     struct optional_destruct_base<Ty, false> {
-        optional_destruct_base() : has_value_{false} {
+        optional_destruct_base() : has_value_{false} { // NOLINT
         }
 
         template <typename... Args>
-        constexpr optional_destruct_base(std::in_place_t, Args &&...args) : value_(utility::forward<Args>(args)...), has_value_{true} {
+        constexpr optional_destruct_base(std::in_place_t, Args &&...args) : value_(utility::forward<Args>(args)...), has_value_{true} { // NOLINT
         }
 
         RAINY_CONSTEXPR20 ~optional_destruct_base() {
             this->reset();
         }
 
-        RAINY_CONSTEXPR20 optional_destruct_base(const optional_destruct_base &other) : has_value_{false} {
+        RAINY_CONSTEXPR20 optional_destruct_base(const optional_destruct_base &other) : has_value_{false} { // NOLINT
             if (other.has_value_) {
                 utility::construct_in_place(value_, other.value_);
                 has_value_ = true;
             }
         }
 
-        RAINY_CONSTEXPR20 optional_destruct_base(optional_destruct_base &&other) noexcept(
+        RAINY_CONSTEXPR20 optional_destruct_base(optional_destruct_base &&other) noexcept( // NOLINT
             type_traits::type_properties::is_nothrow_move_constructible_v<Ty>) : has_value_{false} {
             if (other.has_value_) {
                 utility::construct_in_place(value_, utility::move(other.value_));
@@ -325,17 +327,19 @@ namespace rainy::foundation::container {
         using iterator = Ty *;
         using const_iterator = const Ty *;
 
+        // @NODOCBEGIN
         template <typename UTy>
-        using allow_direct_conversion = typename base::template allow_direct_conversion<UTy>;
+        using allow_direct_conversion = typename base::template allow_direct_conversion<UTy>; // NOLINT
 
         template <typename UTy>
-        using allow_unwrapping = typename base::template allow_unwrapping<UTy>;
+        using allow_unwrapping = typename base::template allow_unwrapping<UTy>; // NOLINT
 
         template <typename UTy>
-        using allow_unwrapping_assignment = typename base::template allow_unwrapping_assignment<UTy>;
+        using allow_unwrapping_assignment = typename base::template allow_unwrapping_assignment<UTy>; // NOLINT
 
         template <typename UTy>
-        using allow_assignment = typename base::template allow_assignment<UTy>;
+        using allow_assignment = typename base::template allow_assignment<UTy>; // NOLINT
+        // @NODOCEND
 
         constexpr optional() noexcept = default;
 
@@ -353,7 +357,7 @@ namespace rainy::foundation::container {
 
         template <typename UTy = type_traits::cv_modify::remove_cv_t<Ty>,
                   type_traits::other_trans::enable_if_t<allow_direct_conversion<UTy>::value, int> = 0>
-        constexpr optional(UTy &&val) noexcept(type_traits::type_properties::is_nothrow_constructible_v<Ty, UTy>) :
+        constexpr optional(UTy &&val) noexcept(type_traits::type_properties::is_nothrow_constructible_v<Ty, UTy>) : // NOLINT
             base(std::in_place, utility::forward<UTy>(val)) {
         }
 
@@ -381,7 +385,7 @@ namespace rainy::foundation::container {
 
         ~optional() = default;
 
-        constexpr bool has_value() const noexcept {
+        RAINY_NODISCARD constexpr bool has_value() const noexcept {
             return this->has_value_;
         }
 
@@ -481,9 +485,9 @@ namespace rainy::foundation::container {
         template <typename UTy = type_traits::cv_modify::remove_cv_t<Ty>>
         RAINY_NODISCARD constexpr type_traits::cv_modify::remove_cv_t<Ty> value_or(UTy &&right) const & {
             static_assert(type_traits::type_relations::is_convertible_v<const Ty &, type_traits::cv_modify::remove_cv_t<Ty>>,
-                          "The const overload of optional<T>::value_or requires const T& to be convertible to remove_cv_t<T> ");
+                          "The const overload of optional<Ty>::value_or requires const Ty& to be convertible to remove_cv_t<Ty> ");
             static_assert(type_traits::type_relations::is_convertible_v<UTy, type_traits::cv_modify::remove_cv_t<Ty>>,
-                          "optional<T>::value_or(U) requires U to be convertible to remove_cv_t<T> ");
+                          "optional<Ty>::value_or(UTy) requires UTy to be convertible to remove_cv_t<Ty> ");
             if (this->has_value()) {
                 return static_cast<const Ty &>(this->value_);
             }
@@ -491,24 +495,24 @@ namespace rainy::foundation::container {
         }
 
         template <typename UTy = type_traits::cv_modify::remove_cv_t<Ty>>
-        RAINY_NODISCARD constexpr type_traits::cv_modify::remove_cv_t<Ty> value_or(UTy &&_Right) && {
+        RAINY_NODISCARD constexpr type_traits::cv_modify::remove_cv_t<Ty> value_or(UTy &&right) && {
             static_assert(type_traits::type_relations::is_convertible_v<Ty, type_traits::cv_modify::remove_cv_t<Ty>>,
-                          "The rvalue overload of optional<T>::value_or requires T to be convertible to remove_cv_t<T> ");
+                          "The rvalue overload of optional<Ty>::value_or requires Ty to be convertible to remove_cv_t<Ty> ");
             static_assert(type_traits::type_relations::is_convertible_v<UTy, type_traits::cv_modify::remove_cv_t<Ty>>,
-                          "optional<T>::value_or(U) requires U to be convertible to remove_cv_t<T> ");
+                          "optional<Ty>::value_or(UTy) requires UTy to be convertible to remove_cv_t<Ty> ");
             if (this->has_value()) {
                 return static_cast<Ty &&>(this->value_);
             }
-            return static_cast<type_traits::cv_modify::remove_cv_t<Ty>>(utility::forward<UTy>(_Right));
+            return static_cast<type_traits::cv_modify::remove_cv_t<Ty>>(utility::forward<UTy>(right));
         }
 
         RAINY_CONSTEXPR20 void swap(optional &right) noexcept(type_traits::type_properties::is_nothrow_move_constructible_v<Ty> &&
                                                               type_traits::type_properties::is_nothrow_swappable_v<Ty>) {
 
             if constexpr (type_traits::type_properties::is_move_constructible_v<Ty>) {
-                static_assert(type_traits::type_properties::is_swappable_v<Ty>, "optional<T>::swap requires T to be swappable");
+                static_assert(type_traits::type_properties::is_swappable_v<Ty>, "optional<Ty>::swap requires Ty to be swappable");
             } else {
-                static_assert(false, "optional<T>::swap requires T to be move constructible");
+                static_assert(false, "optional<Ty>::swap requires Ty to be move constructible");
             }
             const bool this_engaged = this->has_value();
             const bool right_engaged = right.has_value();
@@ -529,10 +533,10 @@ namespace rainy::foundation::container {
         using base::reset;
 
         template <typename UTy, type_traits::other_trans::enable_if_t<allow_assignment<UTy>::value, int> = 0>
-        RAINY_CONSTEXPR20 optional &operator=(UTy &&_Right) noexcept(
+        RAINY_CONSTEXPR20 optional &operator=(UTy &&right) noexcept(
             type_traits::type_properties::is_nothrow_assignable_v<Ty &, UTy> &&
             type_traits::type_properties::is_nothrow_constructible_v<Ty, UTy>) {
-            this->assign(utility::forward<UTy>(_Right));
+            this->assign(utility::forward<UTy>(right));
             return *this;
         }
 
@@ -555,7 +559,7 @@ namespace rainy::foundation::container {
         template <typename Fx>
         constexpr auto and_then(Fx fx) & {
             using result_type = type_traits::type_properties::invoke_result_t<Fx, Ty &>;
-            static_assert(type_traits::primary_types::is_specialization_v<result_type, optional>, "Fx must return optional<U>");
+            static_assert(type_traits::primary_types::is_specialization_v<result_type, optional>, "Fx must return optional<UTy>");
             if (has_value()) {
                 return utility::invoke(utility::forward<Fx>(fx), this->value_);
             }
@@ -565,7 +569,7 @@ namespace rainy::foundation::container {
         template <typename Fx>
         constexpr auto and_then(Fx &&fx) && {
             using result_type = type_traits::type_properties::invoke_result_t<Fx, Ty &&>;
-            static_assert(type_traits::primary_types::is_specialization_v<result_type, optional>, "Fx must return optional<U>");
+            static_assert(type_traits::primary_types::is_specialization_v<result_type, optional>, "Fx must return optional<UTy>");
             if (has_value()) {
                 return utility::invoke(utility::forward<Fx>(fx), utility::move(this->value_));
             }
@@ -575,7 +579,7 @@ namespace rainy::foundation::container {
         template <typename Fx>
         constexpr auto and_then(Fx fx) const & {
             using result_type = type_traits::type_properties::invoke_result_t<Fx, const Ty &>;
-            static_assert(type_traits::primary_types::is_specialization_v<result_type, optional>, "Fx must return optional<U>");
+            static_assert(type_traits::primary_types::is_specialization_v<result_type, optional>, "Fx must return optional<UTy>");
             if (has_value()) {
                 return utility::invoke(utility::forward<Fx>(fx), this->value_);
             }
@@ -585,7 +589,7 @@ namespace rainy::foundation::container {
         template <typename Fx>
         constexpr auto and_then(Fx &&fx) const && {
             using result_type = type_traits::type_properties::invoke_result_t<Fx, const Ty &&>;
-            static_assert(type_traits::primary_types::is_specialization_v<result_type, optional>, "Fx must return optional<U>");
+            static_assert(type_traits::primary_types::is_specialization_v<result_type, optional>, "Fx must return optional<UTy>");
             if (has_value()) {
                 return utility::invoke(utility::forward<Fx>(fx), utility::move(this->value_));
             }
@@ -594,38 +598,38 @@ namespace rainy::foundation::container {
 
         template <typename Fx>
         constexpr auto transform(Fx &&fx) & {
-            using U = type_traits::type_properties::invoke_result_t<Fx, Ty &>;
+            using UTy = type_traits::type_properties::invoke_result_t<Fx, Ty &>;
             if (has_value()) {
-                return optional<U>(utility::invoke(utility::forward<Fx>(fx), this->value_));
+                return optional<UTy>(utility::invoke(utility::forward<Fx>(fx), this->value_));
             }
-            return optional<U>{};
+            return optional<UTy>{};
         }
 
         template <typename Fx>
         constexpr auto transform(Fx &&fx) && {
-            using U = type_traits::type_properties::invoke_result_t<Fx, Ty &&>;
+            using UTy = type_traits::type_properties::invoke_result_t<Fx, Ty &&>;
             if (has_value()) {
-                return optional<U>(utility::invoke(utility::forward<Fx>(fx), utility::move(this->value_)));
+                return optional<UTy>(utility::invoke(utility::forward<Fx>(fx), utility::move(this->value_)));
             }
-            return optional<U>{};
+            return optional<UTy>{};
         }
 
         template <typename Fx>
         constexpr auto transform(Fx &&fx) const & {
-            using U = type_traits::type_properties::invoke_result_t<Fx, const Ty &>;
+            using UTy = type_traits::type_properties::invoke_result_t<Fx, const Ty &>;
             if (has_value()) {
-                return optional<U>(utility::invoke(utility::forward<Fx>(fx), this->value_));
+                return optional<UTy>(utility::invoke(utility::forward<Fx>(fx), this->value_));
             }
-            return optional<U>{};
+            return optional<UTy>{};
         }
 
         template <typename Fx>
         constexpr auto transform(Fx &&fx) const && {
-            using U = type_traits::type_properties::invoke_result_t<Fx, const Ty &&>;
+            using UTy = type_traits::type_properties::invoke_result_t<Fx, const Ty &&>;
             if (has_value()) {
-                return optional<U>(utility::invoke(utility::forward<Fx>(fx), utility::move(this->value_)));
+                return optional<UTy>(utility::invoke(utility::forward<Fx>(fx), utility::move(this->value_)));
             }
-            return optional<U>{};
+            return optional<UTy>{};
         }
 
         template <typename Fx>
@@ -673,25 +677,229 @@ namespace rainy::foundation::container {
         }
     };
 
-    template <typename T>
-    constexpr optional<type_traits::other_trans::decay_t<T>> make_optional(T &&value) {
-        return optional<type_traits::other_trans::decay_t<T>>(utility::forward<T>(value));
+    template <typename Ty>
+    constexpr optional<type_traits::other_trans::decay_t<Ty>> make_optional(Ty &&value) {
+        return optional<type_traits::other_trans::decay_t<Ty>>(utility::forward<Ty>(value));
     }
 
-    template <typename T, typename... Args>
-    constexpr optional<T> make_optional(Args &&...args) {
-        return optional<T>(std::in_place, utility::forward<Args>(args)...);
+    template <typename Ty, typename... Args>
+    constexpr optional<Ty> make_optional(Args &&...args) {
+        return optional<Ty>(std::in_place, utility::forward<Args>(args)...);
     }
 
-    template <typename T, typename U, typename... Args>
-    constexpr optional<T> make_optional(std::initializer_list<U> il, Args &&...args) {
-        return optional<T>(std::in_place, il, utility::forward<Args>(args)...);
+    template <typename Ty, typename UTy, typename... Args>
+    constexpr optional<Ty> make_optional(std::initializer_list<UTy> il, Args &&...args) {
+        return optional<Ty>(std::in_place, il, utility::forward<Args>(args)...);
     }
 
     template <typename Ty>
-    RAINY_CONSTEXPR20 void swap(optional<Ty> &left, optional<Ty> &right) {
+    RAINY_CONSTEXPR20 void swap(optional<Ty> &left,
+                                optional<Ty> &right) noexcept(type_traits::type_properties::is_nothrow_swappable_v<Ty>) {
         left.swap(right);
     }
+}
+
+namespace rainy::foundation::container {
+
+    // ========================================================================
+    // Comparison with optional<UTy>
+    // ========================================================================
+
+    template <typename Ty, typename UTy>
+    constexpr bool operator==(const optional<Ty> &left, const optional<UTy> &right) {
+        if (left.has_value() != right.has_value()) {
+            return false;
+        }
+        if (!left.has_value()) {
+            return true;
+        }
+        return *left == *right;
+    }
+
+#if !RAINY_HAS_CXX20
+    template <typename Ty, typename UTy>
+    constexpr bool operator!=(const optional<Ty> &left, const optional<UTy> &right) {
+        return !(left == right);
+    }
+#endif
+
+    template <typename Ty, typename UTy>
+    constexpr bool operator<(const optional<Ty> &left, const optional<UTy> &right) {
+        if (!right.has_value()) {
+            return false;
+        }
+        if (!left.has_value()) {
+            return true;
+        }
+        return *left < *right;
+    }
+
+#if !RAINY_HAS_CXX20
+    template <typename Ty, typename UTy>
+    constexpr bool operator>(const optional<Ty> &left, const optional<UTy> &right) {
+        return right < left;
+    }
+
+    template <typename Ty, typename UTy>
+    constexpr bool operator<=(const optional<Ty> &left, const optional<UTy> &right) {
+        return !(right < left);
+    }
+
+    template <typename Ty, typename UTy>
+    constexpr bool operator>=(const optional<Ty> &left, const optional<UTy> &right) {
+        return !(left < right);
+    }
+#endif
+
+#if RAINY_HAS_CXX20
+    template <typename Ty, typename UTy>
+        requires type_traits::concepts::three_way_comparable_with<Ty, UTy>
+    constexpr std::compare_three_way_result_t<Ty, UTy> operator<=>(const optional<Ty> &left, const optional<UTy> &right) {
+        if (left.has_value() && right.has_value()) {
+            return *left <=> *right;
+        }
+        return left.has_value() <=> right.has_value();
+    }
+#endif
+
+    template <typename Ty>
+    constexpr bool operator==(const optional<Ty> &left, nullopt_t) noexcept {
+        return !left.has_value();
+    }
+
+#if RAINY_HAS_CXX20
+    template <typename Ty>
+    constexpr std::strong_ordering operator<=>(const optional<Ty> &left, nullopt_t) noexcept {
+        return left.has_value() <=> false;
+    }
+#else
+    template <typename Ty>
+    constexpr bool operator==(nullopt_t, const optional<Ty> &right) noexcept {
+        return !right.has_value();
+    }
+
+    template <typename Ty>
+    constexpr bool operator!=(const optional<Ty> &left, nullopt_t) noexcept {
+        return left.has_value();
+    }
+
+    template <typename Ty>
+    constexpr bool operator!=(nullopt_t, const optional<Ty> &right) noexcept {
+        return right.has_value();
+    }
+
+    template <typename Ty>
+    constexpr bool operator<(const optional<Ty> &, nullopt_t) noexcept {
+        return false;
+    }
+
+    template <typename Ty>
+    constexpr bool operator<(nullopt_t, const optional<Ty> &right) noexcept {
+        return right.has_value();
+    }
+
+    template <typename Ty>
+    constexpr bool operator>(const optional<Ty> &left, nullopt_t) noexcept {
+        return left.has_value();
+    }
+
+    template <typename Ty>
+    constexpr bool operator>(nullopt_t, const optional<Ty> &) noexcept {
+        return false;
+    }
+
+    template <typename Ty>
+    constexpr bool operator<=(const optional<Ty> &left, nullopt_t) noexcept {
+        return !left.has_value();
+    }
+
+    template <typename Ty>
+    constexpr bool operator<=(nullopt_t, const optional<Ty> &) noexcept {
+        return true;
+    }
+
+    template <typename Ty>
+    constexpr bool operator>=(const optional<Ty> &, nullopt_t) noexcept {
+        return true;
+    }
+
+    template <typename Ty>
+    constexpr bool operator>=(nullopt_t, const optional<Ty> &right) noexcept {
+        return !right.has_value();
+    }
+#endif
+
+    template <typename Ty, typename UTy>
+    constexpr bool operator==(const optional<Ty> &left, const UTy &right) {
+        return left.has_value() ? *left == right : false;
+    }
+
+    template <typename Ty, typename UTy>
+    constexpr bool operator==(const Ty &left, const optional<UTy> &right) {
+        return right.has_value() ? left == *right : false;
+    }
+
+#if !RAINY_HAS_CXX20
+    template <typename Ty, typename UTy>
+    constexpr bool operator!=(const optional<Ty> &left, const UTy &right) {
+        return left.has_value() ? *left != right : true;
+    }
+
+    template <typename Ty, typename UTy>
+    constexpr bool operator!=(const Ty &left, const optional<UTy> &right) {
+        return right.has_value() ? left != *right : true;
+    }
+#endif
+
+    template <typename Ty, typename UTy>
+    constexpr bool operator<(const optional<Ty> &left, const UTy &right) {
+        return left.has_value() ? *left < right : true;
+    }
+
+    template <typename Ty, typename UTy>
+    constexpr bool operator<(const Ty &left, const optional<UTy> &right) {
+        return right.has_value() ? left < *right : false;
+    }
+
+#if !RAINY_HAS_CXX20
+    template <typename Ty, typename UTy>
+    constexpr bool operator>(const optional<Ty> &left, const UTy &right) {
+        return left.has_value() ? *left > right : false;
+    }
+
+    template <typename Ty, typename UTy>
+    constexpr bool operator>(const Ty &left, const optional<UTy> &right) {
+        return right.has_value() ? left > *right : true;
+    }
+
+    template <typename Ty, typename UTy>
+    constexpr bool operator<=(const optional<Ty> &left, const UTy &right) {
+        return left.has_value() ? *left <= right : true;
+    }
+
+    template <typename Ty, typename UTy>
+    constexpr bool operator<=(const Ty &left, const optional<UTy> &right) {
+        return right.has_value() ? left <= *right : false;
+    }
+
+    template <typename Ty, typename UTy>
+    constexpr bool operator>=(const optional<Ty> &left, const UTy &right) {
+        return left.has_value() ? *left >= right : false;
+    }
+
+    template <typename Ty, typename UTy>
+    constexpr bool operator>=(const Ty &left, const optional<UTy> &right) {
+        return right.has_value() ? left >= *right : true;
+    }
+#endif
+
+#if RAINY_HAS_CXX20
+    template <typename Ty, typename UTy>
+        requires(!implements::is_derived_from_optional<UTy>) && type_traits::concepts::three_way_comparable_with<Ty, UTy>
+    constexpr std::compare_three_way_result_t<Ty, UTy> operator<=>(const optional<Ty> &left, const UTy &right) {
+        return left.has_value() ? *left <=> right : std::strong_ordering::less;
+    }
+#endif
 }
 
 namespace rainy::utility {
