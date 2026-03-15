@@ -43,6 +43,7 @@
 
 #include <rainy/core/platform.hpp>
 #include <rainy/core/type_traits.hpp>
+#include <rainy/core/concepts.hpp>
 #include <rainy/core/layer.hpp>
 #include <rainy/core/implements/bit.hpp>
 #include <rainy/core/implements/raw_stringview.hpp>

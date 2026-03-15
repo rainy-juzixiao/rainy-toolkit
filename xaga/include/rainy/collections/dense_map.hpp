@@ -429,7 +429,7 @@ namespace rainy::collections {
                     storage.first.pop_back();
                     return utility::make_pair(it, false);
                 }
-                utility::swap(node.next, storage.second[index]);
+                std::swap(node.next, storage.second[index]);
                 rehash_if_required();
                 return utility::make_pair(--end(), true);
             }

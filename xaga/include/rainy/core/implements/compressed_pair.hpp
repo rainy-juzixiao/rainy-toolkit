@@ -17,8 +17,9 @@
 #define RAINY_CORE_IMPLEMENTS_COMPRESSED_PAIR_HPP
 #include <rainy/core/platform.hpp>
 #include <rainy/core/type_traits/implements.hpp>
+#include <rainy/core/implements/tuple.hpp>
 
-namespace rainy::utility {
+namespace rainy::foundation::container {
     /**
      * @brief A compressed pair that optimizes storage when one or both types are empty.
      *        Uses empty base optimization to reduce memory footprint.
@@ -35,8 +36,7 @@ namespace rainy::utility {
     class compressed_pair;
 }
 
-namespace rainy::utility::implements {
-    // Internal implementation details - members are documented as they are exposed through public API
+namespace rainy::foundation::container::implements {
     template <typename Ty, bool = std::is_final_v<Ty>>
     struct compressed_pair_empty : std::false_type {};
 
@@ -842,7 +842,7 @@ namespace rainy::utility::implements {
     };
 }
 
-namespace rainy::utility {
+namespace rainy::foundation::container {
     /**
      * @brief A compressed pair that optimizes storage when one or both types are empty.
      *        Uses empty base optimization to reduce memory footprint.
@@ -1015,6 +1015,10 @@ namespace rainy::utility {
     constexpr rain_fn swap(compressed_pair<Ty1, Ty2> &left, compressed_pair<Ty1, Ty2> &right) -> void {
         left.swap(right);
     }
+}
+
+namespace rainy::utility {
+    using foundation::container::compressed_pair;
 }
 
 #endif
