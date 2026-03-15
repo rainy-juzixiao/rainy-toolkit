@@ -168,7 +168,7 @@ namespace rainy::foundation::functional::implements {
                 fp_invoke_impl<class_t>(this->pointer_, const_cast<class_t *>(utility::addressof(object)),
                                         utility::forward<Args>(args)...);
             } else {
-                return invoke_impl<class_t>(this->pointer_, const_cast<class_t *>(utility::addressof(object)),
+                return fp_invoke_impl<class_t>(this->pointer_, const_cast<class_t *>(utility::addressof(object)),
                                             utility::forward<Args>(args)...);
             }
         }

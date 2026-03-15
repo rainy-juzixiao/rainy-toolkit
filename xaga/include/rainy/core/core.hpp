@@ -1743,6 +1743,11 @@ namespace rainy::core {
             return _ptr;
         }
 
+    protected:
+        rain_fn reset_ptr(void *ptr) noexcept -> void {
+            _ptr = ptr;
+        }
+
     private:
         void *_ptr{};
         vtable_type vtable{};

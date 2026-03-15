@@ -18,8 +18,26 @@
 #include <memory>
 #include <rainy/core/core.hpp>
 #include <rainy/foundation/diagnostics/contract.hpp>
+#include <rainy/foundation/functional/delegate.hpp>
 #include <rainy/meta/reflection/metadata.hpp>
 #include <rainy/meta/reflection/refl_impl/invoker_accessor.hpp>
+
+namespace rainy::meta::reflection::implements {
+    template <typename Fx, typename ParamList>
+    struct adapter_delegate_functor {};
+
+    template <typename Fx, typename... Args>
+    struct adapter_delegate_functor<Fx, type_traits::other_trans::type_list<Args...>> {
+        adapter_delegate_functor(const foundation::functional::delegate<Fx> &function) : object(function) {
+        }
+
+        rain_fn operator()(Args... args)->decltype(auto) {
+            return object(args...);
+        }
+
+        foundation::functional::delegate<Fx> object;
+    };
+}
 
 namespace rainy::meta::reflection {
     /**
@@ -62,9 +80,9 @@ namespace rainy::meta::reflection {
          */
         template <typename Fx, typename... Args,
                   type_traits::other_trans::enable_if_t<type_traits::primary_types::function_traits<Fx>::valid, int> = 0>
-        function(Fx function, Args &&...default_arguments) noexcept : invoke_accessor_{} { // NOLINT
+        function(Fx &&function, Args &&...default_arguments) noexcept : invoke_accessor_{} { // NOLINT
             using traits = type_traits::primary_types::function_traits<Fx>;
-            using paramlist = typename type_traits::other_trans::tuple_like_to_type_list<typename traits::tuple_like_type>::type;
+            using paramlist = typename traits::argument_list;
 
             static constexpr std::size_t arity = traits::arity;
             static constexpr std::size_t default_arg_count = sizeof...(Args);
@@ -76,14 +94,51 @@ namespace rainy::meta::reflection {
 
             using implemented_type = typename implements::get_ia_implement_type<Fx, implements::default_arguments_store<Args...>,
                                                                                 type_traits::primary_types::function_traits<Fx>>::type;
-            invoke_accessor_ = utility::construct_at(reinterpret_cast<implemented_type *>(invoker_storage), // NOLINT
-                                                     utility::forward<Fx>(function), utility::forward<Args>(default_arguments)...);
             if constexpr (sizeof(implemented_type) >= core::fn_obj_soo_buffer_size) {
                 invoke_accessor_ =
                     ::new implemented_type(utility::forward<Fx>(function), utility::forward<Args>(default_arguments)...);
             } else {
                 invoke_accessor_ = utility::construct_at(reinterpret_cast<implemented_type *>(invoker_storage),
                                                          utility::forward<Fx>(function), utility::forward<Args>(default_arguments)...);
+            }
+        }
+
+        /**
+         * @brief 为rainy-toolkit委托对象特化的构造函数。
+         * @tparam Fx 委托对象签名
+         * @param function 委托对象。
+         */
+        template <typename Fx, typename... Args,
+                  type_traits::other_trans::enable_if_t<type_traits::primary_types::function_traits<Fx>::valid, int> = 0>
+        function(const foundation::functional::delegate<Fx> &object, Args &&...default_arguments) noexcept { // NOLINT
+            using traits = type_traits::primary_types::function_traits<Fx>;
+            using paramlist = typename traits::argument_list;
+
+            static constexpr std::size_t arity = traits::arity;
+            static constexpr std::size_t default_arg_count = sizeof...(Args);
+            static constexpr std::size_t start_index = arity - default_arg_count;
+
+            static_assert(default_arg_count <= arity, "Too many default arguments provided for the function.");
+            static_assert(implements::check_default_args_compatibility<paramlist, start_index, Args...>(),
+                          "Default arguments are not compatible with corresponding function parameters.");
+
+            if constexpr (type_traits::primary_types::is_member_function_pointer_v<Fx>) {
+                using implemented_type =
+                    typename implements::get_ia_implement_type<Fx, implements::default_arguments_store<Args...>,
+                                                               type_traits::primary_types::function_traits<Fx>>::type;
+
+                const Fx *raw_ptr = object.template target<Fx>();
+                invoke_accessor_ = utility::construct_at(reinterpret_cast<implemented_type *>(invoker_storage),
+                                                         *raw_ptr, // 解引用，从 const Fx* -> Fx
+                                                         utility::forward<Args>(default_arguments)...);
+            } else {
+                using wrapper = implements::adapter_delegate_functor<Fx, typename foundation::functional::delegate<Fx>::paramlist>;
+                using implemented_type =
+                    typename implements::get_ia_implement_type<wrapper, implements::default_arguments_store<Args...>,
+                                                               type_traits::primary_types::function_traits<Fx>>::type;
+
+                invoke_accessor_ = utility::construct_at(reinterpret_cast<implemented_type *>(invoker_storage), // NOLINT
+                                                         wrapper{object}, utility::forward<Args>(default_arguments)...);
             }
         }
 
@@ -136,7 +191,8 @@ namespace rainy::meta::reflection {
             }
         }
 
-        RAINY_INLINE utility::any invoke_variadic(object_view instance, collections::views::array_view<utility::any> args = {}) const; // NOLINT
+        RAINY_INLINE utility::any invoke_variadic(object_view instance,
+                                                  collections::views::array_view<utility::any> args = {}) const; // NOLINT
 
         /**
          * @brief 重载函数调用运算符，以调用函数并返回结果。
@@ -343,8 +399,11 @@ namespace rainy::meta::reflection {
          */
         template <typename... Args>
         RAINY_NODISCARD bool is_invocable() const noexcept {
+            if (empty()) {
+                return false;
+            }
             if constexpr (sizeof...(Args) == 0) {
-                return is_invocable();
+                return invoke_accessor()->is_invocable({});
             } else {
                 static collections::array<foundation::ctti::typeinfo, sizeof...(Args)> paramlist = {
                     foundation::ctti::typeinfo::create<Args>()...};
@@ -477,7 +536,8 @@ namespace rainy::meta::reflection {
                   type_traits::other_trans::enable_if_t<type_traits::type_properties::is_constructible_v<function, Fx>, int> = 0>
         static method make(std::string_view name, Fx &&fn, std::tuple<Args...> &default_arguemnts,
                            collections::array<metadata, N> &metadatas) {
-            return method{name, fn, default_arguemnts, metadatas, type_traits::helper::index_sequence_for<Args...>{}};
+            return method{name, utility::forward<Fx>(fn), default_arguemnts, metadatas,
+                          type_traits::helper::index_sequence_for<Args...>{}};
         }
 
         method(method &&right) noexcept : function(utility::move(right)), ptr{utility::move(right.ptr)} {
@@ -486,7 +546,7 @@ namespace rainy::meta::reflection {
         method(const method &right) noexcept = default;
 
         method &operator=(method &&right) noexcept;
-        method& operator=(const method & right) = default;
+        method &operator=(const method &right) = default;
 
         void rebind(method &&right) noexcept;
 
@@ -496,7 +556,7 @@ namespace rainy::meta::reflection {
 
         RAINY_NODISCARD std::string_view get_name() const noexcept;
 
-        RAINY_NODISCARD const metadata &get_metadata(const utility::any& key) const noexcept;
+        RAINY_NODISCARD const metadata &get_metadata(const utility::any &key) const noexcept;
 
         RAINY_NODISCARD collections::views::array_view<metadata> get_metadatas() const noexcept;
 
@@ -536,7 +596,7 @@ namespace rainy::meta::reflection {
                   type_traits::other_trans::enable_if_t<type_traits::type_properties::is_constructible_v<function, Fx>, int> = 0>
         static constructor make(std::string_view name, Fx &&fn, std::tuple<Args...> &default_arguemnts,
                                 collections::array<metadata, N> &metadatas) {
-            return constructor{core::internal_construct_tag, name, fn, default_arguemnts, metadatas};
+            return constructor{core::internal_construct_tag, name, utility::forward<Fx>(fn), default_arguemnts, metadatas};
         }
 
         constructor() noexcept = default;
@@ -544,29 +604,29 @@ namespace rainy::meta::reflection {
         constructor(constructor &&right) noexcept = default;
         constructor(const constructor &right) noexcept = default;
 
-        constructor &operator=(const constructor & right) = default;
+        constructor &operator=(const constructor &right) = default;
 
-        constructor &operator=(constructor && right) noexcept {
+        constructor &operator=(constructor &&right) noexcept {
             method::operator=(utility::move(right));
             return *this;
         }
 
         using method::arg;
         using method::arity;
+        using method::empty;
         using method::function_signature;
         using method::get_metadata;
         using method::get_metadatas;
-        using method::empty;
-        using method::paramlists;
         using method::get_name;
-        using method::swap;
         using method::is_invocable;
         using method::is_invocable_with;
+        using method::paramlists;
+        using method::swap;
 
         const foundation::ctti::typeinfo &instantiated_type() const noexcept {
             return method::which_belongs();
         }
-       
+
         template <typename... Args>
         utility::any invoke(Args &&...args) const noexcept {
             return method::static_invoke(utility::forward<Args>(args)...);
@@ -575,7 +635,7 @@ namespace rainy::meta::reflection {
         template <typename... Args>
         utility::any construct(Args &&...args) const noexcept {
             return method::static_invoke(utility::forward<Args>(args)...);
-        }        
+        }
     };
 }
 

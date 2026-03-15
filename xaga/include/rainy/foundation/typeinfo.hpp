@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 rainy-juzixiao
+ * Copyright 2026 rainy-juzixiao
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -76,9 +76,12 @@ namespace rainy::foundation::ctti {
         is_associative_container = 1 << 28,
     };
 
+    // @NODOCBEGIN
     RAINY_ENABLE_ENUM_CLASS_BITMASK_OPERATORS(traits);
+    // @NODOCEND
 }
 
+// @NODOCBEGIN
 namespace rainy::foundation::ctti::implements {
     using type_name_prober = void;
 
@@ -309,7 +312,9 @@ namespace rainy::foundation::ctti::implements {
         return hash;
     }
 }
+// NODOCEND
 
+// NODOCBEGIN
 namespace rainy::foundation::ctti::implements {
 #define raw_type_id(x) typeinfo_component::typehash<x>()
 
@@ -409,9 +414,8 @@ namespace rainy::foundation::ctti::implements {
     constexpr rain_fn typeinfo_component<MainTypeInfo>::type_modfier_impl(annotations::lifetime::in<type_operation> op)
         -> const typeinfo_component<MainTypeInfo> * { // NOLINT
         using namespace type_traits;
-        constexpr bool is_reference_ptr =
-            type_traits::composite_types::is_reference_v<Ty> &&
-            type_traits::primary_types::is_pointer_v<reference_modify::remove_reference_t<Ty>>;
+        constexpr bool is_reference_ptr = type_traits::composite_types::is_reference_v<Ty> &&
+                                          type_traits::primary_types::is_pointer_v<reference_modify::remove_reference_t<Ty>>;
         if constexpr (!type_traits::type_relations::is_void_v<Ty>) {
             switch (op) {
                 case type_operation::remove_pointer: {
@@ -419,7 +423,7 @@ namespace rainy::foundation::ctti::implements {
                         using referred_ptr = reference_modify::remove_reference_t<Ty>;
                         using pointer_type = pointer_modify::remove_pointer_t<referred_ptr>;
                         if constexpr (type_traits::primary_types::is_lvalue_reference_v<Ty>) {
-                            return &typeinfo<MainTypeInfo,reference_modify::add_lvalue_reference_t<pointer_type>>;
+                            return &typeinfo<MainTypeInfo, reference_modify::add_lvalue_reference_t<pointer_type>>;
                         } else {
                             return &typeinfo<MainTypeInfo, reference_modify::add_rvalue_reference_t<pointer_type>>;
                         }
@@ -439,7 +443,7 @@ namespace rainy::foundation::ctti::implements {
                             return &typeinfo<MainTypeInfo, reference_modify::add_rvalue_reference_t<non_const_ptr>>;
                         }
                     } else {
-                        return &typeinfo<MainTypeInfo,cv_modify::remove_const_t<Ty>>;
+                        return &typeinfo<MainTypeInfo, cv_modify::remove_const_t<Ty>>;
                     }
                 }
                 case type_operation::remove_volatile: {
@@ -536,6 +540,7 @@ namespace rainy::foundation::ctti::implements {
     }
 #undef raw_type_id
 }
+// @NODOCEND
 
 namespace rainy::foundation::ctti {
     /**
@@ -549,6 +554,7 @@ namespace rainy::foundation::ctti {
     }
 
     /**
+     * \lang chinese
      * @brief 获取一个可在编译时确定的变量名
      * @tparam Variable 一个常量变量值
      * @returns 一个字符串视图，表示对编译时变量的名称
@@ -575,6 +581,12 @@ namespace rainy::foundation::ctti {
     }
 
 namespace rainy::foundation::ctti {
+    /**
+     * \lang chinese
+     * @brief
+     * 支持编译期计算的类型信息抽象
+     * 可用于查询类型信息
+     */
     class typeinfo {
     public:
         constexpr typeinfo() noexcept = default;
@@ -736,11 +748,13 @@ namespace rainy::foundation::ctti {
          * @attention 对于 template <std::size_t> 这类带有NTTP参数的模板，则无法获取，仅支持纯类型的模板
          * @return 返回模板实例化参数类型的列表视图
          */
-        RAINY_NODISCARD constexpr rain_fn template_arguments() const noexcept
-            -> collections::views::array_view<typeinfo> {
+        RAINY_NODISCARD constexpr rain_fn template_arguments() const noexcept -> collections::views::array_view<typeinfo> {
             return internal_type->template_arguemnts;
         }
 
+        /**
+         * @brief 用于适配到switch(x)中，实现编译时类型匹配
+         */
         operator std::size_t() const noexcept { // NOLINT
             return cache_hash_code;
         }
@@ -832,14 +846,16 @@ namespace rainy::foundation::ctti {
     private:
         std::string_view cache_name{};
         std::size_t cache_hash_code{};
-        const implements::typeinfo_component<foundation::ctti::typeinfo> *internal_type{
-            &implements::empty_component<foundation::ctti::typeinfo>};
+        const implements::typeinfo_component<typeinfo> *internal_type{&implements::empty_component<typeinfo>};
     };
 }
 
 #undef RAINY_GENERATE_TYPEINFO_MODIFY_METHOD_HELPER
 #undef RAINY_GENERATE_TYPEINFO_TYPEINSPECT_METHOD_HELPER
 
+/**
+ * @spec_template rainy::foundation::ctti::typeinfo
+ */
 template <>
 struct rainy::utility::hash<rainy::foundation::ctti::typeinfo> {
     using argument_type = foundation::ctti::typeinfo;
@@ -854,10 +870,25 @@ struct rainy::utility::hash<rainy::foundation::ctti::typeinfo> {
     }
 };
 
-// 用于获取类型信息的宏，考虑到使用传统rtti的使用习惯
+/**
+ * @brief 用于获取类型信息的宏，考虑到使用传统rtti的使用习惯
+ */
 #define rainy_typeid(x) ::rainy::foundation::ctti::typeinfo::of<x>()
+
+/**
+ * \lang chinese
+ * @brief 用于类型switch匹配
+ * @param x 待匹配的类型分支
+ *
+ * \lang english
+ *
+ */
 #define rainy_typehash(x) ::rainy::foundation::ctti::typeinfo::get_type_hash<x>()
 
+/**
+ * @brief 为std::hash定义的特化模板
+ * @spec_template rainy::foundation::ctti::typeinfo
+ */
 template <>
 struct std::hash<rainy::foundation::ctti::typeinfo> {
     RAINY_NODISCARD std::size_t operator()(const rainy::foundation::ctti::typeinfo &val) const noexcept {
@@ -890,11 +921,11 @@ namespace rainy::foundation::ctti::implements {
         return instance;
     }
 
-    RAINY_INLINE void register_conversion(const std::size_t src,const std::size_t tgt, converter_func fn) {
+    RAINY_INLINE void register_conversion(const std::size_t src, const std::size_t tgt, converter_func fn) {
         get_conversion_map().try_emplace(conversion_key{src, tgt}, fn); // NOLINT
     }
 
-    RAINY_INLINE converter_func find_converter(const std::size_t src,const std::size_t tgt) {
+    RAINY_INLINE converter_func find_converter(const std::size_t src, const std::size_t tgt) {
         auto &map = get_conversion_map();
         if (const auto it = map.find(conversion_key{src, tgt}); it != map.end()) { // NOLINT
             return it->second;
@@ -932,17 +963,19 @@ namespace rainy::foundation::ctti {
 }
 
 namespace rainy::foundation::ctti::implements {
-    using converter_fn = bool(*)(void* dest,const void* source, const ctti::typeinfo& type);
+    using converter_fn = bool (*)(void *dest, const void *source, const ctti::typeinfo &type);
 
+    /// @hide
     class RAINY_TOOLKIT_API dynamic_converter_registry {
     public:
         static dynamic_converter_registry &instance();
 
-        void register_converter(const ctti::typeinfo& to_type, converter_fn fn); // NOLINT
+        void register_converter(const ctti::typeinfo &to_type, converter_fn fn); // NOLINT
 
-        converter_fn find(const ctti::typeinfo&) const; // NOLINT
+        converter_fn find(const ctti::typeinfo &) const; // NOLINT
 
     private:
+        /// @hide
         class impl;
 
         impl *global_ptr{nullptr};
@@ -961,11 +994,13 @@ namespace rainy::utility {
 }
 
 namespace rainy::annotations::runtime_assembly::implements {
+    /// @hide
     template <typename>
     struct get_any_converter_target_type {
         using type = void;
     };
 
+    /// @hide
     template <typename TargetType, typename Void>
     struct get_any_converter_target_type<utility::any_converter<TargetType, Void>> {
         using type = TargetType;
@@ -974,6 +1009,7 @@ namespace rainy::annotations::runtime_assembly::implements {
 
 namespace rainy::annotations::runtime_assembly {
     /**
+     * @brief !
      * @tparam ConverterClass 静态类型描述类
      */
     template <typename ConverterClass>
@@ -981,8 +1017,9 @@ namespace rainy::annotations::runtime_assembly {
     public:
         virtual ~enable_for_type_convert() = default;
         enable_for_type_convert() = default;
+
     private:
-        using converter_func = bool(*)(void* dest,const void* source, const foundation::ctti::typeinfo& type);
+        using converter_func = bool (*)(void *dest, const void *source, const foundation::ctti::typeinfo &type);
         using target_type = typename implements::get_any_converter_target_type<ConverterClass>::type;
 
         template <typename TargetType = target_type>
@@ -992,7 +1029,8 @@ namespace rainy::annotations::runtime_assembly {
             }
             if constexpr (!type_traits::composite_types::is_reference_v<target_type>) {
                 if (dest && source) {
-                    *static_cast<type_traits::cv_modify::remove_const_t<TargetType> *>(dest) = ConverterClass::basic_convert(source, type);
+                    *static_cast<type_traits::cv_modify::remove_const_t<TargetType> *>(dest) =
+                        ConverterClass::basic_convert(source, type);
                 }
             }
             return true;
@@ -1001,12 +1039,13 @@ namespace rainy::annotations::runtime_assembly {
         struct inject {
             inject() {
                 const converter_func func = &get_converter_func_invoker;
-                foundation::ctti::implements::dynamic_converter_registry::instance().register_converter(rainy_typeid(target_type), func);
+                foundation::ctti::implements::dynamic_converter_registry::instance().register_converter(rainy_typeid(target_type),
+                                                                                                        func);
             }
         };
 
 #if RAINY_USING_MSVC
-        virtual void* rainy_toolkit_touch_register() {
+        virtual void *rainy_toolkit_touch_register() {
             return &inject_;
         }
 #endif
@@ -1066,6 +1105,19 @@ namespace rainy::foundation::ctti {
     }
 }
 
+/**
+ * \lang chinese
+ *
+ * @brief 用于快捷注册一个类的继承关系
+ * @param Derived 派生类类型
+ * @param Base 基类类型
+ *
+ * \lang english
+ *
+ * @brief This is brief
+ * @param Derived
+ * @param Base
+ */
 #define RAINY_REGISTER_BASE(Derived, Base) ::rainy::foundation::ctti::register_base<Derived, Base>()
 
 #endif
