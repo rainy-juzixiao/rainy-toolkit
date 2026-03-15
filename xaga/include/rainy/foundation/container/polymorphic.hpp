@@ -83,8 +83,8 @@ namespace rainy::foundation::container {
                           !type_traits::type_relations::is_same_v<type_traits::other_trans::decay_t<UTy>, polymorphic>,
                       int> = 0>
         RAINY_CONSTEXPR20 explicit polymorphic(UTy &&object) : pair(allocator_type{}, nullptr) { // NOLINT
-            using DecayU = type_traits::other_trans::decay_t<UTy>;
-            construct_from_value<DecayU>(utility::forward<UTy>(object));
+            using decay_type = type_traits::other_trans::decay_t<UTy>;
+            construct_from_value<decay_type>(utility::forward<UTy>(object));
         }
 
         template <typename UTy = Ty,
@@ -93,8 +93,8 @@ namespace rainy::foundation::container {
                           !type_traits::type_relations::is_same_v<type_traits::other_trans::decay_t<UTy>, polymorphic>,
                       int> = 0>
         RAINY_CONSTEXPR20 explicit polymorphic(std::allocator_arg_t, const Alloc &a, UTy &&object) : pair(a, nullptr) {
-            using DecayU = type_traits::other_trans::decay_t<UTy>;
-            construct_from_value<DecayU>(utility::forward<UTy>(object));
+            using decay_type = type_traits::other_trans::decay_t<UTy>;
+            construct_from_value<decay_type>(utility::forward<UTy>(object));
         }
 
         template <typename UTy, typename... Ts,
@@ -230,22 +230,22 @@ namespace rainy::foundation::container {
             }
 
             void destroy(allocator_type &alloc) noexcept override {
-                using BlockAlloc = typename std::allocator_traits<allocator_type>::template rebind_alloc<control_block>;
-                BlockAlloc block_alloc(alloc);
+                using block_allocator = typename std::allocator_traits<allocator_type>::template rebind_alloc<control_block>;
+                block_allocator block_alloc(alloc);
                 auto *derived_this = static_cast<control_block *>(this);
-                std::allocator_traits<BlockAlloc>::destroy(block_alloc, derived_this);
-                std::allocator_traits<BlockAlloc>::deallocate(block_alloc, derived_this, 1);
+                std::allocator_traits<block_allocator>::destroy(block_alloc, derived_this);
+                std::allocator_traits<block_allocator>::deallocate(block_alloc, derived_this, 1);
             }
 
             control_block_base *clone(allocator_type &alloc) const override {
-                using BlockAlloc = typename std::allocator_traits<allocator_type>::template rebind_alloc<control_block>;
-                BlockAlloc block_alloc(alloc);
-                auto *ptr = std::allocator_traits<BlockAlloc>::allocate(block_alloc, 1);
+                using block_allocator = typename std::allocator_traits<allocator_type>::template rebind_alloc<control_block>;
+                block_allocator block_alloc(alloc);
+                auto *ptr = std::allocator_traits<block_allocator>::allocate(block_alloc, 1);
                 try {
-                    std::allocator_traits<BlockAlloc>::construct(block_alloc, ptr, value);
+                    std::allocator_traits<block_allocator>::construct(block_alloc, ptr, value);
                     return ptr;
                 } catch (...) {
-                    std::allocator_traits<BlockAlloc>::deallocate(block_alloc, ptr, 1);
+                    std::allocator_traits<block_allocator>::deallocate(block_alloc, ptr, 1);
                     throw;
                 }
             }
@@ -262,42 +262,42 @@ namespace rainy::foundation::container {
         };
 
         void construct_default() {
-            using BlockAlloc = typename std::allocator_traits<allocator_type>::template rebind_alloc<control_block<Ty>>; // NOLINT
-            BlockAlloc block_alloc(pair.get_first());
-            auto *ptr = std::allocator_traits<BlockAlloc>::allocate(block_alloc, 1);
+            using block_allocator = typename std::allocator_traits<allocator_type>::template rebind_alloc<control_block<Ty>>; // NOLINT
+            block_allocator block_alloc(pair.get_first());
+            auto *ptr = std::allocator_traits<block_allocator>::allocate(block_alloc, 1);
             try {
-                std::allocator_traits<BlockAlloc>::construct(block_alloc, ptr);
+                std::allocator_traits<block_allocator>::construct(block_alloc, ptr);
                 pair.get_second() = ptr;
             } catch (...) {
-                std::allocator_traits<BlockAlloc>::deallocate(block_alloc, ptr, 1);
+                std::allocator_traits<block_allocator>::deallocate(block_alloc, ptr, 1);
                 throw;
             }
         }
 
         template <typename UTy, typename... Args>
         void construct_inplace(Args &&...args) {
-            using BlockAlloc = typename std::allocator_traits<allocator_type>::template rebind_alloc<control_block<UTy>>; // NOLINT
-            BlockAlloc block_alloc(pair.get_first());
-            auto *ptr = std::allocator_traits<BlockAlloc>::allocate(block_alloc, 1);
+            using block_allocator = typename std::allocator_traits<allocator_type>::template rebind_alloc<control_block<UTy>>; // NOLINT
+            block_allocator block_alloc(pair.get_first());
+            auto *ptr = std::allocator_traits<block_allocator>::allocate(block_alloc, 1);
             try {
-                std::allocator_traits<BlockAlloc>::construct(block_alloc, ptr, utility::forward<Args>(args)...);
+                std::allocator_traits<block_allocator>::construct(block_alloc, ptr, utility::forward<Args>(args)...);
                 pair.get_second() = ptr;
             } catch (...) {
-                std::allocator_traits<BlockAlloc>::deallocate(block_alloc, ptr, 1);
+                std::allocator_traits<block_allocator>::deallocate(block_alloc, ptr, 1);
                 throw;
             }
         }
 
         template <typename UTy, typename V>
         void construct_from_value(V &&v) {
-            using BlockAlloc = typename std::allocator_traits<allocator_type>::template rebind_alloc<control_block<UTy>>; // NOLINT
-            BlockAlloc block_alloc(pair.get_first());
-            auto *ptr = std::allocator_traits<BlockAlloc>::allocate(block_alloc, 1);
+            using block_allocator = typename std::allocator_traits<allocator_type>::template rebind_alloc<control_block<UTy>>; // NOLINT
+            block_allocator block_alloc(pair.get_first());
+            auto *ptr = std::allocator_traits<block_allocator>::allocate(block_alloc, 1);
             try {
-                std::allocator_traits<BlockAlloc>::construct(block_alloc, ptr, utility::forward<V>(v));
+                std::allocator_traits<block_allocator>::construct(block_alloc, ptr, utility::forward<V>(v));
                 pair.get_second() = ptr;
             } catch (...) {
-                std::allocator_traits<BlockAlloc>::deallocate(block_alloc, ptr, 1);
+                std::allocator_traits<block_allocator>::deallocate(block_alloc, ptr, 1);
                 throw;
             }
         }
