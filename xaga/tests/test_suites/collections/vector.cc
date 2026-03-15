@@ -4,6 +4,11 @@
 #include <catch2/generators/catch_generators.hpp>
 #include <catch2/generators/catch_generators_range.hpp>
 
+#if RAINY_USING_MSVC
+#pragma warning(push)
+#pragma warning(disable: 26800)
+#endif
+
 // Test fixture for tracking constructor/destructor counts
 struct TestTracker {
     static int constructed;
@@ -945,3 +950,7 @@ SCENARIO("Vector self-assignment", "[vector][edge]") {
         }
     }
 }
+
+#if RAINY_USING_MSVC
+#pragma warning(pop)
+#endif

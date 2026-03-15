@@ -187,7 +187,7 @@ namespace rainy::collections {
 
         class reference {
         public:
-            template <typename Alloc>
+            template <typename>
             friend class collections::bit_vector;
 
             RAINY_CONSTEXPR20 reference(const reference &) noexcept = default;
