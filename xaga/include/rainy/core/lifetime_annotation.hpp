@@ -688,7 +688,7 @@ namespace rainy::annotations::lifetime {
          */
         template <typename UTy, type_traits::other_trans::enable_if_t<type_traits::type_properties::is_swappable_v<type>, int> = 0>
         rain_fn swap(type &right) noexcept(type_traits::type_properties::is_nothrow_swappable_v<type>) -> void {
-            using utility::swap;
+            using std::swap;
             swap(take_resources, right.take_resources);
         }
 
