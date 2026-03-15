@@ -854,17 +854,17 @@ SCENARIO("bit_vector conversion operations", "[bit_vector][conversion]") {
     }
 
     GIVEN("A bit_vector too large for unsigned long") {
-        bit_vector<> vec(33, true);
-
+        constexpr std::size_t ul_bits = sizeof(unsigned long) * CHAR_BIT;
+        bit_vector<> vec(ul_bits + 1, true); 
         THEN("to_ulong() should throw overflow_error") {
             REQUIRE_THROWS_AS(vec.to_ulong(), std::overflow_error);
         }
     }
 
     GIVEN("A bit_vector with bits beyond target type that are zero") {
-        bit_vector<> vec(33, false);
-        vec.set(31); // Only set a bit within 32-bit range
-
+        constexpr std::size_t ul_bits = sizeof(unsigned long) * CHAR_BIT;
+        bit_vector<> vec(ul_bits + 1, false);
+        vec.set(31);
         THEN("to_ulong() should succeed") {
             REQUIRE_NOTHROW(vec.to_ulong());
             REQUIRE(vec.to_ulong() == (1UL << 31));
