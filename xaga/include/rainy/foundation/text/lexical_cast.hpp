@@ -202,7 +202,7 @@ namespace rainy::foundation::text {
             return static_cast<Ty>(input[0]);
         }
 
-        basic_string<CharType> to_string(bool input) const {
+        basic_string<CharType> to_string(Ty input) const {
             CharType buf[] = {static_cast<Ty>(input[0]), '\0'};
             return basic_string_view<CharType>{buf, 2};
         }
