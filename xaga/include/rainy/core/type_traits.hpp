@@ -16,18 +16,21 @@
 #ifndef RAINY_CORE_TYPE_TRAITS_HPP
 #define RAINY_CORE_TYPE_TRAITS_HPP
 #include <iterator>
-#include <utility>
-#include <rainy/core/platform.hpp>
-#include <rainy/core/implements/tuple.hpp>
 #include <rainy/core/implements/basic_algorithm.hpp>
 #include <rainy/core/implements/compressed_pair.hpp>
+#include <rainy/core/implements/tuple.hpp>
+#include <rainy/core/platform.hpp>
+#include <rainy/core/type_traits/decay.hpp>
 #include <rainy/core/type_traits/helper.hpp>
 #include <rainy/core/type_traits/implements.hpp>
 #include <rainy/core/type_traits/iter_traits.hpp>
 #include <rainy/core/type_traits/limits.hpp>
+#include <rainy/core/type_traits/logical.hpp>
 #include <rainy/core/type_traits/meta_methods.hpp>
 #include <rainy/core/type_traits/meta_types.hpp>
 #include <rainy/core/type_traits/modifers.hpp>
+#include <rainy/core/type_traits/primary_types.hpp>
+#include <rainy/core/type_traits/properties.hpp>
 #include <rainy/core/type_traits/ranges_traits.hpp>
 #include <rainy/core/type_traits/type_list.hpp>
 #include <rainy/core/type_traits/type_relations.hpp>
@@ -37,6 +40,7 @@
 #include <rainy/core/type_traits/logical.hpp>
 #include <rainy/core/type_traits/properties.hpp>
 #include <rainy/core/type_traits/templates.hpp>
+#include <utility>
 #if RAINY_USING_GCC
 #include <rainy/core/gnu/typetraits.hpp>
 #endif
@@ -1715,6 +1719,431 @@ namespace rainy::type_traits::type_properties {
      */
     template <typename Rx, typename Callable, typename... Args>
     struct is_nothrow_invocable_r : helper::bool_constant<is_nothrow_invocable_r_v<Rx, Callable, Args...>> {};
+}
+
+namespace rainy::type_traits::type_properties {
+    /**
+     * @brief Variable template for checking if a type is const-qualified.
+     *        检查类型是否为 const 限定的变量模板。
+     *
+     * @tparam Ty Type to query
+     *            要查询的类型
+     */
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL is_const_v = false;
+
+    /**
+     * @brief Specialization for const-qualified types.
+     *        const 限定类型的特化。
+     *
+     * @tparam Ty The underlying type
+     *            底层类型
+     */
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL is_const_v<const Ty> = true;
+
+    /**
+     * @brief Type template for checking if a type is const-qualified.
+     *        检查类型是否为 const 限定的类型模板。
+     *
+     * @tparam Ty Type to query
+     *            要查询的类型
+     */
+    template <typename Ty>
+    struct is_const : helper::bool_constant<is_const_v<Ty>> {};
+
+    /**
+     * @brief Variable template for checking if a type is volatile-qualified.
+     *        检查类型是否为 volatile 限定的变量模板。
+     *
+     * @tparam Ty Type to query
+     *            要查询的类型
+     */
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL is_volatile_v = false;
+
+    /**
+     * @brief Specialization for volatile-qualified types.
+     *        volatile 限定类型的特化。
+     *
+     * @tparam Ty The underlying type
+     *            底层类型
+     */
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL is_volatile_v<volatile Ty> = true;
+
+    /**
+     * @brief Type template for checking if a type is volatile-qualified.
+     *        检查类型是否为 volatile 限定的类型模板。
+     *
+     * @tparam Ty Type to query
+     *            要查询的类型
+     */
+    template <typename Ty>
+    struct is_volatile : helper::bool_constant<is_volatile_v<Ty>> {};
+
+    /**
+     * @brief Variable template for checking if a type is trivial.
+     *        A trivial type has a trivial default constructor, copy/move constructors,
+     *        copy/move assignment operators, and destructor.
+     *
+     *        检查类型是否为平凡类型的变量模板。
+     *        平凡类型具有平凡的默认构造函数、复制/移动构造函数、
+     *        复制/移动赋值运算符和析构函数。
+     *
+     * @tparam Ty Type to query
+     *            要查询的类型
+     */
+#if RAINY_USING_CLANG || RAINY_USING_MSVC
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL is_trivial_v = __is_trivially_constructible(Ty) && __is_trivially_copyable(Ty);
+#else
+    /**
+     * @brief Variable template for checking if a type is trivial (GCC implementation).
+     *        If type Ty is a trivial type, the instance is true; otherwise false.
+     *        Trivial types are scalar types, trivially copyable class types,
+     *        arrays of these types, and cv-qualified versions of these types.
+     *
+     *        检查类型是否为平凡类型的变量模板（GCC实现）。
+     *        如果类型 Ty 是平凡类型，则实例为 true；否则为 false。
+     *        平凡类型是标量类型、完全可复制类类型、这些类型的数组
+     *        以及这些类型的 cv 限定版本。
+     *
+     * @tparam Ty Type to query
+     *            要查询的类型
+     */
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL is_trivial_v = __is_trivial(Ty);
+#endif
+
+    /**
+     * @brief Type template for checking if a type is trivial.
+     *        检查类型是否为平凡类型的类型模板。
+     *
+     * @tparam Ty Type to query
+     *            要查询的类型
+     * @remark If type Ty is a trivial type, the instance is true; otherwise false.
+     *         Trivial types are scalar types, trivially copyable class types,
+     *         arrays of these types, and cv-qualified versions of these types.
+     *         如果类型 Ty 是平凡类型，则实例为 true；否则为 false。
+     *         平凡类型是标量类型、完全可复制类类型、这些类型的数组
+     *         以及这些类型的 cv 限定版本。
+     */
+    template <typename Ty>
+    struct is_trivial : helper::bool_constant<is_trivial_v<Ty>> {};
+
+    /**
+     * @brief Variable template for checking if a type has unique object representations.
+     *        Indicates whether every object of type Ty has a unique representation
+     *        (i.e., no padding bits).
+     *
+     *        检查类型是否具有唯一对象表示的变量模板。
+     *        指示类型 Ty 的每个对象是否具有唯一的表示形式（即没有填充位）。
+     *
+     * @tparam Ty Type to query
+     *            要查询的类型
+     */
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL has_unique_object_representations_v = __has_unique_object_representations(Ty);
+
+    /**
+     * @brief Type template for checking if a type has unique object representations.
+     *        检查类型是否具有唯一对象表示的类型模板。
+     *
+     * @tparam Ty Type to query
+     *            要查询的类型
+     */
+    template <typename Ty>
+    struct has_unique_object_representations : helper::bool_constant<has_unique_object_representations_v<Ty>> {};
+}
+
+namespace rainy::type_traits::extras::templates {
+    /**
+     * @brief Primary template for getting the first template parameter of a template instantiation.
+     *        获取模板实例化的第一个模板参数的主模板。
+     *
+     * @tparam Ty The template instantiation type
+     *            模板实例化类型
+     */
+    template <typename Ty>
+    struct get_first_parameter;
+
+    /**
+     * @brief Specialization that extracts the first template parameter.
+     *        提取第一个模板参数的特化。
+     *
+     * @tparam Ty The template template parameter
+     *            模板模板参数
+     * @tparam First The first template parameter type
+     *               第一个模板参数类型
+     * @tparam Rest The remaining template parameter types
+     *              剩余的模板参数类型
+     */
+    template <template <typename, typename...> typename Ty, typename First, typename... Rest>
+    struct get_first_parameter<Ty<First, Rest...>> {
+        using type = First;
+    };
+
+    /**
+     * @brief Primary template for replacing the first template parameter of a template instantiation.
+     *        替换模板实例化的第一个模板参数的主模板。
+     *
+     * @tparam newfirst The new type for the first parameter
+     *                  第一个参数的新类型
+     * @tparam Ty The template instantiation type
+     *            模板实例化类型
+     */
+    template <typename newfirst, typename Ty>
+    struct replace_first_parameter;
+
+    /**
+     * @brief Specialization that performs the replacement.
+     *        执行替换操作的特化。
+     *
+     * @tparam NewFirst The new type for the first parameter
+     *                  第一个参数的新类型
+     * @tparam Ty The template template parameter
+     *            模板模板参数
+     * @tparam First The original first parameter type (to be replaced)
+     *               原始的第一个参数类型（将被替换）
+     * @tparam Rest The remaining template parameter types (preserved)
+     *              剩余的模板参数类型（保持不变）
+     */
+    template <typename NewFirst, template <typename, typename...> typename Ty, typename First, typename... Rest>
+    struct replace_first_parameter<NewFirst, Ty<First, Rest...>> {
+        using type = Ty<NewFirst, Rest...>;
+    };
+
+    /**
+     * @brief Primary template for getting the pointer difference type.
+     *        Defaults to ptrdiff_t.
+     *
+     *        获取指针差类型的主模板。
+     *        默认为 ptrdiff_t。
+     *
+     * @tparam Ty The type to query for difference_type
+     *            要查询 difference_type 的类型
+     */
+    template <typename, typename = void>
+    struct get_ptr_difference_type {
+        using type = ptrdiff_t;
+    };
+
+    /**
+     * @brief Specialization for types that provide a difference_type member.
+     *        为提供 difference_type 成员的类型提供的特化。
+     *
+     * @tparam Ty The type that provides difference_type
+     *            提供 difference_type 的类型
+     */
+    template <typename Ty>
+    struct get_ptr_difference_type<Ty, type_traits::other_trans::void_t<typename Ty::difference_type>> {
+        using type = typename Ty::difference_type;
+    };
+
+    /**
+     * @brief Primary template for getting the rebound alias of an allocator or similar template.
+     *        Uses replace_first_parameter as fallback.
+     *
+     *        获取分配器或类似模板的重绑定别名的主模板。
+     *        使用 replace_first_parameter 作为回退。
+     *
+     * @tparam Ty The template type to rebind
+     *            要重绑定的模板类型
+     * @tparam Other The new type to bind to
+     *               要绑定到的新类型
+     */
+    template <typename Ty, typename Other, typename = void>
+    struct get_rebind_alias {
+        using type = typename replace_first_parameter<Other, Ty>::type;
+    };
+
+    /**
+     * @brief Specialization for types that provide a rebind member template.
+     *        为提供 rebind 成员模板的类型提供的特化。
+     *
+     * @tparam Ty The type that provides rebind
+     *            提供 rebind 的类型
+     * @tparam Other The new type to bind to
+     *               要绑定到的新类型
+     */
+    template <typename Ty, typename Other>
+    struct get_rebind_alias<Ty, Other, type_traits::other_trans::void_t<typename Ty::template rebind<Other>>> {
+        using type = typename Ty::template rebind<Other>;
+    };
+
+    /**
+     * @brief Replaces the last template parameter of a template instantiation.
+     *        替换模板实例化的最后一个模板参数。
+     *
+     * @tparam T The template instantiation type
+     *            模板实例化类型
+     * @tparam NewLast The new type for the last parameter
+     *                 最后一个参数的新类型
+     */
+    template <typename T, typename NewLast>
+    struct replace_last_parameter;
+
+    /**
+     * @brief Specialization that performs the replacement.
+     *        执行替换操作的特化。
+     *
+     * @tparam Template The template template parameter
+     *                  模板模板参数
+     * @tparam Args The original template arguments
+     *              原始的模板参数
+     * @tparam NewLast The new type for the last parameter
+     *                 最后一个参数的新类型
+     */
+    template <template <typename...> typename Template, typename... Args, typename NewLast>
+    struct replace_last_parameter<Template<Args...>, NewLast> {
+    private:
+        static constexpr std::size_t N = sizeof...(Args);
+        using type_list = type_traits::other_trans::type_list<Args...>;
+
+        template <std::size_t... I>
+        static auto helper(type_traits::helper::index_sequence<I...>)
+            -> Template<typename type_traits::other_trans::type_at<I, type_list>::type..., NewLast>;
+
+    public:
+        using type = decltype(helper(type_traits::helper::make_index_sequence<N - 1>{}));
+    };
+}
+
+namespace rainy::foundation::memory::implements {
+    template <typename Ty, typename Elem>
+    struct pointer_traits_base {
+        using pointer = Ty;
+        using element_type = Elem;
+        using difference_type = typename type_traits::extras::templates::get_ptr_difference_type<Ty>::type;
+
+        template <typename other>
+        using rebind = typename type_traits::extras::templates::get_rebind_alias<Ty, other>::type;
+
+        using ref_type = type_traits::other_trans::conditional_t<type_traits::primary_types::is_void_v<Elem>, char, Elem> &;
+
+        /**
+         * @brief Creates a pointer to the given reference using the type's pointer_to function.
+         *        使用类型的 pointer_to 函数创建指向给定引用的指针。
+         *
+         * @param val The reference to create a pointer to
+         *            要创建指针的引用
+         * @return A pointer created by Ty::pointer_to(val)
+         *         由 Ty::pointer_to(val) 创建的指针
+         */
+        RAINY_NODISCARD static RAINY_CONSTEXPR20 rain_fn pointer_to(ref_type val) noexcept(noexcept(Ty::pointer_to(val))) -> pointer {
+            return Ty::pointer_to(val);
+        }
+    };
+
+    template <typename, typename = void, typename = void>
+    struct ptr_traits_sfinae_layer {};
+
+    template <typename Ty, typename Uty>
+    struct ptr_traits_sfinae_layer<
+        Ty, Uty, type_traits::other_trans::void_t<typename type_traits::extras::templates::get_first_parameter<Ty>::type>>
+        : implements::pointer_traits_base<Ty, typename type_traits::extras::templates::get_first_parameter<Ty>::type> {};
+
+    template <typename Ty>
+    struct ptr_traits_sfinae_layer<Ty, type_traits::other_trans::void_t<typename Ty::element_type>, void>
+        : implements::pointer_traits_base<Ty, typename Ty::element_type> {};
+}
+
+namespace rainy::foundation::memory {
+    template <typename Ty>
+    struct pointer_traits : implements::ptr_traits_sfinae_layer<Ty> {};
+
+    template <typename Ty>
+    struct pointer_traits<Ty *> {
+        using pointer = Ty *;
+        using elemen_type = Ty;
+        using difference_type = ptrdiff_t;
+
+        template <typename other>
+        using rebind = other *;
+
+        using ref_type = type_traits::other_trans::conditional_t<type_traits::primary_types::is_void_v<Ty>, char, Ty> &;
+
+        /**
+         * @brief Creates a pointer to the given reference using addressof.
+         *        使用 addressof 创建指向给定引用的指针。
+         *
+         * @param val The reference to create a pointer to
+         *            要创建指针的引用
+         * @return A pointer to the referenced object
+         *         指向被引用对象的指针
+         */
+        RAINY_NODISCARD static constexpr rain_fn pointer_to(ref_type val) noexcept -> pointer {
+            return utility::addressof(val);
+        }
+    };
+}
+
+namespace rainy::utility {
+    using foundation::memory::pointer_traits;
+}
+
+namespace rainy::utility::implements {
+    /**
+     * @brief Variable template for detecting if pointer_traits<Pointer> has a to_address member function.
+     *        检测 pointer_traits<Pointer> 是否具有 to_address 成员函数的变量模板。
+     *
+     * @tparam Ty The pointer type to check
+     *            要检查的指针类型
+     */
+    template <typename Ty, typename = void>
+    RAINY_CONSTEXPR_BOOL has_to_address = false;
+
+    /**
+     * @brief Specialization that detects the presence of pointer_traits<Pointer>::to_address.
+     *        检测 pointer_traits<Pointer>::to_address 是否存在的特化。
+     *
+     * @tparam Ty The pointer type that provides to_address
+     *            提供 to_address 的指针类型
+     */
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL
+        has_to_address<Ty, type_traits::other_trans::void_t<decltype(foundation::memory::pointer_traits<Ty>::to_address(
+                               utility::declval<const Ty &>()))>> = true;
+}
+
+namespace rainy::utility {
+    /**
+     * @brief Converts a raw pointer to an address (identity function).
+     *        将原始指针转换为地址（恒等函数）。
+     *
+     * @tparam Ty The type pointed to
+     *            指向的类型
+     * @param val The raw pointer
+     *            原始指针
+     * @return The same pointer value
+     *         相同的指针值
+     */
+    template <typename Ty>
+    constexpr rain_fn to_address(Ty *const val) noexcept -> Ty * {
+        static_assert(!type_traits::primary_types::is_function_v<Ty>, "Ty cannot be a function type.");
+        return val;
+    }
+
+    /**
+     * @brief Converts any fancy pointer to a raw address.
+     *        将任何花哨指针转换为原始地址。
+     *
+     * @tparam Pointer The fancy pointer type
+     *                 花哨指针类型
+     * @param val The fancy pointer to convert
+     *            要转换的花哨指针
+     * @return The raw address obtained either from pointer_traits or operator->
+     *         从 pointer_traits 或 operator-> 获取的原始地址
+     */
+    template <typename Pointer>
+    RAINY_NODISCARD constexpr rain_fn to_address(const Pointer &val) noexcept -> auto {
+        if constexpr (implements::has_to_address<Pointer>) {
+            return pointer_traits<Pointer>::to_address(val);
+        } else {
+            return utility::to_address(val.operator->());
+        }
+    }
 }
 
 namespace rainy::type_traits::composite_types {

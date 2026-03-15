@@ -255,7 +255,7 @@ namespace rainy::foundation::functional::implements {
 
         void swap(delegate_impl &right) noexcept {
             if (!is_local() && !right.is_local()) {
-                utility::swap(invoker_accessor_, right.invoker_accessor_);
+                std::swap(invoker_accessor_, right.invoker_accessor_);
             } else {
                 delegate_impl temp;
                 temp.move_from_other(utility::move(*this));
