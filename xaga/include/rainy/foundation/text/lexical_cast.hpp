@@ -274,8 +274,8 @@ namespace rainy::foundation::text {
         using traits_type = Traits;
         using alloc_type = Alloc;
 
-        template <typename Char, typename Traits, typename Alloc>
-        using string_template = basic_string<Char, Traits, Alloc>;
+        template <typename CharType, typename CharTraits, typename Allocator>
+        using string_template = basic_string<CharType, CharTraits, Allocator>;
 
         static constexpr bool is_valid = true;
         static constexpr bool is_std = false;
@@ -289,8 +289,8 @@ namespace rainy::foundation::text {
         using traits_type = Traits;
         using alloc_type = Alloc;
 
-        template <typename Char, typename Traits, typename Alloc>
-        using string_template = std::basic_string<Char, Traits, Alloc>;
+        template <typename CharType, typename CharTraits, typename Allocator>
+        using string_template = std::basic_string<CharType, CharTraits, Allocator>;
 
         static constexpr bool is_valid = true;
         static constexpr bool is_std = true;
