@@ -46,7 +46,7 @@ namespace rainy::collections::implements {
     inline int popcount64(std::uint64_t v) noexcept {
 #if RAINY_USING_CLANG || RAINY_USING_GCC
         return __builtin_popcountll(static_cast<unsigned long long>(v));
-#elif defined(_MSC_VER)
+#elif RAINY_USING_MSVC
         return static_cast<int>(__popcnt64(v));
 #endif
     }
@@ -275,13 +275,13 @@ namespace rainy::collections {
         }
 
         RAINY_CONSTEXPR20 bit_vector(const bit_vector &right) :
-            bit_vector(block_alloc_traits::select_on_container_copy_construction(right.pair.get_first())) {
+            bit_vector(block_alloc_traits::select_on_container_copy_construction(right.get_allocator())) {
             copy_from(right);
         }
 
         RAINY_CONSTEXPR20 bit_vector(bit_vector &&right) noexcept :
-            pair{utility::move(right.pair.get_first()),
-                 impl{right.pair.second.data, right.pair.second.size, right.pair.second.cap_bits}} {
+            pair{utility::move(right.get_al()),
+                 impl{right.vec_object().data, right.vec_object().size, right.vec_object().cap_bits}} {
             right.pair = {};
         }
 
@@ -292,12 +292,12 @@ namespace rainy::collections {
 
         RAINY_CONSTEXPR20 bit_vector(bit_vector &&right, const type_traits::helper::identity_t<allocator_type> &left) :
             pair{left.get_first(), impl{}} {
-            auto &allocator = pair.get_first();
-            if (allocator == right.get_first()) {
-                pair.second.data = right.second.data;
-                pair.second.size = right.size();
-                pair.second.cap_bits = right.cap_bits;
-                right.pair.second = {};
+            auto &allocator = get_al();
+            if (allocator == right.get_al()) {
+                vec_object().data = right.second.data;
+                vec_object().size = right.size();
+                vec_object().cap_bits = right.cap_bits;
+                right.vec_object() = {};
             } else {
                 copy_from(right);
             }
@@ -311,11 +311,11 @@ namespace rainy::collections {
             if (this == &right) {
                 return *this;
             }
-            auto &allocator = pair.get_first();
+            auto &allocator = get_al();
             if constexpr (block_alloc_traits::propagate_on_container_copy_assignment::value) {
-                if (allocator != right.get_first()) {
+                if (allocator != right.get_al()) {
                     deallocate();
-                    allocator = right.get_first();
+                    allocator = right.get_al();
                 }
             }
             copy_from(right);
@@ -327,12 +327,12 @@ namespace rainy::collections {
             if (this == &right) {
                 return *this;
             }
-            auto &allocator = pair.get_first();
+            auto &allocator = get_al();
             if constexpr (block_alloc_traits::propagate_on_container_move_assignment::value) {
                 deallocate();
-                allocator = utility::move(right.pair.get_first());
+                allocator = utility::move(right.get_al());
                 steal(right);
-            } else if (allocator == right.pair.get_first()) {
+            } else if (allocator == right.get_al()) {
                 deallocate();
                 steal(right);
             } else {
@@ -371,19 +371,19 @@ namespace rainy::collections {
         }
 
         RAINY_CONSTEXPR20 iterator begin() noexcept {
-            return {pair.second.data, 0};
+            return {vec_object().data, 0};
         }
 
         RAINY_CONSTEXPR20 const_iterator begin() const noexcept {
-            return {pair.second.data, 0};
+            return {vec_object().data, 0};
         }
 
         RAINY_CONSTEXPR20 iterator end() noexcept {
-            return {pair.second.data, size()};
+            return {vec_object().data, size()};
         }
 
         RAINY_CONSTEXPR20 const_iterator end() const noexcept {
-            return {pair.second.data, size()};
+            return {vec_object().data, size()};
         }
 
         RAINY_CONSTEXPR20 reverse_iterator rbegin() noexcept {
@@ -419,23 +419,23 @@ namespace rainy::collections {
         }
 
         RAINY_CONSTEXPR20 bool empty() const noexcept {
-            return pair.second.size == 0;
+            return vec_object().size == 0;
         }
 
         RAINY_CONSTEXPR20 size_type size() const noexcept {
-            return pair.second.size;
+            return vec_object().size;
         }
 
         RAINY_CONSTEXPR20 size_type max_size() const noexcept {
-            return block_alloc_traits::max_size(pair.get_first()) * implements::bits_per_block;
+            return block_alloc_traits::max_size(get_allocator()) * implements::bits_per_block;
         }
 
         RAINY_CONSTEXPR20 size_type capacity() const noexcept {
-            return pair.second.cap_bits;
+            return vec_object().cap_bits;
         }
 
         RAINY_CONSTEXPR20 void reserve(size_type new_cap) {
-            if (new_cap <= pair.second.cap_bits) {
+            if (new_cap <= vec_object().cap_bits) {
                 return;
             }
             reallocate(implements::blocks_for(new_cap));
@@ -448,22 +448,22 @@ namespace rainy::collections {
                     if (size() % implements::bits_per_block != 0) {
                         std::size_t used = size() % implements::bits_per_block;
                         block_type mask = implements::low_mask(implements::bits_per_block - used) << used;
-                        pair.second.data[implements::block_index(size())] |= mask;
+                        vec_object().data[implements::block_index(size())] |= mask;
                     }
                     std::size_t old_full = implements::blocks_for(size());
                     std::size_t new_full = implements::blocks_for(new_size);
                     for (std::size_t i = old_full; i < new_full; ++i) {
-                        pair.second.data[i] = ~block_type{0};
+                        vec_object().data[i] = ~block_type{0};
                     }
                 }
             }
-            pair.second.size = new_size;
+            vec_object().size = new_size;
             zero_unused_bits();
         }
 
         RAINY_CONSTEXPR20 void shrink_to_fit() {
             std::size_t needed = implements::blocks_for(size());
-            std::size_t current = implements::blocks_for(pair.second.cap_bits);
+            std::size_t current = implements::blocks_for(vec_object().cap_bits);
             if (needed >= current) {
                 return;
             }
@@ -471,11 +471,11 @@ namespace rainy::collections {
         }
 
         RAINY_CONSTEXPR20 reference operator[](size_type pos) noexcept {
-            return {pair.second.data + implements::block_index(pos), implements::bit_index(pos)};
+            return {vec_object().data + implements::block_index(pos), implements::bit_index(pos)};
         }
 
         RAINY_CONSTEXPR20 const_reference operator[](size_type pos) const noexcept {
-            return (pair.second.data[implements::block_index(pos)] >> implements::bit_index(pos)) & block_type{1};
+            return (vec_object().data[implements::block_index(pos)] >> implements::bit_index(pos)) & block_type{1};
         }
 
         RAINY_CONSTEXPR20 reference at(size_type pos) {
@@ -505,7 +505,7 @@ namespace rainy::collections {
         }
 
         RAINY_CONSTEXPR20 void push_back(const bool &val) {
-            if (rainy_unlikely(pair.second.size == pair.second.cap_bits)) {
+            if (rainy_unlikely(vec_object().size == vec_object().cap_bits)) {
                 grow();
             }
             (*this)[size()] = val;
@@ -535,16 +535,16 @@ namespace rainy::collections {
         RAINY_CONSTEXPR20 iterator insert(const_iterator position, size_type count, const bool &val) {
             std::size_t idx = position.pos_;
             if (count == 0) {
-                return iterator{pair.second.data, idx};
+                return iterator{vec_object().data, idx};
             }
             std::size_t new_size = size() + count;
             reserve(new_size);
             shift_right(idx, count);
-            pair.second.size = new_size;
+            vec_object().size = new_size;
             for (std::size_t i = idx; i < idx + count; ++i) {
                 (*this)[i] = val;
             }
-            return iterator{pair.second.data, idx};
+            return iterator{vec_object().data, idx};
         }
 
         template <
@@ -555,17 +555,17 @@ namespace rainy::collections {
             std::size_t idx = position.pos_;
             bit_vector tmp(first, last, get_allocator());
             if (tmp.empty()) {
-                return iterator{pair.second.data, idx};
+                return iterator{vec_object().data, idx};
             }
             std::size_t count = tmp.size();
             std::size_t new_size = size() + count;
             reserve(new_size);
             shift_right(idx, count);
-            pair.second.size = new_size;
+            vec_object().size = new_size;
             for (std::size_t i = 0; i < count; ++i) {
                 (*this)[idx + i] = tmp[i];
             }
-            return iterator{pair.second.data, idx};
+            return iterator{vec_object().data, idx};
         }
 
         RAINY_CONSTEXPR20 iterator insert(const_iterator position, std::initializer_list<bool> ilist) {
@@ -580,23 +580,23 @@ namespace rainy::collections {
             std::size_t f = first.pos_;
             std::size_t l = last.pos_;
             if (f == l) {
-                return iterator{pair.second.data, f};
+                return iterator{vec_object().data, f};
             }
             shift_left(f, l - f);
-            pair.second.size -= (l - f);
+            vec_object().size -= (l - f);
             zero_unused_bits();
-            return iterator{pair.second.data, f};
+            return iterator{vec_object().data, f};
         }
 
         RAINY_CONSTEXPR20 void swap(bit_vector &right) noexcept(block_alloc_traits::propagate_on_container_swap::value ||
                                                                 block_alloc_traits::is_always_equal::value) {
-            auto &allocator = pair.get_first();
+            auto &allocator = get_al();
             if constexpr (block_alloc_traits::propagate_on_container_swap::value) {
-                std::swap(allocator, right.get_first());
+                std::swap(allocator, right.get_al());
             }
-            std::swap(pair.second.data, right.pair.second.data);
-            std::swap(pair.second.size, right.pair.second.size);
-            std::swap(pair.second.cap_bits, right.pair.second.cap_bits);
+            std::swap(vec_object().data, right.vec_object().data);
+            std::swap(vec_object().size, right.vec_object().size);
+            std::swap(vec_object().cap_bits, right.vec_object().cap_bits);
         }
 
         static RAINY_CONSTEXPR20 void swap(reference left, reference right) noexcept {
@@ -608,16 +608,16 @@ namespace rainy::collections {
         RAINY_CONSTEXPR20 void flip() noexcept {
             std::size_t nb = implements::blocks_for(size());
             for (std::size_t i = 0; i < nb; ++i) {
-                pair.second.data[i] = ~pair.second.data[i];
+                vec_object().data[i] = ~vec_object().data[i];
             }
             zero_unused_bits();
         }
 
         RAINY_CONSTEXPR20 void clear() noexcept {
-            pair.second.size = 0;
-            std::size_t nb = implements::blocks_for(pair.second.cap_bits);
+            vec_object().size = 0;
+            std::size_t nb = implements::blocks_for(vec_object().cap_bits);
             for (std::size_t i = 0; i < nb; ++i) {
-                pair.second.data[i] = block_type{0};
+                vec_object().data[i] = block_type{0};
             }
         }
 
@@ -635,7 +635,7 @@ namespace rainy::collections {
         RAINY_CONSTEXPR20 bit_vector &set() noexcept {
             std::size_t nb = implements::blocks_for(size());
             for (std::size_t i = 0; i < nb; ++i) {
-                pair.second.data[i] = ~block_type{0};
+                vec_object().data[i] = ~block_type{0};
             }
             zero_unused_bits();
             return *this;
@@ -650,14 +650,14 @@ namespace rainy::collections {
         RAINY_CONSTEXPR20 bit_vector &reset() noexcept {
             std::size_t nb = implements::blocks_for(size());
             for (std::size_t i = 0; i < nb; ++i) {
-                pair.second.data[i] = block_type{0};
+                vec_object().data[i] = block_type{0};
             }
             return *this;
         }
 
         RAINY_CONSTEXPR20 bit_vector &flip(size_type pos) {
             range_check(pos);
-            pair.second.data[implements::block_index(pos)] ^= block_type{1} << implements::bit_index(pos);
+            vec_object().data[implements::block_index(pos)] ^= block_type{1} << implements::bit_index(pos);
             return *this;
         }
 
@@ -665,30 +665,30 @@ namespace rainy::collections {
             std::size_t nb = implements::blocks_for(size());
             size_type cnt = 0;
             for (std::size_t i = 0; i < nb; ++i) {
-                cnt += static_cast<size_type>(implements::popcount64(pair.second.data[i]));
+                cnt += static_cast<size_type>(implements::popcount64(vec_object().data[i]));
             }
             return cnt;
         }
 
         RAINY_CONSTEXPR20 bool all() const noexcept {
-            if (pair.second.size == 0) {
+            if (vec_object().size == 0) {
                 return true;
             }
             std::size_t nb = implements::blocks_for(size());
             std::size_t tail = size() % implements::bits_per_block;
             for (std::size_t i = 0; i + 1 < nb; ++i) {
-                if (pair.second.data[i] != ~block_type{0}) {
+                if (vec_object().data[i] != ~block_type{0}) {
                     return false;
                 }
             }
             block_type mask = tail ? implements::low_mask(tail) : ~block_type{0};
-            return (pair.second.data[nb - 1] & mask) == mask;
+            return (vec_object().data[nb - 1] & mask) == mask;
         }
 
         RAINY_CONSTEXPR20 bool any() const noexcept {
             std::size_t nb = implements::blocks_for(size());
             for (std::size_t i = 0; i < nb; ++i) {
-                if (pair.second.data[i]) {
+                if (vec_object().data[i]) {
                     return true;
                 }
             }
@@ -708,7 +708,7 @@ namespace rainy::collections {
         RAINY_CONSTEXPR20 bit_vector &operator&=(const bit_vector &right) noexcept {
             std::size_t nb = (core::min)(implements::blocks_for(size()), implements::blocks_for(right.size()));
             for (std::size_t i = 0; i < nb; ++i) {
-                pair.second.data[i] &= right.pair.second.data[i];
+                vec_object().data[i] &= right.vec_object().data[i];
             }
             return *this;
         }
@@ -716,7 +716,7 @@ namespace rainy::collections {
         RAINY_CONSTEXPR20 bit_vector &operator|=(const bit_vector &right) noexcept {
             std::size_t nb = (core::min)(implements::blocks_for(size()), implements::blocks_for(right.size()));
             for (std::size_t i = 0; i < nb; ++i) {
-                pair.second.data[i] |= right.pair.second.data[i];
+                vec_object().data[i] |= right.vec_object().data[i];
             }
             return *this;
         }
@@ -724,7 +724,7 @@ namespace rainy::collections {
         RAINY_CONSTEXPR20 bit_vector &operator^=(const bit_vector &right) noexcept {
             std::size_t nb = (core::min)(implements::blocks_for(size()), implements::blocks_for(right.size()));
             for (std::size_t i = 0; i < nb; ++i) {
-                pair.second.data[i] ^= right.pair.second.data[i];
+                vec_object().data[i] ^= right.vec_object().data[i];
             }
             return *this;
         }
@@ -813,7 +813,7 @@ namespace rainy::collections {
             }
             std::size_t nb = implements::blocks_for(left.size());
             for (std::size_t i = 0; i < nb; ++i) {
-                if (left.pair.second.data[i] != right.pair.second.data[i]) {
+                if (left.vec_object().data[i] != right.vec_object().data[i]) {
                     return false;
                 }
             }
@@ -829,77 +829,94 @@ namespace rainy::collections {
         }
 
     private:
+        struct impl {
+            block_type *data = nullptr;
+            size_type size = 0;
+            size_type cap_bits = 0;
+        };
+
         RAINY_CONSTEXPR20 void incr_size() noexcept {
-            ++pair.second.size;
+            ++vec_object().size;
         }
 
         RAINY_CONSTEXPR20 void decr_size() noexcept {
-            --pair.second.size;
+            --vec_object().size;
+        }
+
+        constexpr impl &vec_object() noexcept {
+            return pair.second;
+        }
+
+        constexpr const impl &vec_object() const noexcept {
+            return pair.second;
+        }
+
+        constexpr block_alloc_type &get_al() noexcept {
+            return pair.get_first();
         }
 
         RAINY_CONSTEXPR20 void deallocate() noexcept {
-            auto &allocator = pair.get_first();
-            if (pair.second.data) {
-                block_alloc_traits::deallocate(allocator, pair.second.data, implements::blocks_for(pair.second.cap_bits));
-                pair.second.data = nullptr;
-                pair.second.cap_bits = 0;
+            auto &allocator = get_al();
+            if (vec_object().data) {
+                block_alloc_traits::deallocate(allocator, vec_object().data, implements::blocks_for(vec_object().cap_bits));
+                vec_object() = {};
             }
         }
 
         RAINY_CONSTEXPR20 void reallocate(std::size_t new_block_count) {
-            auto &allocator = pair.get_first();
+            auto &allocator = get_al();
             block_type *new_data = block_alloc_traits::allocate(allocator, new_block_count);
-            std::size_t old_nb = implements::blocks_for(pair.second.cap_bits);
+            std::size_t old_nb = implements::blocks_for(vec_object().cap_bits);
             std::size_t copy_nb = (core::min)(old_nb, new_block_count);
             for (std::size_t i = 0; i < copy_nb; ++i) {
-                new_data[i] = pair.second.data[i];
+                new_data[i] = vec_object().data[i];
             }
             for (std::size_t i = copy_nb; i < new_block_count; ++i) {
                 new_data[i] = block_type{0};
             }
-            if (pair.second.data) {
-                block_alloc_traits::deallocate(allocator, pair.second.data, old_nb);
+            if (vec_object().data) {
+                block_alloc_traits::deallocate(allocator, vec_object().data, old_nb);
             }
-            pair.second.data = new_data;
-            pair.second.cap_bits = new_block_count * implements::bits_per_block;
+            vec_object().data = new_data;
+            vec_object().cap_bits = new_block_count * implements::bits_per_block;
         }
 
         RAINY_CONSTEXPR20 void grow() {
-            std::size_t new_cap = pair.second.cap_bits == 0 ? implements::bits_per_block : pair.second.cap_bits * 2;
+            std::size_t new_cap = vec_object().cap_bits == 0 ? implements::bits_per_block : vec_object().cap_bits * 2;
             reallocate(implements::blocks_for(new_cap));
         }
 
         RAINY_CONSTEXPR20 void copy_from(const bit_vector &right) {
             std::size_t nb = implements::blocks_for(right.size());
-            if (nb > implements::blocks_for(pair.second.cap_bits)) {
+            if (nb > implements::blocks_for(vec_object().cap_bits)) {
                 reallocate(nb);
             }
             for (std::size_t i = 0; i < nb; ++i) {
-                pair.second.data[i] = right.pair.second.data[i];
+                vec_object().data[i] = right.vec_object().data[i];
             }
-            std::size_t cur_nb = implements::blocks_for(pair.second.cap_bits);
+            std::size_t cur_nb = implements::blocks_for(vec_object().cap_bits);
             for (std::size_t i = nb; i < cur_nb; ++i) {
-                pair.second.data[i] = block_type{0};
+                vec_object().data[i] = block_type{0};
             }
-            pair.second.size = right.size();
+            vec_object().size = right.size();
         }
 
         RAINY_CONSTEXPR20 void steal(bit_vector &right) noexcept {
-            pair.second.data = right.pair.second.data;
-            pair.second.size = right.size();
-            pair.second.cap_bits = right.pair.second.cap_bits;
-            right.pair.second.data = nullptr;
-            right.pair.second.size = 0;
-            right.pair.second.cap_bits = 0;
+            vec_object().data = right.vec_object().data;
+            vec_object().size = right.size();
+            vec_object().cap_bits = right.vec_object().cap_bits;
+            right.vec_object().data = nullptr;
+            right.vec_object().size = 0;
+            right.vec_object().cap_bits = 0;
         }
 
         RAINY_CONSTEXPR20 void zero_unused_bits() noexcept {
             std::size_t tail = size() % implements::bits_per_block;
-            if (tail == 0 || pair.second.size == 0) {
+            if (tail == 0 || vec_object().size == 0) {
                 return;
             }
             std::size_t last_blk = implements::block_index(size() - 1);
-            pair.second.data[last_blk] &= implements::low_mask(tail);
+            vec_object().data[last_blk] &= implements::low_mask(tail);
         }
 
         RAINY_CONSTEXPR20 void shift_right(std::size_t from, std::size_t shift) {
@@ -927,12 +944,6 @@ namespace rainy::collections {
                 }
             }
         }
-
-        struct impl {
-            block_type *data = nullptr;
-            size_type size = 0;
-            size_type cap_bits = 0;
-        };
 
         foundation::container::compressed_pair<block_alloc_type, impl> pair;
     };
