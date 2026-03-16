@@ -927,6 +927,10 @@ namespace rainy::collections {
             return !(left < right);
         }
 
+        friend constexpr rain_fn swap(array &left, array &right) noexcept -> void {
+            left.swap(right);
+        }
+
     private:
         template <std::size_t... I>
         constexpr array(const_pointer ilist, std::size_t ilist_size, type_traits::helper::index_sequence<I...>) :
