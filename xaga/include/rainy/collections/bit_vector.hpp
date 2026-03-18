@@ -294,9 +294,9 @@ namespace rainy::collections {
             pair{left.get_first(), impl{}} {
             auto &allocator = get_al();
             if (allocator == right.get_al()) {
-                vec_object().data = right.second.data;
+                vec_object().data = right.vec_object().data;
                 vec_object().size = right.size();
-                vec_object().cap_bits = right.cap_bits;
+                vec_object().cap_bits = right.vec_object().cap_bits;
                 right.vec_object() = {};
             } else {
                 copy_from(right);

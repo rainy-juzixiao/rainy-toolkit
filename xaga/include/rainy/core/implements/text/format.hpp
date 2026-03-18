@@ -298,4 +298,37 @@ namespace rainy::foundation::text {
     }
 }
 
+namespace rainy::foundation::text {
+    template <typename Char, typename Traits, typename Alloc>
+    template <typename... Args>
+    basic_string<Char, Traits, Alloc> &basic_string<Char, Traits, Alloc>::format(basic_string_view<Char> fmt,
+                                                                                 Args const &...args) {
+        if constexpr (type_traits::type_relations::is_same_v<char, Char>) {
+            auto fmt_args = make_format_args<format_context>(args...);
+            text::vformat_to(utility::back_inserter(*this), fmt, basic_format_args<format_context>(fmt_args));
+        } else if constexpr (type_traits::type_relations::is_same_v<wchar_t, Char>) {
+            auto fmt_args = make_format_args<wformat_context>(args...);
+            text::vformat_to(utility::back_inserter(*this), fmt, basic_format_args<wformat_context>(fmt_args));
+        } else {
+        }
+        return *this;
+    }
+
+    template <typename Char, typename Traits, typename Alloc>
+    template <typename... Args>
+    basic_string<Char, Traits, Alloc> basic_string<Char, Traits, Alloc>::format_copy(basic_string_view<Char> fmt,
+                                                                                     Args const &...args) const {
+        basic_string<Char, Traits, Alloc> result;
+        if constexpr (type_traits::type_relations::is_same_v<char, Char>) {
+            auto fmt_args = make_format_args<format_context>(args...);
+            text::vformat_to(utility::back_inserter(result), fmt, basic_format_args<format_context>(fmt_args));
+        } else if constexpr (type_traits::type_relations::is_same_v<wchar_t, Char>) {
+            auto fmt_args = make_format_args<wformat_context>(args...);
+            text::vformat_to(utility::back_inserter(result), fmt, basic_format_args<wformat_context>(fmt_args));
+        } else {
+        }
+        return result;
+    }
+}
+
 #endif

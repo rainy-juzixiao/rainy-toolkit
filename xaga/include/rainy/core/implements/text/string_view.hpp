@@ -57,10 +57,13 @@ namespace rainy::foundation::text {
         template <typename It, typename End,
                   type_traits::other_trans::enable_if_t<
                       type_traits::extras::iterators::is_contiguous_iterator_v<It> &&
+                          type_traits::extras::iterators::is_iterator_v<End> &&
                           type_traits::type_relations::is_same_v<type_traits::extras::iterators::iter_value_t<It>, value_type> &&
-                          !type_traits::type_relations::is_convertible_v<It, size_type>,
+                          !type_traits::type_relations::is_convertible_v<It, size_type> &&
+                          !type_traits::type_relations::is_convertible_v<End, size_type>,
                       int> = 0>
-        constexpr basic_string_view(It begin, End end) : data_{begin}, size_{static_cast<size_type>(utility::distance(begin, end))} {
+        constexpr basic_string_view(It begin, End end) noexcept :
+            data_{begin}, size_{static_cast<size_type>(utility::distance(begin, end))} {
         }
 
         constexpr const_iterator begin() const noexcept {
@@ -116,7 +119,7 @@ namespace rainy::foundation::text {
         }
 
         constexpr const_reference at(size_type pos) const {
-            range_check(pos);
+            range_check_access(pos);
             return data_[pos];
         }
 
@@ -149,22 +152,21 @@ namespace rainy::foundation::text {
         }
 
         constexpr size_type copy(pointer dest, size_type count, size_type pos = 0) const {
-            range_check(pos);
+            range_check_access(pos);
             size_type rcount = (core::min)(count, size() - pos);
             traits_type::copy(dest, data() + pos, rcount);
             return rcount;
         }
 
         constexpr basic_string_view substr(size_type pos = 0, size_type count = npos) const {
-            range_check(pos);
+            range_check_substr(pos);
             size_type rcount = (core::min)(count, size_ - pos);
             return {data_ + pos, rcount};
         }
 
         constexpr int compare(basic_string_view right) const noexcept {
             const size_type rlen = (core::min)(size_, right.size_);
-            int result = traits_type::compare(data_, right.data_, rlen);
-            if (result != 0) {
+            if (const int result = traits_type::compare(data_, right.data_, rlen); result != 0) {
                 return result;
             }
             return size_ == right.size_ ? 0 : (size_ < right.size_ ? -1 : 1);
@@ -348,8 +350,9 @@ namespace rainy::foundation::text {
         }
 
         constexpr size_type find_last_of(basic_string_view s, size_type pos = npos) const noexcept {
-            if (size_ == 0)
+            if (size_ == 0) {
                 return npos;
+            }
             pos = (core::min)(pos, size_ - 1);
             for (auto p = data_ + pos; p >= data_; --p) {
                 if (s.find(*p) != npos) {
@@ -398,8 +401,9 @@ namespace rainy::foundation::text {
         }
 
         constexpr size_type find_last_not_of(basic_string_view s, size_type pos = npos) const noexcept {
-            if (size_ == 0)
+            if (size_ == 0) {
                 return npos;
+            }
             pos = (core::min)(pos, size_ - 1);
             for (auto p = data_ + pos; p >= data_; --p) {
                 if (s.find(*p) == npos) {
@@ -432,6 +436,91 @@ namespace rainy::foundation::text {
             return find_last_not_of(basic_string_view(s), pos);
         }
 
+        friend constexpr bool operator==(basic_string_view left, basic_string_view right) noexcept {
+            auto lsize = left.size();
+            auto rsize = right.size();
+            if (lsize != rsize)
+                return false;
+            return Traits::compare(left.data(), right.data(), lsize) == 0;
+        }
+
+        friend constexpr bool operator!=(basic_string_view left, basic_string_view right) noexcept {
+            return !(left == right);
+        }
+
+        friend constexpr bool operator<(basic_string_view left, basic_string_view right) noexcept {
+            auto lsize = left.size();
+            auto rsize = right.size();
+            auto result = Traits::compare(left.data(), right.data(), (core::min)(lsize, rsize));
+            if (result < 0) {
+                return true;
+            }
+            if (result > 0) {
+                return false;
+            }
+            return lsize < rsize;
+        }
+
+        friend constexpr bool operator>(basic_string_view left, basic_string_view right) noexcept {
+            return right < left;
+        }
+
+        friend constexpr bool operator<=(basic_string_view left, basic_string_view right) noexcept {
+            return !(right < left);
+        }
+
+        friend constexpr bool operator>=(basic_string_view left, basic_string_view right) noexcept {
+            return !(left < right);
+        }
+
+        friend constexpr bool operator==(basic_string_view left, const CharType *right) noexcept {
+            return left == basic_string_view(right);
+        }
+
+        friend constexpr bool operator==(const CharType *left, basic_string_view right) noexcept {
+            return basic_string_view(left) == right;
+        }
+
+        friend constexpr bool operator!=(basic_string_view left, const CharType *right) noexcept {
+            return !(left == right);
+        }
+
+        friend constexpr bool operator!=(const CharType *left, basic_string_view right) noexcept {
+            return !(basic_string_view(left) == right);
+        }
+
+        friend constexpr bool operator<(basic_string_view left, const CharType *right) noexcept {
+            return left < basic_string_view(right);
+        }
+
+        friend constexpr bool operator<(const CharType *left, basic_string_view right) noexcept {
+            return basic_string_view(left) < right;
+        }
+
+        friend constexpr bool operator>(basic_string_view left, const CharType *right) noexcept {
+            return left > basic_string_view(right);
+        }
+
+        friend constexpr bool operator>(const CharType *left, basic_string_view right) noexcept {
+            return basic_string_view(left) > right;
+        }
+
+        friend constexpr bool operator<=(basic_string_view left, const CharType *right) noexcept {
+            return left <= basic_string_view(right);
+        }
+
+        friend constexpr bool operator<=(const CharType *left, basic_string_view right) noexcept {
+            return basic_string_view(left) <= right;
+        }
+
+        friend constexpr bool operator>=(basic_string_view left, const CharType *right) noexcept {
+            return left >= basic_string_view(right);
+        }
+
+        friend constexpr bool operator>=(const CharType *left, basic_string_view right) noexcept {
+            return basic_string_view(left) >= right;
+        }
+
     private:
         static constexpr bool equal_(CharType const *begin, CharType const *end, CharType const *first,
                                      CharType const *last) noexcept {
@@ -446,9 +535,15 @@ namespace rainy::foundation::text {
             return true;
         }
 
-        constexpr void range_check(const std::size_t offset) const {
-            if (size_ <= offset) {
-                throw std::out_of_range("");
+        constexpr void range_check_access(size_type pos) const {
+            if (pos >= size_) {
+                throw std::out_of_range("basic_string_view: index out of range");
+            }
+        }
+
+        constexpr void range_check_substr(size_type pos) const {
+            if (pos > size_) {
+                throw std::out_of_range("basic_string_view: position out of range");
             }
         }
 
