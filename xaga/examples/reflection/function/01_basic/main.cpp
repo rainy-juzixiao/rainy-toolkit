@@ -1,6 +1,5 @@
-#include <rainy/core/implements/text/format/implements.hpp>
-#include <rainy/core/implements/text/format.hpp>
-#include <rainy/core/implements/text/charconv.hpp>
+#include <rainy/core/core.hpp>
+#include <rainy/collections/vector.hpp>
 
 #if RAINY_USING_WINDOWS
 #include <windows.h>
