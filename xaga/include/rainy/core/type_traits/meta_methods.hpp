@@ -17,6 +17,7 @@
 #define RAINY_CORE_TYPE_TRAITS_META_METHOD_HPP
 #include <rainy/core/platform.hpp>
 #include <rainy/core/type_traits/implements.hpp>
+#include <rainy/core/type_traits/templates.hpp>
 
 namespace rainy::type_traits::extras::meta_method {
     /**
@@ -2486,6 +2487,253 @@ namespace rainy::type_traits::extras::meta_method {
      */
     template <typename Ty>
     struct has_length : type_traits::helper::bool_constant<has_length_v<Ty>> {};
+}
+
+namespace rainy::foundation::memory::implements {
+    template <typename Ty, typename Elem>
+    struct pointer_traits_base {
+        using pointer = Ty;
+        using element_type = Elem;
+        using difference_type = typename type_traits::extras::templates::get_ptr_difference_type<Ty>::type;
+
+        template <typename other>
+        using rebind = typename type_traits::extras::templates::get_rebind_alias<Ty, other>::type;
+
+        using ref_type = type_traits::other_trans::conditional_t<type_traits::primary_types::is_void_v<Elem>, char, Elem> &;
+
+        /**
+         * @brief Creates a pointer to the given reference using the type's pointer_to function.
+         *        使用类型的 pointer_to 函数创建指向给定引用的指针。
+         *
+         * @param val The reference to create a pointer to
+         *            要创建指针的引用
+         * @return A pointer created by Ty::pointer_to(val)
+         *         由 Ty::pointer_to(val) 创建的指针
+         */
+        RAINY_NODISCARD static RAINY_CONSTEXPR20 rain_fn pointer_to(ref_type val) noexcept(noexcept(Ty::pointer_to(val))) -> pointer {
+            return Ty::pointer_to(val);
+        }
+    };
+
+    template <typename, typename = void, typename = void>
+    struct ptr_traits_sfinae_layer {};
+
+    template <typename Ty, typename Uty>
+    struct ptr_traits_sfinae_layer<
+        Ty, Uty, type_traits::other_trans::void_t<typename type_traits::extras::templates::get_first_parameter<Ty>::type>>
+        : implements::pointer_traits_base<Ty, typename type_traits::extras::templates::get_first_parameter<Ty>::type> {};
+
+    template <typename Ty>
+    struct ptr_traits_sfinae_layer<Ty, type_traits::other_trans::void_t<typename Ty::element_type>, void>
+        : implements::pointer_traits_base<Ty, typename Ty::element_type> {};
+}
+
+namespace rainy::foundation::memory {
+    template <typename Ty>
+    struct pointer_traits : implements::ptr_traits_sfinae_layer<Ty> {};
+
+    template <typename Ty>
+    struct pointer_traits<Ty *> {
+        using pointer = Ty *;
+        using elemen_type = Ty;
+        using difference_type = ptrdiff_t;
+
+        template <typename other>
+        using rebind = other *;
+
+        using ref_type = type_traits::other_trans::conditional_t<type_traits::primary_types::is_void_v<Ty>, char, Ty> &;
+
+        /**
+         * @brief Creates a pointer to the given reference using addressof.
+         *        使用 addressof 创建指向给定引用的指针。
+         *
+         * @param val The reference to create a pointer to
+         *            要创建指针的引用
+         * @return A pointer to the referenced object
+         *         指向被引用对象的指针
+         */
+        RAINY_NODISCARD static constexpr rain_fn pointer_to(ref_type val) noexcept -> pointer {
+            return utility::addressof(val);
+        }
+    };
+}
+
+namespace rainy::utility {
+    using foundation::memory::pointer_traits;
+}
+
+namespace rainy::utility::implements {
+    /**
+     * @brief Variable template for detecting if pointer_traits<Pointer> has a to_address member function.
+     *        检测 pointer_traits<Pointer> 是否具有 to_address 成员函数的变量模板。
+     *
+     * @tparam Ty The pointer type to check
+     *            要检查的指针类型
+     */
+    template <typename Ty, typename = void>
+    RAINY_CONSTEXPR_BOOL has_to_address = false;
+
+    /**
+     * @brief Specialization that detects the presence of pointer_traits<Pointer>::to_address.
+     *        检测 pointer_traits<Pointer>::to_address 是否存在的特化。
+     *
+     * @tparam Ty The pointer type that provides to_address
+     *            提供 to_address 的指针类型
+     */
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL
+        has_to_address<Ty, type_traits::other_trans::void_t<decltype(foundation::memory::pointer_traits<Ty>::to_address(
+                               utility::declval<const Ty &>()))>> = true;
+}
+
+namespace rainy::utility {
+    /**
+     * @brief Converts a raw pointer to an address (identity function).
+     *        将原始指针转换为地址（恒等函数）。
+     *
+     * @tparam Ty The type pointed to
+     *            指向的类型
+     * @param val The raw pointer
+     *            原始指针
+     * @return The same pointer value
+     *         相同的指针值
+     */
+    template <typename Ty>
+    constexpr rain_fn to_address(Ty *const val) noexcept -> Ty * {
+        static_assert(!type_traits::primary_types::is_function_v<Ty>, "Ty cannot be a function type.");
+        return val;
+    }
+
+    /**
+     * @brief Converts any fancy pointer to a raw address.
+     *        将任何花哨指针转换为原始地址。
+     *
+     * @tparam Pointer The fancy pointer type
+     *                 花哨指针类型
+     * @param val The fancy pointer to convert
+     *            要转换的花哨指针
+     * @return The raw address obtained either from pointer_traits or operator->
+     *         从 pointer_traits 或 operator-> 获取的原始地址
+     */
+    template <typename Pointer>
+    RAINY_NODISCARD constexpr rain_fn to_address(const Pointer &val) noexcept -> auto {
+        if constexpr (implements::has_to_address<Pointer>) {
+            return pointer_traits<Pointer>::to_address(val);
+        } else {
+            return utility::to_address(val.operator->());
+        }
+    }
+}
+
+namespace rainy::type_traits::extras::iterators {
+    /**
+     * @brief Variable template for checking if a type is an input iterator.
+     *        Input iterators support dereference and pre-increment.
+     *
+     *        检查类型是否为输入迭代器的变量模板。
+     *        输入迭代器支持解引用和前自增。
+     *
+     * @tparam It The type to check
+     *            要检查的类型
+     */
+    template <typename It>
+    RAINY_CONSTEXPR_BOOL is_input_iterator_v = meta_method::has_operator_deref_v<It> && meta_method::has_operator_preinc_v<It>;
+
+    /**
+     * @brief Variable template for checking if a type is an output iterator (primary template).
+     *        Output iterators support dereference as lvalue.
+     *
+     *        检查类型是否为输出迭代器的变量模板（主模板）。
+     *        输出迭代器支持解引用作为左值。
+     *
+     * @tparam It The type to check
+     *            要检查的类型
+     */
+    template <typename It, typename = void>
+    RAINY_CONSTEXPR_BOOL is_output_iterator_v = false;
+
+    /**
+     * @brief Specialization that checks for lvalue reference from dereference.
+     *        检查解引用是否产生左值引用的特化。
+     *
+     * @tparam It The type to check
+     *            要检查的类型
+     */
+    template <typename It>
+    RAINY_CONSTEXPR_BOOL
+        is_output_iterator_v<It, other_trans::enable_if_t<meta_method::has_operator_deref_v<It> &&
+                                                          primary_types::is_lvalue_reference_v<decltype(*utility::declval<It &>())>>> =
+            false;
+
+    /**
+     * @brief Variable template for checking if a type is a forward iterator.
+     *        Forward iterators are input iterators that are copyable, default constructible,
+     *        and support multiple passes.
+     *
+     *        检查类型是否为前向迭代器的变量模板。
+     *        前向迭代器是可拷贝、可默认构造的输入迭代器，支持多次遍历。
+     *
+     * @tparam It The type to check
+     *            要检查的类型
+     */
+    template <typename It>
+    RAINY_CONSTEXPR_BOOL is_forward_iterator_v =
+        is_input_iterator_v<It> && type_properties::is_copy_constructible_v<It> && type_properties::is_copy_assignable_v<It> &&
+        type_properties::is_default_constructible_v<It>;
+
+    /**
+     * @brief Variable template for checking if a type is a bidirectional iterator.
+     *        Bidirectional iterators support decrement in addition to forward iterator operations.
+     *
+     *        检查类型是否为双向迭代器的变量模板。
+     *        双向迭代器在前向迭代器操作的基础上支持自减。
+     *
+     * @tparam It The type to check
+     *            要检查的类型
+     */
+    template <typename It>
+    RAINY_CONSTEXPR_BOOL is_bidirectional_iterator_v = is_forward_iterator_v<It> && meta_method::has_operator_predec_v<It>;
+
+    /**
+     * @brief Variable template for checking if a type is a random access iterator.
+     *        Random access iterators support addition, indexing, and comparison operations.
+     *
+     *        检查类型是否为随机访问迭代器的变量模板。
+     *        随机访问迭代器支持加法、索引和比较操作。
+     *
+     * @tparam It The type to check
+     *            要检查的类型
+     */
+    template <typename It>
+    RAINY_CONSTEXPR_BOOL is_random_access_iterator_v = is_bidirectional_iterator_v<It> && meta_method::has_operator_addition_v<It> &&
+                                                       meta_method::has_operator_index_v<It> && meta_method::has_operator_lt_v<It>;
+
+    /**
+     * @brief Variable template for checking if a type is a contiguous iterator (primary template).
+     *        Contiguous iterators store elements in contiguous memory.
+     *
+     *        检查类型是否为连续迭代器的变量模板（主模板）。
+     *        连续迭代器将元素存储在连续内存中。
+     *
+     * @tparam It The type to check
+     *            要检查的类型
+     */
+    template <typename It, typename = void>
+    RAINY_CONSTEXPR_BOOL is_contiguous_iterator_v = false;
+
+    /**
+     * @brief Specialization that checks if the iterator can be converted to a pointer.
+     *        检查迭代器是否可以转换为指针的特化。
+     *
+     * @tparam It The type to check
+     *            要检查的类型
+     */
+    template <typename It>
+    RAINY_CONSTEXPR_BOOL is_contiguous_iterator_v<
+        It,
+        type_traits::other_trans::enable_if_t<is_random_access_iterator_v<It> &&
+                                              primary_types::is_pointer_v<decltype(utility::to_address(utility::declval<It>()))>>> =
+        true;
 }
 
 #endif

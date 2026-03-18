@@ -514,6 +514,11 @@ namespace rainy::core::pal::implements {
         scoped_wait_context &operator=(const scoped_wait_context &) = delete;
     };
 
+#if RAINY_USING_MSVC
+#pragma warning(push)
+#pragma warning(disable : 4324)
+#endif
+
     struct alignas(core::hardware_destructive_interference_size) wait_table_entry {
         // 确保链表已初始化
         void ensure_initialized() noexcept {
@@ -538,6 +543,10 @@ namespace rainy::core::pal::implements {
         // NOLINTEND
         platform_lock lock{};
     };
+
+#if RAINY_USING_MSVC
+#pragma warning(pop)
+#endif
 
     constexpr std::size_t table_power = 8;
     constexpr std::size_t table_size = 1u << table_power;

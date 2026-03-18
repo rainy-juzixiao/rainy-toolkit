@@ -320,8 +320,9 @@ namespace rainy::component::willow::utils {
     };
 
 	template <typename Traits, typename Alloc>
-    struct unicode_reader<text::basic_string<char, Traits, Alloc>> : unicode_reader_impl<char, Traits, Alloc, text::basic_string> {
-        using base = unicode_reader_impl<char, Traits, Alloc, text::basic_string>;
+    struct unicode_reader<foundation::text::basic_string<char, Traits, Alloc>>
+        : unicode_reader_impl<char, Traits, Alloc, foundation::text::basic_string> {
+        using base = unicode_reader_impl<char, Traits, Alloc, foundation::text::basic_string>;
         using base::base;
     };
 
@@ -549,8 +550,9 @@ namespace rainy::component::willow::utils {
     };
 
 	template <typename Traits, typename Alloc>
-    struct unicode_writer<text::basic_string<char, Traits, Alloc>> : unicode_writer_impl<char, Traits, Alloc, text::basic_string> {
-        using base = unicode_writer_impl<char,Traits, Alloc, text::basic_string>;
+    struct unicode_writer<foundation::text::basic_string<char, Traits, Alloc>>
+        : unicode_writer_impl<char, Traits, Alloc, foundation::text::basic_string> {
+        using base = unicode_writer_impl<char,Traits, Alloc, foundation::text::basic_string>;
         using base::base;
     };
 
@@ -561,9 +563,9 @@ namespace rainy::component::willow::utils {
     };
 
     template <typename Traits, typename Alloc>
-    struct unicode_writer<text::basic_string<wchar_t, Traits, Alloc>>
-        : unicode_writer_impl<wchar_t, Traits, Alloc, text::basic_string> {
-        using base = unicode_writer_impl<wchar_t, Traits, Alloc, text::basic_string>;
+    struct unicode_writer<foundation::text::basic_string<wchar_t, Traits, Alloc>>
+        : unicode_writer_impl<wchar_t, Traits, Alloc, foundation::text::basic_string> {
+        using base = unicode_writer_impl<wchar_t, Traits, Alloc, foundation::text::basic_string>;
         using base::base;
     };
 
@@ -575,9 +577,9 @@ namespace rainy::component::willow::utils {
     };
 
     template <typename Traits, typename Alloc>
-    struct unicode_writer<text::basic_string<char16_t, Traits, Alloc>>
-        : unicode_writer_impl<char16_t, Traits, Alloc, text::basic_string> {
-        using base = unicode_writer_impl<char16_t, Traits, Alloc, text::basic_string>;
+    struct unicode_writer<foundation::text::basic_string<char16_t, Traits, Alloc>>
+        : unicode_writer_impl<char16_t, Traits, Alloc, foundation::text::basic_string> {
+        using base = unicode_writer_impl<char16_t, Traits, Alloc, foundation::text::basic_string>;
         using base::base;
     };
 

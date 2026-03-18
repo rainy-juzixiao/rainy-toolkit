@@ -20,7 +20,6 @@
 #include <rainy/core/platform.hpp>
 #include <rainy/core/implements/reverse_iterator.hpp>
 #include <rainy/core/implements/collections/array.hpp>
-#include <rainy/core/implements/exceptions.hpp>
 
 namespace rainy::collections::views {
     /**
@@ -250,7 +249,7 @@ namespace rainy::collections::views {
          */
         constexpr reference at(size_type const pos) noexcept {
             if (size() <= pos) {
-                foundation::exceptions::logic::throw_out_of_range("Invalid Subscript");
+                std::terminate();
             }
             return data_[pos];
         }
@@ -266,7 +265,7 @@ namespace rainy::collections::views {
          */
         constexpr const_reference at(size_type const pos) const {
             if (size() <= pos) {
-                foundation::exceptions::logic::throw_out_of_range("Invalid Subscript");
+                std::terminate();
             }
             return data_[pos];
         }

@@ -15,7 +15,11 @@
  */
 #ifndef RAINY_BASIC_EXCEPTIONS_HPP
 #define RAINY_BASIC_EXCEPTIONS_HPP
+#include <rainy/core/platform.hpp>
+#include <rainy/core/type_traits/implements.hpp>
+#include <rainy/core/type_traits/properties.hpp>
 #include <rainy/core/implements/source_location.hpp>
+#include <rainy/core/implements/text/string.hpp>
 #include <utility>
 
 namespace rainy::foundation::exceptions {

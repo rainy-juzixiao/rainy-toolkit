@@ -15,10 +15,17 @@
  */
 #ifndef RAINY_CORE_TYPE_TRAITS_PROPERTIES_HPP
 #define RAINY_CORE_TYPE_TRAITS_PROPERTIES_HPP
+
+// NOLINTBEGIN
+
 #include <rainy/core/platform.hpp>
 #include <rainy/core/gnu/typetraits.hpp>
 #include <rainy/core/type_traits/implements.hpp>
 #include <rainy/core/type_traits/primary_types.hpp>
+#include <rainy/core/type_traits/type_relations.hpp>
+#include <rainy/core/type_traits/decay.hpp>
+
+// NOLINTEND
 
 namespace rainy::type_traits::implements::swap_adl {
     using std::swap; // ADL
@@ -329,7 +336,22 @@ namespace rainy::type_traits::type_properties {
      *              源类型
      */
     template <typename To, typename From>
-    RAINY_CONSTEXPR_BOOL is_trivially_assignable = __is_trivially_assignable(reference_modify::add_lvalue_reference_t<To>, From);
+    RAINY_CONSTEXPR_BOOL is_trivially_assignable_v = __is_trivially_assignable(reference_modify::add_lvalue_reference_t<To>, From);
+
+    /**
+     * @brief Type template for checking if assignment from From to To is trivially assignable.
+     *        Uses compiler built-in __is_trivially_assignable.
+     *
+     *        检查从 From 到 To 的赋值是否可平凡赋值的类型模板。
+     *        使用编译器内建 __is_trivially_assignable。
+     *
+     * @tparam To Target type
+     *            目标类型
+     * @tparam From Source type
+     *              源类型
+     */
+    template <typename To, typename From>
+    struct is_trivially_assignable : helper::bool_constant<is_trivially_assignable_v<To, From>> {};
 
     /**
      * @brief Variable template for checking if a type is trivially move assignable.
@@ -1468,6 +1490,142 @@ namespace rainy::type_traits::type_properties {
      */
     template <typename Ty>
     RAINY_CONSTEXPR_BOOL prefer_pass_by_value_v<Ty, true> = false;
+}
+
+namespace rainy::type_traits::type_properties {
+    /**
+     * @brief Variable template for checking if a type is const-qualified.
+     *        检查类型是否为 const 限定的变量模板。
+     *
+     * @tparam Ty Type to query
+     *            要查询的类型
+     */
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL is_const_v = false;
+
+    /**
+     * @brief Specialization for const-qualified types.
+     *        const 限定类型的特化。
+     *
+     * @tparam Ty The underlying type
+     *            底层类型
+     */
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL is_const_v<const Ty> = true;
+
+    /**
+     * @brief Type template for checking if a type is const-qualified.
+     *        检查类型是否为 const 限定的类型模板。
+     *
+     * @tparam Ty Type to query
+     *            要查询的类型
+     */
+    template <typename Ty>
+    struct is_const : helper::bool_constant<is_const_v<Ty>> {};
+
+    /**
+     * @brief Variable template for checking if a type is volatile-qualified.
+     *        检查类型是否为 volatile 限定的变量模板。
+     *
+     * @tparam Ty Type to query
+     *            要查询的类型
+     */
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL is_volatile_v = false;
+
+    /**
+     * @brief Specialization for volatile-qualified types.
+     *        volatile 限定类型的特化。
+     *
+     * @tparam Ty The underlying type
+     *            底层类型
+     */
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL is_volatile_v<volatile Ty> = true;
+
+    /**
+     * @brief Type template for checking if a type is volatile-qualified.
+     *        检查类型是否为 volatile 限定的类型模板。
+     *
+     * @tparam Ty Type to query
+     *            要查询的类型
+     */
+    template <typename Ty>
+    struct is_volatile : helper::bool_constant<is_volatile_v<Ty>> {};
+
+    /**
+     * @brief Variable template for checking if a type is trivial.
+     *        A trivial type has a trivial default constructor, copy/move constructors,
+     *        copy/move assignment operators, and destructor.
+     *
+     *        检查类型是否为平凡类型的变量模板。
+     *        平凡类型具有平凡的默认构造函数、复制/移动构造函数、
+     *        复制/移动赋值运算符和析构函数。
+     *
+     * @tparam Ty Type to query
+     *            要查询的类型
+     */
+#if RAINY_USING_CLANG || RAINY_USING_MSVC
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL is_trivial_v = __is_trivially_constructible(Ty) && __is_trivially_copyable(Ty);
+#else
+    /**
+     * @brief Variable template for checking if a type is trivial (GCC implementation).
+     *        If type Ty is a trivial type, the instance is true; otherwise false.
+     *        Trivial types are scalar types, trivially copyable class types,
+     *        arrays of these types, and cv-qualified versions of these types.
+     *
+     *        检查类型是否为平凡类型的变量模板（GCC实现）。
+     *        如果类型 Ty 是平凡类型，则实例为 true；否则为 false。
+     *        平凡类型是标量类型、完全可复制类类型、这些类型的数组
+     *        以及这些类型的 cv 限定版本。
+     *
+     * @tparam Ty Type to query
+     *            要查询的类型
+     */
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL is_trivial_v = __is_trivial(Ty);
+#endif
+
+    /**
+     * @brief Type template for checking if a type is trivial.
+     *        检查类型是否为平凡类型的类型模板。
+     *
+     * @tparam Ty Type to query
+     *            要查询的类型
+     * @remark If type Ty is a trivial type, the instance is true; otherwise false.
+     *         Trivial types are scalar types, trivially copyable class types,
+     *         arrays of these types, and cv-qualified versions of these types.
+     *         如果类型 Ty 是平凡类型，则实例为 true；否则为 false。
+     *         平凡类型是标量类型、完全可复制类类型、这些类型的数组
+     *         以及这些类型的 cv 限定版本。
+     */
+    template <typename Ty>
+    struct is_trivial : helper::bool_constant<is_trivial_v<Ty>> {};
+
+    /**
+     * @brief Variable template for checking if a type has unique object representations.
+     *        Indicates whether every object of type Ty has a unique representation
+     *        (i.e., no padding bits).
+     *
+     *        检查类型是否具有唯一对象表示的变量模板。
+     *        指示类型 Ty 的每个对象是否具有唯一的表示形式（即没有填充位）。
+     *
+     * @tparam Ty Type to query
+     *            要查询的类型
+     */
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL has_unique_object_representations_v = __has_unique_object_representations(Ty);
+
+    /**
+     * @brief Type template for checking if a type has unique object representations.
+     *        检查类型是否具有唯一对象表示的类型模板。
+     *
+     * @tparam Ty Type to query
+     *            要查询的类型
+     */
+    template <typename Ty>
+    struct has_unique_object_representations : helper::bool_constant<has_unique_object_representations_v<Ty>> {};
 }
 
 #endif
