@@ -25,31 +25,10 @@
 #include <rainy/foundation/io/net/executor/async_result.hpp>
 #include <rainy/foundation/io/net/executor/execution_context.hpp>
 #include <rainy/foundation/io/net/executor/executor_trait.hpp>
+#include <rainy/foundation/io/net/executor/bind_executor.hpp>
 #include <rainy/foundation/io/net/fwd.hpp>
 
 // NOLINTEND
-
-namespace rainy::foundation::io::net {
-    template <typename Ty, typename Executor>
-    class executor_binder;
-
-    template <typename Ty, typename Executor, class Signature>
-    class async_result<executor_binder<Ty, Executor>, Signature>;
-
-    template <typename Ty, typename Executor, typename ProtoAllocator>
-    struct associated_allocator<executor_binder<Ty, Executor>, ProtoAllocator>;
-
-    template <typename Ty, typename Executor, class Executor1>
-    struct associated_executor<executor_binder<Ty, Executor>, Executor1>;
-
-    // 13.15, bind_executor:
-    template <typename Executor, typename Ty>
-    executor_binder<type_traits::other_trans::decay_t<Ty>, Executor> bind_executor(const Executor &ex, Ty &&t);
-
-    template <class ExecutionContext, typename Ty>
-    executor_binder<type_traits::other_trans::decay_t<Ty>, typename ExecutionContext::executor_type> bind_executor(
-        ExecutionContext &ctx, Ty &&t);
-}
 
 namespace rainy::foundation::io::net {
     template <typename Executor>
