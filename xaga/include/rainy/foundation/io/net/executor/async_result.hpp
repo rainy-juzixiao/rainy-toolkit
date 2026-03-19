@@ -1,5 +1,5 @@
 /*
-* Copyright 2026 rainy-juzixiao
+ * Copyright 2026 rainy-juzixiao
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,7 +30,7 @@ namespace rainy::foundation::io::net {
         async_result(const async_result &) = delete;
         async_result &operator=(const async_result &) = delete;
 
-        return_type get() {
+        return_type get() { // NOLINT
         }
     };
 
