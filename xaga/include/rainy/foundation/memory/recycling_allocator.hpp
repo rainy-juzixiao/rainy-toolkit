@@ -36,13 +36,13 @@ namespace rainy::foundation::memory {
         }
 
         Ty *allocate(const std::size_t count) {
-            using call_stack = concurrency::thread_context::thread_call_stack ;
+            using call_stack = concurrency::thread_context::thread_call_stack;
             void *p = concurrency::implements::thread_info_base::allocate(Purpose(), call_stack::top(), sizeof(Ty) * count);
             return static_cast<Ty *>(p);
         }
 
         void deallocate(Ty *p, const std::size_t count) {
-            using call_stack = concurrency::thread_context::thread_call_stack ;
+            using call_stack = concurrency::thread_context::thread_call_stack;
             concurrency::implements::thread_info_base::deallocate(Purpose(), call_stack::top(), p, sizeof(Ty) * count);
         }
     };
@@ -57,8 +57,7 @@ namespace rainy::foundation::memory {
             typedef recycling_allocator<U, Purpose> other;
         };
 
-        recycling_allocator() {
-        }
+        recycling_allocator() = default;
 
         template <typename U>
         explicit recycling_allocator(const recycling_allocator<U, Purpose> &) {
@@ -67,7 +66,8 @@ namespace rainy::foundation::memory {
 
     template <typename Allocator, typename Purpose>
     struct get_recycling_allocator {
-        typedef Allocator type;
+        using type = Allocator;
+
         static type get(const Allocator &a) {
             return a;
         }

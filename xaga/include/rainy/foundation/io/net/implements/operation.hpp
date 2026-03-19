@@ -17,17 +17,18 @@
 #define RAINY_FOUNDATION_IO_NET_EXECUTYOR_OPERATION_HPP
 #include <rainy/core/core.hpp>
 #include <rainy/foundation/io/net/fwd.hpp>
+#include <rainy/foundation/memory/recycling_allocator.hpp>
 #include <rainy/foundation/io/net/implements/handler_tracking.hpp>
 
 namespace rainy::foundation::io::net::implements {
     template <typename Function, typename Context>
-    RAINY_INLINE rain_fn handler_invoke_helper(Function& function, Context& context) -> void {
+    RAINY_INLINE rain_fn handler_invoke_helper(Function &function, Context &context) -> void {
         Function tmp(function);
         tmp();
     }
 
     template <typename Function, typename Context>
-    RAINY_INLINE rain_fn handler_invoke_helper(const Function& function, Context& context) -> void {
+    RAINY_INLINE rain_fn handler_invoke_helper(const Function &function, Context &context) -> void {
         Function tmp(function);
         tmp();
     }
@@ -70,7 +71,38 @@ namespace rainy::foundation::io::net::implements {
     template <typename Handler, typename Alloc, typename Operation = scheduler_operation>
     class executor_op : public Operation {
     public:
-        NET_TS_DEFINE_HANDLER_ALLOCATOR_PTR(executor_op);
+        struct ptr {
+            const Alloc *a;
+            void *v;
+            executor_op *p;
+            ~ptr() {
+                reset();
+            }
+            static executor_op *allocate(const Alloc &a) {
+                using recycling_allocator_type = typename ::rainy::foundation::memory::get_recycling_allocator<
+                    Alloc, ::rainy::foundation::concurrency::implements::thread_info_base::default_tag>::type;
+                typename std::allocator_traits<recycling_allocator_type>::template rebind_alloc<executor_op> a1(
+                    ::rainy::foundation::memory::get_recycling_allocator<
+                        Alloc, ::rainy::foundation::concurrency::implements::thread_info_base::default_tag>::get(a));
+                return a1.allocate(1);
+            }
+            void reset() {
+                if (p) {
+                    p->~executor_op();
+                    p = 0;
+                }
+                if (v) {
+                    typedef typename ::rainy::foundation::memory::get_recycling_allocator<
+                        Alloc, ::rainy::foundation::concurrency::implements::thread_info_base::default_tag>::type
+                        recycling_allocator_type;
+                    typename std::allocator_traits<recycling_allocator_type>::template rebind_alloc<executor_op> a1(
+                        ::rainy::foundation::memory::get_recycling_allocator<
+                            Alloc, ::rainy::foundation::concurrency::implements::thread_info_base::default_tag>::get(*a));
+                    a1.deallocate(static_cast<executor_op *>(v), 1);
+                    v = 0;
+                }
+            }
+        };
 
         template <typename H>
         executor_op(H &&h, const Alloc &allocator) :

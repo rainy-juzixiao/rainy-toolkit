@@ -336,7 +336,7 @@ namespace rainy::foundation::io::net {
         };
 
         template <typename Allocator>
-        class executor::impl<system_executor, Allocator> : public impl_base {
+        class impl<system_executor, Allocator> : public impl_base {
         public:
             static impl_base *create(const system_executor &, const Allocator & = Allocator()) {
                 return &implements::global<impl<system_executor, std::allocator<void>>>();

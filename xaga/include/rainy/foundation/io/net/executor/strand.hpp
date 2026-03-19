@@ -28,16 +28,16 @@ namespace rainy::foundation::io::net::implements {
             strand_executor_service *service_;
         };
 
-        using implementation_type = memory::shared_ptr<strand_impl>;
+        using implementation_type = std::shared_ptr<strand_impl>;
 
         explicit strand_executor_service(execution_context &context);
 
-        void shutdown() override;
+        void shutdown() noexcept override;
 
         implementation_type create_implementation();
 
         template <typename Executor, typename Function, typename Allocator>
-        static void strand_executor_service::dispatch(const implementation_type &impl, Executor &ex,
+        static void dispatch(const implementation_type &impl, Executor &ex,
                                                       Function&& function, const Allocator &a) {
             typedef typename type_traits::other_trans::decay<Function>::type function_type;
             if (concurrency::implements::call_stack<strand_impl>::contains(impl.get())) {

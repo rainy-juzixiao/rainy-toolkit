@@ -21,7 +21,7 @@ namespace rainy::foundation::io::net::implements {
         execution_context_service_base(context), impl_list_(nullptr), salt_(0) {
     }
 
-    void strand_executor_service::shutdown() {
+    void strand_executor_service::shutdown() noexcept {
         op_queue<scheduler_operation> ops;
         concurrency::scoped_lock lock(mutex_);
 

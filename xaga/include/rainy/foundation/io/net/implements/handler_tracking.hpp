@@ -15,7 +15,13 @@
  */
 #ifndef RAINY_FOUNDATION_IO_NET_IMPLEMENTS_HANDLER_TRACKING_HPP
 #define RAINY_FOUNDATION_IO_NET_IMPLEMENTS_HANDLER_TRACKING_HPP
+
+// NOLINTBEGIN
+
 #include <rainy/core/core.hpp>
+#include <rainy/collections/unordered_map.hpp>
+
+// NOLINTEND
 
 namespace rainy::foundation::io::net::implements {
     class handler_tracking {
@@ -46,7 +52,7 @@ namespace rainy::foundation::io::net::implements {
             const auto now = std::chrono::steady_clock::now();
             write_line("[Handler Creation] ID: {}, Context: {}, Object Type: {}, Object: {}, Native Handle: {}, Operation: {}", h.id_,
                        reinterpret_cast<uintptr_t>(&context), object_type, object, native_handle, op_name);
-            state->handler_info[h.id_] = handler_info{object_type, object, native_handle, op_name, now}; // NOLINT
+            state->handler_info_[h.id_] = handler_info{object_type, object, native_handle, op_name, now}; // NOLINT
         }
 
         class completion {
@@ -85,8 +91,7 @@ namespace rainy::foundation::io::net::implements {
                 invoked_ = true;
                 auto *state = get_state();
                 concurrency::lock_guard lock(state->mutex);
-
-                state->invocation_begin_time[id_] = std::chrono::steady_clock::now();
+                state->invocation_begin_time[id_] = std::chrono::steady_clock::now(); // NOLINT
                 write_line("[Invocation Begin] Handler ID: {}", id_);
             }
 
@@ -94,8 +99,7 @@ namespace rainy::foundation::io::net::implements {
                 invoked_ = true;
                 auto *state = get_state();
                 concurrency::lock_guard lock(state->mutex);
-
-                state->invocation_begin_time[id_] = std::chrono::steady_clock::now();
+                state->invocation_begin_time[id_] = std::chrono::steady_clock::now(); // NOLINT
                 write_line("[Invocation Begin] Handler ID: {}, Error: {} ({})", id_, ec.message(), ec.value());
             }
 
@@ -103,8 +107,7 @@ namespace rainy::foundation::io::net::implements {
                 invoked_ = true;
                 auto *state = get_state();
                 concurrency::lock_guard lock(state->mutex);
-
-                state->invocation_begin_time[id_] = std::chrono::steady_clock::now();
+                state->invocation_begin_time[id_] = std::chrono::steady_clock::now(); // NOLINT
                 write_line("[Invocation Begin] Handler ID: {}, Error: {} ({}), Bytes: {}", id_, ec.message(), ec.value(),
                            bytes_transferred);
             }
@@ -113,8 +116,7 @@ namespace rainy::foundation::io::net::implements {
                 invoked_ = true;
                 auto *state = get_state();
                 concurrency::lock_guard lock(state->mutex);
-
-                state->invocation_begin_time[id_] = std::chrono::steady_clock::now();
+                state->invocation_begin_time[id_] = std::chrono::steady_clock::now(); // NOLINT
                 write_line("[Invocation Begin] Handler ID: {}, Error: {} ({}), Signal: {}", id_, ec.message(), ec.value(),
                            signal_number);
             }
@@ -123,8 +125,7 @@ namespace rainy::foundation::io::net::implements {
                 invoked_ = true;
                 auto *state = get_state();
                 concurrency::lock_guard lock(state->mutex);
-
-                state->invocation_begin_time[id_] = std::chrono::steady_clock::now();
+                state->invocation_begin_time[id_] = std::chrono::steady_clock::now(); // NOLINT
                 write_line("[Invocation Begin] Handler ID: {}, Error: {} ({}), Arg: {}", id_, ec.message(), ec.value(), arg);
             }
 
@@ -158,7 +159,7 @@ namespace rainy::foundation::io::net::implements {
         static void reactor_registration(execution_context &context, uintmax_t native_handle, uintmax_t registration) {
             auto *state = get_state();
             concurrency::lock_guard lock(state->mutex);
-            state->reactor_registrations[registration] = reactor_reg_info{native_handle, &context};
+            state->reactor_registrations[registration] = reactor_reg_info{native_handle, &context}; // NOLINT
             write_line("[Reactor Registration] Context: {}, Native Handle: {}, Registration: {}",
                        reinterpret_cast<uintptr_t>(&context), native_handle, registration);
         }
@@ -212,9 +213,9 @@ namespace rainy::foundation::io::net::implements {
         struct tracking_state {
             concurrency::mutex mutex;
             concurrency::atomic<uint64_t> next_handler_id{0};
-            std::unordered_map<uint64_t, handler_info> handler_info;
-            std::unordered_map<uint64_t, std::chrono::steady_clock::time_point> invocation_begin_time;
-            std::unordered_map<uintmax_t, reactor_reg_info> reactor_registrations;
+            collections::unordered_map<uint64_t, handler_info> handler_info_;
+            collections::unordered_map<uint64_t, std::chrono::steady_clock::time_point> invocation_begin_time;
+            collections::unordered_map<uintmax_t, reactor_reg_info> reactor_registrations;
             completion *completions_head{nullptr};
             bool initialized{false};
         };

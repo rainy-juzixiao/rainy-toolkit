@@ -107,7 +107,7 @@ namespace rainy::foundation::io::net::ip {
             reset();                                                                                                                  \
         }                                                                                                                             \
         static op *allocate(const Alloc &a) {                                                                                         \
-            typedef typename ::rainy::foundation::memory::get_recycling_allocator<Alloc, purpose>::type recycling_allocator_type;     \
+            using recycling_allocator_type = typename ::rainy::foundation::memory::get_recycling_allocator<Alloc, purpose>::type;     \
             NET_TS_REBIND_ALLOC(recycling_allocator_type, op)                                                                         \
             a1(::rainy::foundation::memory::get_recycling_allocator<Alloc, purpose>::get(a));                                         \
             return a1.allocate(1);                                                                                                    \
