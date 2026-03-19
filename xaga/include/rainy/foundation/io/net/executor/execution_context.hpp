@@ -1,5 +1,5 @@
 /*
-* Copyright 2026 rainy-juzixiao
+ * Copyright 2026 rainy-juzixiao
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,6 +43,12 @@ namespace rainy::foundation::io::net {
 
     class execution_context {
     public:
+        class id : type_traits::helper::non_copyable {
+        public:
+            id() {
+            }
+        };
+
         class service { // NOLINT
         public:
             struct key {
@@ -174,6 +180,23 @@ namespace rainy::foundation::io::net {
         execution_context::service::key k = execution_context::make_key<Service>();
         return ctx.do_has_service(k);
     }
+}
+
+namespace rainy::foundation::io::net::implements {
+    template <typename Type>
+    class service_id : public execution_context::id {};
+
+    template <typename Type>
+    class execution_context_service_base : public execution_context::service {
+    public:
+        static service_id<Type> id;
+
+        execution_context_service_base(execution_context &e) : service(e) {
+        }
+    };
+
+    template <typename Type>
+    service_id<Type> execution_context_service_base<Type>::id;
 }
 
 #endif

@@ -214,10 +214,9 @@ namespace rainy::foundation::concurrency::implements {
 namespace rainy::foundation::concurrency {
     class thread_context {
     public:
-        static implements::thread_info_base *top_of_thread_call_stack();
-
-    protected:
         using thread_call_stack = implements::call_stack<thread_context, implements::thread_info_base>;
+
+        static implements::thread_info_base *top_of_thread_call_stack();
     };
 }
 
