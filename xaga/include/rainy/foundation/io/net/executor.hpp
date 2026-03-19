@@ -26,27 +26,10 @@
 #include <rainy/foundation/io/net/executor/execution_context.hpp>
 #include <rainy/foundation/io/net/executor/executor_trait.hpp>
 #include <rainy/foundation/io/net/executor/bind_executor.hpp>
+#include <rainy/foundation/io/net/executor/executor_work_guard.hpp>
 #include <rainy/foundation/io/net/fwd.hpp>
 
 // NOLINTEND
-
-namespace rainy::foundation::io::net {
-    template <typename Executor>
-    class executor_work_guard;
-
-    // 13.17, make_work_guard:
-    template <typename Executor>
-    executor_work_guard<Executor> make_work_guard(const Executor &ex);
-
-    template <class ExecutionContext>
-    executor_work_guard<typename ExecutionContext::executor_type> make_work_guard(ExecutionContext &ctx);
-
-    template <typename Ty>
-    executor_work_guard<assoicated_executor_t<Ty>> make_work_guard(const Ty &t);
-
-    template <typename Ty, class U>
-    auto make_work_guard(const Ty &t, U &&u) -> decltype(make_work_guard(get_associated_executor(t, forward<U>(u))));
-}
 
 namespace rainy::foundation::io::net {
     class system_executor;
