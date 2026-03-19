@@ -20,7 +20,6 @@
 
 #include <rainy/core/core.hpp>
 #include <rainy/foundation/concurrency/atomic.hpp>
-#include <rainy/foundation/concurrency/future.hpp>
 #include <rainy/foundation/io/net/executor/associated_allocator.hpp>
 #include <rainy/foundation/io/net/executor/associated_executor.hpp>
 #include <rainy/foundation/io/net/executor/async_result.hpp>
@@ -30,10 +29,10 @@
 #include <rainy/foundation/io/net/executor/executor_trait.hpp>
 #include <rainy/foundation/io/net/executor/executor_work_guard.hpp>
 #include <rainy/foundation/io/net/executor/global.hpp>
+#include <rainy/foundation/io/net/executor/strand.hpp>
 #include <rainy/foundation/io/net/executor/system_context.hpp>
 #include <rainy/foundation/io/net/executor/system_executor.hpp>
 #include <rainy/foundation/io/net/executor/work_dispatcher.hpp>
-#include <rainy/foundation/io/net/executor/strand.hpp>
 #include <rainy/foundation/io/net/fwd.hpp>
 
 // NOLINTEND
@@ -449,7 +448,7 @@ namespace rainy::foundation::io::net {
     }
 
     template <typename CompletionToken>
-        rain_fn post(CompletionToken &&token) -> typename async_result<CompletionToken, void()>::return_type {
+    rain_fn post(CompletionToken &&token) -> typename async_result<CompletionToken, void()>::return_type {
         using handler = typename async_result<CompletionToken, void()>::completion_handler_type;
         async_completion<CompletionToken, void()> init(token);
         typename associated_executor<handler>::type ex(get_associated_executor(init.completion_handler));
@@ -475,7 +474,7 @@ namespace rainy::foundation::io::net {
     }
 
     template <typename CompletionToken>
-        rain_fn defer(CompletionToken &&token) -> typename async_result<CompletionToken, void()>::return_type {
+    rain_fn defer(CompletionToken &&token) -> typename async_result<CompletionToken, void()>::return_type {
         using handler = typename async_result<CompletionToken, void()>::completion_handler_type;
         async_completion<CompletionToken, void()> init(token);
         typename associated_executor<handler>::type ex(get_associated_executor(init.completion_handler));
@@ -501,19 +500,6 @@ namespace rainy::foundation::io::net {
     }
 }
 // NOLINTEND
-
-namespace rainy::foundation::io::net {
-    template <typename ProtoAllocator = std::allocator<void>>
-    class use_future_t {};
-
-    constexpr use_future_t<> use_future = use_future_t<>();
-
-    template <typename ProtoAllocator, class Result, class... Args>
-    class async_result<use_future_t<ProtoAllocator>, Result(Args...)>;
-
-    template <class Result, class... Args, class Signature>
-    class async_result<concurrency::packaged_task<Result(Args...)>, Signature>;
-}
 
 namespace std { // NOLINT
     template <typename Allocator>
