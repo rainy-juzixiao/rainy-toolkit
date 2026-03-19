@@ -73,13 +73,18 @@ namespace rainy::foundation::concurrency {
 
         virtual void submit_to(std::size_t actor_id, functional::move_only_delegate<void()> task) = 0;
 
-        virtual void submit_to(std::size_t actor_id, functional::move_only_delegate<void()> task, const actor_priority priority) {
+        virtual void submit_to(const std::size_t actor_id, functional::move_only_delegate<void()> task,
+                               const actor_priority priority) {
             submit_to(actor_id, utility::move(task));
             (void) priority;
         }
 
         virtual void wait_all() {
         }
+
+        RAINY_NODISCARD virtual bool stopped() const noexcept = 0;
+        virtual void stop() = 0;
+        virtual void join() = 0;
 
         RAINY_NODISCARD virtual scheduler_traits traits() const {
             return {}; // 默认：单线程、有序

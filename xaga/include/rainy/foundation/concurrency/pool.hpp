@@ -100,6 +100,26 @@ namespace rainy::foundation::concurrency {
             }
         }
 
+        RAINY_NODISCARD bool stopped() const noexcept override {
+            return stop_.load(memory_order_acquire);
+        }
+
+        void stop() override {
+            stop_.store(true, memory_order_release);
+            for (auto &a: actors_) {
+                a->signal_stop();
+            }
+        }
+
+        void join() override {
+            this->wait_all();
+            stop_.store(true, memory_order_release);
+            for (auto &a: actors_) {
+                a->signal_stop();
+            }
+            this->threads_.clear();
+        }
+
     private:
         void route(functional::move_only_delegate<void()> task) {
             std::size_t idx = round_robin_.fetch_add(1, memory_order_relaxed) % actor_count_;
@@ -222,6 +242,25 @@ namespace rainy::foundation::concurrency {
             return actor_count_;
         }
 
+        RAINY_NODISCARD bool stopped() const noexcept override {
+            return stop_.load(memory_order_acquire);
+        }
+
+        void stop() override {
+            stop_.store(true, memory_order_release);
+            for (auto &a : actors_) {
+                a->signal_stop();
+            }
+        }
+
+        void join() override {
+            this->wait_all();
+            stop_.store(true, memory_order_release);
+            for (auto &a: actors_) {
+                a->signal_stop();
+            }
+        }
+
     private:
         void route(functional::move_only_delegate<void()> task) {
             std::size_t idx = round_robin_.fetch_add(1, memory_order_relaxed) % actor_count_;
@@ -236,6 +275,7 @@ namespace rainy::foundation::concurrency {
         atomic<std::size_t> round_robin_;
         atomic<int> submit_count_;
         atomic<int> complete_count_;
+        atomic<bool> stop_{false};
         mutex idle_mutex_;
         condition_variable idle_cv_;
         std::vector<memory::nebula_ptr<actor_worker>> actors_;
@@ -332,6 +372,30 @@ namespace rainy::foundation::concurrency {
 
         RAINY_NODISCARD std::size_t thread_count() const noexcept {
             return thread_count_;
+        }
+
+        bool stopped() const noexcept override {
+            return stop_.load(memory_order_acquire);
+        }
+
+        void stop() override {
+            stop_.store(true, memory_order_release);
+            for (auto &a : actors_) {
+                a->signal_stop();
+            }
+        }
+
+        void join() override {
+            this->wait_all();
+            stop_.store(true, memory_order_release);
+            for (auto &a : actors_) {
+                a->signal_stop();
+            }
+            for (auto &t : threads_) {
+                if (t) {
+                    t->join();
+                }
+            }
         }
 
     private:
@@ -517,6 +581,35 @@ namespace rainy::foundation::concurrency {
             return actors_per_tier_;
         }
 
+        bool stopped() const noexcept override {
+            return stop_.load(memory_order_acquire);
+        }
+
+        void stop() override {
+            stop_.store(true, memory_order_release);
+            for (auto &tier_actors : actors_) {
+                for (auto &a : tier_actors) {
+                    a->signal_stop();
+                }
+            }
+        }
+
+        void join() override {
+            this->wait_all();
+            stop_.store(true, memory_order_release);
+            for (auto &tier_actors : actors_) {
+                for (auto &a : tier_actors) {
+                    a->signal_stop();
+                }
+            }
+
+            for (auto &t : threads_) {
+                if (t) {
+                    t->join();
+                }
+            }
+        }
+
     private:
         /**
          * @brief 层内 round-robin + 轻载修正路由
@@ -675,6 +768,34 @@ namespace rainy::foundation::concurrency {
             submit(utility::move(task));
         }
 
+        bool stopped() const noexcept override {
+            return stop_.load(memory_order_acquire);
+        }
+
+        void stop() override {
+            stop_.store(true, memory_order_release);
+            {
+                lock_guard lk(queue_mutex_);
+                queue_cv_.notify_all();
+            }
+        }
+
+        void join() override {
+            this->wait_all();
+            stop_.store(true, memory_order_release);
+            {
+                lock_guard lk(queue_mutex_);
+                queue_cv_.notify_all();
+            }
+
+            lock_guard lk(threads_mutex_);
+            for (auto &t : threads_) {
+                if (t) {
+                    t->join();
+                }
+            }
+        }
+
     private:
         void spawn_thread() {
             auto thread_ptr = memory::make_nebula<thread>(thread::policy::auto_join, [this] { thread_loop(); });
@@ -724,7 +845,7 @@ namespace rainy::foundation::concurrency {
                 queue_size = task_queue_.size();
             }
             if (queue_size > current_active) {
-                std::size_t target = (core::min)(max_threads_, queue_size);
+                std::size_t target = (core::min) (max_threads_, queue_size);
                 for (std::size_t i = current_active; i < target; ++i) {
                     spawn_thread();
                 }
@@ -750,4 +871,5 @@ namespace rainy::foundation::concurrency {
         atomic<int> complete_count_{0};
     };
 }
+
 #endif

@@ -32,12 +32,6 @@
 // NOLINTEND
 
 namespace rainy::foundation::io::net {
-    class system_executor;
-    class system_context;
-
-    bool operator==(const system_executor &, const system_executor &);
-    bool operator!=(const system_executor &, const system_executor &);
-
     class bad_executor;
     class executor;
 
