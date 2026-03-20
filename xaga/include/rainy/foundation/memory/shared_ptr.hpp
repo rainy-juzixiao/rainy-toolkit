@@ -627,16 +627,21 @@ namespace rainy::foundation::memory {
     shared_ptr(nebula_ptr<T, D>) -> shared_ptr<T>;
 }
 
+namespace rainy::foundation::memory::implements {
+    template <typename Ty, typename UTy, typename = void>
+    static constexpr bool must_avoid_expired_conversions_from = true;
+
+    template <typename Ty, typename UTy>
+    static constexpr bool must_avoid_expired_conversions_from<
+        Ty, UTy, type_traits::other_trans::void_t<decltype(static_cast<const UTy *>(static_cast<Ty *>(nullptr)))>> = false;
+}
+
 namespace rainy::foundation::memory {
     template <typename Ty>
     class weak_ptr : public implements::shared_ptr_base<Ty> {
     public:
-        template <typename UTy, typename = void>
-        static constexpr bool must_avoid_expired_conversions_from = true;
-
         template <typename UTy>
-        static constexpr bool must_avoid_expired_conversions_from<
-            UTy, type_traits::other_trans::void_t<decltype(static_cast<const UTy *>(static_cast<Ty *>(nullptr)))>> = false;
+        static constexpr bool must_avoid_expired_conversions_from = implements::must_avoid_expired_conversions_from<Ty, UTy>;
 
         constexpr weak_ptr() noexcept = default;
 
