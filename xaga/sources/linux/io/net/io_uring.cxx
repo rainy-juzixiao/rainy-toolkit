@@ -319,7 +319,7 @@ namespace rainy::foundation::io::net::implements {
 
 namespace rainy::foundation::io::net::implements {
     memory::nebula_ptr<io_context_impl_base> create_io_context_impl(int concurrency_hint) {
-        auto impl = std::make_unique<io_uring_impl>(concurrency_hint);
+        auto impl = memory::make_nebula<io_uring_impl>(concurrency_hint);
         impl->init(concurrency_hint);
         return impl;
     }
