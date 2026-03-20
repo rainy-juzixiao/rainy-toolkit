@@ -18,11 +18,11 @@
 #include <rainy/foundation/concurrency/atomicinfra/fwd.hpp>
 
 namespace rainy::foundation::concurrency::implements {
-    template <typename Ty>
-    struct atomic_ops;
+    template <size_t ByteSize>
+    struct atomic_ops_base;
 
     template <>
-    struct atomic_ops<std::int8_t> {
+    struct atomic_ops_base<1> {
         using type = std::int8_t;
 
         static type load(const volatile type *p, memory_order o) noexcept {
@@ -76,7 +76,7 @@ namespace rainy::foundation::concurrency::implements {
     };
 
     template <>
-    struct atomic_ops<std::int16_t> {
+    struct atomic_ops_base<2> {
         using type = std::int16_t;
 
         static type load(const volatile type *p, memory_order o) noexcept {
@@ -103,6 +103,7 @@ namespace rainy::foundation::concurrency::implements {
         static type add(volatile type *p, type v, memory_order o) noexcept {
             return core::pal::interlocked_exchange_add16_explicit(p, v, o);
         }
+
         static type sub(volatile type *p, type v, memory_order o) noexcept {
             return core::pal::interlocked_exchange_subtract16_explicit(p, v, o);
         }
@@ -129,60 +130,7 @@ namespace rainy::foundation::concurrency::implements {
     };
 
     template <>
-    struct atomic_ops<long> {
-        using type = long;
-
-        static type load(const volatile type *p, memory_order o) noexcept {
-            return core::pal::iso_volatile_load32_explicit(reinterpret_cast<const volatile std::int32_t *>(p), o);
-        }
-
-        static void store(volatile type *p, type v, memory_order o) noexcept {
-            core::pal::iso_volatile_store32_explicit(reinterpret_cast<volatile std::int32_t *>(p), v, o);
-        }
-
-        static type exch(volatile type *p, type v, memory_order o) noexcept {
-            return core::pal::interlocked_exchange32_explicit(reinterpret_cast<volatile std::int32_t *>(p), v, o);
-        }
-
-        static bool cas(volatile type *p, type &exp, type des, memory_order s, memory_order f) noexcept {
-            type old = exp;
-            bool ok = core::pal::interlocked_compare_exchange32_explicit(reinterpret_cast<volatile std::int32_t *>(p), des, old, s, f);
-            if (!ok)
-                exp = core::pal::iso_volatile_load32_explicit(reinterpret_cast<volatile std::int32_t *>(p), f);
-            return ok;
-        }
-
-        static type add(volatile type *p, type v, memory_order o) noexcept {
-            return core::pal::interlocked_exchange_add32_explicit(reinterpret_cast<volatile std::int32_t *>(p), v, o);
-        }
-
-        static type sub(volatile type *p, type v, memory_order o) noexcept {
-            return core::pal::interlocked_exchange_subtract32_explicit(reinterpret_cast<volatile std::int32_t *>(p), v, o);
-        }
-
-        static type band(volatile type *p, type v, memory_order o) noexcept {
-            return core::pal::interlocked_and32_explicit(reinterpret_cast<volatile std::int32_t *>(p), v, o);
-        }
-
-        static type bor(volatile type *p, type v, memory_order o) noexcept {
-            return core::pal::interlocked_or32_explicit(reinterpret_cast<volatile std::int32_t *>(p), v, o);
-        }
-
-        static type bxor(volatile type *p, type v, memory_order o) noexcept {
-            return core::pal::interlocked_xor32_explicit(reinterpret_cast<volatile std::int32_t *>(p), v, o);
-        }
-
-        static type inc(volatile type *p, memory_order o) noexcept {
-            return core::pal::interlocked_increment32_explicit(reinterpret_cast<volatile std::int32_t *>(p), o);
-        }
-
-        static type dec(volatile type *p, memory_order o) noexcept {
-            return core::pal::interlocked_decrement32_explicit(reinterpret_cast<volatile std::int32_t *>(p), o);
-        }
-    };
-
-    template <>
-    struct atomic_ops<std::int32_t> {
+    struct atomic_ops_base<4> {
         using type = std::int32_t;
 
         static type load(const volatile type *p, memory_order o) noexcept {
@@ -200,8 +148,9 @@ namespace rainy::foundation::concurrency::implements {
         static bool cas(volatile type *p, type &exp, type des, memory_order s, memory_order f) noexcept {
             type old = exp;
             bool ok = core::pal::interlocked_compare_exchange32_explicit(p, des, old, s, f);
-            if (!ok)
+            if (!ok) {
                 exp = core::pal::iso_volatile_load32_explicit(p, f);
+            }
             return ok;
         }
 
@@ -235,7 +184,7 @@ namespace rainy::foundation::concurrency::implements {
     };
 
     template <>
-    struct atomic_ops<std::int64_t> {
+    struct atomic_ops_base<8> {
         using type = std::int64_t;
 
         static type load(const volatile type *p, memory_order o) noexcept {
@@ -287,62 +236,63 @@ namespace rainy::foundation::concurrency::implements {
             return core::pal::interlocked_decrement64_explicit(p, o);
         }
     };
+
+    template <typename Ty>
+    struct atomic_ops {
+        using type = Ty;
+        using base_ops = atomic_ops_base<sizeof(Ty)>;
+        using base_type = typename base_ops::type;
+
+        static type load(const volatile type *p, memory_order o) noexcept {
+            return static_cast<type>(base_ops::load(reinterpret_cast<const volatile base_type *>(p), o));
+        }
+
+        static void store(volatile type *p, type v, memory_order o) noexcept {
+            base_ops::store(reinterpret_cast<volatile base_type *>(p), static_cast<base_type>(v), o);
+        }
+
+        static type exch(volatile type *p, type v, memory_order o) noexcept {
+            return static_cast<type>(base_ops::exch(reinterpret_cast<volatile base_type *>(p), static_cast<base_type>(v), o));
+        }
+
+        static bool cas(volatile type *p, type &exp, type des, memory_order s, memory_order f) noexcept {
+            base_type exp_base = static_cast<base_type>(exp);
+            bool ok = base_ops::cas(reinterpret_cast<volatile base_type *>(p), exp_base, static_cast<base_type>(des), s, f);
+            if (!ok) {
+                exp = static_cast<type>(exp_base);
+            }
+            return ok;
+        }
+
+        static type add(volatile type *p, type v, memory_order o) noexcept {
+            return static_cast<type>(base_ops::add(reinterpret_cast<volatile base_type *>(p), static_cast<base_type>(v), o));
+        }
+
+        static type sub(volatile type *p, type v, memory_order o) noexcept {
+            return static_cast<type>(base_ops::sub(reinterpret_cast<volatile base_type *>(p), static_cast<base_type>(v), o));
+        }
+
+        static type band(volatile type *p, type v, memory_order o) noexcept {
+            return static_cast<type>(base_ops::band(reinterpret_cast<volatile base_type *>(p), static_cast<base_type>(v), o));
+        }
+
+        static type bor(volatile type *p, type v, memory_order o) noexcept {
+            return static_cast<type>(base_ops::bor(reinterpret_cast<volatile base_type *>(p), static_cast<base_type>(v), o));
+        }
+
+        static type bxor(volatile type *p, type v, memory_order o) noexcept {
+            return static_cast<type>(base_ops::bxor(reinterpret_cast<volatile base_type *>(p), static_cast<base_type>(v), o));
+        }
+
+        static type inc(volatile type *p, memory_order o) noexcept {
+            return static_cast<type>(base_ops::inc(reinterpret_cast<volatile base_type *>(p), o));
+        }
+
+        static type dec(volatile type *p, memory_order o) noexcept {
+            return static_cast<type>(base_ops::dec(reinterpret_cast<volatile base_type *>(p), o));
+        }
+    };
 }
-
-#define RAINY_DEFINE_UNSIGNED_ATOMIC_OPS(UTYPE, STYPE)                                                                                \
-    template <>                                                                                                                       \
-    struct atomic_ops<UTYPE> {                                                                                                        \
-        using type = UTYPE;                                                                                                           \
-        using signed_type = STYPE;                                                                                                    \
-        using iops = atomic_ops<STYPE>;                                                                                               \
-        static type load(const volatile type *p, memory_order o) noexcept {                                                           \
-            return static_cast<type>(iops::load(reinterpret_cast<const volatile STYPE *>(p), o));                                     \
-        }                                                                                                                             \
-        static void store(volatile type *p, type v, memory_order o) noexcept {                                                        \
-            iops::store(reinterpret_cast<volatile STYPE *>(p), static_cast<STYPE>(v), o);                                             \
-        }                                                                                                                             \
-        static type exch(volatile type *p, type v, memory_order o) noexcept {                                                         \
-            return static_cast<type>(iops::exch(reinterpret_cast<volatile STYPE *>(p), static_cast<STYPE>(v), o));                    \
-        }                                                                                                                             \
-        static bool cas(volatile type *p, type &expected, type desired, memory_order s, memory_order f) noexcept {                    \
-            auto exp_s = static_cast<STYPE>(expected);                                                                                \
-            bool ok = iops::cas(reinterpret_cast<volatile STYPE *>(p), exp_s, static_cast<STYPE>(desired), s, f);                     \
-            if (!ok)                                                                                                                  \
-                expected = static_cast<type>(exp_s);                                                                                  \
-            return ok;                                                                                                                \
-        }                                                                                                                             \
-        static type add(volatile type *p, type v, memory_order o) noexcept {                                                          \
-            return static_cast<type>(iops::add(reinterpret_cast<volatile STYPE *>(p), static_cast<STYPE>(v), o));                     \
-        }                                                                                                                             \
-        static type sub(volatile type *p, type v, memory_order o) noexcept {                                                          \
-            return static_cast<type>(iops::sub(reinterpret_cast<volatile STYPE *>(p), static_cast<STYPE>(v), o));                     \
-        }                                                                                                                             \
-        static type band(volatile type *p, type v, memory_order o) noexcept {                                                         \
-            return static_cast<type>(iops::band(reinterpret_cast<volatile STYPE *>(p), static_cast<STYPE>(v), o));                    \
-        }                                                                                                                             \
-        static type bor(volatile type *p, type v, memory_order o) noexcept {                                                          \
-            return static_cast<type>(iops::bor(reinterpret_cast<volatile STYPE *>(p), static_cast<STYPE>(v), o));                     \
-        }                                                                                                                             \
-        static type bxor(volatile type *p, type v, memory_order o) noexcept {                                                         \
-            return static_cast<type>(iops::bxor(reinterpret_cast<volatile STYPE *>(p), static_cast<STYPE>(v), o));                    \
-        }                                                                                                                             \
-        static type inc(volatile type *p, memory_order o) noexcept {                                                                  \
-            return static_cast<type>(iops::inc(reinterpret_cast<volatile STYPE *>(p), o));                                            \
-        }                                                                                                                             \
-        static type dec(volatile type *p, memory_order o) noexcept {                                                                  \
-            return static_cast<type>(iops::dec(reinterpret_cast<volatile STYPE *>(p), o));                                            \
-        }                                                                                                                             \
-    }
-
-namespace rainy::foundation::concurrency::implements {
-    RAINY_DEFINE_UNSIGNED_ATOMIC_OPS(std::uint8_t, std::int8_t);
-    RAINY_DEFINE_UNSIGNED_ATOMIC_OPS(std::uint16_t, std::int16_t);
-    RAINY_DEFINE_UNSIGNED_ATOMIC_OPS(std::uint32_t, std::int32_t);
-    RAINY_DEFINE_UNSIGNED_ATOMIC_OPS(std::uint64_t, std::int64_t);
-    RAINY_DEFINE_UNSIGNED_ATOMIC_OPS(unsigned long, long);
-}
-
-#undef RAINY_DEFINE_UNSIGNED_ATOMIC_OPS
 
 namespace rainy::foundation::concurrency::implements {
     template <typename Ty, typename = void>
