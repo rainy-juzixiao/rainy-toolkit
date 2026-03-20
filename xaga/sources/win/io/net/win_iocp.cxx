@@ -68,18 +68,18 @@ namespace rainy::foundation::io::net::implements {
         }
 
         void on_work_started() noexcept override {
-            work_count_.fetch_add(1, concurrency::memory_order_relaxed);
+            work_count_.fetch_add(1, concurrency::memory_order_seq_cst);
         }
 
         void on_work_finished() noexcept override {
-            if (work_count_.fetch_sub(1, concurrency::memory_order_acquire) == 1) {
+            if (work_count_.fetch_sub(1, concurrency::memory_order_seq_cst) == 1) {
                 // 工作归零，唤醒所有阻塞中的 run()
                 post_wakeup();
             }
         }
 
         void post_immediate_completion(completion_op *op, bool) noexcept override {
-            work_count_.fetch_add(1, concurrency::memory_order_release);
+            work_count_.fetch_add(1, concurrency::memory_order_seq_cst);
             ::PostQueuedCompletionStatus(iocp_handle_, 0, COMPLETION_KEY_IMMEDIATE, reinterpret_cast<OVERLAPPED *>(op));
         }
 
@@ -96,19 +96,19 @@ namespace rainy::foundation::io::net::implements {
         }
 
         void restart() noexcept override {
-            stopped_.store(false, concurrency::memory_order_release);
+            stopped_.store(false, concurrency::memory_order_seq_cst);
         }
 
         bool stopped() const noexcept override {
-            return stopped_.load(concurrency::memory_order_acquire);
+            return stopped_.load(concurrency::memory_order_seq_cst);
         }
 
         std::size_t run() override {
             std::size_t total = 0;
             in_event_loop_ = true;
 
-            while (!stopped_.load(concurrency::memory_order_acquire)) {
-                if (work_count_.load(concurrency::memory_order_acquire) <= 0) {
+            while (!stopped_.load(concurrency::memory_order_seq_cst)) {
+                if (work_count_.load(concurrency::memory_order_seq_cst) <= 0) {
                     break;
                 }
                 std::size_t count = dequeue_and_dispatch(INFINITE);
@@ -122,8 +122,8 @@ namespace rainy::foundation::io::net::implements {
         std::size_t run_one() override {
             in_event_loop_ = true;
             std::size_t count = 0;
-            if (!stopped_.load(concurrency::memory_order_acquire)) {
-                if (work_count_.load(concurrency::memory_order_acquire) > 0) {
+            if (!stopped_.load(concurrency::memory_order_seq_cst)) {
+                if (work_count_.load(concurrency::memory_order_seq_cst) > 0) {
                     count = dequeue_and_dispatch(INFINITE);
                 }
             }
@@ -135,7 +135,7 @@ namespace rainy::foundation::io::net::implements {
             DWORD timeout_ms = (timeout_ns == 0) ? 0 : static_cast<DWORD>((timeout_ns + 999'999) / 1'000'000);
             in_event_loop_ = true;
             std::size_t count = 0;
-            if (!stopped_.load(concurrency::memory_order_acquire)) {
+            if (!stopped_.load(concurrency::memory_order_seq_cst)) {
                 count = dequeue_and_dispatch(timeout_ms);
             }
             in_event_loop_ = false;
@@ -145,7 +145,7 @@ namespace rainy::foundation::io::net::implements {
         std::size_t poll() noexcept override {
             std::size_t total = 0;
             in_event_loop_ = true;
-            while (!stopped_.load(concurrency::memory_order_acquire)) {
+            while (!stopped_.load(concurrency::memory_order_seq_cst)) {
                 std::size_t count = dequeue_and_dispatch(0); // 非阻塞
                 if (count == 0) {
                     break;
@@ -159,7 +159,7 @@ namespace rainy::foundation::io::net::implements {
         std::size_t poll_one() noexcept override {
             in_event_loop_ = true;
             std::size_t count = 0;
-            if (!stopped_.load(concurrency::memory_order_acquire)) {
+            if (!stopped_.load(concurrency::memory_order_seq_cst)) {
                 count = dequeue_and_dispatch(0); // 非阻塞，只取一个
             }
             in_event_loop_ = false;
