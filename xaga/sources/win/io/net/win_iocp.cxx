@@ -72,16 +72,15 @@ namespace rainy::foundation::io::net::implements {
         }
 
         void on_work_finished() noexcept override {
-            if (work_count_.fetch_sub(1, concurrency::memory_order_acq_rel) == 1) {
+            if (work_count_.fetch_sub(1, concurrency::memory_order_acquire) == 1) {
                 // 工作归零，唤醒所有阻塞中的 run()
                 post_wakeup();
             }
         }
 
-        void post_immediate_completion(completion_op *op, bool /*is_continuation*/) noexcept override {
-            work_count_.fetch_add(1, concurrency::memory_order_relaxed);
-            ::PostQueuedCompletionStatus(iocp_handle_, 0, COMPLETION_KEY_IMMEDIATE,
-                                         reinterpret_cast<OVERLAPPED *>(op)); // 仅传指针，不作 overlapped 使用
+        void post_immediate_completion(completion_op *op, bool) noexcept override {
+            work_count_.fetch_add(1, concurrency::memory_order_release);
+            ::PostQueuedCompletionStatus(iocp_handle_, 0, COMPLETION_KEY_IMMEDIATE, reinterpret_cast<OVERLAPPED *>(op));
         }
 
         concurrency::thrd_result associate_handle(completion_op * /*op*/, std::uintptr_t fd, void * /*extra*/) noexcept override {
