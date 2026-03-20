@@ -129,6 +129,59 @@ namespace rainy::foundation::concurrency::implements {
     };
 
     template <>
+    struct atomic_ops<long> {
+        using type = long;
+
+        static type load(const volatile type *p, memory_order o) noexcept {
+            return core::pal::iso_volatile_load32_explicit(reinterpret_cast<const volatile std::int32_t *>(p), o);
+        }
+
+        static void store(volatile type *p, type v, memory_order o) noexcept {
+            core::pal::iso_volatile_store32_explicit(reinterpret_cast<volatile std::int32_t *>(p), v, o);
+        }
+
+        static type exch(volatile type *p, type v, memory_order o) noexcept {
+            return core::pal::interlocked_exchange32_explicit(reinterpret_cast<volatile std::int32_t *>(p), v, o);
+        }
+
+        static bool cas(volatile type *p, type &exp, type des, memory_order s, memory_order f) noexcept {
+            type old = exp;
+            bool ok = core::pal::interlocked_compare_exchange32_explicit(reinterpret_cast<volatile std::int32_t *>(p), des, old, s, f);
+            if (!ok)
+                exp = core::pal::iso_volatile_load32_explicit(reinterpret_cast<volatile std::int32_t *>(p), f);
+            return ok;
+        }
+
+        static type add(volatile type *p, type v, memory_order o) noexcept {
+            return core::pal::interlocked_exchange_add32_explicit(reinterpret_cast<volatile std::int32_t *>(p), v, o);
+        }
+
+        static type sub(volatile type *p, type v, memory_order o) noexcept {
+            return core::pal::interlocked_exchange_subtract32_explicit(reinterpret_cast<volatile std::int32_t *>(p), v, o);
+        }
+
+        static type band(volatile type *p, type v, memory_order o) noexcept {
+            return core::pal::interlocked_and32_explicit(reinterpret_cast<volatile std::int32_t *>(p), v, o);
+        }
+
+        static type bor(volatile type *p, type v, memory_order o) noexcept {
+            return core::pal::interlocked_or32_explicit(reinterpret_cast<volatile std::int32_t *>(p), v, o);
+        }
+
+        static type bxor(volatile type *p, type v, memory_order o) noexcept {
+            return core::pal::interlocked_xor32_explicit(reinterpret_cast<volatile std::int32_t *>(p), v, o);
+        }
+
+        static type inc(volatile type *p, memory_order o) noexcept {
+            return core::pal::interlocked_increment32_explicit(reinterpret_cast<volatile std::int32_t *>(p), o);
+        }
+
+        static type dec(volatile type *p, memory_order o) noexcept {
+            return core::pal::interlocked_decrement32_explicit(reinterpret_cast<volatile std::int32_t *>(p), o);
+        }
+    };
+
+    template <>
     struct atomic_ops<std::int32_t> {
         using type = std::int32_t;
 
@@ -286,6 +339,7 @@ namespace rainy::foundation::concurrency::implements {
     RAINY_DEFINE_UNSIGNED_ATOMIC_OPS(std::uint16_t, std::int16_t);
     RAINY_DEFINE_UNSIGNED_ATOMIC_OPS(std::uint32_t, std::int32_t);
     RAINY_DEFINE_UNSIGNED_ATOMIC_OPS(std::uint64_t, std::int64_t);
+    RAINY_DEFINE_UNSIGNED_ATOMIC_OPS(unsigned long, long);
 }
 
 #undef RAINY_DEFINE_UNSIGNED_ATOMIC_OPS

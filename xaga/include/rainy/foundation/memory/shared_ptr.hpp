@@ -1,5 +1,5 @@
 /*
-* Copyright 2025 rainy-juzixiao
+ * Copyright 2025 rainy-juzixiao
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,8 +15,8 @@
  */
 #ifndef RAINY_FOUNDATION_MEMORY_SHARED_PTR_HPP
 #define RAINY_FOUNDATION_MEMORY_SHARED_PTR_HPP
-#include <rainy/foundation/container/pair.hpp>
 #include <rainy/core/core.hpp>
+#include <rainy/foundation/container/pair.hpp>
 #include <rainy/foundation/memory/allocator.hpp>
 #include <rainy/foundation/memory/nebula_ptr.hpp>
 #include <rainy/foundation/typeinfo.hpp>
@@ -631,45 +631,46 @@ namespace rainy::foundation::memory {
     template <typename Ty>
     class weak_ptr : public implements::shared_ptr_base<Ty> {
     public:
-        template <typename UTy, typename = const UTy *>
+        template <typename UTy, typename = void>
         static constexpr bool must_avoid_expired_conversions_from = true;
 
         template <typename UTy>
-        static constexpr bool
-            must_avoid_expired_conversions_from<UTy, decltype(static_cast<const UTy *>(static_cast<Ty *>(nullptr)))> = false;
+        static constexpr bool must_avoid_expired_conversions_from<
+            UTy, type_traits::other_trans::void_t<decltype(static_cast<const UTy *>(static_cast<Ty *>(nullptr)))>> = false;
 
         constexpr weak_ptr() noexcept = default;
 
-        weak_ptr(const weak_ptr &other) noexcept {
-            this->weakly_construct_from(other);
+        weak_ptr(const weak_ptr &right) noexcept {
+            this->weakly_construct_from(right);
         }
 
         template <typename UTy>
             requires implements::shared_pointer_compatible<UTy, Ty>::value
-        weak_ptr(const shared_ptr<UTy> &other) noexcept {
-            this->weakly_construct_from(other);
+        weak_ptr(const shared_ptr<UTy> &right) noexcept {
+            this->weakly_construct_from(right);
         }
 
         template <typename UTy, type_traits::other_trans::enable_if_t<implements::shared_pointer_compatible<UTy, Ty>::value, int> = 0>
-        weak_ptr(const weak_ptr<UTy> &other) noexcept {
+        weak_ptr(const weak_ptr<UTy> &right) noexcept {
             constexpr bool avoid_expired_conversions = must_avoid_expired_conversions_from<UTy>;
             if constexpr (avoid_expired_conversions) {
-                this->weakly_convert_lvalue_avoiding_expired_conversions(other);
+                this->weakly_convert_lvalue_avoiding_expired_conversions(right);
             } else {
-                this->weakly_construct_from(other);
+                this->weakly_construct_from(right);
             }
         }
 
-        weak_ptr(weak_ptr &&other) noexcept {
-            this->move_construct_from(utility::move(other));
+        weak_ptr(weak_ptr &&right) noexcept {
+            this->move_construct_from(utility::move(right));
         }
 
         template <typename UTy, type_traits::other_trans::enable_if_t<implements::shared_pointer_compatible<UTy, Ty>::value, int> = 0>
-        explicit weak_ptr(weak_ptr<UTy> &&other) noexcept {
-            if constexpr (constexpr bool avoid_expired_conversions = must_avoid_expired_conversions_from<UTy>; avoid_expired_conversions) {
-                this->weakly_convert_rvalue_avoiding_expired_conversions(utility::move(other));
+        explicit weak_ptr(weak_ptr<UTy> &&right) noexcept {
+            if constexpr (constexpr bool avoid_expired_conversions = must_avoid_expired_conversions_from<UTy>;
+                          avoid_expired_conversions) {
+                this->weakly_convert_rvalue_avoiding_expired_conversions(utility::move(right));
             } else {
-                this->move_construct_from(utility::move(other));
+                this->move_construct_from(utility::move(right));
             }
         }
 
@@ -718,8 +719,8 @@ namespace rainy::foundation::memory {
             weak_ptr{}.swap(*this);
         }
 
-        void swap(weak_ptr &other) noexcept {
-            this->swap_(other);
+        void swap(weak_ptr &right) noexcept {
+            this->swap_(right);
         }
 
         template <typename UTy,

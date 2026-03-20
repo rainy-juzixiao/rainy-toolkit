@@ -17,6 +17,7 @@
 #define RAINY_FOUNDATION_IO_NET_EXECUTORHPP
 #include <chrono>
 #include <rainy/foundation/io/net/executor.hpp>
+#include <rainy/foundation/concurrency/atomic.hpp>
 
 namespace rainy::foundation::io::net::implements {
     struct op_result {
@@ -45,7 +46,7 @@ namespace rainy::foundation::io::net::implements {
         template <typename Fx,
                   type_traits::other_trans::enable_if_t<type_traits::type_properties::is_constructible_v<Func, Fx &&>, int> = 0>
         explicit function_completion_op(Fx &&func) noexcept(std::is_nothrow_constructible_v<Func, Fx &&>) :
-            completion_op(&do_complete), func_(utility::forward<F>(func)) {
+            completion_op(&do_complete), func_(utility::forward<Fx>(func)) {
         }
 
         function_completion_op(const function_completion_op &) = delete;

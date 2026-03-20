@@ -1,5 +1,6 @@
 #include <rainy/core/core.hpp>
 #include <rainy/collections/vector.hpp>
+#include <rainy/foundation/concurrency/concurrency.hpp>
 
 #if RAINY_USING_WINDOWS
 #include <windows.h>
