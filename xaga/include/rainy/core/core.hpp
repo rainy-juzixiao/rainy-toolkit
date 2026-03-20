@@ -437,6 +437,18 @@ namespace rainy::foundation::memory {
         }
 
         /**
+         * @brief Converting constructor from another default_deleter.
+         *        从另一个 default_deleter 的转换构造函数。
+         *
+         * @tparam U The other type, must be convertible to Ty*
+         *           另一个类型，必须可转换为 Ty*
+         */
+        template <typename UTy,
+                  type_traits::other_trans::enable_if_t<type_traits::type_relations::is_convertible_v<UTy *, Ty *>, int> = 0>
+        constexpr default_deleter(const default_deleter<UTy> &) noexcept {
+        }
+
+        /**
          * @brief Function call operator that deletes the pointer.
          *        删除指针的函数调用运算符。
          *

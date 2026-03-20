@@ -40,38 +40,38 @@ namespace rainy::foundation::io::net::implements {
         using result_type_or_void = void;
     };
 
-    template <typename Rx>
-    struct executor_binder_result_type_impl<Rx (*)()> {
+    template <typename Rx, bool Has>
+    struct executor_binder_result_type_impl<Rx (*)(), Has> {
         using result_type = Rx;
         using result_type_or_void = Rx;
     };
 
-    template <typename Rx>
-    struct executor_binder_result_type_impl<Rx (&)()> {
+    template <typename Rx, bool Has>
+    struct executor_binder_result_type_impl<Rx (&)(), Has> {
         using result_type = Rx;
         using result_type_or_void = Rx;
     };
 
-    template <typename Rx, typename Arg1>
-    struct executor_binder_result_type_impl<Rx (*)(Arg1)> {
+    template <typename Rx, typename Arg1, bool Has>
+    struct executor_binder_result_type_impl<Rx (*)(Arg1), Has> {
         using result_type = Rx;
         using result_type_or_void = Rx;
     };
 
-    template <typename Rx, typename Arg1>
-    struct executor_binder_result_type_impl<Rx (&)(Arg1)> {
+    template <typename Rx, typename Arg1, bool Has>
+    struct executor_binder_result_type_impl<Rx (&)(Arg1), Has> {
         using result_type = Rx;
         using result_type_or_void = Rx;
     };
 
-    template <typename Rx, typename Arg1, typename Arg2>
-    struct executor_binder_result_type_impl<Rx (*)(Arg1, Arg2)> {
+    template <typename Rx, typename Arg1, typename Arg2, bool Has>
+    struct executor_binder_result_type_impl<Rx (*)(Arg1, Arg2), Has> {
         using result_type = Rx;
         using result_type_or_void = Rx;
     };
 
-    template <typename Rx, typename Arg1, typename Arg2>
-    struct executor_binder_result_type_impl<Rx (&)(Arg1, Arg2)> {
+    template <typename Rx, typename Arg1, typename Arg2, bool Has>
+    struct executor_binder_result_type_impl<Rx (&)(Arg1, Arg2), Has> {
         using result_type = Rx;
         using result_type_or_void = Rx;
     };
@@ -93,13 +93,13 @@ namespace rainy::foundation::io::net::implements {
     template <typename Ty>
     struct executor_binder_argument_type_impl<Ty, false> {};
 
-    template <typename Rx, typename Arg1>
-    struct executor_binder_argument_type_impl<Rx (*)(Arg1)> {
+    template <typename Rx, typename Arg1, bool Has>
+    struct executor_binder_argument_type_impl<Rx (*)(Arg1), Has> {
         using argument_type = Arg1;
     };
 
-    template <typename Rx, typename Arg1>
-    struct executor_binder_argument_type_impl<Rx (&)(Arg1)> {
+    template <typename Rx, typename Arg1, bool Has>
+    struct executor_binder_argument_type_impl<Rx (&)(Arg1), Has> {
         using argument_type = Arg1;
     };
 
@@ -122,14 +122,14 @@ namespace rainy::foundation::io::net::implements {
     template <typename Ty>
     struct executor_binder_argument_types_impl<Ty, false> {};
 
-    template <typename Rx, typename Arg1, typename Arg2>
-    struct executor_binder_argument_types_impl<Rx (*)(Arg1, Arg2)> {
+    template <typename Rx, typename Arg1, typename Arg2, bool Has>
+    struct executor_binder_argument_types_impl<Rx (*)(Arg1, Arg2), Has> {
         using first_argument_type = Arg1;
         using second_argument_type = Arg2;
     };
 
-    template <typename Rx, typename Arg1, typename Arg2>
-    struct executor_binder_argument_types_impl<Rx (&)(Arg1, Arg2)> {
+    template <typename Rx, typename Arg1, typename Arg2, bool Has>
+    struct executor_binder_argument_types_impl<Rx (&)(Arg1, Arg2), Has> {
         using first_argument_type = Arg1;
         using second_argument_type = Arg2;
     };
