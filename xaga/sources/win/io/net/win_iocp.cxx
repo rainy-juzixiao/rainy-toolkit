@@ -72,18 +72,18 @@ namespace rainy::foundation::io::net::implements {
         }
 
         void on_work_finished() noexcept override {
-            if (work_count_.fetch_sub(1, concurrency::memory_order_acquire) == 1) {
+            if (work_count_.fetch_sub(1, concurrency::memory_order_acq_rel) == 1) {
                 // 工作归零，唤醒所有阻塞中的 run()
-                post_wakeup();
+                int wakeup_count = (concurrency_hint_ > 0) ? concurrency_hint_ : 16;
+                for (int i = 0; i < wakeup_count; ++i) {
+                    post_wakeup();
+                }
             }
         }
 
         void post_immediate_completion(completion_op *op, bool) noexcept override {
             work_count_.fetch_add(1, concurrency::memory_order_release);
             ::PostQueuedCompletionStatus(iocp_handle_, 0, COMPLETION_KEY_IMMEDIATE, reinterpret_cast<OVERLAPPED *>(op));
-            if (!in_event_loop_) {
-                post_wakeup();
-            }
         }
 
         concurrency::thrd_result associate_handle(completion_op * /*op*/, std::uintptr_t fd, void * /*extra*/) noexcept override {
@@ -94,7 +94,10 @@ namespace rainy::foundation::io::net::implements {
 
         void stop() noexcept override {
             if (!stopped_.exchange(true, concurrency::memory_order_acq_rel)) {
-                post_wakeup();
+                int wakeup_count = (concurrency_hint_ > 0) ? concurrency_hint_ : 16;
+                for (int i = 0; i < wakeup_count; ++i) {
+                    post_wakeup();
+                }
             }
         }
 

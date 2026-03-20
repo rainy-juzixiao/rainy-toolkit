@@ -30,7 +30,7 @@ using namespace rainy::foundation::io::net;
 using namespace std::chrono_literals;
 
 namespace {
-    /// RAII guard: 在后台线程跑 ctx.run()，析构时 stop + join
+    // RAII guard: 在后台线程跑 ctx.run()，析构时 stop + join
     struct background_runner {
         explicit background_runner(io_context &ctx)
             : ctx_(ctx)
@@ -52,7 +52,7 @@ namespace {
         std::thread  thread_;
     };
 
-    /// 等待 condition 为 true，最多等 max_wait，步进 step
+    // 等待 condition 为 true，最多等 max_wait，步进 step
     template <typename Pred>
     bool wait_for_condition(Pred &&pred,
                             std::chrono::milliseconds max_wait = 500ms,
@@ -135,10 +135,6 @@ SCENARIO("io_context stop and restart lifecycle", "[io_context][stop][restart]")
     }
 }
 
-// =============================================================================
-// FEATURE: run() exits when there is no outstanding work
-// =============================================================================
-
 SCENARIO("io_context run() exits automatically when there is no work",
          "[io_context][run][work]") {
 
@@ -159,10 +155,6 @@ SCENARIO("io_context run() exits automatically when there is no work",
         }
     }
 }
-
-// =============================================================================
-// FEATURE: executor post / dispatch single handler
-// =============================================================================
 
 SCENARIO("executor post schedules a handler for deferred execution",
          "[io_context][executor][post]") {
@@ -235,10 +227,6 @@ SCENARIO("executor dispatch executes handler inline when called from within run(
     }
 }
 
-// =============================================================================
-// FEATURE: executor defer
-// =============================================================================
-
 SCENARIO("executor defer schedules a handler similar to post",
          "[io_context][executor][defer]") {
 
@@ -259,10 +247,6 @@ SCENARIO("executor defer schedules a handler similar to post",
         }
     }
 }
-
-// =============================================================================
-// FEATURE: multiple posted handlers maintain FIFO order
-// =============================================================================
 
 SCENARIO("multiple posted handlers are executed in FIFO order",
          "[io_context][executor][post][order]") {
@@ -512,10 +496,6 @@ SCENARIO("on_work_started prevents run() from exiting prematurely",
     }
 }
 
-// =============================================================================
-// FEATURE: stop() interrupts a blocking run()
-// =============================================================================
-
 SCENARIO("stop() causes a blocking run() to return",
          "[io_context][run][stop]") {
 
@@ -553,10 +533,6 @@ SCENARIO("stop() causes a blocking run() to return",
     }
 }
 
-// =============================================================================
-// FEATURE: restart() allows run() to be called again after stop()
-// =============================================================================
-
 SCENARIO("restart() resets the stopped flag so run() can be used again",
          "[io_context][restart]") {
 
@@ -584,10 +560,6 @@ SCENARIO("restart() resets the stopped flag so run() can be used again",
         }
     }
 }
-
-// =============================================================================
-// FEATURE: running_in_this_thread()
-// =============================================================================
 
 SCENARIO("running_in_this_thread() reflects whether the caller is inside run()",
          "[io_context][executor][running_in_this_thread]") {
@@ -617,10 +589,6 @@ SCENARIO("running_in_this_thread() reflects whether the caller is inside run()",
         }
     }
 }
-
-// =============================================================================
-// FEATURE: multi-threaded concurrent run()
-// =============================================================================
 
 SCENARIO("multiple threads can call run() concurrently and share the work",
          "[io_context][run][threading]") {
@@ -652,10 +620,6 @@ SCENARIO("multiple threads can call run() concurrently and share the work",
         }
     }
 }
-
-// =============================================================================
-// FEATURE: handler posted from within another handler
-// =============================================================================
 
 SCENARIO("a handler posted from within another handler is executed in the same run()",
          "[io_context][executor][chaining]") {
@@ -689,14 +653,6 @@ SCENARIO("a handler posted from within another handler is executed in the same r
     }
 }
 
-// =============================================================================
-// FEATURE: exception safety — handler throwing does not corrupt context
-// =============================================================================
-
-// NOTE: Per Networking TS / Asio convention, handlers must not throw.
-//       Throwing propagates out of run() and terminates the loop for that
-//       thread. The context itself must remain usable after restart().
-
 SCENARIO("an exception thrown from a handler propagates through run()",
          "[io_context][exception]") {
 
@@ -727,10 +683,6 @@ SCENARIO("an exception thrown from a handler propagates through run()",
         }
     }
 }
-
-// =============================================================================
-// FEATURE: get_executor() returns independent copies that share the context
-// =============================================================================
 
 SCENARIO("multiple executor copies obtained from the same io_context share state",
          "[io_context][executor][copy]") {
