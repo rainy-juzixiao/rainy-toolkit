@@ -15,6 +15,7 @@
  */
 #ifndef RAINY_FOUNDATION_IO_NET_TIMER_HPP
 #define RAINY_FOUNDATION_IO_NET_TIMER_HPP
+#include <system_error>
 #include <rainy/foundation/io/net/fwd.hpp>
 #include <rainy/foundation/io/net/io_context.hpp>
 

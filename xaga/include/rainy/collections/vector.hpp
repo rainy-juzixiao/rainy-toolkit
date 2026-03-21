@@ -77,7 +77,8 @@ namespace rainy::collections {
             }
         }
 
-        template <typename InputIter>
+        template <typename InputIter,
+                  type_traits::other_trans::enable_if_t<type_traits::extras::iterators::is_input_iterator_v<InputIter>, int> = 0>
         RAINY_CONSTEXPR20 vector(InputIter first, InputIter last, const allocator_type &alloc = allocator_type()) : pair(alloc, {}) {
             auto &allocator = get_al();
             auto &object = vec_object();
