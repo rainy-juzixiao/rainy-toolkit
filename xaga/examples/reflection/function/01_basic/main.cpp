@@ -1,14 +1,27 @@
 #include <rainy/core/core.hpp>
 #include <rainy/collections/vector.hpp>
 #include <rainy/foundation/concurrency/concurrency.hpp>
+#include <rainy/foundation/io/net/timer.hpp>
 
 #if RAINY_USING_WINDOWS
 #include <windows.h>
 #endif
 #include <iostream>
 using namespace rainy;
-
 int main() {
+    rainy::foundation::io::net::io_context ctx;
+    rainy::foundation::io::net::steady_timer timer(ctx, std::chrono::seconds{5});
+    timer.async_wait([](std::error_code ec) {
+        if (!ec) {
+            std::cout << "!!!\n";
+        }
+    });
+    timer.async_wait([](std::error_code ec) {
+        if (!ec) {
+            std::cout << "!!!!\n";
+        }
+    });
+    ctx.run();
 #if RAINY_USING_WINDOWS
     SetConsoleOutputCP(CP_UTF8);
 #endif
@@ -30,6 +43,7 @@ int main() {
     char buf[200]{};
     foundation::text::to_chars(buf, buf + 10, 11111);
     std::cout << buf << '\n';
+    
     /*rainy::foundation::concurrency::atomic<float> atomics = 10;
     std::cout << atomics << '\n';
     std::cout << atomics + 3.14f << '\n';

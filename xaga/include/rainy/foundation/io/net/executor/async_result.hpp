@@ -37,12 +37,12 @@ namespace rainy::foundation::io::net {
     template <typename CompletionToken, typename Signature>
     struct async_completion {
         using completion_handler_type =
-            async_result<type_traits::other_trans::decay_t<CompletionToken>, Signature>::completion_handler_type;
+            typename async_result<type_traits::other_trans::decay_t<CompletionToken>, Signature>::completion_handler_type;
         using handler =
             type_traits::other_trans::conditional_t<type_traits::type_relations::is_same_v<CompletionToken, completion_handler_type>,
                                                     completion_handler_type &, completion_handler_type>;
 
-        explicit async_completion(CompletionToken &t) : completion_handler(t) {
+        explicit async_completion(CompletionToken &t) : completion_handler(t), result(completion_handler) {
         }
 
         async_completion(const async_completion &) = delete;
@@ -51,6 +51,7 @@ namespace rainy::foundation::io::net {
         handler completion_handler;
         async_result<type_traits::other_trans::decay_t<CompletionToken>, Signature> result;
     };
+
 }
 
 #endif

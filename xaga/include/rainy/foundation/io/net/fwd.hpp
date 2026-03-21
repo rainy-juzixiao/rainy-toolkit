@@ -34,10 +34,10 @@ namespace rainy::foundation::io::net {
 
     class io_context;
 
-    template <class Clock>
+    template <typename Clock>
     struct wait_traits;
 
-    template <class Clock, class WaitTraits = wait_traits<Clock>>
+    template <typename Clock, typename WaitTraits = wait_traits<Clock>>
     class basic_waitable_timer;
 
     using system_timer = basic_waitable_timer<std::chrono::system_clock>;

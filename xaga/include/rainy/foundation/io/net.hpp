@@ -15,7 +15,10 @@
  */
 #ifndef RAINY_FOUNDATION_IO_NET_HPP
 #define RAINY_FOUNDATION_IO_NET_HPP
+
 #include <rainy/foundation/io/net/fwd.hpp>
 #include <rainy/foundation/io/net/executor.hpp>
+#include <rainy/foundation/io/net/io_context.hpp>
+#include <rainy/foundation/io/net/timer.hpp>
 
 #endif
