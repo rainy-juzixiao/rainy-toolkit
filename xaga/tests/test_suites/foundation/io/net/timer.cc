@@ -140,7 +140,7 @@ SCENARIO("expires_at and expires_after update the expiry and cancel pending wait
         io_context ctx;
         steady_timer t(ctx, 10s); // far future, won't fire during test
         std::atomic<bool> called{false};
-        std::atomic<std::error_code> received_ec{};
+        std::error_code received_ec{};
         t.async_wait([&](std::error_code ec) {
             received_ec = ec;
             called = true;
@@ -154,7 +154,7 @@ SCENARIO("expires_at and expires_after update the expiry and cancel pending wait
                 ctx.run();
                 THEN("the cancelled handler was called with operation_canceled") {
                     REQUIRE(called.load());
-                    REQUIRE(received_ec.load() == std::make_error_code(std::errc::operation_canceled));
+                    REQUIRE(received_ec == std::make_error_code(std::errc::operation_canceled));
                 }
             }
         }
@@ -166,7 +166,7 @@ SCENARIO("async_wait fires the handler after the timer expires", "[timer][async_
         io_context ctx;
         steady_timer t(ctx, 50ms);
         std::atomic<bool> fired{false};
-        std::atomic<std::error_code> received_ec{};
+        std::error_code received_ec{};
         WHEN("async_wait is registered and ctx.run() is called") {
             t.async_wait([&](std::error_code ec) {
                 received_ec = ec;
@@ -177,7 +177,7 @@ SCENARIO("async_wait fires the handler after the timer expires", "[timer][async_
             auto elapsed = std::chrono::steady_clock::now() - start;
             THEN("the handler was called with no error") {
                 REQUIRE(fired.load());
-                REQUIRE_FALSE(received_ec.load());
+                REQUIRE_FALSE(received_ec);
             }
             THEN("at least 50ms elapsed before run() returned") {
                 REQUIRE(elapsed >= 40ms); // allow 10ms under-measurement slack
@@ -235,7 +235,7 @@ SCENARIO("cancel() cancels all pending async_wait operations", "[timer][cancel]"
         io_context ctx;
         steady_timer t(ctx, 60s);
         std::atomic<bool> called{false};
-        std::atomic<std::error_code> received_ec{};
+        std::error_code received_ec{};
         t.async_wait([&](std::error_code ec) {
             received_ec = ec;
             called = true;
@@ -249,7 +249,7 @@ SCENARIO("cancel() cancels all pending async_wait operations", "[timer][cancel]"
                 ctx.run();
                 THEN("the handler was called with operation_canceled") {
                     REQUIRE(called.load());
-                    REQUIRE(received_ec.load() == std::make_error_code(std::errc::operation_canceled));
+                    REQUIRE(received_ec == std::make_error_code(std::errc::operation_canceled));
                 }
             }
         }

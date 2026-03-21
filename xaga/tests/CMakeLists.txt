@@ -37,9 +37,3 @@ if (MSVC AND NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         target_compile_options(rainy-toolkit-test PRIVATE /execution-charset:gbk)
     endif ()
 endif ()
-
-RAINY_GET_CXX_COMPILER_ID(COMPILER_ID)
-
-if (COMPLIER_ID MATCHES "GCC") 
-    target_link_libraries(rainy-toolkit-test PRIVATE atomic)
-endif ()
