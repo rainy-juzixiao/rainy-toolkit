@@ -44,22 +44,22 @@ namespace rainy::foundation::io::net {
     using steady_timer = basic_waitable_timer<std::chrono::steady_clock>;
     using high_resolution_timer = basic_waitable_timer<std::chrono::high_resolution_clock>;
 
-    template <class Protocol>
+    template <typename Protocol>
     class basic_socket;
 
-    template <class Protocol>
+    template <typename Protocol>
     class basic_datagram_socket;
 
-    template <class Protocol>
+    template <typename Protocol>
     class basic_stream_socket;
 
-    template <class Protocol>
+    template <typename Protocol>
     class basic_socket_acceptor;
 
-    template <class Protocol, class Clock = std::chrono::steady_clock, class WaitTraits = wait_traits<Clock>>
+    template <typename Protocol, typename Clock = std::chrono::steady_clock, typename WaitTraits = wait_traits<Clock>>
     class basic_socket_streambuf;
 
-    template <class Protocol, class Clock = std::chrono::steady_clock, class WaitTraits = wait_traits<Clock>>
+    template <typename Protocol, typename Clock = std::chrono::steady_clock, typename WaitTraits = wait_traits<Clock>>
     class basic_socket_iostream;
 }
 
@@ -68,12 +68,13 @@ namespace rainy::foundation::io::net::ip {
     class address_v4;
     class address_v6;
 
-    template <class Address>
+    template <typename Address>
     class basic_address_iterator;
+
     using address_v4_iterator = basic_address_iterator<address_v4>;
     using address_v6_iterator = basic_address_iterator<address_v6>;
 
-    template <class Address>
+    template <typename Address>
     class basic_address_range;
 
     using address_v4_range = basic_address_range<address_v4>;
@@ -81,17 +82,18 @@ namespace rainy::foundation::io::net::ip {
     class network_v4;
     class network_v6;
 
-    template <class InternetProtocol>
+    template <typename InternetProtocol>
     class basic_endpoint;
 
-    template <class InternetProtocol>
+    template <typename InternetProtocol>
     class basic_resolver_entry;
 
-    template <class InternetProtocol>
+    template <typename InternetProtocol>
     class basic_resolver_results;
-    template <class InternetProtocol>
 
+    template <typename InternetProtocol>
     class basic_resolver;
+    
     class tcp;
     class udp;
 }
