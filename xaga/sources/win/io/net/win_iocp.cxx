@@ -61,10 +61,33 @@ namespace rainy::foundation::io::net::implements {
         }
 
         void destroy() noexcept override {
-            if (iocp_handle_ != INVALID_HANDLE_VALUE) {
-                ::CloseHandle(iocp_handle_);
-                iocp_handle_ = INVALID_HANDLE_VALUE;
+            if (iocp_handle_ == INVALID_HANDLE_VALUE) {
+                return;
             }
+            stopped_.store(true, concurrency::memory_order_release);
+            int empty_count = 0;
+            while (empty_count < 2) {
+                DWORD bytes = 0;
+                ULONG_PTR key = 0;
+                OVERLAPPED *ov = nullptr;
+                ::GetQueuedCompletionStatus(iocp_handle_, &bytes, &key, &ov, 0);
+                if (ov == nullptr) {
+                    ++empty_count;
+                    continue;
+                }
+                empty_count = 0;
+                if (ov == reinterpret_cast<OVERLAPPED *>(&wakeup_op)) {
+                    continue;
+                }
+                if (key == COMPLETION_KEY_IMMEDIATE) {
+                    auto *op = reinterpret_cast<completion_op *>(ov);
+                    op_result r{op, 0, 0};
+                    op->complete(r, true);
+                }
+            }
+
+            ::CloseHandle(iocp_handle_);
+            iocp_handle_ = INVALID_HANDLE_VALUE;
         }
 
         void on_work_started() noexcept override {

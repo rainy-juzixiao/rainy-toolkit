@@ -182,7 +182,7 @@ namespace rainy::foundation::io::net {
                 for (auto &entry: queue_) {
                     if (!entry.cancelled) {
                         entry.cancelled = true;
-                        fire(entry, std::make_error_code(std::errc::operation_canceled));
+                        fire(entry, std::make_error_code(std::errc::operation_canceled), true);
                         ++count;
                     }
                 }
@@ -195,7 +195,7 @@ namespace rainy::foundation::io::net {
                 std::lock_guard<std::mutex> lock(mutex_);
                 for (auto it = queue_.begin(); it != queue_.end(); ++it) {
                     if (!it->cancelled) {
-                        fire(*it, std::make_error_code(std::errc::operation_canceled));
+                        fire(*it, std::make_error_code(std::errc::operation_canceled), true);
                         queue_.erase(it);
                         cv_.notify_all();
                         return 1;
@@ -205,19 +205,20 @@ namespace rainy::foundation::io::net {
             }
 
         private:
-            // 统一的投递函数：post 回调，并在 post 完成后减少工作计数
-            void fire(const wait_entry &entry, std::error_code ec) {
-                // 把 on_work_finished 也一并打包进 post 的 lambda，
-                // 保证回调执行后工作计数才减少，时序严格正确
+            void fire(const wait_entry &entry, std::error_code ec, bool from_cancel = false) {
                 auto handler = entry.handler;
                 auto executor = entry.executor;
-                executor.post(
-                    [handler, executor, ec]() mutable {
-                        handler(ec);
-                        // ★ 回调执行完毕，释放工作计数
-                        executor.on_work_finished();
-                    },
-                    std::allocator<void>{});
+                if (from_cancel) {
+                    handler(ec);
+                    executor.on_work_finished();
+                } else {
+                    executor.post(
+                        [handler, executor, ec]() mutable {
+                            handler(ec);
+                            executor.on_work_finished();
+                        },
+                        std::allocator<void>{});
+                }
             }
 
             void run() {

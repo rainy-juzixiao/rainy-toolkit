@@ -191,10 +191,12 @@ namespace rainy::foundation::io::net::implements {
             }
         }
 
-        concurrency::thrd_result associate_handle(completion_op *op, std::uintptr_t fd, void *extra) noexcept override {
+        concurrency::thrd_result associate_handle(completion_op *op, const std::uintptr_t fd, void *extra) noexcept override {
             (void) fd;
             (void) extra;
-            (void) op;
+            if (op) {
+                op->io_handle = &ring_;
+            }
             return concurrency::thrd_result::success;
         }
 

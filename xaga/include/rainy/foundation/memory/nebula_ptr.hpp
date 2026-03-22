@@ -112,6 +112,7 @@ namespace rainy::foundation::memory::implements {
         }
 
         RAINY_CONSTEXPR20 nebula_ptr_base &operator=(nebula_ptr_base &&right) noexcept {
+            this->reset();
             pair = right.pair;
             right.pair.second = nullptr;
             return *this;
@@ -122,6 +123,7 @@ namespace rainy::foundation::memory::implements {
                                                             type_traits::type_relations::is_convertible_v<UDx, Dx>,
                                                         int> = 0>
         RAINY_CONSTEXPR20 nebula_ptr_base &operator=(nebula_ptr_base<UTy, UDx> &&right) noexcept {
+            this->reset();
             pair = right.pair;
             right.pair.second = nullptr;
             return *this;

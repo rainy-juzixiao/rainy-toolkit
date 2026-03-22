@@ -15,8 +15,8 @@
  */
 #ifndef RAINY_FOUNDATION_IO_NET_BUFFER_HPP
 #define RAINY_FOUNDATION_IO_NET_BUFFER_HPP
-#include <rainy/core/core.hpp>
 #include <rainy/collections/vector.hpp>
+#include <rainy/core/core.hpp>
 #include <rainy/foundation/io/net/executor/async_result.hpp>
 #include <rainy/foundation/io/net/fwd.hpp>
 
@@ -966,7 +966,7 @@ namespace rainy::foundation::io::net {
 
     template <typename AsyncReadStream, typename DynamicBuffer, typename CompletionToken,
               type_traits::other_trans::enable_if_t<is_dynamic_buffer_v<DynamicBuffer>, int> = 0>
-    auto async_read_until(AsyncReadStream &s, DynamicBuffer &&b, char delim, CompletionToken &&token) ->
+    rain_fn async_read_until(AsyncReadStream &s, DynamicBuffer &&b, char delim, CompletionToken &&token) ->
         typename async_result<type_traits::other_trans::decay_t<CompletionToken>, void(std::error_code, std::size_t)>::return_type {
         using token_t = type_traits::other_trans::decay_t<CompletionToken>;
         async_completion<token_t, void(std::error_code, std::size_t)> init(token);
@@ -984,7 +984,7 @@ namespace rainy::foundation::io::net {
 
     template <typename AsyncReadStream, typename DynamicBuffer, typename CompletionToken,
               type_traits::other_trans::enable_if_t<is_dynamic_buffer_v<DynamicBuffer>, int> = 0>
-    auto async_read_until(AsyncReadStream &s, DynamicBuffer &&b, foundation::text::string_view delim, CompletionToken &&token) ->
+    rain_fn async_read_until(AsyncReadStream &s, DynamicBuffer &&b, foundation::text::string_view delim, CompletionToken &&token) ->
         typename async_result<type_traits::other_trans::decay_t<CompletionToken>, void(std::error_code, std::size_t)>::return_type {
         using token_t = type_traits::other_trans::decay_t<CompletionToken>;
         async_completion<token_t, void(std::error_code, std::size_t)> init(token);

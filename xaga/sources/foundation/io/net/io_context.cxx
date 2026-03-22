@@ -16,8 +16,8 @@
 #include <rainy/foundation/io/net/io_context.hpp>
 
 namespace rainy::foundation::io::net {
-    io_context::executor_type::executor_type(const executor_type &other) noexcept = default;
-    io_context::executor_type::executor_type(executor_type &&other) noexcept = default;
+    io_context::executor_type::executor_type(const executor_type &right) noexcept = default;
+    io_context::executor_type::executor_type(executor_type &&right) noexcept = default;
     io_context::executor_type &io_context::executor_type::operator=(const executor_type &) noexcept = default;
     io_context::executor_type &io_context::executor_type::operator=(executor_type &&) noexcept = default;
 
@@ -45,7 +45,10 @@ namespace rainy::foundation::io::net {
 
     io_context::~io_context() {
         shutdown();
+        impl_->stop();
+        impl_->destroy();
         destroy();
+        impl_.reset();
     }
 
     io_context::executor_type io_context::get_executor() noexcept {

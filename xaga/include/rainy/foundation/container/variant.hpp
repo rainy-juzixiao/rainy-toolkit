@@ -458,6 +458,7 @@ namespace rainy::foundation::container::implements {
                     utility::construct_in_place(this->storage(), type_traits::helper::integral_constant<std::size_t, source_t::idx>{},
                                                 utility::move(source.val));
                     this->idx = source_t::idx;
+                    right.template destroy<source_t::idx>();
                     right.idx = invalid_index;
                 }
             });
