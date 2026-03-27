@@ -21,9 +21,6 @@ using namespace rainy::foundation::io::net;
 namespace {
     static constexpr int af_inet = 2;
     static constexpr int sock_stream = 1;
-    static constexpr int sock_dgram = 2;
-    static constexpr int ipproto_tcp = 6;
-    static constexpr int ipproto_udp = 17;
 
     struct stub_endpoint {
         int af{af_inet};
@@ -46,6 +43,14 @@ namespace {
         using endpoint = stub_endpoint;
         using socket = basic_stream_socket<stub_protocol>;
 
+        static constexpr stub_protocol v4() noexcept {
+            return stub_protocol{};
+        }
+
+        static constexpr stub_protocol v6() noexcept {
+            return stub_protocol{};
+        }
+
         int family() const noexcept {
             return af_inet;
         }
@@ -60,6 +65,14 @@ namespace {
     struct stub_dgram_protocol {
         using endpoint = stub_endpoint;
         using socket = basic_datagram_socket<stub_dgram_protocol>;
+
+        static constexpr stub_dgram_protocol v4() noexcept {
+            return stub_dgram_protocol{}; // AF_INET, SOCK_DGRAM, 0
+        }
+
+        static constexpr stub_dgram_protocol v6() noexcept {
+            return stub_dgram_protocol{}; // AF_INET6, SOCK_DGRAM, 0
+        }
 
         int family() const noexcept {
             return af_inet;
@@ -392,10 +405,6 @@ SCENARIO("set_option and get_option round-trip SO_REUSEADDR", "[socket][basic_so
     }
 }
 
-// =============================================================================
-// FEATURE: basic_datagram_socket construction
-// =============================================================================
-
 SCENARIO("basic_datagram_socket can be opened and closed", "[socket][datagram_socket]") {
 
     GIVEN("an io_context and a default-constructed datagram socket") {
@@ -441,10 +450,6 @@ SCENARIO("basic_datagram_socket supports move semantics", "[socket][datagram_soc
         }
     }
 }
-
-// =============================================================================
-// FEATURE: basic_socket_acceptor construction and open/close
-// =============================================================================
 
 SCENARIO("basic_socket_acceptor can be opened and closed", "[socket][acceptor]") {
 

@@ -67,6 +67,69 @@ namespace rainy::foundation::io::net::implements {
     };
 
     template <typename Func>
+    class immediate_op final : public completion_op {
+    public:
+        template <typename Fx,
+                  type_traits::other_trans::enable_if_t<type_traits::type_properties::is_constructible_v<Func, Fx &&>, int> = 0>
+        explicit immediate_op(Fx &&func) noexcept(std::is_nothrow_constructible_v<Func, Fx &&>) :
+            completion_op(&do_complete), func_(utility::forward<Fx>(func)) {
+        }
+
+        immediate_op(const immediate_op &) = delete;
+        immediate_op &operator=(const immediate_op &) = delete;
+
+    private:
+        static void do_complete(completion_op *self, const op_result & /*result*/, bool is_cancelled) {
+            auto *op = static_cast<immediate_op *>(self);
+            Func func = utility::move(op->func_);
+            delete op;
+            if (!is_cancelled) {
+                func();
+            }
+        }
+
+        Func func_;
+    };
+
+    template <typename Func>
+    RAINY_NODISCARD immediate_op<std::decay_t<Func>> *make_immediate_op(Func &&func) {
+        return new immediate_op<std::decay_t<Func>>(utility::forward<Func>(func));
+    }
+
+    template <typename Func>
+    class io_completion_op final : public completion_op {
+    public:
+        template <typename Fx,
+                  type_traits::other_trans::enable_if_t<type_traits::type_properties::is_constructible_v<Func, Fx &&>, int> = 0>
+        explicit io_completion_op(Fx &&func) noexcept(std::is_nothrow_constructible_v<Func, Fx &&>) :
+            completion_op(&do_complete), func_(utility::forward<Fx>(func)) {
+        }
+
+        io_completion_op(const io_completion_op &) = delete;
+        io_completion_op &operator=(const io_completion_op &) = delete;
+
+    private:
+        static void do_complete(completion_op *self, const op_result &result, bool is_cancelled) {
+            auto *op = static_cast<io_completion_op *>(self);
+            Func func = utility::move(op->func_);
+            delete op;
+            func(result, is_cancelled);
+        }
+
+        Func func_;
+    };
+
+    template <typename Func>
+    RAINY_NODISCARD io_completion_op<std::decay_t<Func>> *make_io_completion_op(Func &&func) {
+        return new io_completion_op<std::decay_t<Func>>(utility::forward<Func>(func));
+    }
+
+    template <typename Func>
+    RAINY_NODISCARD immediate_op<std::decay_t<Func>> *make_function_op(Func &&func) {
+        return make_immediate_op(utility::forward<Func>(func));
+    }
+
+    template <typename Func>
     RAINY_NODISCARD function_completion_op<type_traits::other_trans::decay_t<Func>> *make_function_op(Func &&func) {
         return new function_completion_op<type_traits::other_trans::decay_t<Func>>(utility::forward<Func>(func));
     }

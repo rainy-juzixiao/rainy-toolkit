@@ -426,10 +426,6 @@ SCENARIO("run_for() returns when the timeout expires with no work",
     }
 }
 
-// =============================================================================
-// FEATURE: run_one_for() — time-bounded single completion
-// =============================================================================
-
 SCENARIO("run_one_for() returns when the timeout expires with no work",
          "[io_context][run_one_for]") {
 
@@ -451,10 +447,6 @@ SCENARIO("run_one_for() returns when the timeout expires with no work",
         }
     }
 }
-
-// =============================================================================
-// FEATURE: on_work_started / on_work_finished keeps run() alive
-// =============================================================================
 
 SCENARIO("on_work_started prevents run() from exiting prematurely",
          "[io_context][executor][work_count]") {

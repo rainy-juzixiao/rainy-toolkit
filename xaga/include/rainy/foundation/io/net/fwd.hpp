@@ -55,12 +55,6 @@ namespace rainy::foundation::io::net {
 
     template <typename Protocol>
     class basic_socket_acceptor;
-
-    template <typename Protocol, typename Clock = std::chrono::steady_clock, typename WaitTraits = wait_traits<Clock>>
-    class basic_socket_streambuf;
-
-    template <typename Protocol, typename Clock = std::chrono::steady_clock, typename WaitTraits = wait_traits<Clock>>
-    class basic_socket_iostream;
 }
 
 namespace rainy::foundation::io::net::ip {

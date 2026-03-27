@@ -22,6 +22,15 @@
 namespace rainy::foundation::io::net {
     class RAINY_TOOLKIT_API io_context : public execution_context {
     public:
+        template <typename Protocol>
+        friend class basic_socket;
+
+        template <typename AcceptableProtocol>
+        friend class basic_socket_acceptor;
+
+        template <typename Protocol>
+        friend class basic_stream_socket;
+
         class RAINY_TOOLKIT_API executor_type {
         public:
             executor_type(const executor_type &other) noexcept;
@@ -35,25 +44,25 @@ namespace rainy::foundation::io::net {
             void on_work_finished() const noexcept;
 
             template <typename Func, typename ProtoAllocator>
-            void dispatch(Func &&f, const ProtoAllocator &a) const {
+            void dispatch(Func &&f, const ProtoAllocator &) const {
                 if (running_in_this_thread()) {
                     utility::forward<Func>(f)();
                     return;
                 }
-                auto *op = implements::make_function_op(std::forward<Func>(f));
-                ctx_->impl_->post_immediate_completion(op, /*is_continuation=*/false);
+                auto *op = implements::make_immediate_op(utility::forward<Func>(f));
+                ctx_->impl_->post_immediate_completion(op, false);
             }
 
             template <typename Func, typename ProtoAllocator>
-            void post(Func &&f, const ProtoAllocator &a) const {
-                auto *op = implements::make_function_op(std::forward<Func>(f));
-                ctx_->impl_->post_immediate_completion(op, /*is_continuation=*/false);
+            void post(Func &&f, const ProtoAllocator &) const {
+                auto *op = implements::make_immediate_op(utility::forward<Func>(f));
+                ctx_->impl_->post_immediate_completion(op, false);
             }
 
             template <typename Func, typename ProtoAllocator>
-            void defer(Func &&f, const ProtoAllocator &a) const {
-                auto *op = implements::make_function_op(std::forward<Func>(f));
-                ctx_->impl_->post_immediate_completion(op, /*is_continuation=*/true);
+            void defer(Func &&f, const ProtoAllocator &) const {
+                auto *op = implements::make_immediate_op(utility::forward<Func>(f));
+                ctx_->impl_->post_immediate_completion(op, true);
             }
 
         private:

@@ -217,7 +217,7 @@ namespace rainy::foundation::io::net {
             cur_src = const_buffer(*sit);
 
         while (copied < max_size && cur_dest.size() > 0 && cur_src.size() > 0) {
-            std::size_t count = (core::min)({cur_dest.size(), cur_src.size(), max_size - copied});
+            std::size_t count = (core::min) ({cur_dest.size(), cur_src.size(), max_size - copied});
             std::memcpy(cur_dest.data(), cur_src.data(), count);
             copied += count;
             cur_dest += count;
@@ -274,7 +274,7 @@ namespace rainy::foundation::io::net {
     }
 
     inline mutable_buffer buffer(const mutable_buffer &b, std::size_t count) noexcept {
-        return {b.data(), (std::min)(b.size(), count)};
+        return {b.data(), (core::min) (b.size(), count)};
     }
 
     inline const_buffer buffer(const const_buffer &b) noexcept {
@@ -282,7 +282,7 @@ namespace rainy::foundation::io::net {
     }
 
     inline const_buffer buffer(const const_buffer &b, std::size_t count) noexcept {
-        return {b.data(), (std::min)(b.size(), count)};
+        return {b.data(), (core::min) (b.size(), count)};
     }
 
     template <typename Ty, std::size_t N>
@@ -337,32 +337,32 @@ namespace rainy::foundation::io::net {
 
     template <typename Ty, std::size_t N>
     mutable_buffer buffer(Ty (&data)[N], std::size_t count) noexcept {
-        return {data, (std::min)(N * sizeof(Ty), count)};
+        return {data, (core::min) (N * sizeof(Ty), count)};
     }
 
     template <typename Ty, std::size_t N>
     const_buffer buffer(const Ty (&data)[N], std::size_t count) noexcept {
-        return {data, (std::min)(N * sizeof(Ty), count)};
+        return {data, (core::min) (N * sizeof(Ty), count)};
     }
 
     template <typename Ty, std::size_t N>
     mutable_buffer buffer(collections::array<Ty, N> &data, std::size_t count) noexcept {
-        return {data.data(), (std::min)(N * sizeof(Ty), count)};
+        return {data.data(), (core::min) (N * sizeof(Ty), count)};
     }
 
     template <typename Ty, std::size_t N>
     const_buffer buffer(collections::array<const Ty, N> &data, std::size_t count) noexcept {
-        return {data.data(), (std::min)(N * sizeof(Ty), count)};
+        return {data.data(), (core::min) (N * sizeof(Ty), count)};
     }
 
     template <typename Ty, std::size_t N>
     const_buffer buffer(const collections::array<Ty, N> &data, std::size_t count) noexcept {
-        return {data.data(), (std::min)(N * sizeof(Ty), count)};
+        return {data.data(), (core::min) (N * sizeof(Ty), count)};
     }
 
     template <typename CharType, typename Traits>
     const_buffer buffer(foundation::text::basic_string_view<CharType, Traits> data, std::size_t count) noexcept {
-        return {data.data(), (std::min)(data.size() * sizeof(CharType), count)};
+        return {data.data(), (core::min) (data.size() * sizeof(CharType), count)};
     }
 }
 
@@ -408,11 +408,11 @@ namespace rainy::foundation::io::net {
         }
 
         void commit(std::size_t count) {
-            size_ += (std::min)(count, vec_.size() - size_);
+            size_ += (core::min) (count, vec_.size() - size_);
         }
 
         void consume(std::size_t count) {
-            std::size_t consume_count = (std::min)(count / sizeof(Ty), size_);
+            std::size_t consume_count = (core::min) (count / sizeof(Ty), size_);
             vec_.erase(vec_.begin(), vec_.begin() + static_cast<std::ptrdiff_t>(consume_count));
             size_ -= consume_count;
         }
@@ -464,11 +464,11 @@ namespace rainy::foundation::io::net {
         }
 
         void commit(std::size_t count) noexcept {
-            size_ += (std::min)(count, str_.size() - size_);
+            size_ += (core::min) (count, str_.size() - size_);
         }
 
         void consume(std::size_t count) {
-            std::size_t erase_count = (std::min)(count / sizeof(CharType), size_);
+            std::size_t erase_count = (core::min) (count / sizeof(CharType), size_);
             str_.erase(0, erase_count);
             size_ -= erase_count;
         }
@@ -531,7 +531,7 @@ namespace rainy::foundation::io::net {
         }
 
         std::size_t operator()(const std::error_code &ec, std::size_t count) const {
-            return (!ec && count < exact_) ? (std::min)(exact_ - count, std::numeric_limits<std::size_t>::max()) : 0;
+            return (!ec && count < exact_) ? (core::min) (exact_ - count, std::numeric_limits<std::size_t>::max()) : 0;
         }
 
     private:
@@ -546,15 +546,15 @@ namespace rainy::foundation::io::net {
                      std::error_code &ec) {
         ec.clear();
         std::size_t total = 0;
-        std::size_t buf_size = buffer_size(buffers);
+        const std::size_t buf_size = buffer_size(buffers);
         rain_loop {
             std::size_t to_read = completion_condition(ec, total);
             if (to_read == 0 || total >= buf_size) {
                 break;
             }
-            to_read = (std::min)(to_read, buf_size - total);
+            to_read = (core::min) (to_read, buf_size - total);
             mutable_buffer slice = buffer(buffers) + total;
-            std::size_t count = stream.read_some(slice, ec);
+            const std::size_t count = stream.read_some(slice, ec);
             total += count;
             if (ec || count == 0) {
                 break;
@@ -600,7 +600,7 @@ namespace rainy::foundation::io::net {
             if (available == 0) {
                 break;
             }
-            to_read = (std::min)(to_read, available);
+            to_read = (core::min) (to_read, available);
             mutable_buffer mb = b.prepare(to_read);
             std::error_code read_ec;
             std::size_t count = stream.read_some(mb, read_ec);
@@ -667,7 +667,7 @@ namespace rainy::foundation::io::net {
               type_traits::other_trans::enable_if_t<!is_dynamic_buffer_v<ConstBufferSequence>, int> = 0>
     std::size_t write(SyncWriteStream &stream, const ConstBufferSequence &buffers, CompletionCondition completion_condition) {
         std::error_code ec;
-        std::size_t count = write(stream, buffers, completion_condition, ec);
+        const std::size_t count = write(stream, buffers, completion_condition, ec);
         if (ec) {
             throw std::system_error(ec, "write");
         }
@@ -718,8 +718,9 @@ namespace rainy::foundation::io::net {
     std::size_t write(SyncWriteStream &stream, DynamicBuffer &&b, CompletionCondition completion_condition) {
         std::error_code ec;
         std::size_t count = write(stream, utility::forward<DynamicBuffer>(b), completion_condition, ec);
-        if (ec)
+        if (ec) {
             throw std::system_error(ec, "write");
+        }
         return count;
     }
 
@@ -784,7 +785,7 @@ namespace rainy::foundation::io::net {
                 if (to_read == 0) {
                     break;
                 }
-                to_read = (core::min)(to_read, buf.max_size() - buf.size());
+                to_read = (core::min) (to_read, buf.max_size() - buf.size());
                 if (to_read == 0) {
                     ec = make_error_code(stream_errc::eof);
                     break;
@@ -823,13 +824,14 @@ namespace rainy::foundation::io::net {
             std::error_code ec;
             std::size_t total = 0;
             rain_loop {
-                std::size_t to_write = completion_condition(ec, total);
-                if (to_write == 0)
+                if (const std::size_t to_write = completion_condition(ec, total); to_write == 0) {
                     break;
-                std::size_t count = stream.write_some(buffer(buffers) + total, ec);
+                }
+                const std::size_t count = stream.write_some(buffer(buffers) + total, ec);
                 total += count;
-                if (ec || count == 0)
+                if (ec || count == 0) {
                     break;
+                }
             }
             handler(ec, total);
         };
@@ -856,7 +858,7 @@ namespace rainy::foundation::io::net {
             std::error_code ec;
             std::size_t total = 0;
             rain_loop {
-                std::size_t to_write = completion_condition(ec, total);
+                const std::size_t to_write = completion_condition(ec, total);
                 if (to_write == 0) {
                     break;
                 }
@@ -893,9 +895,8 @@ namespace rainy::foundation::io::net::implements {
         rain_loop {
             // 在已提交数据中搜索分隔符
             auto committed = b.data();
-            const char *begin = static_cast<const char *>(committed.data());
-            const char *end = begin + committed.size();
-
+            const auto *begin = static_cast<const char *>(committed.data());
+            const auto *end = begin + committed.size();
             if constexpr (std::is_same_v<Delim, char>) {
                 auto pos = std::find(begin + search_start, end, delim);
                 if (pos != end) {
@@ -914,7 +915,7 @@ namespace rainy::foundation::io::net::implements {
                 ec = make_error_code(stream_errc::not_found);
                 return b.size();
             }
-            std::size_t avail = (std::min)(std::size_t{512}, b.max_size() - b.size());
+            std::size_t avail = (core::min) (std::size_t{512}, b.max_size() - b.size());
             auto mb = b.prepare(avail);
             std::size_t count = s.read_some(mb, ec);
             b.commit(count);
@@ -957,7 +958,7 @@ namespace rainy::foundation::io::net {
               type_traits::other_trans::enable_if_t<is_dynamic_buffer_v<DynamicBuffer>, int> = 0>
     std::size_t read_until(SyncReadStream &s, DynamicBuffer &&b, foundation::text::string_view delim) {
         std::error_code ec;
-        std::size_t count = read_until(s, utility::forward<DynamicBuffer>(b), delim, ec);
+        const std::size_t count = read_until(s, utility::forward<DynamicBuffer>(b), delim, ec);
         if (ec) {
             throw std::system_error(ec, "read_until");
         }
@@ -1002,7 +1003,7 @@ namespace rainy::foundation::io::net {
     }
 }
 
-namespace std {
+namespace std { // NOLINT
     template <>
     struct is_error_code_enum<rainy::foundation::io::net::stream_errc> : public true_type {};
 }

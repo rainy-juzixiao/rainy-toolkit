@@ -71,7 +71,7 @@ namespace rainy::collections {
      *           数组大小
      */
     template <typename Ty, std::size_t N>
-    class array final {
+    class array {
     public:
         using value_type = Ty;
         using size_type = std::size_t;
@@ -835,6 +835,39 @@ namespace rainy::collections {
          */
         constexpr rain_fn access_carrays() const noexcept -> const carray_type & {
             return elements;
+        }
+
+        /**
+         * @brief Copy assignment operator.
+         *        拷贝赋值运算符。
+         *
+         * @param right The source array to copy from.
+         * @param right 要拷贝的源数组。
+         *
+         * @return Reference to the current array object.
+         * @return 返回当前数组对象的引用。
+         */
+        constexpr rain_fn operator=(const array &right)->array & {
+            core::algorithm::copy(right.begin(), right.end(), elements);
+            return *this;
+        }
+
+        /**
+         * @brief Move assignment operator.
+         *        移动赋值运算符。
+         *
+         * @param right The source array to move from.
+         * @param right 要移动的源数组。
+         *
+         * @return Reference to the current array object.
+         * @return 返回当前数组对象的引用。
+         *
+         * @note This operator is noexcept if the type Ty is move-assignable.
+         * @note 如果类型 Ty 支持移动赋值，则该运算符为 noexcept。
+         */
+        constexpr rain_fn operator=(array &&right) noexcept(type_traits::type_properties::is_move_assignable_v<Ty>)->array & {
+            core::algorithm::move(right.begin(), right.end(), elements);
+            return *this;
         }
 
         /**

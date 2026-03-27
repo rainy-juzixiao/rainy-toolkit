@@ -57,7 +57,9 @@ namespace rainy::foundation::io::net::implements {
         linux_socket_impl() = default;
 
         ~linux_socket_impl() override {
-            if (is_open()) close();
+            if (is_open()) {
+                close();
+            }
         }
 
         std::error_code open(int af, int type, int proto) noexcept override {
@@ -160,7 +162,9 @@ namespace rainy::foundation::io::net::implements {
             int ret = ::getsockname(fd_,
                                     reinterpret_cast<::sockaddr *>(ep.data),
                                     &len);
-            if (ret == 0) ep.size = static_cast<std::size_t>(len);
+            if (ret == 0) {
+                ep.size = static_cast<std::size_t>(len);
+            }
             return ret == 0 ? std::error_code{} : posix_error();
         }
 
