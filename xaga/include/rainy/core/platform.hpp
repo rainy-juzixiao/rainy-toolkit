@@ -455,7 +455,7 @@ static_assert(false, "We detected you are using C++14 and below, and the library
 #define RAINY_STAMP(n, x) x(RAINY_STAMP##n, n)
 
 #define rain_fn auto
-#define rain_loop for (;;) 
+#define rain_loop for (;;)
 
 #define RAINY_TOOLKIT_VERSION                                                                                                         \
     "rainy-toolkit:" RAINY_STRINGIFY(RAINY_TOOLKIT_PROJECT_MAJOR) "." RAINY_STRINGIFY(                                                \
@@ -844,7 +844,7 @@ namespace rainy::core::builtin {
      * @return Ty* 构造完成的对象指针，如果 location 为空则返回 nullptr
      */
     template <typename Ty, typename... Args>
-    RAINY_CONSTEXPR20 rain_fn construct_at(Ty *location, Args &&...args) noexcept(noexcept(::new(static_cast<void *>(location))
+    RAINY_CONSTEXPR20 rain_fn construct_at(Ty *location, Args &&...args) noexcept(noexcept(::new (static_cast<void *>(location))
                                                                                                Ty(builtin::forward<Args>(args)...)))
         -> Ty * {
         if (!location) {
@@ -1778,7 +1778,7 @@ namespace rainy::core::builtin {
      *         如果值近似相等则返回 true，否则返回 false
      */
     static RAINY_INLINE rain_fn almost_equal(double p1, double p2) -> bool {
-        return (std::abs(p1 - p2) * 1000000000000. <= (core::min)(std::abs(p1), std::abs(p2)));
+        return (std::abs(p1 - p2) * 1000000000000. <= (core::min) (std::abs(p1), std::abs(p2)));
     }
 }
 
@@ -2387,6 +2387,21 @@ namespace rainy::utility {
 
     template <>
     struct floating_type_traits<long double> : floating_type_traits<double> {};
+}
+
+namespace rainy::utility::implements {
+    struct ignore_type {
+        explicit ignore_type() = default;
+
+        template <typename Ty>
+        constexpr const ignore_type &operator=(const Ty &) const noexcept { // NOLINT
+            return *this;
+        }
+    };
+}
+
+namespace rainy::utility {
+    inline constexpr implements::ignore_type ignore{};
 }
 
 #endif

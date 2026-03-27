@@ -14,10 +14,6 @@ using namespace rainy::foundation::text;
 using Catch::Matchers::WithinAbs;
 using Catch::Matchers::WithinRel;
 
-// ============================================================================
-// 整数 to_chars 极限测试
-// ============================================================================
-
 SCENARIO("Integer to_chars - All signed types boundaries", "[to_chars][integer][extreme]") {
     char buffer[256];
 
