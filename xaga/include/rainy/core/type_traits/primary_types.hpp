@@ -17,6 +17,7 @@
 #define RAINY_CORE_TYPE_TRAITS_PRIMARY_TYPES_HPP
 #include <rainy/core/platform.hpp>
 #include <rainy/core/type_traits/implements.hpp>
+#include <rainy/core/type_traits/modifers.hpp>
 
 namespace rainy::type_traits::primary_types {
     /**

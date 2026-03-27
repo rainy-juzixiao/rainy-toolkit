@@ -16,9 +16,9 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_exception.hpp>
 #include <catch2/matchers/catch_matchers_all.hpp>
-#include <rainy/text/string_view.hpp>
+#include <rainy/core/core.hpp>
 
-using rainy::text::string_view;
+using rainy::foundation::text::string_view;
 
 SCENARIO("basic_string_view default construction and pointer/size behavior", "[basic_string_view]") {
     GIVEN("A default constructed string_view") {

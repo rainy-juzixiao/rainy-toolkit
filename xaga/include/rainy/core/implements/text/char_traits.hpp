@@ -1,10 +1,25 @@
-#ifndef RAINY_FOUNDATION_TEXT_CHAR_TRAITS_HPP
-#define RAINY_FOUNDATION_TEXT_CHAR_TRAITS_HPP
-#include <rainy/text/format_wrapper.hpp>
-#include <rainy/foundation/diagnostics/contract.hpp>
-#include <rainy/core/core.hpp>
+/*
+ * Copyright 2026 rainy-juzixiao
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+#ifndef RAINY_CORE_IMPLEMENTS_TEXT_CHAR_TRAITS_HPP
+#define RAINY_CORE_IMPLEMENTS_TEXT_CHAR_TRAITS_HPP
+#include <rainy/core/implements/collections/array.hpp>
+#include <rainy/core/implements/collections/array_view.hpp>
+#include <rainy/core/platform.hpp>
 
-namespace rainy::text {
+namespace rainy::foundation::text {
     template <typename Elem>
     struct char_traits {
         using char_type = Elem;
@@ -113,7 +128,16 @@ namespace rainy::text {
         }
 
         static constexpr size_type length(const char_type *string) {
-            return core::builtin::string_length(string);
+            if constexpr (type_traits::implements::is_same_v<char, char_type> ||
+                          type_traits::implements::is_same_v<wchar_t, char_type>) {
+                return core::builtin::string_length(string);
+            } else {
+                size_type length{};
+                for (; *string != '\0'; ++string, ++length) {
+                    ;
+                }
+                return length;
+            }
         }
 
         RAINY_NODISCARD static RAINY_CONSTEXPR20 const char_type *find(const char_type *string, std::size_t count,
@@ -209,7 +233,8 @@ namespace rainy::text {
             return move(to.data(), from, count);
         }
 
-        static RAINY_CONSTEXPR20 char_type *move(rainy::collections::views::array_view<char_type> &to, const char_type *from, const size_type count) {
+        static RAINY_CONSTEXPR20 char_type *move(rainy::collections::views::array_view<char_type> &to, const char_type *from,
+                                                 const size_type count) {
             if (to.size() < count || to.empty()) {
                 return nullptr;
             }
@@ -240,7 +265,7 @@ namespace rainy::text {
         }
 
         static RAINY_CONSTEXPR20 char_type *copy(char_type *const string1, const char_type *const string2,
-                                        const size_type count) noexcept /* strengthened */ {
+                                                 const size_type count) noexcept /* strengthened */ {
 #if RAINY_HAS_CXX20
             if (std::is_constant_evaluated()) {
                 for (std::size_t idx = 0; idx != count; ++idx) {

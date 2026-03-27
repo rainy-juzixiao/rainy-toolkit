@@ -1,4 +1,5 @@
 #include <rainy/foundation/network/config.hpp>
+#include <rainy/foundation/network/config.hpp>
 
 namespace rainy::foundation::network::implements {
     collections::dense_map<text::hashed_string, std::string_view> &content_type_map() {

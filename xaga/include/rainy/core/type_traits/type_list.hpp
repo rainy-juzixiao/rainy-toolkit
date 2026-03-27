@@ -312,9 +312,7 @@ namespace rainy::type_traits::other_trans {
      */
     template <typename Front, typename... Rest>
     struct type_list_pop_front<type_list<Front, Rest...>> {
-    public:
-        using tail_type = typename type_list_pop_front<type_list<Rest...>>::type;
-        using type = typename type_list_push_front<tail_type, Front>::type;
+        using type = type_list<Rest...>;
     };
 
     /**
@@ -1006,6 +1004,21 @@ namespace rainy::type_traits::other_trans {
      */
     template <typename List>
     using unique_type_list_t = typename unique_type_list<List>::type;
+}
+
+namespace rainy::type_traits::other_trans {
+    template <size_t Size, typename TypeList>
+    struct select_type;
+
+    template <size_t Size, typename First, typename... Rest>
+    struct select_type<Size, type_list<First, Rest...>> {
+        using type = std::conditional_t<(Size <= sizeof(First)), First, typename select_type<Size, type_list<Rest...>>::type>;
+    };
+
+    template <size_t Size>
+    struct select_type<Size, type_list<>> {
+        using type = void;
+    };
 }
 
 #endif
