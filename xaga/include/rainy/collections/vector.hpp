@@ -77,7 +77,8 @@ namespace rainy::collections {
             }
         }
 
-        template <typename InputIter>
+        template <typename InputIter,
+                  type_traits::other_trans::enable_if_t<type_traits::extras::iterators::is_input_iterator_v<InputIter>, int> = 0>
         RAINY_CONSTEXPR20 vector(InputIter first, InputIter last, const allocator_type &alloc = allocator_type()) : pair(alloc, {}) {
             auto &allocator = get_al();
             auto &object = vec_object();
@@ -400,7 +401,7 @@ namespace rainy::collections {
             }
         }
 
-        RAINY_CONSTEXPR20 void reserve(size_type count) {
+RAINY_CONSTEXPR20 void reserve(size_type count) {
             if (count <= capacity()) {
                 return;
             }
@@ -408,12 +409,34 @@ namespace rainy::collections {
             auto &object = vec_object();
             const size_type cur_size = size();
             pointer new_start = std::allocator_traits<allocator_type>::allocate(allocator, count);
+            struct guard {
+                allocator_type &alloc;
+                pointer ptr;
+                pointer finish;
+                size_type capacity;
+
+                guard(allocator_type &a, pointer p, size_type cap) : alloc(a), ptr(p), finish(p), capacity(cap) {
+                }
+
+                ~guard() {
+                    if (ptr) {
+                        for (pointer p = ptr; p != finish; ++p) {
+                            std::allocator_traits<allocator_type>::destroy(alloc, p);
+                        }
+                        std::allocator_traits<allocator_type>::deallocate(alloc, ptr, capacity);
+                    }
+                }
+
+                void release() {
+                    ptr = nullptr;
+                }
+            } guard(allocator, new_start, count);
             pointer new_finish = new_start;
             for (pointer p = object.start; p != object.finish; ++p) {
                 std::allocator_traits<allocator_type>::construct(allocator, new_finish, utility::move_if_noexcept(*p));
                 ++new_finish;
+                guard.finish = new_finish;
             }
-            // 销毁旧元素并释放旧内存
             for (pointer p = object.start; p != object.finish; ++p) {
                 std::allocator_traits<allocator_type>::destroy(allocator, p);
             }
@@ -424,6 +447,7 @@ namespace rainy::collections {
             object.start = new_start;
             object.finish = new_finish;
             object.end_of_storage = new_start + count;
+            guard.release();
         }
 
         RAINY_CONSTEXPR20 void shrink_to_fit() {
@@ -572,7 +596,7 @@ namespace rainy::collections {
             const size_type offset = static_cast<size_type>(position - object.start);
             const size_type cur_size = size();
             if (cur_size + count > capacity()) {
-                const size_type new_cap = std::max(cur_size + count, capacity() * 2);
+                const size_type new_cap = (core::max)(cur_size + count, capacity() * 2);
                 reserve(new_cap);
             }
             pointer pos = object.start + offset;

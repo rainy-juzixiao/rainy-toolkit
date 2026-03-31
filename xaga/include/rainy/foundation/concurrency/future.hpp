@@ -59,9 +59,9 @@
 #include <functional>
 #include <future>
 #include <memory>
+#include <rainy/foundation/concurrency/basic/scheduler.hpp>
 #include <rainy/foundation/concurrency/condition_variable.hpp>
 #include <rainy/foundation/concurrency/mutex.hpp>
-#include <rainy/foundation/concurrency/basic/scheduler.hpp>
 #include <rainy/foundation/functional/delegate.hpp>
 #include <rainy/foundation/memory/nebula_ptr.hpp>
 #include <variant>
@@ -170,26 +170,6 @@ namespace rainy::foundation::concurrency {
             }
             cv_.notify_all();
             drain(utility::move(to_drain));
-        }
-
-        void set_value_at_thread_exit(Ty value) {
-            {
-                lock_guard lk(mutex_);
-                throw_if_already_satisfied();
-                result_.template emplace<1>(utility::move(value));
-                status_ = status::fulfilling_at_exit;
-            }
-            register_thread_exit([self = this->shared_from_this()]() mutable { self->flush_at_exit(); });
-        }
-
-        void set_exception_at_thread_exit(std::exception_ptr ep) {
-            {
-                lock_guard lk(mutex_);
-                throw_if_already_satisfied();
-                result_.template emplace<2>(utility::move(ep));
-                status_ = status::rejecting_at_exit;
-            }
-            register_thread_exit([self = this->shared_from_this()]() mutable { self->flush_at_exit(); });
         }
 
         void set_deferred(functional::delegate<void()> fn) {
@@ -351,8 +331,6 @@ namespace rainy::foundation::concurrency {
             }
         }
 
-        static void register_thread_exit(functional::delegate<void()> fn);
-
         mutable mutex mutex_;
         mutable condition_variable cv_;
         mutable functional::delegate<void()> deferred_fn_;
@@ -361,46 +339,6 @@ namespace rainy::foundation::concurrency {
         std::vector<functional::delegate<void()>> continuations_;
         std::variant<std::monostate, Ty, std::exception_ptr> result_;
     };
-}
-
-namespace rainy::foundation::concurrency::implements {
-    struct thread_exit_registry {
-        ~thread_exit_registry() {
-            node *cur = head;
-            while (cur) {
-                cur->cb();
-                cur->cb.reset();
-                node *next = cur->next;
-                delete cur;
-                cur = next;
-            }
-            head = nullptr;
-        }
-
-        void push(functional::delegate<void()> cb) {
-            node *n = new node{std::move(cb), head};
-            head = n;
-        }
-
-        struct node {
-            functional::delegate<void()> cb;
-            node *next;
-        };
-
-        node *head = nullptr;
-    };
-
-    static thread_exit_registry &get_tl_exit_registry() {
-        static thread_local thread_exit_registry instance;
-        return instance;
-    }
-}
-
-namespace rainy::foundation::concurrency {
-    template <typename Ty>
-    void shared_state<Ty>::register_thread_exit(functional::delegate<void()> fn) {
-        implements::get_tl_exit_registry().push(utility::move(fn));
-    }
 }
 
 namespace rainy::foundation::concurrency {
@@ -449,25 +387,6 @@ namespace rainy::foundation::concurrency {
             }
             cv_.notify_all();
             drain(utility::move(to_drain));
-        }
-
-        void set_value_at_thread_exit() {
-            {
-                lock_guard lk(mutex_);
-                throw_if_already_satisfied();
-                status_ = status::fulfilling_at_exit;
-            }
-            implements::get_tl_exit_registry().push([self = this->shared_from_this()] { self->flush_at_exit(); });
-        }
-
-        void set_exception_at_thread_exit(std::exception_ptr ep) {
-            {
-                lock_guard lk(mutex_);
-                throw_if_already_satisfied();
-                exception_ = utility::move(ep);
-                status_ = status::rejecting_at_exit;
-            }
-            implements::get_tl_exit_registry().push([self = this->shared_from_this()] { self->flush_at_exit(); });
         }
 
         void wait() const {
@@ -524,12 +443,12 @@ namespace rainy::foundation::concurrency {
             lock_guard lk(mutex_);
             return status_ == status::deferred;
         }
-        
+
         bool is_fulfilled() const {
             lock_guard lk(mutex_);
             return status_ == status::fulfilled;
         }
-        
+
         bool is_rejected() const {
             lock_guard lk(mutex_);
             return status_ == status::rejected;
@@ -629,7 +548,7 @@ namespace rainy::foundation::concurrency {
 namespace rainy::foundation::concurrency {
     template <typename Ty>
     std::shared_ptr<shared_state<Ty>> make_shared_state() {
-        return std::make_shared<shared_state<Ty>>();
+        return std::shared_ptr<shared_state<Ty>>(new shared_state<Ty>());
     }
 }
 
@@ -1350,21 +1269,6 @@ namespace rainy::foundation::concurrency {
             state_->set_exception(utility::move(p));
         }
 
-        void set_value_at_thread_exit(const Ty &v) {
-            ensure_state();
-            state_->set_value_at_thread_exit(v);
-        }
-
-        void set_value_at_thread_exit(Ty &&v) {
-            ensure_state();
-            state_->set_value_at_thread_exit(utility::move(v));
-        }
-
-        void set_exception_at_thread_exit(std::exception_ptr p) {
-            ensure_state();
-            state_->set_exception_at_thread_exit(utility::move(p));
-        }
-
     private:
         void ensure_state() const {
             if (!state_) {
@@ -1408,7 +1312,9 @@ namespace rainy::foundation::concurrency {
             swap(tmp);
             return *this;
         }
+
         promise &operator=(const promise &) = delete;
+        
         void swap(promise &other) noexcept {
             std::swap(state_, other.state_);
             std::swap(future_retrieved_, other.future_retrieved_);
@@ -1442,24 +1348,12 @@ namespace rainy::foundation::concurrency {
             }
             state_->set_value();
         }
+
         void set_exception(std::exception_ptr p) { // NOLINT
             if (!state_) {
                 throw std::future_error(std::future_errc::no_state);
             }
             state_->set_exception(utility::move(p));
-        }
-        void set_value_at_thread_exit() { // NOLINT
-            if (!state_) {
-                throw std::future_error(std::future_errc::no_state);
-            }
-            state_->set_value_at_thread_exit();
-        }
-
-        void set_exception_at_thread_exit(std::exception_ptr p) { // NOLINT
-            if (!state_) {
-                throw std::future_error(std::future_errc::no_state);
-            }
-            state_->set_exception_at_thread_exit(utility::move(p));
         }
 
     private:
@@ -1562,25 +1456,13 @@ namespace rainy::foundation::concurrency {
             try {
                 if constexpr (std::is_void_v<Rx>) {
                     func_(utility::forward<Args>(args)...);
-                    if (at_thread_exit) {
-                        st->set_value_at_thread_exit();
-                    } else {
-                        st->set_value();
-                    }
+                    st->set_value();
                 } else {
                     Rx result = func_(utility::forward<Args>(args)...);
-                    if (at_thread_exit) {
-                        st->set_value_at_thread_exit(utility::move(result));
-                    } else {
-                        st->set_value(utility::move(result));
-                    }
+                    st->set_value(utility::move(result));
                 }
             } catch (...) {
-                if (at_thread_exit) {
-                    st->set_exception_at_thread_exit(std::current_exception());
-                } else {
-                    st->set_exception(std::current_exception());
-                }
+                st->set_exception(std::current_exception());
             }
         }
 
