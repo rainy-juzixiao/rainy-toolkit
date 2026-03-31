@@ -120,6 +120,18 @@ namespace rainy::foundation::concurrency {
             return get_scheduler()->traits();
         }
 
+        RAINY_NODISCARD bool stopped() const noexcept {
+            return  get_scheduler()->stopped();
+        }
+
+        void stop() noexcept { // NOLINT
+            get_scheduler()->stop();
+        }
+
+        void join() noexcept { // NOLINT
+            get_scheduler()->join();
+        }
+
     private:
         RAINY_NODISCARD task_scheduler *get_scheduler() const noexcept {
             return owned_ ? owned_.get() : borrowed_;

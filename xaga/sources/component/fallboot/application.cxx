@@ -151,7 +151,7 @@ namespace rainy::component::fallboot {
             this->config_path_ = config_path;
         }
 
-        text::string app_name_{"that-fallboot"};
+        foundation::text::string app_name_{"that-fallboot"};
         std::optional<std::filesystem::path> config_path_;
     };
 

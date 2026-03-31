@@ -139,6 +139,12 @@ clang和GNU编译器区域
 #define RAINY_CONSTEXPR20
 #endif
 
+#if RAINY_HAS_CXX23
+#define RAINY_CONSTEXPR23 constexpr
+#else
+#define RAINY_CONSTEXPR23
+#endif
+
 #ifndef RAINY_NODISCARD_CONSTEXPR20
 #define RAINY_NODISCARD_CONSTEXPR20 RAINY_NODISCARD RAINY_CONSTEXPR20
 #endif
@@ -449,7 +455,7 @@ static_assert(false, "We detected you are using C++14 and below, and the library
 #define RAINY_STAMP(n, x) x(RAINY_STAMP##n, n)
 
 #define rain_fn auto
-#define rain_loop for (;;) 
+#define rain_loop for (;;)
 
 #define RAINY_TOOLKIT_VERSION                                                                                                         \
     "rainy-toolkit:" RAINY_STRINGIFY(RAINY_TOOLKIT_PROJECT_MAJOR) "." RAINY_STRINGIFY(                                                \
@@ -838,7 +844,7 @@ namespace rainy::core::builtin {
      * @return Ty* 构造完成的对象指针，如果 location 为空则返回 nullptr
      */
     template <typename Ty, typename... Args>
-    RAINY_CONSTEXPR20 rain_fn construct_at(Ty *location, Args &&...args) noexcept(noexcept(::new(static_cast<void *>(location))
+    RAINY_CONSTEXPR20 rain_fn construct_at(Ty *location, Args &&...args) noexcept(noexcept(::new (static_cast<void *>(location))
                                                                                                Ty(builtin::forward<Args>(args)...)))
         -> Ty * {
         if (!location) {
@@ -1772,7 +1778,7 @@ namespace rainy::core::builtin {
      *         如果值近似相等则返回 true，否则返回 false
      */
     static RAINY_INLINE rain_fn almost_equal(double p1, double p2) -> bool {
-        return (std::abs(p1 - p2) * 1000000000000. <= (core::min)(std::abs(p1), std::abs(p2)));
+        return (std::abs(p1 - p2) * 1000000000000. <= (core::min) (std::abs(p1), std::abs(p2)));
     }
 }
 
@@ -2279,6 +2285,123 @@ namespace rainy::utility {
      * 用于在函数调用中传递 piecewise_construct_t 类型的参数。
      */
     inline constexpr piecewise_construct_t piecewise_construct{};
+}
+
+namespace rainy::utility {
+    template <class Container>
+    class back_insert_iterator {
+    public:
+        using iterator_category = std::output_iterator_tag;
+        using value_type = void;
+        using pointer = void;
+        using reference = void;
+        using difference_type = void;
+
+        using container_type = Container;
+
+        explicit back_insert_iterator(Container &c) : container(std::addressof(c)) {
+        }
+
+        back_insert_iterator &operator=(const typename Container::value_type &value) {
+            container->push_back(value);
+            return *this;
+        }
+
+        back_insert_iterator &operator=(typename Container::value_type &&value) {
+            container->push_back(std::move(value));
+            return *this;
+        }
+
+        back_insert_iterator &operator*() noexcept {
+            return *this;
+        }
+
+        back_insert_iterator &operator++() noexcept {
+            return *this;
+        }
+
+        back_insert_iterator operator++(int) noexcept {
+            return *this;
+        }
+
+    protected:
+        Container *container;
+    };
+
+    // 辅助函数
+    template <class Container>
+    back_insert_iterator<Container> back_inserter(Container &c) {
+        return back_insert_iterator<Container>(c);
+    }
+}
+
+namespace rainy::utility {
+    template <typename FloatingType>
+    struct floating_type_traits;
+
+    template <>
+    struct floating_type_traits<float> {
+        static constexpr std::int32_t mantissa_bits = 24;
+        static constexpr std::int32_t exponent_bits = 8;
+        static constexpr std::int32_t maximum_binary_exponent = 127;
+        static constexpr std::int32_t minimum_binary_exponent = -126;
+        static constexpr std::int32_t exponent_bias = 127;
+        static constexpr std::int32_t sign_shift = 31;
+        static constexpr std::int32_t exponent_shift = 23;
+
+        using uint_type = std::uint32_t;
+
+        static constexpr std::uint32_t exponent_mask = 0x000000FFu;
+        static constexpr std::uint32_t normal_mantissa_mask = 0x00FFFFFFu;
+        static constexpr std::uint32_t denormal_mantissa_mask = 0x007FFFFFu;
+        static constexpr std::uint32_t special_nan_mantissa_mask = 0x00400000u;
+        static constexpr std::uint32_t shifted_sign_mask = 0x80000000u;
+        static constexpr std::uint32_t shifted_exponent_mask = 0x7F800000u;
+
+        static constexpr float minimum_value = 0x1.000000p-126f;
+        static constexpr float maximum_value = 0x1.FFFFFEp+127f;
+    };
+
+    template <>
+    struct floating_type_traits<double> {
+        static constexpr std::int32_t mantissa_bits = 53;
+        static constexpr std::int32_t exponent_bits = 11;
+        static constexpr std::int32_t maximum_binary_exponent = 1023;
+        static constexpr std::int32_t minimum_binary_exponent = -1022;
+        static constexpr std::int32_t exponent_bias = 1023;
+        static constexpr std::int32_t sign_shift = 63;
+        static constexpr std::int32_t exponent_shift = 52;
+
+        using uint_type = std::uint64_t;
+
+        static constexpr std::uint64_t exponent_mask = 0x00000000000007FFu;
+        static constexpr std::uint64_t normal_mantissa_mask = 0x001FFFFFFFFFFFFFu;
+        static constexpr std::uint64_t denormal_mantissa_mask = 0x000FFFFFFFFFFFFFu;
+        static constexpr std::uint64_t special_nan_mantissa_mask = 0x0008000000000000u;
+        static constexpr std::uint64_t shifted_sign_mask = 0x8000000000000000u;
+        static constexpr std::uint64_t shifted_exponent_mask = 0x7FF0000000000000u;
+
+        static constexpr double minimum_value = 0x1.0000000000000p-1022;
+        static constexpr double maximum_value = 0x1.FFFFFFFFFFFFFp+1023;
+    };
+
+    template <>
+    struct floating_type_traits<long double> : floating_type_traits<double> {};
+}
+
+namespace rainy::utility::implements {
+    struct ignore_type {
+        explicit ignore_type() = default;
+
+        template <typename Ty>
+        constexpr const ignore_type &operator=(const Ty &) const noexcept { // NOLINT
+            return *this;
+        }
+    };
+}
+
+namespace rainy::utility {
+    inline constexpr implements::ignore_type ignore{};
 }
 
 #endif

@@ -2,6 +2,7 @@
 #define RAINY_CORE_GNU_TYPETRAITS_HPP
 
 #include <rainy/core/type_traits/implements.hpp>
+#include <rainy/core/type_traits/modifers.hpp>
 
 #if RAINY_USING_GCC
 /*

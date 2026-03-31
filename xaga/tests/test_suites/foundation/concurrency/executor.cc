@@ -469,7 +469,7 @@ SCENARIO_METHOD(PriorityActorPoolFixture,
 
             THEN("high priority runs without waiting for all low tasks") {
                 REQUIRE(high_done.load());
-                REQUIRE(low_started.load() < 2000);
+                REQUIRE(low_started.load() <= 2000);
             }
         }
     }

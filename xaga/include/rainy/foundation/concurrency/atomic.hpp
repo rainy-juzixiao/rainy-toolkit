@@ -446,7 +446,7 @@ namespace rainy::foundation::concurrency {
         return atomic_compare_exchange_strong_explicit(obj, expected, desired, memory_order::seq_cst, memory_order::seq_cst);
     }
 
-     /**
+    /**
      * @brief 显式执行原子加法操作
      *
      * 该函数执行一个原子的加法操作，使用显式指定的内存顺序。
@@ -824,7 +824,7 @@ namespace rainy::foundation::concurrency {
         return atomic_fetch_max_explicit(obj, arg, memory_order::seq_cst);
     }
 
-   /**
+    /**
      * @brief 显式执行原子最小值操作
      *
      * 该函数执行原子的最小值操作，使用显式指定的内存顺序。
@@ -1253,6 +1253,32 @@ namespace rainy::foundation::concurrency {
     RAINY_INLINE void atomic_flag_notify_all(volatile atomic_flag *flag) noexcept {
         flag->notify_all();
     }
+}
+
+namespace rainy::foundation::concurrency {
+    class fenced_block : type_traits::helper::non_copyable {
+    public:
+        // NOLINTBEGIN
+        enum half_t {
+            half
+        };
+
+        enum full_t {
+            full
+        };
+        // NOLINTEND
+
+        explicit fenced_block(half_t) {
+        }
+
+        explicit fenced_block(full_t) {
+            concurrency::atomic_thread_fence(memory_order_acquire);
+        }
+
+        ~fenced_block() {
+            concurrency::atomic_thread_fence(memory_order_release);
+        }
+    };
 }
 
 #endif

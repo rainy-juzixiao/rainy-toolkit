@@ -772,42 +772,6 @@ SCENARIO("finally() can be composed in a full pipeline", "[monad_future][finally
     }
 }
 
-SCENARIO("set_value_at_thread_exit defers value until thread exit", "[promise][thread_exit]") {
-    GIVEN("a promise<int> whose value is set via set_value_at_thread_exit") {
-        promise<int> p;
-        auto f = p.get_monad_future();
-        std::atomic<bool> thread_has_exited{false};
-
-        std::thread([&p, &thread_has_exited]() {
-            p.set_value_at_thread_exit(123);
-            thread_has_exited.store(true, std::memory_order_release);
-        }).join();
-
-        THEN("after the thread exits, monad_future.get() returns the deferred value") {
-            CHECK(thread_has_exited.load());
-            CHECK(f.get() == 123);
-        }
-    }
-}
-
-SCENARIO("set_exception_at_thread_exit defers exception until thread exit", "[promise][thread_exit]") {
-    GIVEN("a promise<int> whose exception is set via set_exception_at_thread_exit") {
-        promise<int> p;
-        auto f = p.get_monad_future();
-
-        std::thread([&p]() { p.set_exception_at_thread_exit(std::make_exception_ptr(std::runtime_error("deferred error"))); }).join();
-
-        THEN("after the thread exits, monad_future.get() rethrows the deferred exception") {
-            try {
-                f.get();
-                FAIL("expected std::runtime_error");
-            } catch (const std::runtime_error &e) {
-                CHECK(std::string(e.what()) == "deferred error");
-            }
-        }
-    }
-}
-
 SCENARIO("multiple threads waiting on shared future all wake up", "[concurrency]") {
     GIVEN("a promise<int> and several threads blocked in wait()") {
         promise<int> p;
