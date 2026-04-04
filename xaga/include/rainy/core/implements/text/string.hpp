@@ -17,10 +17,10 @@
 #define RAINY_CORE_IMPLEMENTS_TEXT_STRING_HPP
 
 // NOLINTBEGIN
-#include <rainy/core/platform.hpp>
 #include <rainy/core/implements/hash.hpp>
 #include <rainy/core/implements/text/char_traits.hpp>
 #include <rainy/core/implements/text/string_view.hpp>
+#include <rainy/core/platform.hpp>
 // NOLINTEND
 
 #if RAINY_USING_GCC
@@ -319,7 +319,7 @@ namespace rainy::foundation::text {
                 auto new_capacity = current_size;
                 auto new_ptr = allocator_traits::allocate(get_al(), new_capacity + 1);
 #if RAINY_HAS_CXX20
-                if(std::is_constant_evaluated()) { // NOLINT
+                if (std::is_constant_evaluated()) { // NOLINT
                     core::algorithm::copy(ls.begin_, ls.end_, new_ptr);
                 } else
 #endif
@@ -721,7 +721,7 @@ namespace rainy::foundation::text {
             const value_type *self_begin = this->begin_();
             const size_type limit = self_size - sv_size;
 #if RAINY_HAS_CXX20
-            if(std::is_constant_evaluated()) {
+            if (std::is_constant_evaluated()) {
                 for (size_type i = pos; i <= limit; ++i) {
                     bool match = true;
                     for (size_type j = 0; j < sv_size; ++j) {
@@ -1000,8 +1000,8 @@ namespace rainy::foundation::text {
         }
 
         RAINY_CONSTEXPR20 bool contains(const value_type *ptr) const noexcept {
-            return std::basic_string_view<value_type>{begin_(), end_()}.contains(
-                std::basic_string_view<value_type>{ptr, ptr + traits_type::length(ptr)});
+            return basic_string_view<value_type>{begin_(), end_()}.contains(
+                basic_string_view<value_type>{ptr, ptr + traits_type::length(ptr)});
         }
 
         RAINY_CONSTEXPR20 basic_string &insert(size_type index, size_type count, CharType ch) {
@@ -1013,7 +1013,7 @@ namespace rainy::foundation::text {
             auto start = begin_() + index;
             auto end = begin_() + size;
 #if RAINY_HAS_CXX20
-            if(std::is_constant_evaluated()) { // NOLINT
+            if (std::is_constant_evaluated()) { // NOLINT
                 core::algorithm::copy_backward(start, end, end + count);
                 std::fill(start, start + count, ch);
             } else
@@ -1064,7 +1064,7 @@ namespace rainy::foundation::text {
             auto end = begin + size;
             start = begin + index;
 #if RAINY_HAS_CXX20
-            if(std::is_constant_evaluated()) { // NOLINT
+            if (std::is_constant_evaluated()) { // NOLINT
                 core::algorithm::copy_backward(start, end, end + 1);
             } else
 #endif
@@ -1419,7 +1419,7 @@ namespace rainy::foundation::text {
             auto lsize = left.size();
             auto rsize = right.size();
 #if RAINY_HAS_CXX20
-            if(std::is_constant_evaluated()) { // NOLINT
+            if (std::is_constant_evaluated()) { // NOLINT
                 if (lsize != rsize) {
                     return false;
                 }
@@ -1438,7 +1438,7 @@ namespace rainy::foundation::text {
             auto lsize = left.size();
             auto rsize = right.size();
 #if RAINY_HAS_CXX20
-            if(std::is_constant_evaluated()) { // NOLINT
+            if (std::is_constant_evaluated()) { // NOLINT
                 for (auto l = left.begin_(), r = right.begin_(), end = l + (core::min) (lsize, rsize); l != end; ++l, ++r) {
                     if (*l < *r) {
                         return true;
@@ -1503,7 +1503,7 @@ namespace rainy::foundation::text {
             auto rsize = traits_type::length(start);
             auto lsize = left.size();
 #if RAINY_HAS_CXX20
-            if(std::is_constant_evaluated()) { // NOLINT
+            if (std::is_constant_evaluated()) { // NOLINT
                 for (auto l = left.begin_(), end = l + (core::min) (lsize, rsize); l != end; ++l, ++start) {
                     if (*l < *start) {
                         return true;
@@ -1593,7 +1593,7 @@ namespace rainy::foundation::text {
         RAINY_CONSTEXPR20 void erase_(CharType *first, value_type const *last) noexcept {
             assert(("first or last is not in this string", first >= begin_() && last <= end_()));
             // NOLINTBEGIN
-            if(std::is_constant_evaluated()) {
+            if (std::is_constant_evaluated()) {
                 core::algorithm::copy(last, const_cast<basic_string const &>(*this).end_(), first);
             } else {
                 traits_type::move(first, last, (const_cast<basic_string const &>(*this).end_() - last));
@@ -1683,7 +1683,7 @@ namespace rainy::foundation::text {
             if (capacity() >= new_size) {
 #if RAINY_HAS_CXX20
                 // NOLINTBEGIN
-                if(std::is_constant_evaluated()) { // NOLINT
+                if (std::is_constant_evaluated()) { // NOLINT
                     core::algorithm::copy_backward(start, end, end + length);
                     core::algorithm::copy(first, last, start);
                 } else
@@ -1699,7 +1699,7 @@ namespace rainy::foundation::text {
                 auto temp_begin = temp.begin_();
                 auto temp_start = temp_begin + index;
 #if RAINY_HAS_CXX20
-                if(std::is_constant_evaluated()) { // NOLINT
+                if (std::is_constant_evaluated()) { // NOLINT
                     core::algorithm::copy(begin, start, temp_begin);
                     core::algorithm::copy(first, last, temp_start);
                     core::algorithm::copy(start, end, temp_start + length);
@@ -1732,7 +1732,7 @@ namespace rainy::foundation::text {
             if (!(last1 < first2 || last2 < first1) && new_size <= capacity()) {
                 auto diff = length1 - length2;
                 // NOLINTBEGIN
-                if(std::is_constant_evaluated()) {
+                if (std::is_constant_evaluated()) {
                     if (diff > 0) {
                         core::algorithm::copy(last1, end, last1 - diff);
                     } else if (diff < 0) {
