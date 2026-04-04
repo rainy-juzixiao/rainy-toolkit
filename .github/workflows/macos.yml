@@ -64,6 +64,4 @@ jobs:
 
       - name: Build
         run: |
-          cmake --build build -j$(nproc) -- \
-            CXXFLAGS="-stdlib=libc++ -isysroot ${SDKROOT}" \
-            CFLAGS="-isysroot ${SDKROOT}"
+          cmake --build build -j$(nproc)
