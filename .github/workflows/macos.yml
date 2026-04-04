@@ -45,6 +45,14 @@ jobs:
 
       - name: Configure CMake
         run: |
+          SDKROOT=$(xcrun --show-sdk-path)
+          
+          export CC=/usr/local/llvm/bin/clang
+          export CXX=/usr/local/llvm/bin/clang++
+          export CFLAGS="-isysroot ${SDKROOT}"
+          export CXXFLAGS="-stdlib=libc++ -isysroot ${SDKROOT}"
+          rm -rf build
+
           cmake -S . -B build \
             -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_C_COMPILER=${CC} \
