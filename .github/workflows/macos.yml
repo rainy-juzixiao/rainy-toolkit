@@ -26,11 +26,33 @@ jobs:
           echo "Version: $(sw_vers -productVersion)"
           echo "Hostname: $(hostname)"
 
+      - name: Setup Environment for LLVM 15
+        run: |
+            SDKROOT=$(xcrun --show-sdk-path 2>/dev/null || echo "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk")
+            echo "SDKROOT=${SDKROOT}" >> $GITHUB_ENV
+            echo "CC=/usr/local/llvm/bin/clang" >> $GITHUB_ENV
+            echo "CXX=/usr/local/llvm/bin/clang++" >> $GITHUB_ENV
+            echo "CFLAGS=-isysroot ${SDKROOT}" >> $GITHUB_ENV
+            echo "CXXFLAGS=-stdlib=libc++ -isysroot ${SDKROOT}" >> $GITHUB_ENV
+            echo "LDFLAGS=-L/usr/local/llvm/lib -Wl,-rpath,/usr/local/llvm/lib" >> $GITHUB_ENV
+            echo "CMAKE_CXX_FLAGS=-stdlib=libc++ -isysroot ${SDKROOT}" >> $GITHUB_ENV
+            echo "CMAKE_C_FLAGS=-isysroot ${SDKROOT}" >> $GITHUB_ENV
+            echo "Environment configured with:"
+            echo "  SDKROOT: ${SDKROOT}"
+            echo "  CC: ${CC}"
+            echo "  CXX: ${CXX}"
+            echo "  CXXFLAGS: ${CXXFLAGS}"
+
       - name: Configure CMake
         run: |
           cmake -S . -B build \
             -DCMAKE_BUILD_TYPE=Release \
-            -G Ninja
+          -DCMAKE_C_COMPILER=${CC} \
+                -DCMAKE_CXX_COMPILER=${CXX} \
+                -DCMAKE_CXX_FLAGS="${CXXFLAGS}" \
+                -DCMAKE_C_FLAGS="${CFLAGS}" \
+                -DCMAKE_EXE_LINKER_FLAGS="${LDFLAGS}" \
+                -G Ninja
 
       - name: Build
         run: |
