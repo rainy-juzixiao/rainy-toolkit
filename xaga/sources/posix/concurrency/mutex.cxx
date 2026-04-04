@@ -67,7 +67,6 @@ namespace rainy::foundation::concurrency::implements {
                 res = 0;
             }
         }
-        // --- 成功锁住 ---
         if (res == 0) {
             // 如果是第一次 lock，则设置 thread_id
             if (core::pal::interlocked_increment(reinterpret_cast<volatile long *>(&mutex->count)) == 1) {

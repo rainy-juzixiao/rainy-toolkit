@@ -19,3 +19,13 @@ jobs:
           echo "Current System: $(sw_vers -productName)"
           echo "Version: $(sw_vers -productVersion)"
           echo "Hostname: $(hostname)"
+
+      - name: Configure CMake
+        run: |
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -G Ninja
+
+      - name: Build
+        run: |
+          cmake --build build -j$(nproc)
