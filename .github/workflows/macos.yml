@@ -8,13 +8,14 @@ on:
   pull_request:
 
 jobs:
-  arm64:
+  x86_64:
     runs-on: self-hosted
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
+      - name: Say Hello
+        run: echo "Hello World"
 
-      - name: "Hello World"
-        uses: "echo Hello World"
+      - name: Display System Infomation
+        run: |
+          echo "Current System: $(sw_vers -productName)"
+          echo "Version: $(sw_vers -productVersion)"
+          echo "Hostname: $(hostname)"
