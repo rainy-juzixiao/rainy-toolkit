@@ -51,12 +51,9 @@
 #include <rainy/core/gnu/typetraits.hpp>
 #endif
 
-#if __has_include("format")
-#include <format>
-#endif
-
 #if RAINY_HAS_CXX20
 #include <concepts>
+#include <format>
 #endif
 
 namespace rainy::utility {
