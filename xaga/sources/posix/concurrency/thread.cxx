@@ -17,6 +17,7 @@
 #include <pthread.h>
 #include <rainy/core/core.hpp>
 #include <rainy/foundation/concurrency/pal.hpp>
+#include <unistd.h>
 
 #if RAINY_USING_MACOS
 #include <sys/sysctl.h> // NOLINT
@@ -131,7 +132,11 @@ namespace rainy::foundation::concurrency::implements {
         while (core::pal::iso_volatile_load(&task.tid_ready) == 0) {
             thread_yield();
         }
+#if RAINY_USING_MACOS
+        return {reinterpret_cast<std::uintptr_t>(thread), static_cast<std::uint64_t>(task.tid)};
+#else
         return {thread, static_cast<std::uint64_t>(task.tid)}; // NOLINT
+#endif
     }
 
     schd_thread_t create_thread(void *security, unsigned int stack_size,
@@ -168,7 +173,11 @@ namespace rainy::foundation::concurrency::implements {
             return {};
         }
         if (thrd_addr) {
+#if RAINY_USING_MACOS
+            *thrd_addr = reinterpret_cast<std::uint64_t>(thread);
+#else
             *thrd_addr = thread;
+#endif
         }
         while (core::pal::iso_volatile_load(&task.tid_ready) == 0) {
         }
@@ -206,7 +215,11 @@ namespace rainy::foundation::concurrency::implements {
             errno = EINVAL;
             return thrd_result::error;
         }
+#if RAINY_USING_MACOS
+        const int detach_result = pthread_detach(reinterpret_cast<pthread_t>(thread_handle.handle));
+#else
         const int detach_result = pthread_detach(thread_handle.handle);
+#endif
         if (detach_result == 0) {
             return thrd_result::success;
         }
