@@ -15,9 +15,10 @@
  */
 #ifndef RAINY_FOUNDATION_CONCURRENCY_THREAD_HPP
 #define RAINY_FOUNDATION_CONCURRENCY_THREAD_HPP
+#include <chrono>
 #include <rainy/core/core.hpp>
-#include <rainy/foundation/memory/nebula_ptr.hpp>
 #include <rainy/foundation/concurrency/pal.hpp>
+#include <rainy/foundation/memory/nebula_ptr.hpp>
 
 namespace rainy::foundation::concurrency {
     class RAINY_TOOLKIT_API thread {
