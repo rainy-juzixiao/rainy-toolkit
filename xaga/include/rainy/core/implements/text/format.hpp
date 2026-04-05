@@ -252,49 +252,49 @@ namespace rainy::foundation::text {
 
     template <typename... Args>
     string format(string_view fmt, const Args &...args) {
-        auto arg_store = make_format_args(args...);
+        auto arg_store = text::make_format_args(args...);
         return vformat(fmt, basic_format_args(arg_store));
     }
 
     template <typename... Args>
     wstring format(wstring_view fmt, const Args &...args) {
-        auto arg_store = make_wformat_args(args...);
+        auto arg_store = text::make_format_args(args...);
         return vformat(fmt, basic_format_args(arg_store));
     }
 
     template <typename... Args>
     string format(const std::locale &loc, string_view fmt, const Args &...args) {
-        auto arg_store = make_format_args(args...);
+        auto arg_store = text::make_format_args(args...);
         return vformat(loc, fmt, basic_format_args(arg_store));
     }
 
     template <typename... Args>
     wstring format(const std::locale &loc, wstring_view fmt, const Args &...args) {
-        auto arg_store = make_wformat_args(args...);
+        auto arg_store = text::make_format_args(args...);
         return vformat(loc, fmt, basic_format_args(arg_store));
     }
 
     template <typename OutputIt, typename... Args>
     OutputIt format_to(OutputIt out, string_view fmt, const Args &...args) {
-        auto arg_store = make_format_args<format_context>(args...);
+        auto arg_store = text::make_format_args<format_context>(args...);
         return vformat_to(out, fmt, basic_format_args<format_context>(arg_store));
     }
 
     template <typename OutputIt, typename... Args>
     OutputIt format_to(OutputIt out, wstring_view fmt, const Args &...args) {
-        auto arg_store = make_format_args<wformat_context>(args...);
+        auto arg_store = text::make_format_args<wformat_context>(args...);
         return vformat_to(out, fmt, basic_format_args<wformat_context>(arg_store));
     }
 
     template <typename OutputIt, typename... Args>
     OutputIt format_to(OutputIt out, const std::locale &loc, std::string_view fmt, const Args &...args) {
-        auto arg_store = make_format_args<format_context>(args...);
+        auto arg_store = text::make_format_args<format_context>(args...);
         return vformat_to(out, loc, fmt, basic_format_args<format_context>(arg_store));
     }
 
     template <typename OutputIt, typename... Args>
     OutputIt format_to(OutputIt out, const std::locale &loc, std::wstring_view fmt, const Args &...args) {
-        auto arg_store = make_format_args<wformat_context>(args...);
+        auto arg_store = text::make_format_args<wformat_context>(args...);
         return vformat_to(out, loc, fmt, basic_format_args<wformat_context>(arg_store));
     }
 }

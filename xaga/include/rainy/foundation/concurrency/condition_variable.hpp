@@ -20,6 +20,10 @@
 #include <rainy/foundation/concurrency/mutex.hpp>
 #include <rainy/foundation/concurrency/pal.hpp>
 
+#if RAINY_HAS_CXX20
+#include <stop_token>
+#endif
+
 namespace rainy::foundation::concurrency {
     enum class cv_status {
         no_timeout,
