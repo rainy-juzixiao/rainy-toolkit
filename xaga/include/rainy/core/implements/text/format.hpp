@@ -225,6 +225,7 @@ namespace rainy::foundation::text {
         } catch (const std::exception &e) {
             exceptions::runtime::throw_format_error(e.what());
         }
+        return out; // never reach
     }
 
     RAINY_INLINE string vformat(const string_view fmt, const format_args args) {
