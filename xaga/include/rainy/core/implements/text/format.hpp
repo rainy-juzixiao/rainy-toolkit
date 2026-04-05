@@ -213,6 +213,7 @@ namespace rainy::foundation::text {
         } catch (const std::exception &e) {
             exceptions::runtime::throw_format_error(e.what());
         }
+        return out; // never reach
     }
 
     template <typename OutputIt, typename CharT>
@@ -305,10 +306,10 @@ namespace rainy::foundation::text {
     basic_string<Char, Traits, Alloc> &basic_string<Char, Traits, Alloc>::format(basic_string_view<Char> fmt,
                                                                                  Args const &...args) {
         if constexpr (type_traits::type_relations::is_same_v<char, Char>) {
-            auto fmt_args = make_format_args<format_context>(args...);
+            auto fmt_args = text::make_format_args<format_context>(args...);
             text::vformat_to(utility::back_inserter(*this), fmt, basic_format_args<format_context>(fmt_args));
         } else if constexpr (type_traits::type_relations::is_same_v<wchar_t, Char>) {
-            auto fmt_args = make_format_args<wformat_context>(args...);
+            auto fmt_args = text::make_format_args<wformat_context>(args...);
             text::vformat_to(utility::back_inserter(*this), fmt, basic_format_args<wformat_context>(fmt_args));
         } else {
         }
