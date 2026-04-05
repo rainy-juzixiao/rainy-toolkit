@@ -143,7 +143,7 @@ namespace rainy::foundation::system::this_thread {
     template <typename Clock, typename Duration>
     void sleep_until(const std::chrono::time_point<Clock, Duration> &abs_time) {
 #if RAINY_HAS_CXX20
-        static_assert(std::chrono::is_clock_v<Clock>, "Clock type required");
+        static_assert(concurrency::implements::is_clock_v<Clock>, "Clock type required");
 #endif
         for (;;) {
             const auto now = Clock::now();

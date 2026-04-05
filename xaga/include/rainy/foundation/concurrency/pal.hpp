@@ -35,8 +35,26 @@
  */
 #ifndef RAINY_FOUNDATION_CONCURRENCY_PAL_HPP
 #define RAINY_FOUNDATION_CONCURRENCY_PAL_HPP
+#include <chrono>
 #include <rainy/core/core.hpp>
 #include <rainy/foundation/functional/function_pointer.hpp>
+
+namespace rainy::foundation::concurrency::implements {
+#if !defined(__cpp_lib_is_clock) || __cpp_lib_is_clock < 201907L
+    template <typename Ty, typename = void>
+    struct is_clock : std::false_type {};
+
+    template <typename Ty>
+    struct is_clock<Ty, type_traits::other_trans::void_t<typename Ty::rep, typename Ty::period, typename Ty::duration, typename Ty::time_point,
+                                   decltype(Ty::is_steady), decltype(Ty::now())>> : type_traits::helper::true_type {};
+
+    template <typename Ty>
+    inline constexpr bool is_clock_v = is_clock<Ty>::value;
+#else
+    template <typename Ty, typename = void>
+    struct is_clock : type_traits::helper::bool_constant<std::chrono::is_clock_v<Ty>> {};
+#endif
+}
 
 namespace rainy::foundation::concurrency {
     /**
