@@ -177,3 +177,39 @@ if(RAINY_USE_NODE_ADDON)
     message("[rainy-toolkit] Node addon support enabled")
     rainy_find_nodejs()
 endif()
+
+# 由于部分MacOS的工具链提供的一部分C++20头文件处于EXPERIMENTAL特性，因此，需要检查是否打开
+if(APPLE)
+    include(CheckCXXSourceCompiles)
+
+    set(CMAKE_REQUIRED_FLAGS "-std=c++20")
+
+    check_cxx_source_compiles("
+        #include <stop_token>
+        int main() {
+            std::stop_source ss;
+            std::stop_token st = ss.get_token();
+            return 0;
+        }
+    " LIBCPP_STOP_TOKEN_AVAILABLE)
+
+    if(NOT LIBCPP_STOP_TOKEN_AVAILABLE)
+        set(CMAKE_REQUIRED_DEFINITIONS "-D_LIBCPP_ENABLE_EXPERIMENTAL")
+        check_cxx_source_compiles("
+            #include <stop_token>
+            int main() {
+                std::stop_source ss;
+                std::stop_token st = ss.get_token();
+                return 0;
+            }
+        " LIBCPP_STOP_TOKEN_AVAILABLE_WITH_EXPERIMENTAL)
+        unset(CMAKE_REQUIRED_DEFINITIONS)
+
+        if(LIBCPP_STOP_TOKEN_AVAILABLE_WITH_EXPERIMENTAL)
+            message(STATUS "Enabling _LIBCPP_ENABLE_EXPERIMENTAL for stop_token support")
+            add_compile_definitions(_LIBCPP_ENABLE_EXPERIMENTAL)
+        else()
+            message(FATAL_ERROR "std::stop_token is not available on this platform")
+        endif()
+    endif()
+endif()
