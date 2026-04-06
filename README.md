@@ -78,3 +78,7 @@ git clone https://github.com/rainy-juzixiao/rainy-toolkit.git
 ```cmake
 
 ```
+
+### 兼容性报告
+
+目前rainy-toolkit通过arm64_dev_branch和macos_support_dev分支实现了基本的适配支持，详细的兼容性测试请见文档站说明

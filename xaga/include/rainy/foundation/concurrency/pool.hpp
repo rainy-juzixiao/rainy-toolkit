@@ -739,7 +739,7 @@ namespace rainy::foundation::concurrency {
             queue_cv_.notify_one();
         }
 
-        void submit_to(std::size_t actor_id, functional::move_only_delegate<void()> task) {
+        void submit_to(std::size_t actor_id, functional::move_only_delegate<void()> task) override {
             (void) actor_id;
             submit(utility::move(task));
         }

@@ -16,6 +16,7 @@ struct SafeValues<std::int8_t> {
     static constexpr int threads = 4;
     static constexpr int iterations = 10;
 };
+
 template <>
 struct SafeValues<std::int16_t> {
     static constexpr std::int16_t start = 0;
@@ -23,6 +24,7 @@ struct SafeValues<std::int16_t> {
     static constexpr int threads = 4;
     static constexpr int iterations = 100;
 };
+
 template <>
 struct SafeValues<std::int32_t> {
     static constexpr std::int32_t start = 0;
@@ -30,6 +32,15 @@ struct SafeValues<std::int32_t> {
     static constexpr int threads = 4;
     static constexpr int iterations = 10000;
 };
+
+template <>
+struct SafeValues<long> {
+    static constexpr long start = 0;
+    static constexpr long delta = 1;
+    static constexpr int threads = 4;
+    static constexpr int iterations = 10000;
+};
+
 template <>
 struct SafeValues<std::int64_t> {
     static constexpr std::int64_t start = 0;

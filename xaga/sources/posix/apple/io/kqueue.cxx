@@ -13,58 +13,57 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <liburing.h>
-#include <queue>
 #include <rainy/foundation/io/net/io_context.hpp>
-#include <sys/eventfd.h>
+
+#include <array>
+#include <queue>
+#include <sys/event.h>
+#include <sys/time.h>
+#include <unistd.h>
 
 namespace rainy::foundation::io::net::implements {
     static void nop_fn(completion_op *, const op_result &, bool) noexcept {
     }
+    static completion_op non_op{&nop_fn};
 
-    completion_op non_op{&nop_fn};
-}
+    static constexpr uintptr_t WAKEUP_IDENT = static_cast<uintptr_t>(-1);
+    static constexpr int HARVEST_BATCH = 64;
 
-namespace rainy::foundation::io::net::implements {
-    class io_uring_impl final : public io_context_impl_base {
+    class kqueue_impl final : public io_context_impl_base {
     public:
-        explicit io_uring_impl(const int concurrency_hint) noexcept : concurrency_hint_(concurrency_hint) {
+        explicit kqueue_impl(const int concurrency_hint) noexcept : concurrency_hint_(concurrency_hint) {
         }
 
-        ~io_uring_impl() override {
+        ~kqueue_impl() override {
             destroy();
         }
 
         concurrency::thrd_result init(const int concurrency_hint) noexcept override {
             concurrency_hint_ = concurrency_hint;
-            unsigned queue_depth = (concurrency_hint <= 0) ? 256u : static_cast<unsigned>(concurrency_hint) * 32u;
-            if (queue_depth < 64) {
-                queue_depth = 64;
-            }
-            if (queue_depth > 4096) {
-                queue_depth = 4096;
-            }
-            if (const int ret = ::io_uring_queue_init(queue_depth, &ring_, /*flags=*/0); ret < 0) {
+            kq_ = ::kqueue();
+            if (kq_ < 0) {
                 return concurrency::thrd_result::error;
             }
-            ring_initialized_ = true;
-            event_fd_ = ::eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
-            if (event_fd_ < 0) {
-                ::io_uring_queue_exit(&ring_);
-                ring_initialized_ = false;
+            struct kevent ev{};
+            EV_SET(&ev, WAKEUP_IDENT, EVFILT_USER, EV_ADD | EV_CLEAR, NOTE_FFNOP, 0, &non_op);
+            if (::kevent(kq_, &ev, 1, nullptr, 0, nullptr) < 0) {
+                ::close(kq_);
+                kq_ = -1;
                 return concurrency::thrd_result::error;
             }
+
+            kq_initialized_ = true;
             return concurrency::thrd_result::success;
         }
 
         void destroy() noexcept override {
-            if (event_fd_ >= 0) {
-                ::close(event_fd_);
-                event_fd_ = -1;
-            }
-            if (ring_initialized_) {
-                ::io_uring_queue_exit(&ring_);
-                ring_initialized_ = false;
+            if (kq_initialized_) {
+                struct kevent ev{};
+                EV_SET(&ev, WAKEUP_IDENT, EVFILT_USER, EV_DELETE, 0, 0, nullptr);
+                ::kevent(kq_, &ev, 1, nullptr, 0, nullptr);
+                ::close(kq_);
+                kq_ = -1;
+                kq_initialized_ = false;
             }
         }
 
@@ -72,7 +71,6 @@ namespace rainy::foundation::io::net::implements {
             std::size_t total = 0;
             in_event_loop_ = true;
             while (!stopped_.load(concurrency::memory_order_acquire)) {
-                // 先把本地即时队列清空
                 total += drain_ready_queue();
                 if (stopped_.load(concurrency::memory_order_acquire)) {
                     break;
@@ -98,7 +96,7 @@ namespace rainy::foundation::io::net::implements {
                     ready_queue_.pop();
                     lock.unlock();
                     in_event_loop_ = false;
-                    op_result r{op, 0, 0}; // NOLINT
+                    op_result r{op, 0, 0};
                     op->complete(r, false);
                     return 1;
                 }
@@ -117,11 +115,11 @@ namespace rainy::foundation::io::net::implements {
             std::size_t n = 0;
             if (!stopped_.load(concurrency::memory_order_acquire)) {
                 if (timeout_ns == 0) {
-                    n = harvest(0, nullptr); // peek
+                    n = harvest(0, nullptr);
                 } else {
-                    ::__kernel_timespec ts{};
-                    ts.tv_sec = static_cast<long long>(timeout_ns / 1'000'000'000ULL);
-                    ts.tv_nsec = static_cast<long long>(timeout_ns % 1'000'000'000ULL);
+                    struct timespec ts{};
+                    ts.tv_sec = static_cast<time_t>(timeout_ns / 1'000'000'000ULL);
+                    ts.tv_nsec = static_cast<long>(timeout_ns % 1'000'000'000ULL);
                     n = harvest(1, &ts);
                 }
             }
@@ -133,7 +131,7 @@ namespace rainy::foundation::io::net::implements {
             std::size_t total = 0;
             in_event_loop_ = true;
             while (!stopped_.load(concurrency::memory_order_acquire)) {
-                const std::size_t n = harvest(0, nullptr); // peek，非阻塞
+                const std::size_t n = harvest(0, nullptr);
                 if (n == 0) {
                     break;
                 }
@@ -150,7 +148,7 @@ namespace rainy::foundation::io::net::implements {
             in_event_loop_ = true;
             std::size_t n = drain_ready_queue_one();
             if (n == 0) {
-                n = harvest_one_cqe();
+                n = harvest_one_event();
             }
             in_event_loop_ = false;
             return n;
@@ -180,7 +178,7 @@ namespace rainy::foundation::io::net::implements {
             }
         }
 
-        void post_immediate_completion(completion_op *op, bool is_continuation) noexcept override {
+        void post_immediate_completion(completion_op *op, bool /*is_continuation*/) noexcept override {
             {
                 concurrency::scoped_lock lock(ready_mutex_);
                 ready_queue_.push(op);
@@ -190,11 +188,9 @@ namespace rainy::foundation::io::net::implements {
             }
         }
 
-        concurrency::thrd_result associate_handle(completion_op *op, const std::uintptr_t fd, void *extra) noexcept override {
-            (void) fd;
-            (void) extra;
+        concurrency::thrd_result associate_handle(completion_op *op, const std::uintptr_t /*fd*/, void * /*extra*/) noexcept override {
             if (op) {
-                op->io_handle = &ring_;
+                op->io_handle = reinterpret_cast<void *>(static_cast<std::uintptr_t>(kq_));
             }
             return concurrency::thrd_result::success;
         }
@@ -207,64 +203,80 @@ namespace rainy::foundation::io::net::implements {
             return concurrency_hint_;
         }
 
-        io_uring_sqe *get_sqe() noexcept {
-            return ::io_uring_get_sqe(&ring_);
-        }
-
-        concurrency::thrd_result submit_sqe() noexcept {
-            const int ret = ::io_uring_submit(&ring_);
-            return (ret >= 0) ? concurrency::thrd_result::success : concurrency::thrd_result::error;
-        }
-
     private:
-        std::size_t harvest(unsigned wait_nr, ::__kernel_timespec *timeout) {
+        // min_events == 0 → 非阻塞（timeout 强制为零值）
+        // min_events  > 0, timeout == nullptr → 无限阻塞
+        // min_events  > 0, timeout != nullptr → 有限等待
+        std::size_t harvest(unsigned min_events, const struct timespec *timeout) {
             std::size_t total = drain_ready_queue();
-            io_uring_cqe *cqe = nullptr;
-            int ret = 0;
-            if (timeout) {
-                ret = ::io_uring_wait_cqes(&ring_, &cqe, wait_nr, timeout, /*sigmask=*/nullptr);
-            } else if (wait_nr > 0) {
-                ret = ::io_uring_wait_cqe(&ring_, &cqe);
-            } else {
-                ret = ::io_uring_peek_cqe(&ring_, &cqe);
-            }
 
-            if (ret < 0 || cqe == nullptr) {
+            std::array<struct kevent, HARVEST_BATCH> events{};
+            struct timespec zero_ts{0, 0};
+            const struct timespec *ts = (min_events == 0) ? &zero_ts : timeout;
+
+            const int nev = ::kevent(kq_, nullptr, 0, events.data(), HARVEST_BATCH, ts);
+            if (nev <= 0) {
                 return total;
             }
-            unsigned head = 0;
-            unsigned cqe_count = 0;
-            io_uring_for_each_cqe(&ring_, head, cqe) {
-                if (auto *op = static_cast<completion_op *>(::io_uring_cqe_get_data(cqe)); op && op != &non_op) {
-                    op_result result{};
-                    result.user_data = op;
-                    result.bytes_transferred = (cqe->res >= 0) ? static_cast<std::size_t>(cqe->res) : 0;
-                    result.error_code = (cqe->res < 0) ? -cqe->res : 0;
-                    op->complete(result,
-                                 /*cancelled=*/result.error_code == ECANCELED);
-                    ++total;
+
+            for (int i = 0; i < nev; ++i) {
+                const struct kevent &ev = events[static_cast<std::size_t>(i)];
+                // kevent 在 changelist 注册失败时以 EV_ERROR 返回错误，data 为 errno
+                if (ev.flags & EV_ERROR) {
+                    auto *op = static_cast<completion_op *>(ev.udata); // NOLINT
+                    if (op && op != &non_op) {
+                        op_result result{};
+                        result.user_data = op;
+                        result.bytes_transferred = 0;
+                        result.error_code = static_cast<int>(ev.data);
+                        op->complete(result, result.error_code == ECANCELED);
+                        ++total;
+                    }
+                    continue;
                 }
-                ++cqe_count;
+                auto *op = static_cast<completion_op *>(ev.udata);
+                if (!op || op == &non_op) {
+                    // wakeup 哨兵，不计入已处理数
+                    continue;
+                }
+                op_result result{};
+                result.user_data = op;
+                result.bytes_transferred = (ev.data > 0) ? static_cast<std::size_t>(ev.data) : 0;
+                result.error_code = 0;
+                op->complete(result, false);
+                ++total;
             }
-            ::io_uring_cq_advance(&ring_, cqe_count);
+
             return total;
         }
 
-        std::size_t harvest_one_cqe() noexcept {
-            io_uring_cqe *cqe = nullptr;
-            if (const int ret = ::io_uring_peek_cqe(&ring_, &cqe); ret < 0 || cqe == nullptr) {
+        std::size_t harvest_one_event() noexcept {
+            struct kevent ev{};
+            struct timespec zero{0, 0};
+            if (::kevent(kq_, nullptr, 0, &ev, 1, &zero) <= 0) {
                 return 0;
             }
-            auto *op = static_cast<completion_op *>(::io_uring_cqe_get_data(cqe));
-            ::io_uring_cq_advance(&ring_, 1);
+            if (ev.flags & EV_ERROR) {
+                auto *op = static_cast<completion_op *>(ev.udata);
+                if (!op || op == &non_op) {
+                    return 0;
+                }
+                op_result result{};
+                result.user_data = op;
+                result.bytes_transferred = 0;
+                result.error_code = static_cast<int>(ev.data);
+                op->complete(result, result.error_code == ECANCELED);
+                return 1;
+            }
+            auto *op = static_cast<completion_op *>(ev.udata);
             if (!op || op == &non_op) {
                 return 0;
             }
             op_result result{};
             result.user_data = op;
-            result.bytes_transferred = (cqe->res >= 0) ? static_cast<std::size_t>(cqe->res) : 0;
-            result.error_code = (cqe->res < 0) ? -cqe->res : 0;
-            op->complete(result, result.error_code == ECANCELED);
+            result.bytes_transferred = (ev.data > 0) ? static_cast<std::size_t>(ev.data) : 0;
+            result.error_code = 0;
+            op->complete(result, false);
             return 1;
         }
 
@@ -275,7 +287,7 @@ namespace rainy::foundation::io::net::implements {
                 completion_op *op = ready_queue_.front();
                 ready_queue_.pop();
                 lock.unlock();
-                op_result r{op, 0, 0}; // NOLINT
+                op_result r{op, 0, 0};
                 op->complete(r, false);
                 ++total;
                 lock.lock();
@@ -291,36 +303,36 @@ namespace rainy::foundation::io::net::implements {
             completion_op *op = ready_queue_.front();
             ready_queue_.pop();
             lock.unlock();
-            op_result r{op, 0, 0}; // NOLINT
+            op_result r{op, 0, 0};
             op->complete(r, false);
             return 1;
         }
 
-        void wakeup() noexcept {
-            io_uring_sqe *sqe = ::io_uring_get_sqe(&ring_);
-            if (!sqe) {
+        void wakeup() noexcept { // NOLINT
+            if (!kq_initialized_) {
                 return;
             }
-            ::io_uring_prep_nop(sqe);
-            ::io_uring_sqe_set_data(sqe, &non_op);
-            ::io_uring_submit(&ring_);
+            struct kevent ev{};
+            EV_SET(&ev, WAKEUP_IDENT, EVFILT_USER, 0, NOTE_TRIGGER, 0, &non_op);
+            ::kevent(kq_, &ev, 1, nullptr, 0, nullptr);
         }
+
+        int kq_{-1};
+        bool kq_initialized_{false};
+        int concurrency_hint_{0};
 
         concurrency::mutex ready_mutex_;
         std::queue<completion_op *> ready_queue_;
-        io_uring ring_{};
-        bool ring_initialized_{false};
-        int concurrency_hint_{0};
-        int event_fd_{-1};
+
         static thread_local bool in_event_loop_;
     };
 
-    thread_local bool io_uring_impl::in_event_loop_ = false;
+    thread_local bool kqueue_impl::in_event_loop_ = false;
 }
 
 namespace rainy::foundation::io::net::implements {
     memory::nebula_ptr<io_context_impl_base> create_io_context_impl(int concurrency_hint) {
-        auto impl = memory::make_nebula<io_uring_impl>(concurrency_hint);
+        auto impl = memory::make_nebula<kqueue_impl>(concurrency_hint);
         impl->init(concurrency_hint);
         return impl;
     }

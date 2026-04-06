@@ -194,7 +194,7 @@ namespace rainy::foundation::concurrency {
         friend bool operator==(id left, id right) noexcept;
 
 #if RAINY_HAS_CXX20
-        friend std::strong_ordering operator<=>(annotations::lifetime::in<id> left, const annotations::lifetime::in<id> right) noexcept {
+        friend std::strong_ordering operator<=>(annotations::lifetime::in<id> left, annotations::lifetime::in<id> right) noexcept {
             return left.id_ <=> right.id_;
         }
 #else
