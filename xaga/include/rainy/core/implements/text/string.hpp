@@ -1638,10 +1638,10 @@ namespace rainy::foundation::text {
             auto length = last - first;
             auto size = this->size();
             auto new_size = size + length;
-            // clang/macOS 在 constexpr 中需要更谨慎的处理
-#if (RAINY_USING_CLANG || RAINY_USING_MACOS) && RAINY_HAS_CXX20
+            // clang/gcc对这种可能更敏感，需要进行这种处理
+#if (RAINY_USING_CLANG || RAINY_USING_GCC) && RAINY_HAS_CXX20
             if (std::is_constant_evaluated()) {
-                if (is_short_()) { // 嗯……需要强制转化成长字符串，先保存，然后我再进行分配，不然clang的检查会进行不合理的报错
+                if (is_short_()) { // 嗯……需要强制转化成长字符串，先保存，然后我再进行分配，不然constexpr的检查会进行不合理的报错
                     value_type old_data[short_string_max_ + 1];
                     auto old_size = size;
                     for (size_type i = 0; i < old_size; ++i) {
