@@ -33,6 +33,7 @@ struct SafeValues<std::int32_t> {
     static constexpr int iterations = 10000;
 };
 
+#if RAINY_USING_MACOS
 template <>
 struct SafeValues<long> {
     static constexpr long start = 0;
@@ -40,6 +41,7 @@ struct SafeValues<long> {
     static constexpr int threads = 4;
     static constexpr int iterations = 10000;
 };
+#endif
 
 template <>
 struct SafeValues<std::int64_t> {
