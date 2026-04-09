@@ -470,6 +470,7 @@ SCENARIO_METHOD(PriorityActorPoolFixture,
             THEN("high priority runs without waiting for all low tasks") {
                 REQUIRE(high_done.load());
                 REQUIRE(low_started.load() <= 2000);
+                pool.wait_all(); // 在断言后、作用域结束前，等所有 low task 跑完
             }
         }
     }
