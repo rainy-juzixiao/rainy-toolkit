@@ -149,11 +149,12 @@ namespace rainy::foundation::io::net {
                 bool cancelled{false};
             };
 
-            timer_impl() : running_(true) {
+            timer_impl() {
                 worker_ = std::thread([this] { run(); });
             }
 
             ~timer_impl() {
+                cancel_all();  // 取消所有等待的 timer
                 {
                     std::lock_guard<std::mutex> lock(mutex_);
                     running_ = false;
@@ -208,10 +209,11 @@ namespace rainy::foundation::io::net {
             void fire(const wait_entry &entry, std::error_code ec, bool from_cancel = false) {
                 auto handler = entry.handler;
                 auto executor = entry.executor;
-                if (from_cancel) {
+                if (from_cancel || ec) {  // 出错或取消时同步调用
                     handler(ec);
                     executor.on_work_finished();
                 } else {
+                    // 只有正常且未过期的才异步调用
                     executor.post(
                         [handler, executor, ec]() mutable {
                             handler(ec);
