@@ -10,7 +10,7 @@ on:
 
 jobs:
   x86_64:
-    runs-on: self-hosted
+    runs-on: macos-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -28,14 +28,7 @@ jobs:
 
       - name: Configure CMake
         run: |
-          cmake -S . -B build \
-            -DCMAKE_BUILD_TYPE=Release \
-            -G Ninja \
-            -DCMAKE_OSX_SYSROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk \
-            -DCMAKE_CXX_FLAGS="-isystem /opt/local/libexec/llvm-18/include/c++/v1" \
-            -DCMAKE_EXE_LINKER_FLAGS="-L/opt/local/libexec/llvm-18/lib/libc++ -Wl,-rpath,/opt/local/libexec/llvm-18/lib/libc++ -Wl,-rpath,/opt/local/lib -L/opt/local/lib -lunwind" \
-            -DCMAKE_SHARED_LINKER_FLAGS="-L/opt/local/libexec/llvm-18/lib/libc++ -Wl,-rpath,/opt/local/libexec/llvm-18/lib/libc++ -Wl,-rpath,/opt/local/lib -L/opt/local/lib -lunwind"
-
+          cmake -S . -B build
       - name: Build
         run: |
           cmake --build build -j2
