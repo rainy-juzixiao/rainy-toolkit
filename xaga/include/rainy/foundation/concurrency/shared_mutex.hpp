@@ -231,17 +231,11 @@ namespace rainy::foundation::concurrency {
         }
 
         void unlock_shared() {
-            bool notify = false;
-            {
-                lock_guard<mutex> lk(mtx_);
-                --state_; // 减少读者计数
-                // 如果是最后一个读者且有等待的写者
-                if ((state_ & ~write_entered_) == 0 && exclusive_waiting_ > 0) {
-                    notify = true;
-                }
-            }
-            // 唤醒一个等待的写者
-            if (notify) {
+            lock_guard<mutex> lk(mtx_);
+            --state_;
+
+            // 在持有锁时通知
+            if ((state_ & ~write_entered_) == 0 && exclusive_waiting_ > 0) {
                 writer_queue.notify_one();
             }
         }
