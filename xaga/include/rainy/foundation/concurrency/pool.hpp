@@ -711,11 +711,20 @@ namespace rainy::foundation::concurrency {
     public:
         explicit blocking_actor_pool(const std::size_t base_threads = 2,
                                      const std::size_t max_threads = std::thread::hardware_concurrency() * 2) :
-            base_threads_(base_threads), max_threads_(max_threads), stop_(false), active_threads_(0), pending_tasks_(0) {
+            base_threads_(base_threads), max_threads_(max_threads), stop_(false), active_threads_(0), pending_tasks_(0),
+            ready_threads_(0) // ← 新增
+        {
             utility::expects(base_threads_ > 0);
             utility::expects(max_threads_ >= base_threads_);
             for (std::size_t i = 0; i < base_threads_; ++i) {
                 spawn_thread();
+            }
+            // 等所有线程真正进入 wait 状态
+            {
+                unique_lock lk(queue_mutex_);
+                queue_cv_.wait(lk, [this] { // 复用 queue_cv_ 即可
+                    return ready_threads_.load(memory_order_acquire) >= base_threads_;
+                });
             }
         }
 
@@ -807,6 +816,11 @@ namespace rainy::foundation::concurrency {
         }
 
         void thread_loop() {
+            {
+                lock_guard lk(queue_mutex_);
+                ready_threads_.fetch_add(1, memory_order_release);
+                queue_cv_.notify_all();
+            }
             while (!stop_.load(memory_order_acquire)) {
                 functional::move_only_delegate<void()> task;
                 bool has_task = false;
@@ -838,7 +852,7 @@ namespace rainy::foundation::concurrency {
             if (current_active >= max_threads_) {
                 return;
             }
-            std::size_t queue_size;
+            std::size_t queue_size = 0;
             {
                 lock_guard lk(queue_mutex_);
                 queue_size = task_queue_.size();
@@ -868,6 +882,7 @@ namespace rainy::foundation::concurrency {
         atomic<std::size_t> active_threads_;
         atomic<int> pending_tasks_{0};
         atomic<int> complete_count_{0};
+        atomic<std::size_t> ready_threads_{0};
     };
 }
 
