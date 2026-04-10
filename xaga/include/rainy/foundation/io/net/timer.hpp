@@ -154,7 +154,6 @@ namespace rainy::foundation::io::net {
             }
 
             ~timer_impl() {
-                cancel_all(); // 取消所有等待的 timer
                 {
                     std::lock_guard<std::mutex> lock(mutex_);
                     running_ = false;
@@ -163,6 +162,13 @@ namespace rainy::foundation::io::net {
                 if (worker_.joinable()) {
                     worker_.join();
                 }
+                for (auto& entry : queue_) {
+                    if (!entry.cancelled) {
+                        entry.cancelled = true;
+                        fire(entry, std::make_error_code(std::errc::operation_canceled));
+                    }
+                }
+                queue_.clear();
             }
 
             template <typename Handler>
