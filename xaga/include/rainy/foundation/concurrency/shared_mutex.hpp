@@ -219,15 +219,19 @@ namespace rainy::foundation::concurrency {
         bool try_lock_shared_until(const std::chrono::time_point<Clock, Duration> &abs_time) {
             unique_lock<mutex> lk(mtx_);
             ++shared_waiting_;
-            // 等待没有写者且没有等待的写者，或超时
+
             while ((state_ & write_entered_) || exclusive_waiting_ > 0) {
-                if (reader_queue.wait_until(lk, abs_time) == cv_status::timeout) {
+                cv_status status = reader_queue.wait_until(lk, abs_time);
+                if (status == cv_status::timeout) {
+                    // 确保在超时时不会意外获取锁
                     --shared_waiting_;
                     return false;
                 }
+                // 如果被唤醒，重新检查条件
             }
+
             --shared_waiting_;
-            ++state_; // 增加读者计数
+            ++state_;
             return true;
         }
 
