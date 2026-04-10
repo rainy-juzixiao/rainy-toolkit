@@ -79,7 +79,7 @@ namespace rainy::foundation::concurrency::implements {
         }
     }
 
-    thrd_result cnd_timedwait(cnd_t *const cnd, mtx_t *const mtx, const ::timespec *timeout) noexcept {
+    thrd_result cnd_timedwait(cnd_t *const cnd, mtx_t* const mtx, const ::timespec *timeout) noexcept {
         if (!cnd || !*cnd || !mtx || !*mtx || !timeout) {
             return thrd_result::nomem;
         }
@@ -94,25 +94,10 @@ namespace rainy::foundation::concurrency::implements {
         const pthread_t saved_tid = mutex->thread_id;
         mutex->count = 0;
         mutex->thread_id = {};
-#if RAINY_USING_MACOS
-        ::timespec rel{};
-        struct timespec now_ts{};
-        clock_gettime(CLOCK_MONOTONIC, &now_ts);
-        rel.tv_sec = timeout->tv_sec - now_ts.tv_sec;
-        rel.tv_nsec = timeout->tv_nsec - now_ts.tv_nsec;
-        if (rel.tv_nsec < 0) {
-            rel.tv_sec -= 1;
-            rel.tv_nsec += 1'000'000'000L;
-        }
-        int ret = 0;
-        if (rel.tv_sec < 0 || (rel.tv_sec == 0 && rel.tv_nsec <= 0)) {
-            ret = ETIMEDOUT;
-        } else {
-            ret = pthread_cond_timedwait_relative_np(&obj->cond, pmutex, &rel);
-        }
-#else
+
         const int ret = pthread_cond_timedwait(&obj->cond, pmutex, timeout);
-#endif
+
+        // 无论是正常唤醒还是超时，pthread 都会重新持有锁
         mutex->count = saved_count;
         mutex->thread_id = pthread_self();
 
