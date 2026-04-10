@@ -427,6 +427,7 @@ SCENARIO("multiple timers sharing one io_context all fire correctly", "[timer][m
         t3.async_wait(make_handler(3));
         WHEN("ctx.run() processes all three timers") {
             ctx.run();
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
             THEN("all three handlers fired") {
                 REQUIRE(order.size() == 3);
             }

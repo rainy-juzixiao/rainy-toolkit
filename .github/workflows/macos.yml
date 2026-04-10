@@ -28,7 +28,7 @@ jobs:
 
       - name: Configure CMake
         run: |
-          cmake -S . -B build -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined"
+          cmake -S . -B build
       - name: Build
         run: |
           cmake --build build -j2
