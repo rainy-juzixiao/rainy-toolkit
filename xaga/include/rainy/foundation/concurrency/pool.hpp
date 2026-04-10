@@ -248,7 +248,7 @@ namespace rainy::foundation::concurrency {
 
         void stop() override {
             stop_.store(true, memory_order_release);
-            for (auto &a : actors_) {
+            for (auto &a: actors_) {
                 a->signal_stop();
             }
         }
@@ -380,7 +380,7 @@ namespace rainy::foundation::concurrency {
 
         void stop() override {
             stop_.store(true, memory_order_release);
-            for (auto &a : actors_) {
+            for (auto &a: actors_) {
                 a->signal_stop();
             }
         }
@@ -388,10 +388,10 @@ namespace rainy::foundation::concurrency {
         void join() override {
             this->wait_all();
             stop_.store(true, memory_order_release);
-            for (auto &a : actors_) {
+            for (auto &a: actors_) {
                 a->signal_stop();
             }
-            for (auto &t : threads_) {
+            for (auto &t: threads_) {
                 if (t) {
                     t->join();
                 }
@@ -587,8 +587,8 @@ namespace rainy::foundation::concurrency {
 
         void stop() override {
             stop_.store(true, memory_order_release);
-            for (auto &tier_actors : actors_) {
-                for (auto &a : tier_actors) {
+            for (auto &tier_actors: actors_) {
+                for (auto &a: tier_actors) {
                     a->signal_stop();
                 }
             }
@@ -597,13 +597,13 @@ namespace rainy::foundation::concurrency {
         void join() override {
             this->wait_all();
             stop_.store(true, memory_order_release);
-            for (auto &tier_actors : actors_) {
-                for (auto &a : tier_actors) {
+            for (auto &tier_actors: actors_) {
+                for (auto &a: tier_actors) {
                     a->signal_stop();
                 }
             }
 
-            for (auto &t : threads_) {
+            for (auto &t: threads_) {
                 if (t) {
                     t->join();
                 }
@@ -734,9 +734,9 @@ namespace rainy::foundation::concurrency {
             {
                 lock_guard lk(queue_mutex_);
                 task_queue_.push(utility::move(task));
+                queue_cv_.notify_one();
             }
             check_expand_pool();
-            queue_cv_.notify_one();
         }
 
         void submit_to(std::size_t actor_id, functional::move_only_delegate<void()> task) override {
@@ -745,12 +745,12 @@ namespace rainy::foundation::concurrency {
         }
 
         void wait_all() override {
-            const int target = pending_tasks_.load(memory_order_acquire);
-            if (target == 0) {
-                return;
-            }
             unique_lock lk(idle_mutex_);
-            idle_cv_.wait(lk, [this, target] { return complete_count_.load(memory_order_acquire) >= target; });
+            idle_cv_.wait(lk, [this] {
+                int p = pending_tasks_.load(memory_order_acquire);
+                int c = complete_count_.load(memory_order_acquire);
+                return p == 0 || c >= p;
+            });
             pending_tasks_.store(0, memory_order_release);
             complete_count_.store(0, memory_order_release);
         }
@@ -789,7 +789,7 @@ namespace rainy::foundation::concurrency {
             }
 
             lock_guard lk(threads_mutex_);
-            for (auto &t : threads_) {
+            for (auto &t: threads_) {
                 if (t) {
                     t->join();
                 }
