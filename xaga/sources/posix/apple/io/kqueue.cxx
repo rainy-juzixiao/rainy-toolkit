@@ -179,11 +179,14 @@ namespace rainy::foundation::io::net::implements {
         }
 
         void post_immediate_completion(completion_op *op, bool /*is_continuation*/) noexcept override {
+            if (stopped_.load(concurrency::memory_order_acquire)) {
+                return;
+            }
             {
                 concurrency::scoped_lock lock(ready_mutex_);
                 ready_queue_.push(op);
             }
-            if (!in_event_loop_) {
+            if (!running_in_this_thread()) {
                 wakeup();
             }
         }
@@ -309,7 +312,7 @@ namespace rainy::foundation::io::net::implements {
         }
 
         void wakeup() noexcept { // NOLINT
-            if (!kq_initialized_) {
+            if (!kq_initialized_ || stopped_.load(concurrency::memory_order_acquire)) {
                 return;
             }
             struct kevent ev{};
