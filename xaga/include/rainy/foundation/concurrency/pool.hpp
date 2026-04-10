@@ -812,10 +812,9 @@ namespace rainy::foundation::concurrency {
                 bool has_task = false;
                 {
                     unique_lock lk(queue_mutex_);
-                    if (task_queue_.empty()) {
-                        queue_cv_.wait_for(lk, std::chrono::milliseconds(100),
-                                           [this] { return !task_queue_.empty() || stop_.load(memory_order_acquire); });
-                    }
+                    queue_cv_.wait(lk, [this] {
+                        return !task_queue_.empty() || stop_.load(memory_order_acquire);
+                    });
                     if (!task_queue_.empty()) {
                         task = std::move(task_queue_.front());
                         task_queue_.pop();
