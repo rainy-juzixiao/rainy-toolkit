@@ -9,7 +9,7 @@ on:
   workflow_dispatch: # Test only
 
 jobs:
-  x86_64:
+  arm64:
     runs-on: macos-latest
     steps:
       - name: Checkout

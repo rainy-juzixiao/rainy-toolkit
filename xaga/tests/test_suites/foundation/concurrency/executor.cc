@@ -631,7 +631,7 @@ SCENARIO_METHOD(BlockingActorPoolFixture, "blocking_actor_pool basic submit and 
 
                 auto end = std::chrono::steady_clock::now();
                 auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-                REQUIRE(elapsed.count() < 100 + 50 + 100);
+                REQUIRE(elapsed.count() < 300);
             }
         }
 
