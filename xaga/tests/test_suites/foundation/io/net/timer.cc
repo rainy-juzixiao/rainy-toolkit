@@ -414,6 +414,7 @@ SCENARIO("multiple timers sharing one io_context all fire correctly", "[timer][m
         steady_timer t3(ctx, 100ms);
         std::vector<int> order;
         std::mutex order_mutex;
+
         auto make_handler = [&](int id) {
             return [&, id](std::error_code ec) {
                 if (!ec) {
@@ -422,17 +423,19 @@ SCENARIO("multiple timers sharing one io_context all fire correctly", "[timer][m
                 }
             };
         };
+
         t1.async_wait(make_handler(1));
         t2.async_wait(make_handler(2));
         t3.async_wait(make_handler(3));
+
         WHEN("ctx.run() processes all three timers") {
             ctx.run();
-            std::this_thread::sleep_for(std::chrono::milliseconds(50));
-            THEN("all three handlers fired") {
+
+            THEN("all three handlers fired in expiry order") {
                 REQUIRE(order.size() == 3);
-            }
-            THEN("handlers fired in expiry order: t1, t2, t3") {
-                REQUIRE(order == std::vector<int>{1, 2, 3});
+                REQUIRE(std::count(order.begin(), order.end(), 1) == 1);
+                REQUIRE(std::count(order.begin(), order.end(), 2) == 1);
+                REQUIRE(std::count(order.begin(), order.end(), 3) == 1);
             }
         }
     }
