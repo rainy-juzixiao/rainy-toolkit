@@ -183,7 +183,7 @@ namespace rainy::foundation::concurrency::implements {
         pthread_mutex_unlock(&handle->internal_mutex);
         return thrd_result::busy;
 #else
-        int result = pthread_rwlock_trywrlock(&handle->rwlock);
+        const int result = pthread_rwlock_trywrlock(&handle->rwlock);
         if (result == EBUSY) {
             return thrd_result::busy;
         }

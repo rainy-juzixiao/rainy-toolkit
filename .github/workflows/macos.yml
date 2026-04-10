@@ -1,4 +1,4 @@
-name: MacOS-X86_64-Test
+name: MacOS-Test
 
 permissions:
   contents: read
@@ -6,29 +6,49 @@ permissions:
 on:
   push:
   pull_request:
-  workflow_dispatch: # Test only
+  workflow_dispatch:
 
 jobs:
-  arm64:
-    runs-on: macos-latest
+  build-and-test:
+    name: ${{ matrix.arch }} - ${{ matrix.os }}
+    runs-on: ${{ matrix.runner }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Apple Silicon (ARM64)
+          - arch: arm64
+            os: macOS-latest
+            runner: macos-latest
+
+          # Intel (x86_64)
+          - arch: x86_64
+            os: macOS-13
+            runner: macos-13
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: Say Hello
-        run: echo "Hello World"
-
-      - name: Display System Infomation
+      - name: Print Architecture
         run: |
-          echo "Current System: $(sw_vers -productName)"
+          echo "Target Arch: ${{ matrix.arch }}"
+          uname -m
+
+      - name: Display System Information
+        run: |
+          echo "System: $(sw_vers -productName)"
           echo "Version: $(sw_vers -productVersion)"
-          echo "Hostname: $(hostname)"
+          echo "Kernel: $(uname -a)"
+          echo "CPU: $(sysctl -n machdep.cpu.brand_string || echo 'Apple Silicon')"
 
       - name: Configure CMake
         run: |
           cmake -S . -B build
+
       - name: Build
         run: |
           cmake --build build -j$(sysctl -n hw.ncpu)
