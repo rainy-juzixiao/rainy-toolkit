@@ -43,22 +43,6 @@ namespace rainy::foundation::concurrency::implements {
             ts.tv_nsec = static_cast<long>(ns.count());
             return ts;
         } else {
-#if RAINY_USING_MACOS
-            const auto now_clock = Clock::now();
-            const auto delta_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(tp - now_clock);
-            ::timespec now_mono{};
-            clock_gettime(CLOCK_MONOTONIC, &now_mono);
-            ts.tv_sec = now_mono.tv_sec + static_cast<time_t>(delta_ns.count() / 1'000'000'000LL);
-            ts.tv_nsec = now_mono.tv_nsec + static_cast<long>(delta_ns.count() % 1'000'000'000LL);
-            if (ts.tv_nsec >= 1'000'000'000L) {
-                ts.tv_sec += 1;
-                ts.tv_nsec -= 1'000'000'000L;
-            } else if (ts.tv_nsec < 0) {
-                ts.tv_sec -= 1;
-                ts.tv_nsec += 1'000'000'000L;
-            }
-            return ts;
-#else
             const auto now_sys = std::chrono::system_clock::now();
             const auto now_clock = Clock::now();
             const auto delta = tp - now_clock;
@@ -69,7 +53,6 @@ namespace rainy::foundation::concurrency::implements {
             ts.tv_sec = std::chrono::system_clock::to_time_t(sec);
             ts.tv_nsec = static_cast<long>(ns.count());
             return ts;
-#endif
         }
     }
 }
