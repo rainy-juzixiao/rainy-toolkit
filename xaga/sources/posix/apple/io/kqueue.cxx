@@ -179,14 +179,14 @@ namespace rainy::foundation::io::net::implements {
         }
 
         void post_immediate_completion(completion_op *op, bool /*is_continuation*/) noexcept override {
-            if (stopped_.load(concurrency::memory_order_acquire)) {
+            if (destroying_.load(concurrency::memory_order_acquire)) {
                 return;
             }
             {
                 concurrency::scoped_lock lock(ready_mutex_);
                 ready_queue_.push(op);
             }
-            if (!running_in_this_thread()) {
+            if (!in_event_loop_) {
                 wakeup();
             }
         }
@@ -311,13 +311,31 @@ namespace rainy::foundation::io::net::implements {
             return 1;
         }
 
-        void wakeup() noexcept { // NOLINT
-            if (!kq_initialized_ || stopped_.load(concurrency::memory_order_acquire)) {
+        void destroy() noexcept override {
+            destroying_.store(true, concurrency::memory_order_release);
+            if (kq_initialized_) {
+                struct kevent ev{};
+                EV_SET(&ev, WAKEUP_IDENT, EVFILT_USER, EV_DELETE, 0, 0, nullptr);
+                ::kevent(kq_, &ev, 1, nullptr, 0, nullptr);
+                ::close(kq_);
+                kq_ = -1;
+                kq_initialized_ = false;
+            }
+        }
+
+        void wakeup() noexcept {
+            if (destroying_.load(concurrency::memory_order_acquire)) {
+                return;
+            }
+            if (!kq_initialized_) {
                 return;
             }
             struct kevent ev{};
             EV_SET(&ev, WAKEUP_IDENT, EVFILT_USER, 0, NOTE_TRIGGER, 0, &non_op);
-            ::kevent(kq_, &ev, 1, nullptr, 0, nullptr);
+            // 再次检查，因为在获取锁或准备参数时可能已经开始析构
+            if (!destroying_.load(concurrency::memory_order_acquire) && kq_initialized_) {
+                ::kevent(kq_, &ev, 1, nullptr, 0, nullptr);
+            }
         }
 
         int kq_{-1};
@@ -328,6 +346,7 @@ namespace rainy::foundation::io::net::implements {
         std::queue<completion_op *> ready_queue_;
 
         static thread_local bool in_event_loop_;
+        concurrency::atomic<bool> destroying_{false};
     };
 
     thread_local bool kqueue_impl::in_event_loop_ = false;
