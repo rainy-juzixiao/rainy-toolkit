@@ -52,7 +52,7 @@ namespace rainy::foundation::concurrency::implements {
         return ret == 0 ? thrd_result::success : thrd_result::error;
     }
 
-    thrd_result cnd_wait(cnd_t *const cnd, mtx_t* const mtx) noexcept {
+    thrd_result cnd_wait(cnd_t *const cnd, mtx_t *const mtx) noexcept {
         if (!cnd || !*cnd || !mtx || !*mtx) {
             return thrd_result::nomem;
         }
@@ -63,19 +63,15 @@ namespace rainy::foundation::concurrency::implements {
             return thrd_result::nomem;
         }
         const int saved_count = mutex->count;
-        const pthread_t saved_tid = mutex->thread_id;
-        mutex->count = 0;
-        mutex->thread_id = {};
+        mutex->count = 1;
+        mutex->thread_id = pthread_self();
         const int ret = pthread_cond_wait(&obj->cond, pmutex);
         mutex->count = saved_count;
         mutex->thread_id = pthread_self();
         switch (ret) {
-            case 0:
-                return thrd_result::success;
-            case EINVAL:
-                return thrd_result::nomem;
-            default:
-                return thrd_result::error;
+            case 0: return thrd_result::success;
+            case EINVAL: return thrd_result::nomem;
+            default: return thrd_result::error;
         }
     }
 
