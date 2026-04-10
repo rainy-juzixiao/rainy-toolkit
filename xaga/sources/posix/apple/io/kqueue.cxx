@@ -57,6 +57,7 @@ namespace rainy::foundation::io::net::implements {
         }
 
         void destroy() noexcept override {
+            destroying_.store(true, concurrency::memory_order_release);
             if (kq_initialized_) {
                 struct kevent ev{};
                 EV_SET(&ev, WAKEUP_IDENT, EVFILT_USER, EV_DELETE, 0, 0, nullptr);
@@ -309,18 +310,6 @@ namespace rainy::foundation::io::net::implements {
             op_result r{op, 0, 0};
             op->complete(r, false);
             return 1;
-        }
-
-        void destroy() noexcept override {
-            destroying_.store(true, concurrency::memory_order_release);
-            if (kq_initialized_) {
-                struct kevent ev{};
-                EV_SET(&ev, WAKEUP_IDENT, EVFILT_USER, EV_DELETE, 0, 0, nullptr);
-                ::kevent(kq_, &ev, 1, nullptr, 0, nullptr);
-                ::close(kq_);
-                kq_ = -1;
-                kq_initialized_ = false;
-            }
         }
 
         void wakeup() noexcept {
