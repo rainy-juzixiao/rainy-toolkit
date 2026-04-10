@@ -42,30 +42,22 @@ namespace rainy::foundation::concurrency::implements {
     static int apple_mutex_timedlock(mutex_handle *mutex, const ::timespec *target) noexcept {
         struct timespec now;
         struct timespec deadline = *target;
-
         while (true) {
-            // 尝试获取锁
             int res = pthread_mutex_trylock(&mutex->handle);
             if (res == 0) {
-                // 成功获取锁
                 return 0;
             }
             if (res != EBUSY) {
-                // 其他错误
                 return res;
             }
-
-            // 检查是否超时
             clock_gettime(CLOCK_REALTIME, &now);
-            if (now.tv_sec > deadline.tv_sec || (now.tv_sec == deadline.tv_sec && now.tv_nsec >= deadline.tv_nsec)) {
+            if (now.tv_sec > deadline.tv_sec ||
+                (now.tv_sec == deadline.tv_sec && now.tv_nsec >= deadline.tv_nsec)) {
                 return ETIMEDOUT;
-            }
-
-            // 短暂休眠避免忙等待过耗 CPU
-            // 使用 1ms 的休眠间隔，平衡响应速度和 CPU 占用
+                }
             struct timespec sleep_time;
             sleep_time.tv_sec = 0;
-            sleep_time.tv_nsec = 1000000; // 1ms
+            sleep_time.tv_nsec = 100000;
             nanosleep(&sleep_time, nullptr);
         }
     }
