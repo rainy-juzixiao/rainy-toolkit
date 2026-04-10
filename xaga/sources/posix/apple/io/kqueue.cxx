@@ -26,7 +26,7 @@ namespace rainy::foundation::io::net::implements {
     }
     static completion_op non_op{&nop_fn};
 
-    static constexpr uintptr_t WAKEUP_IDENT = static_cast<uintptr_t>(-1);
+    static constexpr uintptr_t WAKEUP_IDENT = 0x5241494E595F4B51;
     static constexpr int HARVEST_BATCH = 64;
 
     class kqueue_impl final : public io_context_impl_base {
