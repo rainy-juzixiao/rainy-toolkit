@@ -16,8 +16,9 @@
 #ifndef RAINY_FOUNDATION_CONCURRENCY_SHARED_MUTEX_HPP
 #define RAINY_FOUNDATION_CONCURRENCY_SHARED_MUTEX_HPP
 #include <chrono>
-#include <rainy/foundation/concurrency/mutex.hpp>
 #include <rainy/foundation/concurrency/condition_variable.hpp>
+#include <rainy/foundation/concurrency/mutex.hpp>
+#include <rainy/foundation/concurrency/atomic.hpp>
 #include <rainy/foundation/concurrency/pal.hpp>
 #include <system_error>
 
@@ -245,9 +246,9 @@ namespace rainy::foundation::concurrency {
         condition_variable writer_queue; // 写者等待队列
         condition_variable reader_queue; // 读者等待队列
 
-        unsigned int state_; // 状态字：最高位表示写者，其余位表示读者数量
-        unsigned int exclusive_waiting_; // 等待的写者数量
-        unsigned int shared_waiting_; // 等待的读者数量
+        atomic<unsigned int> state_; // 状态字：最高位表示写者，其余位表示读者数量
+        atomic<unsigned int> exclusive_waiting_; // 等待的写者数量
+        atomic<unsigned int> shared_waiting_; // 等待的读者数量
 
         static constexpr unsigned write_entered_ = 1U << (sizeof(unsigned) * 8 - 1);
     };
