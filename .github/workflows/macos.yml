@@ -24,8 +24,8 @@ jobs:
 
           # Intel (x86_64)
           - arch: x86_64
-            os: macOS-13
-            runner: macos-13
+            os: macOS-14
+            runner: macos-14
 
     steps:
       - name: Checkout
