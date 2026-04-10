@@ -213,6 +213,11 @@ namespace rainy::foundation::io::net {
             void fire(const wait_entry &entry, std::error_code ec, bool from_cancel = false) {
                 auto handler = entry.handler;
                 auto executor = entry.executor;
+                if (executor.context().stopped()) {
+                    handler(ec);
+                    executor.on_work_finished();
+                    return;
+                }
                 executor.post(
                     [handler, executor, ec]() mutable {
                         handler(ec);
