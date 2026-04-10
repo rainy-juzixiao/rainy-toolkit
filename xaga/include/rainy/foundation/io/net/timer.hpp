@@ -15,9 +15,9 @@
  */
 #ifndef RAINY_FOUNDATION_IO_NET_TIMER_HPP
 #define RAINY_FOUNDATION_IO_NET_TIMER_HPP
-#include <system_error>
 #include <rainy/foundation/io/net/fwd.hpp>
 #include <rainy/foundation/io/net/io_context.hpp>
+#include <system_error>
 
 namespace rainy::foundation::io::net {
     template <typename Clock>
@@ -154,7 +154,7 @@ namespace rainy::foundation::io::net {
             }
 
             ~timer_impl() {
-                cancel_all();  // 取消所有等待的 timer
+                cancel_all(); // 取消所有等待的 timer
                 {
                     std::lock_guard<std::mutex> lock(mutex_);
                     running_ = false;
@@ -181,7 +181,7 @@ namespace rainy::foundation::io::net {
                 std::vector<wait_entry> to_cancel;
                 {
                     std::lock_guard<std::mutex> lock(mutex_);
-                    for (auto &entry : queue_) {
+                    for (auto &entry: queue_) {
                         if (!entry.cancelled) {
                             entry.cancelled = true;
                             to_cancel.push_back(entry);
@@ -190,8 +190,8 @@ namespace rainy::foundation::io::net {
                     queue_.clear();
                     cv_.notify_all();
                 }
-                for (auto &entry : to_cancel) {
-                    fire(entry, std::make_error_code(std::errc::operation_canceled), true);
+                for (auto &entry: to_cancel) {
+                    fire(entry, std::make_error_code(std::errc::operation_canceled));
                 }
                 return to_cancel.size();
             }
@@ -228,21 +228,24 @@ namespace rainy::foundation::io::net {
                         cv_.wait(lock, [this] { return !running_ || !queue_.empty(); });
                         continue;
                     }
-
                     auto wake_at = queue_.front().expiry;
                     cv_.wait_until(lock, wake_at,
                                    [this, &wake_at] { return !running_ || queue_.empty() || queue_.front().expiry != wake_at; });
-
-                    if (!running_)
+                    if (!running_) {
                         break;
-
+                    }
                     auto now = clock_type::now();
                     auto it = queue_.begin();
                     while (it != queue_.end() && it->expiry <= now) {
                         if (!it->cancelled) {
-                            fire(*it, std::error_code{});
+                            wait_entry entry = *it;
+                            it = queue_.erase(it);
+                            lock.unlock();
+                            fire(entry, std::error_code{});
+                            lock.lock();
+                        } else {
+                            it = queue_.erase(it);
                         }
-                        it = queue_.erase(it);
                     }
                 }
             }
