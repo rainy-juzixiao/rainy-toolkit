@@ -240,23 +240,34 @@ namespace rainy::foundation::io::net {
                         continue;
                     }
                     auto wake_at = queue_.front().expiry;
+                    auto now = clock_type::now();
+                    if (wake_at <= now) {
+                        process_expired(lock);
+                        continue;
+                    }
                     cv_.wait_until(lock, wake_at,
-                                   [this, &wake_at] { return !running_ || queue_.empty() || queue_.front().expiry != wake_at; });
+                        [this, &wake_at] {
+                            return !running_ || queue_.empty() || queue_.front().expiry != wake_at;
+                        });
                     if (!running_) {
                         break;
                     }
-                    auto now = clock_type::now();
-                    auto it = queue_.begin();
-                    while (it != queue_.end() && it->expiry <= now) {
-                        if (!it->cancelled) {
-                            wait_entry entry = *it;
-                            it = queue_.erase(it);
-                            lock.unlock();
-                            fire(entry, std::error_code{});
-                            lock.lock();
-                        } else {
-                            it = queue_.erase(it);
-                        }
+                    process_expired(lock);
+                }
+            }
+
+            void process_expired(std::unique_lock<std::mutex>& lock) {
+                auto now = clock_type::now();
+                auto it = queue_.begin();
+                while (it != queue_.end() && it->expiry <= now) {
+                    if (!it->cancelled) {
+                        wait_entry entry = *it;
+                        it = queue_.erase(it);
+                        lock.unlock();
+                        fire(entry, std::error_code{});
+                        lock.lock();
+                    } else {
+                        it = queue_.erase(it);
                     }
                 }
             }
