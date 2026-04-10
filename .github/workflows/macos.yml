@@ -31,7 +31,7 @@ jobs:
           cmake -S . -B build
       - name: Build
         run: |
-          cmake --build build --parallel
+          cmake --build build -j$(sysctl -n hw.ncpu)
 
       - name: Run tests
         run: |
