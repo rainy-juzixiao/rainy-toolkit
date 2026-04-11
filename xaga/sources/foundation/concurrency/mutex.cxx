@@ -136,6 +136,7 @@ namespace rainy::foundation::concurrency {
         return &mtx_;
     }
 }
+
 namespace rainy::foundation::concurrency {
     recursive_timed_mutex::recursive_timed_mutex() noexcept {
         constexpr int flags =

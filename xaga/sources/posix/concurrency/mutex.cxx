@@ -75,10 +75,15 @@ namespace rainy::foundation::concurrency::implements {
         auto *mutex = static_cast<mutex_handle *>(*mtx);
         const pthread_t current_thread_id = pthread_self();
         const bool is_recursive = (mutex->type & mutex_types::recursive_mtx) == mutex_types::recursive_mtx;
-        if (const bool is_same_thread = pthread_equal(mutex->thread_id, current_thread_id); is_same_thread && is_recursive) {
+        if (is_recursive && mutex->count > 0 && pthread_equal(mutex->thread_id, current_thread_id)) {
             // 递归锁：同线程直接增加计数，无需实际获取底层锁
             core::pal::interlocked_increment(reinterpret_cast<volatile long *>(&mutex->count));
             return thrd_result::success;
+        }
+        const bool is_same_thread = pthread_equal(mutex->thread_id, current_thread_id);
+        if (is_same_thread && mutex->count == 0) {
+            fprintf(stderr, "BUG: thread_id=%p current=%p count=%d\n",
+                    (void*)mutex->thread_id, (void*)current_thread_id, mutex->count);
         }
 
         // 不同线程或非递归锁需要实际获取锁
