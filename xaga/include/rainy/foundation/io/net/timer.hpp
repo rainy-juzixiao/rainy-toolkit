@@ -164,8 +164,9 @@ namespace rainy::foundation::io::net {
                 }
                 for (auto& entry : queue_) {
                     if (!entry.cancelled) {
-                        entry.cancelled = true;
-                        fire(entry, std::make_error_code(std::errc::operation_canceled));
+                        auto ec = std::make_error_code(std::errc::operation_canceled);
+                        entry.handler(ec);
+                        entry.executor.on_work_finished();
                     }
                 }
                 queue_.clear();
@@ -203,14 +204,25 @@ namespace rainy::foundation::io::net {
             }
 
             std::size_t cancel_one() {
-                std::lock_guard<std::mutex> lock(mutex_);
-                for (auto it = queue_.begin(); it != queue_.end(); ++it) {
-                    if (!it->cancelled) {
-                        fire(*it, std::make_error_code(std::errc::operation_canceled), true);
-                        queue_.erase(it);
-                        cv_.notify_all();
-                        return 1;
+                wait_entry to_cancel;
+                bool found = false;
+                {
+                    std::lock_guard<std::mutex> lock(mutex_);
+                    for (auto it = queue_.begin(); it != queue_.end(); ++it) {
+                        if (!it->cancelled) {
+                            to_cancel = *it;
+                            found = true;
+                            queue_.erase(it);
+                            break;
+                        }
                     }
+                    if (found) {
+                        cv_.notify_all();
+                    }
+                }
+                if (found) {
+                    fire(to_cancel, std::make_error_code(std::errc::operation_canceled));
+                    return 1;
                 }
                 return 0;
             }
@@ -258,18 +270,19 @@ namespace rainy::foundation::io::net {
 
             void process_expired(std::unique_lock<std::mutex>& lock) {
                 auto now = clock_type::now();
+                std::vector<wait_entry> to_fire;
                 auto it = queue_.begin();
                 while (it != queue_.end() && it->expiry <= now) {
                     if (!it->cancelled) {
-                        wait_entry entry = *it;
-                        it = queue_.erase(it);
-                        lock.unlock();
-                        fire(entry, std::error_code{});
-                        lock.lock();
-                    } else {
-                        it = queue_.erase(it);
+                        to_fire.push_back(*it);
                     }
+                    it = queue_.erase(it);
                 }
+                lock.unlock();
+                for (auto& entry : to_fire) {
+                    fire(entry, std::error_code{});
+                }
+                lock.lock();
             }
 
             std::mutex mutex_;
