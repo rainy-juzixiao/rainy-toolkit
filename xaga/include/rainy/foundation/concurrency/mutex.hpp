@@ -520,7 +520,7 @@ namespace rainy::foundation::concurrency {
 
 namespace rainy::foundation::concurrency::implements {
     template <typename... Mutexes>
-    void unlock_first_n(Mutexes &...mutex, int n) {
+    void unlock_first_n(const int n, Mutexes &...mutex) {
         int count = 0;
         // 只解锁前 n 个
         ((void) ([&]() {
@@ -551,11 +551,10 @@ namespace rainy::foundation::concurrency::implements {
             return all_locked;
         };
         while (!try_lock_all()) {
-            unlock_first_n(mutex..., locked_count);
+            unlock_first_n(locked_count, mutex...);
             std::this_thread::yield();
         }
     }
-
 
     template <typename Tuple, size_t... I>
     void unlock_tuple(Tuple &time_point, std::index_sequence<I...>) {
