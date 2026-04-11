@@ -179,8 +179,12 @@ namespace rainy::foundation::io::net::implements {
             }
         }
 
-        void post_immediate_completion(completion_op *op, bool /*is_continuation*/) noexcept override {
+        void post_immediate_completion(completion_op *op, bool) noexcept override {
             if (destroying_.load(concurrency::memory_order_acquire)) {
+                if (op) {
+                    op_result r{op, 0, 0};
+                    op->complete(r, false);
+                }
                 return;
             }
             {

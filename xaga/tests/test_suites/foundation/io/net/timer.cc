@@ -441,8 +441,77 @@ SCENARIO("multiple timers sharing one io_context all fire correctly", "[timer][m
     }
 }
 
+#if RAINY_USING_MACOS
+#include <cstdio>
+#include <cstdlib>
+#include <csignal>
+#include <execinfo.h>
+#include <cxxabi.h>
+#include <dlfcn.h>
+
+static void print_stacktrace() {
+    void *bt[128];
+    int n = backtrace(bt, 128);
+    char **syms = backtrace_symbols(bt, n);
+    fprintf(stderr, "\n=== stack trace (%d frames) ===\n", n);
+    for (int i = 0; i < n; ++i) {
+        // 尝试从符号里提取 mangled name 并 demangle
+        // macOS backtrace_symbols 格式：
+        // "0   libfoo.dylib  0x000000010 _ZNSt... + 42"
+        char *begin = nullptr, *end = nullptr, *sym = syms[i];
+        for (char *p = sym; *p; ++p) {
+            if (*p == '_' && (p == sym || *(p-1) == ' ')) begin = p;
+            else if (begin && *p == ' ')                 { end = p; break; }
+        }
+        if (begin && end) {
+            *end = '\0';
+            int status = 0;
+            char *demangled = abi::__cxa_demangle(begin, nullptr, nullptr, &status);
+            *end = ' ';
+            if (status == 0 && demangled) {
+                fprintf(stderr, "  [%2d] %s\n", i, demangled);
+                free(demangled);
+                continue;
+            }
+        }
+        fprintf(stderr, "  [%2d] %s\n", i, sym);
+    }
+    free(syms);
+    fprintf(stderr, "=== end of stack trace ===\n\n");
+}
+
+static void on_terminate() {
+    fprintf(stderr, "\n*** std::terminate called ***\n");
+    // 如果有当前异常，打印它
+    if (auto eptr = std::current_exception()) {
+        try {
+            std::rethrow_exception(eptr);
+        } catch (const std::exception &e) {
+            fprintf(stderr, "  active exception: %s\n", e.what());
+        } catch (...) {
+            fprintf(stderr, "  active exception: (unknown type)\n");
+        }
+    } else {
+        fprintf(stderr, "  no active exception (likely pure virtual call, "
+                        "mutex destroyed while locked, or explicit abort)\n");
+    }
+    print_stacktrace();
+    // 输出后让默认行为继续（生成 core dump）
+    std::abort();
+}
+
+static void on_signal(int sig) {
+    fprintf(stderr, "\n*** signal %d received ***\n", sig);
+    print_stacktrace();
+    signal(sig, SIG_DFL);
+    raise(sig);
+}
+#endif
+
 SCENARIO("a timer can be rescheduled and awaited again after firing", "[timer][reschedule]") {
     GIVEN("a steady_timer that has already fired once") {
+        std::set_terminate(on_terminate);
+        signal(SIGABRT, on_signal);
         io_context ctx;
         steady_timer t(ctx, 20ms);
         std::atomic<int> fire_count{0};
