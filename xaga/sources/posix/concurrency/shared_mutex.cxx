@@ -137,21 +137,13 @@ namespace rainy::foundation::concurrency::implements {
         while (handle->has_writer || handle->active_readers > 0) {
             handle->waiting_writers++;
             int ret = pthread_cond_timedwait(&handle->write_cond, &handle->internal_mutex, timeout);
+            handle->waiting_writers--;
             if (ret == ETIMEDOUT) {
-                if (!handle->has_writer && handle->active_readers == 0) {
-                    handle->waiting_writers--;
-                    handle->has_writer = true;
-                    handle->writer_thread_id = current_thread;
-                    handle->write_recursion_count = 1;
-                    pthread_mutex_unlock(&handle->internal_mutex);
-                    return thrd_result::success;
-                }
-                handle->waiting_writers--;
+                // 直接返回超时，不再做二次检查
                 pthread_mutex_unlock(&handle->internal_mutex);
                 errno = ETIMEDOUT;
                 return thrd_result::timed_out;
             }
-            handle->waiting_writers--;
             if (ret != 0) {
                 pthread_mutex_unlock(&handle->internal_mutex);
                 errno = ret;
@@ -168,7 +160,7 @@ namespace rainy::foundation::concurrency::implements {
             errno = EINVAL;
             return thrd_result::error;
         }
-        int result = pthread_rwlock_timedwrlock(&handle->rwlock, timeout); // 直接使用 timeout
+        int result = pthread_rwlock_timedwrlock(&handle->rwlock, timeout);
         if (result == ETIMEDOUT) {
             errno = ETIMEDOUT;
             return thrd_result::timed_out;
@@ -202,11 +194,7 @@ namespace rainy::foundation::concurrency::implements {
         while (handle->has_writer || handle->waiting_writers > 0) {
             int ret = pthread_cond_timedwait(&handle->read_cond, &handle->internal_mutex, timeout);
             if (ret == ETIMEDOUT) {
-                if (!handle->has_writer && handle->waiting_writers == 0) {
-                    handle->active_readers++;
-                    pthread_mutex_unlock(&handle->internal_mutex);
-                    return thrd_result::success;
-                }
+                // 直接返回超时
                 pthread_mutex_unlock(&handle->internal_mutex);
                 errno = ETIMEDOUT;
                 return thrd_result::timed_out;
