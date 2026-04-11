@@ -80,12 +80,6 @@ namespace rainy::foundation::concurrency::implements {
             core::pal::interlocked_increment(reinterpret_cast<volatile long *>(&mutex->count));
             return thrd_result::success;
         }
-        const bool is_same_thread = pthread_equal(mutex->thread_id, current_thread_id);
-        if (is_same_thread && mutex->count == 0) {
-            fprintf(stderr, "BUG: thread_id=%p current=%p count=%d\n",
-                    (void*)mutex->thread_id, (void*)current_thread_id, mutex->count);
-        }
-
         // 不同线程或非递归锁需要实际获取锁
         int res = -1;
 
