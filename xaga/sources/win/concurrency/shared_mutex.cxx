@@ -32,8 +32,9 @@ namespace rainy::foundation::concurrency::implements {
 
     DWORD timespec_to_ms_remaining(const ::timespec *timeout) noexcept {
         using namespace std::chrono;
+        auto ns = seconds(timeout->tv_sec) + nanoseconds(timeout->tv_nsec);
         auto deadline = system_clock::time_point(
-            seconds(timeout->tv_sec) + nanoseconds(timeout->tv_nsec));
+            duration_cast<system_clock::duration>(ns));
         auto now = system_clock::now();
         if (now >= deadline) {
             return 0;
