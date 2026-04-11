@@ -204,24 +204,22 @@ namespace rainy::foundation::io::net {
             }
 
             std::size_t cancel_one() {
-                wait_entry to_cancel;
-                bool found = false;
+                std::optional<wait_entry> to_cancel;
                 {
                     std::lock_guard<std::mutex> lock(mutex_);
                     for (auto it = queue_.begin(); it != queue_.end(); ++it) {
                         if (!it->cancelled) {
                             to_cancel = *it;
-                            found = true;
                             queue_.erase(it);
                             break;
                         }
                     }
-                    if (found) {
+                    if (to_cancel.has_value()) {
                         cv_.notify_all();
                     }
                 }
-                if (found) {
-                    fire(to_cancel, std::make_error_code(std::errc::operation_canceled));
+                if (to_cancel.has_value()) {
+                    fire(*to_cancel, std::make_error_code(std::errc::operation_canceled));
                     return 1;
                 }
                 return 0;
