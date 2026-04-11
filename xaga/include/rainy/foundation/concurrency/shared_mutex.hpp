@@ -150,21 +150,32 @@ namespace rainy::foundation::concurrency {
             return false;
         }
 
-        template <class Rep, class Period>
+        template <typename Rep, typename Period>
         bool try_lock_for(const std::chrono::duration<Rep, Period> &rel_time) {
             return try_lock_until(std::chrono::steady_clock::now() + rel_time);
         }
 
-        template <class Clock, class Duration>
+        template <typename Clock, typename Duration>
         bool try_lock_until(const std::chrono::time_point<Clock, Duration> &abs_time) {
             unique_lock<mutex> lk(mtx_);
-            auto can_lock = [this] { return state_ == 0; };
             ++exclusive_waiting_;
-            // 等待直到可以获取锁或超时
-            if (!writer_queue.wait_until(lk, abs_time, can_lock)) {
-                --exclusive_waiting_;
-                return false;
+
+            while (state_ != 0) {
+                cv_status status = writer_queue.wait_until(lk, abs_time);
+                if (status == cv_status::timeout) {
+                    // 超时了，但需要再次检查 state_，因为可能在超时瞬间 state_ 变为 0
+                    if (state_ == 0) {
+                        // 幸运的情况：刚好在超时时锁可用了
+                        --exclusive_waiting_;
+                        state_ = write_entered_;
+                        return true;
+                    }
+                    --exclusive_waiting_;
+                    return false;
+                }
+                // 否则是被唤醒的，继续循环检查 state_
             }
+
             --exclusive_waiting_;
             state_ = write_entered_;
             return true;
@@ -206,21 +217,31 @@ namespace rainy::foundation::concurrency {
             return false;
         }
 
-        template <class Rep, class Period>
+        template <typename Rep, typename Period>
         bool try_lock_shared_for(const std::chrono::duration<Rep, Period> &rel_time) {
             return try_lock_shared_until(std::chrono::steady_clock::now() + rel_time);
         }
 
-        template <class Clock, class Duration>
+        template <typename Clock, typename Duration>
         bool try_lock_shared_until(const std::chrono::time_point<Clock, Duration> &abs_time) {
             unique_lock<mutex> lk(mtx_);
-            auto can_lock_shared = [this] { return (state_ & write_entered_) == 0 && exclusive_waiting_ == 0; };
             ++shared_waiting_;
-            // 等待直到可以获取共享锁或超时
-            if (!reader_queue.wait_until(lk, abs_time, can_lock_shared)) {
-                --shared_waiting_;
-                return false;
+
+            while ((state_ & write_entered_) || exclusive_waiting_ > 0) {
+                cv_status status = reader_queue.wait_until(lk, abs_time);
+                if (status == cv_status::timeout) {
+                    // 超时时再次检查条件
+                    if (!(state_ & write_entered_) && exclusive_waiting_ == 0) {
+                        // 刚好在超时时条件满足
+                        --shared_waiting_;
+                        ++state_;
+                        return true;
+                    }
+                    --shared_waiting_;
+                    return false;
+                }
             }
+
             --shared_waiting_;
             ++state_;
             return true;
