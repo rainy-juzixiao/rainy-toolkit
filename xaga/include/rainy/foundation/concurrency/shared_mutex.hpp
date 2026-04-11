@@ -16,9 +16,9 @@
 #ifndef RAINY_FOUNDATION_CONCURRENCY_SHARED_MUTEX_HPP
 #define RAINY_FOUNDATION_CONCURRENCY_SHARED_MUTEX_HPP
 #include <chrono>
+#include <rainy/foundation/concurrency/atomic.hpp>
 #include <rainy/foundation/concurrency/condition_variable.hpp>
 #include <rainy/foundation/concurrency/mutex.hpp>
-#include <rainy/foundation/concurrency/atomic.hpp>
 #include <rainy/foundation/concurrency/pal.hpp>
 #include <system_error>
 
@@ -156,7 +156,7 @@ namespace rainy::foundation::concurrency {
             return try_lock_until(std::chrono::steady_clock::now() + rel_time);
         }
 
-        template <class Clock, class Duration>
+        template <typename Clock, typename Duration>
         bool try_lock_until(const std::chrono::time_point<Clock, Duration> &abs_time) {
             unique_lock<mutex> lk(mtx_);
             ++exclusive_waiting_;
@@ -219,18 +219,13 @@ namespace rainy::foundation::concurrency {
         bool try_lock_shared_until(const std::chrono::time_point<Clock, Duration> &abs_time) {
             unique_lock<mutex> lk(mtx_);
             ++shared_waiting_;
-
             while ((state_ & write_entered_) || exclusive_waiting_ > 0) {
-                if (Clock::now() >= abs_time) {
-                    --shared_waiting_;
-                    return false;
-                }
-                if (reader_queue.wait_until(lk, abs_time) == cv_status::timeout) {
+                cv_status status = reader_queue.wait_until(lk, abs_time);
+                if (status == cv_status::timeout) {
                     --shared_waiting_;
                     return false;
                 }
             }
-
             --shared_waiting_;
             ++state_;
             return true;

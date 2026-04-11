@@ -432,9 +432,9 @@ SCENARIO("shared_timed_mutex supports timed locking operations", "[shared_timed_
 SCENARIO("shared_timed_mutex timeout behavior", "[shared_timed_mutex][concurrency]") {
     GIVEN("a shared_timed_mutex held exclusively") {
         shared_timed_mutex mtx;
-        std::atomic<bool> timeout_occurred{false};
 
         WHEN("another thread tries to acquire with timeout") {
+            std::atomic<bool> timeout_occurred{false};  // 移到 WHEN 块内部
             mtx.lock();
 
             std::thread t([&]() {
@@ -461,6 +461,7 @@ SCENARIO("shared_timed_mutex timeout behavior", "[shared_timed_mutex][concurrenc
         }
 
         WHEN("another thread tries to acquire shared lock with timeout") {
+            std::atomic<bool> timeout_occurred{false};  // 移到 WHEN 块内部
             mtx.lock();
 
             std::thread t([&]() {
@@ -468,7 +469,7 @@ SCENARIO("shared_timed_mutex timeout behavior", "[shared_timed_mutex][concurrenc
                 bool acquired = mtx.try_lock_shared_for(100ms);
                 auto elapsed = std::chrono::steady_clock::now() - start;
 
-                if (!acquired) {
+                if (!acquired && elapsed >= 100ms) {  // 添加时间检查
                     timeout_occurred = true;
                 }
 
