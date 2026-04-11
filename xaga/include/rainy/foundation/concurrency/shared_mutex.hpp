@@ -221,13 +221,14 @@ namespace rainy::foundation::concurrency {
             ++shared_waiting_;
 
             while ((state_ & write_entered_) || exclusive_waiting_ > 0) {
-                cv_status status = reader_queue.wait_until(lk, abs_time);
-                if (status == cv_status::timeout) {
-                    // 确保在超时时不会意外获取锁
+                if (Clock::now() >= abs_time) {
                     --shared_waiting_;
                     return false;
                 }
-                // 如果被唤醒，重新检查条件
+                if (reader_queue.wait_until(lk, abs_time) == cv_status::timeout) {
+                    --shared_waiting_;
+                    return false;
+                }
             }
 
             --shared_waiting_;
