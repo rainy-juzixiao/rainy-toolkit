@@ -162,10 +162,13 @@ namespace rainy::foundation::io::net {
                 if (worker_.joinable()) {
                     worker_.join();
                 }
-                for (auto& entry : queue_) {
+                for (auto &entry : queue_) {
                     if (!entry.cancelled) {
                         auto ec = std::make_error_code(std::errc::operation_canceled);
-                        entry.handler(ec);
+                        try {
+                            entry.handler(ec);
+                        } catch (...) {
+                        }
                         entry.executor.on_work_finished();
                     }
                 }
@@ -226,17 +229,22 @@ namespace rainy::foundation::io::net {
             }
 
         private:
-            void fire(const wait_entry &entry, std::error_code ec, bool from_cancel = false) {
+            void fire(const wait_entry &entry, std::error_code ec) {
                 auto handler = entry.handler;
                 auto executor = entry.executor;
-                if (executor.context().stopped()) {
-                    handler(ec);
+                auto &ctx = executor.context();
+                if (ctx.stopped()) {
+                    try {
+                        handler(ec);
+                    } catch (...) {}
                     executor.on_work_finished();
                     return;
                 }
                 executor.post(
                     [handler, executor, ec]() mutable {
-                        handler(ec);
+                        try {
+                            handler(ec);
+                        } catch (...) {}
                         executor.on_work_finished();
                     },
                     std::allocator<void>{});
