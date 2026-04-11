@@ -17,6 +17,7 @@
 #include <chrono>
 #include <rainy/foundation/concurrency/pal.hpp>
 #include <windows.h>
+#include <synchapi.h>
 
 #if RAINY_USING_MSVC
 #pragma warning(push)
@@ -25,12 +26,25 @@
 
 namespace rainy::foundation::concurrency::implements {
     struct shared_mutex_handle {
-        SRWLOCK srwlock;
-        mtx_t wait_mutex;
-        cnd_t wait_cnd;
-        bool write_waiting;
-        int read_waiting;
+        SRWLOCK  srwlock;
+        LONG volatile state;
     };
+
+    DWORD timespec_to_ms_remaining(const ::timespec *timeout) noexcept {
+        using namespace std::chrono;
+        auto deadline = system_clock::time_point(
+            seconds(timeout->tv_sec) + nanoseconds(timeout->tv_nsec));
+        auto now = system_clock::now();
+        if (now >= deadline) {
+            return 0;
+        }
+        auto ms = duration_cast<milliseconds>(deadline - now).count();
+        return static_cast<DWORD>(ms < 1 ? 1 : ms);
+    }
+
+    constexpr LONG STATE_FREE      = 0;
+    constexpr LONG STATE_SHARED    = 1;
+    constexpr LONG STATE_EXCLUSIVE = 2;
 
     thrd_result smtx_init(smtx_t *const smtx) noexcept {
         if (smtx == nullptr) {
@@ -43,20 +57,7 @@ namespace rainy::foundation::concurrency::implements {
             return thrd_result::nomem;
         }
         InitializeSRWLock(&handle->srwlock);
-        thrd_result result = mtx_init(&handle->wait_mutex, mutex_types::plain_mtx | mutex_types::try_mtx | mutex_types::timed_mtx);
-        if (result != thrd_result::success) {
-            return result;
-        }
-
-        result = cnd_init(&handle->wait_cnd);
-        if (result != thrd_result::success) {
-            mtx_destroy(&handle->wait_mutex);
-            return result;
-        }
-
-        handle->write_waiting = false;
-        handle->read_waiting = 0;
-
+        InterlockedExchange(&handle->state, STATE_FREE);
         return thrd_result::success;
     }
 
@@ -65,11 +66,24 @@ namespace rainy::foundation::concurrency::implements {
             errno = EINVAL;
             return thrd_result::nomem;
         }
-        *smtx = core::pal::allocate(sizeof(implements::shared_mutex_handle), alignof(implements::shared_mutex_handle));
+        *smtx = core::pal::allocate(
+            sizeof(shared_mutex_handle), alignof(shared_mutex_handle));
         if (*smtx == nullptr) {
             return thrd_result::nomem;
         }
         return smtx_init(smtx);
+    }
+
+    thrd_result smtx_destroy(smtx_t *const smtx) noexcept {
+        if (smtx == nullptr || *smtx == nullptr) {
+            errno = EINVAL;
+            return thrd_result::nomem;
+        }
+        auto *handle = static_cast<shared_mutex_handle *>(*smtx);
+        core::pal::deallocate(
+            handle, sizeof(shared_mutex_handle), alignof(shared_mutex_handle));
+        *smtx = nullptr;
+        return thrd_result::success;
     }
 
     thrd_result smtx_lock(smtx_t *const smtx) noexcept {
@@ -78,12 +92,7 @@ namespace rainy::foundation::concurrency::implements {
             return thrd_result::nomem;
         }
         auto *handle = static_cast<shared_mutex_handle *>(*smtx);
-        mtx_lock(&handle->wait_mutex);
-        handle->write_waiting = true;
-        while (handle->read_waiting > 0) {
-            cnd_wait(&handle->wait_cnd, &handle->wait_mutex);
-        }
-        mtx_unlock(&handle->wait_mutex);
+        InterlockedExchange(&handle->state, STATE_EXCLUSIVE);
         AcquireSRWLockExclusive(&handle->srwlock);
         return thrd_result::success;
     }
@@ -94,56 +103,25 @@ namespace rainy::foundation::concurrency::implements {
             return thrd_result::nomem;
         }
         auto *handle = static_cast<shared_mutex_handle *>(*smtx);
-        mtx_lock(&handle->wait_mutex);
-        handle->write_waiting = true;
-        while (handle->read_waiting > 0) {
-            thrd_result result = cnd_timedwait(&handle->wait_cnd, &handle->wait_mutex, timeout);
-            if (result != thrd_result::success) {
-                handle->write_waiting = false;
-                mtx_unlock(&handle->wait_mutex);
-                return result == thrd_result::timed_out ? thrd_result::timed_out : thrd_result::nomem;
+        while (true) {
+            if (TryAcquireSRWLockExclusive(&handle->srwlock)) {
+                InterlockedExchange(&handle->state, STATE_EXCLUSIVE);
+                return thrd_result::success;
             }
-        }
-        handle->write_waiting = false;
-        mtx_unlock(&handle->wait_mutex);
-        AcquireSRWLockExclusive(&handle->srwlock);
-        return thrd_result::success;
-    }
-
-    thrd_result smtx_lock_shared(smtx_t *const smtx) noexcept {
-        if (smtx == nullptr || *smtx == nullptr) {
-            errno = EINVAL;
-            return thrd_result::nomem;
-        }
-        auto *handle = static_cast<shared_mutex_handle *>(*smtx);
-        mtx_lock(&handle->wait_mutex);
-        while (handle->write_waiting) {
-            cnd_wait(&handle->wait_cnd, &handle->wait_mutex);
-        }
-        handle->read_waiting++;
-        mtx_unlock(&handle->wait_mutex);
-        AcquireSRWLockShared(&handle->srwlock);
-        return thrd_result::success;
-    }
-
-    thrd_result smtx_timed_lock_shared(smtx_t *const smtx, const ::timespec *timeout) noexcept {
-        if (smtx == nullptr || *smtx == nullptr || timeout == nullptr) {
-            errno = EINVAL;
-            return thrd_result::nomem;
-        }
-        auto *handle = static_cast<shared_mutex_handle *>(*smtx);
-        mtx_lock(&handle->wait_mutex);
-        while (handle->write_waiting) {
-            thrd_result result = cnd_timedwait(&handle->wait_cnd, &handle->wait_mutex, timeout);
-            if (result != thrd_result::success) {
-                mtx_unlock(&handle->wait_mutex);
-                return result == thrd_result::timed_out ? thrd_result::timed_out : thrd_result::nomem;
+            DWORD ms = timespec_to_ms_remaining(timeout);
+            if (ms == 0) {
+                return thrd_result::timed_out;
             }
+            LONG observed = handle->state;
+            if (observed == STATE_FREE) {
+                continue;
+            }
+            WaitOnAddress(
+                const_cast<LONG *>(&handle->state),
+                &observed,
+                sizeof(LONG),
+                ms);
         }
-        handle->read_waiting++;
-        mtx_unlock(&handle->wait_mutex);
-        AcquireSRWLockShared(&handle->srwlock);
-        return thrd_result::success;
     }
 
     thrd_result smtx_try_lock(smtx_t *const smtx) noexcept {
@@ -152,44 +130,10 @@ namespace rainy::foundation::concurrency::implements {
             return thrd_result::nomem;
         }
         auto *handle = static_cast<shared_mutex_handle *>(*smtx);
-        if (mtx_trylock(&handle->wait_mutex) != thrd_result::success) {
-            return thrd_result::busy;
-        }
-        if (handle->read_waiting > 0) {
-            mtx_unlock(&handle->wait_mutex);
-            return thrd_result::busy;
-        }
-        BOOL acquired = TryAcquireSRWLockExclusive(&handle->srwlock);
-        if (acquired) {
-            handle->write_waiting = false;
-            mtx_unlock(&handle->wait_mutex);
+        if (TryAcquireSRWLockExclusive(&handle->srwlock)) {
+            InterlockedExchange(&handle->state, STATE_EXCLUSIVE);
             return thrd_result::success;
         }
-        mtx_unlock(&handle->wait_mutex);
-        return thrd_result::busy;
-    }
-
-    thrd_result smtx_try_lock_shared(smtx_t *const smtx) noexcept {
-        if (smtx == nullptr || *smtx == nullptr) {
-            errno = EINVAL;
-            return thrd_result::nomem;
-        }
-        auto *handle = static_cast<shared_mutex_handle *>(*smtx);
-        if (mtx_trylock(&handle->wait_mutex) != thrd_result::success) {
-            return thrd_result::busy;
-        }
-        if (handle->write_waiting) {
-            mtx_unlock(&handle->wait_mutex);
-            return thrd_result::busy;
-        }
-        BOOL acquired = TryAcquireSRWLockShared(&handle->srwlock);
-        if (acquired) {
-            handle->read_waiting++;
-            mtx_unlock(&handle->wait_mutex);
-            return thrd_result::success;
-        }
-
-        mtx_unlock(&handle->wait_mutex);
         return thrd_result::busy;
     }
 
@@ -199,12 +143,65 @@ namespace rainy::foundation::concurrency::implements {
             return thrd_result::nomem;
         }
         auto *handle = static_cast<shared_mutex_handle *>(*smtx);
+        InterlockedExchange(&handle->state, STATE_FREE);
         ReleaseSRWLockExclusive(&handle->srwlock);
-        mtx_lock(&handle->wait_mutex);
-        handle->write_waiting = false;
-        cnd_broadcast(&handle->wait_cnd);
-        mtx_unlock(&handle->wait_mutex);
+        // 唤醒所有在 state 上等待的线程
+        WakeByAddressAll(const_cast<LONG *>(&handle->state));
         return thrd_result::success;
+    }
+
+    thrd_result smtx_lock_shared(smtx_t *const smtx) noexcept {
+        if (smtx == nullptr || *smtx == nullptr) {
+            errno = EINVAL;
+            return thrd_result::nomem;
+        }
+        auto *handle = static_cast<shared_mutex_handle *>(*smtx);
+        AcquireSRWLockShared(&handle->srwlock);
+        InterlockedCompareExchange(&handle->state, STATE_SHARED, STATE_FREE);
+        return thrd_result::success;
+    }
+
+    thrd_result smtx_timed_lock_shared(smtx_t *const smtx, const ::timespec *timeout) noexcept {
+        if (smtx == nullptr || *smtx == nullptr || timeout == nullptr) {
+            errno = EINVAL;
+            return thrd_result::nomem;
+        }
+        auto *handle = static_cast<shared_mutex_handle *>(*smtx);
+
+        while (true) {
+            if (TryAcquireSRWLockShared(&handle->srwlock)) {
+                InterlockedCompareExchange(&handle->state, STATE_SHARED, STATE_FREE);
+                return thrd_result::success;
+            }
+
+            DWORD ms = timespec_to_ms_remaining(timeout);
+            if (ms == 0) {
+                return thrd_result::timed_out;
+            }
+
+            LONG observed = handle->state;
+            if (observed == STATE_FREE) {
+                continue;
+            }
+            WaitOnAddress(
+                const_cast<LONG *>(&handle->state),
+                &observed,
+                sizeof(LONG),
+                ms);
+        }
+    }
+
+    thrd_result smtx_try_lock_shared(smtx_t *const smtx) noexcept {
+        if (smtx == nullptr || *smtx == nullptr) {
+            errno = EINVAL;
+            return thrd_result::nomem;
+        }
+        auto *handle = static_cast<shared_mutex_handle *>(*smtx);
+        if (TryAcquireSRWLockShared(&handle->srwlock)) {
+            InterlockedCompareExchange(&handle->state, STATE_SHARED, STATE_FREE);
+            return thrd_result::success;
+        }
+        return thrd_result::busy;
     }
 
     thrd_result smtx_unlock_shared(smtx_t *const smtx) noexcept {
@@ -214,25 +211,8 @@ namespace rainy::foundation::concurrency::implements {
         }
         auto *handle = static_cast<shared_mutex_handle *>(*smtx);
         ReleaseSRWLockShared(&handle->srwlock);
-        mtx_lock(&handle->wait_mutex);
-        handle->read_waiting--;
-        if (handle->read_waiting == 0 && handle->write_waiting) {
-            cnd_signal(&handle->wait_cnd);
-        }
-        mtx_unlock(&handle->wait_mutex);
-        return thrd_result::success;
-    }
-
-    thrd_result smtx_destroy(smtx_t *const smtx) noexcept {
-        if (smtx == nullptr || *smtx == nullptr) {
-            errno = EINVAL;
-            return thrd_result::nomem;
-        }
-        auto *handle = static_cast<shared_mutex_handle *>(*smtx);
-        cnd_destroy(&handle->wait_cnd);
-        mtx_destroy(&handle->wait_mutex);
-        core::pal::deallocate(handle, sizeof(implements::shared_mutex_handle), alignof(implements::shared_mutex_handle));
-        *smtx = nullptr;
+        InterlockedCompareExchange(&handle->state, STATE_FREE, STATE_SHARED);
+        WakeByAddressAll(const_cast<LONG *>(&handle->state));
         return thrd_result::success;
     }
 
@@ -240,8 +220,7 @@ namespace rainy::foundation::concurrency::implements {
         if (smtx == nullptr || *smtx == nullptr) {
             return nullptr;
         }
-        auto *handle = static_cast<shared_mutex_handle *>(*smtx);
-        return &handle->srwlock;
+        return &static_cast<shared_mutex_handle *>(*smtx)->srwlock;
     }
 }
 
