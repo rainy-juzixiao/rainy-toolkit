@@ -131,7 +131,6 @@ namespace rainy::foundation::concurrency {
         void lock() {
             unique_lock<mutex> lk(mtx_);
             ++exclusive_waiting_;
-            // 等待没有读者和写者
             while (state_ != 0) {
                 writer_queue.wait(lk);
             }
@@ -156,16 +155,15 @@ namespace rainy::foundation::concurrency {
             return try_lock_until(std::chrono::steady_clock::now() + rel_time);
         }
 
-        template <typename Clock, typename Duration>
+        template <class Clock, class Duration>
         bool try_lock_until(const std::chrono::time_point<Clock, Duration> &abs_time) {
             unique_lock<mutex> lk(mtx_);
+            auto can_lock = [this] { return state_ == 0; };
             ++exclusive_waiting_;
-            // 等待没有读者和写者，或超时
-            while (state_ != 0) {
-                if (writer_queue.wait_until(lk, abs_time) == cv_status::timeout) {
-                    --exclusive_waiting_;
-                    return false;
-                }
+            // 等待直到可以获取锁或超时
+            if (!writer_queue.wait_until(lk, abs_time, can_lock)) {
+                --exclusive_waiting_;
+                return false;
             }
             --exclusive_waiting_;
             state_ = write_entered_;
@@ -177,10 +175,10 @@ namespace rainy::foundation::concurrency {
                 lock_guard<mutex> lk(mtx_);
                 state_ = 0;
             }
-            // 优先唤醒等待的写者，如果没有则唤醒所有读者
+            // 优先唤醒写者
             if (exclusive_waiting_ > 0) {
                 writer_queue.notify_one();
-            } else if (shared_waiting_ > 0) {
+            } else {
                 reader_queue.notify_all();
             }
         }
@@ -189,12 +187,11 @@ namespace rainy::foundation::concurrency {
         void lock_shared() {
             unique_lock<mutex> lk(mtx_);
             ++shared_waiting_;
-            // 等待没有写者且没有等待的写者
             while ((state_ & write_entered_) || exclusive_waiting_ > 0) {
                 reader_queue.wait(lk);
             }
             --shared_waiting_;
-            ++state_; // 增加读者计数
+            ++state_;
         }
 
         bool try_lock_shared() {
@@ -202,9 +199,8 @@ namespace rainy::foundation::concurrency {
             if (!lk.owns_lock()) {
                 return false;
             }
-            // 没有写者且没有等待的写者
             if ((state_ & write_entered_) == 0 && exclusive_waiting_ == 0) {
-                ++state_; // 增加读者计数
+                ++state_;
                 return true;
             }
             return false;
@@ -218,13 +214,12 @@ namespace rainy::foundation::concurrency {
         template <class Clock, class Duration>
         bool try_lock_shared_until(const std::chrono::time_point<Clock, Duration> &abs_time) {
             unique_lock<mutex> lk(mtx_);
+            auto can_lock_shared = [this] { return (state_ & write_entered_) == 0 && exclusive_waiting_ == 0; };
             ++shared_waiting_;
-            while ((state_ & write_entered_) || exclusive_waiting_ > 0) {
-                cv_status status = reader_queue.wait_until(lk, abs_time);
-                if (status == cv_status::timeout) {
-                    --shared_waiting_;
-                    return false;
-                }
+            // 等待直到可以获取共享锁或超时
+            if (!reader_queue.wait_until(lk, abs_time, can_lock_shared)) {
+                --shared_waiting_;
+                return false;
             }
             --shared_waiting_;
             ++state_;
@@ -234,8 +229,7 @@ namespace rainy::foundation::concurrency {
         void unlock_shared() {
             lock_guard<mutex> lk(mtx_);
             --state_;
-
-            // 在持有锁时通知
+            // 如果没有读者了，且有写者等待，通知一个写者
             if ((state_ & ~write_entered_) == 0 && exclusive_waiting_ > 0) {
                 writer_queue.notify_one();
             }
@@ -243,12 +237,12 @@ namespace rainy::foundation::concurrency {
 
     private:
         mutex mtx_;
-        condition_variable writer_queue; // 写者等待队列
-        condition_variable reader_queue; // 读者等待队列
+        condition_variable writer_queue;
+        condition_variable reader_queue;
 
-        atomic<unsigned int> state_; // 状态字：最高位表示写者，其余位表示读者数量
-        atomic<unsigned int> exclusive_waiting_; // 等待的写者数量
-        atomic<unsigned int> shared_waiting_; // 等待的读者数量
+        atomic<unsigned int> state_;
+        atomic<unsigned int> exclusive_waiting_;
+        atomic<unsigned int> shared_waiting_;
 
         static constexpr unsigned write_entered_ = 1U << (sizeof(unsigned) * 8 - 1);
     };
