@@ -169,12 +169,12 @@ namespace rainy::foundation::concurrency {
             auto result = implements::smtx_timed_lock(&handle_, &ts);
             if (result == thrd_result::success) {
                 return true;
-            } else if (result == thrd_result::timed_out) {
-                return false;
-            } else {
-                throw std::system_error(std::make_error_code(std::errc::operation_not_permitted),
-                                        "shared_timed_mutex::try_lock_until failed");
             }
+            if (result == thrd_result::timed_out) {
+                return false;
+            }
+            throw std::system_error(std::make_error_code(std::errc::operation_not_permitted),
+                                    "shared_timed_mutex::try_lock_until failed");
         }
 
         void unlock() {
