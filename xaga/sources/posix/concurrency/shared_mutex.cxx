@@ -115,6 +115,184 @@ namespace rainy::foundation::concurrency::implements {
 #endif
     }
 
+    thrd_result smtx_timed_lock(smtx_t *const smtx, const ::timespec *timeout) noexcept {
+        if (smtx == nullptr || *smtx == nullptr) {
+            errno = EINVAL;
+            return thrd_result::nomem;
+        }
+        auto *handle = static_cast<shared_mutex_handle *>(*smtx);
+
+#if RAINY_USING_MACOS
+        if (timeout == nullptr) {
+            errno = EINVAL;
+            return thrd_result::error;
+        }
+
+        struct timespec ts;
+        if (clock_gettime(CLOCK_REALTIME, &ts) == -1) {
+            errno = EINVAL;
+            return thrd_result::error;
+        }
+
+        // 计算绝对超时时间
+        ts.tv_sec += timeout->tv_sec;
+        ts.tv_nsec += timeout->tv_nsec;
+        if (ts.tv_nsec >= 1000000000) {
+            ts.tv_sec += 1;
+            ts.tv_nsec -= 1000000000;
+        }
+        pthread_mutex_lock(&handle->internal_mutex);
+        pthread_t current_thread = pthread_self();
+        // 检查是否当前线程已经持有写锁（递归写锁）
+        if (handle->has_writer && pthread_equal(handle->writer_thread_id, current_thread)) {
+            handle->write_recursion_count++;
+            pthread_mutex_unlock(&handle->internal_mutex);
+            return thrd_result::success;
+        }
+        // 等待直到没有读者且没有写者，支持超时
+        while (handle->has_writer || handle->active_readers > 0) {
+            handle->waiting_writers++;
+            int ret = pthread_cond_timedwait(&handle->write_cond, &handle->internal_mutex, &ts);
+            handle->waiting_writers--;
+
+            if (ret == ETIMEDOUT) {
+                pthread_mutex_unlock(&handle->internal_mutex);
+                errno = ETIMEDOUT;
+                return thrd_result::timeout;
+            }
+            if (ret != 0) {
+                pthread_mutex_unlock(&handle->internal_mutex);
+                errno = ret;
+                return thrd_result::error;
+            }
+        }
+        // 获取写锁
+        handle->has_writer = true;
+        handle->writer_thread_id = current_thread;
+        handle->write_recursion_count = 1;
+        pthread_mutex_unlock(&handle->internal_mutex);
+        return thrd_result::success;
+#else
+        if (timeout == nullptr) {
+            errno = EINVAL;
+            return thrd_result::error;
+        }
+
+        // 将 timespec 转换为 chrono 或直接使用 pthread 的 timed 函数
+        struct timespec abs_timeout;
+        if (clock_gettime(CLOCK_REALTIME, &abs_timeout) == -1) {
+            errno = EINVAL;
+            return thrd_result::error;
+        }
+
+        abs_timeout.tv_sec += timeout->tv_sec;
+        abs_timeout.tv_nsec += timeout->tv_nsec;
+        if (abs_timeout.tv_nsec >= 1000000000) {
+            abs_timeout.tv_sec += 1;
+            abs_timeout.tv_nsec -= 1000000000;
+        }
+
+        int result = pthread_rwlock_timedwrlock(&handle->rwlock, &abs_timeout);
+        if (result == ETIMEDOUT) {
+            errno = ETIMEDOUT;
+            return thrd_result::timed_out;
+        }
+        if (result != 0) {
+            errno = result;
+            return thrd_result::error;
+        }
+        return thrd_result::success;
+#endif
+    }
+
+    thrd_result smtx_timed_lock_shared(smtx_t *const smtx, const ::timespec *timeout) noexcept {
+        if (smtx == nullptr || *smtx == nullptr) {
+            errno = EINVAL;
+            return thrd_result::nomem;
+        }
+        auto *handle = static_cast<shared_mutex_handle *>(*smtx);
+
+#if RAINY_USING_MACOS
+        if (timeout == nullptr) {
+            errno = EINVAL;
+            return thrd_result::error;
+        }
+
+        struct timespec ts;
+        if (clock_gettime(CLOCK_REALTIME, &ts) == -1) {
+            errno = EINVAL;
+            return thrd_result::error;
+        }
+
+        // 计算绝对超时时间
+        ts.tv_sec += timeout->tv_sec;
+        ts.tv_nsec += timeout->tv_nsec;
+        if (ts.tv_nsec >= 1000000000) {
+            ts.tv_sec += 1;
+            ts.tv_nsec -= 1000000000;
+        }
+
+        pthread_mutex_lock(&handle->internal_mutex);
+
+        // 如果当前线程持有写锁，会导致死锁
+        pthread_t current_thread = pthread_self();
+        if (handle->has_writer && pthread_equal(handle->writer_thread_id, current_thread)) {
+            pthread_mutex_unlock(&handle->internal_mutex);
+            errno = EDEADLK;
+            return thrd_result::error;
+        }
+
+        // 等待直到没有写者，支持超时
+        while (handle->has_writer || handle->waiting_writers > 0) {
+            int ret = pthread_cond_timedwait(&handle->read_cond, &handle->internal_mutex, &ts);
+            if (ret == ETIMEDOUT) {
+                pthread_mutex_unlock(&handle->internal_mutex);
+                errno = ETIMEDOUT;
+                return thrd_result::timeout;
+            }
+            if (ret != 0) {
+                pthread_mutex_unlock(&handle->internal_mutex);
+                errno = ret;
+                return thrd_result::error;
+            }
+        }
+
+        handle->active_readers++;
+        pthread_mutex_unlock(&handle->internal_mutex);
+        return thrd_result::success;
+#else
+        if (timeout == nullptr) {
+            errno = EINVAL;
+            return thrd_result::error;
+        }
+
+        // 将 timespec 转换为绝对超时时间
+        struct timespec abs_timeout;
+        if (clock_gettime(CLOCK_REALTIME, &abs_timeout) == -1) {
+            errno = EINVAL;
+            return thrd_result::error;
+        }
+
+        abs_timeout.tv_sec += timeout->tv_sec;
+        abs_timeout.tv_nsec += timeout->tv_nsec;
+        if (abs_timeout.tv_nsec >= 1000000000) {
+            abs_timeout.tv_sec += 1;
+            abs_timeout.tv_nsec -= 1000000000;
+        }
+
+        int result = pthread_rwlock_timedrdlock(&handle->rwlock, &abs_timeout);
+        if (result == ETIMEDOUT) {
+            errno = ETIMEDOUT;
+            return thrd_result::timed_out;
+        }
+        if (result != 0) {
+            errno = result;
+            return thrd_result::error;
+        }
+        return thrd_result::success;
+#endif
+    }
+
     thrd_result smtx_lock_shared(smtx_t *const smtx) noexcept {
         if (smtx == nullptr || *smtx == nullptr) {
             errno = EINVAL;
@@ -124,19 +302,13 @@ namespace rainy::foundation::concurrency::implements {
 
 #if RAINY_USING_MACOS
         pthread_mutex_lock(&handle->internal_mutex);
-
-        // 如果当前线程持有写锁，阻塞等待？实际上标准行为是死锁
-        // 为了避免死锁，我们直接返回错误或永远等待
         pthread_t current_thread = pthread_self();
         if (handle->has_writer && pthread_equal(handle->writer_thread_id, current_thread)) {
-            // 同一线程先写后读：会导致死锁，标准行为是未定义
-            // 为了测试通过，我们选择返回 busy（非阻塞行为）
             pthread_mutex_unlock(&handle->internal_mutex);
             errno = EDEADLK;
             return thrd_result::error;
         }
 
-        // 等待直到没有写者
         while (handle->has_writer || handle->waiting_writers > 0) {
             pthread_cond_wait(&handle->read_cond, &handle->internal_mutex);
         }
@@ -164,14 +336,10 @@ namespace rainy::foundation::concurrency::implements {
 #if RAINY_USING_MACOS
         pthread_mutex_lock(&handle->internal_mutex);
         pthread_t current_thread = pthread_self();
-
-        // 如果当前线程已经持有写锁，尝试再次获取应该失败（非递归行为）
         if (handle->has_writer && pthread_equal(handle->writer_thread_id, current_thread)) {
             pthread_mutex_unlock(&handle->internal_mutex);
-            return thrd_result::busy;  // 返回 busy，不允许递归写锁
+            return thrd_result::busy; // 返回 busy，不允许递归写锁
         }
-
-        // 尝试获取写锁
         if (!handle->has_writer && handle->active_readers == 0) {
             handle->has_writer = true;
             handle->writer_thread_id = current_thread;
@@ -205,24 +373,19 @@ namespace rainy::foundation::concurrency::implements {
 #if RAINY_USING_MACOS
         pthread_mutex_lock(&handle->internal_mutex);
         pthread_t current_thread = pthread_self();
-
-        // 如果当前线程持有写锁，不能获取读锁（标准行为）
         if (handle->has_writer && pthread_equal(handle->writer_thread_id, current_thread)) {
             pthread_mutex_unlock(&handle->internal_mutex);
-            return thrd_result::busy;  // 返回 busy 而不是 success
+            return thrd_result::busy; // 返回 busy 而不是 success
         }
-
-        // 尝试获取读锁
         if (!handle->has_writer && handle->waiting_writers == 0) {
             handle->active_readers++;
             pthread_mutex_unlock(&handle->internal_mutex);
             return thrd_result::success;
         }
-
         pthread_mutex_unlock(&handle->internal_mutex);
         return thrd_result::busy;
 #else
-        int result = pthread_rwlock_tryrdlock(&handle->rwlock);
+        const int result = pthread_rwlock_tryrdlock(&handle->rwlock);
         if (result == EBUSY) {
             return thrd_result::busy;
         }
@@ -266,7 +429,7 @@ namespace rainy::foundation::concurrency::implements {
         pthread_mutex_unlock(&handle->internal_mutex);
         return thrd_result::success;
 #else
-        int result = pthread_rwlock_unlock(&handle->rwlock);
+        const int result = pthread_rwlock_unlock(&handle->rwlock);
         if (result != 0) {
             errno = result;
             return thrd_result::error;
@@ -295,7 +458,7 @@ namespace rainy::foundation::concurrency::implements {
         pthread_mutex_unlock(&handle->internal_mutex);
         return thrd_result::success;
 #else
-        int result = pthread_rwlock_unlock(&handle->rwlock);
+        const int result = pthread_rwlock_unlock(&handle->rwlock);
         if (result != 0) {
             errno = result;
             return thrd_result::error;

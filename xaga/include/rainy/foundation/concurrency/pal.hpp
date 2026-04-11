@@ -541,6 +541,9 @@ namespace rainy::foundation::concurrency::implements {
      */
     RAINY_TOOLKIT_API thrd_result smtx_try_lock(smtx_t *const smtx) noexcept;
 
+    RAINY_TOOLKIT_API thrd_result smtx_timed_lock(smtx_t *const smtx, const ::timespec *timeout) noexcept;
+    RAINY_TOOLKIT_API thrd_result smtx_timed_lock_shared(smtx_t *const smtx, const ::timespec *timeout) noexcept;
+
     /**
      * @brief 尝试获取共享锁
      *
