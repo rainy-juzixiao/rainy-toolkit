@@ -40,25 +40,29 @@ namespace rainy::foundation::concurrency::implements {
      * @return        0 表示成功，ETIMEDOUT 表示超时，其他值表示系统错误
      */
     static int apple_mutex_timedlock(mutex_handle *mutex, const ::timespec *target) noexcept {
-        struct timespec now;
-        struct timespec deadline = *target;
+        constexpr long min_sleep_ns = 100'000;    // 100µs
+        constexpr long max_sleep_ns = 5'000'000;  // 5ms
+        long sleep_ns = min_sleep_ns;
         while (true) {
             int res = pthread_mutex_trylock(&mutex->handle);
             if (res == 0) {
                 return 0;
             }
-            if (res != EBUSY) {
-                return res;
-            }
-            clock_gettime(CLOCK_REALTIME, &now);
-            if (now.tv_sec > deadline.tv_sec ||
-                (now.tv_sec == deadline.tv_sec && now.tv_nsec >= deadline.tv_nsec)) {
+            if (res != EBUSY) {return res;}
+            ::timespec now{};
+            ::clock_gettime(CLOCK_REALTIME, &now);
+            long long remaining_ns =
+                (static_cast<long long>(target->tv_sec  - now.tv_sec)  * 1'000'000'000LL) +
+                (static_cast<long long>(target->tv_nsec - now.tv_nsec));
+            if (remaining_ns <= 0) {
                 return ETIMEDOUT;
-                }
-            struct timespec sleep_time;
-            sleep_time.tv_sec = 0;
-            sleep_time.tv_nsec = 100000;
-            nanosleep(&sleep_time, nullptr);
+            }
+            // 睡眠时间不超过剩余时间，且做指数退避
+            long actual_sleep = std::min(sleep_ns, remaining_ns);
+            ::timespec sleep_ts{ 0, actual_sleep };
+            ::nanosleep(&sleep_ts, nullptr);
+            // 指数退避，上限 5ms
+            sleep_ns = std::min(sleep_ns * 2, max_sleep_ns);
         }
     }
 #endif
