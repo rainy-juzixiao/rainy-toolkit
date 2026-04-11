@@ -57,5 +57,5 @@ jobs:
         run: |
           for i in $(seq 1 20); do
             echo "=== Run $i ==="
-            build/bin/rainy-toolkit-test "[timer][multi]" 2>&1 || true
+            build/bin/rainy-toolkit-test || true
           done
