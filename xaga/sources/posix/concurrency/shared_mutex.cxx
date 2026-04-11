@@ -134,28 +134,38 @@ namespace rainy::foundation::concurrency::implements {
             pthread_mutex_unlock(&handle->internal_mutex);
             return thrd_result::success;
         }
+        handle->waiting_writers++;
         bool timed_out = false;
         while (handle->has_writer || handle->active_readers > 0) {
-            handle->waiting_writers++;
             int ret = pthread_cond_timedwait(&handle->write_cond, &handle->internal_mutex, timeout);
-            handle->waiting_writers--;
             if (ret == ETIMEDOUT) {
                 timed_out = true;
                 break;
             }
             if (ret != 0) {
+                handle->waiting_writers--;
                 pthread_mutex_unlock(&handle->internal_mutex);
                 errno = ret;
                 return thrd_result::error;
             }
+            ::timespec now{};
+            ::clock_gettime(CLOCK_REALTIME, &now);
+            if (now.tv_sec > timeout->tv_sec || (now.tv_sec == timeout->tv_sec && now.tv_nsec >= timeout->tv_nsec)) {
+                timed_out = true;
+                break;
+            }
         }
-
+        handle->waiting_writers--;
         if (timed_out) {
+            if (handle->waiting_writers > 0) {
+                pthread_cond_signal(&handle->write_cond);
+            } else {
+                pthread_cond_broadcast(&handle->read_cond);
+            }
             pthread_mutex_unlock(&handle->internal_mutex);
             errno = ETIMEDOUT;
             return thrd_result::timed_out;
         }
-
         handle->has_writer = true;
         handle->writer_thread_id = current_thread;
         handle->write_recursion_count = 1;
@@ -207,11 +217,10 @@ namespace rainy::foundation::concurrency::implements {
             }
             ::timespec now{};
             ::clock_gettime(CLOCK_REALTIME, &now);
-            if (now.tv_sec > timeout->tv_sec ||
-                (now.tv_sec == timeout->tv_sec && now.tv_nsec >= timeout->tv_nsec)) {
+            if (now.tv_sec > timeout->tv_sec || (now.tv_sec == timeout->tv_sec && now.tv_nsec >= timeout->tv_nsec)) {
                 timed_out = true;
                 break;
-                }
+            }
         }
         handle->waiting_writers--;
         if (timed_out) {
