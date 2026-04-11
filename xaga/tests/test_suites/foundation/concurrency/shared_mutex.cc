@@ -442,7 +442,7 @@ SCENARIO("shared_timed_mutex timeout behavior", "[shared_timed_mutex][concurrenc
                 bool acquired = mtx.try_lock_for(100ms);
                 auto elapsed = std::chrono::steady_clock::now() - start;
 
-                if (!acquired) {
+                if (!acquired && elapsed >= 100ms) {
                     timeout_occurred = true;
                 }
 
