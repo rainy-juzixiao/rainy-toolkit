@@ -152,7 +152,7 @@ namespace rainy::foundation::concurrency {
 
         template <typename Rep, typename Period>
         bool try_lock_for(const std::chrono::duration<Rep, Period> &rel_time) {
-            return try_lock_until(std::chrono::steady_clock::now() + rel_time);
+            return try_lock_until(std::chrono::system_clock::now() + rel_time);
         }
 
         template <typename Clock, typename Duration>
@@ -219,7 +219,7 @@ namespace rainy::foundation::concurrency {
 
         template <typename Rep, typename Period>
         bool try_lock_shared_for(const std::chrono::duration<Rep, Period> &rel_time) {
-            return try_lock_shared_until(std::chrono::steady_clock::now() + rel_time);
+            return try_lock_shared_until(std::chrono::system_clock::now() + rel_time);
         }
 
         template <typename Clock, typename Duration>
