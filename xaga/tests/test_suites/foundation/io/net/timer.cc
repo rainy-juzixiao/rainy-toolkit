@@ -406,41 +406,6 @@ SCENARIO("wait() blocks the calling thread until expiry", "[timer][wait][sync]")
     }
 }
 
-SCENARIO("multiple timers sharing one io_context all fire correctly", "[timer][multi]") {
-    GIVEN("three steady_timers with different expiries on the same io_context") {
-        io_context ctx;
-        steady_timer t1(ctx, 20ms);
-        steady_timer t2(ctx, 60ms);
-        steady_timer t3(ctx, 100ms);
-        std::vector<int> order;
-        std::mutex order_mutex;
-
-        auto make_handler = [&](int id) {
-            return [&, id](std::error_code ec) {
-                if (!ec) {
-                    std::lock_guard<std::mutex> lock(order_mutex);
-                    order.push_back(id);
-                }
-            };
-        };
-
-        t1.async_wait(make_handler(1));
-        t2.async_wait(make_handler(2));
-        t3.async_wait(make_handler(3));
-
-        WHEN("ctx.run() processes all three timers") {
-            ctx.run();
-
-            THEN("all three handlers fired in expiry order") {
-                REQUIRE(order.size() == 3);
-                REQUIRE(std::count(order.begin(), order.end(), 1) == 1);
-                REQUIRE(std::count(order.begin(), order.end(), 2) == 1);
-                REQUIRE(std::count(order.begin(), order.end(), 3) == 1);
-            }
-        }
-    }
-}
-
 #if RAINY_USING_MACOS
 #include <cstdio>
 #include <cstdlib>
@@ -508,12 +473,47 @@ static void on_signal(int sig) {
 }
 #endif
 
+SCENARIO("multiple timers sharing one io_context all fire correctly", "[timer][multi]") {
+#if RAINY_USING_MACOS
+    std::set_terminate(on_terminate);
+    signal(SIGABRT, on_signal);
+#endif
+    GIVEN("three steady_timers with different expiries on the same io_context") {
+        io_context ctx;
+        steady_timer t1(ctx, 20ms);
+        steady_timer t2(ctx, 60ms);
+        steady_timer t3(ctx, 100ms);
+        std::vector<int> order;
+        std::mutex order_mutex;
+
+        auto make_handler = [&](int id) {
+            return [&, id](std::error_code ec) {
+                if (!ec) {
+                    std::lock_guard<std::mutex> lock(order_mutex);
+                    order.push_back(id);
+                }
+            };
+        };
+
+        t1.async_wait(make_handler(1));
+        t2.async_wait(make_handler(2));
+        t3.async_wait(make_handler(3));
+
+        WHEN("ctx.run() processes all three timers") {
+            ctx.run();
+
+            THEN("all three handlers fired in expiry order") {
+                REQUIRE(order.size() == 3);
+                REQUIRE(std::count(order.begin(), order.end(), 1) == 1);
+                REQUIRE(std::count(order.begin(), order.end(), 2) == 1);
+                REQUIRE(std::count(order.begin(), order.end(), 3) == 1);
+            }
+        }
+    }
+}
+
 SCENARIO("a timer can be rescheduled and awaited again after firing", "[timer][reschedule]") {
     GIVEN("a steady_timer that has already fired once") {
-#if RAINY_USING_MACOS
-        std::set_terminate(on_terminate);
-        signal(SIGABRT, on_signal);
-#endif
         io_context ctx;
         steady_timer t(ctx, 20ms);
         std::atomic<int> fire_count{0};
