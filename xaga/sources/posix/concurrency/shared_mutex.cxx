@@ -158,7 +158,7 @@ namespace rainy::foundation::concurrency::implements {
             if (ret == ETIMEDOUT) {
                 pthread_mutex_unlock(&handle->internal_mutex);
                 errno = ETIMEDOUT;
-                return thrd_result::timeout;
+                return thrd_result::timed_out;
             }
             if (ret != 0) {
                 pthread_mutex_unlock(&handle->internal_mutex);
@@ -248,7 +248,7 @@ namespace rainy::foundation::concurrency::implements {
             if (ret == ETIMEDOUT) {
                 pthread_mutex_unlock(&handle->internal_mutex);
                 errno = ETIMEDOUT;
-                return thrd_result::timeout;
+                return thrd_result::timed_out;
             }
             if (ret != 0) {
                 pthread_mutex_unlock(&handle->internal_mutex);

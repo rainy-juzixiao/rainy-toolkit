@@ -43,9 +43,7 @@ namespace rainy::foundation::concurrency::implements {
             return thrd_result::nomem;
         }
         InitializeSRWLock(&handle->srwlock);
-
-        // 初始化等待互斥量和条件变量
-        thrd_result result = mtx_init(&handle->wait_mutex);
+        thrd_result result = mtx_init(&handle->wait_mutex, mutex_types::plain_mtx | mutex_types::try_mtx | mutex_types::timed_mtx);
         if (result != thrd_result::success) {
             return result;
         }
