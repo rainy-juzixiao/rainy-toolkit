@@ -54,7 +54,7 @@ jobs:
 
       - name: Run failing test directly
         run: |
-          for i in $(seq 1 20); do
+          for i in $(seq 1 50); do
             echo "=== Run $i ==="
             build/bin/rainy-toolkit-test || true
           done
