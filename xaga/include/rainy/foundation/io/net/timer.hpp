@@ -36,7 +36,7 @@ namespace rainy::foundation::io::net {
         }
     };
 
-    template <typename Clock, typename WaitTraits = wait_traits<Clock>>
+    template <typename Clock, typename WaitTraits>
     class basic_waitable_timer {
     public:
         using executor_type = io_context::executor_type;
