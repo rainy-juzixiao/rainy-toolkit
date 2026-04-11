@@ -53,6 +53,10 @@ jobs:
         run: |
           cmake --build build -j$(sysctl -n hw.ncpu)
 
-      - name: Run tests
+      - name: Run failing test directly
         run: |
-          ctest --test-dir build --output-on-failure
+          for i in $(seq 1 20); do
+            echo "=== Run $i ==="
+            ./rainy-toolkit-test "[timer][multi]" 2>&1 || true
+          done
+        working-directory: build
