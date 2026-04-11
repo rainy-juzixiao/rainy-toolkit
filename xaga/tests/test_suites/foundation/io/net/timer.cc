@@ -510,8 +510,10 @@ static void on_signal(int sig) {
 
 SCENARIO("a timer can be rescheduled and awaited again after firing", "[timer][reschedule]") {
     GIVEN("a steady_timer that has already fired once") {
+#if RAINY_USING_MACOS
         std::set_terminate(on_terminate);
         signal(SIGABRT, on_signal);
+#endif
         io_context ctx;
         steady_timer t(ctx, 20ms);
         std::atomic<int> fire_count{0};
