@@ -201,6 +201,7 @@ namespace rainy::foundation::concurrency::implements {
         auto *handle = static_cast<shared_mutex_handle *>(*smtx);
         ReleaseSRWLockExclusive(&handle->srwlock);
         mtx_lock(&handle->wait_mutex);
+        handle->write_waiting = false;
         cnd_broadcast(&handle->wait_cnd);
         mtx_unlock(&handle->wait_mutex);
         return thrd_result::success;
