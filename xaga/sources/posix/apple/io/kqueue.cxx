@@ -91,7 +91,7 @@ namespace rainy::foundation::io::net::implements {
             }
             in_event_loop_ = true;
             {
-                std::unique_lock lock(ready_mutex_);
+                concurrency::unique_lock lock(ready_mutex_);
                 if (!ready_queue_.empty()) {
                     completion_op *op = ready_queue_.front();
                     ready_queue_.pop();
@@ -188,7 +188,7 @@ namespace rainy::foundation::io::net::implements {
                 return;
             }
             {
-                std::scoped_lock lock(ready_mutex_);
+                concurrency::scoped_lock lock(ready_mutex_);
                 ready_queue_.push(op);
             }
             if (!in_event_loop_) {
@@ -290,7 +290,7 @@ namespace rainy::foundation::io::net::implements {
 
         std::size_t drain_ready_queue() {
             std::size_t total = 0;
-            std::unique_lock lock(ready_mutex_);
+            concurrency::unique_lock lock(ready_mutex_);
             while (!ready_queue_.empty()) {
                 completion_op *op = ready_queue_.front();
                 ready_queue_.pop();
@@ -304,7 +304,7 @@ namespace rainy::foundation::io::net::implements {
         }
 
         std::size_t drain_ready_queue_one() noexcept {
-            std::unique_lock lock(ready_mutex_);
+            concurrency::unique_lock lock(ready_mutex_);
             if (ready_queue_.empty()) {
                 return 0;
             }
@@ -335,7 +335,7 @@ namespace rainy::foundation::io::net::implements {
         bool kq_initialized_{false};
         int concurrency_hint_{0};
 
-        std::mutex ready_mutex_;
+        concurrency::mutex ready_mutex_;
         std::queue<completion_op *> ready_queue_;
 
         static thread_local bool in_event_loop_;
