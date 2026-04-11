@@ -40,8 +40,8 @@ namespace rainy::foundation::concurrency::implements {
      * @return        0 表示成功，ETIMEDOUT 表示超时，其他值表示系统错误
      */
     static int apple_mutex_timedlock(mutex_handle *mutex, const ::timespec *target) noexcept {
-        constexpr long min_sleep_ns = 100'000;    // 100µs
-        constexpr long max_sleep_ns = 5'000'000;  // 5ms
+        constexpr long long min_sleep_ns = 100'000LL;    // 100µs
+        constexpr long long max_sleep_ns = 5'000'000LL;  // 5ms
         long long sleep_ns = min_sleep_ns;
         while (true) {
             int res = pthread_mutex_trylock(&mutex->handle);
@@ -58,8 +58,8 @@ namespace rainy::foundation::concurrency::implements {
                 return ETIMEDOUT;
             }
             // 睡眠时间不超过剩余时间，且做指数退避
-            long actual_sleep = (core::min)(sleep_ns, remaining_ns);
-            ::timespec sleep_ts{ 0, actual_sleep };
+            long long actual_sleep = (core::min)(sleep_ns, remaining_ns);
+            ::timespec sleep_ts{ 0, static_cast<long>(actual_sleep) };
             ::nanosleep(&sleep_ts, nullptr);
             // 指数退避，上限 5ms
             sleep_ns = (core::min)(sleep_ns * 2, max_sleep_ns);
