@@ -47,7 +47,7 @@ jobs:
 
       - name: Configure CMake
         run: |
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
 
       - name: Build
         run: |
