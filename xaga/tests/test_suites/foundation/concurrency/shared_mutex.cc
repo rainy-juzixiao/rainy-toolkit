@@ -462,17 +462,12 @@ SCENARIO("shared_timed_mutex timeout behavior", "[shared_timed_mutex][concurrenc
 
         WHEN("another thread tries to acquire shared lock with timeout") {
             std::atomic<bool> timeout_occurred{false};
-            std::atomic<bool> acquired_flag{false};
-            std::atomic<long long> elapsed_ns{0};
             mtx.lock();
 
             std::thread t([&]() {
                 auto start = std::chrono::steady_clock::now();
                 bool acquired = mtx.try_lock_shared_for(100ms);
                 auto elapsed = std::chrono::steady_clock::now() - start;
-
-                elapsed_ns.store(std::chrono::duration_cast<std::chrono::nanoseconds>(elapsed).count());
-                acquired_flag.store(acquired);
 
                 if (!acquired) {
                     timeout_occurred = true;
@@ -488,13 +483,6 @@ SCENARIO("shared_timed_mutex timeout behavior", "[shared_timed_mutex][concurrenc
             t.join();
 
             THEN("the timeout occurs") {
-                if (!timeout_occurred) {
-                    long long ns = elapsed_ns.load();
-                    WARN("timeout_occurred = false");
-                    WARN("acquired = " << std::boolalpha << acquired_flag.load());
-                    WARN("elapsed = " << ns << " ns (" << (ns / 1'000'000) << " ms)");
-                    WARN("expected: acquired=false, elapsed>=100ms");
-                }
                 REQUIRE(timeout_occurred);
             }
         }
