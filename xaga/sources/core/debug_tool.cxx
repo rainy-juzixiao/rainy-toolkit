@@ -41,7 +41,6 @@ namespace rainy::core::pal {
 #if RAINY_USING_MSVC
         __debugbreak();
 #elif RAINY_USING_GCC || RAINY_USING_CLANG
-#if RAINY_USING_WINDOWS || RAINY_USING_LINUX
 #if defined(__i386__) || defined(__x86_64__)
         __asm__ __volatile__("int $0x3");
 #elif RAINY_IS_ARM64
@@ -49,9 +48,6 @@ namespace rainy::core::pal {
         __builtin_trap();
 #else
         static_assert(false, "rainy-toolkit only supports x86/x86_64 and ARM64 platforms");
-#endif
-#else
-        static_assert(false, "rainy-toolkit only supports Windows and Linux platforms");
 #endif
 #endif
     }

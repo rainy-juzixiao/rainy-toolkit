@@ -78,3 +78,11 @@ git clone https://github.com/rainy-juzixiao/rainy-toolkit.git
 ```cmake
 
 ```
+
+### 兼容性报告
+
+目前rainy-toolkit通过arm64_dev_branch和macos_support_dev分支实现了基本的适配支持，详细的兼容性测试请见文档站说明。
+但并不如意的是，对于macOS的支持，仅提供如下结论：
+
+- 大部分系统组件可用，但其在CI中的测试，有可能仍然存在问题，如要采用，请务必多次运行测试用例程序对其进行验证检查，以确保平台可支持和兼容。
+- 在CI环境中，我们不认为，macOS的兼容性完全百分百可用，但大多数情况下，我们已经尽可能做了最多的测试，来测试每个行为；请以实机情况作为参考。

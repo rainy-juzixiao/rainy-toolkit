@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 #include <liburing.h>
-#include <mutex>
 #include <queue>
 #include <rainy/foundation/io/net/io_context.hpp>
 #include <sys/eventfd.h>

@@ -248,7 +248,7 @@ namespace rainy::foundation::concurrency {
 
         void stop() override {
             stop_.store(true, memory_order_release);
-            for (auto &a : actors_) {
+            for (auto &a: actors_) {
                 a->signal_stop();
             }
         }
@@ -380,7 +380,7 @@ namespace rainy::foundation::concurrency {
 
         void stop() override {
             stop_.store(true, memory_order_release);
-            for (auto &a : actors_) {
+            for (auto &a: actors_) {
                 a->signal_stop();
             }
         }
@@ -388,10 +388,10 @@ namespace rainy::foundation::concurrency {
         void join() override {
             this->wait_all();
             stop_.store(true, memory_order_release);
-            for (auto &a : actors_) {
+            for (auto &a: actors_) {
                 a->signal_stop();
             }
-            for (auto &t : threads_) {
+            for (auto &t: threads_) {
                 if (t) {
                     t->join();
                 }
@@ -587,8 +587,8 @@ namespace rainy::foundation::concurrency {
 
         void stop() override {
             stop_.store(true, memory_order_release);
-            for (auto &tier_actors : actors_) {
-                for (auto &a : tier_actors) {
+            for (auto &tier_actors: actors_) {
+                for (auto &a: tier_actors) {
                     a->signal_stop();
                 }
             }
@@ -597,13 +597,13 @@ namespace rainy::foundation::concurrency {
         void join() override {
             this->wait_all();
             stop_.store(true, memory_order_release);
-            for (auto &tier_actors : actors_) {
-                for (auto &a : tier_actors) {
+            for (auto &tier_actors: actors_) {
+                for (auto &a: tier_actors) {
                     a->signal_stop();
                 }
             }
 
-            for (auto &t : threads_) {
+            for (auto &t: threads_) {
                 if (t) {
                     t->join();
                 }
@@ -711,11 +711,20 @@ namespace rainy::foundation::concurrency {
     public:
         explicit blocking_actor_pool(const std::size_t base_threads = 2,
                                      const std::size_t max_threads = std::thread::hardware_concurrency() * 2) :
-            base_threads_(base_threads), max_threads_(max_threads), stop_(false), active_threads_(0), pending_tasks_(0) {
+            base_threads_(base_threads), max_threads_(max_threads), stop_(false), active_threads_(0), pending_tasks_(0),
+            ready_threads_(0) // ← 新增
+        {
             utility::expects(base_threads_ > 0);
             utility::expects(max_threads_ >= base_threads_);
             for (std::size_t i = 0; i < base_threads_; ++i) {
                 spawn_thread();
+            }
+            // 等所有线程真正进入 wait 状态
+            {
+                unique_lock lk(queue_mutex_);
+                queue_cv_.wait(lk, [this] { // 复用 queue_cv_ 即可
+                    return ready_threads_.load(memory_order_acquire) >= base_threads_;
+                });
             }
         }
 
@@ -734,23 +743,23 @@ namespace rainy::foundation::concurrency {
             {
                 lock_guard lk(queue_mutex_);
                 task_queue_.push(utility::move(task));
+                queue_cv_.notify_one();
             }
             check_expand_pool();
-            queue_cv_.notify_one();
         }
 
-        void submit_to(std::size_t actor_id, functional::move_only_delegate<void()> task) {
+        void submit_to(std::size_t actor_id, functional::move_only_delegate<void()> task) override {
             (void) actor_id;
             submit(utility::move(task));
         }
 
         void wait_all() override {
-            const int target = pending_tasks_.load(memory_order_acquire);
-            if (target == 0) {
-                return;
-            }
             unique_lock lk(idle_mutex_);
-            idle_cv_.wait(lk, [this, target] { return complete_count_.load(memory_order_acquire) >= target; });
+            idle_cv_.wait(lk, [this] {
+                int p = pending_tasks_.load(memory_order_acquire);
+                int c = complete_count_.load(memory_order_acquire);
+                return p == 0 || c >= p;
+            });
             pending_tasks_.store(0, memory_order_release);
             complete_count_.store(0, memory_order_release);
         }
@@ -789,7 +798,7 @@ namespace rainy::foundation::concurrency {
             }
 
             lock_guard lk(threads_mutex_);
-            for (auto &t : threads_) {
+            for (auto &t: threads_) {
                 if (t) {
                     t->join();
                 }
@@ -807,15 +816,19 @@ namespace rainy::foundation::concurrency {
         }
 
         void thread_loop() {
+            {
+                lock_guard lk(queue_mutex_);
+                ready_threads_.fetch_add(1, memory_order_release);
+                queue_cv_.notify_all();
+            }
             while (!stop_.load(memory_order_acquire)) {
                 functional::move_only_delegate<void()> task;
                 bool has_task = false;
                 {
                     unique_lock lk(queue_mutex_);
-                    if (task_queue_.empty()) {
-                        queue_cv_.wait_for(lk, std::chrono::milliseconds(100),
-                                           [this] { return !task_queue_.empty() || stop_.load(memory_order_acquire); });
-                    }
+                    queue_cv_.wait(lk, [this] {
+                        return !task_queue_.empty() || stop_.load(memory_order_acquire);
+                    });
                     if (!task_queue_.empty()) {
                         task = std::move(task_queue_.front());
                         task_queue_.pop();
@@ -839,7 +852,7 @@ namespace rainy::foundation::concurrency {
             if (current_active >= max_threads_) {
                 return;
             }
-            std::size_t queue_size;
+            std::size_t queue_size = 0;
             {
                 lock_guard lk(queue_mutex_);
                 queue_size = task_queue_.size();
@@ -869,6 +882,7 @@ namespace rainy::foundation::concurrency {
         atomic<std::size_t> active_threads_;
         atomic<int> pending_tasks_{0};
         atomic<int> complete_count_{0};
+        atomic<std::size_t> ready_threads_{0};
     };
 }
 

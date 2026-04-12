@@ -375,11 +375,11 @@ namespace rainy::utility::implements {
             std::terminate();
         }
 
-        RAINY_NODISCARD const foundation::ctti::typeinfo& target_type() const noexcept {
+        RAINY_NODISCARD const foundation::ctti::typeinfo& target_type() const noexcept override {
             return rainy_typeid(iterator_t);
         }
 
-        RAINY_NODISCARD const void* target() const noexcept {
+        RAINY_NODISCARD const void* target() const noexcept override {
             return &iter;
         }
 
@@ -526,11 +526,11 @@ namespace rainy::utility::implements {
             return const_cast<const_any_proxy_iterator *>(this)->value();
         }
 
-        RAINY_NODISCARD const foundation::ctti::typeinfo& target_type() const noexcept {
+        RAINY_NODISCARD const foundation::ctti::typeinfo& target_type() const noexcept override {
             return rainy_typeid(iterator_t);
         }
 
-        RAINY_NODISCARD const void* target() const noexcept {
+        RAINY_NODISCARD const void* target() const noexcept override {
             return &iter;
         }
 

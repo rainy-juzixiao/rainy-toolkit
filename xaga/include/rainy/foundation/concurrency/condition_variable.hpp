@@ -20,6 +20,10 @@
 #include <rainy/foundation/concurrency/mutex.hpp>
 #include <rainy/foundation/concurrency/pal.hpp>
 
+#if RAINY_HAS_CXX20
+#include <stop_token>
+#endif
+
 namespace rainy::foundation::concurrency {
     enum class cv_status {
         no_timeout,
@@ -293,29 +297,12 @@ namespace rainy::foundation::concurrency {
          */
         template <typename Lock>
         rain_fn wait(Lock &lock) -> void {
-            // 延长内部锁生命期
             const std::shared_ptr<mutex> mtx = mtx_;
-
-            // (1) 拿内部锁
-            //     此后 notify 可以随时发出（notify 不持内部锁），
-            //     但 cnd_wait 会原子地释放内部锁并挂起，
-            //     保证进入等待队列和释放内部锁之间不丢信号
             unique_lock<mutex> internal_lk(*mtx);
-
-            // (2) 释放外部锁（在持有内部锁期间）
             lock.unlock();
-
-            // (3) 原子地释放内部锁并挂起；唤醒后重新持有内部锁
             const thrd_result r = implements::cnd_wait(&cnd_, internal_lk.mutex()->backend_handle());
-
-            // (4) internal_lk 析构，释放内部锁
-
-            // (5) 重拿外部锁（internal_lk 析构后，避免持有内部锁时等外部锁）
-            //     注意：internal_lk 在 lock.lock() 之前析构，
-            //     所以需要先手动 unlock internal_lk
             internal_lk.unlock();
             lock.lock();
-
             if (r != thrd_result::success) {
                 throw std::system_error(static_cast<int>(r), std::system_category(), "condition_variable_any::wait failed");
             }

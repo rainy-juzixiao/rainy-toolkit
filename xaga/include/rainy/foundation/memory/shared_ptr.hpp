@@ -184,7 +184,7 @@ namespace rainy::foundation::memory::implements {
     class ref_count_resource_alloc : public ref_count_base {
     public:
         ref_count_resource_alloc(Res px, Dx deleter, const Alloc &alloc) :
-            ref_count_base({}), pair(utility::move(deleter), {alloc, px}) {
+            ref_count_base(), pair(utility::move(deleter), {alloc, px}) { // call default construct
         }
 
         ~ref_count_resource_alloc() noexcept override = default;

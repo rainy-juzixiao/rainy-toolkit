@@ -150,6 +150,8 @@ if (WIN32)
 elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
     message("Linking libraries for linux package")
     target_link_libraries(rainy-toolkit PRIVATE uring)
+elseif (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    message("Linking libraries for macos package")
 else ()
     message(FATAL_ERROR "Unsupported platform: ${CMAKE_SYSTEM_NAME}")
 endif ()
@@ -174,4 +176,38 @@ if(RAINY_USE_NODE_ADDON)
     message(STATUS "rainy-toolkit will be built with node-addon-api support")
     message("[rainy-toolkit] Node addon support enabled")
     rainy_find_nodejs()
+endif()
+
+# 由于部分MacOS的工具链提供的一部分C++20头文件处于EXPERIMENTAL特性，因此，需要检查是否打开
+if(APPLE)
+    include(CheckCXXSourceCompiles)
+
+    set(CMAKE_REQUIRED_FLAGS "-std=c++20")
+
+    check_cxx_source_compiles("
+        #include <stop_token>
+        int main() {
+            std::stop_source ss;
+            std::stop_token st = ss.get_token();
+            return 0;
+        }
+    " LIBCPP_STOP_TOKEN_AVAILABLE)
+
+    if(NOT LIBCPP_STOP_TOKEN_AVAILABLE)
+        set(CMAKE_REQUIRED_DEFINITIONS "-D_LIBCPP_ENABLE_EXPERIMENTAL")
+        check_cxx_source_compiles("
+            #include <stop_token>
+            int main() {
+                std::stop_source ss;
+                std::stop_token st = ss.get_token();
+                return 0;
+            }
+        " LIBCPP_STOP_TOKEN_AVAILABLE_WITH_EXPERIMENTAL)
+        unset(CMAKE_REQUIRED_DEFINITIONS)
+
+        if(LIBCPP_STOP_TOKEN_AVAILABLE_WITH_EXPERIMENTAL)
+            message(STATUS "Enabling _LIBCPP_ENABLE_EXPERIMENTAL for some experimental support")
+            add_compile_definitions(_LIBCPP_ENABLE_EXPERIMENTAL)
+        endif()
+    endif()
 endif()

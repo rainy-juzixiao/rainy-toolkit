@@ -2,10 +2,16 @@
 
 namespace rainy::foundation::concurrency {
     mutex::mutex() noexcept {
-        if (rainy_const r = implements::mtx_create(&mtx_, implements::mutex_types::try_mtx);
+#if RAINY_USING_MACOS
+        if (rainy_const r = implements::mtx_create(&mtx_, implements::mutex_types::try_mtx | implements::mutex_types::plain_mtx);
             r != thrd_result::success) {
             std::terminate();
         }
+#else
+        if (rainy_const r = implements::mtx_create(&mtx_, implements::mutex_types::try_mtx); r != thrd_result::success) {
+            std::terminate();
+        }
+#endif
     }
 
     mutex::~mutex() {
@@ -93,8 +99,8 @@ namespace rainy::foundation::concurrency {
 
 namespace rainy::foundation::concurrency {
     timed_mutex::timed_mutex() noexcept {
-        constexpr int flags = implements::mutex_types::try_mtx | implements::mutex_types::timed_mtx;
-        if (implements::mtx_create(&mtx_, flags) != thrd_result::success) {
+        if (constexpr int flags = implements::mutex_types::try_mtx | implements::mutex_types::timed_mtx;
+            implements::mtx_create(&mtx_, flags) != thrd_result::success) {
             std::terminate();
         }
     }
@@ -103,7 +109,6 @@ namespace rainy::foundation::concurrency {
         if (!mtx_) {
             return;
         }
-
         if (implements::mtx_destroy(&mtx_) != thrd_result::success) {
             std::terminate();
         }
@@ -136,6 +141,7 @@ namespace rainy::foundation::concurrency {
         return &mtx_;
     }
 }
+
 namespace rainy::foundation::concurrency {
     recursive_timed_mutex::recursive_timed_mutex() noexcept {
         constexpr int flags =

@@ -216,6 +216,31 @@ clang和GNU编译器区域
 #define RAINY_USING_LINUX 0
 #endif
 
+#ifdef __APPLE__
+#include <TargetConditionals.h>
+#if TARGET_OS_MAC && !TARGET_OS_IPHONE
+
+#ifdef __aarch64__
+
+#define RAINY_USING_MACOS 1
+#define RAINY_USING_MACOS_AND_IS_APPLE_SILICON 1
+
+#else
+
+#define RAINY_USING_MACOS 1
+#define RAINY_USING_MACOS_AND_IS_APPLE_SILICON 0
+
+#endif
+
+#endif
+
+#else
+
+#define RAINY_USING_MACOS 0
+#define RAINY_USING_MACOS_AND_IS_APPLE_SILICON 0
+
+#endif
+
 #if RAINY_USING_GCC
 #define RAINY_AINLINE_NODISCARD RAINY_NODISCARD RAINY_INLINE
 #else

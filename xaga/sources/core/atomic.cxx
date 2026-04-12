@@ -101,9 +101,25 @@ namespace rainy::core::pal {
 namespace rainy::core::pal {
     std::intptr_t interlocked_exchange_subtract(volatile std::intptr_t *value, const std::intptr_t amount) {
 #if RAINY_USING_64_BIT_PLATFORM
-        return interlocked_exchange_subtract64(static_cast<volatile std::int64_t *>(value), static_cast<const std::int64_t>(amount));
+
+#if RAINY_USING_MACOS
+        return interlocked_exchange_subtract64(reinterpret_cast<volatile std::int64_t *>(value),
+                                               static_cast<const std::int64_t>(amount));
 #else
-        return interlocked_exchange_subtract32(static_cast<volatile std::int32_t *>(value), static_cast<const std::int32_t>(amount));
+        return interlocked_exchange_subtract64(static_cast<volatile std::int64_t *>(value),
+                                               static_cast<const std::int64_t>(amount));
+#endif
+
+#else
+
+#if RAINY_USING_MACOS
+        return interlocked_exchange_subtract32(reinterpret_cast<volatile std::int32_t *>(value),
+                                               static_cast<const std::int32_t>(amount));
+#else
+        return interlocked_exchange_subtract32(static_cast<volatile std::int32_t *>(value),
+                                               static_cast<const std::int32_t>(amount));
+#endif
+
 #endif
     }
 
@@ -127,9 +143,21 @@ namespace rainy::core::pal {
 namespace rainy::core::pal {
     std::intptr_t iso_volatile_load(const volatile std::intptr_t *address) {
 #if RAINY_USING_64_BIT_PLATFORM
-        return iso_volatile_load64(reinterpret_cast<const volatile std::int64_t *>(address)); // NOLINT
+
+#if RAINY_USING_MACOS
+        return iso_volatile_load64(reinterpret_cast<const volatile std::int64_t *>(address));
 #else
-        return iso_volatile_load32(static_cast<const volatile int *>(address));
+        return iso_volatile_load64(static_cast<const volatile std::int64_t *>(address));
+#endif
+
+#else
+
+#if RAINY_USING_MACOS
+        return iso_volatile_load32(reinterpret_cast<const volatile std::int32_t *>(address));
+#else
+        return iso_volatile_load32(static_cast<const volatile std::int32_t *>(address));
+#endif
+
 #endif
     }
 
@@ -208,9 +236,25 @@ namespace rainy::core::pal {
 namespace rainy::core::pal {
     std::intptr_t interlocked_and(volatile std::intptr_t *value, const std::intptr_t mask) {
 #if RAINY_USING_64_BIT_PLATFORM
-        return interlocked_and64(reinterpret_cast<volatile std::intptr_t *>(value), mask);
+
+#if RAINY_USING_MACOS
+        return interlocked_and64(reinterpret_cast<volatile std::int64_t *>(value),
+                                 static_cast<const std::int64_t>(mask));
 #else
-        return interlocked_and32(reinterpret_cast<volatile std::intptr_t *>(value), mask);
+        return interlocked_and64(static_cast<volatile std::int64_t *>(value),
+                                 static_cast<const std::int64_t>(mask));
+#endif
+
+#else
+
+#if RAINY_USING_MACOS
+        return interlocked_and32(reinterpret_cast<volatile std::int32_t *>(value),
+                                 static_cast<const std::int32_t>(mask));
+#else
+        return interlocked_and32(static_cast<volatile std::int32_t *>(value),
+                                 static_cast<const std::int32_t>(mask));
+#endif
+
 #endif
     }
 
@@ -234,9 +278,25 @@ namespace rainy::core::pal {
 namespace rainy::core::pal {
     std::intptr_t interlocked_or(volatile std::intptr_t *value, std::intptr_t mask) {
 #if RAINY_USING_64_BIT_PLATFORM
-        return interlocked_or64(reinterpret_cast<volatile std::intptr_t *>(value), mask);
+
+#if RAINY_USING_MACOS
+        return interlocked_or64(reinterpret_cast<volatile std::int64_t *>(value),
+                                static_cast<const std::int64_t>(mask));
 #else
-        return interlocked_or32(reinterpret_cast<volatile std::intptr_t *>(value), mask);
+        return interlocked_or64(static_cast<volatile std::int64_t *>(value),
+                                static_cast<const std::int64_t>(mask));
+#endif
+
+#else
+
+#if RAINY_USING_MACOS
+        return interlocked_or32(reinterpret_cast<volatile std::int32_t *>(value),
+                                static_cast<const std::int32_t>(mask));
+#else
+        return interlocked_or32(static_cast<volatile std::int32_t *>(value),
+                                static_cast<const std::int32_t>(mask));
+#endif
+
 #endif
     }
 
@@ -260,9 +320,25 @@ namespace rainy::core::pal {
 namespace rainy::core::pal {
     std::intptr_t interlocked_xor(volatile std::intptr_t *value, std::intptr_t mask) {
 #if RAINY_USING_64_BIT_PLATFORM
-        return interlocked_xor64(reinterpret_cast<volatile std::intptr_t *>(value), mask);
+
+#if RAINY_USING_MACOS
+        return interlocked_xor64(reinterpret_cast<volatile std::int64_t *>(value),
+                                 static_cast<const std::int64_t>(mask));
 #else
-        return interlocked_xor32(reinterpret_cast<volatile std::intptr_t *>(value), mask);
+        return interlocked_xor64(static_cast<volatile std::int64_t *>(value),
+                                 static_cast<const std::int64_t>(mask));
+#endif
+
+#else
+
+#if RAINY_USING_MACOS
+        return interlocked_xor32(reinterpret_cast<volatile std::int32_t *>(value),
+                                 static_cast<const std::int32_t>(mask));
+#else
+        return interlocked_xor32(static_cast<volatile std::int32_t *>(value),
+                                 static_cast<const std::int32_t>(mask));
+#endif
+
 #endif
     }
 
@@ -286,9 +362,25 @@ namespace rainy::core::pal {
 namespace rainy::core::pal {
     void iso_volatile_store(volatile void *address, void *value) {
 #if RAINY_USING_64_BIT_PLATFORM
-        iso_volatile_store64(static_cast<volatile std::int64_t *>(address), *static_cast<std::int64_t *>(value));
+
+#if RAINY_USING_MACOS
+        iso_volatile_store64(reinterpret_cast<volatile std::int64_t *>(address),
+                             *static_cast<std::int64_t *>(value));
 #else
-        iso_volatile_store32(static_cast<volatile std::int32_t *>(address), *static_cast<std::int32_t *>(value));
+        iso_volatile_store64(static_cast<volatile std::int64_t *>(address),
+                             *static_cast<std::int64_t *>(value));
+#endif
+
+#else
+
+#if RAINY_USING_MACOS
+        iso_volatile_store32(reinterpret_cast<volatile std::int32_t *>(address),
+                             *static_cast<std::int32_t *>(value));
+#else
+        iso_volatile_store32(static_cast<volatile std::int32_t *>(address),
+                             *static_cast<std::int32_t *>(value));
+#endif
+
 #endif
     }
 

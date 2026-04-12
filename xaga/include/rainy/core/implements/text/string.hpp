@@ -17,16 +17,20 @@
 #define RAINY_CORE_IMPLEMENTS_TEXT_STRING_HPP
 
 // NOLINTBEGIN
-#include <rainy/core/platform.hpp>
 #include <rainy/core/implements/hash.hpp>
 #include <rainy/core/implements/text/char_traits.hpp>
 #include <rainy/core/implements/text/string_view.hpp>
+#include <rainy/core/platform.hpp>
 // NOLINTEND
 
-#if RAINY_USING_GCC
+#if RAINY_USING_GCC && !RAINY_USING_CLANG
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Warray-bounds"
-#pragma GCC diagnostic ignored "-Wstringop-overflow"
+
+#if !RAINY_USING_MACOS
+#pragma GCC diagnostic ignored "-Wstringop-overflow" // Ok...
+#endif
+
 #endif
 
 namespace rainy::collections {
@@ -319,7 +323,7 @@ namespace rainy::foundation::text {
                 auto new_capacity = current_size;
                 auto new_ptr = allocator_traits::allocate(get_al(), new_capacity + 1);
 #if RAINY_HAS_CXX20
-                if(std::is_constant_evaluated()) { // NOLINT
+                if (std::is_constant_evaluated()) { // NOLINT
                     core::algorithm::copy(ls.begin_, ls.end_, new_ptr);
                 } else
 #endif
@@ -358,17 +362,22 @@ namespace rainy::foundation::text {
             return const_cast<CharType &>(const_cast<basic_string const &>(*this).at(pos));
         }
 
-        RAINY_CONSTEXPR20 const_reference operator[](size_type pos) const noexcept {
-            assert(("pos >= size, please check the arg", pos < size()));
-            return *(begin_() + pos);
-        }
-
         RAINY_CONSTEXPR20 reference operator[](size_type pos) noexcept {
+            if (!std::is_constant_evaluated()) {
+                assert(("pos >= size, please check the arg" && pos < size()));
+            }
             return const_cast<CharType &>(const_cast<basic_string const &>(*this)[pos]);
         }
 
+        RAINY_CONSTEXPR20 const_reference operator[](size_type pos) const noexcept {
+            if (!std::is_constant_evaluated()) {
+                assert(("pos >= size, please check the arg" && pos < size()));
+            }
+            return *(begin_() + pos);
+        }
+
         RAINY_CONSTEXPR20 const CharType &front() const noexcept {
-            assert(("string is empty", !empty()));
+            assert(("string is empty" && !empty()));
             return *begin_();
         }
 
@@ -377,7 +386,7 @@ namespace rainy::foundation::text {
         }
 
         RAINY_CONSTEXPR20 const CharType &back() const noexcept {
-            assert(("string is empty", !empty()));
+            assert(("string is empty" && !empty()));
             return *(end_() - 1);
         }
 
@@ -441,20 +450,29 @@ namespace rainy::foundation::text {
             if (capacity() >= new_cap) {
                 return;
             }
-            if (is_long_()) {
-                auto ls = get_storage().ls_;
-                allocate_plus_one_(new_cap);
-                fill_(ls.begin_, ls.end_);
-                auto size = ls.end_ - ls.begin_;
-                dealloc_(ls);
-                resize_(size);
+
+            if (std::is_constant_evaluated()) {
+                // 编译期：构造副本，分配新空间，交换
+                basic_string temp{*this}; // 复制当前字符串
+                allocate_plus_one_(new_cap); // 在当前对象上分配新空间
+                temp.swap_without_ator(*this); // 交换内容
             } else {
-                auto ss = get_storage().ss_;
-                auto size = size_flag_;
-                auto data = ss.data();
-                allocate_plus_one_(new_cap);
-                fill_(data, data + size);
-                resize_(size);
+                // 运行期：原逻辑
+                if (is_long_()) {
+                    auto ls = get_storage().ls_;
+                    allocate_plus_one_(new_cap);
+                    fill_(ls.begin_, ls.end_);
+                    auto size = ls.end_ - ls.begin_;
+                    dealloc_(ls);
+                    resize_(size);
+                } else {
+                    auto ss = get_storage().ss_;
+                    auto size = size_flag_;
+                    auto data = ss.data();
+                    allocate_plus_one_(new_cap);
+                    fill_(data, data + size);
+                    resize_(size);
+                }
             }
         }
 
@@ -481,8 +499,19 @@ namespace rainy::foundation::text {
             if (capacity() == size) {
                 reserve(size * 2 - size / 2);
             }
-            *end_() = ch;
-            resize_(size + 1);
+
+            if (std::is_constant_evaluated()) {
+                auto new_size = size + 1;
+                resize_(new_size);
+                if (is_long_()) {
+                    *(get_storage().ls_.begin_ + size) = ch;
+                } else {
+                    get_storage().ss_[size] = ch;
+                }
+            } else {
+                *end_() = ch;
+                resize_(size + 1);
+            }
         }
 
         RAINY_CONSTEXPR20 void swap(basic_string &right) noexcept {
@@ -721,7 +750,7 @@ namespace rainy::foundation::text {
             const value_type *self_begin = this->begin_();
             const size_type limit = self_size - sv_size;
 #if RAINY_HAS_CXX20
-            if(std::is_constant_evaluated()) {
+            if (std::is_constant_evaluated()) {
                 for (size_type i = pos; i <= limit; ++i) {
                     bool match = true;
                     for (size_type j = 0; j < sv_size; ++j) {
@@ -1000,8 +1029,8 @@ namespace rainy::foundation::text {
         }
 
         RAINY_CONSTEXPR20 bool contains(const value_type *ptr) const noexcept {
-            return std::basic_string_view<value_type>{begin_(), end_()}.contains(
-                std::basic_string_view<value_type>{ptr, ptr + traits_type::length(ptr)});
+            return basic_string_view<value_type>{begin_(), end_()}.contains(
+                basic_string_view<value_type>{ptr, ptr + traits_type::length(ptr)});
         }
 
         RAINY_CONSTEXPR20 basic_string &insert(size_type index, size_type count, CharType ch) {
@@ -1013,7 +1042,7 @@ namespace rainy::foundation::text {
             auto start = begin_() + index;
             auto end = begin_() + size;
 #if RAINY_HAS_CXX20
-            if(std::is_constant_evaluated()) { // NOLINT
+            if (std::is_constant_evaluated()) { // NOLINT
                 core::algorithm::copy_backward(start, end, end + count);
                 std::fill(start, start + count, ch);
             } else
@@ -1064,7 +1093,7 @@ namespace rainy::foundation::text {
             auto end = begin + size;
             start = begin + index;
 #if RAINY_HAS_CXX20
-            if(std::is_constant_evaluated()) { // NOLINT
+            if (std::is_constant_evaluated()) { // NOLINT
                 core::algorithm::copy_backward(start, end, end + 1);
             } else
 #endif
@@ -1088,7 +1117,7 @@ namespace rainy::foundation::text {
         template <typename InputIt,
                   type_traits::other_trans::enable_if_t<type_traits::extras::iterators::is_input_iterator_v<InputIt>, int> = 0>
         RAINY_CONSTEXPR20 iterator insert(const_iterator pos, InputIt first, InputIt last) {
-            assert(("pos isn'sv in this string", pos >= begin_() && pos <= end_()));
+            assert(("pos isn'sv in this string" && pos >= begin_() && pos <= end_()));
             auto size = this->size();
             auto start = pos;
             auto end = end_();
@@ -1172,7 +1201,7 @@ namespace rainy::foundation::text {
         }
 
         RAINY_CONSTEXPR20 void pop_back() noexcept {
-            assert(("string is empty", !empty()));
+            assert(("string is empty" && !empty()));
             resize_(size() - 1);
         }
 
@@ -1419,7 +1448,7 @@ namespace rainy::foundation::text {
             auto lsize = left.size();
             auto rsize = right.size();
 #if RAINY_HAS_CXX20
-            if(std::is_constant_evaluated()) { // NOLINT
+            if (std::is_constant_evaluated()) { // NOLINT
                 if (lsize != rsize) {
                     return false;
                 }
@@ -1438,7 +1467,7 @@ namespace rainy::foundation::text {
             auto lsize = left.size();
             auto rsize = right.size();
 #if RAINY_HAS_CXX20
-            if(std::is_constant_evaluated()) { // NOLINT
+            if (std::is_constant_evaluated()) { // NOLINT
                 for (auto l = left.begin_(), r = right.begin_(), end = l + (core::min) (lsize, rsize); l != end; ++l, ++r) {
                     if (*l < *r) {
                         return true;
@@ -1503,7 +1532,7 @@ namespace rainy::foundation::text {
             auto rsize = traits_type::length(start);
             auto lsize = left.size();
 #if RAINY_HAS_CXX20
-            if(std::is_constant_evaluated()) { // NOLINT
+            if (std::is_constant_evaluated()) { // NOLINT
                 for (auto l = left.begin_(), end = l + (core::min) (lsize, rsize); l != end; ++l, ++start) {
                     if (*l < *start) {
                         return true;
@@ -1573,27 +1602,83 @@ namespace rainy::foundation::text {
             return size_flag_ != static_cast<decltype(size_flag_)>(-1);
         }
 
+        static RAINY_CONSTEXPR20 void begin_lifetime(pointer begin, size_type n) {
+#if RAINY_HAS_CXX20
+            if (std::is_constant_evaluated()) {
+                for (size_type i = 0; i != n; ++i) {
+                    std::construct_at(std::addressof(begin[i]));
+                }
+            }
+#else
+            utility::ignore = begin;
+            utility::ignore = n;
+#endif
+        }
+
         RAINY_CONSTEXPR20 void fill_(value_type const *begin, value_type const *end) noexcept {
-            assert(("cannot storage string in current allocated storage", static_cast<size_type>(end - begin) <= capacity()));
-            size_type count = end - begin;
-            if (count > 0) {
+            size_type count = static_cast<size_type>(end - begin);
+            assert(count <= capacity());
+            if (count == 0) {
+                return;
+            }
+#if RAINY_HAS_CXX20
+            if (std::is_constant_evaluated()) {
+                for (size_type i = 0; i < count; ++i) {
+                    std::construct_at(begin_() + i, begin[i]);
+                }
+            } else
+#endif
+            {
                 traits_type::copy(begin_(), begin, count);
             }
         }
 
+
         RAINY_CONSTEXPR20 void append_(value_type const *first, value_type const *last) {
             auto length = last - first;
             auto size = this->size();
-            reserve(size + length);
-            auto end = begin_() + size;
-            traits_type::copy(end, first, last - first);
-            resize_(size + length);
+            auto new_size = size + length;
+            // clang/gcc对这种可能更敏感，需要进行这种处理
+#if (RAINY_USING_CLANG || RAINY_USING_GCC) && RAINY_HAS_CXX20
+            if (std::is_constant_evaluated()) {
+                if (is_short_()) { // 嗯……需要强制转化成长字符串，先保存，然后我再进行分配，不然constexpr的检查会进行不合理的报错
+                    value_type old_data[short_string_max_ + 1];
+                    auto old_size = size;
+                    for (size_type i = 0; i < old_size; ++i) {
+                        old_data[i] = get_storage().ss_[i]; // NOLINT
+                    }
+                    // 这个workaround并不优雅，不过，能跑就行的标准，不求太多了
+                    allocate_plus_one_(new_size); // 应该可以分配了
+                    auto new_begin = begin_();
+                    for (size_type i = 0; i < old_size; ++i) {
+                        utility::construct_at(new_begin + i, old_data[i]); // NOLINT
+                    }
+                    size = old_size;
+                    // 应该不会爆炸了
+                }
+                if (capacity() < new_size) {
+                    reserve(new_size);
+                }
+                // 追加新数据
+                auto begin = begin_();
+                for (size_type i = 0; i < length; ++i) {
+                    utility::construct_at(begin + size + i, first[i]);
+                }
+                resize_(new_size);
+            } else
+#endif
+            {
+                reserve(new_size);
+                auto begin = begin_();
+                traits_type::copy(begin + size, first, length);
+                resize_(new_size);
+            }
         }
 
         RAINY_CONSTEXPR20 void erase_(CharType *first, value_type const *last) noexcept {
-            assert(("first or last is not in this string", first >= begin_() && last <= end_()));
+            assert(("first or last is not in this string" && first >= begin_() && last <= end_()));
             // NOLINTBEGIN
-            if(std::is_constant_evaluated()) {
+            if (std::is_constant_evaluated()) {
                 core::algorithm::copy(last, const_cast<basic_string const &>(*this).end_(), first);
             } else {
                 traits_type::move(first, last, (const_cast<basic_string const &>(*this).end_() - last));
@@ -1626,9 +1711,11 @@ namespace rainy::foundation::text {
             ++count;
 #if defined(__cpp_lib_allocate_at_least) && (__cpp_lib_allocate_at_least >= 202302L)
             auto [ptr, count_] = allocator_traits::allocate_at_least(this->get_al(), count);
+            begin_lifetime(ptr, count_);
             utility::construct_at(&get_storage().ls_, ptr, nullptr, ptr + count_);
 #else
             auto ptr = allocator_traits::allocate(this->get_al(), count);
+            begin_lifetime(ptr, count);
             utility::construct_at(&get_storage().ls_, ptr, nullptr, ptr + count);
 #endif
             size_flag_ = static_cast<unsigned char>(-1);
@@ -1641,17 +1728,23 @@ namespace rainy::foundation::text {
         }
 
         RAINY_CONSTEXPR20 void resize_(size_type count) noexcept { // NOLINT
-            assert(("count > capacity()", count <= capacity()));
+            if (!std::is_constant_evaluated()) {
+                assert(("count > capacity()" && count <= capacity()));
+            }
             if (empty()) {
                 reserve(count);
             }
             if (is_long_()) {
                 auto &&ls = get_storage().ls_;
                 ls.end_ = ls.begin_ + count;
-                *ls.end_ = CharType{};
+                if (!std::is_constant_evaluated()) {
+                    *ls.end_ = CharType{};
+                }
             } else {
                 size_flag_ = static_cast<unsigned char>(count);
-                get_storage().ss_[count] = CharType{};
+                if (!std::is_constant_evaluated()) {
+                    get_storage().ss_[count] = CharType{};
+                }
             }
         }
 
@@ -1683,7 +1776,7 @@ namespace rainy::foundation::text {
             if (capacity() >= new_size) {
 #if RAINY_HAS_CXX20
                 // NOLINTBEGIN
-                if(std::is_constant_evaluated()) { // NOLINT
+                if (std::is_constant_evaluated()) { // NOLINT
                     core::algorithm::copy_backward(start, end, end + length);
                     core::algorithm::copy(first, last, start);
                 } else
@@ -1699,7 +1792,7 @@ namespace rainy::foundation::text {
                 auto temp_begin = temp.begin_();
                 auto temp_start = temp_begin + index;
 #if RAINY_HAS_CXX20
-                if(std::is_constant_evaluated()) { // NOLINT
+                if (std::is_constant_evaluated()) { // NOLINT
                     core::algorithm::copy(begin, start, temp_begin);
                     core::algorithm::copy(first, last, temp_start);
                     core::algorithm::copy(start, end, temp_start + length);
@@ -1732,7 +1825,7 @@ namespace rainy::foundation::text {
             if (!(last1 < first2 || last2 < first1) && new_size <= capacity()) {
                 auto diff = length1 - length2;
                 // NOLINTBEGIN
-                if(std::is_constant_evaluated()) {
+                if (std::is_constant_evaluated()) {
                     if (diff > 0) {
                         core::algorithm::copy(last1, end, last1 - diff);
                     } else if (diff < 0) {
@@ -1874,7 +1967,7 @@ namespace rainy::utility {
 }
 // NOLINTEND
 
-#if defined(__GNUC__) && !defined(__clang__)
+#if RAINY_USING_GCC && !RAINY_USING_CLANG
 #pragma GCC diagnostic pop
 #endif
 
