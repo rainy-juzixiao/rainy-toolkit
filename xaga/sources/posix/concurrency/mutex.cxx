@@ -23,11 +23,6 @@ namespace rainy::foundation::concurrency::implements {
         int type{0};
         pthread_t thread_id{};
         int count{0};
-#if RAINY_USING_MACOS
-        pthread_mutex_t cv_mutex{};
-        pthread_cond_t cv{};
-        bool locked{false};
-#endif
     };
 
 
@@ -45,10 +40,26 @@ namespace rainy::foundation::concurrency::implements {
      * @return        0 表示成功，ETIMEDOUT 表示超时，其他值表示系统错误
      */
     static int apple_mutex_timedlock(mutex_handle *mutex, const ::timespec *target) noexcept {
-        constexpr long long min_sleep_ns = 100'000LL;
+        constexpr long long min_sleep_ns = 1'000'000LL;
         constexpr long long max_sleep_ns = 5'000'000LL;
         long long sleep_ns = min_sleep_ns;
+        ::timespec now{};
+        ::clock_gettime(CLOCK_REALTIME, &now);
+        long long remaining_ns = (static_cast<long long>(target->tv_sec - now.tv_sec) * 1'000'000'000LL) +
+                                 (static_cast<long long>(target->tv_nsec - now.tv_nsec));
+        if (remaining_ns <= 0) {
+            return ETIMEDOUT;
+        }
         while (true) {
+            long long actual_sleep = (core::min) (sleep_ns, remaining_ns);
+            ::timespec sleep_ts{0, static_cast<long>(actual_sleep)};
+            ::nanosleep(&sleep_ts, nullptr);
+            ::clock_gettime(CLOCK_REALTIME, &now);
+            remaining_ns = (static_cast<long long>(target->tv_sec - now.tv_sec) * 1'000'000'000LL) +
+                           (static_cast<long long>(target->tv_nsec - now.tv_nsec));
+            if (remaining_ns <= 0) {
+                return ETIMEDOUT;
+            }
             int res = pthread_mutex_trylock(&mutex->handle);
             if (res == 0) {
                 return 0;
@@ -56,16 +67,6 @@ namespace rainy::foundation::concurrency::implements {
             if (res != EBUSY) {
                 return res;
             }
-            ::timespec now{};
-            ::clock_gettime(CLOCK_REALTIME, &now);
-            long long remaining_ns = (static_cast<long long>(target->tv_sec - now.tv_sec) * 1'000'000'000LL) +
-                                     (static_cast<long long>(target->tv_nsec - now.tv_nsec));
-            if (remaining_ns <= 0) {
-                return ETIMEDOUT;
-            }
-            long long actual_sleep = (core::min) (sleep_ns, remaining_ns);
-            ::timespec sleep_ts{0, static_cast<long>(actual_sleep)};
-            ::nanosleep(&sleep_ts, nullptr);
             sleep_ns = (core::min) (sleep_ns * 2, max_sleep_ns);
         }
     }
@@ -79,85 +80,51 @@ namespace rainy::foundation::concurrency::implements {
         auto *mutex = static_cast<mutex_handle *>(*mtx);
         const pthread_t current_thread_id = pthread_self();
         const bool is_recursive = (mutex->type & mutex_types::recursive_mtx) == mutex_types::recursive_mtx;
-#if RAINY_USING_MACOS
-        pthread_mutex_lock(&mutex->cv_mutex);
         if (is_recursive && mutex->count > 0 && pthread_equal(mutex->thread_id, current_thread_id)) {
-            core::pal::interlocked_increment(reinterpret_cast<volatile long *>(&mutex->count));
-            pthread_mutex_unlock(&mutex->cv_mutex);
-            return thrd_result::success;
-        }
-        if (!target) {
-            while (mutex->locked) {
-                pthread_cond_wait(&mutex->cv, &mutex->cv_mutex);
-            }
-        } else if (target->tv_sec == 0 && target->tv_nsec == 0) {
-            if (mutex->locked) {
-                pthread_mutex_unlock(&mutex->cv_mutex);
-                errno = EBUSY;
-                return thrd_result::busy;
-            }
-        } else {
-            bool timed_out = false;
-            while (mutex->locked) {
-                int ret = pthread_cond_timedwait(&mutex->cv, &mutex->cv_mutex, target);
-                if (ret == ETIMEDOUT) {
-                    timed_out = true;
-                    break;
-                }
-                if (ret != 0) {
-                    pthread_mutex_unlock(&mutex->cv_mutex);
-                    errno = ret;
-                    return thrd_result::error;
-                }
-                ::timespec now{};
-                ::clock_gettime(CLOCK_REALTIME, &now);
-                if (now.tv_sec > target->tv_sec || (now.tv_sec == target->tv_sec && now.tv_nsec >= target->tv_nsec)) {
-                    timed_out = true;
-                    break;
-                }
-            }
-            if (timed_out) {
-                pthread_mutex_unlock(&mutex->cv_mutex);
-                errno = ETIMEDOUT;
-                return thrd_result::timed_out;
-            }
-        }
-        // 成功获锁
-        mutex->locked = true;
-        mutex->thread_id = current_thread_id;
-        core::pal::interlocked_increment(reinterpret_cast<volatile long *>(&mutex->count));
-        pthread_mutex_unlock(&mutex->cv_mutex);
-        return thrd_result::success;
-#else
-        if (const bool is_same_thread = pthread_equal(mutex->thread_id, current_thread_id);
-            is_same_thread && is_recursive && mutex->count > 0) {
+            // 递归锁：同线程直接增加计数，无需实际获取底层锁
             core::pal::interlocked_increment(reinterpret_cast<volatile long *>(&mutex->count));
             return thrd_result::success;
         }
+        // 不同线程或非递归锁需要实际获取锁
         int res = -1;
+
         if (!target) {
+            // 阻塞锁
             res = pthread_mutex_lock(&mutex->handle);
         } else if (target->tv_sec == 0 && target->tv_nsec == 0) {
+            // 尝试锁（非阻塞）
             res = pthread_mutex_trylock(&mutex->handle);
             if (res == EBUSY) {
                 errno = EBUSY;
                 return thrd_result::busy;
             }
         } else {
+            // 带超时锁
+#if RAINY_USING_MACOS
+            res = apple_mutex_timedlock(mutex, target);
+#else
             res = pthread_mutex_timedlock(&mutex->handle, target);
+#endif
         }
+
         if (res == 0) {
+            // 成功获取底层锁，更新状态
             if (core::pal::interlocked_increment(reinterpret_cast<volatile long *>(&mutex->count)) == 1) {
                 mutex->thread_id = current_thread_id;
             }
+
+            // 非递归锁不允许重入（虽然理论上不应该发生，但防御性检查）
             if (!is_recursive && mutex->count > 1) {
                 core::pal::interlocked_decrement(reinterpret_cast<volatile long *>(&mutex->count));
                 pthread_mutex_unlock(&mutex->handle);
                 errno = EBUSY;
                 return thrd_result::busy;
             }
+
             return thrd_result::success;
         }
+
+        // 处理失败返回
         if (res == ETIMEDOUT) {
             errno = ETIMEDOUT;
             return thrd_result::timed_out;
@@ -166,37 +133,35 @@ namespace rainy::foundation::concurrency::implements {
             errno = EBUSY;
             return thrd_result::busy;
         }
+
         errno = res;
         return thrd_result::error;
-#endif
     }
 
     thrd_result mtx_init(mtx_t *mtx, int flags) noexcept {
-        if (!mtx)
+        if (!mtx) {
             return thrd_result::nomem;
+        }
         auto *mutex = static_cast<mutex_handle *>(*mtx);
         mutex->type = flags;
         mutex->count = 0;
         mutex->thread_id = {};
 
+        pthread_mutexattr_t attr;
+        pthread_mutexattr_init(&attr);
+
+        if (flags & mutex_types::recursive_mtx) {
+            pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+        } else {
 #if RAINY_USING_MACOS
-        mutex->locked = false;
-        pthread_mutex_init(&mutex->cv_mutex, nullptr);
-        pthread_cond_init(&mutex->cv, nullptr);
-        pthread_mutexattr_t attr;
-        pthread_mutexattr_init(&attr);
-        pthread_mutexattr_settype(&attr, flags & mutex_types::recursive_mtx ? PTHREAD_MUTEX_RECURSIVE : PTHREAD_MUTEX_ERRORCHECK);
-        const int res = pthread_mutex_init(&mutex->handle, &attr);
-        pthread_mutexattr_destroy(&attr);
-        return res == 0 ? thrd_result::success : thrd_result::error;
+            pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_ERRORCHECK);
 #else
-        pthread_mutexattr_t attr;
-        pthread_mutexattr_init(&attr);
-        pthread_mutexattr_settype(&attr, flags & mutex_types::recursive_mtx ? PTHREAD_MUTEX_RECURSIVE : PTHREAD_MUTEX_NORMAL);
+            pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_NORMAL);
+#endif
+        }
         const int res = pthread_mutex_init(&mutex->handle, &attr);
         pthread_mutexattr_destroy(&attr);
         return res == 0 ? thrd_result::success : thrd_result::error;
-#endif
     }
 
     thrd_result mtx_create(mtx_t *mtx, const int flags) noexcept {
@@ -221,36 +186,27 @@ namespace rainy::foundation::concurrency::implements {
     }
 
     thrd_result mtx_unlock(mtx_t *const mtx) noexcept {
-        if (!mtx)
+        if (!mtx) {
             return thrd_result::nomem;
+        }
         auto *mutex = static_cast<mutex_handle *>(*mtx);
-#if RAINY_USING_MACOS
-        pthread_mutex_lock(&mutex->cv_mutex);
+
         if (mutex->count == 0) {
-            pthread_mutex_unlock(&mutex->cv_mutex);
+            // 未持有锁，行为未定义，但返回错误
             errno = EPERM;
             return thrd_result::error;
         }
+
         const long new_count = core::pal::interlocked_decrement(reinterpret_cast<volatile long *>(&mutex->count));
+
         if (new_count == 0) {
-            mutex->locked = false;
-            mutex->thread_id = {};
-            pthread_cond_signal(&mutex->cv);
-        }
-        pthread_mutex_unlock(&mutex->cv_mutex);
-        return thrd_result::success;
-#else
-        if (mutex->count == 0) {
-            errno = EPERM;
-            return thrd_result::error;
-        }
-        if (const long new_count = core::pal::interlocked_decrement(reinterpret_cast<volatile long *>(&mutex->count));
-            new_count == 0) {
+            // 最后一个锁，释放底层锁并清空线程ID
             mutex->thread_id = {};
             return pthread_mutex_unlock(&mutex->handle) == 0 ? thrd_result::success : thrd_result::error;
         }
+
+        // 递归锁还有剩余计数，不需要释放底层锁
         return thrd_result::success;
-#endif
     }
 
     bool mtx_current_owns(mtx_t *const mtx) noexcept {
@@ -267,12 +223,8 @@ namespace rainy::foundation::concurrency::implements {
             return thrd_result::nomem;
         }
         auto *mutex = static_cast<mutex_handle *>(*mtx);
-        pthread_mutex_destroy(&mutex->handle);
-#if RAINY_USING_MACOS
-        pthread_mutex_destroy(&mutex->cv_mutex);
-        pthread_cond_destroy(&mutex->cv);
-#endif
         // 移除对count的检查，不再保证 (若仍有线程持有该锁，行为未定义)
+        pthread_mutex_destroy(&mutex->handle);
         core::pal::deallocate(mutex, sizeof(mutex_handle), alignof(mutex_handle));
         return thrd_result::success;
     }
