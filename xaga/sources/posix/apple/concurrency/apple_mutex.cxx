@@ -39,14 +39,15 @@ namespace rainy::foundation::concurrency::implements {
             }
             ::timespec now{};
             ::clock_gettime(CLOCK_REALTIME, &now);
+            if (now.tv_sec > target->tv_sec || (now.tv_sec == target->tv_sec && now.tv_nsec >= target->tv_nsec)) {
+                return ETIMEDOUT;
+            }
             long long remaining_ns = (static_cast<long long>(target->tv_sec - now.tv_sec) * 1'000'000'000LL) +
                                      (static_cast<long long>(target->tv_nsec - now.tv_nsec));
-            if (remaining_ns <= 0)
-                return ETIMEDOUT;
-            long long actual_sleep = std::min(sleep_ns, remaining_ns);
+            long long actual_sleep = core::min(sleep_ns, remaining_ns);
             ::timespec sleep_ts{0, static_cast<long>(actual_sleep)};
             ::nanosleep(&sleep_ts, nullptr);
-            sleep_ns = std::min(sleep_ns * 2, max_sleep_ns);
+            sleep_ns = core::min(sleep_ns * 2, max_sleep_ns);
         }
     }
 
@@ -61,9 +62,7 @@ namespace rainy::foundation::concurrency::implements {
             }
             ::timespec now{};
             ::clock_gettime(CLOCK_REALTIME, &now);
-            long long remaining_ns = (static_cast<long long>(target->tv_sec - now.tv_sec) * 1'000'000'000LL) +
-                                     (static_cast<long long>(target->tv_nsec - now.tv_nsec));
-            if (remaining_ns <= 0) {
+            if (now.tv_sec > target->tv_sec || (now.tv_sec == target->tv_sec && now.tv_nsec >= target->tv_nsec)) {
                 return ETIMEDOUT;
             }
             const int res = pthread_mutex_trylock(&mutex->handle);
@@ -74,13 +73,14 @@ namespace rainy::foundation::concurrency::implements {
             if (res != EBUSY) {
                 return res;
             }
-            long long actual_sleep = std::min(std::max(sleep_ns, 1'000'000LL), remaining_ns);
-            ::timespec sleep_ts{actual_sleep / 1'000'000'000LL, (actual_sleep % 1'000'000'000LL)};
+            long long remaining_ns = (static_cast<long long>(target->tv_sec - now.tv_sec) * 1'000'000'000LL) +
+                                     (static_cast<long long>(target->tv_nsec - now.tv_nsec));
+            long long actual_sleep = std::min(sleep_ns, remaining_ns);
+            ::timespec sleep_ts{0, static_cast<long>(actual_sleep)};
             ::nanosleep(&sleep_ts, nullptr);
             sleep_ns = std::min(sleep_ns * 2, max_sleep_ns);
         }
     }
-
 
     thrd_result mtx_do_lock(mtx_t *const mtx, const ::timespec *target) noexcept {
         if (!mtx) {
