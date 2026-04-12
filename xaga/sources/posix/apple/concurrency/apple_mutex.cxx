@@ -74,12 +74,13 @@ namespace rainy::foundation::concurrency::implements {
             if (res != EBUSY) {
                 return res;
             }
-            long long actual_sleep = std::min(sleep_ns, remaining_ns);
-            ::timespec sleep_ts{actual_sleep / 1'000'000'000LL, static_cast<long>(actual_sleep % 1'000'000'000LL)};
+            long long actual_sleep = std::min(std::max(sleep_ns, 1'000'000LL), remaining_ns);
+            ::timespec sleep_ts{actual_sleep / 1'000'000'000LL, (actual_sleep % 1'000'000'000LL)};
             ::nanosleep(&sleep_ts, nullptr);
             sleep_ns = std::min(sleep_ns * 2, max_sleep_ns);
         }
     }
+
 
     thrd_result mtx_do_lock(mtx_t *const mtx, const ::timespec *target) noexcept {
         if (!mtx) {
@@ -189,15 +190,6 @@ namespace rainy::foundation::concurrency::implements {
             return thrd_result::nomem;
         }
         auto *mutex = static_cast<mutex_handle *>(*mtx);
-        if (const bool is_recursive = (mutex->type & mutex_types::recursive_mtx) != 0; !is_recursive) {
-            pthread_mutex_unlock(&mutex->handle);
-            return thrd_result::success;
-        }
-
-        if (!pthread_equal(mutex->thread_id, pthread_self())) {
-            return thrd_result::error;
-        }
-
         if (--mutex->count == 0) {
             mutex->thread_id = {};
             pthread_mutex_unlock(&mutex->handle);
