@@ -21,13 +21,36 @@
 
 namespace rainy::foundation::concurrency::implements {
     struct mutex_handle {
-        pthread_mutex_t internal_mutex{};
-        pthread_cond_t cond{};
+        pthread_mutex_t handle{};
         pthread_t owner{};
         int count{0};
         int type{0};
-        bool locked{false};
     };
+
+    static int apple_mutex_timedlock(mutex_handle *mutex, const ::timespec *target) noexcept {
+        constexpr long long min_sleep_ns = 100'000LL;
+        constexpr long long max_sleep_ns = 5'000'000LL;
+        long long sleep_ns = min_sleep_ns;
+        while (true) {
+            int res = pthread_mutex_trylock(&mutex->handle);
+            if (res == 0) {
+                return 0;
+            }
+            if (res != EBUSY)
+                return res;
+            ::timespec now{};
+            ::clock_gettime(CLOCK_REALTIME, &now);
+            long long remaining_ns = (static_cast<long long>(target->tv_sec - now.tv_sec) * 1'000'000'000LL) +
+                                     (static_cast<long long>(target->tv_nsec - now.tv_nsec));
+            if (remaining_ns <= 0) {
+                return ETIMEDOUT;
+            }
+            long long actual_sleep = std::min(sleep_ns, remaining_ns);
+            ::timespec sleep_ts{0, static_cast<long>(actual_sleep)};
+            ::nanosleep(&sleep_ts, nullptr);
+            sleep_ns = std::min(sleep_ns * 2, max_sleep_ns);
+        }
+    }
 
     thrd_result mtx_do_lock(mtx_t *const mtx, const struct timespec *target) noexcept {
         if (!mtx || !*mtx) {
@@ -37,73 +60,79 @@ namespace rainy::foundation::concurrency::implements {
         auto *mutex = static_cast<mutex_handle *>(*mtx);
         const pthread_t self = pthread_self();
         const bool is_recursive = (mutex->type & mutex_types::recursive_mtx) != 0;
-
-        pthread_mutex_lock(&mutex->internal_mutex);
-
-        if (is_recursive && mutex->locked && pthread_equal(mutex->owner, self)) {
+        if (is_recursive && pthread_equal(mutex->owner, self)) {
             core::pal::interlocked_increment(reinterpret_cast<volatile long *>(&mutex->count));
-            pthread_mutex_unlock(&mutex->internal_mutex);
             return thrd_result::success;
         }
-
+        // try_lock（零超时）
         if (target != nullptr && target->tv_sec == 0 && target->tv_nsec == 0) {
-            if (mutex->locked) {
-                pthread_mutex_unlock(&mutex->internal_mutex);
+            int res = pthread_mutex_trylock(&mutex->handle);
+            if (res == 0) {
+                if (core::pal::interlocked_increment(reinterpret_cast<volatile long *>(&mutex->count)) == 1) {
+                    mutex->owner = self;
+                }
+                return thrd_result::success;
+            }
+            errno = EBUSY;
+            return thrd_result::busy;
+        }
+
+        // timed_lock（指数退避轮询）
+        if (target != nullptr) {
+            int res = apple_mutex_timedlock(mutex, target);
+            if (res == ETIMEDOUT) {
+                errno = ETIMEDOUT;
+                return thrd_result::timed_out;
+            }
+            if (res != 0) {
                 errno = EBUSY;
                 return thrd_result::busy;
             }
-        } else if (target != nullptr) {
-            while (mutex->locked) {
-                if (const int res = pthread_cond_timedwait(&mutex->cond, &mutex->internal_mutex, target); res == ETIMEDOUT) {
-                    if (mutex->locked) {
-                        pthread_mutex_unlock(&mutex->internal_mutex);
-                        errno = ETIMEDOUT;
-                        return thrd_result::timed_out;
-                    }
-                    break;
-                }
-                if (mutex->locked) {
-                    ::timespec now{};
-                    ::clock_gettime(CLOCK_REALTIME, &now);
-                    if (now.tv_sec > target->tv_sec || (now.tv_sec == target->tv_sec && now.tv_nsec >= target->tv_nsec)) {
-                        pthread_mutex_unlock(&mutex->internal_mutex);
-                        errno = ETIMEDOUT;
-                        return thrd_result::timed_out;
-                    }
-                }
+            if (core::pal::interlocked_increment(reinterpret_cast<volatile long *>(&mutex->count)) == 1) {
+                mutex->owner = self;
             }
-        } else {
-            while (mutex->locked) {
-                pthread_cond_wait(&mutex->cond, &mutex->internal_mutex);
-            }
+            return thrd_result::success;
         }
-
-        mutex->locked = true;
-        mutex->owner = self;
-        core::pal::interlocked_increment(reinterpret_cast<volatile long *>(&mutex->count));
-        pthread_mutex_unlock(&mutex->internal_mutex);
+        // 普通阻塞锁
+        int res = pthread_mutex_lock(&mutex->handle);
+        if (res != 0) {
+            errno = EBUSY;
+            return thrd_result::busy;
+        }
+        if (core::pal::interlocked_increment(reinterpret_cast<volatile long *>(&mutex->count)) == 1) {
+            mutex->owner = self;
+        }
         return thrd_result::success;
     }
 
     thrd_result mtx_init(mtx_t *mtx, int flags) noexcept {
-        if (!mtx || !*mtx)
+        if (!mtx || !*mtx) {
             return thrd_result::nomem;
+        }
         auto *mutex = static_cast<mutex_handle *>(*mtx);
         mutex->type = flags;
         mutex->owner = {};
         mutex->count = 0;
-        mutex->locked = false;
-        pthread_mutex_init(&mutex->internal_mutex, nullptr);
-        pthread_cond_init(&mutex->cond, nullptr);
+        pthread_mutexattr_t attr;
+        pthread_mutexattr_init(&attr);
+        if (flags & mutex_types::recursive_mtx) {
+            pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+        } else {
+            pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_NORMAL);
+        }
+        pthread_mutex_init(&mutex->handle, &attr);
+        pthread_mutexattr_destroy(&attr);
         return thrd_result::success;
     }
 
     thrd_result mtx_create(mtx_t *mtx, const int flags) noexcept {
-        if (!mtx)
+        if (!mtx) {
             return thrd_result::nomem;
+        }
         *mtx = core::pal::allocate(sizeof(mutex_handle), alignof(mutex_handle));
-        if (!*mtx)
+        if (!*mtx) {
             return thrd_result::nomem;
+        }
         return mtx_init(mtx, flags);
     }
 
@@ -126,47 +155,41 @@ namespace rainy::foundation::concurrency::implements {
             return thrd_result::nomem;
         }
         auto *mutex = static_cast<mutex_handle *>(*mtx);
-        pthread_mutex_lock(&mutex->internal_mutex);
         if (mutex->count == 0) {
-            pthread_mutex_unlock(&mutex->internal_mutex);
             errno = EPERM;
             return thrd_result::error;
         }
-        const int new_count = core::pal::interlocked_decrement(reinterpret_cast<volatile long *>(&mutex->count));
-        if (new_count == 0) {
-            mutex->locked = false;
+        if (const int new_count = core::pal::interlocked_decrement(reinterpret_cast<volatile long *>(&mutex->count)); new_count == 0) {
             mutex->owner = {};
-            pthread_cond_signal(&mutex->cond);
+            pthread_mutex_unlock(&mutex->handle);
         }
-        pthread_mutex_unlock(&mutex->internal_mutex);
         return thrd_result::success;
     }
 
     bool mtx_current_owns(mtx_t *const mtx) noexcept {
-        if (!mtx || !*mtx)
+        if (!mtx || !*mtx) {
             return false;
+        }
         auto *mutex = static_cast<mutex_handle *>(*mtx);
-        pthread_mutex_lock(&mutex->internal_mutex);
-        const bool owns = mutex->locked && pthread_equal(mutex->owner, pthread_self());
-        pthread_mutex_unlock(&mutex->internal_mutex);
-        return owns;
+        return mutex->count != 0 && pthread_equal(mutex->owner, pthread_self());
     }
 
     thrd_result mtx_destroy(mtx_t *const mtx) noexcept {
-        if (!mtx || !*mtx)
+        if (!mtx || !*mtx) {
             return thrd_result::nomem;
+        }
         auto *mutex = static_cast<mutex_handle *>(*mtx);
-        pthread_cond_destroy(&mutex->cond);
-        pthread_mutex_destroy(&mutex->internal_mutex);
+        pthread_mutex_destroy(&mutex->handle);
         core::pal::deallocate(mutex, sizeof(mutex_handle), alignof(mutex_handle));
         *mtx = nullptr;
         return thrd_result::success;
     }
 
     void *native_mtx_handle(mtx_t *const mtx) noexcept {
-        if (!mtx || !*mtx)
+        if (!mtx || !*mtx) {
             return nullptr;
+        }
         auto *mutex = static_cast<mutex_handle *>(*mtx);
-        return &mutex->internal_mutex;
+        return &mutex->handle;
     }
 }
