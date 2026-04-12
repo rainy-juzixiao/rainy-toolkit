@@ -2,9 +2,16 @@
 
 namespace rainy::foundation::concurrency {
     mutex::mutex() noexcept {
+#if RAINY_USING_MACOS
+        if (rainy_const r = implements::mtx_create(&mtx_, implements::mutex_types::try_mtx | implements::mutex_types::plain_mtx);
+            r != thrd_result::success) {
+            std::terminate();
+        }
+#else
         if (rainy_const r = implements::mtx_create(&mtx_, implements::mutex_types::try_mtx); r != thrd_result::success) {
             std::terminate();
         }
+#endif
     }
 
     mutex::~mutex() {
