@@ -167,9 +167,22 @@ namespace rainy::foundation::concurrency {
     }
 
     rain_fn timed_mutex::unlock() -> void { // NOLINT
+#if RAINY_USING_MACOS
+        if (implements::mtx_lock(&m_) != thrd_result::success) {
+            std::terminate();
+        }
+        if (!locked_) {
+            implements::mtx_unlock(&m_);
+            std::terminate();
+        }
+        locked_ = false;
+        implements::mtx_unlock(&m_);
+        implements::cnd_signal(&cv_);
+#else
         if (implements::mtx_unlock(&mtx_) != thrd_result::success) {
             std::terminate();
         }
+#endif
     }
 
     rain_fn timed_mutex::native_handle() noexcept -> native_handle_type {
