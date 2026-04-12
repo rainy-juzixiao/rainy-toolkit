@@ -32,29 +32,14 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Print Architecture
-        run: |
-          echo "Target Arch: ${{ matrix.arch }}"
-          uname -m
-
-      - name: Display System Information
-        run: |
-          echo "System: $(sw_vers -productName)"
-          echo "Version: $(sw_vers -productVersion)"
-          echo "Kernel: $(uname -a)"
-          echo "CPU: $(sysctl -n machdep.cpu.brand_string || echo 'Apple Silicon')"
-
       - name: Configure CMake
         run: |
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=DEBUG -G Ninja
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=RELEASE -G Ninja
 
       - name: Build
         run: |
           cmake --build build -j$(sysctl -n hw.ncpu)
 
-      - name: Run failing test directly
+      - name: Run Tests
         run: |
-          for i in $(seq 1 100); do
-            echo "=== Run $i ==="
-            build/bin/rainy-toolkit-test || true
-          done
+          ctest --test-dir build --output-on-failure
