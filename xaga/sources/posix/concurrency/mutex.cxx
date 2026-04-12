@@ -151,8 +151,7 @@ namespace rainy::foundation::concurrency::implements {
             pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_ERRORCHECK);
 #else
             pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_NORMAL);
-#endif }
-
+#endif
             const int res = pthread_mutex_init(&mutex->handle, &attr);
             pthread_mutexattr_destroy(&attr);
             return res == 0 ? thrd_result::success : thrd_result::error;
