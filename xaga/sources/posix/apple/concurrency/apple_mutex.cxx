@@ -31,10 +31,12 @@ namespace rainy::foundation::concurrency::implements {
         long long sleep_ns = min_sleep_ns;
         while (true) {
             int res = pthread_mutex_trylock(&mutex->handle);
-            if (res == 0)
+            if (res == 0) {
                 return 0;
-            if (res != EBUSY)
+            }
+            if (res != EBUSY) {
                 return res;
+            }
             ::timespec now{};
             ::clock_gettime(CLOCK_REALTIME, &now);
             long long remaining_ns = (static_cast<long long>(target->tv_sec - now.tv_sec) * 1'000'000'000LL) +
@@ -58,12 +60,13 @@ namespace rainy::foundation::concurrency::implements {
 
         // 非递归普通 mutex
         if ((mutex->type & ~mutex_types::recursive_mtx) == mutex_types::plain_mtx) {
-            if (!pthread_equal(mutex->thread_id, current_thread_id)) {
-                pthread_mutex_lock(&mutex->handle);
-                mutex->thread_id = current_thread_id;
+            if (!target) {
+                return pthread_mutex_lock(&mutex->handle) == 0 ? thrd_result::success : thrd_result::error;
             }
-            core::pal::interlocked_increment(reinterpret_cast<volatile long *>(&mutex->count));
-            return thrd_result::success;
+            if (target->tv_sec == 0 && target->tv_nsec == 0) {
+                return pthread_mutex_trylock(&mutex->handle) == 0 ? thrd_result::success : thrd_result::busy;
+            }
+            return apple_mutex_timedlock(mutex, target) == 0 ? thrd_result::success : thrd_result::timed_out;
         }
 
         // 递归 mutex / 需要超时支持
@@ -109,10 +112,10 @@ namespace rainy::foundation::concurrency::implements {
         return thrd_result::busy;
     }
 
-    // 其余函数与 Linux 版本完全一致，照抄即可
     thrd_result mtx_init(mtx_t *mtx, int flags) noexcept {
-        if (!mtx)
+        if (!mtx) {
             return thrd_result::nomem;
+        }
         auto *mutex = static_cast<mutex_handle *>(*mtx);
         mutex->type = flags;
         mutex->count = 0;
@@ -151,8 +154,9 @@ namespace rainy::foundation::concurrency::implements {
     }
 
     thrd_result mtx_unlock(mtx_t *const mtx) noexcept {
-        if (!mtx)
+        if (!mtx) {
             return thrd_result::nomem;
+        }
         auto *mutex = static_cast<mutex_handle *>(*mtx);
         if (--mutex->count == 0) {
             mutex->thread_id = {};
