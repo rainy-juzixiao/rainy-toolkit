@@ -28,23 +28,39 @@ namespace rainy::foundation::concurrency::implements {
     };
 
     static int apple_mutex_timedlock(mutex_handle *mutex, const ::timespec *target) noexcept {
+        if (pthread_equal(mutex->owner, pthread_self()) && mutex->count > 0) {
+            return EDEADLK;
+        }
         constexpr long long min_sleep_ns = 100'000LL;
         constexpr long long max_sleep_ns = 5'000'000LL;
         long long sleep_ns = min_sleep_ns;
+        ::timespec now{};
+        ::clock_gettime(CLOCK_REALTIME, &now);
+        long long deadline_ns =
+            (static_cast<long long>(target->tv_sec)  * 1'000'000'000LL + target->tv_nsec) -
+            (static_cast<long long>(now.tv_sec)       * 1'000'000'000LL + now.tv_nsec);
+
+        if (deadline_ns <= 0) {
+            return ETIMEDOUT;
+        }
+        ::timespec start{};
+        ::clock_gettime(CLOCK_MONOTONIC, &start);
+        const long long start_ns = static_cast<long long>(start.tv_sec) * 1'000'000'000LL + start.tv_nsec;
         while (true) {
             int res = pthread_mutex_trylock(&mutex->handle);
-            if (res == 0) {
-                return 0;
-            }
-            if (res != EBUSY)
-                return res;
-            ::timespec now{};
-            ::clock_gettime(CLOCK_REALTIME, &now);
-            long long remaining_ns = (static_cast<long long>(target->tv_sec - now.tv_sec) * 1'000'000'000LL) +
-                                     (static_cast<long long>(target->tv_nsec - now.tv_nsec));
-            if (remaining_ns <= 0) {
+            if (res == 0) return 0;
+            if (res != EBUSY) return res;
+
+            ::timespec mono_now{};
+            ::clock_gettime(CLOCK_MONOTONIC, &mono_now);
+            long long elapsed_ns =
+                (static_cast<long long>(mono_now.tv_sec)  * 1'000'000'000LL + mono_now.tv_nsec) - start_ns;
+
+            if (elapsed_ns >= deadline_ns) {
                 return ETIMEDOUT;
             }
+
+            long long remaining_ns = deadline_ns - elapsed_ns;
             long long actual_sleep = std::min(sleep_ns, remaining_ns);
             ::timespec sleep_ts{0, static_cast<long>(actual_sleep)};
             ::nanosleep(&sleep_ts, nullptr);
@@ -66,8 +82,11 @@ namespace rainy::foundation::concurrency::implements {
         }
         // try_lock（零超时）
         if (target != nullptr && target->tv_sec == 0 && target->tv_nsec == 0) {
-            int res = pthread_mutex_trylock(&mutex->handle);
-            if (res == 0) {
+            if (!is_recursive && mutex->count > 0 && pthread_equal(mutex->owner, self)) {
+                errno = EBUSY;
+                return thrd_result::busy;
+            }
+            if (const int res = pthread_mutex_trylock(&mutex->handle); res == 0) {
                 if (core::pal::interlocked_increment(reinterpret_cast<volatile long *>(&mutex->count)) == 1) {
                     mutex->owner = self;
                 }
