@@ -1,5 +1,5 @@
 /*
-* Copyright 2026 rainy-juzixiao
+ * Copyright 2026 rainy-juzixiao
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,9 +20,9 @@
 namespace rainy::foundation::concurrency::implements {
     struct mutex_handle {
         pthread_mutex_t handle{};
-        int             type{0};
-        pthread_t       thread_id{};
-        int             count{0};
+        int type{0};
+        pthread_t thread_id{};
+        int count{0};
     };
 
     static int apple_mutex_timedlock(mutex_handle *mutex, const ::timespec *target) noexcept {
@@ -31,14 +31,16 @@ namespace rainy::foundation::concurrency::implements {
         long long sleep_ns = min_sleep_ns;
         while (true) {
             int res = pthread_mutex_trylock(&mutex->handle);
-            if (res == 0) return 0;
-            if (res != EBUSY) return res;
+            if (res == 0)
+                return 0;
+            if (res != EBUSY)
+                return res;
             ::timespec now{};
             ::clock_gettime(CLOCK_REALTIME, &now);
-            long long remaining_ns =
-                (static_cast<long long>(target->tv_sec - now.tv_sec) * 1'000'000'000LL) +
-                (static_cast<long long>(target->tv_nsec - now.tv_nsec));
-            if (remaining_ns <= 0) return ETIMEDOUT;
+            long long remaining_ns = (static_cast<long long>(target->tv_sec - now.tv_sec) * 1'000'000'000LL) +
+                                     (static_cast<long long>(target->tv_nsec - now.tv_nsec));
+            if (remaining_ns <= 0)
+                return ETIMEDOUT;
             long long actual_sleep = std::min(sleep_ns, remaining_ns);
             ::timespec sleep_ts{0, static_cast<long>(actual_sleep)};
             ::nanosleep(&sleep_ts, nullptr);
@@ -80,7 +82,7 @@ namespace rainy::foundation::concurrency::implements {
             }
         } else {
             if (!pthread_equal(mutex->thread_id, current_thread_id)) {
-                res = apple_mutex_timedlock(mutex, target);  // 唯一的区别
+                res = apple_mutex_timedlock(mutex, target); // 唯一的区别
             } else {
                 res = 0;
             }
@@ -109,10 +111,11 @@ namespace rainy::foundation::concurrency::implements {
 
     // 其余函数与 Linux 版本完全一致，照抄即可
     thrd_result mtx_init(mtx_t *mtx, int flags) noexcept {
-        if (!mtx) return thrd_result::nomem;
+        if (!mtx)
+            return thrd_result::nomem;
         auto *mutex = static_cast<mutex_handle *>(*mtx);
-        mutex->type      = flags;
-        mutex->count     = 0;
+        mutex->type = flags;
+        mutex->count = 0;
         mutex->thread_id = {};
         pthread_mutexattr_t attr;
         pthread_mutexattr_init(&attr);
@@ -127,7 +130,9 @@ namespace rainy::foundation::concurrency::implements {
     }
 
     thrd_result mtx_create(mtx_t *mtx, const int flags) noexcept {
-        if (!mtx) return thrd_result::nomem;
+        if (!mtx) {
+            return thrd_result::nomem;
+        }
         *mtx = core::pal::allocate(sizeof(mutex_handle), alignof(mutex_handle));
         return mtx_init(mtx, flags);
     }
@@ -146,7 +151,8 @@ namespace rainy::foundation::concurrency::implements {
     }
 
     thrd_result mtx_unlock(mtx_t *const mtx) noexcept {
-        if (!mtx) return thrd_result::nomem;
+        if (!mtx)
+            return thrd_result::nomem;
         auto *mutex = static_cast<mutex_handle *>(*mtx);
         if (--mutex->count == 0) {
             mutex->thread_id = {};
@@ -165,7 +171,9 @@ namespace rainy::foundation::concurrency::implements {
     }
 
     thrd_result mtx_destroy(mtx_t *const mtx) noexcept {
-        if (!mtx) return thrd_result::nomem;
+        if (!mtx) {
+            return thrd_result::nomem;
+        }
         auto *mutex = static_cast<mutex_handle *>(*mtx);
         pthread_mutex_destroy(&mutex->handle);
         core::pal::deallocate(mutex, sizeof(mutex_handle), alignof(mutex_handle));
@@ -173,7 +181,9 @@ namespace rainy::foundation::concurrency::implements {
     }
 
     void *native_mtx_handle(mtx_t *const mtx) noexcept {
-        if (!mtx) return nullptr;
+        if (!mtx) {
+            return nullptr;
+        }
         auto *mutex = static_cast<mutex_handle *>(*mtx);
         return &mutex->handle;
     }
