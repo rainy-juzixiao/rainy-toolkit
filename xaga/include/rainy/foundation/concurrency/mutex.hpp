@@ -278,7 +278,6 @@ namespace rainy::foundation::concurrency {
         rain_fn try_lock_until(const std::chrono::time_point<Clock, Duration> &abs_time) -> bool {
             auto ts = implements::to_abs_timespec(abs_time);
 #if RAINY_USING_MACOS
-            auto ts = implements::to_abs_timespec(abs_time);
             if (implements::mtx_lock(&m_) != thrd_result::success) {
                 std::terminate();
             }
@@ -304,7 +303,6 @@ namespace rainy::foundation::concurrency {
             return acquired;
 #else
             auto r = implements::mtx_timedlock(&mtx_, &ts);
-
             if (r == thrd_result::success) {
                 return true;
             }
