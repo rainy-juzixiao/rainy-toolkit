@@ -86,3 +86,4 @@ git clone https://github.com/rainy-juzixiao/rainy-toolkit.git
 
 - 大部分系统组件可用，但其在CI中的测试，有可能仍然存在问题，如要采用，请务必多次运行测试用例程序对其进行验证检查，以确保平台可支持和兼容。
 - 在CI环境中，我们不认为，macOS的兼容性完全百分百可用，但大多数情况下，我们已经尽可能做了最多的测试，来测试每个行为；请以实机情况作为参考。
+- CI环境使用了macOS sequoia进行测试，本地则使用macOS Ventura进行开发测试，但无论如何，macOS的兼容层都无法提供完美的体验，因此，仍然建议使用Windows 10/11以及现代Linux发行版操作系统进行开发测试
