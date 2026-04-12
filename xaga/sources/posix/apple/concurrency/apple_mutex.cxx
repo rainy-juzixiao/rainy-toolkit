@@ -21,12 +21,38 @@ namespace rainy::foundation::concurrency::implements {
     struct mutex_handle {
         pthread_mutex_t handle{};
         int             type{0};
-        pthread_t       thread_id{};
-        int             count{0};
-        pthread_cond_t  timed_cond{};
-        pthread_mutex_t inner_mutex{};
-        bool            locked{false};
+        pthread_t       thread_id{};   // 当前持有锁的线程 ID
+        int             count{0};      // 递归计数
+        pthread_cond_t  timed_cond{};  // 条件变量，用于等待锁释放
+        pthread_mutex_t inner_mutex{}; // 保护 locked 和 count 的内部互斥量
+        bool            locked{false}; // 锁是否被持有
     };
+
+    static int custom_mutex_timedlock(mutex_handle *mutex, const ::timespec *abs_timeout) noexcept {
+        pthread_mutex_lock(&mutex->inner_mutex);
+        while (mutex->locked) {
+            if (abs_timeout == nullptr) {
+                pthread_cond_wait(&mutex->timed_cond, &mutex->inner_mutex);
+            } else {
+                int res = pthread_cond_timedwait(&mutex->timed_cond, &mutex->inner_mutex, abs_timeout);
+                if (res == ETIMEDOUT) {
+                    pthread_mutex_unlock(&mutex->inner_mutex);
+                    return ETIMEDOUT;
+                }
+            }
+        }
+        mutex->locked = true;
+        pthread_mutex_unlock(&mutex->inner_mutex);
+        return 0;
+    }
+
+    // 内部函数：释放锁（仅当计数归零时调用）
+    static void custom_mutex_unlock(mutex_handle *mutex) noexcept {
+        pthread_mutex_lock(&mutex->inner_mutex);
+        mutex->locked = false;
+        pthread_cond_signal(&mutex->timed_cond);
+        pthread_mutex_unlock(&mutex->inner_mutex);
+    }
 
     thrd_result mtx_do_lock(mtx_t *const mtx, const ::timespec *target) noexcept {
         if (!mtx || !*mtx) {
@@ -34,31 +60,51 @@ namespace rainy::foundation::concurrency::implements {
             return thrd_result::nomem;
         }
         auto *mutex = static_cast<mutex_handle *>(*mtx);
+        const pthread_t current_thread_id = pthread_self();
+        const bool is_recursive = (mutex->type & mutex_types::recursive_mtx) == mutex_types::recursive_mtx;
 
-        int res = 0;
-        if (!target) {
-            // 阻塞锁
-            res = pthread_mutex_lock(&mutex->handle);
-        } else if (target->tv_sec == 0 && target->tv_nsec == 0) {
-            // 尝试锁
-            res = pthread_mutex_trylock(&mutex->handle);
-        } else {
-            // 超时锁：直接使用 pthread_mutex_timedlock（macOS 支持）
-            res = pthread_mutex_timedlock(&mutex->handle, target);
+        // 递归锁且当前线程已持有：直接增加计数
+        if (is_recursive && pthread_equal(mutex->thread_id, current_thread_id)) {
+            core::pal::interlocked_increment(reinterpret_cast<volatile long *>(&mutex->count));
+            return thrd_result::success;
         }
 
+        // 准备绝对超时时间（仅当 target 非空且非零时）
+        ::timespec abs_timeout;
+        const ::timespec *timeout_ptr = nullptr;
+        bool is_trylock = false;
+
+        if (target != nullptr) {
+            if (target->tv_sec == 0 && target->tv_nsec == 0) {
+                // try_lock：使用当前时间作为绝对时间，实现零等待
+                clock_gettime(CLOCK_REALTIME, &abs_timeout);
+                timeout_ptr = &abs_timeout;
+                is_trylock = true;
+            } else {
+                clock_gettime(CLOCK_REALTIME, &abs_timeout);
+                abs_timeout.tv_sec += target->tv_sec;
+                abs_timeout.tv_nsec += target->tv_nsec;
+                if (abs_timeout.tv_nsec >= 1000000000) {
+                    abs_timeout.tv_sec += 1;
+                    abs_timeout.tv_nsec -= 1000000000;
+                }
+                timeout_ptr = &abs_timeout;
+            }
+        }
+
+        int res = custom_mutex_timedlock(mutex, timeout_ptr);
         if (res != 0) {
             if (res == ETIMEDOUT) {
-                errno = ETIMEDOUT;
-                return thrd_result::timed_out;
+                errno = is_trylock ? EBUSY : ETIMEDOUT;
+                return is_trylock ? thrd_result::busy : thrd_result::timed_out;
             }
             errno = EBUSY;
             return thrd_result::busy;
         }
 
-        // 成功获取锁，更新自定义计数和线程ID（用于 mtx_current_owns）
+        // 成功获取锁
         if (core::pal::interlocked_increment(reinterpret_cast<volatile long *>(&mutex->count)) == 1) {
-            mutex->thread_id = pthread_self();
+            mutex->thread_id = current_thread_id;
         }
         return thrd_result::success;
     }
@@ -73,6 +119,7 @@ namespace rainy::foundation::concurrency::implements {
         mutex->thread_id = {};
         mutex->locked   = false;
 
+        // 初始化底层 mutex（仅用于 native_handle，不参与同步）
         pthread_mutexattr_t attr;
         pthread_mutexattr_init(&attr);
         if (flags & mutex_types::recursive_mtx) {
@@ -83,7 +130,7 @@ namespace rainy::foundation::concurrency::implements {
         pthread_mutex_init(&mutex->handle, &attr);
         pthread_mutexattr_destroy(&attr);
 
-        // 以下初始化保留仅为兼容，实际不再使用
+        // 初始化内部同步原语
         pthread_mutex_init(&mutex->inner_mutex, nullptr);
         pthread_cond_init(&mutex->timed_cond, nullptr);
         return thrd_result::success;
@@ -123,9 +170,10 @@ namespace rainy::foundation::concurrency::implements {
             errno = EPERM;
             return thrd_result::error;
         }
-        if (core::pal::interlocked_decrement(reinterpret_cast<volatile long *>(&mutex->count)) == 0) {
+        const int new_count = core::pal::interlocked_decrement(reinterpret_cast<volatile long *>(&mutex->count));
+        if (new_count == 0) {
             mutex->thread_id = {};
-            pthread_mutex_unlock(&mutex->handle);
+            custom_mutex_unlock(mutex);
         }
         return thrd_result::success;
     }
