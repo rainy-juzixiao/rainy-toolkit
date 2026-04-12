@@ -30,6 +30,13 @@ namespace rainy::foundation::concurrency::implements {
         constexpr long long max_sleep_ns = 5'000'000LL;
         long long sleep_ns = min_sleep_ns;
         while (true) {
+            ::timespec now{};
+            ::clock_gettime(CLOCK_REALTIME, &now);
+            long long remaining_ns = (static_cast<long long>(target->tv_sec - now.tv_sec) * 1'000'000'000LL) +
+                                     (static_cast<long long>(target->tv_nsec - now.tv_nsec));
+            if (remaining_ns <= 0) {
+                return ETIMEDOUT;
+            }
             int res = pthread_mutex_trylock(&mutex->handle);
             if (res == 0) {
                 return 0;
@@ -37,16 +44,10 @@ namespace rainy::foundation::concurrency::implements {
             if (res != EBUSY) {
                 return res;
             }
-            ::timespec now{};
-            ::clock_gettime(CLOCK_REALTIME, &now);
-            long long remaining_ns = (static_cast<long long>(target->tv_sec - now.tv_sec) * 1'000'000'000LL) +
-                                     (static_cast<long long>(target->tv_nsec - now.tv_nsec));
-            if (remaining_ns <= 0)
-                return ETIMEDOUT;
-            long long actual_sleep = std::min(sleep_ns, remaining_ns);
-            ::timespec sleep_ts{0, static_cast<long>(actual_sleep)};
+            long long actual_sleep = core::min({sleep_ns, remaining_ns, max_sleep_ns});
+            ::timespec sleep_ts{actual_sleep / 1'000'000'000LL, static_cast<long>(actual_sleep % 1'000'000'000LL)};
             ::nanosleep(&sleep_ts, nullptr);
-            sleep_ns = std::min(sleep_ns * 2, max_sleep_ns);
+            sleep_ns = core::min(sleep_ns * 2, max_sleep_ns);
         }
     }
 
