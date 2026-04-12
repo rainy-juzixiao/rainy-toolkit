@@ -51,21 +51,13 @@ namespace rainy::foundation::concurrency::implements {
     }
 
     static int apple_mutex_recursive_timedlock(mutex_handle *mutex, const ::timespec *target) noexcept {
+        const pthread_t self = pthread_self();
         constexpr long long min_sleep_ns = 100'000LL;
         constexpr long long max_sleep_ns = 5'000'000LL;
         long long sleep_ns = min_sleep_ns;
-        rain_loop {
-            if (pthread_equal(mutex->thread_id, pthread_self())) {
+        while (true) {
+            if (pthread_equal(mutex->thread_id, self)) {
                 return 0;
-            }
-            int res = pthread_mutex_trylock(&mutex->handle);
-            if (res == 0) {
-                // 成功获取底层锁，记录线程ID
-                mutex->thread_id = pthread_self();
-                return 0;
-            }
-            if (res != EBUSY) {
-                return res;
             }
             ::timespec now{};
             ::clock_gettime(CLOCK_REALTIME, &now);
@@ -74,13 +66,20 @@ namespace rainy::foundation::concurrency::implements {
             if (remaining_ns <= 0) {
                 return ETIMEDOUT;
             }
+            const int res = pthread_mutex_trylock(&mutex->handle);
+            if (res == 0) {
+                mutex->thread_id = self;
+                return 0;
+            }
+            if (res != EBUSY) {
+                return res;
+            }
             long long actual_sleep = std::min(sleep_ns, remaining_ns);
-            ::timespec sleep_ts{0, static_cast<long>(actual_sleep)};
+            ::timespec sleep_ts{actual_sleep / 1'000'000'000LL, static_cast<long>(actual_sleep % 1'000'000'000LL)};
             ::nanosleep(&sleep_ts, nullptr);
             sleep_ns = std::min(sleep_ns * 2, max_sleep_ns);
         }
     }
-
 
     thrd_result mtx_do_lock(mtx_t *const mtx, const ::timespec *target) noexcept {
         if (!mtx) {
@@ -190,6 +189,15 @@ namespace rainy::foundation::concurrency::implements {
             return thrd_result::nomem;
         }
         auto *mutex = static_cast<mutex_handle *>(*mtx);
+        if (const bool is_recursive = (mutex->type & mutex_types::recursive_mtx) != 0; !is_recursive) {
+            pthread_mutex_unlock(&mutex->handle);
+            return thrd_result::success;
+        }
+
+        if (!pthread_equal(mutex->thread_id, pthread_self())) {
+            return thrd_result::error;
+        }
+
         if (--mutex->count == 0) {
             mutex->thread_id = {};
             pthread_mutex_unlock(&mutex->handle);
