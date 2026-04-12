@@ -56,5 +56,5 @@ jobs:
         run: |
           for i in $(seq 1 100); do
             echo "=== Run $i ==="
-            build/bin/rainy-toolkit-test "Lock types unified BDD tests - timed_mutex" || true
+            build/bin/rainy-toolkit-test || true
           done

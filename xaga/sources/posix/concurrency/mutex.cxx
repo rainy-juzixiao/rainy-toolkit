@@ -67,16 +67,6 @@ namespace rainy::foundation::concurrency::implements {
 #endif
 
     thrd_result mtx_do_lock(mtx_t *const mtx, const ::timespec *target) noexcept {
-#if RAINY_USING_MACOS
-        if (target && target->tv_sec != 0) {
-            ::timespec now{};
-            ::clock_gettime(CLOCK_REALTIME, &now);
-            long long remaining =
-                (static_cast<long long>(target->tv_sec - now.tv_sec) * 1'000'000'000LL) +
-                (target->tv_nsec - now.tv_nsec);
-            fprintf(stderr, "[mtx_do_lock] remaining_ms=%lld\n", remaining / 1'000'000LL);
-        }
-#endif
         if (!mtx) {
             errno = EINVAL;
             return thrd_result::nomem;
@@ -84,51 +74,95 @@ namespace rainy::foundation::concurrency::implements {
         auto *mutex = static_cast<mutex_handle *>(*mtx);
         const pthread_t current_thread_id = pthread_self();
         const bool is_recursive = (mutex->type & mutex_types::recursive_mtx) == mutex_types::recursive_mtx;
+
+#if RAINY_USING_MACOS
+        // 递归锁快速路径
         if (is_recursive && mutex->count > 0 && pthread_equal(mutex->thread_id, current_thread_id)) {
-            // 递归锁：同线程直接增加计数，无需实际获取底层锁
             core::pal::interlocked_increment(reinterpret_cast<volatile long *>(&mutex->count));
             return thrd_result::success;
         }
-        // 不同线程或非递归锁需要实际获取锁
+
         int res = -1;
 
         if (!target) {
             // 阻塞锁
             res = pthread_mutex_lock(&mutex->handle);
+            if (res != 0) {
+                errno = res;
+                return thrd_result::error;
+            }
         } else if (target->tv_sec == 0 && target->tv_nsec == 0) {
-            // 尝试锁（非阻塞）
+            // try_lock
+            res = pthread_mutex_trylock(&mutex->handle);
+            if (res == EBUSY) {
+                errno = EBUSY;
+                return thrd_result::busy;
+            }
+            if (res != 0) {
+                errno = res;
+                return thrd_result::error;
+            }
+        } else {
+            // 带超时：先阻塞等锁，拿到后检查是否已超时
+            res = pthread_mutex_lock(&mutex->handle);
+            if (res != 0) {
+                errno = res;
+                return thrd_result::error;
+            }
+            ::timespec now{};
+            ::clock_gettime(CLOCK_REALTIME, &now);
+            const bool expired = (now.tv_sec > target->tv_sec) || (now.tv_sec == target->tv_sec && now.tv_nsec >= target->tv_nsec);
+            if (expired) {
+                pthread_mutex_unlock(&mutex->handle);
+                errno = ETIMEDOUT;
+                return thrd_result::timed_out;
+            }
+        }
+
+        // 成功获锁，更新状态
+        if (core::pal::interlocked_increment(reinterpret_cast<volatile long *>(&mutex->count)) == 1) {
+            mutex->thread_id = current_thread_id;
+        }
+        if (!is_recursive && mutex->count > 1) {
+            core::pal::interlocked_decrement(reinterpret_cast<volatile long *>(&mutex->count));
+            pthread_mutex_unlock(&mutex->handle);
+            errno = EBUSY;
+            return thrd_result::busy;
+        }
+        return thrd_result::success;
+
+#else
+        const bool is_same_thread = pthread_equal(mutex->thread_id, current_thread_id);
+        if (is_same_thread && is_recursive && mutex->count > 0) {
+            core::pal::interlocked_increment(reinterpret_cast<volatile long *>(&mutex->count));
+            return thrd_result::success;
+        }
+
+        int res = -1;
+        if (!target) {
+            res = pthread_mutex_lock(&mutex->handle);
+        } else if (target->tv_sec == 0 && target->tv_nsec == 0) {
             res = pthread_mutex_trylock(&mutex->handle);
             if (res == EBUSY) {
                 errno = EBUSY;
                 return thrd_result::busy;
             }
         } else {
-            // 带超时锁
-#if RAINY_USING_MACOS
-            res = apple_mutex_timedlock(mutex, target);
-#else
             res = pthread_mutex_timedlock(&mutex->handle, target);
-#endif
         }
 
         if (res == 0) {
-            // 成功获取底层锁，更新状态
             if (core::pal::interlocked_increment(reinterpret_cast<volatile long *>(&mutex->count)) == 1) {
                 mutex->thread_id = current_thread_id;
             }
-
-            // 非递归锁不允许重入（虽然理论上不应该发生，但防御性检查）
             if (!is_recursive && mutex->count > 1) {
                 core::pal::interlocked_decrement(reinterpret_cast<volatile long *>(&mutex->count));
                 pthread_mutex_unlock(&mutex->handle);
                 errno = EBUSY;
                 return thrd_result::busy;
             }
-
             return thrd_result::success;
         }
-
-        // 处理失败返回
         if (res == ETIMEDOUT) {
             errno = ETIMEDOUT;
             return thrd_result::timed_out;
@@ -137,9 +171,9 @@ namespace rainy::foundation::concurrency::implements {
             errno = EBUSY;
             return thrd_result::busy;
         }
-
         errno = res;
         return thrd_result::error;
+#endif
     }
 
     thrd_result mtx_init(mtx_t *mtx, int flags) noexcept {
@@ -163,81 +197,81 @@ namespace rainy::foundation::concurrency::implements {
             pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_NORMAL);
 #endif
         }
-            const int res = pthread_mutex_init(&mutex->handle, &attr);
-            pthread_mutexattr_destroy(&attr);
-            return res == 0 ? thrd_result::success : thrd_result::error;
-        }
-
-        thrd_result mtx_create(mtx_t * mtx, const int flags) noexcept {
-            if (!mtx) {
-                return thrd_result::nomem;
-            }
-            *mtx = core::pal::allocate(sizeof(mutex_handle), alignof(mutex_handle));
-            return mtx_init(mtx, flags);
-        }
-
-        thrd_result mtx_lock(mtx_t * mtx) noexcept {
-            return mtx_do_lock(mtx, nullptr);
-        }
-
-        thrd_result mtx_trylock(mtx_t * mtx) noexcept {
-            ::timespec ts{0, 0}; // NOLINT
-            return mtx_do_lock(mtx, &ts);
-        }
-
-        thrd_result mtx_timedlock(mtx_t * mtx, const ::timespec *ts) noexcept {
-            return mtx_do_lock(mtx, ts);
-        }
-
-        thrd_result mtx_unlock(mtx_t *const mtx) noexcept {
-            if (!mtx) {
-                return thrd_result::nomem;
-            }
-            auto *mutex = static_cast<mutex_handle *>(*mtx);
-
-            if (mutex->count == 0) {
-                // 未持有锁，行为未定义，但返回错误
-                errno = EPERM;
-                return thrd_result::error;
-            }
-
-            const long new_count = core::pal::interlocked_decrement(reinterpret_cast<volatile long *>(&mutex->count));
-
-            if (new_count == 0) {
-                // 最后一个锁，释放底层锁并清空线程ID
-                mutex->thread_id = {};
-                return pthread_mutex_unlock(&mutex->handle) == 0 ? thrd_result::success : thrd_result::error;
-            }
-
-            // 递归锁还有剩余计数，不需要释放底层锁
-            return thrd_result::success;
-        }
-
-        bool mtx_current_owns(mtx_t *const mtx) noexcept {
-            if (!mtx) {
-                errno = EINVAL;
-                return false;
-            }
-            const auto *mutex = static_cast<mutex_handle *>(*mtx);
-            return mutex->count != 0 && pthread_equal(mutex->thread_id, pthread_self());
-        }
-
-        thrd_result mtx_destroy(mtx_t *const mtx) noexcept {
-            if (!mtx) {
-                return thrd_result::nomem;
-            }
-            auto *mutex = static_cast<mutex_handle *>(*mtx);
-            // 移除对count的检查，不再保证 (若仍有线程持有该锁，行为未定义)
-            pthread_mutex_destroy(&mutex->handle);
-            core::pal::deallocate(mutex, sizeof(mutex_handle), alignof(mutex_handle));
-            return thrd_result::success;
-        }
-
-        void *native_mtx_handle(mtx_t *const mtx) noexcept {
-            if (!mtx) {
-                return nullptr;
-            }
-            auto *mutex = static_cast<mutex_handle *>(*mtx);
-            return &mutex->handle;
-        }
+        const int res = pthread_mutex_init(&mutex->handle, &attr);
+        pthread_mutexattr_destroy(&attr);
+        return res == 0 ? thrd_result::success : thrd_result::error;
     }
+
+    thrd_result mtx_create(mtx_t *mtx, const int flags) noexcept {
+        if (!mtx) {
+            return thrd_result::nomem;
+        }
+        *mtx = core::pal::allocate(sizeof(mutex_handle), alignof(mutex_handle));
+        return mtx_init(mtx, flags);
+    }
+
+    thrd_result mtx_lock(mtx_t *mtx) noexcept {
+        return mtx_do_lock(mtx, nullptr);
+    }
+
+    thrd_result mtx_trylock(mtx_t *mtx) noexcept {
+        ::timespec ts{0, 0}; // NOLINT
+        return mtx_do_lock(mtx, &ts);
+    }
+
+    thrd_result mtx_timedlock(mtx_t *mtx, const ::timespec *ts) noexcept {
+        return mtx_do_lock(mtx, ts);
+    }
+
+    thrd_result mtx_unlock(mtx_t *const mtx) noexcept {
+        if (!mtx) {
+            return thrd_result::nomem;
+        }
+        auto *mutex = static_cast<mutex_handle *>(*mtx);
+
+        if (mutex->count == 0) {
+            // 未持有锁，行为未定义，但返回错误
+            errno = EPERM;
+            return thrd_result::error;
+        }
+
+        const long new_count = core::pal::interlocked_decrement(reinterpret_cast<volatile long *>(&mutex->count));
+
+        if (new_count == 0) {
+            // 最后一个锁，释放底层锁并清空线程ID
+            mutex->thread_id = {};
+            return pthread_mutex_unlock(&mutex->handle) == 0 ? thrd_result::success : thrd_result::error;
+        }
+
+        // 递归锁还有剩余计数，不需要释放底层锁
+        return thrd_result::success;
+    }
+
+    bool mtx_current_owns(mtx_t *const mtx) noexcept {
+        if (!mtx) {
+            errno = EINVAL;
+            return false;
+        }
+        const auto *mutex = static_cast<mutex_handle *>(*mtx);
+        return mutex->count != 0 && pthread_equal(mutex->thread_id, pthread_self());
+    }
+
+    thrd_result mtx_destroy(mtx_t *const mtx) noexcept {
+        if (!mtx) {
+            return thrd_result::nomem;
+        }
+        auto *mutex = static_cast<mutex_handle *>(*mtx);
+        // 移除对count的检查，不再保证 (若仍有线程持有该锁，行为未定义)
+        pthread_mutex_destroy(&mutex->handle);
+        core::pal::deallocate(mutex, sizeof(mutex_handle), alignof(mutex_handle));
+        return thrd_result::success;
+    }
+
+    void *native_mtx_handle(mtx_t *const mtx) noexcept {
+        if (!mtx) {
+            return nullptr;
+        }
+        auto *mutex = static_cast<mutex_handle *>(*mtx);
+        return &mutex->handle;
+    }
+}
