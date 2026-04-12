@@ -67,6 +67,16 @@ namespace rainy::foundation::concurrency::implements {
 #endif
 
     thrd_result mtx_do_lock(mtx_t *const mtx, const ::timespec *target) noexcept {
+#if RAINY_USING_MACOS
+        if (target && target->tv_sec != 0) {
+            ::timespec now{};
+            ::clock_gettime(CLOCK_REALTIME, &now);
+            long long remaining =
+                (static_cast<long long>(target->tv_sec - now.tv_sec) * 1'000'000'000LL) +
+                (target->tv_nsec - now.tv_nsec);
+            fprintf(stderr, "[mtx_do_lock] remaining_ms=%lld\n", remaining / 1'000'000LL);
+        }
+#endif
         if (!mtx) {
             errno = EINVAL;
             return thrd_result::nomem;
