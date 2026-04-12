@@ -27,12 +27,13 @@ namespace rainy::foundation::io::net::implements {
         OVERLAPPED overlapped{};
         HANDLE associated_handle{INVALID_HANDLE_VALUE};
         DWORD transferred{0};
+        completion_op *linked_op{nullptr};
 
         explicit iocp_op(fn_type f) noexcept : completion_op(f) {
         }
 
         static iocp_op *from_overlapped(OVERLAPPED *ov) noexcept {
-            return reinterpret_cast<iocp_op *>(ov);
+            return reinterpret_cast<iocp_op *>(reinterpret_cast<char *>(ov) - offsetof(iocp_op, overlapped));
         }
     };
 
@@ -238,7 +239,14 @@ namespace rainy::foundation::io::net::implements {
             result.user_data = iop;
             result.bytes_transferred = static_cast<std::size_t>(bytes);
             result.error_code = ok ? 0 : static_cast<int>(::GetLastError());
-            iop->complete(result, result.error_code == ERROR_OPERATION_ABORTED);
+            // 若有 linked_op（文件 I/O 场景），转发给它；否则 iop 自身就是回调载体（socket 场景）
+            if (iop->linked_op) {
+                completion_op *outer = iop->linked_op;
+                delete iop;
+                outer->complete(result, result.error_code == ERROR_OPERATION_ABORTED);
+            } else {
+                iop->complete(result, result.error_code == ERROR_OPERATION_ABORTED);
+            }
             return 1;
         }
 

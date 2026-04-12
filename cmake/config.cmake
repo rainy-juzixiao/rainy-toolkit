@@ -150,8 +150,17 @@ if (WIN32)
 elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
     message("Linking libraries for linux package")
     target_link_libraries(rainy-toolkit PRIVATE uring)
-elseif (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-    message("Linking libraries for macos package")
+
+    find_package(GnuTLS)
+
+    if(GnuTLS_FOUND)
+        target_link_libraries(rainy-toolkit PRIVATE GnuTLS::GnuTLS)
+        target_compile_definitions(rainy-toolkit PRIVATE HAVE_GNUTLS=1)
+    else()
+        message(WARNING "GnuTLS not found, building without TLS support")
+    endif()
+
+
 else ()
     message(FATAL_ERROR "Unsupported platform: ${CMAKE_SYSTEM_NAME}")
 endif ()

@@ -268,35 +268,19 @@ namespace rainy::foundation::io::net {
                         continue;
                     }
                     auto wake_at = queue_.front().expiry;
-                    auto now = clock_type::now();
-                    if (wake_at <= now) {
-                        process_expired(lock);
-                        continue;
-                    }
-                    cv_.wait_until(lock, wake_at, [this, &wake_at] {
-                        return !running_ || queue_.empty() ||
-                               queue_.front().expiry != wake_at;
-                    });
-                    if (!running_) { // NOLINT
+                    cv_.wait_until(lock, wake_at,
+                                   [this, &wake_at] { return !running_ || queue_.empty() || queue_.front().expiry != wake_at; });
+                    if (!running_) {
                         break;
                     }
-                    process_expired(lock);
-                }
-            }
-
-            void process_expired(std::unique_lock<std::mutex> &lock) {
-                auto now = clock_type::now();
-                std::vector<wait_entry> to_fire;
-                for (auto it = queue_.begin();
-                     it != queue_.end() && it->expiry <= now;) {
-                    if (!it->cancelled) {
-                        to_fire.push_back(*it);
+                    auto now = clock_type::now();
+                    auto it = queue_.begin();
+                    while (it != queue_.end() && it->expiry <= now) {
+                        if (!it->cancelled) {
+                            fire(*it, std::error_code{});
+                        }
+                        it = queue_.erase(it);
                     }
-                    it = queue_.erase(it);
-                }
-                lock.unlock();
-                for (auto &entry : to_fire) {
-                    fire(entry, std::error_code{});
                 }
                 lock.lock();
             }

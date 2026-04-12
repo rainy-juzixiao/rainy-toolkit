@@ -493,6 +493,13 @@ static_assert(false, "We detected you are using C++14 and below, and the library
 #define RAINY_ABI_BRIDGE_CALL_GET_COMPILE_IDENTIFIER 4
 #define RAINY_ABI_BRIDGE_CALL_GET_VERSION_NAME 5
 
+// 指定MuZiYan文档生成器的宏，用于适配MuZiYan的文档生成
+#ifdef __MUZIYAN_IS_HERE__
+#define RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON 1
+#else
+#define RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON 0
+#endif
+
 namespace rainy::core {
     constexpr bool is_rainy_enable_debug = RAINY_ENABLE_DEBUG;
 

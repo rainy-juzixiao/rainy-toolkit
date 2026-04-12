@@ -104,7 +104,7 @@ namespace rainy::foundation::io::net {
                     break;
                 }
                 auto remaining_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(abs_time - now).count();
-                std::size_t n = impl_->run_one_for(static_cast<std::uint64_t>(remaining_ns > 0 ? remaining_ns : 0));
+                const std::size_t n = impl_->run_one_for(static_cast<std::uint64_t>(remaining_ns > 0 ? remaining_ns : 0));
                 total += n;
             }
             return total;
@@ -134,6 +134,8 @@ namespace rainy::foundation::io::net {
         void stop();
         bool stopped() const noexcept;
         void restart();
+
+        implements::io_context_impl_base& under_impl() noexcept;
 
     private:
         memory::nebula_ptr<implements::io_context_impl_base> impl_;

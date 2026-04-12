@@ -36,16 +36,17 @@ namespace rainy::foundation::io::net::implements {
 
     static wsa_init g_wsa;
 
-    struct iocp_op : completion_op { // 必须与win_iocp中的iocp_op结构体一致
+    struct iocp_op : completion_op {
         OVERLAPPED overlapped{};
         HANDLE associated_handle{INVALID_HANDLE_VALUE};
         DWORD transferred{0};
+        completion_op *linked_op{nullptr};
 
         explicit iocp_op(fn_type f) noexcept : completion_op(f) {
         }
 
         static iocp_op *from_overlapped(OVERLAPPED *ov) noexcept {
-            return reinterpret_cast<iocp_op *>(ov);
+            return reinterpret_cast<iocp_op *>(reinterpret_cast<char *>(ov) - offsetof(iocp_op, overlapped));
         }
     };
 
@@ -136,7 +137,6 @@ namespace rainy::foundation::io::net::implements {
             return ret == 0 ? std::error_code{} : last_wsa_error();
         }
 
-        // ------------------------------------------------------------------
         std::error_code set_non_blocking(bool mode) noexcept override {
             non_blocking_ = mode;
             u_long arg = mode ? 1u : 0u;
@@ -159,7 +159,6 @@ namespace rainy::foundation::io::net::implements {
             return native_non_blocking_;
         }
 
-        // ------------------------------------------------------------------
         std::error_code bind(const raw_endpoint &ep) noexcept override {
             int ret = ::bind(sock_, reinterpret_cast<const ::sockaddr *>(ep.data), static_cast<int>(ep.size));
             return ret == 0 ? std::error_code{} : last_wsa_error();
@@ -181,7 +180,6 @@ namespace rainy::foundation::io::net::implements {
             return ret == 0 ? std::error_code{} : last_wsa_error();
         }
 
-        // ------------------------------------------------------------------
         std::error_code local_endpoint(raw_endpoint &ep) const noexcept override {
             int len = static_cast<int>(sizeof(ep.data));
             int ret = ::getsockname(sock_, reinterpret_cast<::sockaddr *>(ep.data), &len);

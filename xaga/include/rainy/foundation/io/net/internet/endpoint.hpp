@@ -351,14 +351,12 @@ namespace rainy::foundation::io::net::ip {
             cancelled_.store(true, std::memory_order_release);
         }
 
-        // ------------------------------------------------------------------
-        // 同步解析
-        // ------------------------------------------------------------------
         results_type resolve(text::string_view host_name, text::string_view service_name) {
             std::error_code ec;
             auto r = resolve(host_name, service_name, ec);
-            if (ec)
+            if (ec) {
                 throw std::system_error(ec, "resolve");
+            }
             return r;
         }
 
@@ -369,20 +367,22 @@ namespace rainy::foundation::io::net::ip {
         results_type resolve(text::string_view host_name, text::string_view service_name, flags f) {
             std::error_code ec;
             auto r = resolve(host_name, service_name, f, ec);
-            if (ec)
+            if (ec) {
                 throw std::system_error(ec, "resolve");
+            }
             return r;
         }
 
         results_type resolve(text::string_view host_name, text::string_view service_name, flags f, std::error_code &ec) {
-            return do_resolve(protocol_type{}, host_name, service_name, f, ec);
+            return do_resolve(protocol_type::v4(), host_name, service_name, f, ec);
         }
 
         results_type resolve(const protocol_type &protocol, text::string_view host_name, text::string_view service_name) {
             std::error_code ec;
             auto r = resolve(protocol, host_name, service_name, ec);
-            if (ec)
+            if (ec) {
                 throw std::system_error(ec, "resolve");
+            }
             return r;
         }
 
@@ -394,8 +394,9 @@ namespace rainy::foundation::io::net::ip {
         results_type resolve(const protocol_type &protocol, text::string_view host_name, text::string_view service_name, flags f) {
             std::error_code ec;
             auto r = resolve(protocol, host_name, service_name, f, ec);
-            if (ec)
+            if (ec) {
                 throw std::system_error(ec, "resolve");
+            }
             return r;
         }
 
@@ -416,9 +417,6 @@ namespace rainy::foundation::io::net::ip {
             return do_reverse_resolve(e, ec);
         }
 
-        // ------------------------------------------------------------------
-        // 异步解析
-        // ------------------------------------------------------------------
         template <typename CompletionToken>
         auto async_resolve(text::string_view host_name, text::string_view service_name, CompletionToken &&token) ->
             typename async_result<std::decay_t<CompletionToken>, void(std::error_code, results_type)>::return_type {

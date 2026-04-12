@@ -26,27 +26,25 @@
 #include <ws2tcpip.h>
 
 namespace rainy::foundation::io::net::ip::implements {
-    namespace {
-        struct winsock_initializer {
-            WSADATA data{};
-            int result{};
+    struct winsock_initializer {
+        WSADATA data{};
+        int result{};
 
-            winsock_initializer() noexcept {
-                result = ::WSAStartup(MAKEWORD(2, 2), &data);
-            }
-            ~winsock_initializer() noexcept {
-                if (result == 0) {
-                    ::WSACleanup();
-                }
-            }
-        };
-
-        // 确保 Winsock 在第一次用到 PAL 函数前初始化
-        const winsock_initializer &ensure_winsock() noexcept {
-            static winsock_initializer instance;
-            return instance;
+        winsock_initializer() noexcept {
+            result = ::WSAStartup(MAKEWORD(2, 2), &data);
         }
-    } // anonymous namespace
+        ~winsock_initializer() noexcept {
+            if (result == 0) {
+                ::WSACleanup();
+            }
+        }
+    };
+
+    // 确保 Winsock 在第一次用到 PAL 函数前初始化
+    const winsock_initializer &ensure_winsock() noexcept {
+        static winsock_initializer instance;
+        return instance;
+    }
 
     const resolver_errc_values &get_resolver_errc_values() noexcept {
         static constexpr resolver_errc_values values{
