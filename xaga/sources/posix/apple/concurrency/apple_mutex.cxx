@@ -29,14 +29,7 @@ namespace rainy::foundation::concurrency::implements {
         constexpr long long min_sleep_ns = 100'000LL;
         constexpr long long max_sleep_ns = 5'000'000LL;
         long long sleep_ns = min_sleep_ns;
-        while (true) {
-            ::timespec now{};
-            ::clock_gettime(CLOCK_REALTIME, &now);
-            long long remaining_ns = (static_cast<long long>(target->tv_sec - now.tv_sec) * 1'000'000'000LL) +
-                                     (static_cast<long long>(target->tv_nsec - now.tv_nsec));
-            if (remaining_ns <= 0) {
-                return ETIMEDOUT;
-            }
+        rain_loop {
             int res = pthread_mutex_trylock(&mutex->handle);
             if (res == 0) {
                 return 0;
@@ -44,12 +37,50 @@ namespace rainy::foundation::concurrency::implements {
             if (res != EBUSY) {
                 return res;
             }
-            long long actual_sleep = core::min({sleep_ns, remaining_ns, max_sleep_ns});
-            ::timespec sleep_ts{actual_sleep / 1'000'000'000LL, static_cast<long>(actual_sleep % 1'000'000'000LL)};
+            ::timespec now{};
+            ::clock_gettime(CLOCK_REALTIME, &now);
+            long long remaining_ns = (static_cast<long long>(target->tv_sec - now.tv_sec) * 1'000'000'000LL) +
+                                     (static_cast<long long>(target->tv_nsec - now.tv_nsec));
+            if (remaining_ns <= 0)
+                return ETIMEDOUT;
+            long long actual_sleep = std::min(sleep_ns, remaining_ns);
+            ::timespec sleep_ts{0, static_cast<long>(actual_sleep)};
             ::nanosleep(&sleep_ts, nullptr);
-            sleep_ns = core::min(sleep_ns * 2, max_sleep_ns);
+            sleep_ns = std::min(sleep_ns * 2, max_sleep_ns);
         }
     }
+
+    static int apple_mutex_recursive_timedlock(mutex_handle *mutex, const ::timespec *target) noexcept {
+        constexpr long long min_sleep_ns = 100'000LL;
+        constexpr long long max_sleep_ns = 5'000'000LL;
+        long long sleep_ns = min_sleep_ns;
+        rain_loop {
+            if (pthread_equal(mutex->thread_id, pthread_self())) {
+                return 0;
+            }
+            int res = pthread_mutex_trylock(&mutex->handle);
+            if (res == 0) {
+                // 成功获取底层锁，记录线程ID
+                mutex->thread_id = pthread_self();
+                return 0;
+            }
+            if (res != EBUSY) {
+                return res;
+            }
+            ::timespec now{};
+            ::clock_gettime(CLOCK_REALTIME, &now);
+            long long remaining_ns = (static_cast<long long>(target->tv_sec - now.tv_sec) * 1'000'000'000LL) +
+                                     (static_cast<long long>(target->tv_nsec - now.tv_nsec));
+            if (remaining_ns <= 0) {
+                return ETIMEDOUT;
+            }
+            long long actual_sleep = std::min(sleep_ns, remaining_ns);
+            ::timespec sleep_ts{0, static_cast<long>(actual_sleep)};
+            ::nanosleep(&sleep_ts, nullptr);
+            sleep_ns = std::min(sleep_ns * 2, max_sleep_ns);
+        }
+    }
+
 
     thrd_result mtx_do_lock(mtx_t *const mtx, const ::timespec *target) noexcept {
         if (!mtx) {
@@ -86,7 +117,7 @@ namespace rainy::foundation::concurrency::implements {
             }
         } else {
             if (!pthread_equal(mutex->thread_id, current_thread_id)) {
-                res = apple_mutex_timedlock(mutex, target); // 唯一的区别
+                res = apple_mutex_recursive_timedlock(mutex, target);
             } else {
                 res = 0;
             }
