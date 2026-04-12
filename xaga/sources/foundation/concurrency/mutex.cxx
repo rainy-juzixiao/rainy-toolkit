@@ -92,69 +92,28 @@ namespace rainy::foundation::concurrency {
 
 namespace rainy::foundation::concurrency {
     timed_mutex::timed_mutex() noexcept {
-#if RAINY_USING_MACOS
-        constexpr int flags = implements::mutex_types::try_mtx;
-        if (implements::mtx_create(&m_, flags) != thrd_result::success) {
-            std::terminate();
-        }
-        if (implements::cnd_create(&cv_) != thrd_result::success) {
-            std::terminate();
-        }
-        locked_ = false;
-#else
         if (constexpr int flags = implements::mutex_types::try_mtx | implements::mutex_types::timed_mtx;
             implements::mtx_create(&mtx_, flags) != thrd_result::success) {
             std::terminate();
         }
-#endif
     }
 
     timed_mutex::~timed_mutex() {
-#if RAINY_USING_MACOS
-        implements::cnd_destroy(&cv_);
-        implements::mtx_destroy(&m_);
-#else
         if (!mtx_) {
             return;
         }
         if (implements::mtx_destroy(&mtx_) != thrd_result::success) {
             std::terminate();
         }
-#endif
     }
 
     rain_fn timed_mutex::lock() -> void {
-#if RAINY_USING_MACOS
-        if (implements::mtx_lock(&m_) != thrd_result::success) {
-            std::terminate();
-        }
-        while (locked_) {
-            if (implements::cnd_wait(&cv_, &m_) != thrd_result::success) {
-                std::terminate();
-            }
-        }
-        locked_ = true;
-        implements::mtx_unlock(&m_);
-#else
         if (implements::mtx_lock(&mtx_) != thrd_result::success) {
             std::terminate();
         }
-#endif
     }
 
     rain_fn timed_mutex::try_lock() -> bool {
-#if RAINY_USING_MACOS
-        if (implements::mtx_lock(&m_) != thrd_result::success) {
-            std::terminate();
-        }
-        bool acquired = false;
-        if (!locked_) {
-            locked_ = true;
-            acquired = true;
-        }
-        implements::mtx_unlock(&m_);
-        return acquired;
-#else
         const auto r = implements::mtx_trylock(&mtx_);
         if (r == thrd_result::success) {
             return true;
@@ -163,34 +122,16 @@ namespace rainy::foundation::concurrency {
             return false;
         }
         std::terminate();
-#endif
     }
 
     rain_fn timed_mutex::unlock() -> void { // NOLINT
-#if RAINY_USING_MACOS
-        if (implements::mtx_lock(&m_) != thrd_result::success) {
-            std::terminate();
-        }
-        if (!locked_) {
-            implements::mtx_unlock(&m_);
-            std::terminate();
-        }
-        locked_ = false;
-        implements::mtx_unlock(&m_);
-        implements::cnd_signal(&cv_);
-#else
         if (implements::mtx_unlock(&mtx_) != thrd_result::success) {
             std::terminate();
         }
-#endif
     }
 
     rain_fn timed_mutex::native_handle() noexcept -> native_handle_type {
-#if RAINY_USING_MACOS
-        return &m_;
-#else
         return &mtx_;
-#endif
     }
 }
 

@@ -277,32 +277,9 @@ namespace rainy::foundation::concurrency {
         template <typename Clock, typename Duration>
         rain_fn try_lock_until(const std::chrono::time_point<Clock, Duration> &abs_time) -> bool {
             auto ts = implements::to_abs_timespec(abs_time);
-#if RAINY_USING_MACOS
-            if (implements::mtx_lock(&m_) != thrd_result::success) {
-                std::terminate();
-            }
-            bool no_timeout = Clock::now() < abs_time;
-            while (no_timeout && locked_) {
-                auto r = implements::cnd_timedwait(&cv_, &m_, &ts);
-                if (r == thrd_result::timed_out) {
-                    no_timeout = false;
-                } else if (r != thrd_result::success) {
-                    implements::mtx_unlock(&m_);
-                    std::terminate();
-                }
-                if (no_timeout) {
-                    no_timeout = Clock::now() < abs_time;
-                }
-            }
-            bool acquired = false;
-            if (!locked_) {
-                locked_   = true;
-                acquired  = true;
-            }
-            implements::mtx_unlock(&m_);
-            return acquired;
-#else
+
             auto r = implements::mtx_timedlock(&mtx_, &ts);
+
             if (r == thrd_result::success) {
                 return true;
             }
@@ -313,7 +290,6 @@ namespace rainy::foundation::concurrency {
                 return false;
             }
             std::terminate();
-#endif
         }
 
         /**
@@ -340,21 +316,11 @@ namespace rainy::foundation::concurrency {
          *       rainy-toolkit() 返回的是 PAL 句柄本身的地址（mtx_t*）。
          */
         rain_fn backend_handle() noexcept -> implements::mtx_t * {
-#if RAINY_USING_MACOS
-            return &m_;
-#else
             return &mtx_;
-#endif
         }
 
     private:
-#if RAINY_USING_MACOS
-        implements::mtx_t m_{nullptr};
-        implements::cnd_t cv_{nullptr};
-        bool locked_{false};
-#else
         implements::mtx_t mtx_{nullptr};
-#endif
     };
 }
 
