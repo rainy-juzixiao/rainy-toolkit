@@ -340,7 +340,11 @@ namespace rainy::foundation::concurrency {
          *       rainy-toolkit() 返回的是 PAL 句柄本身的地址（mtx_t*）。
          */
         rain_fn backend_handle() noexcept -> implements::mtx_t * {
+#if RAINY_USING_MACOS
+            return &m_;
+#else
             return &mtx_;
+#endif
         }
 
     private:
