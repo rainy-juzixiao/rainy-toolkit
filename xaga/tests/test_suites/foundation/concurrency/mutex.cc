@@ -16,9 +16,9 @@
 #include <atomic>
 #include <catch2/catch_template_test_macros.hpp>
 #include <catch2/catch_test_macros.hpp>
-#include <future>
 #include <rainy/foundation/concurrency/mutex.hpp>
 #include <thread>
+#include <future>
 
 using namespace rainy::foundation;
 using namespace rainy::foundation::concurrency;
@@ -90,16 +90,19 @@ void test_timed_lock() {
     if constexpr (std::is_same_v<LockType, timed_mutex> || std::is_same_v<LockType, recursive_timed_mutex>) {
         {
             LockType m;
+            std::atomic<bool> started{false};
             std::promise<void> locked_promise;
-            auto locked_future = locked_promise.get_future();
 
             std::thread t([&]() {
                 m.lock();
-                locked_promise.set_value();
+                started = true;
                 std::this_thread::sleep_for(std::chrono::milliseconds(200));
                 m.unlock();
             });
-            locked_future.wait();
+            //  等线程真正持锁
+            while (!started) {
+                std::this_thread::yield();
+            }
             // 短超时 → 必须失败
             const auto t0 = std::chrono::steady_clock::now();
             bool acquired = m.try_lock_for(std::chrono::milliseconds(50));

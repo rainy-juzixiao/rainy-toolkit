@@ -320,7 +320,13 @@ namespace rainy::foundation::concurrency {
         }
 
     private:
+#if RAINY_USING_MACOS
+        implements::mtx_t m_{nullptr};
+        implements::cnd_t cv_{nullptr};
+        bool locked_{false};
+#else
         implements::mtx_t mtx_{nullptr};
+#endif
     };
 }
 
