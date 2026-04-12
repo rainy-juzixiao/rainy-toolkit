@@ -277,7 +277,32 @@ namespace rainy::foundation::concurrency {
         template <typename Clock, typename Duration>
         rain_fn try_lock_until(const std::chrono::time_point<Clock, Duration> &abs_time) -> bool {
             auto ts = implements::to_abs_timespec(abs_time);
-
+#if RAINY_USING_MACOS
+            auto ts = implements::to_abs_timespec(abs_time);
+            if (implements::mtx_lock(&m_) != thrd_result::success) {
+                std::terminate();
+            }
+            bool no_timeout = Clock::now() < abs_time;
+            while (no_timeout && locked_) {
+                auto r = implements::cnd_timedwait(&cv_, &m_, &ts);
+                if (r == thrd_result::timed_out) {
+                    no_timeout = false;
+                } else if (r != thrd_result::success) {
+                    implements::mtx_unlock(&m_);
+                    std::terminate();
+                }
+                if (no_timeout) {
+                    no_timeout = Clock::now() < abs_time;
+                }
+            }
+            bool acquired = false;
+            if (!locked_) {
+                locked_   = true;
+                acquired  = true;
+            }
+            implements::mtx_unlock(&m_);
+            return acquired;
+#else
             auto r = implements::mtx_timedlock(&mtx_, &ts);
 
             if (r == thrd_result::success) {
@@ -290,6 +315,7 @@ namespace rainy::foundation::concurrency {
                 return false;
             }
             std::terminate();
+#endif
         }
 
         /**
