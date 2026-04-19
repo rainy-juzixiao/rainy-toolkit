@@ -147,6 +147,7 @@ if (WIN32)
     target_link_libraries(rainy-toolkit PRIVATE dbghelp)
     target_link_libraries(rainy-toolkit PRIVATE dbgeng)
     target_link_libraries(rainy-toolkit PRIVATE ws2_32)
+    target_link_libraries(rainy-toolkit PRIVATE schannel ncrypt crypt32 secur32)
 elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
     message("Linking libraries for linux package")
     target_link_libraries(rainy-toolkit PRIVATE uring)
@@ -155,12 +156,42 @@ elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
 
     if(GnuTLS_FOUND)
         target_link_libraries(rainy-toolkit PRIVATE GnuTLS::GnuTLS)
-        target_compile_definitions(rainy-toolkit PRIVATE HAVE_GNUTLS=1)
+        target_compile_definitions(rainy-toolkit PRIVATE RAINY_HAS_GNUTLS=1)
     else()
+        target_compile_definitions(rainy-toolkit PRIVATE RAINY_HAS_GNUTLS=0)
         message(WARNING "GnuTLS not found, building without TLS support")
     endif()
 
+    find_package(OpenSSL)
 
+    if(OpenSSL_FOUND)
+        target_link_libraries(rainy-toolkit PRIVATE OpenSSL::SSL)
+        target_compile_definitions(rainy-toolkit PRIVATE RAINY_HAS_OPENSSL=1)
+    else ()
+        target_compile_definitions(rainy-toolkit PRIVATE RAINY_HAS_OPENSSL=0)
+        message(WARNING "OpenSSL not found, building without TLS support")
+    endif ()
+elseif (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    message("Linking libraries for macos package")
+    find_library(COREFOUNDATION_LIBRARY CoreFoundation)
+    find_library(SECURITY_LIBRARY Security)
+    find_library(CORESERVICES_LIBRARY CoreServices)
+
+    target_link_libraries(rainy-toolkit PRIVATE
+            ${COREFOUNDATION_LIBRARY}
+            ${SECURITY_LIBRARY}
+            ${CORESERVICES_LIBRARY}
+    )
+    
+    find_package(OpenSSL)
+   
+    if(OpenSSL_FOUND)
+        target_link_libraries(rainy-toolkit PRIVATE OpenSSL::SSL)
+        target_compile_definitions(rainy-toolkit PRIVATE RAINY_HAS_OPENSSL=1)
+    else ()
+        target_compile_definitions(rainy-toolkit PRIVATE RAINY_HAS_OPENSSL=0)
+        message(WARNING "OpenSSL not found, building without TLS support")
+    endif ()
 else ()
     message(FATAL_ERROR "Unsupported platform: ${CMAKE_SYSTEM_NAME}")
 endif ()

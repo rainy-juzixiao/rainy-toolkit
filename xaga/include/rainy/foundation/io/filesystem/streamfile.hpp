@@ -1,10 +1,10 @@
 #ifndef RAINY_FOUNDATION_IO_FILESYSTEM_STREAMFILE_HPP
 #define RAINY_FOUNDATION_IO_FILESYSTEM_STREAMFILE_HPP
-#include <rainy/foundation/io/net/buffer.hpp>
-#include <rainy/foundation/io/net/io_context.hpp>
-#include <rainy/foundation/io/filesystem/fwd.hpp>
 #include <cstdint>
 #include <filesystem>
+#include <rainy/foundation/io/filesystem/fwd.hpp>
+#include <rainy/foundation/io/net/buffer.hpp>
+#include <rainy/foundation/io/net/io_context.hpp>
 #include <system_error>
 
 namespace rainy::foundation::io::filesystem::implements {
@@ -22,7 +22,8 @@ namespace rainy::foundation::io::filesystem::implements {
          * @param  ctx    调用方持有的 io_context 底层 impl
          * @return 错误码，成功时 value()==0
          */
-        virtual std::error_code open(const std::filesystem::path &path, open_mode mode, net::implements::io_context_impl_base &ctx) noexcept = 0;
+        virtual std::error_code open(const std::filesystem::path &path, open_mode mode,
+                                     net::implements::io_context_impl_base &ctx) noexcept = 0;
 
         virtual void close() noexcept = 0;
 
@@ -59,7 +60,7 @@ namespace rainy::foundation::io::filesystem::implements {
         RAINY_NODISCARD virtual std::uintptr_t native_handle() const noexcept = 0;
     };
 
-    RAINY_TOOLKIT_API RAINY_NODISCARD memory::nebula_ptr<file_impl_base> make_file_impl();
+    RAINY_NODISCARD RAINY_TOOLKIT_API memory::nebula_ptr<file_impl_base> make_file_impl();
 }
 
 namespace rainy::foundation::io::filesystem {

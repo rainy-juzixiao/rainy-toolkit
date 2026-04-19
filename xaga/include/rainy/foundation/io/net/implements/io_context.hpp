@@ -18,7 +18,6 @@
 #include <rainy/core/core.hpp>
 #include <rainy/foundation/concurrency/atomic.hpp>
 #include <rainy/foundation/concurrency/pal.hpp>
-#include <rainy/foundation/io/net/executor/async_result.hpp>
 #include <rainy/foundation/memory/nebula_ptr.hpp>
 
 namespace rainy::foundation::io::net::implements {
@@ -31,15 +30,15 @@ namespace rainy::foundation::io::net::implements {
     struct completion_op {
         using fn_type = void (*)(completion_op *self, const op_result &result, bool is_cancelled);
 
-        explicit completion_op(fn_type f) noexcept : fn(f), next(nullptr) {
+        explicit completion_op(const fn_type f) noexcept : fn{f} {
         }
 
-        void complete(const op_result &result, bool cancelled) {
+        void complete(const op_result &result, const bool cancelled) {
             fn(this, result, cancelled);
         }
 
         fn_type fn;
-        completion_op *next;
+        completion_op *next{nullptr};
         void *io_handle{nullptr};
     };
 
@@ -79,7 +78,7 @@ namespace rainy::foundation::io::net::implements {
         immediate_op &operator=(const immediate_op &) = delete;
 
     private:
-        static void do_complete(completion_op *self, const op_result & /*result*/, bool is_cancelled) {
+        static void do_complete(completion_op *self, const op_result & /*result*/, const bool is_cancelled) {
             auto *op = static_cast<immediate_op *>(self);
             Func func = utility::move(op->func_);
             delete op;

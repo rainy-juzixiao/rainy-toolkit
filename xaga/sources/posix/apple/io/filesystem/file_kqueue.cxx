@@ -1,5 +1,5 @@
 /*
-* Copyright 2026 rainy-juzixiao
+ * Copyright 2026 rainy-juzixiao
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,43 +13,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include <rainy/foundation/concurrency/executor.hpp>
 #include <rainy/foundation/io/filesystem/streamfile.hpp>
 #include <rainy/foundation/io/net/io_context.hpp>
 
 #include <fcntl.h>
-#include <liburing.h>
+#include <sys/event.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
 namespace rainy::foundation::io::filesystem::implements {
-    static io_uring_sqe *get_sqe_from_op(completion_op *op, net::implements::io_context_impl_base &ctx_impl, const int fd) {
-        ctx_impl.associate_handle(op, static_cast<std::uintptr_t>(fd), nullptr);
-        if (!op->io_handle)
-            return nullptr;
-        return ::io_uring_get_sqe(static_cast<io_uring *>(op->io_handle));
-    }
-
-    static void submit_ring(const completion_op *op) noexcept {
-        if (op->io_handle) {
-            ::io_uring_submit(static_cast<io_uring *>(op->io_handle));
-        }
-    }
-
-    class uring_file_impl final : public file_impl_base {
+    class kqueue_file_impl final : public file_impl_base {
     public:
-        uring_file_impl() = default;
+        kqueue_file_impl() = default;
 
-        ~uring_file_impl() override {
+        ~kqueue_file_impl() override {
             close();
         }
 
-        std::error_code open(const std::filesystem::path &path, const open_mode mode,
+        std::error_code open(const std::filesystem::path &path, open_mode mode,
                              net::implements::io_context_impl_base &ctx) noexcept override {
             int flags = 0;
-            // NOLINTBEGIN
             const bool r = has_flag(mode, open_mode::read_only);
             const bool w = has_flag(mode, open_mode::write_only);
-            // NOLINTEND
             if (r && w) {
                 flags = O_RDWR;
             } else if (w) {
@@ -72,20 +58,17 @@ namespace rainy::foundation::io::filesystem::implements {
             if (has_flag(mode, open_mode::sync)) {
                 flags |= O_SYNC;
             }
-            if (has_flag(mode, open_mode::direct)) {
-                flags |= O_DIRECT;
-            }
+
             fd_ = ::open(path.c_str(), flags, 0644);
             if (fd_ < 0) {
                 return {errno, std::system_category()};
             }
-            if (rainy_const res = ctx.associate_handle(nullptr, static_cast<std::uintptr_t>(fd_), nullptr);
-                res != concurrency::thrd_result::success) {
+            auto res = ctx.associate_handle(nullptr, static_cast<std::uintptr_t>(fd_), nullptr);
+            if (res != concurrency::thrd_result::success) {
                 ::close(fd_);
                 fd_ = -1;
                 return {EINVAL, std::system_category()};
             }
-
             ctx_ = &ctx;
             return {};
         }
@@ -102,7 +85,7 @@ namespace rainy::foundation::io::filesystem::implements {
             return fd_ >= 0;
         }
 
-        std::size_t read_some_at(const net::mutable_buffer buf, const std::uint64_t offset, std::error_code &ec) noexcept override {
+        std::size_t read_some_at(net::mutable_buffer buf, std::uint64_t offset, std::error_code &ec) noexcept override {
             const ssize_t n = ::pread(fd_, buf.data(), buf.size(), static_cast<::off_t>(offset));
             if (n < 0) {
                 ec.assign(errno, std::system_category());
@@ -111,7 +94,7 @@ namespace rainy::foundation::io::filesystem::implements {
             return static_cast<std::size_t>(n);
         }
 
-        std::size_t write_some_at(const net::const_buffer buf, const std::uint64_t offset, std::error_code &ec) noexcept override {
+        std::size_t write_some_at(net::const_buffer buf, std::uint64_t offset, std::error_code &ec) noexcept override {
             const ssize_t n = ::pwrite(fd_, buf.data(), buf.size(), static_cast<::off_t>(offset));
             if (n < 0) {
                 ec.assign(errno, std::system_category());
@@ -120,28 +103,40 @@ namespace rainy::foundation::io::filesystem::implements {
             return static_cast<std::size_t>(n);
         }
 
-        void async_read_some_at(const net::mutable_buffer buf, const std::uint64_t offset, net::implements::io_context_impl_base &ctx,
+        void async_read_some_at(net::mutable_buffer buf, std::uint64_t offset, net::implements::io_context_impl_base &ctx,
                                 completion_op *op) noexcept override {
-            io_uring_sqe *sqe = get_sqe_from_op(op, ctx, fd_);
-            if (!sqe) {
-                ctx.post_immediate_completion(op, false);
-                return;
-            }
-            ::io_uring_prep_read(sqe, fd_, buf.data(), buf.size(), offset);
-            ::io_uring_sqe_set_data(sqe, op);
-            submit_ring(op);
+            const int fd = fd_;
+            get_executor().submit([fd, buf, offset, op]() mutable {
+                op_result result{};
+                result.user_data = op;
+                const ssize_t n = ::pread(fd, buf.data(), buf.size(), static_cast<::off_t>(offset));
+                if (n < 0) {
+                    result.error_code = errno;
+                    result.bytes_transferred = 0;
+                } else {
+                    result.error_code = 0;
+                    result.bytes_transferred = static_cast<std::size_t>(n);
+                }
+                op->complete(result, false);
+            });
         }
 
-        void async_write_some_at(const net::const_buffer buf, const std::uint64_t offset, net::implements::io_context_impl_base &ctx,
+        void async_write_some_at(net::const_buffer buf, std::uint64_t offset, net::implements::io_context_impl_base &ctx,
                                  completion_op *op) noexcept override {
-            io_uring_sqe *sqe = get_sqe_from_op(op, ctx, fd_);
-            if (!sqe) {
-                ctx.post_immediate_completion(op, false);
-                return;
-            }
-            ::io_uring_prep_write(sqe, fd_, buf.data(), buf.size(), offset);
-            ::io_uring_sqe_set_data(sqe, op);
-            submit_ring(op);
+            const int fd = fd_;
+            get_executor().submit([fd, buf, offset, op]() mutable {
+                op_result result{};
+                result.user_data = op;
+                const ssize_t n = ::pwrite(fd, buf.data(), buf.size(), static_cast<::off_t>(offset));
+                if (n < 0) {
+                    result.error_code = errno;
+                    result.bytes_transferred = 0;
+                } else {
+                    result.error_code = 0;
+                    result.bytes_transferred = static_cast<std::size_t>(n);
+                }
+                op->complete(result, false);
+            });
         }
 
         std::uint64_t size(std::error_code &ec) const noexcept override {
@@ -153,7 +148,7 @@ namespace rainy::foundation::io::filesystem::implements {
             return static_cast<std::uint64_t>(st.st_size);
         }
 
-        std::error_code resize(const std::uint64_t new_size) noexcept override {
+        std::error_code resize(std::uint64_t new_size) noexcept override {
             if (::ftruncate(fd_, static_cast<::off_t>(new_size)) < 0) {
                 return {errno, std::system_category()};
             }
@@ -165,22 +160,17 @@ namespace rainy::foundation::io::filesystem::implements {
         }
 
     private:
-        struct submit_desc {
-            enum op_kind {
-                readv,
-                writev
-            } op_type;
-            int fd;
-            std::uint64_t offset;
-            ::iovec *iov;
-            int iov_cnt;
-        };
+        static concurrency::executor &get_executor() noexcept {
+            return concurrency::get_global_pooled_executor();
+        }
 
         int fd_{-1};
         net::implements::io_context_impl_base *ctx_{nullptr};
     };
+}
 
+namespace rainy::foundation::io::filesystem::implements {
     memory::unique_ptr<file_impl_base> make_file_impl() {
-        return memory::make_unique<uring_file_impl>();
+        return memory::make_unique<kqueue_file_impl>();
     }
 }

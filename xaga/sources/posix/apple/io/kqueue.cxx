@@ -325,7 +325,6 @@ namespace rainy::foundation::io::net::implements {
             }
             struct kevent ev{};
             EV_SET(&ev, WAKEUP_IDENT, EVFILT_USER, 0, NOTE_TRIGGER, 0, &non_op);
-            // 再次检查，因为在获取锁或准备参数时可能已经开始析构
             if (!destroying_.load(concurrency::memory_order_acquire) && kq_initialized_) {
                 ::kevent(kq_, &ev, 1, nullptr, 0, nullptr);
             }

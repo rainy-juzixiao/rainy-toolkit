@@ -19,9 +19,12 @@
 #include <rainy/foundation/io/net/implements/io_context.hpp>
 #include <rainy/foundation/io/net/implements/sock.hpp>
 
+// clang-format off
 #include <winsock2.h>
-#include <ws2tcpip.h>
 #include <mswsock.h>
+#include <ws2tcpip.h>
+#include <iostream>
+// clang-format on
 
 namespace rainy::foundation::io::net::implements {
     struct wsa_init {
@@ -47,6 +50,37 @@ namespace rainy::foundation::io::net::implements {
 
         static iocp_op *from_overlapped(OVERLAPPED *ov) noexcept {
             return reinterpret_cast<iocp_op *>(reinterpret_cast<char *>(ov) - offsetof(iocp_op, overlapped));
+        }
+    };
+
+    struct socket_iocp_op : iocp_op {
+        SOCKET sock{INVALID_SOCKET};
+        enum class op_type : uint8_t {
+            none,
+            connect,
+            accept
+        } type{op_type::none};
+        completion_op *outer{nullptr};
+        io_context_impl_base *ctx{nullptr};
+
+        explicit socket_iocp_op(completion_op *op) noexcept : iocp_op(&do_complete) {
+            outer = op;
+        }
+
+        static void do_complete(completion_op *self, const op_result &result, bool cancelled) {
+            auto *iop = static_cast<socket_iocp_op *>(self);
+            if (!cancelled && result.error_code == 0) {
+                if (iop->type == op_type::connect) {
+                    ::setsockopt(iop->sock, SOL_SOCKET, SO_UPDATE_CONNECT_CONTEXT, nullptr, 0);
+                } else if (iop->type == op_type::accept) {
+                    SOCKET client = reinterpret_cast<SOCKET>(iop->associated_handle);
+                    ::setsockopt(client, SOL_SOCKET, SO_UPDATE_ACCEPT_CONTEXT, reinterpret_cast<char *>(&iop->sock), sizeof(SOCKET));
+                }
+            }
+            completion_op *outer = iop->outer;
+            iop->ctx->on_work_finished();
+            delete iop;
+            outer->complete(result, cancelled);
         }
     };
 
@@ -80,8 +114,9 @@ namespace rainy::foundation::io::net::implements {
         }
 
         std::error_code assign(int af, int type, int proto, native_socket_t native_sock) noexcept override {
-            if (is_open())
+            if (is_open()) {
                 close();
+            }
             sock_ = static_cast<SOCKET>(native_sock);
             af_ = af;
             type_ = type;
@@ -183,20 +218,21 @@ namespace rainy::foundation::io::net::implements {
         std::error_code local_endpoint(raw_endpoint &ep) const noexcept override {
             int len = static_cast<int>(sizeof(ep.data));
             int ret = ::getsockname(sock_, reinterpret_cast<::sockaddr *>(ep.data), &len);
-            if (ret == 0)
+            if (ret == 0) {
                 ep.size = static_cast<std::size_t>(len);
+            }
             return ret == 0 ? std::error_code{} : last_wsa_error();
         }
 
         std::error_code remote_endpoint(raw_endpoint &ep) const noexcept override {
             int len = static_cast<int>(sizeof(ep.data));
             int ret = ::getpeername(sock_, reinterpret_cast<::sockaddr *>(ep.data), &len);
-            if (ret == 0)
+            if (ret == 0) {
                 ep.size = static_cast<std::size_t>(len);
+            }
             return ret == 0 ? std::error_code{} : last_wsa_error();
         }
 
-        // ------------------------------------------------------------------
         std::ptrdiff_t send(const void *buf, std::size_t len, message_flags_t flags, std::error_code &ec) noexcept override {
             WSABUF wb{static_cast<ULONG>(len), const_cast<char *>(static_cast<const char *>(buf))};
             DWORD sent = 0;
@@ -253,14 +289,14 @@ namespace rainy::foundation::io::net::implements {
             return static_cast<std::ptrdiff_t>(recvd);
         }
 
-        // ------------------------------------------------------------------
         native_socket_t accept(raw_endpoint *peer_ep, std::error_code &ec) noexcept override {
             SOCKET client;
             if (peer_ep) {
                 int len = static_cast<int>(sizeof(peer_ep->data));
                 client = ::accept(sock_, reinterpret_cast<::sockaddr *>(peer_ep->data), &len);
-                if (client != INVALID_SOCKET)
+                if (client != INVALID_SOCKET) {
                     peer_ep->size = static_cast<std::size_t>(len);
+                }
             } else {
                 client = ::accept(sock_, nullptr, nullptr);
             }
@@ -272,7 +308,6 @@ namespace rainy::foundation::io::net::implements {
             return static_cast<native_socket_t>(client);
         }
 
-        // ------------------------------------------------------------------
         std::size_t available(std::error_code &ec) const noexcept override {
             u_long avail = 0;
             int ret = ::ioctlsocket(sock_, FIONREAD, &avail);
@@ -300,21 +335,29 @@ namespace rainy::foundation::io::net::implements {
             return ret == 0 ? std::error_code{} : last_wsa_error();
         }
 
-        // ------------------------------------------------------------------
-        // 异步操作：借助 IOCP Overlapped I/O
-        // op 里必须嵌入 OVERLAPPED（iocp_op），由上层调用方构造
-        // ------------------------------------------------------------------
         void async_connect(const raw_endpoint &ep, io_context_impl_base &ctx_impl, completion_op *op) noexcept override {
-            // ConnectEx 需要先 bind 到 INADDR_ANY
+            if (sock_ == INVALID_SOCKET) {
+                ctx_impl.post_immediate_completion(op, false);
+                return;
+            }
+
             ::sockaddr_storage any{};
             any.ss_family = static_cast<ADDRESS_FAMILY>(af_);
-            ::bind(sock_, reinterpret_cast<::sockaddr *>(&any), static_cast<int>(sizeof(any)));
+            int any_len = (af_ == AF_INET6) ? static_cast<int>(sizeof(::sockaddr_in6)) : static_cast<int>(sizeof(::sockaddr_in));
 
+            if (::bind(sock_, reinterpret_cast<::sockaddr *>(&any), any_len) == SOCKET_ERROR) {
+                ctx_impl.post_immediate_completion(op, false);
+                return;
+            }
             bind_to_iocp(ctx_impl);
-
-            auto *iop = static_cast<iocp_op *>(op);
+            auto *iop = new socket_iocp_op(op);
+            ::ZeroMemory(&iop->overlapped, sizeof(OVERLAPPED));
+            iop->type = socket_iocp_op::op_type::connect;
+            iop->sock = sock_;
+            iop->ctx = &ctx_impl;
             LPFN_CONNECTEX connect_ex = get_connect_ex();
             if (!connect_ex) {
+                delete iop;
                 ctx_impl.post_immediate_completion(op, false);
                 return;
             }
@@ -322,8 +365,10 @@ namespace rainy::foundation::io::net::implements {
             BOOL ok = connect_ex(sock_, reinterpret_cast<const ::sockaddr *>(ep.data), static_cast<int>(ep.size), nullptr, 0, &bytes,
                                  &iop->overlapped);
             if (!ok && ::WSAGetLastError() != ERROR_IO_PENDING) {
+                delete iop;
                 ctx_impl.post_immediate_completion(op, false);
             }
+            ctx_impl.on_work_started();
         }
 
         void async_send(const void *buf, std::size_t len, message_flags_t flags, io_context_impl_base &ctx_impl,
@@ -381,17 +426,17 @@ namespace rainy::foundation::io::net::implements {
 
         void async_accept(raw_endpoint *peer_ep, io_context_impl_base &ctx_impl, completion_op *op) noexcept override {
             bind_to_iocp(ctx_impl);
-            auto *iop = static_cast<iocp_op *>(op);
-
+            auto *iop = new socket_iocp_op(op);
             SOCKET client = ::WSASocketW(af_, type_, proto_, nullptr, 0, WSA_FLAG_OVERLAPPED);
             if (client == INVALID_SOCKET) {
                 ctx_impl.post_immediate_completion(op, false);
                 return;
             }
-            iop->associated_handle = reinterpret_cast<HANDLE>(client);
-
+            ::ZeroMemory(&iop->overlapped, sizeof(OVERLAPPED));
+            iop->type = socket_iocp_op::op_type::accept;
+            iop->sock = sock_; // listen socket
+            iop->associated_handle = reinterpret_cast<HANDLE>(client); // accept socket
             DWORD bytes_recv = 0;
-            // AcceptEx 需要 addr_buf 大小 >= (sizeof(sockaddr) + 16) * 2
             static thread_local std::uint8_t addr_buf[256]{};
             BOOL ok =
                 ::AcceptEx(sock_, client, addr_buf, 0, sizeof(addr_buf) / 2, sizeof(addr_buf) / 2, &bytes_recv, &iop->overlapped);
@@ -409,7 +454,7 @@ namespace rainy::foundation::io::net::implements {
     private:
         void bind_to_iocp(io_context_impl_base &ctx_impl) noexcept {
             if (!bound_to_iocp_) {
-                ctx_impl.associate_handle(nullptr, static_cast<std::uintptr_t>(sock_), nullptr);
+                utility::ignore = ctx_impl.associate_handle(nullptr, static_cast<std::uintptr_t>(sock_), nullptr);
                 bound_to_iocp_ = true;
             }
         }

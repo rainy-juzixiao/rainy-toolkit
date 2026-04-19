@@ -37,9 +37,8 @@ namespace rainy::foundation::io::net::implements {
         implementation_type create_implementation();
 
         template <typename Executor, typename Function, typename Allocator>
-        static void dispatch(const implementation_type &impl, Executor &ex,
-                                                      Function&& function, const Allocator &a) {
-            typedef typename type_traits::other_trans::decay<Function>::type function_type;
+        static void dispatch(const implementation_type &impl, Executor &ex, Function &&function, const Allocator &a) {
+            using function_type = typename type_traits::other_trans::decay<Function>::type;
             if (concurrency::implements::call_stack<strand_impl>::contains(impl.get())) {
                 function_type tmp(utility::move(function));
                 concurrency::fenced_block b(concurrency::fenced_block::full);
@@ -59,7 +58,7 @@ namespace rainy::foundation::io::net::implements {
         }
 
         template <typename Executor, typename Function, typename Allocator>
-        static void post(const implementation_type &impl, Executor &ex, Function&& function, const Allocator &a) {
+        static void post(const implementation_type &impl, Executor &ex, Function &&function, const Allocator &a) {
             typedef typename type_traits::other_trans::decay<Function>::type function_type;
             typedef executor_op<function_type, Allocator> op;
             typename op::ptr p = {utility::addressof(a), op::ptr::allocate(a), 0};
@@ -73,7 +72,7 @@ namespace rainy::foundation::io::net::implements {
         }
 
         template <typename Executor, typename Function, typename Allocator>
-        static void defer(const implementation_type &impl, Executor &ex, Function&& function, const Allocator &a) {
+        static void defer(const implementation_type &impl, Executor &ex, Function &&function, const Allocator &a) {
             typedef typename type_traits::other_trans::decay<Function>::type function_type;
             typedef executor_op<function_type, Allocator> op;
             typename op::ptr p = {utility::addressof(a), op::ptr::allocate(a), 0};

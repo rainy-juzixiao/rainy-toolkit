@@ -155,35 +155,36 @@ namespace rainy::foundation::io::net::ip {
     };
 
     template <typename InternetProtocol>
-    constexpr bool operator==(const basic_endpoint<InternetProtocol> &l, const basic_endpoint<InternetProtocol> &r) noexcept {
-        return l.address() == r.address() && l.port() == r.port();
+    constexpr bool operator==(const basic_endpoint<InternetProtocol> &left, const basic_endpoint<InternetProtocol> &right) noexcept {
+        return left.address() == right.address() && left.port() == right.port();
     }
 
     template <typename InternetProtocol>
-    constexpr bool operator!=(const basic_endpoint<InternetProtocol> &l, const basic_endpoint<InternetProtocol> &r) noexcept {
-        return !(l == r);
+    constexpr bool operator!=(const basic_endpoint<InternetProtocol> &left, const basic_endpoint<InternetProtocol> &right) noexcept {
+        return !(left == right);
     }
 
     template <typename InternetProtocol>
-    constexpr bool operator<(const basic_endpoint<InternetProtocol> &l, const basic_endpoint<InternetProtocol> &r) noexcept {
-        if (l.address() != r.address())
-            return l.address() < r.address();
-        return l.port() < r.port();
+    constexpr bool operator<(const basic_endpoint<InternetProtocol> &left, const basic_endpoint<InternetProtocol> &right) noexcept {
+        if (left.address() != right.address()) {
+            return left.address() < right.address();
+        }
+        return left.port() < right.port();
     }
 
     template <typename InternetProtocol>
-    constexpr bool operator>(const basic_endpoint<InternetProtocol> &l, const basic_endpoint<InternetProtocol> &r) noexcept {
-        return r < l;
+    constexpr bool operator>(const basic_endpoint<InternetProtocol> &left, const basic_endpoint<InternetProtocol> &right) noexcept {
+        return right < left;
     }
 
     template <typename InternetProtocol>
-    constexpr bool operator<=(const basic_endpoint<InternetProtocol> &l, const basic_endpoint<InternetProtocol> &r) noexcept {
-        return !(r < l);
+    constexpr bool operator<=(const basic_endpoint<InternetProtocol> &left, const basic_endpoint<InternetProtocol> &right) noexcept {
+        return !(right < left);
     }
 
     template <typename InternetProtocol>
-    constexpr bool operator>=(const basic_endpoint<InternetProtocol> &l, const basic_endpoint<InternetProtocol> &r) noexcept {
-        return !(l < r);
+    constexpr bool operator>=(const basic_endpoint<InternetProtocol> &left, const basic_endpoint<InternetProtocol> &right) noexcept {
+        return !(left < right);
     }
 
     template <typename CharT, typename Traits, typename InternetProtocol>
@@ -197,9 +198,6 @@ namespace rainy::foundation::io::net::ip {
         return os;
     }
 
-    // =========================================================================
-    // basic_resolver_entry
-    // =========================================================================
     template <typename InternetProtocol>
     class basic_resolver_entry {
     public:
@@ -236,9 +234,6 @@ namespace rainy::foundation::io::net::ip {
         text::string service_{};
     };
 
-    // =========================================================================
-    // basic_resolver_results
-    // =========================================================================
     template <typename InternetProtocol>
     class basic_resolver_results {
     public:
@@ -288,7 +283,6 @@ namespace rainy::foundation::io::net::ip {
             entries_.swap(other.entries_);
         }
 
-        // 内部构造接口，供 basic_resolver 填充
         void push_back(const value_type &entry) {
             entries_.push_back(entry);
         }
@@ -298,11 +292,11 @@ namespace rainy::foundation::io::net::ip {
     };
 
     template <typename InternetProtocol>
-    bool operator==(const basic_resolver_results<InternetProtocol> &l, const basic_resolver_results<InternetProtocol> &r) {
-        if (l.size() != r.size())
+    bool operator==(const basic_resolver_results<InternetProtocol> &left, const basic_resolver_results<InternetProtocol> &r) {
+        if (left.size() != r.size())
             return false;
-        auto li = l.begin(), ri = r.begin();
-        for (; li != l.end(); ++li, ++ri) {
+        auto li = left.begin(), ri = r.begin();
+        for (; li != left.end(); ++li, ++ri) {
             if (li->endpoint() != ri->endpoint())
                 return false;
         }
@@ -310,8 +304,8 @@ namespace rainy::foundation::io::net::ip {
     }
 
     template <typename InternetProtocol>
-    bool operator!=(const basic_resolver_results<InternetProtocol> &l, const basic_resolver_results<InternetProtocol> &r) {
-        return !(l == r);
+    bool operator!=(const basic_resolver_results<InternetProtocol> &left, const basic_resolver_results<InternetProtocol> &r) {
+        return !(left == r);
     }
 
     template <typename InternetProtocol>
@@ -408,8 +402,9 @@ namespace rainy::foundation::io::net::ip {
         results_type resolve(const endpoint_type &e) {
             std::error_code ec;
             auto r = resolve(e, ec);
-            if (ec)
+            if (ec) {
                 throw std::system_error(ec, "resolve");
+            }
             return r;
         }
 
@@ -420,13 +415,13 @@ namespace rainy::foundation::io::net::ip {
         template <typename CompletionToken>
         auto async_resolve(text::string_view host_name, text::string_view service_name, CompletionToken &&token) ->
             typename async_result<std::decay_t<CompletionToken>, void(std::error_code, results_type)>::return_type {
-            return async_resolve(protocol_type{}, host_name, service_name, 0, std::forward<CompletionToken>(token));
+            return async_resolve(protocol_type::v4(), host_name, service_name, 0, std::forward<CompletionToken>(token));
         }
 
         template <typename CompletionToken>
         auto async_resolve(text::string_view host_name, text::string_view service_name, flags f, CompletionToken &&token) ->
             typename async_result<std::decay_t<CompletionToken>, void(std::error_code, results_type)>::return_type {
-            return async_resolve(protocol_type{}, host_name, service_name, f, std::forward<CompletionToken>(token));
+            return async_resolve(protocol_type::v4(), host_name, service_name, f, std::forward<CompletionToken>(token));
         }
 
         template <typename CompletionToken>
@@ -482,7 +477,6 @@ namespace rainy::foundation::io::net::ip {
                 ec = std::make_error_code(std::errc::operation_canceled);
                 return {};
             }
-            // getaddrinfo 通过 implements::resolve 封装，不直接调用平台 API
             text::string host{host_name.data(), host_name.size()};
             text::string svc{service_name.data(), service_name.size()};
             collections::vector<implements::resolved_entry> raw_results;
@@ -525,7 +519,7 @@ namespace rainy::foundation::io::net::ip {
         using value_type = basic_resolver_entry<InternetProtocol>;
 
         executor_type executor_;
-        std::atomic<bool> cancelled_{false};
+        concurrency::atomic<bool> cancelled_{false};
     };
 }
 

@@ -380,18 +380,37 @@ namespace rainy::foundation::io::net {
         }
 
         void connect(const endpoint_type &ep, std::error_code &ec) {
+            if (!impl_->is_open()) {
+                auto proto = ep.protocol();
+                if (const std::error_code open_ec = impl_->open(proto.family(), proto.type(), proto.protocol())) {
+                    ec = open_ec;
+                    return;
+                }
+                ec.clear();
+            }
             ec = impl_->connect(ep.to_raw());
         }
 
         template <typename CompletionToken>
         auto async_connect(const endpoint_type &ep, CompletionToken &&token) ->
-            typename async_result<std::decay_t<CompletionToken>, void(std::error_code)>::return_type { // NOLINT
+            typename async_result<std::decay_t<CompletionToken>, void(std::error_code)>::return_type {
             using token_t = std::decay_t<CompletionToken>;
             async_completion<token_t, void(std::error_code)> init(token);
             auto handler = utility::move(init.completion_handler);
+            if (!impl_->is_open()) {
+                auto proto = ep.protocol();
+                if (std::error_code open_ec = impl_->open(proto.family(), proto.type(), proto.protocol())) {
+                    auto *op = implements::make_io_completion_op(
+                        [handler, open_ec](const implements::op_result &, bool) mutable { handler(open_ec); });
+                    executor_.context().impl_->post_immediate_completion(op, false);
+                    return init.result.get();
+                }
+            }
             auto raw_ep = ep.to_raw();
-            auto *op = implements::make_io_completion_op([handler](const implements::op_result &r, const bool cancelled) mutable {
+            auto *op = implements::make_io_completion_op([handler, &ctx_impl = executor_.context().under_impl()](const implements::op_result &r, bool cancelled) mutable {
+                ctx_impl.on_work_finished();
                 if (cancelled) {
+                    handler(std::make_error_code(std::errc::operation_canceled));
                     return;
                 }
                 std::error_code ec;
@@ -400,7 +419,8 @@ namespace rainy::foundation::io::net {
                 }
                 handler(ec);
             });
-            executor_.context().impl_->post_immediate_completion(op, false);
+            executor_.context().under_impl().on_work_started();
+            impl_->async_connect(raw_ep, *executor_.context().impl_, op);
             return init.result.get();
         }
 
@@ -424,16 +444,17 @@ namespace rainy::foundation::io::net {
             using token_t = std::decay_t<CompletionToken>;
             async_completion<token_t, void(std::error_code)> init(token);
             auto handler = utility::move(init.completion_handler);
-            auto *op = implements::make_io_completion_op([handler](const implements::op_result &r, const bool cancelled) mutable {
-                if (cancelled) {
-                    return;
-                }
-                std::error_code ec;
-                if (r.error_code) {
-                    ec = std::error_code{r.error_code, std::system_category()};
-                }
-                handler(ec);
-            });
+            auto *op =
+                implements::make_io_completion_op([handler](const implements::op_result &r, const bool cancelled) mutable {
+                    if (cancelled) {
+                        return;
+                    }
+                    std::error_code ec;
+                    if (r.error_code) {
+                        ec = std::error_code{r.error_code, std::system_category()};
+                    }
+                    handler(ec);
+                });
             auto &ctx_impl = *executor_.context().impl_;
             impl_->async_wait(static_cast<implements::wait_type>(w), ctx_impl, op);
             return init.result.get();
@@ -781,16 +802,21 @@ namespace rainy::foundation::io::net {
 
         explicit basic_stream_socket(io_context &ctx) : base(ctx) {
         }
+
         basic_stream_socket(io_context &ctx, const protocol_type &p) : base(ctx, p) {
         }
+
         basic_stream_socket(io_context &ctx, const endpoint_type &ep) : base(ctx, ep) {
         }
+
         basic_stream_socket(io_context &ctx, const protocol_type &p, const native_handle_type &n) : base(ctx, p, n) {
         }
+
         basic_stream_socket(const basic_stream_socket &) = delete;
         basic_stream_socket &operator=(const basic_stream_socket &) = delete;
         basic_stream_socket(basic_stream_socket &&) = default;
         basic_stream_socket &operator=(basic_stream_socket &&) = default;
+
         ~basic_stream_socket() = default;
 
         template <typename MutableBufferSequence>
@@ -959,7 +985,7 @@ namespace rainy::foundation::io::net {
             open(protocol);
         }
 
-        basic_socket_acceptor(io_context &ctx, const endpoint_type &ep,const bool reuse_addr = true) :
+        basic_socket_acceptor(io_context &ctx, const endpoint_type &ep, const bool reuse_addr = true) :
             executor_(ctx.get_executor()), protocol_(protocol_type::v4()), impl_(implements::create_socket_impl()) {
             open(ep.protocol());
             if (reuse_addr) {

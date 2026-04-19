@@ -2,9 +2,9 @@
 #define RAINY_FOUNDATION_IO_NET_SSL_STREAM_HPP
 
 #include <rainy/foundation/io/net/executor/async_result.hpp>
+#include <rainy/foundation/io/net/socket.hpp>
 #include <rainy/foundation/io/net/ssl/context.hpp>
 #include <rainy/foundation/memory/nebula_ptr.hpp>
-#include <rainy/foundation/io/net/socket.hpp>
 
 namespace rainy::foundation::io::net::ssl {
     template <typename NextLayer>
@@ -14,23 +14,20 @@ namespace rainy::foundation::io::net::ssl {
         using executor_type = typename next_layer_type::executor_type;
         using native_handle_type = void *;
 
-        explicit ssl_stream(NextLayer &&next, context &ctx)
-            : next_layer_(utility::forward<NextLayer>(next)), context_(ctx) {
+        explicit ssl_stream(NextLayer &&next, context &ctx) : next_layer_(utility::forward<NextLayer>(next)), context_(ctx) {
             impl_ = implements::create_ssl_stream_impl();
             attach_socket();
         }
 
-        explicit ssl_stream(NextLayer &next, context &ctx)
-            : next_layer_(next), context_(ctx) {
+        explicit ssl_stream(NextLayer &next, context &ctx) : next_layer_(next), context_(ctx) {
             impl_ = implements::create_ssl_stream_impl();
             attach_socket();
         }
 
-        ssl_stream(ssl_stream &&other) noexcept
-            : next_layer_(utility::move(other.next_layer_)),
-              context_(other.context_),
-              impl_(utility::move(other.impl_)),
-              server_name_(utility::move(other.server_name_)) {}
+        ssl_stream(ssl_stream &&other) noexcept :
+            next_layer_(utility::move(other.next_layer_)), context_(other.context_), impl_(utility::move(other.impl_)),
+            server_name_(utility::move(other.server_name_)) {
+        }
 
         ssl_stream &operator=(ssl_stream &&other) noexcept {
             if (this != &other) {
@@ -84,7 +81,7 @@ namespace rainy::foundation::io::net::ssl {
                 return;
             }
 
-            if (!context_.native_handle()) {
+            if (context_.is_server() && !context_.native_handle()) {
                 ec = std::make_error_code(std::errc::invalid_argument);
                 return;
             }
@@ -97,25 +94,20 @@ namespace rainy::foundation::io::net::ssl {
             if (!server_name_.empty()) {
                 impl_->set_server_name(server_name_.c_str());
             }
-
             ec = impl_->handshake();
         }
 
         template <typename CompletionToken>
         auto async_handshake(CompletionToken &&token) ->
             typename async_result<std::decay_t<CompletionToken>, void(std::error_code)>::return_type {
-
             using token_t = std::decay_t<CompletionToken>;
             async_completion<token_t, void(std::error_code)> init(token);
             auto handler = utility::move(init.completion_handler);
-
-            // 先应用 context 和 SNI（这些是同步操作）
             if (!impl_ || !is_open() || !context_.native_handle()) {
                 std::error_code ec = std::make_error_code(std::errc::not_connected);
                 handler(ec);
                 return init.result.get();
             }
-
             if (auto err = impl_->apply_context(context_.get_params()); err) {
                 handler(err);
                 return init.result.get();
@@ -136,10 +128,7 @@ namespace rainy::foundation::io::net::ssl {
                 }
                 handler(ec);
             });
-
-            // 调用底层异步握手
-            impl_->async_handshake(*next_layer_.get_executor().context().impl_, op);
-
+            impl_->async_handshake(next_layer_.get_executor().context().under_impl(), op);
             return init.result.get();
         }
 
@@ -269,7 +258,7 @@ namespace rainy::foundation::io::net::ssl {
                 handler(ec, r.bytes_transferred);
             });
 
-            impl_->async_write_some(buf.data(), buf.size(), *next_layer_.get_executor().context().impl_, op);
+            impl_->async_write_some(buf.data(), buf.size(), next_layer_.get_executor().context().under_impl(), op);
 
             return init.result.get();
         }
@@ -300,7 +289,7 @@ namespace rainy::foundation::io::net::ssl {
                 handler(ec, r.bytes_transferred);
             });
 
-            impl_->async_read_some(buf.data(), buf.size(), *next_layer_.get_executor().context().impl_, op);
+            impl_->async_read_some(buf.data(), buf.size(), next_layer_.get_executor().context().under_impl(), op);
 
             return init.result.get();
         }
@@ -321,7 +310,8 @@ namespace rainy::foundation::io::net::ssl {
         void attach_socket() {
             if (impl_ && next_layer_.is_open()) {
                 implements::native_socket_t sock = next_layer_.native_handle();
-                impl_->attach(sock, false); // false = client mode
+                utility::ignore = impl_->attach(sock, context_.is_server());
+                utility::ignore = impl_->apply_context(context_.get_params());
             }
         }
 

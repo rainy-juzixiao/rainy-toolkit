@@ -3,14 +3,14 @@
 
 #include <rainy/collections/vector.hpp>
 #include <rainy/core/core.hpp>
-#include <rainy/foundation/io/net/implements/ssl_context.hpp>
+#include <rainy/foundation/io/net/implements/ssl_impl.hpp>
 
 namespace rainy::foundation::io::net::ssl {
     RAINY_INLINE verify_mode operator|(verify_mode a, verify_mode b) {
         return static_cast<verify_mode>(static_cast<int>(a) | static_cast<int>(b));
     }
 
-    class certificate_options {
+    class RAINY_TOOLKIT_API certificate_options {
     public:
         friend class context;
 
@@ -36,7 +36,7 @@ namespace rainy::foundation::io::net::ssl {
         bool use_linux_store_flag = false;
     };
 
-    class context {
+    class RAINY_TOOLKIT_API context {
     public:
         template <typename>
         friend class ssl_stream;
@@ -55,13 +55,15 @@ namespace rainy::foundation::io::net::ssl {
         void set_alpn_protos(const collections::vector<text::string> &protos);
         std::error_code load_certificate(const certificate_options &opts);
         std::error_code use_private_key(const certificate_options &opts);
-
+        RAINY_NODISCARD bool is_server() const noexcept;
         void *native_handle();
         void set_session_cache_size(std::size_t size);
+        RAINY_NODISCARD const collections::vector<text::string>& alpn_protos() const;
+        ssl::verify_mode verify_mode() const noexcept;
 
     private:
         implements::ssl_context_params get_params() noexcept {
-            return {impl_->native_handle(), impl_->priority_cache(), static_cast<int>(impl_->verify_mode()),
+            return {impl_->native_handle(), static_cast<int>(impl_->verify_mode()),
                     impl_->verify_depth(),  impl_->alpn_protos(),    impl_->is_server()};
         }
 

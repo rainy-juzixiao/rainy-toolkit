@@ -141,7 +141,6 @@ namespace rainy::foundation::io::filesystem::implements {
             return static_cast<std::size_t>(read);
         }
 
-
         std::size_t write_some_at(net::const_buffer buf, std::uint64_t offset, std::error_code &ec) noexcept override {
             OVERLAPPED ov{};
             ov.Offset = static_cast<DWORD>(offset & 0xFFFF'FFFF);

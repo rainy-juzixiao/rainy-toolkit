@@ -74,9 +74,9 @@ namespace rainy::foundation::io::net::ip::implements {
         std::memcpy(native.s6_addr, in.data, 16);
         return ::inet_ntop(AF_INET6, &native, buf, static_cast<socklen_t>(buf_size)) != nullptr;
     }
-    
-    std::error_code resolve(const char *host, const char *service, int family, int socktype, int protocol, int flags,
-                            collections::vector<resolved_entry> &out) noexcept {
+
+    std::error_code resolve(const char *host, const char *service, const int family, const int socktype, const int protocol,
+                            const int flags, collections::vector<resolved_entry> &out) noexcept {
         addrinfo hints{};
         hints.ai_family = family;
         hints.ai_socktype = socktype;
@@ -84,14 +84,11 @@ namespace rainy::foundation::io::net::ip::implements {
         hints.ai_flags = flags;
 
         addrinfo *result = nullptr;
-        const int ret = ::getaddrinfo(host, service, &hints, &result);
-
-        if (ret != 0) {
-            return std::error_code(ret, std::generic_category());
+        if (const int ret = ::getaddrinfo(host, service, &hints, &result); ret != 0) {
+            return {ret, std::generic_category()};
         }
-
         out.clear();
-        for (addrinfo *rp = result; rp != nullptr; rp = rp->ai_next) {
+        for (const addrinfo *rp = result; rp != nullptr; rp = rp->ai_next) {
             resolved_entry entry{};
             entry.family = rp->ai_family;
             entry.socktype = rp->ai_socktype;
@@ -111,11 +108,11 @@ namespace rainy::foundation::io::net::ip::implements {
         }
 
         ::freeaddrinfo(result);
-        return std::error_code();
+        return {};
     }
 
-    std::error_code reverse_resolve(const void *addr_data, int addr_len, char *host_buf, std::size_t host_buf_size, char *svc_buf,
-                                    std::size_t svc_buf_size) noexcept {
+    std::error_code reverse_resolve(const void *addr_data, const int addr_len, char *host_buf, const std::size_t host_buf_size,
+                                    char *svc_buf, const std::size_t svc_buf_size) noexcept {
         if (addr_data == nullptr || host_buf == nullptr || host_buf_size == 0) {
             return std::make_error_code(std::errc::invalid_argument);
         }
@@ -127,9 +124,9 @@ namespace rainy::foundation::io::net::ip::implements {
                                       svc_buf, static_cast<socklen_t>(svc_buf_size), NI_NUMERICHOST | NI_NUMERICSERV);
 
         if (ret != 0) {
-            return std::error_code(ret, std::generic_category());
+            return {ret, std::generic_category()};
         }
 
-        return std::error_code();
+        return {};
     }
 }

@@ -72,7 +72,6 @@ namespace rainy::foundation::io::net::implements {
             std::size_t total = 0;
             in_event_loop_ = true;
             while (!stopped_.load(concurrency::memory_order_acquire)) {
-                // 先把本地即时队列清空
                 total += drain_ready_queue();
                 if (stopped_.load(concurrency::memory_order_acquire)) {
                     break;
@@ -107,12 +106,12 @@ namespace rainy::foundation::io::net::implements {
                 in_event_loop_ = false;
                 return 0;
             }
-            std::size_t n = harvest(1, nullptr);
+            const std::size_t n = harvest(1, nullptr);
             in_event_loop_ = false;
             return n;
         }
 
-        std::size_t run_one_for(std::uint64_t timeout_ns) override {
+        std::size_t run_one_for(const std::uint64_t timeout_ns) override {
             in_event_loop_ = true;
             std::size_t n = 0;
             if (!stopped_.load(concurrency::memory_order_acquire)) {
@@ -217,7 +216,7 @@ namespace rainy::foundation::io::net::implements {
         }
 
     private:
-        std::size_t harvest(unsigned wait_nr, ::__kernel_timespec *timeout) {
+        std::size_t harvest(const unsigned int wait_nr, ::__kernel_timespec *timeout) {
             std::size_t total = drain_ready_queue();
             io_uring_cqe *cqe = nullptr;
             int ret = 0;
@@ -239,9 +238,13 @@ namespace rainy::foundation::io::net::implements {
                     op_result result{};
                     result.user_data = op;
                     result.bytes_transferred = (cqe->res >= 0) ? static_cast<std::size_t>(cqe->res) : 0;
-                    result.error_code = (cqe->res < 0) ? -cqe->res : 0;
-                    op->complete(result,
-                                 /*cancelled=*/result.error_code == ECANCELED);
+                    if (cqe->res == -EINPROGRESS) {
+                        result.error_code = 0;
+                    } else {
+                        result.error_code = (cqe->res < 0) ? -cqe->res : 0;
+                    }
+
+                    op->complete(result, result.error_code == ECANCELED);
                     ++total;
                 }
                 ++cqe_count;
