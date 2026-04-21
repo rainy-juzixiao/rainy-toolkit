@@ -15,12 +15,12 @@
  */
 #ifndef RAINY_FOUNDATION_IO_NET_EXECUTOR_BIND_EXECUTOR_HPP
 #define RAINY_FOUNDATION_IO_NET_EXECUTOR_BIND_EXECUTOR_HPP
+#include <rainy/foundation/io/fwd.hpp>
 #include <rainy/core/core.hpp>
 #include <rainy/foundation/io/net/executor/associated_allocator.hpp>
 #include <rainy/foundation/io/net/executor/associated_executor.hpp>
 #include <rainy/foundation/io/net/executor/async_result.hpp>
 #include <rainy/foundation/io/net/executor/executor_trait.hpp>
-#include <rainy/foundation/io/net/fwd.hpp>
 
 namespace rainy::foundation::io::net::implements {
     template <typename Ty, typename = void>

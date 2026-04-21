@@ -1,10 +1,10 @@
 #ifndef RAINY_FOUNDATION_IO_FILESYSTEM_STREAMFILE_HPP
 #define RAINY_FOUNDATION_IO_FILESYSTEM_STREAMFILE_HPP
+#include <rainy/foundation/io/io_context.hpp>
 #include <cstdint>
 #include <filesystem>
 #include <rainy/foundation/io/filesystem/fwd.hpp>
 #include <rainy/foundation/io/net/buffer.hpp>
-#include <rainy/foundation/io/net/io_context.hpp>
 #include <system_error>
 
 namespace rainy::foundation::io::filesystem::implements {

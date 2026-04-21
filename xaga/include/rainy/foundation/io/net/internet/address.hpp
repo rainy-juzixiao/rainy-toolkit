@@ -16,7 +16,6 @@
 #ifndef RAINY_FOUNDATION_IO_NET_IO_INTERNET_ADDRESS_HPP
 #define RAINY_FOUNDATION_IO_NET_IO_INTERNET_ADDRESS_HPP
 #include <rainy/core/core.hpp>
-#include <rainy/foundation/io/net/fwd.hpp>
 #include <rainy/foundation/io/net/implements/addr.hpp>
 
 namespace rainy::foundation::exceptions::net {

@@ -1,8 +1,8 @@
+#include <rainy/foundation/io/timer.hpp>
 #include <rainy/collections/vector.hpp>
 #include <rainy/core/core.hpp>
 #include <rainy/foundation/concurrency/concurrency.hpp>
 #include <rainy/foundation/io/net/ssl/stream.hpp>
-#include <rainy/foundation/io/net/timer.hpp>
 
 #include "rainy/foundation/io/net/internet.hpp"
 #if RAINY_USING_WINDOWS

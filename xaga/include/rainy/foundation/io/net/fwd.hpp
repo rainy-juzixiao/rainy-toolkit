@@ -15,35 +15,9 @@
  */
 #ifndef RAINY_FOUNDATION_IO_NET_FWD_HPP
 #define RAINY_FOUNDATION_IO_NET_FWD_HPP
-#include <chrono>
+#include <rainy/foundation/io/fwd.hpp>
 
 namespace rainy::foundation::io::net {
-    class execution_context;
-
-    template <class T, class Executor>
-    class executor_binder;
-
-    template <class Executor>
-    class executor_work_guard;
-
-    class system_executor;
-    class executor;
-
-    template <class Executor>
-    class strand;
-
-    class io_context;
-
-    template <typename Clock>
-    struct wait_traits;
-
-    template <typename Clock, typename WaitTraits = wait_traits<Clock>>
-    class basic_waitable_timer;
-
-    using system_timer = basic_waitable_timer<std::chrono::system_clock>;
-    using steady_timer = basic_waitable_timer<std::chrono::steady_clock>;
-    using high_resolution_timer = basic_waitable_timer<std::chrono::high_resolution_clock>;
-
     template <typename Protocol>
     class basic_socket;
 

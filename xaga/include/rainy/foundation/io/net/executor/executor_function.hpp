@@ -16,7 +16,6 @@
 #ifndef RAINY_FOUNDATION_IO_NET_EXECUTOR_FUNCTION_HPP
 #define RAINY_FOUNDATION_IO_NET_EXECUTOR_FUNCTION_HPP
 #include <rainy/foundation/memory/recycling_allocator.hpp>
-#include <rainy/foundation/io/net/fwd.hpp>
 
 namespace rainy::foundation::io::net::implements {
     class executor_function_base {

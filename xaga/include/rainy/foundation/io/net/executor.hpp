@@ -18,6 +18,8 @@
 
 // NOLINTBEGIN
 
+#include <rainy/foundation/io/net/fwd.hpp>
+
 #include <rainy/core/core.hpp>
 #include <rainy/foundation/concurrency/atomic.hpp>
 #include <rainy/foundation/io/net/executor/associated_allocator.hpp>
@@ -33,7 +35,6 @@
 #include <rainy/foundation/io/net/executor/system_context.hpp>
 #include <rainy/foundation/io/net/executor/system_executor.hpp>
 #include <rainy/foundation/io/net/executor/work_dispatcher.hpp>
-#include <rainy/foundation/io/net/fwd.hpp>
 
 // NOLINTEND
 

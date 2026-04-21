@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef RAINY_FOUNDATION_IO_NET_TIMER_HPP
-#define RAINY_FOUNDATION_IO_NET_TIMER_HPP
-#include <rainy/foundation/io/net/fwd.hpp>
-#include <rainy/foundation/io/net/io_context.hpp>
+#ifndef RAINY_FOUNDATION_IO_TIMER_HPP
+#define RAINY_FOUNDATION_IO_TIMER_HPP
+#include <rainy/foundation/io/fwd.hpp>
+#include <rainy/foundation/io/io_context.hpp>
 #include <system_error>
 
 namespace rainy::foundation::io::net {

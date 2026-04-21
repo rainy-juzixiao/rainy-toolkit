@@ -15,10 +15,10 @@
  */
 #ifndef RAINY_FOUNDATION_IO_NET_BUFFER_HPP
 #define RAINY_FOUNDATION_IO_NET_BUFFER_HPP
+#include <rainy/foundation/io/fwd.hpp>
 #include <rainy/collections/vector.hpp>
 #include <rainy/core/core.hpp>
 #include <rainy/foundation/io/net/executor/async_result.hpp>
-#include <rainy/foundation/io/net/fwd.hpp>
 
 namespace rainy::foundation::io::net {
     enum class stream_errc : int {

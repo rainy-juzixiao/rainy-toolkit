@@ -342,7 +342,7 @@ namespace rainy::foundation::io::net::ip {
         }
 
         void cancel() {
-            cancelled_.store(true, std::memory_order_release);
+            cancelled_.store(true, concurrency::memory_order_release);
         }
 
         results_type resolve(text::string_view host_name, text::string_view service_name) {
@@ -473,7 +473,7 @@ namespace rainy::foundation::io::net::ip {
     private:
         results_type do_resolve(const protocol_type &protocol, text::string_view host_name, text::string_view service_name, flags f,
                                 std::error_code &ec) {
-            if (cancelled_.load(std::memory_order_acquire)) {
+            if (cancelled_.load(concurrency::memory_order_acquire)) {
                 ec = std::make_error_code(std::errc::operation_canceled);
                 return {};
             }
@@ -499,7 +499,7 @@ namespace rainy::foundation::io::net::ip {
         }
 
         results_type do_reverse_resolve(const endpoint_type &e, std::error_code &ec) {
-            if (cancelled_.load(std::memory_order_acquire)) {
+            if (cancelled_.load(concurrency::memory_order_acquire)) {
                 ec = std::make_error_code(std::errc::operation_canceled);
                 return {};
             }

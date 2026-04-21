@@ -17,8 +17,8 @@
 #define RAINY_FOUNDATION_IO_NET_EXECUTYOR_OPERATION_HPP
 #include <rainy/core/core.hpp>
 #include <rainy/foundation/io/net/fwd.hpp>
-#include <rainy/foundation/memory/recycling_allocator.hpp>
 #include <rainy/foundation/io/net/implements/handler_tracking.hpp>
+#include <rainy/foundation/memory/recycling_allocator.hpp>
 
 namespace rainy::foundation::io::net::implements {
     template <typename Function, typename Context>

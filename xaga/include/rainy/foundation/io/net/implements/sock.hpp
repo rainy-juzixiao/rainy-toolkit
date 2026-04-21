@@ -16,11 +16,9 @@
 #ifndef RAINY_FOUNDATION_IO_NET_IMPLEMENTS_SOCK_HPP
 #define RAINY_FOUNDATION_IO_NET_IMPLEMENTS_SOCK_HPP
 
+#include <rainy/foundation/io/io_context.hpp>
 #include <cstddef>
 #include <cstdint>
-#include <functional>
-#include <memory>
-#include <rainy/foundation/io/net/io_context.hpp>
 #include <system_error>
 
 namespace rainy::foundation::io::net::implements {
