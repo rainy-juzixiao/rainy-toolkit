@@ -9,6 +9,7 @@
 namespace fs = std::filesystem;
 
 using namespace rainy;
+using namespace rainy::foundation;
 using namespace rainy::foundation::io;
 using namespace rainy::foundation::io::filesystem;
 using namespace rainy::foundation::io::net;
@@ -120,7 +121,7 @@ SCENARIO_METHOD(StreamFileFixture, "stream_file read operations", "[stream_file]
 
         WHEN("reading from the beginning") {
             std::vector<char> buffer(10);
-            net::mutable_buffer buf(buffer.data(), buffer.size());
+            mutable_buffer buf(buffer.data(), buffer.size());
             std::error_code ec;
 
             auto bytes_read = file.read_some(buf, ec);
@@ -139,8 +140,8 @@ SCENARIO_METHOD(StreamFileFixture, "stream_file read operations", "[stream_file]
         WHEN("reading multiple times sequentially") {
             std::vector<char> buffer1(5);
             std::vector<char> buffer2(5);
-            net::mutable_buffer buf1(buffer1.data(), buffer1.size());
-            net::mutable_buffer buf2(buffer2.data(), buffer2.size());
+            mutable_buffer buf1(buffer1.data(), buffer1.size());
+            mutable_buffer buf2(buffer2.data(), buffer2.size());
             std::error_code ec;
 
             auto bytes_read1 = file.read_some(buf1, ec);
@@ -157,7 +158,7 @@ SCENARIO_METHOD(StreamFileFixture, "stream_file read operations", "[stream_file]
 
         WHEN("reading past the end of file") {
             std::vector<char> buffer(test_content.size() + 100);
-            net::mutable_buffer buf(buffer.data(), buffer.size());
+            mutable_buffer buf(buffer.data(), buffer.size());
             std::error_code ec;
 
             auto bytes_read = file.read_some(buf, ec);
@@ -174,7 +175,7 @@ SCENARIO_METHOD(StreamFileFixture, "stream_file read operations", "[stream_file]
 
             AND_THEN("subsequent reads return zero bytes") {
                 std::vector<char> empty_buffer(10);
-                net::mutable_buffer empty_buf(empty_buffer.data(), empty_buffer.size());
+                mutable_buffer empty_buf(empty_buffer.data(), empty_buffer.size());
                 auto more_bytes = file.read_some(empty_buf, ec);
                 REQUIRE(more_bytes == 0);
                 REQUIRE_FALSE(ec);
@@ -193,8 +194,8 @@ SCENARIO_METHOD(StreamFileFixture, "stream_file write operations", "[stream_file
         WHEN("writing data sequentially") {
             std::string data1 = "First chunk";
             std::string data2 = "Second chunk";
-            net::const_buffer buf1(data1.data(), data1.size());
-            net::const_buffer buf2(data2.data(), data2.size());
+            const_buffer buf1(data1.data(), data1.size());
+            const_buffer buf2(data2.data(), data2.size());
             std::error_code ec;
 
             auto bytes_written1 = file.write_some(buf1, ec);
@@ -217,8 +218,8 @@ SCENARIO_METHOD(StreamFileFixture, "stream_file write operations", "[stream_file
         WHEN("writing at different offsets using seek") {
             std::string initial = "Initial";
             std::string overwrite = "New";
-            net::const_buffer initial_buf(initial.data(), initial.size());
-            net::const_buffer overwrite_buf(overwrite.data(), overwrite.size());
+            const_buffer initial_buf(initial.data(), initial.size());
+            const_buffer overwrite_buf(overwrite.data(), overwrite.size());
             std::error_code ec;
 
             file.write_some(initial_buf, ec);
@@ -252,7 +253,7 @@ SCENARIO_METHOD(StreamFileFixture, "stream_file write operations", "[stream_file
 
         WHEN("writing to the file") {
             std::string appended = "Appended content\n";
-            net::const_buffer buf(appended.data(), appended.size());
+            const_buffer buf(appended.data(), appended.size());
             std::error_code ec;
 
             auto bytes_written = file.write_some(buf, ec);
@@ -291,7 +292,7 @@ SCENARIO_METHOD(StreamFileFixture, "stream_file seek operations", "[stream_file]
 
             AND_THEN("reading from that position returns the expected data") {
                 std::vector<char> buffer(5);
-                net::mutable_buffer buf(buffer.data(), buffer.size());
+                mutable_buffer buf(buffer.data(), buffer.size());
                 auto bytes_read = file.read_some(buf, ec);
                 REQUIRE(bytes_read == 5);
                 REQUIRE(std::string(buffer.data(), 5) == content.substr(5, 5));
@@ -324,7 +325,7 @@ SCENARIO_METHOD(StreamFileFixture, "stream_file seek operations", "[stream_file]
 
             AND_THEN("reading from that position returns the last 5 bytes") {
                 std::vector<char> buffer(5);
-                net::mutable_buffer buf(buffer.data(), buffer.size());
+                mutable_buffer buf(buffer.data(), buffer.size());
                 auto bytes_read = file.read_some(buf, ec);
                 REQUIRE(bytes_read == 5);
                 REQUIRE(std::string(buffer.data(), 5) == content.substr(content.size() - 5));
@@ -368,7 +369,7 @@ SCENARIO_METHOD(StreamFileFixture, "stream_file async operations", "[stream_file
             std::size_t bytes_transferred = 0;
             collections::vector<char> buffer(10);
 
-            file.async_read_some(net::buffer(buffer), [&](std::error_code ec, std::size_t transferred) {
+            file.async_read_some(io::buffer(buffer), [&](std::error_code ec, std::size_t transferred) {
                 async_ec = ec;
                 bytes_transferred = transferred;
                 completed = true;
@@ -398,7 +399,7 @@ SCENARIO_METHOD(StreamFileFixture, "stream_file async operations", "[stream_file
             std::size_t bytes_transferred = 0;
             foundation::text::string write_data = "Async write test";
 
-            file.async_write_some(net::buffer(write_data), [&](std::error_code ec, std::size_t transferred) {
+            file.async_write_some(io::buffer(write_data), [&](std::error_code ec, std::size_t transferred) {
                 async_ec = ec;
                 bytes_transferred = transferred;
                 completed = true;
@@ -427,7 +428,7 @@ SCENARIO_METHOD(StreamFileFixture, "stream_file move semantics", "[stream_file][
         setup();
         create_test_file("Test content");
         stream_file file1(ctx, test_file_path, open_mode::read_only);
-        file1.read_some(net::buffer(std::vector<char>(5).data(), 5));
+        file1.read_some(io::buffer(std::vector<char>(5).data(), 5));
         auto offset1 = file1.tell();
 
         WHEN("moving to another stream_file") {

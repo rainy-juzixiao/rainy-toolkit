@@ -85,7 +85,7 @@ namespace rainy::foundation::io::filesystem::implements {
             return fd_ >= 0;
         }
 
-        std::size_t read_some_at(net::mutable_buffer buf, std::uint64_t offset, std::error_code &ec) noexcept override {
+        std::size_t read_some_at(mutable_buffer buf, std::uint64_t offset, std::error_code &ec) noexcept override {
             const ssize_t n = ::pread(fd_, buf.data(), buf.size(), static_cast<::off_t>(offset));
             if (n < 0) {
                 ec.assign(errno, std::system_category());
@@ -94,7 +94,7 @@ namespace rainy::foundation::io::filesystem::implements {
             return static_cast<std::size_t>(n);
         }
 
-        std::size_t write_some_at(net::const_buffer buf, std::uint64_t offset, std::error_code &ec) noexcept override {
+        std::size_t write_some_at(const_buffer buf, std::uint64_t offset, std::error_code &ec) noexcept override {
             const ssize_t n = ::pwrite(fd_, buf.data(), buf.size(), static_cast<::off_t>(offset));
             if (n < 0) {
                 ec.assign(errno, std::system_category());
@@ -103,7 +103,7 @@ namespace rainy::foundation::io::filesystem::implements {
             return static_cast<std::size_t>(n);
         }
 
-        void async_read_some_at(net::mutable_buffer buf, std::uint64_t offset, io_context_impl_base &ctx,
+        void async_read_some_at(mutable_buffer buf, std::uint64_t offset, io_context_impl_base &ctx,
                                 completion_op *op) noexcept override {
             const int fd = fd_;
             get_executor().submit([fd, buf, offset, op]() mutable {
@@ -121,7 +121,7 @@ namespace rainy::foundation::io::filesystem::implements {
             });
         }
 
-        void async_write_some_at(net::const_buffer buf, std::uint64_t offset, io_context_impl_base &ctx,
+        void async_write_some_at(const_buffer buf, std::uint64_t offset, io_context_impl_base &ctx,
                                  completion_op *op) noexcept override {
             const int fd = fd_;
             get_executor().submit([fd, buf, offset, op]() mutable {

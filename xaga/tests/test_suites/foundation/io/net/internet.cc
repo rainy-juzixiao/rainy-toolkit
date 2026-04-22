@@ -23,8 +23,7 @@ using namespace rainy::foundation::io::net::ip;
 
 // NOLINTBEGIN
 
-SCENARIO("tcp::v4() returns a valid IPv4 TCP protocol descriptor",
-         "[internet][tcp][v4]") {
+SCENARIO("tcp::v4() returns a valid IPv4 TCP protocol descriptor", "[internet][tcp][v4]") {
 
     GIVEN("tcp::v4()") {
         constexpr auto proto = tcp::v4();
@@ -41,8 +40,7 @@ SCENARIO("tcp::v4() returns a valid IPv4 TCP protocol descriptor",
     }
 }
 
-SCENARIO("tcp::v6() returns a valid IPv6 TCP protocol descriptor",
-         "[internet][tcp][v6]") {
+SCENARIO("tcp::v6() returns a valid IPv6 TCP protocol descriptor", "[internet][tcp][v6]") {
 
     GIVEN("tcp::v6()") {
         constexpr auto proto = tcp::v6();
@@ -89,8 +87,7 @@ SCENARIO("two tcp::v4() instances are equal", "[internet][tcp][equality]") {
     }
 }
 
-SCENARIO("udp::v4() returns a valid IPv4 UDP protocol descriptor",
-         "[internet][udp][v4]") {
+SCENARIO("udp::v4() returns a valid IPv4 UDP protocol descriptor", "[internet][udp][v4]") {
 
     GIVEN("udp::v4()") {
         constexpr auto proto = udp::v4();
@@ -107,8 +104,7 @@ SCENARIO("udp::v4() returns a valid IPv4 UDP protocol descriptor",
     }
 }
 
-SCENARIO("udp::v6() returns a valid IPv6 UDP protocol descriptor",
-         "[internet][udp][v6]") {
+SCENARIO("udp::v6() returns a valid IPv6 UDP protocol descriptor", "[internet][udp][v6]") {
 
     GIVEN("udp::v6()") {
         constexpr auto proto = udp::v6();
@@ -205,8 +201,7 @@ SCENARIO("tcp endpoint can be default constructed", "[internet][endpoint][tcp]")
     }
 }
 
-SCENARIO("tcp endpoint can be constructed from protocol and port",
-         "[internet][endpoint][tcp]") {
+SCENARIO("tcp endpoint can be constructed from protocol and port", "[internet][endpoint][tcp]") {
 
     GIVEN("tcp::endpoint constructed with v4 protocol and port 8080") {
         tcp::endpoint ep{tcp::v4(), 8080};
@@ -237,8 +232,7 @@ SCENARIO("tcp endpoint can be constructed from protocol and port",
     }
 }
 
-SCENARIO("tcp endpoint can be constructed from address and port",
-         "[internet][endpoint][tcp]") {
+SCENARIO("tcp endpoint can be constructed from address and port", "[internet][endpoint][tcp]") {
 
     GIVEN("tcp::endpoint with loopback IPv4 address and port 80") {
         tcp::endpoint ep{address_v4::loopback(), 80};
@@ -275,8 +269,7 @@ SCENARIO("tcp endpoint can be constructed from address and port",
     }
 }
 
-SCENARIO("tcp endpoint address and port can be changed after construction",
-         "[internet][endpoint][mutation]") {
+SCENARIO("tcp endpoint address and port can be changed after construction", "[internet][endpoint][mutation]") {
 
     GIVEN("a tcp::endpoint with initial values") {
         tcp::endpoint ep{address_v4::loopback(), 1234};
@@ -313,8 +306,7 @@ SCENARIO("tcp endpoint address and port can be changed after construction",
     }
 }
 
-SCENARIO("tcp endpoints support equality comparison",
-         "[internet][endpoint][comparison]") {
+SCENARIO("tcp endpoints support equality comparison", "[internet][endpoint][comparison]") {
 
     GIVEN("two identical tcp endpoints") {
         tcp::endpoint a{address_v4::loopback(), 80};
@@ -345,7 +337,7 @@ SCENARIO("tcp endpoints support equality comparison",
 
     GIVEN("two tcp endpoints with different addresses") {
         tcp::endpoint a{address_v4::loopback(), 80};
-        tcp::endpoint b{address_v4::any(),      80};
+        tcp::endpoint b{address_v4::any(), 80};
 
         THEN("operator== returns false") {
             REQUIRE_FALSE(a == b);
@@ -353,8 +345,7 @@ SCENARIO("tcp endpoints support equality comparison",
     }
 }
 
-SCENARIO("tcp endpoints support ordering operators",
-         "[internet][endpoint][ordering]") {
+SCENARIO("tcp endpoints support ordering operators", "[internet][endpoint][ordering]") {
 
     GIVEN("endpoints with ports 80 and 443") {
         tcp::endpoint lo{address_v4::loopback(), 80};
@@ -381,14 +372,13 @@ SCENARIO("tcp endpoints support ordering operators",
     }
 }
 
-SCENARIO("tcp endpoint survives a to_raw / from_raw round-trip",
-         "[internet][endpoint][raw]") {
+SCENARIO("tcp endpoint survives a to_raw / from_raw round-trip", "[internet][endpoint][raw]") {
 
     GIVEN("a tcp::endpoint with known address and port") {
         tcp::endpoint original{address_v4::loopback(), 9090};
 
         WHEN("converted to raw and back") {
-            auto raw      = original.to_raw();
+            auto raw = original.to_raw();
             auto restored = tcp::endpoint::from_raw(raw);
 
             THEN("port is preserved") {
@@ -398,8 +388,7 @@ SCENARIO("tcp endpoint survives a to_raw / from_raw round-trip",
                 REQUIRE(restored.address() == original.address());
             }
             THEN("protocol family is preserved") {
-                REQUIRE(restored.protocol().family() ==
-                        original.protocol().family());
+                REQUIRE(restored.protocol().family() == original.protocol().family());
             }
         }
     }
@@ -408,7 +397,7 @@ SCENARIO("tcp endpoint survives a to_raw / from_raw round-trip",
         tcp::endpoint original{address_v6::loopback(), 443};
 
         WHEN("converted to raw and back") {
-            auto raw      = original.to_raw();
+            auto raw = original.to_raw();
             auto restored = tcp::endpoint::from_raw(raw);
 
             THEN("port is preserved") {
@@ -422,8 +411,7 @@ SCENARIO("tcp endpoint survives a to_raw / from_raw round-trip",
     }
 }
 
-SCENARIO("udp endpoint behaves consistently with tcp endpoint",
-         "[internet][endpoint][udp]") {
+SCENARIO("udp endpoint behaves consistently with tcp endpoint", "[internet][endpoint][udp]") {
 
     GIVEN("a udp::endpoint with loopback and port 53") {
         udp::endpoint ep{address_v4::loopback(), 53};
@@ -444,7 +432,7 @@ SCENARIO("udp endpoint behaves consistently with tcp endpoint",
 
     GIVEN("a udp::endpoint round-trip through raw") {
         udp::endpoint original{address_v4::loopback(), 53};
-        auto raw      = original.to_raw();
+        auto raw = original.to_raw();
         auto restored = udp::endpoint::from_raw(raw);
 
         THEN("port is preserved") {
@@ -456,8 +444,7 @@ SCENARIO("udp endpoint behaves consistently with tcp endpoint",
     }
 }
 
-SCENARIO("endpoint size reflects the address family",
-         "[internet][endpoint][size]") {
+SCENARIO("endpoint size reflects the address family", "[internet][endpoint][size]") {
 
     GIVEN("an IPv4 tcp endpoint") {
         tcp::endpoint ep{address_v4::loopback(), 80};
@@ -482,8 +469,7 @@ SCENARIO("endpoint size reflects the address family",
     }
 }
 
-SCENARIO("endpoint data() returns a non-null pointer",
-         "[internet][endpoint][data]") {
+SCENARIO("endpoint data() returns a non-null pointer", "[internet][endpoint][data]") {
 
     GIVEN("an open tcp endpoint") {
         tcp::endpoint ep{address_v4::loopback(), 8080};
@@ -498,50 +484,40 @@ SCENARIO("endpoint data() returns a non-null pointer",
     }
 }
 
-SCENARIO("tcp type aliases resolve to the correct socket types",
-         "[internet][tcp][types]") {
+SCENARIO("tcp type aliases resolve to the correct socket types", "[internet][tcp][types]") {
 
     GIVEN("the tcp type aliases") {
         THEN("tcp::socket is basic_stream_socket<tcp>") {
-            REQUIRE((std::is_same_v<tcp::socket,
-                                    basic_stream_socket<tcp>>));
+            REQUIRE((std::is_same_v<tcp::socket, basic_stream_socket<tcp>>) );
         }
         THEN("tcp::acceptor is basic_socket_acceptor<tcp>") {
-            REQUIRE((std::is_same_v<tcp::acceptor,
-                                    basic_socket_acceptor<tcp>>));
+            REQUIRE((std::is_same_v<tcp::acceptor, basic_socket_acceptor<tcp>>) );
         }
         THEN("tcp::endpoint is basic_endpoint<tcp>") {
-            REQUIRE((std::is_same_v<tcp::endpoint,
-                                    basic_endpoint<tcp>>));
+            REQUIRE((std::is_same_v<tcp::endpoint, basic_endpoint<tcp>>) );
         }
         THEN("tcp::resolver is basic_resolver<tcp>") {
-            REQUIRE((std::is_same_v<tcp::resolver,
-                                    basic_resolver<tcp>>));
+            REQUIRE((std::is_same_v<tcp::resolver, basic_resolver<tcp>>) );
         }
     }
 }
 
-SCENARIO("udp type aliases resolve to the correct socket types",
-         "[internet][udp][types]") {
+SCENARIO("udp type aliases resolve to the correct socket types", "[internet][udp][types]") {
 
     GIVEN("the udp type aliases") {
         THEN("udp::socket is basic_datagram_socket<udp>") {
-            REQUIRE((std::is_same_v<udp::socket,
-                                    basic_datagram_socket<udp>>));
+            REQUIRE((std::is_same_v<udp::socket, basic_datagram_socket<udp>>) );
         }
         THEN("udp::endpoint is basic_endpoint<udp>") {
-            REQUIRE((std::is_same_v<udp::endpoint,
-                                    basic_endpoint<udp>>));
+            REQUIRE((std::is_same_v<udp::endpoint, basic_endpoint<udp>>) );
         }
         THEN("udp::resolver is basic_resolver<udp>") {
-            REQUIRE((std::is_same_v<udp::resolver,
-                                    basic_resolver<udp>>));
+            REQUIRE((std::is_same_v<udp::resolver, basic_resolver<udp>>) );
         }
     }
 }
 
-SCENARIO("tcp client can connect to a listening server on loopback",
-         "[internet][tcp][network]") {
+SCENARIO("tcp client can connect to a listening server on loopback", "[internet][tcp][network]") {
 
     GIVEN("a tcp acceptor bound to loopback port 0 (OS assigns port)") {
         io_context ctx;
@@ -556,16 +532,16 @@ SCENARIO("tcp client can connect to a listening server on loopback",
         WHEN("a client connects and sends data") {
             constexpr std::string_view payload = "hello rainy";
             std::atomic<bool> server_done{false};
-            std::string       received;
+            std::string received;
             // 服务端：accept 一个连接，读取数据
             std::thread server_thread([&] {
                 std::error_code ec;
                 auto client_sock = acceptor.accept(ec);
-                if (ec) return;
+                if (ec)
+                    return;
 
                 char buf[64]{};
-                auto n = client_sock.read_some(
-                    io::net::buffer(buf, sizeof(buf)), ec);
+                auto n = client_sock.read_some(io::buffer(buf, sizeof(buf)), ec);
                 if (!ec && n > 0) {
                     received.assign(buf, n);
                 }
@@ -575,16 +551,14 @@ SCENARIO("tcp client can connect to a listening server on loopback",
             // 客户端：连接并发送
             tcp::socket client{ctx, tcp::v4()};
             std::error_code ec;
-            client.connect(
-                tcp::endpoint{address_v4::loopback(), assigned_port}, ec);
+            client.connect(tcp::endpoint{address_v4::loopback(), assigned_port}, ec);
 
             THEN("connect succeeds") {
                 REQUIRE_FALSE(ec);
             }
 
             if (!ec) {
-                client.write_some(
-                    io::net::buffer(payload.data(), payload.size()), ec);
+                client.write_some(io::buffer(payload.data(), payload.size()), ec);
 
                 THEN("send succeeds") {
                     REQUIRE_FALSE(ec);
@@ -605,8 +579,7 @@ SCENARIO("tcp client can connect to a listening server on loopback",
     }
 }
 
-SCENARIO("tcp acceptor bound to port 0 gets a dynamic port assigned",
-         "[internet][tcp][network]") {
+SCENARIO("tcp acceptor bound to port 0 gets a dynamic port assigned", "[internet][tcp][network]") {
 
     GIVEN("a tcp acceptor on v4 loopback port 0") {
         io_context ctx;
@@ -632,7 +605,7 @@ SCENARIO("tcp acceptor bound to port 0 gets a dynamic port assigned",
                 auto addr = ep.address();
                 // 如果返回的是 IPv6 未指定地址，验证实际能连接到回环
                 if (addr.is_v6() && addr.is_unspecified()) {
-                    tcp::socket client{ctx, tcp::v4()};  // 使用带 protocol 的构造函数
+                    tcp::socket client{ctx, tcp::v4()}; // 使用带 protocol 的构造函数
                     tcp::endpoint target{address_v4::loopback(), ep.port()};
                     client.connect(target, ec);
                     REQUIRE_FALSE(ec);
@@ -644,8 +617,7 @@ SCENARIO("tcp acceptor bound to port 0 gets a dynamic port assigned",
     }
 }
 
-SCENARIO("tcp echo: server sends back what it receives",
-         "[internet][tcp][network]") {
+SCENARIO("tcp echo: server sends back what it receives", "[internet][tcp][network]") {
 
     GIVEN("a tcp echo server on loopback") {
         io_context ctx;
@@ -662,9 +634,9 @@ SCENARIO("tcp echo: server sends back what it receives",
                 return;
             }
             char buf[128]{};
-            auto n = sock.read_some(io::net::buffer(buf, sizeof(buf)), ec);
+            auto n = sock.read_some(io::buffer(buf, sizeof(buf)), ec);
             if (!ec && n > 0) {
-                sock.write_some(io::net::buffer(buf, n), ec);
+                sock.write_some(io::buffer(buf, n), ec);
             }
         });
 
@@ -674,13 +646,11 @@ SCENARIO("tcp echo: server sends back what it receives",
             client.connect(tcp::endpoint{address_v4::loopback(), port}, ec);
             REQUIRE_FALSE(ec);
 
-            client.write_some(
-                io::net::buffer(msg.data(), msg.size()), ec);
+            client.write_some(io::buffer(msg.data(), msg.size()), ec);
             REQUIRE_FALSE(ec);
 
             char buf[128]{};
-            auto n = client.read_some(
-                io::net::buffer(buf, sizeof(buf)), ec);
+            auto n = client.read_some(io::buffer(buf, sizeof(buf)), ec);
 
             THEN("no error on receive") {
                 REQUIRE_FALSE(ec);
@@ -697,41 +667,36 @@ SCENARIO("tcp echo: server sends back what it receives",
     }
 }
 
-SCENARIO("udp socket can send and receive a datagram on loopback",
-         "[internet][udp][network]") {
+SCENARIO("udp socket can send and receive a datagram on loopback", "[internet][udp][network]") {
 
     GIVEN("a udp receiver bound to loopback port 0") {
         io_context ctx;
-        udp::socket receiver{ctx, udp::v4()};  // 使用带 protocol 的构造函数
+        udp::socket receiver{ctx, udp::v4()}; // 使用带 protocol 的构造函数
         std::error_code ec;
         receiver.bind(udp::endpoint{address_v4::loopback(), 0}, ec);
         REQUIRE_FALSE(ec);
 
-        auto recv_ep  = receiver.local_endpoint(ec);
+        auto recv_ep = receiver.local_endpoint(ec);
         REQUIRE_FALSE(ec);
         port_type port = recv_ep.port();
 
         WHEN("a sender sends a datagram to that port") {
             constexpr std::string_view payload = "udp hello";
 
-            udp::socket sender{ctx, udp::v4()};  // 使用带 protocol 的构造函数
+            udp::socket sender{ctx, udp::v4()}; // 使用带 protocol 的构造函数
             udp::endpoint dest{address_v4::loopback(), port};
 
-            sender.send_to(
-                io::net::buffer(payload.data(), payload.size()),
-                dest, ec);
+            sender.send_to(io::buffer(payload.data(), payload.size()), dest, ec);
 
             THEN("send_to succeeds") {
                 REQUIRE_FALSE(ec);
             }
 
             AND_WHEN("the receiver calls receive_from") {
-                char        buf[128]{};
+                char buf[128]{};
                 udp::endpoint sender_ep;
 
-                auto n = receiver.receive_from(
-                    io::net::buffer(buf, sizeof(buf)),
-                    sender_ep, ec);
+                auto n = receiver.receive_from(io::buffer(buf, sizeof(buf)), sender_ep, ec);
 
                 THEN("no error") {
                     REQUIRE_FALSE(ec);
@@ -758,8 +723,7 @@ SCENARIO("udp socket can send and receive a datagram on loopback",
     }
 }
 
-SCENARIO("udp socket can send multiple datagrams",
-         "[internet][udp][network]") {
+SCENARIO("udp socket can send multiple datagrams", "[internet][udp][network]") {
 
     GIVEN("a bound udp receiver") {
         io_context ctx;
@@ -776,7 +740,7 @@ SCENARIO("udp socket can send multiple datagrams",
             constexpr int COUNT = 3;
             const text::string messages[COUNT] = {"msg1", "msg2", "msg3"};
 
-            for (auto &m : messages) {
+            for (auto &m: messages) {
                 sender.send_to(buffer(m), dest, ec);
                 REQUIRE_FALSE(ec);
             }
@@ -784,8 +748,7 @@ SCENARIO("udp socket can send multiple datagrams",
             for (int i = 0; i < COUNT; ++i) {
                 char buf[64]{};
                 udp::endpoint from;
-                auto n = receiver.receive_from(
-                    io::net::buffer(buf, sizeof(buf)), from, ec);
+                auto n = receiver.receive_from(io::buffer(buf, sizeof(buf)), from, ec);
                 REQUIRE_FALSE(ec);
                 REQUIRE(std::string{buf, n} == messages[i]);
             }
@@ -797,8 +760,7 @@ SCENARIO("udp socket can send multiple datagrams",
     }
 }
 
-SCENARIO("tcp socket in non-blocking mode returns would-block on connect",
-         "[internet][tcp][non_blocking][network]") {
+SCENARIO("tcp socket in non-blocking mode returns would-block on connect", "[internet][tcp][non_blocking][network]") {
 
     GIVEN("an open tcp socket set to non-blocking") {
         io_context ctx;
@@ -820,8 +782,7 @@ SCENARIO("tcp socket in non-blocking mode returns would-block on connect",
     }
 }
 
-SCENARIO("tcp socket shutdown send side prevents further writes",
-         "[internet][tcp][shutdown][network]") {
+SCENARIO("tcp socket shutdown send side prevents further writes", "[internet][tcp][shutdown][network]") {
 
     GIVEN("a connected tcp socket pair") {
         io_context ctx;
@@ -835,9 +796,9 @@ SCENARIO("tcp socket shutdown send side prevents further writes",
                 // 读取直到 EOF
                 char buf[64]{};
                 while (true) {
-                    auto n = s.read_some(
-                        io::net::buffer(buf, sizeof(buf)), ec);
-                    if (ec || n == 0) break;
+                    auto n = s.read_some(io::buffer(buf, sizeof(buf)), ec);
+                    if (ec || n == 0)
+                        break;
                 }
             }
         });
@@ -856,12 +817,12 @@ SCENARIO("tcp socket shutdown send side prevents further writes",
         }
 
         client.close(ec);
-        if (server_thread.joinable()) server_thread.join();
+        if (server_thread.joinable())
+            server_thread.join();
     }
 }
 
-SCENARIO("tcp available() returns bytes ready to read after data is sent",
-         "[internet][tcp][available][network]") {
+SCENARIO("tcp available() returns bytes ready to read after data is sent", "[internet][tcp][available][network]") {
 
     GIVEN("a connected tcp socket with data pending") {
         io_context ctx;
@@ -874,8 +835,7 @@ SCENARIO("tcp available() returns bytes ready to read after data is sent",
             std::error_code ec;
             auto s = acceptor.accept(ec);
             if (!ec) {
-                s.write_some(
-                    io::net::buffer(payload.data(), payload.size()), ec);
+                s.write_some(io::buffer(payload.data(), payload.size()), ec);
                 // 等客户端读完再退出
                 std::this_thread::sleep_for(std::chrono::milliseconds(100));
             }

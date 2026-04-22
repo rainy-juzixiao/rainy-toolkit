@@ -1,5 +1,5 @@
 /*
-* Copyright 2026 rainy-juzixiao
+ * Copyright 2026 rainy-juzixiao
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <rainy/foundation/io/io_context.hpp>
 #include <rainy/foundation/io/filesystem/streamfile.hpp>
+#include <rainy/foundation/io/io_context.hpp>
 
 #include <fcntl.h>
 #include <liburing.h>
@@ -44,8 +44,7 @@ namespace rainy::foundation::io::filesystem::implements {
             close();
         }
 
-        std::error_code open(const std::filesystem::path &path, const open_mode mode,
-                             io_context_impl_base &ctx) noexcept override {
+        std::error_code open(const std::filesystem::path &path, const open_mode mode, io_context_impl_base &ctx) noexcept override {
             int flags = 0;
             // NOLINTBEGIN
             const bool r = has_flag(mode, open_mode::read_only);
@@ -103,7 +102,7 @@ namespace rainy::foundation::io::filesystem::implements {
             return fd_ >= 0;
         }
 
-        std::size_t read_some_at(const net::mutable_buffer buf, const std::uint64_t offset, std::error_code &ec) noexcept override {
+        std::size_t read_some_at(const mutable_buffer buf, const std::uint64_t offset, std::error_code &ec) noexcept override {
             const ssize_t n = ::pread(fd_, buf.data(), buf.size(), static_cast<::off_t>(offset));
             if (n < 0) {
                 ec.assign(errno, std::system_category());
@@ -112,7 +111,7 @@ namespace rainy::foundation::io::filesystem::implements {
             return static_cast<std::size_t>(n);
         }
 
-        std::size_t write_some_at(const net::const_buffer buf, const std::uint64_t offset, std::error_code &ec) noexcept override {
+        std::size_t write_some_at(const const_buffer buf, const std::uint64_t offset, std::error_code &ec) noexcept override {
             const ssize_t n = ::pwrite(fd_, buf.data(), buf.size(), static_cast<::off_t>(offset));
             if (n < 0) {
                 ec.assign(errno, std::system_category());
@@ -121,7 +120,7 @@ namespace rainy::foundation::io::filesystem::implements {
             return static_cast<std::size_t>(n);
         }
 
-        void async_read_some_at(const net::mutable_buffer buf, const std::uint64_t offset, io_context_impl_base &ctx,
+        void async_read_some_at(const mutable_buffer buf, const std::uint64_t offset, io_context_impl_base &ctx,
                                 completion_op *op) noexcept override {
             io_uring_sqe *sqe = get_sqe_from_op(op, ctx, fd_);
             if (!sqe) {
@@ -133,7 +132,7 @@ namespace rainy::foundation::io::filesystem::implements {
             submit_ring(op);
         }
 
-        void async_write_some_at(const net::const_buffer buf, const std::uint64_t offset, io_context_impl_base &ctx,
+        void async_write_some_at(const const_buffer buf, const std::uint64_t offset, io_context_impl_base &ctx,
                                  completion_op *op) noexcept override {
             io_uring_sqe *sqe = get_sqe_from_op(op, ctx, fd_);
             if (!sqe) {

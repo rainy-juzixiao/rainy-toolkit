@@ -59,8 +59,7 @@ namespace rainy::foundation::io::filesystem::implements {
             }
         }
 
-        std::error_code open(const std::filesystem::path &path, open_mode mode,
-                             net::implements::io_context_impl_base &ctx) noexcept override {
+        std::error_code open(const std::filesystem::path &path, open_mode mode, io_context_impl_base &ctx) noexcept override {
             if (is_open()) {
                 return std::error_code{ERROR_ALREADY_EXISTS, std::system_category()};
             }
@@ -107,7 +106,7 @@ namespace rainy::foundation::io::filesystem::implements {
             return handle_ != INVALID_HANDLE_VALUE;
         }
 
-        std::size_t read_some_at(net::mutable_buffer buf, std::uint64_t offset, std::error_code &ec) noexcept override {
+        std::size_t read_some_at(mutable_buffer buf, std::uint64_t offset, std::error_code &ec) noexcept override {
             OVERLAPPED ov{};
             ov.Offset = static_cast<DWORD>(offset & 0xFFFF'FFFF);
             ov.OffsetHigh = static_cast<DWORD>(offset >> 32);
@@ -141,7 +140,7 @@ namespace rainy::foundation::io::filesystem::implements {
             return static_cast<std::size_t>(read);
         }
 
-        std::size_t write_some_at(net::const_buffer buf, std::uint64_t offset, std::error_code &ec) noexcept override {
+        std::size_t write_some_at(const_buffer buf, std::uint64_t offset, std::error_code &ec) noexcept override {
             OVERLAPPED ov{};
             ov.Offset = static_cast<DWORD>(offset & 0xFFFF'FFFF);
             ov.OffsetHigh = static_cast<DWORD>(offset >> 32);
@@ -170,7 +169,7 @@ namespace rainy::foundation::io::filesystem::implements {
             return static_cast<std::size_t>(written);
         }
 
-        void async_read_some_at(net::mutable_buffer buf, std::uint64_t offset, net::implements::io_context_impl_base &ctx,
+        void async_read_some_at(mutable_buffer buf, std::uint64_t offset, io_context_impl_base &ctx,
                                 completion_op *op) noexcept override {
             bind_to_iocp(ctx);
             auto *iop = new file_iocp_op(op);
@@ -184,7 +183,7 @@ namespace rainy::foundation::io::filesystem::implements {
             }
         }
 
-        void async_write_some_at(net::const_buffer buf, std::uint64_t offset, net::implements::io_context_impl_base &ctx,
+        void async_write_some_at(const_buffer buf, std::uint64_t offset, io_context_impl_base &ctx,
                                  completion_op *op) noexcept override {
             bind_to_iocp(ctx);
             auto *iop = new file_iocp_op(op);
@@ -221,7 +220,7 @@ namespace rainy::foundation::io::filesystem::implements {
         }
 
     private:
-        void bind_to_iocp(net::implements::io_context_impl_base &ctx) noexcept {
+        void bind_to_iocp(io_context_impl_base &ctx) noexcept {
             if (!bound_to_iocp_) {
                 ctx.associate_handle(nullptr, reinterpret_cast<std::uintptr_t>(handle_), nullptr);
                 bound_to_iocp_ = true;
@@ -229,7 +228,7 @@ namespace rainy::foundation::io::filesystem::implements {
         }
 
         HANDLE handle_{INVALID_HANDLE_VALUE};
-        net::implements::io_context_impl_base *ctx_{nullptr};
+        io_context_impl_base *ctx_{nullptr};
         bool bound_to_iocp_{false};
     };
 

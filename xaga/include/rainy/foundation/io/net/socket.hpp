@@ -16,9 +16,9 @@
 #ifndef RAINY_FOUNDATION_IO_NET_SOCKET_HPP
 #define RAINY_FOUNDATION_IO_NET_SOCKET_HPP
 
+#include <rainy/foundation/io/buffer.hpp>
 #include <rainy/foundation/io/executor/async_result.hpp>
 #include <rainy/foundation/io/io_context.hpp>
-#include <rainy/foundation/io/net/buffer.hpp>
 #include <rainy/foundation/io/net/fwd.hpp>
 #include <rainy/foundation/io/net/implements/sock.hpp>
 
@@ -576,7 +576,7 @@ namespace rainy::foundation::io::net {
 
         template <typename MutableBufferSequence>
         std::size_t receive(const MutableBufferSequence &buffers, socket_base::message_flags flags, std::error_code &ec) {
-            auto mb = io::net::buffer(buffers);
+            auto mb = io::buffer(buffers);
             auto r = this->impl_->receive(mb.data(), mb.size(), flags, ec);
             return r < 0 ? 0 : static_cast<std::size_t>(r);
         }
@@ -593,7 +593,7 @@ namespace rainy::foundation::io::net {
             using token_t = std::decay_t<CompletionToken>;
             async_completion<token_t, void(std::error_code, std::size_t)> init(token);
             auto handler = utility::move(init.completion_handler);
-            auto mb = io::net::buffer(buffers);
+            auto mb = io::buffer(buffers);
             auto *op = io::implements::make_io_completion_op([handler](const io::implements::op_result &r, const bool cancelled) mutable {
                 if (cancelled) {
                     return;
@@ -636,7 +636,7 @@ namespace rainy::foundation::io::net {
         template <typename MutableBufferSequence>
         std::size_t receive_from(const MutableBufferSequence &buffers, endpoint_type &sender, socket_base::message_flags flags,
                                  std::error_code &ec) {
-            auto mb = net::buffer(buffers);
+            auto mb = io::buffer(buffers);
             implements::raw_endpoint raw_sender;
             auto r = this->impl_->receive_from(mb.data(), mb.size(), flags, raw_sender, ec);
             if (!ec) {
@@ -658,7 +658,7 @@ namespace rainy::foundation::io::net {
             using token_t = std::decay_t<CompletionToken>;
             async_completion<token_t, void(std::error_code, std::size_t)> init(token);
             auto handler = utility::move(init.completion_handler);
-            auto mb = io::net::buffer(buffers);
+            auto mb = io::buffer(buffers);
 
             auto raw_sender = std::make_shared<implements::raw_endpoint>();
             auto *op = io::implements::make_function_op([this, mb, flags, &sender, raw_sender, handler]() mutable {
@@ -700,7 +700,7 @@ namespace rainy::foundation::io::net {
 
         template <typename ConstBufferSequence>
         std::size_t send(const ConstBufferSequence &buffers, socket_base::message_flags flags, std::error_code &ec) {
-            auto cb = net::buffer(buffers);
+            auto cb = io::buffer(buffers);
             auto r = this->impl_->send(cb.data(), cb.size(), flags, ec);
             return r < 0 ? 0 : static_cast<std::size_t>(r);
         }
@@ -717,7 +717,7 @@ namespace rainy::foundation::io::net {
             using token_t = std::decay_t<CompletionToken>;
             async_completion<token_t, void(std::error_code, std::size_t)> init(token);
             auto handler = utility::move(init.completion_handler);
-            auto cb = io::net::buffer(buffers);
+            auto cb = io::buffer(buffers);
             auto *op = io::implements::make_io_completion_op([handler](const io::implements::op_result &r, const bool cancelled) mutable {
                 if (cancelled) {
                     return;
@@ -760,7 +760,7 @@ namespace rainy::foundation::io::net {
         template <typename ConstBufferSequence>
         std::size_t send_to(const ConstBufferSequence &buffers, const endpoint_type &recipient, socket_base::message_flags flags,
                             std::error_code &ec) {
-            auto cb = io::net::buffer(buffers);
+            auto cb = io::buffer(buffers);
             auto raw = recipient.to_raw();
             auto r = this->impl_->send_to(cb.data(), cb.size(), flags, raw, ec);
             return r < 0 ? 0 : static_cast<std::size_t>(r);
@@ -779,7 +779,7 @@ namespace rainy::foundation::io::net {
             using token_t = std::decay_t<CompletionToken>;
             async_completion<token_t, void(std::error_code, std::size_t)> init(token);
             auto handler = utility::move(init.completion_handler);
-            auto cb = io::net::buffer(buffers);
+            auto cb = io::buffer(buffers);
             auto raw_dest = recipient.to_raw();
 
             auto *op = io::implements::make_function_op([this, cb, flags, raw_dest, handler]() mutable {
@@ -847,7 +847,7 @@ namespace rainy::foundation::io::net {
 
         template <typename MutableBufferSequence>
         std::size_t receive(const MutableBufferSequence &buffers, socket_base::message_flags flags, std::error_code &ec) {
-            auto mb = net::buffer(buffers);
+            auto mb = io::buffer(buffers);
             auto r = this->impl_->receive(mb.data(), mb.size(), flags, ec);
             return r < 0 ? 0 : static_cast<std::size_t>(r);
         }
@@ -889,7 +889,7 @@ namespace rainy::foundation::io::net {
 
         template <typename ConstBufferSequence>
         std::size_t send(const ConstBufferSequence &buffers, socket_base::message_flags flags, std::error_code &ec) {
-            auto cb = io::net::buffer(buffers);
+            auto cb = io::buffer(buffers);
             auto r = this->impl_->send(cb.data(), cb.size(), flags, ec);
             return r < 0 ? 0 : static_cast<std::size_t>(r);
         }
@@ -916,7 +916,7 @@ namespace rainy::foundation::io::net {
             using token_t = std::decay_t<CompletionToken>;
             async_completion<token_t, void(std::error_code, std::size_t)> init(token);
             auto handler = utility::move(init.completion_handler);
-            auto mb = io::net::buffer(buffers);
+            auto mb = io::buffer(buffers);
             auto *op = io::implements::make_io_completion_op([handler](const io::implements::op_result &r, const bool cancelled) mutable {
                 if (cancelled) {
                     return;
@@ -949,7 +949,7 @@ namespace rainy::foundation::io::net {
             using token_t = std::decay_t<CompletionToken>;
             async_completion<token_t, void(std::error_code, std::size_t)> init(token);
             auto handler = utility::move(init.completion_handler);
-            auto cb = net::buffer(buffers);
+            auto cb = io::buffer(buffers);
             auto *op = io::implements::make_function_op([handler](const io::implements::op_result &r) mutable {
                 std::error_code ec;
                 if (r.error_code) {

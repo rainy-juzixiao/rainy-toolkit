@@ -16,8 +16,8 @@
 #ifndef RAINY_FOUNDATION_IO_NET_IO_INTERNET_HPP
 #define RAINY_FOUNDATION_IO_NET_IO_INTERNET_HPP
 
+#include <rainy/foundation/io/buffer.hpp>
 #include <rainy/foundation/io/io_context.hpp>
-#include <rainy/foundation/io/net/buffer.hpp>
 #include <rainy/foundation/io/net/internet/endpoint.hpp>
 #include <rainy/foundation/io/net/socket.hpp>
 

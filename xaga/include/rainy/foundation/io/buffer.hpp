@@ -13,14 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef RAINY_FOUNDATION_IO_NET_BUFFER_HPP
-#define RAINY_FOUNDATION_IO_NET_BUFFER_HPP
+#ifndef RAINY_FOUNDATION_IO_BUFFER_HPP
+#define RAINY_FOUNDATION_IO_BUFFER_HPP
 #include <rainy/foundation/io/fwd.hpp>
 #include <rainy/collections/vector.hpp>
 #include <rainy/core/core.hpp>
 #include <rainy/foundation/io/executor/async_result.hpp>
 
-namespace rainy::foundation::io::net {
+namespace rainy::foundation::io {
     enum class stream_errc : int {
         eof = 1,
         not_found = 2
@@ -119,7 +119,7 @@ namespace rainy::foundation::io::net {
     };
 }
 
-namespace rainy::foundation::io::net {
+namespace rainy::foundation::io {
     template <typename Ty>
     struct is_mutable_buffer_sequence : type_traits::type_relations::is_same<Ty, mutable_buffer> {};
 
@@ -260,7 +260,7 @@ namespace rainy::foundation::io::net {
     }
 }
 
-namespace rainy::foundation::io::net {
+namespace rainy::foundation::io {
     inline mutable_buffer buffer(void *p, std::size_t count) noexcept {
         return {p, count};
     }
@@ -366,7 +366,7 @@ namespace rainy::foundation::io::net {
     }
 }
 
-namespace rainy::foundation::io::net {
+namespace rainy::foundation::io {
     template <typename Ty, typename Allocator>
     class dynamic_vector_buffer {
     public:
@@ -480,7 +480,7 @@ namespace rainy::foundation::io::net {
     };
 }
 
-namespace rainy::foundation::io::net {
+namespace rainy::foundation::io {
     template <typename Ty, typename Allocator>
     dynamic_vector_buffer<Ty, Allocator> dynamic_buffer(collections::vector<Ty, Allocator> &vec) noexcept {
         return dynamic_vector_buffer<Ty, Allocator>{vec};
@@ -504,7 +504,7 @@ namespace rainy::foundation::io::net {
     }
 }
 
-namespace rainy::foundation::io::net {
+namespace rainy::foundation::io {
     class transfer_all {
     public:
         std::size_t operator()(const std::error_code &ec, std::size_t) const {
@@ -539,7 +539,7 @@ namespace rainy::foundation::io::net {
     };
 }
 
-namespace rainy::foundation::io::net {
+namespace rainy::foundation::io {
     template <typename SyncReadStream, typename MutableBufferSequence, typename CompletionCondition,
               type_traits::other_trans::enable_if_t<!is_dynamic_buffer_v<MutableBufferSequence>, int> = 0>
     std::size_t read(SyncReadStream &stream, const MutableBufferSequence &buffers, CompletionCondition completion_condition,
@@ -634,7 +634,7 @@ namespace rainy::foundation::io::net {
     }
 }
 
-namespace rainy::foundation::io::net {
+namespace rainy::foundation::io {
     template <typename SyncWriteStream, typename ConstBufferSequence, typename CompletionCondition,
               type_traits::other_trans::enable_if_t<!is_dynamic_buffer_v<ConstBufferSequence>, int> = 0>
     std::size_t write(SyncWriteStream &stream, const ConstBufferSequence &buffers, CompletionCondition completion_condition,
@@ -731,7 +731,7 @@ namespace rainy::foundation::io::net {
     }
 }
 
-namespace rainy::foundation::io::net {
+namespace rainy::foundation::io {
     template <typename AsyncReadStream, typename MutableBufferSequence, typename CompletionCondition, typename CompletionToken,
               type_traits::other_trans::enable_if_t<!is_dynamic_buffer_v<MutableBufferSequence>, int> = 0>
     auto async_read(AsyncReadStream &stream, const MutableBufferSequence &buffers, CompletionCondition completion_condition,
@@ -887,7 +887,7 @@ namespace rainy::foundation::io::net {
     }
 }
 
-namespace rainy::foundation::io::net::implements {
+namespace rainy::foundation::io::implements {
     template <typename SyncReadStream, typename DynamicBuffer, typename Delim>
     std::size_t read_until_impl(SyncReadStream &s, DynamicBuffer &&b, Delim delim, std::error_code &ec) {
         ec.clear();
@@ -930,7 +930,7 @@ namespace rainy::foundation::io::net::implements {
     }
 }
 
-namespace rainy::foundation::io::net {
+namespace rainy::foundation::io {
     template <typename SyncReadStream, typename DynamicBuffer,
               type_traits::other_trans::enable_if_t<is_dynamic_buffer_v<DynamicBuffer>, int> = 0>
     std::size_t read_until(SyncReadStream &s, DynamicBuffer &&b, char delim, std::error_code &ec) {
@@ -1005,7 +1005,7 @@ namespace rainy::foundation::io::net {
 
 namespace std { // NOLINT
     template <>
-    struct is_error_code_enum<rainy::foundation::io::net::stream_errc> : public true_type {};
+    struct is_error_code_enum<rainy::foundation::io::stream_errc> : public true_type {};
 }
 
 #endif
