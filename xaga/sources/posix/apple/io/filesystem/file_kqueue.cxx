@@ -15,7 +15,7 @@
  */
 #include <rainy/foundation/concurrency/executor.hpp>
 #include <rainy/foundation/io/filesystem/streamfile.hpp>
-#include <rainy/foundation/io/net/io_context.hpp>
+#include <rainy/foundation/io/io_context.hpp>
 
 #include <fcntl.h>
 #include <sys/event.h>
@@ -32,7 +32,7 @@ namespace rainy::foundation::io::filesystem::implements {
         }
 
         std::error_code open(const std::filesystem::path &path, open_mode mode,
-                             net::implements::io_context_impl_base &ctx) noexcept override {
+                             io_context_impl_base &ctx) noexcept override {
             int flags = 0;
             const bool r = has_flag(mode, open_mode::read_only);
             const bool w = has_flag(mode, open_mode::write_only);
@@ -103,7 +103,7 @@ namespace rainy::foundation::io::filesystem::implements {
             return static_cast<std::size_t>(n);
         }
 
-        void async_read_some_at(net::mutable_buffer buf, std::uint64_t offset, net::implements::io_context_impl_base &ctx,
+        void async_read_some_at(net::mutable_buffer buf, std::uint64_t offset, io_context_impl_base &ctx,
                                 completion_op *op) noexcept override {
             const int fd = fd_;
             get_executor().submit([fd, buf, offset, op]() mutable {
@@ -121,7 +121,7 @@ namespace rainy::foundation::io::filesystem::implements {
             });
         }
 
-        void async_write_some_at(net::const_buffer buf, std::uint64_t offset, net::implements::io_context_impl_base &ctx,
+        void async_write_some_at(net::const_buffer buf, std::uint64_t offset, io_context_impl_base &ctx,
                                  completion_op *op) noexcept override {
             const int fd = fd_;
             get_executor().submit([fd, buf, offset, op]() mutable {
@@ -165,7 +165,7 @@ namespace rainy::foundation::io::filesystem::implements {
         }
 
         int fd_{-1};
-        net::implements::io_context_impl_base *ctx_{nullptr};
+        io_context_impl_base *ctx_{nullptr};
     };
 }
 

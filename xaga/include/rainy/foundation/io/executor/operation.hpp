@@ -13,14 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef RAINY_FOUNDATION_IO_NET_EXECUTYOR_OPERATION_HPP
-#define RAINY_FOUNDATION_IO_NET_EXECUTYOR_OPERATION_HPP
+#ifndef RAINY_FOUNDATION_IO_NET_EXECUTOR_OPERATION_HPP
+#define RAINY_FOUNDATION_IO_NET_EXECUTOR_OPERATION_HPP
+#include <rainy/foundation/io/implements/handler_tracking.hpp>
 #include <rainy/core/core.hpp>
 #include <rainy/foundation/io/net/fwd.hpp>
-#include <rainy/foundation/io/net/implements/handler_tracking.hpp>
 #include <rainy/foundation/memory/recycling_allocator.hpp>
 
-namespace rainy::foundation::io::net::implements {
+namespace rainy::foundation::io::implements {
     template <typename Function, typename Context>
     RAINY_INLINE rain_fn handler_invoke_helper(Function &function, Context &context) -> void {
         Function tmp(function);
@@ -34,7 +34,7 @@ namespace rainy::foundation::io::net::implements {
     }
 }
 
-namespace rainy::foundation::io::net::implements {
+namespace rainy::foundation::io::implements {
     class scheduler_operation {
     public:
         typedef scheduler_operation operation_type;

@@ -2,7 +2,7 @@
 #define RAINY_FOUNDATION_IO_NET_IMPLEMENTS_QUEUE_HPP
 #include <rainy/core/core.hpp>
 
-namespace rainy::foundation::io::net::implements {
+namespace rainy::foundation::io::implements {
     template <typename Operation>
     class op_queue;
 

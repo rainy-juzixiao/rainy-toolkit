@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 #include <rainy/foundation/concurrency/basic/context.hpp>
-#include <rainy/foundation/io/net/executor/strand.hpp>
+#include <rainy/foundation/io/executor/strand.hpp>
 
-namespace rainy::foundation::io::net::implements {
+namespace rainy::foundation::io::implements {
     strand_executor_service::strand_executor_service(execution_context &context) :
         execution_context_service_base(context), impl_list_(nullptr), salt_(0) {
     }

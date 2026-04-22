@@ -18,7 +18,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 
-using namespace rainy::foundation::io::net;
+using namespace rainy::foundation::io;
 using namespace std::chrono_literals;
 
 namespace {

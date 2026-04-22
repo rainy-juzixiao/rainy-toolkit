@@ -18,14 +18,14 @@
 #include <queue>
 #include <sys/eventfd.h>
 
-namespace rainy::foundation::io::net::implements {
+namespace rainy::foundation::io::implements {
     static void nop_fn(completion_op *, const op_result &, bool) noexcept {
     }
 
     completion_op non_op{&nop_fn};
 }
 
-namespace rainy::foundation::io::net::implements {
+namespace rainy::foundation::io::implements {
     class io_uring_impl final : public io_context_impl_base {
     public:
         explicit io_uring_impl(const int concurrency_hint) noexcept : concurrency_hint_(concurrency_hint) {
@@ -321,7 +321,7 @@ namespace rainy::foundation::io::net::implements {
     thread_local bool io_uring_impl::in_event_loop_ = false;
 }
 
-namespace rainy::foundation::io::net::implements {
+namespace rainy::foundation::io::implements {
     memory::nebula_ptr<io_context_impl_base> create_io_context_impl(int concurrency_hint) {
         auto impl = memory::make_nebula<io_uring_impl>(concurrency_hint);
         impl->init(concurrency_hint);

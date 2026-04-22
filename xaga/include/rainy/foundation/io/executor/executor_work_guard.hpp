@@ -15,9 +15,9 @@
  */
 #ifndef RAINY_FOUNDATION_IO_NET_EXECUTOR_EXECUTOR_WORK_GUARD_HPP
 #define RAINY_FOUNDATION_IO_NET_EXECUTOR_EXECUTOR_WORK_GUARD_HPP
-#include <rainy/foundation/io/net/executor/associated_executor.hpp>
+#include <rainy/foundation/io/executor/associated_executor.hpp>
 
-namespace rainy::foundation::io::net {
+namespace rainy::foundation::io {
     template <typename Executor>
     class executor_work_guard {
     public:

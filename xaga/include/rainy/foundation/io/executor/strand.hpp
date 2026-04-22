@@ -2,12 +2,12 @@
 #define RAINY_FOUNDATION_IO_NET_EXECUTYOR_STRAND_HPP
 #include <rainy/core/core.hpp>
 #include <rainy/foundation/concurrency/atomic.hpp>
-#include <rainy/foundation/io/net/executor/execution_context.hpp>
-#include <rainy/foundation/io/net/implements/op_queue.hpp>
-#include <rainy/foundation/io/net/implements/operation.hpp>
+#include <rainy/foundation/io/executor/execution_context.hpp>
+#include <rainy/foundation/io/executor/op_queue.hpp>
 #include <rainy/foundation/memory/shared_ptr.hpp>
+#include <rainy/foundation/io/executor/operation.hpp>
 
-namespace rainy::foundation::io::net::implements {
+namespace rainy::foundation::io::implements {
     class strand_executor_service : public execution_context_service_base<strand_executor_service> {
     public:
         class strand_impl {
@@ -145,7 +145,7 @@ namespace rainy::foundation::io::net::implements {
     };
 }
 
-namespace rainy::foundation::io::net {
+namespace rainy::foundation::io {
     template <typename Executor>
     class strand {
     public:

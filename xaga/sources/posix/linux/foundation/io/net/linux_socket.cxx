@@ -33,7 +33,8 @@ namespace rainy::foundation::io::net::implements {
         return std::error_code{e, std::system_category()};
     }
 
-    static io_uring_sqe *get_sqe_from_op(completion_op *op, io_context_impl_base &ctx_impl, const int fd) {
+    static io_uring_sqe *get_sqe_from_op(io::implements::completion_op *op, io::implements::io_context_impl_base &ctx_impl,
+                                         const int fd) {
         ctx_impl.associate_handle(op, static_cast<std::uintptr_t>(fd), nullptr);
         if (!op->io_handle) {
             return nullptr;
@@ -41,7 +42,7 @@ namespace rainy::foundation::io::net::implements {
         return ::io_uring_get_sqe(static_cast<io_uring *>(op->io_handle));
     }
 
-    static void submit_ring(const completion_op *op) noexcept {
+    static void submit_ring(const io::implements::completion_op *op) noexcept {
         if (op->io_handle) {
             ::io_uring_submit(static_cast<io_uring *>(op->io_handle));
         }
@@ -268,7 +269,8 @@ namespace rainy::foundation::io::net::implements {
             return ret == 0 ? std::error_code{} : posix_error();
         }
 
-        void async_connect(const raw_endpoint &ep, io_context_impl_base &ctx_impl, completion_op *op) noexcept override {
+        void async_connect(const raw_endpoint &ep, io::implements::io_context_impl_base &ctx_impl,
+                           completion_op *op) noexcept override {
             auto *sqe = get_sqe_from_op(op, ctx_impl, fd_);
             if (!sqe) {
                 ctx_impl.post_immediate_completion(op, false);
@@ -279,8 +281,8 @@ namespace rainy::foundation::io::net::implements {
             submit_ring(op);
         }
 
-        void async_send(const void *buf, const std::size_t len, const message_flags_t flags, io_context_impl_base &ctx_impl,
-                        completion_op *op) noexcept override {
+        void async_send(const void *buf, const std::size_t len, const message_flags_t flags,
+                        io::implements::io_context_impl_base &ctx_impl, completion_op *op) noexcept override {
             auto *sqe = get_sqe_from_op(op, ctx_impl, fd_);
             if (!sqe) {
                 ctx_impl.post_immediate_completion(op, false);
@@ -291,8 +293,8 @@ namespace rainy::foundation::io::net::implements {
             submit_ring(op);
         }
 
-        void async_receive(void *buf, const std::size_t len, const message_flags_t flags, io_context_impl_base &ctx_impl,
-                           completion_op *op) noexcept override {
+        void async_receive(void *buf, const std::size_t len, const message_flags_t flags,
+                           io::implements::io_context_impl_base &ctx_impl, completion_op *op) noexcept override {
             auto *sqe = get_sqe_from_op(op, ctx_impl, fd_);
             if (!sqe) {
                 ctx_impl.post_immediate_completion(op, false);
@@ -304,7 +306,7 @@ namespace rainy::foundation::io::net::implements {
         }
 
         void async_send_to(const void *buf, const std::size_t len, const message_flags_t flags, const raw_endpoint &dest,
-                           io_context_impl_base &ctx_impl, completion_op *op) noexcept override {
+                           io::implements::io_context_impl_base &ctx_impl, completion_op *op) noexcept override {
             auto *sqe = get_sqe_from_op(op, ctx_impl, fd_);
             if (!sqe) {
                 ctx_impl.post_immediate_completion(op, false);
@@ -325,7 +327,7 @@ namespace rainy::foundation::io::net::implements {
         }
 
         void async_receive_from(void *buf, const std::size_t len, const message_flags_t flags, raw_endpoint &sender,
-                                io_context_impl_base &ctx_impl, completion_op *op) noexcept override {
+                                io::implements::io_context_impl_base &ctx_impl, completion_op *op) noexcept override {
             auto *sqe = get_sqe_from_op(op, ctx_impl, fd_);
             if (!sqe) {
                 ctx_impl.post_immediate_completion(op, false);
@@ -345,7 +347,7 @@ namespace rainy::foundation::io::net::implements {
             submit_ring(op);
         }
 
-        void async_accept(raw_endpoint *peer_ep, io_context_impl_base &ctx_impl, completion_op *op) noexcept override {
+        void async_accept(raw_endpoint *peer_ep, io::implements::io_context_impl_base &ctx_impl, completion_op *op) noexcept override {
             auto *sqe = get_sqe_from_op(op, ctx_impl, fd_);
             if (!sqe) {
                 ctx_impl.post_immediate_completion(op, false);
@@ -358,7 +360,7 @@ namespace rainy::foundation::io::net::implements {
             submit_ring(op);
         }
 
-        void async_wait(const wait_type w, io_context_impl_base &ctx_impl, completion_op *op) noexcept override {
+        void async_wait(const wait_type w, io::implements::io_context_impl_base &ctx_impl, completion_op *op) noexcept override {
             auto *sqe = get_sqe_from_op(op, ctx_impl, fd_);
             if (!sqe) {
                 ctx_impl.post_immediate_completion(op, false);

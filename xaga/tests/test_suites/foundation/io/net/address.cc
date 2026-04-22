@@ -407,7 +407,7 @@ SCENARIO("address can wrap either an address_v4 or address_v6", "[net][ip][addre
         }
 
         THEN("to_v6 throws bad_address_cast") {
-            REQUIRE_THROWS_AS(addr.to_v6(), exceptions::net::bad_address_cast);
+            REQUIRE_THROWS_AS(addr.to_v6(), exceptions::io::bad_address_cast);
         }
     }
 
@@ -429,7 +429,7 @@ SCENARIO("address can wrap either an address_v4 or address_v6", "[net][ip][addre
 
         THEN("to_v4 throws bad_address_cast") {
             REQUIRE_THROWS_AS(addr.to_v4(),
-                exceptions::net::bad_address_cast);
+                exceptions::io::bad_address_cast);
         }
     }
 

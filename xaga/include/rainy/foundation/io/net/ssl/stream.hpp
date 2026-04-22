@@ -1,7 +1,7 @@
 #ifndef RAINY_FOUNDATION_IO_NET_SSL_STREAM_HPP
 #define RAINY_FOUNDATION_IO_NET_SSL_STREAM_HPP
 
-#include <rainy/foundation/io/net/executor/async_result.hpp>
+#include <rainy/foundation/io/executor/async_result.hpp>
 #include <rainy/foundation/io/net/socket.hpp>
 #include <rainy/foundation/io/net/ssl/context.hpp>
 #include <rainy/foundation/memory/nebula_ptr.hpp>
@@ -117,8 +117,7 @@ namespace rainy::foundation::io::net::ssl {
                 impl_->set_server_name(server_name_.c_str());
             }
 
-            // 创建完成回调 op
-            auto *op = implements::make_io_completion_op([handler](const implements::op_result &r, const bool cancelled) mutable {
+            auto *op = io::implements::make_io_completion_op([handler](const io::implements::op_result &r, const bool cancelled) mutable {
                 if (cancelled) {
                     return;
                 }
@@ -161,7 +160,7 @@ namespace rainy::foundation::io::net::ssl {
                 return init.result.get();
             }
 
-            auto *op = implements::make_io_completion_op([handler](const implements::op_result &r, const bool cancelled) mutable {
+            auto *op = io::implements::make_io_completion_op([handler](const io::implements::op_result &r, const bool cancelled) mutable {
                 if (cancelled) {
                     return;
                 }
@@ -247,7 +246,7 @@ namespace rainy::foundation::io::net::ssl {
 
             auto buf = io::net::buffer(buffers);
 
-            auto *op = implements::make_io_completion_op([handler](const implements::op_result &r, const bool cancelled) mutable {
+            auto *op = io::implements::make_io_completion_op([handler](const io::implements::op_result &r, const bool cancelled) mutable {
                 if (cancelled) {
                     return;
                 }
@@ -278,7 +277,7 @@ namespace rainy::foundation::io::net::ssl {
 
             auto buf = io::net::buffer(buffers);
 
-            auto *op = implements::make_io_completion_op([handler](const implements::op_result &r, const bool cancelled) mutable {
+            auto *op = io::implements::make_io_completion_op([handler](const io::implements::op_result &r, const bool cancelled) mutable {
                 if (cancelled) {
                     return;
                 }

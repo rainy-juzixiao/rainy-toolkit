@@ -22,23 +22,23 @@
 
 #include <rainy/core/core.hpp>
 #include <rainy/foundation/concurrency/atomic.hpp>
-#include <rainy/foundation/io/net/executor/associated_allocator.hpp>
-#include <rainy/foundation/io/net/executor/associated_executor.hpp>
-#include <rainy/foundation/io/net/executor/async_result.hpp>
-#include <rainy/foundation/io/net/executor/bind_executor.hpp>
-#include <rainy/foundation/io/net/executor/execution_context.hpp>
-#include <rainy/foundation/io/net/executor/executor_function.hpp>
-#include <rainy/foundation/io/net/executor/executor_trait.hpp>
-#include <rainy/foundation/io/net/executor/executor_work_guard.hpp>
-#include <rainy/foundation/io/net/executor/global.hpp>
-#include <rainy/foundation/io/net/executor/strand.hpp>
-#include <rainy/foundation/io/net/executor/system_context.hpp>
-#include <rainy/foundation/io/net/executor/system_executor.hpp>
-#include <rainy/foundation/io/net/executor/work_dispatcher.hpp>
+#include <rainy/foundation/io/executor/associated_allocator.hpp>
+#include <rainy/foundation/io/executor/associated_executor.hpp>
+#include <rainy/foundation/io/executor/async_result.hpp>
+#include <rainy/foundation/io/executor/bind_executor.hpp>
+#include <rainy/foundation/io/executor/execution_context.hpp>
+#include <rainy/foundation/io/executor/executor_function.hpp>
+#include <rainy/foundation/io/executor/executor_trait.hpp>
+#include <rainy/foundation/io/executor/executor_work_guard.hpp>
+#include <rainy/foundation/io/executor/global.hpp>
+#include <rainy/foundation/io/executor/strand.hpp>
+#include <rainy/foundation/io/executor/system_context.hpp>
+#include <rainy/foundation/io/executor/system_executor.hpp>
+#include <rainy/foundation/io/executor/work_dispatcher.hpp>
 
 // NOLINTEND
 
-namespace rainy::foundation::exceptions::net {
+namespace rainy::foundation::exceptions::io {
     class bad_executor : public exception {
     public:
         bad_executor(const source &location = source::current()) : exception("bad executor", location) { // NOLINT
@@ -46,7 +46,7 @@ namespace rainy::foundation::exceptions::net {
     };
 }
 
-namespace rainy::foundation::io::net {
+namespace rainy::foundation::io {
     class executor {
     public:
         executor() noexcept : impl_(nullptr) {
@@ -400,7 +400,7 @@ namespace rainy::foundation::io::net {
 
         RAINY_NODISCARD impl_base *get_impl() const {
             if (!impl_) {
-                const exceptions::net::bad_executor ex;
+                const exceptions::io::bad_executor ex;
                 exceptions::throw_exception(ex);
             }
             return impl_;
@@ -421,7 +421,7 @@ namespace rainy::foundation::io::net {
 }
 
 // NOLINTBEGIN
-namespace rainy::foundation::io::net {
+namespace rainy::foundation::io {
     template <typename CompletionToken>
     rain_fn dispatch(CompletionToken &&token) -> typename async_result<CompletionToken, void()>::return_type {
         using handler = typename async_result<CompletionToken, void()>::completion_handler_type;
@@ -504,7 +504,7 @@ namespace rainy::foundation::io::net {
 
 namespace std { // NOLINT
     template <typename Allocator>
-    struct uses_allocator<rainy::foundation::io::net::executor, Allocator> : std::true_type {};
+    struct uses_allocator<rainy::foundation::io::executor, Allocator> : std::true_type {};
 }
 
 #endif

@@ -17,7 +17,7 @@
 #define RAINY_FOUNDATION_IO_FWD_HPP
 #include <chrono>
 
-namespace rainy::foundation::io::net {
+namespace rainy::foundation::io {
     class execution_context;
 
     template <class T, class Executor>
@@ -44,5 +44,43 @@ namespace rainy::foundation::io::net {
     using steady_timer = basic_waitable_timer<std::chrono::steady_clock>;
     using high_resolution_timer = basic_waitable_timer<std::chrono::high_resolution_clock>;
 }
+
+#define NET_TS_REBIND_ALLOC(alloc, t) typename std::allocator_traits<alloc>::template rebind_alloc<t>
+
+#define NET_TS_DEFINE_TAGGED_HANDLER_ALLOCATOR_PTR(purpose, op)                                                                       \
+    struct ptr {                                                                                                                      \
+        const Alloc *a;                                                                                                               \
+        void *v;                                                                                                                      \
+        op *p;                                                                                                                        \
+        ~ptr() {                                                                                                                      \
+            reset();                                                                                                                  \
+        }                                                                                                                             \
+        static op *allocate(const Alloc &a) {                                                                                         \
+            using recycling_allocator_type = typename ::rainy::foundation::memory::get_recycling_allocator<Alloc, purpose>::type;     \
+            NET_TS_REBIND_ALLOC(recycling_allocator_type, op)                                                                         \
+            a1(::rainy::foundation::memory::get_recycling_allocator<Alloc, purpose>::get(a));                                         \
+            return a1.allocate(1);                                                                                                    \
+        }                                                                                                                             \
+        void reset() {                                                                                                                \
+            if (p) {                                                                                                                  \
+                p->~op();                                                                                                             \
+                p = 0;                                                                                                                \
+            }                                                                                                                         \
+            if (v) {                                                                                                                  \
+                typedef typename ::rainy::foundation::memory::get_recycling_allocator<Alloc, purpose>::type recycling_allocator_type; \
+                NET_TS_REBIND_ALLOC(recycling_allocator_type, op)                                                                     \
+                a1(::rainy::foundation::memory::get_recycling_allocator<Alloc, purpose>::get(*a));                                    \
+                a1.deallocate(static_cast<op *>(v), 1);                                                                               \
+                v = 0;                                                                                                                \
+            }                                                                                                                         \
+        }                                                                                                                             \
+    }
+
+
+#define NET_TS_HANDLER_COMPLETION(args) rainy::foundation::io::implements::handler_tracking::completion tracked_completion args
+
+#define NET_TS_DEFINE_HANDLER_ALLOCATOR_PTR(op)                                                                                       \
+    NET_TS_DEFINE_TAGGED_HANDLER_ALLOCATOR_PTR(::rainy::foundation::concurrency::implements::thread_info_base::default_tag, op)
+
 
 #endif

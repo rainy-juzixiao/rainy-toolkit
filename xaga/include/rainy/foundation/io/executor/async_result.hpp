@@ -17,7 +17,7 @@
 #define RAINY_FOUNDATION_IO_NET_EXECUTOR_ASYNC_RESULT_HPP
 #include <rainy/core/core.hpp>
 
-namespace rainy::foundation::io::net {
+namespace rainy::foundation::io {
     template <typename CompletionToken, typename Signature>
     class async_result {
     public:

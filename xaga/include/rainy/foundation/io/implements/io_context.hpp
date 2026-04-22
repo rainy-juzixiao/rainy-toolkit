@@ -20,7 +20,7 @@
 #include <rainy/foundation/concurrency/pal.hpp>
 #include <rainy/foundation/memory/nebula_ptr.hpp>
 
-namespace rainy::foundation::io::net::implements {
+namespace rainy::foundation::io::implements {
     struct op_result {
         void *user_data;
         std::size_t bytes_transferred;

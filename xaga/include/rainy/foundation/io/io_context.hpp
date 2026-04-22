@@ -19,18 +19,9 @@
 #include <rainy/foundation/io/implements/io_context.hpp>
 #include <rainy/foundation/io/net/executor.hpp>
 
-namespace rainy::foundation::io::net {
+namespace rainy::foundation::io {
     class RAINY_TOOLKIT_API io_context : public execution_context {
     public:
-        template <typename Protocol>
-        friend class basic_socket;
-
-        template <typename AcceptableProtocol>
-        friend class basic_socket_acceptor;
-
-        template <typename Protocol>
-        friend class basic_stream_socket;
-
         class RAINY_TOOLKIT_API executor_type {
         public:
             executor_type(const executor_type &other) noexcept;

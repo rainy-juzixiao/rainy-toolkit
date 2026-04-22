@@ -26,7 +26,7 @@
 
 #include <rainy/foundation/io/io_context.hpp>
 
-using namespace rainy::foundation::io::net;
+using namespace rainy::foundation::io;
 using namespace std::chrono_literals;
 
 namespace {

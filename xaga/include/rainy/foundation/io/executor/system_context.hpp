@@ -15,10 +15,10 @@
  */
 #ifndef RAINY_FOUNDATION_IO_NET_EXECUTOR_SYSTEM_CONTEXT_HPP
 #define RAINY_FOUNDATION_IO_NET_EXECUTOR_SYSTEM_CONTEXT_HPP
-#include <rainy/foundation/io/net/executor/execution_context.hpp>
+#include <rainy/foundation/io/executor/execution_context.hpp>
 #include <rainy/foundation/concurrency/executor.hpp>
 
-namespace rainy::foundation::io::net {
+namespace rainy::foundation::io {
     class system_executor;
 
     class system_context : public execution_context {

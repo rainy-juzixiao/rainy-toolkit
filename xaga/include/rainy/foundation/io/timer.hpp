@@ -19,7 +19,7 @@
 #include <rainy/foundation/io/io_context.hpp>
 #include <system_error>
 
-namespace rainy::foundation::io::net {
+namespace rainy::foundation::io {
     template <typename Clock>
     struct wait_traits {
         static typename Clock::duration to_wait_duration(const typename Clock::duration &duration) {

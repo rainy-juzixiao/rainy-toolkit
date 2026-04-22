@@ -17,9 +17,9 @@
 #define RAINY_FOUNDATION_IO_NET_ASSOCIATED_EXECUTOR_HPP
 #include <rainy/foundation/io/fwd.hpp>
 #include <rainy/core/core.hpp>
-#include <rainy/foundation/io/net/executor/executor_trait.hpp>
+#include <rainy/foundation/io/executor/executor_trait.hpp>
 
-namespace rainy::foundation::io::net {
+namespace rainy::foundation::io {
     template <typename Ty, typename Executor = system_executor, typename = void>
     struct associated_executor {
         using type = Executor;

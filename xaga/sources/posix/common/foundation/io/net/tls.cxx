@@ -459,7 +459,7 @@ namespace rainy::foundation::io::net::implements {
             return openssl_ec(ret);
         }
 
-        void async_handshake(io_context_impl_base &ctx_impl, completion_op *op) noexcept override {
+        void async_handshake(io_context_impl &ctx_impl, completion_op *op) noexcept override {
             if (!ssl_ || !op) {
                 return;
             }
@@ -470,7 +470,7 @@ namespace rainy::foundation::io::net::implements {
                 wants_retry_ = false;
                 wants_read_ = false;
                 wants_write_ = false;
-                op->complete(op_result{}, false);
+                op->complete(io::implements::op_result{}, false);
             } else {
                 if (const int err = SSL_get_error(ssl_, ret); err == SSL_ERROR_WANT_READ) {
                     wants_read_ = true;
@@ -483,7 +483,7 @@ namespace rainy::foundation::io::net::implements {
                 } else {
                     wants_retry_ = false;
                     const std::error_code ec = openssl_ec(err);
-                    op->complete(op_result{nullptr, 0, ec.value()}, false); // NOLINT
+                    op->complete(io::implements::op_result{nullptr, 0, ec.value()}, false); // NOLINT
                 }
             }
         }
@@ -500,7 +500,7 @@ namespace rainy::foundation::io::net::implements {
             return ret == 1 ? std::error_code{} : openssl_ec(ret);
         }
 
-        void async_shutdown(io_context_impl_base &ctx_impl, completion_op *op) noexcept override {
+        void async_shutdown(io_context_impl &ctx_impl, completion_op *op) noexcept override {
             if (!ssl_ || !op) {
                 return;
             }
@@ -509,7 +509,7 @@ namespace rainy::foundation::io::net::implements {
             if (const int ret = SSL_shutdown(ssl_); ret == 1) {
                 handshaked_ = false;
                 wants_retry_ = false;
-                op->complete(op_result{}, false);
+                op->complete(io::implements::op_result{}, false);
             } else if (ret == 0) {
                 wants_retry_ = true;
                 wants_write_ = true;
@@ -521,7 +521,7 @@ namespace rainy::foundation::io::net::implements {
                     wants_write_ = true;
                     wants_retry_ = true;
                 } else {
-                    op->complete(op_result{nullptr, 0, -err}, false); // NOLINT
+                    op->complete(io::implements::op_result{nullptr, 0, -err}, false); // NOLINT
                 }
             }
         }
@@ -586,7 +586,7 @@ namespace rainy::foundation::io::net::implements {
             return -1;
         }
 
-        void async_write_some(const void *buf, const std::size_t len, io_context_impl_base & /*ctx_impl*/,
+        void async_write_some(const void *buf, const std::size_t len, io_context_impl & /*ctx_impl*/,
                               completion_op *op) noexcept override {
             if (!op) {
                 return;
@@ -594,11 +594,11 @@ namespace rainy::foundation::io::net::implements {
             std::error_code ec;
             const std::ptrdiff_t n = write_some(buf, len, ec);
             if (!ec || !wants_retry_) {
-                op->complete(op_result{nullptr, static_cast<std::size_t>(n > 0 ? n : 0), ec ? ec.value() : 0}, false); // NOLINT
+                op->complete(io::implements::op_result{nullptr, static_cast<std::size_t>(n > 0 ? n : 0), ec ? ec.value() : 0}, false); // NOLINT
             }
         }
 
-        void async_read_some(void *buf, const std::size_t len, io_context_impl_base & /*ctx_impl*/,
+        void async_read_some(void *buf, const std::size_t len, io_context_impl & /*ctx_impl*/,
                              completion_op *op) noexcept override {
             if (!op) {
                 return;
@@ -606,7 +606,7 @@ namespace rainy::foundation::io::net::implements {
             std::error_code ec;
             const std::ptrdiff_t n = read_some(buf, len, ec);
             if (!ec || !wants_retry_) {
-                op->complete(op_result{nullptr, static_cast<std::size_t>(n > 0 ? n : 0), ec ? ec.value() : 0}, false); // NOLINT
+                op->complete(io::implements::op_result{nullptr, static_cast<std::size_t>(n > 0 ? n : 0), ec ? ec.value() : 0}, false); // NOLINT
             }
         }
 

@@ -18,7 +18,7 @@
 #include <rainy/foundation/io/fwd.hpp>
 #include <rainy/collections/vector.hpp>
 #include <rainy/core/core.hpp>
-#include <rainy/foundation/io/net/executor/async_result.hpp>
+#include <rainy/foundation/io/executor/async_result.hpp>
 
 namespace rainy::foundation::io::net {
     enum class stream_errc : int {

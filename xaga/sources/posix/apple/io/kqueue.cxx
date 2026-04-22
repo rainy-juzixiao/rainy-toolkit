@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <rainy/foundation/io/net/io_context.hpp>
+#include <rainy/foundation/io/io_context.hpp>
 
 #include <array>
 #include <queue>
@@ -21,7 +21,7 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-namespace rainy::foundation::io::net::implements {
+namespace rainy::foundation::io::implements {
     static void nop_fn(completion_op *, const op_result &, bool) noexcept {
     }
     static completion_op non_op{&nop_fn};
@@ -344,7 +344,7 @@ namespace rainy::foundation::io::net::implements {
     thread_local bool kqueue_impl::in_event_loop_ = false;
 }
 
-namespace rainy::foundation::io::net::implements {
+namespace rainy::foundation::io::implements {
     memory::nebula_ptr<io_context_impl_base> create_io_context_impl(int concurrency_hint) {
         auto impl = memory::make_nebula<kqueue_impl>(concurrency_hint);
         impl->init(concurrency_hint);

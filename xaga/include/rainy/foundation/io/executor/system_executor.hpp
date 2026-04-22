@@ -18,7 +18,7 @@
 #include <rainy/core/core.hpp>
 #include <rainy/foundation/concurrency/concurrency.hpp>
 
-namespace rainy::foundation::io::net {
+namespace rainy::foundation::io {
     class system_context;
 
     class system_executor {

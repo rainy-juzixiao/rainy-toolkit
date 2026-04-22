@@ -13,13 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef RAINY_FOUNDATION_IO_NET_EXECUTOR_DISPATCHER_HPP
-#define RAINY_FOUNDATION_IO_NET_EXECUTOR_DISPATCHER_HPP
-#include <rainy/foundation/io/net/executor/associated_allocator.hpp>
-#include <rainy/foundation/io/net/executor/associated_executor.hpp>
-#include <rainy/foundation/io/net/executor/executor_work_guard.hpp>
+#ifndef RAINY_FOUNDATION_IO_EXECUTOR_DISPATCHER_HPP
+#define RAINY_FOUNDATION_IO_EXECUTOR_DISPATCHER_HPP
+#include <rainy/foundation/io/executor/associated_allocator.hpp>
+#include <rainy/foundation/io/executor/associated_executor.hpp>
+#include <rainy/foundation/io/executor/executor_work_guard.hpp>
 
-namespace rainy::foundation::io::net::implements {
+namespace rainy::foundation::io::implements {
     template <typename Handler>
     class work_dispatcher {
     public:

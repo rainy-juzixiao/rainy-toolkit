@@ -8,8 +8,9 @@
 #include <system_error>
 
 namespace rainy::foundation::io::filesystem::implements {
-    using net::implements::completion_op;
-    using net::implements::op_result;
+    using io::implements::completion_op;
+    using io::implements::op_result;
+    using io::implements::io_context_impl_base;
 
     class file_impl_base {
     public:
@@ -23,7 +24,7 @@ namespace rainy::foundation::io::filesystem::implements {
          * @return 错误码，成功时 value()==0
          */
         virtual std::error_code open(const std::filesystem::path &path, open_mode mode,
-                                     net::implements::io_context_impl_base &ctx) noexcept = 0;
+                                     io_context_impl_base &ctx) noexcept = 0;
 
         virtual void close() noexcept = 0;
 
@@ -47,10 +48,10 @@ namespace rainy::foundation::io::filesystem::implements {
          */
         virtual std::size_t write_some_at(net::const_buffer buf, std::uint64_t offset, std::error_code &ec) noexcept = 0;
 
-        virtual void async_read_some_at(net::mutable_buffer buf, std::uint64_t offset, net::implements::io_context_impl_base &ctx,
+        virtual void async_read_some_at(net::mutable_buffer buf, std::uint64_t offset, io_context_impl_base &ctx,
                                         completion_op *op) noexcept = 0;
 
-        virtual void async_write_some_at(net::const_buffer buf, std::uint64_t offset, net::implements::io_context_impl_base &ctx,
+        virtual void async_write_some_at(net::const_buffer buf, std::uint64_t offset, io_context_impl_base &ctx,
                                          completion_op *op) noexcept = 0;
 
         RAINY_NODISCARD virtual std::uint64_t size(std::error_code &ec) const noexcept = 0;
@@ -66,7 +67,7 @@ namespace rainy::foundation::io::filesystem::implements {
 namespace rainy::foundation::io::filesystem {
     class basic_file {
     public:
-        using executor_type = net::io_context::executor_type;
+        using executor_type = io_context::executor_type;
 
         /**
          * @brief  构造并立即打开文件
@@ -74,7 +75,7 @@ namespace rainy::foundation::io::filesystem {
          * @param  path  目标路径
          * @param  mode  打开模式，默认只读
          */
-        explicit basic_file(net::io_context &ctx, const std::filesystem::path &path, open_mode mode = open_mode::read_only) :
+        explicit basic_file(io_context &ctx, const std::filesystem::path &path, open_mode mode = open_mode::read_only) :
             ctx_(&ctx), impl_(implements::make_file_impl()) {
             std::error_code ec = impl_->open(path, mode, ctx_->under_impl());
             if (ec) {
@@ -85,7 +86,7 @@ namespace rainy::foundation::io::filesystem {
         /**
          * @brief  构造后不立即打开，稍后调用 open()
          */
-        explicit basic_file(net::io_context &ctx) : ctx_(&ctx), impl_(implements::make_file_impl()) {
+        explicit basic_file(io_context &ctx) : ctx_(&ctx), impl_(implements::make_file_impl()) {
         }
 
         basic_file(const basic_file &) = delete;
@@ -153,7 +154,7 @@ namespace rainy::foundation::io::filesystem {
         template <typename MutableBufferSequence, typename Handler>
         void async_read_some_at(std::uint64_t offset, const MutableBufferSequence &buf, Handler &&handler) {
             ctx_->under_impl().on_work_started();
-            auto *op = net::implements::make_io_completion_op(
+            auto *op = io::implements::make_io_completion_op(
                 [h = utility::forward<Handler>(handler), this](const implements::op_result &res, bool cancelled) mutable {
                     std::error_code ec;
                     if (cancelled) {
@@ -171,7 +172,7 @@ namespace rainy::foundation::io::filesystem {
         template <typename ConstBufferSequence, typename Handler>
         void async_write_some_at(std::uint64_t offset, const ConstBufferSequence &buf, Handler &&handler) {
             ctx_->under_impl().on_work_started();
-            auto *op = net::implements::make_io_completion_op(
+            auto *op = io::implements::make_io_completion_op(
                 [h = utility::forward<Handler>(handler), this](const implements::op_result &res, bool cancelled) mutable {
                     std::error_code ec;
                     if (cancelled) {
@@ -211,7 +212,7 @@ namespace rainy::foundation::io::filesystem {
         }
 
     private:
-        net::io_context *ctx_;
+        io::io_context *ctx_;
         memory::nebula_ptr<implements::file_impl_base> impl_;
     };
 }
@@ -219,9 +220,9 @@ namespace rainy::foundation::io::filesystem {
 namespace rainy::foundation::io::filesystem {
     class stream_file {
     public:
-        using executor_type = net::io_context::executor_type;
+        using executor_type = io::io_context::executor_type;
 
-        explicit stream_file(net::io_context &ctx, const std::filesystem::path &path, open_mode mode = open_mode::read_only) :
+        explicit stream_file(io::io_context &ctx, const std::filesystem::path &path, open_mode mode = open_mode::read_only) :
             file_(ctx, path, mode), offset_(0) {
             if (has_flag(mode, open_mode::append)) {
                 std::error_code ec;
@@ -229,7 +230,7 @@ namespace rainy::foundation::io::filesystem {
             }
         }
 
-        explicit stream_file(net::io_context &ctx) : file_(ctx), offset_(0) {
+        explicit stream_file(io::io_context &ctx) : file_(ctx), offset_(0) {
         }
 
         stream_file(const stream_file &) = delete;

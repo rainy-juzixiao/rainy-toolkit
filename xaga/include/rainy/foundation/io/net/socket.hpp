@@ -16,10 +16,10 @@
 #ifndef RAINY_FOUNDATION_IO_NET_SOCKET_HPP
 #define RAINY_FOUNDATION_IO_NET_SOCKET_HPP
 
-#include <rainy/foundation/io/net/fwd.hpp>
+#include <rainy/foundation/io/executor/async_result.hpp>
 #include <rainy/foundation/io/io_context.hpp>
 #include <rainy/foundation/io/net/buffer.hpp>
-#include <rainy/foundation/io/net/executor/async_result.hpp>
+#include <rainy/foundation/io/net/fwd.hpp>
 #include <rainy/foundation/io/net/implements/sock.hpp>
 
 namespace rainy::foundation::io::net::implements {
@@ -400,27 +400,28 @@ namespace rainy::foundation::io::net {
             if (!impl_->is_open()) {
                 auto proto = ep.protocol();
                 if (std::error_code open_ec = impl_->open(proto.family(), proto.type(), proto.protocol())) {
-                    auto *op = implements::make_io_completion_op(
-                        [handler, open_ec](const implements::op_result &, bool) mutable { handler(open_ec); });
-                    executor_.context().impl_->post_immediate_completion(op, false);
+                    auto *op = io::implements::make_io_completion_op(
+                        [handler, open_ec](const io::implements::op_result &, bool) mutable { handler(open_ec); });
+                    executor_.context().under_impl().post_immediate_completion(op, false);
                     return init.result.get();
                 }
             }
             auto raw_ep = ep.to_raw();
-            auto *op = implements::make_io_completion_op([handler, &ctx_impl = executor_.context().under_impl()](const implements::op_result &r, bool cancelled) mutable {
-                ctx_impl.on_work_finished();
-                if (cancelled) {
-                    handler(std::make_error_code(std::errc::operation_canceled));
-                    return;
-                }
-                std::error_code ec;
-                if (r.error_code) {
-                    ec = std::error_code{r.error_code, std::system_category()};
-                }
-                handler(ec);
-            });
+            auto *op = io::implements::make_io_completion_op(
+                [handler, &ctx_impl = executor_.context().under_impl()](const io::implements::op_result &r, bool cancelled) mutable {
+                    ctx_impl.on_work_finished();
+                    if (cancelled) {
+                        handler(std::make_error_code(std::errc::operation_canceled));
+                        return;
+                    }
+                    std::error_code ec;
+                    if (r.error_code) {
+                        ec = std::error_code{r.error_code, std::system_category()};
+                    }
+                    handler(ec);
+                });
             executor_.context().under_impl().on_work_started();
-            impl_->async_connect(raw_ep, *executor_.context().impl_, op);
+            impl_->async_connect(raw_ep, executor_.context().under_impl(), op);
             return init.result.get();
         }
 
@@ -445,7 +446,7 @@ namespace rainy::foundation::io::net {
             async_completion<token_t, void(std::error_code)> init(token);
             auto handler = utility::move(init.completion_handler);
             auto *op =
-                implements::make_io_completion_op([handler](const implements::op_result &r, const bool cancelled) mutable {
+                io::implements::make_io_completion_op([handler](const io::implements::op_result &r, const bool cancelled) mutable {
                     if (cancelled) {
                         return;
                     }
@@ -455,7 +456,7 @@ namespace rainy::foundation::io::net {
                     }
                     handler(ec);
                 });
-            auto &ctx_impl = *executor_.context().impl_;
+            auto &ctx_impl = executor_.context().under_impl();
             impl_->async_wait(static_cast<implements::wait_type>(w), ctx_impl, op);
             return init.result.get();
         }
@@ -593,7 +594,7 @@ namespace rainy::foundation::io::net {
             async_completion<token_t, void(std::error_code, std::size_t)> init(token);
             auto handler = utility::move(init.completion_handler);
             auto mb = io::net::buffer(buffers);
-            auto *op = implements::make_io_completion_op([handler](const implements::op_result &r, const bool cancelled) mutable {
+            auto *op = io::implements::make_io_completion_op([handler](const io::implements::op_result &r, const bool cancelled) mutable {
                 if (cancelled) {
                     return;
                 }
@@ -660,7 +661,7 @@ namespace rainy::foundation::io::net {
             auto mb = io::net::buffer(buffers);
 
             auto raw_sender = std::make_shared<implements::raw_endpoint>();
-            auto *op = implements::make_function_op([this, mb, flags, &sender, raw_sender, handler]() mutable {
+            auto *op = io::implements::make_function_op([this, mb, flags, &sender, raw_sender, handler]() mutable {
                 std::error_code ec;
                 auto n = this->impl_->receive_from(mb.data(), mb.size(), flags, *raw_sender, ec);
                 if (!ec) {
@@ -717,7 +718,7 @@ namespace rainy::foundation::io::net {
             async_completion<token_t, void(std::error_code, std::size_t)> init(token);
             auto handler = utility::move(init.completion_handler);
             auto cb = io::net::buffer(buffers);
-            auto *op = implements::make_io_completion_op([handler](const implements::op_result &r, const bool cancelled) mutable {
+            auto *op = io::implements::make_io_completion_op([handler](const io::implements::op_result &r, const bool cancelled) mutable {
                 if (cancelled) {
                     return;
                 }
@@ -727,7 +728,7 @@ namespace rainy::foundation::io::net {
                 }
                 handler(ec, r.bytes_transferred);
             });
-            this->impl_->async_send(cb.data(), cb.size(), flags, *this->executor_.context().impl_, op);
+            this->impl_->async_send(cb.data(), cb.size(), flags, this->executor_.context().under_impl(), op);
             return init.result.get();
         }
 
@@ -781,7 +782,7 @@ namespace rainy::foundation::io::net {
             auto cb = io::net::buffer(buffers);
             auto raw_dest = recipient.to_raw();
 
-            auto *op = implements::make_function_op([this, cb, flags, raw_dest, handler]() mutable {
+            auto *op = io::implements::make_function_op([this, cb, flags, raw_dest, handler]() mutable {
                 std::error_code ec;
                 auto n = this->impl_->send_to(cb.data(), cb.size(), flags, raw_dest, ec);
                 handler(ec, n < 0 ? 0 : static_cast<std::size_t>(n));
@@ -916,7 +917,7 @@ namespace rainy::foundation::io::net {
             async_completion<token_t, void(std::error_code, std::size_t)> init(token);
             auto handler = utility::move(init.completion_handler);
             auto mb = io::net::buffer(buffers);
-            auto *op = implements::make_io_completion_op([handler](const implements::op_result &r, const bool cancelled) mutable {
+            auto *op = io::implements::make_io_completion_op([handler](const io::implements::op_result &r, const bool cancelled) mutable {
                 if (cancelled) {
                     return;
                 }
@@ -949,7 +950,7 @@ namespace rainy::foundation::io::net {
             async_completion<token_t, void(std::error_code, std::size_t)> init(token);
             auto handler = utility::move(init.completion_handler);
             auto cb = net::buffer(buffers);
-            auto *op = implements::make_function_op([handler](const implements::op_result &r) mutable {
+            auto *op = io::implements::make_function_op([handler](const io::implements::op_result &r) mutable {
                 std::error_code ec;
                 if (r.error_code) {
                     ec = std::error_code{r.error_code, std::system_category()};
@@ -1299,8 +1300,8 @@ namespace rainy::foundation::io::net {
             auto executor = executor_;
             auto protocol = protocol_;
             executor.on_work_started();
-            auto *op = implements::make_io_completion_op(
-                [this, raw_peer, handler, executor, protocol](const implements::op_result &r, const bool cancelled) mutable {
+            auto *op = io::implements::make_io_completion_op(
+                [this, raw_peer, handler, executor, protocol](const io::implements::op_result &r, const bool cancelled) mutable {
                     executor.on_work_finished();
                     if (cancelled) {
                         return;
@@ -1317,7 +1318,7 @@ namespace rainy::foundation::io::net {
                     handler(ec, utility::move(s));
                     utility::ignore = raw_peer;
                 });
-            impl_->async_accept(raw_peer.get(), *executor_.context().impl_, op);
+            impl_->async_accept(raw_peer.get(), executor_.context().under_impl(), op);
             return init.result.get();
         }
 
@@ -1328,7 +1329,7 @@ namespace rainy::foundation::io::net {
             async_completion<token_t, void(std::error_code, socket_type)> init(token);
             auto handler = utility::move(init.completion_handler);
             auto raw_peer = std::make_shared<implements::raw_endpoint>();
-            auto *op = implements::make_function_op([this, &ctx, raw_peer, handler]() mutable {
+            auto *op = io::implements::make_function_op([this, &ctx, raw_peer, handler]() mutable {
                 std::error_code ec;
                 auto fd = this->impl_->accept(raw_peer.get(), ec);
                 socket_type s{ctx};
@@ -1337,7 +1338,7 @@ namespace rainy::foundation::io::net {
                 }
                 handler(ec, utility::move(s));
             });
-            impl_->async_accept(raw_peer, *executor_.context().impl_, op);
+            impl_->async_accept(raw_peer, executor_.context().under_impl(), op);
             return init.result.get();
         }
 
@@ -1360,8 +1361,8 @@ namespace rainy::foundation::io::net {
             using token_t = std::decay_t<CompletionToken>;
             async_completion<token_t, void(std::error_code)> init(token);
             auto handler = utility::move(init.completion_handler);
-            auto *op = implements::make_function_op([handler]() mutable { handler(std::error_code{}); });
-            impl_->async_wait(static_cast<implements::wait_type>(w), *executor_.context().impl_, op);
+            auto *op = io::implements::make_function_op([handler]() mutable { handler(std::error_code{}); });
+            impl_->async_wait(static_cast<implements::wait_type>(w), executor_.context().under_impl(), op);
             return init.result.get();
         }
 

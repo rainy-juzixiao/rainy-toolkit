@@ -2,7 +2,7 @@
 #define RAINY_FOUNDATION_IO_NET_EXECUTYOR_GLOBAL_HPP
 #include <rainy/foundation/concurrency/mutex.hpp>
 
-namespace rainy::foundation::io::net::implements {
+namespace rainy::foundation::io::implements {
     template <typename Ty>
     struct global_impl {
         static void do_init() {

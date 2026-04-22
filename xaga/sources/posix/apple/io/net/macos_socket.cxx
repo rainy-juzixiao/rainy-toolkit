@@ -25,7 +25,7 @@
 #include <unistd.h>
 // NOLINTEND
 
-#include <rainy/foundation/io/net/implements/io_context.hpp>
+#include <rainy/foundation/io/implements/io_context.hpp>
 #include <rainy/foundation/io/net/implements/sock.hpp>
 
 namespace rainy::foundation::io::net::implements {
@@ -33,7 +33,7 @@ namespace rainy::foundation::io::net::implements {
         return std::error_code{e, std::system_category()};
     }
 
-    static int get_kq_from_op(completion_op *op, io_context_impl_base &ctx_impl, int fd) noexcept {
+    static int get_kq_from_op(io::implements::completion_op *op, io::implements::io_context_impl_base &ctx_impl, int fd) noexcept {
         ctx_impl.associate_handle(op, static_cast<std::uintptr_t>(fd), nullptr);
         if (!op->io_handle) {
             return -1;
@@ -41,51 +41,50 @@ namespace rainy::foundation::io::net::implements {
         return static_cast<int>(reinterpret_cast<std::uintptr_t>(op->io_handle));
     }
 
-    static bool submit_kevent(int kq, int fd, short filter, completion_op *op) noexcept {
+    static bool submit_kevent(int kq, int fd, short filter, io::implements::completion_op *op) noexcept {
         struct kevent ev{};
-        EV_SET(&ev, static_cast<uintptr_t>(fd), filter, EV_ADD | EV_ONESHOT, 0, 0,
-               op); // udata = completion_op*，harvest 中取回
+        EV_SET(&ev, static_cast<uintptr_t>(fd), filter, EV_ADD | EV_ONESHOT, 0, 0, op);
         return ::kevent(kq, &ev, 1, nullptr, 0, nullptr) == 0;
     }
 
     template <typename IoFunc>
-    class kqueue_io_op final : public completion_op {
+    class kqueue_io_op final : public io::implements::completion_op {
     public:
-        kqueue_io_op(IoFunc &&io_func, completion_op *user_op) noexcept(std::is_nothrow_move_constructible_v<IoFunc>) :
-            completion_op(&do_complete), io_func_(std::move(io_func)), user_op_(user_op) {
+        kqueue_io_op(IoFunc &&io_func, io::implements::completion_op *user_op) noexcept(std::is_nothrow_move_constructible_v<IoFunc>) :
+            io::implements::completion_op(&do_complete), io_func_(std::move(io_func)), user_op_(user_op) {
         }
 
         kqueue_io_op(const kqueue_io_op &) = delete;
         kqueue_io_op &operator=(const kqueue_io_op &) = delete;
 
     private:
-        static void do_complete(completion_op *self, const op_result & /*kevent_result*/, bool is_cancelled) noexcept {
+        static void do_complete(io::implements::completion_op *self, const io::implements::op_result & /*kevent_result*/, bool is_cancelled) noexcept {
             auto *me = static_cast<kqueue_io_op *>(self);
             IoFunc io_func = std::move(me->io_func_);
-            completion_op *user = me->user_op_;
+            io::implements::completion_op *user = me->user_op_;
             delete me;
 
             if (is_cancelled) {
-                op_result r{user, 0, ECANCELED};
+                io::implements::op_result r{user, 0, ECANCELED};
                 user->complete(r, true);
                 return;
             }
             // 执行真正的 syscall，结果写入 r
-            op_result r{user, 0, 0};
+            io::implements::op_result r{user, 0, 0};
             io_func(r);
             user->complete(r, false);
         }
 
         IoFunc io_func_;
-        completion_op *user_op_;
+        io::implements::completion_op *user_op_;
     };
 
     template <typename IoFunc>
-    static void post_kqueue_async(int kq, int fd, short filter, io_context_impl_base &ctx_impl, completion_op *user_op,
+    static void post_kqueue_async(int kq, int fd, short filter, io::implements::io_context_impl_base &ctx_impl, io::implements::completion_op *user_op,
                                   IoFunc &&io_func) noexcept {
         auto *io_op = new (std::nothrow) kqueue_io_op<std::decay_t<IoFunc>>(std::forward<IoFunc>(io_func), user_op);
         if (!io_op) {
-            op_result r{user_op, 0, ENOMEM};
+            io::implements::op_result r{user_op, 0, ENOMEM};
             user_op->complete(r, false);
             return;
         }
@@ -336,7 +335,8 @@ namespace rainy::foundation::io::net::implements {
             return ret == 0 ? std::error_code{} : posix_error();
         }
 
-        void async_connect(const raw_endpoint &ep, io_context_impl_base &ctx_impl, completion_op *op) noexcept override {
+        void async_connect(const raw_endpoint &ep, io::implements::io_context_impl_base &ctx_impl,
+                           io::implements::completion_op *op) noexcept override {
             const int ret = ::connect(fd_, reinterpret_cast<const ::sockaddr *>(ep.data), static_cast<::socklen_t>(ep.size));
             if (ret == 0) {
                 // 连接立即成功（loopback 常见）
@@ -355,7 +355,7 @@ namespace rainy::foundation::io::net::implements {
             }
 
             const int fd = fd_;
-            post_kqueue_async(kq, fd_, EVFILT_WRITE, ctx_impl, op, [fd](op_result &r) noexcept {
+            post_kqueue_async(kq, fd_, EVFILT_WRITE, ctx_impl, op, [fd](io::implements::op_result &r) noexcept {
                 int err = 0;
                 ::socklen_t len = sizeof(err);
                 if (::getsockopt(fd, SOL_SOCKET, SO_ERROR, &err, &len) < 0) {
@@ -366,8 +366,8 @@ namespace rainy::foundation::io::net::implements {
             });
         }
 
-        void async_send(const void *buf, std::size_t len, message_flags_t flags, io_context_impl_base &ctx_impl,
-                        completion_op *op) noexcept override {
+        void async_send(const void *buf, std::size_t len, message_flags_t flags, io::implements::io_context_impl_base &ctx_impl,
+                        io::implements::completion_op *op) noexcept override {
             const int kq = get_kq_from_op(op, ctx_impl, fd_);
             if (kq < 0) {
                 ctx_impl.post_immediate_completion(op, false);
@@ -375,7 +375,7 @@ namespace rainy::foundation::io::net::implements {
             }
 
             const int fd = fd_;
-            post_kqueue_async(kq, fd_, EVFILT_WRITE, ctx_impl, op, [fd, buf, len, flags](op_result &r) noexcept {
+            post_kqueue_async(kq, fd_, EVFILT_WRITE, ctx_impl, op, [fd, buf, len, flags](io::implements::op_result &r) noexcept {
                 const ::ssize_t n = ::send(fd, buf, len, flags);
                 if (n < 0) {
                     r.bytes_transferred = 0;
@@ -387,8 +387,8 @@ namespace rainy::foundation::io::net::implements {
             });
         }
 
-        void async_receive(void *buf, std::size_t len, message_flags_t flags, io_context_impl_base &ctx_impl,
-                           completion_op *op) noexcept override {
+        void async_receive(void *buf, std::size_t len, message_flags_t flags, io::implements::io_context_impl_base &ctx_impl,
+                           io::implements::completion_op *op) noexcept override {
             const int kq = get_kq_from_op(op, ctx_impl, fd_);
             if (kq < 0) {
                 ctx_impl.post_immediate_completion(op, false);
@@ -396,7 +396,7 @@ namespace rainy::foundation::io::net::implements {
             }
 
             const int fd = fd_;
-            post_kqueue_async(kq, fd_, EVFILT_READ, ctx_impl, op, [fd, buf, len, flags](op_result &r) noexcept {
+            post_kqueue_async(kq, fd_, EVFILT_READ, ctx_impl, op, [fd, buf, len, flags](io::implements::op_result &r) noexcept {
                 const ::ssize_t n = ::recv(fd, buf, len, flags);
                 if (n < 0) {
                     r.bytes_transferred = 0;
@@ -409,7 +409,7 @@ namespace rainy::foundation::io::net::implements {
         }
 
         void async_send_to(const void *buf, std::size_t len, message_flags_t flags, const raw_endpoint &dest,
-                           io_context_impl_base &ctx_impl, completion_op *op) noexcept override {
+                           io::implements::io_context_impl_base &ctx_impl, io::implements::completion_op *op) noexcept override {
             const int kq = get_kq_from_op(op, ctx_impl, fd_);
             if (kq < 0) {
                 ctx_impl.post_immediate_completion(op, false);
@@ -417,7 +417,7 @@ namespace rainy::foundation::io::net::implements {
             }
             const int fd = fd_;
             raw_endpoint dest_copy = dest;
-            post_kqueue_async(kq, fd_, EVFILT_WRITE, ctx_impl, op, [fd, buf, len, flags, dest_copy](op_result &r) noexcept {
+            post_kqueue_async(kq, fd_, EVFILT_WRITE, ctx_impl, op, [fd, buf, len, flags, dest_copy](io::implements::op_result &r) noexcept {
                 const ::ssize_t n = ::sendto(fd, buf, len, flags, reinterpret_cast<const ::sockaddr *>(dest_copy.data),
                                              static_cast<::socklen_t>(dest_copy.size));
                 if (n < 0) {
@@ -431,14 +431,14 @@ namespace rainy::foundation::io::net::implements {
         }
 
         void async_receive_from(void *buf, std::size_t len, message_flags_t flags, raw_endpoint &sender,
-                                io_context_impl_base &ctx_impl, completion_op *op) noexcept override {
+                                io::implements::io_context_impl_base &ctx_impl, io::implements::completion_op *op) noexcept override {
             const int kq = get_kq_from_op(op, ctx_impl, fd_);
             if (kq < 0) {
                 ctx_impl.post_immediate_completion(op, false);
                 return;
             }
             const int fd = fd_;
-            post_kqueue_async(kq, fd_, EVFILT_READ, ctx_impl, op, [fd, buf, len, flags, &sender](op_result &r) noexcept {
+            post_kqueue_async(kq, fd_, EVFILT_READ, ctx_impl, op, [fd, buf, len, flags, &sender](io::implements::op_result &r) noexcept {
                 auto slen = static_cast<::socklen_t>(sizeof(sender.data));
                 const ::ssize_t n = ::recvfrom(fd, buf, len, flags, reinterpret_cast<::sockaddr *>(sender.data), &slen);
                 if (n < 0) {
@@ -452,7 +452,7 @@ namespace rainy::foundation::io::net::implements {
             });
         }
 
-        void async_accept(raw_endpoint *peer_ep, io_context_impl_base &ctx_impl, completion_op *op) noexcept override {
+        void async_accept(raw_endpoint *peer_ep, io::implements::io_context_impl_base &ctx_impl, io::implements::completion_op *op) noexcept override {
             const int kq = get_kq_from_op(op, ctx_impl, fd_);
             if (kq < 0) {
                 ctx_impl.post_immediate_completion(op, false);
@@ -460,7 +460,7 @@ namespace rainy::foundation::io::net::implements {
             }
 
             const int fd = fd_;
-            post_kqueue_async(kq, fd_, EVFILT_READ, ctx_impl, op, [fd, peer_ep](op_result &r) noexcept {
+            post_kqueue_async(kq, fd_, EVFILT_READ, ctx_impl, op, [fd, peer_ep](io::implements::op_result &r) noexcept {
                 int client;
                 if (peer_ep) {
                     auto len = static_cast<::socklen_t>(sizeof(peer_ep->data));
@@ -484,7 +484,7 @@ namespace rainy::foundation::io::net::implements {
             });
         }
 
-        void async_wait(wait_type w, io_context_impl_base &ctx_impl, completion_op *op) noexcept override {
+        void async_wait(wait_type w, io::implements::io_context_impl_base &ctx_impl, io::implements::completion_op *op) noexcept override {
             const int kq = get_kq_from_op(op, ctx_impl, fd_);
             if (kq < 0) {
                 ctx_impl.post_immediate_completion(op, false);

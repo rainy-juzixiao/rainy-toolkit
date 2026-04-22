@@ -22,10 +22,11 @@
 #include <unistd.h>
 
 namespace rainy::foundation::io::filesystem::implements {
-    static io_uring_sqe *get_sqe_from_op(completion_op *op, net::implements::io_context_impl_base &ctx_impl, const int fd) {
+    static io_uring_sqe *get_sqe_from_op(completion_op *op, io_context_impl_base &ctx_impl, const int fd) {
         ctx_impl.associate_handle(op, static_cast<std::uintptr_t>(fd), nullptr);
-        if (!op->io_handle)
+        if (!op->io_handle) {
             return nullptr;
+        }
         return ::io_uring_get_sqe(static_cast<io_uring *>(op->io_handle));
     }
 
@@ -44,7 +45,7 @@ namespace rainy::foundation::io::filesystem::implements {
         }
 
         std::error_code open(const std::filesystem::path &path, const open_mode mode,
-                             net::implements::io_context_impl_base &ctx) noexcept override {
+                             io_context_impl_base &ctx) noexcept override {
             int flags = 0;
             // NOLINTBEGIN
             const bool r = has_flag(mode, open_mode::read_only);
@@ -120,7 +121,7 @@ namespace rainy::foundation::io::filesystem::implements {
             return static_cast<std::size_t>(n);
         }
 
-        void async_read_some_at(const net::mutable_buffer buf, const std::uint64_t offset, net::implements::io_context_impl_base &ctx,
+        void async_read_some_at(const net::mutable_buffer buf, const std::uint64_t offset, io_context_impl_base &ctx,
                                 completion_op *op) noexcept override {
             io_uring_sqe *sqe = get_sqe_from_op(op, ctx, fd_);
             if (!sqe) {
@@ -132,7 +133,7 @@ namespace rainy::foundation::io::filesystem::implements {
             submit_ring(op);
         }
 
-        void async_write_some_at(const net::const_buffer buf, const std::uint64_t offset, net::implements::io_context_impl_base &ctx,
+        void async_write_some_at(const net::const_buffer buf, const std::uint64_t offset, io_context_impl_base &ctx,
                                  completion_op *op) noexcept override {
             io_uring_sqe *sqe = get_sqe_from_op(op, ctx, fd_);
             if (!sqe) {
@@ -177,7 +178,7 @@ namespace rainy::foundation::io::filesystem::implements {
         };
 
         int fd_{-1};
-        net::implements::io_context_impl_base *ctx_{nullptr};
+        io_context_impl_base *ctx_{nullptr};
     };
 
     memory::unique_ptr<file_impl_base> make_file_impl() {

@@ -17,6 +17,7 @@
 #include <rainy/foundation/io/net/internet.hpp>
 
 using namespace rainy::foundation;
+using namespace rainy::foundation::io;
 using namespace rainy::foundation::io::net;
 using namespace rainy::foundation::io::net::ip;
 

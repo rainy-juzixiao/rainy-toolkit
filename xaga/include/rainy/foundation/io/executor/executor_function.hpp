@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef RAINY_FOUNDATION_IO_NET_EXECUTOR_FUNCTION_HPP
-#define RAINY_FOUNDATION_IO_NET_EXECUTOR_FUNCTION_HPP
+#ifndef RAINY_FOUNDATION_IO_EXECUTOR_FUNCTION_HPP
+#define RAINY_FOUNDATION_IO_EXECUTOR_FUNCTION_HPP
 #include <rainy/foundation/memory/recycling_allocator.hpp>
 
-namespace rainy::foundation::io::net::implements {
+namespace rainy::foundation::io::implements {
     class executor_function_base {
     public:
         using func_type = void (*)(executor_function_base *, bool);

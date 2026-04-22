@@ -19,7 +19,7 @@
 #include <rainy/foundation/concurrency/mutex.hpp>
 #include <rainy/foundation/typeinfo.hpp>
 
-namespace rainy::foundation::exceptions::net {
+namespace rainy::foundation::exceptions::io {
     class service_already_exists : public logic::logic_error {
     public:
         service_already_exists(const char *message, const source &location) : logic_error(message, location) {
@@ -34,7 +34,7 @@ namespace rainy::foundation::exceptions::net {
     }
 }
 
-namespace rainy::foundation::io::net {
+namespace rainy::foundation::io {
     enum class fork_event {
         prepare,
         parent,
@@ -156,7 +156,7 @@ namespace rainy::foundation::io::net {
         execution_context::service::key k = execution_context::make_key<Service>();
         // 先检查是否已存在
         if (ctx.do_has_service(k)) {
-            exceptions::net::throw_service_already_exists("service already exists in execution_context");
+            exceptions::io::throw_service_already_exists("service already exists in execution_context");
         }
         rainy_let new_svc = new Service(ctx, utility::forward<Args>(args)...);
         // NOLINTBEGIN
@@ -182,7 +182,7 @@ namespace rainy::foundation::io::net {
     }
 }
 
-namespace rainy::foundation::io::net::implements {
+namespace rainy::foundation::io::implements {
     template <typename Type>
     class service_id : public execution_context::id {};
 

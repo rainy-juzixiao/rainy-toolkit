@@ -23,7 +23,7 @@
 
 // NOLINTEND
 
-namespace rainy::foundation::io::net::implements {
+namespace rainy::foundation::io::implements {
     class handler_tracking {
     public:
         class completion;

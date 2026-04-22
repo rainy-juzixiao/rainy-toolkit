@@ -181,23 +181,26 @@ namespace rainy::foundation::io::net::implements {
 
     class ssl_stream_impl_base {
     public:
+        using completion_op = io::implements::completion_op;
+        using io_context_impl = io::implements::io_context_impl_base;
+
         virtual ~ssl_stream_impl_base() = default;
 
         virtual std::error_code attach(native_socket_t sock, bool is_server) noexcept = 0;
         virtual native_socket_t underlying_socket() const noexcept = 0;
 
         virtual std::error_code handshake() noexcept = 0;
-        virtual void async_handshake(io_context_impl_base &ctx_impl, completion_op *op) noexcept = 0;
+        virtual void async_handshake(io_context_impl &ctx_impl, completion_op *op) noexcept = 0;
 
         virtual std::error_code shutdown() noexcept = 0;
-        virtual void async_shutdown(io_context_impl_base &ctx_impl, completion_op *op) noexcept = 0;
+        virtual void async_shutdown(io_context_impl &ctx_impl, completion_op *op) noexcept = 0;
 
         virtual std::ptrdiff_t write_some(const void *buf, std::size_t len, std::error_code &ec) noexcept = 0;
         virtual std::ptrdiff_t read_some(void *buf, std::size_t len, std::error_code &ec) noexcept = 0;
-        virtual void async_write_some(const void *buf, std::size_t len, io_context_impl_base &ctx_impl,
+        virtual void async_write_some(const void *buf, std::size_t len, io_context_impl &ctx_impl,
                                       completion_op *op) noexcept = 0;
 
-        virtual void async_read_some(void *buf, std::size_t len, io_context_impl_base &ctx_impl, completion_op *op) noexcept = 0;
+        virtual void async_read_some(void *buf, std::size_t len, io_context_impl &ctx_impl, completion_op *op) noexcept = 0;
 
         RAINY_NODISCARD virtual bool is_handshaked() const noexcept = 0;
         RAINY_NODISCARD virtual bool is_open() const noexcept = 0;

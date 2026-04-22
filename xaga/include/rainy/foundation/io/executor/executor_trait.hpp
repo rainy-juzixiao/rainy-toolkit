@@ -17,7 +17,7 @@
 #define RAINY_FOUNDATION_IO_NET_EXECUTOR_EXECUTOR_TRAIT_HPP
 #include <rainy/core/core.hpp>
 
-namespace rainy::foundation::io::net::implements {
+namespace rainy::foundation::io::implements {
     struct executor_memfns_base {
         void context();
         void on_work_started();
@@ -89,7 +89,7 @@ namespace rainy::foundation::io::net::implements {
     struct is_executor : type_traits::helper::bool_constant<is_executor_v<Ty>> {};
 }
 
-namespace rainy::foundation::io::net {
+namespace rainy::foundation::io {
     template <typename Ty>
     struct is_executor : implements::is_executor<Ty> {};
 

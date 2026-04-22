@@ -17,7 +17,7 @@
 #define RAINY_FOUNDATION_IO_NET_ASSOCIATED_ALLOCATOR_HPP
 #include <rainy/core/core.hpp>
 
-namespace rainy::foundation::io::net {
+namespace rainy::foundation::io {
     template <typename Ty, typename ProtoAllocator = std ::allocator<void>, typename = void>
     struct associated_allocator {
         using type = ProtoAllocator;
