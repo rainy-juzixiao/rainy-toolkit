@@ -22,7 +22,6 @@
 #include <rainy/foundation/io/timer.hpp>
 #include <rainy/foundation/io/net/fwd.hpp>
 #include <rainy/foundation/io/net/executor.hpp>
-#include <rainy/foundation/io/net/buffer.hpp>
 #include <rainy/foundation/io/net/internet.hpp>
 
 // NOLINTEND
