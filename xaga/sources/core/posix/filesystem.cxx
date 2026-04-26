@@ -650,6 +650,7 @@ namespace rainy::core::pal {
     bool exists_native(const native_czstring path) {
         struct stat st{};
         if (::stat(path, &st) == 0) {
+            errno = 0;
             return true;
         }
         if (errno == ENOENT || errno == ENOTDIR) {

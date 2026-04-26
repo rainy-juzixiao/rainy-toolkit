@@ -20,11 +20,11 @@ namespace rainy::foundation::io::filesystem {
     recursive_directory_iterator begin(recursive_directory_iterator iter) noexcept;
     recursive_directory_iterator end(recursive_directory_iterator) noexcept;
 
-    using core::pal::file_type;
-    using core::pal::perms;
-    using core::pal::perm_options;
     using core::pal::copy_options;
     using core::pal::directory_options;
+    using core::pal::file_type;
+    using core::pal::perm_options;
+    using core::pal::perms;
     using core::pal::space_info;
 
     class file_status {
@@ -39,15 +39,29 @@ namespace rainy::foundation::io::filesystem {
         file_status &operator=(const file_status &) noexcept = default;
         file_status &operator=(file_status &&) noexcept = default;
 
-        void type(file_type ft) noexcept;
-        void permissions(perms prms) noexcept;
+        void type(file_type ft) noexcept {
+            type_ = ft;
+        }
 
-        file_type type() const noexcept;
-        perms permissions() const noexcept;
+        void permissions(const perms perms) noexcept {
+            permissions_ = perms;
+        }
+
+        RAINY_NODISCARD file_type type() const noexcept {
+            return type_;
+        }
+
+        RAINY_NODISCARD perms permissions() const noexcept {
+            return permissions_;
+        }
 
         friend bool operator==(const file_status &left, const file_status &right) noexcept {
             return left.type() == right.type() && left.permissions() == right.permissions();
         }
+
+    private:
+        file_type type_;
+        perms permissions_;
     };
 
     using file_time_type = std::chrono::time_point<std::chrono::file_clock>;
@@ -67,15 +81,15 @@ namespace rainy::foundation::io::filesystem {
         direct = 1 << 7, // O_DIRECT / FILE_FLAG_NO_BUFFERING
     };
 
-    inline constexpr open_mode operator|(open_mode a, open_mode b) noexcept {
+    RAINY_INLINE constexpr open_mode operator|(open_mode a, open_mode b) noexcept {
         return static_cast<open_mode>(static_cast<unsigned>(a) | static_cast<unsigned>(b));
     }
 
-    inline constexpr open_mode operator&(open_mode a, open_mode b) noexcept {
+    RAINY_INLINE constexpr open_mode operator&(open_mode a, open_mode b) noexcept {
         return static_cast<open_mode>(static_cast<unsigned>(a) & static_cast<unsigned>(b));
     }
 
-    inline constexpr bool has_flag(open_mode flags, open_mode bit) noexcept {
+    RAINY_INLINE constexpr bool has_flag(open_mode flags, open_mode bit) noexcept {
         return (flags & bit) != open_mode::none;
     }
 

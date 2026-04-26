@@ -68,6 +68,7 @@ namespace rainy::core::pal {
     thread_local foundation::text::wstring tls_w_buffer;
     
     using conv_t = foundation::text::wstring_convert<foundation::text::codecvt_utf8<wchar_t>, foundation::text::basic_string, wchar_t>;
+
     inline const wchar_t *to_native(czstring path) {
         static thread_local conv_t conv;
         tls_w_buffer = conv.from_bytes(path, path + std::strlen(path));
@@ -226,17 +227,21 @@ namespace rainy::core::pal {
 
 namespace rainy::core::pal {
     ssize_t absolute_native(native_czstring path, native_cstring out_buffer, std::size_t buffer_size) {
-        wchar_t full_path[MAX_PATH];
-        if (!GetFullPathNameW(path, MAX_PATH, full_path, nullptr)) {
+        DWORD required_len = GetFullPathNameW(path, 0, nullptr, nullptr);
+        if (required_len == 0) {
             set_errno_from_win32(GetLastError());
             return -1;
         }
-        std::size_t len = wcslen(full_path);
-        if (len >= buffer_size) {
+        if (required_len >= buffer_size) {
             errno = ERANGE;
             return -1;
         }
-        wcscpy(out_buffer, full_path);
+        wchar_t *full_path = out_buffer;
+        DWORD len = GetFullPathNameW(path, buffer_size, full_path, nullptr);
+        if (len == 0) {
+            set_errno_from_win32(GetLastError());
+            return -1;
+        }
         return static_cast<ssize_t>(len);
     }
     
@@ -247,16 +252,16 @@ namespace rainy::core::pal {
             return -1;
         }
         
-        HANDLE hFile = CreateFileW(full_path, GENERIC_READ, FILE_SHARE_READ, nullptr,
+        HANDLE file_handle = CreateFileW(full_path, GENERIC_READ, FILE_SHARE_READ, nullptr,
                                    OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, nullptr);
-        if (hFile == INVALID_HANDLE_VALUE) {
+        if (file_handle == INVALID_HANDLE_VALUE) {
             set_errno_from_win32(GetLastError());
             return -1;
         }
         
         wchar_t canonical[MAX_PATH];
-        DWORD len = GetFinalPathNameByHandleW(hFile, canonical, MAX_PATH, VOLUME_NAME_DOS);
-        CloseHandle(hFile);
+        DWORD len = GetFinalPathNameByHandleW(file_handle, canonical, MAX_PATH, VOLUME_NAME_DOS);
+        CloseHandle(file_handle);
         
         if (len == 0 || len >= MAX_PATH) {
             set_errno_from_win32(GetLastError());
@@ -280,12 +285,12 @@ namespace rainy::core::pal {
     ssize_t weakly_canonical_native(native_czstring path, native_cstring out_buffer, std::size_t buffer_size) {
         wchar_t tmp[MAX_PATH];
         if (GetFullPathNameW(path, MAX_PATH, tmp, nullptr)) {
-            HANDLE hFile = CreateFileW(tmp, GENERIC_READ, FILE_SHARE_READ, nullptr,
+            HANDLE file_handle = CreateFileW(tmp, GENERIC_READ, FILE_SHARE_READ, nullptr,
                                        OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, nullptr);
-            if (hFile != INVALID_HANDLE_VALUE) {
+            if (file_handle != INVALID_HANDLE_VALUE) {
                 wchar_t canonical[MAX_PATH];
-                DWORD len = GetFinalPathNameByHandleW(hFile, canonical, MAX_PATH, VOLUME_NAME_DOS);
-                CloseHandle(hFile);
+                DWORD len = GetFinalPathNameByHandleW(file_handle, canonical, MAX_PATH, VOLUME_NAME_DOS);
+                CloseHandle(file_handle);
                 if (len > 0 && len < MAX_PATH) {
                     native_czstring result = canonical;
                     if (wcsncmp(canonical, L"\\\\?\\", 4) == 0) {
@@ -467,22 +472,22 @@ namespace rainy::core::pal {
     }
     
     bool hard_link_count_native(native_czstring path, uintmax_t* out_count)  {
-        HANDLE hFile = CreateFileW(path, 0, FILE_SHARE_READ | FILE_SHARE_WRITE,
+        HANDLE file_handle = CreateFileW(path, 0, FILE_SHARE_READ | FILE_SHARE_WRITE,
                                    nullptr, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, nullptr);
-        if (hFile == INVALID_HANDLE_VALUE) {
+        if (file_handle == INVALID_HANDLE_VALUE) {
             set_errno_from_win32(GetLastError());
             return false;
         }
         
         BY_HANDLE_FILE_INFORMATION info{};
-        if (!GetFileInformationByHandle(hFile, &info)) {
+        if (!GetFileInformationByHandle(file_handle, &info)) {
             set_errno_from_win32(GetLastError());
-            CloseHandle(hFile);
+            CloseHandle(file_handle);
             return false;
         }
         
         *out_count = info.nNumberOfLinks;
-        CloseHandle(hFile);
+        CloseHandle(file_handle);
         return true;
     }
     
@@ -518,9 +523,9 @@ namespace rainy::core::pal {
     }
     
     void last_write_time_native(native_czstring path, std::time_t new_time)  {
-        HANDLE hFile = CreateFileW(path, FILE_WRITE_ATTRIBUTES, FILE_SHARE_READ | FILE_SHARE_WRITE,
+        HANDLE file_handle = CreateFileW(path, FILE_WRITE_ATTRIBUTES, FILE_SHARE_READ | FILE_SHARE_WRITE,
                                    nullptr, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, nullptr);
-        if (hFile == INVALID_HANDLE_VALUE) {
+        if (file_handle == INVALID_HANDLE_VALUE) {
             set_errno_from_win32(GetLastError());
             return;
         }
@@ -531,10 +536,10 @@ namespace rainy::core::pal {
         ft.dwLowDateTime = ui.LowPart;
         ft.dwHighDateTime = ui.HighPart;
         
-        if (!SetFileTime(hFile, nullptr, nullptr, &ft)) {
+        if (!SetFileTime(file_handle, nullptr, nullptr, &ft)) {
             set_errno_from_win32(GetLastError());
         }
-        CloseHandle(hFile);
+        CloseHandle(file_handle);
     }
     
     void permissions_native(native_czstring path, perms prms, perm_options opts)  {
@@ -569,23 +574,23 @@ namespace rainy::core::pal {
     }
     
     ssize_t read_symlink_native(native_czstring path, native_cstring out_buffer, std::size_t buffer_size)  {
-        HANDLE hFile = CreateFileW(path, GENERIC_READ, FILE_SHARE_READ, nullptr,
+        HANDLE file_handle = CreateFileW(path, GENERIC_READ, FILE_SHARE_READ, nullptr,
                                    OPEN_EXISTING, FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS, nullptr);
-        if (hFile == INVALID_HANDLE_VALUE) {
+        if (file_handle == INVALID_HANDLE_VALUE) {
             set_errno_from_win32(GetLastError());
             return -1;
         }
         
         char buffer[MAXIMUM_REPARSE_DATA_BUFFER_SIZE];
         DWORD bytesReturned;
-        if (!DeviceIoControl(hFile, FSCTL_GET_REPARSE_POINT, nullptr, 0,
+        if (!DeviceIoControl(file_handle, FSCTL_GET_REPARSE_POINT, nullptr, 0,
                              buffer, sizeof(buffer), &bytesReturned, nullptr)) {
             set_errno_from_win32(GetLastError());
-            CloseHandle(hFile);
+            CloseHandle(file_handle);
             return -1;
         }
         
-        CloseHandle(hFile);
+        CloseHandle(file_handle);
         
         REPARSE_DATA_BUFFER* reparse = reinterpret_cast<REPARSE_DATA_BUFFER*>(buffer);
         native_cstring target = nullptr;
@@ -655,25 +660,25 @@ namespace rainy::core::pal {
     }
     
     void resize_file_native(native_czstring path, uintmax_t size)  {
-        HANDLE hFile = CreateFileW(path, GENERIC_WRITE, FILE_SHARE_WRITE, nullptr,
+        HANDLE file_handle = CreateFileW(path, GENERIC_WRITE, FILE_SHARE_WRITE, nullptr,
                                    OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
-        if (hFile == INVALID_HANDLE_VALUE) {
+        if (file_handle == INVALID_HANDLE_VALUE) {
             set_errno_from_win32(GetLastError());
             return;
         }
         
         LARGE_INTEGER li;
         li.QuadPart = static_cast<LONGLONG>(size);
-        if (!SetFilePointerEx(hFile, li, nullptr, FILE_BEGIN)) {
+        if (!SetFilePointerEx(file_handle, li, nullptr, FILE_BEGIN)) {
             set_errno_from_win32(GetLastError());
-            CloseHandle(hFile);
+            CloseHandle(file_handle);
             return;
         }
         
-        if (!SetEndOfFile(hFile)) {
+        if (!SetEndOfFile(file_handle)) {
             set_errno_from_win32(GetLastError());
         }
-        CloseHandle(hFile);
+        CloseHandle(file_handle);
     }
     
     bool space_native(native_czstring path, space_info* out_info)  {
@@ -895,7 +900,9 @@ namespace rainy::core::pal {
         const wchar_t* wpath = to_native(path);
         wchar_t wout[MAX_PATH];
         ssize_t result = absolute_native(wpath, wout, MAX_PATH);
-        if (result < 0) return -1;
+        if (result < 0) {
+            return -1;
+        }
         foundation::text::string out = from_native(wout);
         if (out.size() >= buffer_size) {
             errno = ERANGE;

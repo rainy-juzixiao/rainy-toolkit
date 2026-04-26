@@ -490,6 +490,22 @@ namespace rainy::foundation::text {
             resize(count, CharType{});
         }
 
+        template <typename Operation>
+        RAINY_CONSTEXPR20 void resize_and_overwrite(size_type count, Operation op) {
+            if (count > max_size()) {
+                throw std::length_error("resize_and_overwrite: count exceeds max_size");
+            }
+            if (count > capacity()) {
+                reserve(count);
+            }
+            CharType *ptr = const_cast<CharType *>(this->c_str()); // 如果 data() 返回 const
+            size_type new_len = op(ptr, count);
+            if (new_len > count) {
+                throw std::runtime_error("resize_and_overwrite: invalid new length");
+            }
+            this->resize_(new_len);
+        }
+
         RAINY_CONSTEXPR20 void clear() noexcept {
             resize_(0);
         }
