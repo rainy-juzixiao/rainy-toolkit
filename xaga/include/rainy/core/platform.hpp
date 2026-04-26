@@ -513,6 +513,12 @@ namespace rainy::core {
 
 namespace rainy::core {
     using errno_t = int;
+
+#if RAINY_USING_WINDOWS
+    using native_char = wchar_t;
+#else
+    using native_char = char;
+#endif
 }
 
 namespace rainy::type_traits::other_trans {
@@ -1118,6 +1124,24 @@ namespace rainy::core {
      *        用于框架处理的不透明指针类型。
      */
     using native_frame_ptr_t = void *;
+
+    /**
+     * @brief Constant native C-style string type.
+     *        常量原生 C 风格字符串类型。
+     *
+     * Alias for const native_char*, representing a constant C-style string in native character encoding.
+     * const native_char* 的别名，表示原生字符编码中的常量 C 风格字符串。
+     */
+    using native_czstring = const native_char *;
+
+    /**
+     * @brief Mutable native C-style string type.
+     *        可变原生 C 风格字符串类型。
+     *
+     * Alias for native_char*, representing a mutable C-style string in native character encoding.
+     * native_char* 的别名，表示原生字符编码中的可变 C 风格字符串。
+     */
+    using native_cstring = native_char *;
 
     /**
      * @brief Number of pointer-sized objects for small object optimization.

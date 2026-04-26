@@ -8,11 +8,7 @@ namespace rainy::foundation::io::filesystem {
 }
 
 namespace rainy::foundation::io::filesystem::implements {
-#if RAINY_USING_WINDOWS
-    using native_char = wchar_t;
-#else
-    using native_char = char;
-#endif
+    using native_char = core::native_char;
     using native_string_t = text::basic_string<native_char>;
 
     template <typename CharType>
@@ -982,8 +978,9 @@ namespace rainy::foundation::io::filesystem {
 
         path lexically_proximate(const path &base) const {
             path rel = lexically_relative(base);
-            if (rel.empty())
+            if (rel.empty()) {
                 return *this;
+            }
             return rel;
         }
 
@@ -1027,19 +1024,9 @@ namespace rainy::foundation::io::filesystem {
     private:
         string_type pathstr_;
     };
-
-    void swap(path &left, path &right) noexcept;
-    std::size_t hash_value(const path &path) noexcept;
 }
 
-
-namespace rainy::foundation::io::filesystem {
-    RAINY_INLINE void swap(path &left, path &right) noexcept {
-        left.swap(right);
-    }
-}
-
-namespace rainy::utility {
+namespace rainy::utility { // NOLINT
     template <>
     struct hash<::rainy::foundation::io::filesystem::path> {
         static std::size_t hash_this_val(const ::rainy::foundation::io::filesystem::path &right) {
@@ -1059,6 +1046,16 @@ namespace std { // NOLINT
             return std::hash<::rainy::foundation::io::filesystem::path::string_type>{}(right.native());
         }
     };
+}
+
+namespace rainy::foundation::io::filesystem {
+    RAINY_INLINE void swap(path &left, path &right) noexcept {
+        left.swap(right);
+    }
+
+    RAINY_INLINE std::size_t hash_value(const path &right) noexcept {
+        return utility::hash<path>{}(right);
+    }
 }
 
 #endif

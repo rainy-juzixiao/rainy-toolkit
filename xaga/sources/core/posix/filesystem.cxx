@@ -1,5 +1,5 @@
 /*
-* Copyright 2026 rainy-juzixiao
+ * Copyright 2026 rainy-juzixiao
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@
 #include <utime.h>
 
 namespace rainy::core::pal {
-    ssize_t compute_relative(const char *path, const char *base, cstring out, const std::size_t out_size) noexcept { // NOLINT
+    ssize_t compute_relative(const char *path, const char *base, native_cstring out, const std::size_t out_size) noexcept { // NOLINT
         const char *p = path, *b = base;
         const char *last_slash_p = nullptr;
         while (*p && *b && *p == *b) {
@@ -375,7 +375,7 @@ namespace rainy::core::pal {
 }
 
 namespace rainy::core::pal {
-    ssize_t absolute(const czstring path, cstring out_buffer, const std::size_t buffer_size) { // NOLINT
+    ssize_t absolute_native(const native_czstring path, native_cstring out_buffer, const std::size_t buffer_size) { // NOLINT
         if (path[0] == '/') {
             const std::size_t len = std::strlen(path);
             if (len >= buffer_size) {
@@ -400,7 +400,7 @@ namespace rainy::core::pal {
         return static_cast<ssize_t>(cwd_len + 1 + path_len);
     }
 
-    ssize_t canonical(const czstring path, cstring out_buffer, const std::size_t buffer_size) { // NOLINT
+    ssize_t canonical_native(const native_czstring path, native_cstring out_buffer, const std::size_t buffer_size) { // NOLINT
         char tmp[PATH_MAX];
         if (!::realpath(path, tmp)) {
             return -1; // errno 由 realpath 设置
@@ -414,7 +414,7 @@ namespace rainy::core::pal {
         return static_cast<ssize_t>(len);
     }
 
-    ssize_t weakly_canonical(const czstring path, cstring out_buffer, const std::size_t buffer_size) { // NOLINT
+    ssize_t weakly_canonical_native(const native_czstring path, native_cstring out_buffer, const std::size_t buffer_size) { // NOLINT
         char tmp[PATH_MAX];
         if (::realpath(path, tmp)) {
             const std::size_t len = std::strlen(tmp);
@@ -465,7 +465,7 @@ namespace rainy::core::pal {
         return absolute(path, out_buffer, buffer_size);
     }
 
-    ssize_t relative(const czstring path, cstring out_buffer,const std::size_t buffer_size) { // NOLINTk
+    ssize_t relative_native(const native_czstring path, native_cstring out_buffer, const std::size_t buffer_size) { // NOLINTk
         char cwd[PATH_MAX];
         if (::getcwd(cwd, sizeof(cwd)) == nullptr) {
             return -1;
@@ -473,11 +473,12 @@ namespace rainy::core::pal {
         return compute_relative(path, cwd, out_buffer, buffer_size);
     }
 
-    ssize_t relative(czstring path, czstring base, cstring out_buffer, const std::size_t buffer_size) { // NOLINT
+    ssize_t relative_native(const native_czstring path,const native_czstring base, native_cstring out_buffer, // NOLINT
+                            const std::size_t buffer_size) { // NOLINT
         return compute_relative(path, base, out_buffer, buffer_size);
     }
 
-    ssize_t proximate(czstring path, cstring out_buffer, const std::size_t buffer_size) { // NOLINT
+    ssize_t proximate_native(native_czstring path, native_cstring out_buffer, const std::size_t buffer_size) { // NOLINT
         const ssize_t n = relative(path, out_buffer, buffer_size);
         if (n < 0) {
             // relative 失败时退化为 path 本身
@@ -487,7 +488,8 @@ namespace rainy::core::pal {
         return n;
     }
 
-    ssize_t proximate(const czstring path, const czstring base, cstring out_buffer, const std::size_t buffer_size) { // NOLINT
+    ssize_t proximate_native(const native_czstring path, const native_czstring base, native_cstring out_buffer, // NOLINT
+                             const std::size_t buffer_size) { // NOLINT
         const ssize_t n = relative(path, base, out_buffer, buffer_size);
         if (n < 0) {
             errno = 0;
@@ -496,11 +498,11 @@ namespace rainy::core::pal {
         return n;
     }
 
-    void copy(const czstring from, const czstring to) {
+    void copy_native(const native_czstring from, const native_czstring to) {
         copy(from, to, copy_options::none);
     }
 
-    void copy(const czstring from, const czstring to, const copy_options options) {
+    void copy_native(const native_czstring from, const native_czstring to, const copy_options options) {
         struct stat st{};
         // 使用 lstat 以便识别符号链接自身
         if (::lstat(from, &st) != 0) {
@@ -538,11 +540,11 @@ namespace rainy::core::pal {
         }
     }
 
-    bool copy_file(const czstring from, const czstring to) {
+    bool copy_file_native(const native_czstring from, const native_czstring to) {
         return copy_regular_file(from, to, /*overwrite=*/false);
     }
 
-    bool copy_file(const czstring from, const czstring to, const copy_options option) {
+    bool copy_file_native(const native_czstring from, const native_czstring to, const copy_options option) {
         struct stat src_st{}, dst_st{};
         if (::stat(from, &src_st) != 0) {
             return false;
@@ -564,7 +566,7 @@ namespace rainy::core::pal {
         return copy_regular_file(from, to, overwrite);
     }
 
-    void copy_symlink(const czstring existing_symlink, const czstring new_symlink) {
+    void copy_symlink_native(const native_czstring existing_symlink, const native_czstring new_symlink) {
         char target[PATH_MAX];
         const ssize_t len = ::readlink(existing_symlink, target, sizeof(target) - 1);
         if (len < 0) {
@@ -574,7 +576,7 @@ namespace rainy::core::pal {
         ::symlink(target, new_symlink); // errno 由 symlink 设置（失败时）
     }
 
-    bool create_directory(const czstring path) {
+    bool create_directory_native(const native_czstring path) {
         if (::mkdir(path, 0777) == 0) {
             return true;
         }
@@ -588,7 +590,7 @@ namespace rainy::core::pal {
         return false;
     }
 
-    bool create_directory(const czstring path, const czstring attributes) {
+    bool create_directory_native(const native_czstring path, const native_czstring attributes) {
         struct stat st{};
         if (::stat(attributes, &st) != 0) {
             return false;
@@ -606,34 +608,34 @@ namespace rainy::core::pal {
         return false;
     }
 
-    bool create_directories(const czstring path) {
+    bool create_directories_native(const native_czstring path) {
         return create_directories_impl(path);
     }
 
-    void create_directory_symlink(const czstring to, const czstring new_symlink) {
+    void create_directory_symlink_native(const native_czstring to, const native_czstring new_symlink) {
         ::symlink(to, new_symlink);
     }
 
-    void create_hard_link(const czstring to, const czstring new_hard_link) {
+    void create_hard_link_native(const native_czstring to, const native_czstring new_hard_link) {
         ::link(to, new_hard_link);
     }
 
-    void create_symlink(const czstring to, const czstring new_symlink) {
+    void create_symlink_native(const native_czstring to, const native_czstring new_symlink) {
         ::symlink(to, new_symlink);
     }
 
-    ssize_t current_path(cstring out_buffer, const std::size_t buffer_size) { // NOLINT
+    ssize_t current_path_native(native_cstring out_buffer, const std::size_t buffer_size) { // NOLINT
         if (::getcwd(out_buffer, buffer_size) == nullptr) {
             return -1;
         }
         return static_cast<ssize_t>(std::strlen(out_buffer));
     }
 
-    void current_path(const czstring path) {
+    void current_path_native(const native_czstring path) {
         ::chdir(path);
     }
 
-    bool equivalent(const czstring path1,const czstring path2) {
+    bool equivalent_native(const native_czstring path1, const native_czstring path2) {
         struct stat st1{}, st2{};
         if (::stat(path1, &st1) != 0 || ::stat(path2, &st2) != 0) {
             return false;
@@ -645,7 +647,7 @@ namespace rainy::core::pal {
         return status.type != file_type::not_found && status.type != file_type::unknown;
     }
 
-    bool exists(const czstring path) {
+    bool exists_native(const native_czstring path) {
         struct stat st{};
         if (::stat(path, &st) == 0) {
             return true;
@@ -657,7 +659,7 @@ namespace rainy::core::pal {
         return false;
     }
 
-    bool file_size(const czstring path, uintmax_t *out_size) {
+    bool file_size_native(const native_czstring path, uintmax_t *out_size) {
         struct stat st{};
         if (::stat(path, &st) != 0) {
             return false;
@@ -666,7 +668,7 @@ namespace rainy::core::pal {
         return true;
     }
 
-    uintmax_t file_size(const czstring path) {
+    uintmax_t file_size_native(const native_czstring path) {
         struct stat st{};
         if (::stat(path, &st) != 0) {
             return static_cast<uintmax_t>(-1);
@@ -674,7 +676,7 @@ namespace rainy::core::pal {
         return static_cast<uintmax_t>(st.st_size);
     }
 
-    bool hard_link_count(const czstring path, uintmax_t *out_count) {
+    bool hard_link_count_native(const native_czstring path, uintmax_t *out_count) {
         struct stat st{};
         if (::stat(path, &st) != 0) {
             return false;
@@ -683,7 +685,7 @@ namespace rainy::core::pal {
         return true;
     }
 
-    uintmax_t hard_link_count(const czstring path) {
+    uintmax_t hard_link_count_native(const native_czstring path) {
         struct stat st{};
         if (::stat(path, &st) != 0) {
             return static_cast<uintmax_t>(-1);
@@ -726,7 +728,7 @@ namespace rainy::core::pal {
         return !is_regular_file(status) && !is_directory(status) && !is_symlink(status);
     }
 
-    bool is_block_file(const czstring path) {
+    bool is_block_file_native(const native_czstring path) {
         struct stat st{};
         if (::stat(path, &st) != 0) {
             return false;
@@ -734,7 +736,7 @@ namespace rainy::core::pal {
         return S_ISBLK(st.st_mode);
     }
 
-    bool is_character_file(const czstring path) {
+    bool is_character_file_native(const native_czstring path) {
         struct stat st{};
         if (::stat(path, &st) != 0) {
             return false;
@@ -742,7 +744,7 @@ namespace rainy::core::pal {
         return S_ISCHR(st.st_mode);
     }
 
-    bool is_directory(const czstring path) {
+    bool is_directory_native(const native_czstring path) {
         struct stat st{};
         if (::stat(path, &st) != 0) {
             return false;
@@ -750,7 +752,7 @@ namespace rainy::core::pal {
         return S_ISDIR(st.st_mode);
     }
 
-    bool is_fifo(const czstring path) {
+    bool is_fifo_native(const native_czstring path) {
         struct stat st{};
         if (::stat(path, &st) != 0) {
             return false;
@@ -758,7 +760,7 @@ namespace rainy::core::pal {
         return S_ISFIFO(st.st_mode);
     }
 
-    bool is_regular_file(const czstring path) {
+    bool is_regular_file_native(const native_czstring path) {
         struct stat st{};
         if (::stat(path, &st) != 0) {
             return false;
@@ -766,7 +768,7 @@ namespace rainy::core::pal {
         return S_ISREG(st.st_mode);
     }
 
-    bool is_socket(const czstring path) {
+    bool is_socket_native(const native_czstring path) {
         struct stat st{};
         if (::stat(path, &st) != 0) {
             return false;
@@ -774,7 +776,7 @@ namespace rainy::core::pal {
         return S_ISSOCK(st.st_mode);
     }
 
-    bool is_symlink(const czstring path) {
+    bool is_symlink_native(const native_czstring path) {
         struct stat st{};
         if (::lstat(path, &st) != 0) {
             return false;
@@ -782,7 +784,7 @@ namespace rainy::core::pal {
         return S_ISLNK(st.st_mode);
     }
 
-    bool is_other(const czstring path) {
+    bool is_other_native(const native_czstring path) {
         struct stat st{};
         if (::stat(path, &st) != 0) {
             return false;
@@ -790,7 +792,7 @@ namespace rainy::core::pal {
         return !S_ISREG(st.st_mode) && !S_ISDIR(st.st_mode) && !S_ISLNK(st.st_mode);
     }
 
-    bool is_empty(const czstring path) {
+    bool is_empty_native(const native_czstring path) {
         struct stat st{};
         if (::stat(path, &st) != 0) {
             return false;
@@ -818,7 +820,7 @@ namespace rainy::core::pal {
         return false;
     }
 
-    bool last_write_time(const czstring path, std::time_t *out_time) {
+    bool last_write_time_native(const native_czstring path, std::time_t *out_time) {
         struct stat st{};
         if (::stat(path, &st) != 0) {
             return false;
@@ -827,7 +829,7 @@ namespace rainy::core::pal {
         return true;
     }
 
-    std::time_t last_write_time(const czstring path) {
+    std::time_t last_write_time_native(const native_czstring path) {
         struct stat st{};
         if (::stat(path, &st) != 0) {
             return -1;
@@ -835,7 +837,7 @@ namespace rainy::core::pal {
         return st.st_mtime;
     }
 
-    void last_write_time(const czstring path, const std::time_t new_time) {
+    void last_write_time_native(const native_czstring path, const std::time_t new_time) {
         struct utimbuf tb{};
         struct stat st{};
         if (::stat(path, &st) != 0) {
@@ -846,7 +848,7 @@ namespace rainy::core::pal {
         ::utime(path, &tb);
     }
 
-    void permissions(const czstring path, perms prms, perm_options opts) {
+    void permissions_native(const native_czstring path, perms prms, perm_options opts) {
         const unsigned bits = static_cast<unsigned>(prms) & 07777u;
 
         struct stat st{};
@@ -882,7 +884,7 @@ namespace rainy::core::pal {
         }
     }
 
-    ssize_t read_symlink(const czstring path, cstring out_buffer, const std::size_t buffer_size) { // NOLINT
+    ssize_t read_symlink_native(const native_czstring path, native_cstring out_buffer, const std::size_t buffer_size) { // NOLINT
         const ssize_t n = ::readlink(path, out_buffer, buffer_size - 1);
         if (n < 0) {
             return -1;
@@ -891,7 +893,7 @@ namespace rainy::core::pal {
         return n;
     }
 
-    bool remove(const czstring path) {
+    bool remove_native(const native_czstring path) {
         // ::remove() 对文件用 unlink，对空目录用 rmdir
         if (::remove(path) == 0) {
             return true;
@@ -903,19 +905,19 @@ namespace rainy::core::pal {
         return false;
     }
 
-    uintmax_t remove_all(const czstring path) {
+    uintmax_t remove_all_native(const native_czstring path) {
         return remove_all_impl(path);
     }
 
-    void rename(const czstring from, const czstring to) {
+    void rename_native(const native_czstring from, const native_czstring to) {
         utility::ignore = ::rename(from, to);
     }
 
-    void resize_file(const czstring path, const uintmax_t size) {
+    void resize_file_native(const native_czstring path, const uintmax_t size) {
         utility::ignore = ::truncate(path, static_cast<off_t>(size));
     }
 
-    bool space(const czstring path, space_info *out_info) {
+    bool space_native(const native_czstring path, space_info *out_info) {
         struct statvfs sv{};
         if (::statvfs(path, &sv) != 0) {
             return false;
@@ -928,13 +930,13 @@ namespace rainy::core::pal {
         return true;
     }
 
-    space_info space(const czstring path) {
+    space_info space_native(const native_czstring path) {
         space_info info{static_cast<std::uintmax_t>(-1), static_cast<std::uintmax_t>(-1), static_cast<std::uintmax_t>(-1)}; // NOLINT
         space(&path[0], &info); // errno 由内部 statvfs 设置
         return info;
     }
 
-    file_status status(const czstring path) {
+    file_status status_native(const native_czstring path) {
         struct stat st{};
         if (::stat(path, &st) != 0) {
             file_status fs{};
@@ -949,7 +951,7 @@ namespace rainy::core::pal {
         return status.type != file_type::unknown;
     }
 
-    file_status symlink_status(const czstring path) {
+    file_status symlink_status_native(const native_czstring path) {
         struct stat st{};
         if (::lstat(path, &st) != 0) {
             file_status fs{};
@@ -960,7 +962,7 @@ namespace rainy::core::pal {
         return make_status(st);
     }
 
-    ssize_t temp_directory_path(cstring out_buffer, const std::size_t buffer_size) { // NOLINT
+    ssize_t temp_directory_path_native(native_cstring out_buffer, const std::size_t buffer_size) { // NOLINT
         for (const char *candidates[] = {"TMPDIR", "TMP", "TEMP", "TEMPDIR"}; const char *var: candidates) {
             if (const char *val = ::getenv(var); val && val[0] != '\0') {
                 struct stat st{};
@@ -983,5 +985,203 @@ namespace rainy::core::pal {
         }
         std::memcpy(out_buffer, fallback, len + 1);
         return static_cast<ssize_t>(len);
+    }
+}
+
+namespace rainy::core::pal {
+    ssize_t absolute(const czstring path, cstring out_buffer, const std::size_t buffer_size) { // NOLINT
+        return absolute_native(path, out_buffer, buffer_size);
+    }
+
+    ssize_t canonical(const czstring path, cstring out_buffer, const std::size_t buffer_size) { // NOLINT
+        return canonical_native(path, out_buffer, buffer_size);
+    }
+
+    void copy(const czstring from, const czstring to) {
+        copy_native(from, to);
+    }
+
+    void copy(const czstring from, const czstring to, const copy_options options) {
+        copy_native(from, to, options);
+    }
+
+    bool copy_file(const czstring from, const czstring to) {
+        return copy_file_native(from, to);
+    }
+
+    bool copy_file(const czstring from, const czstring to, const copy_options option) {
+        return copy_file_native(from, to, option);
+    }
+
+    void copy_symlink(const czstring existing_symlink, const czstring new_symlink) {
+        copy_symlink_native(existing_symlink, new_symlink);
+    }
+
+    bool create_directories(const czstring path) {
+        return create_directories_native(path);
+    }
+
+    bool create_directory(const czstring path) {
+        return create_directory_native(path);
+    }
+
+    bool create_directory(const czstring path, const czstring attributes) {
+        return create_directory_native(path, attributes);
+    }
+
+    void create_directory_symlink(const czstring to, const czstring new_symlink) {
+        create_directory_symlink_native(to, new_symlink);
+    }
+
+    void create_hard_link(const czstring to, const czstring new_hard_link) {
+        create_hard_link_native(to, new_hard_link);
+    }
+
+    void create_symlink(const czstring to, const czstring new_symlink) {
+        create_symlink_native(to, new_symlink);
+    }
+
+    ssize_t current_path(cstring out_buffer, const std::size_t buffer_size) { // NOLINT
+        return current_path_native(out_buffer, buffer_size);
+    }
+
+    void current_path(const czstring path) {
+        current_path_native(path);
+    }
+
+    bool equivalent(const czstring path1, const czstring path2) {
+        return equivalent_native(path1, path2);
+    }
+
+    bool exists(const czstring path) {
+        return exists_native(path);
+    }
+
+    bool file_size(const czstring path, uintmax_t *out_size) {
+        return file_size_native(path, out_size);
+    }
+
+    uintmax_t file_size(const czstring path) {
+        return file_size_native(path);
+    }
+
+    bool hard_link_count(const czstring path, uintmax_t *out_count) {
+        return hard_link_count_native(path, out_count);
+    }
+
+    uintmax_t hard_link_count(const czstring path) {
+        return hard_link_count_native(path);
+    }
+
+    bool is_block_file(const czstring path) {
+        return is_block_file_native(path);
+    }
+
+    bool is_character_file(const czstring path) {
+        return is_character_file_native(path);
+    }
+
+    bool is_directory(const czstring path) {
+        return is_directory_native(path);
+    }
+
+    bool is_empty(const czstring path) {
+        return is_empty_native(path);
+    }
+
+    bool is_fifo(const czstring path) {
+        return is_fifo_native(path);
+    }
+
+    bool is_other(const czstring path) {
+        return is_other_native(path);
+    }
+
+    bool is_regular_file(const czstring path) {
+        return is_regular_file_native(path);
+    }
+
+    bool is_socket(const czstring path) {
+        return is_socket_native(path);
+    }
+
+    bool is_symlink(const czstring path) {
+        return is_symlink_native(path);
+    }
+
+    bool last_write_time(const czstring path, std::time_t *out_time) {
+        return last_write_time_native(path, out_time);
+    }
+
+    std::time_t last_write_time(const czstring path) {
+        return last_write_time_native(path);
+    }
+
+    void last_write_time(const czstring path, const std::time_t new_time) {
+        last_write_time_native(path, new_time);
+    }
+
+    void permissions(const czstring path, const perms prms, const perm_options opts) {
+        permissions_native(path, prms, opts);
+    }
+
+    ssize_t proximate(const czstring path, cstring out_buffer, const std::size_t buffer_size) { // NOLINT
+        return proximate_native(path, out_buffer, buffer_size);
+    }
+
+    ssize_t proximate(const czstring path, const czstring base, cstring out_buffer, const std::size_t buffer_size) { // NOLINT
+        return proximate_native(path, base, out_buffer, buffer_size);
+    }
+
+    ssize_t read_symlink(const czstring path, cstring out_buffer, const std::size_t buffer_size) { // NOLINT
+        return read_symlink_native(path, out_buffer, buffer_size);
+    }
+
+    ssize_t relative(const czstring path, cstring out_buffer, const std::size_t buffer_size) { // NOLINT
+        return relative_native(path, out_buffer, buffer_size);
+    }
+
+    ssize_t relative(const czstring path, const czstring base, cstring out_buffer, const std::size_t buffer_size) { // NOLINT
+        return relative_native(path, base, out_buffer, buffer_size);
+    }
+
+    bool remove(const czstring path) {
+        return remove_native(path);
+    }
+
+    uintmax_t remove_all(const czstring path) {
+        return remove_all_native(path);
+    }
+
+    void rename(const czstring from, const czstring to) {
+        rename_native(from, to);
+    }
+
+    void resize_file(const czstring path, const uintmax_t size) {
+        resize_file_native(path, size);
+    }
+
+    bool space(const czstring path, space_info *out_info) {
+        return space_native(path, out_info);
+    }
+
+    space_info space(const czstring path) {
+        return space_native(path);
+    }
+
+    file_status status(const czstring path) {
+        return status_native(path);
+    }
+
+    file_status symlink_status(const czstring path) {
+        return symlink_status_native(path);
+    }
+
+    ssize_t temp_directory_path(cstring out_buffer, const std::size_t buffer_size) { // NOLINT
+        return temp_directory_path_native(out_buffer, buffer_size);
+    }
+
+    ssize_t weakly_canonical(const czstring path, cstring out_buffer, const std::size_t buffer_size) { // NOLINT
+        return weakly_canonical_native(path, out_buffer, buffer_size);
     }
 }

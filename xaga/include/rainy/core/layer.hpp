@@ -686,7 +686,1169 @@ namespace rainy::core::pal {
          */
         perms permissions;
     };
+}
 
+namespace rainy::core::pal {
+    /**
+     * @brief Get absolute path (native system PAL version).
+     *        获取绝对路径（系统原生PAL版本）。
+     *
+     * Converts the given path to an absolute path using direct system native calls.
+     * This implementation directly invokes the operating system's path resolution functions
+     * (e.g., realpath on POSIX, GetFullPathNameW on Windows).
+     * 使用直接系统原生调用将给定路径转换为绝对路径。
+     * 此实现直接调用操作系统的路径解析函数（例如 POSIX 上的 realpath，Windows 上的 GetFullPathNameW）。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API (e.g., CreateFileW, GetFullPathNameW).
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API
+     *       （例如 CreateFileW、GetFullPathNameW）。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Source path string (native character type)
+     *             源路径字符串（原生字符类型）
+     * @param out_buffer Output buffer for the resolved path (native character type)
+     *                   用于存储解析后路径的输出缓冲区（原生字符类型）
+     * @param buffer_size Size of the output buffer in characters
+     *                    输出缓冲区的大小（以字符为单位）
+     * @return Length of the resolved path on success, -1 on error
+     *         成功时返回解析后路径的长度，失败时返回 -1
+     */
+    ssize_t absolute_native(native_czstring path, native_cstring out_buffer, std::size_t buffer_size);
+
+    /**
+     * @brief Get canonical path (native system PAL version).
+     *        获取规范路径（系统原生PAL版本）。
+     *
+     * Resolves the given path to an absolute, normalized path without symlinks using OS native resolution.
+     * This eliminates all symbolic links, dot (.), and dot-dot (..) components through direct system calls.
+     * 使用操作系统原生解析将给定路径解析为不含符号链接的绝对、标准化路径。
+     * 通过直接系统调用消除所有符号链接、点（.）和点点（..）组件。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Source path string (native character type)
+     *             源路径字符串（原生字符类型）
+     * @param out_buffer Output buffer for the canonical path (native character type)
+     *                   用于存储规范路径的输出缓冲区（原生字符类型）
+     * @param buffer_size Size of the output buffer in characters
+     *                    输出缓冲区的大小（以字符为单位）
+     * @return Length of the canonical path on success, -1 on error
+     *         成功时返回规范路径的长度，失败时返回 -1
+     */
+    ssize_t canonical_native(native_czstring path, native_cstring out_buffer, std::size_t buffer_size);
+
+    /**
+     * @brief Copy files or directories (native system PAL version).
+     *        复制文件或目录（系统原生PAL版本）。
+     *
+     * Copies a file or directory from source to destination using default options.
+     * Uses native OS copy APIs (e.g., copy_file_range on Linux, CopyFileW on Windows).
+     * 使用默认选项将文件或目录从源复制到目标。
+     * 使用原生操作系统复制API（例如 Linux 上的 copy_file_range，Windows 上的 CopyFileW）。
+     *
+     * @note On Windows, the input paths should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API (e.g., CopyFileW).
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API
+     *       （例如 CopyFileW）。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param from Source path (native character type)
+     *             源路径（原生字符类型）
+     * @param to Destination path (native character type)
+     *           目标路径（原生字符类型）
+     */
+    void copy_native(native_czstring from, native_czstring to);
+
+    /**
+     * @brief Copy files or directories with options (native system PAL version).
+     *        使用选项复制文件或目录（系统原生PAL版本）。
+     *
+     * Copies a file or directory from source to destination with specified options.
+     * Uses native OS copy APIs with platform-specific option handling.
+     * 使用指定选项将文件或目录从源复制到目标。
+     * 使用带有平台特定选项处理的原生操作系统复制API。
+     *
+     * @note On Windows, the input paths should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param from Source path (native character type)
+     *             源路径（原生字符类型）
+     * @param to Destination path (native character type)
+     *           目标路径（原生字符类型）
+     * @param options Copy operation options
+     *                复制操作选项
+     */
+    void copy_native(native_czstring from, native_czstring to, copy_options options);
+
+    /**
+     * @brief Copy a single file (native system PAL version).
+     *        复制单个文件（系统原生PAL版本）。
+     *
+     * Copies the contents of one file to another using native OS file I/O.
+     * 使用原生操作系统文件I/O将一个文件的内容复制到另一个文件。
+     *
+     * @note On Windows, the input paths should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param from Source file path (native character type)
+     *             源文件路径（原生字符类型）
+     * @param to Destination file path (native character type)
+     *           目标文件路径（原生字符类型）
+     * @return true on success, false on failure
+     *         成功时返回 true，失败时返回 false
+     */
+    bool copy_file_native(native_czstring from, native_czstring to);
+
+    /**
+     * @brief Copy a single file with options (native system PAL version).
+     *        使用选项复制单个文件（系统原生PAL版本）。
+     *
+     * Copies the contents of one file to another with specified options using native OS APIs.
+     * 使用原生操作系统API，以指定选项将一个文件的内容复制到另一个文件。
+     *
+     * @note On Windows, the input paths should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param from Source file path (native character type)
+     *             源文件路径（原生字符类型）
+     * @param to Destination file path (native character type)
+     *           目标文件路径（原生字符类型）
+     * @param option Copy operation option
+     *               复制操作选项
+     * @return true on success, false on failure
+     *         成功时返回 true，失败时返回 false
+     */
+    bool copy_file_native(native_czstring from, native_czstring to, copy_options option);
+
+    /**
+     * @brief Copy a symbolic link (native system PAL version).
+     *        复制符号链接（系统原生PAL版本）。
+     *
+     * Copies a symbolic link (creates a new symlink pointing to the same target).
+     * Uses native symlink creation APIs (e.g., symlink on POSIX, CreateSymbolicLinkW on Windows).
+     * 复制符号链接（创建指向相同目标的新符号链接）。
+     * 使用原生符号链接创建API（例如 POSIX 上的 symlink，Windows 上的 CreateSymbolicLinkW）。
+     *
+     * @note On Windows, the input paths should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API (e.g., CreateSymbolicLinkW).
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API
+     *       （例如 CreateSymbolicLinkW）。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param existing_symlink Existing symbolic link path (native character type)
+     *                         现有符号链接路径（原生字符类型）
+     * @param new_symlink Path for the new symbolic link (native character type)
+     *                    新符号链接的路径（原生字符类型）
+     */
+    void copy_symlink_native(native_czstring existing_symlink, native_czstring new_symlink);
+
+    /**
+     * @brief Create directories for a path (native system PAL version).
+     *        为路径创建目录（系统原生PAL版本）。
+     *
+     * Creates all directories in the given path that do not already exist.
+     * Uses native mkdir or CreateDirectoryW calls recursively.
+     * 创建给定路径中所有不存在的目录。
+     * 递归使用原生 mkdir 或 CreateDirectoryW 调用。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API (e.g., CreateDirectoryW).
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API
+     *       （例如 CreateDirectoryW）。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path where directories should be created (native character type)
+     *             需要创建目录的路径（原生字符类型）
+     * @return true if directories were created, false otherwise
+     *         如果目录被创建则返回 true，否则返回 false
+     */
+    bool create_directories_native(native_czstring path);
+
+    /**
+     * @brief Create a single directory (native system PAL version).
+     *        创建单个目录（系统原生PAL版本）。
+     *
+     * Creates the final directory in the given path.
+     * Uses native mkdir or CreateDirectoryW call.
+     * 创建给定路径中的最后一个目录。
+     * 使用原生 mkdir 或 CreateDirectoryW 调用。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Directory path to create (native character type)
+     *             要创建的目录路径（原生字符类型）
+     * @return true if directory was created, false otherwise
+     *         如果目录被创建则返回 true，否则返回 false
+     */
+    bool create_directory_native(native_czstring path);
+
+    /**
+     * @brief Create a directory with attributes (native system PAL version).
+     *        使用属性创建目录（系统原生PAL版本）。
+     *
+     * Creates a directory with specified attributes.
+     * Uses native mkdir or CreateDirectoryW with security attributes.
+     * 使用指定的属性创建目录。
+     * 使用带有安全属性的原生 mkdir 或 CreateDirectoryW。
+     *
+     * @note On Windows, the input paths should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API. The attributes parameter is platform-specific.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *       attributes 参数是平台特定的。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用 global errno 表示操作结果。
+     *
+     * @param path Directory path to create (native character type)
+     *             要创建的目录路径（原生字符类型）
+     * @param attributes Attribute string (platform-specific, native character type)
+     *                   属性字符串（平台相关，原生字符类型）
+     * @return true if directory was created, false otherwise
+     *         如果目录被创建则返回 true，否则返回 false
+     */
+    bool create_directory_native(native_czstring path, native_czstring attributes);
+
+    /**
+     * @brief Create a directory symbolic link (native system PAL version).
+     *        创建目录符号链接（系统原生PAL版本）。
+     *
+     * Creates a symbolic link to a directory.
+     * Uses native symlink creation APIs with directory flag.
+     * 创建指向目录的符号链接。
+     * 使用带有目录标志的原生符号链接创建API。
+     *
+     * @note On Windows, the input paths should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API (e.g., CreateSymbolicLinkW with SYMBOLIC_LINK_FLAG_DIRECTORY).
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API
+     *       （例如使用 SYMBOLIC_LINK_FLAG_DIRECTORY 标志的 CreateSymbolicLinkW）。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param to Target directory path (native character type)
+     *           目标目录路径（原生字符类型）
+     * @param new_symlink Path for the new symbolic link (native character type)
+     *                    新符号链接的路径（原生字符类型）
+     */
+    void create_directory_symlink_native(native_czstring to, native_czstring new_symlink);
+
+    /**
+     * @brief Create a hard link (native system PAL version).
+     *        创建硬链接（系统原生PAL版本）。
+     *
+     * Creates a hard link from the target to the new link path.
+     * Uses native hard link creation APIs (e.g., link on POSIX, CreateHardLinkW on Windows).
+     * 从目标创建指向新链接路径的硬链接。
+     * 使用原生硬链接创建API（例如 POSIX 上的 link，Windows 上的 CreateHardLinkW）。
+     *
+     * @note On Windows, the input paths should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API (e.g., CreateHardLinkW).
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API
+     *       （例如 CreateHardLinkW）。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param to Target file path (native character type)
+     *           目标文件路径（原生字符类型）
+     * @param new_hard_link Path for the new hard link (native character type)
+     *                      新硬链接的路径（原生字符类型）
+     */
+    void create_hard_link_native(native_czstring to, native_czstring new_hard_link);
+
+    /**
+     * @brief Create a symbolic link (native system PAL version).
+     *        创建符号链接（系统原生PAL版本）。
+     *
+     * Creates a symbolic link to the target.
+     * Uses native symlink creation APIs (e.g., symlink on POSIX, CreateSymbolicLinkW on Windows).
+     * 创建指向目标的符号链接。
+     * 使用原生符号链接创建API（例如 POSIX 上的 symlink，Windows 上的 CreateSymbolicLinkW）。
+     *
+     * @note On Windows, the input paths should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param to Target path (native character type)
+     *           目标路径（原生字符类型）
+     * @param new_symlink Path for the new symbolic link (native character type)
+     *                    新符号链接的路径（原生字符类型）
+     */
+    void create_symlink_native(native_czstring to, native_czstring new_symlink);
+
+    /**
+     * @brief Get current working directory (native system PAL version).
+     *        获取当前工作目录（系统原生PAL版本）。
+     *
+     * Writes the current working directory path to the output buffer.
+     * Uses native getcwd or GetCurrentDirectoryW call.
+     * 将当前工作目录路径写入输出缓冲区。
+     * 使用原生 getcwd 或 GetCurrentDirectoryW 调用。
+     *
+     * @note On Windows, the output buffer will contain UTF-8 encoded path converted from UTF-16
+     *       obtained from GetCurrentDirectoryW.
+     *       在 Windows 上，输出缓冲区将包含从 GetCurrentDirectoryW 获取并转换为 UTF-8 的路径。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param out_buffer Output buffer for the current directory path (native character type)
+     *                   用于存储当前目录路径的输出缓冲区（原生字符类型）
+     * @param buffer_size Size of the output buffer in characters
+     *                    输出缓冲区的大小（以字符为单位）
+     * @return Length of the current path on success, -1 on error
+     *         成功时返回当前路径的长度，失败时返回 -1
+     */
+    ssize_t current_path_native(native_cstring out_buffer, std::size_t buffer_size);
+
+    /**
+     * @brief Set current working directory (native system PAL version).
+     *        设置当前工作目录（系统原生PAL版本）。
+     *
+     * Changes the current working directory to the specified path.
+     * Uses native chdir or SetCurrentDirectoryW call.
+     * 将当前工作目录更改为指定路径。
+     * 使用原生 chdir 或 SetCurrentDirectoryW 调用。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API (e.g., SetCurrentDirectoryW).
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API
+     *       （例如 SetCurrentDirectoryW）。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path New current working directory path (native character type)
+     *             新的当前工作目录路径（原生字符类型）
+     */
+    void current_path_native(native_czstring path);
+
+    /**
+     * @brief Check if two paths refer to the same file system entry (native system PAL version).
+     *        检查两个路径是否指向相同的文件系统条目（系统原生PAL版本）。
+     *
+     * Determines whether the two paths resolve to the same entity.
+     * Uses native stat or GetFileInformationByHandleW to compare inode/file IDs.
+     * 确定两个路径是否解析为相同的实体。
+     * 使用原生 stat 或 GetFileInformationByHandleW 比较 inode/文件 ID。
+     *
+     * @note On Windows, the input paths should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path1 First path (native character type)
+     *              第一个路径（原生字符类型）
+     * @param path2 Second path (native character type)
+     *              第二个路径（原生字符类型）
+     * @return true if both paths refer to the same file, false otherwise
+     *         如果两个路径指向相同文件则返回 true，否则返回 false
+     */
+    bool equivalent_native(native_czstring path1, native_czstring path2);
+
+    /**
+     * @brief Check if a file exists (native system PAL version).
+     *        检查文件是否存在（系统原生PAL版本）。
+     *
+     * Determines if the given path refers to an existing file system entry.
+     * Uses native access or GetFileAttributesW call.
+     * 确定给定路径是否指向存在的文件系统条目。
+     * 使用原生 access 或 GetFileAttributesW 调用。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API (e.g., GetFileAttributesW).
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API
+     *       （例如 GetFileAttributesW）。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to check (native character type)
+     *             要检查的路径（原生字符类型）
+     * @return true if the entry exists, false otherwise
+     *         如果条目存在则返回 true，否则返回 false
+     */
+    bool exists_native(native_czstring path);
+
+    /**
+     * @brief Get file size (output parameter version, native system PAL).
+     *        获取文件大小（输出参数版本，系统原生PAL）。
+     *
+     * Retrieves the size of a file in bytes using native stat or GetFileSizeEx.
+     * 使用原生 stat 或 GetFileSizeEx 获取文件的大小（以字节为单位）。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path File path (native character type)
+     *             文件路径（原生字符类型）
+     * @param out_size Pointer to store the file size
+     *                 用于存储文件大小的指针
+     * @return true on success, false on failure
+     *         成功时返回 true，失败时返回 false
+     */
+    bool file_size_native(native_czstring path, uintmax_t *out_size);
+
+    /**
+     * @brief Get file size (return value version, native system PAL).
+     *        获取文件大小（返回值版本，系统原生PAL）。
+     *
+     * Retrieves the size of a file in bytes using native stat or GetFileSizeEx.
+     * 使用原生 stat 或 GetFileSizeEx 获取文件的大小（以字节为单位）。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path File path (native character type)
+     *             文件路径（原生字符类型）
+     * @return File size in bytes on success, 0 on error
+     *         成功时返回文件大小（以字节为单位），失败时返回 0
+     */
+    uintmax_t file_size_native(native_czstring path);
+
+    /**
+     * @brief Get hard link count (output parameter version, native system PAL).
+     *        获取硬链接计数（输出参数版本，系统原生PAL）。
+     *
+     * Retrieves the number of hard links referring to the file using native stat or GetFileInformationByHandle.
+     * 使用原生 stat 或 GetFileInformationByHandle 获取指向文件的硬链接数量。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path File path (native character type)
+     *             文件路径（原生字符类型）
+     * @param out_count Pointer to store the hard link count
+     *                  用于存储硬链接计数的指针
+     * @return true on success, false on failure
+     *         成功时返回 true，失败时返回 false
+     */
+    bool hard_link_count_native(native_czstring path, uintmax_t *out_count);
+
+    /**
+     * @brief Get hard link count (return value version, native system PAL).
+     *        获取硬链接计数（返回值版本，系统原生PAL）。
+     *
+     * Retrieves the number of hard links referring to the file using native stat or GetFileInformationByHandle.
+     * 使用原生 stat 或 GetFileInformationByHandle 获取指向文件的硬链接数量。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path File path (native character type)
+     *             文件路径（原生字符类型）
+     * @return Hard link count on success, 0 on error
+     *         成功时返回硬链接计数，失败时返回 0
+     */
+    uintmax_t hard_link_count_native(native_czstring path);
+
+    /**
+     * @brief Check if a path refers to a block device (native system PAL version).
+     *        检查路径是否指向块设备（系统原生PAL版本）。
+     *
+     * Determines if the given path refers to a block device using native stat or GetFileType.
+     * 使用原生 stat 或 GetFileType 确定给定路径是否指向块设备。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to check (native character type)
+     *             要检查的路径（原生字符类型）
+     * @return true if the entry is a block device, false otherwise
+     *         如果条目是块设备则返回 true，否则返回 false
+     */
+    bool is_block_file_native(native_czstring path);
+
+    /**
+     * @brief Check if a path refers to a character device (native system PAL version).
+     *        检查路径是否指向字符设备（系统原生PAL版本）。
+     *
+     * Determines if the given path refers to a character device using native stat or GetFileType.
+     * 使用原生 stat 或 GetFileType 确定给定路径是否指向字符设备。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to check (native character type)
+     *             要检查的路径（原生字符类型）
+     * @return true if the entry is a character device, false otherwise
+     *         如果条目是字符设备则返回 true，否则返回 false
+     */
+    bool is_character_file_native(native_czstring path);
+
+    /**
+     * @brief Check if a path refers to a directory (native system PAL version).
+     *        检查路径是否指向目录（系统原生PAL版本）。
+     *
+     * Determines if the given path refers to a directory using native stat or GetFileAttributesW.
+     * 使用原生 stat 或 GetFileAttributesW 确定给定路径是否指向目录。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to check (native character type)
+     *             要检查的路径（原生字符类型）
+     * @return true if the entry is a directory, false otherwise
+     *         如果条目是目录则返回 true，否则返回 false
+     */
+    bool is_directory_native(native_czstring path);
+
+    /**
+     * @brief Check if a directory or file is empty (native system PAL version).
+     *        检查目录或文件是否为空（系统原生PAL版本）。
+     *
+     * Determines if the given path refers to an empty file or directory.
+     * For directories, uses native opendir/readdir or FindFirstFileW.
+     * 确定给定路径是否指向空文件或空目录。
+     * 对于目录，使用原生 opendir/readdir 或 FindFirstFileW。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to check (native character type)
+     *             要检查的路径（原生字符类型）
+     * @return true if the entry is empty, false otherwise
+     *         如果条目为空则返回 true，否则返回 false
+     */
+    bool is_empty_native(native_czstring path);
+
+    /**
+     * @brief Check if a path refers to a FIFO (named pipe) (native system PAL version).
+     *        检查路径是否指向FIFO（命名管道）（系统原生PAL版本）。
+     *
+     * Determines if the given path refers to a FIFO using native stat.
+     * 使用原生 stat 确定给定路径是否指向FIFO。
+     *
+     * @note On Windows, named pipes have a different path format (\\\\.\\pipe\\...).
+     *       The input path should be UTF-8 encoded and will be converted to UTF-16.
+     *       在 Windows 上，命名管道使用不同的路径格式（\\\\.\\pipe\\...）。
+     *       输入路径应为 UTF-8 编码，并将转换为 UTF-16。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to check (native character type)
+     *             要检查的路径（原生字符类型）
+     * @return true if the entry is a FIFO, false otherwise
+     *         如果条目是FIFO则返回 true，否则返回 false
+     */
+    bool is_fifo_native(native_czstring path);
+
+    /**
+     * @brief Check if a path refers to an "other" file type (native system PAL version).
+     *        检查路径是否指向“其他”文件类型（系统原生PAL版本）。
+     *
+     * Determines if the given path refers to a type that is not regular file, directory, or symlink.
+     * 确定给定路径是否指向非常规文件、目录或符号链接的类型。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to check (native character type)
+     *             要检查的路径（原生字符类型）
+     * @return true if the entry is of other type, false otherwise
+     *         如果条目是其他类型则返回 true，否则返回 false
+     */
+    bool is_other_native(native_czstring path);
+
+    /**
+     * @brief Check if a path refers to a regular file (native system PAL version).
+     *        检查路径是否指向普通文件（系统原生PAL版本）。
+     *
+     * Determines if the given path refers to a regular file using native stat or GetFileAttributesW.
+     * 使用原生 stat 或 GetFileAttributesW 确定给定路径是否指向普通文件。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to check (native character type)
+     *             要检查的路径（原生字符类型）
+     * @return true if the entry is a regular file, false otherwise
+     *         如果条目是普通文件则返回 true，否则返回 false
+     */
+    bool is_regular_file_native(native_czstring path);
+
+    /**
+     * @brief Check if a path refers to a socket (native system PAL version).
+     *        检查路径是否指向套接字（系统原生PAL版本）。
+     *
+     * Determines if the given path refers to a socket using native stat (on POSIX).
+     * On Windows, sockets are not represented as filesystem entries.
+     * 使用原生 stat 确定给定路径是否指向套接字（在 POSIX 上）。
+     * 在 Windows 上，套接字不作为文件系统条目表示。
+     *
+     * @note On Windows, this function may always return false as sockets are not in the filesystem.
+     *       在 Windows 上，此函数可能始终返回 false，因为套接字不在文件系统中。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to check (native character type)
+     *             要检查的路径（原生字符类型）
+     * @return true if the entry is a socket, false otherwise
+     *         如果条目是套接字则返回 true，否则返回 false
+     */
+    bool is_socket_native(native_czstring path);
+
+    /**
+     * @brief Check if a path refers to a symbolic link (native system PAL version).
+     *        检查路径是否指向符号链接（系统原生PAL版本）。
+     *
+     * Determines if the given path refers to a symbolic link using native lstat or GetFileAttributesW.
+     * 使用原生 lstat 或 GetFileAttributesW 确定给定路径是否指向符号链接。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API (e.g., GetFileAttributesW with FILE_ATTRIBUTE_REPARSE_POINT).
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API
+     *       （例如带有 FILE_ATTRIBUTE_REPARSE_POINT 的 GetFileAttributesW）。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to check (native character type)
+     *             要检查的路径（原生字符类型）
+     * @return true if the entry is a symbolic link, false otherwise
+     *         如果条目是符号链接则返回 true，否则返回 false
+     */
+    bool is_symlink_native(native_czstring path);
+
+    /**
+     * @brief Get last write time (output parameter version, native system PAL).
+     *        获取最后写入时间（输出参数版本，系统原生PAL）。
+     *
+     * Retrieves the last modification time of a file using native stat or GetFileTime.
+     * 使用原生 stat 或 GetFileTime 获取文件的最后修改时间。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path File path (native character type)
+     *             文件路径（原生字符类型）
+     * @param out_time Pointer to store the last write time
+     *                 用于存储最后写入时间的指针
+     * @return true on success, false on failure
+     *         成功时返回 true，失败时返回 false
+     */
+    bool last_write_time_native(native_czstring path, std::time_t *out_time);
+
+    /**
+     * @brief Get last write time (return value version, native system PAL).
+     *        获取最后写入时间（返回值版本，系统原生PAL）。
+     *
+     * Retrieves the last modification time of a file using native stat or GetFileTime.
+     * 使用原生 stat 或 GetFileTime 获取文件的最后修改时间。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path File path (native character type)
+     *             文件路径（原生字符类型）
+     * @return Last write time on success, -1 on error
+     *         成功时返回最后写入时间，失败时返回 -1
+     */
+    std::time_t last_write_time_native(native_czstring path);
+
+    /**
+     * @brief Set last write time (native system PAL version).
+     *        设置最后写入时间（系统原生PAL版本）。
+     *
+     * Changes the last modification time of a file using native utimensat or SetFileTime.
+     * 使用原生 utimensat 或 SetFileTime 更改文件的最后修改时间。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path File path (native character type)
+     *             文件路径（原生字符类型）
+     * @param new_time New last write time
+     *                 新的最后写入时间
+     */
+    void last_write_time_native(native_czstring path, std::time_t new_time);
+
+    /**
+     * @brief Change file permissions (native system PAL version).
+     *        更改文件权限（系统原生PAL版本）。
+     *
+     * Modifies the permissions of a file system entry using native chmod or SetFileAttributesW.
+     * 使用原生 chmod 或 SetFileAttributesW 修改文件系统条目的权限。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API. Windows permissions are limited compared to POSIX.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *       Windows 的权限相比 POSIX 有限。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to the file (native character type)
+     *             文件路径（原生字符类型）
+     * @param prms Permissions to apply
+     *             要应用的权限
+     * @param opts Permission modification options (default: replace)
+     *             权限修改选项（默认：替换）
+     */
+    void permissions_native(native_czstring path, perms prms, perm_options opts = perm_options::replace);
+
+    /**
+     * @brief Get proximate path (native system PAL version).
+     *        获取近似路径（系统原生PAL版本）。
+     *
+     * Converts the given path to a relative path against the current directory.
+     * Uses native path comparison and resolution.
+     * 将给定路径转换为相对于当前目录的相对路径。
+     * 使用原生路径比较和解析。
+     *
+     * @note On Windows, the input paths should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to convert (native character type)
+     *             要转换的路径（原生字符类型）
+     * @param out_buffer Output buffer for the proximate path (native character type)
+     *                   用于存储近似路径的输出缓冲区（原生字符类型）
+     * @param buffer_size Size of the output buffer in characters
+     *                    输出缓冲区的大小（以字符为单位）
+     * @return Length of the proximate path on success, -1 on error
+     *         成功时返回近似路径的长度，失败时返回 -1
+     */
+    ssize_t proximate_native(native_czstring path, native_cstring out_buffer, std::size_t buffer_size);
+
+    /**
+     * @brief Get proximate path relative to base (native system PAL version).
+     *        获取相对于基路径的近似路径（系统原生PAL版本）。
+     *
+     * Converts the given path to a relative path against the specified base path.
+     * Uses native path comparison and resolution.
+     * 将给定路径转换为相对于指定基路径的相对路径。
+     * 使用原生路径比较和解析。
+     *
+     * @note On Windows, the input paths should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to convert (native character type)
+     *             要转换的路径（原生字符类型）
+     * @param base Base path for relative conversion (native character type)
+     *             用于相对转换的基路径（原生字符类型）
+     * @param out_buffer Output buffer for the proximate path (native character type)
+     *                   用于存储近似路径的输出缓冲区（原生字符类型）
+     * @param buffer_size Size of the output buffer in characters
+     *                    输出缓冲区的大小（以字符为单位）
+     * @return Length of the proximate path on success, -1 on error
+     *         成功时返回近似路径的长度，失败时返回 -1
+     */
+    ssize_t proximate_native(native_czstring path, native_czstring base, native_cstring out_buffer, std::size_t buffer_size);
+
+    /**
+     * @brief Read the target of a symbolic link (native system PAL version).
+     *        读取符号链接的目标（系统原生PAL版本）。
+     *
+     * Reads the target path of a symbolic link using native readlink or GetFinalPathNameByHandleW.
+     * 使用原生 readlink 或 GetFinalPathNameByHandleW 读取符号链接的目标路径。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Symbolic link path (native character type)
+     *             符号链接路径（原生字符类型）
+     * @param out_buffer Output buffer for the target path (native character type)
+     *                   用于存储目标路径的输出缓冲区（原生字符类型）
+     * @param buffer_size Size of the output buffer in characters
+     *                    输出缓冲区的大小（以字符为单位）
+     * @return Length of the target path on success, -1 on error
+     *         成功时返回目标路径的长度，失败时返回 -1
+     */
+    ssize_t read_symlink_native(native_czstring path, native_cstring out_buffer, std::size_t buffer_size);
+
+    /**
+     * @brief Get relative path (native system PAL version).
+     *        获取相对路径（系统原生PAL版本）。
+     *
+     * Converts the given path to a relative path against the current directory.
+     * Uses native path comparison and resolution.
+     * 将给定路径转换为相对于当前目录的相对路径。
+     * 使用原生路径比较和解析。
+     *
+     * @note On Windows, the input paths should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to convert (native character type)
+     *             要转换的路径（原生字符类型）
+     * @param out_buffer Output buffer for the relative path (native character type)
+     *                   用于存储相对路径的输出缓冲区（原生字符类型）
+     * @param buffer_size Size of the output buffer in characters
+     *                    输出缓冲区的大小（以字符为单位）
+     * @return Length of the relative path on success, -1 on error
+     *         成功时返回相对路径的长度，失败时返回 -1
+     */
+    ssize_t relative_native(native_czstring path, native_cstring out_buffer, std::size_t buffer_size);
+
+    /**
+     * @brief Get relative path to base (native system PAL version).
+     *        获取相对于基路径的相对路径（系统原生PAL版本）。
+     *
+     * Converts the given path to a relative path against the specified base path.
+     * Uses native path comparison and resolution.
+     * 将给定路径转换为相对于指定基路径的相对路径。
+     * 使用原生路径比较和解析。
+     *
+     * @note On Windows, the input paths should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to convert (native character type)
+     *             要转换的路径（原生字符类型）
+     * @param base Base path for relative conversion (native character type)
+     *             用于相对转换的基路径（原生字符类型）
+     * @param out_buffer Output buffer for the relative path (native character type)
+     *                   用于存储相对路径的输出缓冲区（原生字符类型）
+     * @param buffer_size Size of the output buffer in characters
+     *                    输出缓冲区的大小（以字符为单位）
+     * @return Length of the relative path on success, -1 on error
+     *         成功时返回相对路径的长度，失败时返回 -1
+     */
+    ssize_t relative_native(native_czstring path, native_czstring base, native_cstring out_buffer, std::size_t buffer_size);
+
+    /**
+     * @brief Remove a file or empty directory (native system PAL version).
+     *        删除文件或空目录（系统原生PAL版本）。
+     *
+     * Removes a single file or empty directory using native remove or DeleteFileW/RemoveDirectoryW.
+     * 使用原生 remove 或 DeleteFileW/RemoveDirectoryW 删除单个文件或空目录。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API (e.g., DeleteFileW, RemoveDirectoryW).
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API
+     *       （例如 DeleteFileW、RemoveDirectoryW）。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to remove (native character type)
+     *             要删除的路径（原生字符类型）
+     * @return true if removed successfully, false otherwise
+     *         如果成功删除则返回 true，否则返回 false
+     */
+    bool remove_native(native_czstring path);
+
+    /**
+     * @brief Remove a file or directory recursively (native system PAL version).
+     *        递归删除文件或目录（系统原生PAL版本）。
+     *
+     * Removes a file or directory and all its contents recursively using native directory traversal.
+     * 使用原生目录遍历递归删除文件或目录及其所有内容。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to remove (native character type)
+     *             要删除的路径（原生字符类型）
+     * @return Number of files and directories removed
+     *         删除的文件和目录数量
+     */
+    uintmax_t remove_all_native(native_czstring path);
+
+    /**
+     * @brief Rename a file or directory (native system PAL version).
+     *        重命名文件或目录（系统原生PAL版本）。
+     *
+     * Renames or moves a file or directory using native rename or MoveFileW.
+     * 使用原生 rename 或 MoveFileW 重命名或移动文件或目录。
+     *
+     * @note On Windows, the input paths should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API (e.g., MoveFileW).
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API
+     *       （例如 MoveFileW）。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param from Source path (native character type)
+     *             源路径（原生字符类型）
+     * @param to Destination path (native character type)
+     *           目标路径（原生字符类型）
+     */
+    void rename_native(native_czstring from, native_czstring to);
+
+    /**
+     * @brief Resize a file (native system PAL version).
+     *        调整文件大小（系统原生PAL版本）。
+     *
+     * Changes the size of a file (truncates or extends) using native truncate or SetFilePointerEx/SetEndOfFile.
+     * 使用原生 truncate 或 SetFilePointerEx/SetEndOfFile 更改文件的大小（截断或扩展）。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path File path (native character type)
+     *             文件路径（原生字符类型）
+     * @param size New size in bytes
+     *            新大小（以字节为单位）
+     */
+    void resize_file_native(native_czstring path, uintmax_t size);
+
+    /**
+     * @brief Get file system space information (output parameter version, native system PAL).
+     *        获取文件系统空间信息（输出参数版本，系统原生PAL）。
+     *
+     * Retrieves space information for the file system containing the given path.
+     * Uses native statvfs or GetDiskFreeSpaceExW.
+     * 获取包含给定路径的文件系统的空间信息。
+     * 使用原生 statvfs 或 GetDiskFreeSpaceExW。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API (e.g., GetDiskFreeSpaceExW).
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API
+     *       （例如 GetDiskFreeSpaceExW）。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Any path on the target file system (native character type)
+     *             目标文件系统上的任意路径（原生字符类型）
+     * @param out_info Pointer to store space information
+     *                 用于存储空间信息的指针
+     * @return true on success, false on failure
+     *         成功时返回 true，失败时返回 false
+     */
+    bool space_native(native_czstring path, space_info *out_info);
+
+    /**
+     * @brief Get file system space information (return value version, native system PAL).
+     *        获取文件系统空间信息（返回值版本，系统原生PAL）。
+     *
+     * Retrieves space information for the file system containing the given path.
+     * Uses native statvfs or GetDiskFreeSpaceExW.
+     * 获取包含给定路径的文件系统的空间信息。
+     * 使用原生 statvfs 或 GetDiskFreeSpaceExW。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Any path on the target file system (native character type)
+     *             目标文件系统上的任意路径（原生字符类型）
+     * @return space_info structure containing capacity, free, and available space
+     *         包含总容量、空闲空间和可用空间的 space_info 结构体
+     */
+    space_info space_native(native_czstring path);
+
+    /**
+     * @brief Get file status (native system PAL version).
+     *        获取文件状态（系统原生PAL版本）。
+     *
+     * Retrieves the type and permissions of a file system entry (follows symlinks).
+     * Uses native stat or GetFileAttributesW.
+     * 获取文件系统条目的类型和权限（跟随符号链接）。
+     * 使用原生 stat 或 GetFileAttributesW。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to query (native character type)
+     *             要查询的路径（原生字符类型）
+     * @return file_status structure containing type and permissions
+     *         包含类型和权限的 file_status 结构体
+     */
+    file_status status_native(native_czstring path);
+
+    /**
+     * @brief Get symbolic link status (native system PAL version).
+     *        获取符号链接状态（系统原生PAL版本）。
+     *
+     * Retrieves the type and permissions of a symbolic link itself (does not follow symlinks).
+     * Uses native lstat or GetFileAttributesW with FILE_FLAG_OPEN_REPARSE_POINT.
+     * 获取符号链接本身的类型和权限（不跟随符号链接）。
+     * 使用原生 lstat 或带有 FILE_FLAG_OPEN_REPARSE_POINT 的 GetFileAttributesW。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to query (native character type)
+     *             要查询的路径（原生字符类型）
+     * @return file_status structure containing type and permissions of the symlink
+     *         包含符号链接类型和权限的 file_status 结构体
+     */
+    file_status symlink_status_native(native_czstring path);
+
+    /**
+     * @brief Get temporary directory path (native system PAL version).
+     *        获取临时目录路径（系统原生PAL版本）。
+     *
+     * Retrieves the path to the directory for temporary files.
+     * Uses native P_tmpdir, getenv("TMPDIR"), or GetTempPathW.
+     * 获取临时文件目录的路径。
+     * 使用原生 P_tmpdir、getenv("TMPDIR") 或 GetTempPathW。
+     *
+     * @note On Windows, the output buffer will contain UTF-8 encoded path converted from UTF-16
+     *       obtained from GetTempPathW.
+     *       在 Windows 上，输出缓冲区将包含从 GetTempPathW 获取并转换为 UTF-8 的路径。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param out_buffer Output buffer for the temporary directory path (native character type)
+     *                   用于存储临时目录路径的输出缓冲区（原生字符类型）
+     * @param buffer_size Size of the output buffer in characters
+     *                    输出缓冲区的大小（以字符为单位）
+     * @return Length of the temporary directory path on success, -1 on error
+     *         成功时返回临时目录路径的长度，失败时返回 -1
+     */
+    ssize_t temp_directory_path_native(native_cstring out_buffer, std::size_t buffer_size);
+
+    /**
+     * @brief Get weakly canonical path (native system PAL version).
+     *        获取弱规范路径（系统原生PAL版本）。
+     *
+     * Converts the given path to a canonical-like form (may not resolve all components).
+     * Uses native path resolution with fallback behavior.
+     * 将给定路径转换为类似规范的形式（可能不会解析所有组件）。
+     * 使用具有回退行为的原生路径解析。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Source path string (native character type)
+     *             源路径字符串（原生字符类型）
+     * @param out_buffer Output buffer for the weakly canonical path (native character type)
+     *                   用于存储弱规范路径的输出缓冲区（原生字符类型）
+     * @param buffer_size Size of the output buffer in characters
+     *                    输出缓冲区的大小（以字符为单位）
+     * @return Length of the weakly canonical path on success, -1 on error
+     *         成功时返回弱规范路径的长度，失败时返回 -1
+     */
+    ssize_t weakly_canonical_native(native_czstring path, native_cstring out_buffer, std::size_t buffer_size);
+}
+
+namespace rainy::core::pal {
     /**
      * @brief Get absolute path.
      *        获取绝对路径。
@@ -868,8 +2030,8 @@ namespace rainy::core::pal {
      *
      * @param path Directory path to create
      *             要创建的目录路径
-     * @param attributes Attribute string (platform-specific)
-     *                   属性字符串（平台相关）
+     * @param attributes Attribute string (posix-format)
+     *                   属性字符串（posix格式）
      * @return true if directory was created, false otherwise
      *         如果目录被创建则返回 true，否则返回 false
      */
