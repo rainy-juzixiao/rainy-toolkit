@@ -1,14 +1,32 @@
+/*
+ * Copyright 2026 rainy-juzixiao
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 #ifndef RAINY_FOUNDATION_IO_OPERATIONS_HPP
 #define RAINY_FOUNDATION_IO_OPERATIONS_HPP
-
+#include <rainy/core/core.hpp>
 #include <rainy/foundation/io/filesystem/path.hpp>
+#include <rainy/foundation/io/filesystem/fwd.hpp>
 
 namespace rainy::foundation::io::filesystem {
-    path absolute(const path &path);
-    path absolute(const path &path, std::error_code &ec);
+    // check...
+    RAINY_TOOLKIT_API path absolute(const path &path);
+    RAINY_TOOLKIT_API path absolute(const path &path, std::error_code &ec);
 
-    path canonical(const path &path);
-    path canonical(const path &path, std::error_code &ec);
+    // check...
+    RAINY_TOOLKIT_API path canonical(const path &path);
+    RAINY_TOOLKIT_API path canonical(const path &path, std::error_code &ec);
 
     void copy(const path &from, const path &to);
     void copy(const path &from, const path &to, std::error_code &ec);
@@ -41,18 +59,21 @@ namespace rainy::foundation::io::filesystem {
     void create_symlink(const path &to, const path &new_symlink);
     void create_symlink(const path &to, const path &new_symlink, std::error_code &ec) noexcept;
 
+    // check...
     path current_path();
     path current_path(std::error_code &ec);
     void current_path(const path &path);
     void current_path(const path &path, std::error_code &ec) noexcept;
 
-    bool equivalent(const path &path1, const path &path2);
-    bool equivalent(const path &path1, const path &path2, std::error_code &ec) noexcept;
+    bool equivalent(const path &left, const path &right);
+    bool equivalent(const path &left, const path &right, std::error_code &ec) noexcept;
 
-    bool exists(file_status string) noexcept;
+    // check...
+    bool exists(const file_status& status) noexcept;
     bool exists(const path &path);
     bool exists(const path &path, std::error_code &ec) noexcept;
 
+    // check...
     std::uintmax_t file_size(const path &path);
     std::uintmax_t file_size(const path &path, std::error_code &ec) noexcept;
 
@@ -129,10 +150,12 @@ namespace rainy::foundation::io::filesystem {
     space_info space(const path &path);
     space_info space(const path &path, std::error_code &ec) noexcept;
 
+    // check...
     file_status status(const path &path);
     file_status status(const path &path, std::error_code &ec) noexcept;
 
-    bool status_known(file_status string) noexcept;
+    // check...
+    bool status_known(const file_status& status) noexcept;
 
     file_status symlink_status(const path &path);
     file_status symlink_status(const path &path, std::error_code &ec) noexcept;
