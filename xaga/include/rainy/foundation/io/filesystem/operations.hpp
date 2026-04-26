@@ -1,0 +1,147 @@
+#ifndef RAINY_FOUNDATION_IO_OPERATIONS_HPP
+#define RAINY_FOUNDATION_IO_OPERATIONS_HPP
+
+#include <rainy/foundation/io/filesystem/path.hpp>
+
+namespace rainy::foundation::io::filesystem {
+    path absolute(const path &path);
+    path absolute(const path &path, std::error_code &ec);
+
+    path canonical(const path &path);
+    path canonical(const path &path, std::error_code &ec);
+
+    void copy(const path &from, const path &to);
+    void copy(const path &from, const path &to, std::error_code &ec);
+    void copy(const path &from, const path &to, copy_options options);
+    void copy(const path &from, const path &to, copy_options options, std::error_code &ec);
+
+    bool copy_file(const path &from, const path &to);
+    bool copy_file(const path &from, const path &to, std::error_code &ec);
+    bool copy_file(const path &from, const path &to, copy_options option);
+    bool copy_file(const path &from, const path &to, copy_options option, std::error_code &ec);
+
+    void copy_symlink(const path &existing_symlink, const path &new_symlink);
+    void copy_symlink(const path &existing_symlink, const path &new_symlink, std::error_code &ec) noexcept;
+
+    bool create_directories(const path &path);
+    bool create_directories(const path &path, std::error_code &ec);
+
+    bool create_directory(const path &path);
+    bool create_directory(const path &path, std::error_code &ec) noexcept;
+
+    bool create_directory(const path &path, const filesystem::path &attributes);
+    bool create_directory(const path &path, const filesystem::path &attributes, std::error_code &ec) noexcept;
+
+    void create_directory_symlink(const path &to, const path &new_symlink);
+    void create_directory_symlink(const path &to, const path &new_symlink, std::error_code &ec) noexcept;
+
+    void create_hard_link(const path &to, const path &new_hard_link);
+    void create_hard_link(const path &to, const path &new_hard_link, std::error_code &ec) noexcept;
+
+    void create_symlink(const path &to, const path &new_symlink);
+    void create_symlink(const path &to, const path &new_symlink, std::error_code &ec) noexcept;
+
+    path current_path();
+    path current_path(std::error_code &ec);
+    void current_path(const path &path);
+    void current_path(const path &path, std::error_code &ec) noexcept;
+
+    bool equivalent(const path &path1, const path &path2);
+    bool equivalent(const path &path1, const path &path2, std::error_code &ec) noexcept;
+
+    bool exists(file_status string) noexcept;
+    bool exists(const path &path);
+    bool exists(const path &path, std::error_code &ec) noexcept;
+
+    std::uintmax_t file_size(const path &path);
+    std::uintmax_t file_size(const path &path, std::error_code &ec) noexcept;
+
+    std::uintmax_t hard_link_count(const path &path);
+    std::uintmax_t hard_link_count(const path &path, std::error_code &ec) noexcept;
+
+    bool is_block_file(file_status string) noexcept;
+    bool is_block_file(const path &path);
+    bool is_block_file(const path &path, std::error_code &ec) noexcept;
+
+    bool is_character_file(file_status string) noexcept;
+    bool is_character_file(const path &path);
+    bool is_character_file(const path &path, std::error_code &ec) noexcept;
+
+    bool is_directory(file_status string) noexcept;
+    bool is_directory(const path &path);
+    bool is_directory(const path &path, std::error_code &ec) noexcept;
+
+    bool is_empty(const path &path);
+    bool is_empty(const path &path, std::error_code &ec);
+
+    bool is_fifo(file_status string) noexcept;
+    bool is_fifo(const path &path);
+    bool is_fifo(const path &path, std::error_code &ec) noexcept;
+
+    bool is_other(file_status string) noexcept;
+    bool is_other(const path &path);
+    bool is_other(const path &path, std::error_code &ec) noexcept;
+
+    bool is_regular_file(file_status string) noexcept;
+    bool is_regular_file(const path &path);
+    bool is_regular_file(const path &path, std::error_code &ec) noexcept;
+
+    bool is_socket(file_status string) noexcept;
+    bool is_socket(const path &path);
+    bool is_socket(const path &path, std::error_code &ec) noexcept;
+
+    bool is_symlink(file_status string) noexcept;
+    bool is_symlink(const path &path);
+    bool is_symlink(const path &path, std::error_code &ec) noexcept;
+
+    file_time_type last_write_time(const path &path);
+    file_time_type last_write_time(const path &path, std::error_code &ec) noexcept;
+    void last_write_time(const path &path, file_time_type new_time);
+    void last_write_time(const path &path, file_time_type new_time, std::error_code &ec) noexcept;
+
+    void permissions(const path &path, perms prms, perm_options opts = perm_options::replace);
+    void permissions(const path &path, perms prms, std::error_code &ec) noexcept;
+    void permissions(const path &path, perms prms, perm_options opts, std::error_code &ec);
+
+    path proximate(const path &path, std::error_code &ec);
+    path proximate(const path &path, const filesystem::path &base = current_path());
+    path proximate(const path &path, const filesystem::path &base, std::error_code &ec);
+
+    path read_symlink(const path &path);
+    path read_symlink(const path &path, std::error_code &ec);
+
+    path relative(const path &path, std::error_code &ec);
+    path relative(const path &path, const filesystem::path &base = current_path());
+    path relative(const path &path, const filesystem::path &base, std::error_code &ec);
+
+    bool remove(const path &path);
+    bool remove(const path &path, std::error_code &ec) noexcept;
+
+    std::uintmax_t remove_all(const path &path);
+    std::uintmax_t remove_all(const path &path, std::error_code &ec);
+
+    void rename(const path &from, const path &to);
+    void rename(const path &from, const path &to, std::error_code &ec) noexcept;
+
+    void resize_file(const path &path, std::uintmax_t size);
+    void resize_file(const path &path, std::uintmax_t size, std::error_code &ec) noexcept;
+
+    space_info space(const path &path);
+    space_info space(const path &path, std::error_code &ec) noexcept;
+
+    file_status status(const path &path);
+    file_status status(const path &path, std::error_code &ec) noexcept;
+
+    bool status_known(file_status string) noexcept;
+
+    file_status symlink_status(const path &path);
+    file_status symlink_status(const path &path, std::error_code &ec) noexcept;
+
+    path temp_directory_path();
+    path temp_directory_path(std::error_code &ec);
+
+    path weakly_canonical(const path &path);
+    path weakly_canonical(const path &path, std::error_code &ec);
+}
+
+#endif

@@ -16,10 +16,10 @@
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
-#include <rainy/foundation/io/net/io_context.hpp>
+#include <rainy/foundation/io/io_context.hpp>
 #include <windows.h>
 
-namespace rainy::foundation::io::net::implements {
+namespace rainy::foundation::io::implements {
     static constexpr ULONG_PTR COMPLETION_KEY_IMMEDIATE = 1; // post_immediate_completion
     static constexpr ULONG_PTR COMPLETION_KEY_IO = 2; // 真实 I/O overlapped
 
@@ -259,7 +259,7 @@ namespace rainy::foundation::io::net::implements {
     thread_local bool win_iocp_impl::in_event_loop_ = false;
 }
 
-namespace rainy::foundation::io::net::implements {
+namespace rainy::foundation::io::implements {
     memory::nebula_ptr<io_context_impl_base> create_io_context_impl(int concurrency_hint) {
         auto impl = memory::make_nebula<win_iocp_impl>(concurrency_hint);
         impl->init(concurrency_hint);

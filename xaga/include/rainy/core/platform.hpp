@@ -36,6 +36,7 @@
 #include <initializer_list>
 #include <string>
 #include <string_view>
+#include <ctime>
 #include <utility>
 
 #ifdef __linux__

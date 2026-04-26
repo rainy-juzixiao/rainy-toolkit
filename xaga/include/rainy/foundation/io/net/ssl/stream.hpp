@@ -192,15 +192,11 @@ namespace rainy::foundation::io::net::ssl {
                 ec = std::make_error_code(std::errc::not_connected);
                 return 0;
             }
-
-            // 获取第一个 buffer（简化实现，实际应该处理 buffer 序列）
-            auto buf = io::net::buffer(buffers);
+            auto buf = io::buffer(buffers);
             auto result = impl_->write_some(buf.data(), buf.size(), ec);
-
             if (ec) {
                 return 0;
             }
-
             return static_cast<std::size_t>(result);
         }
 
@@ -221,7 +217,7 @@ namespace rainy::foundation::io::net::ssl {
                 return 0;
             }
 
-            auto buf = io::net::buffer(buffers);
+            auto buf = io::buffer(buffers);
             auto result = impl_->read_some(buf.data(), buf.size(), ec);
 
             if (ec) {
@@ -244,7 +240,7 @@ namespace rainy::foundation::io::net::ssl {
                 return init.result.get();
             }
 
-            auto buf = io::net::buffer(buffers);
+            auto buf = io::buffer(buffers);
 
             auto *op = io::implements::make_io_completion_op([handler](const io::implements::op_result &r, const bool cancelled) mutable {
                 if (cancelled) {
@@ -275,7 +271,7 @@ namespace rainy::foundation::io::net::ssl {
                 return init.result.get();
             }
 
-            auto buf = io::net::buffer(buffers);
+            auto buf = io::buffer(buffers);
 
             auto *op = io::implements::make_io_completion_op([handler](const io::implements::op_result &r, const bool cancelled) mutable {
                 if (cancelled) {

@@ -17,6 +17,7 @@
 #define SECURITY_WIN32
 #define SCHANNEL_USE_BLACKLISTS
 #include <rainy/foundation/io/net/implements/ssl_impl.hpp>
+#include <rainy/foundation/io/implements/io_context.hpp>
 
 // clang-format off
 #include <winsock2.h>
@@ -33,6 +34,10 @@
 #include <vector>
 
 namespace rainy::foundation::io::net::implements {
+    using io::implements::completion_op;
+    using io::implements::io_context_impl_base;
+    using io::implements::op_result;
+    
     static std::error_code schannel_ec(SECURITY_STATUS ss) noexcept {
         if (ss == SEC_E_OK) {
             return {};

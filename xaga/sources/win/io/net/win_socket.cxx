@@ -16,7 +16,7 @@
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
-#include <rainy/foundation/io/net/implements/io_context.hpp>
+#include <rainy/foundation/io/implements/io_context.hpp>
 #include <rainy/foundation/io/net/implements/sock.hpp>
 
 // clang-format off
@@ -38,6 +38,10 @@ namespace rainy::foundation::io::net::implements {
     };
 
     static wsa_init g_wsa;
+
+    using io::implements::completion_op;
+    using io::implements::io_context_impl_base;
+    using io::implements::op_result;
 
     struct iocp_op : completion_op {
         OVERLAPPED overlapped{};

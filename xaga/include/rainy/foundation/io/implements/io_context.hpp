@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef RAINY_FOUNDATION_IO_NET_IMPLEMENTS_IO_CONTEXT_HPP
-#define RAINY_FOUNDATION_IO_NET_IMPLEMENTS_IO_CONTEXT_HPP
+#ifndef RAINY_FOUNDATION_IO_IMPLEMENTS_IO_CONTEXT_HPP
+#define RAINY_FOUNDATION_IO_IMPLEMENTS_IO_CONTEXT_HPP
 #include <rainy/core/core.hpp>
 #include <rainy/foundation/concurrency/atomic.hpp>
 #include <rainy/foundation/concurrency/pal.hpp>
