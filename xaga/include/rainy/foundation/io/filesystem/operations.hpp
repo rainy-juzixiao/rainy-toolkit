@@ -16,8 +16,8 @@
 #ifndef RAINY_FOUNDATION_IO_OPERATIONS_HPP
 #define RAINY_FOUNDATION_IO_OPERATIONS_HPP
 #include <rainy/core/core.hpp>
-#include <rainy/foundation/io/filesystem/path.hpp>
 #include <rainy/foundation/io/filesystem/fwd.hpp>
+#include <rainy/foundation/io/filesystem/path.hpp>
 
 namespace rainy::foundation::io::filesystem {
     // check...
@@ -28,11 +28,13 @@ namespace rainy::foundation::io::filesystem {
     RAINY_TOOLKIT_API path canonical(const path &path);
     RAINY_TOOLKIT_API path canonical(const path &path, std::error_code &ec);
 
+    // check...
     void copy(const path &from, const path &to);
     void copy(const path &from, const path &to, std::error_code &ec);
     void copy(const path &from, const path &to, copy_options options);
     void copy(const path &from, const path &to, copy_options options, std::error_code &ec);
 
+    // check...
     bool copy_file(const path &from, const path &to);
     bool copy_file(const path &from, const path &to, std::error_code &ec);
     bool copy_file(const path &from, const path &to, copy_options option);
@@ -163,6 +165,7 @@ namespace rainy::foundation::io::filesystem {
     path temp_directory_path();
     path temp_directory_path(std::error_code &ec);
 
+    // check...
     path weakly_canonical(const path &path);
     path weakly_canonical(const path &path, std::error_code &ec);
 }

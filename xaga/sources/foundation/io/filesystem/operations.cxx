@@ -16,15 +16,25 @@
 #include <filesystem>
 #include <rainy/foundation/io/filesystem/operations.hpp>
 
-#define RAINY_FILESYSTEM_EXCEPTION_EDITION_IMPL(impl, param)                                                                          \
+#define RAINY_FILESYSTEM_EXCEPTION_EDITION_IMPL(impl, ...)                                                                            \
     {                                                                                                                                 \
         std::error_code ec;                                                                                                           \
-        auto result = impl(param, ec);                                                                                                \
+        auto result = impl(__VA_ARGS__, ec);                                                                                          \
         if (ec) {                                                                                                                     \
             throw std::system_error(ec);                                                                                              \
         }                                                                                                                             \
         return result;                                                                                                                \
     }
+
+#define RAINY_FILESYSTEM_EXCEPTION_EDITION_VOID_IMPL(impl, ...)                                                                       \
+    {                                                                                                                                 \
+        std::error_code ec;                                                                                                           \
+        impl(__VA_ARGS__, ec);                                                                                                        \
+        if (ec) {                                                                                                                     \
+            throw std::system_error(ec);                                                                                              \
+        }                                                                                                                             \
+    }
+
 
 #define RAINY_FILESYSTEM_INIT_SYSCALL(ec)                                                                                             \
     do {                                                                                                                              \
@@ -127,18 +137,69 @@ namespace rainy::foundation::io::filesystem {
         return result;
     }
 
-    void copy(const path &from, const path &to);
-    void copy(const path &from, const path &to, std::error_code &ec);
-    void copy(const path &from, const path &to, copy_options options);
-    void copy(const path &from, const path &to, copy_options options, std::error_code &ec);
+    void copy(const path &from, const path &to) {
+        RAINY_FILESYSTEM_EXCEPTION_EDITION_VOID_IMPL(copy, from, to)
+    }
 
-    bool copy_file(const path &from, const path &to);
-    bool copy_file(const path &from, const path &to, std::error_code &ec);
-    bool copy_file(const path &from, const path &to, copy_options option);
-    bool copy_file(const path &from, const path &to, copy_options option, std::error_code &ec);
+    void copy(const path &from, const path &to, std::error_code &ec) {
+        RAINY_FILESYSTEM_INIT_SYSCALL(ec);
+        core::pal::copy_native(from.native().c_str(), to.native().c_str());
+        if (errno != 0) {
+            ec = std::error_code(errno, std::system_category());
+        }
+    }
 
-    void copy_symlink(const path &existing_symlink, const path &new_symlink);
-    void copy_symlink(const path &existing_symlink, const path &new_symlink, std::error_code &ec) noexcept;
+    void copy(const path &from, const path &to, const copy_options options) {
+        RAINY_FILESYSTEM_EXCEPTION_EDITION_VOID_IMPL(copy, from, to, options);
+    }
+
+    void copy(const path &from, const path &to, const copy_options options, std::error_code &ec) {
+        RAINY_FILESYSTEM_INIT_SYSCALL(ec);
+        core::pal::copy_native(from.native().c_str(), to.native().c_str(), options);
+        if (errno != 0) {
+            ec = std::error_code(errno, std::system_category());
+        }
+    }
+
+    bool copy_file(const path &from, const path &to) {
+        RAINY_FILESYSTEM_EXCEPTION_EDITION_IMPL(copy_file, from, to);
+    }
+
+    bool copy_file(const path &from, const path &to, std::error_code &ec) {
+        RAINY_FILESYSTEM_INIT_SYSCALL(ec);
+        const bool success = core::pal::copy_file(from.native().c_str(), from.native().c_str());
+        if (errno !=0) {
+            ec = std::error_code(errno, std::system_category());
+            return false;
+        }
+        return success;
+    }
+
+    bool copy_file(const path &from, const path &to,const copy_options option) {
+        RAINY_FILESYSTEM_EXCEPTION_EDITION_IMPL(copy_file, from, to, option);
+    }
+
+    bool copy_file(const path &from, const path &to, const copy_options option, std::error_code &ec) {
+        RAINY_FILESYSTEM_INIT_SYSCALL(ec);
+        const bool success = core::pal::copy_file(from.native().c_str(), from.native().c_str(), option);
+        if (errno !=0) {
+            ec = std::error_code(errno, std::system_category());
+            return false;
+        }
+        return success;
+    }
+
+    void copy_symlink(const path &existing_symlink, const path &new_symlink) {
+        RAINY_FILESYSTEM_EXCEPTION_EDITION_VOID_IMPL(copy_symlink, existing_symlink, new_symlink);
+    }
+
+    void copy_symlink(const path &existing_symlink, const path &new_symlink, std::error_code &ec) noexcept {
+        RAINY_FILESYSTEM_INIT_SYSCALL(ec);
+        core::pal::copy_symlink_native(existing_symlink.native().c_str(), new_symlink.native().c_str());
+        if (errno != 0) {
+            ec = std::error_code(errno, std::system_category());
+        }
+    }
 
     bool create_directories(const path &path);
     bool create_directories(const path &path, std::error_code &ec);
@@ -341,8 +402,52 @@ namespace rainy::foundation::io::filesystem {
     path temp_directory_path();
     path temp_directory_path(std::error_code &ec);
 
-    path weakly_canonical(const path &path);
-    path weakly_canonical(const path &path, std::error_code &ec);
+    path weakly_canonical(const path &path) {
+        RAINY_FILESYSTEM_EXCEPTION_EDITION_IMPL(weakly_canonical, path);
+    }
+
+    path weakly_canonical(const path &path, std::error_code &ec) {
+        RAINY_FILESYSTEM_INIT_SYSCALL(ec);
+        class path result;
+        file_status st = status(path, ec);
+        if (exists(st)) {
+            return canonical(path, ec);
+        }
+
+        if (status_known(st)) {
+            ec.clear();
+        } else {
+            return result;
+        }
+        class path tmp{};
+        auto iter = path.begin();
+        const auto end = path.end();
+        while (iter != end) {
+            tmp = result / *iter;
+            st = status(tmp, ec);
+            if (exists(st)) {
+                swap(result, tmp);
+            } else {
+                if (status_known(st)) {
+                    ec.clear();
+                }
+                break;
+            }
+            ++iter;
+        }
+        if (!ec && !result.empty()) {
+            result = canonical(result, ec);
+        }
+        if (ec) {
+            result.clear();
+        } else {
+            while (iter != end) {
+                result /= *iter++;
+            }
+            result = result.lexically_normal();
+        }
+        return result;
+    }
 }
 
 // NOLINTEND(cppcoreguidelines-avoid-do-while)
