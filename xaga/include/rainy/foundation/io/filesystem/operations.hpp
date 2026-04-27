@@ -135,10 +135,11 @@ namespace rainy::foundation::io::filesystem {
     RAINY_TOOLKIT_API bool is_symlink(const path &path);
     RAINY_TOOLKIT_API bool is_symlink(const path &path, std::error_code &ec) noexcept;
 
-    file_time_type last_write_time(const path &path);
-    file_time_type last_write_time(const path &path, std::error_code &ec) noexcept;
-    void last_write_time(const path &path, file_time_type new_time);
-    void last_write_time(const path &path, file_time_type new_time, std::error_code &ec) noexcept;
+    // check...
+    RAINY_TOOLKIT_API file_time_type last_write_time(const path &path);
+    RAINY_TOOLKIT_API file_time_type last_write_time(const path &path, std::error_code &ec) noexcept;
+    RAINY_TOOLKIT_API void last_write_time(const path &path, file_time_type new_time);
+    RAINY_TOOLKIT_API void last_write_time(const path &path, file_time_type new_time, std::error_code &ec) noexcept;
 
     void permissions(const path &path, perms prms, perm_options opts = perm_options::replace);
     void permissions(const path &path, perms prms, std::error_code &ec) noexcept;

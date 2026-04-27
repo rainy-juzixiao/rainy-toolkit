@@ -539,10 +539,31 @@ namespace rainy::foundation::io::filesystem {
         return is_symlink;
     }
 
-    file_time_type last_write_time(const path &path);
-    file_time_type last_write_time(const path &path, std::error_code &ec) noexcept;
-    void last_write_time(const path &path, file_time_type new_time);
-    void last_write_time(const path &path, file_time_type new_time, std::error_code &ec) noexcept;
+    file_time_type last_write_time(const path &path) {
+        RAINY_FILESYSTEM_EXCEPTION_EDITION_IMPL(last_write_time, path);
+    }
+
+    file_time_type last_write_time(const path &path, std::error_code &ec) noexcept {
+        RAINY_FILESYSTEM_INIT_SYSCALL(ec);
+        const auto last_write_time = core::pal::last_write_time_native(path.native().c_str());
+        if (errno != 0) {
+            ec = std::error_code(errno, std::system_category());
+        }
+        return file_time_type{file_time_type::duration{last_write_time}};
+    }
+
+    void last_write_time(const path &path, const file_time_type new_time) {
+        RAINY_FILESYSTEM_EXCEPTION_EDITION_VOID_IMPL(last_write_time, path, new_time);
+    }
+
+    void last_write_time(const path &path, file_time_type new_time, std::error_code &ec) noexcept {
+        RAINY_FILESYSTEM_INIT_SYSCALL(ec);
+        const auto sys_time = std::chrono::file_clock::to_sys(new_time);
+        core::pal::last_write_time_native(path.native().c_str(), std::chrono::system_clock::to_time_t(sys_time));
+        if (errno != 0) {
+            ec = std::error_code(errno, std::system_category());
+        }
+    }
 
     void permissions(const path &path, perms prms, perm_options opts);
     void permissions(const path &path, perms prms, std::error_code &ec) noexcept;
