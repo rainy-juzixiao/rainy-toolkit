@@ -201,14 +201,44 @@ namespace rainy::foundation::io::filesystem {
         }
     }
 
-    bool create_directories(const path &path);
-    bool create_directories(const path &path, std::error_code &ec);
+    bool create_directories(const path &path) {
+        RAINY_FILESYSTEM_EXCEPTION_EDITION_IMPL(create_directories, path);
+    }
 
-    bool create_directory(const path &path);
-    bool create_directory(const path &path, std::error_code &ec) noexcept;
+    bool create_directories(const path &path, std::error_code &ec) {
+        RAINY_FILESYSTEM_INIT_SYSCALL(ec);
+        const bool success = core::pal::create_directories_native(path.native().c_str());
+        if (errno != 0) {
+            ec = std::error_code(errno, std::system_category());
+        }
+        return success;
+    }
 
-    bool create_directory(const path &path, const filesystem::path &attributes);
-    bool create_directory(const path &path, const filesystem::path &attributes, std::error_code &ec) noexcept;
+    bool create_directory(const path &path) {
+        RAINY_FILESYSTEM_EXCEPTION_EDITION_IMPL(create_directory, path);
+    }
+
+    bool create_directory(const path &path, std::error_code &ec) noexcept {
+        RAINY_FILESYSTEM_INIT_SYSCALL(ec);
+        const bool success = core::pal::create_directory_native(path.native().c_str());
+        if (errno != 0) {
+            ec = std::error_code(errno, std::system_category());
+        }
+        return success;
+    }
+
+    bool create_directory(const path &path, const filesystem::path &attributes) {
+        RAINY_FILESYSTEM_EXCEPTION_EDITION_IMPL(create_directory, path, attributes);
+    }
+
+    bool create_directory(const path &path, const filesystem::path &existing_p, std::error_code &ec) noexcept {
+        RAINY_FILESYSTEM_INIT_SYSCALL(ec);
+        const bool success = core::pal::create_directory_native(path.native().c_str(), existing_p.native().c_str());
+        if (errno != 0) {
+            ec = std::error_code(errno, std::system_category());
+        }
+        return success;
+    }
 
     void create_directory_symlink(const path &to, const path &new_symlink);
     void create_directory_symlink(const path &to, const path &new_symlink, std::error_code &ec) noexcept;

@@ -40,17 +40,20 @@ namespace rainy::foundation::io::filesystem {
     bool copy_file(const path &from, const path &to, copy_options option);
     bool copy_file(const path &from, const path &to, copy_options option, std::error_code &ec);
 
+    // check...
     void copy_symlink(const path &existing_symlink, const path &new_symlink);
     void copy_symlink(const path &existing_symlink, const path &new_symlink, std::error_code &ec) noexcept;
 
+    // check...
     bool create_directories(const path &path);
     bool create_directories(const path &path, std::error_code &ec);
 
+    // check...
     bool create_directory(const path &path);
     bool create_directory(const path &path, std::error_code &ec) noexcept;
 
-    bool create_directory(const path &path, const filesystem::path &attributes);
-    bool create_directory(const path &path, const filesystem::path &attributes, std::error_code &ec) noexcept;
+    bool create_directory(const path &path, const filesystem::path &existing_p);
+    bool create_directory(const path &path, const filesystem::path &existing_p, std::error_code &ec) noexcept;
 
     void create_directory_symlink(const path &to, const path &new_symlink);
     void create_directory_symlink(const path &to, const path &new_symlink, std::error_code &ec) noexcept;

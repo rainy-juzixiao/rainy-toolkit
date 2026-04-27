@@ -914,13 +914,13 @@ namespace rainy::core::pal {
     bool create_directory_native(native_czstring path);
 
     /**
-     * @brief Create a directory with attributes (native system PAL version).
-     *        使用属性创建目录（系统原生PAL版本）。
+     * @brief Create a directory with attributes from an existing directory (native system PAL version).
+     *        使用现有目录的属性创建目录（系统原生PAL版本）。
      *
-     * Creates a directory with specified attributes.
-     * Uses native mkdir or CreateDirectoryW with security attributes.
-     * 使用指定的属性创建目录。
-     * 使用带有安全属性的原生 mkdir 或 CreateDirectoryW。
+     * Reads security attributes from `existing_p` and applies them to the new directory `path`.
+     * Uses native mkdir or CreateDirectoryW with the extracted attributes.
+     * 从 `existing_p` 读取安全属性并应用到新目录 `path`。
+     * 使用提取的属性调用原生 mkdir 或 CreateDirectoryW。
      *
      * @note On Windows, the input paths should be UTF-8 encoded and will be converted to UTF-16
      *       for the underlying W-API. The attributes parameter is platform-specific.
@@ -932,12 +932,12 @@ namespace rainy::core::pal {
      *
      * @param path Directory path to create (native character type)
      *             要创建的目录路径（原生字符类型）
-     * @param attributes Attribute string (platform-specific, native character type)
-     *                   属性字符串（平台相关，原生字符类型）
+     * @param existing_p Existing directory path to read attributes from (native character type)
+     *                   用于读取属性的现有目录路径（原生字符类型）
      * @return true if directory was created, false otherwise
-     *         如果目录被创建则返回 true，否则返回 false
+     *         如果目录被新创建则返回 true，否则返回 false（包括已存在或失败）
      */
-    bool create_directory_native(native_czstring path, native_czstring attributes);
+    bool create_directory_native(native_czstring path, native_czstring existing_p);
 
     /**
      * @brief Create a directory symbolic link (native system PAL version).
@@ -2019,23 +2019,20 @@ namespace rainy::core::pal {
     bool create_directory(czstring path);
 
     /**
-     * @brief Create a directory with attributes.
-     *        使用属性创建目录。
-     *
-     * Creates a directory with specified attributes.
-     * 使用指定的属性创建目录。
+     * @brief Create a directory with attributes from an existing directory.
+     *        使用现有目录的属性创建目录。
      *
      * @attention Uses global errno to indicate operation results.
      *            使用全局 errno 表示操作结果。
      *
      * @param path Directory path to create
      *             要创建的目录路径
-     * @param attributes Attribute string (posix-format)
-     *                   属性字符串（posix格式）
+     * @param existing_p Existing directory path to read attributes from
+     *                   用于读取属性的现有目录路径
      * @return true if directory was created, false otherwise
-     *         如果目录被创建则返回 true，否则返回 false
+     *         如果目录被新创建则返回 true，否则返回 false
      */
-    bool create_directory(czstring path, czstring attributes);
+    bool create_directory(czstring path, czstring existing_p);
 
     /**
      * @brief Create a directory symbolic link.

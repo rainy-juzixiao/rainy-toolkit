@@ -590,9 +590,9 @@ namespace rainy::core::pal {
         return false;
     }
 
-    bool create_directory_native(const native_czstring path, const native_czstring attributes) {
+    bool create_directory_native(const native_czstring path, const native_czstring existing_p) {
         struct stat st{};
-        if (::stat(attributes, &st) != 0) {
+        if (::stat(existing_p, &st) != 0) {
             return false;
         }
         if (::mkdir(path, st.st_mode & 07777u) == 0) {
@@ -602,8 +602,8 @@ namespace rainy::core::pal {
             struct stat dst{};
             if (::stat(path, &dst) == 0 && S_ISDIR(dst.st_mode)) {
                 errno = 0;
-                return false;
             }
+            return false;
         }
         return false;
     }
@@ -1026,8 +1026,8 @@ namespace rainy::core::pal {
         return create_directory_native(path);
     }
 
-    bool create_directory(const czstring path, const czstring attributes) {
-        return create_directory_native(path, attributes);
+    bool create_directory(const czstring path, const czstring existing_p) {
+        return create_directory_native(path, existing_p);
     }
 
     void create_directory_symlink(const czstring to, const czstring new_symlink) {
