@@ -29,61 +29,67 @@ namespace rainy::foundation::io::filesystem {
     RAINY_TOOLKIT_API path canonical(const path &path, std::error_code &ec);
 
     // check...
-    void copy(const path &from, const path &to);
-    void copy(const path &from, const path &to, std::error_code &ec);
-    void copy(const path &from, const path &to, copy_options options);
-    void copy(const path &from, const path &to, copy_options options, std::error_code &ec);
+    RAINY_TOOLKIT_API void copy(const path &from, const path &to);
+    RAINY_TOOLKIT_API void copy(const path &from, const path &to, std::error_code &ec);
+    RAINY_TOOLKIT_API void copy(const path &from, const path &to, copy_options options);
+    RAINY_TOOLKIT_API void copy(const path &from, const path &to, copy_options options, std::error_code &ec);
 
     // check...
-    bool copy_file(const path &from, const path &to);
-    bool copy_file(const path &from, const path &to, std::error_code &ec);
-    bool copy_file(const path &from, const path &to, copy_options option);
-    bool copy_file(const path &from, const path &to, copy_options option, std::error_code &ec);
+    RAINY_TOOLKIT_API bool copy_file(const path &from, const path &to);
+    RAINY_TOOLKIT_API bool copy_file(const path &from, const path &to, std::error_code &ec);
+    RAINY_TOOLKIT_API bool copy_file(const path &from, const path &to, copy_options option);
+    RAINY_TOOLKIT_API bool copy_file(const path &from, const path &to, copy_options option, std::error_code &ec);
 
     // check...
-    void copy_symlink(const path &existing_symlink, const path &new_symlink);
-    void copy_symlink(const path &existing_symlink, const path &new_symlink, std::error_code &ec) noexcept;
+    RAINY_TOOLKIT_API void copy_symlink(const path &existing_symlink, const path &new_symlink);
+    RAINY_TOOLKIT_API void copy_symlink(const path &existing_symlink, const path &new_symlink, std::error_code &ec) noexcept;
 
     // check...
-    bool create_directories(const path &path);
-    bool create_directories(const path &path, std::error_code &ec);
+    RAINY_TOOLKIT_API bool create_directories(const path &path);
+    RAINY_TOOLKIT_API bool create_directories(const path &path, std::error_code &ec);
 
     // check...
-    bool create_directory(const path &path);
-    bool create_directory(const path &path, std::error_code &ec) noexcept;
-
-    bool create_directory(const path &path, const filesystem::path &existing_p);
-    bool create_directory(const path &path, const filesystem::path &existing_p, std::error_code &ec) noexcept;
-
-    void create_directory_symlink(const path &to, const path &new_symlink);
-    void create_directory_symlink(const path &to, const path &new_symlink, std::error_code &ec) noexcept;
-
-    void create_hard_link(const path &to, const path &new_hard_link);
-    void create_hard_link(const path &to, const path &new_hard_link, std::error_code &ec) noexcept;
-
-    void create_symlink(const path &to, const path &new_symlink);
-    void create_symlink(const path &to, const path &new_symlink, std::error_code &ec) noexcept;
+    RAINY_TOOLKIT_API bool create_directory(const path &path);
+    RAINY_TOOLKIT_API bool create_directory(const path &path, std::error_code &ec) noexcept;
 
     // check...
-    path current_path();
-    path current_path(std::error_code &ec);
-    void current_path(const path &path);
-    void current_path(const path &path, std::error_code &ec) noexcept;
-
-    bool equivalent(const path &left, const path &right);
-    bool equivalent(const path &left, const path &right, std::error_code &ec) noexcept;
+    RAINY_TOOLKIT_API bool create_directory(const path &path, const filesystem::path &existing_p);
+    RAINY_TOOLKIT_API bool create_directory(const path &path, const filesystem::path &existing_p, std::error_code &ec) noexcept;
 
     // check...
-    bool exists(const file_status& status) noexcept;
-    bool exists(const path &path);
-    bool exists(const path &path, std::error_code &ec) noexcept;
+    RAINY_TOOLKIT_API void create_directory_symlink(const path &to, const path &new_symlink);
+    RAINY_TOOLKIT_API void create_directory_symlink(const path &to, const path &new_symlink, std::error_code &ec) noexcept;
 
     // check...
-    std::uintmax_t file_size(const path &path);
-    std::uintmax_t file_size(const path &path, std::error_code &ec) noexcept;
+    RAINY_TOOLKIT_API void create_hard_link(const path &to, const path &new_hard_link);
+    RAINY_TOOLKIT_API void create_hard_link(const path &to, const path &new_hard_link, std::error_code &ec) noexcept;
 
-    std::uintmax_t hard_link_count(const path &path);
-    std::uintmax_t hard_link_count(const path &path, std::error_code &ec) noexcept;
+    // check...
+    RAINY_TOOLKIT_API void create_symlink(const path &to, const path &new_symlink);
+    RAINY_TOOLKIT_API void create_symlink(const path &to, const path &new_symlink, std::error_code &ec) noexcept;
+
+    // check...
+    RAINY_TOOLKIT_API path current_path();
+    RAINY_TOOLKIT_API path current_path(std::error_code &ec);
+    RAINY_TOOLKIT_API void current_path(const path &path);
+    RAINY_TOOLKIT_API void current_path(const path &path, std::error_code &ec) noexcept;
+
+    // check...
+    RAINY_TOOLKIT_API bool equivalent(const path &left, const path &right);
+    RAINY_TOOLKIT_API bool equivalent(const path &left, const path &right, std::error_code &ec) noexcept;
+
+    // check...
+    RAINY_TOOLKIT_API bool exists(const file_status &status) noexcept;
+    RAINY_TOOLKIT_API bool exists(const path &path);
+    RAINY_TOOLKIT_API bool exists(const path &path, std::error_code &ec) noexcept;
+
+    // check...
+    RAINY_TOOLKIT_API std::uintmax_t file_size(const path &path);
+    RAINY_TOOLKIT_API std::uintmax_t file_size(const path &path, std::error_code &ec) noexcept;
+
+    // check...
+    RAINY_TOOLKIT_API std::uintmax_t hard_link_count(const path &path);
+    RAINY_TOOLKIT_API std::uintmax_t hard_link_count(const path &path, std::error_code &ec) noexcept;
 
     bool is_block_file(file_status string) noexcept;
     bool is_block_file(const path &path);
@@ -160,7 +166,7 @@ namespace rainy::foundation::io::filesystem {
     file_status status(const path &path, std::error_code &ec) noexcept;
 
     // check...
-    bool status_known(const file_status& status) noexcept;
+    bool status_known(const file_status &status) noexcept;
 
     file_status symlink_status(const path &path);
     file_status symlink_status(const path &path, std::error_code &ec) noexcept;

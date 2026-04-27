@@ -168,21 +168,21 @@ namespace rainy::foundation::io::filesystem {
     bool copy_file(const path &from, const path &to, std::error_code &ec) {
         RAINY_FILESYSTEM_INIT_SYSCALL(ec);
         const bool success = core::pal::copy_file(from.native().c_str(), from.native().c_str());
-        if (errno !=0) {
+        if (errno != 0) {
             ec = std::error_code(errno, std::system_category());
             return false;
         }
         return success;
     }
 
-    bool copy_file(const path &from, const path &to,const copy_options option) {
+    bool copy_file(const path &from, const path &to, const copy_options option) {
         RAINY_FILESYSTEM_EXCEPTION_EDITION_IMPL(copy_file, from, to, option);
     }
 
     bool copy_file(const path &from, const path &to, const copy_options option, std::error_code &ec) {
         RAINY_FILESYSTEM_INIT_SYSCALL(ec);
         const bool success = core::pal::copy_file(from.native().c_str(), from.native().c_str(), option);
-        if (errno !=0) {
+        if (errno != 0) {
             ec = std::error_code(errno, std::system_category());
             return false;
         }
@@ -240,14 +240,41 @@ namespace rainy::foundation::io::filesystem {
         return success;
     }
 
-    void create_directory_symlink(const path &to, const path &new_symlink);
-    void create_directory_symlink(const path &to, const path &new_symlink, std::error_code &ec) noexcept;
+    void create_directory_symlink(const path &to, const path &new_symlink) {
+        RAINY_FILESYSTEM_EXCEPTION_EDITION_VOID_IMPL(create_directory_symlink, to, new_symlink);
+    }
 
-    void create_hard_link(const path &to, const path &new_hard_link);
-    void create_hard_link(const path &to, const path &new_hard_link, std::error_code &ec) noexcept;
+    void create_directory_symlink(const path &to, const path &new_symlink, std::error_code &ec) noexcept {
+        RAINY_FILESYSTEM_INIT_SYSCALL(ec);
+        core::pal::create_directory_symlink_native(to.native().c_str(), new_symlink.native().c_str());
+        if (errno != 0) {
+            ec = std::error_code(errno, std::system_category());
+        }
+    }
 
-    void create_symlink(const path &to, const path &new_symlink);
-    void create_symlink(const path &to, const path &new_symlink, std::error_code &ec) noexcept;
+    void create_hard_link(const path &to, const path &new_hard_link) {
+        RAINY_FILESYSTEM_EXCEPTION_EDITION_VOID_IMPL(create_hard_link, to, new_hard_link);
+    }
+
+    void create_hard_link(const path &to, const path &new_hard_link, std::error_code &ec) noexcept {
+        RAINY_FILESYSTEM_INIT_SYSCALL(ec);
+        core::pal::create_hard_link_native(to.native().c_str(), new_hard_link.native().c_str());
+        if (errno != 0) {
+            ec = std::error_code(errno, std::system_category());
+        }
+    }
+
+    void create_symlink(const path &to, const path &new_symlink) {
+        RAINY_FILESYSTEM_EXCEPTION_EDITION_VOID_IMPL(create_symlink, to, new_symlink);
+    }
+
+    void create_symlink(const path &to, const path &new_symlink, std::error_code &ec) noexcept {
+        RAINY_FILESYSTEM_INIT_SYSCALL(ec);
+        core::pal::create_symlink_native(to.native().c_str(), new_symlink.native().c_str());
+        if (errno != 0) {
+            ec = std::error_code(errno, std::system_category());
+        }
+    }
 
     path current_path() {
         std::error_code ec;
@@ -298,8 +325,18 @@ namespace rainy::foundation::io::filesystem {
         }
     }
 
-    bool equivalent(const path &left, const path &right);
-    bool equivalent(const path &left, const path &right, std::error_code &ec) noexcept;
+    bool equivalent(const path &left, const path &right) {
+        RAINY_FILESYSTEM_EXCEPTION_EDITION_IMPL(equivalent, left, right);
+    }
+
+    bool equivalent(const path &left, const path &right, std::error_code &ec) noexcept {
+        RAINY_FILESYSTEM_INIT_SYSCALL(ec);
+        const bool success = core::pal::equivalent_native(left.native().c_str(), right.native().c_str());
+        if (errno != 0) {
+            ec = std::error_code(errno, std::system_category());
+        }
+        return success;
+    }
 
     bool exists(const file_status &status) noexcept {
         return status_known(status) && status.type() != file_type::not_found; // NOLINT
@@ -333,8 +370,18 @@ namespace rainy::foundation::io::filesystem {
         return size;
     }
 
-    std::uintmax_t hard_link_count(const path &path);
-    std::uintmax_t hard_link_count(const path &path, std::error_code &ec) noexcept;
+    std::uintmax_t hard_link_count(const path &path) {
+    RAINY_FILESYSTEM_EXCEPTION_EDITION_IMPL(hard_link_count, path);
+    }
+
+    std::uintmax_t hard_link_count(const path &path, std::error_code &ec) noexcept {
+        RAINY_FILESYSTEM_INIT_SYSCALL(ec);
+        const auto size = core::pal::file_size_native(path.native().c_str());
+        if (errno != 0) {
+            ec = std::error_code(errno, std::system_category());
+        }
+        return size;
+    }
 
     bool is_block_file(file_status string) noexcept;
     bool is_block_file(const path &path);
