@@ -173,31 +173,31 @@ namespace rainy::foundation::io::filesystem {
     RAINY_TOOLKIT_API void rename(const path &from, const path &to, std::error_code &ec) noexcept;
 
     // check...
-    void resize_file(const path &path, std::uintmax_t size);
-    void resize_file(const path &path, std::uintmax_t size, std::error_code &ec) noexcept;
+    RAINY_TOOLKIT_API void resize_file(const path &path, std::uintmax_t size);
+    RAINY_TOOLKIT_API void resize_file(const path &path, std::uintmax_t size, std::error_code &ec) noexcept;
 
     // check...
-    space_info space(const path &path);
-    space_info space(const path &path, std::error_code &ec) noexcept;
+    RAINY_TOOLKIT_API space_info space(const path &path);
+    RAINY_TOOLKIT_API space_info space(const path &path, std::error_code &ec) noexcept;
 
     // check...
-    file_status status(const path &path);
-    file_status status(const path &path, std::error_code &ec) noexcept;
+    RAINY_TOOLKIT_API file_status status(const path &path);
+    RAINY_TOOLKIT_API file_status status(const path &path, std::error_code &ec) noexcept;
 
     // check...
-    bool status_known(const file_status &status) noexcept;
+    RAINY_TOOLKIT_API bool status_known(const file_status &status) noexcept;
 
     // check...
-    file_status symlink_status(const path &path);
-    file_status symlink_status(const path &path, std::error_code &ec) noexcept;
+    RAINY_TOOLKIT_API file_status symlink_status(const path &path);
+    RAINY_TOOLKIT_API file_status symlink_status(const path &path, std::error_code &ec) noexcept;
 
     // check...
-    path temp_directory_path();
-    path temp_directory_path(std::error_code &ec);
+    RAINY_TOOLKIT_API path temp_directory_path();
+    RAINY_TOOLKIT_API path temp_directory_path(std::error_code &ec);
 
     // check...
-    path weakly_canonical(const path &path);
-    path weakly_canonical(const path &path, std::error_code &ec);
+    RAINY_TOOLKIT_API path weakly_canonical(const path &path);
+    RAINY_TOOLKIT_API path weakly_canonical(const path &path, std::error_code &ec);
 }
 
 #endif
