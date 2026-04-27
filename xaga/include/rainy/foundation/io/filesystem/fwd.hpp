@@ -31,10 +31,13 @@ namespace rainy::foundation::io::filesystem {
     public:
         file_status() noexcept : file_status(file_type::none) {
         }
-        explicit file_status(file_type ft, perms prms = perms::unknown) noexcept;
+
+        explicit file_status(file_type ft, perms prms = perms::unknown) noexcept : type_{ft}, permissions_{prms} {
+        }
+
         file_status(const file_status &) noexcept = default;
         file_status(file_status &&) noexcept = default;
-        ~file_status();
+        ~file_status() = default;
 
         file_status &operator=(const file_status &) noexcept = default;
         file_status &operator=(file_status &&) noexcept = default;
