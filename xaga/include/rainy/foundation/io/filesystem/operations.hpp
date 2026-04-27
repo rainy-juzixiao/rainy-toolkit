@@ -91,40 +91,49 @@ namespace rainy::foundation::io::filesystem {
     RAINY_TOOLKIT_API std::uintmax_t hard_link_count(const path &path);
     RAINY_TOOLKIT_API std::uintmax_t hard_link_count(const path &path, std::error_code &ec) noexcept;
 
-    bool is_block_file(file_status string) noexcept;
-    bool is_block_file(const path &path);
-    bool is_block_file(const path &path, std::error_code &ec) noexcept;
+    // check...
+    RAINY_TOOLKIT_API bool is_block_file(const file_status& status) noexcept;
+    RAINY_TOOLKIT_API bool is_block_file(const path &path);
+    RAINY_TOOLKIT_API bool is_block_file(const path &path, std::error_code &ec) noexcept;
 
-    bool is_character_file(file_status string) noexcept;
-    bool is_character_file(const path &path);
-    bool is_character_file(const path &path, std::error_code &ec) noexcept;
+    // check...
+    RAINY_TOOLKIT_API bool is_character_file(file_status status) noexcept;
+    RAINY_TOOLKIT_API bool is_character_file(const path &path);
+    RAINY_TOOLKIT_API bool is_character_file(const path &path, std::error_code &ec) noexcept;
 
-    bool is_directory(file_status string) noexcept;
-    bool is_directory(const path &path);
-    bool is_directory(const path &path, std::error_code &ec) noexcept;
+    // check...
+    RAINY_TOOLKIT_API bool is_directory(const file_status &status) noexcept;
+    RAINY_TOOLKIT_API bool is_directory(const path &path);
+    RAINY_TOOLKIT_API bool is_directory(const path &path, std::error_code &ec) noexcept;
 
-    bool is_empty(const path &path);
-    bool is_empty(const path &path, std::error_code &ec);
+    // check...
+    RAINY_TOOLKIT_API bool is_empty(const path &path);
+    RAINY_TOOLKIT_API bool is_empty(const path &path, std::error_code &ec);
 
-    bool is_fifo(file_status string) noexcept;
-    bool is_fifo(const path &path);
-    bool is_fifo(const path &path, std::error_code &ec) noexcept;
+    // check...
+    RAINY_TOOLKIT_API bool is_fifo(const file_status &string) noexcept;
+    RAINY_TOOLKIT_API bool is_fifo(const path &path);
+    RAINY_TOOLKIT_API bool is_fifo(const path &path, std::error_code &ec) noexcept;
 
-    bool is_other(file_status string) noexcept;
-    bool is_other(const path &path);
-    bool is_other(const path &path, std::error_code &ec) noexcept;
+    // check...
+    RAINY_TOOLKIT_API bool is_other(file_status status) noexcept;
+    RAINY_TOOLKIT_API bool is_other(const path &path);
+    RAINY_TOOLKIT_API bool is_other(const path &path, std::error_code &ec) noexcept;
 
-    bool is_regular_file(file_status string) noexcept;
-    bool is_regular_file(const path &path);
-    bool is_regular_file(const path &path, std::error_code &ec) noexcept;
+    // check...
+    RAINY_TOOLKIT_API bool is_regular_file(const file_status &status) noexcept;
+    RAINY_TOOLKIT_API bool is_regular_file(const path &path);
+    RAINY_TOOLKIT_API bool is_regular_file(const path &path, std::error_code &ec) noexcept;
 
-    bool is_socket(file_status string) noexcept;
-    bool is_socket(const path &path);
-    bool is_socket(const path &path, std::error_code &ec) noexcept;
+    // check...
+    RAINY_TOOLKIT_API bool is_socket(const file_status &status) noexcept;
+    RAINY_TOOLKIT_API bool is_socket(const path &path);
+    RAINY_TOOLKIT_API bool is_socket(const path &path, std::error_code &ec) noexcept;
 
-    bool is_symlink(file_status string) noexcept;
-    bool is_symlink(const path &path);
-    bool is_symlink(const path &path, std::error_code &ec) noexcept;
+    // check...
+    RAINY_TOOLKIT_API bool is_symlink(const file_status &status) noexcept;
+    RAINY_TOOLKIT_API bool is_symlink(const path &path);
+    RAINY_TOOLKIT_API bool is_symlink(const path &path, std::error_code &ec) noexcept;
 
     file_time_type last_write_time(const path &path);
     file_time_type last_write_time(const path &path, std::error_code &ec) noexcept;

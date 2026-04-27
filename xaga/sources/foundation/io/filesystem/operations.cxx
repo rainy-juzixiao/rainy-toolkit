@@ -26,6 +26,13 @@
         return result;                                                                                                                \
     }
 
+#define RAINY_FILESYSTEM_NO_EXCEPTION_EDITION_IMPL(impl, ...)                                                                         \
+    {                                                                                                                                 \
+        std::error_code ec;                                                                                                           \
+        auto result = impl(__VA_ARGS__, ec);                                                                                          \
+        return result;                                                                                                                \
+    }
+
 #define RAINY_FILESYSTEM_EXCEPTION_EDITION_VOID_IMPL(impl, ...)                                                                       \
     {                                                                                                                                 \
         std::error_code ec;                                                                                                           \
@@ -371,7 +378,7 @@ namespace rainy::foundation::io::filesystem {
     }
 
     std::uintmax_t hard_link_count(const path &path) {
-    RAINY_FILESYSTEM_EXCEPTION_EDITION_IMPL(hard_link_count, path);
+        RAINY_FILESYSTEM_EXCEPTION_EDITION_IMPL(hard_link_count, path);
     }
 
     std::uintmax_t hard_link_count(const path &path, std::error_code &ec) noexcept {
@@ -383,40 +390,154 @@ namespace rainy::foundation::io::filesystem {
         return size;
     }
 
-    bool is_block_file(file_status string) noexcept;
-    bool is_block_file(const path &path);
-    bool is_block_file(const path &path, std::error_code &ec) noexcept;
+    bool is_block_file(const file_status &status) noexcept {
+        return status.type() == file_type::not_found;
+    }
 
-    bool is_character_file(file_status string) noexcept;
-    bool is_character_file(const path &path);
-    bool is_character_file(const path &path, std::error_code &ec) noexcept;
+    bool is_block_file(const path &path) {
+        RAINY_FILESYSTEM_NO_EXCEPTION_EDITION_IMPL(is_block_file, path);
+    }
 
-    bool is_directory(file_status string) noexcept;
-    bool is_directory(const path &path);
-    bool is_directory(const path &path, std::error_code &ec) noexcept;
+    bool is_block_file(const path &path, std::error_code &ec) noexcept {
+        RAINY_FILESYSTEM_INIT_SYSCALL(ec);
+        const bool is_block = core::pal::is_block_file_native(path.native().c_str());
+        if (errno != 0) {
+            ec = std::error_code(errno, std::system_category());
+        }
+        return is_block;
+    }
 
-    bool is_empty(const path &path);
-    bool is_empty(const path &path, std::error_code &ec);
+    bool is_character_file(const file_status &status) noexcept {
+        return status.type() == file_type::character;
+    }
 
-    bool is_fifo(file_status string) noexcept;
-    bool is_fifo(const path &path);
-    bool is_fifo(const path &path, std::error_code &ec) noexcept;
+    bool is_character_file(const path &path) {
+        RAINY_FILESYSTEM_NO_EXCEPTION_EDITION_IMPL(is_character_file, path);
+    }
 
-    bool is_other(file_status string) noexcept;
-    bool is_other(const path &path);
-    bool is_other(const path &path, std::error_code &ec) noexcept;
+    bool is_character_file(const path &path, std::error_code &ec) noexcept {
+        RAINY_FILESYSTEM_INIT_SYSCALL(ec);
+        const bool is_character = core::pal::is_character_file_native(path.native().c_str());
+        if (errno != 0) {
+            ec = std::error_code(errno, std::system_category());
+        }
+        return is_character;
+    }
 
-    bool is_regular_file(file_status string) noexcept;
-    bool is_regular_file(const path &path);
-    bool is_regular_file(const path &path, std::error_code &ec) noexcept;
+    bool is_directory(const file_status &status) noexcept {
+        return status.type() == file_type::directory;
+    }
 
-    bool is_socket(file_status string) noexcept;
-    bool is_socket(const path &path);
-    bool is_socket(const path &path, std::error_code &ec) noexcept;
+    bool is_directory(const path &path) {
+        RAINY_FILESYSTEM_NO_EXCEPTION_EDITION_IMPL(is_directory, path);
+    }
 
-    bool is_symlink(file_status string) noexcept;
-    bool is_symlink(const path &path);
-    bool is_symlink(const path &path, std::error_code &ec) noexcept;
+    bool is_directory(const path &path, std::error_code &ec) noexcept {
+        RAINY_FILESYSTEM_INIT_SYSCALL(ec);
+        const bool is_directory = core::pal::is_directory_native(path.native().c_str());
+        if (errno != 0) {
+            ec = std::error_code(errno, std::system_category());
+        }
+        return is_directory;
+    }
+
+    bool is_empty(const path &path) {
+        RAINY_FILESYSTEM_NO_EXCEPTION_EDITION_IMPL(is_empty, path);
+    }
+
+    bool is_empty(const path &path, std::error_code &ec) {
+        RAINY_FILESYSTEM_INIT_SYSCALL(ec);
+        const bool is_empty = core::pal::is_empty_native(path.native().c_str());
+        if (errno != 0) {
+            ec = std::error_code(errno, std::system_category());
+        }
+        return is_empty;
+    }
+
+    bool is_fifo(const file_status &status) noexcept {
+        return status.type() == file_type::fifo;
+    }
+
+    bool is_fifo(const path &path) {
+        RAINY_FILESYSTEM_NO_EXCEPTION_EDITION_IMPL(is_fifo, path);
+    }
+
+    bool is_fifo(const path &path, std::error_code &ec) noexcept {
+        RAINY_FILESYSTEM_INIT_SYSCALL(ec);
+        const bool is_fifo = core::pal::is_fifo_native(path.native().c_str());
+        if (errno != 0) {
+            ec = std::error_code(errno, std::system_category());
+        }
+        return is_fifo;
+    }
+
+    bool is_other(file_status status) noexcept {
+        return exists(status) && !is_regular_file(status) && !is_directory(status) && !is_symlink(status);
+    }
+
+    bool is_other(const path &path) {
+        RAINY_FILESYSTEM_NO_EXCEPTION_EDITION_IMPL(is_other, path);
+    }
+
+    bool is_other(const path &path, std::error_code &ec) noexcept {
+        RAINY_FILESYSTEM_INIT_SYSCALL(ec);
+        const bool is_fifo = core::pal::is_other_native(path.native().c_str());
+        if (errno != 0) {
+            ec = std::error_code(errno, std::system_category());
+        }
+        return is_fifo;
+    }
+
+    bool is_regular_file(const file_status &status) noexcept {
+        return status.type() == file_type::regular;
+    }
+
+    bool is_regular_file(const path &path) {
+        RAINY_FILESYSTEM_NO_EXCEPTION_EDITION_IMPL(is_regular_file, path);
+    }
+
+    bool is_regular_file(const path &path, std::error_code &ec) noexcept {
+        RAINY_FILESYSTEM_INIT_SYSCALL(ec);
+        const bool is_regular = core::pal::is_regular_file_native(path.native().c_str());
+        if (errno != 0) {
+            ec = std::error_code(errno, std::system_category());
+        }
+        return is_regular;
+    }
+
+    bool is_socket(const file_status &status) noexcept {
+        return status.type() == file_type::socket;
+    }
+
+    bool is_socket(const path &path) {
+        RAINY_FILESYSTEM_NO_EXCEPTION_EDITION_IMPL(is_socket, path);
+    }
+
+    bool is_socket(const path &path, std::error_code &ec) noexcept {
+        RAINY_FILESYSTEM_INIT_SYSCALL(ec);
+        const bool is_socket = core::pal::is_socket_native(path.native().c_str());
+        if (errno != 0) {
+            ec = std::error_code(errno, std::system_category());
+        }
+        return is_socket;
+    }
+
+    bool is_symlink(const file_status &status) noexcept {
+        return status.type() == file_type::symlink;
+    }
+
+    bool is_symlink(const path &path) {
+        RAINY_FILESYSTEM_NO_EXCEPTION_EDITION_IMPL(is_symlink,path);
+    }
+
+    bool is_symlink(const path &path, std::error_code &ec) noexcept {
+        RAINY_FILESYSTEM_INIT_SYSCALL(ec);
+        const bool is_symlink = core::pal::is_symlink(path.native().c_str());
+        if (errno != 0) {
+            ec = std::error_code(errno, std::system_category());
+        }
+        return is_symlink;
+    }
 
     file_time_type last_write_time(const path &path);
     file_time_type last_write_time(const path &path, std::error_code &ec) noexcept;
@@ -459,13 +580,13 @@ namespace rainy::foundation::io::filesystem {
 
     file_status status(const path &path, std::error_code &ec) noexcept {
         RAINY_FILESYSTEM_INIT_SYSCALL(ec);
-        auto status = core::pal::status(path.c_str());
+        const auto [type, permissions] = core::pal::status_native(path.native().c_str());
         if (errno != 0) {
             ec = std::error_code(errno, std::generic_category());
             file_status s{file_type::none, perms::none};
             return s;
         }
-        file_status res{status.type, status.permissions};
+        file_status res{type, permissions};
         return res;
     }
 
