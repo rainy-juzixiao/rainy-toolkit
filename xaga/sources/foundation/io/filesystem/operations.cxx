@@ -174,7 +174,7 @@ namespace rainy::foundation::io::filesystem {
 
     bool copy_file(const path &from, const path &to, std::error_code &ec) {
         RAINY_FILESYSTEM_INIT_SYSCALL(ec);
-        const bool success = core::pal::copy_file(from.native().c_str(), from.native().c_str());
+        const bool success = core::pal::copy_file_native(from.native().c_str(), from.native().c_str());
         if (errno != 0) {
             ec = std::error_code(errno, std::system_category());
             return false;
@@ -188,7 +188,7 @@ namespace rainy::foundation::io::filesystem {
 
     bool copy_file(const path &from, const path &to, const copy_options option, std::error_code &ec) {
         RAINY_FILESYSTEM_INIT_SYSCALL(ec);
-        const bool success = core::pal::copy_file(from.native().c_str(), from.native().c_str(), option);
+        const bool success = core::pal::copy_file_native(from.native().c_str(), from.native().c_str(), option);
         if (errno != 0) {
             ec = std::error_code(errno, std::system_category());
             return false;
@@ -300,7 +300,7 @@ namespace rainy::foundation::io::filesystem {
         int ret_code = -1;
         do {
             buf.resize_and_overwrite(req_len, [&req_len, &ret_code](auto *p, unsigned n) -> std::int32_t {
-                ret_code = core::pal::current_path(p, n);
+                ret_code = core::pal::current_path_native(p, n);
                 if (ret_code == -1 && errno == ERANGE) { // 空间不足
                     req_len *= 2;
                     return 0; // 并未写入
@@ -532,7 +532,7 @@ namespace rainy::foundation::io::filesystem {
 
     bool is_symlink(const path &path, std::error_code &ec) noexcept {
         RAINY_FILESYSTEM_INIT_SYSCALL(ec);
-        const bool is_symlink = core::pal::is_symlink(path.native().c_str());
+        const bool is_symlink = core::pal::is_symlink_native(path.native().c_str());
         if (errno != 0) {
             ec = std::error_code(errno, std::system_category());
         }
@@ -558,8 +558,12 @@ namespace rainy::foundation::io::filesystem {
 
     void last_write_time(const path &path, file_time_type new_time, std::error_code &ec) noexcept {
         RAINY_FILESYSTEM_INIT_SYSCALL(ec);
+#if RAINY_USING_WINDOWS
+        core::pal::last_write_time_native(path.native().c_str(), new_time.time_since_epoch().count());
+#else
         const auto sys_time = std::chrono::file_clock::to_sys(new_time);
         core::pal::last_write_time_native(path.native().c_str(), std::chrono::system_clock::to_time_t(sys_time));
+#endif
         if (errno != 0) {
             ec = std::error_code(errno, std::system_category());
         }

@@ -716,7 +716,7 @@ namespace rainy::core::pal {
      * @return Length of the resolved path on success, -1 on error
      *         成功时返回解析后路径的长度，失败时返回 -1
      */
-    ssize_t absolute_native(native_czstring path, native_cstring out_buffer, std::size_t buffer_size);
+    RAINY_TOOLKIT_API ssize_t absolute_native(native_czstring path, native_cstring out_buffer, std::size_t buffer_size);
 
     /**
      * @brief Get canonical path (native system PAL version).
@@ -743,7 +743,7 @@ namespace rainy::core::pal {
      * @return Length of the canonical path on success, -1 on error
      *         成功时返回规范路径的长度，失败时返回 -1
      */
-    ssize_t canonical_native(native_czstring path, native_cstring out_buffer, std::size_t buffer_size);
+    RAINY_TOOLKIT_API ssize_t canonical_native(native_czstring path, native_cstring out_buffer, std::size_t buffer_size);
 
     /**
      * @brief Copy files or directories (native system PAL version).
@@ -767,7 +767,7 @@ namespace rainy::core::pal {
      * @param to Destination path (native character type)
      *           目标路径（原生字符类型）
      */
-    void copy_native(native_czstring from, native_czstring to);
+    RAINY_TOOLKIT_API void copy_native(native_czstring from, native_czstring to);
 
     /**
      * @brief Copy files or directories with options (native system PAL version).
@@ -792,7 +792,7 @@ namespace rainy::core::pal {
      * @param options Copy operation options
      *                复制操作选项
      */
-    void copy_native(native_czstring from, native_czstring to, copy_options options);
+    RAINY_TOOLKIT_API void copy_native(native_czstring from, native_czstring to, copy_options options);
 
     /**
      * @brief Copy a single file (native system PAL version).
@@ -815,7 +815,7 @@ namespace rainy::core::pal {
      * @return true on success, false on failure
      *         成功时返回 true，失败时返回 false
      */
-    bool copy_file_native(native_czstring from, native_czstring to);
+    RAINY_TOOLKIT_API bool copy_file_native(native_czstring from, native_czstring to);
 
     /**
      * @brief Copy a single file with options (native system PAL version).
@@ -840,7 +840,7 @@ namespace rainy::core::pal {
      * @return true on success, false on failure
      *         成功时返回 true，失败时返回 false
      */
-    bool copy_file_native(native_czstring from, native_czstring to, copy_options option);
+    RAINY_TOOLKIT_API bool copy_file_native(native_czstring from, native_czstring to, copy_options option);
 
     /**
      * @brief Copy a symbolic link (native system PAL version).
@@ -864,7 +864,7 @@ namespace rainy::core::pal {
      * @param new_symlink Path for the new symbolic link (native character type)
      *                    新符号链接的路径（原生字符类型）
      */
-    void copy_symlink_native(native_czstring existing_symlink, native_czstring new_symlink);
+    RAINY_TOOLKIT_API void copy_symlink_native(native_czstring existing_symlink, native_czstring new_symlink);
 
     /**
      * @brief Create directories for a path (native system PAL version).
@@ -888,7 +888,7 @@ namespace rainy::core::pal {
      * @return true if directories were created, false otherwise
      *         如果目录被创建则返回 true，否则返回 false
      */
-    bool create_directories_native(native_czstring path);
+    RAINY_TOOLKIT_API bool create_directories_native(native_czstring path);
 
     /**
      * @brief Create a single directory (native system PAL version).
@@ -911,7 +911,7 @@ namespace rainy::core::pal {
      * @return true if directory was created, false otherwise
      *         如果目录被创建则返回 true，否则返回 false
      */
-    bool create_directory_native(native_czstring path);
+    RAINY_TOOLKIT_API bool create_directory_native(native_czstring path);
 
     /**
      * @brief Create a directory with attributes from an existing directory (native system PAL version).
@@ -937,7 +937,7 @@ namespace rainy::core::pal {
      * @return true if directory was created, false otherwise
      *         如果目录被新创建则返回 true，否则返回 false（包括已存在或失败）
      */
-    bool create_directory_native(native_czstring path, native_czstring existing_p);
+    RAINY_TOOLKIT_API bool create_directory_native(native_czstring path, native_czstring existing_p);
 
     /**
      * @brief Create a directory symbolic link (native system PAL version).
@@ -961,7 +961,7 @@ namespace rainy::core::pal {
      * @param new_symlink Path for the new symbolic link (native character type)
      *                    新符号链接的路径（原生字符类型）
      */
-    void create_directory_symlink_native(native_czstring to, native_czstring new_symlink);
+    RAINY_TOOLKIT_API void create_directory_symlink_native(native_czstring to, native_czstring new_symlink);
 
     /**
      * @brief Create a hard link (native system PAL version).
@@ -985,7 +985,7 @@ namespace rainy::core::pal {
      * @param new_hard_link Path for the new hard link (native character type)
      *                      新硬链接的路径（原生字符类型）
      */
-    void create_hard_link_native(native_czstring to, native_czstring new_hard_link);
+    RAINY_TOOLKIT_API void create_hard_link_native(native_czstring to, native_czstring new_hard_link);
 
     /**
      * @brief Create a symbolic link (native system PAL version).
@@ -1008,7 +1008,7 @@ namespace rainy::core::pal {
      * @param new_symlink Path for the new symbolic link (native character type)
      *                    新符号链接的路径（原生字符类型）
      */
-    void create_symlink_native(native_czstring to, native_czstring new_symlink);
+    RAINY_TOOLKIT_API void create_symlink_native(native_czstring to, native_czstring new_symlink);
 
     /**
      * @brief Get current working directory (native system PAL version).
@@ -1033,7 +1033,7 @@ namespace rainy::core::pal {
      * @return Length of the current path on success, -1 on error
      *         成功时返回当前路径的长度，失败时返回 -1
      */
-    ssize_t current_path_native(native_cstring out_buffer, std::size_t buffer_size);
+    RAINY_TOOLKIT_API ssize_t current_path_native(native_cstring out_buffer, std::size_t buffer_size);
 
     /**
      * @brief Set current working directory (native system PAL version).
@@ -1055,7 +1055,7 @@ namespace rainy::core::pal {
      * @param path New current working directory path (native character type)
      *             新的当前工作目录路径（原生字符类型）
      */
-    void current_path_native(native_czstring path);
+    RAINY_TOOLKIT_API void current_path_native(native_czstring path);
 
     /**
      * @brief Check if two paths refer to the same file system entry (native system PAL version).
@@ -1080,7 +1080,7 @@ namespace rainy::core::pal {
      * @return true if both paths refer to the same file, false otherwise
      *         如果两个路径指向相同文件则返回 true，否则返回 false
      */
-    bool equivalent_native(native_czstring path1, native_czstring path2);
+    RAINY_TOOLKIT_API bool equivalent_native(native_czstring path1, native_czstring path2);
 
     /**
      * @brief Check if a file exists (native system PAL version).
@@ -1104,7 +1104,7 @@ namespace rainy::core::pal {
      * @return true if the entry exists, false otherwise
      *         如果条目存在则返回 true，否则返回 false
      */
-    bool exists_native(native_czstring path);
+    RAINY_TOOLKIT_API bool exists_native(native_czstring path);
 
     /**
      * @brief Get file size (output parameter version, native system PAL).
@@ -1127,7 +1127,7 @@ namespace rainy::core::pal {
      * @return true on success, false on failure
      *         成功时返回 true，失败时返回 false
      */
-    bool file_size_native(native_czstring path, uintmax_t *out_size);
+    RAINY_TOOLKIT_API bool file_size_native(native_czstring path, std::uintmax_t *out_size);
 
     /**
      * @brief Get file size (return value version, native system PAL).
@@ -1148,7 +1148,7 @@ namespace rainy::core::pal {
      * @return File size in bytes on success, 0 on error
      *         成功时返回文件大小（以字节为单位），失败时返回 0
      */
-    uintmax_t file_size_native(native_czstring path);
+    RAINY_TOOLKIT_API std::uintmax_t file_size_native(native_czstring path);
 
     /**
      * @brief Get hard link count (output parameter version, native system PAL).
@@ -1171,7 +1171,7 @@ namespace rainy::core::pal {
      * @return true on success, false on failure
      *         成功时返回 true，失败时返回 false
      */
-    bool hard_link_count_native(native_czstring path, uintmax_t *out_count);
+    RAINY_TOOLKIT_API bool hard_link_count_native(native_czstring path, std::uintmax_t *out_count);
 
     /**
      * @brief Get hard link count (return value version, native system PAL).
@@ -1192,7 +1192,7 @@ namespace rainy::core::pal {
      * @return Hard link count on success, 0 on error
      *         成功时返回硬链接计数，失败时返回 0
      */
-    uintmax_t hard_link_count_native(native_czstring path);
+    RAINY_TOOLKIT_API std::uintmax_t hard_link_count_native(native_czstring path);
 
     /**
      * @brief Check if a path refers to a block device (native system PAL version).
@@ -1213,7 +1213,7 @@ namespace rainy::core::pal {
      * @return true if the entry is a block device, false otherwise
      *         如果条目是块设备则返回 true，否则返回 false
      */
-    bool is_block_file_native(native_czstring path);
+    RAINY_TOOLKIT_API bool is_block_file_native(native_czstring path);
 
     /**
      * @brief Check if a path refers to a character device (native system PAL version).
@@ -1234,7 +1234,7 @@ namespace rainy::core::pal {
      * @return true if the entry is a character device, false otherwise
      *         如果条目是字符设备则返回 true，否则返回 false
      */
-    bool is_character_file_native(native_czstring path);
+    RAINY_TOOLKIT_API bool is_character_file_native(native_czstring path);
 
     /**
      * @brief Check if a path refers to a directory (native system PAL version).
@@ -1255,7 +1255,7 @@ namespace rainy::core::pal {
      * @return true if the entry is a directory, false otherwise
      *         如果条目是目录则返回 true，否则返回 false
      */
-    bool is_directory_native(native_czstring path);
+    RAINY_TOOLKIT_API bool is_directory_native(native_czstring path);
 
     /**
      * @brief Check if a directory or file is empty (native system PAL version).
@@ -1278,7 +1278,7 @@ namespace rainy::core::pal {
      * @return true if the entry is empty, false otherwise
      *         如果条目为空则返回 true，否则返回 false
      */
-    bool is_empty_native(native_czstring path);
+    RAINY_TOOLKIT_API bool is_empty_native(native_czstring path);
 
     /**
      * @brief Check if a path refers to a FIFO (named pipe) (native system PAL version).
@@ -1300,7 +1300,7 @@ namespace rainy::core::pal {
      * @return true if the entry is a FIFO, false otherwise
      *         如果条目是FIFO则返回 true，否则返回 false
      */
-    bool is_fifo_native(native_czstring path);
+    RAINY_TOOLKIT_API bool is_fifo_native(native_czstring path);
 
     /**
      * @brief Check if a path refers to an "other" file type (native system PAL version).
@@ -1321,7 +1321,7 @@ namespace rainy::core::pal {
      * @return true if the entry is of other type, false otherwise
      *         如果条目是其他类型则返回 true，否则返回 false
      */
-    bool is_other_native(native_czstring path);
+    RAINY_TOOLKIT_API bool is_other_native(native_czstring path);
 
     /**
      * @brief Check if a path refers to a regular file (native system PAL version).
@@ -1342,7 +1342,7 @@ namespace rainy::core::pal {
      * @return true if the entry is a regular file, false otherwise
      *         如果条目是普通文件则返回 true，否则返回 false
      */
-    bool is_regular_file_native(native_czstring path);
+    RAINY_TOOLKIT_API bool is_regular_file_native(native_czstring path);
 
     /**
      * @brief Check if a path refers to a socket (native system PAL version).
@@ -1364,7 +1364,7 @@ namespace rainy::core::pal {
      * @return true if the entry is a socket, false otherwise
      *         如果条目是套接字则返回 true，否则返回 false
      */
-    bool is_socket_native(native_czstring path);
+    RAINY_TOOLKIT_API bool is_socket_native(native_czstring path);
 
     /**
      * @brief Check if a path refers to a symbolic link (native system PAL version).
@@ -1386,7 +1386,7 @@ namespace rainy::core::pal {
      * @return true if the entry is a symbolic link, false otherwise
      *         如果条目是符号链接则返回 true，否则返回 false
      */
-    bool is_symlink_native(native_czstring path);
+    RAINY_TOOLKIT_API bool is_symlink_native(native_czstring path);
 
     /**
      * @brief Get last write time (output parameter version, native system PAL).
@@ -1409,7 +1409,7 @@ namespace rainy::core::pal {
      * @return true on success, false on failure
      *         成功时返回 true，失败时返回 false
      */
-    bool last_write_time_native(native_czstring path, std::time_t *out_time);
+    RAINY_TOOLKIT_API bool last_write_time_native(native_czstring path, std::time_t *out_time);
 
     /**
      * @brief Get last write time (return value version, native system PAL).
@@ -1430,7 +1430,7 @@ namespace rainy::core::pal {
      * @return Last write time on success, -1 on error
      *         成功时返回最后写入时间，失败时返回 -1
      */
-    std::time_t last_write_time_native(native_czstring path);
+    RAINY_TOOLKIT_API std::time_t last_write_time_native(native_czstring path);
 
     /**
      * @brief Set last write time (native system PAL version).
@@ -1451,7 +1451,7 @@ namespace rainy::core::pal {
      * @param new_time New last write time
      *                 新的最后写入时间
      */
-    void last_write_time_native(native_czstring path, std::time_t new_time);
+    RAINY_TOOLKIT_API void last_write_time_native(native_czstring path, std::time_t new_time);
 
     /**
      * @brief Change file permissions (native system PAL version).
@@ -1475,7 +1475,7 @@ namespace rainy::core::pal {
      * @param opts Permission modification options (default: replace)
      *             权限修改选项（默认：替换）
      */
-    void permissions_native(native_czstring path, perms prms, perm_options opts = perm_options::replace);
+    RAINY_TOOLKIT_API void permissions_native(native_czstring path, perms prms, perm_options opts = perm_options::replace);
 
     /**
      * @brief Get proximate path (native system PAL version).
@@ -1502,7 +1502,7 @@ namespace rainy::core::pal {
      * @return Length of the proximate path on success, -1 on error
      *         成功时返回近似路径的长度，失败时返回 -1
      */
-    ssize_t proximate_native(native_czstring path, native_cstring out_buffer, std::size_t buffer_size);
+    RAINY_TOOLKIT_API ssize_t proximate_native(native_czstring path, native_cstring out_buffer, std::size_t buffer_size);
 
     /**
      * @brief Get proximate path relative to base (native system PAL version).
@@ -1531,7 +1531,8 @@ namespace rainy::core::pal {
      * @return Length of the proximate path on success, -1 on error
      *         成功时返回近似路径的长度，失败时返回 -1
      */
-    ssize_t proximate_native(native_czstring path, native_czstring base, native_cstring out_buffer, std::size_t buffer_size);
+    RAINY_TOOLKIT_API ssize_t proximate_native(native_czstring path, native_czstring base, native_cstring out_buffer,
+                                              std::size_t buffer_size);
 
     /**
      * @brief Read the target of a symbolic link (native system PAL version).
@@ -1556,7 +1557,7 @@ namespace rainy::core::pal {
      * @return Length of the target path on success, -1 on error
      *         成功时返回目标路径的长度，失败时返回 -1
      */
-    ssize_t read_symlink_native(native_czstring path, native_cstring out_buffer, std::size_t buffer_size);
+    RAINY_TOOLKIT_API ssize_t read_symlink_native(native_czstring path, native_cstring out_buffer, std::size_t buffer_size);
 
     /**
      * @brief Get relative path (native system PAL version).
@@ -1583,7 +1584,7 @@ namespace rainy::core::pal {
      * @return Length of the relative path on success, -1 on error
      *         成功时返回相对路径的长度，失败时返回 -1
      */
-    ssize_t relative_native(native_czstring path, native_cstring out_buffer, std::size_t buffer_size);
+    RAINY_TOOLKIT_API ssize_t relative_native(native_czstring path, native_cstring out_buffer, std::size_t buffer_size);
 
     /**
      * @brief Get relative path to base (native system PAL version).
@@ -1612,7 +1613,8 @@ namespace rainy::core::pal {
      * @return Length of the relative path on success, -1 on error
      *         成功时返回相对路径的长度，失败时返回 -1
      */
-    ssize_t relative_native(native_czstring path, native_czstring base, native_cstring out_buffer, std::size_t buffer_size);
+    RAINY_TOOLKIT_API ssize_t relative_native(native_czstring path, native_czstring base, native_cstring out_buffer,
+                                             std::size_t buffer_size);
 
     /**
      * @brief Remove a file or empty directory (native system PAL version).
@@ -1634,7 +1636,7 @@ namespace rainy::core::pal {
      * @return true if removed successfully, false otherwise
      *         如果成功删除则返回 true，否则返回 false
      */
-    bool remove_native(native_czstring path);
+    RAINY_TOOLKIT_API bool remove_native(native_czstring path);
 
     /**
      * @brief Remove a file or directory recursively (native system PAL version).
@@ -1655,7 +1657,7 @@ namespace rainy::core::pal {
      * @return Number of files and directories removed
      *         删除的文件和目录数量
      */
-    uintmax_t remove_all_native(native_czstring path);
+    RAINY_TOOLKIT_API std::uintmax_t remove_all_native(native_czstring path);
 
     /**
      * @brief Rename a file or directory (native system PAL version).
@@ -1677,7 +1679,7 @@ namespace rainy::core::pal {
      * @param to Destination path (native character type)
      *           目标路径（原生字符类型）
      */
-    void rename_native(native_czstring from, native_czstring to);
+    RAINY_TOOLKIT_API void rename_native(native_czstring from, native_czstring to);
 
     /**
      * @brief Resize a file (native system PAL version).
@@ -1698,7 +1700,7 @@ namespace rainy::core::pal {
      * @param size New size in bytes
      *            新大小（以字节为单位）
      */
-    void resize_file_native(native_czstring path, uintmax_t size);
+    RAINY_TOOLKIT_API void resize_file_native(native_czstring path, std::uintmax_t size);
 
     /**
      * @brief Get file system space information (output parameter version, native system PAL).
@@ -1724,7 +1726,7 @@ namespace rainy::core::pal {
      * @return true on success, false on failure
      *         成功时返回 true，失败时返回 false
      */
-    bool space_native(native_czstring path, space_info *out_info);
+    RAINY_TOOLKIT_API bool space_native(native_czstring path, space_info *out_info);
 
     /**
      * @brief Get file system space information (return value version, native system PAL).
@@ -1747,7 +1749,7 @@ namespace rainy::core::pal {
      * @return space_info structure containing capacity, free, and available space
      *         包含总容量、空闲空间和可用空间的 space_info 结构体
      */
-    space_info space_native(native_czstring path);
+    RAINY_TOOLKIT_API space_info space_native(native_czstring path);
 
     /**
      * @brief Get file status (native system PAL version).
@@ -1770,7 +1772,7 @@ namespace rainy::core::pal {
      * @return file_status structure containing type and permissions
      *         包含类型和权限的 file_status 结构体
      */
-    file_status status_native(native_czstring path);
+    RAINY_TOOLKIT_API file_status status_native(native_czstring path);
 
     /**
      * @brief Get symbolic link status (native system PAL version).
@@ -1793,7 +1795,7 @@ namespace rainy::core::pal {
      * @return file_status structure containing type and permissions of the symlink
      *         包含符号链接类型和权限的 file_status 结构体
      */
-    file_status symlink_status_native(native_czstring path);
+    RAINY_TOOLKIT_API file_status symlink_status_native(native_czstring path);
 
     /**
      * @brief Get temporary directory path (native system PAL version).
@@ -1818,7 +1820,7 @@ namespace rainy::core::pal {
      * @return Length of the temporary directory path on success, -1 on error
      *         成功时返回临时目录路径的长度，失败时返回 -1
      */
-    ssize_t temp_directory_path_native(native_cstring out_buffer, std::size_t buffer_size);
+    RAINY_TOOLKIT_API ssize_t temp_directory_path_native(native_cstring out_buffer, std::size_t buffer_size);
 
     /**
      * @brief Get weakly canonical path (native system PAL version).
@@ -1845,7 +1847,7 @@ namespace rainy::core::pal {
      * @return Length of the weakly canonical path on success, -1 on error
      *         成功时返回弱规范路径的长度，失败时返回 -1
      */
-    ssize_t weakly_canonical_native(native_czstring path, native_cstring out_buffer, std::size_t buffer_size);
+    RAINY_TOOLKIT_API ssize_t weakly_canonical_native(native_czstring path, native_cstring out_buffer, std::size_t buffer_size);
 }
 
 namespace rainy::core::pal {
@@ -1868,7 +1870,7 @@ namespace rainy::core::pal {
      * @return Length of the resolved path on success, -1 on error
      *         成功时返回解析后路径的长度，失败时返回 -1
      */
-    ssize_t absolute(czstring path, cstring out_buffer, std::size_t buffer_size);
+    RAINY_TOOLKIT_API ssize_t absolute(czstring path, cstring out_buffer, std::size_t buffer_size);
 
     /**
      * @brief Get canonical (absolute and normalized) path.
@@ -1889,7 +1891,7 @@ namespace rainy::core::pal {
      * @return Length of the canonical path on success, -1 on error
      *         成功时返回规范路径的长度，失败时返回 -1
      */
-    ssize_t canonical(czstring path, cstring out_buffer, std::size_t buffer_size);
+    RAINY_TOOLKIT_API ssize_t canonical(czstring path, cstring out_buffer, std::size_t buffer_size);
 
     /**
      * @brief Copy files or directories.
@@ -1906,7 +1908,7 @@ namespace rainy::core::pal {
      * @param to Destination path
      *           目标路径
      */
-    void copy(czstring from, czstring to);
+    RAINY_TOOLKIT_API void copy(czstring from, czstring to);
 
     /**
      * @brief Copy files or directories with options.
@@ -1925,7 +1927,7 @@ namespace rainy::core::pal {
      * @param options Copy operation options
      *                复制操作选项
      */
-    void copy(czstring from, czstring to, copy_options options);
+    RAINY_TOOLKIT_API void copy(czstring from, czstring to, copy_options options);
 
     /**
      * @brief Copy a single file.
@@ -1944,7 +1946,7 @@ namespace rainy::core::pal {
      * @return true on success, false on failure
      *         成功时返回 true，失败时返回 false
      */
-    bool copy_file(czstring from, czstring to);
+    RAINY_TOOLKIT_API bool copy_file(czstring from, czstring to);
 
     /**
      * @brief Copy a single file with options.
@@ -1965,7 +1967,7 @@ namespace rainy::core::pal {
      * @return true on success, false on failure
      *         成功时返回 true，失败时返回 false
      */
-    bool copy_file(czstring from, czstring to, copy_options option);
+    RAINY_TOOLKIT_API bool copy_file(czstring from, czstring to, copy_options option);
 
     /**
      * @brief Copy a symbolic link.
@@ -1982,7 +1984,7 @@ namespace rainy::core::pal {
      * @param new_symlink Path for the new symbolic link
      *                    新符号链接的路径
      */
-    void copy_symlink(czstring existing_symlink, czstring new_symlink);
+    RAINY_TOOLKIT_API void copy_symlink(czstring existing_symlink, czstring new_symlink);
 
     /**
      * @brief Create directories for a path.
@@ -1999,7 +2001,7 @@ namespace rainy::core::pal {
      * @return true if directories were created, false otherwise
      *         如果目录被创建则返回 true，否则返回 false
      */
-    bool create_directories(czstring path);
+    RAINY_TOOLKIT_API  bool create_directories(czstring path);
 
     /**
      * @brief Create a single directory.
@@ -2016,7 +2018,7 @@ namespace rainy::core::pal {
      * @return true if directory was created, false otherwise
      *         如果目录被创建则返回 true，否则返回 false
      */
-    bool create_directory(czstring path);
+    RAINY_TOOLKIT_API bool create_directory(czstring path);
 
     /**
      * @brief Create a directory with attributes from an existing directory.
@@ -2032,7 +2034,7 @@ namespace rainy::core::pal {
      * @return true if directory was created, false otherwise
      *         如果目录被新创建则返回 true，否则返回 false
      */
-    bool create_directory(czstring path, czstring existing_p);
+    RAINY_TOOLKIT_API bool create_directory(czstring path, czstring existing_p);
 
     /**
      * @brief Create a directory symbolic link.
@@ -2049,7 +2051,7 @@ namespace rainy::core::pal {
      * @param new_symlink Path for the new symbolic link
      *                    新符号链接的路径
      */
-    void create_directory_symlink(czstring to, czstring new_symlink);
+    RAINY_TOOLKIT_API void create_directory_symlink(czstring to, czstring new_symlink);
 
     /**
      * @brief Create a hard link.
@@ -2066,7 +2068,7 @@ namespace rainy::core::pal {
      * @param new_hard_link Path for the new hard link
      *                      新硬链接的路径
      */
-    void create_hard_link(czstring to, czstring new_hard_link);
+    RAINY_TOOLKIT_API void create_hard_link(czstring to, czstring new_hard_link);
 
     /**
      * @brief Create a symbolic link.
@@ -2083,7 +2085,7 @@ namespace rainy::core::pal {
      * @param new_symlink Path for the new symbolic link
      *                    新符号链接的路径
      */
-    void create_symlink(czstring to, czstring new_symlink);
+    RAINY_TOOLKIT_API void create_symlink(czstring to, czstring new_symlink);
 
     /**
      * @brief Get current working directory.
@@ -2102,7 +2104,7 @@ namespace rainy::core::pal {
      * @return Length of the current path on success, -1 on error
      *         成功时返回当前路径的长度，失败时返回 -1
      */
-    ssize_t current_path(cstring out_buffer, std::size_t buffer_size);
+    RAINY_TOOLKIT_API  ssize_t current_path(cstring out_buffer, std::size_t buffer_size);
 
     /**
      * @brief Set current working directory.
@@ -2117,7 +2119,7 @@ namespace rainy::core::pal {
      * @param path New current working directory path
      *             新的当前工作目录路径
      */
-    void current_path(czstring path);
+    RAINY_TOOLKIT_API void current_path(czstring path);
 
     /**
      * @brief Check if two paths refer to the same file system entry.
@@ -2136,7 +2138,7 @@ namespace rainy::core::pal {
      * @return true if both paths refer to the same file, false otherwise
      *         如果两个路径指向相同文件则返回 true，否则返回 false
      */
-    bool equivalent(czstring path1, czstring path2);
+    RAINY_TOOLKIT_API bool equivalent(czstring path1, czstring path2);
 
     /**
      * @brief Check if file status indicates existence.
@@ -2150,7 +2152,7 @@ namespace rainy::core::pal {
      * @return true if the entry exists, false otherwise
      *         如果条目存在则返回 true，否则返回 false
      */
-    bool exists(file_status status) noexcept;
+    RAINY_TOOLKIT_API bool exists(file_status status) noexcept;
 
     /**
      * @brief Check if a file exists.
@@ -2167,7 +2169,7 @@ namespace rainy::core::pal {
      * @return true if the entry exists, false otherwise
      *         如果条目存在则返回 true，否则返回 false
      */
-    bool exists(czstring path);
+    RAINY_TOOLKIT_API bool exists(czstring path);
 
     /**
      * @brief Get file size (output parameter version).
@@ -2186,7 +2188,7 @@ namespace rainy::core::pal {
      * @return true on success, false on failure
      *         成功时返回 true，失败时返回 false
      */
-    bool file_size(czstring path, uintmax_t *out_size);
+    RAINY_TOOLKIT_API bool file_size(czstring path, std::uintmax_t *out_size);
 
     /**
      * @brief Get file size (return value version).
@@ -2203,7 +2205,7 @@ namespace rainy::core::pal {
      * @return File size in bytes on success, 0 on error
      *         成功时返回文件大小（以字节为单位），失败时返回 0
      */
-    uintmax_t file_size(czstring path);
+    RAINY_TOOLKIT_API std::uintmax_t file_size(czstring path);
 
     /**
      * @brief Get hard link count (output parameter version).
@@ -2222,7 +2224,7 @@ namespace rainy::core::pal {
      * @return true on success, false on failure
      *         成功时返回 true，失败时返回 false
      */
-    bool hard_link_count(czstring path, uintmax_t *out_count);
+    RAINY_TOOLKIT_API bool hard_link_count(czstring path, std::uintmax_t *out_count);
 
     /**
      * @brief Get hard link count (return value version).
@@ -2239,7 +2241,7 @@ namespace rainy::core::pal {
      * @return Hard link count on success, 0 on error
      *         成功时返回硬链接计数，失败时返回 0
      */
-    uintmax_t hard_link_count(czstring path);
+    RAINY_TOOLKIT_API std::uintmax_t hard_link_count(czstring path);
 
     /**
      * @brief Check if file status indicates a block device.
@@ -2253,7 +2255,7 @@ namespace rainy::core::pal {
      * @return true if the entry is a block device, false otherwise
      *         如果条目是块设备则返回 true，否则返回 false
      */
-    bool is_block_file(file_status status) noexcept;
+    RAINY_TOOLKIT_API bool is_block_file(file_status status) noexcept;
 
     /**
      * @brief Check if a path refers to a block device.
@@ -2270,7 +2272,7 @@ namespace rainy::core::pal {
      * @return true if the entry is a block device, false otherwise
      *         如果条目是块设备则返回 true，否则返回 false
      */
-    bool is_block_file(czstring path);
+    RAINY_TOOLKIT_API bool is_block_file(czstring path);
 
     /**
      * @brief Check if file status indicates a character device.
@@ -2284,7 +2286,7 @@ namespace rainy::core::pal {
      * @return true if the entry is a character device, false otherwise
      *         如果条目是字符设备则返回 true，否则返回 false
      */
-    bool is_character_file(file_status status) noexcept;
+    RAINY_TOOLKIT_API bool is_character_file(file_status status) noexcept;
 
     /**
      * @brief Check if a path refers to a character device.
@@ -2301,7 +2303,7 @@ namespace rainy::core::pal {
      * @return true if the entry is a character device, false otherwise
      *         如果条目是字符设备则返回 true，否则返回 false
      */
-    bool is_character_file(czstring path);
+    RAINY_TOOLKIT_API bool is_character_file(czstring path);
 
     /**
      * @brief Check if file status indicates a directory.
@@ -2315,7 +2317,7 @@ namespace rainy::core::pal {
      * @return true if the entry is a directory, false otherwise
      *         如果条目是目录则返回 true，否则返回 false
      */
-    bool is_directory(file_status status) noexcept;
+    RAINY_TOOLKIT_API bool is_directory(file_status status) noexcept;
 
     /**
      * @brief Check if a path refers to a directory.
@@ -2332,7 +2334,7 @@ namespace rainy::core::pal {
      * @return true if the entry is a directory, false otherwise
      *         如果条目是目录则返回 true，否则返回 false
      */
-    bool is_directory(czstring path);
+    RAINY_TOOLKIT_API bool is_directory(czstring path);
 
     /**
      * @brief Check if a directory or file is empty.
@@ -2349,7 +2351,7 @@ namespace rainy::core::pal {
      * @return true if the entry is empty, false otherwise
      *         如果条目为空则返回 true，否则返回 false
      */
-    bool is_empty(czstring path);
+    RAINY_TOOLKIT_API bool is_empty(czstring path);
 
     /**
      * @brief Check if file status indicates a FIFO (named pipe).
@@ -2363,7 +2365,7 @@ namespace rainy::core::pal {
      * @return true if the entry is a FIFO, false otherwise
      *         如果条目是FIFO则返回 true，否则返回 false
      */
-    bool is_fifo(file_status status) noexcept;
+    RAINY_TOOLKIT_API bool is_fifo(file_status status) noexcept;
 
     /**
      * @brief Check if a path refers to a FIFO (named pipe).
@@ -2380,7 +2382,7 @@ namespace rainy::core::pal {
      * @return true if the entry is a FIFO, false otherwise
      *         如果条目是FIFO则返回 true，否则返回 false
      */
-    bool is_fifo(czstring path);
+    RAINY_TOOLKIT_API bool is_fifo(czstring path);
 
     /**
      * @brief Check if file status indicates "other" type.
@@ -2394,7 +2396,7 @@ namespace rainy::core::pal {
      * @return true if the entry is of other type, false otherwise
      *         如果条目是其他类型则返回 true，否则返回 false
      */
-    bool is_other(file_status status) noexcept;
+    RAINY_TOOLKIT_API bool is_other(file_status status) noexcept;
 
     /**
      * @brief Check if a path refers to an "other" file type.
@@ -2411,7 +2413,7 @@ namespace rainy::core::pal {
      * @return true if the entry is of other type, false otherwise
      *         如果条目是其他类型则返回 true，否则返回 false
      */
-    bool is_other(czstring path);
+    RAINY_TOOLKIT_API bool is_other(czstring path);
 
     /**
      * @brief Check if file status indicates a regular file.
@@ -2425,7 +2427,7 @@ namespace rainy::core::pal {
      * @return true if the entry is a regular file, false otherwise
      *         如果条目是普通文件则返回 true，否则返回 false
      */
-    bool is_regular_file(file_status status) noexcept;
+    RAINY_TOOLKIT_API bool is_regular_file(file_status status) noexcept;
 
     /**
      * @brief Check if a path refers to a regular file.
@@ -2442,7 +2444,7 @@ namespace rainy::core::pal {
      * @return true if the entry is a regular file, false otherwise
      *         如果条目是普通文件则返回 true，否则返回 false
      */
-    bool is_regular_file(czstring path);
+    RAINY_TOOLKIT_API bool is_regular_file(czstring path);
 
     /**
      * @brief Check if file status indicates a socket.
@@ -2456,7 +2458,7 @@ namespace rainy::core::pal {
      * @return true if the entry is a socket, false otherwise
      *         如果条目是套接字则返回 true，否则返回 false
      */
-    bool is_socket(file_status status) noexcept;
+    RAINY_TOOLKIT_API bool is_socket(file_status status) noexcept;
 
     /**
      * @brief Check if a path refers to a socket.
@@ -2473,7 +2475,7 @@ namespace rainy::core::pal {
      * @return true if the entry is a socket, false otherwise
      *         如果条目是套接字则返回 true，否则返回 false
      */
-    bool is_socket(czstring path);
+    RAINY_TOOLKIT_API bool is_socket(czstring path);
 
     /**
      * @brief Check if file status indicates a symbolic link.
@@ -2487,7 +2489,7 @@ namespace rainy::core::pal {
      * @return true if the entry is a symbolic link, false otherwise
      *         如果条目是符号链接则返回 true，否则返回 false
      */
-    bool is_symlink(file_status status) noexcept;
+    RAINY_TOOLKIT_API bool is_symlink(file_status status) noexcept;
 
     /**
      * @brief Check if a path refers to a symbolic link.
@@ -2504,7 +2506,7 @@ namespace rainy::core::pal {
      * @return true if the entry is a symbolic link, false otherwise
      *         如果条目是符号链接则返回 true，否则返回 false
      */
-    bool is_symlink(czstring path);
+    RAINY_TOOLKIT_API bool is_symlink(czstring path);
 
     /**
      * @brief Get last write time (output parameter version).
@@ -2523,7 +2525,7 @@ namespace rainy::core::pal {
      * @return true on success, false on failure
      *         成功时返回 true，失败时返回 false
      */
-    bool last_write_time(czstring path, std::time_t *out_time);
+    RAINY_TOOLKIT_API bool last_write_time(czstring path, std::time_t *out_time);
 
     /**
      * @brief Get last write time (return value version).
@@ -2540,7 +2542,7 @@ namespace rainy::core::pal {
      * @return Last write time on success, -1 on error
      *         成功时返回最后写入时间，失败时返回 -1
      */
-    std::time_t last_write_time(czstring path);
+    RAINY_TOOLKIT_API std::time_t last_write_time(czstring path);
 
     /**
      * @brief Set last write time.
@@ -2557,7 +2559,7 @@ namespace rainy::core::pal {
      * @param new_time New last write time
      *                 新的最后写入时间
      */
-    void last_write_time(czstring path, std::time_t new_time);
+    RAINY_TOOLKIT_API void last_write_time(czstring path, std::time_t new_time);
 
     /**
      * @brief Change file permissions.
@@ -2576,7 +2578,7 @@ namespace rainy::core::pal {
      * @param opts Permission modification options (default: replace)
      *             权限修改选项（默认：替换）
      */
-    void permissions(czstring path, perms prms, perm_options opts = perm_options::replace);
+    RAINY_TOOLKIT_API void permissions(czstring path, perms prms, perm_options opts = perm_options::replace);
 
     /**
      * @brief Get proximate path (relative form).
@@ -2597,7 +2599,7 @@ namespace rainy::core::pal {
      * @return Length of the proximate path on success, -1 on error
      *         成功时返回近似路径的长度，失败时返回 -1
      */
-    ssize_t proximate(czstring path, cstring out_buffer, std::size_t buffer_size);
+    RAINY_TOOLKIT_API ssize_t proximate(czstring path, cstring out_buffer, std::size_t buffer_size);
 
     /**
      * @brief Get proximate path relative to base.
@@ -2620,7 +2622,7 @@ namespace rainy::core::pal {
      * @return Length of the proximate path on success, -1 on error
      *         成功时返回近似路径的长度，失败时返回 -1
      */
-    ssize_t proximate(czstring path, czstring base, cstring out_buffer, std::size_t buffer_size);
+    RAINY_TOOLKIT_API ssize_t proximate(czstring path, czstring base, cstring out_buffer, std::size_t buffer_size);
 
     /**
      * @brief Read the target of a symbolic link.
@@ -2641,7 +2643,7 @@ namespace rainy::core::pal {
      * @return Length of the target path on success, -1 on error
      *         成功时返回目标路径的长度，失败时返回 -1
      */
-    ssize_t read_symlink(czstring path, cstring out_buffer, std::size_t buffer_size);
+    RAINY_TOOLKIT_API ssize_t read_symlink(czstring path, cstring out_buffer, std::size_t buffer_size);
 
     /**
      * @brief Get relative path.
@@ -2662,7 +2664,7 @@ namespace rainy::core::pal {
      * @return Length of the relative path on success, -1 on error
      *         成功时返回相对路径的长度，失败时返回 -1
      */
-    ssize_t relative(czstring path, cstring out_buffer, std::size_t buffer_size);
+    RAINY_TOOLKIT_API ssize_t relative(czstring path, cstring out_buffer, std::size_t buffer_size);
 
     /**
      * @brief Get relative path to base.
@@ -2685,7 +2687,7 @@ namespace rainy::core::pal {
      * @return Length of the relative path on success, -1 on error
      *         成功时返回相对路径的长度，失败时返回 -1
      */
-    ssize_t relative(czstring path, czstring base, cstring out_buffer, std::size_t buffer_size);
+    RAINY_TOOLKIT_API ssize_t relative(czstring path, czstring base, cstring out_buffer, std::size_t buffer_size);
 
     /**
      * @brief Remove a file or empty directory.
@@ -2702,7 +2704,7 @@ namespace rainy::core::pal {
      * @return true if removed successfully, false otherwise
      *         如果成功删除则返回 true，否则返回 false
      */
-    bool remove(czstring path);
+    RAINY_TOOLKIT_API bool remove(czstring path);
 
     /**
      * @brief Remove a file or directory recursively.
@@ -2719,7 +2721,7 @@ namespace rainy::core::pal {
      * @return Number of files and directories removed
      *         删除的文件和目录数量
      */
-    uintmax_t remove_all(czstring path);
+    RAINY_TOOLKIT_API std::uintmax_t remove_all(czstring path);
 
     /**
      * @brief Rename a file or directory.
@@ -2736,7 +2738,7 @@ namespace rainy::core::pal {
      * @param to Destination path
      *           目标路径
      */
-    void rename(czstring from, czstring to);
+    RAINY_TOOLKIT_API void rename(czstring from, czstring to);
 
     /**
      * @brief Resize a file.
@@ -2753,7 +2755,7 @@ namespace rainy::core::pal {
      * @param size New size in bytes
      *            新大小（以字节为单位）
      */
-    void resize_file(czstring path, uintmax_t size);
+    RAINY_TOOLKIT_API void resize_file(czstring path, std::uintmax_t size);
 
     /**
      * @brief Get file system space information (output parameter version).
@@ -2772,7 +2774,7 @@ namespace rainy::core::pal {
      * @return true on success, false on failure
      *         成功时返回 true，失败时返回 false
      */
-    bool space(czstring path, space_info *out_info);
+    RAINY_TOOLKIT_API  bool space(czstring path, space_info *out_info);
 
     /**
      * @brief Get file system space information (return value version).
@@ -2789,7 +2791,7 @@ namespace rainy::core::pal {
      * @return space_info structure containing capacity, free, and available space
      *         包含总容量、空闲空间和可用空间的 space_info 结构体
      */
-    space_info space(czstring path);
+    RAINY_TOOLKIT_API  space_info space(czstring path);
 
     /**
      * @brief Get file status.
@@ -2806,7 +2808,7 @@ namespace rainy::core::pal {
      * @return file_status structure containing type and permissions
      *         包含类型和权限的 file_status 结构体
      */
-    file_status status(czstring path);
+    RAINY_TOOLKIT_API  file_status status(czstring path);
 
     /**
      * @brief Check if file status is known.
@@ -2820,7 +2822,7 @@ namespace rainy::core::pal {
      * @return true if the status is known (not unknown), false otherwise
      *         如果状态已知则返回 true，否则返回 false
      */
-    bool status_known(file_status status) noexcept;
+    RAINY_TOOLKIT_API  bool status_known(file_status status) noexcept;
 
     /**
      * @brief Get symbolic link status.
@@ -2837,7 +2839,7 @@ namespace rainy::core::pal {
      * @return file_status structure containing type and permissions of the symlink
      *         包含符号链接类型和权限的 file_status 结构体
      */
-    file_status symlink_status(czstring path);
+    RAINY_TOOLKIT_API file_status symlink_status(czstring path);
 
     /**
      * @brief Get temporary directory path.
@@ -2856,7 +2858,7 @@ namespace rainy::core::pal {
      * @return Length of the temporary directory path on success, -1 on error
      *         成功时返回临时目录路径的长度，失败时返回 -1
      */
-    ssize_t temp_directory_path(cstring out_buffer, std::size_t buffer_size);
+    RAINY_TOOLKIT_API ssize_t temp_directory_path(cstring out_buffer, std::size_t buffer_size);
 
     /**
      * @brief Get weakly canonical path.
@@ -2877,7 +2879,7 @@ namespace rainy::core::pal {
      * @return Length of the weakly canonical path on success, -1 on error
      *         成功时返回弱规范路径的长度，失败时返回 -1
      */
-    ssize_t weakly_canonical(czstring path, cstring out_buffer, std::size_t buffer_size);
+    RAINY_TOOLKIT_API ssize_t weakly_canonical(czstring path, cstring out_buffer, std::size_t buffer_size);
 }
 
 namespace rainy::core::pal {

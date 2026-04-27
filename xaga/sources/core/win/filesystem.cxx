@@ -383,6 +383,31 @@ namespace rainy::core::pal {
         return false;
     }
 
+    bool is_block_file_native(native_czstring path) {
+        utility::ignore = path;
+        return false;
+    }
+
+    bool is_character_file_native(native_czstring path) {
+        utility::ignore = path;
+        return false;
+    }
+
+    bool is_fifo_native(native_czstring path) {
+        utility::ignore = path;
+        return false;
+    }
+
+    bool is_proximate_native(native_czstring path) {
+        utility::ignore = path;
+        return false;
+    }
+
+    bool is_socket_native(native_czstring path) {
+        utility::ignore = path;
+        return false;
+    }
+
     bool is_regular_file_native(native_czstring path) {
         WIN32_FILE_ATTRIBUTE_DATA attrs{};
         if (!GetFileAttributesExW(path, GetFileExInfoStandard, &attrs)) {
@@ -525,7 +550,7 @@ namespace rainy::core::pal {
 
         ULARGE_INTEGER ui;
         ui.QuadPart = static_cast<ULONGLONG>(new_time) * 10000000 + 116444736000000000ULL;
-        FILETIME ft;
+        FILETIME ft{};
         ft.dwLowDateTime = ui.LowPart;
         ft.dwHighDateTime = ui.HighPart;
 
@@ -533,6 +558,41 @@ namespace rainy::core::pal {
             set_errno_from_win32(GetLastError());
         }
         CloseHandle(file_handle);
+    }
+
+    ssize_t proximate_native(native_czstring path, native_cstring out_buffer, std::size_t buffer_size) {
+        wchar_t cwd[MAX_PATH];
+        if (GetCurrentDirectoryW(MAX_PATH, cwd) == 0) {
+            set_errno_from_win32(GetLastError());
+            return -1;
+        }
+
+        wchar_t relative[MAX_PATH];
+        if (!PathRelativePathToW(relative, cwd, FILE_ATTRIBUTE_DIRECTORY, path, 0)) {
+            DWORD required_len = GetFullPathNameW(path, 0, nullptr, nullptr);
+            if (required_len == 0) {
+                set_errno_from_win32(GetLastError());
+                return -1;
+            }
+            if (required_len >= buffer_size) {
+                errno = ERANGE;
+                return -1;
+            }
+            DWORD len = GetFullPathNameW(path, static_cast<DWORD>(buffer_size), out_buffer, nullptr);
+            if (len == 0) {
+                set_errno_from_win32(GetLastError());
+                return -1;
+            }
+            return static_cast<ssize_t>(len);
+        }
+
+        ssize_t len = static_cast<ssize_t>(wcslen(relative));
+        if (len >= static_cast<ssize_t>(buffer_size)) {
+            errno = ERANGE;
+            return -1;
+        }
+        wcscpy(out_buffer, relative);
+        return len;
     }
 
     void permissions_native(native_czstring path, perms prms, perm_options opts) {
@@ -564,6 +624,45 @@ namespace rainy::core::pal {
         if (!SetFileAttributesW(path, attrs)) {
             set_errno_from_win32(GetLastError());
         }
+    }
+
+    ssize_t proximate_native(native_czstring path, native_czstring base, native_cstring out_buffer, std::size_t buffer_size) {
+        DWORD base_attrs = GetFileAttributesW(base);
+        DWORD base_flags = 0;
+        if (base_attrs != INVALID_FILE_ATTRIBUTES) {
+            if (base_attrs & FILE_ATTRIBUTE_DIRECTORY) {
+                base_flags = FILE_ATTRIBUTE_DIRECTORY;
+            }
+        } else {
+            base_flags = 0;
+        }
+
+        wchar_t relative[MAX_PATH];
+        if (!PathRelativePathToW(relative, base, base_flags, path, 0)) {
+            DWORD required_len = GetFullPathNameW(path, 0, nullptr, nullptr);
+            if (required_len == 0) {
+                set_errno_from_win32(GetLastError());
+                return -1;
+            }
+            if (required_len >= buffer_size) {
+                errno = ERANGE;
+                return -1;
+            }
+            DWORD len = GetFullPathNameW(path, static_cast<DWORD>(buffer_size), out_buffer, nullptr);
+            if (len == 0) {
+                set_errno_from_win32(GetLastError());
+                return -1;
+            }
+            return static_cast<ssize_t>(len);
+        }
+
+        ssize_t len = static_cast<ssize_t>(wcslen(relative));
+        if (len >= static_cast<ssize_t>(buffer_size)) {
+            errno = ERANGE;
+            return -1;
+        }
+        wcscpy(out_buffer, relative);
+        return len;
     }
 
     ssize_t read_symlink_native(native_czstring path, native_cstring out_buffer, std::size_t buffer_size) {
@@ -614,6 +713,53 @@ namespace rainy::core::pal {
         wcsncpy(out_buffer, target, len);
         out_buffer[len] = L'\0';
         return static_cast<ssize_t>(len);
+    }
+
+        ssize_t relative_native(native_czstring path, native_cstring out_buffer, std::size_t buffer_size) {
+        wchar_t cwd[MAX_PATH];
+        if (GetCurrentDirectoryW(MAX_PATH, cwd) == 0) {
+            set_errno_from_win32(GetLastError());
+            return -1;
+        }
+
+        wchar_t relative[MAX_PATH];
+        if (!PathRelativePathToW(relative, cwd, FILE_ATTRIBUTE_DIRECTORY, path, 0)) {
+            // Cannot compute relative path, return error
+            set_errno_from_win32(ERROR_PATH_NOT_FOUND);
+            return -1;
+        }
+
+        ssize_t len = static_cast<ssize_t>(wcslen(relative));
+        if (len >= static_cast<ssize_t>(buffer_size)) {
+            errno = ERANGE;
+            return -1;
+        }
+        wcscpy(out_buffer, relative);
+        return len;
+    }
+
+    ssize_t relative_native(native_czstring path, native_czstring base, native_cstring out_buffer, std::size_t buffer_size) {
+        DWORD base_attrs = GetFileAttributesW(base);
+        DWORD base_flags = 0;
+        if (base_attrs != INVALID_FILE_ATTRIBUTES) {
+            if (base_attrs & FILE_ATTRIBUTE_DIRECTORY) {
+                base_flags = FILE_ATTRIBUTE_DIRECTORY;
+            }
+        } else {
+            base_flags = 0;
+        }
+        wchar_t relative[MAX_PATH];
+        if (!PathRelativePathToW(relative, base, base_flags, path, 0)) {
+            set_errno_from_win32(ERROR_PATH_NOT_FOUND);
+            return -1;
+        }
+        ssize_t len = static_cast<ssize_t>(wcslen(relative));
+        if (len >= static_cast<ssize_t>(buffer_size)) {
+            errno = ERANGE;
+            return -1;
+        }
+        wcscpy(out_buffer, relative);
+        return len;
     }
 
     bool remove_native(native_czstring path) {
