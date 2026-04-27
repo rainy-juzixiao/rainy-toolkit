@@ -527,7 +527,7 @@ namespace rainy::foundation::io::filesystem {
     }
 
     bool is_symlink(const path &path) {
-        RAINY_FILESYSTEM_NO_EXCEPTION_EDITION_IMPL(is_symlink,path);
+        RAINY_FILESYSTEM_NO_EXCEPTION_EDITION_IMPL(is_symlink, path);
     }
 
     bool is_symlink(const path &path, std::error_code &ec) noexcept {
@@ -565,13 +565,77 @@ namespace rainy::foundation::io::filesystem {
         }
     }
 
-    void permissions(const path &path, perms prms, perm_options opts);
-    void permissions(const path &path, perms prms, std::error_code &ec) noexcept;
-    void permissions(const path &path, perms prms, perm_options opts, std::error_code &ec);
+    void permissions(const path &path, perms prms, perm_options opts) {
+        RAINY_FILESYSTEM_EXCEPTION_EDITION_VOID_IMPL(permissions, path, prms, opts);
+    }
 
-    path proximate(const path &path, std::error_code &ec);
-    path proximate(const path &path, const filesystem::path &base);
-    path proximate(const path &path, const filesystem::path &base, std::error_code &ec);
+    void permissions(const path &path, perms prms, std::error_code &ec) noexcept {
+        RAINY_FILESYSTEM_INIT_SYSCALL(ec);
+        core::pal::permissions_native(path.native().c_str(), prms);
+        if (errno != 0) {
+            ec = std::error_code(errno, std::system_category());
+        }
+    }
+
+    void permissions(const path &path, perms prms, perm_options opts, std::error_code &ec) {
+        RAINY_FILESYSTEM_INIT_SYSCALL(ec);
+        core::pal::permissions_native(path.native().c_str(), prms, opts);
+        if (errno != 0) {
+            ec = std::error_code(errno, std::system_category());
+        }
+    }
+
+    path proximate(const path &path, std::error_code &ec) {
+        RAINY_FILESYSTEM_INIT_SYSCALL(ec);
+        class path result{};
+        std::size_t req_len = 128;
+        path::string_type buf;
+        int ret_code = -1;
+        do {
+            buf.resize_and_overwrite(req_len, [&req_len, &ret_code, &path](auto *p, unsigned n) -> std::int32_t {
+                ret_code = core::pal::proximate_native(path.native().c_str(), p, n);
+                if (ret_code == -1 && errno == ERANGE) { // 空间不足
+                    req_len *= 2;
+                    return 0; // 并未写入
+                }
+                return ret_code; // 让ret_code作为实际返回字数
+            });
+        } while (ret_code > buf.size());
+        if (ret_code == -1) {
+            ec = std::error_code(errno, std::system_category());
+        } else {
+            result = utility::move(buf);
+        }
+        return result;
+    }
+
+    path proximate(const path &path, const filesystem::path &base) {
+        RAINY_FILESYSTEM_EXCEPTION_EDITION_IMPL(proximate, path, base);
+    }
+
+    path proximate(const path &path, const filesystem::path &base, std::error_code &ec) {
+        RAINY_FILESYSTEM_INIT_SYSCALL(ec);
+        class path result{};
+        std::size_t req_len = 128;
+        path::string_type buf;
+        int ret_code = -1;
+        do {
+            buf.resize_and_overwrite(req_len, [&req_len, &ret_code, &path, &base](auto *p, unsigned n) -> std::int32_t {
+                ret_code = core::pal::proximate_native(path.native().c_str(), base.native().c_str(), p, n);
+                if (ret_code == -1 && errno == ERANGE) { // 空间不足
+                    req_len *= 2;
+                    return 0; // 并未写入
+                }
+                return ret_code; // 让ret_code作为实际返回字数
+            });
+        } while (ret_code > buf.size());
+        if (ret_code == -1) {
+            ec = std::error_code(errno, std::system_category());
+        } else {
+            result = utility::move(buf);
+        }
+        return result;
+    }
 
     path read_symlink(const path &path);
     path read_symlink(const path &path, std::error_code &ec);

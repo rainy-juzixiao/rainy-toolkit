@@ -141,13 +141,15 @@ namespace rainy::foundation::io::filesystem {
     RAINY_TOOLKIT_API void last_write_time(const path &path, file_time_type new_time);
     RAINY_TOOLKIT_API void last_write_time(const path &path, file_time_type new_time, std::error_code &ec) noexcept;
 
-    void permissions(const path &path, perms prms, perm_options opts = perm_options::replace);
-    void permissions(const path &path, perms prms, std::error_code &ec) noexcept;
-    void permissions(const path &path, perms prms, perm_options opts, std::error_code &ec);
+    // check...
+    RAINY_TOOLKIT_API void permissions(const path &path, perms prms, perm_options opts = perm_options::replace);
+    RAINY_TOOLKIT_API void permissions(const path &path, perms prms, std::error_code &ec) noexcept;
+    RAINY_TOOLKIT_API void permissions(const path &path, perms prms, perm_options opts, std::error_code &ec);
 
-    path proximate(const path &path, std::error_code &ec);
-    path proximate(const path &path, const filesystem::path &base = current_path());
-    path proximate(const path &path, const filesystem::path &base, std::error_code &ec);
+    // check...
+    RAINY_TOOLKIT_API path proximate(const path &path, std::error_code &ec);
+    RAINY_TOOLKIT_API path proximate(const path &path, const filesystem::path &base = current_path());
+    RAINY_TOOLKIT_API path proximate(const path &path, const filesystem::path &base, std::error_code &ec);
 
     path read_symlink(const path &path);
     path read_symlink(const path &path, std::error_code &ec);
