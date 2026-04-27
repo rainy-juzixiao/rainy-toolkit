@@ -805,11 +805,53 @@ namespace rainy::foundation::io::filesystem {
         return status.type() != file_type::none;
     }
 
-    file_status symlink_status(const path &path);
-    file_status symlink_status(const path &path, std::error_code &ec) noexcept;
+    file_status symlink_status(const path &path) {
+        RAINY_FILESYSTEM_EXCEPTION_EDITION_IMPL(symlink_status, path);
+    }
 
-    path temp_directory_path();
-    path temp_directory_path(std::error_code &ec);
+    file_status symlink_status(const path &path, std::error_code &ec) noexcept {
+        RAINY_FILESYSTEM_INIT_SYSCALL(ec);
+        const auto [type, permissions] = core::pal::symlink_status_native(path.native().c_str());
+        if (errno != 0) {
+            ec = std::error_code(errno, std::system_category());
+            return {};
+        }
+        file_status result{type, permissions};
+        return result;
+    }
+
+    path temp_directory_path() {
+        std::error_code ec;
+        auto result = temp_directory_path(ec);
+        if (ec) {
+            throw std::system_error(ec);
+        }
+        return result;
+    }
+
+    path temp_directory_path(std::error_code &ec) {
+        RAINY_FILESYSTEM_INIT_SYSCALL(ec);
+        class path result{};
+        std::size_t req_len = 128;
+        path::string_type buf;
+        int ret_code = -1;
+        do {
+            buf.resize_and_overwrite(req_len, [&req_len, &ret_code](auto *p, unsigned n) -> std::int32_t {
+                ret_code = core::pal::temp_directory_path_native(p, n);
+                if (ret_code == -1 && errno == ERANGE) { // 空间不足
+                    req_len *= 2;
+                    return 0; // 并未写入
+                }
+                return ret_code; // 让ret_code作为实际返回字数
+            });
+        } while (ret_code > buf.size());
+        if (ret_code == -1) {
+            ec = std::error_code(errno, std::system_category());
+        } else {
+            result = utility::move(buf);
+        }
+        return result;
+    }
 
     path weakly_canonical(const path &path) {
         RAINY_FILESYSTEM_EXCEPTION_EDITION_IMPL(weakly_canonical, path);

@@ -187,9 +187,11 @@ namespace rainy::foundation::io::filesystem {
     // check...
     bool status_known(const file_status &status) noexcept;
 
+    // check...
     file_status symlink_status(const path &path);
     file_status symlink_status(const path &path, std::error_code &ec) noexcept;
 
+    // check...
     path temp_directory_path();
     path temp_directory_path(std::error_code &ec);
 
