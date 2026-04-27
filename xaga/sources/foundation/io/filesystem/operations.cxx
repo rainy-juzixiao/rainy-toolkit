@@ -637,27 +637,153 @@ namespace rainy::foundation::io::filesystem {
         return result;
     }
 
-    path read_symlink(const path &path);
-    path read_symlink(const path &path, std::error_code &ec);
+    path read_symlink(const path &path) {
+        RAINY_FILESYSTEM_EXCEPTION_EDITION_IMPL(read_symlink, path);
+    }
 
-    path relative(const path &path, std::error_code &ec);
-    path relative(const path &path, const filesystem::path &base);
-    path relative(const path &path, const filesystem::path &base, std::error_code &ec);
+    path read_symlink(const path &path, std::error_code &ec) {
+        RAINY_FILESYSTEM_INIT_SYSCALL(ec);
+        class path result{};
+        std::size_t req_len = 128;
+        path::string_type buf;
+        int ret_code = -1;
+        do {
+            buf.resize_and_overwrite(req_len, [&req_len, &ret_code, &path](auto *p, unsigned n) -> std::int32_t {
+                ret_code = core::pal::read_symlink_native(path.native().c_str(), p, n);
+                if (ret_code == -1 && errno == ERANGE) { // 空间不足
+                    req_len *= 2;
+                    return 0; // 并未写入
+                }
+                return ret_code; // 让ret_code作为实际返回字数
+            });
+        } while (ret_code > buf.size());
+        if (ret_code == -1) {
+            ec = std::error_code(errno, std::system_category());
+        } else {
+            result = utility::move(buf);
+        }
+        return result;
+    }
 
-    bool remove(const path &path);
-    bool remove(const path &path, std::error_code &ec) noexcept;
+    path relative(const path &path, std::error_code &ec) {
+        RAINY_FILESYSTEM_INIT_SYSCALL(ec);
+        class path result{};
+        std::size_t req_len = 128;
+        path::string_type buf;
+        int ret_code = -1;
+        do {
+            buf.resize_and_overwrite(req_len, [&req_len, &ret_code, &path](auto *p, unsigned n) -> std::int32_t {
+                ret_code = core::pal::relative_native(path.native().c_str(), p, n);
+                if (ret_code == -1 && errno == ERANGE) { // 空间不足
+                    req_len *= 2;
+                    return 0; // 并未写入
+                }
+                return ret_code; // 让ret_code作为实际返回字数
+            });
+        } while (ret_code > buf.size());
+        if (ret_code == -1) {
+            ec = std::error_code(errno, std::system_category());
+        } else {
+            result = utility::move(buf);
+        }
+        return result;
+    }
 
-    std::uintmax_t remove_all(const path &path);
-    std::uintmax_t remove_all(const path &path, std::error_code &ec);
+    path relative(const path &path, const filesystem::path &base) {
+        RAINY_FILESYSTEM_EXCEPTION_EDITION_IMPL(relative, path, base);
+    }
 
-    void rename(const path &from, const path &to);
-    void rename(const path &from, const path &to, std::error_code &ec) noexcept;
+    path relative(const path &path, const filesystem::path &base, std::error_code &ec) {
+        RAINY_FILESYSTEM_INIT_SYSCALL(ec);
+        class path result{};
+        std::size_t req_len = 128;
+        path::string_type buf;
+        int ret_code = -1;
+        do {
+            buf.resize_and_overwrite(req_len, [&req_len, &ret_code, &path, &base](auto *p, unsigned n) -> std::int32_t {
+                ret_code = core::pal::relative_native(path.native().c_str(), base.native().c_str(), p, n);
+                if (ret_code == -1 && errno == ERANGE) { // 空间不足
+                    req_len *= 2;
+                    return 0; // 并未写入
+                }
+                return ret_code; // 让ret_code作为实际返回字数
+            });
+        } while (ret_code > buf.size());
+        if (ret_code == -1) {
+            ec = std::error_code(errno, std::system_category());
+        } else {
+            result = utility::move(buf);
+        }
+        return result;
+    }
 
-    void resize_file(const path &path, std::uintmax_t size);
-    void resize_file(const path &path, std::uintmax_t size, std::error_code &ec) noexcept;
+    bool remove(const path &path) {
+        RAINY_FILESYSTEM_EXCEPTION_EDITION_IMPL(remove, path);
+    }
 
-    space_info space(const path &path);
-    space_info space(const path &path, std::error_code &ec) noexcept;
+    bool remove(const path &path, std::error_code &ec) noexcept {
+        RAINY_FILESYSTEM_INIT_SYSCALL(ec);
+        const bool removed = core::pal::remove_native(path.native().c_str());
+        if (errno != 0) {
+            ec = std::error_code(errno, std::system_category());
+        }
+        return removed;
+    }
+
+    std::uintmax_t remove_all(const path &path) {
+        RAINY_FILESYSTEM_EXCEPTION_EDITION_IMPL(remove_all, path);
+    }
+
+    std::uintmax_t remove_all(const path &path, std::error_code &ec) {
+        RAINY_FILESYSTEM_INIT_SYSCALL(ec);
+        const auto count = core::pal::remove_all_native(path.native().c_str());
+        if (errno != 0) {
+            ec = std::error_code(errno, std::system_category());
+        }
+        return count;
+    }
+
+    void rename(const path &from, const path &to) {
+        RAINY_FILESYSTEM_EXCEPTION_EDITION_VOID_IMPL(rename, from, to);
+    }
+
+    void rename(const path &from, const path &to, std::error_code &ec) noexcept {
+        RAINY_FILESYSTEM_INIT_SYSCALL(ec);
+        core::pal::rename_native(from.native().c_str(), to.native().c_str());
+        if (errno != 0) {
+            ec = std::error_code(errno, std::system_category());
+        }
+    }
+
+    void resize_file(const path &path, std::uintmax_t size) {
+        RAINY_FILESYSTEM_EXCEPTION_EDITION_VOID_IMPL(resize_file, path, size);
+    }
+
+    void resize_file(const path &path, std::uintmax_t size, std::error_code &ec) noexcept {
+        RAINY_FILESYSTEM_INIT_SYSCALL(ec);
+        core::pal::resize_file_native(path.native().c_str(), size);
+        if (errno != 0) {
+            ec = std::error_code(errno, std::system_category());
+        }
+    }
+
+    space_info space(const path &path) {
+        RAINY_FILESYSTEM_EXCEPTION_EDITION_IMPL(space, path);
+    }
+
+    space_info space(const path &path, std::error_code &ec) noexcept {
+        RAINY_FILESYSTEM_INIT_SYSCALL(ec);
+        const auto [capacity, free, available] = core::pal::space_native(path.native().c_str());
+        space_info result = {};
+        if (errno != 0) {
+            ec = std::error_code(errno, std::system_category());
+            return result;
+        }
+        result.available = available;
+        result.capacity = capacity;
+        result.free = free;
+        return result;
+    }
 
     file_status status(const path &path) {
         RAINY_FILESYSTEM_EXCEPTION_EDITION_IMPL(status, path);

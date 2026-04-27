@@ -151,25 +151,32 @@ namespace rainy::foundation::io::filesystem {
     RAINY_TOOLKIT_API path proximate(const path &path, const filesystem::path &base = current_path());
     RAINY_TOOLKIT_API path proximate(const path &path, const filesystem::path &base, std::error_code &ec);
 
-    path read_symlink(const path &path);
-    path read_symlink(const path &path, std::error_code &ec);
+    // check...
+    RAINY_TOOLKIT_API path read_symlink(const path &path);
+    RAINY_TOOLKIT_API path read_symlink(const path &path, std::error_code &ec);
 
-    path relative(const path &path, std::error_code &ec);
-    path relative(const path &path, const filesystem::path &base = current_path());
-    path relative(const path &path, const filesystem::path &base, std::error_code &ec);
+    // check....
+    RAINY_TOOLKIT_API path relative(const path &path, std::error_code &ec);
+    RAINY_TOOLKIT_API path relative(const path &path, const filesystem::path &base = current_path());
+    RAINY_TOOLKIT_API path relative(const path &path, const filesystem::path &base, std::error_code &ec);
 
-    bool remove(const path &path);
-    bool remove(const path &path, std::error_code &ec) noexcept;
+    // check...
+    RAINY_TOOLKIT_API bool remove(const path &path);
+    RAINY_TOOLKIT_API bool remove(const path &path, std::error_code &ec) noexcept;
 
-    std::uintmax_t remove_all(const path &path);
-    std::uintmax_t remove_all(const path &path, std::error_code &ec);
+    // check...
+    RAINY_TOOLKIT_API std::uintmax_t remove_all(const path &path);
+    RAINY_TOOLKIT_API std::uintmax_t remove_all(const path &path, std::error_code &ec);
 
-    void rename(const path &from, const path &to);
-    void rename(const path &from, const path &to, std::error_code &ec) noexcept;
+    // check...
+    RAINY_TOOLKIT_API void rename(const path &from, const path &to);
+    RAINY_TOOLKIT_API void rename(const path &from, const path &to, std::error_code &ec) noexcept;
 
+    // check...
     void resize_file(const path &path, std::uintmax_t size);
     void resize_file(const path &path, std::uintmax_t size, std::error_code &ec) noexcept;
 
+    // check...
     space_info space(const path &path);
     space_info space(const path &path, std::error_code &ec) noexcept;
 
