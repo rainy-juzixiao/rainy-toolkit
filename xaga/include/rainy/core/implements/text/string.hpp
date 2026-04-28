@@ -498,11 +498,9 @@ namespace rainy::foundation::text {
             if (count > capacity()) {
                 reserve(count);
             }
-            CharType *ptr = const_cast<CharType *>(this->c_str()); // 如果 data() 返回 const
-            size_type new_len = op(ptr, count);
-            if (new_len > count) {
-                throw std::runtime_error("resize_and_overwrite: invalid new length");
-            }
+            CharType *ptr = data();
+            size_type new_len = utility::move(op)(ptr, count);
+            assert(new_len <= count && "resize_and_overwrite: operation returned length exceeding count");
             this->resize_(new_len);
         }
 

@@ -16,6 +16,7 @@
 #ifndef RAINY_CORE_LAYER_HPP
 #define RAINY_CORE_LAYER_HPP // NOLINT
 #include <rainy/core/platform.hpp>
+#include <rainy/core/type_traits/decay.hpp>
 
 #if RAINY_USING_MSVC
 #if RAINY_IS_X86_PLATFORM
@@ -167,7 +168,7 @@ namespace rainy::core::pal {
          * 指示文件类型为无或未找到条目的特殊值。
          */
         none = -1,
-        not_found = -1,
+        not_found = 0,
 
         /**
          * @brief Regular file
@@ -176,7 +177,7 @@ namespace rainy::core::pal {
          * Entry is a regular file.
          * 条目为普通文件。
          */
-        regular = 0,
+        regular = 1,
 
         /**
          * @brief Directory
@@ -185,7 +186,7 @@ namespace rainy::core::pal {
          * Entry is a directory.
          * 条目为目录。
          */
-        directory = 1,
+        directory = 2,
 
         /**
          * @brief Symbolic link
@@ -194,7 +195,7 @@ namespace rainy::core::pal {
          * Entry is a symbolic link.
          * 条目为符号链接。
          */
-        symlink = 2,
+        symlink = 3,
 
         /**
          * @brief Block device
@@ -203,7 +204,7 @@ namespace rainy::core::pal {
          * Entry represents a block device.
          * 条目表示块设备。
          */
-        block = 3,
+        block = 4,
 
         /**
          * @brief Character device
@@ -212,7 +213,7 @@ namespace rainy::core::pal {
          * Entry represents a character device.
          * 条目表示字符设备。
          */
-        character = 4,
+        character = 5,
 
         /**
          * @brief FIFO (named pipe)
@@ -221,7 +222,7 @@ namespace rainy::core::pal {
          * Entry represents a FIFO or named pipe.
          * 条目表示FIFO或命名管道。
          */
-        fifo = 5,
+        fifo = 6,
 
         /**
          * @brief Socket
@@ -230,7 +231,7 @@ namespace rainy::core::pal {
          * Entry represents a socket.
          * 条目表示套接字。
          */
-        socket = 6,
+        socket = 7,
 
         /**
          * @brief Unknown type
@@ -239,7 +240,7 @@ namespace rainy::core::pal {
          * Entry type is unknown or cannot be determined.
          * 条目类型未知或无法确定。
          */
-        unknown = 7
+        unknown = 8
     };
 
     /**
@@ -425,6 +426,8 @@ namespace rainy::core::pal {
          */
         unknown = 0xFFFF
     };
+
+    RAINY_ENABLE_ENUM_CLASS_BITMASK_OPERATORS(perms);
 
     /**
      * @brief Permission modification options enumeration.

@@ -74,24 +74,17 @@ namespace rainy::foundation::io::filesystem {
         if (path.has_root_directory()) {
             const auto pos = s.find_first_not_of(L"/\\");
             assert(pos != 0);
-            s.remove_prefix((core::min) (s.length(), pos) - 1);
+            s.remove_prefix((core::min)(s.length(), pos) - 1);
         }
-        std::size_t req_len = 128;
         class path::string_type buf;
-        int ret_code = -1;
+        std::int32_t len = 1024;
         do {
-            buf.resize_and_overwrite(req_len, [&s, &req_len, &ret_code, &path](wchar_t *p, unsigned n) -> std::int32_t {
-                ret_code = core::pal::absolute_native(s.data(), p, n);
-                if (ret_code == -1 && errno == ERANGE) { // 空间不足
-                    req_len *= 2;
-                    req_len += path.native().size();
-                    return 0; // 并未写入
-                } else {
-                    return ret_code; // 让ret_code作为实际返回字数
-                }
+            buf.resize_and_overwrite(len, [&s, &len, &path](wchar_t *p, unsigned n) -> std::int32_t {
+                len = core::pal::absolute_native(s.data(), p, n);
+                return len == -1 ? 0 : len;
             });
-        } while (ret_code > buf.size());
-        if (ret_code == -1) {
+        } while (len > buf.size());
+        if (len == 0) {
             ec = std::error_code(errno, std::system_category());
         } else {
             ret = utility::move(buf);
@@ -119,21 +112,15 @@ namespace rainy::foundation::io::filesystem {
             return result;
         }
         text::basic_string_view<core::native_char> s = path.native();
-        std::size_t req_len = 128;
-        path::string_type buf;
-        int ret_code = -1;
+        class path::string_type buf;
+        std::int32_t len = 1024;
         do {
-            buf.resize_and_overwrite(req_len, [&s, &req_len, &ret_code, &path](auto *p, unsigned n) -> std::int32_t {
-                ret_code = core::pal::canonical_native(s.data(), p, n);
-                if (ret_code == -1 && errno == ERANGE) { // 空间不足
-                    req_len *= 2;
-                    req_len += path.native().size();
-                    return 0; // 并未写入
-                }
-                return ret_code; // 让ret_code作为实际返回字数
+            buf.resize_and_overwrite(len, [&s, &len, &path](wchar_t *p, unsigned n) -> std::int32_t {
+                len = core::pal::canonical_native(s.data(), p, n);
+                return len == -1 ? 0 : len;
             });
-        } while (ret_code > buf.size());
-        if (ret_code == -1) {
+        } while (len > buf.size());
+        if (len == 0) {
             ec = std::error_code(errno, std::system_category());
         } else {
             result = utility::move(buf);
@@ -295,20 +282,16 @@ namespace rainy::foundation::io::filesystem {
     path current_path(std::error_code &ec) {
         RAINY_FILESYSTEM_INIT_SYSCALL(ec);
         path result{};
-        std::size_t req_len = 128;
-        path::string_type buf;
-        int ret_code = -1;
+
+        class path::string_type buf;
+        std::int32_t len = 1024;
         do {
-            buf.resize_and_overwrite(req_len, [&req_len, &ret_code](auto *p, unsigned n) -> std::int32_t {
-                ret_code = core::pal::current_path_native(p, n);
-                if (ret_code == -1 && errno == ERANGE) { // 空间不足
-                    req_len *= 2;
-                    return 0; // 并未写入
-                }
-                return ret_code; // 让ret_code作为实际返回字数
+            buf.resize_and_overwrite(len, [&len](wchar_t *p, unsigned n) -> std::int32_t {
+                len = core::pal::current_path_native(p, n);
+                return len == -1 ? 0 : len;
             });
-        } while (ret_code > buf.size());
-        if (ret_code == -1) {
+        } while (len > buf.size());
+        if (len == 0) {
             ec = std::error_code(errno, std::system_category());
         } else {
             result = utility::move(buf);
@@ -354,6 +337,7 @@ namespace rainy::foundation::io::filesystem {
     }
 
     bool exists(const path &path, std::error_code &ec) noexcept {
+        RAINY_FILESYSTEM_INIT_SYSCALL(ec);
         const bool exsits = core::pal::exists_native(path.native().c_str());
         if (errno != 0) {
             ec = std::error_code(errno, std::system_category());
@@ -558,12 +542,7 @@ namespace rainy::foundation::io::filesystem {
 
     void last_write_time(const path &path, file_time_type new_time, std::error_code &ec) noexcept {
         RAINY_FILESYSTEM_INIT_SYSCALL(ec);
-#if RAINY_USING_WINDOWS
         core::pal::last_write_time_native(path.native().c_str(), new_time.time_since_epoch().count());
-#else
-        const auto sys_time = std::chrono::file_clock::to_sys(new_time);
-        core::pal::last_write_time_native(path.native().c_str(), std::chrono::system_clock::to_time_t(sys_time));
-#endif
         if (errno != 0) {
             ec = std::error_code(errno, std::system_category());
         }
@@ -592,20 +571,15 @@ namespace rainy::foundation::io::filesystem {
     path proximate(const path &path, std::error_code &ec) {
         RAINY_FILESYSTEM_INIT_SYSCALL(ec);
         class path result{};
-        std::size_t req_len = 128;
-        path::string_type buf;
-        int ret_code = -1;
+        class path::string_type buf;
+        std::int32_t len = 1024;
         do {
-            buf.resize_and_overwrite(req_len, [&req_len, &ret_code, &path](auto *p, unsigned n) -> std::int32_t {
-                ret_code = core::pal::proximate_native(path.native().c_str(), p, n);
-                if (ret_code == -1 && errno == ERANGE) { // 空间不足
-                    req_len *= 2;
-                    return 0; // 并未写入
-                }
-                return ret_code; // 让ret_code作为实际返回字数
+            buf.resize_and_overwrite(len, [&path, &len](wchar_t *p, unsigned n) -> std::int32_t {
+                len = core::pal::proximate_native(path.native().data(), p, n);
+                return len == -1 ? 0 : len;
             });
-        } while (ret_code > buf.size());
-        if (ret_code == -1) {
+        } while (len > buf.size());
+        if (len == 0) {
             ec = std::error_code(errno, std::system_category());
         } else {
             result = utility::move(buf);
@@ -620,20 +594,15 @@ namespace rainy::foundation::io::filesystem {
     path proximate(const path &path, const filesystem::path &base, std::error_code &ec) {
         RAINY_FILESYSTEM_INIT_SYSCALL(ec);
         class path result{};
-        std::size_t req_len = 128;
         path::string_type buf;
-        int ret_code = -1;
+        std::int32_t len = 1024;
         do {
-            buf.resize_and_overwrite(req_len, [&req_len, &ret_code, &path, &base](auto *p, unsigned n) -> std::int32_t {
-                ret_code = core::pal::proximate_native(path.native().c_str(), base.native().c_str(), p, n);
-                if (ret_code == -1 && errno == ERANGE) { // 空间不足
-                    req_len *= 2;
-                    return 0; // 并未写入
-                }
-                return ret_code; // 让ret_code作为实际返回字数
+            buf.resize_and_overwrite(len, [&len, &path](wchar_t *p, unsigned n) -> std::int32_t {
+                len = core::pal::proximate_native(path.native().data(), p, n);
+                return len == -1 ? 0 : len;
             });
-        } while (ret_code > buf.size());
-        if (ret_code == -1) {
+        } while (len > buf.size());
+        if (len == 0) {
             ec = std::error_code(errno, std::system_category());
         } else {
             result = utility::move(buf);
@@ -648,20 +617,15 @@ namespace rainy::foundation::io::filesystem {
     path read_symlink(const path &path, std::error_code &ec) {
         RAINY_FILESYSTEM_INIT_SYSCALL(ec);
         class path result{};
-        std::size_t req_len = 128;
-        path::string_type buf;
-        int ret_code = -1;
+        class path::string_type buf;
+        std::int32_t len = 1024;
         do {
-            buf.resize_and_overwrite(req_len, [&req_len, &ret_code, &path](auto *p, unsigned n) -> std::int32_t {
-                ret_code = core::pal::read_symlink_native(path.native().c_str(), p, n);
-                if (ret_code == -1 && errno == ERANGE) { // 空间不足
-                    req_len *= 2;
-                    return 0; // 并未写入
-                }
-                return ret_code; // 让ret_code作为实际返回字数
+            buf.resize_and_overwrite(len, [&len, &path](wchar_t *p, unsigned n) -> std::int32_t {
+                len = core::pal::read_symlink_native(path.native().c_str(), p, n);
+                return len == -1 ? 0 : len;
             });
-        } while (ret_code > buf.size());
-        if (ret_code == -1) {
+        } while (len > buf.size());
+        if (len == 0) {
             ec = std::error_code(errno, std::system_category());
         } else {
             result = utility::move(buf);
@@ -672,20 +636,15 @@ namespace rainy::foundation::io::filesystem {
     path relative(const path &path, std::error_code &ec) {
         RAINY_FILESYSTEM_INIT_SYSCALL(ec);
         class path result{};
-        std::size_t req_len = 128;
-        path::string_type buf;
-        int ret_code = -1;
+        class path::string_type buf;
+        std::int32_t len = 1024;
         do {
-            buf.resize_and_overwrite(req_len, [&req_len, &ret_code, &path](auto *p, unsigned n) -> std::int32_t {
-                ret_code = core::pal::relative_native(path.native().c_str(), p, n);
-                if (ret_code == -1 && errno == ERANGE) { // 空间不足
-                    req_len *= 2;
-                    return 0; // 并未写入
-                }
-                return ret_code; // 让ret_code作为实际返回字数
+            buf.resize_and_overwrite(len, [&len, &path](wchar_t *p, unsigned n) -> std::int32_t {
+                len = core::pal::relative_native(path.native().c_str(), p, n);
+                return len == -1 ? 0 : len;
             });
-        } while (ret_code > buf.size());
-        if (ret_code == -1) {
+        } while (len > buf.size());
+        if (len == 0) {
             ec = std::error_code(errno, std::system_category());
         } else {
             result = utility::move(buf);
@@ -700,20 +659,15 @@ namespace rainy::foundation::io::filesystem {
     path relative(const path &path, const filesystem::path &base, std::error_code &ec) {
         RAINY_FILESYSTEM_INIT_SYSCALL(ec);
         class path result{};
-        std::size_t req_len = 128;
-        path::string_type buf;
-        int ret_code = -1;
+        class path::string_type buf;
+        std::int32_t len = 1024;
         do {
-            buf.resize_and_overwrite(req_len, [&req_len, &ret_code, &path, &base](auto *p, unsigned n) -> std::int32_t {
-                ret_code = core::pal::relative_native(path.native().c_str(), base.native().c_str(), p, n);
-                if (ret_code == -1 && errno == ERANGE) { // 空间不足
-                    req_len *= 2;
-                    return 0; // 并未写入
-                }
-                return ret_code; // 让ret_code作为实际返回字数
+            buf.resize_and_overwrite(len, [&len, &path, &base](wchar_t *p, unsigned n) -> std::int32_t {
+                len = core::pal::relative_native(path.native().c_str(), base.native().c_str(), p, n);
+                return len == -1 ? 0 : len;
             });
-        } while (ret_code > buf.size());
-        if (ret_code == -1) {
+        } while (len > buf.size());
+        if (len == 0) {
             ec = std::error_code(errno, std::system_category());
         } else {
             result = utility::move(buf);
@@ -779,13 +733,12 @@ namespace rainy::foundation::io::filesystem {
         RAINY_FILESYSTEM_INIT_SYSCALL(ec);
         const auto [capacity, free, available] = core::pal::space_native(path.native().c_str());
         space_info result = {};
-        if (errno != 0) {
-            ec = std::error_code(errno, std::system_category());
-            return result;
-        }
         result.available = available;
         result.capacity = capacity;
         result.free = free;
+        if (errno != 0) {
+            ec = std::error_code(errno, std::system_category());
+        }
         return result;
     }
 
@@ -836,20 +789,15 @@ namespace rainy::foundation::io::filesystem {
     path temp_directory_path(std::error_code &ec) {
         RAINY_FILESYSTEM_INIT_SYSCALL(ec);
         class path result{};
-        std::size_t req_len = 128;
-        path::string_type buf;
-        int ret_code = -1;
+        class path::string_type buf;
+        std::int32_t len = 1024;
         do {
-            buf.resize_and_overwrite(req_len, [&req_len, &ret_code](auto *p, unsigned n) -> std::int32_t {
-                ret_code = core::pal::temp_directory_path_native(p, n);
-                if (ret_code == -1 && errno == ERANGE) { // 空间不足
-                    req_len *= 2;
-                    return 0; // 并未写入
-                }
-                return ret_code; // 让ret_code作为实际返回字数
+            buf.resize_and_overwrite(len, [&len](wchar_t *p, unsigned n) -> std::int32_t {
+                len = core::pal::temp_directory_path_native(p, n);
+                return len == -1 ? 0 : len;
             });
-        } while (ret_code > buf.size());
-        if (ret_code == -1) {
+        } while (len > buf.size());
+        if (len == 0) {
             ec = std::error_code(errno, std::system_category());
         } else {
             result = utility::move(buf);
@@ -861,47 +809,39 @@ namespace rainy::foundation::io::filesystem {
         RAINY_FILESYSTEM_EXCEPTION_EDITION_IMPL(weakly_canonical, path);
     }
 
-    path weakly_canonical(const path &path, std::error_code &ec) {
+    path weakly_canonical(const path &p, std::error_code &ec) {
         RAINY_FILESYSTEM_INIT_SYSCALL(ec);
-        class path result;
-        file_status st = status(path, ec);
+        file_status st = status(p, ec);
         if (exists(st)) {
-            return canonical(path, ec);
+            return canonical(p, ec);
         }
-
-        if (status_known(st)) {
-            ec.clear();
-        } else {
-            return result;
+        if (!status_known(st)) {
+            return {};
         }
-        class path tmp{};
-        auto iter = path.begin();
-        const auto end = path.end();
-        while (iter != end) {
-            tmp = result / *iter;
-            st = status(tmp, ec);
-            if (exists(st)) {
-                swap(result, tmp);
-            } else {
-                if (status_known(st)) {
-                    ec.clear();
-                }
+        ec.clear();
+        path tmp = p;
+        path suffix;
+        while (!tmp.empty()) {
+            suffix = tmp.filename() / suffix;
+            tmp = tmp.parent_path();
+            if (tmp.empty()) {
                 break;
             }
-            ++iter;
-        }
-        if (!ec && !result.empty()) {
-            result = canonical(result, ec);
-        }
-        if (ec) {
-            result.clear();
-        } else {
-            while (iter != end) {
-                result /= *iter++;
+            st = status(tmp, ec);
+            if (exists(st)) {
+                path result = canonical(tmp, ec);
+                if (ec) {
+                    return {};
+                }
+                result /= suffix;
+                return result.lexically_normal();
             }
-            result = result.lexically_normal();
+            if (!status_known(st)) {
+                return {};
+            }
+            ec.clear();
         }
-        return result;
+        return p.lexically_normal();
     }
 }
 

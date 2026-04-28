@@ -233,7 +233,7 @@ namespace rainy::core::pal {
         }
         if (required_len >= buffer_size) {
             errno = ERANGE;
-            return -1;
+            return required_len;
         }
         wchar_t *full_path = out_buffer;
         DWORD len = GetFullPathNameW(path, buffer_size, full_path, nullptr);
@@ -275,7 +275,7 @@ namespace rainy::core::pal {
 
         if (len >= buffer_size) {
             errno = ERANGE;
-            return -1;
+            return len;
         }
         wcscpy(out_buffer, result);
         return static_cast<ssize_t>(len);
@@ -314,7 +314,7 @@ namespace rainy::core::pal {
         }
         if (len >= buffer_size) {
             errno = ERANGE;
-            return -1;
+            return len;
         }
         return static_cast<ssize_t>(len);
     }
@@ -528,11 +528,14 @@ namespace rainy::core::pal {
         ULARGE_INTEGER ui;
         ui.LowPart = ft.dwLowDateTime;
         ui.HighPart = ft.dwHighDateTime;
-        *out_time = static_cast<std::time_t>((ui.QuadPart - 116444736000000000ULL) / 10000000);
+        // FILETIME（100纳秒，1601）转 Unix 时间戳（秒）
+        std::time_t unix_time = static_cast<std::time_t>(ui.QuadPart / 10000000ULL - 11644473600ULL);
+        // 转回 100纳秒单位返回
+        *out_time = (unix_time + 11644473600LL) * 10000000LL;
         return true;
     }
 
-    std::time_t last_write_time_native(native_czstring path) {
+   std::time_t last_write_time_native(native_czstring path) {
         std::time_t t;
         if (!last_write_time_native(path, &t)) {
             return -1;
@@ -541,15 +544,15 @@ namespace rainy::core::pal {
     }
 
     void last_write_time_native(native_czstring path, std::time_t new_time) {
+        std::time_t unix_time = new_time / 10000000LL - 11644473600LL;
         HANDLE file_handle = CreateFileW(path, FILE_WRITE_ATTRIBUTES, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING,
                                          FILE_FLAG_BACKUP_SEMANTICS, nullptr);
         if (file_handle == INVALID_HANDLE_VALUE) {
             set_errno_from_win32(GetLastError());
             return;
         }
-
-        ULARGE_INTEGER ui;
-        ui.QuadPart = static_cast<ULONGLONG>(new_time) * 10000000 + 116444736000000000ULL;
+        ULARGE_INTEGER ui{};
+        ui.QuadPart = (static_cast<ULONGLONG>(unix_time) + 11644473600ULL) * 10000000ULL;
         FILETIME ft{};
         ft.dwLowDateTime = ui.LowPart;
         ft.dwHighDateTime = ui.HighPart;
@@ -576,7 +579,7 @@ namespace rainy::core::pal {
             }
             if (required_len >= buffer_size) {
                 errno = ERANGE;
-                return -1;
+                return required_len;
             }
             DWORD len = GetFullPathNameW(path, static_cast<DWORD>(buffer_size), out_buffer, nullptr);
             if (len == 0) {
@@ -646,7 +649,7 @@ namespace rainy::core::pal {
             }
             if (required_len >= buffer_size) {
                 errno = ERANGE;
-                return -1;
+                return required_len;
             }
             DWORD len = GetFullPathNameW(path, static_cast<DWORD>(buffer_size), out_buffer, nullptr);
             if (len == 0) {
@@ -707,7 +710,7 @@ namespace rainy::core::pal {
 
         if (len >= buffer_size) {
             errno = ERANGE;
-            return -1;
+            return len;
         }
 
         wcsncpy(out_buffer, target, len);
@@ -820,27 +823,39 @@ namespace rainy::core::pal {
     }
 
     bool space_native(native_czstring path, space_info *out_info) {
+        if (wcslen(path) >= MAX_PATH) {
+            errno = ERANGE;
+            return false;
+        }
         wchar_t root[MAX_PATH];
         wcscpy(root, path);
 
         if (root[0] == L'\\' && root[1] == L'\\') {
             native_cstring p = root + 2;
-            while (*p && *p != L'\\')
+            while (*p && *p != L'\\') {
                 ++p;
-            if (*p)
+            }
+            if (*p) {
                 ++p;
-            while (*p && *p != L'\\')
+            }
+            while (*p && *p != L'\\') {
                 ++p;
-            if (*p)
+            }
+            if (*p) {
                 *(p + 1) = L'\0';
+            }
         } else if (root[1] == L':') {
             root[2] = L'\\';
             root[3] = L'\0';
         } else {
-            root[0] = L'\\';
-            root[1] = L'\0';
+            // 不是 UNC，也没有盘符
+            errno = EINVAL;
+            return false;
         }
-
+        if (!exists_native(root)) {
+            errno = EEXIST;
+            return false;
+        }
         ULARGE_INTEGER freeBytesAvailable, totalBytes, totalFreeBytes;
         if (!GetDiskFreeSpaceExW(root, &freeBytesAvailable, &totalBytes, &totalFreeBytes)) {
             set_errno_from_win32(GetLastError());
@@ -1011,11 +1026,100 @@ namespace rainy::core::pal {
         }
 
         if (attrs.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
-            if (has_opt(options, copy_options::recursive)) {
-                CreateDirectoryW(to, nullptr);
-            } else {
-                CreateDirectoryW(to, nullptr);
+            CreateDirectoryW(to, nullptr);
+
+            if (!has_opt(options, copy_options::recursive)) {
+                return;
             }
+
+            const size_t from_len = wcslen(from);
+            const size_t to_len = wcslen(to);
+
+            // 拼 from\* 用于 FindFirstFileW
+            constexpr size_t STACK_SIZE = 512;
+            wchar_t pattern_buf[STACK_SIZE];
+            wchar_t *pattern = pattern_buf;
+            bool pattern_heap = false;
+
+            const size_t pattern_need = from_len + 2 + 1; // +"\*" +L'\0'
+            if (pattern_need > STACK_SIZE) {
+                pattern = new wchar_t[pattern_need];
+                pattern_heap = true;
+            }
+            wmemcpy(pattern, from, from_len);
+            pattern[from_len] = L'\\';
+            pattern[from_len + 1] = L'*';
+            pattern[from_len + 2] = L'\0';
+
+            WIN32_FIND_DATAW find_data{};
+            HANDLE hFind = FindFirstFileW(pattern, &find_data);
+
+            if (pattern_heap) {
+                delete[] pattern;
+            }
+
+            if (hFind == INVALID_HANDLE_VALUE) {
+                set_errno_from_win32(GetLastError());
+                return;
+            }
+
+            // child_from / child_to 复用同一段缓冲，按实际最大需求分配一次
+            // 最坏情况：base + '\' + MAX_PATH文件名 + '\0'
+            constexpr size_t NAME_MAX = MAX_PATH;
+            constexpr size_t PATH_STACK = STACK_SIZE;
+
+            wchar_t from_buf[PATH_STACK], to_buf[PATH_STACK];
+            wchar_t *child_from = from_buf;
+            wchar_t *child_to = to_buf;
+            bool child_from_heap = false;
+            bool child_to_heap = false;
+
+            const size_t from_need = from_len + 1 + NAME_MAX + 1;
+            const size_t to_need = to_len + 1 + NAME_MAX + 1;
+
+            if (from_need > PATH_STACK) {
+                child_from = new wchar_t[from_need];
+                child_from_heap = true;
+            }
+            if (to_need > PATH_STACK) {
+                child_to = new wchar_t[to_need];
+                child_to_heap = true;
+            }
+
+            // 把固定前缀写入缓冲，后续只覆盖文件名部分
+            wmemcpy(child_from, from, from_len);
+            child_from[from_len] = L'\\';
+
+            wmemcpy(child_to, to, to_len);
+            child_to[to_len] = L'\\';
+
+            do {
+                const wchar_t *name = find_data.cFileName;
+                if (name[0] == L'.' && (name[1] == L'\0' || (name[1] == L'.' && name[2] == L'\0'))) {
+                    continue;
+                }
+
+                const size_t name_len = wcslen(name);
+
+                // 只更新前缀之后的部分，前缀已就位
+                wmemcpy(child_from + from_len + 1, name, name_len + 1);
+                wmemcpy(child_to + to_len + 1, name, name_len + 1);
+
+                copy_native(child_from, child_to, options);
+
+                if (errno != 0) {
+                    break;
+                }
+            } while (FindNextFileW(hFind, &find_data));
+
+            if (child_from_heap) {
+                delete[] child_from;
+            }
+            if (child_to_heap) {
+                delete[] child_to;
+            }
+
+            FindClose(hFind);
             return;
         }
 
@@ -1033,7 +1137,7 @@ namespace rainy::core::pal {
         }
         if (len >= buffer_size) {
             errno = ERANGE;
-            return -1;
+            return len;
         }
         return static_cast<ssize_t>(len);
     }
@@ -1050,7 +1154,7 @@ namespace rainy::core::pal {
         foundation::text::string out = from_native(wout);
         if (out.size() >= buffer_size) {
             errno = ERANGE;
-            return -1;
+            return out.size();
         }
         memcpy(out_buffer, out.data(), out.size() + 1);
         return static_cast<ssize_t>(out.size());
@@ -1066,7 +1170,7 @@ namespace rainy::core::pal {
         foundation::text::string out = from_native(wout);
         if (out.size() >= buffer_size) {
             errno = ERANGE;
-            return -1;
+            return out.size();
         }
         memcpy(out_buffer, out.data(), out.size() + 1);
         return static_cast<ssize_t>(out.size());
@@ -1076,13 +1180,14 @@ namespace rainy::core::pal {
         const wchar_t *wpath = to_native(path);
         wchar_t wout[MAX_PATH];
         ssize_t result = weakly_canonical_native(wpath, wout, MAX_PATH);
-        if (result < 0)
+        if (result < 0) {
             return -1;
+        }
 
         foundation::text::string out = from_native(wout);
         if (out.size() >= buffer_size) {
             errno = ERANGE;
-            return -1;
+            return out.size();
         }
         memcpy(out_buffer, out.data(), out.size() + 1);
         return static_cast<ssize_t>(out.size());
@@ -1103,7 +1208,7 @@ namespace rainy::core::pal {
         foundation::text::string out = from_native(relative);
         if (out.size() >= buffer_size) {
             errno = ERANGE;
-            return -1;
+            return out.size();
         }
         memcpy(out_buffer, out.data(), out.size() + 1);
         return static_cast<ssize_t>(out.size());
@@ -1124,7 +1229,7 @@ namespace rainy::core::pal {
         foundation::text::string out = from_native(relative);
         if (out.size() >= buffer_size) {
             errno = ERANGE;
-            return -1;
+            return out.size();
         }
         memcpy(out_buffer, out.data(), out.size() + 1);
         return static_cast<ssize_t>(out.size());
@@ -1151,13 +1256,14 @@ namespace rainy::core::pal {
     ssize_t current_path(cstring out_buffer, std::size_t buffer_size) {
         wchar_t wout[MAX_PATH];
         ssize_t result = current_path_native(wout, MAX_PATH);
-        if (result < 0)
+        if (result < 0) {
             return -1;
+        }
 
         foundation::text::string out = from_native(wout);
         if (out.size() >= buffer_size) {
             errno = ERANGE;
-            return -1;
+            return out.size();
         }
         memcpy(out_buffer, out.data(), out.size() + 1);
         return static_cast<ssize_t>(out.size());
@@ -1274,7 +1380,7 @@ namespace rainy::core::pal {
         foundation::text::string out = from_native(wout);
         if (out.size() >= buffer_size) {
             errno = ERANGE;
-            return -1;
+            return out.size();
         }
         memcpy(out_buffer, out.data(), out.size() + 1);
         return static_cast<ssize_t>(out.size());
@@ -1330,7 +1436,7 @@ namespace rainy::core::pal {
         foundation::text::string out = from_native(wout);
         if (out.size() >= buffer_size) {
             errno = ERANGE;
-            return -1;
+            return out.size();
         }
         memcpy(out_buffer, out.data(), out.size() + 1);
         return static_cast<ssize_t>(out.size());

@@ -380,7 +380,7 @@ namespace rainy::core::pal {
             const std::size_t len = std::strlen(path);
             if (len >= buffer_size) {
                 errno = ERANGE;
-                return -1;
+                return len;
             }
             std::memcpy(out_buffer, path, len + 1);
             return static_cast<ssize_t>(len);
@@ -393,7 +393,7 @@ namespace rainy::core::pal {
         const std::size_t path_len = std::strlen(path);
         if (static_cast<std::size_t>(cwd_len) + 1 + path_len >= buffer_size) {
             errno = ERANGE;
-            return -1;
+            return static_cast<std::size_t>(cwd_len) + 1 + path_len;
         }
         out_buffer[cwd_len] = '/';
         std::memcpy(out_buffer + cwd_len + 1, path, path_len + 1);
@@ -408,7 +408,7 @@ namespace rainy::core::pal {
         const std::size_t len = std::strlen(tmp);
         if (len >= buffer_size) {
             errno = ERANGE;
-            return -1;
+            return len;
         }
         std::memcpy(out_buffer, tmp, len + 1);
         return static_cast<ssize_t>(len);
@@ -420,7 +420,7 @@ namespace rainy::core::pal {
             const std::size_t len = std::strlen(tmp);
             if (len >= buffer_size) {
                 errno = ERANGE;
-                return -1;
+                return len;
             }
             std::memcpy(out_buffer, tmp, len + 1);
             return static_cast<ssize_t>(len);
@@ -452,7 +452,7 @@ namespace rainy::core::pal {
                 const std::size_t suf_len = std::strlen(suffix);
                 if (base_len + suf_len >= buffer_size) {
                     errno = ERANGE;
-                    return -1;
+                    return base_len + suf_len;
                 }
                 std::memcpy(out_buffer, tmp, base_len);
                 std::memcpy(out_buffer + base_len, suffix, suf_len + 1);
@@ -971,7 +971,7 @@ namespace rainy::core::pal {
                     const std::size_t len = std::strlen(val);
                     if (len >= buffer_size) {
                         errno = ERANGE;
-                        return -1;
+                        return len;
                     }
                     std::memcpy(out_buffer, val, len + 1);
                     return static_cast<ssize_t>(len);
@@ -982,7 +982,7 @@ namespace rainy::core::pal {
         const std::size_t len = std::strlen(fallback);
         if (len >= buffer_size) {
             errno = ERANGE;
-            return -1;
+            return len;
         }
         std::memcpy(out_buffer, fallback, len + 1);
         return static_cast<ssize_t>(len);
