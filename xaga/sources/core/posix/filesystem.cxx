@@ -136,11 +136,12 @@ namespace rainy::core::pal {
         return (static_cast<unsigned>(a) & static_cast<unsigned>(b)) != 0;
     }
 
-    bool copy_regular_file(const char *from, const char *to, const bool overwrite) noexcept {
+    static bool copy_regular_file(const char *from, const char *to, const bool overwrite) noexcept {
         const int src = ::open(from, O_RDONLY);
         if (src < 0) {
             return false;
         }
+
         struct stat st{};
         if (::fstat(src, &st) != 0) {
             const int saved = errno;
@@ -149,7 +150,14 @@ namespace rainy::core::pal {
             return false;
         }
 
-        const int dst_flags = O_WRONLY | O_CREAT | (overwrite ? O_TRUNC : O_EXCL);
+        // 使用正确的标志位
+        int dst_flags = O_WRONLY | O_CREAT;
+        if (overwrite) {
+            dst_flags |= O_TRUNC;
+        } else {
+            dst_flags |= O_EXCL;
+        }
+
         const int dst = ::open(to, dst_flags, st.st_mode & 0777u);
         if (dst < 0) {
             const int saved = errno;
@@ -157,23 +165,21 @@ namespace rainy::core::pal {
             errno = saved;
             return false;
         }
-        auto write_all = [&](const char *buf, ssize_t len) noexcept -> bool {
-            while (len > 0) {
-                const ssize_t w = ::write(dst, buf, static_cast<std::size_t>(len));
-                if (w < 0) {
-                    return false;
-                }
-                buf += w;
-                len -= w;
-            }
-            return true;
-        };
-        bool ok = true;
         char buf[65536];
         ssize_t n{};
+        bool ok = true;
+
         while ((n = ::read(src, buf, sizeof(buf))) > 0) {
-            if (!write_all(buf, n)) {
-                ok = false;
+            ssize_t written = 0;
+            while (written < n) {
+                const ssize_t w = ::write(dst, buf + written, static_cast<std::size_t>(n - written));
+                if (w < 0) {
+                    ok = false;
+                    break;
+                }
+                written += w;
+            }
+            if (!ok) {
                 break;
             }
         }
@@ -183,97 +189,142 @@ namespace rainy::core::pal {
         const int saved = errno;
         ::close(src);
         ::close(dst);
+
         if (!ok) {
             errno = saved;
             ::unlink(to);
-            errno = saved;
+            return false;
         }
-        return ok;
+
+        return true;
     }
 
-    uintmax_t remove_all_impl(const char *path) noexcept { // NOLINT
+    std::uintmax_t remove_all_impl(const char *path) noexcept { // NOLINT
         struct stat st{};
         if (::lstat(path, &st) != 0) {
+            if (errno == ENOENT) {
+                errno = 0;
+            }
             return 0;
         }
+
+        // 普通文件或符号链接
         if (!S_ISDIR(st.st_mode)) {
-            if (::unlink(path) != 0) {
-                return 0;
+            if (::unlink(path) == 0 || errno == ENOENT) {
+                errno = 0;
+                return 1;
             }
-            return 1;
+            return 0;
         }
+
+        // 目录：递归删除内容
         DIR *dir = ::opendir(path);
         if (!dir) {
+            if (errno == ENOENT) {
+                errno = 0;
+            }
             return 0;
         }
-        uintmax_t count = 0;
+
+        std::uintmax_t count = 0;
         struct dirent *ent = nullptr;
         char child[PATH_MAX];
+
         while ((ent = ::readdir(dir)) != nullptr) {
-            if (std::strcmp(ent->d_name, ".") == 0 || std::strcmp(ent->d_name, "..") == 0) {
+            if (ent->d_name[0] == '.' && (ent->d_name[1] == '\0' || (ent->d_name[1] == '.' && ent->d_name[2] == '\0'))) {
                 continue;
             }
-            if (const int r = ::snprintf(child, sizeof(child), "%status/%status", path, ent->d_name);
-                r < 0 || static_cast<std::size_t>(r) >= sizeof(child)) {
-                errno = ENAMETOOLONG;
+
+            if (::snprintf(child, sizeof(child), "%s/%s", path, ent->d_name) >= static_cast<int>(sizeof(child))) {
                 ::closedir(dir);
                 return count;
             }
-            const uintmax_t sub = remove_all_impl(child);
-            count += sub;
-            if (sub == 0 && errno != 0) {
-                // 子路径删除失败，保留 errno，停止遍历
-                ::closedir(dir);
-                return count;
-            }
+
+            count += remove_all_impl(child);
         }
+
         ::closedir(dir);
-        if (::rmdir(path) != 0) {
-            return count;
+
+        // 删除目录本身
+        if (::rmdir(path) == 0) {
+            errno = 0;
+            return count + 1;
         }
-        return ++count;
+
+        // 如果目录已空但 rmdir 失败（权限问题），返回已删除数量
+        errno = 0;
+        return count;
     }
 
-    bool create_directories_impl(const char *path) noexcept { // NOLINT
-        if (::mkdir(path, 0777) == 0) {
-            return true;
+    bool create_directories_impl(const char *path, bool *created = nullptr) noexcept { // NOLINT
+        if (!path || path[0] == '\0') {
+            errno = EINVAL;
+            return false;
         }
-        if (errno == EEXIST) {
-            struct stat st{};
-            if (::stat(path, &st) == 0 && S_ISDIR(st.st_mode)) {
+
+        struct stat st{};
+        if (::stat(path, &st) == 0) {
+            if (S_ISDIR(st.st_mode)) {
                 errno = 0;
-                return false; // 规范：已存在返回 false（没有新建目录）
+                if (created) {
+                    *created = false;
+                }
+                return true; // 已存在，返回 true 但标记未创建
             }
+            errno = ENOTDIR;
             return false;
         }
-        if (errno != ENOENT) {
-            return false;
-        }
-        char buf[PATH_MAX];
-        if (const int r = ::snprintf(buf, sizeof(buf), "%status", path); r < 0 || static_cast<std::size_t>(r) >= sizeof(buf)) {
+
+        // 找到父目录
+        char parent[PATH_MAX];
+        if (const size_t len = std::strlen(path); len >= sizeof(parent)) {
             errno = ENAMETOOLONG;
             return false;
         }
-        char *sep = std::strrchr(buf, '/');
-        if (!sep || sep == buf) {
-            errno = ENOENT;
+        std::strcpy(parent, path);
+
+        char *last_slash = std::strrchr(parent, '/');
+        if (!last_slash || last_slash == parent) {
+            // 直接创建
+            if (::mkdir(path, 0777) == 0) {
+                errno = 0;
+                if (created) {
+                    *created = true;
+                }
+                return true;
+            }
             return false;
         }
-        *sep = '\0';
-        if (!create_directories_impl(buf)) {
-            // 父目录不存在且无法创建
-            if (errno != 0) {
-                return false;
-            }
+
+        *last_slash = '\0';
+
+        // 递归创建父目录
+        bool parent_created = false;
+        if (!create_directories_impl(parent, &parent_created)) {
+            return false;
         }
-        // 父目录就绪，再建自身
+
+        // 尝试创建当前目录
         if (::mkdir(path, 0777) == 0) {
+            errno = 0;
+            if (created) {
+                *created = true;
+            }
             return true;
         }
+
+        // 如果现在已存在
         if (errno == EEXIST) {
-            errno = 0;
+            if (::stat(path, &st) == 0 && S_ISDIR(st.st_mode)) {
+                errno = 0;
+                if (created) {
+                    *created = false;
+                }
+                return true; // 存在且是目录，返回 true
+            }
             return false;
         }
+
         return false;
     }
 
@@ -282,9 +333,15 @@ namespace rainy::core::pal {
         if (!dir) {
             return false;
         }
-        if (::mkdir(to, 0777) != 0 && errno != EEXIST) {
-            ::closedir(dir);
-            return false;
+
+        // 创建目标目录，如果已存在则继续
+        if (::mkdir(to, 0777) != 0) {
+            if (errno != EEXIST) {
+                ::closedir(dir);
+                return false;
+            }
+            // EEXIST 是允许的，继续执行
+            errno = 0;
         }
 
         struct dirent *ent{};
@@ -297,8 +354,8 @@ namespace rainy::core::pal {
             }
 
             // NOLINTBEGIN
-            const int rs = ::snprintf(src_child, sizeof(src_child), "%status/%status", from, ent->d_name);
-            const int rd = ::snprintf(dst_child, sizeof(dst_child), "%status/%status", to, ent->d_name);
+            const int rs = ::snprintf(src_child, sizeof(src_child), "%s/%s", from, ent->d_name);
+            const int rd = ::snprintf(dst_child, sizeof(dst_child), "%s/%s", to, ent->d_name);
             // NOLINTEND
 
             if (rs < 0 || static_cast<std::size_t>(rs) >= sizeof(src_child) || rd < 0 ||
@@ -332,6 +389,49 @@ namespace rainy::core::pal {
                     }
                 }
                 // 其余情况：跟随符号链接，走下方普通判断
+                else {
+                    // 跟随符号链接，需要重新 stat 目标
+                    if (::stat(src_child, &st) != 0) {
+                        ok = false;
+                        break;
+                    }
+                    // 继续下面的判断处理
+                    if (S_ISDIR(st.st_mode)) {
+                        if (!has_opt(opts, copy_options::recursive)) {
+                            continue;
+                        }
+                        if (!copy_recursive(src_child, dst_child, opts)) {
+                            ok = false;
+                            break;
+                        }
+                    } else if (S_ISREG(st.st_mode)) {
+                        if (has_opt(opts, copy_options::directories_only)) {
+                            continue;
+                        }
+
+                        bool do_copy = true;
+                        if (has_opt(opts, copy_options::skip_existing)) {
+                            struct stat dst_st{};
+                            if (::stat(dst_child, &dst_st) == 0) {
+                                do_copy = false;
+                            }
+                        } else if (has_opt(opts, copy_options::update_existing)) {
+                            struct stat dst_st{};
+                            if (::stat(dst_child, &dst_st) == 0 && dst_st.st_mtime >= st.st_mtime) {
+                                do_copy = false;
+                            }
+                        }
+
+                        if (do_copy) {
+                            const bool overwrite =
+                                has_opt(opts, copy_options::overwrite_existing) || has_opt(opts, copy_options::update_existing);
+                            if (!copy_regular_file(src_child, dst_child, overwrite)) {
+                                ok = false;
+                                break;
+                            }
+                        }
+                    }
+                }
             } else if (S_ISDIR(st.st_mode)) {
                 if (!has_opt(opts, copy_options::recursive)) {
                     continue;
@@ -359,14 +459,15 @@ namespace rainy::core::pal {
                 }
 
                 if (do_copy) {
-                    if (const bool overwrite =
-                            has_opt(opts, copy_options::overwrite_existing) || has_opt(opts, copy_options::update_existing);
-                        !copy_regular_file(src_child, dst_child, overwrite)) {
+                    const bool overwrite =
+                        has_opt(opts, copy_options::overwrite_existing) || has_opt(opts, copy_options::update_existing);
+                    if (!copy_regular_file(src_child, dst_child, overwrite)) {
                         ok = false;
                         break;
                     }
                 }
             }
+            // 其他类型的文件（设备文件、FIFO等）跳过
         }
 
         ::closedir(dir);
@@ -380,7 +481,7 @@ namespace rainy::core::pal {
             const std::size_t len = std::strlen(path);
             if (len >= buffer_size) {
                 errno = ERANGE;
-                return len;
+                return static_cast<ssize_t>(len);
             }
             std::memcpy(out_buffer, path, len + 1);
             return static_cast<ssize_t>(len);
@@ -393,7 +494,7 @@ namespace rainy::core::pal {
         const std::size_t path_len = std::strlen(path);
         if (static_cast<std::size_t>(cwd_len) + 1 + path_len >= buffer_size) {
             errno = ERANGE;
-            return static_cast<std::size_t>(cwd_len) + 1 + path_len;
+            return static_cast<ssize_t>(cwd_len + 1 + path_len);
         }
         out_buffer[cwd_len] = '/';
         std::memcpy(out_buffer + cwd_len + 1, path, path_len + 1);
@@ -401,17 +502,69 @@ namespace rainy::core::pal {
     }
 
     ssize_t canonical_native(const native_czstring path, native_cstring out_buffer, const std::size_t buffer_size) { // NOLINT
-        char tmp[PATH_MAX];
-        if (!::realpath(path, tmp)) {
-            return -1; // errno 由 realpath 设置
-        }
-        const std::size_t len = std::strlen(tmp);
-        if (len >= buffer_size) {
-            errno = ERANGE;
+        char resolved[PATH_MAX];
+        // 对于符号链接，readlink 可以直接读取目标
+        ssize_t len = ::readlink(path, resolved, sizeof(resolved) - 1);
+        if (len >= 0) {
+            resolved[len] = '\0'; // NOLINT
+            // 如果是相对路径，需要转换为绝对路径
+            if (resolved[0] != '/') {
+                // 获取符号链接所在的目录
+                char dir[PATH_MAX];
+                std::strcpy(dir, path);
+                if (char *last_slash = std::strrchr(dir, '/')) {
+                    *last_slash = '\0';
+                    // 构建完整路径：目录/目标
+                    char full[PATH_MAX];
+                    if (const int written = snprintf(full, sizeof(full), "%s/%s", dir, resolved);
+                        std::cmp_greater_equal(written, sizeof(full))) {
+                        errno = ENAMETOOLONG;
+                        return -1;
+                    }
+                    // 规范化路径（处理 . 和 ..）
+                    char normalized[PATH_MAX];
+                    if (::realpath(full, normalized) != nullptr) {
+                        len = static_cast<ssize_t>(std::strlen(normalized));
+                        if (std::cmp_greater_equal(len, buffer_size)) {
+                            errno = ERANGE;
+                            return len;
+                        }
+                        std::memcpy(out_buffer, normalized, len + 1);
+                        return len;
+                    }
+                    if (errno == ENOENT) {
+                        // 目标不存在，直接返回完整路径
+                        len = static_cast<ssize_t>(std::strlen(full));
+                        if (std::cmp_greater_equal(len, buffer_size)) {
+                            errno = ERANGE;
+                            return len;
+                        }
+                        std::memcpy(out_buffer, full, len + 1);
+                        return len;
+                    }
+                    return -1;
+                }
+            }
+
+            // 绝对路径，直接返回
+            if (std::cmp_greater_equal(len, buffer_size)) {
+                errno = ERANGE;
+                return len;
+            }
+            std::memcpy(out_buffer, resolved, len + 1);
             return len;
         }
-        std::memcpy(out_buffer, tmp, len + 1);
-        return static_cast<ssize_t>(len);
+        // 不是符号链接，使用 realpath
+        if (::realpath(path, resolved) != nullptr) {
+            len = static_cast<ssize_t>(std::strlen(resolved));
+            if (std::cmp_greater_equal(len, buffer_size)) {
+                errno = ERANGE;
+                return len;
+            }
+            std::memcpy(out_buffer, resolved, len + 1);
+            return len;
+        }
+        return -1;
     }
 
     ssize_t weakly_canonical_native(const native_czstring path, native_cstring out_buffer, const std::size_t buffer_size) { // NOLINT
@@ -420,7 +573,7 @@ namespace rainy::core::pal {
             const std::size_t len = std::strlen(tmp);
             if (len >= buffer_size) {
                 errno = ERANGE;
-                return len;
+                return static_cast<ssize_t>(len);
             }
             std::memcpy(out_buffer, tmp, len + 1);
             return static_cast<ssize_t>(len);
@@ -429,7 +582,7 @@ namespace rainy::core::pal {
             return -1;
         }
         char work[PATH_MAX];
-        if (const int r = ::snprintf(work, sizeof(work), "%status", path); r < 0 || static_cast<std::size_t>(r) >= sizeof(work)) {
+        if (const int r = ::snprintf(work, sizeof(work), "%s", path); r < 0 || static_cast<std::size_t>(r) >= sizeof(work)) {
             errno = ENAMETOOLONG;
             return -1;
         }
@@ -440,7 +593,7 @@ namespace rainy::core::pal {
                 break;
             }
             char seg[PATH_MAX];
-            utility::ignore = ::snprintf(seg, sizeof(seg), "/%status%status", sep + 1, suffix);
+            utility::ignore = ::snprintf(seg, sizeof(seg), "/%s%s", sep + 1, suffix);
             std::strncpy(suffix, seg, sizeof(suffix) - 1);
             *sep = '\0';
             if (work[0] == '\0') {
@@ -452,7 +605,7 @@ namespace rainy::core::pal {
                 const std::size_t suf_len = std::strlen(suffix);
                 if (base_len + suf_len >= buffer_size) {
                     errno = ERANGE;
-                    return base_len + suf_len;
+                    return static_cast<ssize_t>(base_len + suf_len);
                 }
                 std::memcpy(out_buffer, tmp, base_len);
                 std::memcpy(out_buffer + base_len, suffix, suf_len + 1);
@@ -473,7 +626,7 @@ namespace rainy::core::pal {
         return compute_relative(path, cwd, out_buffer, buffer_size);
     }
 
-    ssize_t relative_native(const native_czstring path,const native_czstring base, native_cstring out_buffer, // NOLINT
+    ssize_t relative_native(const native_czstring path, const native_czstring base, native_cstring out_buffer, // NOLINT
                             const std::size_t buffer_size) { // NOLINT
         return compute_relative(path, base, out_buffer, buffer_size);
     }
@@ -499,15 +652,23 @@ namespace rainy::core::pal {
     }
 
     void copy_native(const native_czstring from, const native_czstring to) {
-        copy(from, to, copy_options::none);
+        copy_native(from, to, copy_options::none);
     }
 
     void copy_native(const native_czstring from, const native_czstring to, const copy_options options) {
         struct stat st{};
-        // 使用 lstat 以便识别符号链接自身
         if (::lstat(from, &st) != 0) {
-            return; // errno 由 lstat 设置
+            return; // errno 已设置
         }
+
+        if (has_opt(options, copy_options::skip_existing)) {
+            struct stat dst_st{};
+            if (::stat(to, &dst_st) == 0) {
+                errno = 0;
+                return;
+            }
+        }
+
         if (S_ISLNK(st.st_mode)) {
             if (has_opt(options, copy_options::skip_symlinks)) {
                 return;
@@ -516,28 +677,39 @@ namespace rainy::core::pal {
                 copy_symlink(from, to);
                 return;
             }
-            // 跟随符号链接：重新 stat 目标
             if (::stat(from, &st) != 0) {
                 return;
             }
         }
-
         if (S_ISDIR(st.st_mode)) {
             if (has_opt(options, copy_options::recursive)) {
                 copy_recursive(from, to, options);
             } else {
-                // 仅建目标目录本身
-                ::mkdir(to, st.st_mode & 0777u);
+                if (::mkdir(to, st.st_mode & 0777u) != 0 && errno != EEXIST) {
+                }
             }
             return;
         }
-
         if (S_ISREG(st.st_mode)) {
             if (has_opt(options, copy_options::directories_only)) {
                 return;
             }
-            copy_file(from, to, options);
+            // 检查 update_existing 选项
+            if (has_opt(options, copy_options::update_existing)) {
+                struct stat dst_st{};
+                if (::stat(to, &dst_st) == 0 && dst_st.st_mtime >= st.st_mtime) {
+                    // 目标文件更新或相同，跳过
+                    errno = 0;
+                    return;
+                }
+            }
+            const bool overwrite =
+                has_opt(options, copy_options::overwrite_existing) || has_opt(options, copy_options::update_existing);
+            copy_regular_file(from, to, overwrite);
+            return;
         }
+        // 其他类型的文件（设备文件等），设置适当的错误
+        errno = EINVAL;
     }
 
     bool copy_file_native(const native_czstring from, const native_czstring to) {
@@ -549,67 +721,166 @@ namespace rainy::core::pal {
         if (::stat(from, &src_st) != 0) {
             return false;
         }
-
         const bool dst_exists = (::stat(to, &dst_st) == 0);
-
         if (dst_exists) {
             if (has_opt(option, copy_options::skip_existing)) {
-                return false;
+                errno = 0;
+                return false; // 跳过，返回 false 表示没有复制
             }
             if (has_opt(option, copy_options::update_existing) && dst_st.st_mtime >= src_st.st_mtime) {
-                return false;
+                errno = 0;
+                return false; // 目标文件更新，跳过
             }
         }
-
         const bool overwrite =
             dst_exists && (has_opt(option, copy_options::overwrite_existing) || has_opt(option, copy_options::update_existing));
         return copy_regular_file(from, to, overwrite);
     }
 
     void copy_symlink_native(const native_czstring existing_symlink, const native_czstring new_symlink) {
+        // 读取原符号链接的目标
         char target[PATH_MAX];
         const ssize_t len = ::readlink(existing_symlink, target, sizeof(target) - 1);
         if (len < 0) {
+            // readlink 失败，保留 errno
             return;
         }
         target[len] = '\0'; // NOLINT
-        ::symlink(target, new_symlink); // errno 由 symlink 设置（失败时）
+        // 检查新符号链接是否已存在
+        struct stat st{};
+        if (::lstat(new_symlink, &st) == 0) {
+            // 如果已存在，先删除
+            if (S_ISLNK(st.st_mode)) {
+                ::unlink(new_symlink);
+            } else {
+                // 存在但不是符号链接，设置错误
+                errno = EEXIST;
+                return;
+            }
+        }
+        // 创建新的符号链接
+        if (::symlink(target, new_symlink) != 0) {
+            return;
+        }
+        errno = 0;
     }
 
     bool create_directory_native(const native_czstring path) {
-        if (::mkdir(path, 0777) == 0) {
-            return true;
+        if (!path || path[0] == '\0') {
+            errno = EINVAL;
+            return false;
         }
-        if (errno == EEXIST) {
-            struct stat st{};
-            if (::stat(path, &st) == 0 && S_ISDIR(st.st_mode)) {
+
+        struct stat st{};
+
+        // 如果已存在且是目录，返回 false
+        if (::stat(path, &st) == 0) {
+            if (S_ISDIR(st.st_mode)) {
                 errno = 0;
-                return false; // 已存在但不是本次调用创建的
+                return false;
+            }
+            errno = EEXIST;
+            return false;
+        }
+
+        // 确保父目录存在
+        char parent_buf[PATH_MAX];
+        if (::snprintf(parent_buf, sizeof(parent_buf), "%s", path) >= static_cast<int>(sizeof(parent_buf))) {
+            return false;
+        }
+
+        if (char *sep = std::strrchr(parent_buf, '/'); sep && sep != parent_buf) {
+            *sep = '\0';
+            if (!create_directories_impl(parent_buf)) {
+                return false;
             }
         }
+
+        // 创建目录
+        if (::mkdir(path, 0777) == 0) {
+            errno = 0;
+            return true;
+        }
+
+        // 检查是否因并发而存在
+        if (errno == EEXIST) {
+            if (::stat(path, &st) == 0 && S_ISDIR(st.st_mode)) {
+                errno = 0;
+                return false;
+            }
+        }
+
         return false;
     }
 
     bool create_directory_native(const native_czstring path, const native_czstring existing_p) {
+        if (!path || !existing_p || path[0] == '\0' || existing_p[0] == '\0') {
+            errno = EINVAL;
+            return false;
+        }
+
         struct stat st{};
+
+        // 获取模板路径的属性和权限
         if (::stat(existing_p, &st) != 0) {
             return false;
         }
-        if (::mkdir(path, st.st_mode & 07777u) == 0) {
-            return true;
-        }
-        if (errno == EEXIST) {
-            struct stat dst{};
-            if (::stat(path, &dst) == 0 && S_ISDIR(dst.st_mode)) {
+
+        // 检查目标是否已存在
+        struct stat dst_st{};
+        if (::stat(path, &dst_st) == 0) {
+            if (S_ISDIR(dst_st.st_mode)) {
                 errno = 0;
+                return false; // 已存在
             }
+            errno = EEXIST;
             return false;
         }
+
+        // 确保父目录存在
+        char parent_buf[PATH_MAX];
+        if (::snprintf(parent_buf, sizeof(parent_buf), "%s", path) >= static_cast<int>(sizeof(parent_buf))) {
+            return false;
+        }
+
+        if (char *last_slash = std::strrchr(parent_buf, '/'); last_slash && last_slash != parent_buf) {
+            *last_slash = '\0';
+            if (!create_directories_impl(parent_buf)) {
+                return false;
+            }
+        }
+
+        const mode_t mode = st.st_mode & 07777u;
+        if (::mkdir(path, mode) == 0) {
+            errno = 0;
+            return true;
+        }
+
+        if (errno == EEXIST) {
+            if (::stat(path, &dst_st) == 0 && S_ISDIR(dst_st.st_mode)) {
+                errno = 0;
+                return false;
+            }
+        }
+
+        if (errno == EACCES) {
+            if (::mkdir(path, 0777) == 0) {
+                // 尝试修改权限
+                ::chmod(path, mode);
+                errno = 0;
+                return true;
+            }
+        }
+
         return false;
     }
 
     bool create_directories_native(const native_czstring path) {
-        return create_directories_impl(path);
+        bool created = false;
+        if (const bool result = create_directories_impl(path, &created); !result) {
+            return false;
+        }
+        return created; // 返回是否实际创建了新目录
     }
 
     void create_directory_symlink_native(const native_czstring to, const native_czstring new_symlink) {
@@ -621,7 +892,19 @@ namespace rainy::core::pal {
     }
 
     void create_symlink_native(const native_czstring to, const native_czstring new_symlink) {
-        ::symlink(to, new_symlink);
+        struct stat st; // NOLINT
+        if (::lstat(new_symlink, &st) == 0) {
+            if (S_ISLNK(st.st_mode)) {
+                ::unlink(new_symlink);
+            } else {
+                errno = EEXIST;
+                return;
+            }
+        }
+        if (::symlink(to, new_symlink) != 0) {
+            return;
+        }
+        errno = 0;
     }
 
     ssize_t current_path_native(native_cstring out_buffer, const std::size_t buffer_size) { // NOLINT
@@ -660,38 +943,38 @@ namespace rainy::core::pal {
         return false;
     }
 
-    bool file_size_native(const native_czstring path, uintmax_t *out_size) {
+    bool file_size_native(const native_czstring path, std::uintmax_t *out_size) {
         struct stat st{};
         if (::stat(path, &st) != 0) {
             return false;
         }
-        *out_size = static_cast<uintmax_t>(st.st_size);
+        *out_size = static_cast<std::uintmax_t>(st.st_size);
         return true;
     }
 
-    uintmax_t file_size_native(const native_czstring path) {
+    std::uintmax_t file_size_native(const native_czstring path) {
         struct stat st{};
         if (::stat(path, &st) != 0) {
-            return static_cast<uintmax_t>(-1);
+            return static_cast<std::uintmax_t>(-1);
         }
-        return static_cast<uintmax_t>(st.st_size);
+        return static_cast<std::uintmax_t>(st.st_size);
     }
 
-    bool hard_link_count_native(const native_czstring path, uintmax_t *out_count) {
+    bool hard_link_count_native(const native_czstring path, std::uintmax_t *out_count) {
         struct stat st{};
         if (::stat(path, &st) != 0) {
             return false;
         }
-        *out_count = static_cast<uintmax_t>(st.st_nlink); // NOLINT
+        *out_count = static_cast<std::uintmax_t>(st.st_nlink); // NOLINT
         return true;
     }
 
-    uintmax_t hard_link_count_native(const native_czstring path) {
+    std::uintmax_t hard_link_count_native(const native_czstring path) {
         struct stat st{};
         if (::stat(path, &st) != 0) {
-            return static_cast<uintmax_t>(-1);
+            return static_cast<std::uintmax_t>(-1);
         }
-        return static_cast<uintmax_t>(st.st_nlink); // NOLINT
+        return static_cast<std::uintmax_t>(st.st_nlink); // NOLINT
     }
 
     bool is_block_file(const file_status status) noexcept {
@@ -895,18 +1178,34 @@ namespace rainy::core::pal {
     }
 
     bool remove_native(const native_czstring path) {
-        // ::remove() 对文件用 unlink，对空目录用 rmdir
-        if (::remove(path) == 0) {
-            return true;
-        }
-        if (errno == ENOENT) {
-            errno = 0;
+        struct stat st{};
+        // 先获取路径信息
+        if (::lstat(path, &st) != 0) {
+            if (errno == ENOENT) {
+                errno = 0;
+                return false;
+            }
             return false;
         }
+        // 如果是目录，使用 rmdir（删除空目录）
+        if (S_ISDIR(st.st_mode)) {
+            if (::rmdir(path) == 0) {
+                errno = 0;
+                return true;
+            }
+            // rmdir 失败，保留 errno
+            return false;
+        }
+        // 如果是文件或符号链接，使用 unlink
+        if (::unlink(path) == 0) {
+            errno = 0;
+            return true;
+        }
+        // unlink 失败，保留 errno
         return false;
     }
 
-    uintmax_t remove_all_native(const native_czstring path) {
+    std::uintmax_t remove_all_native(const native_czstring path) {
         return remove_all_impl(path);
     }
 
@@ -914,7 +1213,7 @@ namespace rainy::core::pal {
         utility::ignore = ::rename(from, to);
     }
 
-    void resize_file_native(const native_czstring path, const uintmax_t size) {
+    void resize_file_native(const native_czstring path, const std::uintmax_t size) {
         utility::ignore = ::truncate(path, static_cast<off_t>(size));
     }
 
@@ -971,7 +1270,7 @@ namespace rainy::core::pal {
                     const std::size_t len = std::strlen(val);
                     if (len >= buffer_size) {
                         errno = ERANGE;
-                        return len;
+                        return static_cast<ssize_t>(len);
                     }
                     std::memcpy(out_buffer, val, len + 1);
                     return static_cast<ssize_t>(len);
@@ -982,7 +1281,7 @@ namespace rainy::core::pal {
         const std::size_t len = std::strlen(fallback);
         if (len >= buffer_size) {
             errno = ERANGE;
-            return len;
+            return static_cast<ssize_t>(len);
         }
         std::memcpy(out_buffer, fallback, len + 1);
         return static_cast<ssize_t>(len);
@@ -1058,19 +1357,19 @@ namespace rainy::core::pal {
         return exists_native(path);
     }
 
-    bool file_size(const czstring path, uintmax_t *out_size) {
+    bool file_size(const czstring path, std::uintmax_t *out_size) {
         return file_size_native(path, out_size);
     }
 
-    uintmax_t file_size(const czstring path) {
+    std::uintmax_t file_size(const czstring path) {
         return file_size_native(path);
     }
 
-    bool hard_link_count(const czstring path, uintmax_t *out_count) {
+    bool hard_link_count(const czstring path, std::uintmax_t *out_count) {
         return hard_link_count_native(path, out_count);
     }
 
-    uintmax_t hard_link_count(const czstring path) {
+    std::uintmax_t hard_link_count(const czstring path) {
         return hard_link_count_native(path);
     }
 
@@ -1150,7 +1449,7 @@ namespace rainy::core::pal {
         return remove_native(path);
     }
 
-    uintmax_t remove_all(const czstring path) {
+    std::uintmax_t remove_all(const czstring path) {
         return remove_all_native(path);
     }
 
@@ -1158,7 +1457,7 @@ namespace rainy::core::pal {
         rename_native(from, to);
     }
 
-    void resize_file(const czstring path, const uintmax_t size) {
+    void resize_file(const czstring path, const std::uintmax_t size) {
         resize_file_native(path, size);
     }
 

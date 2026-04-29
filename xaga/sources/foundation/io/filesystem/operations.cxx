@@ -74,7 +74,7 @@ namespace rainy::foundation::io::filesystem {
         if (path.has_root_directory()) {
             const auto pos = s.find_first_not_of(L"/\\");
             assert(pos != 0);
-            s.remove_prefix((core::min)(s.length(), pos) - 1);
+            s.remove_prefix((core::min) (s.length(), pos) - 1);
         }
         class path::string_type buf;
         std::int32_t len = 1024;
@@ -83,7 +83,7 @@ namespace rainy::foundation::io::filesystem {
                 len = core::pal::absolute_native(s.data(), p, n);
                 return len == -1 ? 0 : len;
             });
-        } while (len > buf.size());
+        } while (len > buf.size() && len != -1);
         if (len == 0) {
             ec = std::error_code(errno, std::system_category());
         } else {
@@ -111,22 +111,19 @@ namespace rainy::foundation::io::filesystem {
         if (ec) {
             return result;
         }
-        text::basic_string_view<core::native_char> s = path.native();
-        class path::string_type buf;
+        text::basic_string_view<core::native_char> s = pa.native();
+        path::string_type buf;
         std::int32_t len = 1024;
         do {
-            buf.resize_and_overwrite(len, [&s, &len, &path](wchar_t *p, unsigned n) -> std::int32_t {
+            buf.resize_and_overwrite(len, [&s, &len](auto *p, unsigned n) -> std::int32_t {
                 len = core::pal::canonical_native(s.data(), p, n);
                 return len == -1 ? 0 : len;
             });
-        } while (len > buf.size());
-        if (len == 0) {
+        } while (len > buf.size() && len != -1);
+        if (len == -1) {
             ec = std::error_code(errno, std::system_category());
         } else {
             result = utility::move(buf);
-        }
-        if (ec || !exists(result, ec)) {
-            result.clear();
         }
         return result;
     }
@@ -161,7 +158,7 @@ namespace rainy::foundation::io::filesystem {
 
     bool copy_file(const path &from, const path &to, std::error_code &ec) {
         RAINY_FILESYSTEM_INIT_SYSCALL(ec);
-        const bool success = core::pal::copy_file_native(from.native().c_str(), from.native().c_str());
+        const bool success = core::pal::copy_file_native(from.native().c_str(), to.native().c_str());
         if (errno != 0) {
             ec = std::error_code(errno, std::system_category());
             return false;
@@ -175,7 +172,7 @@ namespace rainy::foundation::io::filesystem {
 
     bool copy_file(const path &from, const path &to, const copy_options option, std::error_code &ec) {
         RAINY_FILESYSTEM_INIT_SYSCALL(ec);
-        const bool success = core::pal::copy_file_native(from.native().c_str(), from.native().c_str(), option);
+        const bool success = core::pal::copy_file_native(from.native().c_str(), to.native().c_str(), option);
         if (errno != 0) {
             ec = std::error_code(errno, std::system_category());
             return false;
@@ -283,14 +280,14 @@ namespace rainy::foundation::io::filesystem {
         RAINY_FILESYSTEM_INIT_SYSCALL(ec);
         path result{};
 
-        class path::string_type buf;
+        path::string_type buf;
         std::int32_t len = 1024;
         do {
-            buf.resize_and_overwrite(len, [&len](wchar_t *p, unsigned n) -> std::int32_t {
+            buf.resize_and_overwrite(len, [&len](auto *p, unsigned n) -> std::int32_t {
                 len = core::pal::current_path_native(p, n);
                 return len == -1 ? 0 : len;
             });
-        } while (len > buf.size());
+        } while (len > buf.size() && len != -1);
         if (len == 0) {
             ec = std::error_code(errno, std::system_category());
         } else {
@@ -571,14 +568,14 @@ namespace rainy::foundation::io::filesystem {
     path proximate(const path &path, std::error_code &ec) {
         RAINY_FILESYSTEM_INIT_SYSCALL(ec);
         class path result{};
-        class path::string_type buf;
+        path::string_type buf;
         std::int32_t len = 1024;
         do {
-            buf.resize_and_overwrite(len, [&path, &len](wchar_t *p, unsigned n) -> std::int32_t {
+            buf.resize_and_overwrite(len, [&path, &len](auto *p, unsigned n) -> std::int32_t {
                 len = core::pal::proximate_native(path.native().data(), p, n);
                 return len == -1 ? 0 : len;
             });
-        } while (len > buf.size());
+        } while (len > buf.size() && len != -1);
         if (len == 0) {
             ec = std::error_code(errno, std::system_category());
         } else {
@@ -597,11 +594,11 @@ namespace rainy::foundation::io::filesystem {
         path::string_type buf;
         std::int32_t len = 1024;
         do {
-            buf.resize_and_overwrite(len, [&len, &path](wchar_t *p, unsigned n) -> std::int32_t {
+            buf.resize_and_overwrite(len, [&len, &path](auto *p, unsigned n) -> std::int32_t {
                 len = core::pal::proximate_native(path.native().data(), p, n);
                 return len == -1 ? 0 : len;
             });
-        } while (len > buf.size());
+        } while (len > buf.size() && len != -1);
         if (len == 0) {
             ec = std::error_code(errno, std::system_category());
         } else {
@@ -617,14 +614,14 @@ namespace rainy::foundation::io::filesystem {
     path read_symlink(const path &path, std::error_code &ec) {
         RAINY_FILESYSTEM_INIT_SYSCALL(ec);
         class path result{};
-        class path::string_type buf;
+        path::string_type buf;
         std::int32_t len = 1024;
         do {
-            buf.resize_and_overwrite(len, [&len, &path](wchar_t *p, unsigned n) -> std::int32_t {
+            buf.resize_and_overwrite(len, [&len, &path](auto *p, unsigned n) -> std::int32_t {
                 len = core::pal::read_symlink_native(path.native().c_str(), p, n);
                 return len == -1 ? 0 : len;
             });
-        } while (len > buf.size());
+        } while (len > buf.size() && len != -1);
         if (len == 0) {
             ec = std::error_code(errno, std::system_category());
         } else {
@@ -636,14 +633,14 @@ namespace rainy::foundation::io::filesystem {
     path relative(const path &path, std::error_code &ec) {
         RAINY_FILESYSTEM_INIT_SYSCALL(ec);
         class path result{};
-        class path::string_type buf;
+        path::string_type buf;
         std::int32_t len = 1024;
         do {
-            buf.resize_and_overwrite(len, [&len, &path](wchar_t *p, unsigned n) -> std::int32_t {
+            buf.resize_and_overwrite(len, [&len, &path](auto *p, unsigned n) -> std::int32_t {
                 len = core::pal::relative_native(path.native().c_str(), p, n);
                 return len == -1 ? 0 : len;
             });
-        } while (len > buf.size());
+        } while (len > buf.size() && len != -1);
         if (len == 0) {
             ec = std::error_code(errno, std::system_category());
         } else {
@@ -659,14 +656,14 @@ namespace rainy::foundation::io::filesystem {
     path relative(const path &path, const filesystem::path &base, std::error_code &ec) {
         RAINY_FILESYSTEM_INIT_SYSCALL(ec);
         class path result{};
-        class path::string_type buf;
+        path::string_type buf;
         std::int32_t len = 1024;
         do {
-            buf.resize_and_overwrite(len, [&len, &path, &base](wchar_t *p, unsigned n) -> std::int32_t {
+            buf.resize_and_overwrite(len, [&len, &path, &base](auto *p, unsigned n) -> std::int32_t {
                 len = core::pal::relative_native(path.native().c_str(), base.native().c_str(), p, n);
                 return len == -1 ? 0 : len;
             });
-        } while (len > buf.size());
+        } while (len > buf.size() && len != -1);
         if (len == 0) {
             ec = std::error_code(errno, std::system_category());
         } else {
@@ -789,14 +786,14 @@ namespace rainy::foundation::io::filesystem {
     path temp_directory_path(std::error_code &ec) {
         RAINY_FILESYSTEM_INIT_SYSCALL(ec);
         class path result{};
-        class path::string_type buf;
+        path::string_type buf;
         std::int32_t len = 1024;
         do {
-            buf.resize_and_overwrite(len, [&len](wchar_t *p, unsigned n) -> std::int32_t {
+            buf.resize_and_overwrite(len, [&len](auto *p, unsigned n) -> std::int32_t {
                 len = core::pal::temp_directory_path_native(p, n);
                 return len == -1 ? 0 : len;
             });
-        } while (len > buf.size());
+        } while (len > buf.size() && len != -1);
         if (len == 0) {
             ec = std::error_code(errno, std::system_category());
         } else {
@@ -809,39 +806,23 @@ namespace rainy::foundation::io::filesystem {
         RAINY_FILESYSTEM_EXCEPTION_EDITION_IMPL(weakly_canonical, path);
     }
 
-    path weakly_canonical(const path &p, std::error_code &ec) {
+    path weakly_canonical(const path &path, std::error_code &ec) {
         RAINY_FILESYSTEM_INIT_SYSCALL(ec);
-        file_status st = status(p, ec);
-        if (exists(st)) {
-            return canonical(p, ec);
+        class path result{};
+        path::string_type buf;
+        std::int32_t len = 1024;
+        do {
+            buf.resize_and_overwrite(len, [&len, &path](auto *p, unsigned n) -> std::int32_t {
+                len = core::pal::weakly_canonical_native(path.c_str(), p, n);
+                return len == -1 ? 0 : len;
+            });
+        } while (len > buf.size() && len != -1);
+        if (len == 0) {
+            ec = std::error_code(errno, std::system_category());
+        } else {
+            result = utility::move(buf);
         }
-        if (!status_known(st)) {
-            return {};
-        }
-        ec.clear();
-        path tmp = p;
-        path suffix;
-        while (!tmp.empty()) {
-            suffix = tmp.filename() / suffix;
-            tmp = tmp.parent_path();
-            if (tmp.empty()) {
-                break;
-            }
-            st = status(tmp, ec);
-            if (exists(st)) {
-                path result = canonical(tmp, ec);
-                if (ec) {
-                    return {};
-                }
-                result /= suffix;
-                return result.lexically_normal();
-            }
-            if (!status_known(st)) {
-                return {};
-            }
-            ec.clear();
-        }
-        return p.lexically_normal();
+        return result;
     }
 }
 

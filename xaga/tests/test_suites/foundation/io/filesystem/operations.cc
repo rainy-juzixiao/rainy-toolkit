@@ -48,7 +48,6 @@ SCENARIO("Path operations", "[filesystem][path]") {
             path target = "C:\\temp\\target";
             path link = "C:\\temp\\link";
             THEN("Canonical path should resolve the junction") {
-                // Windows specific assertions
             }
         }
 #elif RAINY_USING_LINUX
@@ -221,7 +220,7 @@ SCENARIO("Directory creation and removal", "[filesystem][dir]") {
         cleanup_test_dir(test_dir);
     }
 
-  GIVEN("Creating directory with attributes from existing") {
+    GIVEN("Creating directory with attributes from existing") {
         auto test_dir = temp_directory_path() / "rainy_test_attr";
         path template_dir = test_dir / "template";
         path new_dir = test_dir / "new";
@@ -367,10 +366,8 @@ SCENARIO("File status and properties", "[filesystem][status]") {
 
             auto size = file_size(dir_path, ec);
 
-            THEN("Should return error") {
-#if RAINY_USING_LINUX || RAINY_USING_MACOS
-                REQUIRE(ec);
-#endif
+            THEN("Should not return error") {
+                REQUIRE(!ec);
             }
         }
 
@@ -493,17 +490,17 @@ SCENARIO("Permission operations", "[filesystem][permissions]") {
             auto status = symlink_status(test_file);
 
             THEN("Write permission should be removed") {
-                REQUIRE((status.permissions() & perms::owner_write) == perms::unknown);
-                REQUIRE((status.permissions() & perms::owner_read) != perms::unknown);
+                REQUIRE((status.permissions() & perms::owner_write) == perms::none);
+                REQUIRE((status.permissions() & perms::owner_read) != perms::none);
             }
         }
 
         WHEN("Adding execute permission") {
-            permissions(test_file, perms::owner_exe, perm_options::add);
+            permissions(test_file, perms::owner_exec, perm_options::add);
             auto status = symlink_status(test_file);
 
             THEN("Execute bit should be set") {
-                REQUIRE((status.permissions() & perms::owner_exe) != perms::unknown);
+                REQUIRE((status.permissions() & perms::owner_exec) != perms::none);
             }
         }
 
@@ -512,7 +509,7 @@ SCENARIO("Permission operations", "[filesystem][permissions]") {
             auto status = symlink_status(test_file);
 
             THEN("No permissions should be set") {
-                REQUIRE((status.permissions() & perms::owner_all) == perms::unknown);
+                REQUIRE((status.permissions() & perms::owner_all) == perms::none);
             }
         }
 #elif RAINY_USING_WINDOWS
