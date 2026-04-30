@@ -119,6 +119,12 @@ clang和GNU编译器区域
 #define RAINY_HAS_CXX23 false
 #endif
 
+#if RAINY_CURRENT_STANDARD_VERSION >= 202506L
+#define RAINY_HAS_CXX26 true
+#else
+#define RAINY_HAS_CXX26 false
+#endif
+
 #if RAINY_CURRENT_STANDARD_VERSION == 201703L
 #define RAINY_IS_CXX17 true
 #else
@@ -492,6 +498,10 @@ static_assert(false, "We detected you are using C++14 and below, and the library
 #define RAINY_ABI_BRIDGE_CALL_GET_COMPILE_STANDARD 3
 #define RAINY_ABI_BRIDGE_CALL_GET_COMPILE_IDENTIFIER 4
 #define RAINY_ABI_BRIDGE_CALL_GET_VERSION_NAME 5
+
+#if RAINY_HAS_CXX26
+#include <meta>
+#endif
 
 namespace rainy::core {
     constexpr bool is_rainy_enable_debug = RAINY_ENABLE_DEBUG;

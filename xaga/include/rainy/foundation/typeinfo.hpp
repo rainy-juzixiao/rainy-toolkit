@@ -235,6 +235,16 @@ namespace rainy::foundation::ctti::implements {
         return traits;
     }
 
+#if RAINY_HAS_CXX26
+    template <typename Ty>
+    constexpr rain_fn generate_type_name() -> std::string_view {
+        constexpr std::string_view result = []() consteval {
+            constexpr auto type_info = ^Ty;
+            return std::meta::qualified_name_of(type_info);
+        }();
+        return result;
+     }
+#else
     template <typename Ty>
     constexpr rain_fn make_type_name_array() -> auto {
         constexpr auto wrapped_name = implements::wrapped_type_name<Ty>();
@@ -256,7 +266,18 @@ namespace rainy::foundation::ctti::implements {
     constexpr rain_fn generate_type_name() -> std::string_view {
         return {type_name_array<Ty>.data(), type_name_array<Ty>.size() - 1};
     }
+#endif
 
+#if RAINY_HAS_CXX26
+    template <auto Variable>
+    constexpr rain_fn generate_variable_name() -> std::string_view {
+        constexpr std::string_view result = []() consteval {
+            constexpr auto info = ^^Variable;
+            return std::meta::name_of(info);
+        }();
+        return result;
+    }
+#else
     template <auto Variable>
     static constexpr std::string_view make_variable_name_ref() {
         constexpr std::string_view func_name = wrapped_variable_name<Variable>();
@@ -302,6 +323,7 @@ namespace rainy::foundation::ctti::implements {
     constexpr rain_fn generate_variable_name() -> std::string_view {
         return {variable_name_array<Variable>.data(), variable_name_array<Variable>.size()};
     }
+#endif
 
     RAINY_INLINE static constexpr std::size_t fnv1a_hash(annotations::lifetime::in<std::string_view> val) noexcept {
         std::size_t hash = utility::implements::fnv_offset_basis;
