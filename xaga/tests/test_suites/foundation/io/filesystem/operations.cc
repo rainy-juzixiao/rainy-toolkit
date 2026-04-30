@@ -388,11 +388,13 @@ SCENARIO("File status and properties", "[filesystem][status]") {
 
 SCENARIO("Path manipulation", "[filesystem][path_manip]") {
     GIVEN("A current working directory") {
-        auto original_cwd = canonical(current_path());
+        auto original_cwd = current_path();
         auto test_dir = temp_directory_path() / "rainy_test_cwd";
         create_directories(test_dir);
+#if RAINY_USING_MACOS // workaround
+        original_cwd = canonical(original_cwd);
         test_dir = canonical(test_dir);
-
+#endif
         WHEN("Changing current directory") {
             current_path(test_dir);
             auto new_cwd = current_path();
@@ -413,7 +415,11 @@ SCENARIO("Path manipulation", "[filesystem][path_manip]") {
     }
 
     GIVEN("Relative and absolute paths") {
+#if RAINY_USING_MACOS // workaround
         auto base_dir = canonical(current_path());
+#else
+        auto base_dir = current_path();
+#endif
         path absolute_path = base_dir / "some" / "file.txt";
 
         WHEN("Computing relative path") {

@@ -26,7 +26,7 @@
 #include <vector>
 
 #if RAINY_USING_MACOS
-#include <sys/select.h>
+#include <sys/select.h> // NOLINT
 #endif
 
 namespace rainy::foundation::io::net::implements {

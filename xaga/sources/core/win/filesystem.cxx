@@ -523,19 +523,16 @@ namespace rainy::core::pal {
             set_errno_from_win32(GetLastError());
             return false;
         }
-
         FILETIME ft = attrs.ftLastWriteTime;
         ULARGE_INTEGER ui;
         ui.LowPart = ft.dwLowDateTime;
         ui.HighPart = ft.dwHighDateTime;
-        // FILETIME（100纳秒，1601）转 Unix 时间戳（秒）
-        std::time_t unix_time = static_cast<std::time_t>(ui.QuadPart / 10000000ULL - 11644473600ULL);
-        // 转回 100纳秒单位返回
-        *out_time = (unix_time + 11644473600LL) * 10000000LL;
+        // FILETIME(100纳秒, epoch 1601) -> Unix 秒
+        *out_time = static_cast<std::time_t>(ui.QuadPart / 10000000ULL - 11644473600ULL);
         return true;
     }
 
-   std::time_t last_write_time_native(native_czstring path) {
+    std::time_t last_write_time_native(native_czstring path) {
         std::time_t t;
         if (!last_write_time_native(path, &t)) {
             return -1;
@@ -544,19 +541,20 @@ namespace rainy::core::pal {
     }
 
     void last_write_time_native(native_czstring path, std::time_t new_time) {
-        std::time_t unix_time = new_time / 10000000LL - 11644473600LL;
-        HANDLE file_handle = CreateFileW(path, FILE_WRITE_ATTRIBUTES, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING,
-                                         FILE_FLAG_BACKUP_SEMANTICS, nullptr);
-        if (file_handle == INVALID_HANDLE_VALUE) {
-            set_errno_from_win32(GetLastError());
-            return;
-        }
+        // new_time 是 Unix 秒，直接转 FILETIME
         ULARGE_INTEGER ui{};
-        ui.QuadPart = (static_cast<ULONGLONG>(unix_time) + 11644473600ULL) * 10000000ULL;
+        ui.QuadPart = (static_cast<ULONGLONG>(new_time) + 11644473600ULL) * 10000000ULL;
         FILETIME ft{};
         ft.dwLowDateTime = ui.LowPart;
         ft.dwHighDateTime = ui.HighPart;
 
+        HANDLE file_handle = CreateFileW(path, FILE_WRITE_ATTRIBUTES,
+            FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr,
+            OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, nullptr);
+        if (file_handle == INVALID_HANDLE_VALUE) {
+            set_errno_from_win32(GetLastError());
+            return;
+        }
         if (!SetFileTime(file_handle, nullptr, nullptr, &ft)) {
             set_errno_from_win32(GetLastError());
         }
