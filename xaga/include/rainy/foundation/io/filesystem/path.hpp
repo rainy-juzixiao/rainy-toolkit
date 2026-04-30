@@ -184,7 +184,6 @@ namespace rainy::foundation::io::filesystem::implements {
         using reference = const Path &;
 
         path_iterator() noexcept : owner_(nullptr), at_end_(true) {
-            core::czstring();
         }
 
         reference operator*() const noexcept {

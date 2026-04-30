@@ -526,11 +526,12 @@ namespace rainy::foundation::io::filesystem {
 
     file_time_type last_write_time(const path &path, std::error_code &ec) noexcept {
         RAINY_FILESYSTEM_INIT_SYSCALL(ec);
-        const auto last_write_time = core::pal::last_write_time_native(path.native().c_str());
+        const auto raw = core::pal::last_write_time_native(path.native().c_str());
         if (errno != 0) {
             ec = std::error_code(errno, std::system_category());
         }
-        return file_time_type{file_time_type::duration{last_write_time}};
+        const auto secs = std::chrono::seconds{raw};
+        return file_time_type{std::chrono::duration_cast<file_time_type::duration>(secs)};
     }
 
     void last_write_time(const path &path, const file_time_type new_time) {
@@ -539,7 +540,8 @@ namespace rainy::foundation::io::filesystem {
 
     void last_write_time(const path &path, file_time_type new_time, std::error_code &ec) noexcept {
         RAINY_FILESYSTEM_INIT_SYSCALL(ec);
-        core::pal::last_write_time_native(path.native().c_str(), new_time.time_since_epoch().count());
+        const std::time_t t = std::chrono::duration_cast<std::chrono::seconds>(new_time.time_since_epoch()).count();
+        core::pal::last_write_time_native(path.native().c_str(), t);
         if (errno != 0) {
             ec = std::error_code(errno, std::system_category());
         }

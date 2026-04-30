@@ -67,7 +67,7 @@ namespace rainy::foundation::io::filesystem {
         perms permissions_;
     };
 
-    using file_time_type = std::chrono::time_point<std::chrono::file_clock>;
+    using file_time_type = std::chrono::time_point<std::chrono::system_clock>;
 }
 
 namespace rainy::foundation::io::filesystem {
