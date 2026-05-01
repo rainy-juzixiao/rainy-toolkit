@@ -235,15 +235,11 @@ namespace rainy::foundation::ctti::implements {
         return traits;
     }
 
-#if RAINY_HAS_CXX26
+#if RAINY_HAS_CXX26 && RAINY_HAS_CXX26_STATIC_REFLECTION
     template <typename Ty>
-    constexpr rain_fn generate_type_name() -> std::string_view {
-        constexpr std::string_view result = []() consteval {
-            constexpr auto type_info = ^Ty;
-            return std::meta::qualified_name_of(type_info);
-        }();
-        return result;
-     }
+    consteval auto generate_type_name() -> std::string_view {
+        return std::meta::display_string_of(^^Ty);
+    }
 #else
     template <typename Ty>
     constexpr rain_fn make_type_name_array() -> auto {
@@ -268,11 +264,11 @@ namespace rainy::foundation::ctti::implements {
     }
 #endif
 
-#if RAINY_HAS_CXX26
+#if 0
     template <auto Variable>
     constexpr rain_fn generate_variable_name() -> std::string_view {
         constexpr std::string_view result = []() consteval {
-            constexpr auto info = ^^Variable;
+            constexpr auto info = ^^ Variable;
             return std::meta::name_of(info);
         }();
         return result;

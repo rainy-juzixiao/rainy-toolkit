@@ -119,7 +119,7 @@ clang和GNU编译器区域
 #define RAINY_HAS_CXX23 false
 #endif
 
-#if RAINY_CURRENT_STANDARD_VERSION >= 202506L
+#if RAINY_CURRENT_STANDARD_VERSION >= 202400L
 #define RAINY_HAS_CXX26 true
 #else
 #define RAINY_HAS_CXX26 false

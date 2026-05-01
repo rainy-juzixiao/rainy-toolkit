@@ -1,14 +1,41 @@
-#include <rainy/core/core.hpp>
 #include <rainy/collections/vector.hpp>
+#include <rainy/core/core.hpp>
 #include <rainy/foundation/concurrency/concurrency.hpp>
 #include <rainy/foundation/io/net/timer.hpp>
+
+#include <rainy/meta/moon/enumeration.hpp>
+#include <rainy/meta/reflection/enumeration.hpp>
 
 #if RAINY_USING_WINDOWS
 #include <windows.h>
 #endif
 #include <iostream>
 using namespace rainy;
+
+namespace aaa {
+    enum class enum_type {
+        a = 1000000,
+        b = 9999,
+        c = 30,
+        d = -1000
+    };
+}
+
 int main() {
+    constexpr bool is_enum_value = meta::moon::is_enum_value_v<aaa::enum_type, aaa::enum_type::a>;
+    constexpr bool is_enum_value1 = meta::moon::is_enum_value_v<aaa::enum_type, static_cast<aaa::enum_type>(1)>;
+    std::cout << "is_enum_value: " << is_enum_value << '\n';
+    std::cout << "is_enum_value1: " << is_enum_value1 << '\n';
+    std::cout << rainy::meta::moon::enum_count<aaa::enum_type>() << '\n';
+    constexpr auto values = rainy::meta::moon::enum_values<aaa::enum_type>();
+    for (auto item: values) {
+        std::cout << (int) item << '\n';
+    }
+    constexpr auto names = rainy::meta::moon::enum_names<aaa::enum_type>();
+    for (auto item: names) {
+        std::cout << item << '\n';
+    }
+
     rainy::foundation::io::net::io_context ctx;
     rainy::foundation::io::net::steady_timer timer(ctx, std::chrono::seconds{5});
     timer.async_wait([](std::error_code ec) {
@@ -43,7 +70,7 @@ int main() {
     char buf[200]{};
     foundation::text::to_chars(buf, buf + 10, 11111);
     std::cout << buf << '\n';
-    
+
     /*rainy::foundation::concurrency::atomic<float> atomics = 10;
     std::cout << atomics << '\n';
     std::cout << atomics + 3.14f << '\n';
