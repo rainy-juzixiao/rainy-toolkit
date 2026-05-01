@@ -18,7 +18,7 @@
 #include <filesystem>
 #include <rainy/foundation/io/buffer.hpp>
 #include <rainy/foundation/io/filesystem/fwd.hpp>
-#include <rainy/foundation/io/implements/io_context.hpp>
+#include <rainy/foundation/io/io_context.hpp>
 
 namespace rainy::foundation::io::filesystem::implements {
     using io::implements::completion_op;
@@ -33,11 +33,11 @@ namespace rainy::foundation::io::filesystem::implements {
          * @brief  打开文件，绑定到给定的 io_context_impl_base
          * @param  path   文件路径
          * @param  mode   打开标志
-         * @param  ctx    调用方持有的 io_context 底层 impl
+         * @param  executor    调用方持有的 io_context 的 executor
          * @return 错误码，成功时 value()==0
          */
         virtual std::error_code open(const std::filesystem::path &path, open_mode mode,
-                                     io_context_impl_base &ctx) noexcept = 0;
+                                     io_context::executor_type executor) noexcept = 0;
 
         virtual void close() noexcept = 0;
 
@@ -61,10 +61,10 @@ namespace rainy::foundation::io::filesystem::implements {
          */
         virtual std::size_t write_some_at(const_buffer buf, std::uint64_t offset, std::error_code &ec) noexcept = 0;
 
-        virtual void async_read_some_at(mutable_buffer buf, std::uint64_t offset, io_context_impl_base &ctx,
+        virtual void async_read_some_at(mutable_buffer buf, std::uint64_t offset, io_context::executor_type executor,
                                         completion_op *op) noexcept = 0;
 
-        virtual void async_write_some_at(const_buffer buf, std::uint64_t offset, io_context_impl_base &ctx,
+        virtual void async_write_some_at(const_buffer buf, std::uint64_t offset, io_context::executor_type executor,
                                          completion_op *op) noexcept = 0;
 
         RAINY_NODISCARD virtual std::uint64_t size(std::error_code &ec) const noexcept = 0;

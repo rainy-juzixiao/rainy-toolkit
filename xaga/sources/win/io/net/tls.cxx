@@ -37,6 +37,11 @@ namespace rainy::foundation::io::net::implements {
     using io::implements::completion_op;
     using io::implements::io_context_impl_base;
     using io::implements::op_result;
+
+    struct win32_file_proxy : io_context::executor_type {
+        using executor_type::associate_handle;
+        using executor_type::post_immediate_completion;
+    };
     
     static std::error_code schannel_ec(SECURITY_STATUS ss) noexcept {
         if (ss == SEC_E_OK) {
@@ -506,22 +511,22 @@ namespace rainy::foundation::io::net::implements {
                 recv
             } current_phase;
             completion_op *outer{nullptr};
-            io_context_impl_base *ctx{nullptr};
+            io_context::executor_type executor;
             ssl_stream_impl *ssl{nullptr};
 
-            explicit ssl_iocp_op(phase p, ssl_stream_impl *s, io_context_impl_base *c, completion_op *op) noexcept :
-                iocp_op(&do_complete), current_phase(p), outer(op), ctx(c), ssl(s) {
+            explicit ssl_iocp_op(phase p, ssl_stream_impl *s, io_context::executor_type executor, completion_op *op) noexcept :
+                iocp_op(&do_complete), current_phase(p), outer(op), executor(executor), ssl(s) {
             }
 
             static void do_complete(completion_op *self, const op_result &result, bool cancelled) {
                 auto *iop = static_cast<ssl_iocp_op *>(self);
 
                 ssl_stream_impl *ssl = iop->ssl;
-                io_context_impl_base *ctx = iop->ctx;
                 completion_op *outer = iop->outer;
+                auto executor = iop->executor;
                 phase p = iop->current_phase;
 
-                ctx->on_work_finished();
+                iop->executor.on_work_finished();
 
                 if (cancelled || result.error_code) {
                     delete iop;
@@ -533,7 +538,7 @@ namespace rainy::foundation::io::net::implements {
                     ssl->recv_used_ += result.bytes_transferred;
                     ssl->recv_used_total_ = ssl->recv_used_;
                     delete iop;
-                    ssl->advance_handshake(*ctx, outer);
+                    ssl->advance_handshake(executor, outer);
                 } else if (p == phase::send_final) {
                     delete iop;
                     ssl->handshaked_ = true;
@@ -541,7 +546,7 @@ namespace rainy::foundation::io::net::implements {
                     outer->complete(op_result{nullptr, 0, 0}, false);
                 } else {
                     delete iop;
-                    ssl->async_raw_recv(*ctx, outer);
+                    ssl->async_raw_recv(executor, outer);
                 }
             }
         };
@@ -607,7 +612,7 @@ namespace rainy::foundation::io::net::implements {
             return schannel_ec(ss == SEC_I_CONTINUE_NEEDED ? SEC_E_OK : ss);
         }
 
-        void async_handshake(io_context_impl_base &ctx, completion_op *op) noexcept override {
+        void async_handshake(io_context::executor_type executor, completion_op *op) noexcept override {
             if (!ensure_cred()) {
                 op->complete(op_result{nullptr, 0, std::make_error_code(std::errc::not_connected).value()}, false);
                 return;
@@ -633,16 +638,16 @@ namespace rainy::foundation::io::net::implements {
             recv_used_ = 0;
             recv_used_total_ = 0;
             if (out_buf.cbBuffer && out_buf.pvBuffer) {
-                async_raw_send(out_buf.pvBuffer, out_buf.cbBuffer, ctx, op);
+                async_raw_send(out_buf.pvBuffer, out_buf.cbBuffer, executor, op);
                 FreeContextBuffer(out_buf.pvBuffer);
             } else {
-                async_raw_recv(ctx, op);
+                async_raw_recv(executor, op);
             }
         }
 
-        void async_raw_send(const void *buf, DWORD len, io_context_impl_base &ctx, completion_op *op) noexcept {
+        void async_raw_send(const void *buf, DWORD len, io_context::executor_type executor, completion_op *op) noexcept {
             send_buf_.assign(static_cast<const BYTE *>(buf), static_cast<const BYTE *>(buf) + len);
-            auto *iop = new ssl_iocp_op(ssl_iocp_op::phase::send, this, &ctx, op);
+            auto *iop = new ssl_iocp_op(ssl_iocp_op::phase::send, this, executor, op);
             ::ZeroMemory(&iop->overlapped, sizeof(OVERLAPPED));
             WSABUF wb{len, reinterpret_cast<char *>(send_buf_.data())};
             DWORD sent = 0;
@@ -653,14 +658,14 @@ namespace rainy::foundation::io::net::implements {
                 op->complete(op_result{nullptr, 0, err}, false);
                 return;
             }
-            ctx.on_work_started();
+            executor.on_work_started();
         }
 
-        void async_raw_recv(io_context_impl_base &ctx, completion_op *op) noexcept {
+        void async_raw_recv(io_context::executor_type executor, completion_op *op) noexcept {
             if (recv_used_ >= recv_buf_.size()) {
                 recv_buf_.resize(recv_buf_.size() * 2);
             }
-            auto *iop = new ssl_iocp_op(ssl_iocp_op::phase::recv, this, &ctx, op);
+            auto *iop = new ssl_iocp_op(ssl_iocp_op::phase::recv, this, executor, op);
             ::ZeroMemory(&iop->overlapped, sizeof(OVERLAPPED));
             WSABUF wb{static_cast<ULONG>(recv_buf_.size() - recv_used_), reinterpret_cast<char *>(recv_buf_.data() + recv_used_)};
             DWORD recvd = 0;
@@ -672,28 +677,36 @@ namespace rainy::foundation::io::net::implements {
                 op->complete(op_result{nullptr, 0, err}, false);
                 return;
             }
-            ctx.on_work_started();
+            iop->executor.on_work_started();
         }
 
-        void advance_handshake(io_context_impl_base &ctx, completion_op *op) noexcept {
+void advance_handshake(io_context::executor_type executor, completion_op *op) noexcept {
             SecBuffer in_bufs[2]{};
-
             in_bufs[0].BufferType = SECBUFFER_TOKEN;
             in_bufs[0].cbBuffer = static_cast<DWORD>(recv_used_);
             in_bufs[0].pvBuffer = recv_buf_.data();
-
             in_bufs[1].BufferType = SECBUFFER_EMPTY;
 
             SecBufferDesc in_desc{SECBUFFER_VERSION, 2, in_bufs};
             SecBuffer out_buf{};
             out_buf.BufferType = SECBUFFER_TOKEN;
             SecBufferDesc out_desc{SECBUFFER_VERSION, 1, &out_buf};
-            ULONG ctx_flags = ISC_REQ_SEQUENCE_DETECT | ISC_REQ_REPLAY_DETECT | ISC_REQ_CONFIDENTIALITY | ISC_REQ_STREAM |
-                              ISC_REQ_ALLOCATE_MEMORY;
+            ULONG ctx_flags =
+                ISC_REQ_SEQUENCE_DETECT | ISC_REQ_REPLAY_DETECT | ISC_REQ_CONFIDENTIALITY | ISC_REQ_STREAM | ISC_REQ_ALLOCATE_MEMORY;
             ULONG out_flags = 0;
 
             SECURITY_STATUS ss = InitializeSecurityContextA(p_cred_, &ctx_handle_, nullptr, ctx_flags, 0, SECURITY_NATIVE_DREP,
                                                             &in_desc, 0, nullptr, &out_desc, &out_flags, nullptr);
+
+            // SEC_E_INCOMPLETE_MESSAGE：数据不够，recv_used_ 原样不动，直接继续收
+            if (ss == SEC_E_INCOMPLETE_MESSAGE) {
+                if (out_buf.pvBuffer)
+                    FreeContextBuffer(out_buf.pvBuffer);
+                async_raw_recv(executor, op);
+                return;
+            }
+
+            // 其他情况：处理 SECBUFFER_EXTRA
             DWORD extra = 0;
             for (int i = 0; i < 2; ++i) {
                 if (in_bufs[i].BufferType == SECBUFFER_EXTRA) {
@@ -702,15 +715,15 @@ namespace rainy::foundation::io::net::implements {
                 }
             }
             if (extra > 0) {
-                std::memmove(recv_buf_.data(), recv_buf_.data() + (recv_used_total_ - extra), extra);
-
+                std::memmove(recv_buf_.data(), recv_buf_.data() + (recv_used_ - extra), extra);
                 recv_used_ = extra;
             } else {
                 recv_used_ = 0;
             }
+
             if (ss == SEC_E_OK) {
                 if (out_buf.cbBuffer && out_buf.pvBuffer) {
-                    async_raw_send_final(out_buf.pvBuffer, out_buf.cbBuffer, ctx, op);
+                    async_raw_send_final(out_buf.pvBuffer, out_buf.cbBuffer, executor, op);
                     FreeContextBuffer(out_buf.pvBuffer);
                 } else {
                     handshaked_ = true;
@@ -720,12 +733,12 @@ namespace rainy::foundation::io::net::implements {
                 return;
             }
 
-            if (ss == SEC_I_CONTINUE_NEEDED || ss == SEC_E_INCOMPLETE_MESSAGE) {
+            if (ss == SEC_I_CONTINUE_NEEDED) {
                 if (out_buf.cbBuffer && out_buf.pvBuffer) {
-                    async_raw_send(out_buf.pvBuffer, out_buf.cbBuffer, ctx, op);
+                    async_raw_send(out_buf.pvBuffer, out_buf.cbBuffer, executor, op);
                     FreeContextBuffer(out_buf.pvBuffer);
                 } else {
-                    async_raw_recv(ctx, op);
+                    async_raw_recv(executor, op);
                 }
                 return;
             }
@@ -736,7 +749,6 @@ namespace rainy::foundation::io::net::implements {
 
             op->complete(op_result{nullptr, 0, static_cast<int>(ss)}, false);
         }
-
         std::error_code shutdown() noexcept override {
             if (!session_valid_) {
                 return {};
@@ -746,7 +758,7 @@ namespace rainy::foundation::io::net::implements {
             return {};
         }
 
-        void async_shutdown(io_context_impl_base &, completion_op *op) noexcept override {
+        void async_shutdown(io_context::executor_type executor, completion_op *op) noexcept override {
             if (!op) {
                 return;
             }
@@ -837,8 +849,8 @@ namespace rainy::foundation::io::net::implements {
                         // 数据不够，继续读
                     } else if (ss == SEC_I_CONTEXT_EXPIRED) {
                         handshaked_ = false;
-                        ec.clear();
-                        return 0;
+                        ec = std::make_error_code(std::errc::connection_reset);
+                        return -1;
                     } else {
                         ec = schannel_ec(ss);
                         return -1;
@@ -852,7 +864,7 @@ namespace rainy::foundation::io::net::implements {
             }
         }
 
-        void async_write_some(const void *buf, std::size_t len, io_context_impl_base &, completion_op *op) noexcept override {
+        void async_write_some(const void *buf, std::size_t len, io_context::executor_type executor, completion_op *op) noexcept override {
             if (!op) {
                 return;
             }
@@ -863,7 +875,7 @@ namespace rainy::foundation::io::net::implements {
             }
         }
 
-        void async_read_some(void *buf, std::size_t len, io_context_impl_base &, completion_op *op) noexcept override {
+        void async_read_some(void *buf, std::size_t len, io_context::executor_type executor, completion_op *op) noexcept override {
             if (!op) {
                 return;
             }
@@ -1068,10 +1080,10 @@ namespace rainy::foundation::io::net::implements {
             return ss;
         }
 
-        void async_raw_send_final(const void *buf, DWORD len, io_context_impl_base &ctx, completion_op *op) noexcept {
+        void async_raw_send_final(const void *buf, DWORD len, io_context::executor_type executor, completion_op *op) noexcept {
             send_buf_.assign(static_cast<const BYTE *>(buf), static_cast<const BYTE *>(buf) + len);
 
-            auto *iop = new ssl_iocp_op(ssl_iocp_op::phase::send_final, this, &ctx, op);
+            auto *iop = new ssl_iocp_op(ssl_iocp_op::phase::send_final, this, executor, op);
             ::ZeroMemory(&iop->overlapped, sizeof(OVERLAPPED));
 
             WSABUF wb{len, reinterpret_cast<char *>(send_buf_.data())};
@@ -1083,7 +1095,7 @@ namespace rainy::foundation::io::net::implements {
                 op->complete(op_result{nullptr, 0, err}, false);
                 return;
             }
-            ctx.on_work_started();
+            executor.on_work_started();
         }
 
         void send_shutdown_alert() noexcept {

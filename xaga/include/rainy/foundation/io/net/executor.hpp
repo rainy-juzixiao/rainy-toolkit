@@ -468,8 +468,9 @@ namespace rainy::foundation::io {
     }
 
     template <typename ExecutionContext, typename CompletionToken,
-              type_traits::other_trans::enable_if_t<
-                  type_traits::type_relations::is_convertible_v<ExecutionContext &, execution_context &>, int> = 0>
+              type_traits::other_trans::enable_if_t<type_traits::type_relations::is_convertible_v<ExecutionContext &, execution_context &> &&
+                                                  !is_executor_v<ExecutionContext>,
+                                              int> = 0>
     rain_fn post(ExecutionContext &ctx, CompletionToken &&token) -> typename async_result<CompletionToken, void()>::return_type {
         return post(ctx.get_executor(), utility::move(token));
     }

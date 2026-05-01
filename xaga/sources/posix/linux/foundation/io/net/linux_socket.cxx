@@ -33,13 +33,20 @@ namespace rainy::foundation::io::net::implements {
         return std::error_code{e, std::system_category()};
     }
 
-    static io_uring_sqe *get_sqe_from_op(io::implements::completion_op *op, io::implements::io_context_impl_base &ctx_impl,
-                                         const int fd) {
-        ctx_impl.associate_handle(op, static_cast<std::uintptr_t>(fd), nullptr);
-        if (!op->io_handle) {
-            return nullptr;
+    struct linux_socket_proxy : io_context::executor_type {
+        io_uring_sqe *get_sqe_from_op(io::implements::completion_op *op, io_context::executor_type executor, const int fd) { // NOLINT
+            this->associate_handle(op, static_cast<std::uintptr_t>(fd), nullptr);
+            if (!op->io_handle) {
+                return nullptr;
+            }
+            return ::io_uring_get_sqe(static_cast<io_uring *>(op->io_handle));
         }
-        return ::io_uring_get_sqe(static_cast<io_uring *>(op->io_handle));
+
+        using executor_type::post_immediate_completion;
+    };
+
+    static io_uring_sqe *get_sqe_from_op(io::implements::completion_op *op, const io_context::executor_type& executor, const int fd) {
+        return linux_socket_proxy{executor}.get_sqe_from_op(op, executor, fd);
     }
 
     static void submit_ring(const io::implements::completion_op *op) noexcept {
@@ -269,11 +276,10 @@ namespace rainy::foundation::io::net::implements {
             return ret == 0 ? std::error_code{} : posix_error();
         }
 
-        void async_connect(const raw_endpoint &ep, io::implements::io_context_impl_base &ctx_impl,
-                           completion_op *op) noexcept override {
-            auto *sqe = get_sqe_from_op(op, ctx_impl, fd_);
+        void async_connect(const raw_endpoint &ep, io_context::executor_type executor, completion_op *op) noexcept override {
+            auto *sqe = get_sqe_from_op(op, executor, fd_);
             if (!sqe) {
-                ctx_impl.post_immediate_completion(op, false);
+                linux_socket_proxy{executor}.post_immediate_completion(op, false);
                 return;
             }
             ::io_uring_prep_connect(sqe, fd_, reinterpret_cast<const ::sockaddr *>(ep.data), static_cast<::socklen_t>(ep.size));
@@ -281,11 +287,11 @@ namespace rainy::foundation::io::net::implements {
             submit_ring(op);
         }
 
-        void async_send(const void *buf, const std::size_t len, const message_flags_t flags,
-                        io::implements::io_context_impl_base &ctx_impl, completion_op *op) noexcept override {
-            auto *sqe = get_sqe_from_op(op, ctx_impl, fd_);
+        void async_send(const void *buf, const std::size_t len, const message_flags_t flags, io_context::executor_type executor,
+                        completion_op *op) noexcept override {
+            auto *sqe = get_sqe_from_op(op, executor, fd_);
             if (!sqe) {
-                ctx_impl.post_immediate_completion(op, false);
+                linux_socket_proxy{executor}.post_immediate_completion(op, false);
                 return;
             }
             ::io_uring_prep_send(sqe, fd_, buf, len, flags);
@@ -293,11 +299,11 @@ namespace rainy::foundation::io::net::implements {
             submit_ring(op);
         }
 
-        void async_receive(void *buf, const std::size_t len, const message_flags_t flags,
-                           io::implements::io_context_impl_base &ctx_impl, completion_op *op) noexcept override {
-            auto *sqe = get_sqe_from_op(op, ctx_impl, fd_);
+        void async_receive(void *buf, const std::size_t len, const message_flags_t flags, io_context::executor_type executor,
+                           completion_op *op) noexcept override {
+            auto *sqe = get_sqe_from_op(op, executor, fd_);
             if (!sqe) {
-                ctx_impl.post_immediate_completion(op, false);
+                linux_socket_proxy{executor}.post_immediate_completion(op, false);
                 return;
             }
             ::io_uring_prep_recv(sqe, fd_, buf, len, flags);
@@ -306,10 +312,10 @@ namespace rainy::foundation::io::net::implements {
         }
 
         void async_send_to(const void *buf, const std::size_t len, const message_flags_t flags, const raw_endpoint &dest,
-                           io::implements::io_context_impl_base &ctx_impl, completion_op *op) noexcept override {
-            auto *sqe = get_sqe_from_op(op, ctx_impl, fd_);
+                           io_context::executor_type executor, completion_op *op) noexcept override {
+            auto *sqe = get_sqe_from_op(op, executor, fd_);
             if (!sqe) {
-                ctx_impl.post_immediate_completion(op, false);
+                linux_socket_proxy{executor}.post_immediate_completion(op, false);
                 return;
             }
             static thread_local ::iovec iov{};
@@ -327,10 +333,10 @@ namespace rainy::foundation::io::net::implements {
         }
 
         void async_receive_from(void *buf, const std::size_t len, const message_flags_t flags, raw_endpoint &sender,
-                                io::implements::io_context_impl_base &ctx_impl, completion_op *op) noexcept override {
-            auto *sqe = get_sqe_from_op(op, ctx_impl, fd_);
+                                io_context::executor_type executor, completion_op *op) noexcept override {
+            auto *sqe = get_sqe_from_op(op, executor, fd_);
             if (!sqe) {
-                ctx_impl.post_immediate_completion(op, false);
+               linux_socket_proxy{executor}.post_immediate_completion(op, false);
                 return;
             }
             thread_local ::iovec iov{};
@@ -347,10 +353,10 @@ namespace rainy::foundation::io::net::implements {
             submit_ring(op);
         }
 
-        void async_accept(raw_endpoint *peer_ep, io::implements::io_context_impl_base &ctx_impl, completion_op *op) noexcept override {
-            auto *sqe = get_sqe_from_op(op, ctx_impl, fd_);
+        void async_accept(raw_endpoint *peer_ep, io_context::executor_type executor, completion_op *op) noexcept override {
+            auto *sqe = get_sqe_from_op(op, executor, fd_);
             if (!sqe) {
-                ctx_impl.post_immediate_completion(op, false);
+                linux_socket_proxy{executor}.post_immediate_completion(op, false);
                 return;
             }
             thread_local ::socklen_t addrlen = peer_ep ? static_cast<::socklen_t>(sizeof(peer_ep->data)) : 0;
@@ -360,10 +366,10 @@ namespace rainy::foundation::io::net::implements {
             submit_ring(op);
         }
 
-        void async_wait(const wait_type w, io::implements::io_context_impl_base &ctx_impl, completion_op *op) noexcept override {
-            auto *sqe = get_sqe_from_op(op, ctx_impl, fd_);
+        void async_wait(const wait_type w, io_context::executor_type executor, completion_op *op) noexcept override {
+            auto *sqe = get_sqe_from_op(op, executor, fd_);
             if (!sqe) {
-                ctx_impl.post_immediate_completion(op, false);
+                linux_socket_proxy{executor}.post_immediate_completion(op, false);
                 return;
             }
             unsigned poll_mask = 0;

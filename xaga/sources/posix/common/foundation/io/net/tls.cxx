@@ -18,6 +18,7 @@
 #if RAINY_HAS_OPENSSL
 #include <cstring>
 #include <fcntl.h>
+#include <iostream>
 #include <openssl/err.h>
 #include <openssl/ssl.h>
 #include <openssl/x509v3.h>
@@ -64,6 +65,29 @@ namespace rainy::foundation::io::net::implements {
                 return {static_cast<int>(-ERR_get_error()), std::system_category()};
             case SSL_ERROR_ZERO_RETURN:
                 return {};
+            default:
+                return {-err, std::system_category()};
+        }
+    }
+
+    static std::error_code openssl_ec(SSL *ssl, const int ret) noexcept {
+        if (ret > 0)
+            return {};
+        const int err = SSL_get_error(ssl, ret);
+        switch (err) {
+            case SSL_ERROR_WANT_READ:
+            case SSL_ERROR_WANT_WRITE:
+                return std::make_error_code(std::errc::resource_unavailable_try_again);
+            case SSL_ERROR_ZERO_RETURN:
+                return {}; // 正常 close_notify
+            case SSL_ERROR_SYSCALL:
+                if (ERR_peek_error() == 0) {
+                    return std::make_error_code(std::errc::connection_reset);
+                }
+                return std::make_error_code(std::errc::io_error);
+            case SSL_ERROR_SSL: {
+                return {static_cast<int>(-ERR_get_error()), std::system_category()};
+            }
             default:
                 return {-err, std::system_category()};
         }
@@ -400,7 +424,7 @@ namespace rainy::foundation::io::net::implements {
             } else {
                 owned_ctx_.reset(SSL_CTX_new(TLS_method()));
                 if (!owned_ctx_) {
-                    return openssl_ec(-1);
+                    return openssl_ec(ssl_, -1);
                 }
                 SSL_CTX_set_default_verify_paths(owned_ctx_.get());
                 raw_ctx = owned_ctx_.get();
@@ -408,7 +432,7 @@ namespace rainy::foundation::io::net::implements {
 
             ssl_ = SSL_new(raw_ctx);
             if (!ssl_) {
-                return openssl_ec(-1);
+                return openssl_ec(ssl_, -1);
             }
             if (is_server) {
                 SSL_set_accept_state(ssl_);
@@ -456,10 +480,10 @@ namespace rainy::foundation::io::net::implements {
                 reset_operation();
                 return {};
             }
-            return openssl_ec(ret);
+            return openssl_ec(ssl_, ret);
         }
 
-        void async_handshake(io_context_impl &ctx_impl, completion_op *op) noexcept override {
+        void async_handshake(io_context::executor_type executor, completion_op *op) noexcept override {
             if (!ssl_ || !op) {
                 return;
             }
@@ -482,7 +506,7 @@ namespace rainy::foundation::io::net::implements {
                     wants_retry_ = true;
                 } else {
                     wants_retry_ = false;
-                    const std::error_code ec = openssl_ec(err);
+                    const std::error_code ec = openssl_ec(ssl_, err);
                     op->complete(io::implements::op_result{nullptr, 0, ec.value()}, false); // NOLINT
                 }
             }
@@ -497,10 +521,10 @@ namespace rainy::foundation::io::net::implements {
                 ret = SSL_shutdown(ssl_);
             }
             handshaked_ = false;
-            return ret == 1 ? std::error_code{} : openssl_ec(ret);
+            return ret == 1 ? std::error_code{} : openssl_ec(ssl_, ret);
         }
 
-        void async_shutdown(io_context_impl &ctx_impl, completion_op *op) noexcept override {
+        void async_shutdown(io_context::executor_type executor, completion_op *op) noexcept override {
             if (!ssl_ || !op) {
                 return;
             }
@@ -550,7 +574,7 @@ namespace rainy::foundation::io::net::implements {
             } else {
                 wants_retry_ = false;
             }
-            ec = openssl_ec(ret);
+            ec = openssl_ec(ssl_, ret);
             return -1;
         }
 
@@ -579,14 +603,54 @@ namespace rainy::foundation::io::net::implements {
                 wants_read_ = false;
                 wants_write_ = true;
                 wants_retry_ = true;
+            } else if (err == SSL_ERROR_SSL) {
+                const unsigned long err_code = ERR_peek_error();
+                const int reason = ERR_GET_REASON(err_code);
+                if (reason == SSL_R_UNEXPECTED_EOF_WHILE_READING) {
+                    ERR_clear_error();
+                    ec.clear();
+                    handshaked_ = false;
+                    return 0; // 当作 EOF
+                }
+                /*
+                 * workaround for openssl posix/macOS
+                 * 并不是所有TLS服务器的实现都标准，例如谷歌的服务器，可能是服务器节点的问题，也可能是服务器本身为了优化，不会走标准行为
+                 * 但无论如何，此处，我们则进行完整的一次判断，来把SSL_R_DECRYPTION_FAILED_OR_BAD_RECORD_MAC的情况完全区分开来，避免走错
+                 * 或是默许错误的通信流程
+                 *
+                 * 详细帖子：
+                 * http://erlang.org/pipermail/erlang-questions/2010-July/052319.html
+                 * https://hachyderm.io/@harrysintonen@infosec.exchange/111857045361610169
+                */
+                if (reason == SSL_R_DECRYPTION_FAILED_OR_BAD_RECORD_MAC) {
+                    // 验证连接是否真的已关闭
+                    char tmp = 0;
+                    const ssize_t recv_ret = ::recv(socket_fd_, &tmp, 1, MSG_PEEK | MSG_DONTWAIT);
+                    if (recv_ret == 0) {
+                        // 连接已正常关闭
+                        ERR_clear_error();
+                        ec.clear();
+                        handshaked_ = false;
+                        return 0;
+                    }
+                    if (recv_ret == -1 && (errno == ECONNRESET || errno == EPIPE)) {
+                        // 连接被 RST
+                        ERR_clear_error();
+                        ec.clear();
+                        handshaked_ = false;
+                        return 0;
+                    }
+                    wants_retry_ = false;
+                }
+                wants_retry_ = false;
             } else {
                 wants_retry_ = false;
             }
-            ec = openssl_ec(ret);
+            ec = openssl_ec(ssl_, ret);
             return -1;
         }
 
-        void async_write_some(const void *buf, const std::size_t len, io_context_impl & /*ctx_impl*/,
+        void async_write_some(const void *buf, const std::size_t len, io_context::executor_type /* executor */,
                               completion_op *op) noexcept override {
             if (!op) {
                 return;
@@ -594,11 +658,12 @@ namespace rainy::foundation::io::net::implements {
             std::error_code ec;
             const std::ptrdiff_t n = write_some(buf, len, ec);
             if (!ec || !wants_retry_) {
-                op->complete(io::implements::op_result{nullptr, static_cast<std::size_t>(n > 0 ? n : 0), ec ? ec.value() : 0}, false); // NOLINT
+                op->complete(io::implements::op_result{nullptr, static_cast<std::size_t>(n > 0 ? n : 0), ec ? ec.value() : 0},
+                             false); // NOLINT
             }
         }
 
-        void async_read_some(void *buf, const std::size_t len, io_context_impl & /*ctx_impl*/,
+        void async_read_some(void *buf, const std::size_t len, io_context::executor_type /* executor */,
                              completion_op *op) noexcept override {
             if (!op) {
                 return;
@@ -606,7 +671,8 @@ namespace rainy::foundation::io::net::implements {
             std::error_code ec;
             const std::ptrdiff_t n = read_some(buf, len, ec);
             if (!ec || !wants_retry_) {
-                op->complete(io::implements::op_result{nullptr, static_cast<std::size_t>(n > 0 ? n : 0), ec ? ec.value() : 0}, false); // NOLINT
+                op->complete(io::implements::op_result{nullptr, static_cast<std::size_t>(n > 0 ? n : 0), ec ? ec.value() : 0},
+                             false); // NOLINT
             }
         }
 

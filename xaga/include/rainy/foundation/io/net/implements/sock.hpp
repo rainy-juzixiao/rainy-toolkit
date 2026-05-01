@@ -121,26 +121,26 @@ namespace rainy::foundation::io::net::implements {
 
         virtual bool at_mark(std::error_code &ec) const noexcept = 0;
 
-        virtual void async_connect(const raw_endpoint &ep, io_context_impl &ctx_impl,
+        virtual void async_connect(const raw_endpoint &ep, io_context::executor_type executor,
                                    completion_op *op) noexcept = 0;
 
         virtual void async_send(const void *buf, std::size_t len, message_flags_t flags,
-                                io_context_impl &ctx_impl, completion_op *op) noexcept = 0;
+                                io_context::executor_type executor, completion_op *op) noexcept = 0;
 
-        virtual void async_receive(void *buf, std::size_t len, message_flags_t flags, io_context_impl &ctx_impl,
+        virtual void async_receive(void *buf, std::size_t len, message_flags_t flags, io_context::executor_type executor,
                                    completion_op *op) noexcept = 0;
 
         virtual void async_send_to(const void *buf, std::size_t len, message_flags_t flags, const raw_endpoint &dest,
-                                   io_context_impl &ctx_impl, completion_op *op) noexcept = 0;
+                                   io_context::executor_type executor, completion_op *op) noexcept = 0;
 
         virtual void async_receive_from(void *buf, std::size_t len, message_flags_t flags, raw_endpoint &sender,
-                                        io_context_impl &ctx_impl,
+                                        io_context::executor_type executor,
                                         completion_op *op) noexcept = 0;
 
-        virtual void async_accept(raw_endpoint *peer_ep, io_context_impl &ctx_impl,
+        virtual void async_accept(raw_endpoint *peer_ep, io_context::executor_type executor,
                                   completion_op *op) noexcept = 0;
 
-        virtual void async_wait(wait_type w, io_context_impl &ctx_impl,
+        virtual void async_wait(wait_type w, io_context::executor_type executor,
                                 completion_op *op) noexcept = 0;
 
         virtual std::error_code io_control(unsigned long cmd, void *arg) noexcept = 0;

@@ -25,7 +25,7 @@
 #include <unistd.h>
 // NOLINTEND
 
-#include <rainy/foundation/io/implements/io_context.hpp>
+#include <rainy/foundation/io/io_context.hpp>
 #include <rainy/foundation/io/net/implements/sock.hpp>
 
 namespace rainy::foundation::io::net::implements {
@@ -33,12 +33,20 @@ namespace rainy::foundation::io::net::implements {
         return std::error_code{e, std::system_category()};
     }
 
-    static int get_kq_from_op(io::implements::completion_op *op, io::implements::io_context_impl_base &ctx_impl, int fd) noexcept {
-        ctx_impl.associate_handle(op, static_cast<std::uintptr_t>(fd), nullptr);
-        if (!op->io_handle) {
-            return -1;
+    struct macos_socket_proxy : io_context::executor_type {
+        int get_kq_from_op(io::implements::completion_op *op, io_context::executor_type executor, const int fd) { // NOLINT
+            this->associate_handle(op, static_cast<std::uintptr_t>(fd), nullptr);
+            if (!op->io_handle) {
+                return -1;
+            }
+            return static_cast<int>(reinterpret_cast<std::uintptr_t>(op->io_handle));
         }
-        return static_cast<int>(reinterpret_cast<std::uintptr_t>(op->io_handle));
+
+        using executor_type::post_immediate_completion;
+    };
+
+    static int get_kq_from_op(io::implements::completion_op *op, const io_context::executor_type &executor,const int fd) noexcept {
+        return macos_socket_proxy{executor}.get_kq_from_op(op, executor, fd);
     }
 
     static bool submit_kevent(int kq, int fd, short filter, io::implements::completion_op *op) noexcept {
@@ -80,7 +88,7 @@ namespace rainy::foundation::io::net::implements {
     };
 
     template <typename IoFunc>
-    static void post_kqueue_async(int kq, int fd, short filter, io::implements::io_context_impl_base &ctx_impl, io::implements::completion_op *user_op,
+    static void post_kqueue_async(int kq, int fd, short filter, io_context::executor_type executor, io::implements::completion_op *user_op,
                                   IoFunc &&io_func) noexcept {
         auto *io_op = new (std::nothrow) kqueue_io_op<std::decay_t<IoFunc>>(std::forward<IoFunc>(io_func), user_op);
         if (!io_op) {
@@ -90,7 +98,7 @@ namespace rainy::foundation::io::net::implements {
         }
         if (!submit_kevent(kq, fd, filter, io_op)) {
             delete io_op;
-            ctx_impl.post_immediate_completion(user_op, false);
+            macos_socket_proxy{executor}.post_immediate_completion(user_op, false);
         }
     }
 
@@ -335,27 +343,27 @@ namespace rainy::foundation::io::net::implements {
             return ret == 0 ? std::error_code{} : posix_error();
         }
 
-        void async_connect(const raw_endpoint &ep, io::implements::io_context_impl_base &ctx_impl,
+        void async_connect(const raw_endpoint &ep, io_context::executor_type executor,
                            io::implements::completion_op *op) noexcept override {
             const int ret = ::connect(fd_, reinterpret_cast<const ::sockaddr *>(ep.data), static_cast<::socklen_t>(ep.size));
             if (ret == 0) {
                 // 连接立即成功（loopback 常见）
-                ctx_impl.post_immediate_completion(op, false);
+                macos_socket_proxy{executor}.post_immediate_completion(op, false);
                 return;
             }
             if (errno != EINPROGRESS) {
-                ctx_impl.post_immediate_completion(op, false);
+                macos_socket_proxy{executor}.post_immediate_completion(op, false);
                 return;
             }
 
-            const int kq = get_kq_from_op(op, ctx_impl, fd_);
+            const int kq = get_kq_from_op(op, executor, fd_);
             if (kq < 0) {
-                ctx_impl.post_immediate_completion(op, false);
+                macos_socket_proxy{executor}.post_immediate_completion(op, false);
                 return;
             }
 
             const int fd = fd_;
-            post_kqueue_async(kq, fd_, EVFILT_WRITE, ctx_impl, op, [fd](io::implements::op_result &r) noexcept {
+            post_kqueue_async(kq, fd_, EVFILT_WRITE, executor, op, [fd](io::implements::op_result &r) noexcept {
                 int err = 0;
                 ::socklen_t len = sizeof(err);
                 if (::getsockopt(fd, SOL_SOCKET, SO_ERROR, &err, &len) < 0) {
@@ -366,16 +374,16 @@ namespace rainy::foundation::io::net::implements {
             });
         }
 
-        void async_send(const void *buf, std::size_t len, message_flags_t flags, io::implements::io_context_impl_base &ctx_impl,
+        void async_send(const void *buf, std::size_t len, message_flags_t flags, io_context::executor_type executor,
                         io::implements::completion_op *op) noexcept override {
-            const int kq = get_kq_from_op(op, ctx_impl, fd_);
+            const int kq = get_kq_from_op(op, executor, fd_);
             if (kq < 0) {
-                ctx_impl.post_immediate_completion(op, false);
+                macos_socket_proxy{executor}.post_immediate_completion(op, false);
                 return;
             }
 
             const int fd = fd_;
-            post_kqueue_async(kq, fd_, EVFILT_WRITE, ctx_impl, op, [fd, buf, len, flags](io::implements::op_result &r) noexcept {
+            post_kqueue_async(kq, fd_, EVFILT_WRITE, executor, op, [fd, buf, len, flags](io::implements::op_result &r) noexcept {
                 const ::ssize_t n = ::send(fd, buf, len, flags);
                 if (n < 0) {
                     r.bytes_transferred = 0;
@@ -387,16 +395,16 @@ namespace rainy::foundation::io::net::implements {
             });
         }
 
-        void async_receive(void *buf, std::size_t len, message_flags_t flags, io::implements::io_context_impl_base &ctx_impl,
+        void async_receive(void *buf, std::size_t len, message_flags_t flags, io_context::executor_type executor,
                            io::implements::completion_op *op) noexcept override {
-            const int kq = get_kq_from_op(op, ctx_impl, fd_);
+            const int kq = get_kq_from_op(op, executor, fd_);
             if (kq < 0) {
-                ctx_impl.post_immediate_completion(op, false);
+                macos_socket_proxy{executor}.post_immediate_completion(op, false);
                 return;
             }
 
             const int fd = fd_;
-            post_kqueue_async(kq, fd_, EVFILT_READ, ctx_impl, op, [fd, buf, len, flags](io::implements::op_result &r) noexcept {
+            post_kqueue_async(kq, fd_, EVFILT_READ, executor, op, [fd, buf, len, flags](io::implements::op_result &r) noexcept {
                 const ::ssize_t n = ::recv(fd, buf, len, flags);
                 if (n < 0) {
                     r.bytes_transferred = 0;
@@ -409,15 +417,15 @@ namespace rainy::foundation::io::net::implements {
         }
 
         void async_send_to(const void *buf, std::size_t len, message_flags_t flags, const raw_endpoint &dest,
-                           io::implements::io_context_impl_base &ctx_impl, io::implements::completion_op *op) noexcept override {
-            const int kq = get_kq_from_op(op, ctx_impl, fd_);
+                           io_context::executor_type executor, io::implements::completion_op *op) noexcept override {
+            const int kq = get_kq_from_op(op, executor, fd_);
             if (kq < 0) {
-                ctx_impl.post_immediate_completion(op, false);
+                macos_socket_proxy{executor}.post_immediate_completion(op, false);
                 return;
             }
             const int fd = fd_;
             raw_endpoint dest_copy = dest;
-            post_kqueue_async(kq, fd_, EVFILT_WRITE, ctx_impl, op, [fd, buf, len, flags, dest_copy](io::implements::op_result &r) noexcept {
+            post_kqueue_async(kq, fd_, EVFILT_WRITE, executor, op, [fd, buf, len, flags, dest_copy](io::implements::op_result &r) noexcept {
                 const ::ssize_t n = ::sendto(fd, buf, len, flags, reinterpret_cast<const ::sockaddr *>(dest_copy.data),
                                              static_cast<::socklen_t>(dest_copy.size));
                 if (n < 0) {
@@ -431,14 +439,14 @@ namespace rainy::foundation::io::net::implements {
         }
 
         void async_receive_from(void *buf, std::size_t len, message_flags_t flags, raw_endpoint &sender,
-                                io::implements::io_context_impl_base &ctx_impl, io::implements::completion_op *op) noexcept override {
-            const int kq = get_kq_from_op(op, ctx_impl, fd_);
+                                io_context::executor_type executor, io::implements::completion_op *op) noexcept override {
+            const int kq = get_kq_from_op(op, executor, fd_);
             if (kq < 0) {
-                ctx_impl.post_immediate_completion(op, false);
+                macos_socket_proxy{executor}.post_immediate_completion(op, false);
                 return;
             }
             const int fd = fd_;
-            post_kqueue_async(kq, fd_, EVFILT_READ, ctx_impl, op, [fd, buf, len, flags, &sender](io::implements::op_result &r) noexcept {
+            post_kqueue_async(kq, fd_, EVFILT_READ, executor, op, [fd, buf, len, flags, &sender](io::implements::op_result &r) noexcept {
                 auto slen = static_cast<::socklen_t>(sizeof(sender.data));
                 const ::ssize_t n = ::recvfrom(fd, buf, len, flags, reinterpret_cast<::sockaddr *>(sender.data), &slen);
                 if (n < 0) {
@@ -452,15 +460,15 @@ namespace rainy::foundation::io::net::implements {
             });
         }
 
-        void async_accept(raw_endpoint *peer_ep, io::implements::io_context_impl_base &ctx_impl, io::implements::completion_op *op) noexcept override {
-            const int kq = get_kq_from_op(op, ctx_impl, fd_);
+        void async_accept(raw_endpoint *peer_ep, io_context::executor_type executor, io::implements::completion_op *op) noexcept override {
+            const int kq = get_kq_from_op(op, executor, fd_);
             if (kq < 0) {
-                ctx_impl.post_immediate_completion(op, false);
+                macos_socket_proxy{executor}.post_immediate_completion(op, false);
                 return;
             }
 
             const int fd = fd_;
-            post_kqueue_async(kq, fd_, EVFILT_READ, ctx_impl, op, [fd, peer_ep](io::implements::op_result &r) noexcept {
+            post_kqueue_async(kq, fd_, EVFILT_READ, executor, op, [fd, peer_ep](io::implements::op_result &r) noexcept {
                 int client;
                 if (peer_ep) {
                     auto len = static_cast<::socklen_t>(sizeof(peer_ep->data));
@@ -484,16 +492,16 @@ namespace rainy::foundation::io::net::implements {
             });
         }
 
-        void async_wait(wait_type w, io::implements::io_context_impl_base &ctx_impl, io::implements::completion_op *op) noexcept override {
-            const int kq = get_kq_from_op(op, ctx_impl, fd_);
+        void async_wait(wait_type w, io_context::executor_type executor, io::implements::completion_op *op) noexcept override {
+            const int kq = get_kq_from_op(op, executor, fd_);
             if (kq < 0) {
-                ctx_impl.post_immediate_completion(op, false);
+                macos_socket_proxy{executor}.post_immediate_completion(op, false);
                 return;
             }
 
             const short filter = (w == wait_type::write) ? EVFILT_WRITE : EVFILT_READ;
             if (!submit_kevent(kq, fd_, filter, op)) {
-                ctx_impl.post_immediate_completion(op, false);
+                macos_socket_proxy{executor}.post_immediate_completion(op, false);
             }
         }
 

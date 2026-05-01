@@ -127,7 +127,7 @@ namespace rainy::foundation::io::net::ssl {
                 }
                 handler(ec);
             });
-            impl_->async_handshake(next_layer_.get_executor().context().under_impl(), op);
+            impl_->async_handshake(next_layer_.get_executor(), op);
             return init.result.get();
         }
 
@@ -253,7 +253,7 @@ namespace rainy::foundation::io::net::ssl {
                 handler(ec, r.bytes_transferred);
             });
 
-            impl_->async_write_some(buf.data(), buf.size(), next_layer_.get_executor().context().under_impl(), op);
+            impl_->async_write_some(buf.data(), buf.size(), next_layer_.get_executor(), op);
 
             return init.result.get();
         }
@@ -284,7 +284,7 @@ namespace rainy::foundation::io::net::ssl {
                 handler(ec, r.bytes_transferred);
             });
 
-            impl_->async_read_some(buf.data(), buf.size(), next_layer_.get_executor().context().under_impl(), op);
+            impl_->async_read_some(buf.data(), buf.size(), next_layer_.get_executor(), op);
 
             return init.result.get();
         }

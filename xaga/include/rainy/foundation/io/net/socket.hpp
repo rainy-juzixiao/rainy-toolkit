@@ -400,16 +400,16 @@ namespace rainy::foundation::io::net {
             if (!impl_->is_open()) {
                 auto proto = ep.protocol();
                 if (std::error_code open_ec = impl_->open(proto.family(), proto.type(), proto.protocol())) {
-                    auto *op = io::implements::make_io_completion_op(
-                        [handler, open_ec](const io::implements::op_result &, bool) mutable { handler(open_ec); });
-                    executor_.context().under_impl().post_immediate_completion(op, false);
+                    io::post(this->get_executor(),
+                             [handler, open_ec]() mutable -> void { 
+                            handler(open_ec); });
                     return init.result.get();
                 }
             }
             auto raw_ep = ep.to_raw();
             auto *op = io::implements::make_io_completion_op(
-                [handler, &ctx_impl = executor_.context().under_impl()](const io::implements::op_result &r, bool cancelled) mutable {
-                    ctx_impl.on_work_finished();
+                [handler, this](const io::implements::op_result &r, bool cancelled) mutable {
+                    executor_.on_work_finished();
                     if (cancelled) {
                         handler(std::make_error_code(std::errc::operation_canceled));
                         return;
@@ -420,8 +420,8 @@ namespace rainy::foundation::io::net {
                     }
                     handler(ec);
                 });
-            executor_.context().under_impl().on_work_started();
-            impl_->async_connect(raw_ep, executor_.context().under_impl(), op);
+            executor_.on_work_started();
+            impl_->async_connect(raw_ep, executor_.context().get_executor(), op);
             return init.result.get();
         }
 
@@ -456,8 +456,8 @@ namespace rainy::foundation::io::net {
                     }
                     handler(ec);
                 });
-            auto &ctx_impl = executor_.context().under_impl();
-            impl_->async_wait(static_cast<implements::wait_type>(w), ctx_impl, op);
+            auto executor = executor_.context().get_executor();
+            impl_->async_wait(static_cast<implements::wait_type>(w), executor, op);
             return init.result.get();
         }
 
@@ -1318,7 +1318,7 @@ namespace rainy::foundation::io::net {
                     handler(ec, utility::move(s));
                     utility::ignore = raw_peer;
                 });
-            impl_->async_accept(raw_peer.get(), executor_.context().under_impl(), op);
+            impl_->async_accept(raw_peer.get(), executor_, op);
             return init.result.get();
         }
 
@@ -1338,7 +1338,7 @@ namespace rainy::foundation::io::net {
                 }
                 handler(ec, utility::move(s));
             });
-            impl_->async_accept(raw_peer, executor_.context().under_impl(), op);
+            impl_->async_accept(raw_peer, executor_, op);
             return init.result.get();
         }
 
@@ -1362,7 +1362,7 @@ namespace rainy::foundation::io::net {
             async_completion<token_t, void(std::error_code)> init(token);
             auto handler = utility::move(init.completion_handler);
             auto *op = io::implements::make_function_op([handler]() mutable { handler(std::error_code{}); });
-            impl_->async_wait(static_cast<implements::wait_type>(w), executor_.context().under_impl(), op);
+            impl_->async_wait(static_cast<implements::wait_type>(w), executor_ , op);
             return init.result.get();
         }
 

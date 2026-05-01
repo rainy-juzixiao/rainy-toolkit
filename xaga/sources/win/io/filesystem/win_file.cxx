@@ -45,6 +45,11 @@ namespace rainy::foundation::io::filesystem::implements {
         }
     };
 
+    struct win32_file_proxy : io_context::executor_type{
+        using executor_type::post_immediate_completion;
+        using executor_type::associate_handle;
+    };
+
     static std::error_code last_error() noexcept {
         return std::error_code{static_cast<int>(::GetLastError()), std::system_category()};
     }
@@ -59,7 +64,7 @@ namespace rainy::foundation::io::filesystem::implements {
             }
         }
 
-        std::error_code open(const std::filesystem::path &path, open_mode mode, io_context_impl_base &ctx) noexcept override {
+        std::error_code open(const std::filesystem::path &path, open_mode mode, io_context::executor_type executor) noexcept override {
             if (is_open()) {
                 return std::error_code{ERROR_ALREADY_EXISTS, std::system_category()};
             }
@@ -78,17 +83,18 @@ namespace rainy::foundation::io::filesystem::implements {
             }
 
             DWORD flags = FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED;
-            if (has_flag(mode, open_mode::sync))
+            if (has_flag(mode, open_mode::sync)) {
                 flags |= FILE_FLAG_WRITE_THROUGH;
-            if (has_flag(mode, open_mode::direct))
+            }
+            if (has_flag(mode, open_mode::direct)) {
                 flags |= FILE_FLAG_NO_BUFFERING;
+            }
 
             handle_ = ::CreateFileW(path.c_str(), access, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, creation, flags, nullptr);
 
             if (handle_ == INVALID_HANDLE_VALUE) {
                 return last_error();
             }
-            ctx_ = &ctx;
             return {};
         }
 
@@ -169,9 +175,9 @@ namespace rainy::foundation::io::filesystem::implements {
             return static_cast<std::size_t>(written);
         }
 
-        void async_read_some_at(mutable_buffer buf, std::uint64_t offset, io_context_impl_base &ctx,
+        void async_read_some_at(mutable_buffer buf, std::uint64_t offset, io_context::executor_type executor,
                                 completion_op *op) noexcept override {
-            bind_to_iocp(ctx);
+            bind_to_iocp(executor);
             auto *iop = new file_iocp_op(op);
             iop->overlapped.Offset = static_cast<DWORD>(offset & 0xFFFF'FFFF);
             iop->overlapped.OffsetHigh = static_cast<DWORD>(offset >> 32);
@@ -179,13 +185,13 @@ namespace rainy::foundation::io::filesystem::implements {
             BOOL ok = ::ReadFile(handle_, buf.data(), static_cast<DWORD>(buf.size()), nullptr, &iop->overlapped);
             if (!ok && ::GetLastError() != ERROR_IO_PENDING) {
                 delete iop;
-                ctx.post_immediate_completion(op, false);
+                win32_file_proxy{executor}.post_immediate_completion(op, false);
             }
         }
 
-        void async_write_some_at(const_buffer buf, std::uint64_t offset, io_context_impl_base &ctx,
+        void async_write_some_at(const_buffer buf, std::uint64_t offset, io_context::executor_type executor,
                                  completion_op *op) noexcept override {
-            bind_to_iocp(ctx);
+            bind_to_iocp(executor);
             auto *iop = new file_iocp_op(op);
             iop->overlapped.Offset = static_cast<DWORD>(offset & 0xFFFF'FFFF);
             iop->overlapped.OffsetHigh = static_cast<DWORD>(offset >> 32);
@@ -193,7 +199,7 @@ namespace rainy::foundation::io::filesystem::implements {
             BOOL ok = ::WriteFile(handle_, buf.data(), static_cast<DWORD>(buf.size()), nullptr, &iop->overlapped);
             if (!ok && ::GetLastError() != ERROR_IO_PENDING) {
                 delete iop;
-                ctx.post_immediate_completion(op, false);
+                win32_file_proxy{executor}.post_immediate_completion(op, false);
             }
         }
 
@@ -220,9 +226,9 @@ namespace rainy::foundation::io::filesystem::implements {
         }
 
     private:
-        void bind_to_iocp(io_context_impl_base &ctx) noexcept {
+        void bind_to_iocp(io_context::executor_type executor) noexcept {
             if (!bound_to_iocp_) {
-                ctx.associate_handle(nullptr, reinterpret_cast<std::uintptr_t>(handle_), nullptr);
+                win32_file_proxy{executor}.associate_handle(nullptr, reinterpret_cast<std::uintptr_t>(handle_), nullptr);
                 bound_to_iocp_ = true;
             }
         }

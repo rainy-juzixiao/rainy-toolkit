@@ -212,6 +212,7 @@ namespace rainy::foundation::io::implements {
          * 入队后调用 wakeup() 唤醒阻塞中的 run_one。
          *
          * @param op 待入队的完成操作，生命周期由调用方保证直至 complete() 返回
+         * @param is_continuation
          */
         virtual void post_immediate_completion(completion_op *op, bool is_continuation) noexcept = 0;
 

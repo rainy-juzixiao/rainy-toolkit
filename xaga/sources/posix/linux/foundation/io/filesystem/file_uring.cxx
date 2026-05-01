@@ -22,12 +22,21 @@
 #include <unistd.h>
 
 namespace rainy::foundation::io::filesystem::implements {
-    static io_uring_sqe *get_sqe_from_op(completion_op *op, io_context_impl_base &ctx_impl, const int fd) {
-        ctx_impl.associate_handle(op, static_cast<std::uintptr_t>(fd), nullptr);
-        if (!op->io_handle) {
-            return nullptr;
+    struct uring_file_proxy : io_context::executor_type {
+        io_uring_sqe *get_sqe_from_op(io::implements::completion_op *op, io_context::executor_type executor, const int fd) { // NOLINT
+            this->associate_handle(op, static_cast<std::uintptr_t>(fd), nullptr);
+            if (!op->io_handle) {
+                return nullptr;
+            }
+            return ::io_uring_get_sqe(static_cast<io_uring *>(op->io_handle));
         }
-        return ::io_uring_get_sqe(static_cast<io_uring *>(op->io_handle));
+
+        using executor_type::post_immediate_completion;
+        using executor_type::associate_handle;
+    };
+
+    static io_uring_sqe *get_sqe_from_op(io::implements::completion_op *op, const io_context::executor_type& executor, const int fd) {
+        return uring_file_proxy{executor}.get_sqe_from_op(op, executor, fd);
     }
 
     static void submit_ring(const completion_op *op) noexcept {
@@ -44,7 +53,7 @@ namespace rainy::foundation::io::filesystem::implements {
             close();
         }
 
-        std::error_code open(const std::filesystem::path &path, const open_mode mode, io_context_impl_base &ctx) noexcept override {
+        std::error_code open(const std::filesystem::path &path, const open_mode mode, io_context::executor_type executor) noexcept override {
             int flags = 0;
             // NOLINTBEGIN
             const bool r = has_flag(mode, open_mode::read_only);
@@ -79,14 +88,12 @@ namespace rainy::foundation::io::filesystem::implements {
             if (fd_ < 0) {
                 return {errno, std::system_category()};
             }
-            if (rainy_const res = ctx.associate_handle(nullptr, static_cast<std::uintptr_t>(fd_), nullptr);
+            if (rainy_const res = uring_file_proxy{executor}.associate_handle(nullptr, static_cast<std::uintptr_t>(fd_), nullptr);
                 res != concurrency::thrd_result::success) {
                 ::close(fd_);
                 fd_ = -1;
                 return {EINVAL, std::system_category()};
             }
-
-            ctx_ = &ctx;
             return {};
         }
 
@@ -95,7 +102,6 @@ namespace rainy::foundation::io::filesystem::implements {
                 ::close(fd_);
                 fd_ = -1;
             }
-            ctx_ = nullptr;
         }
 
         bool is_open() const noexcept override {
@@ -120,11 +126,11 @@ namespace rainy::foundation::io::filesystem::implements {
             return static_cast<std::size_t>(n);
         }
 
-        void async_read_some_at(const mutable_buffer buf, const std::uint64_t offset, io_context_impl_base &ctx,
+        void async_read_some_at(const mutable_buffer buf, const std::uint64_t offset, io_context::executor_type executor,
                                 completion_op *op) noexcept override {
-            io_uring_sqe *sqe = get_sqe_from_op(op, ctx, fd_);
+            io_uring_sqe *sqe = get_sqe_from_op(op, executor, fd_);
             if (!sqe) {
-                ctx.post_immediate_completion(op, false);
+                uring_file_proxy{executor}.post_immediate_completion(op, false);
                 return;
             }
             ::io_uring_prep_read(sqe, fd_, buf.data(), buf.size(), offset);
@@ -132,11 +138,11 @@ namespace rainy::foundation::io::filesystem::implements {
             submit_ring(op);
         }
 
-        void async_write_some_at(const const_buffer buf, const std::uint64_t offset, io_context_impl_base &ctx,
+        void async_write_some_at(const const_buffer buf, const std::uint64_t offset, io_context::executor_type executor,
                                  completion_op *op) noexcept override {
-            io_uring_sqe *sqe = get_sqe_from_op(op, ctx, fd_);
+            io_uring_sqe *sqe = get_sqe_from_op(op, executor, fd_);
             if (!sqe) {
-                ctx.post_immediate_completion(op, false);
+                uring_file_proxy{executor}.post_immediate_completion(op, false);
                 return;
             }
             ::io_uring_prep_write(sqe, fd_, buf.data(), buf.size(), offset);
@@ -177,7 +183,6 @@ namespace rainy::foundation::io::filesystem::implements {
         };
 
         int fd_{-1};
-        io_context_impl_base *ctx_{nullptr};
     };
 
     memory::unique_ptr<file_impl_base> make_file_impl() {

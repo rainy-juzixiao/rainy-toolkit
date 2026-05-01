@@ -56,6 +56,15 @@ namespace rainy::foundation::io {
                 ctx_->impl_->post_immediate_completion(op, true);
             }
 
+        protected:
+            concurrency::thrd_result associate_handle(implements::completion_op *op, std::uintptr_t fd, void *extra) { // NOLINT
+                return ctx_->impl_->associate_handle(op, fd, extra);
+            }
+
+            void post_immediate_completion(implements::completion_op *op, bool is_continuation) noexcept { // NOLINT
+                ctx_->impl_->post_immediate_completion(op, is_continuation);
+            }
+
         private:
             friend class io_context;
 
@@ -125,8 +134,6 @@ namespace rainy::foundation::io {
         void stop();
         bool stopped() const noexcept;
         void restart();
-
-        implements::io_context_impl_base& under_impl() noexcept;
 
     private:
         memory::nebula_ptr<implements::io_context_impl_base> impl_;

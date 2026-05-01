@@ -82,8 +82,4 @@ namespace rainy::foundation::io {
     void io_context::restart() { // NOLINT
         impl_->restart();
     }
-
-    implements::io_context_impl_base &io_context::under_impl() noexcept {
-        return *impl_;
-    }
 }

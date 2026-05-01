@@ -18,72 +18,60 @@
 #include <rainy/core/core.hpp>
 
 namespace rainy::foundation::io::implements {
-    struct executor_memfns_base {
-        void context();
-        void on_work_started();
-        void on_work_finished();
-        void dispatch();
-        void post();
-        void defer();
-    };
-
-    template <typename Ty>
-    struct executor_memfns_derived : Ty, executor_memfns_base {};
-
     template <typename Ty, typename = void>
     RAINY_CONSTEXPR_BOOL has_context_memfn = false;
 
     template <typename Ty>
-    RAINY_CONSTEXPR_BOOL has_context_memfn<Ty, type_traits::other_trans::void_t<decltype(&executor_memfns_derived<Ty>::context)>> =
-        type_traits::type_relations::is_same_v<decltype(&executor_memfns_derived<Ty>::context), void (executor_memfns_base::*)()>;
+    RAINY_CONSTEXPR_BOOL has_context_memfn<
+        Ty, type_traits::other_trans::void_t<type_traits::other_trans::enable_if_t<
+                type_traits::type_relations::is_same_v<decltype(utility::declval<const Ty &>().context()), io_context &>>>> = true;
 
     template <typename Ty, typename = void>
     RAINY_CONSTEXPR_BOOL has_on_work_started_memfn = false;
 
     template <typename Ty>
-    RAINY_CONSTEXPR_BOOL has_on_work_started_memfn<Ty, type_traits::other_trans::void_t<decltype(&executor_memfns_derived<Ty>::on_work_started)>> =
-        type_traits::type_relations::is_same_v<decltype(&executor_memfns_derived<Ty>::on_work_started), void (executor_memfns_base::*)()>;
+    RAINY_CONSTEXPR_BOOL
+        has_on_work_started_memfn<Ty, type_traits::other_trans::void_t<decltype(utility::declval<const Ty &>().on_work_started())>> =
+            true;
 
     template <typename Ty, typename = void>
     RAINY_CONSTEXPR_BOOL has_on_work_finished_memfn = false;
 
     template <typename Ty>
-    RAINY_CONSTEXPR_BOOL has_on_work_finished_memfn<Ty, type_traits::other_trans::void_t<decltype(&executor_memfns_derived<Ty>::on_work_finished)>> =
-        type_traits::type_relations::is_same_v<decltype(&executor_memfns_derived<Ty>::on_work_finished), void (executor_memfns_base::*)()>;
+    RAINY_CONSTEXPR_BOOL
+        has_on_work_finished_memfn<Ty, type_traits::other_trans::void_t<decltype(utility::declval<const Ty &>().on_work_finished())>> =
+            true;
+
+    struct dummy_allocator {};
 
     template <typename Ty, typename = void>
     RAINY_CONSTEXPR_BOOL has_dispatch_memfn = false;
 
     template <typename Ty>
-    RAINY_CONSTEXPR_BOOL has_dispatch_memfn<Ty, type_traits::other_trans::void_t<decltype(&executor_memfns_derived<Ty>::dispatch)>> =
-        type_traits::type_relations::is_same_v<decltype(&executor_memfns_derived<Ty>::dispatch), void (executor_memfns_base::*)()>;
+    RAINY_CONSTEXPR_BOOL has_dispatch_memfn<Ty, type_traits::other_trans::void_t<decltype(utility::declval<const Ty &>().dispatch(
+                                                    utility::declval<void (*)()>(), dummy_allocator{}))>> = true;
 
     template <typename Ty, typename = void>
     RAINY_CONSTEXPR_BOOL has_post_memfn = false;
 
     template <typename Ty>
-    RAINY_CONSTEXPR_BOOL has_post_memfn<Ty, type_traits::other_trans::void_t<decltype(&executor_memfns_derived<Ty>::post)>> =
-        type_traits::type_relations::is_same_v<decltype(&executor_memfns_derived<Ty>::post), void (executor_memfns_base::*)()>;
+    RAINY_CONSTEXPR_BOOL has_post_memfn<Ty, type_traits::other_trans::void_t<decltype(utility::declval<const Ty &>().post(
+                                                utility::declval<void (*)()>(), dummy_allocator{}))>> = true;
 
     template <typename Ty, typename = void>
     RAINY_CONSTEXPR_BOOL has_defer_memfn = false;
 
     template <typename Ty>
-    RAINY_CONSTEXPR_BOOL has_defer_memfn<Ty, type_traits::other_trans::void_t<decltype(&executor_memfns_derived<Ty>::defer)>> =
-        type_traits::type_relations::is_same_v<decltype(&executor_memfns_derived<Ty>::defer), void (executor_memfns_base::*)()>;
+    RAINY_CONSTEXPR_BOOL has_defer_memfn<Ty, type_traits::other_trans::void_t<decltype(utility::declval<const Ty &>().defer(
+                                                 utility::declval<void (*)()>(), dummy_allocator{}))>> = true;
 
     template <typename Ty>
     RAINY_CONSTEXPR_BOOL is_executor_class_v =
-        has_context_memfn<Ty> &&
-        has_on_work_started_memfn<Ty> &&
-        has_on_work_finished_memfn<Ty> &&
-        has_dispatch_memfn<Ty> &&
-        has_post_memfn<Ty> &&
-        has_defer_memfn<Ty>;
+        has_context_memfn<Ty> && has_on_work_started_memfn<Ty> && has_on_work_finished_memfn<Ty> && has_dispatch_memfn<Ty> &&
+        has_post_memfn<Ty> && has_defer_memfn<Ty>;
 
     template <typename Ty>
-    RAINY_CONSTEXPR_BOOL is_executor_v =
-        type_traits::primary_types::is_class_v<Ty> && is_executor_class_v<Ty>;
+    RAINY_CONSTEXPR_BOOL is_executor_v = type_traits::primary_types::is_class_v<Ty> && is_executor_class_v<Ty>;
 
     template <typename Ty>
     struct is_executor : type_traits::helper::bool_constant<is_executor_v<Ty>> {};

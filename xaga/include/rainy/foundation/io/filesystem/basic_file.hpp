@@ -1,5 +1,5 @@
 /*
-* Copyright 2026 rainy-juzixiao
+ * Copyright 2026 rainy-juzixiao
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,7 +33,7 @@ namespace rainy::foundation::io::filesystem {
          */
         explicit basic_file(io_context &ctx, const std::filesystem::path &path, open_mode mode = open_mode::read_only) :
             ctx_(&ctx), impl_(implements::make_file_impl()) {
-            std::error_code ec = impl_->open(path, mode, ctx_->under_impl());
+            std::error_code ec = impl_->open(path, mode, ctx_->get_executor());
             if (ec) {
                 throw std::system_error(ec, "basic_file::open");
             }
@@ -58,7 +58,7 @@ namespace rainy::foundation::io::filesystem {
         }
 
         std::error_code open(const std::filesystem::path &path, open_mode mode = open_mode::read_only) {
-            return impl_->open(path, mode, ctx_->under_impl());
+            return impl_->open(path, mode, ctx_->get_executor());
         }
 
         void close() noexcept {
@@ -109,7 +109,7 @@ namespace rainy::foundation::io::filesystem {
 
         template <typename MutableBufferSequence, typename Handler>
         void async_read_some_at(std::uint64_t offset, const MutableBufferSequence &buf, Handler &&handler) {
-            ctx_->under_impl().on_work_started();
+            ctx_->get_executor().on_work_started();
             auto *op = io::implements::make_io_completion_op(
                 [h = utility::forward<Handler>(handler), this](const implements::op_result &res, bool cancelled) mutable {
                     std::error_code ec;
@@ -119,15 +119,15 @@ namespace rainy::foundation::io::filesystem {
                         ec.assign(res.error_code, std::system_category());
                     }
                     h(ec, res.bytes_transferred);
-                    ctx_->under_impl().on_work_finished();
+                    ctx_->get_executor().on_work_finished();
                 });
 
-            impl_->async_read_some_at(buffer(buf), offset, ctx_->under_impl(), op);
+            impl_->async_read_some_at(buffer(buf), offset, ctx_->get_executor(), op);
         }
 
         template <typename ConstBufferSequence, typename Handler>
         void async_write_some_at(std::uint64_t offset, const ConstBufferSequence &buf, Handler &&handler) {
-            ctx_->under_impl().on_work_started();
+            ctx_->get_executor().on_work_started();
             auto *op = io::implements::make_io_completion_op(
                 [h = utility::forward<Handler>(handler), this](const implements::op_result &res, bool cancelled) mutable {
                     std::error_code ec;
@@ -137,10 +137,10 @@ namespace rainy::foundation::io::filesystem {
                         ec.assign(res.error_code, std::system_category());
                     }
                     h(ec, res.bytes_transferred);
-                    ctx_->under_impl().on_work_finished();
+                    ctx_->get_executor().on_work_finished();
                 });
 
-            impl_->async_write_some_at(buffer(buf), offset, ctx_->under_impl(), op);
+            impl_->async_write_some_at(buffer(buf), offset, ctx_->get_executor(), op);
         }
         RAINY_NODISCARD std::uint64_t size() const {
             std::error_code ec;

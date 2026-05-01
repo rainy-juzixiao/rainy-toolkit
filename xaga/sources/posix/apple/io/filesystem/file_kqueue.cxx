@@ -23,6 +23,11 @@
 #include <unistd.h>
 
 namespace rainy::foundation::io::filesystem::implements {
+    struct macos_socket_proxy : io_context::executor_type {
+        using executor_type::post_immediate_completion;
+        using executor_type::associate_handle;
+    };
+
     class kqueue_file_impl final : public file_impl_base {
     public:
         kqueue_file_impl() = default;
@@ -32,7 +37,7 @@ namespace rainy::foundation::io::filesystem::implements {
         }
 
         std::error_code open(const std::filesystem::path &path, open_mode mode,
-                             io_context_impl_base &ctx) noexcept override {
+                             io_context::executor_type executor) noexcept override {
             int flags = 0;
             const bool r = has_flag(mode, open_mode::read_only);
             const bool w = has_flag(mode, open_mode::write_only);
@@ -63,13 +68,12 @@ namespace rainy::foundation::io::filesystem::implements {
             if (fd_ < 0) {
                 return {errno, std::system_category()};
             }
-            auto res = ctx.associate_handle(nullptr, static_cast<std::uintptr_t>(fd_), nullptr);
-            if (res != concurrency::thrd_result::success) {
+            if (const auto res = macos_socket_proxy{executor}.associate_handle(nullptr, static_cast<std::uintptr_t>(fd_), nullptr);
+                res != concurrency::thrd_result::success) {
                 ::close(fd_);
                 fd_ = -1;
                 return {EINVAL, std::system_category()};
             }
-            ctx_ = &ctx;
             return {};
         }
 
@@ -78,7 +82,6 @@ namespace rainy::foundation::io::filesystem::implements {
                 ::close(fd_);
                 fd_ = -1;
             }
-            ctx_ = nullptr;
         }
 
         bool is_open() const noexcept override {
@@ -103,7 +106,7 @@ namespace rainy::foundation::io::filesystem::implements {
             return static_cast<std::size_t>(n);
         }
 
-        void async_read_some_at(mutable_buffer buf, std::uint64_t offset, io_context_impl_base &ctx,
+        void async_read_some_at(mutable_buffer buf, std::uint64_t offset, io_context::executor_type executor,
                                 completion_op *op) noexcept override {
             const int fd = fd_;
             get_executor().submit([fd, buf, offset, op]() mutable {
@@ -121,7 +124,7 @@ namespace rainy::foundation::io::filesystem::implements {
             });
         }
 
-        void async_write_some_at(const_buffer buf, std::uint64_t offset, io_context_impl_base &ctx,
+        void async_write_some_at(const_buffer buf, std::uint64_t offset, io_context::executor_type executor,
                                  completion_op *op) noexcept override {
             const int fd = fd_;
             get_executor().submit([fd, buf, offset, op]() mutable {
@@ -165,7 +168,6 @@ namespace rainy::foundation::io::filesystem::implements {
         }
 
         int fd_{-1};
-        io_context_impl_base *ctx_{nullptr};
     };
 }
 
