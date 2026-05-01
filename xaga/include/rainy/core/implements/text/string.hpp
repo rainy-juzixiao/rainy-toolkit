@@ -1768,15 +1768,9 @@ namespace rainy::foundation::text {
                 throw std::length_error("basic_string: requested size exceeds max_size()");
             }
             ++count;
-#if defined(__cpp_lib_allocate_at_least) && (__cpp_lib_allocate_at_least >= 202302L)
-            auto [ptr, count_] = allocator_traits::allocate_at_least(this->get_al(), count);
-            begin_lifetime(ptr, count_);
-            utility::construct_at(&get_storage().ls_, ptr, nullptr, ptr + count_);
-#else
             auto ptr = allocator_traits::allocate(this->get_al(), count);
             begin_lifetime(ptr, count);
             utility::construct_at(&get_storage().ls_, ptr, nullptr, ptr + count);
-#endif
             size_flag_ = static_cast<unsigned char>(-1);
         }
 

@@ -26,6 +26,7 @@
 #include <ctime>
 #include <linux/futex.h>
 #include <pthread.h>
+#include <sys/syscall.h>
 #include <unistd.h>
 #endif
 

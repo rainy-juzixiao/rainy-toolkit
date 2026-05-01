@@ -12,4 +12,6 @@ if (MSVC)
     target_compile_options(rainy-toolkit-examples-reflection PRIVATE /execution-charset:utf-8)
 endif ()
 
+target_compile_options(rainy-toolkit-examples-reflection PRIVATE "-freflection")
+
 #set_target_properties(rttr_core PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
