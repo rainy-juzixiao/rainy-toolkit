@@ -289,6 +289,24 @@ namespace rainy::foundation::ctti::implements {
         constexpr auto full = split.substr(start, end - start);
         constexpr auto pos = full.rfind("::");
         constexpr auto rparen = full.rfind(')');
+
+        constexpr auto is_parenthesized = [&]() constexpr { // wordaround : 处理括号表达式
+            if (!full.empty() && full[0] == '(') {
+                if constexpr (constexpr auto last_rparen = full.rfind(')');
+                              last_rparen != std::string_view::npos && last_rparen + 1 < full.size()) {
+                    if constexpr (constexpr auto next_char = full[last_rparen + 1]; // NOLINT
+                                  next_char == '-' || (next_char >= '0' && next_char <= '9')) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }();
+
+        if constexpr (is_parenthesized) {
+            return full;  // NOLINT
+        }
+
         if constexpr (pos != std::string_view::npos) {
             return full.substr(pos + 2, rparen - (pos + 2));
         }

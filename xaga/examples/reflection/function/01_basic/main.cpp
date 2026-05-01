@@ -14,10 +14,10 @@ using namespace rainy;
 
 namespace aaa {
     enum class enum_type {
-        a = 1000000,
-        b = 9999,
-        c = 30,
-        d = -1000
+        a = 4,
+        b = 2,
+        c = 3,
+        d = 99999
     };
 }
 
@@ -26,16 +26,7 @@ int main() {
     constexpr bool is_enum_value1 = meta::moon::is_enum_value_v<aaa::enum_type, static_cast<aaa::enum_type>(1)>;
     std::cout << "is_enum_value: " << is_enum_value << '\n';
     std::cout << "is_enum_value1: " << is_enum_value1 << '\n';
-    std::cout << rainy::meta::moon::enum_count<aaa::enum_type>() << '\n';
-    constexpr auto values = rainy::meta::moon::enum_values<aaa::enum_type>();
-    for (auto item: values) {
-        std::cout << (int) item << '\n';
-    }
-    constexpr auto names = rainy::meta::moon::enum_names<aaa::enum_type>();
-    for (auto item: names) {
-        std::cout << item << '\n';
-    }
-
+    std::cout << "count: " << meta::moon::enum_count<aaa::enum_type>() << '\n';
     rainy::foundation::io::net::io_context ctx;
     rainy::foundation::io::net::steady_timer timer(ctx, std::chrono::seconds{5});
     timer.async_wait([](std::error_code ec) {
