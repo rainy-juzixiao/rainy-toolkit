@@ -21,6 +21,16 @@ namespace aaa {
     };
 }
 
+struct type {
+    int a;
+    std::string b;
+    char c;
+private:
+    std::vector<int> d;
+};
+
+RAINY_PRIVATE_REFLECT_TUPLE_LIKE(type, a, b, c);
+
 int main() {
     constexpr bool is_enum_value = meta::moon::is_enum_value_v<aaa::enum_type, aaa::enum_type::a>;
     constexpr bool is_enum_value1 = meta::moon::is_enum_value_v<aaa::enum_type, static_cast<aaa::enum_type>(1)>;
@@ -28,8 +38,23 @@ int main() {
     std::cout << "is_enum_value1: " << is_enum_value1 << '\n';
     std::cout << "count: " << meta::moon::enum_count<aaa::enum_type>() << '\n';
     std::cout << "foundation::ctti::variable_name<111>(): " << foundation::ctti::variable_name<111>() << '\n';
-    std::cout << "foundation::ctti::variable_name<aaa::enum_type::a>(): " << foundation::ctti::variable_name<aaa::enum_type::a>() << '\n';
-    std::cout << "foundation::ctti::variable_name<static_cast<aaa::enum_type>(1)>(): " << foundation::ctti::variable_name<static_cast<aaa::enum_type>(1)>() << '\n';
+    std::cout << "foundation::ctti::variable_name<aaa::enum_type::a>(): " << foundation::ctti::variable_name<aaa::enum_type::a>()
+              << '\n';
+    std::cout << "foundation::ctti::variable_name<static_cast<aaa::enum_type>(1)>(): "
+              << foundation::ctti::variable_name<static_cast<aaa::enum_type>(1)>() << '\n';
+
+    auto tuple = meta::moon::struct_to_tuple<type>();
+    template for (const auto item: tuple) {
+        std::cout << static_cast<void *>(item) << '\n';
+    }
+
+    for (const auto item: meta::moon::get_member_names<type>()) {
+        std::cout << item << '\n';
+    }
+    constexpr auto ssss = meta::moon::get_member_offset_arr<type>();
+    for (const auto offset: ssss) {
+        std::cout << offset << '\n';
+    }
     rainy::foundation::io::net::io_context ctx;
     rainy::foundation::io::net::steady_timer timer(ctx, std::chrono::seconds{5});
     timer.async_wait([](std::error_code ec) {
