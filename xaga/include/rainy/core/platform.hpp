@@ -163,6 +163,12 @@ clang和GNU编译器区域
 #define RAINY_STATIC_REFLECTION_CONSTEXPR26
 #endif
 
+#if RAINY_HAS_CXX20
+#define RAINY_CONSTEVAL consteval
+#else
+#define RAINY_CONSTEVAL constexpr
+#endif
+
 #ifndef RAINY_NODISCARD_CONSTEXPR20
 #define RAINY_NODISCARD_CONSTEXPR20 RAINY_NODISCARD RAINY_CONSTEXPR20
 #endif
@@ -2450,5 +2456,52 @@ namespace rainy::utility::implements {
 namespace rainy::utility {
     inline constexpr implements::ignore_type ignore{};
 }
+
+#if RAINY_HAS_CXX26 && RAINY_HAS_CXX26_STATIC_REFLECTION
+
+namespace rainy::annotations {
+    struct refl_anno {
+        template <typename Ty>
+        RAINY_NODISCARD consteval auto has() const noexcept -> bool {
+            using namespace std::meta;
+            for (auto attn : std::span{attns, num_attns}) {
+                if (remove_const(type_of(attn)) == ^^Ty) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        template <typename Ty>
+        RAINY_NODISCARD consteval auto fetch() const -> Ty {
+            using namespace std::meta;
+            for (auto attn : std::span{attns, num_attns}) {
+                if (remove_const(type_of(attn)) == ^^Ty) {
+                    return extract<Ty>(attn);
+                }
+            }
+            std::unreachable();
+        }
+
+        template <typename Ty>
+        RAINY_NODISCARD consteval auto get_or(Ty default_val) const noexcept -> Ty {
+            if (has<Ty>()) {
+                return fetch<Ty>();
+            }
+            return default_val;
+        }
+
+        const std::meta::info *attns{nullptr};
+        std::size_t num_attns{0};
+    };
+
+    consteval auto make_refl_anno(std::meta::info member) -> refl_anno {
+        auto attns = std::meta::annotations_of(member);
+        auto span = std::define_static_array(attns);
+        return refl_anno{span.data(), span.size()};
+    }
+}
+
+#endif
 
 #endif

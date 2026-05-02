@@ -21,15 +21,20 @@ namespace aaa {
     };
 }
 
+#if RAINY_HAS_CXX26_STATIC_REFLECTION && RAINY_HAS_CXX26
+
 struct type {
     int a;
     std::string b;
+    [[= rainy::annotations::moon::rename("ccc")]]
     char c;
 private:
     std::vector<int> d;
 };
 
 RAINY_PRIVATE_REFLECT_TUPLE_LIKE(type, a, b, c, d);
+
+#endif
 
 int main() {
 #if RAINY_HAS_CXX26_STATIC_REFLECTION && RAINY_HAS_CXX26
