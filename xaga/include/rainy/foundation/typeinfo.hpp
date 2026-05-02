@@ -20,6 +20,10 @@
  * @brief 类型信息类
  * @brief 此文件定义了一套类型信息类，用于获取类型信息。rainy-toolkit通过此文件提供的接口，用于实现元编程功能
  * @brief 另外，使用此ctti需要承担为信息操作而付出的代价，即生成的二进制文件可能会较大
+ * @brief 如果要启用生成加速，即由编译器提供对类型名和变量名的生成，而不再通过magic实现，则需要确保在cmake编译设置中
+ * @brief 启用RAINY_USE_CXX26_RELFECTION_TS，并设置为ON，并且编译器必须支持C++26标准，至少支持reflection特性
+ * @brief 才能使用编译器能力
+ *
  * @author rainy-juzixiao
  */
 #include <rainy/core/core.hpp>
@@ -237,7 +241,7 @@ namespace rainy::foundation::ctti::implements {
 
 #if RAINY_HAS_CXX26 && RAINY_HAS_CXX26_STATIC_REFLECTION
     template <typename Ty>
-    consteval auto generate_type_name() -> std::string_view {
+    consteval rain_fn generate_type_name() -> std::string_view {
         return std::meta::display_string_of(^^Ty);
     }
 #else
@@ -264,14 +268,14 @@ namespace rainy::foundation::ctti::implements {
     }
 #endif
 
-#if 0
+#if RAINY_HAS_CXX26 && RAINY_HAS_CXX26_STATIC_REFLECTION
     template <auto Variable>
     constexpr rain_fn generate_variable_name() -> std::string_view {
-        constexpr std::string_view result = []() consteval {
-            constexpr auto info = ^^ Variable;
-            return std::meta::name_of(info);
-        }();
-        return result;
+        if constexpr (constexpr auto r = std::meta::reflect_constant(Variable); std::meta::is_enumerator(r)) {
+            return std::meta::identifier_of(r);
+        } else {
+            return std::meta::display_string_of(r);
+        }
     }
 #else
     template <auto Variable>
@@ -289,6 +293,24 @@ namespace rainy::foundation::ctti::implements {
         constexpr auto full = split.substr(start, end - start);
         constexpr auto pos = full.rfind("::");
         constexpr auto rparen = full.rfind(')');
+
+        constexpr auto is_parenthesized = [&]() constexpr { // wordaround : 处理括号表达式
+            if (!full.empty() && full[0] == '(') {
+                if constexpr (constexpr auto last_rparen = full.rfind(')');
+                              last_rparen != std::string_view::npos && last_rparen + 1 < full.size()) {
+                    if constexpr (constexpr auto next_char = full[last_rparen + 1]; // NOLINT
+                                  next_char == '-' || (next_char >= '0' && next_char <= '9')) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }();
+
+        if constexpr (is_parenthesized) {
+            return full; // NOLINT
+        }
+
         if constexpr (pos != std::string_view::npos) {
             return full.substr(pos + 2, rparen - (pos + 2));
         }

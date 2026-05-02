@@ -2,7 +2,7 @@
 #                           Version 2.0, January 2004
 #                        http://www.apache.org/licenses/
 #
-#   Copyright 2025 rainy-juzixiao
+#   Copyright 2026 rainy-juzixiao
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -253,13 +253,12 @@ if (APPLE)
     endif ()
 endif ()
 
-if (COMPILER_ID MATCHES "GCC")
-    set(_reflection_std_flag "-std=c++26")
-    set(_reflection_flags "-freflection")
+if (RAINY_USE_CXX26_RELFECTION_TS)
+    if (COMPILER_ID MATCHES "GCC")
+        set(_test_flags "-std=c++26 -freflection")
 
-    set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} ${_reflection_std_flag} ${_reflection_flags}")
-
-    check_cxx_source_compiles("
+        # 创建临时测试文件
+        file(WRITE ${CMAKE_BINARY_DIR}/test_reflection.cpp "
         #include <meta>
 
         int main() {
@@ -275,16 +274,34 @@ if (COMPILER_ID MATCHES "GCC")
             static_assert(member_count == 4);
             return 0;
         }
-        " HAVE_CXX26_STATIC_REFLECTION)
+        ")
 
-    if(HAVE_CXX26_STATIC_REFLECTION)
-        message(STATUS "Compiler supports C++26 Static Reflection (with <meta> and ^^ reflection operator)")
-        target_compile_options(rainy-toolkit PUBLIC ${_reflection_std_flag} ${_reflection_flags})
-        target_compile_definitions(rainy-toolkit PUBLIC RAINY_HAS_CXX26_STATIC_REFLECTION=1)
-    else()
-        message(STATUS "Compiler does NOT support C++26 Static Reflection, Disable it.")
-        target_compile_definitions(rainy-toolkit PUBLIC RAINY_HAS_CXX26_STATIC_REFLECTION=0)
-    endif()
+        # 直接调用编译器（不通过 CMake）
+        execute_process(
+                COMMAND ${CMAKE_CXX_COMPILER}
+                -std=c++26 -freflection
+                ${CMAKE_BINARY_DIR}/test_reflection.cpp
+                -o ${CMAKE_BINARY_DIR}/test_reflection.out
+                RESULT_VARIABLE _compile_result
+                ERROR_VARIABLE _compile_error
+                OUTPUT_VARIABLE _compile_output
+        )
+
+        file(REMOVE ${CMAKE_BINARY_DIR}/test_reflection.cpp)
+        file(REMOVE ${CMAKE_BINARY_DIR}/test_reflection.out)
+
+        if (_compile_result EQUAL 0)
+            message(STATUS "Compiler supports C++26 Static Reflection (with <meta> and ^^ reflection operator)")
+            target_compile_options(rainy-toolkit PUBLIC -std=c++26 -freflection)
+            target_compile_definitions(rainy-toolkit PUBLIC RAINY_HAS_CXX26_STATIC_REFLECTION=1)
+            set(RAINY_TOOLKIT_HAVE_CXX26_STATIC_REFLECTION TRUE)
+        else()
+            message(STATUS "Compiler does NOT support C++26 Static Reflection, Disable it.")
+            target_compile_definitions(rainy-toolkit PUBLIC RAINY_HAS_CXX26_STATIC_REFLECTION=0)
+            set(RAINY_TOOLKIT_HAVE_CXX26_STATIC_REFLECTION FALSE)
+        endif ()
+    endif ()
 else ()
     target_compile_definitions(rainy-toolkit PUBLIC RAINY_HAS_CXX26_STATIC_REFLECTION=0)
+    set(RAINY_TOOLKIT_HAVE_CXX26_STATIC_REFLECTION TRUE)
 endif ()

@@ -1,16 +1,48 @@
 #include <rainy/collections/vector.hpp>
 #include <rainy/core/core.hpp>
 #include <rainy/foundation/concurrency/concurrency.hpp>
-#include <rainy/foundation/io/net/ssl/stream.hpp>
 #include <rainy/foundation/io/timer.hpp>
 
-#include "rainy/foundation/io/net/internet.hpp"
+#include <rainy/meta/moon/enumeration.hpp>
+#include <rainy/meta/reflection/enumeration.hpp>
+
 #if RAINY_USING_WINDOWS
 #include <windows.h>
 #endif
 #include <iostream>
 using namespace rainy;
+
+namespace aaa {
+    enum class enum_type {
+        a = 4,
+        b = 2,
+        c = 3,
+        d = 99999
+    };
+}
+
 int main() {
+    constexpr bool is_enum_value = meta::moon::is_enum_value_v<aaa::enum_type, aaa::enum_type::a>;
+    constexpr bool is_enum_value1 = meta::moon::is_enum_value_v<aaa::enum_type, static_cast<aaa::enum_type>(1)>;
+    std::cout << "is_enum_value: " << is_enum_value << '\n';
+    std::cout << "is_enum_value1: " << is_enum_value1 << '\n';
+    std::cout << "count: " << meta::moon::enum_count<aaa::enum_type>() << '\n';
+    std::cout << "foundation::ctti::variable_name<111>(): " << foundation::ctti::variable_name<111>() << '\n';
+    std::cout << "foundation::ctti::variable_name<aaa::enum_type::a>(): " << foundation::ctti::variable_name<aaa::enum_type::a>() << '\n';
+    std::cout << "foundation::ctti::variable_name<static_cast<aaa::enum_type>(1)>(): " << foundation::ctti::variable_name<static_cast<aaa::enum_type>(1)>() << '\n';
+    rainy::foundation::io::io_context ctx;
+    rainy::foundation::io::steady_timer timer(ctx, std::chrono::seconds{5});
+    timer.async_wait([](std::error_code ec) {
+        if (!ec) {
+            std::cout << "!!!\n";
+        }
+    });
+    timer.async_wait([](std::error_code ec) {
+        if (!ec) {
+            std::cout << "!!!!\n";
+        }
+    });
+    ctx.run();
 #if RAINY_USING_WINDOWS
     SetConsoleOutputCP(CP_UTF8);
 #endif

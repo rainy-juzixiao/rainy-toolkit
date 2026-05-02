@@ -37,6 +37,8 @@ option(RAINY_USING_UTF8_OUTPUT_FOR_MSVC "Use utf-8 encoding for output. Reason: 
 option(RAINY_USE_NODE_ADDON "Enable integration with node-addon-api (N-API)" off)
 option(RAINY_USE_WINDOWS_SCHANNEL
         "Enable that ssl communication use openssl, But it will disable OpenSSL backend, If you using openssl, Just disable it. (This option only effect Windows)" on)
+option(RAINY_USE_NODE_ADDON "Enable integration with node-addon-api (N-API)" OFF)
+option(RAINY_USE_CXX26_RELFECTION_TS "Allows rainy-toolkit to use reflection ts of c++ 26 features for meta library" ON)
 
 include(${PROJECT_SOURCE_DIR}/cmake/utility.cmake)
 include(${PROJECT_SOURCE_DIR}/cmake/config.cmake)
