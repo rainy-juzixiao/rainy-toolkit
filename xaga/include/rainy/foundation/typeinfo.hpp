@@ -276,18 +276,22 @@ namespace rainy::foundation::ctti::implements {
         } else if constexpr (std::meta::has_identifier(r)) {
             return std::meta::identifier_of(r);
         } else {
-            // NOLINTBEGIN
-            constexpr std::string_view full = std::meta::display_string_of(r);
-            constexpr auto last_dot = full.rfind('.');
-            constexpr std::string_view after_dot = (last_dot != std::string_view::npos)
-                ? full.substr(last_dot + 1)
-                : full;
-            constexpr auto last_sep = after_dot.rfind("::");
-            constexpr std::string_view name = (last_sep != std::string_view::npos)
-                ? after_dot.substr(last_sep + 2)
-                : after_dot;
-            return name;
-            // NOLINTEND
+            if constexpr(type_traits::primary_types::is_enum_v<decltype(Variable)>) {
+                return std::meta::display_string_of(r);
+            }else {
+                // NOLINTBEGIN
+                constexpr std::string_view full = std::meta::display_string_of(r);
+                constexpr auto last_dot = full.rfind('.');
+                constexpr std::string_view after_dot = (last_dot != std::string_view::npos)
+                    ? full.substr(last_dot + 1)
+                    : full;
+                constexpr auto last_sep = after_dot.rfind("::");
+                constexpr std::string_view name = (last_sep != std::string_view::npos)
+                    ? after_dot.substr(last_sep + 2)
+                    : after_dot;
+                return name;
+                // NOLINTEND
+            }
         }
     }
 #else

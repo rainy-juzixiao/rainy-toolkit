@@ -674,6 +674,7 @@ namespace rainy::meta::moon {
         using type = type_traits::cv_modify::remove_cvref_t<Ty>;
         constexpr size_t count = member_count_v<type>;
 #if RAINY_HAS_CXX26_STATIC_REFLECTION
+        utility::ignore = t;
         return implements::member_offset_arr_cache<Ty>;
 #else
         auto tp = struct_bind_tuple(utility::forward<Ty>(t));

@@ -29,9 +29,10 @@ private:
     std::vector<int> d;
 };
 
-RAINY_PRIVATE_REFLECT_TUPLE_LIKE(type, a, b, c);
+RAINY_PRIVATE_REFLECT_TUPLE_LIKE(type, a, b, c, d);
 
 int main() {
+#if RAINY_HAS_CXX26_STATIC_REFLECTION && RAINY_HAS_CXX26
     constexpr bool is_enum_value = meta::moon::is_enum_value_v<aaa::enum_type, aaa::enum_type::a>;
     constexpr bool is_enum_value1 = meta::moon::is_enum_value_v<aaa::enum_type, static_cast<aaa::enum_type>(1)>;
     std::cout << "is_enum_value: " << is_enum_value << '\n';
@@ -51,10 +52,13 @@ int main() {
     for (const auto item: meta::moon::get_member_names<type>()) {
         std::cout << item << '\n';
     }
+
     constexpr auto ssss = meta::moon::get_member_offset_arr<type>();
     for (const auto offset: ssss) {
         std::cout << offset << '\n';
     }
+#endif
+
     rainy::foundation::io::net::io_context ctx;
     rainy::foundation::io::net::steady_timer timer(ctx, std::chrono::seconds{5});
     timer.async_wait([](std::error_code ec) {
