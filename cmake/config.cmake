@@ -251,7 +251,7 @@ if (RAINY_USE_CXX26_RELFECTION_TS)
 
         if (_compile_result EQUAL 0)
             message(STATUS "Compiler supports C++26 Static Reflection (with <meta> and ^^ reflection operator)")
-            target_compile_options(rainy-toolkit PUBLIC ${_reflection_std_flag} ${_reflection_flags})
+            target_compile_options(rainy-toolkit PUBLIC -std=c++26 -freflection)
             target_compile_definitions(rainy-toolkit PUBLIC RAINY_HAS_CXX26_STATIC_REFLECTION=1)
             set(RAINY_TOOLKIT_HAVE_CXX26_STATIC_REFLECTION TRUE)
         else()

@@ -27,6 +27,9 @@ int main() {
     std::cout << "is_enum_value: " << is_enum_value << '\n';
     std::cout << "is_enum_value1: " << is_enum_value1 << '\n';
     std::cout << "count: " << meta::moon::enum_count<aaa::enum_type>() << '\n';
+    std::cout << "foundation::ctti::variable_name<111>(): " << foundation::ctti::variable_name<111>() << '\n';
+    std::cout << "foundation::ctti::variable_name<aaa::enum_type::a>(): " << foundation::ctti::variable_name<aaa::enum_type::a>() << '\n';
+    std::cout << "foundation::ctti::variable_name<static_cast<aaa::enum_type>(1)>(): " << foundation::ctti::variable_name<static_cast<aaa::enum_type>(1)>() << '\n';
     rainy::foundation::io::net::io_context ctx;
     rainy::foundation::io::net::steady_timer timer(ctx, std::chrono::seconds{5});
     timer.async_wait([](std::error_code ec) {
