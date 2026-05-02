@@ -241,7 +241,7 @@ namespace rainy::foundation::ctti::implements {
 
 #if RAINY_HAS_CXX26 && RAINY_HAS_CXX26_STATIC_REFLECTION
     template <typename Ty>
-    consteval auto generate_type_name() -> std::string_view {
+    consteval rain_fn generate_type_name() -> std::string_view {
         return std::meta::display_string_of(^^Ty);
     }
 #else
