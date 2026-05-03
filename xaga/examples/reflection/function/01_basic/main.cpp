@@ -25,6 +25,7 @@ namespace aaa {
 
 struct[[ = rainy::annotations::moon::with_prefix("ty_"), = rainy::annotations::moon::with_suffix("_member") ]] type {
     int a;
+    [[= rainy::annotations::moon::no_prefix]]
     std::string b;
     [[ = rainy::annotations::moon::rename("ccc"), = rainy::annotations::moon::with_prefix("type_") ]]
     char c;

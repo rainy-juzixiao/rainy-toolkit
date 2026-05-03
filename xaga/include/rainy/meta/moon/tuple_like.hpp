@@ -297,18 +297,21 @@ namespace rainy::meta::moon::implements {
         std::string_view prefix = {};
         std::string_view suffix = {};
 
-        if constexpr (member_anno.has<annotations::moon::with_prefix_tag>()) {
+        constexpr bool has_no_prefix = member_anno.has<annotations::moon::no_prefix_tag>();
+        constexpr bool has_no_suffix = member_anno.has<annotations::moon::no_suffix_tag>();
+
+        if constexpr (member_anno.has<annotations::moon::with_prefix_tag>() && !has_no_prefix) {
             // member 级别优先
             prefix = member_anno.fetch<annotations::moon::with_prefix_tag>().data;
-        } else if constexpr (type_anno.template has<annotations::moon::with_prefix_tag>()) {
+        } else if constexpr (type_anno.template has<annotations::moon::with_prefix_tag>() && !has_no_prefix) {
             // 回退到 type 级别
             prefix = type_anno.template fetch<annotations::moon::with_prefix_tag>().data;
         }
 
-        if constexpr (member_anno.has<annotations::moon::with_suffix_tag>()) {
+        if constexpr (member_anno.has<annotations::moon::with_suffix_tag>() && !has_no_suffix) {
             // member 级别优先
             suffix = member_anno.fetch<annotations::moon::with_suffix_tag>().data;
-        } else if constexpr (type_anno.template has<annotations::moon::with_suffix_tag>()) {
+        } else if constexpr (type_anno.template has<annotations::moon::with_suffix_tag>() && !has_no_suffix) {
             // 回退到 type 级别
             suffix = type_anno.template fetch<annotations::moon::with_suffix_tag>().data;
         }
