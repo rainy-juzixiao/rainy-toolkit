@@ -35,7 +35,7 @@ namespace rainy::annotations::moon {
     consteval rename_tag rename(std::string_view new_name = "") { return {std::define_static_string(new_name)}; }
 
     struct with_prefix_tag { char const* prefix; };
-    consteval with_prefix_tag with_prefix_tag(std::string_view prefix = "") { return {std::define_static_string(prefix)}; }
+    consteval with_prefix_tag with_prefix(std::string_view prefix = "") { return {std::define_static_string(prefix)}; }
 
     struct with_suffix_tag { char const* suffix; };
     consteval with_suffix_tag with_suffix(std::string_view suffix = "") { return {std::define_static_string(suffix)}; }

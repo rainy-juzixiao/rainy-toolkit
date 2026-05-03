@@ -23,10 +23,10 @@ namespace aaa {
 
 #if RAINY_HAS_CXX26_STATIC_REFLECTION && RAINY_HAS_CXX26
 
-struct type {
+struct [[= rainy::annotations::moon::with_prefix("ty_")]] type {
     int a;
     std::string b;
-    [[= rainy::annotations::moon::rename("ccc")]]
+    [[= rainy::annotations::moon::rename("ccc"),= rainy::annotations::moon::with_prefix("type_")]]
     char c;
 private:
     std::vector<int> d;

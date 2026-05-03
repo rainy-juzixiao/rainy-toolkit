@@ -289,9 +289,29 @@ namespace rainy::utility {
 #if RAINY_HAS_CXX26 && RAINY_HAS_CXX26_STATIC_REFLECTION
 
 namespace rainy::meta::moon::implements {
+    template <typename Ty, std::meta::info Member>
+    RAINY_CONSTEVAL auto try_apply_prefix_tag(std::string_view &name) noexcept -> void {
+        constexpr auto type_anno = annotations::make_type_anno<Ty>();
+        constexpr auto member_anno = annotations::make_member_anno(Member);
+
+        if constexpr (member_anno.has<annotations::moon::with_prefix_tag>()) {
+            // member 级别优先
+            std::string str;
+            str.append(member_anno.fetch<annotations::moon::with_prefix_tag>().prefix);
+            str += name;
+            name = std::define_static_string(str);
+        } else if constexpr (type_anno.template has<annotations::moon::with_prefix_tag>()) {
+            // 回退到 type 级别
+            std::string str;
+            str.append(type_anno.template fetch<annotations::moon::with_prefix_tag>().prefix);
+            str += name;
+            name = std::define_static_string(str);
+        }
+    }
+
     template <std::meta::info Member>
     RAINY_CONSTEVAL auto try_apply_rename(std::string_view &name) noexcept -> void {
-        constexpr auto anno = annotations::make_refl_anno(Member);
+        constexpr auto anno = annotations::make_member_anno(Member);
         if constexpr (anno.has<annotations::moon::rename_tag>()) {
             name = anno.fetch<annotations::moon::rename_tag>().new_name;
         }
@@ -309,6 +329,7 @@ namespace rainy::meta::moon::implements {
                     template for (constexpr auto m: unchcked_all_member_array<Ty>) {
                         if (static_cast<void *>(utility::addressof(fake.[:m:])) == static_cast<void const *>(std::get<Idx>(tp))) {
                             try_apply_rename<m>(array[Idx]);
+                            try_apply_prefix_tag<Ty, m>(array[Idx]);
                             break;
                         }
                     }

@@ -2460,7 +2460,7 @@ namespace rainy::utility {
 #if RAINY_HAS_CXX26 && RAINY_HAS_CXX26_STATIC_REFLECTION
 
 namespace rainy::annotations {
-    struct refl_anno {
+    struct member_anno {
         template <typename Ty>
         RAINY_NODISCARD consteval auto has() const noexcept -> bool {
             using namespace std::meta;
@@ -2495,10 +2495,54 @@ namespace rainy::annotations {
         std::size_t num_attns{0};
     };
 
-    consteval auto make_refl_anno(std::meta::info member) -> refl_anno {
+    consteval auto make_member_anno(std::meta::info member) -> member_anno {
         auto attns = std::meta::annotations_of(member);
         auto span = std::define_static_array(attns);
-        return refl_anno{span.data(), span.size()};
+        return member_anno{span.data(), span.size()};
+    }
+}
+
+namespace rainy::annotations {
+    struct type_anno {
+        template <typename Ty>
+        RAINY_NODISCARD consteval auto has() const noexcept -> bool {
+            using namespace std::meta;
+            for (auto attn : std::span{attns, num_attns}) {
+                if (remove_const(type_of(attn)) == ^^Ty) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        template <typename Ty>
+        RAINY_NODISCARD consteval auto fetch() const -> Ty {
+            using namespace std::meta;
+            for (auto attn : std::span{attns, num_attns}) {
+                if (remove_const(type_of(attn)) == ^^Ty) {
+                    return extract<Ty>(attn);
+                }
+            }
+            std::unreachable();
+        }
+
+        template <typename Ty>
+        RAINY_NODISCARD consteval auto get_or(Ty default_val) const noexcept -> Ty {
+            if (has<Ty>()) {
+                return fetch<Ty>();
+            }
+            return default_val;
+        }
+
+        const std::meta::info *attns{nullptr};
+        std::size_t num_attns{0};
+    };
+
+    template <typename Ty>
+    consteval auto make_type_anno() -> type_anno {
+        auto attns = std::meta::annotations_of(^^Ty);
+        auto span = std::define_static_array(attns);
+        return type_anno{span.data(), span.size()};
     }
 }
 
