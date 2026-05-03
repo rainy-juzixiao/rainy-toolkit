@@ -68,14 +68,37 @@ namespace rainy::meta::moon::implements {
         static constexpr auto value = get_private_ptrs(private_access_tag<type_traits::cv_modify::remove_cvref_t<Ty>>);
     };
 }
+
 #if RAINY_HAS_CXX26 && RAINY_HAS_CXX26_STATIC_REFLECTION
 
 namespace rainy::meta::moon::implements {
     template <typename Ty>
-    constexpr std::size_t members_count_impl() { // as-if from fallback version
+    static constexpr auto member_array = []() consteval {
+        using type = type_traits::cv_modify::remove_cvref_t<Ty>;
+        constexpr auto ctx = std::meta::access_context::current();
+        return std::define_static_array(std::meta::nonstatic_data_members_of(^^type, ctx));
+    }();
+
+    template <typename Ty>
+    static constexpr auto unchecked_all_member_array = []() consteval {
+        using type = type_traits::cv_modify::remove_cvref_t<Ty>;
+        constexpr auto ctx = std::meta::access_context::unchecked();
+        return std::define_static_array(std::meta::nonstatic_data_members_of(^^type, ctx));
+    }();
+}
+
+namespace rainy::meta::moon::implements {
+    template <typename Ty>
+    constexpr rain_fn members_count_impl() -> std::size_t { // as-if from fallback version
         if constexpr (type_traits::type_properties::is_aggregate_v<Ty>) {
-            std::meta::access_context context = std::meta::access_context::current();
-            return std::meta::nonstatic_data_members_of(^^Ty, context).size();
+            std::size_t count{0};
+            template for (constexpr auto mem: member_array<Ty>) {
+                if constexpr (constexpr auto attn = annotations::make_member_anno(mem);
+                              !attn.template has<annotations::moon::ignore_tag>()) {
+                    ++count;
+                }
+            }
+            return count;
         } else {
             return 0;
         }
@@ -130,15 +153,15 @@ namespace rainy::meta::moon {
 
         static constexpr inline std::size_t count = 0;
 
-        static constexpr auto make() noexcept {
+        static constexpr rain_fn make() noexcept -> std::tuple<> {
             return std::make_tuple();
         }
 
-        static constexpr auto bind_obj(Ty &) noexcept {
+        static constexpr rain_fn bind_obj(Ty &) noexcept -> std::tuple<> {
             return std::make_tuple();
         }
 
-        static constexpr auto member_names() noexcept {
+        static constexpr rain_fn member_names() noexcept -> auto {
             collections::array<std::string_view, 0> empty;
             return empty;
         }
@@ -155,35 +178,44 @@ namespace rainy::meta::moon {
 #if RAINY_HAS_CXX26 && RAINY_HAS_CXX26_STATIC_REFLECTION
 
 namespace rainy::meta::moon::implements {
-    template <typename Ty>
-    static constexpr auto member_array = []() consteval {
-        using type = type_traits::cv_modify::remove_cvref_t<Ty>;
-        constexpr auto ctx = std::meta::access_context::current();
-        return std::define_static_array(std::meta::nonstatic_data_members_of(^^type, ctx));
-    }();
-
-    template <typename Ty>
-    static constexpr auto unchcked_all_member_array = []() consteval {
-        using type = type_traits::cv_modify::remove_cvref_t<Ty>;
-        constexpr auto ctx = std::meta::access_context::unchecked();
-        return std::define_static_array(std::meta::nonstatic_data_members_of(^^type, ctx));
-    }();
-
     template <std::size_t, typename Ty>
     struct refl_to_tuple_impl {
-        static constexpr auto make() noexcept {
+        static constexpr rain_fn make() noexcept -> auto {
+            using namespace std::meta;
             auto &fake = type_traits::helper::get_fake_object<type_traits::cv_modify::remove_cvref_t<Ty>>();
+            constexpr auto filtered = []() consteval {
+                std::vector<info> result;
+                template for (constexpr auto m: member_array<Ty>) {
+                    constexpr auto anno = annotations::make_member_anno(m);
+                    if constexpr (!anno.template has<annotations::moon::ignore_tag>()) {
+                        result.push_back(m);
+                    }
+                }
+                return std::define_static_array(result);
+            }();
             return [&]<std::size_t... Is>(type_traits::helper::index_sequence<Is...>) {
-                return std::make_tuple(&(fake.[:member_array<Ty>[Is]:])...);
-            }(type_traits::helper::make_index_sequence<member_array<Ty>.size()>{});
+                return std::make_tuple(&(fake.[:filtered[Is]:])...);
+            }(type_traits::helper::make_index_sequence<filtered.size()>{});
         }
 
         template <typename UTy, type_traits::other_trans::enable_if_t<
                                     type_traits::type_relations::is_same_v<type_traits::cv_modify::remove_cvref_t<UTy>, Ty>, int> = 0>
-        static constexpr auto make_ptr(UTy &&obj) noexcept {
+        static constexpr rain_fn make_ptr(UTy &&obj) noexcept -> auto {
+            using namespace std::meta;
+            constexpr auto filtered = []() consteval {
+                std::vector<info> result;
+                template for (constexpr auto m: member_array<Ty>) {
+                    constexpr auto anno = annotations::make_member_anno(m);
+                    if constexpr (!anno.template has<annotations::moon::ignore_tag>()) {
+                        result.push_back(m);
+                    }
+                }
+                return std::define_static_array(result);
+            }();
+
             return [&]<std::size_t... Is>(type_traits::helper::index_sequence<Is...>) {
-                return std::make_tuple(&(obj.[:member_array<Ty>[Is]:])...);
-            }(type_traits::helper::make_index_sequence<member_array<Ty>.size()>{});
+                return std::make_tuple(&(obj.[:filtered[Is]:])...);
+            }(type_traits::helper::make_index_sequence<filtered.size()>{});
         }
 
         using type = decltype(make());
@@ -198,7 +230,7 @@ namespace rainy::meta::moon::implements {
 
     template <typename Ty>
     struct refl_to_tuple_impl<0, Ty> : std::integral_constant<std::size_t, 0> {
-        static constexpr auto make() noexcept {
+        static constexpr rain_fn make() noexcept -> std::tuple<> {
             return std::make_tuple();
         };
 
@@ -209,7 +241,7 @@ namespace rainy::meta::moon::implements {
 #define RAINY_DECLARE_TO_TUPLE(N)                                                                                                     \
     template <typename Ty>                                                                                                            \
     struct rainy::meta::moon::implements::refl_to_tuple_impl<N, Ty> : std::integral_constant<std::size_t, N> {                        \
-        static constexpr auto make() noexcept {                                                                                       \
+        static constexpr rain_fn make() noexcept -> auto {                                                                            \
             auto &[RAINY_TO_TUPLE_EXPAND_ARGS(N)] =                                                                                   \
                 type_traits::helper::get_fake_object<type_traits::cv_modify::remove_cvref_t<Ty>>();                                   \
             auto ref_tup = std::tie(RAINY_TO_TUPLE_EXPAND_ARGS(N));                                                                   \
@@ -219,7 +251,7 @@ namespace rainy::meta::moon::implements {
         template <typename UTy,                                                                                                       \
                   rainy::type_traits::other_trans::enable_if_t<                                                                       \
                       rainy::type_traits::type_relations::is_same_v<type_traits::cv_modify::remove_cvref_t<UTy>, Ty>, int> = 0>       \
-        static constexpr auto make_ptr(UTy &&obj) noexcept {                                                                          \
+        static constexpr rain_fn make_ptr(UTy &&obj) noexcept -> auto {                                                               \
             auto &[RAINY_TO_TUPLE_EXPAND_ARGS(N)] = obj;                                                                              \
             auto ref_tup = std::tie(RAINY_TO_TUPLE_EXPAND_ARGS(N));                                                                   \
             auto get_ptrs = [](auto &..._refs) { return std::make_tuple(&_refs...); };                                                \
@@ -260,7 +292,7 @@ namespace rainy::meta::moon {
     static inline constexpr std::size_t member_count_v = member_count<Ty>::value;
 
     template <typename Ty>
-    constexpr auto struct_to_tuple() {
+    constexpr rain_fn struct_to_tuple() -> auto {
         constexpr std::size_t count = member_count_v<type_traits::cv_modify::remove_cvref_t<Ty>>;
         if constexpr (is_reflectet_for_type_valid<Ty>) {
             return reflectet_for_type<Ty>::make();
@@ -290,7 +322,7 @@ namespace rainy::utility {
 
 namespace rainy::meta::moon::implements {
     template <typename Ty, std::meta::info Member>
-    RAINY_CONSTEVAL auto try_apply_prefix_and_suffix_tag(std::string_view &name) -> void {
+    RAINY_CONSTEVAL rain_fn try_apply_prefix_and_suffix_tag(std::string_view &name) -> void {
         constexpr auto type_anno = annotations::make_type_anno<Ty>();
         constexpr auto member_anno = annotations::make_member_anno(Member);
 
@@ -324,15 +356,102 @@ namespace rainy::meta::moon::implements {
     }
 
     template <std::meta::info Member>
-    RAINY_CONSTEVAL auto try_apply_rename(std::string_view &name) noexcept -> void {
+    RAINY_CONSTEVAL rain_fn try_apply_rename(std::string_view &name) noexcept -> void {
         constexpr auto anno = annotations::make_member_anno(Member);
         if constexpr (anno.has<annotations::moon::rename_tag>()) {
             name = anno.fetch<annotations::moon::rename_tag>().new_name;
         }
     }
 
+    template <typename Ty, std::meta::info Member>
+    RAINY_CONSTEVAL rain_fn try_apply_name_style(std::string_view &name) noexcept -> void {
+        constexpr auto style = []() consteval -> annotations::moon::named_style {
+            constexpr auto type_anno = annotations::make_type_anno<Ty>();
+
+            if constexpr (constexpr auto member_anno = annotations::make_member_anno(Member);
+                          member_anno.has<annotations::moon::use_name_style>()) {
+                return member_anno.fetch<annotations::moon::use_name_style>().style;
+            } else if constexpr (type_anno.template has<annotations::moon::use_name_style>()) {
+                return type_anno.template fetch<annotations::moon::use_name_style>().style;
+            }
+            return annotations::moon::named_style::none;
+        }();
+
+        if constexpr (style != annotations::moon::named_style::none) {
+            constexpr auto convert = [](std::string_view src, annotations::moon::named_style s) consteval -> std::string {
+                constexpr auto to_lower = [](const char ch) consteval -> char {
+                    return (ch >= 'A' && ch <= 'Z') ? static_cast<char>(ch + 32) : ch;
+                };
+                constexpr auto to_upper = [](const char ch) consteval -> char {
+                    return (ch >= 'a' && ch <= 'z') ? static_cast<char>(ch - 32) : ch;
+                };
+
+                std::vector<std::string> words;
+                std::string cur;
+                for (const char ch: src) {
+                    if (ch == '_') {
+                        if (!cur.empty()) {
+                            words.push_back(cur);
+                            cur.clear();
+                        }
+                    } else {
+                        cur += ch;
+                    }
+                }
+                if (!cur.empty()) {
+                    words.push_back(cur);
+                }
+
+                std::string result;
+                // NOLINTBEGIN
+                switch (s) {
+                    case annotations::moon::named_style::snake_case:
+                        // 原样保持，不做任何处理
+                        result = std::string{src};
+                        break;
+
+                    case annotations::moon::named_style::camel: {
+                        // 第一个 word 全小写，后续每个 word 首字母大写
+                        for (std::size_t i = 0; i < words.size(); ++i) {
+                            if (i == 0) {
+                                for (const char ch: words[i]) {
+                                    result += to_lower(ch);
+                                }
+                            } else {
+                                result += to_upper(words[i][0]);
+                                for (std::size_t j = 1; j < words[i].size(); ++j) {
+                                    result += to_lower(words[i][j]);
+                                }
+                            }
+                        }
+                        break;
+                    }
+
+                    case annotations::moon::named_style::pascal: {
+                        // 每个 word 首字母大写
+                        for (const auto &w: words) {
+                            result += to_upper(w[0]);
+                            for (std::size_t j = 1; j < w.size(); ++j) {
+                                result += to_lower(w[j]);
+                            }
+                        }
+                        break;
+                    }
+
+                    default:
+                        result = std::string{src};
+                        break;
+                }
+                // NOLINTEND
+                return result;
+            };
+
+            name = std::define_static_string(convert(name, style));
+        }
+    }
+
     template <typename Ty, std::size_t Size>
-    RAINY_CONSTEVAL auto get_member_names_compositor(collections::array<std::string_view, Size> &array) noexcept -> void {
+    RAINY_CONSTEVAL rain_fn get_member_names_compositor(collections::array<std::string_view, Size> &array) noexcept -> void {
         using namespace std::meta;
         auto &fake = type_traits::helper::get_fake_object<Ty>();
         auto tp = moon::struct_to_tuple<Ty>();
@@ -340,9 +459,10 @@ namespace rainy::meta::moon::implements {
         [&]<std::size_t... Idx>(std::index_sequence<Idx...>) consteval {
             (
                 [&]() consteval {
-                    template for (constexpr auto m: unchcked_all_member_array<Ty>) {
+                    template for (constexpr auto m: unchecked_all_member_array<Ty>) {
                         if (static_cast<void *>(utility::addressof(fake.[:m:])) == static_cast<void const *>(std::get<Idx>(tp))) {
                             try_apply_rename<m>(array[Idx]);
+                            try_apply_name_style<Ty, m>(array[Idx]);
                             try_apply_prefix_and_suffix_tag<Ty, m>(array[Idx]);
                             break;
                         }
@@ -709,7 +829,7 @@ namespace rainy::meta::moon::implements {
         [&]<std::size_t... Is>(type_traits::helper::index_sequence<Is...>) consteval {
             ((result[Is] = [&]() consteval -> std::size_t {
                  auto *ptr = std::get<Is>(tp);
-                 template for (constexpr auto m: unchcked_all_member_array<Ty>) {
+                 template for (constexpr auto m: unchecked_all_member_array<Ty>) {
                      /*
                       * 自C++26开始，constexpr 的从 void* 转换 被允许，参见 P2738R1 提案
                       * https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2023/p2738r1.pdf

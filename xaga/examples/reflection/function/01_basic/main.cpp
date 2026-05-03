@@ -23,18 +23,25 @@ namespace aaa {
 
 #if RAINY_HAS_CXX26_STATIC_REFLECTION && RAINY_HAS_CXX26
 
+// clang-format off
+
 struct[[ = rainy::annotations::moon::with_prefix("ty_"), = rainy::annotations::moon::with_suffix("_member") ]] type {
+    [[= rainy::annotations::moon::ignore]]
     int a;
     [[= rainy::annotations::moon::no_prefix]]
     std::string b;
-    [[ = rainy::annotations::moon::rename("ccc"), = rainy::annotations::moon::with_prefix("type_") ]]
+
+    [[
+        = rainy::annotations::moon::rename("c_s"),
+        = rainy::annotations::moon::with_prefix("type_"),
+        = rainy::annotations::moon::use_name_style(annotations::moon::named_style::camel)
+    ]]
     char c;
 
-private:
     std::vector<int> d;
 };
 
-RAINY_PRIVATE_REFLECT_TUPLE_LIKE(type, a, b, c, d);
+// clang-format on
 
 #endif
 
@@ -55,7 +62,7 @@ int main() {
     template for (const auto item: tuple) {
         std::cout << static_cast<void *>(item) << '\n';
     }
-
+    std::cout << meta::moon::member_count_v<type> << '\n';
     for (const auto item: meta::moon::get_member_names<type>()) {
         std::cout << item << '\n';
     }
