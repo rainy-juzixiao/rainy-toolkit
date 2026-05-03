@@ -34,11 +34,17 @@ namespace rainy::annotations::moon {
     struct rename_tag { char const* new_name; };
     consteval rename_tag rename(std::string_view new_name = "") { return {std::define_static_string(new_name)}; }
 
-    struct with_prefix_tag { char const* prefix; };
-    consteval with_prefix_tag with_prefix_tag(std::string_view prefix = "") { return {std::define_static_string(prefix)}; }
+    struct with_prefix_tag { char const* data; };
+    consteval with_prefix_tag with_prefix(std::string_view prefix = "") { return {std::define_static_string(prefix)}; }
 
-    struct with_suffix_tag { char const* suffix; };
+    struct with_suffix_tag { char const* data; };
     consteval with_suffix_tag with_suffix(std::string_view suffix = "") { return {std::define_static_string(suffix)}; }
+
+    struct no_prefix_tag {};
+    inline static constexpr auto no_prefix = no_prefix_tag{};
+
+    struct no_suffix_tag {};
+    inline static constexpr auto no_suffix = no_suffix_tag{};
 
     enum class named_style {
         snake_case,
