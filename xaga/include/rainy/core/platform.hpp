@@ -200,6 +200,14 @@ clang和GNU编译器区域
 #endif
 #endif
 
+#ifndef RAINY_USING_LLVM_GCC
+#if defined(__clang__) && defined(__GNUC__)
+#define RAINY_USING_LLVM_GCC 1
+#else
+#define RAINY_USING_LLVM_GCC 0
+#endif
+#endif
+
 #ifndef RAINY_USING_MSVC
 #if defined(_MSC_VER) && !defined(__clang__)
 #define RAINY_USING_MSVC 1

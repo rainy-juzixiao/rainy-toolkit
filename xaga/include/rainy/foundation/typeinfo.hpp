@@ -276,19 +276,15 @@ namespace rainy::foundation::ctti::implements {
         } else if constexpr (std::meta::has_identifier(r)) {
             return std::meta::identifier_of(r);
         } else {
-            if constexpr(type_traits::primary_types::is_enum_v<decltype(Variable)>) {
+            if constexpr (type_traits::primary_types::is_enum_v<decltype(Variable)>) {
                 return std::meta::display_string_of(r);
-            }else {
+            } else {
                 // NOLINTBEGIN
                 constexpr std::string_view full = std::meta::display_string_of(r);
                 constexpr auto last_dot = full.rfind('.');
-                constexpr std::string_view after_dot = (last_dot != std::string_view::npos)
-                    ? full.substr(last_dot + 1)
-                    : full;
+                constexpr std::string_view after_dot = (last_dot != std::string_view::npos) ? full.substr(last_dot + 1) : full;
                 constexpr auto last_sep = after_dot.rfind("::");
-                constexpr std::string_view name = (last_sep != std::string_view::npos)
-                    ? after_dot.substr(last_sep + 2)
-                    : after_dot;
+                constexpr std::string_view name = (last_sep != std::string_view::npos) ? after_dot.substr(last_sep + 2) : after_dot;
                 return name;
                 // NOLINTEND
             }
@@ -298,11 +294,18 @@ namespace rainy::foundation::ctti::implements {
     template <auto Variable>
     static constexpr std::string_view make_variable_name_ref() {
         constexpr std::string_view func_name = wrapped_variable_name<Variable>();
-#if RAINY_USING_CLANG
+#if RAINY_USING_CLANG || RAINY_USING_LLVM_GCC
         constexpr auto split = func_name.substr(0, func_name.rfind("]"));
         constexpr auto start = split.find("Variable = ") + 11;
         constexpr auto end = split.find(";", start);
-        return split.substr(start, end - start);
+        constexpr auto raw_name = split.substr(start, end - start);
+        constexpr auto dot_pos = raw_name.rfind('.');
+        if constexpr (dot_pos != std::string_view::npos) {
+            // 如果找到.，剔除.及其之前的所有字符
+            return raw_name.substr(dot_pos + 1);
+        } else {
+            return raw_name;
+        }
 #elif RAINY_USING_GCC
         constexpr auto split = func_name.substr(0, func_name.rfind(']') - 1);
         constexpr auto start = split.find("with auto Variable = ") + 21;

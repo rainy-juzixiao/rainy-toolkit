@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-#include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_template_test_macros.hpp>
+#include <catch2/catch_test_macros.hpp>
 
 #include <rainy/annotations/moon.hpp>
 #include <rainy/meta/moon/tuple_like.hpp>
 
 #include <string>
-#include <utility>
 #include <tuple>
+#include <utility>
 
 using namespace rainy::meta::moon;
 
@@ -61,11 +61,19 @@ class PrivateClass {
     std::string secret3;
 
 public:
-    PrivateClass() : secret1(0), secret2(0.0), secret3("") {}
-    PrivateClass(int s1, double s2, std::string s3) : secret1(s1), secret2(s2), secret3(s3) {}
-    int getSecret1() const { return secret1; }
-    double getSecret2() const { return secret2; }
-    std::string getSecret3() const { return secret3; }
+    PrivateClass() : secret1(0), secret2(0.0), secret3("") {
+    }
+    PrivateClass(int s1, double s2, std::string s3) : secret1(s1), secret2(s2), secret3(s3) {
+    }
+    int getSecret1() const {
+        return secret1;
+    }
+    double getSecret2() const {
+        return secret2;
+    }
+    std::string getSecret3() const {
+        return secret3;
+    }
 };
 
 RAINY_PRIVATE_REFLECT_TUPLE_LIKE(PrivateClass, secret1, secret2, secret3)
@@ -276,9 +284,15 @@ TEST_CASE("for_each", "[moon][for_each]") {
 
         for_each<SimpleStruct>([&](std::string_view name, std::size_t idx) {
             captured.push_back(name);
-            if (idx == 0) REQUIRE(name == "a");
-            if (idx == 1) REQUIRE(name == "b");
-            if (idx == 2) REQUIRE(name == "c");
+            if (idx == 0) {
+                REQUIRE(name == "a");
+            }
+            if (idx == 1) {
+                REQUIRE(name == "b");
+            }
+            if (idx == 2) {
+                REQUIRE(name == "c");
+            }
         });
 
         REQUIRE(captured.size() == 3);
@@ -288,13 +302,11 @@ TEST_CASE("for_each", "[moon][for_each]") {
         SimpleStruct obj{10, 20.5, 'X'};
         std::vector<int> values;
 
-        for_each(obj, [&](auto& member, std::string_view name, std::size_t idx) {
-            values.push_back(static_cast<int>(member));
-        });
+        for_each(obj, [&](auto &member, std::string_view name, std::size_t idx) { values.push_back(static_cast<int>(member)); });
 
         REQUIRE(values.size() == 3);
         REQUIRE(values[0] == 10);
-        REQUIRE(values[1] == 20);  // double 转 int 截断
+        REQUIRE(values[1] == 20); // double 转 int 截断
         REQUIRE(values[2] == 'X');
     }
 }
@@ -304,9 +316,7 @@ TEST_CASE("visit_members", "[moon][visit_members]") {
         SimpleStruct obj{1, 2.5, 'Z'};
 
         int sum = 0;
-        visit_members(obj, [&](int& a, double& b, char& c) {
-            sum = a + static_cast<int>(b) + static_cast<int>(c);
-        });
+        visit_members(obj, [&](int &a, double &b, char &c) { sum = a + static_cast<int>(b) + static_cast<int>(c); });
 
         REQUIRE(sum == 1 + 2 + static_cast<int>('Z'));
     }
@@ -345,15 +355,15 @@ TEST_CASE("tuple and pair traits", "[moon][tuple_traits][pair_traits]") {
 
 TEST_CASE("tuple_element", "[moon][tuple_element]") {
     SECTION("tuple_element for struct") {
-        static_assert(rainy::type_traits::type_relations::is_convertible_v<tuple_element_t<0, SimpleStruct>, int*>);
-        static_assert(rainy::type_traits::type_relations::is_convertible_v<tuple_element_t<1, SimpleStruct>, double*>);
-        static_assert(rainy::type_traits::type_relations::is_convertible_v<tuple_element_t<2, SimpleStruct>, char*>);
+        static_assert(rainy::type_traits::type_relations::is_convertible_v<tuple_element_t<0, SimpleStruct>, int *>);
+        static_assert(rainy::type_traits::type_relations::is_convertible_v<tuple_element_t<1, SimpleStruct>, double *>);
+        static_assert(rainy::type_traits::type_relations::is_convertible_v<tuple_element_t<2, SimpleStruct>, char *>);
     }
 
     SECTION("tuple_element for registered struct") {
-        static_assert(rainy::type_traits::type_relations::is_convertible_v<tuple_element_t<0, RegisteredStruct>, int*>);
-        static_assert(rainy::type_traits::type_relations::is_convertible_v<tuple_element_t<1, RegisteredStruct>, double*>);
-        static_assert(rainy::type_traits::type_relations::is_convertible_v<tuple_element_t<2, RegisteredStruct>, std::string*>);
+        static_assert(rainy::type_traits::type_relations::is_convertible_v<tuple_element_t<0, RegisteredStruct>, int *>);
+        static_assert(rainy::type_traits::type_relations::is_convertible_v<tuple_element_t<1, RegisteredStruct>, double *>);
+        static_assert(rainy::type_traits::type_relations::is_convertible_v<tuple_element_t<2, RegisteredStruct>, std::string *>);
     }
 }
 
@@ -388,10 +398,6 @@ TEST_CASE("pair reflection specialization", "[moon][pair]") {
     }
 }
 
-// ============================================================================
-// 测试用例 11: is_reflectet_for_type_valid
-// ============================================================================
-
 TEST_CASE("is_reflectet_for_type_valid", "[moon][reflectet_for_type]") {
     SECTION("registered types are valid") {
         REQUIRE(is_reflectet_for_type_valid<RegisteredStruct>);
@@ -404,24 +410,15 @@ TEST_CASE("is_reflectet_for_type_valid", "[moon][reflectet_for_type]") {
     }
 }
 
-// ============================================================================
-// 测试用例 12: 模板结构体
-// ============================================================================
-
 TEMPLATE_TEST_CASE("template struct reflection", "[moon][template]", int, double, std::string) {
     using Struct = TemplateStruct<TestType>;
 
     REQUIRE(member_count_v<Struct> == 2);
-
     constexpr auto names = get_member_names<Struct>();
     REQUIRE(names.size() == 2);
     REQUIRE(names[0] == "value");
     REQUIRE(names[1] == "count");
 }
-
-// ============================================================================
-// 测试用例 13: compile-time constexpr 验证
-// ============================================================================
 
 TEST_CASE("compile-time constexpr evaluation", "[moon][constexpr]") {
     SECTION("member_count is constexpr") {
@@ -448,10 +445,6 @@ TEST_CASE("compile-time constexpr evaluation", "[moon][constexpr]") {
     }
 }
 
-// ============================================================================
-// 测试用例 14: tuple_size
-// ============================================================================
-
 TEST_CASE("tuple_size", "[moon][tuple_size]") {
     SECTION("tuple_size for structs") {
         REQUIRE(tuple_size_v<SimpleStruct> == 3);
@@ -476,11 +469,11 @@ struct rainy::meta::moon::reflectet_for_type<ManuallyRegistered> {
     static constexpr inline std::size_t count = 3;
 
     static constexpr auto make() noexcept {
-        auto& obj = type_traits::helper::get_fake_object<ManuallyRegistered>();
+        auto &obj = type_traits::helper::get_fake_object<ManuallyRegistered>();
         return std::make_tuple(&obj.field1, &obj.field2, &obj.field3);
     }
 
-    static constexpr auto bind_obj(ManuallyRegistered& obj) noexcept {
+    static constexpr auto bind_obj(ManuallyRegistered &obj) noexcept {
         return std::make_tuple(&obj.field1, &obj.field2, &obj.field3);
     }
 
@@ -507,10 +500,6 @@ TEST_CASE("manual registration with RAINY_REFLECT_TUPLE_LIKE", "[moon][manual_re
     REQUIRE(*std::get<2>(ptr_tuple) == 3.14);
 }
 
-// ============================================================================
-// 测试用例 16: 错误处理 - 不存在的成员索引
-// ============================================================================
-
 TEST_CASE("out of bounds access", "[moon][error_handling]") {
     SimpleStruct obj{1, 2.0, 'c'};
 
@@ -523,38 +512,22 @@ TEST_CASE("out of bounds access", "[moon][error_handling]") {
     }
 }
 
-// ============================================================================
-// C++26 静态反射测试 (条件编译)
-// ============================================================================
-
 #if RAINY_HAS_CXX26 && RAINY_HAS_CXX26_STATIC_REFLECTION
 
-// 注解测试结构体 - 使用正确的 C++26 注解语法 [[= value]]
 struct AnnotatedForTest {
-    [[= rainy::annotations::moon::rename("renamed_field")]]
-    int original_name = 100;
+    [[= rainy::annotations::moon::rename("renamed_field")]] int original_name = 100;
 
-    [[= rainy::annotations::moon::with_prefix("pre_")]]
-    [[= rainy::annotations::moon::with_suffix("_suf")]]
-    double prefixed_suffixed = 3.14;
+    [[= rainy::annotations::moon::with_prefix("pre_")]][[= rainy::annotations::moon::with_suffix("_suf")]] double prefixed_suffixed =
+        3.14;
 
-    [[= rainy::annotations::moon::no_prefix]]
-    [[= rainy::annotations::moon::with_suffix("_only")]]
-    int no_prefix_only = 200;
+    [[= rainy::annotations::moon::no_prefix]][[= rainy::annotations::moon::with_suffix("_only")]] int no_prefix_only = 200;
 
-    [[= rainy::annotations::moon::no_suffix]]
-    std::string no_suffix_field = "test";
+    [[= rainy::annotations::moon::no_suffix]] std::string no_suffix_field = "test";
 
-    [[= rainy::annotations::moon::ignore]]
-    int ignored_field = 999;
+    [[= rainy::annotations::moon::ignore]] int ignored_field = 999;
 };
 
-struct
-[[
-    = rainy::annotations::moon::with_prefix("type_"),
-    = rainy::annotations::moon::with_suffix("_type")
-    ]]
-TypeAnnotatedStruct {
+struct[[ = rainy::annotations::moon::with_prefix("type_"), = rainy::annotations::moon::with_suffix("_type") ]] TypeAnnotatedStruct {
     int my_field = 10;
     double another_field = 20.5;
 };
@@ -562,12 +535,9 @@ TypeAnnotatedStruct {
 TEST_CASE("C++26 static reflection - annotations", "[moon][cxx26][annotations]") {
     SECTION("annotation presence") {
         constexpr auto names = get_member_names<AnnotatedForTest>();
-        REQUIRE(names.size() == 4);  // ignored_field 被忽略
-
-        // 验证 rename 注解
-        // 注意：actual behavior depends on implements::try_apply_rename
+        REQUIRE(names.size() == 4); // ignored_field 被忽略
         bool found_renamed = false;
-        for (const auto& name : names) {
+        for (const auto &name: names) {
             if (name == "renamed_field") {
                 found_renamed = true;
             }
@@ -581,9 +551,8 @@ TEST_CASE("C++26 static reflection - annotations", "[moon][cxx26][annotations]")
 
         // 验证前缀和后缀被应用
         bool found_prefixed = false;
-        for (const auto& name : names) {
-            if (name.find("pre_") != std::string_view::npos &&
-                name.find("_suf") != std::string_view::npos) {
+        for (const auto &name: names) {
+            if (name.find("pre_") != std::string_view::npos && name.find("_suf") != std::string_view::npos) {
                 found_prefixed = true;
             }
         }
@@ -592,11 +561,10 @@ TEST_CASE("C++26 static reflection - annotations", "[moon][cxx26][annotations]")
 
     SECTION("type-level annotations") {
         constexpr auto names = get_member_names<TypeAnnotatedStruct>();
-        // 类型级别注解应该影响所有成员
-        for (const auto& name : names) {
+        for (const auto &name: names) {
             // 应该包含类型级别的前缀和后缀
-            // REQUIRE(name.find("type_") != std::string_view::npos);
-            // REQUIRE(name.find("_type") != std::string_view::npos);
+            REQUIRE(name.find("type_") != std::string_view::npos);
+            REQUIRE(name.find("_type") != std::string_view::npos);
         }
     }
 }
@@ -621,8 +589,8 @@ TEST_CASE("C++26 static reflection - member_offset", "[moon][cxx26][member_offse
 
 TEST_CASE("utility namespace aliases", "[moon][utility]") {
     using rainy::utility::member_count_v;
-    using rainy::utility::struct_to_tuple;
     using rainy::utility::struct_bind_tuple;
+    using rainy::utility::struct_to_tuple;
 
     REQUIRE(member_count_v<SimpleStruct> == 3);
 
