@@ -34,7 +34,7 @@ struct[[ = rainy::annotations::moon::with_prefix("ty_"), = rainy::annotations::m
     [[
         = rainy::annotations::moon::rename("c_s"),
         = rainy::annotations::moon::with_prefix("type_"),
-        = rainy::annotations::moon::use_name_style(annotations::moon::named_style::camel)
+        = rainy::annotations::moon::use_name_style(annotations::moon::named_style::all_caps_no_underline)
     ]]
     char c;
 

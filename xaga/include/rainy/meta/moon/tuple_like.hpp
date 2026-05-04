@@ -365,20 +365,21 @@ namespace rainy::meta::moon::implements {
 
     template <typename Ty, std::meta::info Member>
     RAINY_CONSTEVAL rain_fn try_apply_name_style(std::string_view &name) noexcept -> void {
-        constexpr auto style = []() consteval -> annotations::moon::named_style {
+        using annotations::moon::use_name_style;
+        using annotations::moon::named_style;
+        constexpr auto style = []() consteval -> named_style {
             constexpr auto type_anno = annotations::make_type_anno<Ty>();
-
             if constexpr (constexpr auto member_anno = annotations::make_member_anno(Member);
-                          member_anno.has<annotations::moon::use_name_style>()) {
-                return member_anno.fetch<annotations::moon::use_name_style>().style;
-            } else if constexpr (type_anno.template has<annotations::moon::use_name_style>()) {
-                return type_anno.template fetch<annotations::moon::use_name_style>().style;
+                          member_anno.has<use_name_style>()) {
+                return member_anno.fetch<use_name_style>().style;
+            } else if constexpr (type_anno.template has<use_name_style>()) {
+                return type_anno.template fetch<use_name_style>().style;
             }
-            return annotations::moon::named_style::none;
+            return named_style::none;
         }();
 
-        if constexpr (style != annotations::moon::named_style::none) {
-            constexpr auto convert = [](std::string_view src, annotations::moon::named_style s) consteval -> std::string {
+        if constexpr (style != named_style::none) {
+            constexpr auto convert = [](std::string_view src, named_style s) consteval -> std::string {
                 constexpr auto to_lower = [](const char ch) consteval -> char {
                     return (ch >= 'A' && ch <= 'Z') ? static_cast<char>(ch + 32) : ch;
                 };
@@ -387,30 +388,31 @@ namespace rainy::meta::moon::implements {
                 };
 
                 std::vector<std::string> words;
-                std::string cur;
-                for (const char ch: src) {
-                    if (ch == '_') {
-                        if (!cur.empty()) {
-                            words.push_back(cur);
-                            cur.clear();
+                if (style != named_style::all_caps) {
+                    std::string cur;
+                    for (const char ch: src) {
+                        if (ch == '_') {
+                            if (!cur.empty()) {
+                                words.push_back(cur);
+                                cur.clear();
+                            }
+                        } else {
+                            cur += ch;
                         }
-                    } else {
-                        cur += ch;
+                    }
+                    if (!cur.empty()) {
+                        words.push_back(cur);
                     }
                 }
-                if (!cur.empty()) {
-                    words.push_back(cur);
-                }
-
                 std::string result;
                 // NOLINTBEGIN
                 switch (s) {
-                    case annotations::moon::named_style::snake_case:
+                    case named_style::snake_case:
                         // 原样保持，不做任何处理
                         result = std::string{src};
                         break;
 
-                    case annotations::moon::named_style::camel: {
+                    case named_style::camel: {
                         // 第一个 word 全小写，后续每个 word 首字母大写
                         for (std::size_t i = 0; i < words.size(); ++i) {
                             if (i == 0) {
@@ -427,13 +429,30 @@ namespace rainy::meta::moon::implements {
                         break;
                     }
 
-                    case annotations::moon::named_style::pascal: {
+                    case named_style::pascal: {
                         // 每个 word 首字母大写
                         for (const auto &w: words) {
                             result += to_upper(w[0]);
                             for (std::size_t j = 1; j < w.size(); ++j) {
                                 result += to_lower(w[j]);
                             }
+                        }
+                        break;
+                    }
+                    
+                    case named_style::all_caps: {
+                        for (const char ch : src) {
+                            result += to_upper(ch);
+                        }
+                        break;
+                    }
+
+                    case named_style::all_caps_no_underline: {
+                        for (const char ch : src) {
+                            if (ch == '_') {
+                                continue;
+                            }
+                            result += to_upper(ch);
                         }
                         break;
                     }
@@ -785,7 +804,7 @@ namespace rainy::meta::moon {
         static constexpr auto make() noexcept {                                                                                       \
             using Ty = TYPE;                                                                                                          \
             auto &obj = type_traits::helper::get_fake_object<Ty>();                                                                   \
-            constexpr auto ptrs = implements::get_private_ptrs_helper<TYPE>::value;                                                   \
+            constexpr auto ptrs = implements::::get_private_ptrs_helper<TYPE>::value;                                                   \
             return std::apply([&](auto... ptr) { return std::make_tuple(utility::addressof(obj.*ptr)...); }, ptrs);                   \
         }                                                                                                                             \
                                                                                                                                       \

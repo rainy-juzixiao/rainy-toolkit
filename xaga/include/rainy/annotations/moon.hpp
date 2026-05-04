@@ -54,7 +54,9 @@ namespace rainy::annotations::moon {
         none,
         snake_case,
         pascal,
-        camel
+        camel,
+        all_caps,
+        all_caps_no_underline
     };
 
     // clang-format off
@@ -63,9 +65,12 @@ namespace rainy::annotations::moon {
 
     // clang-format on
 
+    inline static constexpr auto no_name_style = named_style::none;
     inline static constexpr auto use_snake_case = named_style::snake_case;
     inline static constexpr auto use_pascal = named_style::pascal;
     inline static constexpr auto use_camel = named_style::camel;
+    inline static constexpr auto all_caps = named_style::all_caps;
+    inline static constexpr auto all_caps_no_underline = named_style::all_caps_no_underline;
 
     struct ignore_tag {};
 
