@@ -15,7 +15,7 @@
  */
 #include <rainy/core/core.hpp>
 
-#if RAINY_USING_LINUX || RAINY_USING_MACOS
+#if RAINY_USING_LINUX
 #include <dlfcn.h>
 #include <filesystem>
 #include <rainy/foundation/pal/implements/tgc_layer_module_context.hpp>
@@ -25,12 +25,8 @@ namespace rainy::foundation::pal::module_context::implements {
         return (!file_name.empty() && file_name[0] == '/'); // NOLINT
     }
 
-    constexpr std::string_view get_suffixes_sys() {
-#if RAINY_USING_MACOS
-        return ".dylib";
-#else
+    constexpr std::string get_suffixes_sys() {
         return ".so";
-#endif
     }
 
     RAINY_TOOLKIT_LOCAL_API static bool file_exist(const std::string_view fileName) {
@@ -57,7 +53,7 @@ namespace rainy::foundation::pal::module_context::implements {
         core::handle hand = 0;
         if (crossplatform) {
             const std::vector<std::string> prefix_list = {"lib"};
-            const std::vector<std::string> suffix_list = {std::string{get_suffixes_sys()}};
+            const std::vector<std::string> suffix_list = {get_suffixes_sys()};
             rainy_let retry = true;
             std::string attempt;
             for (rainy_let prefix = 0u; retry && !hand && prefix < prefix_list.size(); ++prefix) {
@@ -86,7 +82,7 @@ namespace rainy::foundation::pal::module_context::implements {
         core::handle hand = 0;
         if (crossplatform) {
             const std::vector<std::string> prefix_list = {"lib"};
-            const std::vector<std::string> suffix_list = {std::string{get_suffixes_sys()}};
+            const std::vector<std::string> suffix_list = {get_suffixes_sys()};
             rainy_let retry = true;
             std::string attempt;
             for (rainy_let prefix = 0u; retry && !hand && prefix < prefix_list.size(); ++prefix) {

@@ -139,7 +139,7 @@ namespace rainy::foundation::functional::implements {
             }
         }
 
-        const foundation::ctti::typeinfo &target_type() const noexcept override {
+        const foundation::ctti::typeinfo &target_type() const noexcept {
             return rainy_typeid(Fx);
         }
 

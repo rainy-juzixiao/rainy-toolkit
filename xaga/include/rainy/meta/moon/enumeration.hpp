@@ -1,5 +1,5 @@
 /*
- * Copyright 2026 rainy-juzixiao
+ * Copyright 2025 rainy-juzixiao
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,17 +15,14 @@
  */
 #ifndef RAINY_META_MOON_ENUMERATION_HPP
 #define RAINY_META_MOON_ENUMERATION_HPP
+#include <rainy/foundation/container/pair.hpp>
 #include <optional>
 #include <rainy/core/core.hpp>
-#include <rainy/foundation/container/pair.hpp>
 #include <rainy/foundation/functional/functor.hpp>
 #include <rainy/foundation/typeinfo.hpp>
 
-// 目前C++26的静态反射不再需要ENUM_SCAN_BEGIN/ENUM_SCAN_END宏了，由编译器提供服务
-#if !(RAINY_HAS_CXX26 && RAINY_HAS_CXX26_STATIC_REFLECTION)
 #define ENUM_SCAN_BEGIN -127
 #define ENUM_SCAN_END 128
-#endif
 
 namespace rainy::meta::moon::implements {
     enum class enum_subtype {
@@ -85,12 +82,12 @@ namespace rainy::meta::moon {
     inline constexpr customize_t invalid_tag{implements::customize_tag::invalid_tag};
 
     template <typename Enum>
-    constexpr rain_fn customize_for_enum_name(Enum) noexcept -> customize_t {
+    constexpr customize_t customize_for_enum_name(Enum) noexcept {
         return default_tag;
     }
 
     template <typename>
-    constexpr rain_fn customize_for_enum_type_name() noexcept -> customize_t {
+    constexpr customize_t customize_for_enum_type_name() noexcept {
         return default_tag;
     }
 
@@ -116,43 +113,9 @@ namespace rainy::meta::moon {
     }
 }
 
-#if RAINY_HAS_CXX26 && RAINY_HAS_CXX26_STATIC_REFLECTION
-
-namespace rainy::meta::moon::implements {
-    template <typename E>
-    constexpr rain_fn enum_count_impl() noexcept -> std::size_t {
-        std::vector<std::meta::info> vec = std::meta::enumerators_of(^^E);
-        return vec.size();
-    }
-
-    template <typename E>
-    constexpr rain_fn get_enums() -> auto {
-        auto members = std::meta::enumerators_of(^^E);
-        collections::array<std::meta::info, enum_count_impl<E>()> arr;
-        std::size_t idx = 0;
-        for (auto member: members) {
-            arr[idx++] = member;
-        }
-        return arr;
-    }
-
-    template <typename E>
-        requires type_traits::primary_types::is_enum_v<E>
-    constexpr rain_fn is_enum_value(E value) -> bool {
-        template for (constexpr auto member: get_enums<E>()) {
-            if (value == [:member:]) {
-                return true;
-            }
-        }
-        return false;
-    }
-}
-
-#else
-
 namespace rainy::meta::moon::implements {
     template <typename E, E V>
-    constexpr rain_fn has_valid_enum_name() noexcept -> bool {
+    constexpr bool has_valid_enum_name() noexcept {
         constexpr std::string_view str = foundation::ctti::variable_name<V>();
         if (str.empty()) {
             return false;
@@ -161,7 +124,7 @@ namespace rainy::meta::moon::implements {
     }
 
     template <typename E, auto V>
-    static constexpr rain_fn is_enum_value_helper() noexcept -> bool {
+    static constexpr bool is_enum_value_helper() noexcept {
         if constexpr (!std::is_enum_v<E>) {
             return false;
         }
@@ -180,12 +143,12 @@ namespace rainy::meta::moon::implements {
     };
 
     template <typename E, std::underlying_type_t<E> Begin, std::size_t... Is>
-    constexpr rain_fn enum_range_checker_impl(std::index_sequence<Is...>) -> bool {
+    constexpr bool enum_range_checker_impl(std::index_sequence<Is...>) {
         return ((is_enum_value_impl<E, Begin + static_cast<std::underlying_type_t<E>>(Is)>::value) || ...);
     }
 
     template <std::size_t Size, typename E, auto Begin, std::size_t... Is>
-    constexpr rain_fn enum_values_impl(std::index_sequence<Is...>) -> auto {
+    constexpr auto enum_values_impl(std::index_sequence<Is...>) {
         constexpr collections::array<E, Size> arr = []() constexpr {
             collections::array<E, Size> tmp{};
             std::size_t idx = 0;
@@ -222,7 +185,7 @@ namespace rainy::meta::moon::implements {
     }
 
     template <std::size_t Size, typename E, auto Begin, std::size_t... Is>
-    constexpr rain_fn enum_entries_impl(std::index_sequence<Is...>) -> auto {
+    constexpr auto enum_entries_impl(std::index_sequence<Is...>) {
         constexpr collections::array<utility::pair<E, std::string_view>, Size> arr = []() constexpr {
             collections::array<utility::pair<E, std::string_view>, Size> tmp{};
             std::size_t idx = 0;
@@ -239,7 +202,7 @@ namespace rainy::meta::moon::implements {
     }
 
     template <std::size_t Size, typename E, auto Begin, std::size_t... Is>
-    constexpr rain_fn enum_names_impl(std::index_sequence<Is...>) -> auto {
+    constexpr auto enum_names_impl(std::index_sequence<Is...>) {
         constexpr collections::array<std::string_view, Size> arr = []() constexpr {
             collections::array<std::string_view, Size> tmp{};
             std::size_t idx = 0;
@@ -255,7 +218,7 @@ namespace rainy::meta::moon::implements {
     }
 
     template <typename E, std::underlying_type_t<E> Begin, std::size_t... Is>
-    constexpr rain_fn enum_count_impl(std::index_sequence<Is...>) -> std::size_t {
+    constexpr std::size_t enum_count_impl(std::index_sequence<Is...>) {
         constexpr std::size_t count = []() constexpr {
             std::size_t total = 0;
             (([&] {
@@ -270,26 +233,15 @@ namespace rainy::meta::moon::implements {
     }
 }
 
-#endif
-
 namespace rainy::meta::moon {
     template <typename E, auto V>
-    RAINY_CONSTEXPR_BOOL is_enum_value_v =
-#if RAINY_HAS_CXX26 && RAINY_HAS_CXX26_STATIC_REFLECTION
-        implements::is_enum_value(V)
-#else
-        implements::is_enum_value_impl<E, V>::value
-#endif
-        ;
+    RAINY_CONSTEXPR_BOOL is_enum_value_v = implements::is_enum_value_impl<E, V>::value;
 
     template <typename E, auto V>
     struct is_enum_value : type_traits::helper::bool_constant<is_enum_value_v<E, V>> {};
 
     template <typename E>
-    constexpr rain_fn enum_count() noexcept -> std::size_t {
-#if RAINY_HAS_CXX26 && RAINY_HAS_CXX26_STATIC_REFLECTION // 自C++26开始，如果可能，将启用static reflection的语法，对enum类型进行反射
-        return implements::enum_count_impl<E>();
-#else
+    constexpr std::size_t enum_count() noexcept {
         static_assert(std::is_enum_v<E>, "must be enum");
         constexpr rainy_let begin = ENUM_SCAN_BEGIN;
         constexpr rainy_let end = ENUM_SCAN_END;
@@ -297,59 +249,39 @@ namespace rainy::meta::moon {
         static_assert(implements::enum_range_checker_impl<E, begin>(std::make_index_sequence<n>{}),
                       "Enum has no valid values in scan range!");
         return implements::enum_count_impl<E, begin>(std::make_index_sequence<n>{});
-#endif
     }
 
     template <typename E>
-    constexpr rain_fn enum_values() noexcept -> auto {
-#if RAINY_HAS_CXX26 && RAINY_HAS_CXX26_STATIC_REFLECTION
-        collections::array<E, enum_count<E>()> enums_arr = {};
-        template for (std::size_t idx = 0; constexpr auto member: implements::get_enums<E>()) {
-            enums_arr[idx++] = {static_cast<E>([:member:])};
-        }
-        return enums_arr;
-#else
+    constexpr auto enum_values() noexcept {
         constexpr rainy_let begin = ENUM_SCAN_BEGIN;
         constexpr rainy_let end = ENUM_SCAN_END;
         constexpr rainy_let n = static_cast<std::size_t>(end - begin + 1); // NOLINT
         return implements::enum_values_impl<enum_count<E>(), E, begin>(std::make_index_sequence<n>{});
-#endif
     }
 
     template <typename E, std::size_t Idx>
-    constexpr rain_fn enum_value() noexcept -> E {
+    constexpr auto enum_value() noexcept -> E {
         constexpr auto values = enum_values<E>();
         return values[Idx];
     }
 
     template <typename E>
-    constexpr rain_fn enum_value(std::size_t idx) noexcept
+    constexpr auto enum_value(std::size_t idx) noexcept
         -> type_traits::other_trans::enable_if_t<type_traits::primary_types::is_enum_v<E>, E> {
         constexpr auto values = enum_values<E>();
         return values[idx];
     }
 
     template <typename E>
-    constexpr rain_fn enum_entries() -> auto {
-#if RAINY_HAS_CXX26 && RAINY_HAS_CXX26_STATIC_REFLECTION
-        std::meta::access_context ctx = std::meta::access_context::unchecked();
-        std::vector<std::meta::info> vec = std::meta::enumerators_of(^^E);
-        collections::array<utility::pair<E, std::string_view>, enum_count<E>()> arr;
-        constexpr auto members = std::meta::members_of(^^E, ctx);
-        template for (std::size_t idx = 0; constexpr auto member: members) {
-            arr[idx++] = {static_cast<E>([:member:]), std::meta::identifier_of(^^member)};
-        }
-        return arr;
-#else
+    constexpr auto enum_entries() {
         constexpr rainy_let begin = ENUM_SCAN_BEGIN;
         constexpr rainy_let end = ENUM_SCAN_END;
         constexpr rainy_let n = static_cast<std::size_t>(end - begin + 1); // NOLINT
         return implements::enum_entries_impl<enum_count<E>(), E, begin>(std::make_index_sequence<n>{});
-#endif
     }
 
     template <typename Enum>
-    constexpr rain_fn enum_name(Enum EnumValue)
+    constexpr auto enum_name(Enum EnumValue)
         -> type_traits::other_trans::enable_if_t<type_traits::primary_types::is_enum_v<Enum>, std::string_view> {
         for (constexpr auto entries = enum_entries<Enum>(); const auto &[enum_value, enum_name]: entries) {
             if (enum_value == EnumValue) {
@@ -360,29 +292,21 @@ namespace rainy::meta::moon {
     }
 
     template <typename Enum, Enum EnumValue>
-    constexpr rain_fn enum_name()
+    constexpr auto enum_name()
         -> type_traits::other_trans::enable_if_t<type_traits::primary_types::is_enum_v<Enum>, std::string_view> {
         return enum_name<Enum, EnumValue>();
     }
 
     template <typename Enum>
-    constexpr rain_fn enum_names() noexcept -> auto {
-#if RAINY_HAS_CXX26 && RAINY_HAS_CXX26_STATIC_REFLECTION
-        collections::array<std::string_view, enum_count<Enum>()> arr;
-        template for (std::size_t idx = 0; constexpr auto member: implements::get_enums<Enum>()) {
-            arr[idx++] = {std::meta::identifier_of(member)};
-        }
-        return arr;
-#else
+    constexpr auto enum_names() noexcept {
         constexpr int begin = ENUM_SCAN_BEGIN;
         constexpr int end = ENUM_SCAN_END;
         constexpr std::size_t n = end - begin + 1;
         return implements::enum_names_impl<enum_count<Enum>(), Enum, begin>(std::make_index_sequence<n>{});
-#endif
     }
 
     template <typename Enum, typename Pred = foundation::functional::equal<>>
-    constexpr rain_fn enum_cast(std::string_view name, Pred pred = {}) noexcept
+    constexpr auto enum_cast(std::string_view name, Pred pred = {}) noexcept
         -> implements::enable_if_t<Enum, std::optional<Enum>, Pred> {
         for (constexpr auto entries = enum_entries<Enum>(); const auto &[enum_value, enum_name]: entries) {
             if (std::equal(name.begin(), name.end(), enum_name.begin(), enum_name.end(), pred)) {
@@ -393,7 +317,7 @@ namespace rainy::meta::moon {
     }
 
     template <typename Enum>
-    constexpr rain_fn enum_cast(type_traits::other_trans::underlying_type_t<Enum> value) noexcept
+    constexpr auto enum_cast(type_traits::other_trans::underlying_type_t<Enum> value) noexcept
         -> implements::enable_if_t<Enum, std::optional<Enum>> {
         constexpr auto entries = enum_entries<Enum>();
         using underlying = type_traits::other_trans::underlying_type_t<Enum>;
@@ -407,19 +331,19 @@ namespace rainy::meta::moon {
     }
 
     template <typename Enum>
-    RAINY_NODISCARD constexpr rain_fn enum_integer(Enum value) noexcept
+    RAINY_NODISCARD constexpr auto enum_integer(Enum value) noexcept
         -> implements::enable_if_t<Enum, type_traits::other_trans::underlying_type_t<Enum>> {
         return static_cast<type_traits::other_trans::underlying_type_t<Enum>>(value);
     }
 
     template <typename Enum>
-    RAINY_NODISCARD constexpr rain_fn enum_underlying(Enum value) noexcept
+    RAINY_NODISCARD constexpr auto enum_underlying(Enum value) noexcept
         -> implements::enable_if_t<Enum, type_traits::other_trans::underlying_type_t<Enum>> {
         return static_cast<type_traits::other_trans::underlying_type_t<Enum>>(value);
     }
 
     template <typename Enum>
-    RAINY_NODISCARD constexpr rain_fn enum_index(Enum value) noexcept -> implements::enable_if_t<Enum, std::optional<std::size_t>> {
+    RAINY_NODISCARD constexpr auto enum_index(Enum value) noexcept -> implements::enable_if_t<Enum, std::optional<std::size_t>> {
         constexpr auto values = enum_values<Enum>();
         std::size_t idx{};
         for (const auto &item: values) {
@@ -432,34 +356,34 @@ namespace rainy::meta::moon {
     }
 
     template <typename Enum, Enum EnumValue>
-    RAINY_NODISCARD constexpr rain_fn enum_index() noexcept -> implements::enable_if_t<Enum, std::optional<std::size_t>> {
+    RAINY_NODISCARD constexpr auto enum_index() noexcept -> implements::enable_if_t<Enum, std::optional<std::size_t>> {
         return enum_index<Enum>(EnumValue);
     }
 
     template <typename Enum, implements::enable_if_t<Enum, int> = 0>
-    RAINY_NODISCARD constexpr rain_fn enum_contains(Enum value) noexcept -> auto {
+    RAINY_NODISCARD constexpr auto enum_contains(Enum value) noexcept {
         return static_cast<bool>(enum_cast<Enum>(value).has_value());
     }
 
     template <typename Enum, Enum Value, implements::enable_if_t<Enum, int> = 0>
-    RAINY_NODISCARD constexpr rain_fn enum_contains() noexcept -> bool {
+    RAINY_NODISCARD constexpr bool enum_contains() noexcept {
         return enum_contains<Enum>(Value);
     }
 
     template <typename Enum>
-    RAINY_NODISCARD constexpr rain_fn enum_contains(type_traits::other_trans::underlying_type_t<Enum> value) noexcept -> bool {
+    RAINY_NODISCARD constexpr bool enum_contains(type_traits::other_trans::underlying_type_t<Enum> value) noexcept {
         return static_cast<bool>(enum_cast<Enum>(value).has_value());
     }
 
     template <typename Enum, typename Pred = foundation::functional::equal<Enum>>
-    RAINY_NODISCARD constexpr rain_fn enum_contains(std::string_view name, Pred pred = {}) noexcept -> bool {
+    RAINY_NODISCARD constexpr bool enum_contains(std::string_view name, Pred pred = {}) noexcept {
         return static_cast<bool>(enum_cast<Enum>(name, pred).has_value());
     }
 }
 
 namespace rainy::meta::moon {
     template <typename E>
-    RAINY_NODISCARD rain_fn enum_flags_name(E value, const char sep = '|') -> implements::enable_if_t<E, std::string> {
+    RAINY_NODISCARD auto enum_flags_name(E value, const char sep = '|') -> implements::enable_if_t<E, std::string> {
         using D = std::decay_t<E>;
         using U = type_traits::other_trans::underlying_type_t<D>;
         std::string name;

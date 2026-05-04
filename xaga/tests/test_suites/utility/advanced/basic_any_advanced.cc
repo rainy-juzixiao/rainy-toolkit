@@ -325,6 +325,7 @@ SCENARIO("[destructure]", test_tag) {
         AND_WHEN("a is std::tuple") {
             a = std::make_tuple(42, 'c', "Hello World", std::vector<int>{1, 2, 3, 4, 5});
             auto tuple = std::make_tuple(42, 'c', "Hello World", std::vector<int>{1, 2, 3, 4, 5});
+            utility::member_count_v<type_traits::cv_modify::remove_cvref_t<decltype(tuple)>>;
             THEN("use a another structure to receive the result") {
                 struct receiver_t {
                     int m1;
