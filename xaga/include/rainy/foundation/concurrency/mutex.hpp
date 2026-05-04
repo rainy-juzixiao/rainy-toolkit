@@ -520,12 +520,39 @@ namespace rainy::foundation::concurrency {
 
 namespace rainy::foundation::concurrency::implements {
     template <typename... Mutexes>
+    void unlock_first_n(const int n, Mutexes &...mutex) {
+        int count = 0;
+        // 只解锁前 n 个
+        ((void) ([&]() {
+             if (count < n) {
+                 mutex.unlock();
+                 ++count;
+             }
+         }()),
+         ...);
+    }
+
+    template <typename... Mutexes>
     void lock_all(Mutexes &...mutex) {
-        while (true) {
-            if ((mutex.try_lock() && ...)) {
-                return;
-            }
-            ((void) mutex.unlock(), ...);
+        int locked_count = 0;
+        auto try_lock_all = [&]() {
+            locked_count = 0;
+            bool all_locked = true;
+            ((void) ([&]() {
+                 if (all_locked) {
+                     if (mutex.try_lock()) {
+                         ++locked_count;
+                     } else {
+                         all_locked = false;
+                     }
+                 }
+             }()),
+             ...);
+            return all_locked;
+        };
+        while (!try_lock_all()) {
+            unlock_first_n(locked_count, mutex...);
+            std::this_thread::yield();
         }
     }
 

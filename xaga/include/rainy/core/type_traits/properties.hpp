@@ -933,7 +933,7 @@ namespace rainy::type_traits::type_properties {
      */
     template <typename Ty, typename... Args>
     struct is_nothrow_constructible : helper::bool_constant<is_nothrow_constructible_v<Ty, Args...>> {};
-#if RAINY_USING_MSVC || RAINY_USING_CLANG
+#if RAINY_USING_MSVC || RAINY_USING_CLANG || RAINY_USING_MACOS
     /**
      * @brief Variable template for checking if a type is trivially destructible.
      *        Uses compiler built-in __is_trivially_destructible for MSVC and Clang.

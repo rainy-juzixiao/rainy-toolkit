@@ -22,6 +22,8 @@
 #include <intrin.h>
 #endif
 
+// NOLINTBEGIN(cppcoreguidelines-avoid-do-while,cppcoreguidelines-init-variables)
+
 #define RAINY_ATOMIC_BEGIN(order)                                                                                                     \
     do {                                                                                                                              \
         if ((order) == memory_order_release) {                                                                                        \
@@ -184,14 +186,27 @@ namespace rainy::core::pal {
 }
 
 namespace rainy::core::pal {
-
     std::intptr_t interlocked_exchange_add_explicit(volatile std::intptr_t *value, const std::intptr_t amount, memory_order order) {
 #if RAINY_USING_64_BIT_PLATFORM
-        return interlocked_exchange_add64_explicit(reinterpret_cast<volatile std::int64_t *>(value), static_cast<std::int64_t>(amount),
-                                                   order);
+
+#if RAINY_USING_MACOS
+        return interlocked_exchange_add64_explicit(reinterpret_cast<volatile std::int64_t *>(value),
+                                                   static_cast<const std::int64_t>(amount), order);
 #else
-        return interlocked_exchange_add32_explicit(reinterpret_cast<volatile std::int32_t *>(value), static_cast<std::int32_t>(amount),
-                                                   order);
+        return interlocked_exchange_add64_explicit(static_cast<volatile std::int64_t *>(value),
+                                                   static_cast<const std::int64_t>(amount), order);
+#endif
+
+#else
+
+#if RAINY_USING_MACOS
+        return interlocked_exchange_add32_explicit(reinterpret_cast<volatile std::int32_t *>(value),
+                                                   static_cast<const std::int32_t>(amount), order);
+#else
+        return interlocked_exchange_add32_explicit(static_cast<volatile std::int32_t *>(value),
+                                                   static_cast<const std::int32_t>(amount), order);
+#endif
+
 #endif
     }
 
@@ -258,20 +273,35 @@ namespace rainy::core::pal {
     std::intptr_t interlocked_exchange_subtract_explicit(volatile std::intptr_t *value, const std::intptr_t amount,
                                                          memory_order order) {
 #if RAINY_USING_64_BIT_PLATFORM
-        return interlocked_exchange_subtract64_explicit(static_cast<volatile std::int64_t *>(value),
+
+#if RAINY_USING_MACOS
+        return interlocked_exchange_subtract64_explicit(reinterpret_cast<volatile std::int64_t *>(value),
                                                         static_cast<const std::int64_t>(amount), order);
 #else
+        return interlocked_exchange_subtract64_explicit(static_cast<volatile std::int64_t *>(value),
+                                                        static_cast<const std::int64_t>(amount), order);
+#endif
+
+#else
+
+#if RAINY_USING_MACOS
+        return interlocked_exchange_subtract32_explicit(reinterpret_cast<volatile std::int32_t *>(value),
+                                                        static_cast<const std::int32_t>(amount), order);
+#else
+
         return interlocked_exchange_subtract32_explicit(static_cast<volatile std::int32_t *>(value),
                                                         static_cast<const std::int32_t>(amount), order);
+#endif
+
 #endif
     }
 
     std::int8_t interlocked_exchange_subtract8_explicit(volatile std::int8_t *value, std::int8_t amount, memory_order order) {
-        return interlocked_exchange_add8_explicit(value, -amount, order);
+        return interlocked_exchange_add8_explicit(value, -amount, order); // NOLINT
     }
 
     std::int16_t interlocked_exchange_subtract16_explicit(volatile std::int16_t *value, std::int16_t amount, memory_order order) {
-        return interlocked_exchange_add16_explicit(value, -amount, order);
+        return interlocked_exchange_add16_explicit(value, -amount, order); // NOLINT
     }
 
     std::int32_t interlocked_exchange_subtract32_explicit(volatile std::int32_t *value, std::int32_t amount, memory_order order) {
@@ -286,11 +316,25 @@ namespace rainy::core::pal {
 namespace rainy::core::pal {
     std::intptr_t interlocked_exchange_explicit(volatile std::intptr_t *target, std::intptr_t value, memory_order order) {
 #if RAINY_USING_64_BIT_PLATFORM
-        return interlocked_exchange64_explicit(reinterpret_cast<volatile std::int64_t *>(target), static_cast<std::int64_t>(value),
-                                               order);
+
+#if RAINY_USING_MACOS
+        return interlocked_exchange64_explicit(reinterpret_cast<volatile std::int64_t *>(target),
+                                               static_cast<const std::int64_t>(value), order);
 #else
-        return interlocked_exchange32_explicit(reinterpret_cast<volatile std::int32_t *>(target), static_cast<std::int32_t>(value),
-                                               order);
+        return interlocked_exchange64_explicit(static_cast<volatile std::int64_t *>(target),
+                                               static_cast<const std::int64_t>(value), order);
+#endif
+
+#else
+
+#if RAINY_USING_MACOS
+        return interlocked_exchange32_explicit(reinterpret_cast<volatile std::int32_t *>(target),
+                                               static_cast<const std::int32_t>(value), order);
+#else
+        return interlocked_exchange32_explicit(static_cast<volatile std::int32_t *>(target),
+                                               static_cast<const std::int32_t>(value), order);
+#endif
+
 #endif
     }
 
@@ -492,12 +536,30 @@ namespace rainy::core::pal {
 
         return result;
     }
+}
 
+namespace rainy::core::pal {
     std::intptr_t interlocked_and_explicit(volatile std::intptr_t *value, std::intptr_t mask, memory_order order) {
 #if RAINY_USING_64_BIT_PLATFORM
-        return interlocked_and64_explicit(reinterpret_cast<volatile std::int64_t *>(value), static_cast<std::int64_t>(mask), order);
+
+#if RAINY_USING_MACOS
+        return interlocked_and64_explicit(reinterpret_cast<volatile std::int64_t *>(value),
+                                          static_cast<const std::int64_t>(mask), order);
 #else
-        return interlocked_and32_explicit(reinterpret_cast<volatile std::int32_t *>(value), static_cast<std::int32_t>(mask), order);
+        return interlocked_and64_explicit(static_cast<volatile std::int64_t *>(value),
+                                          static_cast<const std::int64_t>(mask), order);
+#endif
+
+#else
+
+#if RAINY_USING_MACOS
+        return interlocked_and32_explicit(reinterpret_cast<volatile std::int32_t *>(value),
+                                          static_cast<const std::int32_t>(mask), order);
+#else
+        return interlocked_and32_explicit(static_cast<volatile std::int32_t *>(value),
+                                          static_cast<const std::int32_t>(mask), order);
+#endif
+
 #endif
     }
 
@@ -564,12 +626,30 @@ namespace rainy::core::pal {
         RAINY_ATOMIC_END(order);
         return result;
     }
+}
 
+namespace rainy::core::pal {
     std::intptr_t interlocked_or_explicit(volatile std::intptr_t *value, std::intptr_t mask, memory_order order) {
 #if RAINY_USING_64_BIT_PLATFORM
-        return interlocked_or64_explicit(reinterpret_cast<volatile std::int64_t *>(value), static_cast<std::int64_t>(mask), order);
+
+#if RAINY_USING_MACOS
+        return interlocked_or64_explicit(reinterpret_cast<volatile std::int64_t *>(value),
+                                         static_cast<const std::int64_t>(mask), order);
 #else
-        return interlocked_or32_explicit(reinterpret_cast<volatile std::int32_t *>(value), static_cast<std::int32_t>(mask), order);
+        return interlocked_or64_explicit(static_cast<volatile std::int64_t *>(value),
+                                         static_cast<const std::int64_t>(mask), order);
+#endif
+
+#else
+
+#if RAINY_USING_MACOS
+        return interlocked_or32_explicit(reinterpret_cast<volatile std::int32_t *>(value),
+                                         static_cast<const std::int32_t>(mask), order);
+#else
+        return interlocked_or32_explicit(static_cast<volatile std::int32_t *>(value),
+                                         static_cast<const std::int32_t>(mask), order);
+#endif
+
 #endif
     }
 
@@ -636,12 +716,30 @@ namespace rainy::core::pal {
         RAINY_ATOMIC_END(order);
         return result;
     }
+}
 
+namespace rainy::core::pal {
     std::intptr_t interlocked_xor_explicit(volatile std::intptr_t *value, std::intptr_t mask, memory_order order) {
 #if RAINY_USING_64_BIT_PLATFORM
-        return interlocked_xor64_explicit(reinterpret_cast<volatile std::int64_t *>(value), static_cast<std::int64_t>(mask), order);
+
+#if RAINY_USING_MACOS
+        return interlocked_xor64_explicit(reinterpret_cast<volatile std::int64_t *>(value),
+                                          static_cast<const std::int64_t>(mask), order);
 #else
-        return interlocked_xor32_explicit(reinterpret_cast<volatile std::int32_t *>(value), static_cast<std::int32_t>(mask), order);
+        return interlocked_xor64_explicit(static_cast<volatile std::int64_t *>(value),
+                                          static_cast<const std::int64_t>(mask), order);
+#endif
+
+#else
+
+#if RAINY_USING_MACOS
+        return interlocked_xor32_explicit(reinterpret_cast<volatile std::int32_t *>(value),
+                                          static_cast<const std::int32_t>(mask), order);
+#else
+        return interlocked_xor32_explicit(static_cast<volatile std::int32_t *>(value),
+                                          static_cast<const std::int32_t>(mask), order);
+#endif
+
 #endif
     }
 
@@ -708,13 +806,26 @@ namespace rainy::core::pal {
         RAINY_ATOMIC_END(order);
         return result;
     }
+}
 
-
+namespace rainy::core::pal {
     std::intptr_t iso_volatile_load_explicit(const volatile std::intptr_t *address, memory_order order) {
 #if RAINY_USING_64_BIT_PLATFORM
+
+#if RAINY_USING_MACOS
         return iso_volatile_load64_explicit(reinterpret_cast<const volatile std::int64_t *>(address), order);
 #else
+        return iso_volatile_load64_explicit(static_cast<const volatile std::int64_t *>(address), order);
+#endif
+
+#else
+
+#if RAINY_USING_MACOS
         return iso_volatile_load32_explicit(reinterpret_cast<const volatile std::int32_t *>(address), order);
+#else
+        return iso_volatile_load32_explicit(static_cast<const volatile std::int32_t *>(address), order);
+#endif
+
 #endif
     }
 
@@ -765,12 +876,30 @@ namespace rainy::core::pal {
         RAINY_ATOMIC_END(order);
         return value;
     }
+}
 
+namespace rainy::core::pal {
     void iso_volatile_store_explicit(volatile void *address, void *value, memory_order order) {
 #if RAINY_USING_64_BIT_PLATFORM
-        iso_volatile_store64_explicit(static_cast<volatile std::int64_t *>(address), *static_cast<std::uint64_t *>(value), order);
+
+#if RAINY_USING_MACOS
+        iso_volatile_store64_explicit(reinterpret_cast<volatile std::int64_t *>(address),
+                                      *static_cast<std::uint64_t *>(value), order);
 #else
-        iso_volatile_store32_explicit(static_cast<volatile int *>(address), *static_cast<std::uint32_t *>(value), order);
+        iso_volatile_store64_explicit(static_cast<volatile std::int64_t *>(address),
+                                      *static_cast<std::uint64_t *>(value), order);
+#endif
+
+#else
+
+#if RAINY_USING_MACOS
+        iso_volatile_store32_explicit(reinterpret_cast<volatile std::int32_t *>(address),
+                                      *static_cast<std::uint32_t *>(value), order);
+#else
+        iso_volatile_store32_explicit(static_cast<volatile std::int32_t *>(address),
+                                      *static_cast<std::uint32_t *>(value), order);
+#endif
+
 #endif
     }
 
@@ -818,3 +947,5 @@ namespace rainy::core::pal {
         RAINY_ATOMIC_END(order);
     }
 }
+
+// NOLINTEND(cppcoreguidelines-avoid-do-while,cppcoreguidelines-init-variables)

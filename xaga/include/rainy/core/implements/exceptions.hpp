@@ -15,6 +15,7 @@
  */
 #ifndef RAINY_BASIC_EXCEPTIONS_HPP
 #define RAINY_BASIC_EXCEPTIONS_HPP
+#include <exception>
 #include <rainy/core/platform.hpp>
 #include <rainy/core/type_traits/implements.hpp>
 #include <rainy/core/type_traits/properties.hpp>
