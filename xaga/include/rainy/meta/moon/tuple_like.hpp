@@ -473,7 +473,7 @@ namespace rainy::meta::moon::implements {
         auto &fake = type_traits::helper::get_fake_object<Ty>();
         auto tp = moon::struct_to_tuple<Ty>();
 
-        [&]<std::size_t... Idx>(std::index_sequence<Idx...>) consteval {
+        [&]<std::size_t... Idx>(type_traits::helper::index_sequence<Idx...>) consteval {
             (
                 [&]() consteval {
                     template for (constexpr auto m: unchecked_all_member_array<Ty>) {
@@ -486,7 +486,7 @@ namespace rainy::meta::moon::implements {
                     }
                 }(),
                 ...);
-        }(std::make_index_sequence<Size>{});
+        }(type_traits::helper::make_index_sequence<Size>{});
     }
 }
 
@@ -518,9 +518,9 @@ namespace rainy::meta::moon {
                 constexpr size_t count = meta::moon::member_count_v<Ty>;
                 collections::array<std::string_view, count> array{}; // 创建对应的数组
                 constexpr auto tp = struct_to_tuple<Ty>();
-                [&array, &tp]<std::size_t... I>(std::index_sequence<I...>) mutable {
+                [&array, &tp]<std::size_t... I>(type_traits::helper::index_sequence<I...>) mutable {
                     ((array[I] = foundation::ctti::variable_name<(std::get<I>(tp))>()), ...);
-                }(std::make_index_sequence<member_count_v<Ty>>{});
+                }(type_traits::helper::make_index_sequence<member_count_v<Ty>>{});
 #if RAINY_HAS_CXX26 && RAINY_HAS_CXX26_STATIC_REFLECTION
                 implements::get_member_names_compositor<Ty, count>(array);
 #endif
@@ -529,9 +529,9 @@ namespace rainy::meta::moon {
                 constexpr auto tp = implements::get_private_ptrs_helper<Ty>::value; // 使用 helper 获取 `tp`
                 constexpr std::size_t tuple_size = std::tuple_size_v<decltype(tp)>;
                 collections::array<std::string_view, tuple_size> array{};
-                [&array, &tp]<std::size_t... I>(std::index_sequence<I...>) mutable {
+                [&array, &tp]<std::size_t... I>(type_traits::helper::index_sequence<I...>) mutable {
                     ((array[I] = foundation::ctti::variable_name<(std::get<I>(tp))>()), ...);
-                }(std::make_index_sequence<tuple_size>{});
+                }(type_traits::helper::make_index_sequence<tuple_size>{});
 #if RAINY_HAS_CXX26 && RAINY_HAS_CXX26_STATIC_REFLECTION
                 implements::get_member_names_compositor<Ty, tuple_size>(array);
 #endif
