@@ -86,6 +86,18 @@ export default defineConfig({
             }
           ]
         }
+      ],
+      '/compatibilities': [
+        {
+          text: 'macOS',
+          link: '/compatibilities/macOS',
+          items: [
+            {
+              text: 'ventura',
+              link: '/compatibilities/macOS/ventura_support'
+            }
+          ]
+        }
       ]
     },
     socialLinks: [
