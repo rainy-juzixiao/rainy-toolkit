@@ -292,7 +292,7 @@ namespace rainy::foundation::ctti::implements {
     }
 #else
     template <auto Variable>
-    static constexpr std::string_view make_variable_name_ref() {
+    static constexpr rain_fn make_variable_name_ref() -> std::string_view {
         constexpr std::string_view func_name = wrapped_variable_name<Variable>();
 #if RAINY_USING_CLANG || RAINY_USING_LLVM_GCC
         constexpr auto split = func_name.substr(0, func_name.rfind("]"));
@@ -336,13 +336,34 @@ namespace rainy::foundation::ctti::implements {
         }
         return full; // NOLINT
 #elif RAINY_USING_MSVC
-        constexpr auto bracket_start = func_name.rfind('<');
-        constexpr auto bracket_end = func_name.rfind('>}');
-        if constexpr (bracket_start == std::string_view::npos || bracket_end == std::string_view::npos) {
+        auto bracket_start = func_name.rfind('<');
+        auto bracket_end = func_name.rfind('>}');
+
+        if (bracket_end == std::string_view::npos) {
+            bracket_end = func_name.rfind('>');
+        }
+
+        if (bracket_start == std::string_view::npos || bracket_end == std::string_view::npos) {
             return "";
         }
 
-        constexpr auto content = func_name.substr(bracket_start + 1, bracket_end - bracket_start - 1);
+        auto content = func_name.substr(bracket_start + 1, bracket_end - bracket_start - 1);
+
+        bool is_parenthesized = false;
+
+        if (!content.empty() && content[0] == '(') {
+            auto last_rparen = content.rfind(')');
+            if (last_rparen != std::string_view::npos && last_rparen + 1 < content.size()) {
+                auto next_char = content[last_rparen + 1];
+                if (next_char == '-' || (next_char >= '0' && next_char <= '9')) {
+                    is_parenthesized = true;
+                }
+            }
+        }
+
+        if (is_parenthesized) {
+            return content;
+        }
 
         auto last_dot = content.rfind('.');
         auto last_arrow = content.rfind("->");
