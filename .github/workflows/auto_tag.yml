@@ -38,10 +38,14 @@ jobs:
           sed -i "s/project(MyProject VERSION [0-9.]*/project(MyProject VERSION ${VERSION}/" CMakeLists.txt
           echo "${VERSION}" > version.txt
 
-      - name: Commit changes
+      - name: Commit and push changes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add CMakeLists.txt version.txt
-          git commit -m "chore: update version to ${VERSION} [skip ci]"
-          git push
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "chore: update version to ${VERSION} [skip ci]"
+            git push
+          fi
