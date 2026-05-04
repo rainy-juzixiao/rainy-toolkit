@@ -13,11 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef RAINY_MOON_TUPLE_LIKE_TRAITS_HPP
-#define RAINY_MOON_TUPLE_LIKE_TRAITS_HPP
+#ifndef RAINY_MOON_TUPLE_LIKE_HPP
+#define RAINY_MOON_TUPLE_LIKE_HPP
 #include <rainy/annotations/moon.hpp>
 #include <rainy/core/core.hpp>
 #include <rainy/foundation/container/pair.hpp>
+#include <rainy/foundation/typeinfo.hpp>
 #include <tuple>
 #include <variant>
 
@@ -185,8 +186,8 @@ namespace rainy::meta::moon::implements {
             constexpr auto filtered = []() consteval {
                 std::vector<info> result;
                 template for (constexpr auto m: member_array<Ty>) {
-                    constexpr auto anno = annotations::make_member_anno(m);
-                    if constexpr (!anno.template has<annotations::moon::ignore_tag>()) {
+                    if constexpr (constexpr auto anno = annotations::make_member_anno(m);
+                                  !anno.template has<annotations::moon::ignore_tag>()) {
                         result.push_back(m);
                     }
                 }
@@ -197,9 +198,7 @@ namespace rainy::meta::moon::implements {
             }(type_traits::helper::make_index_sequence<filtered.size()>{});
         }
 
-        template <typename UTy, type_traits::other_trans::enable_if_t<
-                                    type_traits::type_relations::is_same_v<type_traits::cv_modify::remove_cvref_t<UTy>, Ty>, int> = 0>
-        static constexpr rain_fn make_ptr(UTy &&obj) noexcept -> auto {
+        static constexpr rain_fn get_memptr_tuple() noexcept -> auto {
             using namespace std::meta;
             constexpr auto filtered = []() consteval {
                 std::vector<info> result;
@@ -211,10 +210,18 @@ namespace rainy::meta::moon::implements {
                 }
                 return std::define_static_array(result);
             }();
-
             return [&]<std::size_t... Is>(type_traits::helper::index_sequence<Is...>) {
-                return std::make_tuple(&(obj.[:filtered[Is]:])...);
+                return std::make_tuple(&[:filtered[Is]:]...);
             }(type_traits::helper::make_index_sequence<filtered.size()>{});
+        }
+
+        template <typename UTy, type_traits::other_trans::enable_if_t<
+                                    type_traits::type_relations::is_same_v<type_traits::cv_modify::remove_cvref_t<UTy>, Ty>, int> = 0>
+        static constexpr rain_fn make_ptr(UTy &&obj) noexcept -> auto {
+            constexpr auto pmembers = get_memptr_tuple();
+            return [&]<std::size_t... Is>(type_traits::helper::index_sequence<Is...>) {
+                return std::make_tuple(&(obj.*std::get<Is>(pmembers))...);
+            }(type_traits::helper::make_index_sequence<std::tuple_size_v<std::remove_cvref_t<decltype(pmembers)>>>{});
         }
 
         using type = decltype(make());
@@ -504,36 +511,40 @@ namespace rainy::meta::moon {
      */
     template <typename Ty>
     RAINY_CONSTEVAL rain_fn get_member_names() noexcept -> auto {
-        if constexpr (is_reflectet_for_type_valid<type_traits::cv_modify::remove_cvref_t<Ty>>) {
-            auto array = reflectet_for_type<type_traits::cv_modify::remove_cvref_t<Ty>>::member_names();
+        using type = type_traits::cv_modify::remove_cvref_t<Ty>;
+        if constexpr (is_reflectet_for_type_valid<type>) {
+            auto array = reflectet_for_type<type>::member_names();
 #if RAINY_HAS_CXX26_STATIC_REFLECTION
-            implements::get_member_names_compositor<Ty, reflectet_for_type<type_traits::cv_modify::remove_cvref_t<Ty>>::count>(array);
+            implements::get_member_names_compositor<Ty, reflectet_for_type<type>::count>(array);
 #endif
             return array;
         } else {
 #if RAINY_HAS_CXX20
-            constexpr bool has_get_private_ptrs_v = implements::has_get_private_ptrs<Ty>::value;
-            static_assert(member_count_v<Ty> != 0 || has_get_private_ptrs_v, "Failed!");
-            if constexpr (!has_get_private_ptrs_v) {
-                constexpr size_t count = meta::moon::member_count_v<Ty>;
+            constexpr bool has_get_private_ptrs_v = implements::has_get_private_ptrs<type>::value;
+            static_assert(member_count_v<type> != 0 || has_get_private_ptrs_v || type_traits::type_properties::is_empty_v<type>,
+                          "Failed!");
+            if constexpr (type_traits::type_properties::is_empty_v<type>) {
+                return collections::array<std::string_view, 0>{};
+            } else if constexpr (!has_get_private_ptrs_v) {
+                constexpr size_t count = meta::moon::member_count_v<type>;
                 collections::array<std::string_view, count> array{}; // 创建对应的数组
-                constexpr auto tp = struct_to_tuple<Ty>();
+                constexpr auto tp = struct_to_tuple<type>();
                 [&array, &tp]<std::size_t... I>(type_traits::helper::index_sequence<I...>) mutable {
                     ((array[I] = foundation::ctti::variable_name<(std::get<I>(tp))>()), ...);
                 }(type_traits::helper::make_index_sequence<member_count_v<Ty>>{});
 #if RAINY_HAS_CXX26 && RAINY_HAS_CXX26_STATIC_REFLECTION
-                implements::get_member_names_compositor<Ty, count>(array);
+                implements::get_member_names_compositor<type, count>(array);
 #endif
                 return array;
             } else {
-                constexpr auto tp = implements::get_private_ptrs_helper<Ty>::value; // 使用 helper 获取 `tp`
+                constexpr auto tp = implements::get_private_ptrs_helper<type>::value; // 使用 helper 获取 `tp`
                 constexpr std::size_t tuple_size = std::tuple_size_v<decltype(tp)>;
                 collections::array<std::string_view, tuple_size> array{};
                 [&array, &tp]<std::size_t... I>(type_traits::helper::index_sequence<I...>) mutable {
                     ((array[I] = foundation::ctti::variable_name<(std::get<I>(tp))>()), ...);
                 }(type_traits::helper::make_index_sequence<tuple_size>{});
 #if RAINY_HAS_CXX26 && RAINY_HAS_CXX26_STATIC_REFLECTION
-                implements::get_member_names_compositor<Ty, tuple_size>(array);
+                implements::get_member_names_compositor<type, tuple_size>(array);
 #endif
                 return array;
             }
@@ -581,7 +592,7 @@ namespace rainy::meta::moon::implements {
         using element = std::tuple_element<Idx, type>;
 
         template <std::size_t Idx>
-        using element_t = std::tuple_element<Idx, type>;
+        using element_t = std::tuple_element_t<Idx, type>;
 
         static inline constexpr std::size_t size = sizeof...(Types);
     };
@@ -649,7 +660,7 @@ namespace rainy::meta::moon {
         static constexpr inline std::size_t count = 2;
 
         static constexpr auto make() noexcept {
-            constexpr auto pair = type_traits::helper::get_fake_object<std::pair<Ty1, Ty2>>();
+            auto &pair = type_traits::helper::get_fake_object<std::pair<Ty1, Ty2>>();
             return std::make_tuple(&pair.first, &pair.second);
         }
 
@@ -668,7 +679,7 @@ namespace rainy::meta::moon {
         static constexpr inline std::size_t count = 2;
 
         static constexpr auto make() noexcept {
-            constexpr auto pair = type_traits::helper::get_fake_object<utility::pair<Ty1, Ty2>>();
+            auto &pair = type_traits::helper::get_fake_object<utility::pair<Ty1, Ty2>>();
             return std::make_tuple(&pair.first, &pair.second);
         }
 
@@ -687,11 +698,16 @@ namespace rainy::meta::moon {
         static constexpr inline std::size_t count = tuple_traits<type_traits::cv_modify::remove_cvref_t<Tuple>>::size;
 
         static constexpr auto make() noexcept {
-            return implements::refl_to_tuple_impl<count, Tuple>::make();
+            auto &obj = type_traits::helper::get_fake_object<type_traits::cv_modify::remove_cvref_t<Tuple>>();
+            return [&]<std::size_t... Is>(type_traits::helper::index_sequence<Is...>) {
+                return std::make_tuple(&std::get<Is>(obj)...);
+            }(type_traits::helper::make_index_sequence<count>{});
         }
 
         static constexpr auto bind_obj(Tuple &obj) noexcept {
-            return implements::refl_to_tuple_impl<count, Tuple>::make_ptr(obj);
+            return [&]<std::size_t... Is>(type_traits::helper::index_sequence<Is...>) {
+                return std::make_tuple(&std::get<Is>(obj)...);
+            }(type_traits::helper::make_index_sequence<count>{});
         }
     };
 
@@ -700,11 +716,16 @@ namespace rainy::meta::moon {
         static constexpr inline std::size_t count = type_traits::primary_types::array_size_v<Ty>;
 
         static constexpr auto make() noexcept {
-            return implements::refl_to_tuple_impl<count, Ty>::make();
+            auto &obj = type_traits::helper::get_fake_object<Ty>();
+            return [&]<std::size_t... Is>(type_traits::helper::index_sequence<Is...>) {
+                return std::make_tuple(&obj[Is]...);
+            }(type_traits::helper::make_index_sequence<count>{});
         }
 
         static constexpr auto bind_obj(Ty &obj) noexcept {
-            return implements::refl_to_tuple_impl<count, Ty>::make_ptr(obj);
+            return [&]<std::size_t... Is>(type_traits::helper::index_sequence<Is...>) {
+                return std::make_tuple(&obj[Is]...);
+            }(type_traits::helper::make_index_sequence<count>{});
         }
 
         static constexpr auto member_names() noexcept {
@@ -722,11 +743,16 @@ namespace rainy::meta::moon {
         static constexpr inline std::size_t count = N;
 
         static constexpr auto make() noexcept {
-            return implements::refl_to_tuple_impl<count, ArrayTemplate<Ty, N>>::make();
+            auto &obj = type_traits::helper::get_fake_object<ArrayTemplate<Ty, N>>();
+            return [&]<std::size_t... Is>(type_traits::helper::index_sequence<Is...>) {
+                return std::make_tuple(&obj[Is]...);
+            }(type_traits::helper::make_index_sequence<count>{});
         }
 
         static constexpr auto bind_obj(ArrayTemplate<Ty, N> &obj) noexcept {
-            return implements::refl_to_tuple_impl<count, ArrayTemplate<Ty, N>>::make_ptr(obj);
+            return [&]<std::size_t... Is>(type_traits::helper::index_sequence<Is...>) {
+                return std::make_tuple(&obj[Is]...);
+            }(type_traits::helper::make_index_sequence<count>{});
         }
 
         static constexpr auto member_names() noexcept {
@@ -742,7 +768,10 @@ namespace rainy::meta::moon {
 
         static constexpr auto make() noexcept {
             if constexpr (count <= 256) {
-                return implements::refl_to_tuple_impl<count, Ty[count]>::make();
+                auto &obj = type_traits::helper::get_fake_object<collections::array<Ty, N>>();
+                return [&]<std::size_t... Is>(type_traits::helper::index_sequence<Is...>) {
+                    return std::make_tuple(&obj[Is]...);
+                }(type_traits::helper::make_index_sequence<count>{});
             } else {
                 return std::make_tuple();
             }
@@ -750,7 +779,9 @@ namespace rainy::meta::moon {
 
         static constexpr auto bind_obj(ArrayTemplate<Ty, N> &obj) noexcept {
             if constexpr (count <= 256) {
-                return implements::refl_to_tuple_impl<count, Ty[count]>::make_ptr(obj.access_carrays());
+                return [&]<std::size_t... Is>(type_traits::helper::index_sequence<Is...>) {
+                    return std::make_tuple(&obj[Is]...);
+                }(type_traits::helper::make_index_sequence<count>{});
             } else {
                 return std::make_tuple();
             }
@@ -802,7 +833,7 @@ namespace rainy::meta::moon {
         static constexpr auto make() noexcept {                                                                                       \
             using Ty = TYPE;                                                                                                          \
             auto &obj = type_traits::helper::get_fake_object<Ty>();                                                                   \
-            constexpr auto ptrs = implements:: ::get_private_ptrs_helper<TYPE>::value;                                                \
+            constexpr auto ptrs = implements::get_private_ptrs_helper<TYPE>::value;                                                   \
             return std::apply([&](auto... ptr) { return std::make_tuple(utility::addressof(obj.*ptr)...); }, ptrs);                   \
         }                                                                                                                             \
                                                                                                                                       \
@@ -925,14 +956,14 @@ namespace rainy::meta::moon {
 
     template <typename Object, typename Fx>
     constexpr rain_fn for_each(Object &&object, Fx &&func) -> void {
-        auto tuple = struct_bind_tuple(object);
+        auto tuple = struct_bind_tuple<type_traits::cv_modify::remove_cvref_t<Object>>(object);
         implements::for_each_impl(tuple, get_member_names<Object>(), utility::forward<Fx>(func),
                                   type_traits::helper::make_index_sequence<member_count_v<Object>>{});
     }
 
     template <typename Object, typename Visitor>
     constexpr rain_fn visit_members(Object &&object, Visitor &&visitor) -> void {
-        auto tuple = struct_bind_tuple(object);
+        auto tuple = struct_bind_tuple<type_traits::cv_modify::remove_cvref_t<Object>>(object);
         implements::visit_members_impl(tuple, utility::forward<Visitor>(visitor),
                                        type_traits::helper::make_index_sequence<member_count_v<Object>>{});
     }
@@ -998,7 +1029,7 @@ namespace rainy::meta::moon {
     template <typename Ty>
     constexpr rain_fn get(Ty &&object, std::string_view name)
         -> decltype(tuple_to_variant<type_traits::cv_modify::remove_cvref_t<Ty>>()) {
-        constexpr std::size_t index = index_of<Ty>(name);
+        const std::size_t index = index_of<Ty>(name);
         return get<Ty>(utility::forward<Ty>(object), index);
     }
 
