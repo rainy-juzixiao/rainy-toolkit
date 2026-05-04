@@ -31,53 +31,28 @@
 
 // reference https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2025/p3394r4.html
 namespace rainy::annotations::moon {
-    // clang-format off
-
     struct rename_tag { char const* new_name; };
     consteval rename_tag rename(std::string_view new_name = "") { return {std::define_static_string(new_name)}; }
 
-    struct with_prefix_tag { char const* data; };
-    consteval with_prefix_tag with_prefix(std::string_view prefix = "") { return {std::define_static_string(prefix)}; }
+    struct with_prefix_tag { char const* prefix; };
+    consteval with_prefix_tag with_prefix_tag(std::string_view prefix = "") { return {std::define_static_string(prefix)}; }
 
-    struct with_suffix_tag { char const* data; };
+    struct with_suffix_tag { char const* suffix; };
     consteval with_suffix_tag with_suffix(std::string_view suffix = "") { return {std::define_static_string(suffix)}; }
-    
-    struct no_prefix_tag {};
-    inline static constexpr auto no_prefix = no_prefix_tag{};
-
-    struct no_suffix_tag {};
-    inline static constexpr auto no_suffix = no_suffix_tag{};
-
-    // clang-format on
 
     enum class named_style {
-        none,
         snake_case,
         pascal,
-        camel,
-        all_caps,
-        all_caps_no_underline
+        camel
     };
-
-    // clang-format off
 
     struct use_name_style { named_style style; };
 
-    // clang-format on
-
-    inline static constexpr auto no_name_style = named_style::none;
     inline static constexpr auto use_snake_case = named_style::snake_case;
     inline static constexpr auto use_pascal = named_style::pascal;
     inline static constexpr auto use_camel = named_style::camel;
-    inline static constexpr auto all_caps = named_style::all_caps;
-    inline static constexpr auto all_caps_no_underline = named_style::all_caps_no_underline;
 
     struct ignore_tag {};
-
-    /**
-     * @brief 指示moon静态反射在处理某些成员时，进行忽略
-     * @attention 如果moon模块检测到有自定义的注册源，则此标签无效果
-     */
     inline static constexpr auto ignore = ignore_tag{};
 }
 

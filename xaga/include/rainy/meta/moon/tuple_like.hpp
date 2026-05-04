@@ -68,7 +68,6 @@ namespace rainy::meta::moon::implements {
         static constexpr auto value = get_private_ptrs(private_access_tag<type_traits::cv_modify::remove_cvref_t<Ty>>);
     };
 }
-
 #if RAINY_HAS_CXX26 && RAINY_HAS_CXX26_STATIC_REFLECTION
 
 namespace rainy::meta::moon::implements {
@@ -439,7 +438,7 @@ namespace rainy::meta::moon::implements {
                         }
                         break;
                     }
-                    
+
                     case named_style::all_caps: {
                         for (const char ch : src) {
                             result += to_upper(ch);
