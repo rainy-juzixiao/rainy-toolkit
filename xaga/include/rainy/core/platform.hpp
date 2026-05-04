@@ -525,7 +525,7 @@ static_assert(false, "We detected you are using C++14 and below, and the library
 #define RAINY_ABI_BRIDGE_CALL_GET_COMPILE_IDENTIFIER 4
 #define RAINY_ABI_BRIDGE_CALL_GET_VERSION_NAME 5
 
-#if#if RAINY_HAS_CXX26 && RAINY_HAS_CXX26_STATIC_REFLECTION
+#if RAINY_HAS_CXX26 && RAINY_HAS_CXX26_STATIC_REFLECTION
 #include <meta>
 #endif
 
