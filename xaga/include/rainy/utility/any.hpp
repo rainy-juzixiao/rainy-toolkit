@@ -896,6 +896,10 @@ namespace rainy::utility {
                 case rainy_typehash(long long unsigned int):
                     return static_cast<TargetType>(*static_cast<const long long unsigned int *>(target_pointer));
 #endif
+#if RAINY_USING_MACOS
+                case rainy_typehash(unsigned long):
+                    return static_cast<TargetType>(*static_cast<const unsigned long *>(target_pointer));
+#endif
                 default:
                     break;
             }

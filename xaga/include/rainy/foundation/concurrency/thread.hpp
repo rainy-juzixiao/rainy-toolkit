@@ -15,9 +15,10 @@
  */
 #ifndef RAINY_FOUNDATION_CONCURRENCY_THREAD_HPP
 #define RAINY_FOUNDATION_CONCURRENCY_THREAD_HPP
+#include <chrono>
 #include <rainy/core/core.hpp>
-#include <rainy/foundation/memory/nebula_ptr.hpp>
 #include <rainy/foundation/concurrency/pal.hpp>
+#include <rainy/foundation/memory/nebula_ptr.hpp>
 
 namespace rainy::foundation::concurrency {
     class RAINY_TOOLKIT_API thread {
@@ -142,7 +143,7 @@ namespace rainy::foundation::system::this_thread {
     template <typename Clock, typename Duration>
     void sleep_until(const std::chrono::time_point<Clock, Duration> &abs_time) {
 #if RAINY_HAS_CXX20
-        static_assert(std::chrono::is_clock_v<Clock>, "Clock type required");
+        static_assert(concurrency::implements::is_clock_v<Clock>, "Clock type required");
 #endif
         for (;;) {
             const auto now = Clock::now();
@@ -193,7 +194,7 @@ namespace rainy::foundation::concurrency {
         friend bool operator==(id left, id right) noexcept;
 
 #if RAINY_HAS_CXX20
-        friend std::strong_ordering operator<=>(annotations::lifetime::in<id> left, const annotations::lifetime::in<id> right) noexcept {
+        friend std::strong_ordering operator<=>(annotations::lifetime::in<id> left, annotations::lifetime::in<id> right) noexcept {
             return left.id_ <=> right.id_;
         }
 #else

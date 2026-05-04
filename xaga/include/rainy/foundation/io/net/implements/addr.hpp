@@ -52,27 +52,27 @@ namespace rainy::foundation::io::net::ip::implements {
      * 将点分十进制字符串（null-terminated）解析为 ipv4_bytes（网络字节序）。
      * 成功返回 true，失败返回 false 并设置 ec。
      */
-    RAINY_TOOLKIT_API RAINY_NODISCARD bool ipv4_from_string(core::czstring str, ipv4_bytes &out, std::error_code &ec) noexcept;
+    RAINY_NODISCARD RAINY_TOOLKIT_API bool ipv4_from_string(core::czstring str, ipv4_bytes &out, std::error_code &ec) noexcept;
 
     /*
      * 将 ipv4_bytes（网络字节序）格式化为点分十进制写入 buf。
      * buf 至少需要 INET_ADDRSTRLEN（16）字节。
      * 成功返回 true。
      */
-    RAINY_TOOLKIT_API RAINY_NODISCARD bool ipv4_to_string(const ipv4_bytes &in, core::cstring buf, std::size_t buf_size) noexcept;
+    RAINY_NODISCARD RAINY_TOOLKIT_API bool ipv4_to_string(const ipv4_bytes &in, core::cstring buf, std::size_t buf_size) noexcept;
 
     /*
      * 将 IPv6 字符串（不含 %scope，null-terminated）解析为 ipv6_bytes。
      * 成功返回 true，失败返回 false 并设置 ec。
      */
-    RAINY_TOOLKIT_API RAINY_NODISCARD bool ipv6_from_string(core::czstring str, ipv6_bytes &out, std::error_code &ec) noexcept;
+    RAINY_NODISCARD RAINY_TOOLKIT_API bool ipv6_from_string(core::czstring str, ipv6_bytes &out, std::error_code &ec) noexcept;
 
     /*
      * 将 ipv6_bytes 格式化为标准 IPv6 字符串写入 buf。
      * buf 至少需要 INET6_ADDRSTRLEN（46）字节。
      * 成功返回 true。
      */
-    RAINY_TOOLKIT_API RAINY_NODISCARD bool ipv6_to_string(const ipv6_bytes &in, core::cstring buf, std::size_t buf_size) noexcept;
+    RAINY_NODISCARD RAINY_TOOLKIT_API bool ipv6_to_string(const ipv6_bytes &in, core::cstring buf, std::size_t buf_size) noexcept;
 
     struct resolved_entry {
         int family{0};

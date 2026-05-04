@@ -1,5 +1,5 @@
 /*
-* Copyright 2026 rainy-juzixiao
+ * Copyright 2026 rainy-juzixiao
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,66 +25,117 @@ namespace rainy::foundation::concurrency::implements {
         int count{0};
     };
 
-    thrd_result mtx_do_lock(mtx_t* const mtx, const ::timespec *target) noexcept {
+    static int apple_mutex_timedlock(mutex_handle *mutex, const ::timespec *target) noexcept {
+        constexpr long long min_sleep_ns = 100'000LL;
+        constexpr long long max_sleep_ns = 5'000'000LL;
+        long long sleep_ns = min_sleep_ns;
+        rain_loop {
+            int res = pthread_mutex_trylock(&mutex->handle);
+            if (res == 0) {
+                return 0;
+            }
+            if (res != EBUSY) {
+                return res;
+            }
+            ::timespec now{};
+            ::clock_gettime(CLOCK_REALTIME, &now);
+            if (now.tv_sec > target->tv_sec || (now.tv_sec == target->tv_sec && now.tv_nsec >= target->tv_nsec)) {
+                return ETIMEDOUT;
+            }
+            long long remaining_ns = (static_cast<long long>(target->tv_sec - now.tv_sec) * 1'000'000'000LL) +
+                                     (static_cast<long long>(target->tv_nsec - now.tv_nsec));
+            long long actual_sleep = core::min(sleep_ns, remaining_ns);
+            ::timespec sleep_ts{0, static_cast<long>(actual_sleep)};
+            ::nanosleep(&sleep_ts, nullptr);
+            sleep_ns = core::min(sleep_ns * 2, max_sleep_ns);
+        }
+    }
+
+    static int apple_mutex_recursive_timedlock(mutex_handle *mutex, const ::timespec *target) noexcept {
+        const pthread_t self = pthread_self();
+        constexpr long long min_sleep_ns = 100'000LL;
+        constexpr long long max_sleep_ns = 5'000'000LL;
+        long long sleep_ns = min_sleep_ns;
+        while (true) {
+            if (pthread_equal(mutex->thread_id, self)) {
+                return 0;
+            }
+            ::timespec now{};
+            ::clock_gettime(CLOCK_REALTIME, &now);
+            if (now.tv_sec > target->tv_sec || (now.tv_sec == target->tv_sec && now.tv_nsec >= target->tv_nsec)) {
+                return ETIMEDOUT;
+            }
+            const int res = pthread_mutex_trylock(&mutex->handle);
+            if (res == 0) {
+                mutex->thread_id = self;
+                return 0;
+            }
+            if (res != EBUSY) {
+                return res;
+            }
+            long long remaining_ns = (static_cast<long long>(target->tv_sec - now.tv_sec) * 1'000'000'000LL) +
+                                     (static_cast<long long>(target->tv_nsec - now.tv_nsec));
+            long long actual_sleep = std::min(sleep_ns, remaining_ns);
+            ::timespec sleep_ts{0, static_cast<long>(actual_sleep)};
+            ::nanosleep(&sleep_ts, nullptr);
+            sleep_ns = std::min(sleep_ns * 2, max_sleep_ns);
+        }
+    }
+
+    thrd_result mtx_do_lock(mtx_t *const mtx, const ::timespec *target) noexcept {
         if (!mtx) {
             errno = EINVAL;
             return thrd_result::nomem;
         }
         auto *mutex = static_cast<mutex_handle *>(*mtx);
         const pthread_t current_thread_id = pthread_self();
-        // --- 非递归普通 mutex (plain_mtx) ---
+
+        // 非递归普通 mutex
         if ((mutex->type & ~mutex_types::recursive_mtx) == mutex_types::plain_mtx) {
-            // 同线程重入直接增加计数
-            if (!pthread_equal(mutex->thread_id, current_thread_id)) {
-                pthread_mutex_lock(&mutex->handle);
-                mutex->thread_id = current_thread_id;
+            if (!target) {
+                return pthread_mutex_lock(&mutex->handle) == 0 ? thrd_result::success : thrd_result::error;
             }
-            core::pal::interlocked_increment(reinterpret_cast<volatile long *>(&mutex->count));
-            return thrd_result::success;
+            if (target->tv_sec == 0 && target->tv_nsec == 0) {
+                return pthread_mutex_trylock(&mutex->handle) == 0 ? thrd_result::success : thrd_result::busy;
+            }
+            return apple_mutex_timedlock(mutex, target) == 0 ? thrd_result::success : thrd_result::timed_out;
         }
-        // --- 递归 mutex / 需要超时支持 ---
+
+        // 递归 mutex / 需要超时支持
         int res = -1;
         if (!target) {
-            // 阻塞锁
             if (!pthread_equal(mutex->thread_id, current_thread_id)) {
                 res = pthread_mutex_lock(&mutex->handle);
             } else {
-                // 同线程递归 lock
                 res = 0;
             }
         } else if (target->tv_sec == 0 && target->tv_nsec == 0) {
-            // 尝试锁
             if (!pthread_equal(mutex->thread_id, current_thread_id)) {
                 res = pthread_mutex_trylock(&mutex->handle);
             } else {
                 res = 0;
             }
         } else {
-            // 带超时锁
             if (!pthread_equal(mutex->thread_id, current_thread_id)) {
-                res = pthread_mutex_timedlock(&mutex->handle, target);
+                res = apple_mutex_recursive_timedlock(mutex, target);
             } else {
                 res = 0;
             }
         }
-        // --- 成功锁住 ---
+
         if (res == 0) {
-            // 如果是第一次 lock，则设置 thread_id
             if (core::pal::interlocked_increment(reinterpret_cast<volatile long *>(&mutex->count)) == 1) {
                 mutex->thread_id = current_thread_id;
             }
-
-            // 非递归 mutex 被同线程重复 lock → 模拟 Windows 风格 BUSY
             if ((mutex->count > 1) && ((mutex->type & mutex_types::recursive_mtx) != mutex_types::recursive_mtx)) {
                 core::pal::interlocked_decrement(reinterpret_cast<volatile long *>(&mutex->count));
                 pthread_mutex_unlock(&mutex->handle);
                 errno = EBUSY;
                 return thrd_result::busy;
             }
-
             return thrd_result::success;
         }
-        // --- 处理失败返回 ---
+
         if (res == ETIMEDOUT) {
             errno = ETIMEDOUT;
             return thrd_result::timed_out;
@@ -103,13 +154,11 @@ namespace rainy::foundation::concurrency::implements {
         mutex->thread_id = {};
         pthread_mutexattr_t attr;
         pthread_mutexattr_init(&attr);
-
         if (flags & mutex_types::recursive_mtx) {
             pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
         } else {
             pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_NORMAL);
         }
-
         pthread_mutex_init(&mutex->handle, &attr);
         pthread_mutexattr_destroy(&attr);
         return thrd_result::success;
@@ -128,7 +177,7 @@ namespace rainy::foundation::concurrency::implements {
     }
 
     thrd_result mtx_trylock(mtx_t *mtx) noexcept {
-        ::timespec ts{0, 0}; // NOLINT
+        ::timespec ts{0, 0};
         return mtx_do_lock(mtx, &ts);
     }
 
@@ -136,7 +185,7 @@ namespace rainy::foundation::concurrency::implements {
         return mtx_do_lock(mtx, ts);
     }
 
-    thrd_result mtx_unlock(mtx_t* const mtx) noexcept {
+    thrd_result mtx_unlock(mtx_t *const mtx) noexcept {
         if (!mtx) {
             return thrd_result::nomem;
         }
@@ -148,7 +197,7 @@ namespace rainy::foundation::concurrency::implements {
         return thrd_result::success;
     }
 
-    bool mtx_current_owns(mtx_t* const mtx) noexcept {
+    bool mtx_current_owns(mtx_t *const mtx) noexcept {
         if (!mtx) {
             errno = EINVAL;
             return false;
@@ -157,18 +206,17 @@ namespace rainy::foundation::concurrency::implements {
         return mutex->count != 0 && pthread_equal(mutex->thread_id, pthread_self());
     }
 
-    thrd_result mtx_destroy(mtx_t* const mtx) noexcept {
+    thrd_result mtx_destroy(mtx_t *const mtx) noexcept {
         if (!mtx) {
             return thrd_result::nomem;
         }
         auto *mutex = static_cast<mutex_handle *>(*mtx);
-        // 移除对count的检查，不再保证 (若仍有线程持有该锁，行为未定义)
         pthread_mutex_destroy(&mutex->handle);
         core::pal::deallocate(mutex, sizeof(mutex_handle), alignof(mutex_handle));
         return thrd_result::success;
     }
 
-    void *native_mtx_handle(mtx_t* const mtx) noexcept {
+    void *native_mtx_handle(mtx_t *const mtx) noexcept {
         if (!mtx) {
             return nullptr;
         }

@@ -402,7 +402,25 @@ namespace rainy::foundation::memory {
     nebula_ptr<Ty> make_nebula(const std::size_t num,
                                Args... args) noexcept(type_traits::type_properties::is_nothrow_constructible_v<Ty>) {
         using elem = std::remove_extent_t<Ty>;
-        return nebula_ptr<Ty>(new elem[num](args...), num);
+        std::allocator<elem> alloc;
+        auto* data = alloc.allocate(num);
+
+        // 构造每个元素
+        std::size_t constructed = 0;
+        try {
+            for (; constructed < num; ++constructed) {
+                std::allocator_traits<std::allocator<elem>>::construct(alloc, &data[constructed], args...);
+            }
+            return nebula_ptr<Ty>(data, num);
+        } catch (...) {
+            // NOLINTBEGIN
+            for (std::size_t i = 0; i < constructed; ++i) {
+                std::allocator_traits<std::allocator<elem>>::destroy(alloc, &data[i]);
+            }
+            alloc.deallocate(data, num);
+            throw;
+            // NOLINTEND
+        }
     }
 
     template <typename Ty, typename... Args,

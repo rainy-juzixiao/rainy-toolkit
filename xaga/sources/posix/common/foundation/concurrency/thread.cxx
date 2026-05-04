@@ -1,5 +1,5 @@
 /*
-* Copyright 2026 rainy-juzixiao
+ * Copyright 2026 rainy-juzixiao
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,13 @@
 #include <pthread.h>
 #include <rainy/core/core.hpp>
 #include <rainy/foundation/concurrency/pal.hpp>
+#include <unistd.h>
+
+#if RAINY_USING_MACOS
+#include <sys/sysctl.h> // NOLINT
+#else
+#include <sys/syscall.h> // NOLINT
+#endif
 
 namespace rainy::foundation::concurrency::implements {
     void endthread() {
@@ -59,7 +66,12 @@ namespace rainy::foundation::concurrency::implements {
     }
 
     struct the_task {
+#if RAINY_USING_MACOS
+        std::uint64_t tid{0};
+        pthread_t pthread_handle{};
+#else
         pid_t tid{0};
+#endif
         functional::function_pointer<unsigned int (*)(void *)> invoke_address{};
         void *arg_list{nullptr};
         volatile long tid_ready{0};
@@ -67,12 +79,18 @@ namespace rainy::foundation::concurrency::implements {
 
     unsigned int invoke_thread_task(void *task_structure) {
         install_signal_handlers();
-        auto tid = static_cast<pid_t>(syscall(SYS_gettid));
-        auto *task = reinterpret_cast<the_task *>(task_structure);
-        auto arg_list = task->arg_list;
-        auto execute_task = task->invoke_address;
+        rainy_let task = static_cast<the_task *>(task_structure);
+        auto *const arg_list = task->arg_list;
+        const auto execute_task = task->invoke_address;
         {
-            task->tid = tid;
+#if RAINY_USING_MACOS
+            std::uint64_t tid64 = 0;
+            pthread_threadid_np(nullptr, &tid64);
+            task->tid = tid64;
+            task->pthread_handle = pthread_self();
+#else
+            task->tid = static_cast<pid_t>(syscall(SYS_gettid));
+#endif
             core::pal::interlocked_exchange(&task->tid_ready, 0xA0);
         }
         return execute_task(arg_list);
@@ -88,48 +106,66 @@ namespace rainy::foundation::concurrency::implements {
         pthread_attr_init(&attr);
         if (stack_size > 0) {
             if (pthread_attr_setstacksize(&attr, stack_size) != 0) {
-                errno = EINVAL; // Invalid stack size
+                errno = EINVAL;
                 return {};
             }
         }
+        // NOLINTBEGIN
         the_task task{
-            0, invoke_function_addr, arg_list,
-            false}; // task记录了创建的具体任务信息的上下文（因为以值信息存在且会持续等待直到拿到tid，因此在这一点上，生命周期问题是无的）
+#if RAINY_USING_MACOS
+            0,
+            {},
+#else
+            0,
+#endif
+            invoke_function_addr,
+            arg_list,
+            false};
         pthread_t thread{};
+        // NOLINTEND
         const int ret = pthread_create(&thread, &attr, reinterpret_cast<void *(*) (void *)>(&invoke_thread_task), &task);
-        /*
-        上层通常要求unsigned int (*)(void *)
-            作为函数指针签名。posix的接口中void *返回值很多时候是返回0的，为什么不能提供一个直观的接口呢。而很有意思的是。如果void
-                *作为返回值。或许，这个返回值表示的是个intptr_t，所以unsigned int也差不多了。为什么?unsigned int足够表示了。
-        */
         pthread_attr_destroy(&attr);
         if (ret != 0) {
             errno = ret;
             return {};
         }
-        while (core::pal::iso_volatile_load(&task.tid_ready) == 0) { // 这里将会持续轮询，同时在等待的时候让出执行权，直到拿到tid
+        while (core::pal::iso_volatile_load(&task.tid_ready) == 0) {
             thread_yield();
         }
-        return {thread, static_cast<std::uint64_t>(task.tid)};
+#if RAINY_USING_MACOS
+        return {reinterpret_cast<std::uintptr_t>(thread), static_cast<std::uint64_t>(task.tid)};
+#else
+        return {thread, static_cast<std::uint64_t>(task.tid)}; // NOLINT
+#endif
     }
 
-    RAINY_NODISCARD schd_thread_t
-    create_thread(void *security, unsigned int stack_size,
-                  foundation::functional::function_pointer<unsigned int (*)(void *)> invoke_function_addr, void *arg_list,
-                  unsigned int init_flag, std::uint64_t *thrd_addr) {
-        (void) init_flag; // We don't need to set initial state. Just deprecated.
+    schd_thread_t create_thread(void *security, unsigned int stack_size,
+                                foundation::functional::function_pointer<unsigned int (*)(void *)> invoke_function_addr,
+                                void *arg_list, unsigned int init_flag, std::uint64_t *thrd_addr) {
+        (void) init_flag;
         (void) security;
         pthread_attr_t attr;
         pthread_attr_init(&attr);
         if (stack_size > 0) {
             if (pthread_attr_setstacksize(&attr, stack_size) != 0) {
                 pthread_attr_destroy(&attr);
-                errno = EINVAL; // Invalid stack size
+                errno = EINVAL;
                 return {};
             }
         }
         pthread_t thread{};
-        the_task task{0, invoke_function_addr, arg_list, false}; // 分配the_task对象
+        // NOLINTBEGIN
+        the_task task{
+#if RAINY_USING_MACOS
+            0,
+            {},
+#else
+            0,
+#endif
+            invoke_function_addr,
+            arg_list,
+            false};
+        // NOLINTEND
         const int ret = pthread_create(&thread, &attr, reinterpret_cast<void *(*) (void *)>(&invoke_thread_task), &task);
         pthread_attr_destroy(&attr);
         if (ret != 0) {
@@ -137,11 +173,15 @@ namespace rainy::foundation::concurrency::implements {
             return {};
         }
         if (thrd_addr) {
+#if RAINY_USING_MACOS
+            *thrd_addr = reinterpret_cast<std::uint64_t>(thread);
+#else
             *thrd_addr = thread;
+#endif
         }
         while (core::pal::iso_volatile_load(&task.tid_ready) == 0) {
         }
-        return {reinterpret_cast<std::uintptr_t>(thread), static_cast<std::uint64_t>(task.tid)};
+        return {reinterpret_cast<std::uintptr_t>(thread), static_cast<std::uint64_t>(task.tid)}; // NOLINT
     }
 
     thrd_result thread_join(schd_thread_t thread_handle, std::int64_t *result_receiver) noexcept {
@@ -150,7 +190,7 @@ namespace rainy::foundation::concurrency::implements {
             return thrd_result::error;
         }
         void *thread_result = nullptr;
-        const int join_result = pthread_join(reinterpret_cast<pthread_t>(thread_handle.handle), &thread_result);
+        const int join_result = pthread_join(reinterpret_cast<pthread_t>(thread_handle.handle), &thread_result); // NOLINT
         if (result_receiver) {
             *result_receiver = static_cast<int>(reinterpret_cast<std::intptr_t>(thread_result));
         }
@@ -175,7 +215,11 @@ namespace rainy::foundation::concurrency::implements {
             errno = EINVAL;
             return thrd_result::error;
         }
+#if RAINY_USING_MACOS
+        const int detach_result = pthread_detach(reinterpret_cast<pthread_t>(thread_handle.handle));
+#else
         const int detach_result = pthread_detach(thread_handle.handle);
+#endif
         if (detach_result == 0) {
             return thrd_result::success;
         }
@@ -196,29 +240,69 @@ namespace rainy::foundation::concurrency::implements {
     }
 
     unsigned int thread_hardware_concurrency() noexcept {
+#if RAINY_USING_MACOS
+        // macOS 的 pthread_getconcurrency() 永远返回 0，改用 sysctl 查询逻辑核心数
+        int count = 0;
+        std::size_t size = sizeof(count);
+#if RAINY_USING_MACOS_AND_IS_APPLE_SILICON
+        // Apple Silicon 使用 hw.perflevel0.logicalcpu 查询高性能核心数，
+        // 再加上 hw.perflevel1.logicalcpu 查询能效核心数，合计即为全部逻辑核心数
+        int perf_cores = 0, eff_cores = 0;
+        std::size_t perf_size = sizeof(perf_cores), eff_size = sizeof(eff_cores);
+        if (sysctlbyname("hw.perflevel0.logicalcpu", &perf_cores, &perf_size, nullptr, 0) == 0 &&
+            sysctlbyname("hw.perflevel1.logicalcpu", &eff_cores, &eff_size, nullptr, 0) == 0) {
+            return static_cast<unsigned int>(perf_cores + eff_cores);
+        }
+#endif
+        if (sysctlbyname("hw.logicalcpu", &count, &size, nullptr, 0) == 0) {
+            return static_cast<unsigned int>(count);
+        }
+        return 1u; // 最坏情况兜底
+#else
         return static_cast<unsigned int>(pthread_getconcurrency());
+#endif
     }
 
     std::uint64_t get_thread_id() noexcept {
-        return static_cast<std::uint64_t>(pthread_self());
+#if RAINY_USING_MACOS
+        std::uint64_t tid64 = 0;
+        pthread_threadid_np(nullptr, &tid64);
+        return tid64;
+#else
+        return static_cast<std::uint64_t>(pthread_self()); // NOLINT
+#endif
     }
 
     void thread_sleep_for(const unsigned long ms) noexcept {
-        (void) ms;
-        timespec req{0, std::chrono::milliseconds(ms).count()};
+        const auto total_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::milliseconds(ms));
+        // NOLINTBEGIN
+        timespec req{static_cast<time_t>(total_ns.count() / 1'000'000'000LL), static_cast<long>(total_ns.count() % 1'000'000'000LL)};
+        // NOLINTEND
         while (::nanosleep(&req, &req) == -1 && errno == EINTR) {
         }
     }
 
     void suspend_thread(schd_thread_t thread_handle) noexcept {
-        if (thread_handle.handle) {
-            (void) syscall(SYS_tgkill, getpid(), thread_handle.tid, SIGUSR1);
+        if (!thread_handle.handle) {
+            return;
         }
+#if RAINY_USING_MACOS
+        // macOS 没有 tgkill，通过 pthread_kill 向对应线程投递 SIGUSR1
+        // thread_handle.handle 在 macOS 路径下存的是 pthread_t
+        pthread_kill(reinterpret_cast<pthread_t>(thread_handle.handle), SIGUSR1);
+#else
+        (void) syscall(SYS_tgkill, getpid(), thread_handle.tid, SIGUSR1);
+#endif
     }
 
     void resume_thread(schd_thread_t thread_handle) noexcept {
-        if (thread_handle.handle) {
-            (void) syscall(SYS_tgkill, getpid(), thread_handle.tid, SIGUSR2);
+        if (!thread_handle.handle) {
+            return;
         }
+#if RAINY_USING_MACOS
+        pthread_kill(reinterpret_cast<pthread_t>(thread_handle.handle), SIGUSR2);
+#else
+        (void) syscall(SYS_tgkill, getpid(), thread_handle.tid, SIGUSR2);
+#endif
     }
 }
