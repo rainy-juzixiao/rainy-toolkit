@@ -12,4 +12,11 @@ if (MSVC)
     target_compile_options(rainy-toolkit-examples-reflection PRIVATE /execution-charset:utf-8)
 endif ()
 
+if (RAINY_TOOLKIT_HAVE_CXX26_STATIC_REFLECTION)
+    target_compile_features(rainy-toolkit-examples-reflection PUBLIC cxx_std_26)
+    if (COMPILER_ID MATCHES "GCC")
+        target_compile_options(rainy-toolkit-examples-reflection PUBLIC -freflection)
+    endif ()
+endif ()
+
 #set_target_properties(rttr_core PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)

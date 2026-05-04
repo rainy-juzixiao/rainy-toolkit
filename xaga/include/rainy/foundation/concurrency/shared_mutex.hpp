@@ -16,8 +16,9 @@
 #ifndef RAINY_FOUNDATION_CONCURRENCY_SHARED_MUTEX_HPP
 #define RAINY_FOUNDATION_CONCURRENCY_SHARED_MUTEX_HPP
 #include <chrono>
-#include <rainy/foundation/concurrency/mutex.hpp>
+#include <rainy/foundation/concurrency/atomic.hpp>
 #include <rainy/foundation/concurrency/condition_variable.hpp>
+#include <rainy/foundation/concurrency/mutex.hpp>
 #include <rainy/foundation/concurrency/pal.hpp>
 #include <system_error>
 
@@ -86,7 +87,8 @@ namespace rainy::foundation::concurrency {
             auto result = implements::smtx_try_lock_shared(&handle_);
             if (result == thrd_result::success) {
                 return true;
-            } else if (result == thrd_result::busy) {
+            }
+            if (result == thrd_result::busy) {
                 return false;
             } else {
                 throw std::system_error(std::make_error_code(std::errc::operation_not_permitted),
@@ -118,144 +120,124 @@ namespace rainy::foundation::concurrency {
      */
     class shared_timed_mutex {
     public:
-        shared_timed_mutex() : state_(0), exclusive_waiting_(0), shared_waiting_(0) {
+        using native_handle_type = void *;
+
+        shared_timed_mutex() {
+            auto result = implements::smtx_create(&handle_);
+            if (result != thrd_result::success) {
+                throw std::system_error(std::make_error_code(std::errc::resource_unavailable_try_again),
+                                        "shared_timed_mutex constructor failed");
+            }
         }
 
-        ~shared_timed_mutex() = default;
+        ~shared_timed_mutex() {
+            implements::smtx_destroy(&handle_);
+        }
 
         shared_timed_mutex(const shared_timed_mutex &) = delete;
         shared_timed_mutex &operator=(const shared_timed_mutex &) = delete;
 
         // exclusive ownership
         void lock() {
-            unique_lock<mutex> lk(mtx_);
-            ++exclusive_waiting_;
-            // 等待没有读者和写者
-            while (state_ != 0) {
-                writer_queue.wait(lk);
+            auto result = implements::smtx_lock(&handle_);
+            if (result != thrd_result::success) {
+                throw std::system_error(std::make_error_code(std::errc::resource_deadlock_would_occur),
+                                        "shared_timed_mutex::lock failed");
             }
-            --exclusive_waiting_;
-            state_ = write_entered_;
         }
 
         bool try_lock() {
-            unique_lock<mutex> lk(mtx_, try_to_lock);
-            if (!lk.owns_lock()) {
-                return false;
-            }
-            if (state_ == 0) {
-                state_ = write_entered_;
+            auto result = implements::smtx_try_lock(&handle_);
+            if (result == thrd_result::success) {
                 return true;
+            } else if (result == thrd_result::busy) {
+                return false;
+            } else {
+                throw std::system_error(std::make_error_code(std::errc::operation_not_permitted),
+                                        "shared_timed_mutex::try_lock failed");
             }
-            return false;
         }
 
-        template <class Rep, class Period>
+        template <typename Rep, typename Period>
         bool try_lock_for(const std::chrono::duration<Rep, Period> &rel_time) {
             return try_lock_until(std::chrono::steady_clock::now() + rel_time);
         }
 
-        template <class Clock, class Duration>
+        template <typename Clock, typename Duration>
         bool try_lock_until(const std::chrono::time_point<Clock, Duration> &abs_time) {
-            unique_lock<mutex> lk(mtx_);
-            ++exclusive_waiting_;
-            // 等待没有读者和写者，或超时
-            while (state_ != 0) {
-                if (writer_queue.wait_until(lk, abs_time) == cv_status::timeout) {
-                    --exclusive_waiting_;
-                    return false;
-                }
+            ::timespec ts = implements::to_abs_timespec(abs_time);
+            auto result = implements::smtx_timed_lock(&handle_, &ts);
+            if (result == thrd_result::success) {
+                return true;
             }
-            --exclusive_waiting_;
-            state_ = write_entered_;
-            return true;
+            if (result == thrd_result::timed_out) {
+                return false;
+            }
+            throw std::system_error(std::make_error_code(std::errc::operation_not_permitted),
+                                    "shared_timed_mutex::try_lock_until failed");
         }
 
         void unlock() {
-            {
-                lock_guard<mutex> lk(mtx_);
-                state_ = 0;
-            }
-            // 优先唤醒等待的写者，如果没有则唤醒所有读者
-            if (exclusive_waiting_ > 0) {
-                writer_queue.notify_one();
-            } else if (shared_waiting_ > 0) {
-                reader_queue.notify_all();
+            auto result = implements::smtx_unlock(&handle_);
+            if (result != thrd_result::success) {
+                throw std::system_error(std::make_error_code(std::errc::operation_not_permitted), "shared_timed_mutex::unlock failed");
             }
         }
 
         // shared ownership
         void lock_shared() {
-            unique_lock<mutex> lk(mtx_);
-            ++shared_waiting_;
-            // 等待没有写者且没有等待的写者
-            while ((state_ & write_entered_) || exclusive_waiting_ > 0) {
-                reader_queue.wait(lk);
+            auto result = implements::smtx_lock_shared(&handle_);
+            if (result != thrd_result::success) {
+                throw std::system_error(std::make_error_code(std::errc::resource_deadlock_would_occur),
+                                        "shared_timed_mutex::lock_shared failed");
             }
-            --shared_waiting_;
-            ++state_; // 增加读者计数
         }
 
         bool try_lock_shared() {
-            unique_lock<mutex> lk(mtx_, try_to_lock);
-            if (!lk.owns_lock()) {
-                return false;
-            }
-            // 没有写者且没有等待的写者
-            if ((state_ & write_entered_) == 0 && exclusive_waiting_ == 0) {
-                ++state_; // 增加读者计数
+            auto result = implements::smtx_try_lock_shared(&handle_);
+            if (result == thrd_result::success) {
                 return true;
+            } else if (result == thrd_result::busy) {
+                return false;
+            } else {
+                throw std::system_error(std::make_error_code(std::errc::operation_not_permitted),
+                                        "shared_timed_mutex::try_lock_shared failed");
             }
-            return false;
         }
 
-        template <class Rep, class Period>
+        template <typename Rep, typename Period>
         bool try_lock_shared_for(const std::chrono::duration<Rep, Period> &rel_time) {
             return try_lock_shared_until(std::chrono::steady_clock::now() + rel_time);
         }
 
-        template <class Clock, class Duration>
+        template <typename Clock, typename Duration>
         bool try_lock_shared_until(const std::chrono::time_point<Clock, Duration> &abs_time) {
-            unique_lock<mutex> lk(mtx_);
-            ++shared_waiting_;
-            // 等待没有写者且没有等待的写者，或超时
-            while ((state_ & write_entered_) || exclusive_waiting_ > 0) {
-                if (reader_queue.wait_until(lk, abs_time) == cv_status::timeout) {
-                    --shared_waiting_;
-                    return false;
-                }
+            ::timespec ts = implements::to_abs_timespec(abs_time);
+            auto result = implements::smtx_timed_lock_shared(&handle_, &ts);
+            if (result == thrd_result::success) {
+                return true;
+            } else if (result == thrd_result::timed_out) {
+                return false;
+            } else {
+                throw std::system_error(std::make_error_code(std::errc::operation_not_permitted),
+                                        "shared_timed_mutex::try_lock_shared_until failed");
             }
-            --shared_waiting_;
-            ++state_; // 增加读者计数
-            return true;
         }
 
         void unlock_shared() {
-            bool notify = false;
-            {
-                lock_guard<mutex> lk(mtx_);
-                --state_; // 减少读者计数
-                // 如果是最后一个读者且有等待的写者
-                if ((state_ & ~write_entered_) == 0 && exclusive_waiting_ > 0) {
-                    notify = true;
-                }
-            }
-            // 唤醒一个等待的写者
-            if (notify) {
-                writer_queue.notify_one();
+            auto result = implements::smtx_unlock_shared(&handle_);
+            if (result != thrd_result::success) {
+                throw std::system_error(std::make_error_code(std::errc::operation_not_permitted),
+                                        "shared_timed_mutex::unlock_shared failed");
             }
         }
 
+        native_handle_type native_handle() {
+            return implements::native_smtx_handle(&handle_);
+        }
+
     private:
-        mutex mtx_;
-        condition_variable writer_queue; // 写者等待队列
-        condition_variable reader_queue; // 读者等待队列
-
-        unsigned int state_; // 状态字：最高位表示写者，其余位表示读者数量
-        unsigned int exclusive_waiting_; // 等待的写者数量
-        unsigned int shared_waiting_; // 等待的读者数量
-
-        static constexpr unsigned write_entered_ = 1U << (sizeof(unsigned) * 8 - 1);
+        implements::smtx_t handle_{nullptr};
     };
 
     /**

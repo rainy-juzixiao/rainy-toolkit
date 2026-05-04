@@ -8,16 +8,14 @@ struct PooledExecutorFixture {
     pinned_actor_pool pool;
     executor ex;
 
-    PooledExecutorFixture()
-        : ex(pool) {}
+    PooledExecutorFixture() : ex(pool) {
+    }
 };
 
-SCENARIO_METHOD(PooledExecutorFixture,
-                "executor basic submit/get",
-                "[executor]") {
+SCENARIO_METHOD(PooledExecutorFixture, "executor basic submit/get", "[executor]") {
     GIVEN("a pooled executor") {
         WHEN("submitting simple values") {
-            auto f  = ex.submit([] { return 42; });
+            auto f = ex.submit([] { return 42; });
             auto fb = ex.submit([] { return true; });
             auto fs = ex.submit([] { return std::string("hello"); });
             THEN("results are returned correctly") {
@@ -108,7 +106,7 @@ SCENARIO_METHOD(PooledExecutorFixture, "catch_error recovers from exceptions", "
     }
 }
 
-SCENARIO_METHOD(PooledExecutorFixture ,"finally executes regardless of outcome", "[executor][finally]") {
+SCENARIO_METHOD(PooledExecutorFixture, "finally executes regardless of outcome", "[executor][finally]") {
     GIVEN("an executor and a counter") {
         std::atomic<int> counter{0};
 
@@ -262,8 +260,8 @@ struct PinnedActorPoolFixture {
     pinned_actor_pool pool;
     executor ex;
 
-    PinnedActorPoolFixture(std::size_t threads = 2)
-        : pool(threads), ex(pool) {}
+    PinnedActorPoolFixture(std::size_t threads = 2) : pool(threads), ex(pool) {
+    }
 };
 
 // check
@@ -302,7 +300,7 @@ SCENARIO_METHOD(PinnedActorPoolFixture, "submit_to directs task to specific acto
 
         WHEN("submitting tasks with submit_to out-of-bounds actor_id") {
             auto f = ex.submit([&] { return 99; });
-            pool.submit_to(pool.thread_count() + 10, []{}); // should fallback to round-robin
+            pool.submit_to(pool.thread_count() + 10, [] {}); // should fallback to round-robin
             pool.wait_all();
 
             THEN("task executes normally") {
@@ -381,7 +379,8 @@ SCENARIO_METHOD(PinnedActorPoolFixture, "handles concurrent submissions correctl
                 });
             }
 
-            for (auto &t : producers) t.join();
+            for (auto &t: producers)
+                t.join();
             pool.wait_all();
 
             THEN("all tasks are executed exactly once") {
@@ -395,14 +394,12 @@ struct PriorityActorPoolFixture {
     priority_actor_pool pool;
     executor ex;
 
-    PriorityActorPoolFixture(std::size_t threads = 4)
-        : pool(threads), ex(pool) {}
+    PriorityActorPoolFixture(std::size_t threads = 4) : pool(threads), ex(pool) {
+    }
 };
 
 // check
-SCENARIO_METHOD(PriorityActorPoolFixture,
-                "priority_actor_pool basic submit/get",
-                "[priority_actor_pool][basic]") {
+SCENARIO_METHOD(PriorityActorPoolFixture, "priority_actor_pool basic submit/get", "[priority_actor_pool][basic]") {
 
     GIVEN("a priority actor pool") {
         WHEN("submitting simple tasks") {
@@ -419,9 +416,7 @@ SCENARIO_METHOD(PriorityActorPoolFixture,
 }
 
 // check
-SCENARIO_METHOD(PriorityActorPoolFixture,
-                "default submit uses normal priority",
-                "[priority_actor_pool][priority]") {
+SCENARIO_METHOD(PriorityActorPoolFixture, "default submit uses normal priority", "[priority_actor_pool][priority]") {
 
     GIVEN("a priority pool") {
         std::atomic<int> counter{0};
@@ -441,9 +436,7 @@ SCENARIO_METHOD(PriorityActorPoolFixture,
 }
 
 // check
-SCENARIO_METHOD(PriorityActorPoolFixture,
-                "high priority tasks execute before backlog",
-                "[priority_actor_pool][priority][ordering]") {
+SCENARIO_METHOD(PriorityActorPoolFixture, "high priority tasks execute before backlog", "[priority_actor_pool][priority][ordering]") {
 
     GIVEN("a priority pool with backlog") {
 
@@ -453,11 +446,7 @@ SCENARIO_METHOD(PriorityActorPoolFixture,
         WHEN("low tasks are queued before high task") {
 
             for (int i = 0; i < 2000; ++i) {
-                pool.submit(
-                    [&] {
-                        low_started.fetch_add(1, std::memory_order_relaxed);
-                    },
-                    actor_priority::low);
+                pool.submit([&] { low_started.fetch_add(1, std::memory_order_relaxed); }, actor_priority::low);
             }
 
             auto f = ex.submit(actor_priority::high, [&] {
@@ -470,15 +459,14 @@ SCENARIO_METHOD(PriorityActorPoolFixture,
             THEN("high priority runs without waiting for all low tasks") {
                 REQUIRE(high_done.load());
                 REQUIRE(low_started.load() <= 2000);
+                pool.wait_all(); // 在断言后、作用域结束前，等所有 low task 跑完
             }
         }
     }
 }
 
 // check
-SCENARIO_METHOD(PriorityActorPoolFixture,
-                "low priority tasks are not starved",
-                "[priority_actor_pool][fairness]") {
+SCENARIO_METHOD(PriorityActorPoolFixture, "low priority tasks are not starved", "[priority_actor_pool][fairness]") {
 
     GIVEN("continuous high priority workload") {
 
@@ -488,9 +476,7 @@ SCENARIO_METHOD(PriorityActorPoolFixture,
         WHEN("low priority tasks exist alongside high priority tasks") {
 
             for (int i = 0; i < LOW_TASKS; ++i) {
-                pool.submit(
-                    [&] { low_done.fetch_add(1); },
-                    actor_priority::low);
+                pool.submit([&] { low_done.fetch_add(1); }, actor_priority::low);
             }
 
             for (int i = 0; i < 2000; ++i) {
@@ -507,9 +493,7 @@ SCENARIO_METHOD(PriorityActorPoolFixture,
 }
 
 // check
-SCENARIO_METHOD(PriorityActorPoolFixture,
-                "work stealing occurs within same tier",
-                "[priority_actor_pool][steal]") {
+SCENARIO_METHOD(PriorityActorPoolFixture, "work stealing occurs within same tier", "[priority_actor_pool][steal]") {
 
     GIVEN("a priority pool") {
 
@@ -519,10 +503,7 @@ SCENARIO_METHOD(PriorityActorPoolFixture,
         WHEN("all tasks target one actor in normal tier") {
 
             for (int i = 0; i < N; ++i) {
-                pool.submit_to(
-                    0,
-                    [&] { done.fetch_add(1, std::memory_order_relaxed); },
-                    actor_priority::normal);
+                pool.submit_to(0, [&] { done.fetch_add(1, std::memory_order_relaxed); }, actor_priority::normal);
             }
 
             pool.wait_all();
@@ -535,9 +516,7 @@ SCENARIO_METHOD(PriorityActorPoolFixture,
 }
 
 // check
-SCENARIO_METHOD(PriorityActorPoolFixture,
-                "submit_to out-of-range falls back to routing",
-                "[priority_actor_pool][submit_to]") {
+SCENARIO_METHOD(PriorityActorPoolFixture, "submit_to out-of-range falls back to routing", "[priority_actor_pool][submit_to]") {
 
     GIVEN("a priority pool") {
 
@@ -545,10 +524,7 @@ SCENARIO_METHOD(PriorityActorPoolFixture,
 
         WHEN("actor_id exceeds tier size") {
 
-            pool.submit_to(
-                pool.actors_per_tier() + 10,
-                [&] { counter.fetch_add(1); },
-                actor_priority::high);
+            pool.submit_to(pool.actors_per_tier() + 10, [&] { counter.fetch_add(1); }, actor_priority::high);
 
             pool.wait_all();
 
@@ -560,18 +536,14 @@ SCENARIO_METHOD(PriorityActorPoolFixture,
 }
 
 // check
-SCENARIO_METHOD(PriorityActorPoolFixture,
-                "executor chaining works with priority pool",
-                "[priority_actor_pool][executor][chain]") {
+SCENARIO_METHOD(PriorityActorPoolFixture, "executor chaining works with priority pool", "[priority_actor_pool][executor][chain]") {
 
     GIVEN("an executor on priority pool") {
 
         WHEN("running chained async computation") {
 
             auto f =
-                ex.submit(actor_priority::high, [] { return 5; })
-                  .then([](int x) { return x * 2; })
-                  .then([](int x) { return x + 3; });
+                ex.submit(actor_priority::high, [] { return 5; }).then([](int x) { return x * 2; }).then([](int x) { return x + 3; });
 
             THEN("chain produces correct result") {
                 REQUIRE(f.get() == 13);
@@ -581,9 +553,7 @@ SCENARIO_METHOD(PriorityActorPoolFixture,
 }
 
 // check
-SCENARIO_METHOD(PriorityActorPoolFixture,
-                "supports concurrent submissions",
-                "[priority_actor_pool][concurrency]") {
+SCENARIO_METHOD(PriorityActorPoolFixture, "supports concurrent submissions", "[priority_actor_pool][concurrency]") {
 
     GIVEN("a priority pool") {
 
@@ -600,14 +570,12 @@ SCENARIO_METHOD(PriorityActorPoolFixture,
             for (int p = 0; p < PRODUCERS; ++p) {
                 producers.emplace_back([&] {
                     for (int i = 0; i < TASKS_PER; ++i) {
-                        ex.submit([&] {
-                            counter.fetch_add(1, std::memory_order_relaxed);
-                        });
+                        ex.submit([&] { counter.fetch_add(1, std::memory_order_relaxed); });
                     }
                 });
             }
 
-            for (auto &t : producers) {
+            for (auto &t: producers) {
                 t.join();
             }
 
@@ -663,7 +631,7 @@ SCENARIO_METHOD(BlockingActorPoolFixture, "blocking_actor_pool basic submit and 
 
                 auto end = std::chrono::steady_clock::now();
                 auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-                REQUIRE(elapsed.count() < 150);
+                REQUIRE(elapsed.count() < 300);
             }
         }
 

@@ -15,6 +15,7 @@
  */
 #ifndef RAINY_CORE_IMPLEMENTS_TEXT_FORMAT_FORMAT_HPP
 #define RAINY_CORE_IMPLEMENTS_TEXT_FORMAT_FORMAT_HPP
+#include <optional>
 #include <rainy/core/implements/text/format/context.hpp>
 #include <rainy/core/implements/text/format/formatter.hpp>
 
@@ -212,6 +213,7 @@ namespace rainy::foundation::text {
         } catch (const std::exception &e) {
             exceptions::runtime::throw_format_error(e.what());
         }
+        return out; // never reach
     }
 
     template <typename OutputIt, typename CharT>
@@ -223,6 +225,7 @@ namespace rainy::foundation::text {
         } catch (const std::exception &e) {
             exceptions::runtime::throw_format_error(e.what());
         }
+        return out; // never reach
     }
 
     RAINY_INLINE string vformat(const string_view fmt, const format_args args) {
@@ -251,49 +254,49 @@ namespace rainy::foundation::text {
 
     template <typename... Args>
     string format(string_view fmt, const Args &...args) {
-        auto arg_store = make_format_args(args...);
+        auto arg_store = text::make_format_args(args...);
         return vformat(fmt, basic_format_args(arg_store));
     }
 
     template <typename... Args>
     wstring format(wstring_view fmt, const Args &...args) {
-        auto arg_store = make_wformat_args(args...);
+        auto arg_store = text::make_format_args(args...);
         return vformat(fmt, basic_format_args(arg_store));
     }
 
     template <typename... Args>
     string format(const std::locale &loc, string_view fmt, const Args &...args) {
-        auto arg_store = make_format_args(args...);
+        auto arg_store = text::make_format_args(args...);
         return vformat(loc, fmt, basic_format_args(arg_store));
     }
 
     template <typename... Args>
     wstring format(const std::locale &loc, wstring_view fmt, const Args &...args) {
-        auto arg_store = make_wformat_args(args...);
+        auto arg_store = text::make_format_args(args...);
         return vformat(loc, fmt, basic_format_args(arg_store));
     }
 
     template <typename OutputIt, typename... Args>
     OutputIt format_to(OutputIt out, string_view fmt, const Args &...args) {
-        auto arg_store = make_format_args<format_context>(args...);
+        auto arg_store = text::make_format_args<format_context>(args...);
         return vformat_to(out, fmt, basic_format_args<format_context>(arg_store));
     }
 
     template <typename OutputIt, typename... Args>
     OutputIt format_to(OutputIt out, wstring_view fmt, const Args &...args) {
-        auto arg_store = make_format_args<wformat_context>(args...);
+        auto arg_store = text::make_format_args<wformat_context>(args...);
         return vformat_to(out, fmt, basic_format_args<wformat_context>(arg_store));
     }
 
     template <typename OutputIt, typename... Args>
     OutputIt format_to(OutputIt out, const std::locale &loc, std::string_view fmt, const Args &...args) {
-        auto arg_store = make_format_args<format_context>(args...);
+        auto arg_store = text::make_format_args<format_context>(args...);
         return vformat_to(out, loc, fmt, basic_format_args<format_context>(arg_store));
     }
 
     template <typename OutputIt, typename... Args>
     OutputIt format_to(OutputIt out, const std::locale &loc, std::wstring_view fmt, const Args &...args) {
-        auto arg_store = make_format_args<wformat_context>(args...);
+        auto arg_store = text::make_format_args<wformat_context>(args...);
         return vformat_to(out, loc, fmt, basic_format_args<wformat_context>(arg_store));
     }
 }
@@ -304,10 +307,10 @@ namespace rainy::foundation::text {
     basic_string<Char, Traits, Alloc> &basic_string<Char, Traits, Alloc>::format(basic_string_view<Char> fmt,
                                                                                  Args const &...args) {
         if constexpr (type_traits::type_relations::is_same_v<char, Char>) {
-            auto fmt_args = make_format_args<format_context>(args...);
+            auto fmt_args = text::make_format_args<format_context>(args...);
             text::vformat_to(utility::back_inserter(*this), fmt, basic_format_args<format_context>(fmt_args));
         } else if constexpr (type_traits::type_relations::is_same_v<wchar_t, Char>) {
-            auto fmt_args = make_format_args<wformat_context>(args...);
+            auto fmt_args = text::make_format_args<wformat_context>(args...);
             text::vformat_to(utility::back_inserter(*this), fmt, basic_format_args<wformat_context>(fmt_args));
         } else {
         }

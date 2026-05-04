@@ -102,9 +102,7 @@ SCENARIO("basic_string construction from various sources", "[string][constructio
     GIVEN("Construction with maximum possible size") {
         WHEN("Attempting to construct with size_type::max()") {
             THEN("Should throw length_error or handle gracefully") {
-                REQUIRE_THROWS_AS(
-                    string(std::numeric_limits<string::size_type>::max(), 'X'),
-                    std::length_error);
+                REQUIRE_THROWS_AS(string(std::numeric_limits<string::size_type>::max(), 'X'), std::length_error);
             }
         }
     }
@@ -1010,7 +1008,7 @@ SCENARIO("String conversion operations", "[string][conversion]") {
         string str = "Convert me";
 
         WHEN("Converting to string_view") {
-            string_view sv = str;
+            rainy::foundation::text::string_view sv = str;
 
             THEN("Should create valid string_view") {
                 REQUIRE(sv.size() == str.size());

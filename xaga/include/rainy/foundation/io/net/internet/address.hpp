@@ -124,7 +124,7 @@ namespace rainy::foundation::io::net::ip {
             char buf[16]{}; // INET_ADDRSTRLEN
             implements::ipv4_bytes raw{};
             std::memcpy(raw.data, bytes_.data(), 4);
-            implements::ipv4_to_string(raw, buf, sizeof(buf));
+            utility::ignore = implements::ipv4_to_string(raw, buf, sizeof(buf));
             return {buf, alloc};
         }
 
@@ -262,11 +262,11 @@ namespace rainy::foundation::io::net::ip {
         }
 
         template <typename Allocator = std::allocator<char>>
-        text::basic_string<char, text::char_traits<char>, Allocator> to_string(const Allocator &alloc = Allocator()) const {
+        RAINY_NODISCARD text::basic_string<char, text::char_traits<char>, Allocator> to_string(const Allocator &alloc = Allocator()) const {
             char buf[46]{}; // INET6_ADDRSTRLEN
             implements::ipv6_bytes raw{};
             std::memcpy(raw.data, bytes_.data(), 16);
-            implements::ipv6_to_string(raw, buf, sizeof(buf));
+            utility::ignore = implements::ipv6_to_string(raw, buf, sizeof(buf));
 
             text::basic_string<char, text::char_traits<char>, Allocator> result(buf, alloc);
             if (scope_id_ != 0) {
