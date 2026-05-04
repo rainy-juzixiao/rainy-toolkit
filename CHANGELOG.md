@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.1](https://github.com/rainy-juzixiao/rainy-toolkit/compare/v0.8.0...v0.8.1) (2026-05-04)
+
+
+### Bug Fixes
+
+* to fix document report.md(patch 1) ([d2f4568](https://github.com/rainy-juzixiao/rainy-toolkit/commit/d2f4568a869244beaf2d270377478ce1f4d56e6b))
+
 ## [0.8.0](https://github.com/rainy-juzixiao/rainy-toolkit/compare/v0.7.4...v0.8.0) (2026-05-04)
 
 
