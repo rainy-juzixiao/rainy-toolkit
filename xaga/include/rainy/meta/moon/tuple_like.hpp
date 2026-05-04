@@ -364,12 +364,11 @@ namespace rainy::meta::moon::implements {
 
     template <typename Ty, std::meta::info Member>
     RAINY_CONSTEVAL rain_fn try_apply_name_style(std::string_view &name) noexcept -> void {
-        using annotations::moon::use_name_style;
         using annotations::moon::named_style;
+        using annotations::moon::use_name_style;
         constexpr auto style = []() consteval -> named_style {
             constexpr auto type_anno = annotations::make_type_anno<Ty>();
-            if constexpr (constexpr auto member_anno = annotations::make_member_anno(Member);
-                          member_anno.has<use_name_style>()) {
+            if constexpr (constexpr auto member_anno = annotations::make_member_anno(Member); member_anno.has<use_name_style>()) {
                 return member_anno.fetch<use_name_style>().style;
             } else if constexpr (type_anno.template has<use_name_style>()) {
                 return type_anno.template fetch<use_name_style>().style;
@@ -440,14 +439,14 @@ namespace rainy::meta::moon::implements {
                     }
 
                     case named_style::all_caps: {
-                        for (const char ch : src) {
+                        for (const char ch: src) {
                             result += to_upper(ch);
                         }
                         break;
                     }
 
                     case named_style::all_caps_no_underline: {
-                        for (const char ch : src) {
+                        for (const char ch: src) {
                             if (ch == '_') {
                                 continue;
                             }
@@ -803,7 +802,7 @@ namespace rainy::meta::moon {
         static constexpr auto make() noexcept {                                                                                       \
             using Ty = TYPE;                                                                                                          \
             auto &obj = type_traits::helper::get_fake_object<Ty>();                                                                   \
-            constexpr auto ptrs = implements::::get_private_ptrs_helper<TYPE>::value;                                                   \
+            constexpr auto ptrs = implements:: ::get_private_ptrs_helper<TYPE>::value;                                                \
             return std::apply([&](auto... ptr) { return std::make_tuple(utility::addressof(obj.*ptr)...); }, ptrs);                   \
         }                                                                                                                             \
                                                                                                                                       \
