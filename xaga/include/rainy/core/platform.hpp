@@ -119,12 +119,6 @@ clang和GNU编译器区域
 #define RAINY_HAS_CXX23 false
 #endif
 
-#if RAINY_CURRENT_STANDARD_VERSION >= 202400L
-#define RAINY_HAS_CXX26 true
-#else
-#define RAINY_HAS_CXX26 false
-#endif
-
 #if RAINY_CURRENT_STANDARD_VERSION == 201703L
 #define RAINY_IS_CXX17 true
 #else
@@ -149,24 +143,6 @@ clang和GNU编译器区域
 #define RAINY_CONSTEXPR23 constexpr
 #else
 #define RAINY_CONSTEXPR23
-#endif
-
-#if RAINY_HAS_CXX26
-#define RAINY_CONSTEXPR26 constexpr
-#else
-#define RAINY_CONSTEXPR26
-#endif
-
-#if RAINY_HAS_CXX26 && RAINY_HAS_CXX26_STATIC_REFLECTION
-#define RAINY_STATIC_REFLECTION_CONSTEXPR26 constexpr
-#else
-#define RAINY_STATIC_REFLECTION_CONSTEXPR26
-#endif
-
-#if RAINY_HAS_CXX20
-#define RAINY_CONSTEVAL consteval
-#else
-#define RAINY_CONSTEVAL constexpr
 #endif
 
 #ifndef RAINY_NODISCARD_CONSTEXPR20
@@ -197,14 +173,6 @@ clang和GNU编译器区域
 #define RAINY_USING_CLANG 1
 #else
 #define RAINY_USING_CLANG 0
-#endif
-#endif
-
-#ifndef RAINY_USING_LLVM_GCC
-#if defined(__clang__) && defined(__GNUC__)
-#define RAINY_USING_LLVM_GCC 1
-#else
-#define RAINY_USING_LLVM_GCC 0
 #endif
 #endif
 
@@ -246,31 +214,6 @@ clang和GNU编译器区域
 #define RAINY_USING_LINUX 1
 #else
 #define RAINY_USING_LINUX 0
-#endif
-
-#ifdef __APPLE__
-#include <TargetConditionals.h>
-#if TARGET_OS_MAC && !TARGET_OS_IPHONE
-
-#ifdef __aarch64__
-
-#define RAINY_USING_MACOS 1
-#define RAINY_USING_MACOS_AND_IS_APPLE_SILICON 1
-
-#else
-
-#define RAINY_USING_MACOS 1
-#define RAINY_USING_MACOS_AND_IS_APPLE_SILICON 0
-
-#endif
-
-#endif
-
-#else
-
-#define RAINY_USING_MACOS 0
-#define RAINY_USING_MACOS_AND_IS_APPLE_SILICON 0
-
 #endif
 
 #if RAINY_USING_GCC
@@ -524,10 +467,6 @@ static_assert(false, "We detected you are using C++14 and below, and the library
 #define RAINY_ABI_BRIDGE_CALL_GET_COMPILE_STANDARD 3
 #define RAINY_ABI_BRIDGE_CALL_GET_COMPILE_IDENTIFIER 4
 #define RAINY_ABI_BRIDGE_CALL_GET_VERSION_NAME 5
-
-#if RAINY_HAS_CXX26 && RAINY_HAS_CXX26_STATIC_REFLECTION
-#include <meta>
-#endif
 
 namespace rainy::core {
     constexpr bool is_rainy_enable_debug = RAINY_ENABLE_DEBUG;
@@ -2464,96 +2403,5 @@ namespace rainy::utility::implements {
 namespace rainy::utility {
     inline constexpr implements::ignore_type ignore{};
 }
-
-#if RAINY_HAS_CXX26 && RAINY_HAS_CXX26_STATIC_REFLECTION
-
-namespace rainy::annotations {
-    struct member_anno {
-        template <typename Ty>
-        RAINY_NODISCARD consteval auto has() const noexcept -> bool {
-            using namespace std::meta;
-            for (auto attn : std::span{attns, num_attns}) {
-                if (remove_const(type_of(attn)) == ^^Ty) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        template <typename Ty>
-        RAINY_NODISCARD consteval auto fetch() const -> Ty {
-            using namespace std::meta;
-            for (auto attn : std::span{attns, num_attns}) {
-                if (remove_const(type_of(attn)) == ^^Ty) {
-                    return extract<Ty>(attn);
-                }
-            }
-            std::unreachable();
-        }
-
-        template <typename Ty>
-        RAINY_NODISCARD consteval auto get_or(Ty default_val) const noexcept -> Ty {
-            if (has<Ty>()) {
-                return fetch<Ty>();
-            }
-            return default_val;
-        }
-
-        const std::meta::info *attns{nullptr};
-        std::size_t num_attns{0};
-    };
-
-    consteval auto make_member_anno(std::meta::info member) -> member_anno {
-        auto attns = std::meta::annotations_of(member);
-        auto span = std::define_static_array(attns);
-        return member_anno{span.data(), span.size()};
-    }
-}
-
-namespace rainy::annotations {
-    struct type_anno {
-        template <typename Ty>
-        RAINY_NODISCARD consteval auto has() const noexcept -> bool {
-            using namespace std::meta;
-            for (auto attn : std::span{attns, num_attns}) {
-                if (remove_const(type_of(attn)) == ^^Ty) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        template <typename Ty>
-        RAINY_NODISCARD consteval auto fetch() const -> Ty {
-            using namespace std::meta;
-            for (auto attn : std::span{attns, num_attns}) {
-                if (remove_const(type_of(attn)) == ^^Ty) {
-                    return extract<Ty>(attn);
-                }
-            }
-            std::unreachable();
-        }
-
-        template <typename Ty>
-        RAINY_NODISCARD consteval auto get_or(Ty default_val) const noexcept -> Ty {
-            if (has<Ty>()) {
-                return fetch<Ty>();
-            }
-            return default_val;
-        }
-
-        const std::meta::info *attns{nullptr};
-        std::size_t num_attns{0};
-    };
-
-    template <typename Ty>
-    consteval auto make_type_anno() -> type_anno {
-        auto attns = std::meta::annotations_of(^^Ty);
-        auto span = std::define_static_array(attns);
-        return type_anno{span.data(), span.size()};
-    }
-}
-
-#endif
 
 #endif

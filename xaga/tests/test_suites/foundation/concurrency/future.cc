@@ -933,7 +933,6 @@ SCENARIO("future wait blocks until value is ready", "[future][wait]") {
     }
 }
 
-#if !RAINY_USING_MACOS
 SCENARIO("future wait_for reports timeout and readiness", "[future][wait_for]") {
     GIVEN("a future fulfilled later") {
         promise<int> p;
@@ -963,7 +962,6 @@ SCENARIO("future wait_for reports timeout and readiness", "[future][wait_for]") 
         worker.join();
     }
 }
-#endif
 
 SCENARIO("exception propagates through future", "[future][exception]") {
     GIVEN("a promise delivering an exception") {

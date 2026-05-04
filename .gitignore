@@ -33,7 +33,7 @@
 
 out
 .idea
-.vs/
+.vs
 .vscode
 build
 cmake-build-*
@@ -49,8 +49,9 @@ docs/.vitepress/dist
 
 /xml/
 
-target/
+/target/
 **/*.rs.bk
+*.d
 Cargo.lock
 .cargo/
 *.cargo
@@ -59,6 +60,10 @@ vendor/
 **/vendor/
 *.pdb
 *.dSYM/
+*.so
+*.dylib
+*.dll
+*.exe
 .env
 .env.*
 !.env.example
@@ -85,6 +90,7 @@ gcov/
 *.swp
 *.swo
 *~
+*~
 \#*\#
 /.emacs.desktop
 /.emacs.desktop.lock
@@ -98,8 +104,10 @@ ehthumbs.db
 Desktop.ini
 $RECYCLE.BIN/
 *.lnk
+*~
 Makefile
 GNUmakefile
+target/
 .gradle/
 build/
 *.log

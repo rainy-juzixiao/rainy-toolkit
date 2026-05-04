@@ -124,7 +124,7 @@ namespace rainy::text::implements {
     RAINY_INLINE int vswprintf_wrapper(wchar_t *buffer, const std::size_t capacity, const wchar_t *fmt, ...) {
         va_list arg_list{};
         va_start(arg_list, fmt);
-#if (RAINY_USING_MSVC || RAINY_USING_MSVC_CLANG)
+#if (RAINY_USING_MSVC || RAINY_USING_CLANG)
         int result = ::vswprintf_s(buffer, capacity, fmt, arg_list);
 #else
         int result = std::vswprintf(buffer, capacity, fmt, arg_list);

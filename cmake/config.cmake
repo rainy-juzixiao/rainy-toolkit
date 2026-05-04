@@ -2,7 +2,7 @@
 #                           Version 2.0, January 2004
 #                        http://www.apache.org/licenses/
 #
-#   Copyright 2026 rainy-juzixiao
+#   Copyright 2025 rainy-juzixiao
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -20,9 +20,9 @@ RAINY_GET_CXX_COMPILER_ID(COMPILER_ID)
 
 set(RAINY_TOOLKIT_CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
 
-if (CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64|ARM64)$")
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64|ARM64)$")
     message(STATUS "Target architecture is ARM64")
-endif ()
+endif()
 
 rainy_load_flodar_files("${PROJECT_SOURCE_DIR}/xaga/sources" ".cxx" SPECIAL_FILES_LIST)
 
@@ -150,20 +150,18 @@ if (WIN32)
 elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
     message("Linking libraries for linux package")
     target_link_libraries(rainy-toolkit PRIVATE uring)
-elseif (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-    message("Linking libraries for macos package")
 else ()
     message(FATAL_ERROR "Unsupported platform: ${CMAKE_SYSTEM_NAME}")
 endif ()
 
-if (RAINY_USE_NODE_ADDON)
+if(RAINY_USE_NODE_ADDON)
     message(STATUS "RAINY_USE_NODE_ADDON is ON: attempting to integrate node-addon-api")
-    if (EXISTS "${PROJECT_SOURCE_DIR}/node_modules/node-addon-api")
+    if(EXISTS "${PROJECT_SOURCE_DIR}/node_modules/node-addon-api")
         set(NODE_ADDON_API_DIR "${PROJECT_SOURCE_DIR}/node_modules/node-addon-api")
         message(STATUS "Found node-addon-api in ${NODE_ADDON_API_DIR}")
-    else ()
+    else()
         message(FATAL_ERROR "node-addon-api not found in node_modules. Please run 'npm install'")
-    endif ()
+    endif()
 
     target_include_directories(rainy-toolkit
             PUBLIC
@@ -176,91 +174,4 @@ if (RAINY_USE_NODE_ADDON)
     message(STATUS "rainy-toolkit will be built with node-addon-api support")
     message("[rainy-toolkit] Node addon support enabled")
     rainy_find_nodejs()
-endif ()
-
-# 由于部分MacOS的工具链提供的一部分C++20头文件处于EXPERIMENTAL特性，因此，需要检查是否打开
-if (APPLE)
-    include(CheckCXXSourceCompiles)
-
-    set(CMAKE_REQUIRED_FLAGS "-std=c++20")
-
-    check_cxx_source_compiles("
-        #include <stop_token>
-        int main() {
-            std::stop_source ss;
-            std::stop_token st = ss.get_token();
-            return 0;
-        }
-    " LIBCPP_STOP_TOKEN_AVAILABLE)
-
-    if (NOT LIBCPP_STOP_TOKEN_AVAILABLE)
-        set(CMAKE_REQUIRED_DEFINITIONS "-D_LIBCPP_ENABLE_EXPERIMENTAL")
-        check_cxx_source_compiles("
-            #include <stop_token>
-            int main() {
-                std::stop_source ss;
-                std::stop_token st = ss.get_token();
-                return 0;
-            }
-        " LIBCPP_STOP_TOKEN_AVAILABLE_WITH_EXPERIMENTAL)
-        unset(CMAKE_REQUIRED_DEFINITIONS)
-
-        if (LIBCPP_STOP_TOKEN_AVAILABLE_WITH_EXPERIMENTAL)
-            message(STATUS "Enabling _LIBCPP_ENABLE_EXPERIMENTAL for some experimental support")
-            add_compile_definitions(_LIBCPP_ENABLE_EXPERIMENTAL)
-        endif ()
-    endif ()
-endif ()
-
-if (RAINY_USE_CXX26_RELFECTION_TS)
-    if (COMPILER_ID MATCHES "GCC")
-        set(_test_flags "-std=c++26 -freflection")
-
-        # 创建临时测试文件
-        file(WRITE ${CMAKE_BINARY_DIR}/test_reflection.cpp "
-        #include <meta>
-
-        int main() {
-            class TestClass {
-                int foo;
-                int bar;
-            public:
-                int baz;
-                int quux;
-            };
-            constexpr static auto ctx = std::meta::access_context::unchecked();
-            static constexpr size_t member_count = std::meta::nonstatic_data_members_of(^^TestClass, ctx).size();
-            static_assert(member_count == 4);
-            return 0;
-        }
-        ")
-
-        # 直接调用编译器（不通过 CMake）
-        execute_process(
-                COMMAND ${CMAKE_CXX_COMPILER}
-                -std=c++26 -freflection
-                ${CMAKE_BINARY_DIR}/test_reflection.cpp
-                -o ${CMAKE_BINARY_DIR}/test_reflection.out
-                RESULT_VARIABLE _compile_result
-                ERROR_VARIABLE _compile_error
-                OUTPUT_VARIABLE _compile_output
-        )
-
-        file(REMOVE ${CMAKE_BINARY_DIR}/test_reflection.cpp)
-        file(REMOVE ${CMAKE_BINARY_DIR}/test_reflection.out)
-
-        if (_compile_result EQUAL 0)
-            message(STATUS "Compiler supports C++26 Static Reflection (with <meta> and ^^ reflection operator)")
-            target_compile_options(rainy-toolkit PUBLIC -std=c++26 -freflection)
-            target_compile_definitions(rainy-toolkit PUBLIC RAINY_HAS_CXX26_STATIC_REFLECTION=1)
-            set(RAINY_TOOLKIT_HAVE_CXX26_STATIC_REFLECTION TRUE)
-        else()
-            message(STATUS "Compiler does NOT support C++26 Static Reflection, Disable it.")
-            target_compile_definitions(rainy-toolkit PUBLIC RAINY_HAS_CXX26_STATIC_REFLECTION=0)
-            set(RAINY_TOOLKIT_HAVE_CXX26_STATIC_REFLECTION FALSE)
-        endif ()
-    endif ()
-else ()
-    target_compile_definitions(rainy-toolkit PUBLIC RAINY_HAS_CXX26_STATIC_REFLECTION=0)
-    set(RAINY_TOOLKIT_HAVE_CXX26_STATIC_REFLECTION TRUE)
-endif ()
+endif()

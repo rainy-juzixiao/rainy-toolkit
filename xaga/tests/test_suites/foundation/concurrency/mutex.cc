@@ -18,7 +18,6 @@
 #include <catch2/catch_test_macros.hpp>
 #include <rainy/foundation/concurrency/mutex.hpp>
 #include <thread>
-#include <future>
 
 using namespace rainy::foundation;
 using namespace rainy::foundation::concurrency;
@@ -91,7 +90,6 @@ void test_timed_lock() {
         {
             LockType m;
             std::atomic<bool> started{false};
-            std::promise<void> locked_promise;
 
             std::thread t([&]() {
                 m.lock();
@@ -153,9 +151,7 @@ TEMPLATE_TEST_CASE("Lock types unified BDD tests", "[lock][bdd]", mutex, recursi
             test_multithread_mutex<TestType>();
         }
         WHEN("testing timed locks if supported") {
-#if !RAINY_USING_MACOS
             test_timed_lock<TestType>();
-#endif
         }
     }
 }
