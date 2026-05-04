@@ -19,13 +19,20 @@ jobs:
         id: ccv
         uses: smlx/ccv@v0.7.3
         with:
-          tag_prefix: "v"
+          write-tag: true
+        env:
+          CCV_INITIAL_VERSION: "0.7.4"
+          CCV_TAG_PREFIX: "v"
+
+      - name: Get version
+        run: |
+          echo "Tag: ${{ steps.ccv.outputs.tag }}"
+          echo "Version: ${{ steps.ccv.outputs.version }}"
 
       - name: Update CMakeLists.txt and version.txt
         if: steps.ccv.outputs.tag != ''
         run: |
           VERSION="${{ steps.ccv.outputs.version }}"
-
           sed -i "s/project(MyProject VERSION [0-9.]*/project(MyProject VERSION ${VERSION}/" CMakeLists.txt
           echo "${VERSION}" > version.txt
 
@@ -34,8 +41,6 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-
           git add CMakeLists.txt version.txt
-          git commit -m "chore: sync version to ${VERSION}"
+          git commit -m "chore: sync version to ${VERSION} [skip ci]"
           git push
-          git push origin ${{ steps.ccv.outputs.tag }}
