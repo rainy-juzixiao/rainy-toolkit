@@ -69,6 +69,7 @@ namespace rainy::meta::moon::implements {
         static constexpr auto value = get_private_ptrs(private_access_tag<type_traits::cv_modify::remove_cvref_t<Ty>>);
     };
 }
+
 #if RAINY_HAS_CXX26 && RAINY_HAS_CXX26_STATIC_REFLECTION
 
 namespace rainy::meta::moon::implements {
@@ -499,6 +500,27 @@ namespace rainy::meta::moon::implements {
 
 #endif
 
+#if RAINY_USING_MSVC
+
+namespace rainy::meta::moon::implements { // workaround: 确保member的名称在MSVC投射正确
+    template <typename Ty>
+    struct wrapper {
+        using Type = Ty;
+
+        Ty v;
+    };
+
+    template <typename Ty>
+    wrapper(Ty) -> wrapper<Ty>;
+
+    template <typename Ty>
+    inline constexpr auto wrap(const Ty &arg) noexcept {
+        return wrapper{arg};
+    }
+}
+
+#endif
+
 namespace rainy::meta::moon {
     /**
      * @brief 尝试获取指定类型中所有成员的名称
@@ -529,9 +551,15 @@ namespace rainy::meta::moon {
                 constexpr size_t count = meta::moon::member_count_v<type>;
                 collections::array<std::string_view, count> array{}; // 创建对应的数组
                 constexpr auto tp = struct_to_tuple<type>();
+#if RAINY_USING_MSVC
+                [&array, &tp]<std::size_t... I>(type_traits::helper::index_sequence<I...>) mutable {
+                    ((array[I] = foundation::ctti::variable_name<implements::wrap(std::get<I>(tp))>()), ...);
+                }(type_traits::helper::make_index_sequence<member_count_v<Ty>>{});
+#else
                 [&array, &tp]<std::size_t... I>(type_traits::helper::index_sequence<I...>) mutable {
                     ((array[I] = foundation::ctti::variable_name<(std::get<I>(tp))>()), ...);
                 }(type_traits::helper::make_index_sequence<member_count_v<Ty>>{});
+#endif
 #if RAINY_HAS_CXX26 && RAINY_HAS_CXX26_STATIC_REFLECTION
                 implements::get_member_names_compositor<type, count>(array);
 #endif
@@ -540,9 +568,15 @@ namespace rainy::meta::moon {
                 constexpr auto tp = implements::get_private_ptrs_helper<type>::value; // 使用 helper 获取 `tp`
                 constexpr std::size_t tuple_size = std::tuple_size_v<decltype(tp)>;
                 collections::array<std::string_view, tuple_size> array{};
+#if RAINY_USING_MSVC
+                [&array, &tp]<std::size_t... I>(type_traits::helper::index_sequence<I...>) mutable {
+                    ((array[I] = foundation::ctti::variable_name<implements::wrap(std::get<I>(tp))>()), ...);
+                }(type_traits::helper::make_index_sequence<tuple_size>{});
+#else
                 [&array, &tp]<std::size_t... I>(type_traits::helper::index_sequence<I...>) mutable {
                     ((array[I] = foundation::ctti::variable_name<(std::get<I>(tp))>()), ...);
                 }(type_traits::helper::make_index_sequence<tuple_size>{});
+#endif
 #if RAINY_HAS_CXX26 && RAINY_HAS_CXX26_STATIC_REFLECTION
                 implements::get_member_names_compositor<type, tuple_size>(array);
 #endif

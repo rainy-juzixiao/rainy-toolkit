@@ -336,9 +336,38 @@ namespace rainy::foundation::ctti::implements {
         }
         return full; // NOLINT
 #elif RAINY_USING_MSVC
-        auto split = func_name.substr(func_name.rfind("wrapped_variable_name<(") + 21);
-        auto str = split.substr(split.rfind("->") + 2);
-        return str.substr(0, str.rfind(">(void)"));
+        constexpr auto bracket_start = func_name.rfind('<');
+        constexpr auto bracket_end = func_name.rfind('>}');
+        if constexpr (bracket_start == std::string_view::npos || bracket_end == std::string_view::npos) {
+            return "";
+        }
+
+        constexpr auto content = func_name.substr(bracket_start + 1, bracket_end - bracket_start - 1);
+
+        auto last_dot = content.rfind('.');
+        auto last_arrow = content.rfind("->");
+        auto last_colon = content.rfind("::");
+
+        if (last_dot == std::string_view::npos) {
+            last_dot = 0;
+        }
+
+        if (last_arrow == std::string_view::npos) {
+            last_arrow = 0;
+        }
+
+        if (last_colon == std::string_view::npos) {
+            last_colon = 0;
+        }
+
+        auto last_sep = (core::max)({last_dot, last_arrow, last_colon});
+
+        if (last_sep != std::string_view::npos) {
+            auto sep_len = (last_sep == last_arrow) ? 2 : 1;
+            return content.substr(last_sep + sep_len);
+        }
+
+        return content;
 #else
         static_assert(false, "Unsupported compiler");
 #endif
