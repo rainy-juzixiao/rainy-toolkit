@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.3](https://github.com/rainy-juzixiao/rainy-toolkit/compare/v0.8.2...v0.8.3) (2026-05-04)
+
+
+### Bug Fixes
+
+* to fix auto_tag.yml ([c8446b9](https://github.com/rainy-juzixiao/rainy-toolkit/commit/c8446b987a857d4ba30f2c281f9a1e88e45206e0))
+
 ## [0.8.2](https://github.com/rainy-juzixiao/rainy-toolkit/compare/v0.8.1...v0.8.2) (2026-05-04)
 
 
