@@ -3,7 +3,7 @@ name: auto-version-and-sync
 on:
   push:
     branches:
-      - master
+      [ master ]
 
 jobs:
   version-and-sync:
@@ -36,6 +36,6 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
           git add CMakeLists.txt version.txt
-          git commit -m "chore: sync version to ${VERSION} [skip ci]"
+          git commit -m "chore: sync version to ${VERSION}"
           git push
           git push origin ${{ steps.ccv.outputs.tag }}
