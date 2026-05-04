@@ -15,9 +15,10 @@ jobs:
       - uses: google-github-actions/release-please-action@v4
         id: release
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.RELEASE_PLEASE_PAT }}
           release-type: simple
           tag-prefix: v
+          target-branch: master
 
   sync-version:
     needs: release-please
@@ -28,8 +29,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          ref: main
+          token: ${{ secrets.RELEASE_PLEASE_PAT }}
+          ref: master
 
       - name: Update version files
         run: |
