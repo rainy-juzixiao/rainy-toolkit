@@ -12,17 +12,17 @@
 #include <iostream>
 using namespace rainy;
 
+#if RAINY_HAS_CXX26_STATIC_REFLECTION && RAINY_HAS_CXX26
+#include <print>
+
 namespace aaa {
     enum class enum_type {
-        a = 4,
+        a[[ = 1, = rainy::annotations::moon::ignore ]],
         b = 2,
         c = 3,
         d = 99999
     };
 }
-
-#if RAINY_HAS_CXX26_STATIC_REFLECTION && RAINY_HAS_CXX26
-#include <print>
 
 // clang-format off
 
@@ -48,15 +48,6 @@ struct[[ = rainy::annotations::moon::with_prefix("ty_"), = rainy::annotations::m
 
 int main() {
 #if RAINY_HAS_CXX26_STATIC_REFLECTION && RAINY_HAS_CXX26
-    {
-        auto tuple = meta::moon::struct_to_tuple<type>();
-        std::println(stdout, "type of member count: {}",meta::moon::member_count_v<type>);
-        std::println(stdout, "type of member names: ");
-        for (const auto item: meta::moon::get_member_names<type>()) {
-            std::print(stdout, "{} ", item.data());
-        }
-        return 0;
-    }
     constexpr bool is_enum_value = meta::moon::is_enum_value_v<aaa::enum_type, aaa::enum_type::a>;
     constexpr bool is_enum_value1 = meta::moon::is_enum_value_v<aaa::enum_type, static_cast<aaa::enum_type>(1)>;
     std::cout << "is_enum_value: " << is_enum_value << '\n';
@@ -68,7 +59,9 @@ int main() {
     std::cout << "foundation::ctti::variable_name<static_cast<aaa::enum_type>(1)>(): "
               << foundation::ctti::variable_name<static_cast<aaa::enum_type>(1)>() << '\n';
 
-
+    for (const auto entries: meta::moon::enum_entries<aaa::enum_type>()) {
+        std::cout << (int) entries.first << " : " << entries.second << '\n';
+    }
 #endif
 
     rainy::foundation::io::net::io_context ctx;

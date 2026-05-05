@@ -16,6 +16,7 @@
 #ifndef RAINY_META_MOON_ENUMERATION_HPP
 #define RAINY_META_MOON_ENUMERATION_HPP
 #include <optional>
+#include <rainy/annotations/moon.hpp>
 #include <rainy/core/core.hpp>
 #include <rainy/foundation/container/pair.hpp>
 #include <rainy/foundation/functional/functor.hpp>
@@ -122,24 +123,32 @@ namespace rainy::meta::moon::implements {
     template <typename E>
     constexpr rain_fn enum_count_impl() noexcept -> std::size_t {
         std::vector<std::meta::info> vec = std::meta::enumerators_of(^^E);
-        return vec.size();
+        std::size_t count = 0;
+        for (const auto item: vec) {
+            if (const auto mem_anno = annotations::make_member_anno(item); !mem_anno.has<annotations::moon::ignore_tag>()) {
+                count += 1;
+            }
+        }
+        return count;
     }
 
     template <typename E>
-    constexpr rain_fn get_enums() -> auto {
+    constexpr auto enum_arrays = [] consteval {
         auto members = std::meta::enumerators_of(^^E);
         collections::array<std::meta::info, enum_count_impl<E>()> arr;
         std::size_t idx = 0;
         for (auto member: members) {
-            arr[idx++] = member;
+            if (const auto mem_anno = annotations::make_member_anno(member); !mem_anno.has<annotations::moon::ignore_tag>()) {
+                arr[idx++] = member;
+            }
         }
-        return arr;
-    }
+        return std::define_static_array(arr);
+    }();
 
     template <typename E>
         requires type_traits::primary_types::is_enum_v<E>
     constexpr rain_fn is_enum_value(E value) -> bool {
-        template for (constexpr auto member: get_enums<E>()) {
+        template for (constexpr auto member: enum_arrays<E>) {
             if (value == [:member:]) {
                 return true;
             }
@@ -304,8 +313,11 @@ namespace rainy::meta::moon {
     constexpr rain_fn enum_values() noexcept -> auto {
 #if RAINY_HAS_CXX26 && RAINY_HAS_CXX26_STATIC_REFLECTION
         collections::array<E, enum_count<E>()> enums_arr = {};
-        template for (std::size_t idx = 0; constexpr auto member: implements::get_enums<E>()) {
-            enums_arr[idx++] = {static_cast<E>([:member:])};
+        template for (std::size_t idx = 0; constexpr auto member: implements::enum_arrays<E>()) {
+            if constexpr (constexpr auto member_anno = annotations::make_member_anno(member);
+                          !member_anno.template has<annotations::moon::ignore_tag>()) {
+                enums_arr[idx++] = {static_cast<E>([:member:])};
+            }
         }
         return enums_arr;
 #else
@@ -332,12 +344,12 @@ namespace rainy::meta::moon {
     template <typename E>
     constexpr rain_fn enum_entries() -> auto {
 #if RAINY_HAS_CXX26 && RAINY_HAS_CXX26_STATIC_REFLECTION
-        std::meta::access_context ctx = std::meta::access_context::unchecked();
-        std::vector<std::meta::info> vec = std::meta::enumerators_of(^^E);
         collections::array<utility::pair<E, std::string_view>, enum_count<E>()> arr;
-        constexpr auto members = std::meta::members_of(^^E, ctx);
-        template for (std::size_t idx = 0; constexpr auto member: members) {
-            arr[idx++] = {static_cast<E>([:member:]), std::meta::identifier_of(^^member)};
+        template for (std::size_t idx = 0; constexpr auto member: implements::enum_arrays<E>) {
+            if constexpr (constexpr auto member_anno = annotations::make_member_anno(member);
+                          !member_anno.template has<annotations::moon::ignore_tag>()) {
+                arr[idx++] = {static_cast<E>([:member:]), foundation::ctti::variable_name<([:member:])>()};
+            }
         }
         return arr;
 #else
@@ -369,7 +381,7 @@ namespace rainy::meta::moon {
     constexpr rain_fn enum_names() noexcept -> auto {
 #if RAINY_HAS_CXX26 && RAINY_HAS_CXX26_STATIC_REFLECTION
         collections::array<std::string_view, enum_count<Enum>()> arr;
-        template for (std::size_t idx = 0; constexpr auto member: implements::get_enums<Enum>()) {
+        template for (std::size_t idx = 0; constexpr auto member: implements::enum_arrays<Enum>()) {
             arr[idx++] = {std::meta::identifier_of(member)};
         }
         return arr;

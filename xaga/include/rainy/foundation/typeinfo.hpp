@@ -270,25 +270,68 @@ namespace rainy::foundation::ctti::implements {
 
 #if RAINY_HAS_CXX26 && RAINY_HAS_CXX26_STATIC_REFLECTION
     template <auto Variable>
-    constexpr rain_fn generate_variable_name() -> std::string_view {
+    constexpr auto generate_variable_name() -> std::string_view {
+        std::string_view raw_name = {};
         if constexpr (constexpr auto r = std::meta::reflect_constant(Variable); std::meta::is_enumerator(r)) {
-            return std::meta::identifier_of(r);
+            raw_name = std::meta::identifier_of(r);
         } else if constexpr (std::meta::has_identifier(r)) {
-            return std::meta::identifier_of(r);
+            raw_name = std::meta::identifier_of(r);
         } else {
             if constexpr (type_traits::primary_types::is_enum_v<decltype(Variable)>) {
-                return std::meta::display_string_of(r);
+                raw_name = std::meta::display_string_of(r);
             } else {
-                // NOLINTBEGIN
                 constexpr std::string_view full = std::meta::display_string_of(r);
                 constexpr auto last_dot = full.rfind('.');
-                constexpr std::string_view after_dot = (last_dot != std::string_view::npos) ? full.substr(last_dot + 1) : full;
+                constexpr std::string_view after_dot = (last_dot != std::string_view::npos && last_dot + 1 < full.size())
+                                                           ? full.substr(last_dot + 1)
+                                                           : (last_dot != std::string_view::npos ? std::string_view{} : full);
                 constexpr auto last_sep = after_dot.rfind("::");
-                constexpr std::string_view name = (last_sep != std::string_view::npos) ? after_dot.substr(last_sep + 2) : after_dot;
-                return name;
-                // NOLINTEND
+                constexpr std::string_view name = (last_sep != std::string_view::npos && last_sep + 2 <= after_dot.size())
+                                                      ? after_dot.substr(last_sep + 2)
+                                                      : after_dot;
+                raw_name = name;
             }
         }
+
+        bool is_parenthesized = false;
+
+        if (!raw_name.empty() && raw_name[0] == '(') {
+            if (auto last_rparen = raw_name.rfind(')'); last_rparen != std::string_view::npos && last_rparen + 1 < raw_name.size()) {
+                is_parenthesized = true;
+            }
+        }
+
+        if (is_parenthesized) {
+            return raw_name;
+        }
+
+        auto last_dot = raw_name.rfind('.');
+        auto last_arrow = raw_name.rfind("->");
+        auto last_colon = raw_name.rfind("::");
+
+        if (last_dot == std::string_view::npos) {
+            last_dot = 0;
+        }
+
+        if (last_arrow == std::string_view::npos) {
+            last_arrow = 0;
+        }
+
+        if (last_colon == std::string_view::npos) {
+            last_colon = 0;
+        }
+
+        auto last_sep = (core::max) ({last_dot, last_arrow, last_colon});
+
+        if (last_sep != 0) {
+            auto sep_len = (last_sep == last_arrow || last_sep == last_colon) ? 2 : 1;
+            if (last_sep + sep_len <= raw_name.size()) {
+                return raw_name.substr(last_sep + sep_len);
+            }
+            return {};
+        }
+
+        return raw_name;
     }
 #else
     template <auto Variable>
@@ -318,10 +361,7 @@ namespace rainy::foundation::ctti::implements {
             if (!full.empty() && full[0] == '(') {
                 if constexpr (constexpr auto last_rparen = full.rfind(')');
                               last_rparen != std::string_view::npos && last_rparen + 1 < full.size()) {
-                    if constexpr (constexpr auto next_char = full[last_rparen + 1]; // NOLINT
-                                  next_char == '-' || (next_char >= '0' && next_char <= '9')) {
-                        return true;
-                    }
+                    return true;
                 }
             }
             return false;
@@ -354,8 +394,7 @@ namespace rainy::foundation::ctti::implements {
         if (!content.empty() && content[0] == '(') {
             auto last_rparen = content.rfind(')');
             if (last_rparen != std::string_view::npos && last_rparen + 1 < content.size()) {
-                auto next_char = content[last_rparen + 1];
-                if (next_char == '-' || (next_char >= '0' && next_char <= '9')) {
+                if (auto last_rparen = full.rfind(')'); last_rparen != std::string_view::npos && last_rparen + 1 < full.size()) {
                     is_parenthesized = true;
                 }
             }
@@ -381,10 +420,10 @@ namespace rainy::foundation::ctti::implements {
             last_colon = 0;
         }
 
-        auto last_sep = (core::max)({last_dot, last_arrow, last_colon});
+        auto last_sep = (core::max) ({last_dot, last_arrow, last_colon});
 
         if (last_sep != std::string_view::npos) {
-            auto sep_len = (last_sep == last_arrow) ? 2 : 1;
+            auto sep_len = (last_sep == last_arrow || last_sep == last_colon) ? 2 : 1;
             return content.substr(last_sep + sep_len);
         }
 
