@@ -15,11 +15,12 @@
  */
 #ifndef RAINY_CORE_IMPLEMENTS_COLLECTIONS_ARRAY_VIEW_HPP
 #define RAINY_CORE_IMPLEMENTS_COLLECTIONS_ARRAY_VIEW_HPP
-#include <vector>
 #include <array>
-#include <rainy/core/platform.hpp>
-#include <rainy/core/implements/reverse_iterator.hpp>
+#include <exception>
 #include <rainy/core/implements/collections/array.hpp>
+#include <rainy/core/implements/reverse_iterator.hpp>
+#include <rainy/core/platform.hpp>
+#include <vector>
 
 namespace rainy::collections::views {
     /**

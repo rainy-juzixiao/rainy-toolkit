@@ -26,22 +26,29 @@ namespace rainy::foundation::memory {
         rainy_allocator
     };
 
+#if RAINY_HAS_CXX23
+    template <typename Ptr, typename = std::size_t>
+    struct allocation_result : std::allocation_result<Ptr> {};
+#else
     template <typename Ptr, typename SizeType = std::size_t>
     struct allocation_result {
         constexpr allocation_result() noexcept = default;
-        constexpr allocation_result(Ptr ptr, SizeType count) noexcept : ptr(ptr), count(count) {}
+        constexpr allocation_result(Ptr ptr, SizeType count) noexcept : ptr(ptr), count(count) {
+        }
 
         template <typename OtherPtr>
-        constexpr allocation_result(const allocation_result<OtherPtr>& other) noexcept
-            : ptr(other.ptr), count(other.count) {}
+        constexpr allocation_result(const allocation_result<OtherPtr> &other) noexcept : ptr(other.ptr), count(other.count) {
+        }
 
         template <typename OtherPtr>
-        constexpr allocation_result(allocation_result<OtherPtr>&& other) noexcept
-            : ptr(utility::move(other.ptr)), count(utility::move(other.count)) {}
+        constexpr allocation_result(allocation_result<OtherPtr> &&other) noexcept :
+            ptr(utility::move(other.ptr)), count(utility::move(other.count)) {
+        }
 
         Ptr ptr;
         SizeType count;
     };
+#endif
 
     template <typename Ty>
     class allocator {
@@ -130,7 +137,8 @@ namespace rainy::foundation::memory {
             }
         }
 
-        RAINY_NODISCARD_RAW_PTR_ALLOC RAINY_CONSTEXPR20 allocation_result<pointer, size_type> allocate_at_least(const size_type count) const {
+        RAINY_NODISCARD_RAW_PTR_ALLOC RAINY_CONSTEXPR20 allocation_result<pointer, size_type> allocate_at_least(
+            const size_type count) const {
             return {allocate(count), count};
         }
 
@@ -726,7 +734,7 @@ namespace rainy::foundation::memory {
             }
         }
 
-        RAINY_NODISCARD_RAW_PTR_ALLOC constexpr allocation_result<pointer, size_type> allocate_at_least(const size_type count) const {
+        RAINY_NODISCARD_RAW_PTR_ALLOC constexpr allocation_result<pointer> allocate_at_least(const size_type count) const {
             return {allocate(count), count};
         }
 
