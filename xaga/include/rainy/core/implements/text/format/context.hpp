@@ -15,11 +15,30 @@
  */
 #ifndef RAINY_CORE_IMPLEMENTS_TEXT_FORMAT_CONTEXT_HPP
 #define RAINY_CORE_IMPLEMENTS_TEXT_FORMAT_CONTEXT_HPP
+#include <rainy/core/implements/exceptions.hpp>
 #include <rainy/core/implements/text/format/format_arg.hpp>
 #include <rainy/core/implements/text/string.hpp>
 #include <rainy/core/implements/text/string_view.hpp>
-#include <rainy/core/implements/collections/array.hpp>
-#include <rainy/core/implements/exceptions.hpp>
+
+namespace rainy::foundation::exceptions::runtime {
+    class format_error : public runtime_error {
+    public:
+        using base = runtime_error;
+
+        explicit format_error(const source &location = source::current()) : base("bad cast", location) {
+        }
+
+        explicit format_error(const std::string &message, const source &location = source::current()) : base(message, location) {
+        }
+    };
+
+    RAINY_INLINE rain_fn throw_format_error(const char *message,
+                                        const diagnostics::source_location &location = diagnostics::source_location::current())
+        -> void {
+        throw_exception(format_error{message, location});
+    }
+}
+
 
 namespace rainy::foundation::text {
     template <class Context>
@@ -61,17 +80,17 @@ namespace rainy::foundation::text {
 
         RAINY_NODISCARD constexpr size_t next_arg_id() {
             if (manual_indexing_) {
-                throw std::format_error("cannot switch from manual to automatic argument indexing");
+                exceptions::runtime::throw_format_error("cannot switch from manual to automatic argument indexing");
             }
             return next_arg_id_++;
         }
 
         constexpr void check_arg_id(size_t id) {
             if (!manual_indexing_ && next_arg_id_ > 0) {
-                throw std::format_error("cannot switch from automatic to manual argument indexing");
+                exceptions::runtime::throw_format_error("cannot switch from automatic to manual argument indexing");
             }
             if (id >= num_args_) {
-                throw std::format_error("argument index out of range");
+                exceptions::runtime::throw_format_error("argument index out of range");
             }
             manual_indexing_ = true;
         }
@@ -79,14 +98,14 @@ namespace rainy::foundation::text {
         template <typename... Args>
         constexpr void check_dynamic_spec_integral(size_t id) const {
             if (id >= num_args_) {
-                throw std::format_error("dynamic spec argument index out of range");
+                exceptions::runtime::throw_format_error("dynamic spec argument index out of range");
             }
         }
 
         template <typename... Args>
         constexpr void check_dynamic_spec_string(size_t id) const {
             if (id >= num_args_) {
-                throw std::format_error("dynamic spec string argument index out of range");
+                exceptions::runtime::throw_format_error("dynamic spec string argument index out of range");
             }
         }
 

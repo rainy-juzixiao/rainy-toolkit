@@ -28,7 +28,9 @@ namespace rainy::foundation::text {
         char *ptr;
         std::errc ec;
 
-        friend bool operator==(const to_chars_result &, const to_chars_result &) = default;
+        friend bool operator==(const to_chars_result & left, const to_chars_result & right) {
+            return left.ptr == right.ptr && left.ec == right.ec;
+        }
 
         constexpr explicit operator bool() const noexcept {
             return ec == std::errc{};
@@ -39,7 +41,9 @@ namespace rainy::foundation::text {
         const char *ptr;
         std::errc ec;
 
-        friend bool operator==(const from_chars_result &, const from_chars_result &) = default;
+        friend bool operator==(const from_chars_result & left, const from_chars_result & right) {
+            return left.ptr == right.ptr && left.ec == right.ec;
+        }
 
         constexpr explicit operator bool() const noexcept {
             return ec == std::errc{};

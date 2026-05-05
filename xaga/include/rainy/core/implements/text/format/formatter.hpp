@@ -16,6 +16,7 @@
 #ifndef RAINY_CORE_IMPLEMENTS_TEXT_FORMAT_FORMATTER_HPP
 #define RAINY_CORE_IMPLEMENTS_TEXT_FORMAT_FORMATTER_HPP
 #include <cmath>
+#include <locale>
 #include <rainy/core/implements/text/charconv.hpp>
 #include <rainy/core/implements/text/format/implements.hpp>
 #include <rainy/core/implements/text/wstring_convert.hpp>
@@ -934,7 +935,7 @@ namespace rainy::foundation::text {
         static void format_fixed(T value, basic_string<CharType> &str, int precision) {
             char buf[64]{};
             int prec = precision < 0 ? 6 : precision;
-            auto [ptr, ec] = to_chars(buf, buf + sizeof(buf), value, std::chars_format::fixed, prec);
+            auto [ptr, ec] = to_chars(buf, buf + sizeof(buf), value, chars_format::fixed, prec);
             if (ec != std::errc{})
                 foundation::exceptions::runtime::throw_format_error("floating-point to_chars failed");
             if constexpr (type_traits::type_relations::is_same_v<CharType, char>) {
@@ -951,9 +952,10 @@ namespace rainy::foundation::text {
         static void format_scientific(T value, basic_string<CharType> &str, int precision, bool uppercase) {
             char buf[64]{};
             int prec = precision < 0 ? 6 : precision;
-            auto [ptr, ec] = to_chars(buf, buf + sizeof(buf), value, std::chars_format::scientific, prec);
-            if (ec != std::errc{})
+            auto [ptr, ec] = to_chars(buf, buf + sizeof(buf), value, chars_format::scientific, prec);
+            if (ec != std::errc{}) {
                 exceptions::runtime::throw_format_error("floating-point to_chars failed");
+            }
             if (uppercase) {
                 for (char *p = buf; p != ptr; ++p) {
                     if (*p == 'e') {
@@ -977,7 +979,7 @@ namespace rainy::foundation::text {
         static void format_general(T value, basic_string<CharType> &str, const int precision, const bool uppercase) {
             char buf[64]{};
             int prec = precision < 0 ? 6 : precision;
-            auto [ptr, ec] = to_chars(buf, buf + sizeof(buf), value, std::chars_format::general, prec);
+            auto [ptr, ec] = to_chars(buf, buf + sizeof(buf), value, chars_format::general, prec);
             if (ec != std::errc{}) {
                 foundation::exceptions::runtime::throw_format_error("floating-point to_chars failed");
             }

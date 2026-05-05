@@ -163,8 +163,9 @@ namespace rainy::foundation::text {
         }
 
         RAINY_CONSTEXPR20 basic_string(basic_string &&right) noexcept : pair_{{}, {}} {
-            if RAINY_CONSTEXPR20 (allocator_traits::propagate_on_container_swap::value) {
-                std::swap(this->get_al(), right.get_al());
+            if constexpr (allocator_traits::propagate_on_container_swap::value) {
+                using std::swap;
+                swap(this->get_al(), right.get_al());
             } else {
                 assert(right.get_al() == this->get_al());
             }
