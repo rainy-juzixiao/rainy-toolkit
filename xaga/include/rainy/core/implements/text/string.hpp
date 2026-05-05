@@ -148,9 +148,12 @@ namespace rainy::foundation::text {
                 auto start = other_begin + pos;
                 auto last = start + count;
                 // NOLINTBEGIN
+#if RAINY_HAS_CXX20
                 if (std::is_constant_evaluated()) {
                     core::algorithm::copy(start, last, other_begin);
-                } else {
+                } else
+#endif
+                {
                     std::memmove(other_begin, start, (last - start) * sizeof(CharType));
                 }
                 // NOLINTEND
@@ -363,16 +366,24 @@ namespace rainy::foundation::text {
         }
 
         RAINY_CONSTEXPR20 reference operator[](size_type pos) noexcept {
+#if RAINY_HAS_CXX20
             if (!std::is_constant_evaluated()) {
                 assert(("pos >= size, please check the arg" && pos < size()));
             }
+#else
+            assert(("pos >= size, please check the arg" && pos < size()));
+#endif
             return const_cast<CharType &>(const_cast<basic_string const &>(*this)[pos]);
         }
 
         RAINY_CONSTEXPR20 const_reference operator[](size_type pos) const noexcept {
+#if RAINY_HAS_CXX20
             if (!std::is_constant_evaluated()) {
                 assert(("pos >= size, please check the arg" && pos < size()));
             }
+#else
+            assert(("pos >= size, please check the arg" && pos < size()));
+#endif
             return *(begin_() + pos);
         }
 
@@ -450,13 +461,15 @@ namespace rainy::foundation::text {
             if (capacity() >= new_cap) {
                 return;
             }
-
+#if RAINY_HAS_CXX20
             if (std::is_constant_evaluated()) {
                 // 编译期：构造副本，分配新空间，交换
                 basic_string temp{*this}; // 复制当前字符串
                 allocate_plus_one_(new_cap); // 在当前对象上分配新空间
                 temp.swap_without_ator(*this); // 交换内容
-            } else {
+            } else
+#endif
+            {
                 // 运行期：原逻辑
                 if (is_long_()) {
                     auto ls = get_storage().ls_;
@@ -499,7 +512,7 @@ namespace rainy::foundation::text {
             if (capacity() == size) {
                 reserve(size * 2 - size / 2);
             }
-
+#if RAINY_HAS_CXX20
             if (std::is_constant_evaluated()) {
                 auto new_size = size + 1;
                 resize_(new_size);
@@ -508,7 +521,9 @@ namespace rainy::foundation::text {
                 } else {
                     get_storage().ss_[size] = ch;
                 }
-            } else {
+            } else
+#endif
+            {
                 *end_() = ch;
                 resize_(size + 1);
             }
@@ -1678,9 +1693,12 @@ namespace rainy::foundation::text {
         RAINY_CONSTEXPR20 void erase_(CharType *first, value_type const *last) noexcept {
             assert(("first or last is not in this string" && first >= begin_() && last <= end_()));
             // NOLINTBEGIN
+#if RAINY_HAS_CXX20
             if (std::is_constant_evaluated()) {
                 core::algorithm::copy(last, const_cast<basic_string const &>(*this).end_(), first);
-            } else {
+            } else
+#endif
+            {
                 traits_type::move(first, last, (const_cast<basic_string const &>(*this).end_() - last));
             }
             // NOLINTEND
@@ -1722,23 +1740,35 @@ namespace rainy::foundation::text {
         }
 
         RAINY_CONSTEXPR20 void resize_(size_type count) noexcept { // NOLINT
+#if RAINY_HAS_CXX20
             if (!std::is_constant_evaluated()) {
                 assert(("count > capacity()" && count <= capacity()));
             }
+#else
+            assert(("count > capacity()" && count <= capacity()));
+#endif
             if (empty()) {
                 reserve(count);
             }
             if (is_long_()) {
                 auto &&ls = get_storage().ls_;
                 ls.end_ = ls.begin_ + count;
+#if RAINY_HAS_CXX20
                 if (!std::is_constant_evaluated()) {
                     *ls.end_ = CharType{};
                 }
+#else
+                *ls.end_ = CharType{};
+#endif
             } else {
                 size_flag_ = static_cast<unsigned char>(count);
+#if RAINY_HAS_CXX20
                 if (!std::is_constant_evaluated()) {
                     get_storage().ss_[count] = CharType{};
                 }
+#else
+                get_storage().ss_[count] = CharType{};
+#endif
             }
         }
 
@@ -1819,13 +1849,16 @@ namespace rainy::foundation::text {
             if (!(last1 < first2 || last2 < first1) && new_size <= capacity()) {
                 auto diff = length1 - length2;
                 // NOLINTBEGIN
+#if RAINY_HAS_CXX20
                 if (std::is_constant_evaluated()) {
                     if (diff > 0) {
                         core::algorithm::copy(last1, end, last1 - diff);
                     } else if (diff < 0) {
                         core::algorithm::copy_backward(last1, end, end - diff);
                     }
-                } else {
+                } else
+#endif
+                {
                     if (diff > 0) {
                         std::memmove(last1 + diff, last1, diff * sizeof(CharType));
                     } else if (diff < 0) {
@@ -1838,9 +1871,12 @@ namespace rainy::foundation::text {
                     last2 += diff;
                 }
                 // NOLINTBEGIN
+#if RAINY_HAS_CXX20
                 if (std::is_constant_evaluated()) {
                     core::algorithm::copy(first2, last2, first1);
-                } else {
+                } else
+#endif
+                {
                     std::memmove(first1, first2, length2 * sizeof(CharType));
                 }
                 // NOLINTEND
@@ -1850,11 +1886,14 @@ namespace rainy::foundation::text {
                 auto temp_begin = temp.begin_();
                 auto temp_start = temp_begin + (first1 - begin);
                 // NOLINTBEGIN
+#if RAINY_HAS_CXX20
                 if (std::is_constant_evaluated()) {
                     core::algorithm::copy(begin, first1, temp_begin);
                     core::algorithm::copy(first2, last2, temp_start);
                     core::algorithm::copy(last1, end, temp_start + length2);
-                } else {
+                } else
+#endif
+                {
                     // Fix 修复：dst/src 对调，括号保证优先级正确
                     std::memcpy(temp_begin, begin, (first1 - begin) * sizeof(CharType));
                     std::memcpy(temp_start, first2, length2 * sizeof(CharType));
