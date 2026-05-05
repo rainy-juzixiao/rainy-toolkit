@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.5](https://github.com/rainy-juzixiao/rainy-toolkit/compare/v0.8.4...v0.8.5) (2026-05-05)
+
+
+### Bug Fixes
+
+* fix compiler issues in cpp23 and in macOS environment ([203d7a8](https://github.com/rainy-juzixiao/rainy-toolkit/commit/203d7a87ff9cc9915b5cb4cc8ee67bb556d8bbeb))
+
 ## [0.8.4](https://github.com/rainy-juzixiao/rainy-toolkit/compare/v0.8.3...v0.8.4) (2026-05-04)
 
 
