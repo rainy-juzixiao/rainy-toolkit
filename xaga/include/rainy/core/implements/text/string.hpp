@@ -2001,6 +2001,119 @@ namespace rainy::utility {
 }
 // NOLINTEND
 
+namespace rainy::foundation::text {
+    template <typename CharType, typename Traits, typename Alloc>
+    RAINY_CONSTEXPR20 basic_string<CharType, Traits, Alloc> operator+(const basic_string<CharType, Traits, Alloc> &left,
+                                                               const basic_string<CharType, Traits, Alloc> &right) {
+        basic_string<CharType, Traits, Alloc> result(left);
+        result.append(right);
+        return result;
+    }
+
+    template <typename CharType, typename Traits, typename Alloc>
+    RAINY_CONSTEXPR20 basic_string<CharType, Traits, Alloc> operator+(basic_string<CharType, Traits, Alloc> &&left,
+                                                               const basic_string<CharType, Traits, Alloc> &right) {
+        left.append(right);
+        return utility::move(left);
+    }
+
+    template <typename CharType, typename Traits, typename Alloc>
+    RAINY_CONSTEXPR20 basic_string<CharType, Traits, Alloc> operator+(const basic_string<CharType, Traits, Alloc> &left,
+                                                               basic_string<CharType, Traits, Alloc> &&right) {
+        right.insert(0, left);
+        return utility::move(right);
+    }
+
+    template <typename CharType, typename Traits, typename Alloc>
+    RAINY_CONSTEXPR20 basic_string<CharType, Traits, Alloc> operator+(basic_string<CharType, Traits, Alloc> &&left,
+                                                               basic_string<CharType, Traits, Alloc> &&right) {
+        left.append(right);
+        return utility::move(left);
+    }
+
+    template <typename CharType, typename Traits, typename Alloc>
+    RAINY_CONSTEXPR20 basic_string<CharType, Traits, Alloc> operator+(const CharType *left, const basic_string<CharType, Traits, Alloc> &right) {
+        basic_string<CharType, Traits, Alloc> result(left);
+        result.append(right);
+        return result;
+    }
+
+    template <typename CharType, typename Traits, typename Alloc>
+    RAINY_CONSTEXPR20 basic_string<CharType, Traits, Alloc> operator+(const CharType *left, basic_string<CharType, Traits, Alloc> &&right) {
+        right.insert(0, left);
+        return utility::move(right);
+    }
+
+    template <typename CharType, typename Traits, typename Alloc>
+    RAINY_CONSTEXPR20 basic_string<CharType, Traits, Alloc> operator+(CharType left, const basic_string<CharType, Traits, Alloc> &right) {
+        basic_string<CharType, Traits, Alloc> result(1, left);
+        result.append(right);
+        return result;
+    }
+
+    template <typename CharType, typename Traits, typename Alloc>
+    RAINY_CONSTEXPR20 basic_string<CharType, Traits, Alloc> operator+(CharType left, basic_string<CharType, Traits, Alloc> &&right) {
+        right.insert(0, 1, left);
+        return utility::move(right);
+    }
+
+    template <typename CharType, typename Traits, typename Alloc>
+    RAINY_CONSTEXPR20 basic_string<CharType, Traits, Alloc> operator+(const basic_string<CharType, Traits, Alloc> &left, const CharType *right) {
+        basic_string<CharType, Traits, Alloc> result(left);
+        result.append(right);
+        return result;
+    }
+
+    template <typename CharType, typename Traits, typename Alloc>
+    RAINY_CONSTEXPR20 basic_string<CharType, Traits, Alloc> operator+(basic_string<CharType, Traits, Alloc> &&left, const CharType *right) {
+        left.append(right);
+        return utility::move(left);
+    }
+
+    template <typename CharType, typename Traits, typename Alloc>
+    RAINY_CONSTEXPR20 basic_string<CharType, Traits, Alloc> operator+(const basic_string<CharType, Traits, Alloc> &left, CharType right) {
+        basic_string<CharType, Traits, Alloc> result(left);
+        result.push_back(right);
+        return result;
+    }
+
+    template <typename CharType, typename Traits, typename Alloc>
+    RAINY_CONSTEXPR20 basic_string<CharType, Traits, Alloc> operator+(basic_string<CharType, Traits, Alloc> &&left, CharType right) {
+        left.push_back(right);
+        return utility::move(left);
+    }
+
+    template <typename CharType, typename Traits, typename Alloc>
+    RAINY_CONSTEXPR20 basic_string<CharType, Traits, Alloc> operator+(const basic_string<CharType, Traits, Alloc> &left,
+                                                               type_traits::primary_types::type_identity_t<basic_string_view<CharType, Traits>> right) {
+        basic_string<CharType, Traits, Alloc> result(left);
+        result.append(right);
+        return result;
+    }
+
+    template <typename CharType, typename Traits, typename Alloc>
+    RAINY_CONSTEXPR20 basic_string<CharType, Traits, Alloc> operator+(basic_string<CharType, Traits, Alloc> &&left,
+                                                               type_traits::primary_types::type_identity_t<basic_string_view<CharType, Traits>> right) {
+        left.append(right);
+        return utility::move(left);
+    }
+
+    template <typename CharType, typename Traits, typename Alloc>
+    RAINY_CONSTEXPR20 basic_string<CharType, Traits, Alloc> operator+(type_traits::primary_types::type_identity_t<basic_string_view<CharType, Traits>> left,
+                                                               const basic_string<CharType, Traits, Alloc> &right) {
+        basic_string<CharType, Traits, Alloc> result(left);
+        result.append(right);
+        return result;
+    }
+
+    template <typename CharType, typename Traits, typename Alloc>
+    RAINY_CONSTEXPR20 basic_string<CharType, Traits, Alloc> operator+(type_traits::primary_types::type_identity_t<basic_string_view<CharType, Traits>> left,
+                                                               basic_string<CharType, Traits, Alloc> &&right) {
+        right.insert(0, left);
+        return utility::move(right);
+    }
+}
+
 #if RAINY_USING_GCC && !RAINY_USING_CLANG
 #pragma GCC diagnostic pop
 #endif

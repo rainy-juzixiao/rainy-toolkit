@@ -851,6 +851,26 @@ namespace rainy::meta::moon {
         }                                                                                                                             \
     };
 
+#define RAINY_REFLECT_TUPLE_LIKE_MARK_EMPTY(STRUCT)                                                                                   \
+    template <>                                                                                                                       \
+    struct rainy::meta::moon::reflectet_for_type<STRUCT> {                                                                            \
+        static constexpr inline std::size_t count = 0;                                                                                \
+                                                                                                                                      \
+        static constexpr auto make() noexcept {                                                                                       \
+            auto &obj = type_traits::helper::get_fake_object<STRUCT>();                                                               \
+            return std::make_tuple();                                                                                                 \
+        }                                                                                                                             \
+                                                                                                                                      \
+        static constexpr auto bind_obj(STRUCT &obj) noexcept {                                                                        \
+            return std::make_tuple();                                                                                                 \
+        }                                                                                                                             \
+                                                                                                                                      \
+        static constexpr auto member_names() noexcept {                                                                               \
+            collections::array<std::string_view, count> names = {};                                                                   \
+            return names;                                                                                                             \
+        }                                                                                                                             \
+    };
+
 #define RAINY_MEMPTR_EACH(TYPE, member) &TYPE::member
 #define RAINY_PRIVATE_PTR_EACH(obj, ptr) (obj.*ptr)
 

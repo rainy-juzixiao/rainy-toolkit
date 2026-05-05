@@ -154,6 +154,8 @@ SCENARIO("wait_until returns no_timeout when notified before deadline", "[condit
     }
 }
 
+#if RAINY_HAS_CXX20
+
 SCENARIO("wait with stop_token can be interrupted", "[condition_variable_any]") {
     GIVEN("A condition variable_any, a mutex and a stop source") {
         condition_variable_any cv;
@@ -180,3 +182,4 @@ SCENARIO("wait with stop_token can be interrupted", "[condition_variable_any]") 
     }
 }
 
+#endif

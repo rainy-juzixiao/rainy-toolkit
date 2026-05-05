@@ -28,7 +28,7 @@ namespace rainy::foundation::pal::module_context::implements {
      * @param crossplatform 允许不使用平台特定名称加载模块
      * @return 如果成功，返回该模块的句柄，失败则返回空句柄
      */
-    RAINY_TOOLKIT_API core::handle load_module(std::string_view module_path, bool crossplatform) noexcept;
+    RAINY_TOOLKIT_API core::handle load_module(text::string_view module_path, bool crossplatform) noexcept;
 
     /**
      * @brief 尝试根据指定的参数获取已加载的模块
@@ -36,7 +36,7 @@ namespace rainy::foundation::pal::module_context::implements {
      * @param crossplatform 允许不使用平台特定名称加载模块
      * @return 如果成功，返回该模块的句柄，失败则返回空句柄
      */
-    RAINY_TOOLKIT_API core::handle try_to_get_module(std::string_view module_path, bool crossplatform) noexcept;
+    RAINY_TOOLKIT_API core::handle try_to_get_module(text::string_view module_path, bool crossplatform) noexcept;
 
     /**
      * @brief 从指定的模块中获取其导出的符号
@@ -44,7 +44,7 @@ namespace rainy::foundation::pal::module_context::implements {
      * @param symbol_name 符号名称
      * @return 如果获取成功，返回该符号对应的地址，以farproc_fn类型的形式
      */
-    RAINY_TOOLKIT_API farproc_fn load_symbol(core::handle handle, std::string_view symbol_name) noexcept;
+    RAINY_TOOLKIT_API farproc_fn load_symbol(core::handle handle, text::string_view symbol_name) noexcept;
 
     /**
      * @brief 释放给定的pal模块
