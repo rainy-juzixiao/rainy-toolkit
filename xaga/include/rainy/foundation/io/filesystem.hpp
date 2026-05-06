@@ -3,6 +3,7 @@
 
 #include <rainy/foundation/io/filesystem/fwd.hpp>
 #include <rainy/foundation/io/filesystem/path.hpp>
+#include <rainy/foundation/io/filesystem/directory_entry.hpp>
 #include <rainy/foundation/io/filesystem/operations.hpp>
 #include <rainy/foundation/io/filesystem/basic_file.hpp>
 #include <rainy/foundation/io/filesystem/streamfile.hpp>
