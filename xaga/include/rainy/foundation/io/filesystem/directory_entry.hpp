@@ -92,6 +92,7 @@ namespace rainy::foundation::io::filesystem {
         file_status cache;
 
         friend class directory_iterator;
+        friend class recursive_directory_iterator;
     };
 }
 
