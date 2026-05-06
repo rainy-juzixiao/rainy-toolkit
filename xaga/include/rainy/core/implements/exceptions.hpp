@@ -16,11 +16,11 @@
 #ifndef RAINY_BASIC_EXCEPTIONS_HPP
 #define RAINY_BASIC_EXCEPTIONS_HPP
 #include <exception>
+#include <rainy/core/implements/source_location.hpp>
+#include <rainy/core/implements/text/string.hpp>
 #include <rainy/core/platform.hpp>
 #include <rainy/core/type_traits/implements.hpp>
 #include <rainy/core/type_traits/properties.hpp>
-#include <rainy/core/implements/source_location.hpp>
-#include <rainy/core/implements/text/string.hpp>
 #include <utility>
 
 namespace rainy::foundation::exceptions {
@@ -485,6 +485,56 @@ namespace rainy::foundation::exceptions::runtime {
         -> void {
         throw_exception(runtime_error{message, location});
     }
+}
+
+namespace rainy::foundation::exceptions::runtime {
+    class system_error : public runtime_error {
+    public:
+        using source = source;
+
+        system_error(const std::error_code ec, const std::string &what_arg,
+                     const source &location = diagnostics::source_location::current()) :
+            runtime_error(make_err_msg(ec, what_arg), location), ec{ec} {
+        }
+
+        system_error(const std::error_code ec, const char *what_arg,
+                     const source &location = diagnostics::source_location::current()) :
+            runtime_error(make_err_msg(ec, what_arg), location), ec{ec} {
+        }
+
+        system_error(const std::error_code ec, const source &location = diagnostics::source_location::current()) :
+            runtime_error(ec.message(), location), ec{ec} { // NOLINT
+        }
+
+        system_error(const int ev, const std::error_category &ecat, const std::string &what_arg,
+                     const source &location = diagnostics::source_location::current()) :
+            runtime_error(make_err_msg(std::error_code(ev, ecat), what_arg), location) {
+        }
+
+        system_error(const int ev, const std::error_category &ecat, const char *what_arg,
+                     const source &location = diagnostics::source_location::current()) :
+            runtime_error(make_err_msg(std::error_code(ev, ecat), what_arg), location) {
+        }
+
+        system_error(const int ev, const std::error_category &ecat, const source &location = diagnostics::source_location::current()) :
+            runtime_error(make_err_msg(std::error_code(ev, ecat), std::error_code(ev, ecat).message()), location) {
+        }
+
+        const std::error_code &code() const noexcept {
+            return ec;
+        }
+
+    private:
+        static std::string make_err_msg(std::error_code error_code, std::string message) {
+            if (!message.empty()) {
+                message.append(": ");
+            }
+            message.append(error_code.message());
+            return message;
+        }
+
+        std::error_code ec;
+    };
 }
 
 namespace rainy::foundation::exceptions::logic {

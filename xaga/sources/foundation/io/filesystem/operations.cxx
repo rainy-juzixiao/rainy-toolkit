@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <filesystem>
 #include <rainy/foundation/io/filesystem/operations.hpp>
 
 #define RAINY_FILESYSTEM_EXCEPTION_EDITION_IMPL(impl, ...)                                                                            \
@@ -21,7 +20,7 @@
         std::error_code ec;                                                                                                           \
         auto result = impl(__VA_ARGS__, ec);                                                                                          \
         if (ec) {                                                                                                                     \
-            throw std::system_error(ec);                                                                                              \
+            throw foundation::exceptions::runtime::filesystem_error(RAINY_STRINGIFY(impl), __VA_ARGS__, ec);                          \
         }                                                                                                                             \
         return result;                                                                                                                \
     }
@@ -38,10 +37,9 @@
         std::error_code ec;                                                                                                           \
         impl(__VA_ARGS__, ec);                                                                                                        \
         if (ec) {                                                                                                                     \
-            throw std::system_error(ec);                                                                                              \
+            throw foundation::exceptions::runtime::filesystem_error(RAINY_STRINGIFY(impl), __VA_ARGS__, ec);                          \
         }                                                                                                                             \
     }
-
 
 #define RAINY_FILESYSTEM_INIT_SYSCALL(ec)                                                                                             \
     do {                                                                                                                              \
@@ -52,8 +50,6 @@
 // NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
 
 namespace rainy::foundation::io::filesystem {
-    constexpr std::size_t buffer_size = 4096;
-
     path absolute(const path &path) {
         RAINY_FILESYSTEM_EXCEPTION_EDITION_IMPL(absolute, path);
     }
@@ -141,7 +137,11 @@ namespace rainy::foundation::io::filesystem {
     }
 
     void copy(const path &from, const path &to, const copy_options options) {
-        RAINY_FILESYSTEM_EXCEPTION_EDITION_VOID_IMPL(copy, from, to, options);
+        std::error_code ec;
+        copy(from, to, options, ec);
+        if (ec) {
+            throw foundation::exceptions::runtime::filesystem_error("copy", from, to, ec);
+        }
     }
 
     void copy(const path &from, const path &to, const copy_options options, std::error_code &ec) {
@@ -167,7 +167,12 @@ namespace rainy::foundation::io::filesystem {
     }
 
     bool copy_file(const path &from, const path &to, const copy_options option) {
-        RAINY_FILESYSTEM_EXCEPTION_EDITION_IMPL(copy_file, from, to, option);
+        std::error_code ec;
+        const auto result = copy_file(from, to, option, ec);
+        if (ec) {
+            throw exceptions::runtime::filesystem_error("copy_file", from, to, ec);
+        }
+        return result;
     }
 
     bool copy_file(const path &from, const path &to, const copy_options option, std::error_code &ec) {
@@ -218,8 +223,8 @@ namespace rainy::foundation::io::filesystem {
         return success;
     }
 
-    bool create_directory(const path &path, const filesystem::path &attributes) {
-        RAINY_FILESYSTEM_EXCEPTION_EDITION_IMPL(create_directory, path, attributes);
+    bool create_directory(const path &path, const filesystem::path &existing_p) {
+        RAINY_FILESYSTEM_EXCEPTION_EDITION_IMPL(create_directory, path, existing_p);
     }
 
     bool create_directory(const path &path, const filesystem::path &existing_p, std::error_code &ec) noexcept {
@@ -271,7 +276,7 @@ namespace rainy::foundation::io::filesystem {
         std::error_code ec;
         auto result = current_path(ec);
         if (ec) {
-            throw std::system_error(ec);
+            throw exceptions::runtime::filesystem_error("current_path", ec);
         }
         return result;
     }
@@ -300,7 +305,7 @@ namespace rainy::foundation::io::filesystem {
         std::error_code ec;
         current_path(path, ec);
         if (ec) {
-            throw std::system_error(ec);
+            throw exceptions::runtime::filesystem_error("current_path", ec);
         }
     }
 
@@ -435,7 +440,7 @@ namespace rainy::foundation::io::filesystem {
         return is_empty;
     }
 
-    bool is_fifo(const file_status &status) noexcept {
+    bool is_fifo(const file_status &status) noexcept { // NOLINT
         return status.type() == file_type::fifo;
     }
 
@@ -452,7 +457,7 @@ namespace rainy::foundation::io::filesystem {
         return is_fifo;
     }
 
-    bool is_other(file_status status) noexcept {
+    bool is_other(file_status status) noexcept { // NOLINT
         return exists(status) && !is_regular_file(status) && !is_directory(status) && !is_symlink(status);
     }
 
@@ -535,10 +540,14 @@ namespace rainy::foundation::io::filesystem {
     }
 
     void last_write_time(const path &path, const file_time_type new_time) {
-        RAINY_FILESYSTEM_EXCEPTION_EDITION_VOID_IMPL(last_write_time, path, new_time);
+        std::error_code ec;
+        last_write_time(path, new_time, ec);
+        if (ec) {
+            throw foundation::exceptions::runtime::filesystem_error("last_write_time", path, ec);
+        }
     }
 
-    void last_write_time(const path &path, file_time_type new_time, std::error_code &ec) noexcept {
+    void last_write_time(const path &path, const file_time_type new_time, std::error_code &ec) noexcept {
         RAINY_FILESYSTEM_INIT_SYSCALL(ec);
         const std::time_t t = std::chrono::duration_cast<std::chrono::seconds>(new_time.time_since_epoch()).count();
         core::pal::last_write_time_native(path.native().c_str(), t);
@@ -547,11 +556,15 @@ namespace rainy::foundation::io::filesystem {
         }
     }
 
-    void permissions(const path &path, perms prms, perm_options opts) {
-        RAINY_FILESYSTEM_EXCEPTION_EDITION_VOID_IMPL(permissions, path, prms, opts);
+    void permissions(const path &path, const perms prms, const perm_options opts) {
+        std::error_code ec;
+        permissions(path, prms, opts, ec);
+        if (ec) {
+            throw exceptions::runtime::filesystem_error("permissions", path, ec);
+        }
     }
 
-    void permissions(const path &path, perms prms, std::error_code &ec) noexcept {
+    void permissions(const path &path, const perms prms, std::error_code &ec) noexcept {
         RAINY_FILESYSTEM_INIT_SYSCALL(ec);
         core::pal::permissions_native(path.native().c_str(), prms);
         if (errno != 0) {
@@ -559,7 +572,7 @@ namespace rainy::foundation::io::filesystem {
         }
     }
 
-    void permissions(const path &path, perms prms, perm_options opts, std::error_code &ec) {
+    void permissions(const path &path, const perms prms, const perm_options opts, std::error_code &ec) {
         RAINY_FILESYSTEM_INIT_SYSCALL(ec);
         core::pal::permissions_native(path.native().c_str(), prms, opts);
         if (errno != 0) {
@@ -712,11 +725,15 @@ namespace rainy::foundation::io::filesystem {
         }
     }
 
-    void resize_file(const path &path, std::uintmax_t size) {
-        RAINY_FILESYSTEM_EXCEPTION_EDITION_VOID_IMPL(resize_file, path, size);
+    void resize_file(const path &path, const std::uintmax_t size) {
+        std::error_code ec;
+        resize_file(path, size, ec);
+        if (ec) {
+            throw exceptions::runtime::filesystem_error("resize_file", path, ec);
+        }
     }
 
-    void resize_file(const path &path, std::uintmax_t size, std::error_code &ec) noexcept {
+    void resize_file(const path &path, const std::uintmax_t size, std::error_code &ec) noexcept {
         RAINY_FILESYSTEM_INIT_SYSCALL(ec);
         core::pal::resize_file_native(path.native().c_str(), size);
         if (errno != 0) {
@@ -750,10 +767,10 @@ namespace rainy::foundation::io::filesystem {
         const auto [type, permissions] = core::pal::status_native(path.native().c_str());
         if (errno != 0) {
             ec = std::error_code(errno, std::generic_category());
-            file_status s{file_type::none, perms::none};
+            const file_status s{file_type::none, perms::none};
             return s;
         }
-        file_status res{type, permissions};
+        const file_status res{type, permissions};
         return res;
     }
 
@@ -772,7 +789,7 @@ namespace rainy::foundation::io::filesystem {
             ec = std::error_code(errno, std::system_category());
             return {};
         }
-        file_status result{type, permissions};
+        const file_status result{type, permissions};
         return result;
     }
 
@@ -780,7 +797,7 @@ namespace rainy::foundation::io::filesystem {
         std::error_code ec;
         auto result = temp_directory_path(ec);
         if (ec) {
-            throw std::system_error(ec);
+            throw exceptions::runtime::filesystem_error("temp_directory_path", ec);
         }
         return result;
     }

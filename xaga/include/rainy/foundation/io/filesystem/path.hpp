@@ -27,7 +27,7 @@ namespace rainy::foundation::io::filesystem::implements {
     using native_string_t = text::basic_string<native_char>;
 
     template <typename CharType>
-    RAINY_INLINE bool is_separator(CharType c) noexcept {
+    RAINY_INLINE bool is_separator(CharType c) noexcept { // NOLINT
         return c == static_cast<CharType>('/') || c == static_cast<CharType>('\\');
     }
 
@@ -483,7 +483,8 @@ namespace rainy::foundation::io::filesystem {
             pathstr_ += right;
             return *this;
         }
-        path &operator+=(value_type right) {
+
+        path &operator+=(const value_type right) {
             pathstr_ += right;
             return *this;
         }
@@ -732,7 +733,7 @@ namespace rainy::foundation::io::filesystem {
             return pathstr_.compare(s);
         }
 
-        RAINY_NODISCARD int compare(text::basic_string_view<value_type> s) const {
+        RAINY_NODISCARD int compare(const text::basic_string_view<value_type> s) const {
             return pathstr_.compare(string_type(s.data(), s.size()));
         }
 
@@ -749,15 +750,15 @@ namespace rainy::foundation::io::filesystem {
         }
 
         RAINY_NODISCARD path root_directory() const {
-            const std::size_t rn = implements::root_name_length(pathstr_);
-            if (rn < pathstr_.size() && implements::is_separator(pathstr_[rn])) {
+            if (const std::size_t rn = implements::root_name_length(pathstr_);
+                rn < pathstr_.size() && implements::is_separator(pathstr_[rn])) {
                 return string_type(1, preferred_separator);
             }
             return {};
         }
 
         RAINY_NODISCARD path root_path() const {
-            std::size_t rn = implements::root_name_length(pathstr_);
+            const std::size_t rn = implements::root_name_length(pathstr_);
             std::size_t end = rn;
             if (end < pathstr_.size() && implements::is_separator(pathstr_[end])) {
                 ++end;
@@ -798,7 +799,7 @@ namespace rainy::foundation::io::filesystem {
                 }
             }
             if (end <= rn) {
-                if (rn > 0) {
+                if (rn > 0) { // NOLINT
                     return {string_type(pathstr_.data(), rn)}; // NOLINT
                 }
                 return {};
@@ -820,7 +821,7 @@ namespace rainy::foundation::io::filesystem {
             if (fn == string_type(1, static_cast<value_type>('.')) || fn == string_type(2, static_cast<value_type>('.'))) {
                 return {fn};
             }
-            auto dot = fn.rfind(static_cast<value_type>('.'));
+            const auto dot = fn.rfind(static_cast<value_type>('.'));
             if (dot == string_type::npos || dot == 0) {
                 return {fn};
             }
@@ -832,7 +833,7 @@ namespace rainy::foundation::io::filesystem {
             if (fn == string_type(1, static_cast<value_type>('.')) || fn == string_type(2, static_cast<value_type>('.'))) {
                 return {};
             }
-            auto dot = fn.rfind(static_cast<value_type>('.'));
+            const auto dot = fn.rfind(static_cast<value_type>('.'));
             if (dot == string_type::npos || dot == 0) {
                 return {};
             }
@@ -960,8 +961,7 @@ namespace rainy::foundation::io::filesystem {
 
             int up = 0;
             for (auto it = b; it != b_end; ++it) {
-                const string_type &seg = it->pathstr_;
-                if (!seg.empty() && !(seg.size() == 1 && implements::is_separator(seg[0]))) {
+                if (const string_type &seg = it->pathstr_; !seg.empty() && !(seg.size() == 1 && implements::is_separator(seg[0]))) {
                     if (seg == dotdot) {
                         --up;
                     } else {
@@ -1011,13 +1011,15 @@ namespace rainy::foundation::io::filesystem {
         friend std::basic_ostream<CharType, Traits> &operator<<(std::basic_ostream<CharType, Traits> &os, const path &p) {
             os << std::basic_string<CharType, Traits>(1, static_cast<CharType>('"'));
             if constexpr (std::is_same_v<CharType, wchar_t>) {
-                auto s = p.generic_wstring();
+                const auto s = p.generic_wstring();
                 os << s.c_str();
             } else {
+                // NOLINTBEGIN
                 auto s = p.generic_string();
                 for (auto c: s) {
                     os.put(static_cast<CharType>(c));
                 }
+                // NOLINTEND
             }
             os << std::basic_string<CharType, Traits>(1, static_cast<CharType>('"'));
             return os;
