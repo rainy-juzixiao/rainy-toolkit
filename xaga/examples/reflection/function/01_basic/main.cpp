@@ -71,12 +71,10 @@ int main() {
 
 #endif
 
-    rainy::foundation::io::net::io_context ctx;
-    rainy::foundation::io::net::steady_timer timer(ctx, std::chrono::seconds{5});
-    std::cout << "foundation::ctti::variable_name<aaa::enum_type::a>(): " << foundation::ctti::variable_name<aaa::enum_type::a>() << '\n';
-    std::cout << "foundation::ctti::variable_name<static_cast<aaa::enum_type>(1)>(): " << foundation::ctti::variable_name<static_cast<aaa::enum_type>(1)>() << '\n';
     rainy::foundation::io::io_context ctx;
     rainy::foundation::io::steady_timer timer(ctx, std::chrono::seconds{5});
+    std::cout << "foundation::ctti::variable_name<aaa::enum_type::a>(): " << foundation::ctti::variable_name<aaa::enum_type::a>() << '\n';
+    std::cout << "foundation::ctti::variable_name<static_cast<aaa::enum_type>(1)>(): " << foundation::ctti::variable_name<static_cast<aaa::enum_type>(1)>() << '\n';
     timer.async_wait([](std::error_code ec) {
         if (!ec) {
             std::cout << "!!!\n";
