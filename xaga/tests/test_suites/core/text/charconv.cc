@@ -1524,7 +1524,7 @@ SCENARIO("Round-trip conversion - Float extremes", "[roundtrip][float]") {
     WHEN("Round-tripping float boundary values") {
         THEN("Float max") {
             constexpr float orig = (std::numeric_limits<float>::max)();
-            auto r1 = to_chars(buffer, buffer + sizeof(buffer), orig, std::chars_format::scientific, 10);
+            auto r1 = to_chars(buffer, buffer + sizeof(buffer), orig, chars_format::scientific, 10);
             float parsed = 0.0f;
             auto r2 = from_chars(buffer, r1.ptr, parsed);
             REQUIRE(r2.ec == std::errc{});

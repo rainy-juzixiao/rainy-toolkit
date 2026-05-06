@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef RAINY_SOURCE_LOCATION_HPP
-#define RAINY_SOURCE_LOCATION_HPP
+#ifndef RAINY_CORE_YESOD_FOUNDATION_SOURCE_LOCATION_HPP
+#define RAINY_CORE_YESOD_FOUNDATION_SOURCE_LOCATION_HPP
 #include <cstring>
 #include <rainy/core/platform.hpp>
 #include <string>

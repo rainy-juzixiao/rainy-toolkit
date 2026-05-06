@@ -16,6 +16,7 @@
 #ifndef RAINY_UTILITY_IMPLEMENTS_ANY_REFERENCE_HPP
 #define RAINY_UTILITY_IMPLEMENTS_ANY_REFERENCE_HPP
 #include <rainy/core/core.hpp>
+#include <rainy/foundation/functional/functor.hpp>
 #include <rainy/utility/implements/any/fwd.hpp>
 
 #if RAINY_USING_MSVC
@@ -35,16 +36,16 @@
         return use_operator(a, static_cast<const BasicAny &>(b));                                                                     \
     }
 
-#define RAINY_GENERATE_BASIC_ANY_REFERENCE_BINARY_OPERATOR_STUB(use_operator)                                                         \
+#define RAINY_GENERATE_BASIC_ANY_REFERENCE_BINARY_OPERATOR_STUB(use_operator, pred)                                                   \
     friend basic_any use_operator(const any_reference &a, const any_reference &b) {                                                   \
-        return use_operator(static_cast<const BasicAny &>(a), static_cast<const BasicAny &>(b));                                      \
+        return pred{}(static_cast<const BasicAny &>(a), static_cast<const BasicAny &>(b));                                            \
     }                                                                                                                                 \
                                                                                                                                       \
     friend basic_any use_operator(const any_reference &a, const BasicAny &b) {                                                        \
-        return use_operator(static_cast<const BasicAny &>(a), b);                                                                     \
+        return pred{}(static_cast<const BasicAny &>(a), b);                                                                           \
     }                                                                                                                                 \
     friend basic_any use_operator(const BasicAny &a, const any_reference &b) {                                                        \
-        return use_operator(a, static_cast<const BasicAny &>(b));                                                                     \
+        return pred{}(a, static_cast<const BasicAny &>(b));                                                                           \
     }
 
 #define RAINY_GENERATE_BASIC_ANY_REFERENCE_COMPOUND_ARITHMETIC_OPERATOR_STUB(use_operator)                                            \
@@ -138,11 +139,11 @@ namespace rainy::utility::implements {
         RAINY_GENERATE_BASIC_ANY_REFERENCE_COMPARE_STUB(operator<=);
         RAINY_GENERATE_BASIC_ANY_REFERENCE_COMPARE_STUB(operator>=);
 
-        RAINY_GENERATE_BASIC_ANY_REFERENCE_BINARY_OPERATOR_STUB(operator+);
-        RAINY_GENERATE_BASIC_ANY_REFERENCE_BINARY_OPERATOR_STUB(operator-);
-        RAINY_GENERATE_BASIC_ANY_REFERENCE_BINARY_OPERATOR_STUB(operator*);
-        RAINY_GENERATE_BASIC_ANY_REFERENCE_BINARY_OPERATOR_STUB(operator%);
-        RAINY_GENERATE_BASIC_ANY_REFERENCE_BINARY_OPERATOR_STUB(operator/);
+        RAINY_GENERATE_BASIC_ANY_REFERENCE_BINARY_OPERATOR_STUB(operator+, foundation::functional::plus);
+        RAINY_GENERATE_BASIC_ANY_REFERENCE_BINARY_OPERATOR_STUB(operator-, foundation::functional::minus);
+        RAINY_GENERATE_BASIC_ANY_REFERENCE_BINARY_OPERATOR_STUB(operator*, foundation::functional::multiplies);
+        RAINY_GENERATE_BASIC_ANY_REFERENCE_BINARY_OPERATOR_STUB(operator%, foundation::functional::modulus);
+        RAINY_GENERATE_BASIC_ANY_REFERENCE_BINARY_OPERATOR_STUB(operator/, foundation::functional::divides);
 
         RAINY_GENERATE_BASIC_ANY_REFERENCE_COMPOUND_ARITHMETIC_OPERATOR_STUB(operator+=);
         RAINY_GENERATE_BASIC_ANY_REFERENCE_COMPOUND_ARITHMETIC_OPERATOR_STUB(operator-=);

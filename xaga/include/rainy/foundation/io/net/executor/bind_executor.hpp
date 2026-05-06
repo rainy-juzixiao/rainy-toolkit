@@ -248,7 +248,7 @@ namespace rainy::foundation::io::net {
     }
 
     template <typename ExecutionContext, typename Ty,
-              type_traits::other_trans::enable_if<
+              type_traits::other_trans::enable_if_t<
                   type_traits::type_relations::is_convertible_v<ExecutionContext &, execution_context &>, int> = 0>
     RAINY_INLINE rain_fn bind_executor(ExecutionContext &ctx, Ty &&t)
         -> executor_binder<typename type_traits::other_trans::decay_t<Ty>, typename ExecutionContext::executor_type> {
@@ -267,12 +267,12 @@ namespace rainy::foundation::io::net {
     class async_result<executor_binder<Ty, Executor>, Signature> {
     public:
         using completion_handler_type = executor_binder<typename async_result<Ty, Signature>::completion_handler_type, Executor>;
-        using return_type = async_result<Ty, Signature>::return_type;
+        using return_type = typename async_result<Ty, Signature>::return_type;
 
         explicit async_result(executor_binder<Ty, Executor> &b) : target_(b.get()) {
         }
 
-        return_type get() {
+         return_type get() {
             return target_.get();
         }
 

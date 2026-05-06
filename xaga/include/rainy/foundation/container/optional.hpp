@@ -53,10 +53,12 @@ namespace rainy::foundation::exceptions::runtime {
 }
 
 namespace rainy::foundation::container::implements {
+#if RAINY_HAS_CXX20
     template <typename UTy>
     concept is_derived_from_optional =
         requires { typename UTy::value_type; } && type_traits::type_relations::is_same_v<UTy, optional<typename UTy::value_type>>;
-    
+#endif
+
     template <typename Ty, bool = type_traits::type_properties::is_trivially_destructible_v<Ty>>
     struct optional_destruct_base {
         constexpr optional_destruct_base() : dummy{}, has_value_{false} { // NOLINT
@@ -83,9 +85,11 @@ namespace rainy::foundation::container::implements {
         }
         // NOLINTEND
 
+#if RAINY_HAS_CXX20
         constexpr ~optional_destruct_base() {
             reset();
         }
+#endif
 
         constexpr optional_destruct_base &operator=(const optional_destruct_base &other) {
             if (this != &other) {
@@ -138,7 +142,8 @@ namespace rainy::foundation::container::implements {
         }
 
         template <typename... Args>
-        constexpr optional_destruct_base(std::in_place_t, Args &&...args) : value_(utility::forward<Args>(args)...), has_value_{true} { // NOLINT
+        constexpr optional_destruct_base(std::in_place_t, Args &&...args) :
+            value_(utility::forward<Args>(args)...), has_value_{true} { // NOLINT
         }
 
         RAINY_CONSTEXPR20 ~optional_destruct_base() {
@@ -700,11 +705,6 @@ namespace rainy::foundation::container {
 }
 
 namespace rainy::foundation::container {
-
-    // ========================================================================
-    // Comparison with optional<UTy>
-    // ========================================================================
-
     template <typename Ty, typename UTy>
     constexpr bool operator==(const optional<Ty> &left, const optional<UTy> &right) {
         if (left.has_value() != right.has_value()) {

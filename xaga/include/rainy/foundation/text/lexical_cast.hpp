@@ -38,11 +38,11 @@ namespace rainy::foundation::text::implements {
 
 namespace rainy::foundation::exceptions::logic {
     struct bad_lexical_cast : public logic_error {
-        bad_lexical_cast(std::string_view type) : logic_error(std::format("cannot proceed function in '{}'", type)) {
+        bad_lexical_cast(std::string_view type) : logic_error(text::format("cannot proceed function in '{}'", type).c_str()) {
         }
 
         bad_lexical_cast(std::string_view type, std::string_view msg) :
-            logic_error(std::format("cannot proceed function in '{}': {}", type, msg)) {
+            logic_error(text::format("cannot proceed function in '{}': {}", type, msg).c_str()) {
         }
     };
 
@@ -333,7 +333,7 @@ namespace rainy::foundation::text {
         using traits_template = typename extract_traits_template<traits>::template type<NewCharT>;
 
         template <typename Char, typename Traits, typename Alloc>
-        using string_template = adapter::template string_template<Char, Traits, Alloc>;
+        using string_template = typename adapter::template string_template<Char, Traits, Alloc>;
 
         string_type convert(basic_string_view<CharType> input) const {
             if constexpr (type_traits::type_relations::is_same_v<char_type, CharType>) {
@@ -415,7 +415,7 @@ namespace rainy::foundation::text {
                     converter_t converter;
                     std::basic_string<char, traits_template<char>, char_allocator> std_utf8 =
                         converter.to_bytes(input.data(), input.data() + input.size());
-                    return string_template<char8_t, traits, allocator>(std_utf8.begin(), std_utf8.end());
+                    return string_type(std_utf8.begin(), std_utf8.end());
                 } else {
                     using converter_t = wstring_convert<codecvt_utf8<char32_t>, basic_string, char32_t, traits_template, u32_allocator,
                                                         char_allocator>;

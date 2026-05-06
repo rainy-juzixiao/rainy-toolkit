@@ -76,7 +76,7 @@ namespace rainy::foundation::concurrency {
         }
 
         void signal_stop() {
-            stop_.store(true, std::memory_order_release);
+            stop_.store(true, memory_order_release);
             cv_.notify_all();
         }
 
@@ -116,9 +116,9 @@ namespace rainy::foundation::concurrency {
                 {
                     unique_lock lk(cv_mutex_);
                     cv_.wait_for(lk, std::chrono::microseconds(100),
-                                 [this] { return !local_queue_.empty() || stop_.load(std::memory_order_acquire); });
+                                 [this] { return !local_queue_.empty() || stop_.load(memory_order_acquire); });
                 }
-                if (stop_.load(std::memory_order_acquire) && local_queue_.empty()) {
+                if (stop_.load(memory_order_acquire) && local_queue_.empty()) {
                     break;
                 }
             }
@@ -133,7 +133,7 @@ namespace rainy::foundation::concurrency {
         }
 
         std::size_t id_;
-        std::atomic<bool> stop_;
+        atomic<bool> stop_;
         work_stealing_deque local_queue_;
         std::vector<actor_worker *> peers_;
         on_complete on_complete_;

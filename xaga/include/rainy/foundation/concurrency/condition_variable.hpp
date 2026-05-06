@@ -16,6 +16,7 @@
 #ifndef RAINY_FOUNDATION_CONCURRENCY_CONDITION_VARIABLE_HPP
 #define RAINY_FOUNDATION_CONCURRENCY_CONDITION_VARIABLE_HPP
 #include <chrono>
+#include <memory>
 #include <rainy/core/core.hpp>
 #include <rainy/foundation/concurrency/mutex.hpp>
 #include <rainy/foundation/concurrency/pal.hpp>
@@ -405,6 +406,8 @@ namespace rainy::foundation::concurrency {
             return wait_until(lock, std::chrono::system_clock::now() + rel_time, utility::move(pred));
         }
 
+#if RAINY_HAS_CXX20
+
         /**
          * @brief 带中断支持的谓词等待
          *
@@ -466,6 +469,7 @@ namespace rainy::foundation::concurrency {
                               utility::move(pred));
         }
 
+#endif
         /**
          * @brief 获取底层平台条件变量的原生句柄
          */

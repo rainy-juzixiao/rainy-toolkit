@@ -54,14 +54,21 @@ namespace rainy::foundation::text {
         constexpr basic_string_view(const_pointer begin, const_pointer end) noexcept : data_(begin), size_(end - begin) {
         }
 
-        template <typename It, typename End,
-                  type_traits::other_trans::enable_if_t<
-                      type_traits::extras::iterators::is_contiguous_iterator_v<It> &&
-                          type_traits::extras::iterators::is_iterator_v<End> &&
-                          type_traits::type_relations::is_same_v<type_traits::extras::iterators::iter_value_t<It>, value_type> &&
-                          !type_traits::type_relations::is_convertible_v<It, size_type> &&
-                          !type_traits::type_relations::is_convertible_v<End, size_type>,
-                      int> = 0>
+        template <typename R, type_traits::other_trans::enable_if_t<
+                                  type_traits::extras::meta_method::has_data_v<type_traits::cv_modify::remove_cvref_t<R>> &&
+                                      type_traits::extras::meta_method::has_size_v<type_traits::cv_modify::remove_cvref_t<R>>,
+                                  int> = 0>
+        constexpr basic_string_view(const R &right) : data_(right.data()), size_(right.size()) {
+        }
+
+        template <
+            typename It, typename End,
+            type_traits::other_trans::enable_if_t<
+                type_traits::extras::iterators::is_contiguous_iterator_v<It> && type_traits::extras::iterators::is_iterator_v<End> &&
+                    type_traits::type_relations::is_same_v<type_traits::extras::iterators::iter_value_t<It>, value_type> &&
+                    !type_traits::type_relations::is_convertible_v<It, size_type> &&
+                    !type_traits::type_relations::is_convertible_v<End, size_type>,
+                int> = 0>
         constexpr basic_string_view(It begin, End end) noexcept :
             data_{begin}, size_{static_cast<size_type>(utility::distance(begin, end))} {
         }
@@ -153,19 +160,19 @@ namespace rainy::foundation::text {
 
         constexpr size_type copy(pointer dest, size_type count, size_type pos = 0) const {
             range_check_access(pos);
-            size_type rcount = (core::min)(count, size() - pos);
+            size_type rcount = (core::min) (count, size() - pos);
             traits_type::copy(dest, data() + pos, rcount);
             return rcount;
         }
 
         constexpr basic_string_view substr(size_type pos = 0, size_type count = npos) const {
             range_check_substr(pos);
-            size_type rcount = (core::min)(count, size_ - pos);
+            size_type rcount = (core::min) (count, size_ - pos);
             return {data_ + pos, rcount};
         }
 
         constexpr int compare(basic_string_view right) const noexcept {
-            const size_type rlen = (core::min)(size_, right.size_);
+            const size_type rlen = (core::min) (size_, right.size_);
             if (const int result = traits_type::compare(data_, right.data_, rlen); result != 0) {
                 return result;
             }
@@ -202,6 +209,16 @@ namespace rainy::foundation::text {
             return equal_(data, data + sv_size, begin, begin + sv_size);
         }
 
+        constexpr bool starts_with(const basic_string_view sv) const noexcept {
+            auto sv_size = sv.size();
+            auto data = sv.data();
+            auto begin = this->begin();
+            if (sv_size > this->size()) {
+                return false;
+            }
+            return equal_(data, data + sv_size, begin, begin + sv_size);
+        }
+
         constexpr bool starts_with(CharType ch) const noexcept {
             return *this->begin() == ch;
         }
@@ -216,6 +233,16 @@ namespace rainy::foundation::text {
         }
 
         constexpr bool ends_with(std::basic_string_view<CharType, Traits> sv) const noexcept {
+            auto sv_size = sv.size();
+            auto sv_data = sv.data();
+            auto end = this->end();
+            if (sv_size > this->size()) {
+                return false;
+            }
+            return equal_(sv_data, sv_data + sv_size, end - sv_size, end);
+        }
+
+        constexpr bool ends_with(const basic_string_view sv) const noexcept {
             auto sv_size = sv.size();
             auto sv_data = sv.data();
             auto end = this->end();
@@ -293,12 +320,12 @@ namespace rainy::foundation::text {
 
         constexpr size_type rfind(basic_string_view s, size_type pos = npos) const noexcept {
             if (s.size_ == 0) {
-                return (core::min)(pos, size_);
+                return (core::min) (pos, size_);
             }
             if (s.size_ > size_) {
                 return npos;
             }
-            pos = (core::min)(pos, size_ - s.size_);
+            pos = (core::min) (pos, size_ - s.size_);
             for (auto p = data_ + pos; p >= data_; --p) {
                 if (traits_type::compare(p, s.data_, s.size_) == 0) {
                     return p - data_;
@@ -311,7 +338,7 @@ namespace rainy::foundation::text {
             if (size_ == 0) {
                 return npos;
             }
-            pos = (core::min)(pos, size_ - 1);
+            pos = (core::min) (pos, size_ - 1);
             for (auto p = data_ + pos; p >= data_; --p) {
                 if (traits_type::eq(*p, c)) {
                     return p - data_;
@@ -353,7 +380,7 @@ namespace rainy::foundation::text {
             if (size_ == 0) {
                 return npos;
             }
-            pos = (core::min)(pos, size_ - 1);
+            pos = (core::min) (pos, size_ - 1);
             for (auto p = data_ + pos; p >= data_; --p) {
                 if (s.find(*p) != npos) {
                     return p - data_;
@@ -404,7 +431,7 @@ namespace rainy::foundation::text {
             if (size_ == 0) {
                 return npos;
             }
-            pos = (core::min)(pos, size_ - 1);
+            pos = (core::min) (pos, size_ - 1);
             for (auto p = data_ + pos; p >= data_; --p) {
                 if (s.find(*p) == npos) {
                     return p - data_;
@@ -451,7 +478,7 @@ namespace rainy::foundation::text {
         friend constexpr bool operator<(basic_string_view left, basic_string_view right) noexcept {
             auto lsize = left.size();
             auto rsize = right.size();
-            auto result = Traits::compare(left.data(), right.data(), (core::min)(lsize, rsize));
+            auto result = Traits::compare(left.data(), right.data(), (core::min) (lsize, rsize));
             if (result < 0) {
                 return true;
             }

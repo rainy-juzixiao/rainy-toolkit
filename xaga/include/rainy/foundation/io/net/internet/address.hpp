@@ -271,7 +271,7 @@ namespace rainy::foundation::io::net::ip {
             text::basic_string<char, text::char_traits<char>, Allocator> result(buf, alloc);
             if (scope_id_ != 0) {
                 char scope_buf[12]{};
-                auto [ptr, ec] = std::to_chars(scope_buf, scope_buf + sizeof(scope_buf), scope_id_);
+                auto [ptr, ec] = text::to_chars(scope_buf, scope_buf + sizeof(scope_buf), scope_id_);
                 result += '%';
                 result.append(scope_buf, ptr);
             }
