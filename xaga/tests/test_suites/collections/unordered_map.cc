@@ -179,7 +179,7 @@ SCENARIO("unordered_map lookup operations", "[unordered_map]") {
 
         WHEN("using at() with non-existing key") {
             THEN("should throw out_of_range exception") {
-                REQUIRE_THROWS_AS(map.at("pear"), std::out_of_range);
+                REQUIRE_THROWS_AS(map.at("pear"), rainy::foundation::exceptions::logic::out_of_range);
             }
         }
     }

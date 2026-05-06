@@ -1543,6 +1543,28 @@ namespace rainy::foundation::text {
             }
         }
 
+        friend RAINY_CONSTEXPR20 bool operator==(CharType const *left, basic_string const &right) noexcept {
+            auto start = left;
+            auto lsize = traits_type::length(start);
+            auto rsize = right.size();
+            if (lsize != rsize) {
+                return false;
+            }
+#if RAINY_HAS_CXX20
+            if (std::is_constant_evaluated()) { // NOLINT
+                for (auto r = right.begin_(), end = r + rsize; r != end; ++r, ++start) {
+                    if (*start != *r) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+#endif
+            {
+                return traits_type::compare(start, right.begin_(), lsize) == 0;
+            }
+        }
+
         friend RAINY_CONSTEXPR20 bool operator<(basic_string const &left, CharType const *right) noexcept {
             auto start = right;
             auto rsize = traits_type::length(start);

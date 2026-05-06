@@ -417,10 +417,11 @@ TEST_CASE("is_reflectet_for_type_valid", "[moon][reflectet_for_type]") {
         REQUIRE(is_reflectet_for_type_valid<PrivateClass>);
         REQUIRE(is_reflectet_for_type_valid<std::pair<int, int>>);
     }
-
+#if RAINY_HAS_CXX20
     SECTION("non-registered aggregate types are invalid") {
         REQUIRE_FALSE(is_reflectet_for_type_valid<SimpleStruct>);
     }
+#endif
 }
 
 #if RAINY_HAS_CXX20

@@ -21,7 +21,7 @@
 #include <rainy/foundation/pal/implements/tgc_layer_module_context.hpp>
 
 namespace rainy::foundation::pal::module_context::implements {
-    RAINY_TOOLKIT_LOCAL_API static bool is_absolute_path(const text::string_view file_name) {
+    static bool is_absolute_path(const text::string_view file_name) {
         return (!file_name.empty() && file_name[0] == '/'); // NOLINT
     }
 
@@ -33,7 +33,7 @@ namespace rainy::foundation::pal::module_context::implements {
 #endif
     }
 
-    RAINY_TOOLKIT_LOCAL_API static bool file_exist(const text::string_view fileName) {
+    static bool file_exist(const text::string_view fileName) {
         if (rainy_const file = fopen(fileName.data(), "r")) { // NOLINT
             (void) fclose(file);
             return true;
@@ -43,11 +43,11 @@ namespace rainy::foundation::pal::module_context::implements {
 
     using native_handle = void *;
 
-    RAINY_TOOLKIT_LOCAL_API static core::handle to_handle(native_handle h) noexcept {
+    static core::handle to_handle(native_handle h) noexcept {
         return reinterpret_cast<core::handle>(h);
     }
 
-    RAINY_TOOLKIT_LOCAL_API static native_handle from_handle(const core::handle h) noexcept {
+    static native_handle from_handle(const core::handle h) noexcept {
         return reinterpret_cast<native_handle>(h);
     }
 }

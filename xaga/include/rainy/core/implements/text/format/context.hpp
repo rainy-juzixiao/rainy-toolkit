@@ -15,6 +15,7 @@
  */
 #ifndef RAINY_CORE_IMPLEMENTS_TEXT_FORMAT_CONTEXT_HPP
 #define RAINY_CORE_IMPLEMENTS_TEXT_FORMAT_CONTEXT_HPP
+#include <locale>
 #include <rainy/core/implements/exceptions.hpp>
 #include <rainy/core/implements/text/format/format_arg.hpp>
 #include <rainy/core/implements/text/string.hpp>

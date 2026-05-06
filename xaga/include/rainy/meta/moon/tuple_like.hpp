@@ -689,6 +689,28 @@ namespace rainy::type_traits::primary_types {
 }
 
 namespace rainy::meta::moon {
+    template <typename Fx, typename Tuple, std::size_t... Is>
+    constexpr decltype(auto) apply_impl(Fx &&fx, Tuple &&tuple, type_traits::helper::index_sequence<Is...>) {
+        return utility::forward<Fx>(fx)(
+            utility::forward<std::tuple_element_t<Is, std::decay_t<Tuple>>>(std::get<Is>(utility::forward<Tuple>(tuple)))...);
+    }
+
+    template <typename Fx, typename Tuple>
+    constexpr decltype(auto) apply_tuple(Fx &&fx, Tuple &&tuple) {
+        constexpr std::size_t size = std::tuple_size<std::decay_t<Tuple>>::value;
+        return apply_impl(utility::forward<Fx>(fx), utility::forward<Tuple>(tuple), type_traits::helper::make_index_sequence<size>{});
+    }
+
+    template <typename Obj, std::size_t... Is>
+    constexpr auto make_pointer_tuple_impl(Obj &obj, type_traits::helper::index_sequence<Is...>) {
+        return std::make_tuple(&std::get<Is>(obj)...);
+    }
+
+    template <typename Obj, std::size_t Count>
+    constexpr auto make_pointer_tuple(Obj &obj) {
+        return make_pointer_tuple_impl(obj, type_traits::helper::make_index_sequence<Count>{});
+    }
+
     template <typename Ty1, typename Ty2>
     struct reflectet_for_type<std::pair<Ty1, Ty2>> {
         static constexpr inline std::size_t count = 2;
@@ -733,15 +755,11 @@ namespace rainy::meta::moon {
 
         static constexpr auto make() noexcept {
             auto &obj = type_traits::helper::get_fake_object<type_traits::cv_modify::remove_cvref_t<Tuple>>();
-            return [&]<std::size_t... Is>(type_traits::helper::index_sequence<Is...>) {
-                return std::make_tuple(&std::get<Is>(obj)...);
-            }(type_traits::helper::make_index_sequence<count>{});
+            return make_pointer_tuple<Tuple, count>(obj);
         }
 
         static constexpr auto bind_obj(Tuple &obj) noexcept {
-            return [&]<std::size_t... Is>(type_traits::helper::index_sequence<Is...>) {
-                return std::make_tuple(&std::get<Is>(obj)...);
-            }(type_traits::helper::make_index_sequence<count>{});
+            return make_pointer_tuple<Tuple, count>(obj);
         }
     };
 
@@ -751,15 +769,11 @@ namespace rainy::meta::moon {
 
         static constexpr auto make() noexcept {
             auto &obj = type_traits::helper::get_fake_object<Ty>();
-            return [&]<std::size_t... Is>(type_traits::helper::index_sequence<Is...>) {
-                return std::make_tuple(&obj[Is]...);
-            }(type_traits::helper::make_index_sequence<count>{});
+            return make_array_pointer_tuple(obj, count);
         }
 
         static constexpr auto bind_obj(Ty &obj) noexcept {
-            return [&]<std::size_t... Is>(type_traits::helper::index_sequence<Is...>) {
-                return std::make_tuple(&obj[Is]...);
-            }(type_traits::helper::make_index_sequence<count>{});
+            return make_array_pointer_tuple(obj, count);
         }
 
         static constexpr auto member_names() noexcept {
@@ -767,6 +781,26 @@ namespace rainy::meta::moon {
             return empty;
         }
     };
+
+    template <typename Ty, std::size_t... Is>
+    constexpr auto make_array_pointer_tuple_impl(Ty &obj, type_traits::helper::index_sequence<Is...>) {
+        return std::make_tuple(&obj[Is]...);
+    }
+
+    template <typename Ty, std::size_t count>
+    constexpr auto make_array_pointer_tuple(Ty &obj) {
+        return make_array_pointer_tuple_impl(obj, type_traits::helper::make_index_sequence<count>{});
+    }
+
+    template <typename ArrayType, std::size_t... Is>
+    constexpr auto make_generic_array_pointer_tuple_impl(ArrayType &obj, type_traits::helper::index_sequence<Is...>) {
+        return std::make_tuple(&obj[Is]...);
+    }
+
+    template <typename ArrayType, std::size_t count>
+    constexpr auto make_generic_array_pointer_tuple(ArrayType &obj) {
+        return make_generic_array_pointer_tuple_impl(obj, type_traits::helper::make_index_sequence<count>{});
+    }
 
     template <template <typename Ty, std::size_t N> typename ArrayTemplate, typename Ty, std::size_t N>
     struct reflectet_for_type<
@@ -778,15 +812,11 @@ namespace rainy::meta::moon {
 
         static constexpr auto make() noexcept {
             auto &obj = type_traits::helper::get_fake_object<ArrayTemplate<Ty, N>>();
-            return [&]<std::size_t... Is>(type_traits::helper::index_sequence<Is...>) {
-                return std::make_tuple(&obj[Is]...);
-            }(type_traits::helper::make_index_sequence<count>{});
+            return make_generic_array_pointer_tuple(obj, count);
         }
 
         static constexpr auto bind_obj(ArrayTemplate<Ty, N> &obj) noexcept {
-            return [&]<std::size_t... Is>(type_traits::helper::index_sequence<Is...>) {
-                return std::make_tuple(&obj[Is]...);
-            }(type_traits::helper::make_index_sequence<count>{});
+            return make_generic_array_pointer_tuple(obj, count);
         }
 
         static constexpr auto member_names() noexcept {
@@ -794,6 +824,17 @@ namespace rainy::meta::moon {
             return empty;
         }
     };
+
+    template <typename Ty, std::size_t N, std::size_t... Is>
+    constexpr auto make_collections_array_pointer_tuple_impl(collections::array<Ty, N> &obj,
+                                                             type_traits::helper::index_sequence<Is...>) {
+        return std::make_tuple(&obj[Is]...);
+    }
+
+    template <typename Ty, std::size_t N>
+    constexpr auto make_collections_array_pointer_tuple(collections::array<Ty, N> &obj) {
+        return make_collections_array_pointer_tuple_impl(obj, type_traits::helper::make_index_sequence<N>{});
+    }
 
     template <template <typename Ty, std::size_t N> typename ArrayTemplate, typename Ty, std::size_t N>
     struct reflectet_for_type<ArrayTemplate<Ty, N>, type_traits::other_trans::enable_if_t<type_traits::type_relations::is_same_v<
@@ -803,9 +844,7 @@ namespace rainy::meta::moon {
         static constexpr auto make() noexcept {
             if constexpr (count <= 256) {
                 auto &obj = type_traits::helper::get_fake_object<collections::array<Ty, N>>();
-                return [&]<std::size_t... Is>(type_traits::helper::index_sequence<Is...>) {
-                    return std::make_tuple(&obj[Is]...);
-                }(type_traits::helper::make_index_sequence<count>{});
+                return make_collections_array_pointer_tuple<count>(obj);
             } else {
                 return std::make_tuple();
             }
@@ -813,9 +852,7 @@ namespace rainy::meta::moon {
 
         static constexpr auto bind_obj(ArrayTemplate<Ty, N> &obj) noexcept {
             if constexpr (count <= 256) {
-                return [&]<std::size_t... Is>(type_traits::helper::index_sequence<Is...>) {
-                    return std::make_tuple(&obj[Is]...);
-                }(type_traits::helper::make_index_sequence<count>{});
+                return make_collections_array_pointer_tuple<count>(obj);
             } else {
                 return std::make_tuple();
             }
