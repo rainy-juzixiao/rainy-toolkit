@@ -21,11 +21,11 @@
 #include <rainy/foundation/pal/implements/tgc_layer_module_context.hpp>
 
 namespace rainy::foundation::pal::module_context::implements {
-    RAINY_TOOLKIT_LOCAL_API static bool is_absolute_path(const std::string_view file_name) {
+    static bool is_absolute_path(const text::string_view file_name) {
         return (!file_name.empty() && file_name[0] == '/'); // NOLINT
     }
 
-    constexpr std::string_view get_suffixes_sys() {
+    constexpr text::string_view get_suffixes_sys() {
 #if RAINY_USING_MACOS
         return ".dylib";
 #else
@@ -33,7 +33,7 @@ namespace rainy::foundation::pal::module_context::implements {
 #endif
     }
 
-    RAINY_TOOLKIT_LOCAL_API static bool file_exist(const std::string_view fileName) {
+    static bool file_exist(const text::string_view fileName) {
         if (rainy_const file = fopen(fileName.data(), "r")) { // NOLINT
             (void) fclose(file);
             return true;
@@ -43,23 +43,23 @@ namespace rainy::foundation::pal::module_context::implements {
 
     using native_handle = void *;
 
-    RAINY_TOOLKIT_LOCAL_API static core::handle to_handle(native_handle h) noexcept {
+    static core::handle to_handle(native_handle h) noexcept {
         return reinterpret_cast<core::handle>(h);
     }
 
-    RAINY_TOOLKIT_LOCAL_API static native_handle from_handle(const core::handle h) noexcept {
+    static native_handle from_handle(const core::handle h) noexcept {
         return reinterpret_cast<native_handle>(h);
     }
 }
 
 namespace rainy::foundation::pal::module_context::implements {
-    core::handle load_module(const std::string_view module_path, const bool crossplatform) noexcept {
+    core::handle load_module(const text::string_view module_path, const bool crossplatform) noexcept {
         core::handle hand = 0;
         if (crossplatform) {
-            const std::vector<std::string> prefix_list = {"lib"};
-            const std::vector<std::string> suffix_list = {std::string{get_suffixes_sys()}};
+            const std::vector<text::string> prefix_list = {"lib"};
+            const std::vector<text::string> suffix_list = {text::string{get_suffixes_sys()}};
             rainy_let retry = true;
-            std::string attempt;
+            text::string attempt;
             for (rainy_let prefix = 0u; retry && !hand && prefix < prefix_list.size(); ++prefix) {
                 for (rainy_let suffix = 0u; retry && !hand && suffix < suffix_list.size(); ++suffix) {
                     if (!prefix_list[prefix].empty() && module_path.starts_with(prefix_list[prefix])) { // NOLINT
@@ -69,7 +69,7 @@ namespace rainy::foundation::pal::module_context::implements {
                         continue;
                     }
                     attempt =
-                        prefix_list[prefix] + std::string{module_path.data(), module_path.size()} + suffix_list[suffix]; // NOLINT
+                        prefix_list[prefix] + text::string{module_path.data(), module_path.size()} + suffix_list[suffix]; // NOLINT
                     hand = to_handle(dlopen(attempt.c_str(), RTLD_NOW));
                     if (!hand && is_absolute_path(module_path) && file_exist(attempt)) {
                         retry = false;
@@ -82,13 +82,13 @@ namespace rainy::foundation::pal::module_context::implements {
         return hand;
     }
 
-    core::handle try_to_get_module(const std::string_view module_path, const bool crossplatform) noexcept {
+    core::handle try_to_get_module(const text::string_view module_path, const bool crossplatform) noexcept {
         core::handle hand = 0;
         if (crossplatform) {
-            const std::vector<std::string> prefix_list = {"lib"};
-            const std::vector<std::string> suffix_list = {std::string{get_suffixes_sys()}};
+            const std::vector<text::string> prefix_list = {"lib"};
+            const std::vector<text::string> suffix_list = {{get_suffixes_sys()}};
             rainy_let retry = true;
-            std::string attempt;
+            text::string attempt;
             for (rainy_let prefix = 0u; retry && !hand && prefix < prefix_list.size(); ++prefix) {
                 for (rainy_let suffix = 0u; retry && !hand && suffix < suffix_list.size(); ++suffix) {
                     if (!prefix_list[prefix].empty() && module_path.starts_with(prefix_list[prefix])) { // NOLINT
@@ -98,7 +98,7 @@ namespace rainy::foundation::pal::module_context::implements {
                         continue;
                     }
                     attempt =
-                        prefix_list[prefix] + std::string{module_path.data(), module_path.size()} + suffix_list[suffix]; // NOLINT
+                        prefix_list[prefix] + text::string{module_path.data(), module_path.size()} + suffix_list[suffix]; // NOLINT
                     hand = to_handle(dlopen(attempt.c_str(), RTLD_NOW | RTLD_LOCAL | RTLD_NOLOAD));
                     if (!hand && is_absolute_path(module_path) && file_exist(attempt)) {
                         retry = false;
@@ -111,13 +111,13 @@ namespace rainy::foundation::pal::module_context::implements {
         return hand;
     }
 
-    farproc_fn load_symbol(const core::handle handle, const std::string_view symbol_name) noexcept {
+    farproc_fn load_symbol(const core::handle handle, const text::string_view symbol_name) noexcept {
         if (!handle) {
             return nullptr;
         }
         const native_handle hand = from_handle(handle); // NOLINT
         dlerror();
-        void *sym = dlsym(hand, std::string(symbol_name).c_str());
+        void *sym = dlsym(hand, std::string(symbol_name.data(), symbol_name.size()).c_str());
         if (!sym) {
             return nullptr;
         }

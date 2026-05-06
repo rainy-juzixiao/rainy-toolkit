@@ -1891,7 +1891,7 @@ namespace rainy::type_traits::extras::meta_method {
      *            提供 size() 的类型
      */
     template <typename Ty>
-    RAINY_CONSTEXPR_BOOL has_size_v<Ty, type_traits::other_trans::void_t<decltype(utility::declval<Ty &>().size())>> = true;
+    RAINY_CONSTEXPR_BOOL has_size_v<Ty, type_traits::other_trans::void_t<decltype(utility::declval<const Ty &>().size())>> = true;
 
     /**
      * @brief Type template for checking if a type has a size() member function.

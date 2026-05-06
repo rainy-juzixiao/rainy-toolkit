@@ -444,10 +444,9 @@ namespace rainy::foundation::memory {
 
     template <typename Ty, typename... Args,
               type_traits::other_trans::enable_if_t<std::is_array_v<Ty> && std::extent_v<Ty> == 0, int> = 0>
-    unique_ptr<Ty> make_unique(const std::size_t num,
-                               Args... args) noexcept(type_traits::type_properties::is_nothrow_constructible_v<Ty>) {
+    unique_ptr<Ty> make_unique(const std::size_t num) noexcept(type_traits::type_properties::is_nothrow_constructible_v<Ty>) {
         using elem = std::remove_extent_t<Ty>;
-        return unique_ptr<Ty>(new elem[num](args...), num);
+        return unique_ptr<Ty>(new elem[num], num);
     }
 
     template <typename Ty, typename... Args,

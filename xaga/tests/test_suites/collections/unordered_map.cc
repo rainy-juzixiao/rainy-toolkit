@@ -25,7 +25,7 @@
 using MapType = rainy::collections::unordered_map<int, std::string>;
 using PairType = rainy::utility::pair<int, std::string>;
 
-SCENARIO("std::unordered_map basic operations", "[unordered_map]") {
+SCENARIO("unordered_map basic operations", "[unordered_map]") {
 
     GIVEN("an empty unordered_map") {
         MapType map;
@@ -132,10 +132,10 @@ SCENARIO("std::unordered_map basic operations", "[unordered_map]") {
     }
 }
 
-SCENARIO("std::unordered_map lookup operations", "[unordered_map]") {
+SCENARIO("unordered_map lookup operations", "[unordered_map]") {
 
     GIVEN("an unordered_map with string keys") {
-        std::unordered_map<std::string, int> map = {{"apple", 5}, {"banana", 3}, {"cherry", 8}};
+        rainy::collections::unordered_map<std::string, int> map = {{"apple", 5}, {"banana", 3}, {"cherry", 8}};
 
         WHEN("using find() to search for existing key") {
             auto it = map.find("banana");
@@ -179,13 +179,13 @@ SCENARIO("std::unordered_map lookup operations", "[unordered_map]") {
 
         WHEN("using at() with non-existing key") {
             THEN("should throw out_of_range exception") {
-                REQUIRE_THROWS_AS(map.at("pear"), std::out_of_range);
+                REQUIRE_THROWS_AS(map.at("pear"), rainy::foundation::exceptions::logic::out_of_range);
             }
         }
     }
 }
 
-SCENARIO("std::unordered_map iteration", "[unordered_map]") {
+SCENARIO("unordered_map iteration", "[unordered_map]") {
 
     GIVEN("an unordered_map with elements") {
         MapType map = {{1, "one"}, {2, "two"}, {3, "three"}, {4, "four"}};
@@ -218,10 +218,10 @@ SCENARIO("std::unordered_map iteration", "[unordered_map]") {
     }
 }
 
-SCENARIO("std::unordered_map capacity operations", "[unordered_map]") {
+SCENARIO("unordered_map capacity operations", "[unordered_map]") {
 
     GIVEN("an empty unordered_map") {
-        std::unordered_map<int, int> map;
+        rainy::collections::unordered_map<int, int> map;
 
         WHEN("reserving space for elements") {
             map.reserve(100);
@@ -246,7 +246,7 @@ SCENARIO("std::unordered_map capacity operations", "[unordered_map]") {
     }
 }
 
-SCENARIO("std::unordered_map copy and move operations", "[unordered_map]") {
+SCENARIO("unordered_map copy and move operations", "[unordered_map]") {
 
     GIVEN("an unordered_map with elements") {
         MapType original = {{1, "one"}, {2, "two"}, {3, "three"}};
@@ -292,7 +292,7 @@ SCENARIO("std::unordered_map copy and move operations", "[unordered_map]") {
     }
 }
 
-SCENARIO("std::unordered_map with custom types", "[unordered_map]") {
+SCENARIO("unordered_map with custom types", "[unordered_map]") {
 
     struct Point {
         int x, y;
@@ -308,7 +308,7 @@ SCENARIO("std::unordered_map with custom types", "[unordered_map]") {
     };
 
     GIVEN("an unordered_map with custom key type") {
-        std::unordered_map<Point, std::string, PointHash> map; // NOLINT
+        rainy::collections::unordered_map<Point, std::string, PointHash> map; // NOLINT
 
         WHEN("inserting elements with custom keys") {
             // NOLINTBEGIN
@@ -326,9 +326,9 @@ SCENARIO("std::unordered_map with custom types", "[unordered_map]") {
     }
 }
 
-SCENARIO("std::unordered_map edge cases", "[unordered_map]") {
+SCENARIO("unordered_map edge cases", "[unordered_map]") {
     GIVEN("an unordered_map") {
-        std::unordered_map<int, int> map; // NOLINT
+        rainy::collections::unordered_map<int, int> map; // NOLINT
         WHEN("inserting and erasing repeatedly") {
             for (int i = 0; i < 100; ++i) {
                 map[i] = i;
@@ -343,8 +343,8 @@ SCENARIO("std::unordered_map edge cases", "[unordered_map]") {
             }
         }
         WHEN("swapping two maps") {
-            std::unordered_map<int, int> map1 = {{1, 10}, {2, 20}};
-            std::unordered_map<int, int> map2 = {{3, 30}, {4, 40}, {5, 50}};
+            rainy::collections::unordered_map<int, int> map1 = {{1, 10}, {2, 20}};
+            rainy::collections::unordered_map<int, int> map2 = {{3, 30}, {4, 40}, {5, 50}};
             map1.swap(map2);
             THEN("contents should be swapped") {
                 REQUIRE(map1.size() == 3);

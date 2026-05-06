@@ -21,7 +21,7 @@ SCENARIO("Wait and notify_one functionality", "[condition_variable]") {
     GIVEN("A condition variable and a mutex") {
         condition_variable cv;
         mutex mtx;
-        std::atomic<bool> ready{false};
+        atomic<bool> ready{false};
 
         WHEN("A thread waits and another thread calls notify_one") {
             std::thread t([&]() {
@@ -47,7 +47,7 @@ SCENARIO("Wait and notify_all functionality", "[condition_variable]") {
     GIVEN("A condition variable and multiple threads waiting") {
         condition_variable cv;
         mutex mtx;
-        std::atomic<bool> ready1{false}, ready2{false};
+        atomic<bool> ready1{false}, ready2{false};
 
         std::thread t1([&]() {
             unique_lock<mutex> lock(mtx);

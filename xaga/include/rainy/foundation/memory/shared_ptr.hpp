@@ -411,17 +411,20 @@ namespace rainy::foundation::memory {
     template <typename Ty>
     class shared_ptr : public implements::shared_ptr_base<Ty> {
     public:
-        using element_type = implements::shared_ptr_base<Ty>::element_type;
+        using element_type = typename implements::shared_ptr_base<Ty>::element_type;
         using pointer = element_type *;
 
         constexpr shared_ptr() = default;
 
         constexpr shared_ptr(std::nullptr_t) {}; // NOLINT
 
-        template <typename UTy>
-            requires std::conjunction_v<
-                std::conditional_t<std::is_array_v<Ty>, implements::can_del_arr<UTy>, implements::can_scalar_del<UTy>>,
-                implements::shared_convertible<UTy, Ty>>
+        template <typename UTy,
+                  type_traits::other_trans::enable_if_t<
+                      type_traits::logical_traits::conjunction_v<
+                          type_traits::other_trans::conditional_t<type_traits::primary_types::is_array_v<Ty>,
+                                                                  implements::can_del_arr<UTy>, implements::can_scalar_del<UTy>>,
+                          implements::shared_convertible<UTy, Ty>>,
+                      int> = 0>
         shared_ptr(UTy *ptr) { // NOLINT
             if constexpr (std::is_array_v<Ty>) {
                 set_ptr_and_deleter(ptr, default_deleter<Ty[]>{});
@@ -432,32 +435,42 @@ namespace rainy::foundation::memory {
             }
         }
 
-        template <typename UTy, typename Dx>
-            requires std::conjunction_v<std::is_move_constructible<Dx>, implements::is_callable_function_object<Dx &, UTy *&>,
-                                        implements::shared_convertible<UTy, Ty>>
+        template <typename UTy, typename Dx,
+                  type_traits::other_trans::enable_if_t<
+                      type_traits::logical_traits::conjunction_v<type_traits::type_properties::is_move_constructible<Dx>,
+                                                                 implements::is_callable_function_object<Dx &, UTy *&>,
+                                                                 implements::shared_convertible<UTy, Ty>>,
+                      int> = 0>
         shared_ptr(UTy *ptr, Dx deleter) {
             set_ptr_and_deleter(ptr, utility::move(deleter));
         }
 
-        template <typename UTy, typename Dx, typename Alloc>
-            requires std::conjunction_v<std::is_move_constructible<Dx>, implements::is_callable_function_object<Dx &, UTy *&>,
-                                        implements::shared_convertible<UTy, Ty>>
+        template <typename UTy, typename Dx, typename Alloc,
+                  type_traits::other_trans::enable_if_t<
+                      type_traits::logical_traits::conjunction_v<type_traits::type_properties::is_move_constructible<Dx>,
+                                                                 implements::is_callable_function_object<Dx &, UTy *&>,
+                                                                 implements::shared_convertible<UTy, Ty>>,
+                      int> = 0>
         shared_ptr(UTy *ptr, Dx deleter, Alloc allocator) {
             set_ptr_and_deleter_and_also_alloc(ptr, utility::move(deleter), allocator);
         }
 
-        template <typename Dx>
-            requires std::conjunction_v<std::is_move_constructible<Dx>,
-                                        implements::is_callable_function_object<Dx &, std::nullptr_t &>,
-                                        implements::shared_convertible<std::nullptr_t, Ty>>
+        template <typename Dx,
+                  type_traits::other_trans::enable_if_t<
+                      type_traits::logical_traits::conjunction_v<type_traits::type_properties::is_move_constructible<Dx>,
+                                                                 implements::is_callable_function_object<Dx &, std::nullptr_t &>,
+                                                                 implements::shared_convertible<std::nullptr_t, Ty>>,
+                      int> = 0>
         shared_ptr(std::nullptr_t, Dx deleter) {
             set_ptr_and_deleter(nullptr, deleter);
         }
 
-        template <typename Dx, typename Alloc>
-            requires std::conjunction_v<std::is_move_constructible<Dx>,
-                                        implements::is_callable_function_object<Dx &, std::nullptr_t &>,
-                                        implements::shared_convertible<std::nullptr_t, Ty>>
+        template <typename Dx, typename Alloc,
+                  type_traits::other_trans::enable_if_t<
+                      type_traits::logical_traits::conjunction_v<type_traits::type_properties::is_move_constructible<Dx>,
+                                                                 implements::is_callable_function_object<Dx &, std::nullptr_t &>,
+                                                                 implements::shared_convertible<std::nullptr_t, Ty>>,
+                      int> = 0>
         shared_ptr(std::nullptr_t, Dx deleter, Alloc allocator) {
             set_ptr_and_deleter_and_also_alloc(nullptr, deleter, allocator);
         }
@@ -499,8 +512,7 @@ namespace rainy::foundation::memory {
             return *this;
         }
 
-        template <typename UTy>
-            requires implements::shared_pointer_compatible<UTy, Ty>::value
+        template <typename UTy, type_traits::other_trans::enable_if_t<implements::shared_pointer_compatible<UTy, Ty>::value, int> = 0>
         shared_ptr &operator=(const shared_ptr<UTy> &right) noexcept {
             shared_ptr(right).swap(*this);
             return *this;
@@ -511,25 +523,30 @@ namespace rainy::foundation::memory {
             return *this;
         }
 
-        template <typename UTy>
-            requires implements::shared_pointer_compatible<UTy, Ty>::value
+        template <typename UTy, type_traits::other_trans::enable_if_t<implements::shared_pointer_compatible<UTy, Ty>::value, int> = 0>
         shared_ptr &operator=(shared_ptr<UTy> &&right) noexcept {
             shared_ptr(utility::move(right)).swap(*this);
             return *this;
         }
 
-        template <typename UTy, typename Dx>
-            requires std::conjunction_v<implements::shared_pointer_compatible<UTy, Ty>,
-                                        std::is_convertible<typename nebula_ptr<UTy, Dx>::pointer, element_type *>>
+        template <typename UTy, typename Dx,
+                  type_traits::other_trans::enable_if_t<
+                      type_traits::logical_traits::conjunction_v<
+                          implements::shared_pointer_compatible<UTy, Ty>,
+                          type_traits::type_relations::is_convertible<typename nebula_ptr<UTy, Dx>::pointer, element_type *>>,
+                      int> = 0>
         shared_ptr &operator=(nebula_ptr<UTy, Dx> &&right) {
             shared_ptr(utility::move(right)).swap(*this);
             return *this;
         }
 
-        template <typename UTy>
-            requires std::conjunction_v<
-                std::conditional_t<std::is_array_v<Ty>, implements::can_del_arr<UTy>, implements::can_scalar_del<UTy>>,
-                implements::shared_convertible<UTy, Ty>>
+        template <typename UTy,
+                  type_traits::other_trans::enable_if_t<
+                      type_traits::logical_traits::conjunction_v<
+                          type_traits::other_trans::conditional_t<type_traits::primary_types::is_array_v<Ty>,
+                                                                  implements::can_del_arr<UTy>, implements::can_scalar_del<UTy>>,
+                          implements::shared_convertible<UTy, Ty>>,
+                      int> = 0>
         shared_ptr &operator=(UTy *ptr) {
             shared_ptr(ptr).swap(*this);
             return *this;
@@ -543,24 +560,33 @@ namespace rainy::foundation::memory {
             shared_ptr{}.swap(*this);
         }
 
-        template <typename UTy>
-            requires std::conjunction_v<
-                std::conditional_t<std::is_array_v<Ty>, implements::can_del_arr<UTy>, implements::can_scalar_del<UTy>>,
-                implements::shared_convertible<UTy, Ty>>
+        template <typename UTy,
+                  type_traits::other_trans::enable_if_t<
+                      type_traits::logical_traits::conjunction_v<
+                          type_traits::other_trans::conditional_t<type_traits::primary_types::is_array_v<Ty>,
+                                                                  implements::can_del_arr<UTy>, implements::can_scalar_del<UTy>>,
+                          implements::shared_convertible<UTy, Ty>>,
+                      int> = 0>
         void reset(UTy *ptr) {
             shared_ptr(ptr).swap(*this);
         }
 
-        template <typename UTy, typename Dx>
-            requires std::conjunction_v<std::is_move_constructible<Dx>, implements::is_callable_function_object<Dx &, UTy *&>,
-                                        implements::shared_convertible<UTy, Ty>>
+        template <typename UTy, typename Dx,
+                  type_traits::other_trans::enable_if_t<
+                      type_traits::logical_traits::conjunction_v<type_traits::type_properties::is_move_constructible<Dx>,
+                                                                 implements::is_callable_function_object<Dx &, UTy *&>,
+                                                                 implements::shared_convertible<UTy, Ty>>,
+                      int> = 0>
         void reset(UTy *ptr, Dx deleter) {
             shared_ptr(ptr, deleter).swap(*this);
         }
 
-        template <typename UTy, typename Dx, typename Alloc>
-            requires std::conjunction_v<std::is_move_constructible<Dx>, implements::is_callable_function_object<Dx &, UTy *&>,
-                                        implements::shared_convertible<UTy, Ty>>
+        template <typename UTy, typename Dx, typename Alloc,
+                  type_traits::other_trans::enable_if_t<
+                      type_traits::logical_traits::conjunction_v<type_traits::type_properties::is_move_constructible<Dx>,
+                                                                 implements::is_callable_function_object<Dx &, UTy *&>,
+                                                                 implements::shared_convertible<UTy, Ty>>,
+                      int> = 0>
         void reset(UTy *ptr, Dx deleter, Alloc allocator) {
             shared_ptr(ptr, deleter, allocator).swap(*this);
         }
@@ -608,9 +634,11 @@ namespace rainy::foundation::memory {
         void set_ptr_rep_and_enable_shared(UTy *const px, implements::ref_count_base *const rx) noexcept {
             this->pair.first = px;
             this->pair.second = rx;
-            if constexpr (!std::is_array_v<Ty> && !std::is_volatile_v<UTy> && implements::can_enable_shared<UTy>::value) {
+            if constexpr (!type_traits::primary_types::is_array_v<Ty> && !type_traits::type_properties::is_volatile_v<UTy> &&
+                          implements::can_enable_shared<UTy>::value) {
                 if (px && px->wptr.expired()) {
-                    px->wptr = shared_ptr<std::remove_cv_t<UTy>>(*this, const_cast<std::remove_cv_t<UTy> *>(px));
+                    px->wptr = shared_ptr<type_traits::cv_modify::remove_cv_t<UTy>>(
+                        *this, const_cast<type_traits::cv_modify::remove_cv_t<UTy> *>(px));
                 }
             }
         }
@@ -649,16 +677,14 @@ namespace rainy::foundation::memory {
             this->weakly_construct_from(right);
         }
 
-        template <typename UTy>
-            requires implements::shared_pointer_compatible<UTy, Ty>::value
+        template <typename UTy, type_traits::other_trans::enable_if_t<implements::shared_pointer_compatible<UTy, Ty>::value, int> = 0>
         weak_ptr(const shared_ptr<UTy> &right) noexcept {
             this->weakly_construct_from(right);
         }
 
         template <typename UTy, type_traits::other_trans::enable_if_t<implements::shared_pointer_compatible<UTy, Ty>::value, int> = 0>
         weak_ptr(const weak_ptr<UTy> &right) noexcept {
-            constexpr bool avoid_expired_conversions = must_avoid_expired_conversions_from<UTy>;
-            if constexpr (avoid_expired_conversions) {
+            if constexpr (constexpr bool avoid_expired_conversions = must_avoid_expired_conversions_from<UTy>) {
                 this->weakly_convert_lvalue_avoiding_expired_conversions(right);
             } else {
                 this->weakly_construct_from(right);

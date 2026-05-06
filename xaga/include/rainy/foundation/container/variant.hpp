@@ -677,7 +677,7 @@ namespace rainy::foundation::container {
             }
             if (right.valueless_by_exception()) {
                 base::destroy();
-                this->idx = static_cast<base::index_t>(variant_npos);
+                this->idx = static_cast<typename base::index_t>(variant_npos);
                 return *this;
             }
             if (this->index() == right.index()) {
@@ -689,7 +689,7 @@ namespace rainy::foundation::container {
                 });
             } else {
                 base::destroy();
-                this->idx = static_cast<base::index_t>(variant_npos);
+                this->idx = static_cast<typename base::index_t>(variant_npos);
                 this->construct_from(utility::move(right));
             }
             return *this;
@@ -700,11 +700,11 @@ namespace rainy::foundation::container {
             try {
                 variant tmp(utility::forward<Ty>(object));
                 base::destroy();
-                this->idx = static_cast<base::index_t>(variant_npos);
+                this->idx = static_cast<typename base::index_t>(variant_npos);
                 this->construct_from(utility::move(tmp));
             } catch (...) {
                 base::destroy();
-                this->idx = static_cast<base::index_t>(variant_npos);
+                this->idx = static_cast<typename base::index_t>(variant_npos);
                 throw;
             }
             return *this;
@@ -733,7 +733,7 @@ namespace rainy::foundation::container {
                   type_traits::other_trans::enable_if_t<type_traits::type_properties::is_constructible_v<Ty, Args...>, int> = 0>
         constexpr Ty &emplace(Args &&...args) {
             base::destroy();
-            this->idx = static_cast<base::index_t>(variant_npos);
+            this->idx = static_cast<typename base::index_t>(variant_npos);
             utility::construct_in_place(this->storage(), type_traits::helper::integral_constant<std::size_t, Idx>{},
                                         utility::forward<Args>(args)...);
             this->set_index(Idx);
@@ -746,7 +746,7 @@ namespace rainy::foundation::container {
                       type_traits::type_properties::is_constructible_v<Ty, std::initializer_list<U> &, Args...>, int> = 0>
         constexpr Ty &emplace(std::initializer_list<U> il, Args &&...args) {
             base::destroy();
-            this->idx = static_cast<base::index_t>(variant_npos);
+            this->idx = static_cast<typename base::index_t>(variant_npos);
             utility::construct_in_place(this->storage(), type_traits::helper::integral_constant<std::size_t, Idx>{}, il,
                                         utility::forward<Args>(args)...);
             this->set_index(Idx);

@@ -112,19 +112,15 @@ namespace rainy::foundation::io::net::ip {
             return (network().to_uint() & other.netmask().to_uint()) == other.network().to_uint();
         }
 
-        // ── to_string（CIDR 记法，例如 "192.168.1.0/24"）──────────────────
-
         template <typename Allocator = std::allocator<char>>
         text::basic_string<char, text::char_traits<char>, Allocator> to_string(const Allocator &alloc = Allocator()) const {
             auto result = network().to_string(alloc);
             result += '/';
             char len_buf[4]{};
-            auto [ptr, ec] = std::to_chars(len_buf, len_buf + sizeof(len_buf), prefix_len_);
+            auto [ptr, ec] = text::to_chars(len_buf, len_buf + sizeof(len_buf), prefix_len_);
             result.append(len_buf, ptr);
             return result;
         }
-
-        // ── 比较（canonical 形式下按网络地址+前缀长度排序）──────────────────
 
         friend constexpr bool operator==(const network_v4 &a, const network_v4 &b) noexcept {
             return a.prefix_len_ == b.prefix_len_ && a.network() == b.network();
@@ -246,7 +242,7 @@ namespace rainy::foundation::io::net::ip {
             auto result = network().to_string(alloc);
             result += '/';
             char len_buf[4]{};
-            auto [ptr, ec] = std::to_chars(len_buf, len_buf + sizeof(len_buf), prefix_len_);
+            auto [ptr, ec] = text::to_chars(len_buf, len_buf + sizeof(len_buf), prefix_len_);
             result.append(len_buf, ptr);
             return result;
         }
