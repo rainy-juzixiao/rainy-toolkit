@@ -1,6 +1,0 @@
-Ubpa_AddTarget(
-  TEST
-  MODE STATIC_AND_SHARED
-  #SOURCE
-  #  "${CMAKE_CURRENT_SOURCE_DIR}/../mul.h"
-)
