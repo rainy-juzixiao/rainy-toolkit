@@ -273,19 +273,39 @@ namespace rainy::foundation::ctti::implements {
     constexpr rain_fn generate_variable_name() -> std::string_view {
         if constexpr (constexpr auto r = std::meta::reflect_constant(Variable); std::meta::is_enumerator(r)) {
             return std::meta::identifier_of(r);
+        } else if constexpr (std::meta::has_identifier(r)) {
+            return std::meta::identifier_of(r);
         } else {
-            return std::meta::display_string_of(r);
+            if constexpr (type_traits::primary_types::is_enum_v<decltype(Variable)>) {
+                return std::meta::display_string_of(r);
+            } else {
+                // NOLINTBEGIN
+                constexpr std::string_view full = std::meta::display_string_of(r);
+                constexpr auto last_dot = full.rfind('.');
+                constexpr std::string_view after_dot = (last_dot != std::string_view::npos) ? full.substr(last_dot + 1) : full;
+                constexpr auto last_sep = after_dot.rfind("::");
+                constexpr std::string_view name = (last_sep != std::string_view::npos) ? after_dot.substr(last_sep + 2) : after_dot;
+                return name;
+                // NOLINTEND
+            }
         }
     }
 #else
     template <auto Variable>
-    static constexpr std::string_view make_variable_name_ref() {
+    static constexpr rain_fn make_variable_name_ref() -> std::string_view {
         constexpr std::string_view func_name = wrapped_variable_name<Variable>();
-#if RAINY_USING_CLANG
+#if RAINY_USING_CLANG || RAINY_USING_LLVM_GCC
         constexpr auto split = func_name.substr(0, func_name.rfind("]"));
         constexpr auto start = split.find("Variable = ") + 11;
         constexpr auto end = split.find(";", start);
-        return split.substr(start, end - start);
+        constexpr auto raw_name = split.substr(start, end - start);
+        constexpr auto dot_pos = raw_name.rfind('.');
+        if constexpr (dot_pos != std::string_view::npos) {
+            // 如果找到.，剔除.及其之前的所有字符
+            return raw_name.substr(dot_pos + 1);
+        } else {
+            return raw_name;
+        }
 #elif RAINY_USING_GCC
         constexpr auto split = func_name.substr(0, func_name.rfind(']') - 1);
         constexpr auto start = split.find("with auto Variable = ") + 21;
@@ -316,9 +336,59 @@ namespace rainy::foundation::ctti::implements {
         }
         return full; // NOLINT
 #elif RAINY_USING_MSVC
-        auto split = func_name.substr(func_name.rfind("wrapped_variable_name<(") + 21);
-        auto str = split.substr(split.rfind("->") + 2);
-        return str.substr(0, str.rfind(">(void)"));
+        auto bracket_start = func_name.rfind('<');
+        auto bracket_end = func_name.rfind('>}');
+
+        if (bracket_end == std::string_view::npos) {
+            bracket_end = func_name.rfind('>');
+        }
+
+        if (bracket_start == std::string_view::npos || bracket_end == std::string_view::npos) {
+            return "";
+        }
+
+        auto content = func_name.substr(bracket_start + 1, bracket_end - bracket_start - 1);
+
+        bool is_parenthesized = false;
+
+        if (!content.empty() && content[0] == '(') {
+            auto last_rparen = content.rfind(')');
+            if (last_rparen != std::string_view::npos && last_rparen + 1 < content.size()) {
+                auto next_char = content[last_rparen + 1];
+                if (next_char == '-' || (next_char >= '0' && next_char <= '9')) {
+                    is_parenthesized = true;
+                }
+            }
+        }
+
+        if (is_parenthesized) {
+            return content;
+        }
+
+        auto last_dot = content.rfind('.');
+        auto last_arrow = content.rfind("->");
+        auto last_colon = content.rfind("::");
+
+        if (last_dot == std::string_view::npos) {
+            last_dot = 0;
+        }
+
+        if (last_arrow == std::string_view::npos) {
+            last_arrow = 0;
+        }
+
+        if (last_colon == std::string_view::npos) {
+            last_colon = 0;
+        }
+
+        auto last_sep = (core::max)({last_dot, last_arrow, last_colon});
+
+        if (last_sep != std::string_view::npos) {
+            auto sep_len = (last_sep == last_arrow) ? 2 : 1;
+            return content.substr(last_sep + sep_len);
+        }
+
+        return content;
 #else
         static_assert(false, "Unsupported compiler");
 #endif

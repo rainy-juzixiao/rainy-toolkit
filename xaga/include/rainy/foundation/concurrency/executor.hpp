@@ -178,13 +178,18 @@ namespace rainy::foundation::concurrency::implements {
         }
         // 不用 packaged_task，直接操作 shared_state
         auto state = make_shared_state<Rx>();
-        state->set_deferred([state, fx = utility::forward<Fx>(fx), ... args = utility::forward<Args>(args)]() mutable {
+        auto args_tuple = std::make_tuple(utility::forward<Args>(args)...);
+        state->set_deferred([state, fx = utility::forward<Fx>(fx), args_tuple = utility::move(args_tuple)]() mutable {
             try {
                 if constexpr (type_traits::type_relations::is_void_v<Rx>) {
-                    fx(utility::forward<Args>(args)...);
+                    std::apply([&fx](auto &&...captured_args) { fx(utility::forward<decltype(captured_args)>(captured_args)...); },
+                               args_tuple);
                     state->set_value();
                 } else {
-                    state->set_value(fx(utility::forward<Args>(args)...));
+                    state->set_value(
+                        std::apply(
+                            [&fx](auto &&...captured_args) { return fx(utility::forward<decltype(captured_args)>(captured_args)...); },
+                            args_tuple));
                 }
             } catch (...) {
                 state->set_exception(std::current_exception());

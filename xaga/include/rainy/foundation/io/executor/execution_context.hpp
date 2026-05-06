@@ -112,7 +112,7 @@ namespace rainy::foundation::io {
         template <typename Service>
         static service::key make_key() {
             service::key k;
-            if constexpr (requires { typename Service::key_type; }) {
+            if constexpr (type_traits::extras::meta_types::has_key_type_v<Service>) {
                 k.type_info_ = &rainy_typeid(typename Service::key_type);
             } else {
                 k.id_ = static_cast<const void *>(&Service::id);

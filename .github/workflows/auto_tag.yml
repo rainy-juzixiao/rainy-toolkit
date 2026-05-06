@@ -1,0 +1,53 @@
+name: release-please
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - uses: google-github-actions/release-please-action@v4
+        id: release
+        with:
+          github-token: ${{ secrets.RELEASE_PLEASE_PAT }}
+          release-type: simple
+          tag-prefix: v
+          target-branch: master
+
+  sync-version:
+    needs: release-please
+    if: needs.release-please.outputs.release_created == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+
+      - name: Update version files
+        run: |
+          VERSION="${{ needs.release-please.outputs.tag_name }}"
+          VERSION=${VERSION#v}
+          sed -i "s/project(MyProject VERSION [0-9.]*/project(MyProject VERSION ${VERSION}/" CMakeLists.txt
+          echo "${VERSION}" > version.txt
+
+      - name: Commit and push changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add CMakeLists.txt version.txt
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "chore: update version to ${VERSION} [skip ci]"
+            git push
+          fi

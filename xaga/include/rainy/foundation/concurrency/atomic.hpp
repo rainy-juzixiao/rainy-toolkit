@@ -49,7 +49,9 @@ namespace rainy::foundation::concurrency {
     using atomic_ulong = atomic<unsigned long>;
     using atomic_llong = atomic<long long>;
     using atomic_ullong = atomic<unsigned long long>;
+#if RAINY_HAS_CXX20
     using atomic_char8_t = atomic<char8_t>;
+#endif
     using atomic_char16_t = atomic<char16_t>;
     using atomic_char32_t = atomic<char32_t>;
     using atomic_wchar_t = atomic<wchar_t>;

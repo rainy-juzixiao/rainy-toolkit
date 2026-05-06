@@ -82,7 +82,7 @@ namespace rainy::collections {
         RAINY_CONSTEXPR20 vector(InputIter first, InputIter last, const allocator_type &alloc = allocator_type()) : pair(alloc, {}) {
             auto &allocator = get_al();
             auto &object = vec_object();
-            const size_type count = static_cast<size_type>(std::distance(first, last));
+            rainy_const count = static_cast<size_type>(std::distance(first, last));
             if (count == 0) {
                 return;
             }
@@ -243,7 +243,7 @@ namespace rainy::collections {
         template <typename InputIter,
                   type_traits::other_trans::enable_if_t<type_traits::extras::iterators::is_input_iterator_v<InputIter>, int> = 0>
         RAINY_CONSTEXPR20 void assign(InputIter first, InputIter last) {
-            const size_type count = static_cast<size_type>(utility::distance(first, last));
+            rainy_const count = static_cast<size_type>(utility::distance(first, last));
             auto &allocator = get_al();
             auto &object = vec_object();
             if (count > capacity()) {
@@ -251,8 +251,7 @@ namespace rainy::collections {
                 swap(tmp);
                 return;
             }
-            const size_type cur = size();
-            if (count <= cur) {
+            if (const size_type cur = size(); count <= cur) {
                 auto new_finish = std::copy(first, last, object.start);
                 for (pointer p = new_finish; p != object.finish; ++p) {
                     std::allocator_traits<allocator_type>::destroy(allocator, p);
@@ -277,8 +276,7 @@ namespace rainy::collections {
                 swap(tmp);
                 return;
             }
-            const size_type cur = size();
-            if (count <= cur) {
+            if (const size_type cur = size(); count <= cur) {
                 std::fill_n(object.start, count, elem);
                 for (pointer p = object.start + count; p != object.finish; ++p) {
                     std::allocator_traits<allocator_type>::destroy(allocator, p);
@@ -349,27 +347,26 @@ namespace rainy::collections {
             return rend();
         }
 
-        RAINY_CONSTEXPR20 bool empty() const noexcept {
+        RAINY_NODISCARD RAINY_CONSTEXPR20 bool empty() const noexcept {
             return vec_object().start == vec_object().finish;
         }
 
-        RAINY_CONSTEXPR20 size_type size() const noexcept {
+        RAINY_NODISCARD RAINY_CONSTEXPR20 size_type size() const noexcept {
             return static_cast<size_type>(vec_object().finish - vec_object().start);
         }
 
-        RAINY_CONSTEXPR20 size_type max_size() const noexcept {
+        RAINY_NODISCARD RAINY_CONSTEXPR20 size_type max_size() const noexcept {
             return std::allocator_traits<allocator_type>::max_size(get_allocator());
         }
 
-        RAINY_CONSTEXPR20 size_type capacity() const noexcept {
+        RAINY_NODISCARD RAINY_CONSTEXPR20 size_type capacity() const noexcept {
             return static_cast<size_type>(vec_object().end_of_storage - vec_object().start);
         }
 
         RAINY_CONSTEXPR20 void resize(size_type new_size) {
             auto &allocator = get_al();
             auto &object = vec_object();
-            const size_type cur = size();
-            if (new_size < cur) {
+            if (const size_type cur = size(); new_size < cur) {
                 for (pointer p = object.start + new_size; p != object.finish; ++p) {
                     std::allocator_traits<allocator_type>::destroy(allocator, p);
                 }
@@ -386,8 +383,7 @@ namespace rainy::collections {
         RAINY_CONSTEXPR20 void resize(size_type new_size, const_reference elem) {
             auto &allocator = get_al();
             auto &object = vec_object();
-            const size_type cur = size();
-            if (new_size < cur) {
+            if (const size_type cur = size(); new_size < cur) {
                 for (pointer p = object.start + new_size; p != object.finish; ++p) {
                     std::allocator_traits<allocator_type>::destroy(allocator, p);
                 }
@@ -401,13 +397,12 @@ namespace rainy::collections {
             }
         }
 
-RAINY_CONSTEXPR20 void reserve(size_type count) {
+        RAINY_CONSTEXPR20 void reserve(size_type count) {
             if (count <= capacity()) {
                 return;
             }
             auto &allocator = get_al();
             auto &object = vec_object();
-            const size_type cur_size = size();
             pointer new_start = std::allocator_traits<allocator_type>::allocate(allocator, count);
             struct guard {
                 allocator_type &alloc;
@@ -415,7 +410,7 @@ RAINY_CONSTEXPR20 void reserve(size_type count) {
                 pointer finish;
                 size_type capacity;
 
-                guard(allocator_type &a, pointer p, size_type cap) : alloc(a), ptr(p), finish(p), capacity(cap) {
+                guard(allocator_type &a, pointer p, const size_type cap) : alloc(a), ptr(p), finish(p), capacity(cap) { // NOLINT
                 }
 
                 ~guard() {
@@ -559,7 +554,7 @@ RAINY_CONSTEXPR20 void reserve(size_type count) {
         RAINY_CONSTEXPR20 iterator emplace(const_iterator position, Args &&...args) {
             auto &allocator = get_al();
             auto &object = vec_object();
-            const size_type offset = static_cast<size_type>(position - object.start);
+            const auto offset = static_cast<size_type>(position - object.start);
             if (object.finish == object.end_of_storage) {
                 const size_type old_cap = capacity();
                 const size_type new_cap = old_cap == 0 ? 1 : old_cap * 2;
@@ -593,15 +588,14 @@ RAINY_CONSTEXPR20 void reserve(size_type count) {
             }
             auto &allocator = get_al();
             auto &object = vec_object();
-            const size_type offset = static_cast<size_type>(position - object.start);
+            const auto offset = static_cast<size_type>(position - object.start);
             const size_type cur_size = size();
             if (cur_size + count > capacity()) {
-                const size_type new_cap = (core::max)(cur_size + count, capacity() * 2);
+                const size_type new_cap = (core::max) (cur_size + count, capacity() * 2);
                 reserve(new_cap);
             }
             pointer pos = object.start + offset;
-            const size_type elems_after = static_cast<size_type>(object.finish - pos);
-            if (elems_after > count) {
+            if (const auto elems_after = static_cast<size_type>(object.finish - pos); elems_after > count) {
                 // 尾部有足够多的已有元素，先移动尾部 count 个到未初始化区域
                 pointer old_finish = object.finish;
                 for (pointer p = old_finish - count; p != old_finish; ++p) {
@@ -632,7 +626,7 @@ RAINY_CONSTEXPR20 void reserve(size_type count) {
         template <typename InputIter,
                   type_traits::other_trans::enable_if_t<type_traits::extras::iterators::is_input_iterator_v<InputIter>, int> = 0>
         RAINY_CONSTEXPR20 iterator insert(const_iterator position, InputIter first, InputIter last) {
-            const size_type offset = static_cast<size_type>(position - vec_object().start);
+            const auto offset = static_cast<size_type>(position - vec_object().start);
             for (auto it = first; it != last; ++it) {
                 // 每次 emplace 后 position 可能因 reserve 失效，用 offset 重新定位
                 emplace(vec_object().start + offset + static_cast<size_type>(it - first), *it);
@@ -640,14 +634,14 @@ RAINY_CONSTEXPR20 void reserve(size_type count) {
             return vec_object().start + offset;
         }
 
-        RAINY_CONSTEXPR20 iterator insert(const_iterator position, std::initializer_list<value_type> ilist) {
+        RAINY_CONSTEXPR20 iterator insert(const const_iterator position, std::initializer_list<value_type> ilist) {
             return insert(position, ilist.begin(), ilist.end());
         }
 
         RAINY_CONSTEXPR20 iterator erase(const_iterator position) {
             auto &allocator = get_al();
             auto &object = vec_object();
-            pointer pos = const_cast<pointer>(position);
+            auto pos = const_cast<pointer>(position);
             core::algorithm::move(pos + 1, object.finish, pos);
             --object.finish;
             std::allocator_traits<allocator_type>::destroy(allocator, object.finish);
@@ -657,8 +651,8 @@ RAINY_CONSTEXPR20 void reserve(size_type count) {
         RAINY_CONSTEXPR20 iterator erase(const_iterator first, const_iterator last) {
             auto &allocator = get_al();
             auto &object = vec_object();
-            pointer f = const_cast<pointer>(first);
-            pointer l = const_cast<pointer>(last);
+            auto f = const_cast<pointer>(first);
+            auto l = const_cast<pointer>(last);
             pointer new_finish = core::algorithm::move(l, object.finish, f);
             for (pointer p = new_finish; p != object.finish; ++p) {
                 std::allocator_traits<allocator_type>::destroy(allocator, p);

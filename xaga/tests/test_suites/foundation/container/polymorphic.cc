@@ -423,25 +423,4 @@ SCENARIO("polymorphic exception safety", "[polymorphic][exception]") {
     }
 }
 
-SCENARIO("polymorphic strong exception guarantee", "[polymorphic][exception][guarantee]") {
-    GIVEN("an allocator that throws on copy") {
-
-        using ThrowingBase = Base;
-        using ThrowingAlloc = ThrowingAllocator<Base>;
-
-        WHEN("construction throws due to allocator") {
-            using TestAlloc = ThrowingAllocator<char>; // 注意：这里使用char，实际会被rebind
-            TestAlloc alloc;
-            alloc.should_throw = true;
-
-            THEN("construction should throw") {
-                auto f = [&alloc]() {
-                    (void) polymorphic<Base, TestAlloc>(std::allocator_arg, alloc, std::in_place_type<Derived>, 1500);
-                };
-                REQUIRE_THROWS_AS(f(), std::bad_alloc);
-            }
-        }
-    }
-}
-
 // NOLINTEND

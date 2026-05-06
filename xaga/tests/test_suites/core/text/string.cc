@@ -22,6 +22,7 @@
 #include <catch2/matchers/catch_matchers_string.hpp>
 #include <limits>
 #include <memory>
+#include <sstream>
 
 using namespace rainy::foundation::text;
 

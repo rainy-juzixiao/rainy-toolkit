@@ -6,6 +6,7 @@
 #include <rainy/foundation/io/executor/op_queue.hpp>
 #include <rainy/foundation/memory/shared_ptr.hpp>
 #include <rainy/foundation/io/executor/operation.hpp>
+#include <memory>
 
 namespace rainy::foundation::io::implements {
     class strand_executor_service : public execution_context_service_base<strand_executor_service> {

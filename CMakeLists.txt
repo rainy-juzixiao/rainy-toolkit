@@ -17,7 +17,13 @@
 #   limitations under the License.
 
 cmake_minimum_required(VERSION 3.22.1)
-project(rainy-toolkit VERSION 0.7.4 LANGUAGES CXX)
+
+file(READ "${CMAKE_SOURCE_DIR}/version.txt" VERSION)
+string(STRIP "${VERSION}" VERSION)
+
+project(rainy-toolkit VERSION ${VERSION} LANGUAGES CXX)
+
+message(STATUS "Current rainy-toolkit version is ${VERSION}")
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

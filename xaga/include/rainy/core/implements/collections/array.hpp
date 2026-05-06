@@ -21,6 +21,7 @@
 #include <rainy/core/platform.hpp>
 #include <rainy/core/type_traits.hpp>
 #include <tuple>
+#include <exception>
 
 namespace rainy::collections {
     template <typename Ty, std::size_t N>

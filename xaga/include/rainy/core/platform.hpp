@@ -152,6 +152,24 @@ clang和GNU编译器区域
 #define RAINY_CONSTEXPR23
 #endif
 
+#if RAINY_HAS_CXX26
+#define RAINY_CONSTEXPR26 constexpr
+#else
+#define RAINY_CONSTEXPR26
+#endif
+
+#if RAINY_HAS_CXX26 && RAINY_HAS_CXX26_STATIC_REFLECTION
+#define RAINY_STATIC_REFLECTION_CONSTEXPR26 constexpr
+#else
+#define RAINY_STATIC_REFLECTION_CONSTEXPR26
+#endif
+
+#if RAINY_HAS_CXX20
+#define RAINY_CONSTEVAL consteval
+#else
+#define RAINY_CONSTEVAL constexpr
+#endif
+
 #ifndef RAINY_NODISCARD_CONSTEXPR20
 #define RAINY_NODISCARD_CONSTEXPR20 RAINY_NODISCARD RAINY_CONSTEXPR20
 #endif
@@ -180,6 +198,14 @@ clang和GNU编译器区域
 #define RAINY_USING_CLANG 1
 #else
 #define RAINY_USING_CLANG 0
+#endif
+#endif
+
+#ifndef RAINY_USING_LLVM_GCC
+#if defined(__clang__) && defined(__GNUC__)
+#define RAINY_USING_LLVM_GCC 1
+#else
+#define RAINY_USING_LLVM_GCC 0
 #endif
 #endif
 
@@ -507,7 +533,7 @@ static_assert(false, "We detected you are using C++14 and below, and the library
 #define RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON 0
 #endif
 
-#if RAINY_HAS_CXX26
+#if RAINY_HAS_CXX26 && RAINY_HAS_CXX26_STATIC_REFLECTION
 #include <meta>
 #endif
 
@@ -2470,5 +2496,96 @@ namespace rainy::utility::implements {
 namespace rainy::utility {
     inline constexpr implements::ignore_type ignore{};
 }
+
+#if RAINY_HAS_CXX26 && RAINY_HAS_CXX26_STATIC_REFLECTION
+
+namespace rainy::annotations {
+    struct member_anno {
+        template <typename Ty>
+        RAINY_NODISCARD consteval auto has() const noexcept -> bool {
+            using namespace std::meta;
+            for (auto attn : std::span{attns, num_attns}) {
+                if (remove_const(type_of(attn)) == ^^Ty) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        template <typename Ty>
+        RAINY_NODISCARD consteval auto fetch() const -> Ty {
+            using namespace std::meta;
+            for (auto attn : std::span{attns, num_attns}) {
+                if (remove_const(type_of(attn)) == ^^Ty) {
+                    return extract<Ty>(attn);
+                }
+            }
+            std::unreachable();
+        }
+
+        template <typename Ty>
+        RAINY_NODISCARD consteval auto get_or(Ty default_val) const noexcept -> Ty {
+            if (has<Ty>()) {
+                return fetch<Ty>();
+            }
+            return default_val;
+        }
+
+        const std::meta::info *attns{nullptr};
+        std::size_t num_attns{0};
+    };
+
+    consteval auto make_member_anno(std::meta::info member) -> member_anno {
+        auto attns = std::meta::annotations_of(member);
+        auto span = std::define_static_array(attns);
+        return member_anno{span.data(), span.size()};
+    }
+}
+
+namespace rainy::annotations {
+    struct type_anno {
+        template <typename Ty>
+        RAINY_NODISCARD consteval auto has() const noexcept -> bool {
+            using namespace std::meta;
+            for (auto attn : std::span{attns, num_attns}) {
+                if (remove_const(type_of(attn)) == ^^Ty) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        template <typename Ty>
+        RAINY_NODISCARD consteval auto fetch() const -> Ty {
+            using namespace std::meta;
+            for (auto attn : std::span{attns, num_attns}) {
+                if (remove_const(type_of(attn)) == ^^Ty) {
+                    return extract<Ty>(attn);
+                }
+            }
+            std::unreachable();
+        }
+
+        template <typename Ty>
+        RAINY_NODISCARD consteval auto get_or(Ty default_val) const noexcept -> Ty {
+            if (has<Ty>()) {
+                return fetch<Ty>();
+            }
+            return default_val;
+        }
+
+        const std::meta::info *attns{nullptr};
+        std::size_t num_attns{0};
+    };
+
+    template <typename Ty>
+    consteval auto make_type_anno() -> type_anno {
+        auto attns = std::meta::annotations_of(^^Ty);
+        auto span = std::define_static_array(attns);
+        return type_anno{span.data(), span.size()};
+    }
+}
+
+#endif
 
 #endif
