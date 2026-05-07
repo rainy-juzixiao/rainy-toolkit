@@ -13,12 +13,12 @@ namespace rainy::foundation::io::filesystem {
     class directory_iterator;
 
     directory_iterator begin(directory_iterator iter) noexcept;
-    directory_iterator end(directory_iterator) noexcept;
+    directory_iterator end(const directory_iterator&) noexcept;
 
     class recursive_directory_iterator;
 
     recursive_directory_iterator begin(recursive_directory_iterator iter) noexcept;
-    recursive_directory_iterator end(recursive_directory_iterator) noexcept;
+    recursive_directory_iterator end(const recursive_directory_iterator&) noexcept;
 
     using core::pal::copy_options;
     using core::pal::directory_options;

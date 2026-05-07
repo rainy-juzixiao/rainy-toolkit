@@ -33,7 +33,7 @@ namespace rainy::foundation::io::filesystem::implements {
         friend class filesystem::directory_iterator;
         friend class filesystem::recursive_directory_iterator;
 
-        explicit directory_iterator_proxy(const directory_entry &__e) : entry(__e) {
+        explicit directory_iterator_proxy(directory_entry entry) : entry(utility::move(entry)) {
         }
 
         directory_entry entry;
@@ -94,7 +94,7 @@ namespace rainy::foundation::io::filesystem {
         return {utility::move(iter)}; // NOLINT
     }
 
-    RAINY_NODISCARD RAINY_INLINE directory_iterator end(directory_iterator) noexcept {
+    RAINY_NODISCARD RAINY_INLINE directory_iterator end(const directory_iterator&) noexcept {
         return {};
     }
 }
@@ -161,7 +161,7 @@ namespace rainy::foundation::io::filesystem {
         return {utility::move(iter)}; // NOLINT
     }
 
-    RAINY_NODISCARD RAINY_INLINE recursive_directory_iterator end(recursive_directory_iterator) noexcept {
+    RAINY_NODISCARD RAINY_INLINE recursive_directory_iterator end(const recursive_directory_iterator&) noexcept {
         return {};
     }
 }
