@@ -398,6 +398,75 @@ namespace rainy::foundation::memory::implements {
         bool need_release{true};
     };
 
+    template <typename Ty>
+    class ref_count_allocated : public ref_count_base {
+    public:
+        template <typename... Args>
+        explicit ref_count_allocated(Args &&...args) {
+            ::new (static_cast<void *>(&storage)) Ty(std::forward<Args>(args)...);
+        }
+
+        Ty *get_ptr() noexcept {
+            return reinterpret_cast<Ty *>(&storage);
+        }
+
+    private:
+        void destory() noexcept override {
+            get_ptr()->~Ty();
+        }
+
+        void delete_this() noexcept override {
+            this->~ref_count_allocated();
+            ::operator delete(this, static_cast<std::align_val_t>(alignof(Ty)));
+        }
+
+        alignas(Ty) core::byte_t storage[sizeof(Ty)]{};
+    };
+
+    template <typename Ty>
+    class ref_count_allocated_array : public ref_count_base {
+    public:
+        explicit ref_count_allocated_array(const std::size_t count) : count(count) {
+            // NOLINTBEGIN
+            try {
+                ptr = new Ty[count]();
+            } catch (...) {
+                delete this;
+                throw;
+            }
+            // NOLINTEND
+        }
+
+        ref_count_allocated_array(const std::size_t count, const Ty &u) : count(count) {
+            try {
+                ptr = new Ty[count];
+                for (std::size_t i = 0; i < count; ++i) {
+                    ptr[i] = u;
+                }
+            } catch (...) {
+                delete[] ptr;
+                delete this;
+                throw;
+            }
+        }
+
+        Ty *get_ptr() noexcept {
+            return ptr;
+        }
+
+    private:
+        void destory() noexcept override {
+            delete[] ptr;
+        }
+
+        void delete_this() noexcept override {
+            delete this;
+        }
+
+        Ty *ptr{nullptr};
+        std::size_t count;
+    };
+
     template <typename Ty, typename = void>
     struct can_enable_shared : type_traits::helper::false_type {};
 
@@ -501,6 +570,11 @@ namespace rainy::foundation::memory {
         template <typename UTy, type_traits::other_trans::enable_if_t<implements::shared_pointer_compatible<UTy, Ty>::value, int> = 0>
         shared_ptr(shared_ptr<UTy> &&right) noexcept { // NOLINT
             this->move_construct_from(utility::move(right));
+        }
+
+        shared_ptr(core::internal_construct_tag_t, void *const ptr, implements::ref_count_base *const rx) {
+            this->pair.first = static_cast<element_type *>(ptr);
+            this->pair.second = rx;
         }
 
         ~shared_ptr() noexcept {
@@ -653,6 +727,81 @@ namespace rainy::foundation::memory {
     shared_ptr(weak_ptr<T>) -> shared_ptr<T>;
     template <typename T, typename D>
     shared_ptr(nebula_ptr<T, D>) -> shared_ptr<T>;
+
+    template <typename Ty, typename... Args,
+              type_traits::other_trans::enable_if_t<!type_traits::primary_types::is_array_v<Ty>, int> = 0>
+    shared_ptr<Ty> make_shared(Args &&...args) {
+        void *memory = ::operator new(sizeof(implements::ref_count_allocated<Ty>));
+        auto *control_block = ::new (memory) implements::ref_count_allocated<Ty>(utility::forward<Args>(args)...);
+        shared_ptr<Ty> result(core::internal_construct_tag, memory, control_block);
+        return result;
+    }
+
+    template <typename Ty, type_traits::other_trans::enable_if_t<std::is_unbounded_array_v<Ty>, int> = 0>
+    shared_ptr<Ty> make_shared(std::size_t count) {
+        using element_type = type_traits::modifers::remove_extent_t<Ty>;
+        implements::ref_count_allocated_array<element_type> *control_block = nullptr;
+        // NOLINTBEGIN
+        try {
+            control_block = new implements::ref_count_allocated_array<element_type>(count);
+            shared_ptr<Ty> result(core::internal_construct_tag, control_block->get_ptr(), control_block);
+            return result;
+        } catch (...) {
+            delete control_block;
+            throw;
+        }
+        // NOLINTEND
+    }
+
+    template <typename Ty, type_traits::other_trans::enable_if_t<std::is_bounded_array_v<Ty>, int> = 0>
+    shared_ptr<Ty> make_shared() {
+        constexpr std::size_t count = std::extent_v<Ty>;
+        using element_type = type_traits::modifers::remove_extent_t<Ty>;
+        implements::ref_count_allocated_array<element_type> *control_block = nullptr;
+        // NOLINTBEGIN
+        try {
+            control_block = new implements::ref_count_allocated_array<element_type>(count);
+            shared_ptr<Ty> result(core::internal_construct_tag, control_block->get_ptr(), control_block);
+            return result;
+        } catch (...) {
+            delete control_block;
+            throw;
+        }
+        // NOLINTEND
+    }
+
+    template <typename Ty, type_traits::other_trans::enable_if_t<std::is_unbounded_array_v<Ty>, int> = 0>
+    shared_ptr<Ty> make_shared(std::size_t count, const type_traits::modifers::remove_extent_t<Ty> &u) {
+        using element_type = type_traits::modifers::remove_extent_t<Ty>;
+        implements::ref_count_allocated_array<element_type> *control_block = nullptr;
+        // NOLINTBEGIN
+        try {
+            control_block = new implements::ref_count_allocated_array<element_type>(count, u);
+            shared_ptr<Ty> result(core::internal_construct_tag, control_block->get_ptr(), control_block);
+            return result;
+        } catch (...) {
+            delete control_block;
+            throw;
+        }
+        // NOLINTEND
+    }
+
+    template <typename Ty, type_traits::other_trans::enable_if_t<std::is_bounded_array_v<Ty>, int> = 0>
+    shared_ptr<Ty> make_shared(const type_traits::modifers::remove_extent_t<Ty> &u) {
+        constexpr std::size_t count = std::extent_v<Ty>;
+        using element_type = type_traits::modifers::remove_extent_t<Ty>;
+        implements::ref_count_allocated_array<element_type> *control_block = nullptr;
+        // NOLINTBEGIN
+        try {
+            control_block = new implements::ref_count_allocated_array<element_type>(count, u);
+            shared_ptr<Ty> result(core::internal_construct_tag, control_block->get_ptr(), control_block);
+            return result;
+        } catch (...) {
+            delete control_block;
+            throw;
+        }
+        // NOLINTEND
+    }
 }
 
 namespace rainy::foundation::memory::implements {
