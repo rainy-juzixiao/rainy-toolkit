@@ -733,7 +733,7 @@ namespace rainy::foundation::memory {
     shared_ptr<Ty> make_shared(Args &&...args) {
         void *memory = ::operator new(sizeof(implements::ref_count_allocated<Ty>));
         auto *control_block = ::new (memory) implements::ref_count_allocated<Ty>(utility::forward<Args>(args)...);
-        shared_ptr<Ty> result(core::internal_construct_tag, memory, control_block);
+        shared_ptr<Ty> result(core::internal_construct_tag, control_block->get_ptr(), control_block);
         return result;
     }
 
