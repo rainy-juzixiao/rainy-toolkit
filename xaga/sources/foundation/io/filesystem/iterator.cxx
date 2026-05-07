@@ -399,21 +399,21 @@ namespace rainy::foundation::io::filesystem {
             }
         }
 
-        int depth() const {
+        RAINY_NODISCARD int depth() const {
             if (levels.empty()) {
                 return 0;
             }
             return static_cast<int>(levels.size()) - 1;
         }
 
-        bool recursion_pending() const {
+        RAINY_NODISCARD bool recursion_pending() const {
             if (levels.empty()) {
                 return false;
             }
             return levels.top().recursion_pending;
         }
 
-        directory_options options() const {
+        RAINY_NODISCARD directory_options options() const {
             if (levels.empty()) {
                 return directory_options::none;
             }
@@ -471,8 +471,7 @@ namespace rainy::foundation::io::filesystem {
         }
     }
 
-    recursive_directory_iterator::recursive_directory_iterator(const recursive_directory_iterator &right) : dirs(right.dirs) {
-    }
+    recursive_directory_iterator::recursive_directory_iterator(const recursive_directory_iterator &right) = default;
 
     recursive_directory_iterator::recursive_directory_iterator(recursive_directory_iterator &&right) noexcept :
         dirs(utility::move(right.dirs)) {
