@@ -22,31 +22,33 @@
 namespace rainy::foundation::exceptions::runtime {
     class filesystem_error : public system_error {
     public:
+        using path = foundation::io::filesystem::path;
+
         filesystem_error(const std::string &what_arg, const std::error_code ec,
                          const source &location = diagnostics::source_location::current()) : system_error(ec, what_arg, location) {
         }
 
-        filesystem_error(const std::string &what_arg, io::filesystem::path p1, const std::error_code ec,
+        filesystem_error(const std::string &what_arg, path p1, const std::error_code ec,
                          const source &location = diagnostics::source_location::current()) :
             system_error(ec, what_arg, location), path1_(utility::move(p1)) {
         }
 
-        filesystem_error(const std::string &what_arg, io::filesystem::path p1, io::filesystem::path p2,
-                         const std::error_code ec, const source &location = diagnostics::source_location::current()) :
+        filesystem_error(const std::string &what_arg, path p1, path p2, const std::error_code ec,
+                         const source &location = diagnostics::source_location::current()) :
             system_error(ec, what_arg, location), path1_(utility::move(p1)), path2_(utility::move(p2)) {
         }
 
-        RAINY_NODISCARD const io::filesystem::path &path1() const noexcept {
+        RAINY_NODISCARD const path &path1() const noexcept {
             return path1_;
         }
 
-        RAINY_NODISCARD const io::filesystem::path &path2() const noexcept {
+        RAINY_NODISCARD const path &path2() const noexcept {
             return path2_;
         }
 
     private:
-        io::filesystem::path path1_;
-        io::filesystem::path path2_;
+        path path1_;
+        path path2_;
     };
 }
 

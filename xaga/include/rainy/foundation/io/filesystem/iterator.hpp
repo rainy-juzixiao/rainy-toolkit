@@ -19,6 +19,27 @@
 #include <rainy/foundation/io/filesystem/directory_entry.hpp>
 #include <rainy/foundation/memory/shared_ptr.hpp>
 
+namespace rainy::foundation::io::filesystem::implements {
+    struct directory_iterator_proxy {
+        const directory_entry &operator*() const & noexcept {
+            return entry;
+        }
+
+        directory_entry operator*() && noexcept {
+            return utility::move(entry);
+        }
+
+    private:
+        friend class filesystem::directory_iterator;
+        friend class filesystem::recursive_directory_iterator;
+
+        explicit directory_iterator_proxy(const directory_entry &__e) : entry(__e) {
+        }
+
+        directory_entry entry;
+    };
+}
+
 namespace rainy::foundation::io::filesystem {
     class directory_iterator {
     public:
@@ -45,6 +66,12 @@ namespace rainy::foundation::io::filesystem {
         directory_iterator &operator++();
         directory_iterator &increment(std::error_code &ec);
 
+        implements::directory_iterator_proxy operator++(int) {
+            implements::directory_iterator_proxy proxy{**this};
+            ++*this;
+            return proxy;
+        }
+
         friend bool operator==(const directory_iterator &left, const directory_iterator &right) noexcept {
             return !right.dir_.owner_before(left.dir_) && !left.dir_.owner_before(right.dir_);
         }
@@ -62,6 +89,14 @@ namespace rainy::foundation::io::filesystem {
 
         memory::shared_ptr<dir_impl> dir_;
     };
+
+    RAINY_NODISCARD RAINY_INLINE directory_iterator begin(directory_iterator iter) noexcept {
+        return {utility::move(iter)}; // NOLINT
+    }
+
+    RAINY_NODISCARD RAINY_INLINE directory_iterator end(directory_iterator) noexcept {
+        return {};
+    }
 }
 
 namespace rainy::foundation::io::filesystem {
@@ -82,9 +117,9 @@ namespace rainy::foundation::io::filesystem {
         recursive_directory_iterator(recursive_directory_iterator &&right) noexcept;
         ~recursive_directory_iterator();
 
-        directory_options options() const;
-        int depth() const;
-        bool recursion_pending() const;
+        RAINY_NODISCARD directory_options options() const;
+        RAINY_NODISCARD int depth() const;
+        RAINY_NODISCARD bool recursion_pending() const;
 
         const directory_entry &operator*() const;
         const directory_entry *operator->() const;
@@ -94,6 +129,12 @@ namespace rainy::foundation::io::filesystem {
 
         recursive_directory_iterator &operator++();
         recursive_directory_iterator &increment(std::error_code &ec);
+
+        implements::directory_iterator_proxy operator++(int) {
+            implements::directory_iterator_proxy proxy{**this};
+            ++*this;
+            return proxy;
+        }
 
         void pop();
         void pop(std::error_code &ec);
@@ -115,6 +156,14 @@ namespace rainy::foundation::io::filesystem {
         struct dir_stack;
         memory::shared_ptr<dir_stack> dirs;
     };
+
+    RAINY_NODISCARD RAINY_INLINE recursive_directory_iterator begin(recursive_directory_iterator iter) noexcept {
+        return {utility::move(iter)}; // NOLINT
+    }
+
+    RAINY_NODISCARD RAINY_INLINE recursive_directory_iterator end(recursive_directory_iterator) noexcept {
+        return {};
+    }
 }
 
 #endif
