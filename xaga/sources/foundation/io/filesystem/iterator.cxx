@@ -47,7 +47,7 @@ namespace rainy::foundation::io::filesystem {
 
             dir_impl(const filesystem::path &path, directory_options, std::error_code &ec) : is_valid(false), dir_path(path) {
 #if RAINY_USING_WINDOWS
-            std::string search_path = path.string() + "\\*";
+            auto search_path = path.string() + "\\*";
             handle = FindFirstFileA(search_path.c_str(), &find_data);
             if (handle == INVALID_HANDLE_VALUE) {
                 ec = std::error_code(GetLastError(), std::system_category());
