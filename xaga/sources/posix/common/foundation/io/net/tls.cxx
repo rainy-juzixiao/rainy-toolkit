@@ -24,7 +24,6 @@
 #include <openssl/x509v3.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
-#include <utility>
 #include <vector>
 
 #if RAINY_USING_MACOS
@@ -60,10 +59,12 @@ namespace rainy::foundation::io::net::implements {
         (void) guard;
     }
 
-    static std::error_code openssl_ec(const int ret) noexcept {
+    static std::error_code openssl_ec(const int ret) noexcept { // NOLINT
+        // NOLINTBEGIN
         if (ret > 0) {
             return {};
         }
+        // NOLINTEND
         switch (const int err = SSL_get_error(nullptr, ret)) {
             case SSL_ERROR_WANT_READ:
             case SSL_ERROR_WANT_WRITE:
@@ -82,11 +83,11 @@ namespace rainy::foundation::io::net::implements {
         }
     }
 
-    static std::error_code openssl_ec(SSL *ssl, const int ret) noexcept {
-        if (ret > 0)
+    static std::error_code openssl_ec(const SSL *ssl, const int ret) noexcept {
+        if (ret > 0) {
             return {};
-        const int err = SSL_get_error(ssl, ret);
-        switch (err) {
+        }
+        switch (const int err = SSL_get_error(ssl, ret)) {
             case SSL_ERROR_WANT_READ:
             case SSL_ERROR_WANT_WRITE:
                 return std::make_error_code(std::errc::resource_unavailable_try_again);
@@ -305,7 +306,7 @@ namespace rainy::foundation::io::net::implements {
             return alpn_protos_;
         }
 
-        std::error_code add_verify_path(const char *path) noexcept override {
+        std::error_code add_verify_path(const char *path) noexcept override { // NOLINT
             if (!path || !ssl_ctx_) {
                 return std::make_error_code(std::errc::invalid_argument);
             }
@@ -335,7 +336,7 @@ namespace rainy::foundation::io::net::implements {
             return std::make_error_code(std::errc::not_supported);
         }
 
-        std::error_code use_linux_store(const char *store_path) noexcept override {
+        std::error_code use_linux_store(const char *store_path) noexcept override { // NOLINT
             if (!ssl_ctx_) {
                 return std::make_error_code(std::errc::invalid_argument);
             }
@@ -495,7 +496,7 @@ namespace rainy::foundation::io::net::implements {
             return openssl_ec(ssl_, ret);
         }
 
-        void async_handshake(io_context::executor_type executor, completion_op *op) noexcept override {
+        void async_handshake(io_context::executor_type executor, completion_op *op) noexcept override { // NOLINT
             if (!ssl_ || !op) {
                 if (op) {
                     op->complete(io::implements::op_result{nullptr, 0, ENOTCONN}, false); // NOLINT
@@ -518,7 +519,7 @@ namespace rainy::foundation::io::net::implements {
                 common_ssl_socket_proxy{executor}.associate_handle(wait_op, static_cast<std::uintptr_t>(socket_fd_), nullptr);
                 if (!wait_op->io_handle) {
                     delete wait_op;
-                    op->complete(io::implements::op_result{nullptr, 0, EBADF}, false);
+                    op->complete(io::implements::op_result{nullptr, 0, EBADF}, false); // NOLINT
                     return;
                 }
 #if RAINY_USING_MACOS
@@ -528,7 +529,7 @@ namespace rainy::foundation::io::net::implements {
                 int kq = static_cast<int>(reinterpret_cast<std::uintptr_t>(wait_op->io_handle));
                 if (::kevent(kq, &ev, 1, nullptr, 0, nullptr) != 0) {
                     delete wait_op;
-                    op->complete(io::implements::op_result{nullptr, 0, errno}, false);
+                    op->complete(io::implements::op_result{nullptr, 0, errno}, false); // NOLINT
                 }
 #elif RAINY_USING_LINUX
                 auto *ring = static_cast<io_uring *>(wait_op->io_handle);
@@ -539,11 +540,11 @@ namespace rainy::foundation::io::net::implements {
                     io_uring_submit(ring);
                 } else {
                     delete wait_op;
-                    op->complete({nullptr, 0, EBUSY}, false);
+                    op->complete(io::implements::op_result{nullptr, 0, EBUSY}, false); // NOLINT
                 }
 #endif
             } else {
-                op->complete({nullptr, 0, openssl_ec(ssl_, ret).value()}, false);
+                op->complete(io::implements::op_result{nullptr, 0, openssl_ec(ssl_, ret).value()}, false); // NOLINT
             }
         }
 
@@ -559,7 +560,7 @@ namespace rainy::foundation::io::net::implements {
             return ret == 1 ? std::error_code{} : openssl_ec(ssl_, ret);
         }
 
-        void async_shutdown(io_context::executor_type executor, completion_op *op) noexcept override {
+        void async_shutdown(const io_context::executor_type executor, completion_op *op) noexcept override {
             if (!ssl_ || !op) {
                 if (op) {
                     op->complete(io::implements::op_result{nullptr, 0, ENOTCONN}, false); // NOLINT
@@ -596,22 +597,20 @@ namespace rainy::foundation::io::net::implements {
                     op->complete({nullptr, 0, errno}, false);
                 }
 #elif RAINY_USING_LINUX
-                io_uring *ring = static_cast<io_uring *>(wait_op->io_handle);
-                io_uring_sqe *sqe = io_uring_get_sqe(ring);
-                if (sqe) {
+                auto *const ring = static_cast<io_uring *>(wait_op->io_handle);
+                if (io_uring_sqe *sqe = io_uring_get_sqe(ring)) {
                     io_uring_prep_poll_add(sqe, socket_fd_, POLLOUT);
                     io_uring_sqe_set_data(sqe, wait_op);
                     io_uring_submit(ring);
                 } else {
                     delete wait_op;
-                    op->complete({nullptr, 0, EBUSY}, false);
+                    op->complete(io::implements::op_result{nullptr, 0, EBUSY}, false); // NOLINT
                 }
 #endif
                 return;
             }
 
-            int err = SSL_get_error(ssl_, ret);
-            if (err == SSL_ERROR_WANT_READ || err == SSL_ERROR_WANT_WRITE) {
+            if (const int err = SSL_get_error(ssl_, ret); err == SSL_ERROR_WANT_READ || err == SSL_ERROR_WANT_WRITE) {
                 wants_retry_ = true;
                 wants_read_ = (err == SSL_ERROR_WANT_READ);
                 wants_write_ = (err == SSL_ERROR_WANT_WRITE);
@@ -619,7 +618,7 @@ namespace rainy::foundation::io::net::implements {
                 common_ssl_socket_proxy{executor}.associate_handle(wait_op, static_cast<std::uintptr_t>(socket_fd_), nullptr);
                 if (!wait_op->io_handle) {
                     delete wait_op;
-                    op->complete({nullptr, 0, EBADF}, false);
+                    op->complete(io::implements::op_result{nullptr, 0, EBADF}, false); // NOLINT
                     return;
                 }
 
@@ -775,7 +774,7 @@ namespace rainy::foundation::io::net::implements {
                 if (!wait_op->io_handle) {
                     delete wait_op;
                     delete data;
-                    op->complete({nullptr, 0, EBADF}, false);
+                    op->complete(io::implements::op_result{nullptr, 0, EBADF}, false); // NOLINT
                     return;
                 }
 
@@ -821,14 +820,14 @@ namespace rainy::foundation::io::net::implements {
 
             if (ret > 0) {
                 reset_operation();
-                op->complete(io::implements::op_result{nullptr, static_cast<std::size_t>(ret), 0}, false);
+                op->complete(io::implements::op_result{nullptr, static_cast<std::size_t>(ret), 0}, false); // NOLINT
                 return;
             }
 
             if (ret == 0) {
                 handshaked_ = false;
                 reset_operation();
-                op->complete(io::implements::op_result{nullptr, 0, 0}, false);
+                op->complete(io::implements::op_result{nullptr, 0, 0}, false); // NOLINT
                 return;
             }
 
@@ -844,7 +843,7 @@ namespace rainy::foundation::io::net::implements {
                 if (!wait_op->io_handle) {
                     delete wait_op;
                     delete data;
-                    op->complete(io::implements::op_result{nullptr, 0, EBADF}, false);
+                    op->complete(io::implements::op_result{nullptr, 0, EBADF}, false); // NOLINT
                     return;
                 }
 
@@ -982,7 +981,7 @@ namespace rainy::foundation::io::net::implements {
             wants_write_ = false;
         }
 
-        std::error_code apply_context(const ssl_context_params &params) noexcept override {
+        std::error_code apply_context(const ssl_context_params &params) noexcept override { // NOLINT
             if (!ssl_) {
                 return std::make_error_code(std::errc::invalid_argument);
             }
@@ -1017,9 +1016,10 @@ namespace rainy::foundation::io::net::implements {
             std::size_t len;
             completion_op *user_op;
 
-            async_io_data(const void *b, std::size_t l, completion_op *op) : buf(b), len(l), user_op(op) {
+            async_io_data(const void *b, const std::size_t l, completion_op *op) : buf(b), len(l), user_op(op) {
             }
-            async_io_data(void *b, std::size_t l, completion_op *op) : buf(b), len(l), user_op(op) {
+
+            async_io_data(void *b, const std::size_t l, completion_op *op) : buf(b), len(l), user_op(op) {
             }
         };
 
@@ -1030,9 +1030,9 @@ namespace rainy::foundation::io::net::implements {
             }
 
             static void do_complete(completion_op *self, const io::implements::op_result &, const bool cancelled) noexcept {
-                auto *me = static_cast<ssl_wait_op *>(self);
+                const auto *me = static_cast<ssl_wait_op *>(self);
                 if (cancelled) {
-                    me->user_op_->complete({nullptr, 0, ECANCELED}, true);
+                    me->user_op_->complete(io::implements::op_result{nullptr, 0, ECANCELED}, true); // NOLINT
                     delete me;
                     return;
                 }
@@ -1044,7 +1044,7 @@ namespace rainy::foundation::io::net::implements {
                         me->stream_->async_shutdown(me->executor_, me->user_op_);
                         break;
                     default:
-                        me->user_op_->complete({nullptr, 0, EINVAL}, false);
+                        me->user_op_->complete(io::implements::op_result{nullptr, 0, EINVAL}, false); // NOLINT
                         break;
                 }
                 delete me;
@@ -1059,14 +1059,15 @@ namespace rainy::foundation::io::net::implements {
 
         class ssl_io_wait_op : public io::implements::completion_op {
         public:
-            ssl_io_wait_op(ssl_stream_impl *stream, io_context::executor_type exec, async_io_data *data, ssl_operation_type type) :
-                io::implements::completion_op(&do_complete), stream_(stream), executor_(exec), data_(data), op_type_(type) {
+            ssl_io_wait_op(ssl_stream_impl *stream, io_context::executor_type exec, async_io_data *data,
+                           const ssl_operation_type type) :
+                completion_op(&do_complete), stream_(stream), executor_(utility::move(exec)), data_(data), op_type_(type) {
             }
 
-            static void do_complete(io::implements::completion_op *self, const io::implements::op_result &, bool cancelled) noexcept {
-                auto *me = static_cast<ssl_io_wait_op *>(self);
+            static void do_complete(completion_op *self, const io::implements::op_result &, const bool cancelled) noexcept {
+                const auto *me = static_cast<ssl_io_wait_op *>(self);
                 if (cancelled) {
-                    me->user_op()->complete({nullptr, 0, ECANCELED}, true);
+                    me->user_op()->complete(io::implements::op_result{nullptr, 0, ECANCELED}, true); // NOLINT
                     delete me->data_;
                     delete me;
                     return;
@@ -1081,7 +1082,7 @@ namespace rainy::foundation::io::net::implements {
             }
 
         private:
-            completion_op *user_op() const {
+            RAINY_NODISCARD completion_op *user_op() const {
                 return data_->user_op;
             }
 
