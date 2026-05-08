@@ -153,16 +153,6 @@ elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
     message("Linking libraries for linux package")
     target_link_libraries(rainy-toolkit PRIVATE uring)
 
-    find_package(GnuTLS)
-
-    if(GnuTLS_FOUND)
-        target_link_libraries(rainy-toolkit PRIVATE GnuTLS::GnuTLS)
-        target_compile_definitions(rainy-toolkit PRIVATE RAINY_HAS_GNUTLS=1)
-    else()
-        target_compile_definitions(rainy-toolkit PRIVATE RAINY_HAS_GNUTLS=0)
-        message(WARNING "GnuTLS not found, building without TLS support")
-    endif()
-
     find_package(OpenSSL)
 
     if(OpenSSL_FOUND)
