@@ -24,13 +24,25 @@
 #include <openssl/x509v3.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
+#include <utility>
 #include <vector>
 
 #if RAINY_USING_MACOS
+#include <sys/event.h>
 #include <sys/select.h> // NOLINT
+#include <sys/time.h>
+#elif RAINY_USING_LINUX
+#include <liburing.h>
+#include <poll.h>
+#include <sys/eventfd.h>
 #endif
 
 namespace rainy::foundation::io::net::implements {
+    struct common_ssl_socket_proxy : io_context::executor_type {
+        using executor_type::associate_handle;
+        using executor_type::post_immediate_completion;
+    };
+
     struct openssl_global_guard {
         openssl_global_guard() {
             SSL_library_init();
@@ -485,30 +497,53 @@ namespace rainy::foundation::io::net::implements {
 
         void async_handshake(io_context::executor_type executor, completion_op *op) noexcept override {
             if (!ssl_ || !op) {
+                if (op) {
+                    op->complete(io::implements::op_result{nullptr, 0, ENOTCONN}, false); // NOLINT
+                }
                 return;
             }
             pending_op_ = ssl_operation_type::handshake;
-
-            if (const int ret = is_server_ ? SSL_accept(ssl_) : SSL_connect(ssl_); ret == 1) {
+            const int ret = is_server_ ? SSL_accept(ssl_) : SSL_connect(ssl_);
+            if (ret == 1) {
                 handshaked_ = true;
-                wants_retry_ = false;
-                wants_read_ = false;
-                wants_write_ = false;
-                op->complete(io::implements::op_result{}, false);
-            } else {
-                if (const int err = SSL_get_error(ssl_, ret); err == SSL_ERROR_WANT_READ) {
-                    wants_read_ = true;
-                    wants_write_ = false;
-                    wants_retry_ = true;
-                } else if (err == SSL_ERROR_WANT_WRITE) {
-                    wants_read_ = false;
-                    wants_write_ = true;
-                    wants_retry_ = true;
-                } else {
-                    wants_retry_ = false;
-                    const std::error_code ec = openssl_ec(ssl_, err);
-                    op->complete(io::implements::op_result{nullptr, 0, ec.value()}, false); // NOLINT
+                reset_operation();
+                op->complete({}, false);
+                return;
+            }
+            if (const int err = SSL_get_error(ssl_, ret); err == SSL_ERROR_WANT_READ || err == SSL_ERROR_WANT_WRITE) {
+                wants_retry_ = true;
+                wants_read_ = (err == SSL_ERROR_WANT_READ);
+                wants_write_ = (err == SSL_ERROR_WANT_WRITE);
+                auto *wait_op = new ssl_wait_op(this, executor, op, ssl_operation_type::handshake);
+                common_ssl_socket_proxy{executor}.associate_handle(wait_op, static_cast<std::uintptr_t>(socket_fd_), nullptr);
+                if (!wait_op->io_handle) {
+                    delete wait_op;
+                    op->complete(io::implements::op_result{nullptr, 0, EBADF}, false);
+                    return;
                 }
+#if RAINY_USING_MACOS
+                short filter = wants_read_ ? EVFILT_READ : EVFILT_WRITE;
+                struct kevent ev;
+                EV_SET(&ev, socket_fd_, filter, EV_ADD | EV_ONESHOT, 0, 0, wait_op);
+                int kq = static_cast<int>(reinterpret_cast<std::uintptr_t>(wait_op->io_handle));
+                if (::kevent(kq, &ev, 1, nullptr, 0, nullptr) != 0) {
+                    delete wait_op;
+                    op->complete(io::implements::op_result{nullptr, 0, errno}, false);
+                }
+#elif RAINY_USING_LINUX
+                auto *ring = static_cast<io_uring *>(wait_op->io_handle);
+                if (io_uring_sqe *sqe = io_uring_get_sqe(ring); sqe) {
+                    const unsigned poll_mask = wants_read_ ? POLLIN : POLLOUT;
+                    io_uring_prep_poll_add(sqe, socket_fd_, poll_mask);
+                    io_uring_sqe_set_data(sqe, wait_op);
+                    io_uring_submit(ring);
+                } else {
+                    delete wait_op;
+                    op->complete({nullptr, 0, EBUSY}, false);
+                }
+#endif
+            } else {
+                op->complete({nullptr, 0, openssl_ec(ssl_, ret).value()}, false);
             }
         }
 
@@ -526,27 +561,91 @@ namespace rainy::foundation::io::net::implements {
 
         void async_shutdown(io_context::executor_type executor, completion_op *op) noexcept override {
             if (!ssl_ || !op) {
+                if (op) {
+                    op->complete(io::implements::op_result{nullptr, 0, ENOTCONN}, false); // NOLINT
+                }
                 return;
             }
-            pending_op_ = ssl_operation_type::shutdown;
 
-            if (const int ret = SSL_shutdown(ssl_); ret == 1) {
+            pending_op_ = ssl_operation_type::shutdown;
+            const int ret = SSL_shutdown(ssl_);
+
+            if (ret == 1) {
                 handshaked_ = false;
-                wants_retry_ = false;
-                op->complete(io::implements::op_result{}, false);
-            } else if (ret == 0) {
+                op->complete({}, false);
+                return;
+            }
+
+            if (ret == 0) {
                 wants_retry_ = true;
                 wants_write_ = true;
-            } else {
-                if (const int err = SSL_get_error(ssl_, ret); err == SSL_ERROR_WANT_READ) {
-                    wants_read_ = true;
-                    wants_retry_ = true;
-                } else if (err == SSL_ERROR_WANT_WRITE) {
-                    wants_write_ = true;
-                    wants_retry_ = true;
-                } else {
-                    op->complete(io::implements::op_result{nullptr, 0, -err}, false); // NOLINT
+                auto *wait_op = new ssl_wait_op(this, executor, op, ssl_operation_type::shutdown);
+                common_ssl_socket_proxy{executor}.associate_handle(wait_op, static_cast<std::uintptr_t>(socket_fd_), nullptr);
+                if (!wait_op->io_handle) {
+                    delete wait_op;
+                    op->complete(io::implements::op_result{nullptr, 0, EBADF}, false); // NOLINT
+                    return;
                 }
+
+#if RAINY_USING_MACOS
+                struct kevent ev;
+                EV_SET(&ev, socket_fd_, EVFILT_WRITE, EV_ADD | EV_ONESHOT, 0, 0, wait_op);
+                int kq = static_cast<int>(reinterpret_cast<std::uintptr_t>(wait_op->io_handle));
+                if (::kevent(kq, &ev, 1, nullptr, 0, nullptr) != 0) {
+                    delete wait_op;
+                    op->complete({nullptr, 0, errno}, false);
+                }
+#elif RAINY_USING_LINUX
+                io_uring *ring = static_cast<io_uring *>(wait_op->io_handle);
+                io_uring_sqe *sqe = io_uring_get_sqe(ring);
+                if (sqe) {
+                    io_uring_prep_poll_add(sqe, socket_fd_, POLLOUT);
+                    io_uring_sqe_set_data(sqe, wait_op);
+                    io_uring_submit(ring);
+                } else {
+                    delete wait_op;
+                    op->complete({nullptr, 0, EBUSY}, false);
+                }
+#endif
+                return;
+            }
+
+            int err = SSL_get_error(ssl_, ret);
+            if (err == SSL_ERROR_WANT_READ || err == SSL_ERROR_WANT_WRITE) {
+                wants_retry_ = true;
+                wants_read_ = (err == SSL_ERROR_WANT_READ);
+                wants_write_ = (err == SSL_ERROR_WANT_WRITE);
+                auto *wait_op = new ssl_wait_op(this, executor, op, ssl_operation_type::shutdown);
+                common_ssl_socket_proxy{executor}.associate_handle(wait_op, static_cast<std::uintptr_t>(socket_fd_), nullptr);
+                if (!wait_op->io_handle) {
+                    delete wait_op;
+                    op->complete({nullptr, 0, EBADF}, false);
+                    return;
+                }
+
+#if RAINY_USING_MACOS
+                short filter = wants_read_ ? EVFILT_READ : EVFILT_WRITE;
+                struct kevent ev;
+                EV_SET(&ev, socket_fd_, filter, EV_ADD | EV_ONESHOT, 0, 0, wait_op);
+                int kq = static_cast<int>(reinterpret_cast<std::uintptr_t>(wait_op->io_handle));
+                if (::kevent(kq, &ev, 1, nullptr, 0, nullptr) != 0) {
+                    delete wait_op;
+                    op->complete({nullptr, 0, errno}, false);
+                }
+#elif RAINY_USING_LINUX
+                auto *ring = static_cast<io_uring *>(wait_op->io_handle);
+                if (io_uring_sqe *sqe = io_uring_get_sqe(ring)) {
+                    const unsigned poll_mask = wants_read_ ? POLLIN : POLLOUT;
+                    io_uring_prep_poll_add(sqe, socket_fd_, poll_mask);
+                    io_uring_sqe_set_data(sqe, wait_op);
+                    io_uring_submit(ring);
+                } else {
+                    delete wait_op;
+                    op->complete(io::implements::op_result{nullptr, 0, EBUSY}, false); // NOLINT
+                }
+#endif
+            } else {
+                op->complete(io::implements::op_result{nullptr, 0, openssl_ec(ssl_, ret).value()}, false); // NOLINT
             }
         }
 
@@ -621,7 +720,7 @@ namespace rainy::foundation::io::net::implements {
                  * 详细帖子：
                  * http://erlang.org/pipermail/erlang-questions/2010-July/052319.html
                  * https://hachyderm.io/@harrysintonen@infosec.exchange/111857045361610169
-                */
+                 */
                 if (reason == SSL_R_DECRYPTION_FAILED_OR_BAD_RECORD_MAC) {
                     // 验证连接是否真的已关闭
                     char tmp = 0;
@@ -650,30 +749,170 @@ namespace rainy::foundation::io::net::implements {
             return -1;
         }
 
-        void async_write_some(const void *buf, const std::size_t len, io_context::executor_type /* executor */,
+        void async_write_some(const void *buf, std::size_t len, io_context::executor_type executor, // NOLINT
                               completion_op *op) noexcept override {
-            if (!op) {
+            if (!op || !ssl_ || !handshaked_) {
+                if (op) {
+                    op->complete(io::implements::op_result{nullptr, 0, ENOTCONN}, false); // NOLINT
+                }
                 return;
             }
-            std::error_code ec;
-            const std::ptrdiff_t n = write_some(buf, len, ec);
-            if (!ec || !wants_retry_) {
-                op->complete(io::implements::op_result{nullptr, static_cast<std::size_t>(n > 0 ? n : 0), ec ? ec.value() : 0},
-                             false); // NOLINT
+            pending_op_ = ssl_operation_type::write;
+            const int ret = SSL_write(ssl_, buf, static_cast<int>(len));
+            if (ret > 0) {
+                reset_operation();
+                op->complete(io::implements::op_result{nullptr, static_cast<std::size_t>(ret), 0}, false); // NOLINT
+                return;
+            }
+            if (const int err = SSL_get_error(ssl_, ret); err == SSL_ERROR_WANT_READ || err == SSL_ERROR_WANT_WRITE) {
+                wants_retry_ = true;
+                wants_read_ = (err == SSL_ERROR_WANT_READ);
+                wants_write_ = (err == SSL_ERROR_WANT_WRITE);
+
+                auto *data = new async_io_data{buf, len, op};
+                auto *wait_op = new ssl_io_wait_op(this, executor, data, ssl_operation_type::write);
+                common_ssl_socket_proxy{executor}.associate_handle(wait_op, static_cast<std::uintptr_t>(socket_fd_), nullptr);
+                if (!wait_op->io_handle) {
+                    delete wait_op;
+                    delete data;
+                    op->complete({nullptr, 0, EBADF}, false);
+                    return;
+                }
+
+#if RAINY_USING_MACOS
+                short filter = wants_read_ ? EVFILT_READ : EVFILT_WRITE;
+                struct kevent ev;
+                EV_SET(&ev, socket_fd_, filter, EV_ADD | EV_ONESHOT, 0, 0, wait_op);
+                int kq = static_cast<int>(reinterpret_cast<std::uintptr_t>(wait_op->io_handle));
+                if (::kevent(kq, &ev, 1, nullptr, 0, nullptr) != 0) {
+                    delete wait_op;
+                    delete data;
+                    op->complete({nullptr, 0, errno}, false);
+                }
+#elif RAINY_USING_LINUX
+                auto *ring = static_cast<io_uring *>(wait_op->io_handle);
+                if (io_uring_sqe *sqe = io_uring_get_sqe(ring); sqe) {
+                    const unsigned poll_mask = wants_read_ ? POLLIN : POLLOUT;
+                    io_uring_prep_poll_add(sqe, socket_fd_, poll_mask);
+                    io_uring_sqe_set_data(sqe, wait_op);
+                    io_uring_submit(ring);
+                } else {
+                    delete wait_op;
+                    delete data;
+                    op->complete(io::implements::op_result{nullptr, 0, EBUSY}, false); // NOLINT
+                }
+#endif
+            } else {
+                op->complete(io::implements::op_result{nullptr, 0, openssl_ec(ssl_, ret).value()}, false); // NOLINT
             }
         }
 
-        void async_read_some(void *buf, const std::size_t len, io_context::executor_type /* executor */,
+        void async_read_some(void *buf, const std::size_t len, io_context::executor_type executor, // NOLINT
                              completion_op *op) noexcept override {
-            if (!op) {
+            if (!op || !ssl_ || !handshaked_) {
+                if (op) {
+                    op->complete(io::implements::op_result{nullptr, 0, ENOTCONN}, false); // NOLINT
+                }
                 return;
             }
-            std::error_code ec;
-            const std::ptrdiff_t n = read_some(buf, len, ec);
-            if (!ec || !wants_retry_) {
-                op->complete(io::implements::op_result{nullptr, static_cast<std::size_t>(n > 0 ? n : 0), ec ? ec.value() : 0},
-                             false); // NOLINT
+
+            pending_op_ = ssl_operation_type::read;
+            const int ret = SSL_read(ssl_, buf, static_cast<int>(len));
+
+            if (ret > 0) {
+                reset_operation();
+                op->complete(io::implements::op_result{nullptr, static_cast<std::size_t>(ret), 0}, false);
+                return;
             }
+
+            if (ret == 0) {
+                handshaked_ = false;
+                reset_operation();
+                op->complete(io::implements::op_result{nullptr, 0, 0}, false);
+                return;
+            }
+
+            const int err = SSL_get_error(ssl_, ret);
+            if (err == SSL_ERROR_WANT_READ || err == SSL_ERROR_WANT_WRITE) {
+                wants_retry_ = true;
+                wants_read_ = (err == SSL_ERROR_WANT_READ);
+                wants_write_ = (err == SSL_ERROR_WANT_WRITE);
+
+                auto *data = new async_io_data{buf, len, op};
+                auto *wait_op = new ssl_io_wait_op(this, executor, data, ssl_operation_type::read);
+                common_ssl_socket_proxy{executor}.associate_handle(wait_op, static_cast<std::uintptr_t>(socket_fd_), nullptr);
+                if (!wait_op->io_handle) {
+                    delete wait_op;
+                    delete data;
+                    op->complete(io::implements::op_result{nullptr, 0, EBADF}, false);
+                    return;
+                }
+
+#if RAINY_USING_MACOS
+                short filter = wants_read_ ? EVFILT_READ : EVFILT_WRITE;
+                struct kevent ev;
+                EV_SET(&ev, socket_fd_, filter, EV_ADD | EV_ONESHOT, 0, 0, wait_op);
+                int kq = static_cast<int>(reinterpret_cast<std::uintptr_t>(wait_op->io_handle));
+                if (::kevent(kq, &ev, 1, nullptr, 0, nullptr) != 0) {
+                    delete wait_op;
+                    delete data;
+                    op->complete({nullptr, 0, errno}, false);
+                }
+#elif RAINY_USING_LINUX
+                auto *ring = static_cast<io_uring *>(wait_op->io_handle);
+                if (io_uring_sqe *sqe = io_uring_get_sqe(ring)) {
+                    const unsigned poll_mask = wants_read_ ? POLLIN : POLLOUT;
+                    io_uring_prep_poll_add(sqe, socket_fd_, poll_mask);
+                    io_uring_sqe_set_data(sqe, wait_op);
+                    io_uring_submit(ring);
+                } else {
+                    delete wait_op;
+                    delete data;
+                    op->complete(io::implements::op_result{nullptr, 0, EBUSY}, false); // NOLINT
+                }
+#endif
+                return;
+            }
+
+            if (err == SSL_ERROR_SSL) {
+                const unsigned long err_code = ERR_peek_error();
+                const int reason = ERR_GET_REASON(err_code);
+
+                if (reason == SSL_R_UNEXPECTED_EOF_WHILE_READING) {
+                    ERR_clear_error();
+                    handshaked_ = false;
+                    op->complete(io::implements::op_result{nullptr, 0, 0}, false); // NOLINT
+                    return;
+                }
+                /*
+                 * workaround for openssl linux/macOS
+                 * 并不是所有TLS服务器的实现都标准，例如谷歌的服务器，可能是服务器节点的问题，也可能是服务器本身为了优化，不会走标准行为
+                 * 但无论如何，此处，我们则进行完整的一次判断，来把SSL_R_DECRYPTION_FAILED_OR_BAD_RECORD_MAC的情况完全区分开来，避免走错
+                 * 或是默许错误的通信流程
+                 *
+                 * 详细帖子：
+                 * http://erlang.org/pipermail/erlang-questions/2010-July/052319.html
+                 * https://hachyderm.io/@harrysintonen@infosec.exchange/111857045361610169
+                 */
+                if (reason == SSL_R_DECRYPTION_FAILED_OR_BAD_RECORD_MAC) {
+                    char tmp = 0;
+                    const ssize_t recv_ret = ::recv(socket_fd_, &tmp, 1, MSG_PEEK | MSG_DONTWAIT);
+                    if (recv_ret == 0) {
+                        ERR_clear_error();
+                        handshaked_ = false;
+                        op->complete(io::implements::op_result{nullptr, 0, 0}, false); // NOLINT
+                        return;
+                    }
+                    if (recv_ret == -1 && (errno == ECONNRESET || errno == EPIPE)) {
+                        ERR_clear_error();
+                        handshaked_ = false;
+                        op->complete(io::implements::op_result{nullptr, 0, 0}, false); // NOLINT
+                        return;
+                    }
+                }
+            }
+
+            op->complete(io::implements::op_result{nullptr, 0, openssl_ec(ssl_, ret).value()}, false); // NOLINT
         }
 
         RAINY_NODISCARD bool is_handshaked() const noexcept override {
@@ -772,6 +1011,85 @@ namespace rainy::foundation::io::net::implements {
             handshaked_ = false;
             reset_operation();
         }
+
+        struct async_io_data {
+            const void *buf;
+            std::size_t len;
+            completion_op *user_op;
+
+            async_io_data(const void *b, std::size_t l, completion_op *op) : buf(b), len(l), user_op(op) {
+            }
+            async_io_data(void *b, std::size_t l, completion_op *op) : buf(b), len(l), user_op(op) {
+            }
+        };
+
+        class ssl_wait_op : public io::implements::completion_op {
+        public:
+            ssl_wait_op(ssl_stream_impl *stream, io_context::executor_type exec, completion_op *user, const ssl_operation_type type) :
+                completion_op(&do_complete), stream_(stream), executor_(utility::move(exec)), user_op_(user), op_type_(type) {
+            }
+
+            static void do_complete(completion_op *self, const io::implements::op_result &, const bool cancelled) noexcept {
+                auto *me = static_cast<ssl_wait_op *>(self);
+                if (cancelled) {
+                    me->user_op_->complete({nullptr, 0, ECANCELED}, true);
+                    delete me;
+                    return;
+                }
+                switch (me->op_type_) {
+                    case ssl_operation_type::handshake:
+                        me->stream_->async_handshake(me->executor_, me->user_op_);
+                        break;
+                    case ssl_operation_type::shutdown:
+                        me->stream_->async_shutdown(me->executor_, me->user_op_);
+                        break;
+                    default:
+                        me->user_op_->complete({nullptr, 0, EINVAL}, false);
+                        break;
+                }
+                delete me;
+            }
+
+        private:
+            ssl_stream_impl *stream_;
+            io_context::executor_type executor_;
+            completion_op *user_op_;
+            ssl_operation_type op_type_;
+        };
+
+        class ssl_io_wait_op : public io::implements::completion_op {
+        public:
+            ssl_io_wait_op(ssl_stream_impl *stream, io_context::executor_type exec, async_io_data *data, ssl_operation_type type) :
+                io::implements::completion_op(&do_complete), stream_(stream), executor_(exec), data_(data), op_type_(type) {
+            }
+
+            static void do_complete(io::implements::completion_op *self, const io::implements::op_result &, bool cancelled) noexcept {
+                auto *me = static_cast<ssl_io_wait_op *>(self);
+                if (cancelled) {
+                    me->user_op()->complete({nullptr, 0, ECANCELED}, true);
+                    delete me->data_;
+                    delete me;
+                    return;
+                }
+                if (me->op_type_ == ssl_operation_type::write) {
+                    me->stream_->async_write_some(me->data_->buf, me->data_->len, me->executor_, me->user_op());
+                } else if (me->op_type_ == ssl_operation_type::read) {
+                    me->stream_->async_read_some(const_cast<void *>(me->data_->buf), me->data_->len, me->executor_, me->user_op());
+                }
+                delete me->data_;
+                delete me;
+            }
+
+        private:
+            completion_op *user_op() const {
+                return data_->user_op;
+            }
+
+            ssl_stream_impl *stream_;
+            io_context::executor_type executor_;
+            async_io_data *data_;
+            ssl_operation_type op_type_;
+        };
 
         std::error_code apply_context_internal(ssl_context_impl *ctx) noexcept { // NOLINT
             if (!ctx || !ssl_) {
