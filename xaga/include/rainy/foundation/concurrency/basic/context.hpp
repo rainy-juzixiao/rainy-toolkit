@@ -16,7 +16,6 @@
 #ifndef RAINY_FOUNDATION_CONCURRENCY_CONTEXT_HPP
 #define RAINY_FOUNDATION_CONCURRENCY_CONTEXT_HPP
 #include <rainy/core/core.hpp>
-#include <rainy/foundation/concurrency/basic/tss_ptr.hpp>
 
 #ifndef RAINY_RECYCLING_ALLOCATOR_CACHE_SIZE
 #define RAINY_RECYCLING_ALLOCATOR_CACHE_SIZE 2
@@ -153,17 +152,17 @@ namespace rainy::foundation::concurrency::implements {
     public:
         class context : type_traits::helper::non_copyable {
         public:
-            explicit context(Key *k) : key_(k), next_(call_stack<Key, Value>::top_) { // NOLINT
+            explicit context(Key *k) : key_(k), next_(call_stack<Key, Value>::top_()) {
                 value_ = reinterpret_cast<unsigned char *>(this);
-                call_stack<Key, Value>::top_ = this; // NOLINT
+                call_stack<Key, Value>::top_() = this;
             }
 
-            context(Key *k, Value &v) : key_(k), value_(&v), next_(call_stack<Key, Value>::top_) { // NOLINT
-                call_stack<Key, Value>::top_ = this; // NOLINT
+            context(Key *k, Value &v) : key_(k), value_(&v), next_(call_stack<Key, Value>::top_()) {
+                call_stack<Key, Value>::top_() = this;
             }
 
             ~context() {
-                call_stack<Key, Value>::top_ = next_; // NOLINT
+                call_stack<Key, Value>::top_() = next_;
             }
 
             Value *next_by_key() const {
@@ -188,7 +187,7 @@ namespace rainy::foundation::concurrency::implements {
         friend class context;
 
         static Value *contains(Key *k) {
-            context *elem = top_;
+            context *elem = top_();
             while (elem) {
                 if (elem->key_ == k) {
                     return elem->value_;
@@ -199,16 +198,16 @@ namespace rainy::foundation::concurrency::implements {
         }
 
         static Value *top() {
-            context *elem = top_;
+            context *elem = top_();
             return elem ? elem->value_ : nullptr;
         }
 
     private:
-        static tss_ptr<context> top_;
+        static context *&top_() {
+            thread_local context *instance = nullptr;
+            return instance;
+        }
     };
-
-    template <typename Key, typename Value>
-    tss_ptr<typename call_stack<Key, Value>::context> call_stack<Key, Value>::top_;
 }
 
 namespace rainy::foundation::concurrency {
