@@ -40,7 +40,8 @@ jobs:
 
       - name: Configure CMake
         run: |
-          & "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=${{ matrix.arch }}
+          $vsPath = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath
+          & "$vsPath\Common7\Tools\VsDevCmd.bat" -arch=${{ matrix.arch }}
           cmake -S . -B build -G "Visual Studio 17 2022" -A ${{ matrix.arch }}
         shell: pwsh
 
