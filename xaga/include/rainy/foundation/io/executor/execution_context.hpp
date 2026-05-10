@@ -41,7 +41,7 @@ namespace rainy::foundation::io {
         child
     };
 
-    class execution_context {
+    class RAINY_TOOLKIT_API execution_context {
     public:
         class id : type_traits::helper::non_copyable {
         public:
@@ -49,7 +49,7 @@ namespace rainy::foundation::io {
             }
         };
 
-        class service { // NOLINT
+        class RAINY_TOOLKIT_API service { // NOLINT
         public:
             struct key {
                 key() = default;
