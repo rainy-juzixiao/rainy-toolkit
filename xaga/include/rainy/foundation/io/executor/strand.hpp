@@ -21,12 +21,11 @@
 #include <rainy/foundation/io/executor/execution_context.hpp>
 #include <rainy/foundation/io/executor/op_queue.hpp>
 #include <rainy/foundation/io/executor/operation.hpp>
+#include <rainy/foundation/io/executor/executor_trait.hpp>
 #include <rainy/foundation/memory/shared_ptr.hpp>
 
-#include "executor_trait.hpp"
-
 namespace rainy::foundation::io::implements {
-    class strand_executor_service : public execution_context_service_base<strand_executor_service> {
+    class RAINY_TOOLKIT_API strand_executor_service : public execution_context_service_base<strand_executor_service> {
     public:
         using key_type = strand_executor_service;
 
