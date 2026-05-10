@@ -19,15 +19,9 @@ jobs:
           - arch: arm64
             os: ubuntu 24.04 Arm64 (Noble Numbat) 
             runner: ubuntu-24.04-arm
-          - arch: arm64
-            os: ubuntu 22.04 Arm64 (Noble Numbat) 
-            runner: ubuntu-22.04-arm
           - arch: x64
             os: ubuntu 24.04 x64 (Jammy Jellyfish) 
             runner: ubuntu-24.04
-          - arch: x64
-            os: ubuntu 22.04 Arm64 (Jammy Jellyfish) 
-            runner: ubuntu-22.04
 
     steps:
       - name: Checkout
