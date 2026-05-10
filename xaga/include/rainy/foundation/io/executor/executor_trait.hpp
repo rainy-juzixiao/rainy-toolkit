@@ -1,5 +1,5 @@
 /*
-* Copyright 2026 rainy-juzixiao
+ * Copyright 2026 rainy-juzixiao
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 #ifndef RAINY_FOUNDATION_IO_NET_EXECUTOR_EXECUTOR_TRAIT_HPP
 #define RAINY_FOUNDATION_IO_NET_EXECUTOR_EXECUTOR_TRAIT_HPP
 #include <rainy/core/core.hpp>
+#include <rainy/foundation/io/fwd.hpp>
 
 namespace rainy::foundation::io::implements {
     template <typename Ty, typename = void>
@@ -23,8 +24,8 @@ namespace rainy::foundation::io::implements {
 
     template <typename Ty>
     RAINY_CONSTEXPR_BOOL has_context_memfn<
-        Ty, type_traits::other_trans::void_t<type_traits::other_trans::enable_if_t<
-                type_traits::type_relations::is_same_v<decltype(utility::declval<const Ty &>().context()), io_context &>>>> = true;
+        Ty, type_traits::other_trans::void_t<type_traits::other_trans::enable_if_t<type_traits::type_relations::is_convertible_v<
+                decltype(utility::declval<const Ty &>().context()), execution_context &>>>> = true;
 
     template <typename Ty, typename = void>
     RAINY_CONSTEXPR_BOOL has_on_work_started_memfn = false;

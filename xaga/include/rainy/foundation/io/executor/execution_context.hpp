@@ -139,8 +139,8 @@ namespace rainy::foundation::io {
      * 若 Service 尚未注册，自动构造并注册；返回对该 service 的引用。
      * 注意：返回类型是 Service::key_type&（Networking TS 规范）。
      */
-    template <class Service>
-    typename Service::key_type &use_service(execution_context &ctx) {
+    template <typename Service>
+    rain_fn use_service(execution_context &ctx) -> typename Service::key_type& {
         execution_context::service::key k = execution_context::make_key<Service>();
         auto *svc = ctx.do_use_service(k, &execution_context::create_service<Service>, &ctx);
         return static_cast<typename Service::key_type &>(*svc);
@@ -151,7 +151,7 @@ namespace rainy::foundation::io {
      *
      * 显式构造 Service 并注册；若已存在则抛出 service_already_exists。
      */
-    template <class Service, class... Args>
+    template <typename Service, typename... Args>
     Service &make_service(execution_context &ctx, Args &&...args) {
         execution_context::service::key k = execution_context::make_key<Service>();
         // 先检查是否已存在

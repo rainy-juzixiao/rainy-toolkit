@@ -16,8 +16,8 @@
 #ifndef RAINY_FOUNDATION_IO_IO_CONTEXT_HPP
 #define RAINY_FOUNDATION_IO_IO_CONTEXT_HPP
 #include <chrono>
+#include <rainy/foundation/io/executor.hpp>
 #include <rainy/foundation/io/implements/io_context.hpp>
-#include <rainy/foundation/io/net/executor.hpp>
 
 namespace rainy::foundation::io {
     class RAINY_TOOLKIT_API io_context : public execution_context {
@@ -54,6 +54,14 @@ namespace rainy::foundation::io {
             void defer(Func &&f, const ProtoAllocator &) const {
                 auto *op = implements::make_immediate_op(utility::forward<Func>(f));
                 ctx_->impl_->post_immediate_completion(op, true);
+            }
+
+            friend bool operator==(const executor_type &left, const executor_type &right) noexcept {
+                return left.ctx_ == right.ctx_;
+            }
+
+            friend bool operator!=(const executor_type &left, const executor_type &right) noexcept {
+                return left.ctx_ != right.ctx_;
             }
 
         protected:

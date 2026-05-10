@@ -15,15 +15,16 @@
  */
 #ifndef RAINY_FOUNDATION_IO_NET_EXECUTOR_OPERATION_HPP
 #define RAINY_FOUNDATION_IO_NET_EXECUTOR_OPERATION_HPP
-#include <rainy/foundation/io/implements/handler_tracking.hpp>
 #include <rainy/core/core.hpp>
+#include <rainy/foundation/io/implements/handler_tracking.hpp>
 #include <rainy/foundation/io/net/fwd.hpp>
 #include <rainy/foundation/memory/recycling_allocator.hpp>
 
 namespace rainy::foundation::io::implements {
     template <typename Function, typename Context>
-    RAINY_INLINE rain_fn handler_invoke_helper(Function &function, Context &context) -> void {
-        Function tmp(function);
+    void handler_invoke_helper(Function &function, Context &context) {
+        Function tmp(utility::move(function));
+        concurrency::fenced_block b(concurrency::fenced_block::full);
         tmp();
     }
 
@@ -69,7 +70,7 @@ namespace rainy::foundation::io::implements {
     using operation = scheduler_operation;
 
     template <typename Handler, typename Alloc, typename Operation = scheduler_operation>
-    class executor_op : public Operation {
+    class executor_op : public Operation, public implements::handler_tracking::tracked_handler {
     public:
         struct ptr {
             const Alloc *a;

@@ -18,8 +18,8 @@
 
 // NOLINTBEGIN
 
-#include <rainy/core/core.hpp>
 #include <rainy/collections/unordered_map.hpp>
+#include <rainy/core/core.hpp>
 
 // NOLINTEND
 
@@ -190,10 +190,14 @@ namespace rainy::foundation::io::implements {
 
         template <typename... Args>
         static void write_line(const text::string_view fmt, Args &&...args) {
+#if !RAINY_ENABLE_DEBUG
             auto str = text::format(fmt, utility::forward<Args>(args)...);
             (void) std::fwrite(str.data(), 1, str.size(), stderr);
             (void) std::fwrite("\n", 1, 1, stderr);
             (void) std::fflush(stderr);
+#else
+            utility::ignore = fmt;
+#endif
         }
 
     private:
@@ -229,7 +233,7 @@ namespace rainy::foundation::io::implements {
 
 #define NET_TS_HANDLER_INVOCATION_BEGIN(args) tracked_completion.invocation_begin args
 #define NET_TS_HANDLER_INVOCATION_END tracked_completion.invocation_end()
-# define NET_TS_HANDLER_CREATION(args) handler_tracking::creation args
+#define NET_TS_HANDLER_CREATION(args) handler_tracking::creation args
 
 
 #endif

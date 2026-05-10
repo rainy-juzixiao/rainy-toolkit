@@ -1,5 +1,5 @@
 /*
-* Copyright 2026 rainy-juzixiao
+ * Copyright 2026 rainy-juzixiao
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,17 +15,21 @@
  */
 #ifndef RAINY_FOUNDATION_IO_NET_EXECUTOR_STRAND_HPP
 #define RAINY_FOUNDATION_IO_NET_EXECUTOR_STRAND_HPP
+#include <memory>
 #include <rainy/core/core.hpp>
 #include <rainy/foundation/concurrency/atomic.hpp>
 #include <rainy/foundation/io/executor/execution_context.hpp>
 #include <rainy/foundation/io/executor/op_queue.hpp>
-#include <rainy/foundation/memory/shared_ptr.hpp>
 #include <rainy/foundation/io/executor/operation.hpp>
-#include <memory>
+#include <rainy/foundation/memory/shared_ptr.hpp>
+
+#include "executor_trait.hpp"
 
 namespace rainy::foundation::io::implements {
     class strand_executor_service : public execution_context_service_base<strand_executor_service> {
     public:
+        using key_type = strand_executor_service;
+
         class strand_impl {
         public:
             ~strand_impl();
@@ -261,6 +265,9 @@ namespace rainy::foundation::io {
         Executor executor_;
         implementation_type impl_;
     };
+
+    template <typename Executor, type_traits::other_trans::enable_if_t<implements::is_executor_v<Executor>, int> = 0>
+    strand(const Executor &) -> strand<Executor>;
 }
 
 #endif
