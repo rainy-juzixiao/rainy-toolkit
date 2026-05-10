@@ -22,23 +22,19 @@ namespace rainy::foundation::concurrency {
     template <typename Ty>
     class tss_ptr {
     public:
-        tss_ptr() : tss_key{implements::tss_create()} {
-        }
-
-        ~tss_ptr() {
-            implements::tss_delete(tss_key);
-        }
-
-        operator Ty *() { // NOLINT
-            return static_cast<Ty*>(implements::tss_get(tss_key));
+        operator Ty *() {
+            return static_cast<Ty *>(implements::tss_get(get_key()));
         }
 
         void operator=(Ty *value) {
-            implements::tss_set(tss_key, value);
+            implements::tss_set(get_key(), value);
         }
 
     private:
-        core::handle tss_key;
+        static core::handle get_key() {
+            static core::handle key = implements::tss_create();
+            return key;
+        }
     };
 }
 
