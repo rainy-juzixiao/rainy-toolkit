@@ -19,12 +19,18 @@ jobs:
         include:
           # Apple Silicon (ARM64)
           - arch: arm64
-            os: macOS-latest
+            os: macOS 15 Apple Silicon (Sequoia)
             runner: macos-latest
+          - arch: arm64
+            os: macOS 26 Apple Silicon (Tahoe)
+            runner: macos-26
           # Intel (x86_64)
           - arch: x86_64
-            os: macOS-15-intel
+            os: macOS 15 Intel (Sequoia)
             runner: macos-15-intel
+          - arch: x86_64
+            os: macOS-26-intel (Tahoe)
+            runner: macos-26-intel
 
     steps:
       - name: Checkout
