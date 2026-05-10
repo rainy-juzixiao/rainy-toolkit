@@ -15,7 +15,7 @@ namespace rainy::foundation::io::net::ssl {
         friend class context;
 
         template <typename NextLayer>
-        class ssl_stream;
+        class stream;
 
         certificate_options &add_certificate_file(const text::string &path, const text::string &password = "");
         certificate_options &add_certificate_chain_file(const text::string &path);
@@ -42,7 +42,7 @@ namespace rainy::foundation::io::net::ssl {
     class RAINY_TOOLKIT_API context {
     public:
         template <typename>
-        friend class ssl_stream;
+        friend class stream;
 
         explicit context(method mtd);
         ~context();
@@ -65,11 +65,6 @@ namespace rainy::foundation::io::net::ssl {
         ssl::verify_mode verify_mode() const noexcept;
 
     private:
-        implements::ssl_context_params get_params() noexcept {
-            return {impl_->native_handle(), static_cast<int>(impl_->verify_mode()),
-                    impl_->verify_depth(),  impl_->alpn_protos(),    impl_->is_server()};
-        }
-
         memory::nebula_ptr<implements::ssl_context_impl_base> impl_;
     };
 }

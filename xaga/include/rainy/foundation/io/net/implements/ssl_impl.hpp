@@ -9,18 +9,11 @@ namespace rainy::foundation::io::net::ssl {
     /**
      * \lang chinese
      * 
-       TLS 连接方法枚举，用于指定 TLS 协议版本与角色。
-     * @note 在 Windows 平台上，若使用 SChannel 作为 TLS 后端，
-     *       部分协议版本可能受操作系统限制而无法使用。
-     *       例如：Windows 10 默认不支持 TLS 1.3，Windows 10/11 需额外更新方可支持 TLS 1.3。
+     *  TLS 连接方法枚举，用于指定 TLS 协议版本与角色。
      *
      * \lang english
      * 
      * Enumeration of TLS connection methods, used to specify the TLS protocol version and role.
-     * @note On Windows, if the SChannel backend is used for TLS,
-     *       some protocol versions may be unavailable depending on the operating system.
-     *       For example: Windows 10 does not support TLS 1.3 by default,
-     *       and Windows 10/11 require additional updates to enable TLS 1.3.
      */
     enum class method {
         /**
@@ -132,14 +125,6 @@ namespace rainy::foundation::io::net::ssl {
 }
 
 namespace rainy::foundation::io::net::implements {
-    struct ssl_context_params {
-        void *native_credentials;
-        int verify_mode;
-        int verify_depth;
-        collections::vector<text::string> alpn_protos;
-        bool is_server;
-    };
-
     class ssl_context_impl_base {
     public:
         virtual ~ssl_context_impl_base() = default;

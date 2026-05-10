@@ -151,7 +151,7 @@ static std::pair<std::future<std::error_code>, std::thread> start_echo_server_th
             return;
         }
 
-        rssl::ssl_stream<socket_t> stream(utility::move(tcp_sock), srv_ctx);
+        rssl::stream<socket_t> stream(utility::move(tcp_sock), srv_ctx);
         stream.handshake(ec);
         if (ec) {
             promise->set_value(ec);
@@ -205,7 +205,7 @@ static std::pair<std::future<std::error_code>, std::thread> start_echo_server_bu
         socket_t tcp_sock = acceptor.accept(ec);
         if (ec) { promise->set_value(ec); return; }
 
-        rssl::ssl_stream<socket_t> stream(utility::move(tcp_sock), srv_ctx);
+        rssl::stream<socket_t> stream(utility::move(tcp_sock), srv_ctx);
         stream.handshake(ec);
         if (ec) { promise->set_value(ec); return; }
 
@@ -292,7 +292,7 @@ TEST_CASE("ssl_stream: is_open is false on unconnected socket", "[ssl_stream_bas
     rssl::context ctx(rssl::method::tlsv12_client);
     socket_t sock(ioc);
 
-    rssl::ssl_stream<socket_t> stream(utility::move(sock), ctx);
+    rssl::stream<socket_t> stream(utility::move(sock), ctx);
     CHECK_FALSE(stream.is_open());
 }
 
@@ -301,7 +301,7 @@ TEST_CASE("ssl_stream: is_handshaked is false before handshake", "[ssl_stream_ba
     rssl::context ctx(rssl::method::tlsv12_client);
     socket_t sock(ioc);
 
-    rssl::ssl_stream<socket_t> stream(utility::move(sock), ctx);
+    rssl::stream<socket_t> stream(utility::move(sock), ctx);
     CHECK_FALSE(stream.is_handshaked());
 }
 
@@ -310,7 +310,7 @@ TEST_CASE("ssl_stream: set_server_name / server_name round-trip", "[ssl_stream_b
     rssl::context ctx(rssl::method::tlsv12_client);
     socket_t sock(ioc);
 
-    rssl::ssl_stream<socket_t> stream(utility::move(sock), ctx);
+    rssl::stream<socket_t> stream(utility::move(sock), ctx);
     stream.set_server_name("example.com");
     CHECK(stream.server_name() == "example.com");
 }
@@ -320,7 +320,7 @@ TEST_CASE("ssl_stream: get_executor returns without throwing", "[ssl_stream_basi
     rssl::context ctx(rssl::method::tlsv12_client);
     socket_t sock(ioc);
 
-    rssl::ssl_stream<socket_t> stream(utility::move(sock), ctx);
+    rssl::stream<socket_t> stream(utility::move(sock), ctx);
     auto ex = stream.get_executor();
     (void) ex;
     SUCCEED("get_executor() returned without throwing");
@@ -331,10 +331,10 @@ TEST_CASE("ssl_stream: move-construction preserves server_name", "[ssl_stream_ba
     rssl::context ctx(rssl::method::tlsv12_client);
     socket_t sock(ioc);
 
-    rssl::ssl_stream<socket_t> s1(sock, ctx);
+    rssl::stream<socket_t> s1(sock, ctx);
     s1.set_server_name("moved.host");
 
-    rssl::ssl_stream<socket_t> s2(utility::move(s1));
+    rssl::stream<socket_t> s2(utility::move(s1));
     CHECK(s2.server_name() == "moved.host");
 }
 
@@ -343,7 +343,7 @@ TEST_CASE("ssl_stream: handshake on unconnected socket gives not_connected", "[s
     rssl::context ctx(rssl::method::tlsv12_client);
     socket_t sock(ioc);
 
-    rssl::ssl_stream<socket_t> stream(utility::move(sock), ctx);
+    rssl::stream<socket_t> stream(utility::move(sock), ctx);
     std::error_code ec;
     stream.handshake(ec);
     CHECK(ec == std::make_error_code(std::errc::not_connected));
@@ -354,7 +354,7 @@ TEST_CASE("ssl_stream: write_some before handshake gives not_connected", "[ssl_e
     rssl::context ctx(rssl::method::tlsv12_client);
     socket_t sock(ioc);
 
-    rssl::ssl_stream<socket_t> stream(utility::move(sock), ctx);
+    rssl::stream<socket_t> stream(utility::move(sock), ctx);
     const rainy::foundation::text::string data = "hello";
     std::error_code ec;
     std::size_t n = stream.write_some(rio::buffer(data), ec);
@@ -367,7 +367,7 @@ TEST_CASE("ssl_stream: read_some before handshake gives not_connected", "[ssl_er
     rssl::context ctx(rssl::method::tlsv12_client);
     socket_t sock(ioc);
 
-    rssl::ssl_stream<socket_t> stream(utility::move(sock), ctx);
+    rssl::stream<socket_t> stream(utility::move(sock), ctx);
     rainy::collections::array<char, 64> buf{};
     std::error_code ec;
     std::size_t n = stream.read_some(rio::buffer(buf), ec);
@@ -380,7 +380,7 @@ TEST_CASE("ssl_stream: shutdown before handshake gives not_connected", "[ssl_err
     rssl::context ctx(rssl::method::tlsv12_client);
     socket_t sock(ioc);
 
-    rssl::ssl_stream<socket_t> stream(utility::move(sock), ctx);
+    rssl::stream<socket_t> stream(utility::move(sock), ctx);
     std::error_code ec;
     stream.shutdown(ec);
     CHECK(ec == std::make_error_code(std::errc::not_connected));
@@ -391,7 +391,7 @@ TEST_CASE("ssl_stream: throwing handshake wraps std::system_error", "[ssl_error_
     rssl::context ctx(rssl::method::tlsv12_client);
     socket_t sock(ioc);
 
-    rssl::ssl_stream<socket_t> stream(utility::move(sock), ctx);
+    rssl::stream<socket_t> stream(utility::move(sock), ctx);
     CHECK_THROWS_AS(stream.handshake(), std::system_error);
 }
 
@@ -412,7 +412,7 @@ TEST_CASE("ssl_stream: synchronous TLS 1.2 handshake client <-> server", "[ssl_h
     tcp_sock.connect(endpoint_t(rip::address_v4::loopback(), test_port), ec);
     ;
     REQUIRE_FALSE(ec);
-    rssl::ssl_stream<socket_t> stream(utility::move(tcp_sock), cli_ctx);
+    rssl::stream<socket_t> stream(utility::move(tcp_sock), cli_ctx);
     stream.set_server_name(TEST_HOST);
     stream.handshake(ec);
     REQUIRE_FALSE(ec);
@@ -451,7 +451,7 @@ TEST_CASE("ssl_stream: repeated handshake does not crash", "[ssl_handshake]") {
     tcp_sock.connect(endpoint_t(rip::address_v4::loopback(), test_port), ec);
     REQUIRE_FALSE(ec);
 
-    rssl::ssl_stream<socket_t> stream(utility::move(tcp_sock), cli_ctx);
+    rssl::stream<socket_t> stream(utility::move(tcp_sock), cli_ctx);
     stream.handshake(ec);
     REQUIRE_FALSE(ec);
     std::error_code ec2;
@@ -486,7 +486,7 @@ TEST_CASE("ssl_stream: async_handshake completes without error", "[ssl_async_han
     socket_t tcp_sock(ioc);
     tcp_sock.connect(endpoint_t(rip::address_v4::loopback(), test_port), ec);
     REQUIRE_FALSE(ec);
-    rssl::ssl_stream<socket_t> stream(utility::move(tcp_sock), cli_ctx);
+    rssl::stream<socket_t> stream(utility::move(tcp_sock), cli_ctx);
     stream.set_server_name(TEST_HOST);
     std::error_code async_ec;
     bool called = false;
@@ -534,7 +534,7 @@ TEST_CASE("ssl_stream: write_some + read_some echo round-trip", "[ssl_io]") {
     ;
     REQUIRE_FALSE(ec);
 
-    rssl::ssl_stream<socket_t> stream(utility::move(tcp_sock), cli_ctx);
+    rssl::stream<socket_t> stream(utility::move(tcp_sock), cli_ctx);
     stream.handshake(ec);
     REQUIRE_FALSE(ec);
 
@@ -571,7 +571,7 @@ TEST_CASE("ssl_stream: two consecutive write_some calls are received intact", "[
     tcp_sock.connect(endpoint_t(rip::address_v4::loopback(), test_port), ec);
     REQUIRE_FALSE(ec);
 
-    rssl::ssl_stream<socket_t> stream(utility::move(tcp_sock), cli_ctx);
+    rssl::stream<socket_t> stream(utility::move(tcp_sock), cli_ctx);
     stream.handshake(ec);
     REQUIRE_FALSE(ec);
 
@@ -611,7 +611,7 @@ TEST_CASE("ssl_stream: async_write_some + async_read_some echo round-trip", "[ss
     tcp_sock.connect(endpoint_t(rip::address_v4::loopback(), test_port), ec);
     REQUIRE_FALSE(ec);
 
-    rssl::ssl_stream<socket_t> stream(utility::move(tcp_sock), cli_ctx);
+    rssl::stream<socket_t> stream(utility::move(tcp_sock), cli_ctx);
     stream.handshake(ec);
     REQUIRE_FALSE(ec);
 
@@ -653,7 +653,7 @@ TEST_CASE("ssl_stream: async_write_some before handshake fires handler with not_
     rssl::context cli_ctx(rssl::method::tlsv12_client);
     socket_t sock(ioc);
 
-    rssl::ssl_stream<socket_t> stream(sock, cli_ctx);
+    rssl::stream<socket_t> stream(sock, cli_ctx);
 
     std::error_code captured;
     bool called = false;
@@ -674,7 +674,7 @@ TEST_CASE("ssl_stream: async_read_some before handshake fires handler with not_c
     rssl::context cli_ctx(rssl::method::tlsv12_client);
     socket_t sock(ioc);
 
-    rssl::ssl_stream<socket_t> stream(sock, cli_ctx);
+    rssl::stream<socket_t> stream(sock, cli_ctx);
 
     rainy::collections::array<char, 64> buf{};
     std::error_code captured;
@@ -709,7 +709,7 @@ TEST_CASE("ssl_stream: synchronous shutdown after handshake succeeds", "[ssl_shu
     tcp_sock.connect(endpoint_t(rip::address_v4::loopback(), test_port), ec);
     REQUIRE_FALSE(ec);
 
-    rssl::ssl_stream<socket_t> stream(utility::move(tcp_sock), cli_ctx);
+    rssl::stream<socket_t> stream(utility::move(tcp_sock), cli_ctx);
     stream.handshake(ec);
     REQUIRE_FALSE(ec);
 
@@ -746,7 +746,7 @@ TEST_CASE("ssl_stream: async_shutdown invokes handler without error", "[ssl_shut
     ;
     REQUIRE_FALSE(ec);
 
-    rssl::ssl_stream<socket_t> stream(utility::move(tcp_sock), cli_ctx);
+    rssl::stream<socket_t> stream(utility::move(tcp_sock), cli_ctx);
     stream.handshake(ec);
     REQUIRE_FALSE(ec);
 
@@ -779,7 +779,7 @@ TEST_CASE("ssl_stream: throwing shutdown before handshake wraps std::system_erro
     rssl::context ctx(rssl::method::tlsv12_client);
     socket_t sock(ioc);
 
-    rssl::ssl_stream<socket_t> stream(utility::move(sock), ctx);
+    rssl::stream<socket_t> stream(utility::move(sock), ctx);
     CHECK_THROWS_AS(stream.shutdown(), std::system_error);
 }
 

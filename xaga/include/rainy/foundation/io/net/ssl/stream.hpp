@@ -8,24 +8,24 @@
 
 namespace rainy::foundation::io::net::ssl {
     template <typename NextLayer>
-    class ssl_stream {
+    class stream {
     public:
         using next_layer_type = type_traits::other_trans::decay_t<NextLayer>;
         using executor_type = typename next_layer_type::executor_type;
         using native_handle_type = void *;
 
         template <typename Arg>
-        explicit ssl_stream(Arg &&arg, context &ctx) : next_layer_(utility::move(arg)), context_(ctx) {
+        explicit stream(Arg &&arg, context &ctx) : next_layer_(utility::move(arg)), context_(ctx) {
             impl_ = implements::create_ssl_stream_impl();
             attach_socket();
         }
 
-        ssl_stream(ssl_stream &&other) noexcept :
+        stream(stream &&other) noexcept :
             next_layer_(utility::move(other.next_layer_)), context_(other.context_), impl_(utility::move(other.impl_)),
             server_name_(utility::move(other.server_name_)) {
         }
 
-        ssl_stream &operator=(ssl_stream &&other) noexcept {
+        stream &operator=(stream &&other) noexcept {
             if (this != &other) {
                 next_layer_ = utility::move(other.next_layer_);
                 context_ = utility::move(other.context_);
