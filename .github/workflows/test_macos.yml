@@ -1,4 +1,4 @@
-name: MacOS-Test
+name: macOS [CI Test]
 
 permissions:
   contents: read

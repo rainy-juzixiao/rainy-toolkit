@@ -1,4 +1,4 @@
-name: Windows CMake Test
+name: Windows [CI Test]
 
 permissions:
   contents: read
@@ -18,10 +18,10 @@ jobs:
       matrix:
         include:
           - arch: arm64
-            os: windows-11-arm
+            os: Windows 11 Arm64
             runner: windows-11-arm
           - arch: x64
-            os: windows-latest
+            os: Windows 11
             runner: windows-latest
 
     steps:

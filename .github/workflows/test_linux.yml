@@ -1,4 +1,4 @@
-name: ARM64 rainy-toolkit TEST TASK WORKFLOW
+name: Ubuntu Linux [CI Test]
 
 permissions:
   contents: read
@@ -8,6 +8,27 @@ on:
   pull_request:
 
 jobs:
+  build-and-test:
+    name: ${{ matrix.arch }} - ${{ matrix.os }}
+    runs-on: ${{ matrix.runner }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            os: ubuntu 24.04 Arm64 (Noble Numbat) 
+            runner: ubuntu-24.04-arm
+          - arch: arm64
+            os: ubuntu 22.04 Arm64 (Noble Numbat) 
+            runner: ubuntu-22.04-arm
+          - arch: x64
+            os: ubuntu 24.04 x64 (Jammy Jellyfish) 
+            runner: ubuntu-24.04
+          - arch: x64
+            os: ubuntu 22.04 Arm64 (Jammy Jellyfish) 
+            runner: ubuntu-22.04
+    
   arm64:
     runs-on: ubuntu-24.04-arm
     steps:
