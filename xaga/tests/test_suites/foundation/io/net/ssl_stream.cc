@@ -21,6 +21,11 @@
 #define _CRT_SECURE_NO_WARNINGS // NOLINT
 #endif
 
+#if RAINY_USING_WINDOWS
+#define OPENSSL_APPLINK
+#include <openssl/applink.c>
+#endif
+
 #include <catch2/catch_session.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <openssl/evp.h>
