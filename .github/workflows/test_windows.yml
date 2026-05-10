@@ -35,6 +35,9 @@ jobs:
         with:
           cmakeVersion: latest
 
+      - name: Add msbuild to PATH
+        uses: microsoft/setup-msbuild@v2
+
       - name: Configure CMake
         run: |
           if ("${{ matrix.arch }}" -eq "arm64") {
