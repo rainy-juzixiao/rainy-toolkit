@@ -190,7 +190,7 @@ namespace rainy::foundation::io::implements {
 
         template <typename... Args>
         static void write_line(const text::string_view fmt, Args &&...args) {
-#if !RAINY_ENABLE_DEBUG
+#if RAINY_ENABLE_DEBUG
             auto str = text::format(fmt, utility::forward<Args>(args)...);
             (void) std::fwrite(str.data(), 1, str.size(), stderr);
             (void) std::fwrite("\n", 1, 1, stderr);

@@ -71,8 +71,6 @@ TEST_CASE("strand context returns same execution_context", "[strand]") {
     REQUIRE(&s.context() == &ctx);
 }
 
-// ─────────────────────── strand serialization ───────────────────────
-
 TEST_CASE("strand serializes handler execution", "[strand]") {
     io_context ctx{4};
     strand s(ctx.get_executor());
@@ -109,7 +107,7 @@ TEST_CASE("strand running_in_this_thread is true inside dispatch", "[strand]") {
     strand s(ctx.get_executor());
 
     bool observed = false;
-    dispatch(s, [&] {
+    dispatch(s, [&] { 
         observed = s.running_in_this_thread();
     });
     ctx.run();

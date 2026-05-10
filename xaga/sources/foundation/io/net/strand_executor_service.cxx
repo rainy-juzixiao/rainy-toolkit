@@ -93,7 +93,8 @@ namespace rainy::foundation::io::implements {
         // NOLINTEND
     }
 
-    bool strand_executor_service::running_in_this_thread(const implementation_type &impl) {
-        return concurrency::implements::call_stack<strand_impl>::contains(impl.get());
+    strand_executor_service::strand_impl *&strand_executor_service::current_thread_strand() noexcept {
+        thread_local strand_impl *top = nullptr;
+        return top;
     }
 }

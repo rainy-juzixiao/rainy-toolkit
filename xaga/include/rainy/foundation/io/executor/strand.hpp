@@ -58,7 +58,7 @@ namespace rainy::foundation::io::implements {
         template <typename Executor, typename Function, typename Allocator>
         static void dispatch(const implementation_type &impl, Executor &ex, Function &&function, const Allocator &a) {
             using function_type = typename type_traits::other_trans::decay<Function>::type;
-            if (concurrency::implements::call_stack<strand_impl>::contains(impl.get())) {
+            if (current_thread_strand() == impl.get()) {
                 function_type tmp(utility::move(function));
                 concurrency::fenced_block b(concurrency::fenced_block::full);
                 implements::handler_invoke_helper(tmp, tmp);
@@ -104,7 +104,11 @@ namespace rainy::foundation::io::implements {
             }
         }
 
-        static bool running_in_this_thread(const implementation_type &impl);
+        static strand_impl *&current_thread_strand() noexcept;
+
+        static bool running_in_this_thread(const implementation_type &impl) {
+            return current_thread_strand() == impl.get();
+        }
 
     private:
         friend class strand_impl;
@@ -138,7 +142,9 @@ namespace rainy::foundation::io::implements {
             };
 
             void operator()() {
-                concurrency::implements::call_stack<strand_impl>::context ctx(impl_.get());
+                strand_impl *&top = strand_executor_service::current_thread_strand();
+                strand_impl *prev = top;
+                top = impl_.get();
                 const on_invoker_exit on_exit = {this};
                 (void) on_exit;
                 while (scheduler_operation *o = impl_->ready_queue_.front()) {
@@ -146,6 +152,7 @@ namespace rainy::foundation::io::implements {
                     impl_->ready_queue_.pop();
                     o->complete(impl_.get(), ec, 0);
                 }
+                top = prev;
             }
 
         private:
