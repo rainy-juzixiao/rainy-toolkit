@@ -653,7 +653,7 @@ namespace rainy::foundation::io::net::ip {
                 constexpr int sz = static_cast<int>(sizeof(std::size_t));
                 for (int i = 0; i < 16 - sz; ++i) {
                     if (diff[i] != 0) {
-                        return utility::numeric_limits<std::size_t>::max();
+                         return (utility::numeric_limits<std::size_t>::max)();
                     }
                 }
                 // 低 sz 字节组合为 size_t（大端）

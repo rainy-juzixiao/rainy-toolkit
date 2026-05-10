@@ -400,15 +400,13 @@ namespace rainy::foundation::io::net {
             if (!impl_->is_open()) {
                 auto proto = ep.protocol();
                 if (std::error_code open_ec = impl_->open(proto.family(), proto.type(), proto.protocol())) {
-                    io::post(this->get_executor(),
-                             [handler, open_ec]() mutable -> void { 
-                            handler(open_ec); });
+                    io::post(this->get_executor(), [handler, open_ec]() mutable -> void { handler(open_ec); });
                     return init.result.get();
                 }
             }
             auto raw_ep = ep.to_raw();
-            auto *op = io::implements::make_io_completion_op(
-                [handler, this](const io::implements::op_result &r, bool cancelled) mutable {
+            auto *op =
+                io::implements::make_io_completion_op([handler, this](const io::implements::op_result &r, bool cancelled) mutable {
                     executor_.on_work_finished();
                     if (cancelled) {
                         handler(std::make_error_code(std::errc::operation_canceled));
@@ -594,16 +592,17 @@ namespace rainy::foundation::io::net {
             async_completion<token_t, void(std::error_code, std::size_t)> init(token);
             auto handler = utility::move(init.completion_handler);
             auto mb = io::buffer(buffers);
-            auto *op = io::implements::make_io_completion_op([handler](const io::implements::op_result &r, const bool cancelled) mutable {
-                if (cancelled) {
-                    return;
-                }
-                std::error_code ec;
-                if (r.error_code) {
-                    ec = std::error_code{r.error_code, std::system_category()};
-                }
-                handler(ec, r.bytes_transferred);
-            });
+            auto *op =
+                io::implements::make_io_completion_op([handler](const io::implements::op_result &r, const bool cancelled) mutable {
+                    if (cancelled) {
+                        return;
+                    }
+                    std::error_code ec;
+                    if (r.error_code) {
+                        ec = std::error_code{r.error_code, std::system_category()};
+                    }
+                    handler(ec, r.bytes_transferred);
+                });
             this->impl_->async_receive(mb.data(), mb.size(), flags, *this->executor_.context().impl_, op);
             return init.result.get();
         }
@@ -718,16 +717,17 @@ namespace rainy::foundation::io::net {
             async_completion<token_t, void(std::error_code, std::size_t)> init(token);
             auto handler = utility::move(init.completion_handler);
             auto cb = io::buffer(buffers);
-            auto *op = io::implements::make_io_completion_op([handler](const io::implements::op_result &r, const bool cancelled) mutable {
-                if (cancelled) {
-                    return;
-                }
-                std::error_code ec;
-                if (r.error_code) {
-                    ec = std::error_code{r.error_code, std::system_category()};
-                }
-                handler(ec, r.bytes_transferred);
-            });
+            auto *op =
+                io::implements::make_io_completion_op([handler](const io::implements::op_result &r, const bool cancelled) mutable {
+                    if (cancelled) {
+                        return;
+                    }
+                    std::error_code ec;
+                    if (r.error_code) {
+                        ec = std::error_code{r.error_code, std::system_category()};
+                    }
+                    handler(ec, r.bytes_transferred);
+                });
             this->impl_->async_send(cb.data(), cb.size(), flags, this->executor_.context().under_impl(), op);
             return init.result.get();
         }
@@ -917,16 +917,17 @@ namespace rainy::foundation::io::net {
             async_completion<token_t, void(std::error_code, std::size_t)> init(token);
             auto handler = utility::move(init.completion_handler);
             auto mb = io::buffer(buffers);
-            auto *op = io::implements::make_io_completion_op([handler](const io::implements::op_result &r, const bool cancelled) mutable {
-                if (cancelled) {
-                    return;
-                }
-                std::error_code ec;
-                if (r.error_code) {
-                    ec = std::error_code{r.error_code, std::system_category()};
-                }
-                handler(ec, r.bytes_transferred);
-            });
+            auto *op =
+                io::implements::make_io_completion_op([handler](const io::implements::op_result &r, const bool cancelled) mutable {
+                    if (cancelled) {
+                        return;
+                    }
+                    std::error_code ec;
+                    if (r.error_code) {
+                        ec = std::error_code{r.error_code, std::system_category()};
+                    }
+                    handler(ec, r.bytes_transferred);
+                });
             this->impl_->async_receive(mb.data(), mb.size(), flags, *this->executor_.context().impl_, op);
             return init.result.get();
         }
@@ -987,15 +988,22 @@ namespace rainy::foundation::io::net {
         }
 
         basic_socket_acceptor(io_context &ctx, const endpoint_type &ep, const bool reuse_addr = true) :
-            executor_(ctx.get_executor()), protocol_(protocol_type::v4()), impl_(implements::create_socket_impl()) {
-            open(ep.protocol());
+            executor_(ctx.get_executor()), protocol_(ep.protocol()), impl_(implements::create_socket_impl()) {
+            std::error_code ec;
+            open(ep.protocol(), ec);
+            if (ec)
+                throw std::system_error(ec, "acceptor::open");
             if (reuse_addr) {
                 int opt = 1;
-                const implements::socket_option raw{implements::sol_socket, implements::so_reuseaddr, &opt, sizeof(opt)}; // NOLINT
-                utility::ignore = impl_->set_option(raw);
+                const implements::socket_option raw{implements::sol_socket, implements::so_reuseaddr, &opt, sizeof(opt)};
+                impl_->set_option(raw);
             }
-            utility::ignore = impl_->bind(ep.to_raw());
-            utility::ignore = impl_->listen(max_listen_connections);
+            ec = impl_->bind(ep.to_raw());
+            if (ec)
+                throw std::system_error(ec, "acceptor::bind");
+            ec = impl_->listen(max_listen_connections);
+            if (ec)
+                throw std::system_error(ec, "acceptor::listen");
         }
 
         basic_socket_acceptor(const basic_socket_acceptor &) = delete;
@@ -1362,7 +1370,7 @@ namespace rainy::foundation::io::net {
             async_completion<token_t, void(std::error_code)> init(token);
             auto handler = utility::move(init.completion_handler);
             auto *op = io::implements::make_function_op([handler]() mutable { handler(std::error_code{}); });
-            impl_->async_wait(static_cast<implements::wait_type>(w), executor_ , op);
+            impl_->async_wait(static_cast<implements::wait_type>(w), executor_, op);
             return init.result.get();
         }
 

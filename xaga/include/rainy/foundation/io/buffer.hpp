@@ -508,7 +508,7 @@ namespace rainy::foundation::io {
     class transfer_all {
     public:
         std::size_t operator()(const std::error_code &ec, std::size_t) const {
-            return ec ? 0 : std::numeric_limits<std::size_t>::max();
+             return ec ? 0 : (utility::numeric_limits<std::size_t>::max)();
         }
     };
 
@@ -518,7 +518,7 @@ namespace rainy::foundation::io {
         }
 
         std::size_t operator()(const std::error_code &ec, std::size_t count) const {
-            return (!ec && count < minimum_) ? std::numeric_limits<std::size_t>::max() : 0;
+            return (!ec && count < minimum_) ? (utility::numeric_limits<std::size_t>::max)() : 0;
         }
 
     private:
@@ -531,7 +531,7 @@ namespace rainy::foundation::io {
         }
 
         std::size_t operator()(const std::error_code &ec, std::size_t count) const {
-            return (!ec && count < exact_) ? (core::min) (exact_ - count, std::numeric_limits<std::size_t>::max()) : 0;
+            return (!ec && count < exact_) ? (core::min) (exact_ - count, (utility::numeric_limits<std::size_t>::max)()) : 0;
         }
 
     private:

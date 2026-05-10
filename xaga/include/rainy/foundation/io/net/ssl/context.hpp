@@ -14,6 +14,9 @@ namespace rainy::foundation::io::net::ssl {
     public:
         friend class context;
 
+        template <typename NextLayer>
+        class ssl_stream;
+
         certificate_options &add_certificate_file(const text::string &path, const text::string &password = "");
         certificate_options &add_certificate_chain_file(const text::string &path);
         certificate_options &add_private_key_file(const text::string &path, const text::string &password = "");

@@ -220,7 +220,7 @@ namespace rainy::foundation::io::net::implements {
         RAINY_NODISCARD virtual bool wants_write() const noexcept = 0;
         virtual void reset_operation() noexcept = 0;
 
-        virtual std::error_code apply_context(const ssl_context_params &params) noexcept = 0;
+        virtual std::error_code apply_context(ssl_context_impl_base *ctx) noexcept = 0;
     };
 
     RAINY_TOOLKIT_API memory::nebula_ptr<ssl_context_impl_base> create_ssl_context_impl();

@@ -14,12 +14,8 @@ namespace rainy::foundation::io::net::ssl {
         using executor_type = typename next_layer_type::executor_type;
         using native_handle_type = void *;
 
-        explicit ssl_stream(NextLayer &&next, context &ctx) : next_layer_(utility::forward<NextLayer>(next)), context_(ctx) {
-            impl_ = implements::create_ssl_stream_impl();
-            attach_socket();
-        }
-
-        explicit ssl_stream(NextLayer &next, context &ctx) : next_layer_(next), context_(ctx) {
+        template <typename Arg>
+        explicit ssl_stream(Arg &&arg, context &ctx) : next_layer_(utility::move(arg)), context_(ctx) {
             impl_ = implements::create_ssl_stream_impl();
             attach_socket();
         }
@@ -86,7 +82,7 @@ namespace rainy::foundation::io::net::ssl {
                 return;
             }
 
-            if (auto err = impl_->apply_context(context_.get_params()); err) {
+            if (auto err = impl_->apply_context(context_.impl_.get()); err) {
                 ec = err;
                 return;
             }
@@ -108,7 +104,7 @@ namespace rainy::foundation::io::net::ssl {
                 handler(ec);
                 return init.result.get();
             }
-            if (auto err = impl_->apply_context(context_.get_params()); err) {
+            if (auto err = impl_->apply_context(context_.impl_.get()); err) {
                 handler(err);
                 return init.result.get();
             }
@@ -150,7 +146,6 @@ namespace rainy::foundation::io::net::ssl {
         template <typename CompletionToken>
         auto async_shutdown(CompletionToken &&token) ->
             typename async_result<std::decay_t<CompletionToken>, void(std::error_code)>::return_type {
-
             using token_t = std::decay_t<CompletionToken>;
             async_completion<token_t, void(std::error_code)> init(token);
             auto handler = utility::move(init.completion_handler);
@@ -171,7 +166,7 @@ namespace rainy::foundation::io::net::ssl {
                 handler(ec);
             });
 
-            impl_->async_shutdown(*next_layer_.get_executor().context().impl_, op);
+            impl_->async_shutdown(next_layer_.get_executor(), op);
 
             return init.result.get();
         }
@@ -305,8 +300,8 @@ namespace rainy::foundation::io::net::ssl {
         void attach_socket() {
             if (impl_ && next_layer_.is_open()) {
                 implements::native_socket_t sock = next_layer_.native_handle();
+                utility::ignore = impl_->apply_context(context_.impl_.get());
                 utility::ignore = impl_->attach(sock, context_.is_server());
-                utility::ignore = impl_->apply_context(context_.get_params());
             }
         }
 
