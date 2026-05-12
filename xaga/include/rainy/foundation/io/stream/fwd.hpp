@@ -20,7 +20,7 @@
 #ifndef RAINY_FOUNDATION_IO_STREAM_FWD_HPP
 #define RAINY_FOUNDATION_IO_STREAM_FWD_HPP
 
-namespace rainy::foundation::io {
+namespace rainy::foundation::io::stream {
     class stream_descriptor;
     class console_stream;
     class named_pipe_stream;

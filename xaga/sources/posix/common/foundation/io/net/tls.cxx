@@ -544,7 +544,6 @@ namespace rainy::foundation::io::net::implements {
                     op->complete(io::implements::op_result{nullptr, 0, errno}, false);
                     return;
                 }
-                executor.on_work_started(); // ← 投递成功才加
 #elif RAINY_USING_LINUX
                 auto *ring = static_cast<io_uring *>(wait_op->io_handle);
                 if (io_uring_sqe *sqe = io_uring_get_sqe(ring); sqe) {
@@ -552,7 +551,6 @@ namespace rainy::foundation::io::net::implements {
                     io_uring_prep_poll_add(sqe, socket_fd_, poll_mask);
                     io_uring_sqe_set_data(sqe, wait_op);
                     io_uring_submit(ring);
-                    executor.on_work_started(); // ← 投递成功才加
                 } else {
                     delete wait_op;
                     op->complete(io::implements::op_result{nullptr, 0, EBUSY}, false);
@@ -620,14 +618,12 @@ namespace rainy::foundation::io::net::implements {
                     op->complete(io::implements::op_result{nullptr, 0, errno}, false);
                     return;
                 }
-                executor.on_work_started(); // ← 投递成功才加，且在 return 之前
 #elif RAINY_USING_LINUX
                 auto *const ring = static_cast<io_uring *>(wait_op->io_handle);
                 if (io_uring_sqe *sqe = io_uring_get_sqe(ring)) {
                     io_uring_prep_poll_add(sqe, socket_fd_, POLLOUT);
                     io_uring_sqe_set_data(sqe, wait_op);
                     io_uring_submit(ring);
-                    executor.on_work_started();
                 } else {
                     delete wait_op;
                     op->complete(io::implements::op_result{nullptr, 0, EBUSY}, false);
@@ -666,7 +662,6 @@ namespace rainy::foundation::io::net::implements {
                     op->complete(io::implements::op_result{nullptr, 0, errno}, false);
                     return;
                 }
-                executor.on_work_started(); // ← 投递成功才加
 #elif RAINY_USING_LINUX
                 auto *ring = static_cast<io_uring *>(wait_op->io_handle);
                 if (io_uring_sqe *sqe = io_uring_get_sqe(ring)) {
@@ -674,7 +669,6 @@ namespace rainy::foundation::io::net::implements {
                     io_uring_prep_poll_add(sqe, socket_fd_, poll_mask);
                     io_uring_sqe_set_data(sqe, wait_op);
                     io_uring_submit(ring);
-                    executor.on_work_started(); // ← 投递成功才加
                 } else {
                     delete wait_op;
                     op->complete(io::implements::op_result{nullptr, 0, EBUSY}, false);
@@ -1071,8 +1065,6 @@ namespace rainy::foundation::io::net::implements {
             static void do_complete(completion_op *self, const io::implements::op_result &,
                                     const bool cancelled) noexcept {
                 auto *me = static_cast<ssl_wait_op *>(self);
-                me->executor_.on_work_finished();
-
                 if (cancelled) {
                     me->user_op_->complete(io::implements::op_result{nullptr, 0, ECANCELED}, true);
                     delete me;
@@ -1109,8 +1101,6 @@ namespace rainy::foundation::io::net::implements {
 
             static void do_complete(completion_op *self, const io::implements::op_result &, const bool cancelled) noexcept {
                 const auto *me = static_cast<ssl_io_wait_op *>(self);
-                me->executor_.on_work_finished();
-
                 if (cancelled) {
                     me->user_op()->complete(io::implements::op_result{nullptr, 0, ECANCELED}, true);
                     delete me->data_;
@@ -1119,8 +1109,6 @@ namespace rainy::foundation::io::net::implements {
                 }
 
                 // 同样在重试前开启新的 work
-                me->executor_.on_work_started();
-
                 if (me->op_type_ == ssl_operation_type::write) {
                     me->stream_->async_write_some(me->data_->buf, me->data_->len, me->executor_, me->user_op());
                 } else if (me->op_type_ == ssl_operation_type::read) {

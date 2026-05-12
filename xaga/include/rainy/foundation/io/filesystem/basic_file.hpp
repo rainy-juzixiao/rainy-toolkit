@@ -109,8 +109,7 @@ namespace rainy::foundation::io::filesystem {
 
         template <typename MutableBufferSequence, typename Handler>
         void async_read_some_at(std::uint64_t offset, const MutableBufferSequence &buf, Handler &&handler) {
-            ctx_->get_executor().on_work_started();
-            auto *op = io::implements::make_io_completion_op(
+            auto *op = io::implements::make_executor_completion_op(
                 [h = utility::forward<Handler>(handler), this](const implements::op_result &res, bool cancelled) mutable {
                     std::error_code ec;
                     if (cancelled) {
@@ -119,16 +118,14 @@ namespace rainy::foundation::io::filesystem {
                         ec.assign(res.error_code, std::system_category());
                     }
                     h(ec, res.bytes_transferred);
-                    ctx_->get_executor().on_work_finished();
-                });
-
+                },
+                ctx_->get_executor());
             impl_->async_read_some_at(buffer(buf), offset, ctx_->get_executor(), op);
         }
 
         template <typename ConstBufferSequence, typename Handler>
         void async_write_some_at(std::uint64_t offset, const ConstBufferSequence &buf, Handler &&handler) {
-            ctx_->get_executor().on_work_started();
-            auto *op = io::implements::make_io_completion_op(
+            auto *op = io::implements::make_executor_completion_op(
                 [h = utility::forward<Handler>(handler), this](const implements::op_result &res, bool cancelled) mutable {
                     std::error_code ec;
                     if (cancelled) {
@@ -137,11 +134,11 @@ namespace rainy::foundation::io::filesystem {
                         ec.assign(res.error_code, std::system_category());
                     }
                     h(ec, res.bytes_transferred);
-                    ctx_->get_executor().on_work_finished();
-                });
-
+                },
+                ctx_->get_executor());
             impl_->async_write_some_at(buffer(buf), offset, ctx_->get_executor(), op);
         }
+
         RAINY_NODISCARD std::uint64_t size() const {
             std::error_code ec;
             auto s = impl_->size(ec);

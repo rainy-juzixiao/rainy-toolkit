@@ -133,6 +133,42 @@ namespace rainy::foundation::io::implements {
         return new function_completion_op<type_traits::other_trans::decay_t<Func>>(utility::forward<Func>(func));
     }
 
+    template <typename Func, typename Executor>
+    class executor_completion_op final : public completion_op {
+    public:
+        template <typename Fx,
+                  type_traits::other_trans::enable_if_t<type_traits::type_properties::is_constructible_v<Func, Fx &&>, int> = 0>
+        explicit executor_completion_op(Fx &&func, Executor executor) noexcept(
+            type_traits::type_properties::is_nothrow_constructible_v<Func, Fx &&>) :
+            completion_op(&do_complete), func_(utility::forward<Fx>(func)), executor_(executor) {
+            executor.on_work_started();
+        }
+
+        ~executor_completion_op() {
+            executor_.on_work_finished();
+        }
+
+        executor_completion_op(const executor_completion_op &) = delete;
+        executor_completion_op &operator=(const executor_completion_op &) = delete;
+
+    private:
+        static void do_complete(completion_op *self, const op_result &result, bool is_cancelled) {
+            auto *op = static_cast<executor_completion_op *>(self);
+            auto executor = op->executor_;
+            Func func = utility::move(op->func_);
+            func(result, is_cancelled);
+            delete op;
+        }
+
+        Executor executor_;
+        Func func_;
+    };
+
+    template <typename Func, typename Executor>
+    RAINY_NODISCARD executor_completion_op<std::decay_t<Func>, Executor> *make_executor_completion_op(Func &&func, Executor executor) {
+        return new executor_completion_op<std::decay_t<Func>, Executor>(utility::forward<Func>(func), executor);
+    }
+
     class io_context_impl_base {
     public:
         virtual ~io_context_impl_base() = default;

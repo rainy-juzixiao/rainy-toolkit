@@ -68,7 +68,7 @@ namespace rainy::foundation::io::net::implements {
     private:
         static void do_complete(io::implements::completion_op *self, const io::implements::op_result & /*kevent_result*/, bool is_cancelled) noexcept {
             auto *me = static_cast<kqueue_io_op *>(self);
-            IoFunc io_func = std::move(me->io_func_);
+            IoFunc io_func = utility::move(me->io_func_);
             io::implements::completion_op *user = me->user_op_;
             delete me;
 
@@ -90,7 +90,7 @@ namespace rainy::foundation::io::net::implements {
     template <typename IoFunc>
     static void post_kqueue_async(int kq, int fd, short filter, io_context::executor_type executor, io::implements::completion_op *user_op,
                                   IoFunc &&io_func) noexcept {
-        auto *io_op = new (std::nothrow) kqueue_io_op<std::decay_t<IoFunc>>(std::forward<IoFunc>(io_func), user_op);
+        auto *io_op = new (std::nothrow) kqueue_io_op<std::decay_t<IoFunc>>(utility::forward<IoFunc>(io_func), user_op);
         if (!io_op) {
             io::implements::op_result r{user_op, 0, ENOMEM};
             user_op->complete(r, false);
@@ -347,7 +347,6 @@ namespace rainy::foundation::io::net::implements {
                            io::implements::completion_op *op) noexcept override {
             const int ret = ::connect(fd_, reinterpret_cast<const ::sockaddr *>(ep.data), static_cast<::socklen_t>(ep.size));
             if (ret == 0) {
-                // 连接立即成功（loopback 常见）
                 macos_socket_proxy{executor}.post_immediate_completion(op, false);
                 return;
             }
@@ -361,7 +360,6 @@ namespace rainy::foundation::io::net::implements {
                 macos_socket_proxy{executor}.post_immediate_completion(op, false);
                 return;
             }
-
             const int fd = fd_;
             post_kqueue_async(kq, fd_, EVFILT_WRITE, executor, op, [fd](io::implements::op_result &r) noexcept {
                 int err = 0;

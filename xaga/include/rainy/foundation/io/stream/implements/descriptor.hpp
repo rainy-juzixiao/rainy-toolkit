@@ -57,20 +57,21 @@ namespace rainy::foundation::io::stream::implements {
         virtual std::error_code attach_from(descriptor_impl_base *other) noexcept = 0;
     };
 
-    memory::nebula_ptr<descriptor_impl_base> create_descriptor_impl(executor_type executor);
+    RAINY_TOOLKIT_API memory::nebula_ptr<descriptor_impl_base> create_descriptor_impl(executor_type executor);
 
-    memory::nebula_ptr<descriptor_impl_base> create_console_impl(executor_type executor, console_stream_kind kind);
+    RAINY_TOOLKIT_API memory::nebula_ptr<descriptor_impl_base> create_console_impl(executor_type executor, console_stream_kind kind);
 
-    utility::pair<memory::nebula_ptr<descriptor_impl_base>, memory::nebula_ptr<descriptor_impl_base>> create_pipe_impl(executor_type executor,
-                                                                                                           std::error_code &ec);
-    memory::nebula_ptr<descriptor_impl_base> create_named_pipe_server_impl(executor_type executor, const char *name, pipe_direction dir,
-                                                                       std::error_code &ec);
+    RAINY_TOOLKIT_API utility::pair<memory::nebula_ptr<descriptor_impl_base>, memory::nebula_ptr<descriptor_impl_base>>
+    create_pipe_impl(executor_type executor, std::error_code &ec);
+    RAINY_TOOLKIT_API memory::nebula_ptr<descriptor_impl_base> create_named_pipe_server_impl(executor_type executor, const char *name,
+                                                                                             pipe_direction dir, std::error_code &ec);
 
-    memory::nebula_ptr<descriptor_impl_base> create_named_pipe_client_impl(executor_type executor, const char *name, pipe_direction dir,
-                                                                       std::error_code &ec);
+    RAINY_TOOLKIT_API memory::nebula_ptr<descriptor_impl_base> create_named_pipe_client_impl(executor_type executor, const char *name,
+                                                                                             pipe_direction dir, std::error_code &ec);
 
-    memory::nebula_ptr<descriptor_impl_base> create_null_impl(executor_type executor);
-    memory::nebula_ptr<descriptor_impl_base> create_descriptor_impl_from_native(executor_type executor, native_handle_type handle);
+    RAINY_TOOLKIT_API memory::nebula_ptr<descriptor_impl_base> create_null_impl(executor_type executor);
+    RAINY_TOOLKIT_API memory::nebula_ptr<descriptor_impl_base> create_descriptor_impl_from_native(executor_type executor,
+                                                                                                  native_handle_type handle);
 }
 
 #endif

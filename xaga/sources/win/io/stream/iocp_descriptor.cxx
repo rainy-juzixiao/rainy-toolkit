@@ -134,8 +134,6 @@ namespace rainy::foundation::io::stream::implements {
             return {};
         }
 
-        // ── 同步 I/O（最低位置 1 屏蔽 IOCP 通知）────────
-
         std::ptrdiff_t read_some(void *buf, std::size_t len, std::error_code &ec) noexcept override {
             if (!is_open()) {
                 ec.assign(ERROR_INVALID_HANDLE, std::system_category());
@@ -319,8 +317,6 @@ namespace rainy::foundation::io::stream::implements {
             if (handle_ == INVALID_HANDLE_VALUE) {
                 return std::error_code{ERROR_INVALID_HANDLE, std::system_category()};
             }
-            // 关闭写端或读端都需要先设 cancel 标志，
-            // 让线程池里阻塞的 ReadFile/WriteFile 自然返回
             cancel_flag_.store(true, std::memory_order_release);
             ::CloseHandle(handle_);
             handle_ = INVALID_HANDLE_VALUE;
@@ -331,13 +327,8 @@ namespace rainy::foundation::io::stream::implements {
 
         std::error_code cancel() noexcept override {
             cancel_flag_.store(true, std::memory_order_release);
-            // 匿名管道没有 CancelIoEx 可用（没有 OVERLAPPED），
-            // 关闭 handle 是唯一可靠的中断方式，这里仅置标志，
-            // 让下一次线程池任务检查后自行退出
             return {};
         }
-
-        // ── 同步 I/O（阻塞，直接调用 Win32）──────────────
 
         std::ptrdiff_t read_some(void *buf, std::size_t len, std::error_code &ec) noexcept override {
             if (!is_open()) {
@@ -375,11 +366,6 @@ namespace rainy::foundation::io::stream::implements {
             ec.clear();
             return static_cast<std::ptrdiff_t>(written);
         }
-
-        // ── 异步 I/O（线程池路径）────────────────────────
-        //
-        // 将阻塞的 ReadFile / WriteFile 提交到全局线程池执行，
-        // 完成后直接调用 op->complete()，不经过 IOCP。
 
         void async_read_some(void *buf, std::size_t len, executor_type /*executor*/, completion_op *op) noexcept override {
             if (!is_open()) {
@@ -640,8 +626,6 @@ namespace rainy::foundation::io::stream::implements {
             ec = last_error();
             return memory::make_nebula<null_descriptor_impl>(executor);
         }
-
-        // 同步等待一次客户端连接
         OVERLAPPED ov{};
         HANDLE ev = ::CreateEventW(nullptr, TRUE, FALSE, nullptr);
         if (!ev) {

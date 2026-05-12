@@ -113,16 +113,18 @@ namespace rainy::foundation::io::net::ssl {
                 impl_->set_server_name(server_name_.c_str());
             }
 
-            auto *op = io::implements::make_io_completion_op([handler](const io::implements::op_result &r, const bool cancelled) mutable {
-                if (cancelled) {
-                    return;
-                }
-                std::error_code ec;
-                if (r.error_code) {
-                    ec = std::error_code{r.error_code, std::system_category()};
-                }
-                handler(ec);
-            });
+            auto *op = io::implements::make_executor_completion_op(
+                [handler](const io::implements::op_result &r, const bool cancelled) mutable {
+                    if (cancelled) {
+                        return;
+                    }
+                    std::error_code ec;
+                    if (r.error_code) {
+                        ec = std::error_code{r.error_code, std::system_category()};
+                    }
+                    handler(ec);
+                },
+                next_layer_.get_executor());
             impl_->async_handshake(next_layer_.get_executor(), op);
             return init.result.get();
         }
@@ -155,16 +157,18 @@ namespace rainy::foundation::io::net::ssl {
                 return init.result.get();
             }
 
-            auto *op = io::implements::make_io_completion_op([handler](const io::implements::op_result &r, const bool cancelled) mutable {
-                if (cancelled) {
-                    return;
-                }
-                std::error_code ec;
-                if (r.error_code) {
-                    ec = std::error_code{r.error_code, std::system_category()};
-                }
-                handler(ec);
-            });
+            auto *op = io::implements::make_executor_completion_op(
+                [handler](const io::implements::op_result &r, const bool cancelled) mutable {
+                    if (cancelled) {
+                        return;
+                    }
+                    std::error_code ec;
+                    if (r.error_code) {
+                        ec = std::error_code{r.error_code, std::system_category()};
+                    }
+                    handler(ec);
+                },
+                next_layer_.get_executor());
 
             impl_->async_shutdown(next_layer_.get_executor(), op);
 
@@ -237,16 +241,18 @@ namespace rainy::foundation::io::net::ssl {
 
             auto buf = io::buffer(buffers);
 
-            auto *op = io::implements::make_io_completion_op([handler](const io::implements::op_result &r, const bool cancelled) mutable {
-                if (cancelled) {
-                    return;
-                }
-                std::error_code ec;
-                if (r.error_code) {
-                    ec = std::error_code{r.error_code, std::system_category()};
-                }
-                handler(ec, r.bytes_transferred);
-            });
+            auto *op = io::implements::make_executor_completion_op(
+                [handler](const io::implements::op_result &r, const bool cancelled) mutable {
+                    if (cancelled) {
+                        return;
+                    }
+                    std::error_code ec;
+                    if (r.error_code) {
+                        ec = std::error_code{r.error_code, std::system_category()};
+                    }
+                    handler(ec, r.bytes_transferred);
+                },
+                next_layer_.get_executor());
 
             impl_->async_write_some(buf.data(), buf.size(), next_layer_.get_executor(), op);
 
@@ -268,16 +274,18 @@ namespace rainy::foundation::io::net::ssl {
 
             auto buf = io::buffer(buffers);
 
-            auto *op = io::implements::make_io_completion_op([handler](const io::implements::op_result &r, const bool cancelled) mutable {
-                if (cancelled) {
-                    return;
-                }
-                std::error_code ec;
-                if (r.error_code) {
-                    ec = std::error_code{r.error_code, std::system_category()};
-                }
-                handler(ec, r.bytes_transferred);
-            });
+            auto *op = io::implements::make_executor_completion_op(
+                [handler](const io::implements::op_result &r, const bool cancelled) mutable {
+                    if (cancelled) {
+                        return;
+                    }
+                    std::error_code ec;
+                    if (r.error_code) {
+                        ec = std::error_code{r.error_code, std::system_category()};
+                    }
+                    handler(ec, r.bytes_transferred);
+                },
+                next_layer_.get_executor());
 
             impl_->async_read_some(buf.data(), buf.size(), next_layer_.get_executor(), op);
 

@@ -708,14 +708,11 @@ namespace rainy::foundation::io::net::implements {
 
                 auto *iocp_op_ = static_cast<iocp_op *>(wait_op);
                 ZeroMemory(&iocp_op_->overlapped, sizeof(OVERLAPPED));
-                executor.on_work_started();
-
                 WSABUF wb{1, peek_buf};
                 DWORD flags = 0;
                 DWORD recvd = 0;
                 int r = WSARecv(static_cast<SOCKET>(socket_fd_), &wb, 1, &recvd, &flags, &iocp_op_->overlapped, nullptr);
                 if (r == SOCKET_ERROR && WSAGetLastError() != WSA_IO_PENDING) {
-                    executor.on_work_finished();
                     delete wait_op;
                     handshaked_ = false;
                     op->complete({}, false);
@@ -739,8 +736,6 @@ namespace rainy::foundation::io::net::implements {
                 
                 auto *iocp_op_ = static_cast<iocp_op *>(wait_op);
                 ZeroMemory(&iocp_op_->overlapped, sizeof(OVERLAPPED));
-                executor.on_work_started();
-
                 HANDLE iocp = reinterpret_cast<HANDLE>(wait_op->io_handle);
                 PostQueuedCompletionStatus(iocp, 0, socket_fd_, &iocp_op_->overlapped);
             } else {
@@ -1098,9 +1093,6 @@ namespace rainy::foundation::io::net::implements {
                     delete me;
                     return;
                 }
-                
-                me->executor_.on_work_finished();
-                
                 switch (me->op_type_) {
                     case ssl_operation_type::handshake:
                         me->stream_->async_handshake(me->executor_, me->user_op_);
@@ -1155,8 +1147,6 @@ namespace rainy::foundation::io::net::implements {
 
             static void do_complete(completion_op *self, const io::implements::op_result &, const bool cancelled) noexcept {
                 auto *me = static_cast<ssl_io_wait_op *>(self);
-                me->executor_.on_work_finished();
-                
                 if (cancelled) {
                     me->user_op()->complete(io::implements::op_result{nullptr, 0, WSA_E_CANCELLED}, true);
                     delete me->data_;

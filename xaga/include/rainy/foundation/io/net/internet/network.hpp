@@ -256,10 +256,6 @@ namespace rainy::foundation::io::net::ip {
         }
 
     private:
-        /*
-         * 将 bytes（16 字节大端）的低 (128 - prefix_len) 位清零。
-         * 纯字节操作，无平台依赖，constexpr 安全。
-         */
         static constexpr void apply_prefix_mask(address_v6::bytes_type &bytes, int prefix_len) noexcept {
             // 完整掩码字节数
             const int full_bytes = prefix_len / 8;
