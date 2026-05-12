@@ -20,7 +20,7 @@ jobs:
             os: ubuntu 24.04 Arm64 (Noble Numbat) 
             runner: ubuntu-24.04-arm
           - arch: x64
-            os: ubuntu 24.04 x64 (Jammy Jellyfish) 
+            os: ubuntu 24.04 x64 (Noble Numbat) 
             runner: ubuntu-24.04
 
     steps:
