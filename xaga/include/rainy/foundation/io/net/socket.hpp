@@ -57,16 +57,16 @@ namespace rainy::foundation::io::net {
         }
     };
 
-    inline const std::error_category &socket_category() noexcept {
+    RAINY_INLINE const std::error_category &socket_category() noexcept {
         static socket_error_category inst;
         return inst;
     }
 
-    inline std::error_code make_error_code(socket_errc e) noexcept {
+    RAINY_INLINE std::error_code make_error_code(socket_errc e) noexcept {
         return {static_cast<int>(e), socket_category()};
     }
 
-    inline std::error_condition make_error_condition(socket_errc e) noexcept {
+    RAINY_INLINE std::error_condition make_error_condition(socket_errc e) noexcept {
         return {static_cast<int>(e), socket_category()};
     }
 

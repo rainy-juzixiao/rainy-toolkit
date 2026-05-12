@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 #include <rainy/foundation/io/net/internet/network.hpp>
-#include <charconv>
 
 namespace rainy::foundation::io::net::ip {
     bool split_cidr(text::string_view cidr, text::string_view &addr_part, int &prefix, std::error_code &ec) noexcept {
@@ -29,7 +28,7 @@ namespace rainy::foundation::io::net::ip {
 
         // 使用 from_chars 解析前缀长度，避免 atoi 的未定义行为
         unsigned int val = 0;
-        const auto [ptr, e] = std::from_chars(len_sv.data(), len_sv.data() + len_sv.size(), val);
+        const auto [ptr, e] = foundation::text::from_chars(len_sv.data(), len_sv.data() + len_sv.size(), val);
 
         if (e != std::errc{} || ptr != len_sv.data() + len_sv.size()) {
             ec = std::make_error_code(std::errc::invalid_argument);
