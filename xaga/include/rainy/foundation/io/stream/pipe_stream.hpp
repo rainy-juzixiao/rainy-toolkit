@@ -291,13 +291,14 @@ namespace rainy::foundation::io::stream {
             close_if_open();
         }
 
-        static named_pipe_stream open_server(executor_type executor, const char *name, pipe_direction dir = pipe_direction::inout);
+        static named_pipe_stream open_server(executor_type executor, foundation::text::string_view name, pipe_direction dir = pipe_direction::inout);
 
-        static named_pipe_stream open_server(executor_type executor, const char *name, pipe_direction dir, std::error_code &ec);
+        static named_pipe_stream open_server(executor_type executor, foundation::text::string_view name, pipe_direction dir,
+                                             std::error_code &ec);
 
-        static named_pipe_stream open_client(executor_type executor, const char *name, pipe_direction dir = pipe_direction::inout);
+        static named_pipe_stream open_client(executor_type executor, foundation::text::string_view name, pipe_direction dir = pipe_direction::inout);
 
-        static named_pipe_stream open_client(executor_type executor, const char *name, pipe_direction dir, std::error_code &ec);
+        static named_pipe_stream open_client(executor_type executor, foundation::text::string_view name, pipe_direction dir, std::error_code &ec);
 
         bool is_open() const noexcept {
             return impl_ && impl_->is_open();

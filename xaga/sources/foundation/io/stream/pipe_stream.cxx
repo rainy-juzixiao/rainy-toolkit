@@ -36,7 +36,7 @@ namespace rainy::foundation::io::stream {
 }
 
 namespace rainy::foundation::io::stream {
-    named_pipe_stream named_pipe_stream::open_server(executor_type executor, const char *name,
+    named_pipe_stream named_pipe_stream::open_server(executor_type executor, foundation::text::string_view name,
                                                      pipe_direction dir) {
         std::error_code ec;
         auto result = open_server(executor, name, dir, ec);
@@ -46,13 +46,13 @@ namespace rainy::foundation::io::stream {
         return result;
     }
 
-    named_pipe_stream named_pipe_stream::open_server(executor_type executor, const char *name, pipe_direction dir,
+    named_pipe_stream named_pipe_stream::open_server(executor_type executor, foundation::text::string_view name, pipe_direction dir,
                                                      std::error_code &ec) {
-        auto impl = implements::create_named_pipe_server_impl(executor, name, dir, ec);
+        auto impl = implements::create_named_pipe_server_impl(executor, name.data(), dir, ec);
         return named_pipe_stream{executor, utility::move(impl)};
     }
 
-    named_pipe_stream named_pipe_stream::open_client(executor_type executor, const char *name, pipe_direction dir) {
+    named_pipe_stream named_pipe_stream::open_client(executor_type executor, foundation::text::string_view name, pipe_direction dir) {
         std::error_code ec;
         auto result = open_client(executor, name, dir, ec);
         if (ec) {
@@ -61,9 +61,9 @@ namespace rainy::foundation::io::stream {
         return result;
     }
 
-    named_pipe_stream named_pipe_stream::open_client(executor_type executor, const char *name, pipe_direction dir,
+    named_pipe_stream named_pipe_stream::open_client(executor_type executor, foundation::text::string_view name, pipe_direction dir,
                                                      std::error_code &ec) {
-        auto impl = implements::create_named_pipe_client_impl(executor, name, dir, ec);
+        auto impl = implements::create_named_pipe_client_impl(executor, name.data(), dir, ec);
         return named_pipe_stream{executor, utility::move(impl)};
     }
 }
