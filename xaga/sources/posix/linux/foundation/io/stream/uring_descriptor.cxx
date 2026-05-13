@@ -27,6 +27,14 @@
 namespace rainy::foundation::io::stream::implements {
     using io::implements::op_result;
 
+    static int is_same_fd(int fd1, int fd2) {
+        struct stat st1, st2;
+        if (fstat(fd1, &st1) == -1 || fstat(fd2, &st2) == -1) {
+            return 0;
+        }
+        return (st1.st_dev == st2.st_dev && st1.st_ino == st2.st_ino);
+    }
+
     static std::error_code posix_error(int e = errno) noexcept {
         return std::error_code{e, std::system_category()};
     }
@@ -108,7 +116,7 @@ namespace rainy::foundation::io::stream::implements {
             if (fd_ < 0) {
                 return posix_error(EBADF);
             }
-            if (fd_ == STDIN_FILENO || fd_ == STDOUT_FILENO || fd_ == STDERR_FILENO) {
+            if (is_same_fd(fd_, STDOUT_FILENO) || is_same_fd(fd_, STDERR_FILENO) || is_same_fd(fd_, STDIN_FILENO)) {
                 fd_ = -1;
                 wants_read_ = wants_write_ = false;
                 return {};
@@ -182,9 +190,26 @@ namespace rainy::foundation::io::stream::implements {
                 return;
             }
             wants_write_ = true;
-            ::io_uring_prep_write(sqe, fd_, buf, len, 0);
-            ::io_uring_sqe_set_data(sqe, op);
-            submit_ring(op);
+            if (is_same_fd(fd_, STDOUT_FILENO) || is_same_fd(fd_, STDERR_FILENO)) { // stdout,stderr需要通过线程池传递，否则回调无法触发
+                int fd = fd_;
+                get_executor().submit([fd, buf, len, op, this]() mutable {
+                    op_result result{};
+                    result.user_data = op;
+                    const ::ssize_t n = ::write(fd, buf, len);
+                    if (n < 0) {
+                        result.error_code = errno;
+                        result.bytes_transferred = 0;
+                    } else {
+                        result.error_code = 0;
+                        result.bytes_transferred = static_cast<std::size_t>(n);
+                    }
+                    op->complete(result, false);
+                });
+            } else {
+                ::io_uring_prep_write(sqe, fd_, buf, len, 0);
+                ::io_uring_sqe_set_data(sqe, op);
+                submit_ring(op);
+            }
         }
 
         bool wants_read() const noexcept override {
@@ -352,7 +377,6 @@ namespace rainy::foundation::io::stream::implements {
                 submit_ring(op);
                 return;
             }
-            // 退化：线程池路径
             wants_write_ = true;
             int fd = fd_;
             std::atomic<bool> *flag = &cancel_flag_;
@@ -362,7 +386,6 @@ namespace rainy::foundation::io::stream::implements {
                 if (flag->load(std::memory_order_acquire)) {
                     result.error_code = ECANCELED;
                     result.bytes_transferred = 0;
-                    executor_.on_work_finished();
                     op->complete(result, false);
                     return;
                 }
@@ -374,7 +397,6 @@ namespace rainy::foundation::io::stream::implements {
                     result.error_code = 0;
                     result.bytes_transferred = static_cast<std::size_t>(n);
                 }
-                executor_.on_work_finished();
                 op->complete(result, false);
             });
         }
