@@ -29,6 +29,13 @@
 namespace rainy::foundation::io::stream::implements {
     using io::implements::op_result;
 
+    bool is_std_handle(HANDLE handle) {
+        HANDLE stdin_handle = GetStdHandle(STD_INPUT_HANDLE);
+        HANDLE stdout_handle = GetStdHandle(STD_OUTPUT_HANDLE);
+        HANDLE stderr_handle = GetStdHandle(STD_ERROR_HANDLE);
+        return handle == stdin_handle || stdout_handle || stderr_handle;
+    }
+
     static std::error_code last_error() noexcept {
         return std::error_code{static_cast<int>(::GetLastError()), std::system_category()};
     }
@@ -153,8 +160,9 @@ namespace rainy::foundation::io::stream::implements {
                 DWORD err = ::GetLastError();
                 if (err == ERROR_IO_PENDING) {
                     ok = ::GetOverlappedResult(handle_, &ov, &read, TRUE);
-                    if (!ok)
+                    if (!ok) {
                         err = ::GetLastError();
+                    }
                 }
                 if (!ok) {
                     ::CloseHandle(ev);
@@ -190,8 +198,9 @@ namespace rainy::foundation::io::stream::implements {
                 DWORD err = ::GetLastError();
                 if (err == ERROR_IO_PENDING) {
                     ok = ::GetOverlappedResult(handle_, &ov, &written, TRUE);
-                    if (!ok)
+                    if (!ok) {
                         err = ::GetLastError();
+                    }
                 }
                 if (!ok) {
                     ::CloseHandle(ev);
@@ -209,15 +218,40 @@ namespace rainy::foundation::io::stream::implements {
                 win32_stream_proxy{executor}.post_immediate_completion(op, false);
                 return;
             }
-            bind_to_iocp(executor);
-            wants_read_ = true;
-            auto *iop = new stream_iocp_op(op);
-            iop->associated_handle = handle_;
-            BOOL ok = ::ReadFile(handle_, buf, static_cast<DWORD>(len), nullptr, &iop->overlapped);
-            if (!ok && ::GetLastError() != ERROR_IO_PENDING) {
-                wants_read_ = false;
-                delete iop;
-                win32_stream_proxy{executor}.post_immediate_completion(op, false);
+            if (is_std_handle(handle_)) {
+                wants_read_ = true;
+                HANDLE h = handle_;
+                get_executor().submit([h, buf, len, op]() mutable {
+                    op_result result{};
+                    result.user_data = op;
+                    DWORD read = 0;
+                    BOOL ok = ::ReadFile(h, buf, static_cast<DWORD>(len), &read, nullptr);
+                    if (!ok) {
+                        DWORD err = ::GetLastError();
+                        if (err == ERROR_BROKEN_PIPE) {
+                            result.error_code = 0;
+                            result.bytes_transferred = 0;
+                        } else {
+                            result.error_code = static_cast<int>(err);
+                            result.bytes_transferred = 0;
+                        }
+                    } else {
+                        result.error_code = 0;
+                        result.bytes_transferred = static_cast<std::size_t>(read);
+                    }
+                    op->complete(result, false);
+                });              
+            } else {
+                bind_to_iocp(executor);
+                wants_read_ = true;
+                auto *iop = new stream_iocp_op(op);
+                iop->associated_handle = handle_;
+                BOOL ok = ::ReadFile(handle_, buf, static_cast<DWORD>(len), nullptr, &iop->overlapped);
+                if (!ok && ::GetLastError() != ERROR_IO_PENDING) {
+                    wants_read_ = false;
+                    delete iop;
+                    win32_stream_proxy{executor}.post_immediate_completion(op, false);
+                }
             }
         }
 
@@ -226,17 +260,38 @@ namespace rainy::foundation::io::stream::implements {
                 win32_stream_proxy{executor}.post_immediate_completion(op, false);
                 return;
             }
-            bind_to_iocp(executor);
-            wants_write_ = true;
 
-            auto *iop = new stream_iocp_op(op);
-            iop->associated_handle = handle_;
+            if (is_std_handle(handle_)) {
+                wants_write_ = true;
+                HANDLE h = handle_;
+                get_executor().submit([h, buf, len, op]() mutable {
+                    op_result result{};
+                    result.user_data = op;
 
-            BOOL ok = ::WriteFile(handle_, buf, static_cast<DWORD>(len), nullptr, &iop->overlapped);
-            if (!ok && ::GetLastError() != ERROR_IO_PENDING) {
-                wants_write_ = false;
-                delete iop;
-                win32_stream_proxy{executor}.post_immediate_completion(op, false);
+                    DWORD written = 0;
+                    BOOL ok = ::WriteFile(h, buf, static_cast<DWORD>(len), &written, nullptr);
+                    if (!ok) {
+                        result.error_code = static_cast<int>(::GetLastError());
+                        result.bytes_transferred = 0;
+                    } else {
+                        result.error_code = 0;
+                        result.bytes_transferred = static_cast<std::size_t>(written);
+                    }
+                    op->complete(result, false);
+                });
+            } else {
+                bind_to_iocp(executor);
+                wants_write_ = true;
+
+                auto *iop = new stream_iocp_op(op);
+                iop->associated_handle = handle_;
+
+                BOOL ok = ::WriteFile(handle_, buf, static_cast<DWORD>(len), nullptr, &iop->overlapped);
+                if (!ok && ::GetLastError() != ERROR_IO_PENDING) {
+                    wants_write_ = false;
+                    delete iop;
+                    win32_stream_proxy{executor}.post_immediate_completion(op, false);
+                }
             }
         }
 
@@ -571,8 +626,6 @@ namespace rainy::foundation::io::stream::implements {
         executor_type executor, std::error_code &ec) {
         HANDLE read_h = INVALID_HANDLE_VALUE;
         HANDLE write_h = INVALID_HANDLE_VALUE;
-
-        // 安全属性：允许句柄继承（方便子进程场景）
         SECURITY_ATTRIBUTES sa{};
         sa.nLength = sizeof(sa);
         sa.bInheritHandle = TRUE;

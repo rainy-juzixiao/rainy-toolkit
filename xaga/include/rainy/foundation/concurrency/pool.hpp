@@ -62,10 +62,7 @@ namespace rainy::foundation::concurrency {
         }
 
         ~pooled_actor_pool() override {
-            stop_.store(true, memory_order_release);
-            for (auto &a: actors_) {
-                a->signal_stop();
-            }
+            join();
         }
 
         void submit(functional::move_only_delegate<void()> task) override {
@@ -164,8 +161,8 @@ namespace rainy::foundation::concurrency {
         mutex idle_mutex_;
         condition_variable idle_cv_;
 
-        std::vector<memory::nebula_ptr<actor_worker>> actors_;
         std::vector<memory::nebula_ptr<thread>> threads_;
+        std::vector<memory::nebula_ptr<actor_worker>> actors_;
         atomic<int> submit_count_{0};
         atomic<int> complete_count_{0};
     };

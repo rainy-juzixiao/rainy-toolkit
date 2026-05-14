@@ -59,8 +59,7 @@ namespace rainy::foundation::concurrency {
         monad_future<R> submit(F &&f) {
             auto state = make_shared_state<R>();
             auto *sched = get_scheduler();
-            auto fn = utility::forward<F>(f);
-            sched->submit([state, fn = utility::move(fn)]() mutable {
+            sched->submit([state, fn = utility::forward<F>(f)]() mutable {
                 try {
                     if constexpr (std::is_void_v<R>) {
                         fn();
