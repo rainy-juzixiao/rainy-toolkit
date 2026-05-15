@@ -60,6 +60,12 @@ namespace rainy::foundation::io::stream::implements {
         }
     };
 
+    struct connect_iocp_op : iocp_op {
+        explicit connect_iocp_op(io::implements::completion_op *op) noexcept : iocp_op(nullptr) {
+            linked_op = op;
+        }
+    };
+
     struct win32_stream_proxy : io_context::executor_type {
         using executor_type::associate_handle;
         using executor_type::post_immediate_completion;
@@ -657,7 +663,6 @@ namespace rainy::foundation::io::stream::implements {
         if (wide_name.find(L"\\\\.\\pipe\\") == std::wstring::npos) {
             wide_name = L"\\\\.\\pipe\\" + wide_name;
         }
-
         DWORD access{};
         switch (dir) {
             case pipe_direction::in:
@@ -670,43 +675,14 @@ namespace rainy::foundation::io::stream::implements {
                 access = PIPE_ACCESS_DUPLEX;
                 break;
         }
-
         HANDLE h =
             ::CreateNamedPipeW(wide_name.c_str(), access | FILE_FLAG_OVERLAPPED, PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT,
                                PIPE_UNLIMITED_INSTANCES, 65536, 65536, 0, nullptr);
-
         if (h == INVALID_HANDLE_VALUE) {
             ec = last_error();
             return memory::make_nebula<null_descriptor_impl>(executor);
         }
-        OVERLAPPED *ov = new OVERLAPPED{};
-        HANDLE ev = ::CreateEventW(nullptr, TRUE, FALSE, nullptr);
-        if (!ev) {
-            ec = last_error();
-            delete ov;
-            ::CloseHandle(h);
-            return memory::make_nebula<null_descriptor_impl>(executor);
-        }
-        ov->hEvent = ev;
-
-        BOOL ok = ::ConnectNamedPipe(h, ov);
-        if (!ok) {
-            DWORD err = ::GetLastError();
-            if (err == ERROR_PIPE_CONNECTED) {
-                ::CloseHandle(ev);
-                delete ov;
-            } else if (err == ERROR_IO_PENDING) {
-                ::CloseHandle(ev);
-                delete ov;
-            } else {
-                ec.assign(static_cast<int>(err), std::system_category());
-                ::CloseHandle(ev);
-                delete ov;
-                ::CloseHandle(h);
-                return memory::make_nebula<null_descriptor_impl>(executor);
-            }
-        }
-
+        win32_stream_proxy{executor}.associate_handle(nullptr, reinterpret_cast<std::uintptr_t>(h), nullptr);
         auto impl = memory::make_nebula<win_descriptor_impl>(executor);
         static_cast<void>(impl->attach(reinterpret_cast<native_handle_type>(h)));
         ec.clear();
