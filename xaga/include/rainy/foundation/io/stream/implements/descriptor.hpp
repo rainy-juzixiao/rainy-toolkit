@@ -19,7 +19,6 @@
  */
 #ifndef RAINY_FOUNDATION_IO_STREAM_IMPLEMENTS_DESCRIPTOR_HPP
 #define RAINY_FOUNDATION_IO_STREAM_IMPLEMENTS_DESCRIPTOR_HPP
-#include <rainy/collections/vector.hpp>
 #include <rainy/foundation/io/io_context.hpp>
 #include <rainy/foundation/io/stream/fwd.hpp>
 #include <system_error>
@@ -35,7 +34,7 @@ namespace rainy::foundation::io::stream::implements {
 
         virtual ~descriptor_impl_base() = default;
 
-        virtual bool is_open() const noexcept = 0;
+        RAINY_NODISCARD virtual bool is_open() const noexcept = 0;
         virtual std::error_code close() noexcept = 0;
 
         virtual std::ptrdiff_t read_some(void *buf, std::size_t len, std::error_code &ec) noexcept = 0;
@@ -46,10 +45,10 @@ namespace rainy::foundation::io::stream::implements {
                                       completion_op *op) noexcept = 0;
 
         virtual std::error_code cancel() noexcept = 0;
-        virtual native_handle_type native_handle() const noexcept = 0;
+        RAINY_NODISCARD virtual native_handle_type native_handle() const noexcept = 0;
 
-        virtual bool wants_read() const noexcept = 0;
-        virtual bool wants_write() const noexcept = 0;
+        RAINY_NODISCARD virtual bool wants_read() const noexcept = 0;
+        RAINY_NODISCARD virtual bool wants_write() const noexcept = 0;
         virtual void reset_operation() noexcept = 0;
 
         virtual std::error_code attach(native_handle_type handle) noexcept = 0;

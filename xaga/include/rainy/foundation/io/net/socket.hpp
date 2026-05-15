@@ -393,7 +393,7 @@ namespace rainy::foundation::io::net {
 
         template <typename CompletionToken>
         auto async_connect(const endpoint_type &ep, CompletionToken &&token) ->
-            typename async_result<std::decay_t<CompletionToken>, void(std::error_code)>::return_type {
+            typename async_result<std::decay_t<CompletionToken>, void(std::error_code)>::return_type { // NOLINT
             using token_t = std::decay_t<CompletionToken>;
             async_completion<token_t, void(std::error_code)> init(token);
             auto handler = utility::move(init.completion_handler);
@@ -406,7 +406,7 @@ namespace rainy::foundation::io::net {
             }
             auto raw_ep = ep.to_raw();
             auto *op = io::implements::make_executor_completion_op(
-                [handler, this](const io::implements::op_result &r, bool cancelled) mutable {
+                [handler, this](const io::implements::op_result &r, const bool cancelled) mutable {
                     if (cancelled) {
                         handler(std::make_error_code(std::errc::operation_canceled));
                         return;
@@ -999,20 +999,23 @@ namespace rainy::foundation::io::net {
             std::error_code ec;
             open(ep.protocol(), ec);
             if (ec) {
-                throw std::system_error(ec, "acceptor::open");
+                throw exceptions::runtime::system_error(ec, "acceptor::open");
             }
             if (reuse_addr) {
                 int opt = 1;
-                const implements::socket_option raw{implements::sol_socket, implements::so_reuseaddr, &opt, sizeof(opt)};
-                impl_->set_option(raw);
+                const implements::socket_option raw{implements::sol_socket, implements::so_reuseaddr, &opt, sizeof(opt)}; // NOLINT
+                ec = impl_->set_option(raw);
+                if (ec) {
+                    throw exceptions::runtime::system_error(ec, "acceptor::set_option");
+                }
             }
             ec = impl_->bind(ep.to_raw());
             if (ec) {
-                throw std::system_error(ec, "acceptor::bind");
+                throw exceptions::runtime::system_error(ec, "acceptor::bind");
             }
             ec = impl_->listen(max_listen_connections);
             if (ec) {
-                throw std::system_error(ec, "acceptor::listen");
+                throw exceptions::runtime::system_error(ec, "acceptor::listen");
             }
         }
 
