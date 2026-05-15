@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <rainy/foundation/io/io_context.hpp>
 #include <liburing.h>
 #include <queue>
+#include <rainy/foundation/io/io_context.hpp>
 #include <sys/eventfd.h>
 
 namespace rainy::foundation::io::implements {
@@ -28,7 +28,7 @@ namespace rainy::foundation::io::implements {
 namespace rainy::foundation::io::implements {
     class io_uring_impl final : public io_context_impl_base {
     public:
-        explicit io_uring_impl(const int concurrency_hint) noexcept : concurrency_hint_(concurrency_hint) {
+        explicit io_uring_impl(const int concurrency_hint) noexcept : concurrency_hint_(concurrency_hint) { // NOLINT
         }
 
         ~io_uring_impl() override {
@@ -179,7 +179,7 @@ namespace rainy::foundation::io::implements {
             }
         }
 
-        void post_immediate_completion(completion_op *op, bool is_continuation) noexcept override {
+        void post_immediate_completion(completion_op *op, bool is_continuation) noexcept override { // NOLINT
             {
                 concurrency::scoped_lock lock(ready_mutex_);
                 ready_queue_.push(op);

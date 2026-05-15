@@ -22,7 +22,7 @@
 #include <fcntl.h>
 
 namespace rainy::foundation::io::stream::implements {
-    static std::error_code posix_error(int e = errno) noexcept {
+    static std::error_code posix_error(const int e = errno) noexcept { // NOLINT
         return std::error_code{e, std::system_category()};
     }
 
@@ -30,22 +30,23 @@ namespace rainy::foundation::io::stream::implements {
     public:
         using completion_op = io::implements::completion_op;
 
-        explicit null_descriptor_impl(executor_type executor) noexcept : executor_(executor) {
+        explicit null_descriptor_impl(executor_type executor) noexcept : executor_(utility::move(executor)) {
         }
 
-        bool is_open() const noexcept override {
+        RAINY_NODISCARD bool is_open() const noexcept override {
             return true;
         }
 
         std::error_code close() noexcept override {
             return {};
         }
+
         std::error_code cancel() noexcept override {
             return {};
         }
 
-        native_handle_type native_handle() const noexcept override {
-            return static_cast<native_handle_type>(-1);
+        RAINY_NODISCARD native_handle_type native_handle() const noexcept override {
+            return -1;
         }
 
         std::error_code attach(native_handle_type) noexcept override {
@@ -53,7 +54,7 @@ namespace rainy::foundation::io::stream::implements {
         }
 
         native_handle_type release() noexcept override {
-            return static_cast<native_handle_type>(-1);
+            return -1;
         }
 
         std::error_code attach_from(descriptor_impl_base *) noexcept override {
@@ -65,7 +66,7 @@ namespace rainy::foundation::io::stream::implements {
             return 0; // EOF
         }
 
-        std::ptrdiff_t write_some(const void *, std::size_t len, std::error_code &ec) noexcept override {
+        std::ptrdiff_t write_some(const void *, const std::size_t len, std::error_code &ec) noexcept override {
             ec.clear();
             return static_cast<std::ptrdiff_t>(len);
         }
@@ -78,7 +79,7 @@ namespace rainy::foundation::io::stream::implements {
             op->complete(result, false);
         }
 
-        void async_write_some(const void *, std::size_t len, executor_type executor, completion_op *op) noexcept override {
+        void async_write_some(const void *, const std::size_t len, executor_type executor, completion_op *op) noexcept override {
             io::implements::op_result result{};
             result.user_data = op;
             result.error_code = 0;
@@ -86,12 +87,14 @@ namespace rainy::foundation::io::stream::implements {
             op->complete(result, false);
         }
 
-        bool wants_read() const noexcept override {
+        RAINY_NODISCARD bool wants_read() const noexcept override {
             return false;
         }
-        bool wants_write() const noexcept override {
+
+        RAINY_NODISCARD bool wants_write() const noexcept override {
             return false;
         }
+
         void reset_operation() noexcept override {
         }
 
