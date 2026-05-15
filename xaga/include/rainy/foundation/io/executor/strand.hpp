@@ -19,9 +19,9 @@
 #include <rainy/core/core.hpp>
 #include <rainy/foundation/concurrency/atomic.hpp>
 #include <rainy/foundation/io/executor/execution_context.hpp>
+#include <rainy/foundation/io/executor/executor_trait.hpp>
 #include <rainy/foundation/io/executor/op_queue.hpp>
 #include <rainy/foundation/io/executor/operation.hpp>
-#include <rainy/foundation/io/executor/executor_trait.hpp>
 #include <rainy/foundation/memory/shared_ptr.hpp>
 
 namespace rainy::foundation::io::implements {
@@ -64,7 +64,7 @@ namespace rainy::foundation::io::implements {
                 implements::handler_invoke_helper(tmp, tmp);
                 return;
             }
-            typedef executor_op<function_type, Allocator> op;
+            using op = executor_op<function_type, Allocator>;
             typename op::ptr p = {utility::addressof(a), op::ptr::allocate(a), 0};
             p.p = new (p.v) op(utility::move(function), a);
             NET_TS_HANDLER_CREATION((impl->service_->context(), *p.p, "strand_executor", impl.get(), 0, "dispatch"));
@@ -78,8 +78,8 @@ namespace rainy::foundation::io::implements {
 
         template <typename Executor, typename Function, typename Allocator>
         static void post(const implementation_type &impl, Executor &ex, Function &&function, const Allocator &a) {
-            typedef typename type_traits::other_trans::decay<Function>::type function_type;
-            typedef executor_op<function_type, Allocator> op;
+            using function_type = typename type_traits::other_trans::decay<Function>::type;
+            using op = executor_op<function_type, Allocator>;
             typename op::ptr p = {utility::addressof(a), op::ptr::allocate(a), 0};
             p.p = new (p.v) op(utility::move(function), a);
             NET_TS_HANDLER_CREATION((impl->service_->context(), *p.p, "strand_executor", impl.get(), 0, "post"));
@@ -92,8 +92,8 @@ namespace rainy::foundation::io::implements {
 
         template <typename Executor, typename Function, typename Allocator>
         static void defer(const implementation_type &impl, Executor &ex, Function &&function, const Allocator &a) {
-            typedef typename type_traits::other_trans::decay<Function>::type function_type;
-            typedef executor_op<function_type, Allocator> op;
+            using function_type = typename type_traits::other_trans::decay<Function>::type;
+            using op = executor_op<function_type, Allocator>;
             typename op::ptr p = {utility::addressof(a), op::ptr::allocate(a), 0};
             p.p = new (p.v) op(utility::move(function), a);
             NET_TS_HANDLER_CREATION((impl->service_->context(), *p.p, "strand_executor", impl.get(), 0, "defer"));

@@ -35,24 +35,30 @@ namespace rainy::foundation::io {
             void on_work_finished() const noexcept;
 
             template <typename Func, typename ProtoAllocator>
-            void dispatch(Func &&f, const ProtoAllocator &) const {
+            void dispatch(Func &&f, const ProtoAllocator &a) const {
+                using implements::handler_tracking;
                 if (running_in_this_thread()) {
                     utility::forward<Func>(f)();
                     return;
                 }
                 auto *op = implements::make_immediate_op(utility::forward<Func>(f));
+                NET_TS_HANDLER_CREATION((context(), *op, "io_context executor", ctx_, 0, "dispatch"));
                 ctx_->impl_->post_immediate_completion(op, false);
             }
 
             template <typename Func, typename ProtoAllocator>
             void post(Func &&f, const ProtoAllocator &) const {
+                using implements::handler_tracking;
                 auto *op = implements::make_immediate_op(utility::forward<Func>(f));
+                NET_TS_HANDLER_CREATION((context(), *op, "io_context executor", ctx_, 0, "post"));
                 ctx_->impl_->post_immediate_completion(op, false);
             }
 
             template <typename Func, typename ProtoAllocator>
             void defer(Func &&f, const ProtoAllocator &) const {
+                using implements::handler_tracking;
                 auto *op = implements::make_immediate_op(utility::forward<Func>(f));
+                NET_TS_HANDLER_CREATION((context(), *op, "io_context executor", ctx_, 0, "post"));
                 ctx_->impl_->post_immediate_completion(op, true);
             }
 

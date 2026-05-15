@@ -19,6 +19,7 @@
 #include <rainy/foundation/concurrency/atomic.hpp>
 #include <rainy/foundation/concurrency/pal.hpp>
 #include <rainy/foundation/memory/nebula_ptr.hpp>
+#include <rainy/foundation/io/implements/handler_tracking.hpp>
 
 namespace rainy::foundation::io::implements {
     struct op_result {
@@ -43,30 +44,7 @@ namespace rainy::foundation::io::implements {
     };
 
     template <typename Func>
-    class function_completion_op final : public completion_op {
-    public:
-        template <typename Fx,
-                  type_traits::other_trans::enable_if_t<type_traits::type_properties::is_constructible_v<Func, Fx &&>, int> = 0>
-        explicit function_completion_op(Fx &&func) noexcept(std::is_nothrow_constructible_v<Func, Fx &&>) :
-            completion_op(&do_complete), func_(utility::forward<Fx>(func)) {
-        }
-
-        function_completion_op(const function_completion_op &) = delete;
-        function_completion_op &operator=(const function_completion_op &) = delete;
-
-    private:
-        static void do_complete(completion_op *self, const op_result & /*result*/, bool is_cancelled) {
-            auto *op = static_cast<function_completion_op *>(self);
-            Func func(utility::move(op->func_));
-            delete op;
-            func();
-        }
-
-        Func func_;
-    };
-
-    template <typename Func>
-    class immediate_op final : public completion_op {
+    class immediate_op final : public completion_op , public handler_tracking::tracked_handler {
     public:
         template <typename Fx,
                   type_traits::other_trans::enable_if_t<type_traits::type_properties::is_constructible_v<Func, Fx &&>, int> = 0>
@@ -80,10 +58,13 @@ namespace rainy::foundation::io::implements {
     private:
         static void do_complete(completion_op *self, const op_result & /*result*/, const bool is_cancelled) {
             auto *op = static_cast<immediate_op *>(self);
+            NET_TS_HANDLER_COMPLETION((*op));
             Func func = utility::move(op->func_);
             delete op;
             if (!is_cancelled) {
+                NET_TS_HANDLER_INVOCATION_BEGIN(());
                 func();
+                NET_TS_HANDLER_INVOCATION_END;
             }
         }
 
@@ -93,44 +74,6 @@ namespace rainy::foundation::io::implements {
     template <typename Func>
     RAINY_NODISCARD immediate_op<std::decay_t<Func>> *make_immediate_op(Func &&func) {
         return new immediate_op<std::decay_t<Func>>(utility::forward<Func>(func));
-    }
-
-    template <typename Func>
-    class io_completion_op final : public completion_op {
-    public:
-        template <typename Fx,
-                  type_traits::other_trans::enable_if_t<type_traits::type_properties::is_constructible_v<Func, Fx &&>, int> = 0>
-        explicit io_completion_op(Fx &&func) noexcept(std::is_nothrow_constructible_v<Func, Fx &&>) :
-            completion_op(&do_complete), func_(utility::forward<Fx>(func)) {
-        }
-
-        io_completion_op(const io_completion_op &) = delete;
-        io_completion_op &operator=(const io_completion_op &) = delete;
-
-    private:
-        static void do_complete(completion_op *self, const op_result &result, bool is_cancelled) {
-            auto *op = static_cast<io_completion_op *>(self);
-            Func func = utility::move(op->func_);
-            delete op;
-            func(result, is_cancelled);
-        }
-
-        Func func_;
-    };
-
-    template <typename Func>
-    RAINY_NODISCARD io_completion_op<std::decay_t<Func>> *make_io_completion_op(Func &&func) {
-        return new io_completion_op<std::decay_t<Func>>(utility::forward<Func>(func));
-    }
-
-    template <typename Func>
-    RAINY_NODISCARD immediate_op<std::decay_t<Func>> *make_function_op(Func &&func) {
-        return make_immediate_op(utility::forward<Func>(func));
-    }
-
-    template <typename Func>
-    RAINY_NODISCARD function_completion_op<type_traits::other_trans::decay_t<Func>> *make_function_op(Func &&func) {
-        return new function_completion_op<type_traits::other_trans::decay_t<Func>>(utility::forward<Func>(func));
     }
 
     template <typename Func, typename Executor>

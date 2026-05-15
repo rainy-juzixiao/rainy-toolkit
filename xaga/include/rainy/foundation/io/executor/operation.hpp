@@ -70,12 +70,9 @@ namespace rainy::foundation::io::implements {
     using operation = scheduler_operation;
 
     template <typename Handler, typename Alloc, typename Operation = scheduler_operation>
-    class executor_op : public Operation, public implements::handler_tracking::tracked_handler {
+    class executor_op : public Operation, public handler_tracking::tracked_handler {
     public:
         struct ptr {
-            const Alloc *a;
-            void *v;
-            executor_op *p;
             ~ptr() {
                 reset();
             }
@@ -103,6 +100,10 @@ namespace rainy::foundation::io::implements {
                     v = 0;
                 }
             }
+
+            const Alloc *a;
+            void *v;
+            executor_op *p;
         };
 
         template <typename H>
@@ -111,7 +112,7 @@ namespace rainy::foundation::io::implements {
         }
 
         static void do_complete(void *owner, Operation *base, const std::error_code & /*ec*/, std::size_t /*bytes_transferred*/) {
-            executor_op *o(static_cast<executor_op *>(base));
+            executor_op *o = static_cast<executor_op *>(base);
             Alloc allocator(o->allocator_);
             ptr p = {utility::addressof(allocator), o, o};
             NET_TS_HANDLER_COMPLETION((*o));

@@ -76,9 +76,6 @@ namespace rainy::foundation::io {
         }                                                                                                                             \
     }
 
-
-#define NET_TS_HANDLER_COMPLETION(args) rainy::foundation::io::implements::handler_tracking::completion tracked_completion args
-
 #define NET_TS_DEFINE_HANDLER_ALLOCATOR_PTR(op)                                                                                       \
     NET_TS_DEFINE_TAGGED_HANDLER_ALLOCATOR_PTR(::rainy::foundation::concurrency::implements::thread_info_base::default_tag, op)
 

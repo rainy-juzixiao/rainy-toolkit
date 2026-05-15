@@ -13,12 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef RAINY_FOUNDATION_IO_NET_IMPLEMENTS_HANDLER_TRACKING_HPP
-#define RAINY_FOUNDATION_IO_NET_IMPLEMENTS_HANDLER_TRACKING_HPP
+#ifndef RAINY_FOUNDATION_IO_IMPLEMENTS_HANDLER_TRACKING_HPP
+#define RAINY_FOUNDATION_IO_IMPLEMENTS_HANDLER_TRACKING_HPP
 
 // NOLINTBEGIN
 
 #include <rainy/collections/unordered_map.hpp>
+#include <rainy/foundation/io/executor/execution_context.hpp>
 #include <rainy/core/core.hpp>
 
 // NOLINTEND
@@ -231,6 +232,7 @@ namespace rainy::foundation::io::implements {
     };
 }
 
+#define NET_TS_HANDLER_COMPLETION(args) rainy::foundation::io::implements::handler_tracking::completion tracked_completion args
 #define NET_TS_HANDLER_INVOCATION_BEGIN(args) tracked_completion.invocation_begin args
 #define NET_TS_HANDLER_INVOCATION_END tracked_completion.invocation_end()
 #define NET_TS_HANDLER_CREATION(args) handler_tracking::creation args
