@@ -24,7 +24,7 @@ namespace rainy::foundation::io::net::ssl {
     class tls {
     public:
         using endpoint = ip::tcp::endpoint;
-        using socket = ssl_stream<ip::tcp::socket>;
+        using socket = stream<ip::tcp::socket>;
         using acceptor = ip::tcp::acceptor;
 
         static constexpr tls v4() noexcept {

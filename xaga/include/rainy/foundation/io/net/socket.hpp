@@ -1004,10 +1004,7 @@ namespace rainy::foundation::io::net {
             if (reuse_addr) {
                 int opt = 1;
                 const implements::socket_option raw{implements::sol_socket, implements::so_reuseaddr, &opt, sizeof(opt)}; // NOLINT
-                ec = impl_->set_option(raw);
-                if (ec) {
-                    throw exceptions::runtime::system_error(ec, "acceptor::set_option");
-                }
+                utility::ignore = impl_->set_option(raw);
             }
             ec = impl_->bind(ep.to_raw());
             if (ec) {
