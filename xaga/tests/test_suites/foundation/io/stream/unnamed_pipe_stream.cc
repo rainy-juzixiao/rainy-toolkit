@@ -164,7 +164,7 @@ TEST_CASE("unnamed_pipe_stream sync read_some ec overload clears error on succes
 
 TEST_CASE("unnamed_pipe_stream write then read with empty payload", "[unnamed_pipe][sync]") {
     auto pipe = make_pipe();
-    auto wbuf = buffer(reinterpret_cast<const char *>(nullptr), 0);
+    auto wbuf = buffer(static_cast<const char *>(nullptr), 0);
     std::error_code ec;
     std::size_t written = pipe.get_write_end().write_some(wbuf, ec);
     REQUIRE(written == 0);
