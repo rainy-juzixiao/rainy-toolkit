@@ -332,14 +332,6 @@ namespace rainy::foundation::io::stream::implements {
                 linux_stream_proxy{executor}.post_immediate_completion(op, false);
                 return;
             }
-            auto *sqe = get_sqe(op, executor, fd_);
-            if (sqe) {
-                wants_read_ = true;
-                ::io_uring_prep_read(sqe, fd_, buf, static_cast<unsigned>(len), 0);
-                ::io_uring_sqe_set_data(sqe, op);
-                submit_ring(op);
-                return;
-            }
             wants_read_ = true;
             int fd = fd_;
             std::atomic<bool> *flag = &cancel_flag_;
@@ -367,14 +359,6 @@ namespace rainy::foundation::io::stream::implements {
         void async_write_some(const void *buf, std::size_t len, executor_type executor, completion_op *op) noexcept override {
             if (fd_ < 0) {
                 linux_stream_proxy{executor}.post_immediate_completion(op, false);
-                return;
-            }
-            auto *sqe = get_sqe(op, executor, fd_);
-            if (sqe) {
-                wants_write_ = true;
-                ::io_uring_prep_write(sqe, fd_, buf, static_cast<unsigned>(len), 0);
-                ::io_uring_sqe_set_data(sqe, op);
-                submit_ring(op);
                 return;
             }
             wants_write_ = true;

@@ -110,12 +110,15 @@ namespace rainy::foundation::io::filesystem {
         template <typename MutableBufferSequence, typename Handler>
         void async_read_some_at(std::uint64_t offset, const MutableBufferSequence &buf, Handler &&handler) {
             auto *op = io::implements::make_executor_completion_op(
-                [h = utility::forward<Handler>(handler), this](const implements::op_result &res, bool cancelled) mutable {
+                [h = utility::forward<Handler>(handler), is_open = impl_->is_open()](const implements::op_result &res,
+                                                                                     bool cancelled) mutable {
                     std::error_code ec;
                     if (cancelled) {
                         ec = std::make_error_code(std::errc::operation_canceled);
                     } else if (res.error_code) {
                         ec.assign(res.error_code, std::system_category());
+                    } else if (!is_open) {
+                        ec = std::make_error_code(std::errc::bad_file_descriptor);
                     }
                     h(ec, res.bytes_transferred);
                 },
@@ -126,12 +129,15 @@ namespace rainy::foundation::io::filesystem {
         template <typename ConstBufferSequence, typename Handler>
         void async_write_some_at(std::uint64_t offset, const ConstBufferSequence &buf, Handler &&handler) {
             auto *op = io::implements::make_executor_completion_op(
-                [h = utility::forward<Handler>(handler), this](const implements::op_result &res, bool cancelled) mutable {
+                [h = utility::forward<Handler>(handler), is_open = impl_->is_open()](const implements::op_result &res,
+                                                                                     bool cancelled) mutable {
                     std::error_code ec;
                     if (cancelled) {
                         ec = std::make_error_code(std::errc::operation_canceled);
                     } else if (res.error_code) {
-                        ec.assign(res.error_code, std::system_category());
+                        ec = std::error_code{res.error_code, std::system_category()};
+                    } else if (!is_open) {
+                        ec = std::make_error_code(std::errc::bad_file_descriptor);
                     }
                     h(ec, res.bytes_transferred);
                 },

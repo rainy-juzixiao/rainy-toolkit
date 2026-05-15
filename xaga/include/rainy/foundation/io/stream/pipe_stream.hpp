@@ -124,13 +124,14 @@ namespace rainy::foundation::io::stream {
                 auto handler = utility::move(init.completion_handler);
                 auto mb = io::buffer(buffers);
                 auto *op = io::implements::make_executor_completion_op(
-                    [handler](const io::implements::op_result &r, const bool cancelled) mutable {
-                        if (cancelled) {
-                            return;
-                        }
+                    [handler, is_open = impl_->is_open()](const io::implements::op_result &r, const bool cancelled) mutable {
                         std::error_code ec;
-                        if (r.error_code) {
+                        if (cancelled) {
+                            ec = std::make_error_code(std::errc::operation_canceled);
+                        } else if (r.error_code) {
                             ec = std::error_code{r.error_code, std::system_category()};
+                        } else if (!is_open) {
+                            ec = std::make_error_code(std::errc::bad_file_descriptor);
                         }
                         handler(ec, r.bytes_transferred);
                     },
@@ -169,13 +170,14 @@ namespace rainy::foundation::io::stream {
                 auto handler = utility::move(init.completion_handler);
                 auto cb = io::buffer(buffers);
                 auto *op = io::implements::make_executor_completion_op(
-                    [handler](const io::implements::op_result &r, const bool cancelled) mutable {
-                        if (cancelled) {
-                            return;
-                        }
+                    [handler, is_open = impl_->is_open()](const io::implements::op_result &r, const bool cancelled) mutable {
                         std::error_code ec;
-                        if (r.error_code) {
+                        if (cancelled) {
+                            ec = std::make_error_code(std::errc::operation_canceled);
+                        } else if (r.error_code) {
                             ec = std::error_code{r.error_code, std::system_category()};
+                        } else if (!is_open) {
+                            ec = std::make_error_code(std::errc::bad_file_descriptor);
                         }
                         handler(ec, r.bytes_transferred);
                     },
@@ -291,14 +293,17 @@ namespace rainy::foundation::io::stream {
             close_if_open();
         }
 
-        static named_pipe_stream open_server(executor_type executor, foundation::text::string_view name, pipe_direction dir = pipe_direction::inout);
+        static named_pipe_stream open_server(executor_type executor, foundation::text::string_view name,
+                                             pipe_direction dir = pipe_direction::inout);
 
         static named_pipe_stream open_server(executor_type executor, foundation::text::string_view name, pipe_direction dir,
                                              std::error_code &ec);
 
-        static named_pipe_stream open_client(executor_type executor, foundation::text::string_view name, pipe_direction dir = pipe_direction::inout);
+        static named_pipe_stream open_client(executor_type executor, foundation::text::string_view name,
+                                             pipe_direction dir = pipe_direction::inout);
 
-        static named_pipe_stream open_client(executor_type executor, foundation::text::string_view name, pipe_direction dir, std::error_code &ec);
+        static named_pipe_stream open_client(executor_type executor, foundation::text::string_view name, pipe_direction dir,
+                                             std::error_code &ec);
 
         bool is_open() const noexcept {
             return impl_ && impl_->is_open();
@@ -372,13 +377,14 @@ namespace rainy::foundation::io::stream {
             auto handler = utility::move(init.completion_handler);
             auto mb = io::buffer(buffers);
             auto *op = io::implements::make_executor_completion_op(
-                [handler](const io::implements::op_result &r, const bool cancelled) mutable {
-                    if (cancelled) {
-                        return;
-                    }
+                [handler, is_open = impl_->is_open()](const io::implements::op_result &r, const bool cancelled) mutable {
                     std::error_code ec;
-                    if (r.error_code) {
+                    if (cancelled) {
+                        ec = std::make_error_code(std::errc::operation_canceled);
+                    } else if (r.error_code) {
                         ec = std::error_code{r.error_code, std::system_category()};
+                    } else if (!is_open) {
+                        ec = std::make_error_code(std::errc::bad_file_descriptor);
                     }
                     handler(ec, r.bytes_transferred);
                 },
@@ -395,13 +401,14 @@ namespace rainy::foundation::io::stream {
             auto handler = utility::move(init.completion_handler);
             auto cb = io::buffer(buffers);
             auto *op = io::implements::make_executor_completion_op(
-                [handler](const io::implements::op_result &r, const bool cancelled) mutable {
-                    if (cancelled) {
-                        return;
-                    }
+                [handler, is_open = impl_->is_open()](const io::implements::op_result &r, const bool cancelled) mutable {
                     std::error_code ec;
-                    if (r.error_code) {
+                    if (cancelled) {
+                        ec = std::make_error_code(std::errc::operation_canceled);
+                    } else if (r.error_code) {
                         ec = std::error_code{r.error_code, std::system_category()};
+                    } else if (!is_open) {
+                        ec = std::make_error_code(std::errc::bad_file_descriptor);
                     }
                     handler(ec, r.bytes_transferred);
                 },

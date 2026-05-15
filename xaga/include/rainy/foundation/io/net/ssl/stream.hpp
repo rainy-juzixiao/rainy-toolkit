@@ -115,12 +115,11 @@ namespace rainy::foundation::io::net::ssl {
 
             auto *op = io::implements::make_executor_completion_op(
                 [handler](const io::implements::op_result &r, const bool cancelled) mutable {
-                    if (cancelled) {
-                        return;
-                    }
                     std::error_code ec;
-                    if (r.error_code) {
-                        ec = std::error_code{r.error_code, std::system_category()};
+                    if (cancelled) {
+                        ec = std::make_error_code(std::errc::operation_canceled);
+                    } else if (r.error_code) {
+                        ec.assign(r.error_code, std::system_category());
                     }
                     handler(ec);
                 },
@@ -159,12 +158,11 @@ namespace rainy::foundation::io::net::ssl {
 
             auto *op = io::implements::make_executor_completion_op(
                 [handler](const io::implements::op_result &r, const bool cancelled) mutable {
-                    if (cancelled) {
-                        return;
-                    }
                     std::error_code ec;
-                    if (r.error_code) {
-                        ec = std::error_code{r.error_code, std::system_category()};
+                    if (cancelled) {
+                        ec = std::make_error_code(std::errc::operation_canceled);
+                    } else if (r.error_code) {
+                        ec.assign(r.error_code, std::system_category());
                     }
                     handler(ec);
                 },
@@ -242,13 +240,14 @@ namespace rainy::foundation::io::net::ssl {
             auto buf = io::buffer(buffers);
 
             auto *op = io::implements::make_executor_completion_op(
-                [handler](const io::implements::op_result &r, const bool cancelled) mutable {
-                    if (cancelled) {
-                        return;
-                    }
+                [handler, is_open = impl_->is_open()](const io::implements::op_result &r, const bool cancelled) mutable {
                     std::error_code ec;
-                    if (r.error_code) {
-                        ec = std::error_code{r.error_code, std::system_category()};
+                    if (cancelled) {
+                        ec = std::make_error_code(std::errc::operation_canceled);
+                    } else if (r.error_code) {
+                        ec.assign(r.error_code, std::system_category());
+                    } else if (!is_open) {
+                        ec = std::make_error_code(std::errc::bad_file_descriptor);
                     }
                     handler(ec, r.bytes_transferred);
                 },
@@ -275,13 +274,14 @@ namespace rainy::foundation::io::net::ssl {
             auto buf = io::buffer(buffers);
 
             auto *op = io::implements::make_executor_completion_op(
-                [handler](const io::implements::op_result &r, const bool cancelled) mutable {
-                    if (cancelled) {
-                        return;
-                    }
+                [handler, is_open = impl_->is_open()](const io::implements::op_result &r, const bool cancelled) mutable {
                     std::error_code ec;
-                    if (r.error_code) {
-                        ec = std::error_code{r.error_code, std::system_category()};
+                    if (cancelled) {
+                        ec = std::make_error_code(std::errc::operation_canceled);
+                    } else if (r.error_code) {
+                        ec.assign(r.error_code, std::system_category());
+                    } else if (!is_open) {
+                        ec = std::make_error_code(std::errc::bad_file_descriptor);
                     }
                     handler(ec, r.bytes_transferred);
                 },

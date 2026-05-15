@@ -406,14 +406,14 @@ namespace rainy::foundation::io::net {
             }
             auto raw_ep = ep.to_raw();
             auto *op = io::implements::make_executor_completion_op(
-                [handler, this](const io::implements::op_result &r, const bool cancelled) mutable {
-                    if (cancelled) {
-                        handler(std::make_error_code(std::errc::operation_canceled));
-                        return;
-                    }
+                [handler, this, is_open = this->impl_->is_open()](const io::implements::op_result &r, const bool cancelled) mutable {
                     std::error_code ec;
-                    if (r.error_code) {
+                    if (cancelled) {
+                        ec = std::make_error_code(std::errc::operation_canceled);
+                    } else if (r.error_code) {
                         ec = std::error_code{r.error_code, std::system_category()};
+                    } else if (!is_open) {
+                        ec = std::make_error_code(std::errc::bad_file_descriptor);
                     }
                     handler(ec);
                 },
@@ -445,11 +445,10 @@ namespace rainy::foundation::io::net {
             auto handler = utility::move(init.completion_handler);
             auto *op = io::implements::make_executor_completion_op(
                 [handler](const io::implements::op_result &r, const bool cancelled) mutable {
-                    if (cancelled) {
-                        return;
-                    }
                     std::error_code ec;
-                    if (r.error_code) {
+                    if (cancelled) {
+                        ec = std::make_error_code(std::errc::operation_canceled);
+                    } else if (r.error_code) {
                         ec = std::error_code{r.error_code, std::system_category()};
                     }
                     handler(ec);
@@ -593,13 +592,14 @@ namespace rainy::foundation::io::net {
             auto handler = utility::move(init.completion_handler);
             auto mb = io::buffer(buffers);
             auto *op = io::implements::make_executor_completion_op(
-                [handler](const io::implements::op_result &r, const bool cancelled) mutable {
-                    if (cancelled) {
-                        return;
-                    }
+                [handler, is_open = this->impl_->is_open()](const io::implements::op_result &r, const bool cancelled) mutable {
                     std::error_code ec;
-                    if (r.error_code) {
+                    if (cancelled) {
+                        ec = std::make_error_code(std::errc::operation_canceled);
+                    } else if (r.error_code) {
                         ec = std::error_code{r.error_code, std::system_category()};
+                    } else if (!is_open) {
+                        ec = std::make_error_code(std::errc::bad_file_descriptor);
                     }
                     handler(ec, r.bytes_transferred);
                 },
@@ -721,13 +721,14 @@ namespace rainy::foundation::io::net {
             auto handler = utility::move(init.completion_handler);
             auto cb = io::buffer(buffers);
             auto *op = io::implements::make_executor_completion_op(
-                [handler](const io::implements::op_result &r, const bool cancelled) mutable {
-                    if (cancelled) {
-                        return;
-                    }
+                [handler, is_open = this->impl_->is_open()](const io::implements::op_result &r, const bool cancelled) mutable {
                     std::error_code ec;
-                    if (r.error_code) {
+                    if (cancelled) {
+                        ec = std::make_error_code(std::errc::operation_canceled);
+                    } else if (r.error_code) {
                         ec = std::error_code{r.error_code, std::system_category()};
+                    } else if (!is_open) {
+                        ec = std::make_error_code(std::errc::bad_file_descriptor);
                     }
                     handler(ec, r.bytes_transferred);
                 },
@@ -924,13 +925,14 @@ namespace rainy::foundation::io::net {
             auto handler = utility::move(init.completion_handler);
             auto mb = io::buffer(buffers);
             auto *op = io::implements::make_executor_completion_op(
-                [handler](const io::implements::op_result &r, const bool cancelled) mutable {
-                    if (cancelled) {
-                        return;
-                    }
+                [handler, is_open = this->impl_->is_open()](const io::implements::op_result &r, const bool cancelled) mutable {
                     std::error_code ec;
-                    if (r.error_code) {
+                    if (cancelled) {
+                        ec = std::make_error_code(std::errc::operation_canceled);
+                    } else if (r.error_code) {
                         ec = std::error_code{r.error_code, std::system_category()};
+                    } else if (!is_open) {
+                        ec = std::make_error_code(std::errc::bad_file_descriptor);
                     }
                     handler(ec, r.bytes_transferred);
                 },
@@ -958,14 +960,20 @@ namespace rainy::foundation::io::net {
             async_completion<token_t, void(std::error_code, std::size_t)> init(token);
             auto handler = utility::move(init.completion_handler);
             auto cb = io::buffer(buffers);
-            auto *op = io::implements::make_executor_completion_op([handler](const io::implements::op_result &r) mutable {
-                std::error_code ec;
-                if (r.error_code) {
-                    ec = std::error_code{r.error_code, std::system_category()};
-                }
-                handler(ec, r.bytes_transferred);
-            });
-            this->impl_->async_send(cb.data(), cb.size(), flags, *this->executor_.context().impl_, op);
+            auto *op = io::implements::make_executor_completion_op(
+                [handler, is_open = this->impl_->is_open()](const io::implements::op_result &r, const bool cancelled) mutable {
+                    std::error_code ec;
+                    if (cancelled) {
+                        ec = std::make_error_code(std::errc::operation_canceled);
+                    } else if (r.error_code) {
+                        ec = std::error_code{r.error_code, std::system_category()};
+                    } else if (!is_open()) {
+                        ec = std::make_error_code(std::errc::bad_file_descriptor);
+                    }
+                    handler(ec, r.bytes_transferred);
+                },
+                this->executor_);
+            this->impl_->async_send(cb.data(), cb.size(), flags, this->executor_, op);
             return init.result.get();
         }
 
@@ -1318,13 +1326,15 @@ namespace rainy::foundation::io::net {
             auto executor = executor_;
             auto protocol = protocol_;
             auto *op = io::implements::make_executor_completion_op(
-                [this, raw_peer, handler, executor, protocol](const io::implements::op_result &r, const bool cancelled) mutable {
-                    if (cancelled) {
-                        return;
-                    }
+                [this, raw_peer, handler, executor, protocol, is_open = impl_->is_open()](const io::implements::op_result &r,
+                                                                                          const bool cancelled) mutable {
                     std::error_code ec;
-                    if (r.error_code) {
+                    if (cancelled) {
+                        ec = std::make_error_code(std::errc::operation_canceled);
+                    } else if (r.error_code) {
                         ec = std::error_code{r.error_code, std::system_category()};
+                    } else if (!is_open) {
+                        ec = std::make_error_code(std::errc::bad_file_descriptor);
                     }
                     socket_type s{executor.context()};
                     if (!ec) {

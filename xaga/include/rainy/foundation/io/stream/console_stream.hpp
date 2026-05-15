@@ -23,10 +23,10 @@ namespace rainy::foundation::io::stream {
     public:
         using executor_type = io_context::executor_type;
 
-        console_stream(const console_stream&) = delete;
-        console_stream& operator=(const console_stream&) = delete;
-        console_stream(console_stream&&) = delete;
-        console_stream& operator=(console_stream&&) = delete;
+        console_stream(const console_stream &) = delete;
+        console_stream &operator=(const console_stream &) = delete;
+        console_stream(console_stream &&) = delete;
+        console_stream &operator=(console_stream &&) = delete;
 
         static console_stream &input() noexcept;
         static console_stream &output() noexcept;
@@ -62,30 +62,32 @@ namespace rainy::foundation::io::stream {
         }
 
         template <typename ConstBufferSequence>
-        std::size_t write_some(const ConstBufferSequence &buffers,std::error_code &ec) {
+        std::size_t write_some(const ConstBufferSequence &buffers, std::error_code &ec) {
             auto cb = io::buffer(buffers);
             auto r = this->impl_->write_some(cb.data(), cb.size(), ec);
             return r < 0 ? 0 : static_cast<std::size_t>(r);
         }
 
         template <typename MutableBufferSequence, typename CompletionToken>
-        rain_fn async_read_some(MutableBufferSequence buffers, CompletionToken &&token)  ->
+        rain_fn async_read_some(MutableBufferSequence buffers, CompletionToken &&token) ->
             typename async_result<std::decay_t<CompletionToken>, void(std::error_code, std::size_t)>::return_type {
             using token_t = std::decay_t<CompletionToken>;
             async_completion<token_t, void(std::error_code, std::size_t)> init(token);
             auto handler = utility::move(init.completion_handler);
             auto mb = io::buffer(buffers);
-            auto *op =
-                io::implements::make_executor_completion_op([handler](const io::implements::op_result &r, const bool cancelled) mutable {
-                    if (cancelled) {
-                        return;
-                    }
+            auto *op = io::implements::make_executor_completion_op(
+                [handler, is_open = impl_->is_open()](const io::implements::op_result &r, const bool cancelled) mutable {
                     std::error_code ec;
-                    if (r.error_code) {
+                    if (cancelled) {
+                        ec = std::make_error_code(std::errc::operation_canceled);
+                    } else if (r.error_code) {
                         ec = std::error_code{r.error_code, std::system_category()};
+                    } else if (!is_open) {
+                        ec = std::make_error_code(std::errc::bad_file_descriptor);
                     }
                     handler(ec, r.bytes_transferred);
-                }, executor_);
+                },
+                executor_);
             this->impl_->async_read_some(mb.data(), mb.size(), this->executor_, op);
             return init.result.get();
         }
@@ -96,17 +98,19 @@ namespace rainy::foundation::io::stream {
             async_completion<token_t, void(std::error_code, std::size_t)> init(token);
             auto handler = utility::move(init.completion_handler);
             auto mb = io::buffer(buffers);
-            auto *op =
-                io::implements::make_executor_completion_op([handler](const io::implements::op_result &r, const bool cancelled) mutable {
-                    if (cancelled) {
-                        return;
-                    }
+            auto *op = io::implements::make_executor_completion_op(
+                [handler, is_open = impl_->is_open()](const io::implements::op_result &r, const bool cancelled) mutable {
                     std::error_code ec;
-                    if (r.error_code) {
+                    if (cancelled) {
+                        ec = std::make_error_code(std::errc::operation_canceled);
+                    } else if (r.error_code) {
                         ec = std::error_code{r.error_code, std::system_category()};
+                    } else if (!is_open) {
+                        ec = std::make_error_code(std::errc::bad_file_descriptor);
                     }
                     handler(ec, r.bytes_transferred);
-                }, executor_);
+                },
+                executor_);
             this->impl_->async_write_some(mb.data(), mb.size(), this->executor_, op);
             return init.result.get();
         }
@@ -117,7 +121,7 @@ namespace rainy::foundation::io::stream {
     private:
         explicit console_stream(console_stream_kind kind, executor_type ex);
 
-        static io_context& default_context();
+        static io_context &default_context();
 
         console_stream_kind kind_;
         executor_type executor_;
