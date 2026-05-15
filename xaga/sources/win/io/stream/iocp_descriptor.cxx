@@ -679,27 +679,33 @@ namespace rainy::foundation::io::stream::implements {
             ec = last_error();
             return memory::make_nebula<null_descriptor_impl>(executor);
         }
-        OVERLAPPED ov{};
+        OVERLAPPED *ov = new OVERLAPPED{};
         HANDLE ev = ::CreateEventW(nullptr, TRUE, FALSE, nullptr);
         if (!ev) {
             ec = last_error();
+            delete ov;
             ::CloseHandle(h);
             return memory::make_nebula<null_descriptor_impl>(executor);
         }
-        ov.hEvent = ev;
-        BOOL ok = ::ConnectNamedPipe(h, &ov);
+        ov->hEvent = ev;
+
+        BOOL ok = ::ConnectNamedPipe(h, ov);
         if (!ok) {
             DWORD err = ::GetLastError();
-            if (err == ERROR_IO_PENDING) {
-                ::WaitForSingleObject(ev, INFINITE);
-            } else if (err != ERROR_PIPE_CONNECTED) {
+            if (err == ERROR_PIPE_CONNECTED) {
+                ::CloseHandle(ev);
+                delete ov;
+            } else if (err == ERROR_IO_PENDING) {
+                ::CloseHandle(ev);
+                delete ov;
+            } else {
                 ec.assign(static_cast<int>(err), std::system_category());
                 ::CloseHandle(ev);
+                delete ov;
                 ::CloseHandle(h);
                 return memory::make_nebula<null_descriptor_impl>(executor);
             }
         }
-        ::CloseHandle(ev);
 
         auto impl = memory::make_nebula<win_descriptor_impl>(executor);
         static_cast<void>(impl->attach(reinterpret_cast<native_handle_type>(h)));
