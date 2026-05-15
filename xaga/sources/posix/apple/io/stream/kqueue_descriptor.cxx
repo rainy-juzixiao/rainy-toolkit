@@ -106,6 +106,9 @@ namespace rainy::foundation::io::stream::implements {
         }
 
         std::error_code cancel() noexcept override {
+            if (fd_ < 0) {
+                return posix_error(EBADF); // as-if workaround
+            }
             cancel_flag_.store(true, std::memory_order_release);
             return {};
         }

@@ -102,16 +102,16 @@ TEST_CASE("unnamed_pipe_stream native handles are valid and distinct", "[unnamed
     auto pipe = make_pipe();
     auto rh = pipe.get_read_end().native_handle();
     auto wh = pipe.get_write_end().native_handle();
-    REQUIRE(rh != static_cast<native_handle_type>(-1));
-    REQUIRE(wh != static_cast<native_handle_type>(-1));
+    REQUIRE(rh != reinterpret_cast<native_handle_type>(-1));
+    REQUIRE(wh != reinterpret_cast<native_handle_type>(-1));
     REQUIRE(rh != wh);
 }
 
 TEST_CASE("unnamed_pipe_stream native_handle after close returns sentinel", "[unnamed_pipe][native_handle]") {
     auto pipe = make_pipe();
     pipe.close();
-    REQUIRE(pipe.get_read_end().native_handle() == static_cast<native_handle_type>(-1));
-    REQUIRE(pipe.get_write_end().native_handle() == static_cast<native_handle_type>(-1));
+    REQUIRE(pipe.get_read_end().native_handle() == reinterpret_cast<native_handle_type>(-1));
+    REQUIRE(pipe.get_write_end().native_handle() == reinterpret_cast<native_handle_type>(-1));
 }
 
 TEST_CASE("unnamed_pipe_stream get_executor is accessible on both ends", "[unnamed_pipe][executor]") {
@@ -164,7 +164,7 @@ TEST_CASE("unnamed_pipe_stream sync read_some ec overload clears error on succes
 
 TEST_CASE("unnamed_pipe_stream write then read with empty payload", "[unnamed_pipe][sync]") {
     auto pipe = make_pipe();
-    auto wbuf = buffer(static_cast<const char *>(nullptr), 0);
+    auto wbuf = buffer(reinterpret_cast<const char *>(nullptr), 0);
     std::error_code ec;
     std::size_t written = pipe.get_write_end().write_some(wbuf, ec);
     REQUIRE(written == 0);

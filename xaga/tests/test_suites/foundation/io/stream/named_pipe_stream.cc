@@ -112,13 +112,13 @@ TEST_CASE("named_pipe_stream cancel on closed stream does not error", "[named_pi
 
 TEST_CASE("named_pipe_stream native_handle is valid after open", "[named_pipe][native_handle]") {
     auto server = named_pipe_stream::open_server(global_ctx().get_executor(), test_pipe_name());
-    REQUIRE(server.native_handle() != static_cast<native_handle_type>(-1));
+    REQUIRE(server.native_handle() != reinterpret_cast<native_handle_type>(-1));
 }
 
 TEST_CASE("named_pipe_stream native_handle returns sentinel after close", "[named_pipe][native_handle]") {
     auto server = named_pipe_stream::open_server(global_ctx().get_executor(), test_pipe_name());
     server.close();
-    REQUIRE(server.native_handle() == static_cast<native_handle_type>(-1));
+    REQUIRE(server.native_handle() == reinterpret_cast<native_handle_type>(-1));
 }
 
 TEST_CASE("named_pipe_stream get_executor is callable", "[named_pipe][executor]") {
