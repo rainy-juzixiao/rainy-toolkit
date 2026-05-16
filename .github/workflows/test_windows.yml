@@ -54,6 +54,7 @@ jobs:
       - name: Build
         run: cmake --build build --config Release --parallel
       - name: Check dependencies
+        if: always()
         run: |
           cd C:\a\rainy-toolkit\rainy-toolkit\build\bin
           dumpbin /dependents rainy-toolkit-test.exe
