@@ -56,8 +56,7 @@ jobs:
       - name: Check dependencies
         if: always()
         run: |
-          cd C:\a\rainy-toolkit\build\bin
-          dumpbin /dependents rainy-toolkit-test.exe
+          dumpbin /dependents ./build/bin/rainy-toolkit-test.exe
 
       - name: Run tests
         run: ctest --test-dir build --output-on-failure
