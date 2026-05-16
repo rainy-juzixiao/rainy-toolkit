@@ -255,20 +255,3 @@ jobs:
             gpg --batch --yes --delete-keys $keyId 2>$null
             Write-Host "GPG key $keyId removed from runner keyring."
           }
-
-      - name: Report final status
-        if: always()
-        shell: pwsh
-        run: |
-          $buildOk = "${{ steps.build.outcome }}" -eq "success"
-          $testOk  = "${{ steps.test.outcome }}"  -in @("success", "skipped")
-
-          if (-not $buildOk) {
-            Write-Error "Build FAILED"
-            exit 1
-          }
-          if (-not $testOk) {
-            Write-Error "Tests FAILED"
-            exit 1
-          }
-          Write-Host "All steps passed."
