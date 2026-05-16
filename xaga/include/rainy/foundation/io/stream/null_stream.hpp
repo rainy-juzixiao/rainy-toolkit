@@ -107,8 +107,8 @@ namespace rainy::foundation::io::stream {
             return init.result.get();
         }
 
-        bool is_open() const noexcept;
-        native_handle_type native_handle() const noexcept;
+        RAINY_NODISCARD bool is_open() const noexcept;
+        RAINY_NODISCARD native_handle_type native_handle() const noexcept;
 
     private:
         explicit null_stream(executor_type ex);
