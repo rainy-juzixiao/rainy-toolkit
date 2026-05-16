@@ -13,7 +13,7 @@ if (RAINY_USE_CROSSCOMPILE)
 endif ()
 
 include(Catch)
-catch_discover_tests(rainy-toolkit-test DISCOVERY_MODE PRE_TEST)
+catch_discover_tests(rainy-toolkit-test)
 
 if (CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     message("Detect Clang compiler or GNU compiler")
