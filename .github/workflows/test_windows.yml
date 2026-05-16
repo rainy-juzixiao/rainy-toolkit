@@ -111,7 +111,7 @@ jobs:
       - name: Build
         id: build
         continue-on-error: true
-        run: cmake --build build --config Release --parallel
+        run: cmake --build build --config Debug --parallel
 
       - name: Run tests
         id: test
