@@ -47,31 +47,50 @@ jobs:
         with:
           cmakeVersion: latest
 
-      - name: Configure WER LocalDumps
+      - name: Install procdump and register as JIT debugger
         shell: pwsh
         run: |
           $dumpDir = "${{ runner.temp }}\crash-dumps"
           New-Item -ItemType Directory -Force -Path $dumpDir | Out-Null
 
-          $regPath = "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps"
-          New-Item -Path $regPath -Force | Out-Null
-          Set-ItemProperty -Path $regPath -Name "DumpFolder"  -Value $dumpDir -Type ExpandString
-          Set-ItemProperty -Path $regPath -Name "DumpCount"   -Value 64        -Type DWord
-          Set-ItemProperty -Path $regPath -Name "DumpType"    -Value 2         -Type DWord
+          choco install procdump -y --no-progress
+          $procdumpPath = (Get-Command procdump -ErrorAction Stop).Source
+          Write-Host "procdump: $procdumpPath"
 
-          Write-Host "WER LocalDumps configured → $dumpDir"
+          $regPath = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AeDebug"
+          if (-not (Test-Path $regPath)) {
+            New-Item -Path $regPath -Force | Out-Null
+          }
+          $debuggerCmd = "`"$procdumpPath`" -accepteula -e 1 -ma `"$dumpDir\crash_%e_%p_%t`" %ld"
+          Set-ItemProperty -Path $regPath -Name "Debugger" -Value $debuggerCmd
+          Set-ItemProperty -Path $regPath -Name "Auto"     -Value "1" -Type String
+
+          # 同样注册 64-bit 节点（对 arm64 native 进程生效）
+          $regPath64 = "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows NT\CurrentVersion\AeDebug"
+          if (-not (Test-Path $regPath64)) {
+            New-Item -Path $regPath64 -Force | Out-Null
+          }
+          Set-ItemProperty -Path $regPath64 -Name "Debugger" -Value $debuggerCmd
+          Set-ItemProperty -Path $regPath64 -Name "Auto"     -Value "1" -Type String
+
+          Write-Host "AeDebug JIT debugger configured → dumps will go to $dumpDir"
 
       - name: Configure CMake
         run: |
           cmake -B build -G Ninja `
             -DCMAKE_CXX_COMPILER=cl `
             -DCMAKE_C_COMPILER=cl `
-            -DCMAKE_BUILD_TYPE=Debug
+            -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
-        run: cmake --build build --parallel
+        id: build
+        continue-on-error: true
+        run: cmake --build build --config Release --parallel
 
       - name: Run tests
+        id: test
+        continue-on-error: true
+        if: steps.build.outcome == 'success'
         run: ctest --test-dir build --output-on-failure
 
       - name: Check for crash dumps
@@ -80,52 +99,35 @@ jobs:
         shell: pwsh
         run: |
           $dumpDir = "${{ runner.temp }}\crash-dumps"
+          Start-Sleep -Seconds 3
           $dumps = Get-ChildItem -Path $dumpDir -Filter "*.dmp" -ErrorAction SilentlyContinue
 
-          if ($dumps.Count -gt 0) {
+          if ($dumps -and $dumps.Count -gt 0) {
             Write-Host "Found $($dumps.Count) dump file(s):"
-            $dumps | ForEach-Object { Write-Host "  $_" }
-            echo "found=true" >> $env:GITHUB_OUTPUT
+            $dumps | ForEach-Object { Write-Host "  $($_.Name)  ($($_.Length) bytes)" }
+            "found=true" >> $env:GITHUB_OUTPUT
           } else {
             Write-Host "No crash dumps found."
-            echo "found=false" >> $env:GITHUB_OUTPUT
-          }
-
-      - name: Install GPG
-        if: always() && steps.check-dumps.outputs.found == 'true'
-        shell: pwsh
-        run: |
-          # windows-latest 上 Gpg4win 通常已预装，先检查
-          if (Get-Command gpg -ErrorAction SilentlyContinue) {
-            Write-Host "GPG already available: $(gpg --version | Select-Object -First 1)"
-          } else {
-            Write-Host "Installing Gpg4win via winget..."
-            winget install --id GnuPG.Gpg4win --silent --accept-source-agreements --accept-package-agreements
-            # 刷新 PATH
-            $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH", "Machine") + ";" + $env:PATH
-            Write-Host "GPG installed: $(gpg --version | Select-Object -First 1)"
+            "found=false" >> $env:GITHUB_OUTPUT
           }
 
       - name: Import GPG public key
         if: always() && steps.check-dumps.outputs.found == 'true'
+        id: import-key
         shell: pwsh
         env:
           DEBUG_DUMP_PUBKEY: ${{ secrets.DEBUG_DUMP_PUBKEY }}
         run: |
-          # 把 secret 写到临时文件再导入，避免命令行参数泄漏
           $keyFile = "${{ runner.temp }}\dump_pubkey.asc"
           $env:DEBUG_DUMP_PUBKEY | Set-Content -Path $keyFile -Encoding UTF8
           gpg --batch --import $keyFile
           Remove-Item $keyFile -Force
 
-          # 列出导入结果，顺便抓出 Key ID 供后续加密使用
-          $keyInfo = gpg --list-keys --with-colons | `
-            Where-Object { $_ -match "^pub" } | `
-            Select-Object -First 1
-          $keyId = ($keyInfo -split ":")[4]
-          Write-Host "Imported key ID: $keyId"
-          echo "gpg_key_id=$keyId" >> $env:GITHUB_OUTPUT
-        id: import-key
+          $keyId = (gpg --list-keys --with-colons |
+            Where-Object { $_ -match "^pub" } |
+            Select-Object -First 1) -split ":" | Select-Object -Index 4
+          Write-Host "Imported GPG key: $keyId"
+          "gpg_key_id=$keyId" >> $env:GITHUB_OUTPUT
 
       - name: Collect and encrypt crash dumps
         if: always() && steps.check-dumps.outputs.found == 'true'
@@ -134,62 +136,46 @@ jobs:
           $dumpDir    = "${{ runner.temp }}\crash-dumps"
           $stagingDir = "${{ runner.temp }}\dump-report"
           New-Item -ItemType Directory -Force -Path $stagingDir | Out-Null
-
-          # ── 1. 基本元数据报告 ──
-          $report = [ordered]@{
-            workflow    = "${{ github.workflow }}"
-            run_id      = "${{ github.run_id }}"
-            run_number  = "${{ github.run_number }}"
-            sha         = "${{ github.sha }}"
-            ref         = "${{ github.ref }}"
-            actor       = "${{ github.actor }}"
-            arch        = "${{ matrix.arch }}"
-            os          = "${{ matrix.os }}"
-            runner_os   = $env:RUNNER_OS
-            timestamp   = (Get-Date -Format "o")
-            dumps       = @()
-          }
-
-          # ── 2. 逐个处理 dump 文件 ──
           $keyId = "${{ steps.import-key.outputs.gpg_key_id }}"
-          Get-ChildItem -Path $dumpDir -Filter "*.dmp" | ForEach-Object {
-            $dump = $_
-            $encFile = Join-Path $stagingDir "$($dump.BaseName).dmp.gpg"
 
-            # 对每个 dump 单独加密
-            gpg --batch --yes `
-                --trust-model always `
-                --recipient $keyId `
-                --output $encFile `
-                --encrypt $dump.FullName
-
-            $report.dumps += [ordered]@{
-              filename      = $dump.Name
-              encrypted_as  = [System.IO.Path]::GetFileName($encFile)
-              size_bytes    = $dump.Length
-              last_write    = $dump.LastWriteTimeUtc.ToString("o")
-            }
-
-            Write-Host "Encrypted: $($dump.Name) → $([System.IO.Path]::GetFileName($encFile))"
+          $report = [ordered]@{
+            workflow   = "${{ github.workflow }}"
+            run_id     = "${{ github.run_id }}"
+            run_number = "${{ github.run_number }}"
+            sha        = "${{ github.sha }}"
+            ref        = "${{ github.ref }}"
+            arch       = "${{ matrix.arch }}"
+            os         = "${{ matrix.os }}"
+            timestamp  = (Get-Date -Format "o")
+            build_outcome = "${{ steps.build.outcome }}"
+            test_outcome  = "${{ steps.test.outcome }}"
+            dumps      = @()
           }
 
-          # ── 3. 写入并加密 JSON 报告 ──
-          $jsonPath    = "${{ runner.temp }}\crash_report.json"
-          $jsonEncPath = Join-Path $stagingDir "crash_report.json.gpg"
+          Get-ChildItem -Path $dumpDir -Filter "*.dmp" | ForEach-Object {
+            $encFile = Join-Path $stagingDir "$($_.BaseName).dmp.gpg"
+            gpg --batch --yes --trust-model always `
+                --recipient $keyId --output $encFile --encrypt $_.FullName
+            $report.dumps += [ordered]@{
+              filename     = $_.Name
+              encrypted_as = [IO.Path]::GetFileName($encFile)
+              size_bytes   = $_.Length
+              last_write   = $_.LastWriteTimeUtc.ToString("o")
+            }
+            Write-Host "Encrypted: $($_.Name) → $([IO.Path]::GetFileName($encFile))"
+          }
+
+          $jsonPath = "${{ runner.temp }}\crash_report.json"
           $report | ConvertTo-Json -Depth 5 | Set-Content -Path $jsonPath -Encoding UTF8
-
-          gpg --batch --yes `
-              --trust-model always `
-              --recipient $keyId `
-              --output $jsonEncPath `
-              --encrypt $jsonPath
-
+          $jsonEncPath = Join-Path $stagingDir "crash_report.json.gpg"
+          gpg --batch --yes --trust-model always `
+              --recipient $keyId --output $jsonEncPath --encrypt $jsonPath
           Remove-Item $jsonPath -Force
-          Write-Host "Report written and encrypted."
 
-          # ── 4. 输出 staging 目录内容 ──
-          Write-Host "`nFiles to upload:"
-          Get-ChildItem $stagingDir | ForEach-Object { Write-Host "  $($_.Name)  ($($_.Length) bytes)" }
+          Write-Host "`nFiles staged for upload:"
+          Get-ChildItem $stagingDir | ForEach-Object {
+            Write-Host "  $($_.Name)  ($($_.Length) bytes)"
+          }
 
       - name: Upload encrypted crash dumps
         if: always() && steps.check-dumps.outputs.found == 'true'
@@ -197,7 +183,6 @@ jobs:
         with:
           name: crash-dumps-encrypted-${{ matrix.arch }}-${{ github.run_id }}
           path: ${{ runner.temp }}/dump-report/
-          # Artifact 默认保留 90 天，建议设短一些
           retention-days: 30
           if-no-files-found: warn
 
@@ -207,6 +192,23 @@ jobs:
         run: |
           $keyId = "${{ steps.import-key.outputs.gpg_key_id }}"
           if ($keyId) {
-            gpg --batch --yes --delete-keys $keyId 2>$null || true
+            gpg --batch --yes --delete-keys $keyId 2>$null
             Write-Host "GPG key $keyId removed from runner keyring."
           }
+
+      - name: Report final status
+        if: always()
+        shell: pwsh
+        run: |
+          $buildOk = "${{ steps.build.outcome }}"  -eq "success"
+          $testOk  = "${{ steps.test.outcome }}"   -eq "success"
+
+          if (-not $buildOk) {
+            Write-Error "Build FAILED"
+            exit 1
+          }
+          if (-not $testOk) {
+            Write-Error "Tests FAILED"
+            exit 1
+          }
+          Write-Host "All steps passed."
