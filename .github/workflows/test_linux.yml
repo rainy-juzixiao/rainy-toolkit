@@ -33,7 +33,7 @@ jobs:
           submodules: recursive
 
       - name: Prepare Environment
-        uses: ./.github/workflows/actions/linux/prepare_environment.yml
+        uses: ./.github/actions/linux/prepare-environment
         with:
           runner: ${{ matrix.runner }}
           arch: ${{ matrix.arch }}
@@ -45,11 +45,10 @@ jobs:
             -G Ninja
 
       - name: Build (Debug)
-        run: |
-          cmake --build build-debug -j$(nproc)
+        run: cmake --build build-debug -j$(nproc)
 
       - name: Cache debug build
-        uses: actions/cache@v4
+        uses: actions/cache/save@v4
         with:
           path: build-debug
           key: debug-${{ matrix.runner }}-${{ github.sha }}
@@ -72,10 +71,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-            submodules: recursive
+          submodules: recursive
 
       - name: Prepare Environment
-        uses: ./.github/workflows/actions/linux/prepare_environment.yml
+        uses: ./.github/actions/linux/prepare-environment
         with:
           runner: ${{ matrix.runner }}
           arch: ${{ matrix.arch }}
@@ -87,11 +86,10 @@ jobs:
             -G Ninja
 
       - name: Build (Release)
-        run: |
-          cmake --build build-release -j$(nproc)
+        run: cmake --build build-release -j$(nproc)
 
       - name: Cache release build
-        uses: actions/cache@v4
+        uses: actions/cache/save@v4
         with:
           path: build-release
           key: release-${{ matrix.runner }}-${{ github.sha }}
@@ -118,22 +116,24 @@ jobs:
           submodules: recursive
 
       - name: Prepare Environment
-        uses: ./.github/workflows/actions/linux/prepare_environment.yml
+        uses: ./.github/actions/linux/prepare-environment
         with:
           runner: ${{ matrix.runner }}
           arch: ${{ matrix.arch }}
 
       - name: Restore debug build
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4  # ← 用 restore 子 action
         with:
           path: build-debug
           key: debug-${{ matrix.runner }}-${{ github.sha }}
+          fail-on-cache-miss: true
 
       - name: Restore release build
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: build-release
           key: release-${{ matrix.runner }}-${{ github.sha }}
+          fail-on-cache-miss: true
 
       - name: Fix permissions
         run: |
@@ -141,9 +141,7 @@ jobs:
           find build-release -type f -executable -exec chmod +x {} \; 2>/dev/null || true
 
       - name: Run tests (Debug)
-        run: |
-          ctest --test-dir build-debug --output-on-failure
+        run: ctest --test-dir build-debug --output-on-failure
 
       - name: Run tests (Release)
-        run: |
-          ctest --test-dir build-release --output-on-failure
+        run: ctest --test-dir build-release --output-on-failure
