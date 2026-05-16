@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <rainy/foundation/io/net/executor/strand.hpp>
 #include <rainy/foundation/concurrency/basic/context.hpp>
+#include <rainy/foundation/io/executor/strand.hpp>
 
-namespace rainy::foundation::io::net::implements {
+namespace rainy::foundation::io::implements {
     strand_executor_service::strand_executor_service(execution_context &context) :
         execution_context_service_base(context), impl_list_(nullptr), salt_(0) {
     }
@@ -42,7 +42,7 @@ namespace rainy::foundation::io::net::implements {
         new_impl->shutdown_ = false;
         concurrency::scoped_lock lock(mutex_);
         const std::size_t salt = salt_++;
-        std::size_t mutex_index = reinterpret_cast<std::size_t>(new_impl.get());
+        auto mutex_index = reinterpret_cast<std::size_t>(new_impl.get());
         mutex_index += (reinterpret_cast<std::size_t>(new_impl.get()) >> 3);
         mutex_index ^= salt + 0x9e3779b9 + (mutex_index << 6) + (mutex_index >> 2);
         mutex_index = mutex_index % num_mutexes;
@@ -93,7 +93,8 @@ namespace rainy::foundation::io::net::implements {
         // NOLINTEND
     }
 
-    bool strand_executor_service::running_in_this_thread(const implementation_type &impl) {
-        return concurrency::implements::call_stack<strand_impl>::contains(impl.get());
+    strand_executor_service::strand_impl *&strand_executor_service::current_thread_strand() noexcept {
+        thread_local strand_impl *top = nullptr;
+        return top;
     }
 }

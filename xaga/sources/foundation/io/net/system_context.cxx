@@ -1,7 +1,7 @@
-#include <rainy/foundation/io/net/executor/system_context.hpp>
-#include <rainy/foundation/io/net/executor/system_executor.hpp>
+#include <rainy/foundation/io/executor/system_context.hpp>
+#include <rainy/foundation/io/executor/system_executor.hpp>
 
-namespace rainy::foundation::io::net {
+namespace rainy::foundation::io {
     struct system_context::thread_function {
         concurrency::executor* exec_;
 

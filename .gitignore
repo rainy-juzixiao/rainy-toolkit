@@ -137,3 +137,6 @@ temp/
 *.pickle
 /moc_example1.cc
 /moc_example.cc
+/CMakeUserPresets.json
+
+ vcpkg_installed

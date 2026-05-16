@@ -30,7 +30,7 @@ namespace rainy::foundation::io::net::ip {
          */
         constexpr network_v4(const address_v4 &addr, int prefix_len) : addr_{addr}, prefix_len_{prefix_len} {
             if (prefix_len_ < 0 || prefix_len_ > 32) {
-                exceptions::net::throw_bad_address_cast(diagnostics::source_location::current());
+                exceptions::io::throw_bad_address_cast(diagnostics::source_location::current());
             }
         }
 
@@ -149,7 +149,7 @@ namespace rainy::foundation::io::net::ip {
             const address_v4::uint_type tail_mask = len == 32 ? address_v4::uint_type{0} : ~(~address_v4::uint_type{0} << (32 - len));
             if (m & tail_mask) {
                 // 非连续掩码
-                exceptions::net::throw_bad_address_cast(diagnostics::source_location::current());
+                exceptions::io::throw_bad_address_cast(diagnostics::source_location::current());
             }
             return len;
         }
@@ -183,7 +183,7 @@ namespace rainy::foundation::io::net::ip {
          */
         constexpr network_v6(const address_v6 &addr, int prefix_len) : addr_{addr}, prefix_len_{prefix_len} {
             if (prefix_len_ < 0 || prefix_len_ > 128) {
-                exceptions::net::throw_bad_address_cast(diagnostics::source_location::current());
+                exceptions::io::throw_bad_address_cast(diagnostics::source_location::current());
             }
         }
 
@@ -256,10 +256,6 @@ namespace rainy::foundation::io::net::ip {
         }
 
     private:
-        /*
-         * 将 bytes（16 字节大端）的低 (128 - prefix_len) 位清零。
-         * 纯字节操作，无平台依赖，constexpr 安全。
-         */
         static constexpr void apply_prefix_mask(address_v6::bytes_type &bytes, int prefix_len) noexcept {
             // 完整掩码字节数
             const int full_bytes = prefix_len / 8;
