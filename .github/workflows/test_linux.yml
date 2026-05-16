@@ -7,10 +7,17 @@ on:
   push:
   pull_request:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
 jobs:
   build-and-test:
     name: ${{ matrix.arch }} - ${{ matrix.os }}
     runs-on: ${{ matrix.runner }}
+    if: |
+      github.event_name == 'pull_request' || 
+      (github.event_name == 'push' && !github.event.pull_request)
 
     strategy:
       fail-fast: false
