@@ -142,7 +142,7 @@ TEST_CASE("HazardPointer ConcurrentRetirement") {
     std::vector<std::thread> threads;
 
     for (int i = 0; i < NUM_THREADS; ++i) {
-        threads.emplace_back([i] {
+        threads.emplace_back([&, i] {
             for (int j = 0; j < OBJECTS_PER_THREAD; ++j) {
                 rainy_const ptr = new int(i * OBJECTS_PER_THREAD + j);
                 hazard_pointer_domain<int>::global().retire(ptr);
@@ -173,7 +173,7 @@ TEST_CASE("HazardPointer ConcurrentProtectionAndRetirement") {
             }
         }
     });
-    std::thread protect_thread([] {
+    std::thread protect_thread([&] {
         for (int i = 0; i < NUM_ITERATIONS; ++i) {
             auto hp = hazard_pointer_domain<int>::global().acquire();
             rainy_const ptr = new int(1000 + i);
@@ -240,7 +240,7 @@ TEST_CASE("HazardPointer StressTest") {
     constexpr int ITERATIONS = 1000;
     std::vector<std::thread> threads;
     for (int i = 0; i < NUM_THREADS; ++i) {
-        threads.emplace_back([i] {
+        threads.emplace_back([&] {
             for (int j = 0; j < ITERATIONS; ++j) {
                 auto hp = hazard_pointer_domain<int>::global().acquire();
                 rainy_const ptr = new int(i * ITERATIONS + j);

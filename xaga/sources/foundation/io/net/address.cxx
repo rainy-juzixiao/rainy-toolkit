@@ -1,8 +1,6 @@
 #include <rainy/foundation/io/net/internet/address.hpp>
 #include <system_error>
 
-namespace pal = rainy::foundation::io::net::ip::implements;
-
 namespace rainy::foundation::io::net::ip {
     template <std::size_t N>
     bool sv_to_cstr(const text::string_view sv, char (&buf)[N]) noexcept {
@@ -20,8 +18,8 @@ namespace rainy::foundation::io::net::ip {
             ec = std::make_error_code(std::errc::invalid_argument);
             return {};
         }
-        pal::ipv4_bytes raw{};
-        if (!pal::ipv4_from_string(buf, raw, ec)) {
+        implements::ipv4_bytes raw{};
+        if (!implements::ipv4_from_string(buf, raw, ec)) {
             return {};
         }
         const address_v4::bytes_type b{raw.data[0], raw.data[1], raw.data[2], raw.data[3]};
@@ -56,8 +54,8 @@ namespace rainy::foundation::io::net::ip {
             ec = std::make_error_code(std::errc::invalid_argument);
             return {};
         }
-        pal::ipv6_bytes raw{};
-        if (!pal::ipv6_from_string(buf, raw, ec)) {
+        implements::ipv6_bytes raw{};
+        if (!implements::ipv6_from_string(buf, raw, ec)) {
             return {};
         }
         address_v6::bytes_type bytes{};

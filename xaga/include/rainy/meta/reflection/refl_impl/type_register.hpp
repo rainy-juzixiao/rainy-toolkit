@@ -540,6 +540,8 @@ namespace rainy::meta::reflection::implements {
         module_injector() = default;
 
         struct record_t {
+            record_t(const foundation::ctti::typeinfo& type, type_accessor *accessor) : type{type}, accessor{accessor} {}
+
             foundation::ctti::typeinfo type;
             type_accessor *accessor;
         };

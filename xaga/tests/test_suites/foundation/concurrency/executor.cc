@@ -160,8 +160,9 @@ SCENARIO_METHOD(PooledExecutorFixture, "wait_all completes all submitted tasks",
 
         WHEN("many tasks are submitted") {
 
-            for (int i = 0; i < N; ++i)
+            for (int i = 0; i < N; ++i) {
                 ex.submit([&] { done.fetch_add(1, std::memory_order_relaxed); });
+            }
 
             auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
 
@@ -191,8 +192,9 @@ SCENARIO_METHOD(PooledExecutorFixture, "executor supports concurrent submit", "[
 
             for (int p = 0; p < PRODUCERS; ++p) {
                 producers.emplace_back([&] {
-                    for (int i = 0; i < TASKS_PER; ++i)
+                    for (int i = 0; i < TASKS_PER; ++i) {
                         ex.submit([&] { counter.fetch_add(1, std::memory_order_relaxed); });
+                    }
                 });
             }
 
@@ -379,8 +381,9 @@ SCENARIO_METHOD(PinnedActorPoolFixture, "handles concurrent submissions correctl
                 });
             }
 
-            for (auto &t: producers)
+            for (auto &t: producers) {
                 t.join();
+            }
             pool.wait_all();
 
             THEN("all tasks are executed exactly once") {
@@ -423,8 +426,9 @@ SCENARIO_METHOD(PriorityActorPoolFixture, "default submit uses normal priority",
 
         WHEN("tasks are submitted without explicit priority") {
 
-            for (int i = 0; i < 1000; ++i)
+            for (int i = 0; i < 1000; ++i) {
                 ex.submit([&] { counter.fetch_add(1); });
+            }
 
             pool.wait_all();
 

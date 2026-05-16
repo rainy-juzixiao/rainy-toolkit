@@ -351,7 +351,8 @@ namespace rainy::meta::moon {
     template <typename Enum>
     constexpr rain_fn enum_name(Enum EnumValue)
         -> type_traits::other_trans::enable_if_t<type_traits::primary_types::is_enum_v<Enum>, std::string_view> {
-        for (constexpr auto entries = enum_entries<Enum>(); const auto &[enum_value, enum_name]: entries) {
+        constexpr auto entries = enum_entries<Enum>();
+        for (const auto &[enum_value, enum_name]: entries) {
             if (enum_value == EnumValue) {
                 return enum_name;
             }
@@ -384,7 +385,8 @@ namespace rainy::meta::moon {
     template <typename Enum, typename Pred = foundation::functional::equal<>>
     constexpr rain_fn enum_cast(std::string_view name, Pred pred = {}) noexcept
         -> implements::enable_if_t<Enum, std::optional<Enum>, Pred> {
-        for (constexpr auto entries = enum_entries<Enum>(); const auto &[enum_value, enum_name]: entries) {
+        constexpr auto entries = enum_entries<Enum>();
+        for (const auto &[enum_value, enum_name]: entries) {
             if (std::equal(name.begin(), name.end(), enum_name.begin(), enum_name.end(), pred)) {
                 return enum_value;
             }

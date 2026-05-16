@@ -19,21 +19,6 @@
 #include <rainy/core/implements/text/string_view.hpp>
 #include <rainy/core/platform.hpp>
 
-namespace rainy::foundation::exceptions::runtime {
-    class format_error : public runtime_error {
-    public:
-        explicit format_error(const std::string &message, const source &location = source::current()) :
-            runtime_error(message, location) {
-        }
-    };
-
-    RAINY_INLINE rain_fn throw_format_error(const char *message,
-                                            const diagnostics::source_location &location = diagnostics::source_location::current())
-        -> void {
-        throw_exception(format_error{message, location});
-    }
-}
-
 namespace rainy::foundation::text::implements {
     enum class align_type {
         none,

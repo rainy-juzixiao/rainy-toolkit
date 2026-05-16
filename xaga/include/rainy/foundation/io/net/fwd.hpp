@@ -15,35 +15,9 @@
  */
 #ifndef RAINY_FOUNDATION_IO_NET_FWD_HPP
 #define RAINY_FOUNDATION_IO_NET_FWD_HPP
-#include <chrono>
+#include <rainy/foundation/io/fwd.hpp>
 
 namespace rainy::foundation::io::net {
-    class execution_context;
-
-    template <class T, class Executor>
-    class executor_binder;
-
-    template <class Executor>
-    class executor_work_guard;
-
-    class system_executor;
-    class executor;
-
-    template <class Executor>
-    class strand;
-
-    class io_context;
-
-    template <typename Clock>
-    struct wait_traits;
-
-    template <typename Clock, typename WaitTraits = wait_traits<Clock>>
-    class basic_waitable_timer;
-
-    using system_timer = basic_waitable_timer<std::chrono::system_clock>;
-    using steady_timer = basic_waitable_timer<std::chrono::steady_clock>;
-    using high_resolution_timer = basic_waitable_timer<std::chrono::high_resolution_clock>;
-
     template <typename Protocol>
     class basic_socket;
 
@@ -91,42 +65,5 @@ namespace rainy::foundation::io::net::ip {
     class tcp;
     class udp;
 }
-
-#define NET_TS_REBIND_ALLOC(alloc, t) typename std::allocator_traits<alloc>::template rebind_alloc<t>
-
-#define NET_TS_DEFINE_TAGGED_HANDLER_ALLOCATOR_PTR(purpose, op)                                                                       \
-    struct ptr {                                                                                                                      \
-        const Alloc *a;                                                                                                               \
-        void *v;                                                                                                                      \
-        op *p;                                                                                                                        \
-        ~ptr() {                                                                                                                      \
-            reset();                                                                                                                  \
-        }                                                                                                                             \
-        static op *allocate(const Alloc &a) {                                                                                         \
-            using recycling_allocator_type = typename ::rainy::foundation::memory::get_recycling_allocator<Alloc, purpose>::type;     \
-            NET_TS_REBIND_ALLOC(recycling_allocator_type, op)                                                                         \
-            a1(::rainy::foundation::memory::get_recycling_allocator<Alloc, purpose>::get(a));                                         \
-            return a1.allocate(1);                                                                                                    \
-        }                                                                                                                             \
-        void reset() {                                                                                                                \
-            if (p) {                                                                                                                  \
-                p->~op();                                                                                                             \
-                p = 0;                                                                                                                \
-            }                                                                                                                         \
-            if (v) {                                                                                                                  \
-                typedef typename ::rainy::foundation::memory::get_recycling_allocator<Alloc, purpose>::type recycling_allocator_type; \
-                NET_TS_REBIND_ALLOC(recycling_allocator_type, op)                                                                     \
-                a1(::rainy::foundation::memory::get_recycling_allocator<Alloc, purpose>::get(*a));                                    \
-                a1.deallocate(static_cast<op *>(v), 1);                                                                               \
-                v = 0;                                                                                                                \
-            }                                                                                                                         \
-        }                                                                                                                             \
-    }
-
-
-#define NET_TS_HANDLER_COMPLETION(args) rainy::foundation::io::net::implements::handler_tracking::completion tracked_completion args
-
-#define NET_TS_DEFINE_HANDLER_ALLOCATOR_PTR(op)                                                                                       \
-    NET_TS_DEFINE_TAGGED_HANDLER_ALLOCATOR_PTR(::rainy::foundation::concurrency::implements::thread_info_base::default_tag, op)
 
 #endif

@@ -18,6 +18,7 @@
 #include <chrono>
 #include <rainy/core/core.hpp>
 #include <rainy/foundation/concurrency/pal.hpp>
+#include <rainy/foundation/concurrency/atomic.hpp>
 
 namespace rainy::foundation::concurrency {
     /**
@@ -815,7 +816,7 @@ namespace rainy::foundation::concurrency {
         once_flag(const once_flag &) = delete;
         auto operator=(const once_flag &) -> once_flag & = delete;
 
-        std::atomic<bool> called{false};
+        atomic<bool> called{false};
         mutex mtx;
     };
 }
@@ -854,13 +855,13 @@ namespace rainy::foundation::concurrency {
      */
     template <class Callable, class... Args>
     rain_fn call_once(once_flag &flag, Callable &&func, Args &&...args) -> void {
-        if (flag.called.load(std::memory_order_acquire)) {
+        if (flag.called.load(memory_order_acquire)) {
             return;
         }
 
         lock_guard guard(flag.mtx);
 
-        if (flag.called.load(std::memory_order_relaxed)) {
+        if (flag.called.load(memory_order_relaxed)) {
             return;
         }
 
@@ -868,7 +869,7 @@ namespace rainy::foundation::concurrency {
         try {
             utility::invoke(utility::forward<Callable>(func), utility::forward<Args>(args)...);
             // publish success
-            flag.called.store(true, std::memory_order_release);
+            flag.called.store(true, memory_order_release);
         } catch (...) {
             throw;
         }

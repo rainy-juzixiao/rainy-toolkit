@@ -13,14 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include <rainy/foundation/io/buffer.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_range_equals.hpp>
 #include <numeric>
-#include <rainy/foundation/io/net/buffer.hpp>
 
 using namespace rainy;
-using namespace rainy::foundation::io::net;
+using namespace rainy::foundation::io;
 
 namespace {
     struct fake_sync_stream {

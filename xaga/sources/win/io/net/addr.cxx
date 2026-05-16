@@ -26,27 +26,24 @@
 #include <ws2tcpip.h>
 
 namespace rainy::foundation::io::net::ip::implements {
-    namespace {
-        struct winsock_initializer {
-            WSADATA data{};
-            int result{};
+    struct winsock_initializer {
+        WSADATA data{};
+        int result{};
 
-            winsock_initializer() noexcept {
-                result = ::WSAStartup(MAKEWORD(2, 2), &data);
-            }
-            ~winsock_initializer() noexcept {
-                if (result == 0) {
-                    ::WSACleanup();
-                }
-            }
-        };
-
-        // 确保 Winsock 在第一次用到 PAL 函数前初始化
-        const winsock_initializer &ensure_winsock() noexcept {
-            static winsock_initializer instance;
-            return instance;
+        winsock_initializer() noexcept {
+            result = ::WSAStartup(MAKEWORD(2, 2), &data);
         }
-    } // anonymous namespace
+        ~winsock_initializer() noexcept {
+            if (result == 0) {
+                ::WSACleanup();
+            }
+        }
+    };
+
+    const winsock_initializer &ensure_winsock() noexcept {
+        static winsock_initializer instance;
+        return instance;
+    }
 
     const resolver_errc_values &get_resolver_errc_values() noexcept {
         static constexpr resolver_errc_values values{
@@ -58,7 +55,6 @@ namespace rainy::foundation::io::net::ip::implements {
     }
 
     const char *resolver_errc_message(int ev) noexcept {
-        // gai_strerrorA 在 ws2tcpip.h 中声明，返回静态字符串
         return ::gai_strerrorA(ev);
     }
 
@@ -69,7 +65,6 @@ namespace rainy::foundation::io::net::ip::implements {
             ec = std::make_error_code(std::errc::invalid_argument);
             return false;
         }
-        // inet_pton 写入网络字节序，与平台无关地按字节拷贝
         std::memcpy(out.data, &native.S_un.S_un_b, 4);
         ec.clear();
         return true;
@@ -99,5 +94,64 @@ namespace rainy::foundation::io::net::ip::implements {
         IN6_ADDR native{};
         std::memcpy(native.u.Byte, in.data, 16);
         return ::inet_ntop(AF_INET6, &native, buf, static_cast<socklen_t>(buf_size)) != nullptr;
+    }
+
+    std::error_code resolve(const char *host, const char *service, int family, int socktype, int protocol, int flags,
+                                              collections::vector<resolved_entry> &out) noexcept {
+        ensure_winsock();
+
+        ADDRINFOA hints{};
+        hints.ai_family = family;
+        hints.ai_socktype = socktype;
+        hints.ai_protocol = protocol;
+        hints.ai_flags = flags;
+
+        PADDRINFOA result = nullptr;
+        int ret = ::getaddrinfo(host, service, &hints, &result);
+
+        if (ret != 0) {
+            return std::error_code(ret, std::system_category());
+        }
+
+        out.clear();
+        for (PADDRINFOA ptr = result; ptr != nullptr; ptr = ptr->ai_next) {
+            resolved_entry entry{};
+            entry.family = ptr->ai_family;
+            entry.socktype = ptr->ai_socktype;
+            entry.protocol = ptr->ai_protocol;
+            entry.addr_size = ptr->ai_addrlen;
+
+            if (ptr->ai_addrlen > 0 && ptr->ai_addrlen <= sizeof(entry.addr_data)) {
+                std::memcpy(entry.addr_data, ptr->ai_addr, ptr->ai_addrlen);
+            }
+
+            if (ptr->ai_canonname != nullptr) {
+                std::strncpy(entry.canonical_name, ptr->ai_canonname, sizeof(entry.canonical_name) - 1);
+                entry.canonical_name[sizeof(entry.canonical_name) - 1] = '\0';
+            }
+
+            out.push_back(std::move(entry));
+        }
+
+        ::freeaddrinfo(result);
+        return std::error_code();
+    }
+
+    std::error_code reverse_resolve(const void *addr_data, int addr_len, char *host_buf, std::size_t host_buf_size,
+                                                      char *svc_buf, std::size_t svc_buf_size) noexcept {
+        ensure_winsock();
+
+        if (addr_data == nullptr || addr_len <= 0 || addr_len > static_cast<int>(sizeof(sockaddr_storage))) {
+            return std::error_code(static_cast<int>(std::errc::invalid_argument), std::system_category());
+        }
+        const auto *addr = static_cast<const sockaddr *>(addr_data);
+        int ret = ::getnameinfo(addr, static_cast<socklen_t>(addr_len), host_buf, static_cast<socklen_t>(host_buf_size), svc_buf,
+                                static_cast<socklen_t>(svc_buf_size), NI_NAMEREQD);
+
+        if (ret != 0) {
+            return std::error_code(ret, std::system_category());
+        }
+
+        return std::error_code();
     }
 }

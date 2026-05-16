@@ -528,7 +528,7 @@ namespace rainy::core::algorithm {
     template <typename ForwardIt, typename Ty = typename utility::iterator_traits<ForwardIt>::value_type, typename Compare>
     constexpr rain_fn binary_search(ForwardIt first, ForwardIt last, const Ty &value, Compare comp) -> bool {
         first = algorithm::lower_bound(first, last, value, comp);
-        return (!(first == last) and !(comp(value, *first)));
+        return (!(first == last) && !(comp(value, *first)));
     }
 
     /**
