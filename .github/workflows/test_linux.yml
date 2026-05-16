@@ -23,13 +23,9 @@ jobs:
       matrix:
         include:
           - arch: arm64
-            os: ubuntu 24.04 Arm64 (Noble Numbat)
             runner: ubuntu-24.04-arm
           - arch: x64
-            os: ubuntu 24.04 x64 (Noble Numbat)
             runner: ubuntu-24.04
-    outputs:
-      environment-ready: ${{ steps.set-output.outputs.ready }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -37,7 +33,6 @@ jobs:
           submodules: recursive
 
       - name: Install dependencies
-        id: install-deps
         run: |
           sudo apt update
           sudo add-apt-repository universe
@@ -67,21 +62,14 @@ jobs:
           gcc --version
           g++ --version
           cmake --version
-          
-          echo "Environment prepared successfully"
-
-      - name: Set output
-        id: set-output
-        run: echo "ready=true" >> $GITHUB_OUTPUT
 
   build-debug:
     name: Build Debug (${{ matrix.arch }})
     needs: prepare-environment
     runs-on: ${{ matrix.runner }}
     if: |
-      (github.event_name == 'pull_request' || 
-       (github.event_name == 'push' && !github.event.pull_request)) &&
-      needs.prepare-environment.outputs.environment-ready == 'true'
+      github.event_name == 'pull_request' || 
+      (github.event_name == 'push' && !github.event.pull_request)
     strategy:
       fail-fast: false
       matrix:
@@ -111,8 +99,6 @@ jobs:
           sudo apt install -y gcc-13 g++-13
           sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 100
           sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 100
-          gcc --version
-          cmake --version
 
       - name: Configure CMake (Debug)
         run: |
@@ -124,21 +110,24 @@ jobs:
         run: |
           cmake --build build-debug -j$(nproc)
 
-      - name: Upload Debug build artifacts
-        uses: actions/upload-artifact@v4
+      - name: Fix permissions
+        run: |
+          find build-debug -type f -executable -exec chmod +x {} \;
+          chmod +x build-debug/bin/* 2>/dev/null || true
+
+      - name: Cache debug build
+        uses: actions/cache@v4
         with:
-          name: build-debug-${{ matrix.runner }}
           path: build-debug
-          retention-days: 1
+          key: ${{ matrix.runner }}-debug-${{ github.sha }}
 
   build-release:
     name: Build Release (${{ matrix.arch }})
     needs: prepare-environment
     runs-on: ${{ matrix.runner }}
     if: |
-      (github.event_name == 'pull_request' || 
-       (github.event_name == 'push' && !github.event.pull_request)) &&
-      needs.prepare-environment.outputs.environment-ready == 'true'
+      github.event_name == 'pull_request' || 
+      (github.event_name == 'push' && !github.event.pull_request)
     strategy:
       fail-fast: false
       matrix:
@@ -168,8 +157,6 @@ jobs:
           sudo apt install -y gcc-13 g++-13
           sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 100
           sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 100
-          gcc --version
-          cmake --version
 
       - name: Configure CMake (Release)
         run: |
@@ -181,21 +168,24 @@ jobs:
         run: |
           cmake --build build-release -j$(nproc)
 
-      - name: Upload Release build artifacts
-        uses: actions/upload-artifact@v4
+      - name: Fix permissions
+        run: |
+          find build-release -type f -executable -exec chmod +x {} \;
+          chmod +x build-release/bin/* 2>/dev/null || true
+
+      - name: Cache release build
+        uses: actions/cache@v4
         with:
-          name: build-release-${{ matrix.runner }}
           path: build-release
-          retention-days: 1
+          key: ${{ matrix.runner }}-release-${{ github.sha }}
 
   test:
     name: Test (${{ matrix.arch }})
     needs: [build-debug, build-release]
     runs-on: ${{ matrix.runner }}
     if: |
-      (github.event_name == 'pull_request' || 
-       (github.event_name == 'push' && !github.event.pull_request)) &&
-      always()
+      github.event_name == 'pull_request' || 
+      (github.event_name == 'push' && !github.event.pull_request)
     strategy:
       fail-fast: false
       matrix:
@@ -205,24 +195,26 @@ jobs:
           - arch: x64
             runner: ubuntu-24.04
     steps:
-      - name: Download Debug build
-        uses: actions/download-artifact@v4
+      - name: Restore debug build
+        uses: actions/cache@v4
         with:
-          name: build-debug-${{ matrix.runner }}
           path: build-debug
+          key: ${{ matrix.runner }}-debug-${{ github.sha }}
 
-      - name: Download Release build
-        uses: actions/download-artifact@v4
+      - name: Restore release build
+        uses: actions/cache@v4
         with:
-          name: build-release-${{ matrix.runner }}
           path: build-release
+          key: ${{ matrix.runner }}-release-${{ github.sha }}
 
-      - name: List downloaded files
+      - name: Fix permissions on restored files
         run: |
-          ls -la build-debug/
-          ls -la build-release/
+          find build-debug -type f -executable -exec chmod +x {} \; 2>/dev/null || true
+          find build-release -type f -executable -exec chmod +x {} \; 2>/dev/null || true
+          chmod +x build-debug/bin/* 2>/dev/null || true
+          chmod +x build-release/bin/* 2>/dev/null || true
 
-      - name: Install ctest dependencies
+      - name: Install ctest
         run: |
           sudo apt update
           sudo apt install -y cmake ninja-build
@@ -230,7 +222,6 @@ jobs:
       - name: Run tests (Debug)
         run: |
           ctest --test-dir build-debug --output-on-failure
-        continue-on-error: true
 
       - name: Run tests (Release)
         run: |
