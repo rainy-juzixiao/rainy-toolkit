@@ -17,7 +17,7 @@ jobs:
       - uses: google-github-actions/release-please-action@v4
         id: release
         with:
-          github-token: ${{ secrets.RELEASE_PLEASE_PAT }}
+          token: ${{ secrets.RELEASE_PLEASE_PAT }}
           release-type: simple
           tag-prefix: v
           target-branch: master
