@@ -30,6 +30,11 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Setup MSVC environment
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.arch }}
+
       - name: Install CMake
         uses: lukka/get-cmake@latest
         with:
