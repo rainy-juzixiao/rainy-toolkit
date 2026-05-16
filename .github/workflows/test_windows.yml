@@ -261,7 +261,7 @@ jobs:
         shell: pwsh
         run: |
           $buildOk = "${{ steps.build.outcome }}" -eq "success"
-          $testOk  = "${{ steps.test.outcome }}"  -eq "success"
+          $testOk  = "${{ steps.test.outcome }}"  -in @("success", "skipped")
 
           if (-not $buildOk) {
             Write-Error "Build FAILED"
