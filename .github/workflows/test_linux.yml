@@ -12,24 +12,21 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-and-test:
-    name: ${{ matrix.arch }} - ${{ matrix.os }}
+  prepare-environment:
+    name: Prepare Environment (${{ matrix.arch }})
     runs-on: ${{ matrix.runner }}
     if: |
       github.event_name == 'pull_request' || 
       (github.event_name == 'push' && !github.event.pull_request)
-
     strategy:
-      fail-fast: false
       matrix:
         include:
           - arch: arm64
-            os: ubuntu 24.04 Arm64 (Noble Numbat) 
+            os: ubuntu 24.04 Arm64 (Noble Numbat)
             runner: ubuntu-24.04-arm
           - arch: x64
-            os: ubuntu 24.04 x64 (Noble Numbat) 
+            os: ubuntu 24.04 x64 (Noble Numbat)
             runner: ubuntu-24.04
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -67,16 +64,134 @@ jobs:
           g++ --version
           cmake --version
 
-      - name: Configure CMake
+      - name: Preserve environment for subsequent jobs
+        uses: actions/upload-artifact@v4
+        with:
+          name: env-${{ matrix.runner }}
+          path: |
+            /usr/bin/gcc
+            /usr/bin/g++
+            /usr/bin/cmake
+            /usr/bin/ninja
+          if-no-files-found: error
+
+  build-debug:
+    name: Build Debug (${{ matrix.arch }})
+    needs: prepare-environment
+    runs-on: ${{ matrix.runner }}
+    if: |
+      github.event_name == 'pull_request' || 
+      (github.event_name == 'push' && !github.event.pull_request)
+    strategy:
+      matrix:
+        include:
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+          - arch: x64
+            runner: ubuntu-24.04
+    steps:
+      - name: Restore environment
+        uses: actions/download-artifact@v4
+        with:
+          name: env-${{ matrix.runner }}
+          path: /usr/local/bin
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Configure CMake (Debug)
         run: |
-          cmake -S . -B build \
+          cmake -S . -B build-debug \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -G Ninja
+
+      - name: Build (Debug)
+        run: |
+          cmake --build build-debug -j$(nproc)
+
+      - name: Upload Debug build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-debug-${{ matrix.runner }}
+          path: build-debug
+          if-no-files-found: error
+
+  build-release:
+    name: Build Release (${{ matrix.arch }})
+    needs: prepare-environment
+    runs-on: ${{ matrix.runner }}
+    if: |
+      github.event_name == 'pull_request' || 
+      (github.event_name == 'push' && !github.event.pull_request)
+    strategy:
+      matrix:
+        include:
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+          - arch: x64
+            runner: ubuntu-24.04
+    steps:
+      - name: Restore environment
+        uses: actions/download-artifact@v4
+        with:
+          name: env-${{ matrix.runner }}
+          path: /usr/local/bin
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Configure CMake (Release)
+        run: |
+          cmake -S . -B build-release \
             -DCMAKE_BUILD_TYPE=Release \
             -G Ninja
 
-      - name: Build
+      - name: Build (Release)
         run: |
-          cmake --build build -j$(nproc)
+          cmake --build build-release -j$(nproc)
 
-      - name: Run tests
+      - name: Upload Release build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-release-${{ matrix.runner }}
+          path: build-release
+          if-no-files-found: error
+
+  test:
+    name: Test (${{ matrix.arch }})
+    needs: [build-debug, build-release]
+    runs-on: ${{ matrix.runner }}
+    if: |
+      github.event_name == 'pull_request' || 
+      (github.event_name == 'push' && !github.event.pull_request)
+    strategy:
+      matrix:
+        include:
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+          - arch: x64
+            runner: ubuntu-24.04
+    steps:
+      - name: Restore Debug build
+        uses: actions/download-artifact@v4
+        with:
+          name: build-debug-${{ matrix.runner }}
+          path: build-debug
+
+      - name: Restore Release build
+        uses: actions/download-artifact@v4
+        with:
+          name: build-release-${{ matrix.runner }}
+          path: build-release
+
+      - name: Run tests (Debug)
         run: |
-          ctest --test-dir build --output-on-failure
+          ctest --test-dir build-debug --output-on-failure
+
+      - name: Run tests (Release)
+        run: |
+          ctest --test-dir build-release --output-on-failure
