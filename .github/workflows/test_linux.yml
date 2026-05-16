@@ -70,9 +70,9 @@ jobs:
             runner: ubuntu-24.04
     steps:
       - name: Checkout
-      - uses: actions/checkout@v4
+        uses: actions/checkout@v4
         with:
-          submodules: recursive
+            submodules: recursive
 
       - name: Prepare Environment
         uses: ./.github/workflows/actions/linux/prepare_environment.yml
