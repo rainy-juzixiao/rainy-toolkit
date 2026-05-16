@@ -53,27 +53,53 @@ jobs:
           $dumpDir = "${{ runner.temp }}\crash-dumps"
           New-Item -ItemType Directory -Force -Path $dumpDir | Out-Null
 
-          choco install procdump -y --no-progress
-          $procdumpPath = (Get-Command procdump -ErrorAction Stop).Source
-          Write-Host "procdump: $procdumpPath"
+          $procdumpDir = "${{ runner.temp }}\procdump"
+          New-Item -ItemType Directory -Force -Path $procdumpDir | Out-Null
+          Invoke-WebRequest -Uri "https://download.sysinternals.com/files/Procdump.zip" `
+            -OutFile "$procdumpDir\Procdump.zip"
+          Expand-Archive -Path "$procdumpDir\Procdump.zip" -DestinationPath $procdumpDir -Force
 
-          $regPath = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AeDebug"
-          if (-not (Test-Path $regPath)) {
-            New-Item -Path $regPath -Force | Out-Null
+          Write-Host "Files in procdump zip:"
+          Get-ChildItem $procdumpDir | ForEach-Object { Write-Host "  $($_.Name)" }
+
+          if ("${{ matrix.arch }}" -eq "arm64") {
+            $procdumpExe = Get-ChildItem $procdumpDir -Filter "procdump64a.exe" |
+                           Select-Object -First 1 -ExpandProperty FullName
+            if (-not $procdumpExe) {
+              $procdumpExe = Get-ChildItem $procdumpDir -Filter "procdump*.exe" |
+                             Select-Object -First 1 -ExpandProperty FullName
+            }
+          } else {
+            $procdumpExe = Get-ChildItem $procdumpDir -Filter "procdump64.exe" |
+                           Select-Object -First 1 -ExpandProperty FullName
+            if (-not $procdumpExe) {
+              $procdumpExe = Get-ChildItem $procdumpDir -Filter "procdump*.exe" |
+                             Select-Object -First 1 -ExpandProperty FullName
+            }
           }
-          $debuggerCmd = "`"$procdumpPath`" -accepteula -e 1 -ma `"$dumpDir\crash_%e_%p_%t`" %ld"
-          Set-ItemProperty -Path $regPath -Name "Debugger" -Value $debuggerCmd
-          Set-ItemProperty -Path $regPath -Name "Auto"     -Value "1" -Type String
 
-          # 同样注册 64-bit 节点（对 arm64 native 进程生效）
-          $regPath64 = "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows NT\CurrentVersion\AeDebug"
-          if (-not (Test-Path $regPath64)) {
-            New-Item -Path $regPath64 -Force | Out-Null
+          if (-not $procdumpExe) {
+            Write-Error "Could not find procdump executable in $procdumpDir"
+            exit 1
           }
-          Set-ItemProperty -Path $regPath64 -Name "Debugger" -Value $debuggerCmd
-          Set-ItemProperty -Path $regPath64 -Name "Auto"     -Value "1" -Type String
+          Write-Host "Using procdump: $procdumpExe"
 
-          Write-Host "AeDebug JIT debugger configured → dumps will go to $dumpDir"
+          echo "$procdumpDir" >> $env:GITHUB_PATH
+
+          $debuggerCmd = "`"$procdumpExe`" -accepteula -e 1 -ma `"$dumpDir\crash_%e_%p_%t`" %ld"
+
+          foreach ($regPath in @(
+            "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AeDebug",
+            "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows NT\CurrentVersion\AeDebug"
+          )) {
+            if (-not (Test-Path $regPath)) {
+              New-Item -Path $regPath -Force | Out-Null
+            }
+            Set-ItemProperty -Path $regPath -Name "Debugger" -Value $debuggerCmd
+            Set-ItemProperty -Path $regPath -Name "Auto"     -Value "1" -Type String
+          }
+
+          Write-Host "AeDebug JIT debugger registered → dumps go to $dumpDir"
 
       - name: Configure CMake
         run: |
@@ -126,6 +152,7 @@ jobs:
           $keyId = (gpg --list-keys --with-colons |
             Where-Object { $_ -match "^pub" } |
             Select-Object -First 1) -split ":" | Select-Object -Index 4
+
           Write-Host "Imported GPG key: $keyId"
           "gpg_key_id=$keyId" >> $env:GITHUB_OUTPUT
 
@@ -139,17 +166,18 @@ jobs:
           $keyId = "${{ steps.import-key.outputs.gpg_key_id }}"
 
           $report = [ordered]@{
-            workflow   = "${{ github.workflow }}"
-            run_id     = "${{ github.run_id }}"
-            run_number = "${{ github.run_number }}"
-            sha        = "${{ github.sha }}"
-            ref        = "${{ github.ref }}"
-            arch       = "${{ matrix.arch }}"
-            os         = "${{ matrix.os }}"
-            timestamp  = (Get-Date -Format "o")
+            workflow      = "${{ github.workflow }}"
+            run_id        = "${{ github.run_id }}"
+            run_number    = "${{ github.run_number }}"
+            sha           = "${{ github.sha }}"
+            ref           = "${{ github.ref }}"
+            actor         = "${{ github.actor }}"
+            arch          = "${{ matrix.arch }}"
+            os            = "${{ matrix.os }}"
+            timestamp     = (Get-Date -Format "o")
             build_outcome = "${{ steps.build.outcome }}"
             test_outcome  = "${{ steps.test.outcome }}"
-            dumps      = @()
+            dumps         = @()
           }
 
           Get-ChildItem -Path $dumpDir -Filter "*.dmp" | ForEach-Object {
@@ -165,9 +193,9 @@ jobs:
             Write-Host "Encrypted: $($_.Name) → $([IO.Path]::GetFileName($encFile))"
           }
 
-          $jsonPath = "${{ runner.temp }}\crash_report.json"
-          $report | ConvertTo-Json -Depth 5 | Set-Content -Path $jsonPath -Encoding UTF8
+          $jsonPath    = "${{ runner.temp }}\crash_report.json"
           $jsonEncPath = Join-Path $stagingDir "crash_report.json.gpg"
+          $report | ConvertTo-Json -Depth 5 | Set-Content -Path $jsonPath -Encoding UTF8
           gpg --batch --yes --trust-model always `
               --recipient $keyId --output $jsonEncPath --encrypt $jsonPath
           Remove-Item $jsonPath -Force
@@ -200,8 +228,8 @@ jobs:
         if: always()
         shell: pwsh
         run: |
-          $buildOk = "${{ steps.build.outcome }}"  -eq "success"
-          $testOk  = "${{ steps.test.outcome }}"   -eq "success"
+          $buildOk = "${{ steps.build.outcome }}" -eq "success"
+          $testOk  = "${{ steps.test.outcome }}"  -eq "success"
 
           if (-not $buildOk) {
             Write-Error "Build FAILED"
