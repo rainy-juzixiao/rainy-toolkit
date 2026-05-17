@@ -49,30 +49,12 @@ jobs:
         with:
           cmakeVersion: latest
 
-      - name: Setup vcpkg
-        id: vcpkg
-        shell: pwsh
-        run: |
-          git clone https://github.com/microsoft/vcpkg.git "${{ runner.temp }}\vcpkg"
-          & "${{ runner.temp }}\vcpkg\bootstrap-vcpkg.bat" -disableMetrics
-
-          "VCPKG_ROOT=${{ runner.temp }}\vcpkg" >> $env:GITHUB_ENV
-          "${{ runner.temp }}\vcpkg" >> $env:GITHUB_PATH
-
-      - name: Cache vcpkg
-        uses: actions/cache@v4
+      - name: Prepare vcpkg
+        uses: ./.github/actions/prepare-vcpkg
         with:
-          path: ${{ runner.temp }}\vcpkg\installed
-          key: vcpkg-${{ matrix.vcpkg_triplet }}-${{ hashFiles('vcpkg.json') }}
-          restore-keys: |
-            vcpkg-${{ matrix.vcpkg_triplet }}-
-
-      - name: Install vcpkg dependencies
-        shell: pwsh
-        run: |
-          vcpkg install --triplet ${{ matrix.vcpkg_triplet }} `
-            --vcpkg-root "$env:VCPKG_ROOT" `
-            --x-manifest-root "${{ github.workspace }}"
+          runner: ${{ matrix.runner }}
+          arch: ${{ matrix.arch }}
+          triplet: ${{ matrix.vcpkg_triplet }}
 
       - name: Configure CMake
         run: |

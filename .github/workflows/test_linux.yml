@@ -122,7 +122,7 @@ jobs:
           arch: ${{ matrix.arch }}
 
       - name: Restore debug build
-        uses: actions/cache/restore@v4  # ← 用 restore 子 action
+        uses: actions/cache/restore@v4
         with:
           path: build-debug
           key: debug-${{ matrix.runner }}-${{ github.sha }}

@@ -1,5 +1,6 @@
 name: Prepare Environment
 description: Install build dependencies for Linux CI
+author: rainy-juzixiao
 
 inputs:
   runner:

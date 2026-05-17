@@ -1,0 +1,56 @@
+name: prepare-vcpkg
+author: rainy-juzixiao
+description: prepare-vcpkg
+
+inputs:
+  runner:
+    required: true
+    description: Runner name
+  arch:
+    required: true
+    description: Target architecture
+  triplet:
+    required: true
+    description: The triplet for vcpkg
+
+runs:
+  using: composite
+  steps:
+    - name: Cache vcpkg
+      id: cache-vcpkg
+      uses: actions/cache@v4
+      with:
+        path: |
+          ${{ runner.temp }}/vcpkg
+          ${{ runner.temp }}/vcpkg-installed
+        key: vcpkg-${{ inputs.runner }}-${{ inputs.arch }}-${{ inputs.triplet }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}
+        restore-keys: |
+          vcpkg-${{ inputs.runner }}-${{ inputs.arch }}-${{ inputs.triplet }}-
+          vcpkg-${{ inputs.runner }}-${{ inputs.arch }}-
+          vcpkg-${{ inputs.runner }}-
+
+    - name: Setup vcpkg
+      id: vcpkg
+      if: steps.cache-vcpkg.outputs.cache-hit != 'true'
+      shell: pwsh
+      run: |
+        git clone https://github.com/microsoft/vcpkg.git "${{ runner.temp }}\vcpkg"
+        & "${{ runner.temp }}\vcpkg\bootstrap-vcpkg.bat" -disableMetrics
+        
+        "VCPKG_ROOT=${{ runner.temp }}\vcpkg" >> $env:GITHUB_ENV
+        "${{ runner.temp }}\vcpkg" >> $env:GITHUB_PATH
+
+    - name: Setup vcpkg environment (cache hit)
+      if: steps.cache-vcpkg.outputs.cache-hit == 'true'
+      shell: pwsh
+      run: |
+        "VCPKG_ROOT=${{ runner.temp }}\vcpkg" >> $env:GITHUB_ENV
+        "${{ runner.temp }}\vcpkg" >> $env:GITHUB_PATH
+
+    - name: Install vcpkg dependencies
+      if: steps.cache-vcpkg.outputs.cache-hit != 'true'
+      shell: pwsh
+      run: |
+        vcpkg install --triplet ${{ inputs.triplet }} `
+          --vcpkg-root "$env:VCPKG_ROOT" `
+          --x-manifest-root "${{ github.workspace }}"
