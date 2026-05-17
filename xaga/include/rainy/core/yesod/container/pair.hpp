@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef RAINY_FOUNDATION_CONTAINER_UTILITY_PAIR_HPP
-#define RAINY_FOUNDATION_CONTAINER_UTILITY_PAIR_HPP
+#ifndef RAINY_CORE_YESOD_CONTAINER_PAIR_HPP
+#define RAINY_CORE_YESOD_CONTAINER_PAIR_HPP
 
-#include <rainy/core/core.hpp>
+#include <rainy/core/type_traits.hpp>
 #include <utility>
 
 namespace rainy::foundation::container {

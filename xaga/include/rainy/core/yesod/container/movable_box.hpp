@@ -16,7 +16,7 @@
 #ifndef RAINY_FOUNDATION_CONTAINER_MOVABLE_BOX_HPP
 #define RAINY_FOUNDATION_CONTAINER_MOVABLE_BOX_HPP
 
-#include <rainy/core/core.hpp>
+#include <rainy/core/type_traits.hpp>
 
 namespace rainy::foundation::container::implements {
     template <typename Ty>

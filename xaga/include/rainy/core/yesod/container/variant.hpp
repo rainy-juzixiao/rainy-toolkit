@@ -13,9 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef RAINY_FOUNDATION_CONTAINERvariantIANT_HPP
-#define RAINY_FOUNDATION_CONTAINERvariantIANT_HPP
-#include <rainy/core/core.hpp>
+#ifndef RAINY_CORE_YESOD_CONTAINER_VARIANT_HPP
+#define RAINY_CORE_YESOD_CONTAINER_VARIANT_HPP
+#include <rainy/core/type_traits.hpp>
+#include <rainy/core/yesod/source_location.hpp>
+#include <rainy/core/yesod/exceptions.hpp>
 
 #if RAINY_USING_MSVC
 #pragma warning(push)

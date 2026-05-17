@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef RAINY_CORE_IMPLEMENTS_TUPLE_HPP
-#define RAINY_CORE_IMPLEMENTS_TUPLE_HPP
+#ifndef RAINY_CORE_YESOD_CONTAINER_TUPLE_HPP
+#define RAINY_CORE_YESOD_CONTAINER_TUPLE_HPP
 #include <rainy/core/platform.hpp>
 #include <rainy/core/type_traits/type_list.hpp>
 #include <rainy/core/type_traits/type_relations.hpp>

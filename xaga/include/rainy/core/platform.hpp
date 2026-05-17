@@ -35,7 +35,7 @@
 #include <cstring>
 #include <ctime>
 #include <initializer_list>
-#include <string>
+#include <exception>
 #include <string_view>
 #include <utility>
 
