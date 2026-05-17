@@ -18,9 +18,9 @@
 #if RAINY_USING_LINUX || RAINY_USING_MACOS
 #include <dlfcn.h>
 #include <filesystem>
-#include <rainy/foundation/pal/implements/tgc_layer_module_context.hpp>
+#include <rainy/foundation/dynamic_library/module_context.hpp>
 
-namespace rainy::foundation::pal::module_context::implements {
+namespace rainy::foundation::dyanmic_library::implements {
     static bool is_absolute_path(const text::string_view file_name) {
         return (!file_name.empty() && file_name[0] == '/'); // NOLINT
     }
@@ -52,7 +52,7 @@ namespace rainy::foundation::pal::module_context::implements {
     }
 }
 
-namespace rainy::foundation::pal::module_context::implements {
+namespace rainy::foundation::dyanmic_library::implements {
     core::handle load_module(const text::string_view module_path, const bool crossplatform) noexcept {
         core::handle hand = 0;
         if (crossplatform) {

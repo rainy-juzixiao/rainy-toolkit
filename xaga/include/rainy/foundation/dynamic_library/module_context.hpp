@@ -13,49 +13,86 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef RAINY_FOUNDATION_PAL_MODULE_CONTEXT_HPP
-#define RAINY_FOUNDATION_PAL_MODULE_CONTEXT_HPP // NOLINT
+#ifndef RAINY_FOUNDATION_DYNAMIC_LIBRARY_MODULE_module_context_HPP
+#define RAINY_FOUNDATION_DYNAMIC_LIBRARY_MODULE_module_context_HPP // NOLINT
 #include <functional>
 #include <rainy/core/core.hpp>
-#include <rainy/foundation/pal/implements/tgc_layer_module_context.hpp>
 
-namespace rainy::foundation::pal::module_context {
+namespace rainy::foundation::dyanmic_library {
+    using farproc_fn = void (*)();
+}
+
+namespace rainy::foundation::dyanmic_library::implements {
+    /**
+     * @brief 尝试根据指定的参数加载模块并获取该模块的句柄
+     * @param module_path 模块所在的路径，包括模块名
+     * @param crossplatform 允许不使用平台特定名称加载模块
+     * @return 如果成功，返回该模块的句柄，失败则返回空句柄
+     */
+    RAINY_TOOLKIT_API core::handle load_module(text::string_view module_path, bool crossplatform) noexcept;
+
+    /**
+     * @brief 尝试根据指定的参数获取已加载的模块
+     * @param module_path 模块所在的路径，包括模块名
+     * @param crossplatform 允许不使用平台特定名称加载模块
+     * @return 如果成功，返回该模块的句柄，失败则返回空句柄
+     */
+    RAINY_TOOLKIT_API core::handle try_to_get_module(text::string_view module_path, bool crossplatform) noexcept;
+
+    /**
+     * @brief 从指定的模块中获取其导出的符号
+     * @param handle 模块的pal句柄
+     * @param symbol_name 符号名称
+     * @return 如果获取成功，返回该符号对应的地址，以farproc_fn类型的形式
+     */
+    RAINY_TOOLKIT_API farproc_fn load_symbol(core::handle handle, text::string_view symbol_name) noexcept;
+
+    /**
+     * @brief 释放给定的pal模块
+     * @param handle 模块的pal句柄
+     * @attention 释放模块并不会直接导致
+     * @return 如果释放成功，则返回true，否则false，所有模块不会因为使用，如果成功，handle句柄还会自动被设为空
+     */
+    RAINY_TOOLKIT_API bool release_module(core::handle *handle) noexcept;
+}
+
+namespace rainy::foundation::dyanmic_library {
     /**
      * @brief 模块的上下文，是对动态库的封装
      * @remark 模块是程序加载的库，而非进程本身
      */
-    class RAINY_TOOLKIT_API context {
+    class RAINY_TOOLKIT_API module_context {
     public:
         /**
          *
          */
-        context() noexcept : private_(nullptr) {}
+        module_context() noexcept : private_(nullptr) {}
 
         /**
          * @brief 在构造期间对上下文进行初始化
          * @param module_path 模块所在的路径，包括模块名
          * @param load 指定是否加载模块，如果为false，则仅尝试获取已加载的模块
          */
-        context(std::string_view module_path, bool load = true) noexcept; // NOLINT
+        module_context(std::string_view module_path, bool load = true) noexcept; // NOLINT
 
-        context(const context& right) = delete; // 为了确保模块生命周期管理，禁用拷贝，若要实现类似效果，请让另一个context加载同样的模块路径以获得新的模块上下文
+        module_context(const module_context& right) = delete; // 为了确保模块生命周期管理，禁用拷贝，若要实现类似效果，请让另一个module_context加载同样的模块路径以获得新的模块上下文
 
         /**
          * @brief 将上下文对象移动到当前模块
          */
-        context(context&& right) noexcept;
+        module_context(module_context&& right) noexcept;
 
-        context& operator=(const context& right) = delete; // 同上
+        module_context& operator=(const module_context& right) = delete; // 同上
 
         /**
          * @brief 将上下文对象移动到当前模块，如果当前模块仍然持有一个已有的模块，则会优先调用unload再执行
          */
-        context& operator=(context&& right) noexcept;
+        module_context& operator=(module_context&& right) noexcept;
 
         /**
          * @brief 自动在模块到达其生命周期末尾时，释放对当前模块的引用计数
          */
-        ~context();
+        ~module_context();
 
         /**
          * @brief 释放对当前模块的引用计数
@@ -123,12 +160,12 @@ namespace rainy::foundation::pal::module_context {
         RAINY_NODISCARD void *native_handle() const noexcept;
 
     private:
-        struct context_private;
+        struct module_context_private;
 
-        static context_private* create_ctx();
-        static void destroy_ctx(context_private const* ctx);
+        static module_context_private* create_ctx();
+        static void destroy_ctx(module_context_private const* ctx);
 
-        context_private* private_;
+        module_context_private* private_;
     };
 }
 
