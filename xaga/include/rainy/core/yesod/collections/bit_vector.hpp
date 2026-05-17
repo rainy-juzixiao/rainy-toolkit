@@ -18,6 +18,7 @@
 #include <rainy/core/platform.hpp>
 #include <rainy/core/type_traits/limits.hpp>
 #include <rainy/core/yesod/container/compressed_pair.hpp>
+#include <rainy/core/implements/text/string.hpp>
 
 namespace rainy::collections {
     template <typename Alloc = std::allocator<bool>>
@@ -773,8 +774,8 @@ namespace rainy::collections {
             return *this = *this >> count;
         }
 
-        RAINY_CONSTEXPR20 std::string to_string(char zero = '0', char one = '1') const {
-            std::string s(size(), zero);
+        RAINY_CONSTEXPR20 foundation::text::string to_string(char zero = '0', char one = '1') const {
+            foundation::text::string s(size(), zero);
             for (size_type i = 0; i < size(); ++i) {
                 if ((*this)[i]) {
                     s[size() - 1 - i] = one;
