@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef RAINY_CORE_IMPLEMENTS_COLLECTIONS_ARRAY_HPP
-#define RAINY_CORE_IMPLEMENTS_COLLECTIONS_ARRAY_HPP
+#ifndef RAINY_CORE_YESOD_COLLECTIONS_ARRAY_HPP
+#define RAINY_CORE_YESOD_COLLECTIONS_ARRAY_HPP
 #include <array>
 #include <rainy/core/implements/basic_algorithm.hpp>
 #include <rainy/core/implements/reverse_iterator.hpp>

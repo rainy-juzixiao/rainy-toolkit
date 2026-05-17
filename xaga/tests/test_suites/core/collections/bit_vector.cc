@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include <rainy/core/yesod/collections/bit_vector.hpp>
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
-#include <rainy/collections/bit_vector.hpp>
 
 using namespace rainy::collections;
 

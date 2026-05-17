@@ -19,7 +19,6 @@
 // NOLINTBEGIN
 
 #include <cstdint>
-#include <rainy/collections/vector.hpp>
 #include <rainy/core/core.hpp>
 #include <system_error>
 

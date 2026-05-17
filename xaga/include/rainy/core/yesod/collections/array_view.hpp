@@ -17,7 +17,8 @@
 #define RAINY_CORE_IMPLEMENTS_COLLECTIONS_ARRAY_VIEW_HPP
 #include <array>
 #include <exception>
-#include <rainy/core/implements/collections/array.hpp>
+#include <rainy/core/yesod/collections/array.hpp>
+#include <rainy/core/yesod/collections/vector.hpp>
 #include <rainy/core/implements/reverse_iterator.hpp>
 #include <rainy/core/platform.hpp>
 #include <vector>

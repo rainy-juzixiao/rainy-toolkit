@@ -15,7 +15,9 @@
  */
 #ifndef RAINY_COLLECTIONS_VECTOR_HPP
 #define RAINY_COLLECTIONS_VECTOR_HPP
-#include <rainy/core/core.hpp>
+#include <rainy/core/platform.hpp>
+#include <rainy/core/type_traits.hpp>
+#include <rainy/core/yesod/container/compressed_pair.hpp>
 
 namespace rainy::collections {
     template <typename Ty, typename Alloc = std::allocator<Ty>>

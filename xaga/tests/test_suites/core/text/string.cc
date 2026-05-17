@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <rainy/collections/vector.hpp>
+#include <../../../../include/rainy/core/yesod/collections/vector.hpp>
 #include <rainy/core/core.hpp>
 
 #include <catch2/catch_approx.hpp>

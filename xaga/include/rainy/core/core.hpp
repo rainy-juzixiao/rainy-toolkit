@@ -46,8 +46,8 @@
 #include <rainy/core/concepts.hpp>
 #include <rainy/core/layer.hpp>
 #include <rainy/core/implements/bit.hpp>
-#include <rainy/core/implements/collections/array.hpp>
-#include <rainy/core/implements/collections/array_view.hpp>
+#include <rainy/core/yesod/collections/array.hpp>
+#include <rainy/core/yesod/collections/array_view.hpp>
 #include <rainy/core/implements/views/views_interface.hpp>
 #include <rainy/core/implements/text/char_traits.hpp>
 #include <rainy/core/implements/text/string_view.hpp>

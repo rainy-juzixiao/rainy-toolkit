@@ -13,9 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef RAINY_COLLECTIONS_BIT_VECTOR_HPP
-#define RAINY_COLLECTIONS_BIT_VECTOR_HPP
-#include <rainy/core/core.hpp>
+#ifndef RAINY_CORE_YESOD_COLLECTIONS_BIT_VECTOR_HPP
+#define RAINY_CORE_YESOD_COLLECTIONS_BIT_VECTOR_HPP
+#include <rainy/core/platform.hpp>
+#include <rainy/core/type_traits/limits.hpp>
+#include <rainy/core/yesod/container/compressed_pair.hpp>
 
 namespace rainy::collections {
     template <typename Alloc = std::allocator<bool>>
