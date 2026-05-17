@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.0](https://github.com/rainy-juzixiao/rainy-toolkit/compare/v0.8.5...v1.0.0) (2026-05-16)
+
+
+### ⚠ BREAKING CHANGES
+
+* Added full io component.
+
+### Features
+
+* Added full io component. ([3663992](https://github.com/rainy-juzixiao/rainy-toolkit/commit/3663992f67cee1c75643c3d47002ed236c537dcf))
+
 ## [0.8.5](https://github.com/rainy-juzixiao/rainy-toolkit/compare/v0.8.4...v0.8.5) (2026-05-05)
 
 
