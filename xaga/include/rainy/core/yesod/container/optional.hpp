@@ -18,7 +18,6 @@
 #include <optional>
 #include <rainy/annotations/smf_control.hpp>
 #include <rainy/core/core.hpp>
-#include <rainy/foundation/diagnostics/contract.hpp>
 
 #if RAINY_USING_MSVC
 #pragma warning(push)

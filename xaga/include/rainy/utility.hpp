@@ -13,17 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef RAINY_UTILITY_HPP
-#define RAINY_UTILITY_HPP
+#ifndef RAINY_UTILITY_UTILITY_HPP
+#define RAINY_UTILITY_UTILITY_HPP
 
 #include <algorithm>
 #include <bitset>
 #include <iomanip>
 #include <ostream>
-#include <rainy/text/format_wrapper.hpp>
 #include <random>
 #include <sstream>
 #include <utility>
+#include <rainy/core/core.hpp>
+#include <rainy/foundation/typeinfo.hpp>
 
 #if RAINY_HAS_CXX20
 #include <ranges>
@@ -141,6 +142,8 @@ namespace rainy::utility {
         return std::make_from_tuple<Ty>(implements::uses_allocator_construction<Ty>::args(allocator, utility::forward<Types>(_Args)...));
     }
 }
+
+#if false // wait for refactor
 
 namespace rainy::utility {
     class uuid {
@@ -385,6 +388,8 @@ public:
         return std::format_to(fc.out(), "{}", value.to_string());
     }
 };
+#endif
+
 #endif
 
 #endif

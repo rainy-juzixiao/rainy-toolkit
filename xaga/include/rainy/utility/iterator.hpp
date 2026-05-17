@@ -1,6 +1,6 @@
 #ifndef RAINY_UTILITY_ITERATOR_HPP
 #define RAINY_UTILITY_ITERATOR_HPP
-#include <rainy/core/core.hpp>
+#include <rainy/core/type_traits.hpp>
 #include <rainy/core/implements/reverse_iterator.hpp>
 
 namespace rainy::utility {

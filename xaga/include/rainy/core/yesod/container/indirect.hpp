@@ -15,7 +15,7 @@
  */
 #ifndef RAINY_FOUNDATION_CONTAINER_INDIRECT_HPP
 #define RAINY_FOUNDATION_CONTAINER_INDIRECT_HPP
-#include <rainy/core/core.hpp>
+#include <rainy/core/type_traits.hpp>
 
 namespace rainy::foundation::container {
     struct defered_init_t {};

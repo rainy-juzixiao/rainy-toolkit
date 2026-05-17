@@ -58,6 +58,7 @@
 #include <rainy/core/implements/hash.hpp>
 #include <rainy/core/lifetime_annotation.hpp>
 #include <rainy/core/yesod/generate/marco_gen.hpp>
+#include <rainy/core/yesod/container.hpp>
 
 // clang-format on
 
@@ -68,31 +69,6 @@ namespace rainy::core {
     static constexpr foundation::text::string_view creator_nam = "rainy-juzixiao";
     static constexpr foundation::text::string_view current_version = RAINY_TOOLKIT_VERSION;
     static constexpr foundation::text::string_view code_name = "xaga";
-}
-
-namespace rainy::core::implements {
-    constexpr bool is_pow_2(const std::size_t val) noexcept {
-        return val != 0 && (val & (val - 1)) == 0;
-    }
-
-    template <typename Ty>
-    constexpr std::size_t get_size_of_n(const std::size_t count) noexcept {
-        constexpr std::size_t type_size = sizeof(Ty);
-        if constexpr (constexpr bool overflow_is_possible = type_size > 1; overflow_is_possible) {
-            if (constexpr std::size_t max_possible = static_cast<std::size_t>(-1) / type_size; count > max_possible) {
-                std::terminate(); // multiply overflow
-            }
-        }
-        return type_size * count;
-    }
-
-    template <typename Integral>
-    RAINY_INLINE constexpr bool in_range(Integral start, Integral end, Integral wait_for_check) noexcept {
-        if (start > end) {
-            return false;
-        }
-        return wait_for_check >= start && wait_for_check <= end;
-    }
 }
 
 namespace rainy::core::implements {
@@ -371,12 +347,6 @@ namespace rainy::core {
 #endif
 
 // clang-format off
-
-#ifndef RAINY_NODISCARD_RAW_PTR_ALLOC
-#define RAINY_NODISCARD_RAW_PTR_ALLOC                                                                                                   \
-    RAINY_NODISCARD_MSG("This function allocates memory and returns a raw pointer. "                                                    \
-                        "Discarding the return value will cause a memory leak.")
-#endif
 
 #define RAINY_DECLARE_SIGNLE_INSTANCE(CLASSNAME) static CLASSNAME &instance() noexcept { static CLASSNAME instance;return instance;}
 

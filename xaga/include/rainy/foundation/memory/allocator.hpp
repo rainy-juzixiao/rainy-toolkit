@@ -16,8 +16,8 @@
 #ifndef RAINY_FOUNDATION_MEMORY_ALLCATOR_HPP
 #define RAINY_FOUNDATION_MEMORY_ALLCATOR_HPP
 #include <atomic>
-#include <rainy/core/core.hpp>
-#include <rainy/foundation/diagnostics/contract.hpp>
+#include <rainy/core/type_traits.hpp>
+#include <rainy/core/yesod/exceptions.hpp>
 
 namespace rainy::foundation::memory {
     enum class allocation_method {
@@ -296,7 +296,6 @@ namespace rainy::foundation::memory::pmr {
         polymorphic_allocator() noexcept = default;
 
         polymorphic_allocator(memory_resource *const resource) noexcept : _resource{resource} {
-            utility::expects(static_cast<bool>(resource), "Cannot initialize polymorphic_allocator with null resource");
         }
 
         polymorphic_allocator(allocation_method method) : _resource{get_memory_resource(method)} {};
