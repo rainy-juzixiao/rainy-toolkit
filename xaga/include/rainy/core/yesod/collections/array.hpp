@@ -16,8 +16,8 @@
 #ifndef RAINY_CORE_YESOD_COLLECTIONS_ARRAY_HPP
 #define RAINY_CORE_YESOD_COLLECTIONS_ARRAY_HPP
 #include <array>
-#include <rainy/core/implements/basic_algorithm.hpp>
-#include <rainy/core/implements/reverse_iterator.hpp>
+#include <rainy/core/yesod/basic_algorithm.hpp>
+#include <rainy/core/yesod/reverse_iterator.hpp>
 #include <rainy/core/platform.hpp>
 #include <rainy/core/type_traits.hpp>
 #include <tuple>

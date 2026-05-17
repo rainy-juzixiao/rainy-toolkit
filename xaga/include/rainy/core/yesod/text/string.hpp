@@ -13,13 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef RAINY_CORE_IMPLEMENTS_TEXT_STRING_HPP
-#define RAINY_CORE_IMPLEMENTS_TEXT_STRING_HPP
+#ifndef RAINY_CORE_YESOD_TEXT_STRING_HPP
+#define RAINY_CORE_YESOD_TEXT_STRING_HPP
 
 // NOLINTBEGIN
-#include <rainy/core/implements/hash.hpp>
-#include <rainy/core/implements/text/char_traits.hpp>
-#include <rainy/core/implements/text/string_view.hpp>
+#include <rainy/core/yesod/hash.hpp>
+#include <rainy/core/yesod/text/char_traits.hpp>
+#include <rainy/core/yesod/text/string_view.hpp>
 #include <rainy/core/yesod/collections/vector.hpp>
 #include <rainy/core/platform.hpp>
 // NOLINTEND

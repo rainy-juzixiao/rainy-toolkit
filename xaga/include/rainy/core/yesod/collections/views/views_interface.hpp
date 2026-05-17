@@ -17,8 +17,8 @@
 #define RAINY_COLLECTIONS_VIEWS_VIEWS_INTERFACE_HPP
 #include <rainy/core/platform.hpp>
 #include <rainy/core/type_traits.hpp>
-#include <rainy/core/implements/views/pipeline.hpp>
-#include <rainy/core/implements/views/range_closure.hpp>
+#include <rainy/core/yesod/collections/views/pipeline.hpp>
+#include <rainy/core/yesod/collections/views/range_closure.hpp>
 
 namespace rainy::collections::views {
     /**

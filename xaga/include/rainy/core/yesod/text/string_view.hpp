@@ -15,8 +15,8 @@
  */
 #ifndef RAINY_CORE_IMPLEMENTS_TEXT_STRING_VIEW_HPP
 #define RAINY_CORE_IMPLEMENTS_TEXT_STRING_VIEW_HPP
-#include <rainy/core/implements/basic_algorithm.hpp>
-#include <rainy/core/implements/text/char_traits.hpp>
+#include <rainy/core/yesod/basic_algorithm.hpp>
+#include <rainy/core/yesod/text/char_traits.hpp>
 #include <rainy/core/platform.hpp>
 #include <rainy/core/type_traits.hpp>
 

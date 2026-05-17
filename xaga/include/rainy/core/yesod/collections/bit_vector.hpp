@@ -18,7 +18,7 @@
 #include <rainy/core/platform.hpp>
 #include <rainy/core/type_traits/limits.hpp>
 #include <rainy/core/yesod/container/compressed_pair.hpp>
-#include <rainy/core/implements/text/string.hpp>
+#include <rainy/core/yesod/text/string.hpp>
 
 namespace rainy::collections {
     template <typename Alloc = std::allocator<bool>>

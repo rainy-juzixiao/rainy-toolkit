@@ -16,9 +16,9 @@
 #ifndef RAINY_CORE_IMPLEMENTS_TEXT_FORMAT_CONTEXT_HPP
 #define RAINY_CORE_IMPLEMENTS_TEXT_FORMAT_CONTEXT_HPP
 #include <locale>
-#include <rainy/core/implements/text/format/format_arg.hpp>
-#include <rainy/core/implements/text/string.hpp>
-#include <rainy/core/implements/text/string_view.hpp>
+#include <rainy/core/yesod/text/format/format_arg.hpp>
+#include <rainy/core/yesod/text/string.hpp>
+#include <rainy/core/yesod/text/string_view.hpp>
 #include <rainy/core/yesod/exceptions.hpp>
 
 namespace rainy::foundation::exceptions::runtime {

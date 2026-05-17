@@ -16,7 +16,7 @@
 #ifndef RAINY_COLLECTIONS_VIEWS_IMPLEMENTS_RANGE_CLOSURE_HPP
 #define RAINY_COLLECTIONS_VIEWS_IMPLEMENTS_RANGE_CLOSURE_HPP
 #include <rainy/core/core.hpp>
-#include <rainy/core/implements/views/pipeline.hpp>
+#include <rainy/core/yesod/collections/views/pipeline.hpp>
 
 namespace rainy::collections::views::implements {
     template <typename Fx, typename... Types>
