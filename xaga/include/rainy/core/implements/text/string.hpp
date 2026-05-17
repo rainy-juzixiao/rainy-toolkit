@@ -20,6 +20,7 @@
 #include <rainy/core/implements/hash.hpp>
 #include <rainy/core/implements/text/char_traits.hpp>
 #include <rainy/core/implements/text/string_view.hpp>
+#include <rainy/core/yesod/collections/vector.hpp>
 #include <rainy/core/platform.hpp>
 // NOLINTEND
 
@@ -32,11 +33,6 @@
 #endif
 
 #endif
-
-namespace rainy::collections {
-    template <typename Ty, typename Allocator>
-    class vector;
-}
 
 namespace rainy::foundation::text {
     template <typename CharType, typename Traits = char_traits<CharType>, typename Allocator = std::allocator<CharType>>
@@ -1491,15 +1487,14 @@ namespace rainy::foundation::text {
             return substr(pos);
         }
 
-        template <template <typename...> typename SeqContainerTemplate = collections::vector>
-        RAINY_CONSTEXPR20 SeqContainerTemplate<basic_string> split(value_type delim) const {
+        RAINY_CONSTEXPR20 collections::vector<basic_string> split(value_type delim) const {
             if (empty()) {
                 return {};
             }
             size_type previous = 0;
             size_type current = find_first_of(delim);
             basic_string_view<value_type> str_view = (*this);
-            SeqContainerTemplate<basic_string> res{};
+            collections::vector<basic_string> res{};
             while (current != npos) {
                 res.push_back(basic_string(str_view.substr(previous, current - previous)));
                 previous = current + 1;
@@ -1730,7 +1725,7 @@ namespace rainy::foundation::text {
             }
         }
 
-
+        // NOLINTBEGIN
         RAINY_CONSTEXPR20 void append_(value_type const *first, value_type const *last) {
             auto length = last - first;
             auto size = this->size();
@@ -1771,6 +1766,7 @@ namespace rainy::foundation::text {
                 resize_(new_size);
             }
         }
+        // NOLINTEND
 
         RAINY_CONSTEXPR20 void erase_(CharType *first, value_type const *last) noexcept {
             assert(("first or last is not in this string" && first >= begin_() && last <= end_()));

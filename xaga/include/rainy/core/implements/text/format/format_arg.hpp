@@ -15,7 +15,6 @@
  */
 #ifndef RAINY_CORE_IMPLEMENTS_TEXT_FORMAT_FORMAT_ARG_HPP
 #define RAINY_CORE_IMPLEMENTS_TEXT_FORMAT_FORMAT_ARG_HPP
-#include <rainy/core/core.hpp>
 #include <string_view>
 #include <variant>
 
