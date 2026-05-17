@@ -45,8 +45,6 @@
 #include <unistd.h>
 #endif
 
-#include <rainy/core/implements/generate/marco_gen.hpp>
-
 #define RAINY_EXTERN_C extern "C"
 
 /*-----------

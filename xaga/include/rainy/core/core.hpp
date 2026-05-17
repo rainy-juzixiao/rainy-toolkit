@@ -57,6 +57,7 @@
 #include <rainy/core/implements/text/charconv.hpp>
 #include <rainy/core/implements/hash.hpp>
 #include <rainy/core/lifetime_annotation.hpp>
+#include <rainy/core/yesod/generate/marco_gen.hpp>
 
 // clang-format on
 
@@ -65,7 +66,7 @@
 namespace rainy::core {
     static constexpr foundation::text::string_view libray_name = "rainy-toolkit";
     static constexpr foundation::text::string_view creator_nam = "rainy-juzixiao";
-    static constexpr foundation::text::string_view current_version = "0.1";
+    static constexpr foundation::text::string_view current_version = RAINY_TOOLKIT_VERSION;
     static constexpr foundation::text::string_view code_name = "xaga";
 }
 
