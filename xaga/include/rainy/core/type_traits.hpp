@@ -16,10 +16,10 @@
 #ifndef RAINY_CORE_TYPE_TRAITS_HPP
 #define RAINY_CORE_TYPE_TRAITS_HPP
 
-// NOLINTBEGIN
+// NOLINTBEGIN, clang-format off
 
+#include <iterator>
 #include <rainy/core/platform.hpp>
-#include <rainy/core/yesod/basic_algorithm.hpp>
 #include <rainy/core/type_traits/decay.hpp>
 #include <rainy/core/type_traits/helper.hpp>
 #include <rainy/core/type_traits/implements.hpp>
@@ -36,12 +36,12 @@
 #include <rainy/core/type_traits/type_list.hpp>
 #include <rainy/core/type_traits/type_relations.hpp>
 #include <rainy/core/type_traits/value_list.hpp>
-#include <rainy/core/yesod/container/tuple.hpp>
+#include <rainy/core/yesod/basic_algorithm.hpp>
 #include <rainy/core/yesod/container/compressed_pair.hpp>
-#include <iterator>
+#include <rainy/core/yesod/container/tuple.hpp>
 #include <utility>
 
-// NOLINTEND
+// NOLINTEND, clang-format on
 
 #if RAINY_USING_GCC
 #include <rainy/core/gnu/typetraits.hpp>
@@ -1987,7 +1987,7 @@ namespace rainy::type_traits::concepts {
      *             要比较的第二个类型
      */
     template <typename Ty1, typename Ty2>
-    concept same_as = implements::is_same_v<Ty1, Ty2>;
+    concept same_as = type_relations::is_same_v<Ty1, Ty2>;
 
     /**
      * @brief Concept that checks if a type is derived from another type.

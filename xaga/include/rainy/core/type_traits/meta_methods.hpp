@@ -17,6 +17,8 @@
 #define RAINY_CORE_TYPE_TRAITS_META_METHOD_HPP
 #include <rainy/core/platform.hpp>
 #include <rainy/core/type_traits/implements.hpp>
+#include <rainy/core/type_traits/properties.hpp>
+#include <rainy/core/type_traits/primary_types.hpp>
 #include <rainy/core/type_traits/templates.hpp>
 
 namespace rainy::type_traits::extras::meta_method {
