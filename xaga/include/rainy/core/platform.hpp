@@ -38,6 +38,7 @@
 #include <exception>
 #include <string_view>
 #include <utility>
+#include <memory>
 
 #ifdef __linux__
 #include <csignal>
