@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */                                                                                                                                   \
-#ifndef RAINY_FOUNDATION_CONTAINER_MOVABLE_BOX_HPP
-#define RAINY_FOUNDATION_CONTAINER_MOVABLE_BOX_HPP
+#ifndef RAINY_CORE_YESOD_CONTAINER_MOVABLE_BOX_HPP
+#define RAINY_CORE_YESOD_CONTAINER_MOVABLE_BOX_HPP
 
 #include <rainy/core/type_traits.hpp>
 

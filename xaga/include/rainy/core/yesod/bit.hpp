@@ -16,8 +16,8 @@
 /**
  * @mergeto rainy/core/core.hpp
  */
-#ifndef RAINY_CORE_IMPLEMENTS_BIT_HPP
-#define RAINY_CORE_IMPLEMENTS_BIT_HPP
+#ifndef RAINY_CORE_YESOD_BIT_HPP
+#define RAINY_CORE_YESOD_BIT_HPP
 #include <rainy/core/platform.hpp>
 #include <rainy/core/type_traits/properties.hpp>
 #include <rainy/core/type_traits/limits.hpp>

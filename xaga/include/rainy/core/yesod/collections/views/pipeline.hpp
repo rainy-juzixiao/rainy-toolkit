@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef RAINY_COLLECTIONS_VIEWS_IMPLEMENTS_PIPELINE_HPP
-#define RAINY_COLLECTIONS_VIEWS_IMPLEMENTS_PIPELINE_HPP
-#include <rainy/core/core.hpp>
+#ifndef RAINY_CORE_COLLECTIONS_VIEWS_PIPELINE_HPP
+#define RAINY_CORE_COLLECTIONS_VIEWS_PIPELINE_HPP
+#include <rainy/core/type_traits.hpp>
 
 namespace rainy::collections::views::implements {
     template <typename _Derived>

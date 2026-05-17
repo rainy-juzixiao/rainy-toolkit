@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef RAINY_COLLECTIONS_VIEWS_VIEWS_INTERFACE_HPP
-#define RAINY_COLLECTIONS_VIEWS_VIEWS_INTERFACE_HPP
+#ifndef RAINY_CORE_COLLECTIONS_VIEWS_VIEWS_INTERFACE_HPP
+#define RAINY_CORE_COLLECTIONS_VIEWS_VIEWS_INTERFACE_HPP
 #include <rainy/core/platform.hpp>
 #include <rainy/core/type_traits.hpp>
 #include <rainy/core/yesod/collections/views/pipeline.hpp>

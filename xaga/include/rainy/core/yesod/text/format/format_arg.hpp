@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef RAINY_CORE_IMPLEMENTS_TEXT_FORMAT_FORMAT_ARG_HPP
-#define RAINY_CORE_IMPLEMENTS_TEXT_FORMAT_FORMAT_ARG_HPP
+#ifndef RAINY_YESOD_TEXT_FORMAT_FORMAT_ARG_HPP
+#define RAINY_YESOD_TEXT_FORMAT_FORMAT_ARG_HPP
 #include <string_view>
 #include <variant>
 

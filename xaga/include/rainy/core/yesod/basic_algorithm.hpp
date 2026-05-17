@@ -16,8 +16,8 @@
 /**
  * @mergeto rainy/core/core.hpp
  */
-#ifndef RAINY_CORE_IMPLEMENTS_BASIC_ALGORITHM_HPP
-#define RAINY_CORE_IMPLEMENTS_BASIC_ALGORITHM_HPP
+#ifndef RAINY_CORE_YESOD_BASIC_ALGORITHM_HPP
+#define RAINY_CORE_YESOD_BASIC_ALGORITHM_HPP
 #include <algorithm>
 #include <rainy/core/type_traits/implements.hpp>
 #include <rainy/core/type_traits/iter_traits.hpp>

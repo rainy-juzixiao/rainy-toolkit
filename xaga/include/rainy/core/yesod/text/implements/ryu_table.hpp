@@ -40,8 +40,8 @@
  * See the applicable license for the specific language governing
  * permissions and limitations under the License.
  */
-#ifndef RAINY_CORE_IMPLEMENTS_TEXT_IMPLEMENTS_RYU_TABLE_HPP
-#define RAINY_CORE_IMPLEMENTS_TEXT_IMPLEMENTS_RYU_TABLE_HPP
+#ifndef RAINY_YESOD_TEXT_IMPLEMENTS_RYU_TABLE_HPP
+#define RAINY_YESOD_TEXT_IMPLEMENTS_RYU_TABLE_HPP
 #include <rainy/core/platform.hpp>
 
 namespace rainy::foundation::text::implements::ryu {

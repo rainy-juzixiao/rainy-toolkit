@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef RAINY_CORE_IMPLEMENTS_TEXT_WSTRING_CONVERT_HPP
-#define RAINY_CORE_IMPLEMENTS_TEXT_WSTRING_CONVERT_HPP
+#ifndef RAINY_YESOD_TEXT_WSTRING_CONVERT_HPP
+#define RAINY_YESOD_TEXT_WSTRING_CONVERT_HPP
 #include <rainy/core/platform.hpp>
 #include <rainy/core/type_traits.hpp>
 

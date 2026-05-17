@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef RAINY_CORE_IMPLEMENTS_TEXT_STRING_VIEW_HPP
-#define RAINY_CORE_IMPLEMENTS_TEXT_STRING_VIEW_HPP
+#ifndef RAINY_YESOD_TEXT_STRING_VIEW_HPP
+#define RAINY_YESOD_TEXT_STRING_VIEW_HPP
 #include <rainy/core/yesod/basic_algorithm.hpp>
 #include <rainy/core/yesod/text/char_traits.hpp>
 #include <rainy/core/platform.hpp>

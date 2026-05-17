@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef RAINY_CORE_IMPLEMENTS_TEXT_FORMAT_FORMAT_HPP
-#define RAINY_CORE_IMPLEMENTS_TEXT_FORMAT_FORMAT_HPP
+#ifndef RAINY_YESOD_TEXT_FORMAT_FORMAT_HPP
+#define RAINY_YESOD_TEXT_FORMAT_FORMAT_HPP
 #include <optional>
 #include <rainy/core/yesod/text/format/context.hpp>
 #include <rainy/core/yesod/text/format/formatter.hpp>

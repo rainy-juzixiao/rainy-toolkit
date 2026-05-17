@@ -13,9 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef RAINY_COLLECTIONS_VIEWS_IMPLEMENTS_RANGE_CLOSURE_HPP
-#define RAINY_COLLECTIONS_VIEWS_IMPLEMENTS_RANGE_CLOSURE_HPP
-#include <rainy/core/core.hpp>
+#ifndef RAINY_CORE_COLLECTIONS_VIEWS_RANGE_CLOSURE_HPP
+#define RAINY_CORE_COLLECTIONS_VIEWS_RANGE_CLOSURE_HPP
 #include <rainy/core/yesod/collections/views/pipeline.hpp>
 
 namespace rainy::collections::views::implements {

@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef RAINY_CORE_IMPLEMENTS_MARCO_GEN_HPP
-#define RAINY_CORE_IMPLEMENTS_MARCO_GEN_HPP
+#ifndef RAINY_CORE_YESOD_GENERATE_MARCO_GEN_HPP
+#define RAINY_CORE_YESOD_GENERATE_MARCO_GEN_HPP
 
  /**
  * @def RAINY_TO_TUPLE_EXPAND_ARGS

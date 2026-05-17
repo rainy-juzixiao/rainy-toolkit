@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef RAINY_COLLECTIONS_VECTOR_HPP
-#define RAINY_COLLECTIONS_VECTOR_HPP
+#ifndef RAINY_CORE_YESOD_COLLECTIONS_VECTOR_HPP
+#define RAINY_CORE_YESOD_COLLECTIONS_VECTOR_HPP
 #include <rainy/core/platform.hpp>
 #include <rainy/core/type_traits.hpp>
 #include <rainy/core/yesod/container/compressed_pair.hpp>

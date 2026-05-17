@@ -1,5 +1,5 @@
 /*
-* Copyright 2026 rainy-juzixiao
+ * Copyright 2026 rainy-juzixiao
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,13 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef RAINY_CORE_YESOD_COLLECTIONS_HPP
-#define RAINY_CORE_YESOD_COLLECTIONS_HPP
+#ifndef RAINY_CORE_YESOD_COLLECTIONS_VIEWS_HPP
+#define RAINY_CORE_YESOD_COLLECTIONS_VIEWS_HPP
 
-#include <rainy/core/yesod/collections/array.hpp>
-#include <rainy/core/yesod/collections/array_view.hpp>
-#include <rainy/core/yesod/collections/bit_vector.hpp>
-#include <rainy/core/yesod/collections/vector.hpp>
-#include <rainy/core/yesod/collections/views.hpp>
+#include <rainy/core/yesod/collections/views/pipeline.hpp>
+#include <rainy/core/yesod/collections/views/range_closure.hpp>
+#include <rainy/core/yesod/collections/views/views_interface.hpp>
 
 #endif

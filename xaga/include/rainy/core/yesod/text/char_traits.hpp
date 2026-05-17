@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef RAINY_CORE_IMPLEMENTS_TEXT_CHAR_TRAITS_HPP
-#define RAINY_CORE_IMPLEMENTS_TEXT_CHAR_TRAITS_HPP
+#ifndef RAINY_YESOD_TEXT_CHAR_TRAITS_HPP
+#define RAINY_YESOD_TEXT_CHAR_TRAITS_HPP
 #include <rainy/core/yesod/collections/array.hpp>
 #include <rainy/core/yesod/collections/array_view.hpp>
 #include <rainy/core/platform.hpp>

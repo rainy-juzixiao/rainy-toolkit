@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef RAINY_CORE_IMPLEMENTS_COLLECTIONS_ARRAY_VIEW_HPP
-#define RAINY_CORE_IMPLEMENTS_COLLECTIONS_ARRAY_VIEW_HPP
+#ifndef RAINY_CORE_YESOD_COLLECTIONS_ARRAY_VIEW_HPP
+#define RAINY_CORE_YESOD_COLLECTIONS_ARRAY_VIEW_HPP
 #include <array>
 #include <exception>
 #include <rainy/core/yesod/collections/array.hpp>

@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef RAINY_CORE_IMPLEMENTS_REVERSE_ITERATOR_HPP
-#define RAINY_CORE_IMPLEMENTS_REVERSE_ITERATOR_HPP
+#ifndef RAINY_CORE_YESOD_REVERSE_ITERATOR_HPP
+#define RAINY_CORE_YESOD_REVERSE_ITERATOR_HPP
 #include <rainy/core/type_traits/iter_traits.hpp>
 
 namespace rainy::utility {
