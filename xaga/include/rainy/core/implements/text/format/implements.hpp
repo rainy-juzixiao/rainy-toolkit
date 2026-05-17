@@ -15,7 +15,7 @@
  */
 #ifndef RAINY_CORE_IMPLEMENTS_TEXT_FORMAT_IMPLEMENTS_HPP
 #define RAINY_CORE_IMPLEMENTS_TEXT_FORMAT_IMPLEMENTS_HPP
-#include <rainy/core/implements/exceptions.hpp>
+#include <rainy/core/yesod/exceptions.hpp>
 #include <rainy/core/implements/text/string_view.hpp>
 #include <rainy/core/platform.hpp>
 
