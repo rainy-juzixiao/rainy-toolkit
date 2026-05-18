@@ -17,6 +17,7 @@
 #define RAINY_CORE_YESOD_HASH_HPP
 #include <rainy/core/platform.hpp>
 #include <rainy/core/type_traits/properties.hpp>
+#include <rainy/core/type_traits/primary_types.hpp>
 
 namespace rainy::utility::implements {
     inline constexpr std::size_t fnv_offset_basis = static_cast<std::size_t>(14695981039346656037ULL);
@@ -97,6 +98,37 @@ namespace rainy::utility::implements {
         hash_enable_if(hash_enable_if &&) = delete;
         hash_enable_if &operator=(const hash_enable_if &) = delete;
         hash_enable_if &operator=(hash_enable_if &&) = delete;
+    };
+}
+
+namespace rainy::utility {
+    /**
+     * @brief Primary template for hash function object.
+     *        Provides hash computation for various types.
+     *
+     *        哈希函数对象的主模板。
+     *        为各种类型提供哈希计算。
+     *
+     * @tparam key The type to compute hash for
+     *             要计算哈希的类型
+     */
+    template <typename key>
+    struct hash : implements::hash_enable_if<
+                      key, !type_traits::type_properties::is_const_v<key> && !type_traits::type_properties::is_volatile_v<key> &&
+                               (type_traits::primary_types::is_enum_v<key> || type_traits::primary_types::is_integral_v<key> ||
+                                type_traits::primary_types::is_pointer_v<key>)> {
+        /**
+         * @brief Computes hash value for the given key.
+         *        计算给定键的哈希值。
+         *
+         * @param keyval The value to hash
+         *               要哈希的值
+         * @return Hash value
+         *         哈希值
+         */
+        static std::size_t hash_this_val(const key &keyval) noexcept {
+            return implements::hash_representation(keyval);
+        }
     };
 }
 
