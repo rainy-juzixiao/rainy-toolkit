@@ -21,6 +21,13 @@
 #include <VersionHelpers.h>
 #else
 #include <unistd.h>
+
+#if RAINY_USING_MACOS
+#include <cstdio>
+#include <sys/sysctl.h>
+#include <sys/types.h>
+#endif
+
 #endif
 
 #include <bitset>
@@ -542,6 +549,38 @@ namespace rainy::core::builtin {
         return version::unknown;
 #elif RAINY_USING_LINUX
         return version::linux_like;
+#elif RAINY_USING_MACOS
+        char buf[64]{};
+        std::size_t buf_size = sizeof(buf);
+        if (::sysctlbyname("kern.osproductversion", buf, &buf_size, nullptr, 0) != 0) {
+            return version::unknown;
+        }
+        int major = 0, minor = 0;
+        if (std::sscanf(buf, "%d.%d", &major, &minor) < 1) {
+            return version::unknown;
+        }
+        if (major == 10) {
+            if (minor == 15) {
+                return version::macos_catalina;
+            }
+            return version::unknown;
+        }
+        switch (major) {
+            case 11:
+                return version::macos_big_sur;
+            case 12:
+                return version::macos_monterey;
+            case 13:
+                return version::macos_ventura;
+            case 14:
+                return version::macos_sonoma;
+            case 15:
+                return version::macos_sequoia;
+            case 16:
+                return version::macos_tahoe;
+            default:
+                return version::unknown;
+        }
 #endif
     }
 

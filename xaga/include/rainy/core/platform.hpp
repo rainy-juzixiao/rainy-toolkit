@@ -1189,6 +1189,13 @@ namespace rainy::core::builtin {
         windows7,
         windows_server,
         linux_like,
+        macos_catalina,
+        macos_big_sur,
+        macos_monterey,
+        macos_ventura,
+        macos_sonoma,
+        macos_sequoia,
+        macos_tahoe,
         unknown
     };
 
