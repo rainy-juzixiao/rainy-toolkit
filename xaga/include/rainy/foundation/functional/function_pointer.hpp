@@ -21,9 +21,9 @@
 #ifndef RAINY_FOUNDATION_FUNCTIONAL_FUNCTION_POINTER_HPP
 #define RAINY_FOUNDATION_FUNCTIONAL_FUNCTION_POINTER_HPP
 #include <functional>
-#include <rainy/core/core.hpp>
-#include <rainy/foundation/typeinfo.hpp>
+#include <rainy/core/lifetime_annotation.hpp>
 #include <rainy/annotations/smf_control.hpp>
+#include <rainy/foundation/typeinfo.hpp>
 
 namespace rainy::foundation::functional {
     template <typename Fx>

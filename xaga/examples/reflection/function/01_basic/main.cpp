@@ -1,4 +1,3 @@
-#include <rainy/collections/vector.hpp>
 #include <rainy/core/core.hpp>
 #include <rainy/foundation/concurrency/concurrency.hpp>
 #include <rainy/foundation/io/timer.hpp>
@@ -70,7 +69,6 @@ int main() {
 
 
 #endif
-
     rainy::foundation::io::io_context ctx;
     rainy::foundation::io::steady_timer timer(ctx, std::chrono::seconds{5});
     std::cout << "foundation::ctti::variable_name<aaa::enum_type::a>(): " << foundation::ctti::variable_name<aaa::enum_type::a>() << '\n';

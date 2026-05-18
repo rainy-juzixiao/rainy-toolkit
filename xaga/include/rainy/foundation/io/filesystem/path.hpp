@@ -16,7 +16,6 @@
 #ifndef RAINY_FOUNDATION_IO_FILESYSTEM_PATH_HPP
 #define RAINY_FOUNDATION_IO_FILESYSTEM_PATH_HPP
 #include <rainy/core/core.hpp>
-#include <rainy/collections/vector.hpp>
 
 namespace rainy::foundation::io::filesystem {
     class path;

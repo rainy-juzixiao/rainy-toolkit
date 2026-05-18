@@ -767,10 +767,6 @@ namespace rainy::type_traits::implements {
 #endif
 
 namespace rainy::utility {
-    using core::builtin::addressof;
-    using core::builtin::construct_at;
-    using core::builtin::forward;
-
     /**
      * @brief Constructs an object in-place at the given memory location.
      *        在给定的内存位置就地构造对象。

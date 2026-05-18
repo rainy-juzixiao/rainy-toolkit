@@ -15,8 +15,6 @@
  */
 #ifndef RAINY_COLLECTIONS_DENSE_MAP_HPP
 #define RAINY_COLLECTIONS_DENSE_MAP_HPP
-#include <rainy/foundation/container/pair.hpp>
-#include <rainy/core/core.hpp>
 #include <rainy/foundation/functional/functor.hpp>
 #include <rainy/foundation/memory/allocator.hpp>
 #include <rainy/utility.hpp>

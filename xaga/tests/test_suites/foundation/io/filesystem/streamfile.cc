@@ -3,7 +3,6 @@
 #include <cstring>
 #include <filesystem>
 #include <fstream>
-#include <rainy/collections/vector.hpp>
 #include <rainy/foundation/io/filesystem/streamfile.hpp>
 
 namespace fs = std::filesystem;

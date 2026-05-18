@@ -1,7 +1,6 @@
 #ifndef RAINY_FOUNDATION_IO_NET_IMPLEMENTS_SSL_IMPL_HPP
 #define RAINY_FOUNDATION_IO_NET_IMPLEMENTS_SSL_IMPL_HPP
 #include <rainy/foundation/io/io_context.hpp>
-#include <rainy/collections/vector.hpp>
 #include <rainy/foundation/io/net/implements/sock.hpp>
 #include <system_error>
 

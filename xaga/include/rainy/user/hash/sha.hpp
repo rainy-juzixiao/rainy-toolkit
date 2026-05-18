@@ -18,7 +18,6 @@
 #include <iomanip>
 #include <iostream>
 #include <rainy/core/core.hpp>
-#include <rainy/text/format_wrapper.hpp>
 #include <sstream>
 #include <fstream>
 #include <string>
