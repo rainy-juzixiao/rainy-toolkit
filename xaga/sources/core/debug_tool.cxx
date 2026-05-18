@@ -30,6 +30,11 @@
 #endif
 #elif RAINY_USING_LINUX
 #include <execinfo.h>
+#elif RAINY_USING_MACOS
+#include <execinfo.h>
+#include <dlfcn.h>
+#include <cxxabi.h>
+#include <cstring>
 #endif
 
 #if RAINY_USING_GCC
