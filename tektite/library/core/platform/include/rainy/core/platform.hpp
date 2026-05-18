@@ -1,5 +1,5 @@
 /*
- * Copyright 2026 rainy-juzixiao
+ * Copyright 2025 rainy-juzixiao
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -405,15 +405,15 @@ static_assert(false, "We detected you are using C++14 and below, and the library
 #if RAINY_USING_WINDOWS
 #if RAINY_USING_DYNAMIC
 #ifdef RAINY_DYNAMIC_EXPORTS
-#define RAINY_TOOLKIT_API __declspec(dllexport)
+#define RAINY_INLINE __declspec(dllexport)
 #else
-#define RAINY_TOOLKIT_API __declspec(dllimport)
+#define RAINY_INLINE __declspec(dllimport)
 #endif
 #else
-#define RAINY_TOOLKIT_API
+#define RAINY_INLINE
 #endif
 #else
-#define RAINY_TOOLKIT_API __attribute__((visibility("default")))
+#define RAINY_INLINE __attribute__((visibility("default")))
 #endif
 
 #if RAINY_USING_MSVC
@@ -823,7 +823,7 @@ namespace rainy::type_traits::implements {
 
 namespace rainy::core::builtin {
 #if RAINY_USING_AVX2 && RAINY_IS_X86_PLATFORM
-    RAINY_TOOLKIT_API std::int32_t ctz_avx2(std::uint32_t x) noexcept;
+    RAINY_INLINE std::int32_t ctz_avx2(std::uint32_t x) noexcept;
 #endif
     constexpr rain_fn compare_memory(const void *mem1, const void *mem2, const std::size_t count) -> int {
         return __builtin_memcmp(mem1, mem2, count);
@@ -846,16 +846,42 @@ namespace rainy::core::builtin {
         return std::memcpy(dest, src, len);
     }
 
-    RAINY_TOOLKIT_API rain_fn move_memory(void *dest, std::size_t dest_size, const void *src, std::size_t src_count) -> void *;
-    RAINY_TOOLKIT_API rain_fn set_memory(void *dest, std::size_t count, int new_val) -> void *;
-    RAINY_TOOLKIT_API rain_fn zero_memory(void *dest, std::size_t count) -> void *;
-    RAINY_TOOLKIT_API rain_fn fill_memory(void *dest, std::size_t count, int new_val) -> void *;
-    RAINY_TOOLKIT_API rain_fn fill_memory(void *dest, std::size_t count, const void *src) -> void *;
-    RAINY_TOOLKIT_API rain_fn fill_memory(void *dest, std::size_t count, const void *src, std::size_t src_count) -> void *;
-    RAINY_TOOLKIT_API rain_fn fill_memory(void *dest, std::size_t count, const void *src, std::size_t src_count,
-                                          std::size_t src_offset) -> void *;
-    RAINY_TOOLKIT_API rain_fn fill_memory(void *dest, std::size_t count, const void *src, std::size_t src_count,
-                                          std::size_t src_offset, std::size_t dest_offset) -> void *;
+    RAINY_INLINE rain_fn move_memory(void *dest, std::size_t dest_size, const void *src, std::size_t src_count) -> void * {
+        return std::memmove(dest, src, (dest_size < src_count) ? dest_size : src_count);
+    }
+
+    RAINY_INLINE rain_fn set_memory(void *dest, std::size_t count, int new_val) -> void * {
+        return std::memset(dest, new_val, count);
+    }
+
+    RAINY_INLINE rain_fn zero_memory(void *dest, std::size_t count) -> void * {
+        return std::memset(dest, 0, count);
+    }
+
+    RAINY_INLINE rain_fn fill_memory(void *dest, std::size_t count, int new_val) -> void * {
+        return std::memset(dest, new_val, count);
+    }
+
+    RAINY_INLINE rain_fn fill_memory(void *dest, std::size_t count, const void *src) -> void * {
+        return std::memcpy(dest, src, count);
+    }
+
+    RAINY_INLINE rain_fn fill_memory(void *dest, std::size_t count, const void *src, std::size_t src_count) -> void * {
+        std::size_t copy_size = (count < src_count) ? count : src_count;
+        return std::memcpy(dest, src, copy_size);
+    }
+
+    RAINY_INLINE rain_fn fill_memory(void *dest, std::size_t count, const void *src, std::size_t src_count, std::size_t src_offset)
+        -> void * {
+        std::size_t copy_size = (count < src_count - src_offset) ? count : (src_count - src_offset);
+        return std::memcpy(dest, static_cast<const char *>(src) + src_offset, copy_size);
+    }
+
+    RAINY_INLINE rain_fn fill_memory(void *dest, std::size_t count, const void *src, std::size_t src_count, std::size_t src_offset,
+                                     std::size_t dest_offset) -> void * {
+        std::size_t copy_size = (count < src_count - src_offset) ? count : (src_count - src_offset);
+        return std::memcpy(static_cast<char *>(dest) + dest_offset, static_cast<const char *>(src) + src_offset, copy_size);
+    }
 
     /**
      * @brief 使用完美转发（perfect forwarding）实现类型安全的引用转发。
@@ -1061,7 +1087,7 @@ namespace rainy::core::pal {
      * @return true if aligned, false otherwise
      *         如果对齐则为true，否则为false
      */
-    RAINY_TOOLKIT_API rain_fn is_aligned(void *ptr, std::size_t alignment) -> bool;
+    RAINY_INLINE rain_fn is_aligned(void *ptr, std::size_t alignment) -> bool;
 
     /**
      * @brief Allocates memory of the specified size.
@@ -1072,7 +1098,7 @@ namespace rainy::core::pal {
      * @return Pointer to the allocated memory, or nullptr on failure
      *         指向已分配内存的指针，失败时返回nullptr
      */
-    RAINY_TOOLKIT_API rain_fn allocate(std::size_t size) noexcept -> void *;
+    RAINY_INLINE rain_fn allocate(std::size_t size) noexcept -> void *;
 
     /**
      * @brief Allocates aligned memory of the specified size.
@@ -1085,7 +1111,7 @@ namespace rainy::core::pal {
      * @return Pointer to the allocated memory, or nullptr on failure
      *         指向已分配内存的指针，失败时返回nullptr
      */
-    RAINY_TOOLKIT_API rain_fn allocate(std::size_t size, std::size_t alignment) noexcept -> void *;
+    RAINY_INLINE rain_fn allocate(std::size_t size, std::size_t alignment) noexcept -> void *;
 
     /**
      * @brief Deallocates memory previously allocated with allocate().
@@ -1094,7 +1120,7 @@ namespace rainy::core::pal {
      * @param block Pointer to the memory to deallocate
      *              要释放的内存指针
      */
-    RAINY_TOOLKIT_API rain_fn deallocate(void *block) -> void;
+    RAINY_INLINE rain_fn deallocate(void *block) -> void;
 
     /**
      * @brief Deallocates aligned memory.
@@ -1105,7 +1131,7 @@ namespace rainy::core::pal {
      * @param alignment The alignment that was used for allocation
      *                  分配时使用的对齐方式
      */
-    RAINY_TOOLKIT_API rain_fn deallocate(void *block, std::size_t alignment) -> void;
+    RAINY_INLINE rain_fn deallocate(void *block, std::size_t alignment) -> void;
 
     /**
      * @brief Deallocates memory with full allocation parameters.
@@ -1118,7 +1144,7 @@ namespace rainy::core::pal {
      * @param alignment The alignment that was used
      *                  使用的对齐方式
      */
-    RAINY_TOOLKIT_API rain_fn deallocate(void *ptr, std::size_t size, std::size_t alignment) -> void;
+    RAINY_INLINE rain_fn deallocate(void *ptr, std::size_t size, std::size_t alignment) -> void;
 }
 
 namespace rainy::core {
@@ -1192,17 +1218,17 @@ namespace rainy::core::builtin {
         unknown
     };
 
-    RAINY_TOOLKIT_API void cpuid(int query[4], int function_id);
-    RAINY_TOOLKIT_API void cpuidex(int query[4], int function_id, int subfunction_id);
-    RAINY_TOOLKIT_API bool is_hypervisor();
-    RAINY_TOOLKIT_API errno_t get_machine_code(); // for future, not implemented
-    RAINY_TOOLKIT_API bool has_instruction(instruction_set check);
-    RAINY_TOOLKIT_API errno_t get_vendor(char *buffer, std::size_t length);
-    RAINY_TOOLKIT_API errno_t get_brand(char *buffer, std::size_t length);
-    RAINY_TOOLKIT_API std::size_t hardware_concurrency();
-    RAINY_TOOLKIT_API version get_os_version();
-    RAINY_TOOLKIT_API errno_t get_os_name(char *buffer);
-    RAINY_TOOLKIT_API errno_t get_arch(char *buffer);
+    RAINY_INLINE void cpuid(int query[4], int function_id);
+    RAINY_INLINE void cpuidex(int query[4], int function_id, int subfunction_id);
+    RAINY_INLINE bool is_hypervisor();
+    RAINY_INLINE errno_t get_machine_code(); // for future, not implemented
+    RAINY_INLINE bool has_instruction(instruction_set check);
+    RAINY_INLINE errno_t get_vendor(char *buffer, std::size_t length);
+    RAINY_INLINE errno_t get_brand(char *buffer, std::size_t length);
+    RAINY_INLINE std::size_t hardware_concurrency();
+    RAINY_INLINE version get_os_version();
+    RAINY_INLINE errno_t get_os_name(char *buffer);
+    RAINY_INLINE errno_t get_arch(char *buffer);
 }
 
 namespace rainy::core {
@@ -2032,57 +2058,6 @@ namespace rainy::utility {
     };
 
     static constexpr auto_deduce_t auto_deduce{};
-}
-
-namespace rainy::core::abi {
-    using abi_bridge_call_func_t = long (*)(std::intptr_t, std::intptr_t, std::intptr_t, std::intptr_t, std::intptr_t, std::intptr_t);
-
-    enum class bridge_version {
-        major,
-        minor,
-        patch
-    };
-
-    struct version {
-        int major;
-        int minor;
-        int patch;
-    };
-
-    enum class standard {
-        cxx17,
-        cxx20,
-        cxx23,
-        cxxlatest
-    };
-
-    enum class compiler_identifier {
-        msvc,
-        llvm_clang,
-        gcc
-    };
-
-    enum class standard_library_id {
-        msvc_stl,
-        libcxx,
-        libstdcxx
-    };
-
-    constexpr const char rainy_toolkit_version_name[] = RAINY_TOOLKIT_VERSION;
-    constexpr const char build_date[] = __DATE__;
-    constexpr const char msvc_stl_name[] = "MSVC-STL package";
-    constexpr const char libcxx_name[] = "libc++ package";
-    constexpr const char libstdcxx_name[] = "libstdc++ package";
-
-    RAINY_EXTERN_C RAINY_TOOLKIT_API long rainy_toolkit_abi_bridge_call(long number, ...);
-    RAINY_EXTERN_C RAINY_TOOLKIT_API long rainy_toolkit_call_handler_total_count(long *total);
-    RAINY_EXTERN_C RAINY_TOOLKIT_API long rainy_toolkit_get_version(bridge_version bridge_version, int *recv);
-    RAINY_EXTERN_C RAINY_TOOLKIT_API long rainy_toolkit_get_fullversion(version *recv);
-    RAINY_EXTERN_C RAINY_TOOLKIT_API long rainy_toolkit_get_compile_standard(standard *recv);
-    RAINY_EXTERN_C RAINY_TOOLKIT_API long rainy_toolkit_get_compile_identifier(compiler_identifier *recv);
-    RAINY_EXTERN_C RAINY_TOOLKIT_API long rainy_toolkit_get_version_name(char *buffer, std::size_t buffer_length);
-    RAINY_EXTERN_C RAINY_TOOLKIT_API long rainy_toolkit_export_library_context(std::uintptr_t *context);
-    RAINY_EXTERN_C RAINY_TOOLKIT_API long rainy_toolkit_is_abi_compatible(std::uintptr_t *context);
 }
 
 namespace rainy::type_traits::helper {
