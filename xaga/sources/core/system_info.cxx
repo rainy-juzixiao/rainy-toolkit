@@ -324,8 +324,10 @@ namespace rainy::core::builtin {
     void cpuid(int query[4], int function_id) {
 #if RAINY_USING_MSVC && !RAINY_IS_ARM64
         __cpuid(query, function_id);
+#elif (RAINY_USING_GCC || RAINY_USING_CLANG) && RAINY_IS_X86_PLATFORM
+        __cpuid(function_id, query[0], query[1], query[2], query[3]);
 #else
-        (void) query;
+        query[0] = query[1] = query[2] = query[3] = 0;
         (void) function_id;
 #endif
     }
@@ -333,13 +335,14 @@ namespace rainy::core::builtin {
     void cpuidex(int query[4], int function_id, int subfunction_id) {
 #if RAINY_USING_MSVC && !RAINY_IS_ARM64
         __cpuidex(query, function_id, subfunction_id);
+#elif (RAINY_USING_GCC || RAINY_USING_CLANG) && RAINY_IS_X86_PLATFORM
+        __cpuid_count(function_id, subfunction_id, query[0], query[1], query[2], query[3]);
 #else
-        (void) query;
+        query[0] = query[1] = query[2] = query[3] = 0;
         (void) function_id;
         (void) subfunction_id;
 #endif
     }
-
 
     bool has_instruction(instruction_set check) {
         switch (check) {
