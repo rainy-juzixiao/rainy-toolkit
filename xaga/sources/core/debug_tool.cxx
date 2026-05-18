@@ -35,6 +35,9 @@
 #include <dlfcn.h>
 #include <cxxabi.h>
 #include <cstring>
+#include <sys/types.h>
+#include <sys/sysctl.h>
+#include <unistd.h>
 #endif
 
 #if RAINY_USING_GCC
