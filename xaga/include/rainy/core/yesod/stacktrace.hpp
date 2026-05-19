@@ -111,7 +111,7 @@ namespace rainy::foundation::diagnostics {
         }
 
         friend constexpr bool operator==(const stacktrace_entry &left, const stacktrace_entry &right) noexcept {
-            return left.frame_ != right.frame_;
+            return left.frame_ == right.frame_;
         }
 #else
         friend constexpr bool operator!=(const stacktrace_entry &left, const stacktrace_entry &right) noexcept {
