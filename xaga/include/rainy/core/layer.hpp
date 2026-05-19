@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 rainy-juzixiao
+ * Copyright 2026 rainy-juzixiao
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 #ifndef RAINY_CORE_LAYER_HPP
 #define RAINY_CORE_LAYER_HPP // NOLINT
 #include <rainy/core/platform.hpp>
+#include <rainy/core/type_traits/decay.hpp>
 
 #if RAINY_USING_MSVC
 #if RAINY_IS_X86_PLATFORM
@@ -30,91 +31,8 @@
 #define rainy_compiler_barrier() asm volatile("" ::: "memory")
 #endif
 
-/* 这是一个用C函数库封装的底层调用空间。外部用户不应当使用它。推荐使用foundation提供的pal模块 */
+/* 这是一个用C函数库封装的底层调用空间。外部用户不应当使用它。推荐使用foundation提供的模块 */
 namespace rainy::core::pal {
-    /**
-     * @brief File open mode flags.
-     *        文件打开模式标志。
-     *
-     * Bitmask flags that specify how a file should be opened.
-     * These flags can be combined using bitwise OR operations.
-     * 指定文件打开方式的位掩码标志。
-     * 这些标志可以通过按位或操作组合使用。
-     */
-    enum class open_mode : std::uint8_t {
-        /**
-         * @brief No state
-         *        无状态
-         *
-         * Default state with no mode flags set.
-         * 未设置任何模式标志的默认状态。
-         */
-        no_state = 0x00,
-
-        /**
-         * @brief Open for reading
-         *        以读模式打开
-         *
-         * Open file for reading operations only.
-         * 仅以读取操作方式打开文件。
-         */
-        read = 0x01,
-
-        /**
-         * @brief Open for writing
-         *        以写模式打开
-         *
-         * Open file for writing operations only.
-         * 仅以写入操作方式打开文件。
-         */
-        write = 0x02,
-
-        /**
-         * @brief Append mode
-         *        追加模式
-         *
-         * All write operations append data to the end of the file.
-         * 所有写入操作都将数据追加到文件末尾。
-         */
-        append = 0x04,
-
-        /**
-         * @brief Binary mode
-         *        二进制模式
-         *
-         * Open file in binary mode (no text translation).
-         * 以二进制模式打开文件（无文本转换）。
-         */
-        binary = 0x08,
-
-        /**
-         * @brief Truncate file
-         *        截断文件
-         *
-         * Truncate file to zero length when opening.
-         * 打开时将文件截断为零长度。
-         */
-        truncate = 0x10,
-
-        /**
-         * @brief Do not create
-         *        不创建文件
-         *
-         * Fail if the file does not exist instead of creating it.
-         * 如果文件不存在则失败，而不是创建它。
-         */
-        nocreate = 0x20,
-
-        /**
-         * @brief Update mode
-         *        更新模式
-         *
-         * Open file for both reading and writing.
-         * 以读写方式打开文件。
-         */
-        update = 0x40
-    };
-
     /**
      * @brief Maximum number of stack frames to dump.
      *        要转储的最大堆栈帧数。
@@ -231,213 +149,2740 @@ namespace rainy::core::pal {
          */
         invalid = -1
     };
+}
 
-    /**
-     * @brief Reparse tag types for symbolic links and junctions.
-     *        符号链接和接合点的重解析标签类型。
-     *
-     * Identifies the type of reparse point for file system objects.
-     * 标识文件系统对象的重解析点类型。
-     */
-    enum class reparse_tag : std::uint8_t {
-        /**
-         * @brief No reparse tag
-         *        无重解析标签
-         *
-         * File or directory has no associated reparse point.
-         * 文件或目录没有关联的重解析点。
-         */
-        none,
-
-        /**
-         * @brief Mount point
-         *        挂载点
-         *
-         * Directory junction (mount point) that redirects to another directory.
-         * 重定向到另一个目录的目录接合点（挂载点）。
-         */
-        mount_point,
-
-        /**
-         * @brief Symbolic link
-         *        符号链接
-         *
-         * Symbolic link that points to another file or directory.
-         * 指向另一个文件或目录的符号链接。
-         */
-        symlink
-    };
-
-    /**
-     * @brief File status structure containing metadata.
-     *        包含元数据的文件状态结构。
-     *
-     * Comprehensive structure holding various file metadata information.
-     * 包含各种文件元数据信息的综合性结构。
-     */
-    struct file_status {
-        /**
-         * @brief Last write time
-         *        最后写入时间
-         *
-         * Timestamp of the last modification to the file.
-         * 文件最后一次修改的时间戳。
-         */
-        std::int64_t last_write_time;
-
-        /**
-         * @brief File size
-         *        文件大小
-         *
-         * Size of the file in bytes.
-         * 文件的字节大小。
-         */
-        std::uint64_t file_size;
-
-        /**
-         * @brief File attributes
-         *        文件属性
-         *
-         * Bitmask of file attribute flags.
-         * 文件属性标志的位掩码。
-         */
-        file_attributes attributes;
-
-        /**
-         * @brief Reparse tag
-         *        重解析标签
-         *
-         * Type of reparse point if the file has one.
-         * 如果文件有重解析点，则表示其类型。
-         */
-        pal::reparse_tag reparse_tag;
-
-        /**
-         * @brief Link count
-         *        硬链接数量
-         *
-         * Number of hard links pointing to this file.
-         * 指向此文件的硬链接数量。
-         */
-        std::uint32_t link_count;
-    };
-
+namespace rainy::core::pal {
     /**
      * @brief File type enumeration.
      *        文件类型枚举。
      *
-     * Categorizes file system entries by their fundamental type.
-     * 根据基本类型对文件系统条目进行分类。
+     * Identifies the type of file system entry.
+     * 标识文件系统条目的类型。
      */
-    enum class file_type : std::uint8_t {
+    enum class file_type {
         /**
-         * @brief Unknown type
-         *        未知类型
+         * @brief None or not found
+         *        无或未找到
          *
-         * Type information not available or not yet determined.
-         * 类型信息不可用或尚未确定。
+         * Special value indicating that the file type is none or the entry was not found.
+         * 指示文件类型为无或未找到条目的特殊值。
          */
-        none,
-
-        /**
-         * @brief File not found
-         *        文件未找到
-         *
-         * File or directory does not exist at the specified path.
-         * 指定路径上不存在文件或目录。
-         */
-        not_found,
+        none = -1,
+        not_found = 0,
 
         /**
          * @brief Regular file
          *        普通文件
          *
-         * Regular file containing user data.
-         * 包含用户数据的普通文件。
+         * Entry is a regular file.
+         * 条目为普通文件。
          */
-        regular,
+        regular = 1,
 
         /**
          * @brief Directory
          *        目录
          *
-         * Directory that can contain other files and directories.
-         * 可包含其他文件和目录的目录。
+         * Entry is a directory.
+         * 条目为目录。
          */
-        directory,
+        directory = 2,
 
         /**
          * @brief Symbolic link
          *        符号链接
          *
-         * Symbolic link pointing to another file system entry.
-         * 指向另一个文件系统条目的符号链接。
+         * Entry is a symbolic link.
+         * 条目为符号链接。
          */
-        symlink,
+        symlink = 3,
 
         /**
          * @brief Block device
          *        块设备
          *
-         * Block-oriented device (e.g., hard disk, SSD).
-         * 面向块的设备（如硬盘、SSD）。
+         * Entry represents a block device.
+         * 条目表示块设备。
          */
-        block,
+        block = 4,
 
         /**
          * @brief Character device
          *        字符设备
          *
-         * Character-oriented device (e.g., terminal, serial port).
-         * 面向字符的设备（如终端、串口）。
+         * Entry represents a character device.
+         * 条目表示字符设备。
          */
-        character,
+        character = 5,
 
         /**
          * @brief FIFO (named pipe)
-         *        命名管道
+         *        FIFO（命名管道）
          *
-         * First-in-first-out special file for interprocess communication.
-         * 用于进程间通信的先进先出特殊文件。
+         * Entry represents a FIFO or named pipe.
+         * 条目表示FIFO或命名管道。
          */
-        fifo,
+        fifo = 6,
 
         /**
          * @brief Socket
          *        套接字
          *
-         * Network socket or Unix domain socket.
-         * 网络套接字或Unix域套接字。
+         * Entry represents a socket.
+         * 条目表示套接字。
          */
-        socket,
+        socket = 7,
 
         /**
-         * @brief Unknown file type
-         *        未知文件类型
+         * @brief Unknown type
+         *        未知类型
          *
-         * File exists but its type could not be determined.
-         * 文件存在但无法确定其类型。
+         * Entry type is unknown or cannot be determined.
+         * 条目类型未知或无法确定。
          */
-        unknown,
-
-        /**
-         * @brief Directory junction
-         *        目录接合点
-         *
-         * Directory junction (reparse point) redirecting to another directory.
-         * 重定向到另一个目录的目录接合点（重解析点）。
-         */
-        junction
+        unknown = 8
     };
 
     /**
-     * @brief File handle type (opaque).
-     *        文件句柄类型（不透明）。
+     * @brief File permissions enumeration.
+     *        文件权限枚举。
      *
-     * Opaque handle type representing an open file.
-     * 表示已打开文件的不透明句柄类型。
+     * Bitmask flags representing POSIX-style file permissions and special bits.
+     * 表示POSIX风格文件权限和特殊位的位掩码标志。
      */
-    using file_handle = std::uintptr_t;
+    enum class perms : unsigned {
+        /**
+         * @brief No permissions
+         *        无权限
+         *
+         * No permission bits set.
+         * 未设置任何权限位。
+         */
+        none = 0,
+
+        // Owner permissions
+        /**
+         * @brief Owner read permission
+         *        所有者读权限
+         *
+         * Owner can read the file.
+         * 所有者可读取文件。
+         */
+        owner_read = 0400,
+
+        /**
+         * @brief Owner write permission
+         *        所有者写权限
+         *
+         * Owner can write to the file.
+         * 所有者可写入文件。
+         */
+        owner_write = 0200,
+
+        /**
+         * @brief Owner execute permission
+         *        所有者执行权限
+         *
+         * Owner can execute the file.
+         * 所有者可执行文件。
+         */
+        owner_exec = 0100,
+
+        /**
+         * @brief Owner all permissions
+         *        所有者全部权限
+         *
+         * Owner has read, write, and execute permissions.
+         * 所有者拥有读、写和执行权限。
+         */
+        owner_all = 0700,
+
+        // Group permissions
+        /**
+         * @brief Group read permission
+         *        组读权限
+         *
+         * Group members can read the file.
+         * 组成员可读取文件。
+         */
+        group_read = 040,
+
+        /**
+         * @brief Group write permission
+         *        组写权限
+         *
+         * Group members can write to the file.
+         * 组成员可写入文件。
+         */
+        group_write = 020,
+
+        /**
+         * @brief Group execute permission
+         *        组执行权限
+         *
+         * Group members can execute the file.
+         * 组成员可执行文件。
+         */
+        group_exec = 010,
+
+        /**
+         * @brief Group all permissions
+         *        组全部权限
+         *
+         * Group members have read, write, and execute permissions.
+         * 组成员拥有读、写和执行权限。
+         */
+        group_all = 070,
+
+        // Others permissions
+        /**
+         * @brief Others read permission
+         *        其他用户读权限
+         *
+         * Others can read the file.
+         * 其他用户可读取文件。
+         */
+        others_read = 04,
+
+        /**
+         * @brief Others write permission
+         *        其他用户写权限
+         *
+         * Others can write to the file.
+         * 其他用户可写入文件。
+         */
+        others_write = 02,
+
+        /**
+         * @brief Others execute permission
+         *        其他用户执行权限
+         *
+         * Others can execute the file.
+         * 其他用户可执行文件。
+         */
+        others_exec = 01,
+
+        /**
+         * @brief Others all permissions
+         *        其他用户全部权限
+         *
+         * Others have read, write, and execute permissions.
+         * 其他用户拥有读、写和执行权限。
+         */
+        others_all = 07,
+
+        /**
+         * @brief All permissions
+         *        全部权限
+         *
+         * All users have read, write, and execute permissions.
+         * 所有用户拥有读、写和执行权限。
+         */
+        all = 0777,
+
+        // Special bits
+        /**
+         * @brief Set user ID bit
+         *        设置用户ID位
+         *
+         * Executable runs with owner's privileges.
+         * 可执行文件以所有者权限运行。
+         */
+        set_uid = 04000,
+
+        /**
+         * @brief Set group ID bit
+         *        设置组ID位
+         *
+         * Executable runs with group's privileges.
+         * 可执行文件以组权限运行。
+         */
+        set_gid = 02000,
+
+        /**
+         * @brief Sticky bit
+         *        粘滞位
+         *
+         * Prevents deletion of files by non-owners in directories.
+         * 防止非所有者删除目录中的文件。
+         */
+        sticky_bit = 01000,
+
+        /**
+         * @brief Permission mask
+         *        权限掩码
+         *
+         * Mask covering all permission and special bits.
+         * 覆盖所有权限位和特殊位的掩码。
+         */
+        mask = 07777,
+
+        /**
+         * @brief Unknown permissions
+         *        未知权限
+         *
+         * Special value indicating that permissions are unknown or cannot be retrieved.
+         * 指示权限未知或无法获取的特殊值。
+         */
+        unknown = 0xFFFF
+    };
+
+    RAINY_ENABLE_ENUM_CLASS_BITMASK_OPERATORS(perms);
+
+    /**
+     * @brief Permission modification options enumeration.
+     *        权限修改选项枚举。
+     *
+     * Flags specifying how permissions should be modified.
+     * 指定权限修改方式的标志。
+     */
+    enum class perm_options : unsigned {
+        /**
+         * @brief Replace
+         *        替换
+         *
+         * Replace existing permissions with new ones.
+         * 用新权限替换现有权限。
+         */
+        replace = 1,
+
+        /**
+         * @brief Add
+         *        追加
+         *
+         * Add specified permission bits to existing ones.
+         * 向现有权限追加指定权限位。
+         */
+        add = 2,
+
+        /**
+         * @brief Remove
+         *        移除
+         *
+         * Remove specified permission bits from existing ones.
+         * 从现有权限中移除指定权限位。
+         */
+        remove = 4,
+
+        /**
+         * @brief No follow
+         *        不跟随
+         *
+         * Do not follow symbolic links (operate on the link itself).
+         * 不跟随符号链接（对链接本身进行操作）。
+         */
+        nofollow = 8
+    };
+
+    /**
+     * @brief Copy operation options enumeration.
+     *        复制操作选项枚举。
+     *
+     * Flags controlling the behavior of file and directory copy operations.
+     * 控制文件和目录复制操作行为的标志。
+     */
+    enum class copy_options : unsigned {
+        /**
+         * @brief No options
+         *        无选项
+         *
+         * Default copy behavior.
+         * 默认复制行为。
+         */
+        none = 0,
+
+        /**
+         * @brief Skip existing
+         *        跳过已存在
+         *
+         * Skip copying if the destination already exists.
+         * 如果目标已存在则跳过复制。
+         */
+        skip_existing = 1,
+
+        /**
+         * @brief Overwrite existing
+         *        覆盖已存在
+         *
+         * Overwrite the destination if it already exists.
+         * 如果目标已存在则覆盖。
+         */
+        overwrite_existing = 2,
+
+        /**
+         * @brief Update existing
+         *        更新已存在
+         *
+         * Overwrite only if the source is newer than the destination.
+         * 仅当源文件比目标文件更新时覆盖。
+         */
+        update_existing = 4,
+
+        /**
+         * @brief Recursive
+         *        递归
+         *
+         * Recursively copy directories and their contents.
+         * 递归复制目录及其内容。
+         */
+        recursive = 8,
+
+        /**
+         * @brief Copy symlinks
+         *        复制符号链接
+         *
+         * Copy symbolic links as links (not their targets).
+         * 将符号链接作为链接复制（而非其目标）。
+         */
+        copy_symlinks = 16,
+
+        /**
+         * @brief Skip symlinks
+         *        忽略符号链接
+         *
+         * Ignore symbolic links during copy.
+         * 复制时忽略符号链接。
+         */
+        skip_symlinks = 32,
+
+        /**
+         * @brief Directories only
+         *        仅目录
+         *
+         * Copy only the directory structure (not files).
+         * 仅复制目录结构（不复制文件）。
+         */
+        directories_only = 64,
+
+        /**
+         * @brief Create symlinks
+         *        创建符号链接
+         *
+         * Create symbolic links instead of copying files.
+         * 创建符号链接而非复制文件。
+         */
+        create_symlinks = 128,
+
+        /**
+         * @brief Create hard links
+         *        创建硬链接
+         *
+         * Create hard links instead of copying files.
+         * 创建硬链接而非复制文件。
+         */
+        create_hard_links = 256
+    };
+
+    /**
+     * @brief Directory iteration options enumeration.
+     *        目录遍历选项枚举。
+     *
+     * Flags controlling the behavior of directory iteration operations.
+     * 控制目录遍历操作行为的标志。
+     */
+    enum class directory_options : unsigned {
+        /**
+         * @brief No options
+         *        无选项
+         *
+         * Default directory iteration behavior.
+         * 默认目录遍历行为。
+         */
+        none = 0,
+
+        /**
+         * @brief Follow directory symlink
+         *        跟随目录符号链接
+         *
+         * Follow directory symbolic links during iteration.
+         * 遍历时跟随目录符号链接。
+         */
+        follow_directory_symlink = 1,
+
+        /**
+         * @brief Skip permission denied
+         *        跳过无权限目录
+         *
+         * Skip directories that cannot be accessed due to permission errors instead of throwing exceptions.
+         * 跳过因权限错误无法访问的目录，而不是抛出异常。
+         */
+        skip_permission_denied = 2
+    };
+
+    /**
+     * @brief Space information structure.
+     *        空间信息结构体。
+     *
+     * Contains information about available space on a file system.
+     * 包含文件系统上可用空间的信息。
+     */
+    struct space_info {
+        /**
+         * @brief Total capacity
+         *        总容量
+         *
+         * Total size of the file system in bytes.
+         * 文件系统的总大小（以字节为单位）。
+         */
+        std::uintmax_t capacity;
+
+        /**
+         * @brief Free space
+         *        空闲空间
+         *
+         * Total free space on the file system in bytes.
+         * 文件系统上的总空闲空间（以字节为单位）。
+         */
+        std::uintmax_t free;
+
+        /**
+         * @brief Available space
+         *        可用空间
+         *
+         * Free space available to non-privileged processes.
+         * 非特权进程可用的空闲空间。
+         */
+        std::uintmax_t available;
+
+        /**
+         * @brief Equality operator
+         *        相等运算符
+         *
+         * Compares two space_info structures for equality.
+         * 比较两个 space_info 结构体是否相等。
+         *
+         * @param left Left-hand side space_info object to compare
+         *            待比较的左侧 space_info 对象
+         * @param right Right-hand side space_info object to compare
+         *            待比较的右侧 space_info 对象
+         * @return true if capacity, free, and available members are all equal, false otherwise
+         *         若 capacity、free 和 available 成员均相等则返回 true，否则返回 false
+         */
+        friend bool operator==(const space_info &left, const space_info &right) = default;
+    };
+}
+
+namespace rainy::core::pal {
+    /**
+     * @brief File status structure.
+     *        文件状态结构体。
+     *
+     * Contains the type and permissions of a file system entry.
+     * 包含文件系统条目的类型和权限。
+     */
+    struct file_status {
+        /**
+         * @brief File type
+         *        文件类型
+         *
+         * The type of the file system entry.
+         * 文件系统条目的类型。
+         */
+        file_type type;
+
+        /**
+         * @brief File permissions
+         *        文件权限
+         *
+         * The permission bits of the file system entry.
+         * 文件系统条目的权限位。
+         */
+        perms permissions;
+    };
+}
+
+namespace rainy::core::pal {
+    /**
+     * @brief Get absolute path (native system PAL version).
+     *        获取绝对路径（系统原生PAL版本）。
+     *
+     * Converts the given path to an absolute path using direct system native calls.
+     * This implementation directly invokes the operating system's path resolution functions
+     * (e.g., realpath on POSIX, GetFullPathNameW on Windows).
+     * 使用直接系统原生调用将给定路径转换为绝对路径。
+     * 此实现直接调用操作系统的路径解析函数（例如 POSIX 上的 realpath，Windows 上的 GetFullPathNameW）。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API (e.g., CreateFileW, GetFullPathNameW).
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API
+     *       （例如 CreateFileW、GetFullPathNameW）。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Source path string (native character type)
+     *             源路径字符串（原生字符类型）
+     * @param out_buffer Output buffer for the resolved path (native character type)
+     *                   用于存储解析后路径的输出缓冲区（原生字符类型）
+     * @param buffer_size Size of the output buffer in characters
+     *                    输出缓冲区的大小（以字符为单位）
+     * @return Length of the resolved path on success, -1 on error
+     *         成功时返回解析后路径的长度，失败时返回 -1
+     */
+    RAINY_TOOLKIT_API ssize_t absolute_native(native_czstring path, native_cstring out_buffer, std::size_t buffer_size);
+
+    /**
+     * @brief Get canonical path (native system PAL version).
+     *        获取规范路径（系统原生PAL版本）。
+     *
+     * Resolves the given path to an absolute, normalized path without symlinks using OS native resolution.
+     * This eliminates all symbolic links, dot (.), and dot-dot (..) components through direct system calls.
+     * 使用操作系统原生解析将给定路径解析为不含符号链接的绝对、标准化路径。
+     * 通过直接系统调用消除所有符号链接、点（.）和点点（..）组件。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Source path string (native character type)
+     *             源路径字符串（原生字符类型）
+     * @param out_buffer Output buffer for the canonical path (native character type)
+     *                   用于存储规范路径的输出缓冲区（原生字符类型）
+     * @param buffer_size Size of the output buffer in characters
+     *                    输出缓冲区的大小（以字符为单位）
+     * @return Length of the canonical path on success, -1 on error
+     *         成功时返回规范路径的长度，失败时返回 -1
+     */
+    RAINY_TOOLKIT_API ssize_t canonical_native(native_czstring path, native_cstring out_buffer, std::size_t buffer_size);
+
+    /**
+     * @brief Copy files or directories (native system PAL version).
+     *        复制文件或目录（系统原生PAL版本）。
+     *
+     * Copies a file or directory from source to destination using default options.
+     * Uses native OS copy APIs (e.g., copy_file_range on Linux, CopyFileW on Windows).
+     * 使用默认选项将文件或目录从源复制到目标。
+     * 使用原生操作系统复制API（例如 Linux 上的 copy_file_range，Windows 上的 CopyFileW）。
+     *
+     * @note On Windows, the input paths should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API (e.g., CopyFileW).
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API
+     *       （例如 CopyFileW）。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param from Source path (native character type)
+     *             源路径（原生字符类型）
+     * @param to Destination path (native character type)
+     *           目标路径（原生字符类型）
+     */
+    RAINY_TOOLKIT_API void copy_native(native_czstring from, native_czstring to);
+
+    /**
+     * @brief Copy files or directories with options (native system PAL version).
+     *        使用选项复制文件或目录（系统原生PAL版本）。
+     *
+     * Copies a file or directory from source to destination with specified options.
+     * Uses native OS copy APIs with platform-specific option handling.
+     * 使用指定选项将文件或目录从源复制到目标。
+     * 使用带有平台特定选项处理的原生操作系统复制API。
+     *
+     * @note On Windows, the input paths should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param from Source path (native character type)
+     *             源路径（原生字符类型）
+     * @param to Destination path (native character type)
+     *           目标路径（原生字符类型）
+     * @param options Copy operation options
+     *                复制操作选项
+     */
+    RAINY_TOOLKIT_API void copy_native(native_czstring from, native_czstring to, copy_options options);
+
+    /**
+     * @brief Copy a single file (native system PAL version).
+     *        复制单个文件（系统原生PAL版本）。
+     *
+     * Copies the contents of one file to another using native OS file I/O.
+     * 使用原生操作系统文件I/O将一个文件的内容复制到另一个文件。
+     *
+     * @note On Windows, the input paths should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param from Source file path (native character type)
+     *             源文件路径（原生字符类型）
+     * @param to Destination file path (native character type)
+     *           目标文件路径（原生字符类型）
+     * @return true on success, false on failure
+     *         成功时返回 true，失败时返回 false
+     */
+    RAINY_TOOLKIT_API bool copy_file_native(native_czstring from, native_czstring to);
+
+    /**
+     * @brief Copy a single file with options (native system PAL version).
+     *        使用选项复制单个文件（系统原生PAL版本）。
+     *
+     * Copies the contents of one file to another with specified options using native OS APIs.
+     * 使用原生操作系统API，以指定选项将一个文件的内容复制到另一个文件。
+     *
+     * @note On Windows, the input paths should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param from Source file path (native character type)
+     *             源文件路径（原生字符类型）
+     * @param to Destination file path (native character type)
+     *           目标文件路径（原生字符类型）
+     * @param option Copy operation option
+     *               复制操作选项
+     * @return true on success, false on failure
+     *         成功时返回 true，失败时返回 false
+     */
+    RAINY_TOOLKIT_API bool copy_file_native(native_czstring from, native_czstring to, copy_options option);
+
+    /**
+     * @brief Copy a symbolic link (native system PAL version).
+     *        复制符号链接（系统原生PAL版本）。
+     *
+     * Copies a symbolic link (creates a new symlink pointing to the same target).
+     * Uses native symlink creation APIs (e.g., symlink on POSIX, CreateSymbolicLinkW on Windows).
+     * 复制符号链接（创建指向相同目标的新符号链接）。
+     * 使用原生符号链接创建API（例如 POSIX 上的 symlink，Windows 上的 CreateSymbolicLinkW）。
+     *
+     * @note On Windows, the input paths should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API (e.g., CreateSymbolicLinkW).
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API
+     *       （例如 CreateSymbolicLinkW）。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param existing_symlink Existing symbolic link path (native character type)
+     *                         现有符号链接路径（原生字符类型）
+     * @param new_symlink Path for the new symbolic link (native character type)
+     *                    新符号链接的路径（原生字符类型）
+     */
+    RAINY_TOOLKIT_API void copy_symlink_native(native_czstring existing_symlink, native_czstring new_symlink);
+
+    /**
+     * @brief Create directories for a path (native system PAL version).
+     *        为路径创建目录（系统原生PAL版本）。
+     *
+     * Creates all directories in the given path that do not already exist.
+     * Uses native mkdir or CreateDirectoryW calls recursively.
+     * 创建给定路径中所有不存在的目录。
+     * 递归使用原生 mkdir 或 CreateDirectoryW 调用。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API (e.g., CreateDirectoryW).
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API
+     *       （例如 CreateDirectoryW）。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path where directories should be created (native character type)
+     *             需要创建目录的路径（原生字符类型）
+     * @return true if directories were created, false otherwise
+     *         如果目录被创建则返回 true，否则返回 false
+     */
+    RAINY_TOOLKIT_API bool create_directories_native(native_czstring path);
+
+    /**
+     * @brief Create a single directory (native system PAL version).
+     *        创建单个目录（系统原生PAL版本）。
+     *
+     * Creates the final directory in the given path.
+     * Uses native mkdir or CreateDirectoryW call.
+     * 创建给定路径中的最后一个目录。
+     * 使用原生 mkdir 或 CreateDirectoryW 调用。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Directory path to create (native character type)
+     *             要创建的目录路径（原生字符类型）
+     * @return true if directory was created, false otherwise
+     *         如果目录被创建则返回 true，否则返回 false
+     */
+    RAINY_TOOLKIT_API bool create_directory_native(native_czstring path);
+
+    /**
+     * @brief Create a directory with attributes from an existing directory (native system PAL version).
+     *        使用现有目录的属性创建目录（系统原生PAL版本）。
+     *
+     * Reads security attributes from `existing_p` and applies them to the new directory `path`.
+     * Uses native mkdir or CreateDirectoryW with the extracted attributes.
+     * 从 `existing_p` 读取安全属性并应用到新目录 `path`。
+     * 使用提取的属性调用原生 mkdir 或 CreateDirectoryW。
+     *
+     * @note On Windows, the input paths should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API. The attributes parameter is platform-specific.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *       attributes 参数是平台特定的。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用 global errno 表示操作结果。
+     *
+     * @param path Directory path to create (native character type)
+     *             要创建的目录路径（原生字符类型）
+     * @param existing_p Existing directory path to read attributes from (native character type)
+     *                   用于读取属性的现有目录路径（原生字符类型）
+     * @return true if directory was created, false otherwise
+     *         如果目录被新创建则返回 true，否则返回 false（包括已存在或失败）
+     */
+    RAINY_TOOLKIT_API bool create_directory_native(native_czstring path, native_czstring existing_p);
+
+    /**
+     * @brief Create a directory symbolic link (native system PAL version).
+     *        创建目录符号链接（系统原生PAL版本）。
+     *
+     * Creates a symbolic link to a directory.
+     * Uses native symlink creation APIs with directory flag.
+     * 创建指向目录的符号链接。
+     * 使用带有目录标志的原生符号链接创建API。
+     *
+     * @note On Windows, the input paths should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API (e.g., CreateSymbolicLinkW with SYMBOLIC_LINK_FLAG_DIRECTORY).
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API
+     *       （例如使用 SYMBOLIC_LINK_FLAG_DIRECTORY 标志的 CreateSymbolicLinkW）。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param to Target directory path (native character type)
+     *           目标目录路径（原生字符类型）
+     * @param new_symlink Path for the new symbolic link (native character type)
+     *                    新符号链接的路径（原生字符类型）
+     */
+    RAINY_TOOLKIT_API void create_directory_symlink_native(native_czstring to, native_czstring new_symlink);
+
+    /**
+     * @brief Create a hard link (native system PAL version).
+     *        创建硬链接（系统原生PAL版本）。
+     *
+     * Creates a hard link from the target to the new link path.
+     * Uses native hard link creation APIs (e.g., link on POSIX, CreateHardLinkW on Windows).
+     * 从目标创建指向新链接路径的硬链接。
+     * 使用原生硬链接创建API（例如 POSIX 上的 link，Windows 上的 CreateHardLinkW）。
+     *
+     * @note On Windows, the input paths should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API (e.g., CreateHardLinkW).
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API
+     *       （例如 CreateHardLinkW）。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param to Target file path (native character type)
+     *           目标文件路径（原生字符类型）
+     * @param new_hard_link Path for the new hard link (native character type)
+     *                      新硬链接的路径（原生字符类型）
+     */
+    RAINY_TOOLKIT_API void create_hard_link_native(native_czstring to, native_czstring new_hard_link);
+
+    /**
+     * @brief Create a symbolic link (native system PAL version).
+     *        创建符号链接（系统原生PAL版本）。
+     *
+     * Creates a symbolic link to the target.
+     * Uses native symlink creation APIs (e.g., symlink on POSIX, CreateSymbolicLinkW on Windows).
+     * 创建指向目标的符号链接。
+     * 使用原生符号链接创建API（例如 POSIX 上的 symlink，Windows 上的 CreateSymbolicLinkW）。
+     *
+     * @note On Windows, the input paths should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param to Target path (native character type)
+     *           目标路径（原生字符类型）
+     * @param new_symlink Path for the new symbolic link (native character type)
+     *                    新符号链接的路径（原生字符类型）
+     */
+    RAINY_TOOLKIT_API void create_symlink_native(native_czstring to, native_czstring new_symlink);
+
+    /**
+     * @brief Get current working directory (native system PAL version).
+     *        获取当前工作目录（系统原生PAL版本）。
+     *
+     * Writes the current working directory path to the output buffer.
+     * Uses native getcwd or GetCurrentDirectoryW call.
+     * 将当前工作目录路径写入输出缓冲区。
+     * 使用原生 getcwd 或 GetCurrentDirectoryW 调用。
+     *
+     * @note On Windows, the output buffer will contain UTF-8 encoded path converted from UTF-16
+     *       obtained from GetCurrentDirectoryW.
+     *       在 Windows 上，输出缓冲区将包含从 GetCurrentDirectoryW 获取并转换为 UTF-8 的路径。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param out_buffer Output buffer for the current directory path (native character type)
+     *                   用于存储当前目录路径的输出缓冲区（原生字符类型）
+     * @param buffer_size Size of the output buffer in characters
+     *                    输出缓冲区的大小（以字符为单位）
+     * @return Length of the current path on success, -1 on error
+     *         成功时返回当前路径的长度，失败时返回 -1
+     */
+    RAINY_TOOLKIT_API ssize_t current_path_native(native_cstring out_buffer, std::size_t buffer_size);
+
+    /**
+     * @brief Set current working directory (native system PAL version).
+     *        设置当前工作目录（系统原生PAL版本）。
+     *
+     * Changes the current working directory to the specified path.
+     * Uses native chdir or SetCurrentDirectoryW call.
+     * 将当前工作目录更改为指定路径。
+     * 使用原生 chdir 或 SetCurrentDirectoryW 调用。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API (e.g., SetCurrentDirectoryW).
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API
+     *       （例如 SetCurrentDirectoryW）。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path New current working directory path (native character type)
+     *             新的当前工作目录路径（原生字符类型）
+     */
+    RAINY_TOOLKIT_API void current_path_native(native_czstring path);
+
+    /**
+     * @brief Check if two paths refer to the same file system entry (native system PAL version).
+     *        检查两个路径是否指向相同的文件系统条目（系统原生PAL版本）。
+     *
+     * Determines whether the two paths resolve to the same entity.
+     * Uses native stat or GetFileInformationByHandleW to compare inode/file IDs.
+     * 确定两个路径是否解析为相同的实体。
+     * 使用原生 stat 或 GetFileInformationByHandleW 比较 inode/文件 ID。
+     *
+     * @note On Windows, the input paths should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path1 First path (native character type)
+     *              第一个路径（原生字符类型）
+     * @param path2 Second path (native character type)
+     *              第二个路径（原生字符类型）
+     * @return true if both paths refer to the same file, false otherwise
+     *         如果两个路径指向相同文件则返回 true，否则返回 false
+     */
+    RAINY_TOOLKIT_API bool equivalent_native(native_czstring path1, native_czstring path2);
+
+    /**
+     * @brief Check if a file exists (native system PAL version).
+     *        检查文件是否存在（系统原生PAL版本）。
+     *
+     * Determines if the given path refers to an existing file system entry.
+     * Uses native access or GetFileAttributesW call.
+     * 确定给定路径是否指向存在的文件系统条目。
+     * 使用原生 access 或 GetFileAttributesW 调用。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API (e.g., GetFileAttributesW).
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API
+     *       （例如 GetFileAttributesW）。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to check (native character type)
+     *             要检查的路径（原生字符类型）
+     * @return true if the entry exists, false otherwise
+     *         如果条目存在则返回 true，否则返回 false
+     */
+    RAINY_TOOLKIT_API bool exists_native(native_czstring path);
+
+    /**
+     * @brief Get file size (output parameter version, native system PAL).
+     *        获取文件大小（输出参数版本，系统原生PAL）。
+     *
+     * Retrieves the size of a file in bytes using native stat or GetFileSizeEx.
+     * 使用原生 stat 或 GetFileSizeEx 获取文件的大小（以字节为单位）。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path File path (native character type)
+     *             文件路径（原生字符类型）
+     * @param out_size Pointer to store the file size
+     *                 用于存储文件大小的指针
+     * @return true on success, false on failure
+     *         成功时返回 true，失败时返回 false
+     */
+    RAINY_TOOLKIT_API bool file_size_native(native_czstring path, std::uintmax_t *out_size);
+
+    /**
+     * @brief Get file size (return value version, native system PAL).
+     *        获取文件大小（返回值版本，系统原生PAL）。
+     *
+     * Retrieves the size of a file in bytes using native stat or GetFileSizeEx.
+     * 使用原生 stat 或 GetFileSizeEx 获取文件的大小（以字节为单位）。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path File path (native character type)
+     *             文件路径（原生字符类型）
+     * @return File size in bytes on success, 0 on error
+     *         成功时返回文件大小（以字节为单位），失败时返回 0
+     */
+    RAINY_TOOLKIT_API std::uintmax_t file_size_native(native_czstring path);
+
+    /**
+     * @brief Get hard link count (output parameter version, native system PAL).
+     *        获取硬链接计数（输出参数版本，系统原生PAL）。
+     *
+     * Retrieves the number of hard links referring to the file using native stat or GetFileInformationByHandle.
+     * 使用原生 stat 或 GetFileInformationByHandle 获取指向文件的硬链接数量。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path File path (native character type)
+     *             文件路径（原生字符类型）
+     * @param out_count Pointer to store the hard link count
+     *                  用于存储硬链接计数的指针
+     * @return true on success, false on failure
+     *         成功时返回 true，失败时返回 false
+     */
+    RAINY_TOOLKIT_API bool hard_link_count_native(native_czstring path, std::uintmax_t *out_count);
+
+    /**
+     * @brief Get hard link count (return value version, native system PAL).
+     *        获取硬链接计数（返回值版本，系统原生PAL）。
+     *
+     * Retrieves the number of hard links referring to the file using native stat or GetFileInformationByHandle.
+     * 使用原生 stat 或 GetFileInformationByHandle 获取指向文件的硬链接数量。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path File path (native character type)
+     *             文件路径（原生字符类型）
+     * @return Hard link count on success, 0 on error
+     *         成功时返回硬链接计数，失败时返回 0
+     */
+    RAINY_TOOLKIT_API std::uintmax_t hard_link_count_native(native_czstring path);
+
+    /**
+     * @brief Check if a path refers to a block device (native system PAL version).
+     *        检查路径是否指向块设备（系统原生PAL版本）。
+     *
+     * Determines if the given path refers to a block device using native stat or GetFileType.
+     * 使用原生 stat 或 GetFileType 确定给定路径是否指向块设备。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to check (native character type)
+     *             要检查的路径（原生字符类型）
+     * @return true if the entry is a block device, false otherwise
+     *         如果条目是块设备则返回 true，否则返回 false
+     */
+    RAINY_TOOLKIT_API bool is_block_file_native(native_czstring path);
+
+    /**
+     * @brief Check if a path refers to a character device (native system PAL version).
+     *        检查路径是否指向字符设备（系统原生PAL版本）。
+     *
+     * Determines if the given path refers to a character device using native stat or GetFileType.
+     * 使用原生 stat 或 GetFileType 确定给定路径是否指向字符设备。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to check (native character type)
+     *             要检查的路径（原生字符类型）
+     * @return true if the entry is a character device, false otherwise
+     *         如果条目是字符设备则返回 true，否则返回 false
+     */
+    RAINY_TOOLKIT_API bool is_character_file_native(native_czstring path);
+
+    /**
+     * @brief Check if a path refers to a directory (native system PAL version).
+     *        检查路径是否指向目录（系统原生PAL版本）。
+     *
+     * Determines if the given path refers to a directory using native stat or GetFileAttributesW.
+     * 使用原生 stat 或 GetFileAttributesW 确定给定路径是否指向目录。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to check (native character type)
+     *             要检查的路径（原生字符类型）
+     * @return true if the entry is a directory, false otherwise
+     *         如果条目是目录则返回 true，否则返回 false
+     */
+    RAINY_TOOLKIT_API bool is_directory_native(native_czstring path);
+
+    /**
+     * @brief Check if a directory or file is empty (native system PAL version).
+     *        检查目录或文件是否为空（系统原生PAL版本）。
+     *
+     * Determines if the given path refers to an empty file or directory.
+     * For directories, uses native opendir/readdir or FindFirstFileW.
+     * 确定给定路径是否指向空文件或空目录。
+     * 对于目录，使用原生 opendir/readdir 或 FindFirstFileW。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to check (native character type)
+     *             要检查的路径（原生字符类型）
+     * @return true if the entry is empty, false otherwise
+     *         如果条目为空则返回 true，否则返回 false
+     */
+    RAINY_TOOLKIT_API bool is_empty_native(native_czstring path);
+
+    /**
+     * @brief Check if a path refers to a FIFO (named pipe) (native system PAL version).
+     *        检查路径是否指向FIFO（命名管道）（系统原生PAL版本）。
+     *
+     * Determines if the given path refers to a FIFO using native stat.
+     * 使用原生 stat 确定给定路径是否指向FIFO。
+     *
+     * @note On Windows, named pipes have a different path format (\\\\.\\pipe\\...).
+     *       The input path should be UTF-8 encoded and will be converted to UTF-16.
+     *       在 Windows 上，命名管道使用不同的路径格式（\\\\.\\pipe\\...）。
+     *       输入路径应为 UTF-8 编码，并将转换为 UTF-16。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to check (native character type)
+     *             要检查的路径（原生字符类型）
+     * @return true if the entry is a FIFO, false otherwise
+     *         如果条目是FIFO则返回 true，否则返回 false
+     */
+    RAINY_TOOLKIT_API bool is_fifo_native(native_czstring path);
+
+    /**
+     * @brief Check if a path refers to an "other" file type (native system PAL version).
+     *        检查路径是否指向“其他”文件类型（系统原生PAL版本）。
+     *
+     * Determines if the given path refers to a type that is not regular file, directory, or symlink.
+     * 确定给定路径是否指向非常规文件、目录或符号链接的类型。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to check (native character type)
+     *             要检查的路径（原生字符类型）
+     * @return true if the entry is of other type, false otherwise
+     *         如果条目是其他类型则返回 true，否则返回 false
+     */
+    RAINY_TOOLKIT_API bool is_other_native(native_czstring path);
+
+    /**
+     * @brief Check if a path refers to a regular file (native system PAL version).
+     *        检查路径是否指向普通文件（系统原生PAL版本）。
+     *
+     * Determines if the given path refers to a regular file using native stat or GetFileAttributesW.
+     * 使用原生 stat 或 GetFileAttributesW 确定给定路径是否指向普通文件。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to check (native character type)
+     *             要检查的路径（原生字符类型）
+     * @return true if the entry is a regular file, false otherwise
+     *         如果条目是普通文件则返回 true，否则返回 false
+     */
+    RAINY_TOOLKIT_API bool is_regular_file_native(native_czstring path);
+
+    /**
+     * @brief Check if a path refers to a socket (native system PAL version).
+     *        检查路径是否指向套接字（系统原生PAL版本）。
+     *
+     * Determines if the given path refers to a socket using native stat (on POSIX).
+     * On Windows, sockets are not represented as filesystem entries.
+     * 使用原生 stat 确定给定路径是否指向套接字（在 POSIX 上）。
+     * 在 Windows 上，套接字不作为文件系统条目表示。
+     *
+     * @note On Windows, this function may always return false as sockets are not in the filesystem.
+     *       在 Windows 上，此函数可能始终返回 false，因为套接字不在文件系统中。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to check (native character type)
+     *             要检查的路径（原生字符类型）
+     * @return true if the entry is a socket, false otherwise
+     *         如果条目是套接字则返回 true，否则返回 false
+     */
+    RAINY_TOOLKIT_API bool is_socket_native(native_czstring path);
+
+    /**
+     * @brief Check if a path refers to a symbolic link (native system PAL version).
+     *        检查路径是否指向符号链接（系统原生PAL版本）。
+     *
+     * Determines if the given path refers to a symbolic link using native lstat or GetFileAttributesW.
+     * 使用原生 lstat 或 GetFileAttributesW 确定给定路径是否指向符号链接。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API (e.g., GetFileAttributesW with FILE_ATTRIBUTE_REPARSE_POINT).
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API
+     *       （例如带有 FILE_ATTRIBUTE_REPARSE_POINT 的 GetFileAttributesW）。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to check (native character type)
+     *             要检查的路径（原生字符类型）
+     * @return true if the entry is a symbolic link, false otherwise
+     *         如果条目是符号链接则返回 true，否则返回 false
+     */
+    RAINY_TOOLKIT_API bool is_symlink_native(native_czstring path);
+
+    /**
+     * @brief Get last write time (output parameter version, native system PAL).
+     *        获取最后写入时间（输出参数版本，系统原生PAL）。
+     *
+     * Retrieves the last modification time of a file using native stat or GetFileTime.
+     * 使用原生 stat 或 GetFileTime 获取文件的最后修改时间。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path File path (native character type)
+     *             文件路径（原生字符类型）
+     * @param out_time Pointer to store the last write time
+     *                 用于存储最后写入时间的指针
+     * @return true on success, false on failure
+     *         成功时返回 true，失败时返回 false
+     */
+    RAINY_TOOLKIT_API bool last_write_time_native(native_czstring path, std::time_t *out_time);
+
+    /**
+     * @brief Get last write time (return value version, native system PAL).
+     *        获取最后写入时间（返回值版本，系统原生PAL）。
+     *
+     * Retrieves the last modification time of a file using native stat or GetFileTime.
+     * 使用原生 stat 或 GetFileTime 获取文件的最后修改时间。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path File path (native character type)
+     *             文件路径（原生字符类型）
+     * @return Last write time on success, -1 on error
+     *         成功时返回最后写入时间，失败时返回 -1
+     */
+    RAINY_TOOLKIT_API std::time_t last_write_time_native(native_czstring path);
+
+    /**
+     * @brief Set last write time (native system PAL version).
+     *        设置最后写入时间（系统原生PAL版本）。
+     *
+     * Changes the last modification time of a file using native utimensat or SetFileTime.
+     * 使用原生 utimensat 或 SetFileTime 更改文件的最后修改时间。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path File path (native character type)
+     *             文件路径（原生字符类型）
+     * @param new_time New last write time
+     *                 新的最后写入时间
+     */
+    RAINY_TOOLKIT_API void last_write_time_native(native_czstring path, std::time_t new_time);
+
+    /**
+     * @brief Change file permissions (native system PAL version).
+     *        更改文件权限（系统原生PAL版本）。
+     *
+     * Modifies the permissions of a file system entry using native chmod or SetFileAttributesW.
+     * 使用原生 chmod 或 SetFileAttributesW 修改文件系统条目的权限。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API. Windows permissions are limited compared to POSIX.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *       Windows 的权限相比 POSIX 有限。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to the file (native character type)
+     *             文件路径（原生字符类型）
+     * @param prms Permissions to apply
+     *             要应用的权限
+     * @param opts Permission modification options (default: replace)
+     *             权限修改选项（默认：替换）
+     */
+    RAINY_TOOLKIT_API void permissions_native(native_czstring path, perms prms, perm_options opts = perm_options::replace);
+
+    /**
+     * @brief Get proximate path (native system PAL version).
+     *        获取近似路径（系统原生PAL版本）。
+     *
+     * Converts the given path to a relative path against the current directory.
+     * Uses native path comparison and resolution.
+     * 将给定路径转换为相对于当前目录的相对路径。
+     * 使用原生路径比较和解析。
+     *
+     * @note On Windows, the input paths should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to convert (native character type)
+     *             要转换的路径（原生字符类型）
+     * @param out_buffer Output buffer for the proximate path (native character type)
+     *                   用于存储近似路径的输出缓冲区（原生字符类型）
+     * @param buffer_size Size of the output buffer in characters
+     *                    输出缓冲区的大小（以字符为单位）
+     * @return Length of the proximate path on success, -1 on error
+     *         成功时返回近似路径的长度，失败时返回 -1
+     */
+    RAINY_TOOLKIT_API ssize_t proximate_native(native_czstring path, native_cstring out_buffer, std::size_t buffer_size);
+
+    /**
+     * @brief Get proximate path relative to base (native system PAL version).
+     *        获取相对于基路径的近似路径（系统原生PAL版本）。
+     *
+     * Converts the given path to a relative path against the specified base path.
+     * Uses native path comparison and resolution.
+     * 将给定路径转换为相对于指定基路径的相对路径。
+     * 使用原生路径比较和解析。
+     *
+     * @note On Windows, the input paths should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to convert (native character type)
+     *             要转换的路径（原生字符类型）
+     * @param base Base path for relative conversion (native character type)
+     *             用于相对转换的基路径（原生字符类型）
+     * @param out_buffer Output buffer for the proximate path (native character type)
+     *                   用于存储近似路径的输出缓冲区（原生字符类型）
+     * @param buffer_size Size of the output buffer in characters
+     *                    输出缓冲区的大小（以字符为单位）
+     * @return Length of the proximate path on success, -1 on error
+     *         成功时返回近似路径的长度，失败时返回 -1
+     */
+    RAINY_TOOLKIT_API ssize_t proximate_native(native_czstring path, native_czstring base, native_cstring out_buffer,
+                                              std::size_t buffer_size);
+
+    /**
+     * @brief Read the target of a symbolic link (native system PAL version).
+     *        读取符号链接的目标（系统原生PAL版本）。
+     *
+     * Reads the target path of a symbolic link using native readlink or GetFinalPathNameByHandleW.
+     * 使用原生 readlink 或 GetFinalPathNameByHandleW 读取符号链接的目标路径。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Symbolic link path (native character type)
+     *             符号链接路径（原生字符类型）
+     * @param out_buffer Output buffer for the target path (native character type)
+     *                   用于存储目标路径的输出缓冲区（原生字符类型）
+     * @param buffer_size Size of the output buffer in characters
+     *                    输出缓冲区的大小（以字符为单位）
+     * @return Length of the target path on success, -1 on error
+     *         成功时返回目标路径的长度，失败时返回 -1
+     */
+    RAINY_TOOLKIT_API ssize_t read_symlink_native(native_czstring path, native_cstring out_buffer, std::size_t buffer_size);
+
+    /**
+     * @brief Get relative path (native system PAL version).
+     *        获取相对路径（系统原生PAL版本）。
+     *
+     * Converts the given path to a relative path against the current directory.
+     * Uses native path comparison and resolution.
+     * 将给定路径转换为相对于当前目录的相对路径。
+     * 使用原生路径比较和解析。
+     *
+     * @note On Windows, the input paths should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to convert (native character type)
+     *             要转换的路径（原生字符类型）
+     * @param out_buffer Output buffer for the relative path (native character type)
+     *                   用于存储相对路径的输出缓冲区（原生字符类型）
+     * @param buffer_size Size of the output buffer in characters
+     *                    输出缓冲区的大小（以字符为单位）
+     * @return Length of the relative path on success, -1 on error
+     *         成功时返回相对路径的长度，失败时返回 -1
+     */
+    RAINY_TOOLKIT_API ssize_t relative_native(native_czstring path, native_cstring out_buffer, std::size_t buffer_size);
+
+    /**
+     * @brief Get relative path to base (native system PAL version).
+     *        获取相对于基路径的相对路径（系统原生PAL版本）。
+     *
+     * Converts the given path to a relative path against the specified base path.
+     * Uses native path comparison and resolution.
+     * 将给定路径转换为相对于指定基路径的相对路径。
+     * 使用原生路径比较和解析。
+     *
+     * @note On Windows, the input paths should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to convert (native character type)
+     *             要转换的路径（原生字符类型）
+     * @param base Base path for relative conversion (native character type)
+     *             用于相对转换的基路径（原生字符类型）
+     * @param out_buffer Output buffer for the relative path (native character type)
+     *                   用于存储相对路径的输出缓冲区（原生字符类型）
+     * @param buffer_size Size of the output buffer in characters
+     *                    输出缓冲区的大小（以字符为单位）
+     * @return Length of the relative path on success, -1 on error
+     *         成功时返回相对路径的长度，失败时返回 -1
+     */
+    RAINY_TOOLKIT_API ssize_t relative_native(native_czstring path, native_czstring base, native_cstring out_buffer,
+                                             std::size_t buffer_size);
+
+    /**
+     * @brief Remove a file or empty directory (native system PAL version).
+     *        删除文件或空目录（系统原生PAL版本）。
+     *
+     * Removes a single file or empty directory using native remove or DeleteFileW/RemoveDirectoryW.
+     * 使用原生 remove 或 DeleteFileW/RemoveDirectoryW 删除单个文件或空目录。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API (e.g., DeleteFileW, RemoveDirectoryW).
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API
+     *       （例如 DeleteFileW、RemoveDirectoryW）。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to remove (native character type)
+     *             要删除的路径（原生字符类型）
+     * @return true if removed successfully, false otherwise
+     *         如果成功删除则返回 true，否则返回 false
+     */
+    RAINY_TOOLKIT_API bool remove_native(native_czstring path);
+
+    /**
+     * @brief Remove a file or directory recursively (native system PAL version).
+     *        递归删除文件或目录（系统原生PAL版本）。
+     *
+     * Removes a file or directory and all its contents recursively using native directory traversal.
+     * 使用原生目录遍历递归删除文件或目录及其所有内容。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to remove (native character type)
+     *             要删除的路径（原生字符类型）
+     * @return Number of files and directories removed
+     *         删除的文件和目录数量
+     */
+    RAINY_TOOLKIT_API std::uintmax_t remove_all_native(native_czstring path);
+
+    /**
+     * @brief Rename a file or directory (native system PAL version).
+     *        重命名文件或目录（系统原生PAL版本）。
+     *
+     * Renames or moves a file or directory using native rename or MoveFileW.
+     * 使用原生 rename 或 MoveFileW 重命名或移动文件或目录。
+     *
+     * @note On Windows, the input paths should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API (e.g., MoveFileW).
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API
+     *       （例如 MoveFileW）。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param from Source path (native character type)
+     *             源路径（原生字符类型）
+     * @param to Destination path (native character type)
+     *           目标路径（原生字符类型）
+     */
+    RAINY_TOOLKIT_API void rename_native(native_czstring from, native_czstring to);
+
+    /**
+     * @brief Resize a file (native system PAL version).
+     *        调整文件大小（系统原生PAL版本）。
+     *
+     * Changes the size of a file (truncates or extends) using native truncate or SetFilePointerEx/SetEndOfFile.
+     * 使用原生 truncate 或 SetFilePointerEx/SetEndOfFile 更改文件的大小（截断或扩展）。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path File path (native character type)
+     *             文件路径（原生字符类型）
+     * @param size New size in bytes
+     *            新大小（以字节为单位）
+     */
+    RAINY_TOOLKIT_API void resize_file_native(native_czstring path, std::uintmax_t size);
+
+    /**
+     * @brief Get file system space information (output parameter version, native system PAL).
+     *        获取文件系统空间信息（输出参数版本，系统原生PAL）。
+     *
+     * Retrieves space information for the file system containing the given path.
+     * Uses native statvfs or GetDiskFreeSpaceExW.
+     * 获取包含给定路径的文件系统的空间信息。
+     * 使用原生 statvfs 或 GetDiskFreeSpaceExW。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API (e.g., GetDiskFreeSpaceExW).
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API
+     *       （例如 GetDiskFreeSpaceExW）。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Any path on the target file system (native character type)
+     *             目标文件系统上的任意路径（原生字符类型）
+     * @param out_info Pointer to store space information
+     *                 用于存储空间信息的指针
+     * @return true on success, false on failure
+     *         成功时返回 true，失败时返回 false
+     */
+    RAINY_TOOLKIT_API bool space_native(native_czstring path, space_info *out_info);
+
+    /**
+     * @brief Get file system space information (return value version, native system PAL).
+     *        获取文件系统空间信息（返回值版本，系统原生PAL）。
+     *
+     * Retrieves space information for the file system containing the given path.
+     * Uses native statvfs or GetDiskFreeSpaceExW.
+     * 获取包含给定路径的文件系统的空间信息。
+     * 使用原生 statvfs 或 GetDiskFreeSpaceExW。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Any path on the target file system (native character type)
+     *             目标文件系统上的任意路径（原生字符类型）
+     * @return space_info structure containing capacity, free, and available space
+     *         包含总容量、空闲空间和可用空间的 space_info 结构体
+     */
+    RAINY_TOOLKIT_API space_info space_native(native_czstring path);
+
+    /**
+     * @brief Get file status (native system PAL version).
+     *        获取文件状态（系统原生PAL版本）。
+     *
+     * Retrieves the type and permissions of a file system entry (follows symlinks).
+     * Uses native stat or GetFileAttributesW.
+     * 获取文件系统条目的类型和权限（跟随符号链接）。
+     * 使用原生 stat 或 GetFileAttributesW。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to query (native character type)
+     *             要查询的路径（原生字符类型）
+     * @return file_status structure containing type and permissions
+     *         包含类型和权限的 file_status 结构体
+     */
+    RAINY_TOOLKIT_API file_status status_native(native_czstring path);
+
+    /**
+     * @brief Get symbolic link status (native system PAL version).
+     *        获取符号链接状态（系统原生PAL版本）。
+     *
+     * Retrieves the type and permissions of a symbolic link itself (does not follow symlinks).
+     * Uses native lstat or GetFileAttributesW with FILE_FLAG_OPEN_REPARSE_POINT.
+     * 获取符号链接本身的类型和权限（不跟随符号链接）。
+     * 使用原生 lstat 或带有 FILE_FLAG_OPEN_REPARSE_POINT 的 GetFileAttributesW。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to query (native character type)
+     *             要查询的路径（原生字符类型）
+     * @return file_status structure containing type and permissions of the symlink
+     *         包含符号链接类型和权限的 file_status 结构体
+     */
+    RAINY_TOOLKIT_API file_status symlink_status_native(native_czstring path);
+
+    /**
+     * @brief Get temporary directory path (native system PAL version).
+     *        获取临时目录路径（系统原生PAL版本）。
+     *
+     * Retrieves the path to the directory for temporary files.
+     * Uses native P_tmpdir, getenv("TMPDIR"), or GetTempPathW.
+     * 获取临时文件目录的路径。
+     * 使用原生 P_tmpdir、getenv("TMPDIR") 或 GetTempPathW。
+     *
+     * @note On Windows, the output buffer will contain UTF-8 encoded path converted from UTF-16
+     *       obtained from GetTempPathW.
+     *       在 Windows 上，输出缓冲区将包含从 GetTempPathW 获取并转换为 UTF-8 的路径。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param out_buffer Output buffer for the temporary directory path (native character type)
+     *                   用于存储临时目录路径的输出缓冲区（原生字符类型）
+     * @param buffer_size Size of the output buffer in characters
+     *                    输出缓冲区的大小（以字符为单位）
+     * @return Length of the temporary directory path on success, -1 on error
+     *         成功时返回临时目录路径的长度，失败时返回 -1
+     */
+    RAINY_TOOLKIT_API ssize_t temp_directory_path_native(native_cstring out_buffer, std::size_t buffer_size);
+
+    /**
+     * @brief Get weakly canonical path (native system PAL version).
+     *        获取弱规范路径（系统原生PAL版本）。
+     *
+     * Converts the given path to a canonical-like form (may not resolve all components).
+     * Uses native path resolution with fallback behavior.
+     * 将给定路径转换为类似规范的形式（可能不会解析所有组件）。
+     * 使用具有回退行为的原生路径解析。
+     *
+     * @note On Windows, the input path should be UTF-8 encoded and will be converted to UTF-16
+     *       for the underlying W-API.
+     *       在 Windows 上，输入路径应为 UTF-8 编码，并将转换为 UTF-16 以用于底层 W-API。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Source path string (native character type)
+     *             源路径字符串（原生字符类型）
+     * @param out_buffer Output buffer for the weakly canonical path (native character type)
+     *                   用于存储弱规范路径的输出缓冲区（原生字符类型）
+     * @param buffer_size Size of the output buffer in characters
+     *                    输出缓冲区的大小（以字符为单位）
+     * @return Length of the weakly canonical path on success, -1 on error
+     *         成功时返回弱规范路径的长度，失败时返回 -1
+     */
+    RAINY_TOOLKIT_API ssize_t weakly_canonical_native(native_czstring path, native_cstring out_buffer, std::size_t buffer_size);
+}
+
+namespace rainy::core::pal {
+    /**
+     * @brief Get absolute path.
+     *        获取绝对路径。
+     *
+     * Converts the given path to an absolute path.
+     * 将给定路径转换为绝对路径。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Source path string
+     *             源路径字符串
+     * @param out_buffer Output buffer for the resolved path
+     *                   用于存储解析后路径的输出缓冲区
+     * @param buffer_size Size of the output buffer in bytes
+     *                    输出缓冲区的大小（以字节为单位）
+     * @return Length of the resolved path on success, -1 on error
+     *         成功时返回解析后路径的长度，失败时返回 -1
+     */
+    RAINY_TOOLKIT_API ssize_t absolute(czstring path, cstring out_buffer, std::size_t buffer_size);
+
+    /**
+     * @brief Get canonical (absolute and normalized) path.
+     *        获取规范路径（绝对且标准化）。
+     *
+     * Resolves the given path to an absolute, normalized path without symlinks.
+     * 将给定路径解析为不含符号链接的绝对、标准化路径。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Source path string
+     *             源路径字符串
+     * @param out_buffer Output buffer for the canonical path
+     *                   用于存储规范路径的输出缓冲区
+     * @param buffer_size Size of the output buffer in bytes
+     *                    输出缓冲区的大小（以字节为单位）
+     * @return Length of the canonical path on success, -1 on error
+     *         成功时返回规范路径的长度，失败时返回 -1
+     */
+    RAINY_TOOLKIT_API ssize_t canonical(czstring path, cstring out_buffer, std::size_t buffer_size);
+
+    /**
+     * @brief Copy files or directories.
+     *        复制文件或目录。
+     *
+     * Copies a file or directory from source to destination using default options.
+     * 使用默认选项将文件或目录从源复制到目标。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param from Source path
+     *             源路径
+     * @param to Destination path
+     *           目标路径
+     */
+    RAINY_TOOLKIT_API void copy(czstring from, czstring to);
+
+    /**
+     * @brief Copy files or directories with options.
+     *        使用选项复制文件或目录。
+     *
+     * Copies a file or directory from source to destination with specified options.
+     * 使用指定选项将文件或目录从源复制到目标。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param from Source path
+     *             源路径
+     * @param to Destination path
+     *           目标路径
+     * @param options Copy operation options
+     *                复制操作选项
+     */
+    RAINY_TOOLKIT_API void copy(czstring from, czstring to, copy_options options);
+
+    /**
+     * @brief Copy a single file.
+     *        复制单个文件。
+     *
+     * Copies the contents of one file to another.
+     * 将一个文件的内容复制到另一个文件。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param from Source file path
+     *             源文件路径
+     * @param to Destination file path
+     *           目标文件路径
+     * @return true on success, false on failure
+     *         成功时返回 true，失败时返回 false
+     */
+    RAINY_TOOLKIT_API bool copy_file(czstring from, czstring to);
+
+    /**
+     * @brief Copy a single file with options.
+     *        使用选项复制单个文件。
+     *
+     * Copies the contents of one file to another with specified options.
+     * 使用指定选项将一个文件的内容复制到另一个文件。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param from Source file path
+     *             源文件路径
+     * @param to Destination file path
+     *           目标文件路径
+     * @param option Copy operation option
+     *               复制操作选项
+     * @return true on success, false on failure
+     *         成功时返回 true，失败时返回 false
+     */
+    RAINY_TOOLKIT_API bool copy_file(czstring from, czstring to, copy_options option);
+
+    /**
+     * @brief Copy a symbolic link.
+     *        复制符号链接。
+     *
+     * Copies a symbolic link (creates a new symlink pointing to the same target).
+     * 复制符号链接（创建指向相同目标的新符号链接）。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param existing_symlink Existing symbolic link path
+     *                         现有符号链接路径
+     * @param new_symlink Path for the new symbolic link
+     *                    新符号链接的路径
+     */
+    RAINY_TOOLKIT_API void copy_symlink(czstring existing_symlink, czstring new_symlink);
+
+    /**
+     * @brief Create directories for a path.
+     *        为路径创建目录。
+     *
+     * Creates all directories in the given path that do not already exist.
+     * 创建给定路径中所有不存在的目录。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path where directories should be created
+     *             需要创建目录的路径
+     * @return true if directories were created, false otherwise
+     *         如果目录被创建则返回 true，否则返回 false
+     */
+    RAINY_TOOLKIT_API  bool create_directories(czstring path);
+
+    /**
+     * @brief Create a single directory.
+     *        创建单个目录。
+     *
+     * Creates the final directory in the given path.
+     * 创建给定路径中的最后一个目录。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Directory path to create
+     *             要创建的目录路径
+     * @return true if directory was created, false otherwise
+     *         如果目录被创建则返回 true，否则返回 false
+     */
+    RAINY_TOOLKIT_API bool create_directory(czstring path);
+
+    /**
+     * @brief Create a directory with attributes from an existing directory.
+     *        使用现有目录的属性创建目录。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Directory path to create
+     *             要创建的目录路径
+     * @param existing_p Existing directory path to read attributes from
+     *                   用于读取属性的现有目录路径
+     * @return true if directory was created, false otherwise
+     *         如果目录被新创建则返回 true，否则返回 false
+     */
+    RAINY_TOOLKIT_API bool create_directory(czstring path, czstring existing_p);
+
+    /**
+     * @brief Create a directory symbolic link.
+     *        创建目录符号链接。
+     *
+     * Creates a symbolic link to a directory.
+     * 创建指向目录的符号链接。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param to Target directory path
+     *           目标目录路径
+     * @param new_symlink Path for the new symbolic link
+     *                    新符号链接的路径
+     */
+    RAINY_TOOLKIT_API void create_directory_symlink(czstring to, czstring new_symlink);
+
+    /**
+     * @brief Create a hard link.
+     *        创建硬链接。
+     *
+     * Creates a hard link from the target to the new link path.
+     * 从目标创建指向新链接路径的硬链接。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param to Target file path
+     *           目标文件路径
+     * @param new_hard_link Path for the new hard link
+     *                      新硬链接的路径
+     */
+    RAINY_TOOLKIT_API void create_hard_link(czstring to, czstring new_hard_link);
+
+    /**
+     * @brief Create a symbolic link.
+     *        创建符号链接。
+     *
+     * Creates a symbolic link to the target.
+     * 创建指向目标的符号链接。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param to Target path
+     *           目标路径
+     * @param new_symlink Path for the new symbolic link
+     *                    新符号链接的路径
+     */
+    RAINY_TOOLKIT_API void create_symlink(czstring to, czstring new_symlink);
+
+    /**
+     * @brief Get current working directory.
+     *        获取当前工作目录。
+     *
+     * Writes the current working directory path to the output buffer.
+     * 将当前工作目录路径写入输出缓冲区。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param out_buffer Output buffer for the current directory path
+     *                   用于存储当前目录路径的输出缓冲区
+     * @param buffer_size Size of the output buffer in bytes
+     *                    输出缓冲区的大小（以字节为单位）
+     * @return Length of the current path on success, -1 on error
+     *         成功时返回当前路径的长度，失败时返回 -1
+     */
+    RAINY_TOOLKIT_API  ssize_t current_path(cstring out_buffer, std::size_t buffer_size);
+
+    /**
+     * @brief Set current working directory.
+     *        设置当前工作目录。
+     *
+     * Changes the current working directory to the specified path.
+     * 将当前工作目录更改为指定路径。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path New current working directory path
+     *             新的当前工作目录路径
+     */
+    RAINY_TOOLKIT_API void current_path(czstring path);
+
+    /**
+     * @brief Check if two paths refer to the same file system entry.
+     *        检查两个路径是否指向相同的文件系统条目。
+     *
+     * Determines whether the two paths resolve to the same entity.
+     * 确定两个路径是否解析为相同的实体。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path1 First path
+     *              第一个路径
+     * @param path2 Second path
+     *              第二个路径
+     * @return true if both paths refer to the same file, false otherwise
+     *         如果两个路径指向相同文件则返回 true，否则返回 false
+     */
+    RAINY_TOOLKIT_API bool equivalent(czstring path1, czstring path2);
+
+    /**
+     * @brief Check if file status indicates existence.
+     *        检查文件状态是否表示存在。
+     *
+     * Determines if the file status indicates an existing file system entry.
+     * 确定文件状态是否表示存在的文件系统条目。
+     *
+     * @param status File status to check
+     *               要检查的文件状态
+     * @return true if the entry exists, false otherwise
+     *         如果条目存在则返回 true，否则返回 false
+     */
+    RAINY_TOOLKIT_API bool exists(file_status status) noexcept;
+
+    /**
+     * @brief Check if a file exists.
+     *        检查文件是否存在。
+     *
+     * Determines if the given path refers to an existing file system entry.
+     * 确定给定路径是否指向存在的文件系统条目。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to check
+     *             要检查的路径
+     * @return true if the entry exists, false otherwise
+     *         如果条目存在则返回 true，否则返回 false
+     */
+    RAINY_TOOLKIT_API bool exists(czstring path);
+
+    /**
+     * @brief Get file size (output parameter version).
+     *        获取文件大小（输出参数版本）。
+     *
+     * Retrieves the size of a file in bytes.
+     * 获取文件的大小（以字节为单位）。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path File path
+     *             文件路径
+     * @param out_size Pointer to store the file size
+     *                 用于存储文件大小的指针
+     * @return true on success, false on failure
+     *         成功时返回 true，失败时返回 false
+     */
+    RAINY_TOOLKIT_API bool file_size(czstring path, std::uintmax_t *out_size);
+
+    /**
+     * @brief Get file size (return value version).
+     *        获取文件大小（返回值版本）。
+     *
+     * Retrieves the size of a file in bytes.
+     * 获取文件的大小（以字节为单位）。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path File path
+     *             文件路径
+     * @return File size in bytes on success, 0 on error
+     *         成功时返回文件大小（以字节为单位），失败时返回 0
+     */
+    RAINY_TOOLKIT_API std::uintmax_t file_size(czstring path);
+
+    /**
+     * @brief Get hard link count (output parameter version).
+     *        获取硬链接计数（输出参数版本）。
+     *
+     * Retrieves the number of hard links referring to the file.
+     * 获取指向文件的硬链接数量。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path File path
+     *             文件路径
+     * @param out_count Pointer to store the hard link count
+     *                  用于存储硬链接计数的指针
+     * @return true on success, false on failure
+     *         成功时返回 true，失败时返回 false
+     */
+    RAINY_TOOLKIT_API bool hard_link_count(czstring path, std::uintmax_t *out_count);
+
+    /**
+     * @brief Get hard link count (return value version).
+     *        获取硬链接计数（返回值版本）。
+     *
+     * Retrieves the number of hard links referring to the file.
+     * 获取指向文件的硬链接数量。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path File path
+     *             文件路径
+     * @return Hard link count on success, 0 on error
+     *         成功时返回硬链接计数，失败时返回 0
+     */
+    RAINY_TOOLKIT_API std::uintmax_t hard_link_count(czstring path);
+
+    /**
+     * @brief Check if file status indicates a block device.
+     *        检查文件状态是否表示块设备。
+     *
+     * Determines if the file status corresponds to a block device.
+     * 确定文件状态是否对应于块设备。
+     *
+     * @param status File status to check
+     *               要检查的文件状态
+     * @return true if the entry is a block device, false otherwise
+     *         如果条目是块设备则返回 true，否则返回 false
+     */
+    RAINY_TOOLKIT_API bool is_block_file(file_status status) noexcept;
+
+    /**
+     * @brief Check if a path refers to a block device.
+     *        检查路径是否指向块设备。
+     *
+     * Determines if the given path refers to a block device.
+     * 确定给定路径是否指向块设备。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to check
+     *             要检查的路径
+     * @return true if the entry is a block device, false otherwise
+     *         如果条目是块设备则返回 true，否则返回 false
+     */
+    RAINY_TOOLKIT_API bool is_block_file(czstring path);
+
+    /**
+     * @brief Check if file status indicates a character device.
+     *        检查文件状态是否表示字符设备。
+     *
+     * Determines if the file status corresponds to a character device.
+     * 确定文件状态是否对应于字符设备。
+     *
+     * @param status File status to check
+     *               要检查的文件状态
+     * @return true if the entry is a character device, false otherwise
+     *         如果条目是字符设备则返回 true，否则返回 false
+     */
+    RAINY_TOOLKIT_API bool is_character_file(file_status status) noexcept;
+
+    /**
+     * @brief Check if a path refers to a character device.
+     *        检查路径是否指向字符设备。
+     *
+     * Determines if the given path refers to a character device.
+     * 确定给定路径是否指向字符设备。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to check
+     *             要检查的路径
+     * @return true if the entry is a character device, false otherwise
+     *         如果条目是字符设备则返回 true，否则返回 false
+     */
+    RAINY_TOOLKIT_API bool is_character_file(czstring path);
+
+    /**
+     * @brief Check if file status indicates a directory.
+     *        检查文件状态是否表示目录。
+     *
+     * Determines if the file status corresponds to a directory.
+     * 确定文件状态是否对应于目录。
+     *
+     * @param status File status to check
+     *               要检查的文件状态
+     * @return true if the entry is a directory, false otherwise
+     *         如果条目是目录则返回 true，否则返回 false
+     */
+    RAINY_TOOLKIT_API bool is_directory(file_status status) noexcept;
+
+    /**
+     * @brief Check if a path refers to a directory.
+     *        检查路径是否指向目录。
+     *
+     * Determines if the given path refers to a directory.
+     * 确定给定路径是否指向目录。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to check
+     *             要检查的路径
+     * @return true if the entry is a directory, false otherwise
+     *         如果条目是目录则返回 true，否则返回 false
+     */
+    RAINY_TOOLKIT_API bool is_directory(czstring path);
+
+    /**
+     * @brief Check if a directory or file is empty.
+     *        检查目录或文件是否为空。
+     *
+     * Determines if the given path refers to an empty file or directory.
+     * 确定给定路径是否指向空文件或空目录。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to check
+     *             要检查的路径
+     * @return true if the entry is empty, false otherwise
+     *         如果条目为空则返回 true，否则返回 false
+     */
+    RAINY_TOOLKIT_API bool is_empty(czstring path);
+
+    /**
+     * @brief Check if file status indicates a FIFO (named pipe).
+     *        检查文件状态是否表示FIFO（命名管道）。
+     *
+     * Determines if the file status corresponds to a FIFO.
+     * 确定文件状态是否对应于FIFO。
+     *
+     * @param status File status to check
+     *               要检查的文件状态
+     * @return true if the entry is a FIFO, false otherwise
+     *         如果条目是FIFO则返回 true，否则返回 false
+     */
+    RAINY_TOOLKIT_API bool is_fifo(file_status status) noexcept;
+
+    /**
+     * @brief Check if a path refers to a FIFO (named pipe).
+     *        检查路径是否指向FIFO（命名管道）。
+     *
+     * Determines if the given path refers to a FIFO.
+     * 确定给定路径是否指向FIFO。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to check
+     *             要检查的路径
+     * @return true if the entry is a FIFO, false otherwise
+     *         如果条目是FIFO则返回 true，否则返回 false
+     */
+    RAINY_TOOLKIT_API bool is_fifo(czstring path);
+
+    /**
+     * @brief Check if file status indicates "other" type.
+     *        检查文件状态是否表示“其他”类型。
+     *
+     * Determines if the file status corresponds to a type that is not regular file, directory, or symlink.
+     * 确定文件状态是否对应于非常规文件、目录或符号链接的类型。
+     *
+     * @param status File status to check
+     *               要检查的文件状态
+     * @return true if the entry is of other type, false otherwise
+     *         如果条目是其他类型则返回 true，否则返回 false
+     */
+    RAINY_TOOLKIT_API bool is_other(file_status status) noexcept;
+
+    /**
+     * @brief Check if a path refers to an "other" file type.
+     *        检查路径是否指向“其他”文件类型。
+     *
+     * Determines if the given path refers to a type that is not regular file, directory, or symlink.
+     * 确定给定路径是否指向非常规文件、目录或符号链接的类型。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to check
+     *             要检查的路径
+     * @return true if the entry is of other type, false otherwise
+     *         如果条目是其他类型则返回 true，否则返回 false
+     */
+    RAINY_TOOLKIT_API bool is_other(czstring path);
+
+    /**
+     * @brief Check if file status indicates a regular file.
+     *        检查文件状态是否表示普通文件。
+     *
+     * Determines if the file status corresponds to a regular file.
+     * 确定文件状态是否对应于普通文件。
+     *
+     * @param status File status to check
+     *               要检查的文件状态
+     * @return true if the entry is a regular file, false otherwise
+     *         如果条目是普通文件则返回 true，否则返回 false
+     */
+    RAINY_TOOLKIT_API bool is_regular_file(file_status status) noexcept;
+
+    /**
+     * @brief Check if a path refers to a regular file.
+     *        检查路径是否指向普通文件。
+     *
+     * Determines if the given path refers to a regular file.
+     * 确定给定路径是否指向普通文件。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to check
+     *             要检查的路径
+     * @return true if the entry is a regular file, false otherwise
+     *         如果条目是普通文件则返回 true，否则返回 false
+     */
+    RAINY_TOOLKIT_API bool is_regular_file(czstring path);
+
+    /**
+     * @brief Check if file status indicates a socket.
+     *        检查文件状态是否表示套接字。
+     *
+     * Determines if the file status corresponds to a socket.
+     * 确定文件状态是否对应于套接字。
+     *
+     * @param status File status to check
+     *               要检查的文件状态
+     * @return true if the entry is a socket, false otherwise
+     *         如果条目是套接字则返回 true，否则返回 false
+     */
+    RAINY_TOOLKIT_API bool is_socket(file_status status) noexcept;
+
+    /**
+     * @brief Check if a path refers to a socket.
+     *        检查路径是否指向套接字。
+     *
+     * Determines if the given path refers to a socket.
+     * 确定给定路径是否指向套接字。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to check
+     *             要检查的路径
+     * @return true if the entry is a socket, false otherwise
+     *         如果条目是套接字则返回 true，否则返回 false
+     */
+    RAINY_TOOLKIT_API bool is_socket(czstring path);
+
+    /**
+     * @brief Check if file status indicates a symbolic link.
+     *        检查文件状态是否表示符号链接。
+     *
+     * Determines if the file status corresponds to a symbolic link.
+     * 确定文件状态是否对应于符号链接。
+     *
+     * @param status File status to check
+     *               要检查的文件状态
+     * @return true if the entry is a symbolic link, false otherwise
+     *         如果条目是符号链接则返回 true，否则返回 false
+     */
+    RAINY_TOOLKIT_API bool is_symlink(file_status status) noexcept;
+
+    /**
+     * @brief Check if a path refers to a symbolic link.
+     *        检查路径是否指向符号链接。
+     *
+     * Determines if the given path refers to a symbolic link.
+     * 确定给定路径是否指向符号链接。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to check
+     *             要检查的路径
+     * @return true if the entry is a symbolic link, false otherwise
+     *         如果条目是符号链接则返回 true，否则返回 false
+     */
+    RAINY_TOOLKIT_API bool is_symlink(czstring path);
+
+    /**
+     * @brief Get last write time (output parameter version).
+     *        获取最后写入时间（输出参数版本）。
+     *
+     * Retrieves the last modification time of a file.
+     * 获取文件的最后修改时间。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path File path
+     *             文件路径
+     * @param out_time Pointer to store the last write time
+     *                 用于存储最后写入时间的指针
+     * @return true on success, false on failure
+     *         成功时返回 true，失败时返回 false
+     */
+    RAINY_TOOLKIT_API bool last_write_time(czstring path, std::time_t *out_time);
+
+    /**
+     * @brief Get last write time (return value version).
+     *        获取最后写入时间（返回值版本）。
+     *
+     * Retrieves the last modification time of a file.
+     * 获取文件的最后修改时间。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path File path
+     *             文件路径
+     * @return Last write time on success, -1 on error
+     *         成功时返回最后写入时间，失败时返回 -1
+     */
+    RAINY_TOOLKIT_API std::time_t last_write_time(czstring path);
+
+    /**
+     * @brief Set last write time.
+     *        设置最后写入时间。
+     *
+     * Changes the last modification time of a file.
+     * 更改文件的最后修改时间。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path File path
+     *             文件路径
+     * @param new_time New last write time
+     *                 新的最后写入时间
+     */
+    RAINY_TOOLKIT_API void last_write_time(czstring path, std::time_t new_time);
+
+    /**
+     * @brief Change file permissions.
+     *        更改文件权限。
+     *
+     * Modifies the permissions of a file system entry.
+     * 修改文件系统条目的权限。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to the file
+     *             文件路径
+     * @param prms Permissions to apply
+     *             要应用的权限
+     * @param opts Permission modification options (default: replace)
+     *             权限修改选项（默认：替换）
+     */
+    RAINY_TOOLKIT_API void permissions(czstring path, perms prms, perm_options opts = perm_options::replace);
+
+    /**
+     * @brief Get proximate path (relative form).
+     *        获取近似路径（相对形式）。
+     *
+     * Converts the given path to a relative path against the current directory.
+     * 将给定路径转换为相对于当前目录的相对路径。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to convert
+     *             要转换的路径
+     * @param out_buffer Output buffer for the proximate path
+     *                   用于存储近似路径的输出缓冲区
+     * @param buffer_size Size of the output buffer in bytes
+     *                    输出缓冲区的大小（以字节为单位）
+     * @return Length of the proximate path on success, -1 on error
+     *         成功时返回近似路径的长度，失败时返回 -1
+     */
+    RAINY_TOOLKIT_API ssize_t proximate(czstring path, cstring out_buffer, std::size_t buffer_size);
+
+    /**
+     * @brief Get proximate path relative to base.
+     *        获取相对于基路径的近似路径。
+     *
+     * Converts the given path to a relative path against the specified base path.
+     * 将给定路径转换为相对于指定基路径的相对路径。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to convert
+     *             要转换的路径
+     * @param base Base path for relative conversion
+     *             用于相对转换的基路径
+     * @param out_buffer Output buffer for the proximate path
+     *                   用于存储近似路径的输出缓冲区
+     * @param buffer_size Size of the output buffer in bytes
+     *                    输出缓冲区的大小（以字节为单位）
+     * @return Length of the proximate path on success, -1 on error
+     *         成功时返回近似路径的长度，失败时返回 -1
+     */
+    RAINY_TOOLKIT_API ssize_t proximate(czstring path, czstring base, cstring out_buffer, std::size_t buffer_size);
+
+    /**
+     * @brief Read the target of a symbolic link.
+     *        读取符号链接的目标。
+     *
+     * Reads the target path of a symbolic link.
+     * 读取符号链接的目标路径。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Symbolic link path
+     *             符号链接路径
+     * @param out_buffer Output buffer for the target path
+     *                   用于存储目标路径的输出缓冲区
+     * @param buffer_size Size of the output buffer in bytes
+     *                    输出缓冲区的大小（以字节为单位）
+     * @return Length of the target path on success, -1 on error
+     *         成功时返回目标路径的长度，失败时返回 -1
+     */
+    RAINY_TOOLKIT_API ssize_t read_symlink(czstring path, cstring out_buffer, std::size_t buffer_size);
+
+    /**
+     * @brief Get relative path.
+     *        获取相对路径。
+     *
+     * Converts the given path to a relative path against the current directory.
+     * 将给定路径转换为相对于当前目录的相对路径。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to convert
+     *             要转换的路径
+     * @param out_buffer Output buffer for the relative path
+     *                   用于存储相对路径的输出缓冲区
+     * @param buffer_size Size of the output buffer in bytes
+     *                    输出缓冲区的大小（以字节为单位）
+     * @return Length of the relative path on success, -1 on error
+     *         成功时返回相对路径的长度，失败时返回 -1
+     */
+    RAINY_TOOLKIT_API ssize_t relative(czstring path, cstring out_buffer, std::size_t buffer_size);
+
+    /**
+     * @brief Get relative path to base.
+     *        获取相对于基路径的相对路径。
+     *
+     * Converts the given path to a relative path against the specified base path.
+     * 将给定路径转换为相对于指定基路径的相对路径。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to convert
+     *             要转换的路径
+     * @param base Base path for relative conversion
+     *             用于相对转换的基路径
+     * @param out_buffer Output buffer for the relative path
+     *                   用于存储相对路径的输出缓冲区
+     * @param buffer_size Size of the output buffer in bytes
+     *                    输出缓冲区的大小（以字节为单位）
+     * @return Length of the relative path on success, -1 on error
+     *         成功时返回相对路径的长度，失败时返回 -1
+     */
+    RAINY_TOOLKIT_API ssize_t relative(czstring path, czstring base, cstring out_buffer, std::size_t buffer_size);
+
+    /**
+     * @brief Remove a file or empty directory.
+     *        删除文件或空目录。
+     *
+     * Removes a single file or empty directory.
+     * 删除单个文件或空目录。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to remove
+     *             要删除的路径
+     * @return true if removed successfully, false otherwise
+     *         如果成功删除则返回 true，否则返回 false
+     */
+    RAINY_TOOLKIT_API bool remove(czstring path);
+
+    /**
+     * @brief Remove a file or directory recursively.
+     *        递归删除文件或目录。
+     *
+     * Removes a file or directory and all its contents recursively.
+     * 递归删除文件或目录及其所有内容。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to remove
+     *             要删除的路径
+     * @return Number of files and directories removed
+     *         删除的文件和目录数量
+     */
+    RAINY_TOOLKIT_API std::uintmax_t remove_all(czstring path);
+
+    /**
+     * @brief Rename a file or directory.
+     *        重命名文件或目录。
+     *
+     * Renames or moves a file or directory.
+     * 重命名或移动文件或目录。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param from Source path
+     *             源路径
+     * @param to Destination path
+     *           目标路径
+     */
+    RAINY_TOOLKIT_API void rename(czstring from, czstring to);
+
+    /**
+     * @brief Resize a file.
+     *        调整文件大小。
+     *
+     * Changes the size of a file (truncates or extends).
+     * 更改文件的大小（截断或扩展）。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path File path
+     *             文件路径
+     * @param size New size in bytes
+     *            新大小（以字节为单位）
+     */
+    RAINY_TOOLKIT_API void resize_file(czstring path, std::uintmax_t size);
+
+    /**
+     * @brief Get file system space information (output parameter version).
+     *        获取文件系统空间信息（输出参数版本）。
+     *
+     * Retrieves space information for the file system containing the given path.
+     * 获取包含给定路径的文件系统的空间信息。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Any path on the target file system
+     *             目标文件系统上的任意路径
+     * @param out_info Pointer to store space information
+     *                 用于存储空间信息的指针
+     * @return true on success, false on failure
+     *         成功时返回 true，失败时返回 false
+     */
+    RAINY_TOOLKIT_API  bool space(czstring path, space_info *out_info);
+
+    /**
+     * @brief Get file system space information (return value version).
+     *        获取文件系统空间信息（返回值版本）。
+     *
+     * Retrieves space information for the file system containing the given path.
+     * 获取包含给定路径的文件系统的空间信息。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Any path on the target file system
+     *             目标文件系统上的任意路径
+     * @return space_info structure containing capacity, free, and available space
+     *         包含总容量、空闲空间和可用空间的 space_info 结构体
+     */
+    RAINY_TOOLKIT_API  space_info space(czstring path);
+
+    /**
+     * @brief Get file status.
+     *        获取文件状态。
+     *
+     * Retrieves the type and permissions of a file system entry (follows symlinks).
+     * 获取文件系统条目的类型和权限（跟随符号链接）。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to query
+     *             要查询的路径
+     * @return file_status structure containing type and permissions
+     *         包含类型和权限的 file_status 结构体
+     */
+    RAINY_TOOLKIT_API  file_status status(czstring path);
+
+    /**
+     * @brief Check if file status is known.
+     *        检查文件状态是否已知。
+     *
+     * Determines if the file status contains valid information.
+     * 确定文件状态是否包含有效信息。
+     *
+     * @param status File status to check
+     *               要检查的文件状态
+     * @return true if the status is known (not unknown), false otherwise
+     *         如果状态已知则返回 true，否则返回 false
+     */
+    RAINY_TOOLKIT_API  bool status_known(file_status status) noexcept;
+
+    /**
+     * @brief Get symbolic link status.
+     *        获取符号链接状态。
+     *
+     * Retrieves the type and permissions of a symbolic link itself (does not follow symlinks).
+     * 获取符号链接本身的类型和权限（不跟随符号链接）。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Path to query
+     *             要查询的路径
+     * @return file_status structure containing type and permissions of the symlink
+     *         包含符号链接类型和权限的 file_status 结构体
+     */
+    RAINY_TOOLKIT_API file_status symlink_status(czstring path);
+
+    /**
+     * @brief Get temporary directory path.
+     *        获取临时目录路径。
+     *
+     * Retrieves the path to the directory for temporary files.
+     * 获取临时文件目录的路径。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param out_buffer Output buffer for the temporary directory path
+     *                   用于存储临时目录路径的输出缓冲区
+     * @param buffer_size Size of the output buffer in bytes
+     *                    输出缓冲区的大小（以字节为单位）
+     * @return Length of the temporary directory path on success, -1 on error
+     *         成功时返回临时目录路径的长度，失败时返回 -1
+     */
+    RAINY_TOOLKIT_API ssize_t temp_directory_path(cstring out_buffer, std::size_t buffer_size);
+
+    /**
+     * @brief Get weakly canonical path.
+     *        获取弱规范路径。
+     *
+     * Converts the given path to a canonical-like form (may not resolve all components).
+     * 将给定路径转换为类似规范的形式（可能不会解析所有组件）。
+     *
+     * @attention Uses global errno to indicate operation results.
+     *            使用全局 errno 表示操作结果。
+     *
+     * @param path Source path string
+     *             源路径字符串
+     * @param out_buffer Output buffer for the weakly canonical path
+     *                   用于存储弱规范路径的输出缓冲区
+     * @param buffer_size Size of the output buffer in bytes
+     *                    输出缓冲区的大小（以字节为单位）
+     * @return Length of the weakly canonical path on success, -1 on error
+     *         成功时返回弱规范路径的长度，失败时返回 -1
+     */
+    RAINY_TOOLKIT_API ssize_t weakly_canonical(czstring path, cstring out_buffer, std::size_t buffer_size);
 }
 
 namespace rainy::core::pal {
@@ -507,6 +2952,46 @@ namespace rainy::core::pal {
      *                      输出缓冲区大小
      */
     RAINY_TOOLKIT_API rain_fn demangle(czstring name, cstring buf, std::size_t buffer_length) -> void;
+
+    /**
+     * @brief Triggers a debug breakpoint.
+     *        触发调试断点。
+     *
+     * @note This function will always trigger a breakpoint regardless of whether
+     *       a debugger is attached. Use with caution in production code.
+     *       无论是否有调试器附加，此函数都会触发断点。在生产代码中请谨慎使用。
+     */
+    RAINY_TOOLKIT_API void breakpoint() noexcept;
+
+    /**
+     * @brief Triggers a debug breakpoint only if a debugger is present.
+     *        仅在调试器存在时触发调试断点。
+     *
+     * @note This function checks whether a debugger is attached before triggering
+     *       the breakpoint, making it safer for use in debug builds.
+     *       此函数在触发断点前会检查是否有调试器附加，使其在调试构建中使用更安全。
+     *
+     * @see is_debugger_present()
+     * @see breakpoint()
+     */
+    RAINY_TOOLKIT_API void breakpoint_if_debugging() noexcept;
+
+    /**
+     * @brief Checks whether a debugger is currently attached to the process.
+     *        检查当前是否有调试器附加到进程。
+     *
+     * @return true  A debugger is present
+     *               存在调试器
+     * @return false No debugger is present
+     *               不存在调试器
+     *
+     * @note This function is typically used to conditionally enable debug-only
+     *       behavior such as breakpoints or logging.
+     *       此函数通常用于条件性地启用仅调试行为，如断点或日志记录。
+     *
+     * @see breakpoint_if_debugging()
+     */
+    RAINY_TOOLKIT_API bool is_debugger_present() noexcept;
 }
 
 namespace rainy::core::pal {
@@ -1249,311 +3734,6 @@ namespace rainy::core::pal {
 }
 
 namespace rainy::core::pal {
-    /* file system */
-
-    /**
-     * @brief Gets the status of a file.
-     *        获取文件状态。
-     *
-     * @param file_path Path to the file
-     *                  文件路径
-     * @return File status structure
-     *         文件状态结构
-     */
-    RAINY_TOOLKIT_API rain_fn get_file_status(czstring file_path) noexcept -> file_status;
-
-    /**
-     * @brief Opens a file with the specified mode.
-     *        以指定模式打开文件。
-     *
-     * @param filepath Path to the file
-     *                 文件路径
-     * @param mode Open mode flags
-     *             打开模式标志
-     * @return File handle
-     *         文件句柄
-     */
-    RAINY_TOOLKIT_API rain_fn open_file(czstring filepath, open_mode mode) -> file_handle;
-
-    /**
-     * @brief Gets the type of file.
-     *        获取文件类型。
-     *
-     * @param file_path Path to the file
-     *                  文件路径
-     * @return File type
-     *         文件类型
-     */
-    RAINY_TOOLKIT_API rain_fn get_file_type(core::czstring file_path) noexcept -> file_type;
-
-    /**
-     * @brief Closes a file handle.
-     *        关闭文件句柄。
-     *
-     * @param handle The file handle to close
-     *               要关闭的文件句柄
-     * @return true if successful, false otherwise
-     *         如果成功则为true，否则为false
-     */
-    RAINY_TOOLKIT_API rain_fn close_file(std::uintptr_t handle) -> bool;
-
-    /**
-     * @brief Checks if a file exists.
-     *        检查文件是否存在。
-     *
-     * @param file_path Path to the file
-     *                  文件路径
-     * @return true if the file exists, false otherwise
-     *         如果文件存在则为true，否则为false
-     */
-    RAINY_TOOLKIT_API rain_fn file_exists(czstring file_path) -> bool;
-
-    /**
-     * @brief Creates a directory.
-     *        创建目录。
-     *
-     * @param dir_path Path to the directory to create
-     *                 要创建的目录路径
-     * @return true if successful, false otherwise
-     *         如果成功则为true，否则为false
-     */
-    RAINY_TOOLKIT_API rain_fn create_directory(czstring dir_path) -> bool;
-
-    /**
-     * @brief Removes a file.
-     *        删除文件。
-     *
-     * @param file_path Path to the file to remove
-     *                  要删除的文件路径
-     * @return true if successful, false otherwise
-     *         如果成功则为true，否则为false
-     */
-    RAINY_TOOLKIT_API rain_fn remove_file(czstring file_path) -> bool;
-
-    /**
-     * @brief Gets the size of a file.
-     *        获取文件大小。
-     *
-     * @param file_path Path to the file
-     *                  文件路径
-     * @param size Reference to store the file size
-     *             用于存储文件大小的引用
-     * @return true if successful, false otherwise
-     *         如果成功则为true，否则为false
-     */
-    RAINY_TOOLKIT_API rain_fn get_file_size(czstring file_path, std::uint64_t &size) -> bool;
-
-    /**
-     * @brief Renames or moves a file.
-     *        重命名或移动文件。
-     *
-     * @param old_path Current path
-     *                 当前路径
-     * @param new_path New path
-     *                 新路径
-     * @return true if successful, false otherwise
-     *         如果成功则为true，否则为false
-     */
-    RAINY_TOOLKIT_API rain_fn rename_file(czstring old_path, czstring new_path) -> bool;
-
-    /* memory io */
-
-    /**
-     * @brief Checks if a pointer is aligned to the specified alignment.
-     *        检查指针是否按指定对齐方式对齐。
-     *
-     * @param ptr The pointer to check
-     *            要检查的指针
-     * @param alignment The alignment requirement
-     *                  对齐要求
-     * @return true if aligned, false otherwise
-     *         如果对齐则为true，否则为false
-     */
-    RAINY_TOOLKIT_API rain_fn is_aligned(void *ptr, std::size_t alignment) -> bool;
-
-    /**
-     * @brief Allocates memory of the specified size.
-     *        分配指定大小的内存。
-     *
-     * @param size The size to allocate in bytes
-     *             要分配的字节数
-     * @return Pointer to the allocated memory, or nullptr on failure
-     *         指向已分配内存的指针，失败时返回nullptr
-     */
-    RAINY_TOOLKIT_API rain_fn allocate(std::size_t size) noexcept -> void *;
-
-    /**
-     * @brief Allocates aligned memory of the specified size.
-     *        分配指定大小的对齐内存。
-     *
-     * @param size The size to allocate in bytes
-     *             要分配的字节数
-     * @param alignment The alignment requirement
-     *                  对齐要求
-     * @return Pointer to the allocated memory, or nullptr on failure
-     *         指向已分配内存的指针，失败时返回nullptr
-     */
-    RAINY_TOOLKIT_API rain_fn allocate(std::size_t size, std::size_t alignment) noexcept -> void *;
-
-    /**
-     * @brief Deallocates memory previously allocated with allocate().
-     *        释放之前使用allocate()分配的内存。
-     *
-     * @param block Pointer to the memory to deallocate
-     *              要释放的内存指针
-     */
-    RAINY_TOOLKIT_API rain_fn deallocate(void *block) -> void;
-
-    /**
-     * @brief Deallocates aligned memory.
-     *        释放对齐的内存。
-     *
-     * @param block Pointer to the memory to deallocate
-     *              要释放的内存指针
-     * @param alignment The alignment that was used for allocation
-     *                  分配时使用的对齐方式
-     */
-    RAINY_TOOLKIT_API rain_fn deallocate(void *block, std::size_t alignment) -> void;
-
-    /**
-     * @brief Deallocates memory with full allocation parameters.
-     *        使用完整的分配参数释放内存。
-     *
-     * @param ptr Pointer to the memory to deallocate
-     *            要释放的内存指针
-     * @param size The size that was allocated
-     *             分配的大小
-     * @param alignment The alignment that was used
-     *                  使用的对齐方式
-     */
-    RAINY_TOOLKIT_API rain_fn deallocate(void *ptr, std::size_t size, std::size_t alignment) -> void;
-
-    /* read io */
-
-    /**
-     * @brief Reads data from a stream.
-     *        从流中读取数据。
-     *
-     * @param stream The stream handle
-     *               流句柄
-     * @param buffer Output buffer
-     *               输出缓冲区
-     * @param buffer_size Size of the output buffer
-     *                    输出缓冲区大小
-     * @return Number of bytes read, or -1 on error
-     *         读取的字节数，错误时返回-1
-     */
-    RAINY_TOOLKIT_API rain_fn read(std::uintptr_t stream, char *buffer, io_size_t buffer_size) -> io_size_t;
-
-    /**
-     * @brief Reads a specific number of bytes from a stream.
-     *        从流中读取指定数量的字节。
-     *
-     * @param stream The stream handle
-     *               流句柄
-     * @param read_count Number of bytes to attempt to read
-     *                   尝试读取的字节数
-     * @param buffer Output buffer
-     *               输出缓冲区
-     * @param buffer_size Size of the output buffer
-     *                    输出缓冲区大小
-     * @return Number of bytes read, or -1 on error
-     *         读取的字节数，错误时返回-1
-     */
-    RAINY_TOOLKIT_API rain_fn read(std::uintptr_t stream, io_size_t read_count, char *buffer, io_size_t buffer_size) -> io_size_t;
-
-    /**
-     * @brief Reads data from a stream until a delimiter is encountered.
-     *        从流中读取数据直到遇到分隔符。
-     *
-     * @param stream The stream handle
-     *               流句柄
-     * @param buffer Output buffer
-     *               输出缓冲区
-     * @param buffer_size Size of the output buffer
-     *                    输出缓冲区大小
-     * @param delimiter The delimiter character
-     *                  分隔符字符
-     * @return Number of bytes read, or -1 on error
-     *         读取的字节数，错误时返回-1
-     */
-    RAINY_TOOLKIT_API rain_fn read(std::uintptr_t stream, char *buffer, io_size_t buffer_size, char delimiter) -> io_size_t;
-
-    /**
-     * @brief Reads a line from a stream.
-     *        从流中读取一行。
-     *
-     * @param stream The stream handle
-     *               流句柄
-     * @param buffer Output buffer
-     *               输出缓冲区
-     * @param buffer_size Size of the output buffer
-     *                    输出缓冲区大小
-     * @return Number of bytes read, or -1 on error
-     *         读取的字节数，错误时返回-1
-     */
-    RAINY_TOOLKIT_API rain_fn read_line(std::uintptr_t stream, char *buffer, io_size_t buffer_size) -> io_size_t;
-
-    /**
-     * @brief Reads a line from a stream until a delimiter.
-     *        从流中读取一行直到遇到分隔符。
-     *
-     * @param stream The stream handle
-     *               流句柄
-     * @param buffer Output buffer
-     *               输出缓冲区
-     * @param buffer_size Size of the output buffer
-     *                    输出缓冲区大小
-     * @param delimiter The delimiter character
-     *                  分隔符字符
-     * @return Number of bytes read, or -1 on error
-     *         读取的字节数，错误时返回-1
-     */
-    RAINY_TOOLKIT_API rain_fn read_line(std::uintptr_t stream, char *buffer, io_size_t buffer_size, char delimiter) -> io_size_t;
-
-    /**
-     * @brief Reads binary data from a stream.
-     *        从流中读取二进制数据。
-     *
-     * @param stream The stream handle
-     *               流句柄
-     * @param buffer Output buffer
-     *               输出缓冲区
-     * @param element_size Size of each element
-     *                     每个元素的大小
-     * @param element_count Number of elements to read
-     *                      要读取的元素数量
-     * @return Number of elements read, or -1 on error
-     *         读取的元素数量，错误时返回-1
-     */
-    RAINY_TOOLKIT_API rain_fn read_binary(std::uintptr_t stream, void *buffer, io_size_t element_size, io_size_t element_count) -> io_size_t;
-
-    /* write io */
-
-    /**
-     * @brief Writes data to a stream.
-     *        向流中写入数据。
-     *
-     * @param fd The file descriptor/handle
-     *           文件描述符/句柄
-     * @param buffer Source buffer
-     *               源缓冲区
-     * @param count Number of bytes to write
-     *              要写入的字节数
-     * @return Number of bytes written, or -1 on error
-     *         写入的字节数，错误时返回-1
-     */
-    RAINY_TOOLKIT_API rain_fn write(std::uintptr_t fd, const void *buffer, std::size_t count) -> io_size_t;
-
-    /**
-     * @brief Flushes any buffered data to the stream.
-     *        将任何缓冲的数据刷新到流中。
-     *
-     * @param fd The file descriptor/handle
-     *           文件描述符/句柄
-     */
-    RAINY_TOOLKIT_API rain_fn flush(std::uintptr_t fd) -> void;
-
 #if RAINY_USING_64_BIT_PLATFORM
     /**
      * @brief Performs a 128-bit atomic compare-and-exchange operation.
@@ -1561,7 +3741,7 @@ namespace rainy::core::pal {
      *
      * @param destination Pointer to the destination 128-bit value
      *                    目标128位值的指针
-     * @param exchange_high High 64 bits of the exchange value
+     * @param exchange_high 64 bits of the exchange value
      *                      交换值的高64位
      * @param exchange_low Low 64 bits of the exchange value
      *                     交换值的低64位
@@ -1571,10 +3751,9 @@ namespace rainy::core::pal {
      *         如果交换发生则为true，否则为false
      */
     RAINY_TOOLKIT_API rain_fn interlocked_compare_exchange128(std::int64_t volatile *destination, std::int64_t exchange_high,
-                                                           std::int64_t exchange_low, std::int64_t *comparand_result) -> bool;
+                                                              std::int64_t exchange_low, std::int64_t *comparand_result) -> bool;
 #endif
-}
-namespace rainy::core::pal {
+
     /**
      * @brief Atomically increments a long value with specified memory order.
      *        使用指定的内存顺序原子递增一个long值。

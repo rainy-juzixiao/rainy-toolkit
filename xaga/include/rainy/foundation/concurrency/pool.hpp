@@ -62,10 +62,7 @@ namespace rainy::foundation::concurrency {
         }
 
         ~pooled_actor_pool() override {
-            stop_.store(true, memory_order_release);
-            for (auto &a: actors_) {
-                a->signal_stop();
-            }
+            join();
         }
 
         void submit(functional::move_only_delegate<void()> task) override {
@@ -83,12 +80,14 @@ namespace rainy::foundation::concurrency {
         }
 
         RAINY_NODISCARD scheduler_traits traits() const override {
-            return {.is_multi_threaded = true,
-                    .is_ordered = false,
-                    .supports_stealing = true,
-                    .supports_affinity = true,
-                    .mode = actor_pool_mode::pooled,
-                    .concurrency = thread_count_};
+            scheduler_traits traits;
+            traits.is_multi_threaded = true;
+            traits.is_ordered = false;
+            traits.supports_stealing = true;
+            traits.supports_affinity = true;
+            traits.mode = actor_pool_mode::pooled;
+            traits.concurrency = thread_count_;
+            return traits;
         }
 
         void submit_to(const std::size_t actor_id, functional::move_only_delegate<void()> task) override {
@@ -162,8 +161,8 @@ namespace rainy::foundation::concurrency {
         mutex idle_mutex_;
         condition_variable idle_cv_;
 
-        std::vector<memory::nebula_ptr<actor_worker>> actors_;
         std::vector<memory::nebula_ptr<thread>> threads_;
+        std::vector<memory::nebula_ptr<actor_worker>> actors_;
         atomic<int> submit_count_{0};
         atomic<int> complete_count_{0};
     };
@@ -230,12 +229,14 @@ namespace rainy::foundation::concurrency {
         }
 
         RAINY_NODISCARD scheduler_traits traits() const override {
-            return {.is_multi_threaded = true,
-                    .is_ordered = true,
-                    .supports_stealing = false, // ← dedicated 不偷
-                    .supports_affinity = true,
-                    .mode = actor_pool_mode::dedicated,
-                    .concurrency = actor_count_};
+            scheduler_traits traits;
+            traits.is_multi_threaded = true;
+            traits.is_ordered = true;
+            traits.supports_stealing = false;
+            traits.supports_affinity = true;
+            traits.mode = actor_pool_mode::dedicated;
+            traits.concurrency = actor_count_;
+            return traits;
         }
 
         RAINY_NODISCARD std::size_t actor_count() const noexcept {
@@ -362,12 +363,14 @@ namespace rainy::foundation::concurrency {
         }
 
         RAINY_NODISCARD scheduler_traits traits() const override {
-            return {.is_multi_threaded = true,
-                    .is_ordered = true,
-                    .supports_stealing = false,
-                    .supports_affinity = true,
-                    .mode = actor_pool_mode::pinned,
-                    .concurrency = thread_count_};
+            scheduler_traits traits;
+            traits.is_multi_threaded = true;
+            traits.is_ordered = true;
+            traits.supports_stealing = false;
+            traits.supports_affinity = true;
+            traits.mode = actor_pool_mode::pinned;
+            traits.concurrency = thread_count_;
+            return traits;
         }
 
         RAINY_NODISCARD std::size_t thread_count() const noexcept {
@@ -569,12 +572,14 @@ namespace rainy::foundation::concurrency {
         }
 
         RAINY_NODISCARD scheduler_traits traits() const override {
-            return {.is_multi_threaded = true,
-                    .is_ordered = false,
-                    .supports_stealing = true, // 层内 stealing
-                    .supports_affinity = true,
-                    .mode = actor_pool_mode::priority,
-                    .concurrency = thread_count_};
+            scheduler_traits traits;
+            traits.is_multi_threaded = true;
+            traits.is_ordered = false;
+            traits.supports_stealing = true;
+            traits.supports_affinity = true;
+            traits.mode = actor_pool_mode::dedicated;
+            traits.concurrency = thread_count_;
+            return traits;
         }
 
         RAINY_NODISCARD std::size_t actors_per_tier() const noexcept {
@@ -765,12 +770,14 @@ namespace rainy::foundation::concurrency {
         }
 
         RAINY_NODISCARD scheduler_traits traits() const override {
-            return {.is_multi_threaded = true,
-                    .is_ordered = false,
-                    .supports_stealing = false,
-                    .supports_affinity = false,
-                    .mode = actor_pool_mode::blocking,
-                    .concurrency = active_threads_.load(memory_order_relaxed)};
+            scheduler_traits traits;
+            traits.is_multi_threaded = true;
+            traits.is_ordered = false;
+            traits.supports_stealing = false;
+            traits.supports_affinity = false;
+            traits.mode = actor_pool_mode::blocking;
+            traits.concurrency = active_threads_.load(memory_order_relaxed);
+            return traits;
         }
 
         void submit_blocking(functional::move_only_delegate<void()> task) {

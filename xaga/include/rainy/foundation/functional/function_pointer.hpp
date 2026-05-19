@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 rainy-juzixiao
+ * Copyright 2026 rainy-juzixiao
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,9 +21,9 @@
 #ifndef RAINY_FOUNDATION_FUNCTIONAL_FUNCTION_POINTER_HPP
 #define RAINY_FOUNDATION_FUNCTIONAL_FUNCTION_POINTER_HPP
 #include <functional>
-#include <rainy/core/core.hpp>
-#include <rainy/foundation/typeinfo.hpp>
+#include <rainy/core/lifetime_annotation.hpp>
 #include <rainy/annotations/smf_control.hpp>
+#include <rainy/foundation/typeinfo.hpp>
 
 namespace rainy::foundation::functional {
     template <typename Fx>
@@ -277,7 +277,6 @@ namespace rainy::foundation::functional::implements {
             using type = function_pointer_impl<UFx, Rx, Class, Args...>;
         };
 
-        // 修改这里：使用 extract 来展开 type_list
         using type =
             typename extract<Fx, typename traits::return_type,
                              typename type_traits::primary_types::member_pointer_traits<Fx>::class_type,

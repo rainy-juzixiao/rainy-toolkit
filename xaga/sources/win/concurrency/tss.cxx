@@ -35,7 +35,7 @@ namespace rainy::foundation::concurrency::implements {
         return TlsGetValue(static_cast<DWORD>(tss_key));
     }
 
-    bool tss_set(core::handle tss_key, void *value) {
+    bool tss_set(core::handle tss_key, const void *value) {
         if (tss_key == core::invalid_handle) {
             return false;
         }

@@ -33,18 +33,18 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <ctime>
 #include <initializer_list>
-#include <string>
+#include <exception>
 #include <string_view>
 #include <utility>
+#include <memory>
 
 #ifdef __linux__
 #include <csignal>
 #include <linux/version.h>
 #include <unistd.h>
 #endif
-
-#include <rainy/core/implements/generate/marco_gen.hpp>
 
 #define RAINY_EXTERN_C extern "C"
 
@@ -137,6 +137,12 @@ clang和GNU编译器区域
 
 #ifndef RAINY_NODISCARD_MSG
 #define RAINY_NODISCARD_MSG(msg) [[nodiscard(msg)]]
+#endif
+
+#ifndef RAINY_NODISCARD_RAW_PTR_ALLOC
+#define RAINY_NODISCARD_RAW_PTR_ALLOC                                                                                                 \
+    RAINY_NODISCARD_MSG("This function allocates memory and returns a raw pointer. "                                                  \
+                        "Discarding the return value will cause a memory leak.")
 #endif
 
 #if RAINY_HAS_CXX20
@@ -525,6 +531,13 @@ static_assert(false, "We detected you are using C++14 and below, and the library
 #define RAINY_ABI_BRIDGE_CALL_GET_COMPILE_IDENTIFIER 4
 #define RAINY_ABI_BRIDGE_CALL_GET_VERSION_NAME 5
 
+// 指定MuZiYan文档生成器的宏，用于适配MuZiYan的文档生成
+#ifdef __MUZIYAN_IS_HERE__
+#define RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON 1
+#else
+#define RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON 0
+#endif
+
 #if RAINY_HAS_CXX26 && RAINY_HAS_CXX26_STATIC_REFLECTION
 #include <meta>
 #endif
@@ -541,6 +554,12 @@ namespace rainy::core {
 
 namespace rainy::core {
     using errno_t = int;
+
+#if RAINY_USING_WINDOWS
+    using native_char = wchar_t;
+#else
+    using native_char = char;
+#endif
 }
 
 namespace rainy::type_traits::other_trans {
@@ -938,8 +957,9 @@ namespace rainy::core::builtin {
     constexpr rain_fn string_length(const wchar_t *wstr) -> std::size_t {
 #if RAINY_USING_GCC
         std::size_t i = 0;
-        while (wstr[i])
+        while (wstr[i]) {
             ++i; // NOLINT
+        }
         return i;
 #else
         return __builtin_wcslen(wstr);
@@ -1021,9 +1041,84 @@ namespace rainy::core::builtin {
     }
 }
 
-namespace rainy::core::builtin {
-    int multibyte_to_wchar(const char *source, wchar_t *buffer, std::size_t buffer_length, std::size_t codepage);
-    int wchar_to_multibyte(const wchar_t *source, char *buffer, std::size_t buffer_length, std::size_t codepage);
+namespace rainy::utility {
+    using core::builtin::addressof;
+    using core::builtin::construct_at;
+    using core::builtin::forward;
+}
+
+namespace rainy::core::pal {
+    /* memory io */
+
+    /**
+     * @brief Checks if a pointer is aligned to the specified alignment.
+     *        检查指针是否按指定对齐方式对齐。
+     *
+     * @param ptr The pointer to check
+     *            要检查的指针
+     * @param alignment The alignment requirement
+     *                  对齐要求
+     * @return true if aligned, false otherwise
+     *         如果对齐则为true，否则为false
+     */
+    RAINY_TOOLKIT_API rain_fn is_aligned(void *ptr, std::size_t alignment) -> bool;
+
+    /**
+     * @brief Allocates memory of the specified size.
+     *        分配指定大小的内存。
+     *
+     * @param size The size to allocate in bytes
+     *             要分配的字节数
+     * @return Pointer to the allocated memory, or nullptr on failure
+     *         指向已分配内存的指针，失败时返回nullptr
+     */
+    RAINY_TOOLKIT_API rain_fn allocate(std::size_t size) noexcept -> void *;
+
+    /**
+     * @brief Allocates aligned memory of the specified size.
+     *        分配指定大小的对齐内存。
+     *
+     * @param size The size to allocate in bytes
+     *             要分配的字节数
+     * @param alignment The alignment requirement
+     *                  对齐要求
+     * @return Pointer to the allocated memory, or nullptr on failure
+     *         指向已分配内存的指针，失败时返回nullptr
+     */
+    RAINY_TOOLKIT_API rain_fn allocate(std::size_t size, std::size_t alignment) noexcept -> void *;
+
+    /**
+     * @brief Deallocates memory previously allocated with allocate().
+     *        释放之前使用allocate()分配的内存。
+     *
+     * @param block Pointer to the memory to deallocate
+     *              要释放的内存指针
+     */
+    RAINY_TOOLKIT_API rain_fn deallocate(void *block) -> void;
+
+    /**
+     * @brief Deallocates aligned memory.
+     *        释放对齐的内存。
+     *
+     * @param block Pointer to the memory to deallocate
+     *              要释放的内存指针
+     * @param alignment The alignment that was used for allocation
+     *                  分配时使用的对齐方式
+     */
+    RAINY_TOOLKIT_API rain_fn deallocate(void *block, std::size_t alignment) -> void;
+
+    /**
+     * @brief Deallocates memory with full allocation parameters.
+     *        使用完整的分配参数释放内存。
+     *
+     * @param ptr Pointer to the memory to deallocate
+     *            要释放的内存指针
+     * @param size The size that was allocated
+     *             分配的大小
+     * @param alignment The alignment that was used
+     *                  使用的对齐方式
+     */
+    RAINY_TOOLKIT_API rain_fn deallocate(void *ptr, std::size_t size, std::size_t alignment) -> void;
 }
 
 namespace rainy::core {
@@ -1094,6 +1189,13 @@ namespace rainy::core::builtin {
         windows7,
         windows_server,
         linux_like,
+        macos_catalina,
+        macos_big_sur,
+        macos_monterey,
+        macos_ventura,
+        macos_sonoma,
+        macos_sequoia,
+        macos_tahoe,
         unknown
     };
 
@@ -1146,6 +1248,24 @@ namespace rainy::core {
      *        用于框架处理的不透明指针类型。
      */
     using native_frame_ptr_t = void *;
+
+    /**
+     * @brief Constant native C-style string type.
+     *        常量原生 C 风格字符串类型。
+     *
+     * Alias for const native_char*, representing a constant C-style string in native character encoding.
+     * const native_char* 的别名，表示原生字符编码中的常量 C 风格字符串。
+     */
+    using native_czstring = const native_char *;
+
+    /**
+     * @brief Mutable native C-style string type.
+     *        可变原生 C 风格字符串类型。
+     *
+     * Alias for native_char*, representing a mutable C-style string in native character encoding.
+     * native_char* 的别名，表示原生字符编码中的可变 C 风格字符串。
+     */
+    using native_cstring = native_char *;
 
     /**
      * @brief Number of pointer-sized objects for small object optimization.
@@ -2472,7 +2592,7 @@ namespace rainy::annotations {
         template <typename Ty>
         RAINY_NODISCARD consteval auto has() const noexcept -> bool {
             using namespace std::meta;
-            for (auto attn : std::span{attns, num_attns}) {
+            for (auto attn: std::span{attns, num_attns}) {
                 if (remove_const(type_of(attn)) == ^^Ty) {
                     return true;
                 }
@@ -2483,7 +2603,7 @@ namespace rainy::annotations {
         template <typename Ty>
         RAINY_NODISCARD consteval auto fetch() const -> Ty {
             using namespace std::meta;
-            for (auto attn : std::span{attns, num_attns}) {
+            for (auto attn: std::span{attns, num_attns}) {
                 if (remove_const(type_of(attn)) == ^^Ty) {
                     return extract<Ty>(attn);
                 }
@@ -2515,7 +2635,7 @@ namespace rainy::annotations {
         template <typename Ty>
         RAINY_NODISCARD consteval auto has() const noexcept -> bool {
             using namespace std::meta;
-            for (auto attn : std::span{attns, num_attns}) {
+            for (auto attn: std::span{attns, num_attns}) {
                 if (remove_const(type_of(attn)) == ^^Ty) {
                     return true;
                 }
@@ -2526,7 +2646,7 @@ namespace rainy::annotations {
         template <typename Ty>
         RAINY_NODISCARD consteval auto fetch() const -> Ty {
             using namespace std::meta;
-            for (auto attn : std::span{attns, num_attns}) {
+            for (auto attn: std::span{attns, num_attns}) {
                 if (remove_const(type_of(attn)) == ^^Ty) {
                     return extract<Ty>(attn);
                 }
@@ -2555,5 +2675,30 @@ namespace rainy::annotations {
 }
 
 #endif
+
+namespace rainy::core::implements {
+    constexpr bool is_pow_2(const std::size_t val) noexcept {
+        return val != 0 && (val & (val - 1)) == 0;
+    }
+
+    template <typename Ty>
+    constexpr std::size_t get_size_of_n(const std::size_t count) noexcept {
+        constexpr std::size_t type_size = sizeof(Ty);
+        if constexpr (constexpr bool overflow_is_possible = type_size > 1; overflow_is_possible) {
+            if (constexpr std::size_t max_possible = static_cast<std::size_t>(-1) / type_size; count > max_possible) {
+                std::terminate(); // multiply overflow
+            }
+        }
+        return type_size * count;
+    }
+
+    template <typename Integral>
+    RAINY_INLINE constexpr bool in_range(Integral start, Integral end, Integral wait_for_check) noexcept {
+        if (start > end) {
+            return false;
+        }
+        return wait_for_check >= start && wait_for_check <= end;
+    }
+}
 
 #endif

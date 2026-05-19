@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <rainy/foundation/io/net/executor/execution_context.hpp>
+#include <rainy/foundation/io/executor/execution_context.hpp>
 
-namespace rainy::foundation::io::net {
+namespace rainy::foundation::io {
     execution_context::service::service(execution_context &owner) : owner_(owner), next_(nullptr) {
     }
 
@@ -102,7 +102,7 @@ namespace rainy::foundation::io::net {
         // 二次检查：加锁后再确认是否已存在
         for (const service *s = first_service_; s; s = s->next_) {
             if (keys_match(s->key_, key)) {
-                exceptions::net::throw_service_already_exists("service already exists in execution_context");
+                exceptions::io::throw_service_already_exists("service already exists in execution_context");
             }
         }
         new_svc->key_ = key;

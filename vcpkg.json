@@ -1,0 +1,6 @@
+{
+  "name": "rainy-toolkit",
+  "dependencies": [
+    "openssl"
+  ]
+}

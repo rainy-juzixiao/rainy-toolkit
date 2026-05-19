@@ -16,6 +16,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <rainy/foundation/io/net/socket.hpp>
 
+using namespace rainy::foundation::io;
 using namespace rainy::foundation::io::net;
 
 namespace {
@@ -27,14 +28,14 @@ namespace {
 
         stub_endpoint() = default;
 
-        implements::raw_endpoint to_raw() const noexcept {
-            implements::raw_endpoint r;
+        net::implements::raw_endpoint to_raw() const noexcept {
+            net::implements::raw_endpoint r;
             r.family = af;
             r.size = 0;
             return r;
         }
 
-        static stub_endpoint from_raw(const implements::raw_endpoint &) noexcept {
+        static stub_endpoint from_raw(const net::implements::raw_endpoint &) noexcept {
             return {};
         }
     };
@@ -178,7 +179,7 @@ SCENARIO("basic_stream_socket can be constructed and opened", "[socket][basic_so
                 REQUIRE(sock.is_open());
             }
             THEN("native_handle() is valid") {
-                REQUIRE(sock.native_handle() != implements::invalid_socket_value);
+                REQUIRE(sock.native_handle() != net::implements::invalid_socket_value);
             }
         }
     }
@@ -245,7 +246,7 @@ SCENARIO("basic_socket assign and release round-trip the native handle", "[socke
             std::error_code ec;
             auto handle = src.release(ec);
             REQUIRE_FALSE(ec);
-            REQUIRE(handle != implements::invalid_socket_value);
+            REQUIRE(handle != net::implements::invalid_socket_value);
 
             dst.assign(stub_protocol{}, handle, ec);
 
@@ -390,10 +391,10 @@ SCENARIO("set_option and get_option round-trip SO_REUSEADDR", "[socket][basic_so
 
         WHEN("SO_REUSEADDR is enabled via set_option") {
             int enable = 1;
-            implements::socket_option opt{implements::sol_socket, implements::so_reuseaddr, &enable, sizeof(enable)};
+            net::implements::socket_option opt{net::implements::sol_socket, net::implements::so_reuseaddr, &enable, sizeof(enable)};
             std::error_code ec;
             ec =
-                sock.native_handle() != implements::invalid_socket_value ? std::error_code{} : make_error_code(socket_errc::not_found);
+                sock.native_handle() != net::implements::invalid_socket_value ? std::error_code{} : make_error_code(socket_errc::not_found);
 
             // 直接通过 impl_ 验证（白盒）
             // 因为 basic_socket 的 set_option 需要用户自定义 SettableSocketOption
@@ -593,7 +594,7 @@ SCENARIO("release() detaches the native handle", "[socket][basic_socket][release
             auto handle = sock.release(ec);
 
             THEN("returned handle is valid") {
-                REQUIRE(handle != implements::invalid_socket_value);
+                REQUIRE(handle != net::implements::invalid_socket_value);
             }
             THEN("socket is no longer open") {
                 REQUIRE_FALSE(sock.is_open());

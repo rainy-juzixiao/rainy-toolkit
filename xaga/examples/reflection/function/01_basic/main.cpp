@@ -1,7 +1,6 @@
-#include <rainy/collections/vector.hpp>
 #include <rainy/core/core.hpp>
 #include <rainy/foundation/concurrency/concurrency.hpp>
-#include <rainy/foundation/io/net/timer.hpp>
+#include <rainy/foundation/io/timer.hpp>
 
 #include <rainy/meta/moon/enumeration.hpp>
 #include <rainy/meta/reflection/enumeration.hpp>
@@ -63,9 +62,10 @@ int main() {
         std::cout << (int) entries.first << " : " << entries.second << '\n';
     }
 #endif
-
-    rainy::foundation::io::net::io_context ctx;
-    rainy::foundation::io::net::steady_timer timer(ctx, std::chrono::seconds{5});
+    rainy::foundation::io::io_context ctx;
+    rainy::foundation::io::steady_timer timer(ctx, std::chrono::seconds{5});
+    std::cout << "foundation::ctti::variable_name<aaa::enum_type::a>(): " << foundation::ctti::variable_name<aaa::enum_type::a>() << '\n';
+    std::cout << "foundation::ctti::variable_name<static_cast<aaa::enum_type>(1)>(): " << foundation::ctti::variable_name<static_cast<aaa::enum_type>(1)>() << '\n';
     timer.async_wait([](std::error_code ec) {
         if (!ec) {
             std::cout << "!!!\n";

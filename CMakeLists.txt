@@ -21,7 +21,7 @@ cmake_minimum_required(VERSION 3.22.1)
 file(READ "${CMAKE_SOURCE_DIR}/version.txt" VERSION)
 string(STRIP "${VERSION}" VERSION)
 
-project(rainy-toolkit VERSION 0.7.4 LANGUAGES CXX)
+project(rainy-toolkit VERSION ${VERSION} LANGUAGES CXX C)
 
 message(STATUS "Current rainy-toolkit version is ${VERSION}")
 
@@ -40,7 +40,7 @@ option(RAINY_BUILD_WITH_DYNAMIC
         "This option allows you build rainy-toolkit as a dynamic libraray." on)
 option(RAINY_USING_UTF8_INPUT_FOR_MSVC "Use utf-8 encoding for input. Reason: we need avoid mutilangauge problems." on)
 option(RAINY_USING_UTF8_OUTPUT_FOR_MSVC "Use utf-8 encoding for output. Reason: we need avoid mutilangauge problems." on)
-option(RAINY_USE_NODE_ADDON "Enable integration with node-addon-api (N-API)" OFF)
+option(RAINY_USE_NODE_ADDON "Enable integration with node-addon-api (N-API)" off)
 option(RAINY_USE_CXX26_RELFECTION_TS "Allows rainy-toolkit to use reflection ts of c++ 26 features for meta library" ON)
 
 include(${PROJECT_SOURCE_DIR}/cmake/utility.cmake)

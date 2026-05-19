@@ -26,7 +26,7 @@
  * and limitations under the License.
  */
 #include <cstdint>
-#include <rainy/core/implements/text/implements/ryu_table.hpp>
+#include <rainy/core/yesod/text/implements/ryu_table.hpp>
 
 // 参考 d2s_full_table.h
 // https://github.com/ulfjack/ryu/blob/master/ryu/d2s_full_table.h

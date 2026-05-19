@@ -18,9 +18,9 @@
 #include <optional>
 #include <rainy/annotations/moon.hpp>
 #include <rainy/core/core.hpp>
-#include <rainy/foundation/container/pair.hpp>
 #include <rainy/foundation/functional/functor.hpp>
 #include <rainy/foundation/typeinfo.hpp>
+#include <rainy/core/yesod/container/pair.hpp>
 
 // 目前C++26的静态反射不再需要ENUM_SCAN_BEGIN/ENUM_SCAN_END宏了，由编译器提供服务
 #if !(RAINY_HAS_CXX26 && RAINY_HAS_CXX26_STATIC_REFLECTION)
@@ -363,7 +363,8 @@ namespace rainy::meta::moon {
     template <typename Enum>
     constexpr rain_fn enum_name(Enum EnumValue)
         -> type_traits::other_trans::enable_if_t<type_traits::primary_types::is_enum_v<Enum>, std::string_view> {
-        for (constexpr auto entries = enum_entries<Enum>(); const auto &[enum_value, enum_name]: entries) {
+        constexpr auto entries = enum_entries<Enum>();
+        for (const auto &[enum_value, enum_name]: entries) {
             if (enum_value == EnumValue) {
                 return enum_name;
             }
@@ -396,7 +397,8 @@ namespace rainy::meta::moon {
     template <typename Enum, typename Pred = foundation::functional::equal<>>
     constexpr rain_fn enum_cast(std::string_view name, Pred pred = {}) noexcept
         -> implements::enable_if_t<Enum, std::optional<Enum>, Pred> {
-        for (constexpr auto entries = enum_entries<Enum>(); const auto &[enum_value, enum_name]: entries) {
+        constexpr auto entries = enum_entries<Enum>();
+        for (const auto &[enum_value, enum_name]: entries) {
             if (std::equal(name.begin(), name.end(), enum_name.begin(), enum_name.end(), pred)) {
                 return enum_value;
             }

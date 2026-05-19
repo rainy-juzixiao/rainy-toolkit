@@ -576,6 +576,9 @@ namespace rainy::meta::reflection {
 
     private:
         struct data {
+            data(const std::string_view name, const std::vector<metadata>& metadatas) : name(name), metadata_(metadatas) {
+            }
+
             std::string_view name;
             std::vector<metadata> metadata_;
         };

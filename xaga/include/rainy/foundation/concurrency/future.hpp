@@ -91,7 +91,7 @@ namespace rainy::foundation::concurrency {
     template <typename Fx, typename Arg>
     struct then_result {
         using raw = std::invoke_result_t<type_traits::other_trans::decay_t<Fx>, Arg>;
-        using type = is_future<raw>::inner; // 展平一层
+        using type = typename is_future<raw>::inner; // 展平一层
         using is_wrapped = is_future<raw>;
     };
 
@@ -616,7 +616,7 @@ namespace rainy::foundation::concurrency {
         }
 
         template <typename Exec, typename Fx, typename Raw = std::invoke_result_t<type_traits::other_trans::decay_t<Fx>, Ty>,
-                  typename UTy = is_future<Raw>::inner>
+                  typename UTy = typename is_future<Raw>::inner>
         rain_fn then(Exec &&exec, Fx &&fx) -> monad_future<UTy> {
             return then_impl<UTy, Raw>(wrap_executor(utility::forward<Exec>(exec)), utility::forward<Fx>(fx));
         }

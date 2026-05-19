@@ -30,7 +30,7 @@ namespace rainy::foundation::io::net::ip {
          */
         constexpr network_v4(const address_v4 &addr, int prefix_len) : addr_{addr}, prefix_len_{prefix_len} {
             if (prefix_len_ < 0 || prefix_len_ > 32) {
-                exceptions::net::throw_bad_address_cast(diagnostics::source_location::current());
+                exceptions::io::throw_bad_address_cast(diagnostics::source_location::current());
             }
         }
 
@@ -112,19 +112,15 @@ namespace rainy::foundation::io::net::ip {
             return (network().to_uint() & other.netmask().to_uint()) == other.network().to_uint();
         }
 
-        // ── to_string（CIDR 记法，例如 "192.168.1.0/24"）──────────────────
-
         template <typename Allocator = std::allocator<char>>
         text::basic_string<char, text::char_traits<char>, Allocator> to_string(const Allocator &alloc = Allocator()) const {
             auto result = network().to_string(alloc);
             result += '/';
             char len_buf[4]{};
-            auto [ptr, ec] = std::to_chars(len_buf, len_buf + sizeof(len_buf), prefix_len_);
+            auto [ptr, ec] = text::to_chars(len_buf, len_buf + sizeof(len_buf), prefix_len_);
             result.append(len_buf, ptr);
             return result;
         }
-
-        // ── 比较（canonical 形式下按网络地址+前缀长度排序）──────────────────
 
         friend constexpr bool operator==(const network_v4 &a, const network_v4 &b) noexcept {
             return a.prefix_len_ == b.prefix_len_ && a.network() == b.network();
@@ -153,7 +149,7 @@ namespace rainy::foundation::io::net::ip {
             const address_v4::uint_type tail_mask = len == 32 ? address_v4::uint_type{0} : ~(~address_v4::uint_type{0} << (32 - len));
             if (m & tail_mask) {
                 // 非连续掩码
-                exceptions::net::throw_bad_address_cast(diagnostics::source_location::current());
+                exceptions::io::throw_bad_address_cast(diagnostics::source_location::current());
             }
             return len;
         }
@@ -187,7 +183,7 @@ namespace rainy::foundation::io::net::ip {
          */
         constexpr network_v6(const address_v6 &addr, int prefix_len) : addr_{addr}, prefix_len_{prefix_len} {
             if (prefix_len_ < 0 || prefix_len_ > 128) {
-                exceptions::net::throw_bad_address_cast(diagnostics::source_location::current());
+                exceptions::io::throw_bad_address_cast(diagnostics::source_location::current());
             }
         }
 
@@ -246,7 +242,7 @@ namespace rainy::foundation::io::net::ip {
             auto result = network().to_string(alloc);
             result += '/';
             char len_buf[4]{};
-            auto [ptr, ec] = std::to_chars(len_buf, len_buf + sizeof(len_buf), prefix_len_);
+            auto [ptr, ec] = text::to_chars(len_buf, len_buf + sizeof(len_buf), prefix_len_);
             result.append(len_buf, ptr);
             return result;
         }
@@ -260,10 +256,6 @@ namespace rainy::foundation::io::net::ip {
         }
 
     private:
-        /*
-         * 将 bytes（16 字节大端）的低 (128 - prefix_len) 位清零。
-         * 纯字节操作，无平台依赖，constexpr 安全。
-         */
         static constexpr void apply_prefix_mask(address_v6::bytes_type &bytes, int prefix_len) noexcept {
             // 完整掩码字节数
             const int full_bytes = prefix_len / 8;

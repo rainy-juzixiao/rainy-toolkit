@@ -1,0 +1,147 @@
+name: Ubuntu Linux [CI Test]
+
+permissions:
+  contents: read
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  build-debug:
+    name: Build Debug (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    if: |
+      github.event_name == 'pull_request' || 
+      (github.event_name == 'push' && !github.event.pull_request)
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+          - arch: x64
+            runner: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Prepare Environment
+        uses: ./.github/actions/linux/prepare-environment
+        with:
+          runner: ${{ matrix.runner }}
+          arch: ${{ matrix.arch }}
+
+      - name: Configure CMake (Debug)
+        run: |
+          cmake -S . -B build-debug \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -G Ninja
+
+      - name: Build (Debug)
+        run: cmake --build build-debug -j$(nproc)
+
+      - name: Cache debug build
+        uses: actions/cache/save@v4
+        with:
+          path: build-debug
+          key: debug-${{ matrix.runner }}-${{ github.sha }}
+
+  build-release:
+    name: Build Release (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    if: |
+      github.event_name == 'pull_request' || 
+      (github.event_name == 'push' && !github.event.pull_request)
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+          - arch: x64
+            runner: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Prepare Environment
+        uses: ./.github/actions/linux/prepare-environment
+        with:
+          runner: ${{ matrix.runner }}
+          arch: ${{ matrix.arch }}
+
+      - name: Configure CMake (Release)
+        run: |
+          cmake -S . -B build-release \
+            -DCMAKE_BUILD_TYPE=Release \
+            -G Ninja
+
+      - name: Build (Release)
+        run: cmake --build build-release -j$(nproc)
+
+      - name: Cache release build
+        uses: actions/cache/save@v4
+        with:
+          path: build-release
+          key: release-${{ matrix.runner }}-${{ github.sha }}
+
+  test:
+    name: Test (${{ matrix.arch }})
+    needs: [build-debug, build-release]
+    runs-on: ${{ matrix.runner }}
+    if: |
+      github.event_name == 'pull_request' || 
+      (github.event_name == 'push' && !github.event.pull_request)
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+          - arch: x64
+            runner: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Prepare Environment
+        uses: ./.github/actions/linux/prepare-environment
+        with:
+          runner: ${{ matrix.runner }}
+          arch: ${{ matrix.arch }}
+
+      - name: Restore debug build
+        uses: actions/cache/restore@v4
+        with:
+          path: build-debug
+          key: debug-${{ matrix.runner }}-${{ github.sha }}
+          fail-on-cache-miss: true
+
+      - name: Restore release build
+        uses: actions/cache/restore@v4
+        with:
+          path: build-release
+          key: release-${{ matrix.runner }}-${{ github.sha }}
+          fail-on-cache-miss: true
+
+      - name: Fix permissions
+        run: |
+          find build-debug -type f -executable -exec chmod +x {} \; 2>/dev/null || true
+          find build-release -type f -executable -exec chmod +x {} \; 2>/dev/null || true
+
+      - name: Run tests (Debug)
+        run: ctest --test-dir build-debug --output-on-failure
+
+      - name: Run tests (Release)
+        run: ctest --test-dir build-release --output-on-failure

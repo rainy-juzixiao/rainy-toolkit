@@ -38,6 +38,10 @@ struct SimpleStruct {
     char c;
 };
 
+#if RAINY_IS_CXX17
+RAINY_REFLECT_TUPLE_LIKE(SimpleStruct, a, b, c);
+#endif
+
 struct ComplexStruct {
     int id;
     std::string name;
@@ -45,7 +49,16 @@ struct ComplexStruct {
     bool active;
 };
 
+
+#if RAINY_IS_CXX17
+RAINY_REFLECT_TUPLE_LIKE(ComplexStruct, id, name, value, active);
+#endif
+
 struct EmptyStruct {};
+
+#if RAINY_IS_CXX17
+RAINY_REFLECT_TUPLE_LIKE_MARK_EMPTY(EmptyStruct);
+#endif
 
 struct RegisteredStruct {
     int x;
@@ -404,11 +417,14 @@ TEST_CASE("is_reflectet_for_type_valid", "[moon][reflectet_for_type]") {
         REQUIRE(is_reflectet_for_type_valid<PrivateClass>);
         REQUIRE(is_reflectet_for_type_valid<std::pair<int, int>>);
     }
-
+#if RAINY_HAS_CXX20
     SECTION("non-registered aggregate types are invalid") {
         REQUIRE_FALSE(is_reflectet_for_type_valid<SimpleStruct>);
     }
+#endif
 }
+
+#if RAINY_HAS_CXX20
 
 TEMPLATE_TEST_CASE("template struct reflection", "[moon][template]", int, double, std::string) {
     using Struct = TemplateStruct<TestType>;
@@ -419,6 +435,8 @@ TEMPLATE_TEST_CASE("template struct reflection", "[moon][template]", int, double
     REQUIRE(names[0] == "value");
     REQUIRE(names[1] == "count");
 }
+
+#endif
 
 TEST_CASE("compile-time constexpr evaluation", "[moon][constexpr]") {
     SECTION("member_count is constexpr") {

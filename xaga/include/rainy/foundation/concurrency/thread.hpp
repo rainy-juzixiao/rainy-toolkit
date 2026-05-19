@@ -198,7 +198,7 @@ namespace rainy::foundation::concurrency {
             return left.id_ <=> right.id_;
         }
 #else
-        friend bool operator<(annotations::lifetime::in<id> left, annotations::lifetime::in<id> right) noexcept;
+        friend bool operator<(id left, id right) noexcept;
 #endif
 
         template <typename Elem, typename Traits>

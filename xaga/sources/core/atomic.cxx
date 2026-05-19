@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 #include <rainy/core/core.hpp>
-#include <rainy/core/implements/arm64_intrin.hpp>
 
 #if RAINY_USING_WINDOWS
 #ifndef WIN32_LEAN_AND_MEAN

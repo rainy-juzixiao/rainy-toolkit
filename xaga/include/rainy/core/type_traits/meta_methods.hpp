@@ -17,6 +17,8 @@
 #define RAINY_CORE_TYPE_TRAITS_META_METHOD_HPP
 #include <rainy/core/platform.hpp>
 #include <rainy/core/type_traits/implements.hpp>
+#include <rainy/core/type_traits/properties.hpp>
+#include <rainy/core/type_traits/primary_types.hpp>
 #include <rainy/core/type_traits/templates.hpp>
 
 namespace rainy::type_traits::extras::meta_method {
@@ -1891,7 +1893,7 @@ namespace rainy::type_traits::extras::meta_method {
      *            提供 size() 的类型
      */
     template <typename Ty>
-    RAINY_CONSTEXPR_BOOL has_size_v<Ty, type_traits::other_trans::void_t<decltype(utility::declval<Ty &>().size())>> = true;
+    RAINY_CONSTEXPR_BOOL has_size_v<Ty, type_traits::other_trans::void_t<decltype(utility::declval<const Ty &>().size())>> = true;
 
     /**
      * @brief Type template for checking if a type has a size() member function.

@@ -16,13 +16,13 @@
 #include <rainy/core/core.hpp>
 
 #if RAINY_USING_WINDOWS
-#include <rainy/foundation/pal/implements/tgc_layer_module_context.hpp>
+#include <rainy/foundation/dynamic_library/module_context.hpp>
 #include <string>
 #include <vector>
 #include <windows.h>
 
-namespace rainy::foundation::pal::module_context::implements {
-    RAINY_TOOLKIT_LOCAL_API static bool is_absolute_path(const std::string_view file_name) {
+namespace rainy::foundation::dyanmic_library::implements {
+    RAINY_TOOLKIT_LOCAL_API static bool is_absolute_path(const text::string_view file_name) {
         // Windows绝对路径：带盘符 (C:\...) 或 UNC 路径 (\\...)
         if (file_name.size() >= 3 && std::isalpha(static_cast<unsigned char>(file_name[0])) && file_name[1] == ':' &&
             (file_name[2] == '\\' || file_name[2] == '/')) {
@@ -34,7 +34,7 @@ namespace rainy::foundation::pal::module_context::implements {
         return false;
     }
 
-    RAINY_TOOLKIT_LOCAL_API static bool file_exist(const std::wstring &file_name) {
+    RAINY_TOOLKIT_LOCAL_API static bool file_exist(const text::wstring &file_name) {
         DWORD attr = GetFileAttributesW(file_name.c_str());
         return (attr != INVALID_FILE_ATTRIBUTES && !(attr & FILE_ATTRIBUTE_DIRECTORY));
     }
@@ -50,16 +50,19 @@ namespace rainy::foundation::pal::module_context::implements {
     }
 }
 
-namespace rainy::foundation::pal::module_context::implements {
-    core::handle load_module(const std::string_view module_path, const bool crossplatform) noexcept {
+namespace rainy::foundation::dyanmic_library::implements {
+    core::handle load_module(const text::string_view module_path, const bool crossplatform) noexcept {
         core::handle hand = 0;
         if (crossplatform) {
-            const std::vector<std::wstring> prefix_list = {L"", L"lib"};
-            const std::vector<std::wstring> suffix_list = {L".dll"};
+            const std::vector<text::wstring> prefix_list = {L"", L"lib"};
+            const std::vector<text::wstring> suffix_list = {L".dll"};
             // module_path 转宽字符，用于前后缀判断
-            const std::wstring wide_path(module_path.begin(), module_path.end());
+            foundation::text::wstring_convert<foundation::text::codecvt_utf8<wchar_t>, foundation::text::basic_string, wchar_t,
+                                              std::char_traits, text::wstring::allocator_type, text::string::allocator_type>
+                converter;
+            const text::wstring wide_path = converter.from_bytes(module_path.begin(), module_path.end());
             rainy_let retry = true;
-            std::wstring attempt;
+            text::wstring attempt;
             for (rainy_let prefix = 0u; retry && !hand && prefix < prefix_list.size(); ++prefix) {
                 for (rainy_let suffix = 0u; retry && !hand && suffix < suffix_list.size(); ++suffix) {
                     // 已有对应前缀则跳过（与Linux逻辑对称）
@@ -87,14 +90,14 @@ namespace rainy::foundation::pal::module_context::implements {
         return hand;
     }
 
-    core::handle try_to_get_module(const std::string_view module_path, const bool crossplatform) noexcept {
+    core::handle try_to_get_module(const text::string_view module_path, const bool crossplatform) noexcept {
         core::handle hand = 0;
         if (crossplatform) {
-            const std::vector<std::wstring> prefix_list = {L"", L"lib"};
-            const std::vector<std::wstring> suffix_list = {L".dll"};
-            const std::wstring wide_path(module_path.begin(), module_path.end());
+            const std::vector<text::wstring> prefix_list = {L"", L"lib"};
+            const std::vector<text::wstring> suffix_list = {L".dll"};
+            const text::wstring wide_path(module_path.begin(), module_path.end());
             rainy_let retry = true;
-            std::wstring attempt;
+            text::wstring attempt;
             for (rainy_let prefix = 0u; retry && !hand && prefix < prefix_list.size(); ++prefix) {
                 for (rainy_let suffix = 0u; retry && !hand && suffix < suffix_list.size(); ++suffix) {
                     if (!prefix_list[prefix].empty() && wide_path.starts_with(prefix_list[prefix])) {
@@ -104,7 +107,6 @@ namespace rainy::foundation::pal::module_context::implements {
                         continue;
                     }
                     attempt = prefix_list[prefix] + wide_path + suffix_list[suffix];
-                    // 对应 RTLD_NOLOAD：仅查询已加载，不触发新加载
                     HMODULE mod = GetModuleHandleW(attempt.c_str());
                     hand = to_handle(mod);
                     if (!hand && is_absolute_path(module_path) && file_exist(attempt)) {
@@ -120,12 +122,12 @@ namespace rainy::foundation::pal::module_context::implements {
         return hand;
     }
 
-    farproc_fn load_symbol(const core::handle handle, const std::string_view symbol_name) noexcept {
+    farproc_fn load_symbol(const core::handle handle, const text::string_view symbol_name) noexcept {
         if (!handle) {
             return nullptr;
         }
         HMODULE mod = from_handle(handle);
-        FARPROC proc = GetProcAddress(mod, std::string(symbol_name).c_str());
+        FARPROC proc = GetProcAddress(mod, text::string(symbol_name).c_str());
         if (!proc) {
             return nullptr;
         }

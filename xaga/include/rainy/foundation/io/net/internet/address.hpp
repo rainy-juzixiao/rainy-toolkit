@@ -16,10 +16,9 @@
 #ifndef RAINY_FOUNDATION_IO_NET_IO_INTERNET_ADDRESS_HPP
 #define RAINY_FOUNDATION_IO_NET_IO_INTERNET_ADDRESS_HPP
 #include <rainy/core/core.hpp>
-#include <rainy/foundation/io/net/fwd.hpp>
 #include <rainy/foundation/io/net/implements/addr.hpp>
 
-namespace rainy::foundation::exceptions::net {
+namespace rainy::foundation::exceptions::io {
     class bad_address_cast : public runtime::runtime_error {
     public:
         bad_address_cast(const source &location) : runtime_error("bad address cast", location) { // NOLINT
@@ -271,7 +270,7 @@ namespace rainy::foundation::io::net::ip {
             text::basic_string<char, text::char_traits<char>, Allocator> result(buf, alloc);
             if (scope_id_ != 0) {
                 char scope_buf[12]{};
-                auto [ptr, ec] = std::to_chars(scope_buf, scope_buf + sizeof(scope_buf), scope_id_);
+                auto [ptr, ec] = text::to_chars(scope_buf, scope_buf + sizeof(scope_buf), scope_id_);
                 result += '%';
                 result.append(scope_buf, ptr);
             }
@@ -375,14 +374,14 @@ namespace rainy::foundation::io::net::ip {
 
         RAINY_NODISCARD constexpr address_v4 to_v4() const {
             if (!is_v4_) {
-                exceptions::net::throw_bad_address_cast(diagnostics::source_location::current());
+                exceptions::io::throw_bad_address_cast(diagnostics::source_location::current());
             }
             return v4_;
         }
 
         RAINY_NODISCARD constexpr address_v6 to_v6() const {
             if (is_v4_) {
-                exceptions::net::throw_bad_address_cast(diagnostics::source_location::current());
+                exceptions::io::throw_bad_address_cast(diagnostics::source_location::current());
             }
             return v6_;
         }
@@ -454,7 +453,7 @@ namespace rainy::foundation::io::net::ip {
 
     constexpr address_v4 make_address_v4(v4_mapped_t, const address_v6 &v6) {
         if (!v6.is_v4_mapped()) {
-            exceptions::net::throw_bad_address_cast(diagnostics::source_location::current());
+            exceptions::io::throw_bad_address_cast(diagnostics::source_location::current());
         }
         const auto b6 = v6.to_bytes();
         const address_v4::bytes_type b4{b6[12], b6[13], b6[14], b6[15]}; // NOLINT
@@ -654,7 +653,7 @@ namespace rainy::foundation::io::net::ip {
                 constexpr int sz = static_cast<int>(sizeof(std::size_t));
                 for (int i = 0; i < 16 - sz; ++i) {
                     if (diff[i] != 0) {
-                        return utility::numeric_limits<std::size_t>::max();
+                         return (utility::numeric_limits<std::size_t>::max)();
                     }
                 }
                 // 低 sz 字节组合为 size_t（大端）

@@ -19,7 +19,6 @@
 // NOLINTBEGIN
 
 #include <cstdint>
-#include <rainy/collections/vector.hpp>
 #include <rainy/core/core.hpp>
 #include <system_error>
 
@@ -83,14 +82,11 @@ namespace rainy::foundation::io::net::ip::implements {
         char canonical_name[256]{};
     };
 
-    // 正向解析：host/service → 地址列表
-    // 实现在 addr.win.cxx / addr.linux.cxx 里调用 getaddrinfo
-    std::error_code resolve(const char *host, const char *service, int family, int socktype, int protocol, int flags,
+    RAINY_TOOLKIT_API std::error_code resolve(const char *host, const char *service, int family, int socktype, int protocol, int flags,
                             collections::vector<resolved_entry> &out) noexcept;
 
-    // 反向解析：地址 → host/service
-    // 实现在 addr.win.cxx / addr.linux.cxx 里调用 getnameinfo
-    std::error_code reverse_resolve(const void *addr_data, int addr_len, char *host_buf, std::size_t host_buf_size, char *svc_buf,
+    RAINY_TOOLKIT_API std::error_code reverse_resolve(const void *addr_data, int addr_len, char *host_buf, std::size_t host_buf_size,
+                                                     char *svc_buf,
                                     std::size_t svc_buf_size) noexcept;
 }
 

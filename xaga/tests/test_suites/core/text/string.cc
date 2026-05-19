@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <rainy/collections/vector.hpp>
 #include <rainy/core/core.hpp>
 
 #include <catch2/catch_approx.hpp>
@@ -22,6 +21,7 @@
 #include <catch2/matchers/catch_matchers_string.hpp>
 #include <limits>
 #include <memory>
+#include <sstream>
 
 using namespace rainy::foundation::text;
 

@@ -55,4 +55,6 @@ SpacesInCStyleCastParentheses: false
 SpacesInParentheses: false
 FixNamespaceComments: false
 UseTab: Never
+RemoveBracesLLVM: false
+InsertBraces: true
 ...
