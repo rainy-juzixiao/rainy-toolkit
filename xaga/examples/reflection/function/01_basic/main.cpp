@@ -15,9 +15,9 @@ using namespace rainy;
 #include <print>
 
 namespace aaa {
-    enum class enum_type {
+    enum class[[= rainy::annotations::moon::with_prefix("enum_")]] enum_type {
         a[[ = 1, = rainy::annotations::moon::ignore ]],
-        b = 2,
+        b[[= 2, = rainy::annotations::moon::rename("beta") ,= rainy::annotations::moon::all_caps]],
         c = 3,
         d = 99999
     };
@@ -64,8 +64,10 @@ int main() {
 #endif
     rainy::foundation::io::io_context ctx;
     rainy::foundation::io::steady_timer timer(ctx, std::chrono::seconds{5});
-    std::cout << "foundation::ctti::variable_name<aaa::enum_type::a>(): " << foundation::ctti::variable_name<aaa::enum_type::a>() << '\n';
-    std::cout << "foundation::ctti::variable_name<static_cast<aaa::enum_type>(1)>(): " << foundation::ctti::variable_name<static_cast<aaa::enum_type>(1)>() << '\n';
+    std::cout << "foundation::ctti::variable_name<aaa::enum_type::a>(): " << foundation::ctti::variable_name<aaa::enum_type::a>()
+              << '\n';
+    std::cout << "foundation::ctti::variable_name<static_cast<aaa::enum_type>(1)>(): "
+              << foundation::ctti::variable_name<static_cast<aaa::enum_type>(1)>() << '\n';
     timer.async_wait([](std::error_code ec) {
         if (!ec) {
             std::cout << "!!!\n";
