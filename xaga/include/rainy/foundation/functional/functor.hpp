@@ -15,7 +15,7 @@
  */
 #ifndef RAINY_FOUNDATION_FUNCTIONAL_FUNCTOR_HPP
 #define RAINY_FOUNDATION_FUNCTIONAL_FUNCTOR_HPP
-#include <rainy/core/core.hpp>
+#include <rainy/core/platform.hpp>
 
 namespace rainy::foundation::functional {
     template <typename Ty = void>

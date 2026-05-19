@@ -15,8 +15,8 @@
  */
 #define _CRT_SECURE_NO_WARNINGS // 禁用Secure CRT警告
 
-#include <rainy/core/implements/text/string.hpp>
-#include <rainy/core/implements/text/wstring_convert.hpp>
+#include <rainy/core/yesod/text/string.hpp>
+#include <rainy/core/yesod/text/wstring_convert.hpp>
 #include <rainy/core/layer.hpp>
 
 #include <cerrno>

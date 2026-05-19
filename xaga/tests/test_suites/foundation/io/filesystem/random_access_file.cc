@@ -2,7 +2,6 @@
 #include <cstring>
 #include <filesystem>
 #include <fstream>
-#include <rainy/collections/vector.hpp>
 #include <rainy/foundation/io/filesystem/random_access_file.hpp>
 
 namespace fs = std::filesystem;

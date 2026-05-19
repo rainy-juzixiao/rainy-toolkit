@@ -16,12 +16,12 @@
 #include <rainy/core/core.hpp>
 
 #if RAINY_USING_WINDOWS
-#include <rainy/foundation/pal/implements/tgc_layer_module_context.hpp>
+#include <rainy/foundation/dynamic_library/module_context.hpp>
 #include <string>
 #include <vector>
 #include <windows.h>
 
-namespace rainy::foundation::pal::module_context::implements {
+namespace rainy::foundation::dyanmic_library::implements {
     RAINY_TOOLKIT_LOCAL_API static bool is_absolute_path(const text::string_view file_name) {
         // Windows绝对路径：带盘符 (C:\...) 或 UNC 路径 (\\...)
         if (file_name.size() >= 3 && std::isalpha(static_cast<unsigned char>(file_name[0])) && file_name[1] == ':' &&
@@ -50,7 +50,7 @@ namespace rainy::foundation::pal::module_context::implements {
     }
 }
 
-namespace rainy::foundation::pal::module_context::implements {
+namespace rainy::foundation::dyanmic_library::implements {
     core::handle load_module(const text::string_view module_path, const bool crossplatform) noexcept {
         core::handle hand = 0;
         if (crossplatform) {

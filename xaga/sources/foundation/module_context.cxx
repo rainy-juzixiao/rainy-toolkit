@@ -13,26 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include <rainy/foundation/dynamic_library/module_context.hpp>
 #include <filesystem>
-#include <rainy/foundation/pal/module_context.hpp>
 
-namespace rainy::foundation::pal::module_context {
-    struct context::context_private {
+namespace rainy::foundation::dyanmic_library {
+    struct module_context::module_context_private {
         core::handle handle{0};
         bool is_observe{false};
     };
 
-    context::context_private *context::create_ctx() {
-        return new context_private; // NOLINT
+    module_context::module_context_private *module_context::create_ctx() {
+        return new module_context_private; // NOLINT
     }
 
-    void context::destroy_ctx(context_private const *ctx) {
+    void module_context::destroy_ctx(module_context_private const *ctx) {
         if (ctx) { // NOLINT
             delete ctx;
         }
     }
 
-    context::context(const std::string_view module_path, const bool load) noexcept {
+    module_context::module_context(const std::string_view module_path, const bool load) noexcept {
         namespace fs = std::filesystem;
         rainy_const ctx = create_ctx();
         if (load) {
@@ -48,11 +48,11 @@ namespace rainy::foundation::pal::module_context {
         this->private_ = ctx;
     }
 
-    context::context(context &&right) noexcept {
+    module_context::module_context(module_context &&right) noexcept {
         this->private_ = utility::exchange(right.private_, {});
     }
 
-    context &context::operator=(context &&right) noexcept {
+    module_context &module_context::operator=(module_context &&right) noexcept {
         if (this == &right) {
             return *this;
         }
@@ -67,7 +67,7 @@ namespace rainy::foundation::pal::module_context {
         return *this;
     }
 
-    context::~context() {
+    module_context::~module_context() {
         release();
         if (private_) {
             destroy_ctx(private_);
@@ -75,7 +75,7 @@ namespace rainy::foundation::pal::module_context {
         }
     }
 
-    bool context::release() noexcept { // NOLINT
+    bool module_context::release() noexcept { // NOLINT
         if (is_loaded()) {
             if (!is_observe()) {
                 if (!implements::release_module(&private_->handle)) {
@@ -89,7 +89,7 @@ namespace rainy::foundation::pal::module_context {
         return false;
     }
 
-    bool context::load(const std::string_view module_path) noexcept {
+    bool module_context::load(const std::string_view module_path) noexcept {
         namespace fs = std::filesystem;
         release();
         if (!private_) {
@@ -103,7 +103,7 @@ namespace rainy::foundation::pal::module_context {
         return true;
     }
 
-    bool context::try_get_module(const std::string_view module_path) noexcept {
+    bool module_context::try_get_module(const std::string_view module_path) noexcept {
         namespace fs = std::filesystem;
         release();
         if (!private_) {
@@ -117,28 +117,28 @@ namespace rainy::foundation::pal::module_context {
         return true;
     }
 
-    farproc_fn context::load_symbol(const std::string_view symbol_name) const noexcept {
+    farproc_fn module_context::load_symbol(const std::string_view symbol_name) const noexcept {
         if (is_loaded()) {
             return implements::load_symbol(private_->handle, symbol_name);
         }
         return nullptr;
     }
 
-    bool context::is_loaded() const noexcept {
+    bool module_context::is_loaded() const noexcept {
         if (!private_) {
             return false;
         }
         return private_->handle != 0;
     }
 
-    bool context::is_observe() const noexcept {
+    bool module_context::is_observe() const noexcept {
         if (is_loaded()) {
             return private_->is_observe;
         }
         return false;
     }
 
-    void *context::native_handle() const noexcept {
+    void *module_context::native_handle() const noexcept {
         if (is_loaded()) {
             return reinterpret_cast<void *>(private_->handle);
         }

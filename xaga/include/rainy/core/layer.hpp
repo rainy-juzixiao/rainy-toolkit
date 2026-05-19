@@ -2952,6 +2952,46 @@ namespace rainy::core::pal {
      *                      输出缓冲区大小
      */
     RAINY_TOOLKIT_API rain_fn demangle(czstring name, cstring buf, std::size_t buffer_length) -> void;
+
+    /**
+     * @brief Triggers a debug breakpoint.
+     *        触发调试断点。
+     *
+     * @note This function will always trigger a breakpoint regardless of whether
+     *       a debugger is attached. Use with caution in production code.
+     *       无论是否有调试器附加，此函数都会触发断点。在生产代码中请谨慎使用。
+     */
+    RAINY_TOOLKIT_API void breakpoint() noexcept;
+
+    /**
+     * @brief Triggers a debug breakpoint only if a debugger is present.
+     *        仅在调试器存在时触发调试断点。
+     *
+     * @note This function checks whether a debugger is attached before triggering
+     *       the breakpoint, making it safer for use in debug builds.
+     *       此函数在触发断点前会检查是否有调试器附加，使其在调试构建中使用更安全。
+     *
+     * @see is_debugger_present()
+     * @see breakpoint()
+     */
+    RAINY_TOOLKIT_API void breakpoint_if_debugging() noexcept;
+
+    /**
+     * @brief Checks whether a debugger is currently attached to the process.
+     *        检查当前是否有调试器附加到进程。
+     *
+     * @return true  A debugger is present
+     *               存在调试器
+     * @return false No debugger is present
+     *               不存在调试器
+     *
+     * @note This function is typically used to conditionally enable debug-only
+     *       behavior such as breakpoints or logging.
+     *       此函数通常用于条件性地启用仅调试行为，如断点或日志记录。
+     *
+     * @see breakpoint_if_debugging()
+     */
+    RAINY_TOOLKIT_API bool is_debugger_present() noexcept;
 }
 
 namespace rainy::core::pal {
@@ -3691,80 +3731,6 @@ namespace rainy::core::pal {
      *        插入写内存屏障。
      */
     RAINY_TOOLKIT_API rain_fn write_barrier() noexcept -> void;
-}
-
-namespace rainy::core::pal {
-    /* memory io */
-
-    /**
-     * @brief Checks if a pointer is aligned to the specified alignment.
-     *        检查指针是否按指定对齐方式对齐。
-     *
-     * @param ptr The pointer to check
-     *            要检查的指针
-     * @param alignment The alignment requirement
-     *                  对齐要求
-     * @return true if aligned, false otherwise
-     *         如果对齐则为true，否则为false
-     */
-    RAINY_TOOLKIT_API rain_fn is_aligned(void *ptr, std::size_t alignment) -> bool;
-
-    /**
-     * @brief Allocates memory of the specified size.
-     *        分配指定大小的内存。
-     *
-     * @param size The size to allocate in bytes
-     *             要分配的字节数
-     * @return Pointer to the allocated memory, or nullptr on failure
-     *         指向已分配内存的指针，失败时返回nullptr
-     */
-    RAINY_TOOLKIT_API rain_fn allocate(std::size_t size) noexcept -> void *;
-
-    /**
-     * @brief Allocates aligned memory of the specified size.
-     *        分配指定大小的对齐内存。
-     *
-     * @param size The size to allocate in bytes
-     *             要分配的字节数
-     * @param alignment The alignment requirement
-     *                  对齐要求
-     * @return Pointer to the allocated memory, or nullptr on failure
-     *         指向已分配内存的指针，失败时返回nullptr
-     */
-    RAINY_TOOLKIT_API rain_fn allocate(std::size_t size, std::size_t alignment) noexcept -> void *;
-
-    /**
-     * @brief Deallocates memory previously allocated with allocate().
-     *        释放之前使用allocate()分配的内存。
-     *
-     * @param block Pointer to the memory to deallocate
-     *              要释放的内存指针
-     */
-    RAINY_TOOLKIT_API rain_fn deallocate(void *block) -> void;
-
-    /**
-     * @brief Deallocates aligned memory.
-     *        释放对齐的内存。
-     *
-     * @param block Pointer to the memory to deallocate
-     *              要释放的内存指针
-     * @param alignment The alignment that was used for allocation
-     *                  分配时使用的对齐方式
-     */
-    RAINY_TOOLKIT_API rain_fn deallocate(void *block, std::size_t alignment) -> void;
-
-    /**
-     * @brief Deallocates memory with full allocation parameters.
-     *        使用完整的分配参数释放内存。
-     *
-     * @param ptr Pointer to the memory to deallocate
-     *            要释放的内存指针
-     * @param size The size that was allocated
-     *             分配的大小
-     * @param alignment The alignment that was used
-     *                  使用的对齐方式
-     */
-    RAINY_TOOLKIT_API rain_fn deallocate(void *ptr, std::size_t size, std::size_t alignment) -> void;
 }
 
 namespace rainy::core::pal {

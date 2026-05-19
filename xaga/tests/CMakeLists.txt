@@ -41,8 +41,32 @@ endif ()
 
 find_package(OpenSSL)
 if(OpenSSL_FOUND)
-    target_link_libraries(rainy-toolkit-test PRIVATE OpenSSL::applink OpenSSL::SSL)
+    target_link_libraries(rainy-toolkit-test PRIVATE OpenSSL::SSL OpenSSL::Crypto)
     target_compile_definitions(rainy-toolkit-test PRIVATE RAINY_HAS_OPENSSL=1)
+
+    if(WIN32 AND MSVC)
+        find_file(OPENSSL_APPLINK_FILE
+            NAMES applink.c
+            PATHS
+                "${OPENSSL_INCLUDE_DIR}/openssl"
+                "${OPENSSL_INCLUDE_DIR}/../openssl"
+                "${OPENSSL_INCLUDE_DIR}/../"
+            NO_DEFAULT_PATH
+        )
+
+        if(OPENSSL_APPLINK_FILE)
+            message(STATUS "Found OpenSSL applink.c: ${OPENSSL_APPLINK_FILE}")
+            target_sources(rainy-toolkit-test PRIVATE ${OPENSSL_APPLINK_FILE})
+            set_source_files_properties(${OPENSSL_APPLINK_FILE}
+                PROPERTIES LANGUAGE C
+            )
+        else()
+            message(WARNING "Cannot find applink.c under ${OPENSSL_INCLUDE_DIR}")
+            if(TARGET OpenSSL::applink)
+                target_link_libraries(rainy-toolkit-test PRIVATE OpenSSL::applink)
+            endif()
+        endif()
+    endif()
 else()
-    target_compile_definitions(rainy-toolkit-test PRIVATE RAINY_HAS_OPENSSL=0)    
+    target_compile_definitions(rainy-toolkit-test PRIVATE RAINY_HAS_OPENSSL=0)
 endif()

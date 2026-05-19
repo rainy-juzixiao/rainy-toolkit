@@ -28,7 +28,7 @@ namespace rainy::foundation::io::stream::implements {
 
     class descriptor_impl_base {
     public:
-        using native_handle_type = native_handle_type;
+        using native_handle_type = stream::native_handle_type; // NOLINT
 
         using completion_op = io::implements::completion_op;
 

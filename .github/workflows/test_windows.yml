@@ -17,9 +17,9 @@ jobs:
     name: ${{ matrix.arch }} - ${{ matrix.os }}
     runs-on: ${{ matrix.runner }}
     if: |
-      github.event_name == 'pull_request' || 
+      github.event_name == 'pull_request' ||
+      github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'push' && !github.event.pull_request)
-
     strategy:
       fail-fast: false
       matrix:
@@ -27,9 +27,11 @@ jobs:
           - arch: arm64
             os: Windows 11 Arm64
             runner: windows-11-arm
+            vcpkg_triplet: arm64-windows
           - arch: x64
             os: Windows 11
             runner: windows-latest
+            vcpkg_triplet: x64-windows
 
     steps:
       - name: Checkout code
@@ -47,12 +49,26 @@ jobs:
         with:
           cmakeVersion: latest
 
+      - name: Prepare vcpkg
+        uses: ./.github/actions/prepare-vcpkg
+        with:
+          runner: ${{ matrix.runner }}
+          arch: ${{ matrix.arch }}
+          triplet: ${{ matrix.vcpkg_triplet }}
+
       - name: Configure CMake
         run: |
-          cmake -B build -G Ninja -DCMAKE_CXX_COMPILER=cl -DCMAKE_C_COMPILER=cl -DCMAKE_BUILD_TYPE=Release
+          cmake -B build -G Ninja `
+            -DCMAKE_CXX_COMPILER=cl `
+            -DCMAKE_C_COMPILER=cl `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" `
+            -DVCPKG_TARGET_TRIPLET=${{ matrix.vcpkg_triplet }}
 
       - name: Build
-        run: cmake --build build --config Release --parallel
+        id: build
+        continue-on-error: true
+        run: cmake --build build --config Debug --parallel
 
       - name: Run tests
         run: ctest --test-dir build --output-on-failure

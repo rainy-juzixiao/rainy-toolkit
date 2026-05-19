@@ -17,7 +17,6 @@
 #define RAINY_FOUNDATION_TEXT_LEXICAL_CAST_HPP
 #include <memory>
 #include <rainy/core/core.hpp>
-#include <rainy/foundation/container/pair.hpp>
 #include <rainy/text/hashed_string.hpp>
 
 namespace rainy::foundation::text {

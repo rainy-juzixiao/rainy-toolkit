@@ -2,6 +2,7 @@
 #define RAINY_CORE_TYPE_TRAITS_TEMPLATES_HPP
 #include <rainy/core/platform.hpp>
 #include <rainy/core/type_traits/helper.hpp>
+#include <rainy/core/type_traits/type_list.hpp>
 
 namespace rainy::type_traits::extras::templates {
     /**

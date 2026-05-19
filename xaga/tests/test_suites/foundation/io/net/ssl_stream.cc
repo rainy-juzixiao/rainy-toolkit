@@ -13,18 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#if RAINY_HAS_OPENSSL
-
 #include <rainy/core/core.hpp>
 
 #if RAINY_USING_MSVC || RAINY_USING_MSVC_CLANG
 #define _CRT_SECURE_NO_WARNINGS // NOLINT
 #endif
 
-#if RAINY_USING_WINDOWS
-#define OPENSSL_APPLINK
-#include <openssl/applink.c>
-#endif
+#if RAINY_HAS_OPENSSL
 
 #include <catch2/catch_session.hpp>
 #include <catch2/catch_test_macros.hpp>

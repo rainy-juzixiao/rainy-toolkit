@@ -21,6 +21,13 @@
 #include <VersionHelpers.h>
 #else
 #include <unistd.h>
+
+#if RAINY_USING_MACOS
+#include <cstdio>
+#include <sys/sysctl.h>
+#include <sys/types.h>
+#endif
+
 #endif
 
 #include <bitset>
@@ -324,8 +331,10 @@ namespace rainy::core::builtin {
     void cpuid(int query[4], int function_id) {
 #if RAINY_USING_MSVC && !RAINY_IS_ARM64
         __cpuid(query, function_id);
+#elif (RAINY_USING_GCC || RAINY_USING_CLANG) && (RAINY_IS_X86 || RAINY_IS_X86_64)
+        __asm__ volatile("cpuid" : "=a"(query[0]), "=b"(query[1]), "=c"(query[2]), "=d"(query[3]) : "a"(function_id), "c"(0));
 #else
-        (void) query;
+        query[0] = query[1] = query[2] = query[3] = 0;
         (void) function_id;
 #endif
     }
@@ -333,13 +342,16 @@ namespace rainy::core::builtin {
     void cpuidex(int query[4], int function_id, int subfunction_id) {
 #if RAINY_USING_MSVC && !RAINY_IS_ARM64
         __cpuidex(query, function_id, subfunction_id);
+#elif (RAINY_USING_GCC || RAINY_USING_CLANG) && (RAINY_IS_X86 || RAINY_IS_X86_64)
+        __asm__ volatile("cpuid"
+                         : "=a"(query[0]), "=b"(query[1]), "=c"(query[2]), "=d"(query[3])
+                         : "a"(function_id), "c"(subfunction_id));
 #else
-        (void) query;
+        query[0] = query[1] = query[2] = query[3] = 0;
         (void) function_id;
         (void) subfunction_id;
 #endif
     }
-
 
     bool has_instruction(instruction_set check) {
         switch (check) {
@@ -539,6 +551,38 @@ namespace rainy::core::builtin {
         return version::unknown;
 #elif RAINY_USING_LINUX
         return version::linux_like;
+#elif RAINY_USING_MACOS
+        char buf[64]{};
+        std::size_t buf_size = sizeof(buf);
+        if (::sysctlbyname("kern.osproductversion", buf, &buf_size, nullptr, 0) != 0) {
+            return version::unknown;
+        }
+        int major = 0, minor = 0;
+        if (std::sscanf(buf, "%d.%d", &major, &minor) < 1) {
+            return version::unknown;
+        }
+        if (major == 10) {
+            if (minor == 15) {
+                return version::macos_catalina;
+            }
+            return version::unknown;
+        }
+        switch (major) {
+            case 11:
+                return version::macos_big_sur;
+            case 12:
+                return version::macos_monterey;
+            case 13:
+                return version::macos_ventura;
+            case 14:
+                return version::macos_sonoma;
+            case 15:
+                return version::macos_sequoia;
+            case 16:
+                return version::macos_tahoe;
+            default:
+                return version::unknown;
+        }
 #endif
     }
 
