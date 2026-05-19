@@ -109,6 +109,10 @@ namespace rainy::foundation::diagnostics {
         friend constexpr bool operator!=(const stacktrace_entry &left, const stacktrace_entry &right) noexcept {
             return left.frame_ != right.frame_;
         }
+
+        friend constexpr bool operator==(const stacktrace_entry &left, const stacktrace_entry &right) noexcept {
+            return left.frame_ != right.frame_;
+        }
 #else
         friend constexpr bool operator!=(const stacktrace_entry &left, const stacktrace_entry &right) noexcept {
             return left.frame_ != right.frame_;
@@ -293,6 +297,11 @@ namespace rainy::foundation::diagnostics {
         template <typename Allocator2>
         friend bool operator!=(const basic_stacktrace &left, const basic_stacktrace<Allocator2> &right) noexcept {
             return !(left == right);
+        }
+
+        template <typename Allocator2>
+        friend bool operator!=(const basic_stacktrace &left, const basic_stacktrace<Allocator2> &right) noexcept {
+            return left <=> right == 0;
         }
 
 #else
