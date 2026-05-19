@@ -2952,6 +2952,46 @@ namespace rainy::core::pal {
      *                      输出缓冲区大小
      */
     RAINY_TOOLKIT_API rain_fn demangle(czstring name, cstring buf, std::size_t buffer_length) -> void;
+
+    /**
+     * @brief Triggers a debug breakpoint.
+     *        触发调试断点。
+     *
+     * @note This function will always trigger a breakpoint regardless of whether
+     *       a debugger is attached. Use with caution in production code.
+     *       无论是否有调试器附加，此函数都会触发断点。在生产代码中请谨慎使用。
+     */
+    RAINY_TOOLKIT_API void breakpoint() noexcept;
+
+    /**
+     * @brief Triggers a debug breakpoint only if a debugger is present.
+     *        仅在调试器存在时触发调试断点。
+     *
+     * @note This function checks whether a debugger is attached before triggering
+     *       the breakpoint, making it safer for use in debug builds.
+     *       此函数在触发断点前会检查是否有调试器附加，使其在调试构建中使用更安全。
+     *
+     * @see is_debugger_present()
+     * @see breakpoint()
+     */
+    RAINY_TOOLKIT_API void breakpoint_if_debugging() noexcept;
+
+    /**
+     * @brief Checks whether a debugger is currently attached to the process.
+     *        检查当前是否有调试器附加到进程。
+     *
+     * @return true  A debugger is present
+     *               存在调试器
+     * @return false No debugger is present
+     *               不存在调试器
+     *
+     * @note This function is typically used to conditionally enable debug-only
+     *       behavior such as breakpoints or logging.
+     *       此函数通常用于条件性地启用仅调试行为，如断点或日志记录。
+     *
+     * @see breakpoint_if_debugging()
+     */
+    RAINY_TOOLKIT_API bool is_debugger_present() noexcept;
 }
 
 namespace rainy::core::pal {
