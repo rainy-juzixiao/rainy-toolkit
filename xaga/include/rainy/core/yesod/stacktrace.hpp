@@ -18,10 +18,10 @@
 
 #include <ostream>
 #include <rainy/core/layer.hpp>
-#include <rainy/core/yesod/collections.hpp>
-#include <rainy/core/yesod/text.hpp>
-#include <rainy/core/yesod/hash.hpp>
 #include <rainy/core/type_traits/properties.hpp>
+#include <rainy/core/yesod/collections.hpp>
+#include <rainy/core/yesod/hash.hpp>
+#include <rainy/core/yesod/text.hpp>
 
 namespace rainy::foundation::diagnostics {
     class stacktrace_entry {
@@ -101,19 +101,40 @@ namespace rainy::foundation::diagnostics {
             return 0;
         }
 
-#if RAINY_HAS_CXX23
+#if RAINY_HAS_CXX20
         friend constexpr std::strong_ordering operator<=>(const stacktrace_entry &left, const stacktrace_entry &right) noexcept {
             return left.frame_ <=> right.frame_;
-        }
-#else
-        friend constexpr bool operator==(const stacktrace_entry &left, const stacktrace_entry &right) noexcept {
-            return left.frame_ == right.frame_;
         }
 
         friend constexpr bool operator!=(const stacktrace_entry &left, const stacktrace_entry &right) noexcept {
             return left.frame_ != right.frame_;
         }
+#else
+        friend constexpr bool operator!=(const stacktrace_entry &left, const stacktrace_entry &right) noexcept {
+            return left.frame_ != right.frame_;
+        }
+
+        friend constexpr bool operator==(const stacktrace_entry &left, const stacktrace_entry &right) noexcept {
+            return left.frame_ == right.frame_;
+        }
+
+        friend constexpr bool operator>(const stacktrace_entry &left, const stacktrace_entry &right) noexcept {
+            return left.frame_ > right.frame_;
+        }
+
+        friend constexpr bool operator>=(const stacktrace_entry &left, const stacktrace_entry &right) noexcept {
+            return left.frame_ >= right.frame_;
+        }
+
+        friend constexpr bool operator<(const stacktrace_entry &left, const stacktrace_entry &right) noexcept {
+            return left.frame_ < right.frame_;
+        }
+
+        friend constexpr bool operator<=(const stacktrace_entry &left, const stacktrace_entry &right) noexcept {
+            return left.frame_ < right.frame_;
+        }
 #endif
+
 
     private:
         explicit constexpr stacktrace_entry(native_handle_type frame) noexcept : frame_(frame) {
@@ -150,7 +171,7 @@ namespace rainy::foundation::diagnostics {
         static basic_stacktrace current(size_type skip, size_type max_depth, const allocator_type &alloc = allocator_type()) noexcept {
             basic_stacktrace result(alloc);
             constexpr std::size_t max_frame_dump = core::pal::max_frames_dump;
-            size_type frames_to_collect = (core::min)(max_depth, max_frame_dump);
+            size_type frames_to_collect = (core::min) (max_depth, max_frame_dump);
 
             if (frames_to_collect > result.max_size() && frames_to_collect <= max_frame_dump) {
                 frames_to_collect = result.max_size();
@@ -256,10 +277,11 @@ namespace rainy::foundation::diagnostics {
             return frames_.at(pos);
         }
 
-#if RAINY_HAS_CXX23
+#if RAINY_HAS_CXX20
+
         template <typename Allocator2>
         friend std::strong_ordering operator<=>(const basic_stacktrace &left, const basic_stacktrace<Allocator2> &right) noexcept {
-            size_type min_size = (core::min)(left.size(), right.size());
+            size_type min_size = (core::min) (left.size(), right.size());
             for (size_type i = 0; i < min_size; ++i) {
                 if (auto cmp = left[i] <=> right[i]; cmp != 0) {
                     return cmp;
@@ -267,7 +289,14 @@ namespace rainy::foundation::diagnostics {
             }
             return left.size() <=> right.size();
         }
+
+        template <typename Allocator2>
+        friend bool operator!=(const basic_stacktrace &left, const basic_stacktrace<Allocator2> &right) noexcept {
+            return !(left == right);
+        }
+
 #else
+
         template <typename Allocator2>
         friend bool operator==(const basic_stacktrace &left, const basic_stacktrace<Allocator2> &right) noexcept {
             if (left.size() != right.size()) {
@@ -285,6 +314,32 @@ namespace rainy::foundation::diagnostics {
         friend bool operator!=(const basic_stacktrace &left, const basic_stacktrace<Allocator2> &right) noexcept {
             return !(left == right);
         }
+
+        template <typename Allocator2>
+        friend bool operator<(const basic_stacktrace &left, const basic_stacktrace<Allocator2> &right) noexcept {
+            size_type min_size = (core::min)(left.size(), right.size());
+            for (size_type i = 0; i < min_size; ++i) {
+                if (left[i] < right[i]) return true;
+                if (right[i] < left[i]) return false;
+            }
+            return left.size() < right.size();
+        }
+
+        template <typename Allocator2>
+        friend bool operator<=(const basic_stacktrace &left, const basic_stacktrace<Allocator2> &right) noexcept {
+            return !(right < left);
+        }
+
+        template <typename Allocator2>
+        friend bool operator>(const basic_stacktrace &left, const basic_stacktrace<Allocator2> &right) noexcept {
+            return right < left;
+        }
+
+        template <typename Allocator2>
+        friend bool operator>=(const basic_stacktrace &left, const basic_stacktrace<Allocator2> &right) noexcept {
+            return !(left < right);
+        }
+
 #endif
 
         void swap(basic_stacktrace &right) noexcept(std::allocator_traits<Allocator>::propagate_on_container_swap::value ||
