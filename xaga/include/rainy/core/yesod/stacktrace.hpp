@@ -300,7 +300,7 @@ namespace rainy::foundation::diagnostics {
         }
 
         template <typename Allocator2>
-        friend bool operator!=(const basic_stacktrace &left, const basic_stacktrace<Allocator2> &right) noexcept {
+        friend bool operator==(const basic_stacktrace &left, const basic_stacktrace<Allocator2> &right) noexcept {
             return left <=> right == 0;
         }
 
