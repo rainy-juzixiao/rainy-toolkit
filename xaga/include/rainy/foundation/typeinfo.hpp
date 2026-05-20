@@ -394,7 +394,7 @@ namespace rainy::foundation::ctti::implements {
         if (!content.empty() && content[0] == '(') {
             auto last_rparen = content.rfind(')');
             if (last_rparen != std::string_view::npos && last_rparen + 1 < content.size()) {
-                if (auto last_rparen = full.rfind(')'); last_rparen != std::string_view::npos && last_rparen + 1 < full.size()) {
+                if (auto last_rparen = content.rfind(')'); last_rparen != std::string_view::npos && last_rparen + 1 < full.size()) {
                     is_parenthesized = true;
                 }
             }
