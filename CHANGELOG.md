@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/rainy-juzixiao/rainy-toolkit/compare/v1.1.0...v1.1.1) (2026-05-20)
+
+
+### Bug Fixes
+
+* Fix compile issues in C++23 for stacktrace.hpp ([41703bd](https://github.com/rainy-juzixiao/rainy-toolkit/commit/41703bd4279c1a040251503e13d93e9c68198620))
+
 ## [1.1.0](https://github.com/rainy-juzixiao/rainy-toolkit/compare/v1.0.0...v1.1.0) (2026-05-19)
 
 
