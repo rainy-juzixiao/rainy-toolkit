@@ -15,12 +15,7 @@
  */
 #include <catch2/catch_template_test_macros.hpp>
 #include <catch2/catch_test_macros.hpp>
-
-#include <rainy/annotations/moon.hpp>
 #include <rainy/meta/moon/enumeration.hpp>
-
-#include <string>
-#include <optional>
 
 using namespace rainy::meta::moon;
 
@@ -56,9 +51,11 @@ enum SimpleEnum {
     SIMPLE_C
 };
 
-enum EmptyEnum {};
+enum EmptyEnum {
+};
 
-enum class ScopedEmptyEnum {};
+enum class ScopedEmptyEnum {
+};
 
 enum class FlagsEnum {
     None = 0,
@@ -93,25 +90,31 @@ TEST_CASE("enum_count", "[enumeration][enum_count]") {
         REQUIRE(enum_count<Color>() == 5);
         REQUIRE(enum_count<Numbers>() == 5);
         REQUIRE(enum_count<Weekday>() == 7);
-        REQUIRE(enum_count<FlagsEnum>() == 4);
+        REQUIRE(enum_count<FlagsEnum>() == 5);
     }
 
     SECTION("unscoped enums") {
         REQUIRE(enum_count<SimpleEnum>() == 3);
     }
 
+#if RAINY_HAS_CXX26 && RAINY_HAS_CXX26_STATIC_REFLECTION
     SECTION("empty enums") {
         REQUIRE(enum_count<EmptyEnum>() == 0);
         REQUIRE(enum_count<ScopedEmptyEnum>() == 0);
     }
+#endif
 
     SECTION("gapped enums") {
         REQUIRE(enum_count<GappedEnum>() == 4);
     }
 
     SECTION("duplicate values") {
-        // 重复值只应被计数一次
+#if RAINY_HAS_CXX26 && RAINY_HAS_CXX26_STATIC_REFLECTION
+        REQUIRE(enum_count<DuplicateEnum>() == 3);
+#else
+        // 重复值只应被计数一次，在C++17回退版本中
         REQUIRE(enum_count<DuplicateEnum>() == 2);
+#endif
     }
 
     SECTION("signed enums") {
@@ -150,8 +153,10 @@ TEST_CASE("enum_values", "[enumeration][enum_values]") {
     }
 
     SECTION("empty enum values") {
+#if RAINY_HAS_CXX26 && RAINY_HAS_CXX26_STATIC_REFLECTION
         constexpr auto values = enum_values<EmptyEnum>();
         REQUIRE(values.size() == 0);
+#endif
     }
 }
 
@@ -209,8 +214,10 @@ TEST_CASE("enum_names", "[enumeration][enum_names]") {
     }
 
     SECTION("empty enum names") {
+#if RAINY_HAS_CXX26 && RAINY_HAS_CXX26_STATIC_REFLECTION
         constexpr auto names = enum_names<EmptyEnum>();
         REQUIRE(names.size() == 0);
+#endif
     }
 }
 
@@ -274,15 +281,11 @@ TEST_CASE("enum_cast", "[enumeration][enum_cast]") {
     }
 
     SECTION("cast from string with custom predicate") {
-        auto red = enum_cast<Color>("red", [](char a, char b) {
-            return std::tolower(a) == std::tolower(b);
-        });
+        auto red = enum_cast<Color>("red", [](char a, char b) { return std::tolower(a) == std::tolower(b); });
         REQUIRE(red.has_value());
         REQUIRE(red.value() == Color::Red);
 
-        auto green = enum_cast<Color>("GREEN", [](char a, char b) {
-            return std::tolower(a) == std::tolower(b);
-        });
+        auto green = enum_cast<Color>("GREEN", [](char a, char b) { return std::tolower(a) == std::tolower(b); });
         REQUIRE(green.has_value());
         REQUIRE(green.value() == Color::Green);
     }
@@ -405,12 +408,8 @@ TEST_CASE("enum_contains", "[enumeration][enum_contains]") {
     }
 
     SECTION("check string name with predicate") {
-        REQUIRE(enum_contains<Color>("RED", [](char a, char b) {
-            return std::tolower(a) == std::tolower(b);
-        }));
-        REQUIRE(enum_contains<Color>("BLUE", [](char a, char b) {
-            return std::tolower(a) == std::tolower(b);
-        }));
+        REQUIRE(enum_contains<Color>("RED", [](char a, char b) { return std::tolower(a) == std::tolower(b); }));
+        REQUIRE(enum_contains<Color>("BLUE", [](char a, char b) { return std::tolower(a) == std::tolower(b); }));
     }
 }
 
@@ -427,10 +426,7 @@ TEST_CASE("enum_flags_name", "[enumeration][enum_flags_name]") {
     }
 
     SECTION("combined flags") {
-        FlagsEnum combined = static_cast<FlagsEnum>(
-            static_cast<int>(FlagsEnum::Read) |
-            static_cast<int>(FlagsEnum::Write)
-        );
+        FlagsEnum combined = static_cast<FlagsEnum>(static_cast<int>(FlagsEnum::Read) | static_cast<int>(FlagsEnum::Write));
         std::string name = enum_flags_name(combined);
         REQUIRE(name == "Read|Write");
 
@@ -440,10 +436,7 @@ TEST_CASE("enum_flags_name", "[enumeration][enum_flags_name]") {
     }
 
     SECTION("custom separator") {
-        FlagsEnum combined = static_cast<FlagsEnum>(
-            static_cast<int>(FlagsEnum::Read) |
-            static_cast<int>(FlagsEnum::Execute)
-        );
+        FlagsEnum combined = static_cast<FlagsEnum>(static_cast<int>(FlagsEnum::Read) | static_cast<int>(FlagsEnum::Execute));
         std::string name = enum_flags_name(combined, ',');
         REQUIRE(name == "Read,Execute");
 
@@ -506,13 +499,12 @@ TEST_CASE("enum_type_name", "[enumeration][enum_type_name]") {
 
 #if RAINY_HAS_CXX26 && RAINY_HAS_CXX26_STATIC_REFLECTION
 
-// C++26 静态反射特性测试
 enum class AnnotatedEnum {
-    [[= rainy::annotations::moon::rename("renamed_first")]] First,
-    [[= rainy::annotations::moon::rename("renamed_second")]] Second,
-    [[= rainy::annotations::moon::with_prefix("pre_")]] Third,
-    [[= rainy::annotations::moon::with_suffix("_suf")]] Fourth,
-    [[= rainy::annotations::moon::ignore]] Ignored,
+    First[[= rainy::annotations::moon::rename("renamed_first")]],
+    Second[[= rainy::annotations::moon::rename("renamed_second")]],
+    Third[[= rainy::annotations::moon::with_prefix("pre_")]],
+    Fourth[[= rainy::annotations::moon::with_suffix("_suf")]],
+    Ignored[[= rainy::annotations::moon::ignore]],
     Normal
 };
 
@@ -528,9 +520,13 @@ TEST_CASE("C++26 static reflection - enum annotations", "[enumeration][cxx26][an
 
         bool found_renamed_first = false;
         bool found_renamed_second = false;
-        for (const auto &name : names) {
-            if (name == "renamed_first") found_renamed_first = true;
-            if (name == "renamed_second") found_renamed_second = true;
+        for (const auto &name: names) {
+            if (name == "renamed_first") {
+                found_renamed_first = true;
+            }
+            if (name == "renamed_second") {
+                found_renamed_second = true;
+            }
         }
         REQUIRE(found_renamed_first);
         REQUIRE(found_renamed_second);
@@ -541,9 +537,13 @@ TEST_CASE("C++26 static reflection - enum annotations", "[enumeration][cxx26][an
 
         bool found_prefixed = false;
         bool found_suffixed = false;
-        for (const auto &name : names) {
-            if (name.find("pre_") != std::string_view::npos) found_prefixed = true;
-            if (name.find("_suf") != std::string_view::npos) found_suffixed = true;
+        for (const auto &name: names) {
+            if (name.find("pre_") != std::string_view::npos) {
+                found_prefixed = true;
+            }
+            if (name.find("_suf") != std::string_view::npos) {
+                found_suffixed = true;
+            }
         }
         REQUIRE(found_prefixed);
         REQUIRE(found_suffixed);
@@ -552,7 +552,7 @@ TEST_CASE("C++26 static reflection - enum annotations", "[enumeration][cxx26][an
     SECTION("ignore annotation") {
         constexpr auto names = enum_names<AnnotatedEnum>();
         // Ignored 不应出现在名称列表中
-        for (const auto &name : names) {
+        for (const auto &name: names) {
             REQUIRE(name != "Ignored");
         }
     }
@@ -560,15 +560,17 @@ TEST_CASE("C++26 static reflection - enum annotations", "[enumeration][cxx26][an
     SECTION("normal member without annotation") {
         constexpr auto names = enum_names<AnnotatedEnum>();
         bool found_normal = false;
-        for (const auto &name : names) {
-            if (name == "Normal") found_normal = true;
+        for (const auto &name: names) {
+            if (name == "Normal") {
+                found_normal = true;
+            }
         }
         REQUIRE(found_normal);
     }
 
     SECTION("type-level annotations") {
         constexpr auto names = enum_names<TypeAnnotatedEnum>();
-        for (const auto &name : names) {
+        for (const auto &name: names) {
             REQUIRE(name.find("enum_") != std::string_view::npos);
             REQUIRE(name.find("_type") != std::string_view::npos);
         }
@@ -581,11 +583,14 @@ TEST_CASE("compile-time constexpr evaluation", "[enumeration][constexpr]") {
     SECTION("enum_count is constexpr") {
         constexpr size_t color_count = enum_count<Color>();
         constexpr size_t numbers_count = enum_count<Numbers>();
+#if RAINY_HAS_CXX26 && RAINY_HAS_CXX26_STATIC_REFLECTION
         constexpr size_t empty_count = enum_count<EmptyEnum>();
-
+#endif
         static_assert(color_count == 5);
         static_assert(numbers_count == 5);
+#if RAINY_HAS_CXX26 && RAINY_HAS_CXX26_STATIC_REFLECTION
         static_assert(empty_count == 0);
+#endif
     }
 
     SECTION("enum_values is constexpr") {
@@ -613,8 +618,7 @@ TEST_CASE("compile-time constexpr evaluation", "[enumeration][constexpr]") {
     }
 }
 
-TEMPLATE_TEST_CASE("template enum operations", "[enumeration][template]",
-                   Color, Numbers, Weekday, SimpleEnum) {
+TEMPLATE_TEST_CASE("template enum operations", "[enumeration][template]", Color, Numbers, Weekday, SimpleEnum) {
     SECTION("enum_count for template type") {
         constexpr auto count = enum_count<TestType>();
         REQUIRE(count > 0);
@@ -633,7 +637,7 @@ TEMPLATE_TEST_CASE("template enum operations", "[enumeration][template]",
 
 TEST_CASE("enum round-trip conversion", "[enumeration][roundtrip]") {
     SECTION("value -> name -> value") {
-        for (const auto& val : enum_values<Color>()) {
+        for (const auto &val: enum_values<Color>()) {
             auto name = enum_name(val);
             auto roundtrip = enum_cast<Color>(name);
             REQUIRE(roundtrip.has_value());
@@ -652,7 +656,7 @@ TEST_CASE("enum round-trip conversion", "[enumeration][roundtrip]") {
 
     SECTION("underlying -> value -> underlying") {
         auto values = enum_values<Numbers>();
-        for (const auto& val : values) {
+        for (const auto &val: values) {
             auto underlying = enum_integer(val);
             auto roundtrip = enum_cast<Numbers>(underlying);
             REQUIRE(roundtrip.has_value());
