@@ -30,6 +30,11 @@
 #include <string_view>
 #include <unordered_map>
 
+#if RAINY_USING_CLANG || RAINY_USING_LLVM_GCC // workaround...
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wenum-constexpr-conversion"
+#endif
+
 namespace rainy::foundation::ctti {
     class typeinfo;
 }
@@ -1268,5 +1273,9 @@ namespace rainy::foundation::ctti {
  * @param Base
  */
 #define RAINY_REGISTER_BASE(Derived, Base) ::rainy::foundation::ctti::register_base<Derived, Base>()
+
+#if RAINY_USING_CLANG || RAINY_USING_LLVM_GCC
+#pragma GCC diagnostic pop
+#endif
 
 #endif
