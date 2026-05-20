@@ -43,6 +43,17 @@ struct[[ = rainy::annotations::moon::with_prefix("ty_"), = rainy::annotations::m
 
 // clang-format on
 
+#else
+
+namespace aaa {
+    enum class enum_type {
+        a = 1,
+        b = 2,
+        c = 3,
+        d = 99999
+    };
+}
+
 #endif
 
 int main() {
