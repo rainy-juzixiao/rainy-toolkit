@@ -28,6 +28,11 @@
 #define ENUM_SCAN_END 128
 #endif
 
+#if RAINY_USING_CLANG || RAINY_USING_LLVM_GCC
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wenum-constexpr-conversion"
+#endif
+
 namespace rainy::meta::moon::implements {
     enum class enum_subtype {
         common,
@@ -582,5 +587,9 @@ namespace rainy::meta::moon {
         return {};
     }
 }
+
+#if RAINY_USING_CLANG || RAINY_USING_LLVM_GCC
+#pragma GCC diagnostic pop
+#endif
 
 #endif
