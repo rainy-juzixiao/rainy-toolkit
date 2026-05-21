@@ -382,56 +382,44 @@ namespace rainy::foundation::ctti::implements {
         return full; // NOLINT
 #elif RAINY_USING_MSVC
         auto bracket_start = func_name.rfind('<');
-        auto bracket_end = func_name.rfind('>}');
-
+        auto bracket_end = func_name.rfind(">}");
+        if (bracket_end == std::string_view::npos) {
+            bracket_end = func_name.rfind('}');
+        }
         if (bracket_end == std::string_view::npos) {
             bracket_end = func_name.rfind('>');
         }
-
         if (bracket_start == std::string_view::npos || bracket_end == std::string_view::npos) {
             return "";
         }
-
         auto content = func_name.substr(bracket_start + 1, bracket_end - bracket_start - 1);
-
         bool is_parenthesized = false;
-
         if (!content.empty() && content[0] == '(') {
             auto last_rparen = content.rfind(')');
             if (last_rparen != std::string_view::npos && last_rparen + 1 < content.size()) {
-                if (auto last_rparen = content.rfind(')'); last_rparen != std::string_view::npos && last_rparen + 1 < content.size()) {
-                    is_parenthesized = true;
-                }
+                is_parenthesized = true;
             }
         }
-
         if (is_parenthesized) {
             return content;
         }
-
         auto last_dot = content.rfind('.');
         auto last_arrow = content.rfind("->");
         auto last_colon = content.rfind("::");
-
         if (last_dot == std::string_view::npos) {
             last_dot = 0;
         }
-
         if (last_arrow == std::string_view::npos) {
             last_arrow = 0;
         }
-
         if (last_colon == std::string_view::npos) {
             last_colon = 0;
         }
-
-        auto last_sep = (core::max) ({last_dot, last_arrow, last_colon});
-
-        if (last_sep != std::string_view::npos) {
+        auto last_sep = (core::max)({last_dot, last_arrow, last_colon});
+        if (last_sep != 0) {
             auto sep_len = (last_sep == last_arrow || last_sep == last_colon) ? 2 : 1;
             return content.substr(last_sep + sep_len);
         }
-
         return content;
 #else
         static_assert(false, "Unsupported compiler");
