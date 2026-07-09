@@ -3,6 +3,7 @@ import { change_log_sidebar_items } from './change_log.mts';
 import { utility_toolkit_index } from './config/utility_document/index.mjs';
 import { core_toolkit_index } from './core_document/index.mts';
 import { meta_index } from './config/meta_document/index.mts';
+import { tools_index } from './config/tools/index.mts';
 
 export default defineConfig({
   title: "rainy-toolkit 文档",
@@ -29,7 +30,8 @@ export default defineConfig({
         {
           text: 'meta库',
           link: '/md/meta/'
-        }
+        },
+        tools_index,
       ],
       '/md/meta/': meta_index, 
       '/md/core/': core_toolkit_index,
