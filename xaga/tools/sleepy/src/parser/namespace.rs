@@ -26,6 +26,11 @@ pub fn build_namespace(
         return None;
     }
     let name = entity.get_name().unwrap_or_default();
+
+    // 跳过被忽略的命名空间（如 implements / detail / impl）
+    if !name.is_empty() && context.ignored_namespaces.contains(&&name) {
+        return None;
+    }
     let raw = extract_raw_comment(entity).unwrap_or_default();
     let parsed = parse_comment(&raw, &name, namespace_stack.to_vec());
 

@@ -21,6 +21,9 @@ pub struct SleepyConfig {
     #[serde(default = "default_lang")]
     pub lang: String,
     pub sources: Vec<SourceConfig>,
+    /// 要忽略的命名空间（默认：implements, detail, impl）
+    #[serde(default = "default_ignored_namespaces")]
+    pub ignored_namespaces: Vec<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -101,6 +104,9 @@ impl CompileFlags {
         for inc in &self.includes {
             paired.push(("-I".into(), inc.to_string_lossy().to_string()));
         }
+        // 始终注入 __MUZIYAN_IS_HERE__，让头文件能检测到正在被 sleepy 解析
+        single.push("-D__MUZIYAN_IS_HERE__".into());
+
         // -D
         for def in &self.defines {
             if def.starts_with('-') {
@@ -179,6 +185,10 @@ fn is_reusable_arg(arg: &str) -> bool {
 }
 
 fn default_lang() -> String { "english".into() }
+
+fn default_ignored_namespaces() -> Vec<String> {
+    vec!["implements".into(), "detail".into(), "impl".into()]
+}
 
 fn default_extensions() -> Vec<String> {
     vec!["h".into(), "hpp".into(), "hxx".into()]

@@ -17,6 +17,8 @@ pub struct ParseContext<'a> {
     pub include_root: &'a str,
     pub nodoc_ranges: &'a [std::ops::Range<u32>],
     pub owned_files: &'a std::collections::HashSet<std::path::PathBuf>,
+    /// 在此列表中的命名空间会被跳过（默认：implements, detail, impl）
+    pub ignored_namespaces: &'a [String],
 }
 
 pub fn is_from_owned_file(entity: &Entity, ctx: &ParseContext) -> bool {

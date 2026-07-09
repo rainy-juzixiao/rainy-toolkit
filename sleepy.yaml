@@ -1,5 +1,10 @@
-output_dir: docs/api
+output_dir: out/docs/api
 lang: chinese
+
+ignored_namespaces:
+  - implements
+  - detail
+  - impl
 
 sources:
   - name: sleepy_test
