@@ -140,3 +140,4 @@ temp/
 /CMakeUserPresets.json
 
  vcpkg_installed
+/.mcp.json
