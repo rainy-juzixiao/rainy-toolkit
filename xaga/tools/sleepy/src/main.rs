@@ -148,6 +148,7 @@ fn process_source(
             include_root: include_root.to_str().unwrap_or(""),
             nodoc_ranges: &nodoc_ranges,
             owned_files,
+            ignored_namespaces: &config.ignored_namespaces,
         };
 
         let doc = parser::build_file_document(&tu, file_str, &context);
