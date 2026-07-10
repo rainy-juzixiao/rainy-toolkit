@@ -19,7 +19,7 @@
 #include <rainy/core/type_traits/implements.hpp>
 #include <rainy/core/container/tuple.hpp>
 
-namespace rainy::foundation::container {
+namespace rainy::core::container {
     /**
      * @brief A compressed pair that optimizes storage when one or both types are empty.
      *        Uses empty base optimization to reduce memory footprint.
@@ -36,7 +36,7 @@ namespace rainy::foundation::container {
     class compressed_pair;
 }
 
-namespace rainy::foundation::container::implements {
+namespace rainy::core::container::implements {
     template <typename Ty, bool = std::is_final_v<Ty>>
     struct compressed_pair_empty : std::false_type {};
 
@@ -842,7 +842,7 @@ namespace rainy::foundation::container::implements {
     };
 }
 
-namespace rainy::foundation::container {
+namespace rainy::core::container {
     /**
      * @brief A compressed pair that optimizes storage when one or both types are empty.
      *        Uses empty base optimization to reduce memory footprint.
@@ -1018,7 +1018,7 @@ namespace rainy::foundation::container {
 }
 
 namespace rainy::utility {
-    using foundation::container::compressed_pair;
+    using core::container::compressed_pair;
 }
 
 #endif

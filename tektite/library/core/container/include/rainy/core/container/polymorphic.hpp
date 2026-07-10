@@ -17,7 +17,7 @@
 #define RAINY_CORE_CONTAINER_POLYMORPHIC_HPP
 #include <rainy/core/type_traits.hpp>
 
-namespace rainy::foundation::container {
+namespace rainy::core::container {
     template <typename Ty, typename Alloc = std::allocator<Ty>>
     class polymorphic {
     public:
@@ -30,20 +30,20 @@ namespace rainy::foundation::container {
 
         static_assert(type_traits::composite_types::is_object_v<Ty>, "Ty must be an object type");
         static_assert(!type_traits::composite_types::is_reference_v<Ty>, "Ty cannot be a reference type");
-        static_assert(!(type_traits::type_properties::is_const_v<Ty> || type_traits::type_properties::is_volatile_v<Ty>),
+        static_assert(!(type_traits::properties::is_const_v<Ty> || type_traits::properties::is_volatile_v<Ty>),
                       "Ty cannot be const/volatile qualified");
-        static_assert(type_traits::type_properties::is_polymorphic_v<Ty>, "Ty must be a polymorphic type");
+        static_assert(type_traits::properties::is_polymorphic_v<Ty>, "Ty must be a polymorphic type");
 
-        template <type_traits::other_trans::enable_if_t<type_traits::type_properties::is_default_constructible_v<Ty>, int> = 0>
-        RAINY_CONSTEXPR20 explicit polymorphic() noexcept(type_traits::type_properties::is_nothrow_default_constructible_v<Ty>) :
+        template <type_traits::other_trans::enable_if_t<type_traits::properties::is_default_constructible_v<Ty>, int> = 0>
+        RAINY_CONSTEXPR20 explicit polymorphic() noexcept(type_traits::properties::is_nothrow_default_constructible_v<Ty>) :
             pair(allocator_type{}, nullptr) {
             construct_default();
         }
 
-        template <type_traits::other_trans::enable_if_t<type_traits::type_properties::is_default_constructible_v<Ty>, int> = 0>
+        template <type_traits::other_trans::enable_if_t<type_traits::properties::is_default_constructible_v<Ty>, int> = 0>
         RAINY_CONSTEXPR20 explicit polymorphic(std::allocator_arg_t, const Alloc &a) noexcept(
-            type_traits::type_properties::is_nothrow_default_constructible_v<Ty> &&
-            type_traits::type_properties::is_nothrow_copy_constructible_v<Alloc>) : pair(a, nullptr) {
+            type_traits::properties::is_nothrow_default_constructible_v<Ty> &&
+            type_traits::properties::is_nothrow_copy_constructible_v<Alloc>) : pair(a, nullptr) {
             construct_default();
         }
 
@@ -99,7 +99,7 @@ namespace rainy::foundation::container {
 
         template <typename UTy, typename... Ts,
                   type_traits::other_trans::enable_if_t<type_traits::type_relations::is_base_of_v<Ty, UTy> &&
-                                                            type_traits::type_properties::is_constructible_v<UTy, Ts...>,
+                                                            type_traits::properties::is_constructible_v<UTy, Ts...>,
                                                         int> = 0>
         RAINY_CONSTEXPR20 explicit polymorphic(std::in_place_type_t<UTy>, Ts &&...ts) : pair(allocator_type{}, nullptr) {
             construct_inplace<UTy>(utility::forward<Ts>(ts)...);
@@ -107,7 +107,7 @@ namespace rainy::foundation::container {
 
         template <typename UTy, typename... Ts,
                   type_traits::other_trans::enable_if_t<type_traits::type_relations::is_base_of_v<Ty, UTy> &&
-                                                            type_traits::type_properties::is_constructible_v<UTy, Ts...>,
+                                                            type_traits::properties::is_constructible_v<UTy, Ts...>,
                                                         int> = 0>
         RAINY_CONSTEXPR20 explicit polymorphic(std::allocator_arg_t, const Alloc &a, std::in_place_type_t<UTy>, Ts &&...ts) :
             pair(a, nullptr) {
@@ -117,7 +117,7 @@ namespace rainy::foundation::container {
         template <typename UTy, typename I, typename... Us,
                   type_traits::other_trans::enable_if_t<
                       type_traits::type_relations::is_base_of_v<Ty, UTy> &&
-                          type_traits::type_properties::is_constructible_v<UTy, std::initializer_list<I> &, Us...>,
+                          type_traits::properties::is_constructible_v<UTy, std::initializer_list<I> &, Us...>,
                       int> = 0>
         RAINY_CONSTEXPR20 explicit polymorphic(std::in_place_type_t<UTy>, std::initializer_list<I> ilist, Us &&...us) :
             pair(allocator_type{}, nullptr) {
@@ -127,7 +127,7 @@ namespace rainy::foundation::container {
         template <typename UTy, typename I, typename... Us,
                   type_traits::other_trans::enable_if_t<
                       type_traits::type_relations::is_base_of_v<Ty, UTy> &&
-                          type_traits::type_properties::is_constructible_v<UTy, std::initializer_list<I> &, Us...>,
+                          type_traits::properties::is_constructible_v<UTy, std::initializer_list<I> &, Us...>,
                       int> = 0>
         RAINY_CONSTEXPR20 explicit polymorphic(std::allocator_arg_t, const Alloc &a, std::in_place_type_t<UTy>,
                                                std::initializer_list<I> ilist, Us &&...us) : pair(a, nullptr) {

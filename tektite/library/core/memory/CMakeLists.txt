@@ -20,7 +20,11 @@ project(rainy-toolkit-core-memory)
 
 add_rainy_interface_library(rainy-toolkit-core-memory ${PROJECT_SOURCE_DIR}/include)
 
-target_link_libraries(rainy-toolkit-core-memory INTERFACE rainy-toolkit-core-algorithm rainy-toolkit-core-container rainy-toolkit-core-diagnostics)
+target_link_libraries(rainy-toolkit-core-memory INTERFACE
+        rainy-toolkit-core-algorithm
+        rainy-toolkit-core-container
+        rainy-toolkit-core-exceptions
+)
 
 rainy_load_flodar_files("${PROJECT_SOURCE_DIR}/tests/" ".cc" FILES_LIST)
 add_executable(rainy-toolkit-core-memory-unit-test ${FILES_LIST})

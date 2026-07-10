@@ -25,7 +25,7 @@
 #pragma warning(disable : 26495)
 #endif
 
-namespace rainy::foundation::container {
+namespace rainy::core::container {
     using std::nullopt;
     using std::nullopt_t;
 
@@ -52,14 +52,14 @@ namespace rainy::core::exceptions::runtime {
     // clang-format on
 }
 
-namespace rainy::foundation::container::implements {
+namespace rainy::core::container::implements {
 #if RAINY_HAS_CXX20
     template <typename UTy>
     concept is_derived_from_optional =
         requires { typename UTy::value_type; } && type_traits::type_relations::is_same_v<UTy, optional<typename UTy::value_type>>;
 #endif
 
-    template <typename Ty, bool = type_traits::type_properties::is_trivially_destructible_v<Ty>>
+    template <typename Ty, bool = type_traits::properties::is_trivially_destructible_v<Ty>>
     struct optional_destruct_base {
         constexpr optional_destruct_base() : dummy{}, has_value_{false} { // NOLINT
         }
@@ -77,7 +77,7 @@ namespace rainy::foundation::container::implements {
         }
 
         constexpr optional_destruct_base(optional_destruct_base &&other) noexcept(
-            type_traits::type_properties::is_nothrow_move_constructible_v<Ty>) : has_value_{false} {
+            type_traits::properties::is_nothrow_move_constructible_v<Ty>) : has_value_{false} {
             if (other.has_value_) {
                 utility::construct_in_place(value_, utility::move(other.value_));
                 has_value_ = true;
@@ -108,8 +108,8 @@ namespace rainy::foundation::container::implements {
         }
 
         constexpr optional_destruct_base &operator=(optional_destruct_base &&other) noexcept(
-            type_traits::type_properties::is_nothrow_move_constructible_v<Ty> &&
-            type_traits::type_properties::is_nothrow_move_assignable_v<Ty>) {
+            type_traits::properties::is_nothrow_move_constructible_v<Ty> &&
+            type_traits::properties::is_nothrow_move_assignable_v<Ty>) {
             if (this != &other) {
                 if (other.has_value_) {
                     if (has_value_) {
@@ -158,7 +158,7 @@ namespace rainy::foundation::container::implements {
         }
 
         RAINY_CONSTEXPR20 optional_destruct_base(optional_destruct_base &&other) noexcept( // NOLINT
-            type_traits::type_properties::is_nothrow_move_constructible_v<Ty>) : has_value_{false} {
+            type_traits::properties::is_nothrow_move_constructible_v<Ty>) : has_value_{false} {
             if (other.has_value_) {
                 utility::construct_in_place(value_, utility::move(other.value_));
                 has_value_ = true;
@@ -166,8 +166,8 @@ namespace rainy::foundation::container::implements {
         }
 
         RAINY_CONSTEXPR20 optional_destruct_base &operator=(const optional_destruct_base &other) noexcept(
-            type_traits::type_properties::is_nothrow_copy_constructible_v<Ty> &&
-            type_traits::type_properties::is_nothrow_copy_assignable_v<Ty>) {
+            type_traits::properties::is_nothrow_copy_constructible_v<Ty> &&
+            type_traits::properties::is_nothrow_copy_assignable_v<Ty>) {
             if (this != &other) {
                 if (other.has_value_) {
                     if (has_value_) {
@@ -184,8 +184,8 @@ namespace rainy::foundation::container::implements {
         }
 
         RAINY_CONSTEXPR20 optional_destruct_base &operator=(optional_destruct_base &&other) noexcept(
-            type_traits::type_properties::is_nothrow_move_constructible_v<Ty> &&
-            type_traits::type_properties::is_nothrow_move_assignable_v<Ty>) {
+            type_traits::properties::is_nothrow_move_constructible_v<Ty> &&
+            type_traits::properties::is_nothrow_move_assignable_v<Ty>) {
             if (this != &other) {
                 if (other.has_value_) {
                     if (has_value_) {
@@ -227,23 +227,23 @@ namespace rainy::foundation::container::implements {
             !type_traits::type_relations::is_same_v<type_traits::cv_modify::remove_cvref_t<UTy>, std::in_place_t> &&
             !(type_traits::type_relations::is_same_v<type_traits::cv_modify::remove_cv_t<Ty>, bool> &&
               type_traits::primary_types::is_specialization_v<type_traits::cv_modify::remove_cvref_t<UTy>, optional>) &&
-            type_traits::type_properties::is_constructible_v<Ty, UTy>>;
+            type_traits::properties::is_constructible_v<Ty, UTy>>;
 
         template <typename UTy>
         using allow_unwrapping_assignment = type_traits::helper::bool_constant<!type_traits::logical_traits::disjunction_v<
-            type_traits::type_relations::is_same<Ty, UTy>, type_traits::type_properties::is_assignable<Ty &, optional<UTy> &>,
-            type_traits::type_properties::is_assignable<Ty &, const optional<UTy> &>,
-            type_traits::type_properties::is_assignable<Ty &, const optional<UTy>>,
-            type_traits::type_properties::is_assignable<Ty &, optional<UTy>>>>;
+            type_traits::type_relations::is_same<Ty, UTy>, type_traits::properties::is_assignable<Ty &, optional<UTy> &>,
+            type_traits::properties::is_assignable<Ty &, const optional<UTy> &>,
+            type_traits::properties::is_assignable<Ty &, const optional<UTy>>,
+            type_traits::properties::is_assignable<Ty &, optional<UTy>>>>;
 
         template <typename UTy>
         using allow_unwrapping = type_traits::helper::bool_constant<type_traits::logical_traits::disjunction_v<
             type_traits::type_relations::is_same<type_traits::cv_modify::remove_cv_t<Ty>, bool>,
             type_traits::logical_traits::negation<type_traits::logical_traits::disjunction<
-                type_traits::type_relations::is_same<Ty, UTy>, type_traits::type_properties::is_constructible<Ty, optional<UTy> &>,
-                type_traits::type_properties::is_constructible<Ty, const optional<UTy> &>,
-                type_traits::type_properties::is_constructible<Ty, const optional<UTy>>,
-                type_traits::type_properties::is_constructible<Ty, optional<UTy>>,
+                type_traits::type_relations::is_same<Ty, UTy>, type_traits::properties::is_constructible<Ty, optional<UTy> &>,
+                type_traits::properties::is_constructible<Ty, const optional<UTy> &>,
+                type_traits::properties::is_constructible<Ty, const optional<UTy>>,
+                type_traits::properties::is_constructible<Ty, optional<UTy>>,
                 type_traits::type_relations::is_convertible<optional<UTy> &, Ty>,
                 type_traits::type_relations::is_convertible<const optional<UTy> &, Ty>,
                 type_traits::type_relations::is_convertible<const optional<UTy>, Ty>,
@@ -255,11 +255,11 @@ namespace rainy::foundation::container::implements {
             !type_traits::logical_traits::conjunction_v<
                 type_traits::composite_types::is_scalar<Ty>,
                 type_traits::type_relations::is_same<Ty, type_traits::other_trans::decay_t<UTy>>> &&
-            type_traits::type_properties::is_constructible_v<Ty, UTy> && type_traits::type_properties::is_assignable_v<Ty &, UTy>>;
+            type_traits::properties::is_constructible_v<Ty, UTy> && type_traits::properties::is_assignable_v<Ty &, UTy>>;
 
         template <typename Self>
         RAINY_CONSTEXPR20 void construct_impl_(Self &&right) noexcept(
-            type_traits::type_properties::is_nothrow_constructible_v<Ty, decltype(*utility::forward<Self>(right))>) {
+            type_traits::properties::is_nothrow_constructible_v<Ty, decltype(*utility::forward<Self>(right))>) {
             if (right.has_value_) {
                 construct_value_(*utility::forward<Self>(right));
             }
@@ -267,8 +267,8 @@ namespace rainy::foundation::container::implements {
 
         template <typename Self>
         RAINY_CONSTEXPR20 void assign_impl_(Self &&right) noexcept(
-            type_traits::type_properties::is_nothrow_constructible_v<Ty, decltype(*utility::forward<Self>(right))> &&
-            type_traits::type_properties::is_nothrow_assignable_v<Ty &, decltype(*utility::forward<Self>(right))>) {
+            type_traits::properties::is_nothrow_constructible_v<Ty, decltype(*utility::forward<Self>(right))> &&
+            type_traits::properties::is_nothrow_assignable_v<Ty &, decltype(*utility::forward<Self>(right))>) {
             if (right.has_value_) {
                 assign_value_(*utility::forward<Self>(right));
             } else {
@@ -277,8 +277,8 @@ namespace rainy::foundation::container::implements {
         }
 
         template <typename UTy>
-        RAINY_CONSTEXPR20 void assign_value_(UTy &&right) noexcept(type_traits::type_properties::is_nothrow_assignable_v<Ty &, UTy> &&
-                                                                   type_traits::type_properties::is_nothrow_constructible_v<Ty, UTy>) {
+        RAINY_CONSTEXPR20 void assign_value_(UTy &&right) noexcept(type_traits::properties::is_nothrow_assignable_v<Ty &, UTy> &&
+                                                                   type_traits::properties::is_nothrow_constructible_v<Ty, UTy>) {
             if (this->has_value_) {
                 static_cast<Ty &>(this->value_) = utility::forward<UTy>(right);
             } else {
@@ -322,7 +322,7 @@ namespace rainy::foundation::container::implements {
     };
 }
 
-namespace rainy::foundation::container {
+namespace rainy::core::container {
     template <typename Ty>
     class optional final : private annotations::smf_control::control<implements::optional_base<Ty>> {
     public:
@@ -362,14 +362,14 @@ namespace rainy::foundation::container {
 
         template <typename UTy = type_traits::cv_modify::remove_cv_t<Ty>,
                   type_traits::other_trans::enable_if_t<allow_direct_conversion<UTy>::value, int> = 0>
-        constexpr optional(UTy &&val) noexcept(type_traits::type_properties::is_nothrow_constructible_v<Ty, UTy>) : // NOLINT
+        constexpr optional(UTy &&val) noexcept(type_traits::properties::is_nothrow_constructible_v<Ty, UTy>) : // NOLINT
             base(std::in_place, utility::forward<UTy>(val)) {
         }
 
         template <typename UTy,
                   type_traits::other_trans::enable_if_t<type_traits::logical_traits::conjunction_v<allow_unwrapping<UTy>>, int> = 0>
         explicit RAINY_CONSTEXPR20 optional(const optional<UTy> &right) {
-            static_assert(type_traits::type_properties::is_constructible_v<Ty, const UTy &>,
+            static_assert(type_traits::properties::is_constructible_v<Ty, const UTy &>,
                           "Cannot passing right [type = const optional<UTy>&] to make a copy because is_constructible<Ty, const UTy "
                           "&> results false");
             if (right.has_value()) {
@@ -381,7 +381,7 @@ namespace rainy::foundation::container {
                   type_traits::other_trans::enable_if_t<type_traits::logical_traits::conjunction_v<allow_unwrapping<UTy>>, int> = 0>
         explicit RAINY_CONSTEXPR20 optional(optional<UTy> &&right) {
             static_assert(
-                type_traits::type_properties::is_constructible_v<Ty, UTy>,
+                type_traits::properties::is_constructible_v<Ty, UTy>,
                 "Cannot passing right [type = optional<UTy>&&] to make a move because is_constructible<Ty, UTy> results false");
             if (right.has_value()) {
                 this->construct_(utility::move(*right));
@@ -395,8 +395,8 @@ namespace rainy::foundation::container {
         }
 
         template <typename UTy, type_traits::other_trans::enable_if_t<allow_assignment<UTy>::value, int> = 0>
-        RAINY_CONSTEXPR20 void assign(UTy &&right) noexcept(type_traits::type_properties::is_nothrow_assignable_v<Ty &, UTy> &&
-                                                            type_traits::type_properties::is_nothrow_constructible_v<Ty, UTy>) {
+        RAINY_CONSTEXPR20 void assign(UTy &&right) noexcept(type_traits::properties::is_nothrow_assignable_v<Ty &, UTy> &&
+                                                            type_traits::properties::is_nothrow_constructible_v<Ty, UTy>) {
             if (this->has_value()) {
                 static_cast<Ty &>(this->value_) = utility::forward<UTy>(right);
             } else {
@@ -411,13 +411,13 @@ namespace rainy::foundation::container {
 
         template <typename UTy, type_traits::other_trans::enable_if_t<allow_unwrapping_assignment<UTy>::value, int> = 0>
         RAINY_CONSTEXPR20 optional &operator=(const optional<UTy> &right) noexcept(
-            type_traits::type_properties::is_nothrow_assignable_v<Ty &, const UTy &> &&
-            type_traits::type_properties::is_nothrow_constructible_v<Ty, const UTy &>) /* strengthened */ {
-            static_assert(type_traits::type_properties::is_constructible_v<Ty, const UTy &> &&
-                              type_traits::type_properties::is_assignable_v<Ty &, const UTy &>,
+            type_traits::properties::is_nothrow_assignable_v<Ty &, const UTy &> &&
+            type_traits::properties::is_nothrow_constructible_v<Ty, const UTy &>) /* strengthened */ {
+            static_assert(type_traits::properties::is_constructible_v<Ty, const UTy &> &&
+                              type_traits::properties::is_assignable_v<Ty &, const UTy &>,
                           "Cannot passing right [type = const optional<UTy>&] to make a copy because "
-                          "type_traits::type_properties::is_constructible_v<Ty, const UTy &> &&"
-                          "type_traits::type_properties::is_assignable_v<Ty &, const UTy &> results false");
+                          "type_traits::properties::is_constructible_v<Ty, const UTy &> &&"
+                          "type_traits::properties::is_assignable_v<Ty &, const UTy &> results false");
             if (right) {
                 this->assign(*right);
             } else {
@@ -428,13 +428,13 @@ namespace rainy::foundation::container {
 
         template <typename UTy, type_traits::other_trans::enable_if_t<allow_unwrapping_assignment<UTy>::value, int> = 0>
         RAINY_CONSTEXPR20 optional &operator=(optional<UTy> &&right) noexcept(
-            type_traits::type_properties::is_nothrow_assignable_v<Ty &, const UTy &> &&
-            type_traits::type_properties::is_nothrow_constructible_v<Ty, const UTy &>) /* strengthened */ {
-            static_assert(type_traits::type_properties::is_constructible_v<Ty, UTy> &&
-                              type_traits::type_properties::is_assignable_v<Ty &, UTy>,
+            type_traits::properties::is_nothrow_assignable_v<Ty &, const UTy &> &&
+            type_traits::properties::is_nothrow_constructible_v<Ty, const UTy &>) /* strengthened */ {
+            static_assert(type_traits::properties::is_constructible_v<Ty, UTy> &&
+                              type_traits::properties::is_assignable_v<Ty &, UTy>,
                           "Cannot passing right [type = optional<UTy>&&] to make a copy because "
-                          "type_traits::type_properties::is_constructible_v<Ty, UTy> && "
-                          "type_traits::type_properties::is_assignable_v<Ty &, UTy> results false");
+                          "type_traits::properties::is_constructible_v<Ty, UTy> && "
+                          "type_traits::properties::is_assignable_v<Ty &, UTy> results false");
             if (right) {
                 this->assign(*right);
             } else {
@@ -511,11 +511,11 @@ namespace rainy::foundation::container {
             return static_cast<type_traits::cv_modify::remove_cv_t<Ty>>(utility::forward<UTy>(right));
         }
 
-        RAINY_CONSTEXPR20 void swap(optional &right) noexcept(type_traits::type_properties::is_nothrow_move_constructible_v<Ty> &&
-                                                              type_traits::type_properties::is_nothrow_swappable_v<Ty>) {
+        RAINY_CONSTEXPR20 void swap(optional &right) noexcept(type_traits::properties::is_nothrow_move_constructible_v<Ty> &&
+                                                              type_traits::properties::is_nothrow_swappable_v<Ty>) {
 
-            if constexpr (type_traits::type_properties::is_move_constructible_v<Ty>) {
-                static_assert(type_traits::type_properties::is_swappable_v<Ty>, "optional<Ty>::swap requires Ty to be swappable");
+            if constexpr (type_traits::properties::is_move_constructible_v<Ty>) {
+                static_assert(type_traits::properties::is_swappable_v<Ty>, "optional<Ty>::swap requires Ty to be swappable");
             } else {
                 static_assert(false, "optional<Ty>::swap requires Ty to be move constructible");
             }
@@ -539,8 +539,8 @@ namespace rainy::foundation::container {
 
         template <typename UTy, type_traits::other_trans::enable_if_t<allow_assignment<UTy>::value, int> = 0>
         RAINY_CONSTEXPR20 optional &operator=(UTy &&right) noexcept(
-            type_traits::type_properties::is_nothrow_assignable_v<Ty &, UTy> &&
-            type_traits::type_properties::is_nothrow_constructible_v<Ty, UTy>) {
+            type_traits::properties::is_nothrow_assignable_v<Ty &, UTy> &&
+            type_traits::properties::is_nothrow_constructible_v<Ty, UTy>) {
             this->assign(utility::forward<UTy>(right));
             return *this;
         }
@@ -563,7 +563,7 @@ namespace rainy::foundation::container {
 
         template <typename Fx>
         constexpr auto and_then(Fx fx) & {
-            using result_type = type_traits::type_properties::invoke_result_t<Fx, Ty &>;
+            using result_type = type_traits::properties::invoke_result_t<Fx, Ty &>;
             static_assert(type_traits::primary_types::is_specialization_v<result_type, optional>, "Fx must return optional<UTy>");
             if (has_value()) {
                 return utility::invoke(utility::forward<Fx>(fx), this->value_);
@@ -573,7 +573,7 @@ namespace rainy::foundation::container {
 
         template <typename Fx>
         constexpr auto and_then(Fx &&fx) && {
-            using result_type = type_traits::type_properties::invoke_result_t<Fx, Ty &&>;
+            using result_type = type_traits::properties::invoke_result_t<Fx, Ty &&>;
             static_assert(type_traits::primary_types::is_specialization_v<result_type, optional>, "Fx must return optional<UTy>");
             if (has_value()) {
                 return utility::invoke(utility::forward<Fx>(fx), utility::move(this->value_));
@@ -583,7 +583,7 @@ namespace rainy::foundation::container {
 
         template <typename Fx>
         constexpr auto and_then(Fx fx) const & {
-            using result_type = type_traits::type_properties::invoke_result_t<Fx, const Ty &>;
+            using result_type = type_traits::properties::invoke_result_t<Fx, const Ty &>;
             static_assert(type_traits::primary_types::is_specialization_v<result_type, optional>, "Fx must return optional<UTy>");
             if (has_value()) {
                 return utility::invoke(utility::forward<Fx>(fx), this->value_);
@@ -593,7 +593,7 @@ namespace rainy::foundation::container {
 
         template <typename Fx>
         constexpr auto and_then(Fx &&fx) const && {
-            using result_type = type_traits::type_properties::invoke_result_t<Fx, const Ty &&>;
+            using result_type = type_traits::properties::invoke_result_t<Fx, const Ty &&>;
             static_assert(type_traits::primary_types::is_specialization_v<result_type, optional>, "Fx must return optional<UTy>");
             if (has_value()) {
                 return utility::invoke(utility::forward<Fx>(fx), utility::move(this->value_));
@@ -603,7 +603,7 @@ namespace rainy::foundation::container {
 
         template <typename Fx>
         constexpr auto transform(Fx &&fx) & {
-            using UTy = type_traits::type_properties::invoke_result_t<Fx, Ty &>;
+            using UTy = type_traits::properties::invoke_result_t<Fx, Ty &>;
             if (has_value()) {
                 return optional<UTy>(utility::invoke(utility::forward<Fx>(fx), this->value_));
             }
@@ -612,7 +612,7 @@ namespace rainy::foundation::container {
 
         template <typename Fx>
         constexpr auto transform(Fx &&fx) && {
-            using UTy = type_traits::type_properties::invoke_result_t<Fx, Ty &&>;
+            using UTy = type_traits::properties::invoke_result_t<Fx, Ty &&>;
             if (has_value()) {
                 return optional<UTy>(utility::invoke(utility::forward<Fx>(fx), utility::move(this->value_)));
             }
@@ -621,7 +621,7 @@ namespace rainy::foundation::container {
 
         template <typename Fx>
         constexpr auto transform(Fx &&fx) const & {
-            using UTy = type_traits::type_properties::invoke_result_t<Fx, const Ty &>;
+            using UTy = type_traits::properties::invoke_result_t<Fx, const Ty &>;
             if (has_value()) {
                 return optional<UTy>(utility::invoke(utility::forward<Fx>(fx), this->value_));
             }
@@ -630,7 +630,7 @@ namespace rainy::foundation::container {
 
         template <typename Fx>
         constexpr auto transform(Fx &&fx) const && {
-            using UTy = type_traits::type_properties::invoke_result_t<Fx, const Ty &&>;
+            using UTy = type_traits::properties::invoke_result_t<Fx, const Ty &&>;
             if (has_value()) {
                 return optional<UTy>(utility::invoke(utility::forward<Fx>(fx), utility::move(this->value_)));
             }
@@ -639,7 +639,7 @@ namespace rainy::foundation::container {
 
         template <typename Fx>
         constexpr optional or_else(Fx &&fx) && {
-            static_assert(type_traits::type_relations::is_same_v<type_traits::type_properties::invoke_result_t<Fx>, optional>,
+            static_assert(type_traits::type_relations::is_same_v<type_traits::properties::invoke_result_t<Fx>, optional>,
                           "Fx must return optional<Ty>");
             if (has_value()) {
                 return utility::move(*this);
@@ -649,7 +649,7 @@ namespace rainy::foundation::container {
 
         template <typename Fx>
         constexpr optional or_else(Fx &&fx) const & {
-            static_assert(type_traits::type_relations::is_same_v<type_traits::type_properties::invoke_result_t<Fx>, optional>,
+            static_assert(type_traits::type_relations::is_same_v<type_traits::properties::invoke_result_t<Fx>, optional>,
                           "Fx must return optional<Ty>");
             if (has_value()) {
                 return *this;
@@ -699,12 +699,12 @@ namespace rainy::foundation::container {
 
     template <typename Ty>
     RAINY_CONSTEXPR20 void swap(optional<Ty> &left,
-                                optional<Ty> &right) noexcept(type_traits::type_properties::is_nothrow_swappable_v<Ty>) {
+                                optional<Ty> &right) noexcept(type_traits::properties::is_nothrow_swappable_v<Ty>) {
         left.swap(right);
     }
 }
 
-namespace rainy::foundation::container {
+namespace rainy::core::container {
     template <typename Ty, typename UTy>
     constexpr bool operator==(const optional<Ty> &left, const optional<UTy> &right) {
         if (left.has_value() != right.has_value()) {
@@ -903,10 +903,10 @@ namespace rainy::foundation::container {
 }
 
 namespace rainy::utility {
-    using foundation::container::make_optional;
-    using foundation::container::nullopt;
-    using foundation::container::nullopt_t;
-    using foundation::container::optional;
+    using core::container::make_optional;
+    using core::container::nullopt;
+    using core::container::nullopt_t;
+    using core::container::optional;
 }
 
 #if RAINY_USING_MSVC
