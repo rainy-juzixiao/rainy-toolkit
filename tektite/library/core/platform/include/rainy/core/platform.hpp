@@ -824,7 +824,7 @@ namespace rainy::type_traits::other_trans {
     using maybe_const_t = typename maybe_const<IsConst, Ty>::type;
 }
 
-namespace rainy::type_traits::implements {
+namespace rainy::type_traits::modifers {
     template <typename Ty>
     struct remove_reference {
         using type = Ty;
@@ -842,12 +842,14 @@ namespace rainy::type_traits::implements {
 
     template <typename Ty>
     using remove_reference_t = typename remove_reference<Ty>::type;
+}
 
+namespace rainy::type_traits::properties {
     template <typename>
-    RAINY_CONSTEXPR_BOOL _is_lvalue_reference_v = false;
+    RAINY_CONSTEXPR_BOOL is_lvalue_reference_v = false;
 
     template <typename Ty>
-    RAINY_CONSTEXPR_BOOL _is_lvalue_reference_v<Ty &> = true;
+    RAINY_CONSTEXPR_BOOL is_lvalue_reference_v<Ty &> = true;
 }
 
 namespace rainy::core::builtin {
@@ -871,20 +873,241 @@ namespace rainy::core::builtin {
 #endif
     }
 
+    /**
+     * \lang english
+     * @brief Copies a block of memory from source to destination.
+     * @param dest Pointer to the destination memory block.
+     * @param src Pointer to the source memory block.
+     * @param len Number of bytes to copy.
+     * @return Returns a pointer to `dest`.
+     * @remark
+     * This function copies `len` bytes from `src` to `dest`.
+     * The source and destination memory regions must not overlap.
+     *
+     * \lang simp-chinese
+     * @brief 从源内存块复制数据到目标内存块。
+     * @param dest 目标内存块的指针。
+     * @param src 源内存块的指针。
+     * @param len 要复制的字节数。
+     * @return 返回指向 `dest` 的指针。
+     * @remark
+     * 此函数将 `len` 字节从 `src` 复制到 `dest`。
+     * 源和目标内存区域不得重叠。
+     */
     RAINY_INLINE rain_fn copy_memory(void *dest, const void *src, std::size_t len) -> void * {
         return std::memcpy(dest, src, len);
     }
 
-    RAINY_TOOLKIT_API rain_fn move_memory(void *dest, std::size_t dest_size, const void *src, std::size_t src_count) -> void *;
-    RAINY_TOOLKIT_API rain_fn set_memory(void *dest, std::size_t count, int new_val) -> void *;
-    RAINY_TOOLKIT_API rain_fn zero_memory(void *dest, std::size_t count) -> void *;
-    RAINY_TOOLKIT_API rain_fn fill_memory(void *dest, std::size_t count, int new_val) -> void *;
-    RAINY_TOOLKIT_API rain_fn fill_memory(void *dest, std::size_t count, const void *src) -> void *;
-    RAINY_TOOLKIT_API rain_fn fill_memory(void *dest, std::size_t count, const void *src, std::size_t src_count) -> void *;
-    RAINY_TOOLKIT_API rain_fn fill_memory(void *dest, std::size_t count, const void *src, std::size_t src_count,
-                                          std::size_t src_offset) -> void *;
-    RAINY_TOOLKIT_API rain_fn fill_memory(void *dest, std::size_t count, const void *src, std::size_t src_count,
-                                          std::size_t src_offset, std::size_t dest_offset) -> void *;
+    /**
+     * \lang english
+     * @brief Moves a block of memory with handling of overlapping regions.
+     * @param dest Pointer to the destination memory block.
+     * @param dest_size Size of the destination buffer.
+     * @param src Pointer to the source memory block.
+     * @param src_count Number of bytes to move.
+     * @return Returns a pointer to `dest`.
+     * @remark
+     * This function safely copies `src_count` bytes from `src` to `dest`,
+     * even when the source and destination memory regions overlap.
+     *
+     * \lang simp-chinese
+     * @brief 移动内存块，处理重叠区域。
+     * @param dest 目标内存块的指针。
+     * @param dest_size 目标缓冲区的大小。
+     * @param src 源内存块的指针。
+     * @param src_count 要移动的字节数。
+     * @return 返回指向 `dest` 的指针。
+     * @remark
+     * 此函数安全地将 `src_count` 字节从 `src` 复制到 `dest`，
+     * 即使源和目标内存区域重叠也能正确处理。
+     */
+    RAINY_INLINE rain_fn move_memory(void *dest, std::size_t dest_size, const void *src, std::size_t src_count) -> void * {
+        return std::memmove(dest, src, src_count);
+    }
+
+    /**
+     * \lang english
+     * @brief Sets a block of memory to a specified value.
+     * @param dest Pointer to the memory block.
+     * @param count Number of bytes to set.
+     * @param new_val Value to fill the memory with.
+     * @return Returns a pointer to `dest`.
+     * @remark
+     * This function fills `count` bytes of the memory block starting at `dest`
+     * with the specified `new_val` value.
+     *
+     * \lang simp-chinese
+     * @brief 将内存块设置为指定值。
+     * @param dest 内存块的指针。
+     * @param count 要设置的字节数。
+     * @param new_val 要填充的值。
+     * @return 返回指向 `dest` 的指针。
+     * @remark
+     * 此函数将从 `dest` 开始的 `count` 字节内存块填充为指定的 `new_val` 值。
+     */
+    RAINY_INLINE rain_fn set_memory(void *dest, std::size_t count, int new_val) -> void * {
+        return std::memset(dest, new_val, count);
+    }
+
+    /**
+     * \lang english
+     * @brief Zeroes out a block of memory.
+     * @param dest Pointer to the memory block.
+     * @param count Number of bytes to zero.
+     * @return Returns a pointer to `dest`.
+     * @remark
+     * This function sets `count` bytes of the memory block starting at `dest` to zero.
+     *
+     * \lang simp-chinese
+     * @brief 将内存块置零。
+     * @param dest 内存块的指针。
+     * @param count 要置零的字节数。
+     * @return 返回指向 `dest` 的指针。
+     * @remark
+     * 此函数将从 `dest` 开始的 `count` 字节内存块设置为零。
+     */
+    RAINY_INLINE rain_fn zero_memory(void *dest, std::size_t count) -> void * {
+        return std::memset(dest, 0, count);
+    }
+
+    /**
+     * \lang english
+     * @brief Fills a memory block with a specified value.
+     * @param dest Pointer to the memory block.
+     * @param count Number of bytes to fill.
+     * @param new_val Value to fill the memory with.
+     * @return Returns a pointer to `dest`.
+     * @remark
+     * This function fills `count` bytes of the memory block starting at `dest`
+     * with the specified `new_val` value.
+     *
+     * \lang simp-chinese
+     * @brief 用指定值填充内存块。
+     * @param dest 内存块的指针。
+     * @param count 要填充的字节数。
+     * @param new_val 要填充的值。
+     * @return 返回指向 `dest` 的指针。
+     * @remark
+     * 此函数将从 `dest` 开始的 `count` 字节内存块填充为指定的 `new_val` 值。
+     */
+    RAINY_INLINE rain_fn fill_memory(void *dest, std::size_t count, int new_val) -> void * {
+        return std::memset(dest, new_val, count);
+    }
+
+    /**
+     * \lang english
+     * @brief Copies a block of memory from source to destination.
+     * @param dest Pointer to the destination memory block.
+     * @param count Number of bytes to copy.
+     * @param src Pointer to the source memory block.
+     * @return Returns a pointer to `dest`.
+     * @remark
+     * This function copies `count` bytes from `src` to `dest`.
+     * The source and destination memory regions must not overlap.
+     *
+     * \lang simp-chinese
+     * @brief 从源内存块复制数据到目标内存块。
+     * @param dest 目标内存块的指针。
+     * @param count 要复制的字节数。
+     * @param src 源内存块的指针。
+     * @return 返回指向 `dest` 的指针。
+     * @remark
+     * 此函数将 `count` 字节从 `src` 复制到 `dest`。
+     * 源和目标内存区域不得重叠。
+     */
+    RAINY_INLINE rain_fn fill_memory(void *dest, std::size_t count, const void *src) -> void * {
+        return std::memcpy(dest, src, count);
+    }
+
+    /**
+     * \lang english
+     * @brief Copies a limited block of memory from source to destination.
+     * @param dest Pointer to the destination memory block.
+     * @param count Number of bytes to fill in destination.
+     * @param src Pointer to the source memory block.
+     * @param src_count Number of bytes available in source.
+     * @return Returns a pointer to `dest`.
+     * @remark
+     * This function copies up to `src_count` bytes from `src` to `dest`,
+     * but no more than `count` bytes.
+     *
+     * \lang simp-chinese
+     * @brief 从源内存块复制有限的数据到目标内存块。
+     * @param dest 目标内存块的指针。
+     * @param count 目标区域要填充的字节数。
+     * @param src 源内存块的指针。
+     * @param src_count 源区域可用的字节数。
+     * @return 返回指向 `dest` 的指针。
+     * @remark
+     * 此函数从 `src` 复制最多 `src_count` 字节到 `dest`，
+     * 但不超过 `count` 字节。
+     */
+    RAINY_INLINE rain_fn fill_memory(void *dest, std::size_t count, const void *src, std::size_t src_count) -> void * {
+        return std::memcpy(dest, src, std::min(count, src_count));
+    }
+
+    /**
+     * \lang english
+     * @brief Copies a memory block with source offset.
+     * @param dest Pointer to the destination memory block.
+     * @param count Number of bytes to fill in destination.
+     * @param src Pointer to the source memory block.
+     * @param src_count Number of bytes available in source.
+     * @param src_offset Offset into the source memory block.
+     * @return Returns a pointer to `dest`.
+     * @remark
+     * This function copies up to `src_count` bytes from `src` starting at
+     * `src_offset` to `dest`, but no more than `count` bytes.
+     *
+     * \lang simp-chinese
+     * @brief 从源内存块的偏移位置复制数据。
+     * @param dest 目标内存块的指针。
+     * @param count 目标区域要填充的字节数。
+     * @param src 源内存块的指针。
+     * @param src_count 源区域可用的字节数。
+     * @param src_offset 源内存块的偏移量。
+     * @return 返回指向 `dest` 的指针。
+     * @remark
+     * 此函数从 `src` 偏移 `src_offset` 位置开始复制最多 `src_count` 字节到 `dest`，
+     * 但不超过 `count` 字节。
+     */
+    RAINY_INLINE rain_fn fill_memory(void *dest, std::size_t count, const void *src, std::size_t src_count, std::size_t src_offset)
+        -> void * {
+        return std::memcpy(dest, static_cast<const char *>(src) + src_offset, std::min(count, src_count));
+    }
+
+    /**
+     * \lang english
+     * @brief Copies a memory block with both source and destination offsets.
+     * @param dest Pointer to the destination memory block.
+     * @param count Number of bytes to fill in destination.
+     * @param src Pointer to the source memory block.
+     * @param src_count Number of bytes available in source.
+     * @param src_offset Offset into the source memory block.
+     * @param dest_offset Offset into the destination memory block.
+     * @return Returns a pointer to `dest`.
+     * @remark
+     * This function copies up to `src_count` bytes from `src` starting at
+     * `src_offset` to `dest` starting at `dest_offset`, but no more than `count` bytes.
+     *
+     * \lang simp-chinese
+     * @brief 从源内存块的偏移位置复制数据到目标内存块的偏移位置。
+     * @param dest 目标内存块的指针。
+     * @param count 目标区域要填充的字节数。
+     * @param src 源内存块的指针。
+     * @param src_count 源区域可用的字节数。
+     * @param src_offset 源内存块的偏移量。
+     * @param dest_offset 目标内存块的偏移量。
+     * @return 返回指向 `dest` 的指针。
+     * @remark
+     * 此函数从 `src` 偏移 `src_offset` 位置开始复制最多 `src_count` 字节到 `dest` 偏移 `dest_offset` 位置，
+     * 但不超过 `count` 字节。
+     */
+    RAINY_INLINE rain_fn fill_memory(void *dest, std::size_t count, const void *src, std::size_t src_count, std::size_t src_offset,
+                                     std::size_t dest_offset) -> void * {
+        return std::memcpy(static_cast<char *>(dest) + dest_offset, static_cast<const char *>(src) + src_offset,
+                           std::min(count, src_count));
+    }
 
     /**
      * \lang english
@@ -907,7 +1130,7 @@ namespace rainy::core::builtin {
      * 以保留传入参数的左值或右值性质。
      */
     template <typename Ty>
-    RAINY_NODISCARD constexpr Ty &&forward(type_traits::implements::remove_reference_t<Ty> &arg) noexcept {
+    RAINY_NODISCARD constexpr Ty &&forward(type_traits::modifers::remove_reference_t<Ty> &arg) noexcept {
         return static_cast<Ty &&>(arg);
     }
 
@@ -931,8 +1154,8 @@ namespace rainy::core::builtin {
      * 以保留传入参数的左值或右值性质。
      */
     template <typename Ty>
-    RAINY_NODISCARD constexpr Ty &&forward(type_traits::implements::remove_reference_t<Ty> &&arg) noexcept { // NOLINT
-        static_assert(!type_traits::implements::_is_lvalue_reference_v<Ty>, "bad forward call");
+    RAINY_NODISCARD constexpr Ty &&forward(type_traits::modifers::remove_reference_t<Ty> &&arg) noexcept { // NOLINT
+        static_assert(!type_traits::properties::is_lvalue_reference_v<Ty>, "bad forward call");
         return static_cast<Ty &&>(arg);
     }
 
@@ -990,7 +1213,7 @@ namespace rainy::core::builtin {
      * @return Ty* 构造完成的对象指针，如果 location 为空则返回 nullptr
      */
     template <typename Ty, typename... Args>
-    RAINY_CONSTEXPR20 rain_fn construct_at(Ty *location, Args &&...args) noexcept(noexcept(::new(static_cast<void *>(location))
+    RAINY_CONSTEXPR20 rain_fn construct_at(Ty *location, Args &&...args) noexcept(noexcept(::new (static_cast<void *>(location))
                                                                                                Ty(builtin::forward<Args>(args)...)))
         -> Ty * {
         if (!location) {
@@ -2345,7 +2568,7 @@ namespace rainy::core::builtin {
      * @return 如果值近似相等则返回 true，否则返回 false
      */
     static RAINY_INLINE rain_fn almost_equal(double p1, double p2) -> bool {
-        return (std::abs(p1 - p2) * 1000000000000. <= (core::min)(std::abs(p1), std::abs(p2)));
+        return (std::abs(p1 - p2) * 1000000000000. <= (core::min) (std::abs(p1), std::abs(p2)));
     }
 }
 
