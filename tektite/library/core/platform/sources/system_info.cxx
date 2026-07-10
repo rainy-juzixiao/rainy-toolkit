@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <rainy/core/core.hpp>
+#include <rainy/core/platform.hpp>
 
 #if RAINY_USING_WINDOWS
 #include <windows.h>
@@ -31,6 +31,7 @@
 #endif
 
 #include <bitset>
+#include <array>
 
 #if RAINY_USING_CLANG
 #pragma clang diagnostic ignored "-Wcast-function-type-mismatch"
