@@ -1,4 +1,4 @@
-/*
+`/*
  * Copyright 2025 rainy-juzixiao
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,9 +16,9 @@
 #include <rainy/core/platform.hpp>
 
 #if RAINY_USING_WINDOWS
-#include <windows.h>
-#include <intrin.h>
 #include <VersionHelpers.h>
+#include <intrin.h>
+#include <windows.h>
 #else
 #include <unistd.h>
 
@@ -30,8 +30,8 @@
 
 #endif
 
-#include <bitset>
 #include <array>
+#include <bitset>
 
 #if RAINY_USING_CLANG
 #pragma clang diagnostic ignored "-Wcast-function-type-mismatch"
@@ -99,7 +99,6 @@ namespace rainy::core::builtin {
             }
             cpuid(cpui.data(), 0x80000000);
             n_ex_ids = cpui[0];
-
         }
 
         bool is_intel;
