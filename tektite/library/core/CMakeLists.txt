@@ -1,2 +1,2 @@
-add_subdirectory(${PROJECT_SOURCE_DIR}/tektite/library/core/platform)
-add_subdirectory(${PROJECT_SOURCE_DIR}/tektite/library/core/type_traits)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/platform)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/type_traits)
