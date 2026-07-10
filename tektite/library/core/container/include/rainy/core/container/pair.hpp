@@ -19,7 +19,7 @@
 #include <rainy/core/type_traits.hpp>
 #include <utility>
 
-namespace rainy::foundation::container {
+namespace rainy::core::container {
     template <typename Ty1, typename Ty2>
     struct pair {
         using first_type = Ty1;
@@ -38,32 +38,32 @@ namespace rainy::foundation::container {
 
         template <typename uty1 = Ty1, typename uty2 = Ty2,
                   typename = type_traits::other_trans::enable_if_t<std::conjunction_v<std::is_copy_constructible<uty1>, std::is_copy_constructible<uty2>>>>
-        constexpr pair(const Ty1 &val1, const Ty2 &val2) noexcept(type_traits::type_properties::is_nothrow_copy_constructible_v<uty1> &&
-                                                                  type_traits::type_properties::is_nothrow_copy_constructible_v<uty2>) :
+        constexpr pair(const Ty1 &val1, const Ty2 &val2) noexcept(type_traits::properties::is_nothrow_copy_constructible_v<uty1> &&
+                                                                  type_traits::properties::is_nothrow_copy_constructible_v<uty2>) :
             first(val1), second(val2) {
         }
 
         template <typename other1, typename other2,
                   typename = type_traits::other_trans::enable_if_t<
                       std::conjunction_v<std::is_constructible<Ty1, const other1 &>, std::is_constructible<Ty2, const other2 &>>>>
-        constexpr pair(const pair<other1, other2> &right) noexcept(type_traits::type_properties::is_nothrow_constructible_v<Ty1, other1> && // NOLINT
-                                                                   type_traits::type_properties::is_nothrow_constructible_v<Ty2, other2>) :
+        constexpr pair(const pair<other1, other2> &right) noexcept(type_traits::properties::is_nothrow_constructible_v<Ty1, other1> && // NOLINT
+                                                                   type_traits::properties::is_nothrow_constructible_v<Ty2, other2>) :
             first(right.first), second(right.second) {
         }
 
         template <
             typename other1, typename other2,
             typename = type_traits::other_trans::enable_if_t<std::conjunction_v<std::is_constructible<Ty1, other1>, std::is_constructible<Ty2, other2>>>>
-        constexpr pair(const pair<other1, other2> &&right) noexcept(type_traits::type_properties::is_nothrow_constructible_v<Ty1, other1> && // NOLINT
-                                                                    type_traits::type_properties::is_nothrow_constructible_v<Ty2, other2>) :
+        constexpr pair(const pair<other1, other2> &&right) noexcept(type_traits::properties::is_nothrow_constructible_v<Ty1, other1> && // NOLINT
+                                                                    type_traits::properties::is_nothrow_constructible_v<Ty2, other2>) :
             first(utility::forward<const other1>(right.first)), second(utility::forward<const other2>(right.second)) {
         }
 
         template <
             typename other1, typename other2,
             typename = type_traits::other_trans::enable_if_t<std::conjunction_v<std::is_constructible<Ty1, other1>, std::is_constructible<Ty2, other2>>>>
-        constexpr pair(other1 &&val1, other2 &&val2) noexcept(type_traits::type_properties::is_nothrow_constructible_v<Ty1, other1> &&
-                                                              type_traits::type_properties::is_nothrow_constructible_v<Ty2, other2>) :
+        constexpr pair(other1 &&val1, other2 &&val2) noexcept(type_traits::properties::is_nothrow_constructible_v<Ty1, other1> &&
+                                                              type_traits::properties::is_nothrow_constructible_v<Ty2, other2>) :
             first(utility::forward<other1>(val1)), second(utility::forward<other2>(val2)) {
         }
 
@@ -85,12 +85,12 @@ namespace rainy::foundation::container {
                   type_traits::other_trans::enable_if_t<
                       type_traits::logical_traits::conjunction_v<
                           type_traits::logical_traits::negation<type_traits::type_relations::is_same<pair, pair<Other1, Other2>>>,
-                          type_traits::type_properties::is_assignable<Ty1 &, const Other1 &>,
-                          type_traits::type_properties::is_assignable<Ty2 &, const Other2 &>>,
+                          type_traits::properties::is_assignable<Ty1 &, const Other1 &>,
+                          type_traits::properties::is_assignable<Ty2 &, const Other2 &>>,
                       int> = 0>
         constexpr pair &operator=(const pair<Other1, Other2> &right) noexcept(
-            type_traits::type_properties::is_nothrow_assignable_v<Ty1 &, const Other1 &> &&
-            type_traits::type_properties::is_nothrow_assignable_v<Ty2 &, const Other2 &>) /* strengthened */ {
+            type_traits::properties::is_nothrow_assignable_v<Ty1 &, const Other1 &> &&
+            type_traits::properties::is_nothrow_assignable_v<Ty2 &, const Other2 &>) /* strengthened */ {
             first = right.first;
             second = right.second;
             return *this;
@@ -132,14 +132,14 @@ namespace rainy::foundation::container {
 
     template <typename Ty1, typename Ty2>
     constexpr auto make_pair(const Ty1 &val1, const Ty2 &val2) noexcept(
-        type_traits::type_properties::is_nothrow_constructible_v<pair<Ty1, Ty2>, const Ty1 &, const Ty2 &>) {
+        type_traits::properties::is_nothrow_constructible_v<pair<Ty1, Ty2>, const Ty1 &, const Ty2 &>) {
         return pair<Ty1, Ty2>(val1, val2);
     }
 }
 
 namespace rainy::utility {
-    using foundation::container::pair;
-    using foundation::container::make_pair;
+    using core::container::pair;
+    using core::container::make_pair;
 }
 
 #endif

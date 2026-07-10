@@ -18,13 +18,13 @@
 
 #include <rainy/core/type_traits.hpp>
 
-namespace rainy::foundation::container::implements {
+namespace rainy::core::container::implements {
     template <typename Ty>
     RAINY_CONSTEXPR_BOOL is_valid_movable_object =
         type_traits::properties::is_copy_constructible_v<Ty> && type_traits::properties::is_destructible_v<Ty>;
 }
 
-namespace rainy::foundation::container {
+namespace rainy::core::container {
     template <typename Ty>
     class movable_box {
     public:

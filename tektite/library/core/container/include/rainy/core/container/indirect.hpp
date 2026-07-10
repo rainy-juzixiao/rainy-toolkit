@@ -17,7 +17,7 @@
 #define RAINY_CORE_CONTAINER_INDIRECT_HPP
 #include <rainy/core/type_traits.hpp>
 
-namespace rainy::foundation::container {
+namespace rainy::core::container {
     struct defered_init_t {};
 
     inline constexpr defered_init_t defered_init;
@@ -488,7 +488,7 @@ namespace rainy::foundation::container {
         -> indirect<Value, typename std::allocator_traits<Allocator>::template rebind_alloc<Value>>;
 }
 
-namespace rainy::foundation::container {
+namespace rainy::core::container {
     template <typename Ty, typename Alloc, typename Uy, typename UAlloc>
     RAINY_CONSTEXPR20 bool operator==(const indirect<Ty, Alloc> &left,
                                       const indirect<Uy, UAlloc> &right) noexcept(noexcept(*left == *right)) {
