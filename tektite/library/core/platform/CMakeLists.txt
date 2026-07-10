@@ -16,9 +16,9 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(rainy_toolkit_library_core_platform_name "rainy-toolkit-core-platform-debug-package-${VERSION}")
+    set(rainy_toolkit_library_core_platform_name "rainy-toolkit-core-platform-debug-package")
 else ()
-    set(rainy_toolkit_library_core_platform_name "rainy-toolkit-core-platform-release-package$-${VERSION}")
+    set(rainy_toolkit_library_core_platform_name "rainy-toolkit-core-platform-release-package")
 endif ()
 
 rainy_load_flodar_files("${PROJECT_SOURCE_DIR}/tektite/library/core/platform/sources" ".cxx" RAINY_CORE_PLATFORM_FILES_LIST)
