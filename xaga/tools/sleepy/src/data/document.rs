@@ -123,6 +123,7 @@ pub struct BasicDocument {
     pub overload_decl: Option<String>,
     pub is_main_template: bool,           // @main_template
     pub spec_template_args: Vec<String>,  // @spec_template 参数...
+    pub module: Option<String>,           // @module
 }
 
 pub enum LangContext {
@@ -302,4 +303,5 @@ pub struct FileDocument {
     pub concepts: Vec<ConceptDocument>,
     pub macros: Vec<MacroDocument>,
     pub merge_into: Option<String>,
+    pub module: Option<String>,           // @module
 }

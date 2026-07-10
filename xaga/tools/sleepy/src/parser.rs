@@ -38,8 +38,7 @@ use indexmap::IndexMap;
 use macro_::build_macro;
 use namespace::build_namespace;
 use std::collections::HashMap;
-use std::path::PathBuf;
-use which::Path;
+use std::path::{Path, PathBuf};
 use variable::build_variable;
 
 pub fn collect_nodoc_ranges(source_text: &str) -> Vec<std::ops::Range<u32>> {
@@ -87,6 +86,57 @@ pub fn read_mergeto_tag(file: &PathBuf) -> Option<String> {
     None
 }
 
+/// Read the @module tag directly from the source file.
+///
+/// This is necessary because libclang's translation-unit cursor often
+/// does NOT carry the file-level comment via `get_comment()`, so the
+/// normal comment-parsing pipeline misses file-level tags like @module.
+pub fn read_module_tag(file: &Path) -> Option<String> {
+    let text = std::fs::read_to_string(file).ok()?;
+    let mut in_block = false;
+    for line in text.lines() {
+        let trimmed = line.trim();
+
+        // Enter a /** or /*! block comment
+        if trimmed.starts_with("/**") || trimmed.starts_with("/*!") {
+            in_block = true;
+            // The opening line itself might already contain @module, e.g.
+            // /** @brief ... @module Core */
+            let inner = trimmed
+                .trim_start_matches("/**")
+                .trim_start_matches("/*!")
+                .trim_start_matches('*')
+                .trim();
+            if let Some(rest) = inner.strip_prefix("@module") {
+                let m = rest.trim().to_string();
+                if !m.is_empty() {
+                    return Some(m);
+                }
+            }
+            // Single-line block comment? (ends on the same line)
+            if trimmed.ends_with("*/") {
+                in_block = false;
+            }
+            continue;
+        }
+
+        // Inside a block comment
+        if in_block {
+            let inner = trimmed.trim_start_matches('*').trim();
+            if let Some(rest) = inner.strip_prefix("@module") {
+                let m = rest.trim().to_string();
+                if !m.is_empty() {
+                    return Some(m);
+                }
+            }
+            if trimmed.ends_with("*/") {
+                in_block = false;
+            }
+        }
+    }
+    None
+}
+
 pub fn build_file_document(
     tu: &TranslationUnit,
     file_path: &str,
@@ -114,6 +164,7 @@ pub fn build_file_document(
         concepts: vec![],
         macros: vec![],
         merge_into: None,
+        module: None,
     };
 
     if let Some(raw) = extract_raw_comment(&root) {
@@ -125,6 +176,13 @@ pub fn build_file_document(
         doc.version     = parsed.basic.version;
         doc.copyright   = parsed.basic.copyright;
         doc.license     = parsed.basic.license;
+        doc.module      = parsed.basic.module;
+    }
+
+    // Fallback: libclang's root cursor often misses the file-level comment,
+    // so try to read @module directly from the source file.
+    if doc.module.is_none() {
+        doc.module = read_module_tag(Path::new(file_path));
     }
 
     let mut ns_map: IndexMap<String, NamespaceDocument> = IndexMap::new();
