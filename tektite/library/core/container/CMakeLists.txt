@@ -16,12 +16,12 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-project(rainy-toolkit-core-type_traits)
+project(rainy-toolkit-core-container)
 
-add_rainy_interface_library(rainy-toolkit-core-type_traits ${PROJECT_SOURCE_DIR}/include)
+add_rainy_interface_library(rainy-toolkit-core-container ${PROJECT_SOURCE_DIR}/include)
 
-target_link_libraries(rainy-toolkit-core-type_traits INTERFACE rainy-toolkit-core-platform)
+target_link_libraries(rainy-toolkit-core-container INTERFACE rainy-toolkit-core-type_traits)
 
 rainy_load_flodar_files("${PROJECT_SOURCE_DIR}/tests/" ".cc" FILES_LIST)
-add_executable(rainy-toolkit-core-type_traits-unit-test ${FILES_LIST})
-target_link_libraries(rainy-toolkit-core-type_traits-unit-test PRIVATE Catch2::Catch2WithMain rainy-toolkit-core-type_traits)
+add_executable(rainy-toolkit-core-container-unit-test ${FILES_LIST})
+target_link_libraries(rainy-toolkit-core-container-unit-test PRIVATE Catch2::Catch2WithMain rainy-toolkit-core-container)
