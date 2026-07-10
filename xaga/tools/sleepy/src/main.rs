@@ -20,11 +20,15 @@ mod toolchain;
 mod gen_compile_db;
 
 use std::collections::{HashMap, HashSet};
-use std::path::{PathBuf};
+use std::path::{Path, PathBuf};
 use anyhow::Context;
 use clang::{Clang, Index};
 
 fn main() -> anyhow::Result<()> {
+    // --- Parse CLI arguments ---
+    let args: Vec<String> = std::env::args().collect();
+    let partial = args.iter().any(|a| a == "--partial");
+
     let clang = Clang::new().unwrap();
     let index = Index::new(&clang, false, false);
 
@@ -41,9 +45,25 @@ fn main() -> anyhow::Result<()> {
         .with_context(|| format!("cannot create output dir: {}", config.output_dir.display()))?;
 
     let gen = generator::markdown::MarkdownGenerator::new(&config.lang);
+    let mut all_docs: Vec<data::document::FileDocument> = Vec::new();
 
     for source in &config.sources {
-        process_source(source, &config, &index, &gen)?;
+        process_source(source, &config, &index, &gen, &mut all_docs)?;
+    }
+
+    // Generate VitePress output
+    if !all_docs.is_empty() {
+        let vp_gen = generator::rt_vitepress_markdown::VitePressMarkdownGenerator::new(&config.lang);
+        if partial {
+            // Partial mode: just the reference/ markdown pages
+            let ref_dir = config.output_dir.join("reference");
+            vp_gen.generate_reference_only(&all_docs, &ref_dir)?;
+            println!("[sleepy] VitePress reference pages generated at {}", ref_dir.display());
+        } else {
+            // Full mode: config.mts + index.md + reference/
+            vp_gen.generate_site(&all_docs, &config.output_dir)?;
+            println!("[sleepy] VitePress site generated at {}", config.output_dir.join("docs").display());
+        }
     }
 
     Ok(())
@@ -54,6 +74,7 @@ fn process_source(
     config: &data::config::SleepyConfig,
     index: &Index,
     gen: &generator::markdown::MarkdownGenerator,
+    all_docs: &mut Vec<data::document::FileDocument>,
 ) -> anyhow::Result<()> {
     println!("[sleepy] source: {}", source.name);
     let toolchain = match &source.compile_flags.compiler {
@@ -161,6 +182,9 @@ fn process_source(
         std::fs::write(&out_path, &md)
             .with_context(|| format!("failed to write: {}", out_path.display()))?;
         println!("[sleepy]   → {}", out_path.display());
+
+        // Collect for VitePress generation
+        all_docs.push(doc);
     }
 
     Ok(())
