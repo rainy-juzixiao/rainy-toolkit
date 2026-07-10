@@ -16,9 +16,24 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+project(rainy-toolkit-core)
+
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/platform)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/type_traits)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/annotations)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/container)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/diagnostics)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/algorithm)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/memory)
+
+add_library(rainy-toolkit-core INTERFACE)
+
+target_link_libraries(rainy-toolkit-core INTERFACE
+        rainy-toolkit-core-platform
+        rainy-toolkit-core-type_traits
+        rainy-toolkit-core-annotation
+        rainy-toolkit-core-container
+        rainy-toolkit-core-diagnostics
+        rainy-toolkit-core-algorithm
+        rainy-toolkit-core-memory
+)

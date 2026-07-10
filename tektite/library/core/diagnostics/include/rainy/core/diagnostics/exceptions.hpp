@@ -57,7 +57,7 @@ namespace rainy::core::exceptions {
     }
 }
 
-namespace rainy::foundation::exceptions::logic {
+namespace rainy::core::exceptions::logic {
     class logic_error : public exception {
     public:
         using base = exception;
@@ -89,7 +89,7 @@ namespace rainy::foundation::exceptions::logic {
     }
 }
 
-namespace rainy::foundation::exceptions::runtime {
+namespace rainy::core::exceptions::runtime {
     class runtime_error : public exception {
     public:
         using base = exception;

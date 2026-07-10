@@ -16,7 +16,12 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/platform)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/type_traits)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/container)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/diagnostics)
+project(rainy-toolkit-core-text)
+
+add_rainy_interface_library(rainy-toolkit-core-text ${PROJECT_SOURCE_DIR}/include)
+
+target_link_libraries(rainy-toolkit-core-text INTERFACE rainy-toolkit-core-platform)
+
+rainy_load_flodar_files("${PROJECT_SOURCE_DIR}/tests/" ".cc" FILES_LIST)
+add_executable(rainy-toolkit-core-text-unit-test ${FILES_LIST})
+target_link_libraries(rainy-toolkit-core-text-unit-test PRIVATE Catch2::Catch2WithMain rainy-toolkit-core-text)
