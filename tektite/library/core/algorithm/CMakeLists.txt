@@ -21,3 +21,7 @@ project(rainy-toolkit-core-algorithm)
 add_rainy_interface_library(rainy-toolkit-core-algorithm ${PROJECT_SOURCE_DIR}/include)
 
 target_link_libraries(rainy-toolkit-core-algorithm INTERFACE rainy-toolkit-core-type_traits)
+
+rainy_load_flodar_files("${PROJECT_SOURCE_DIR}/tests/" ".cc" FILES_LIST)
+add_executable(rainy-toolkit-core-algorithm-unit-test ${FILES_LIST})
+target_link_libraries(rainy-toolkit-core-algorithm-unit-test PRIVATE Catch2::Catch2WithMain rainy-toolkit-core-algorithm)
