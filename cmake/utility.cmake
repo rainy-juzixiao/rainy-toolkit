@@ -389,3 +389,116 @@ function(target_link_libraries_if_exists target visibility)
         endif()
     endforeach()
 endfunction()
+
+function(add_rainy_library LIB_NAME SRC_DIR INCLUDE_DIR)
+    # Generate library output name based on build type
+    if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+        set(LIB_OUTPUT_NAME "${LIB_NAME}-debug-package")
+    else ()
+        set(LIB_OUTPUT_NAME "${LIB_NAME}-release-package")
+    endif ()
+
+    # Load source files from the specified directory
+    rainy_load_flodar_files("${SRC_DIR}" ".cxx" SOURCE_FILES_LIST)
+
+    # Create library target (shared or static)
+    if (RAINY_BUILD_WITH_DYNAMIC AND NOT RAINY_USE_CROSSCOMPILE)
+        message("Build dynamic library target: ${LIB_NAME}")
+        add_library(${LIB_NAME} SHARED ${SOURCE_FILES_LIST})
+        set_target_properties(${LIB_NAME} PROPERTIES OUTPUT_NAME ${LIB_OUTPUT_NAME})
+        target_compile_definitions(${LIB_NAME} PRIVATE RAINY_DYNAMIC_EXPORTS=1)
+        target_compile_definitions(${LIB_NAME} PUBLIC RAINY_USING_DYNAMIC=1)
+    else ()
+        message("Building static library target: ${LIB_NAME}")
+        add_library(${LIB_NAME} STATIC ${SOURCE_FILES_LIST})
+        target_compile_definitions(${LIB_NAME} PRIVATE RAINY_DYNAMIC_EXPORTS=0)
+        target_compile_definitions(${LIB_NAME} PUBLIC RAINY_USING_DYNAMIC=0)
+    endif ()
+
+    # Set runtime output directory
+    set_target_properties(${LIB_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
+    # Add include directories
+    target_include_directories(
+            ${LIB_NAME}
+            PUBLIC
+            $<BUILD_INTERFACE:${INCLUDE_DIR}>
+            $<INSTALL_INTERFACE:include>
+    )
+
+    # Clean up the source files list variable
+    unset(SOURCE_FILES_LIST)
+
+    # Architecture and compiler specific optimizations
+    if (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" AND NOT RAINY_USE_CROSSCOMPILE)
+
+        if (CMAKE_COMPILER_IS_GNUCXX OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT MSVC))
+            message("Detect Clang compiler or GNU compiler for ${LIB_NAME}")
+            if (RAINY_USE_AVX2_BOOST)
+                message("${LIB_NAME} will using avx2 boost")
+                add_definitions(-DRAINY_USING_AVX2=1)
+                set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2")
+            else ()
+                add_definitions(-DRAINY_USING_AVX2=0)
+            endif ()
+        elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND MSVC)
+            message("Detect Clang-MSVC Cli compiler for ${LIB_NAME}")
+            if (RAINY_USE_AVX2_BOOST)
+                message("${LIB_NAME} will using avx2 boost")
+                add_definitions(-DRAINY_USING_AVX2=1)
+                set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /arch:AVX2")
+            else ()
+                add_definitions(-DRAINY_USING_AVX2=0)
+            endif ()
+        endif ()
+
+    endif ()
+
+    # MSVC specific settings
+    if (MSVC AND NOT (CMAKE_CXX_COMPILER_ID MATCHES "Clang") AND NOT RAINY_USE_CROSSCOMPILE)
+        message("Detect MSVC compiler for ${LIB_NAME}")
+
+        if (RAINY_CAN_USE_AVX2)
+            message("${LIB_NAME} will using avx2 boost")
+            add_definitions(-DRAINY_USING_AVX2=1)
+            add_compile_options(/arch:AVX2)
+        else ()
+            add_definitions(-DRAINY_USING_AVX2=0)
+        endif ()
+
+        if (NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+            if (RAINY_USING_UTF8_INPUT_FOR_MSVC)
+                message("Using UTF-8 for input encoding for ${LIB_NAME}")
+                target_compile_options(${LIB_NAME} PUBLIC /source-charset:utf-8)
+            else ()
+                message("Using GBK for input encoding for ${LIB_NAME}")
+                target_compile_options(${LIB_NAME} PUBLIC /execution-charset:gbk)
+            endif ()
+
+            if (RAINY_USING_UTF8_OUTPUT_FOR_MSVC)
+                message("Using UTF-8 for output encoding for ${LIB_NAME}")
+                target_compile_options(${LIB_NAME} PUBLIC /source-charset:utf-8)
+            else ()
+                message("Using GBK for output encoding for ${LIB_NAME}")
+                target_compile_options(${LIB_NAME} PUBLIC /execution-charset:gbk)
+            endif ()
+        endif ()
+    endif ()
+
+    message(STATUS "${LIB_NAME} library finished setup.")
+endfunction()
+
+function(add_rainy_interface_library LIB_NAME INCLUDE_DIR)
+    # Create interface library target
+    add_library(${LIB_NAME} INTERFACE)
+
+    # Add include directories for the interface library
+    target_include_directories(
+            ${LIB_NAME}
+            PUBLIC INTERFACE
+            $<BUILD_INTERFACE:${INCLUDE_DIR}>
+            $<INSTALL_INTERFACE:include>
+    )
+
+    message(STATUS "${LIB_NAME} interface library finished setup.")
+endfunction()
