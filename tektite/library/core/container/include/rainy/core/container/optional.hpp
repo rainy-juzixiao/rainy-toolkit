@@ -13,11 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef RAINY_CORE_YESOD_CONTAINER_OPTIONAL_HPP
-#define RAINY_CORE_YESOD_CONTAINER_OPTIONAL_HPP
+#ifndef RAINY_CORE_CONTAINER_OPTIONAL_HPP
+#define RAINY_CORE_CONTAINER_OPTIONAL_HPP
 #include <optional>
 #include <rainy/annotations/smf_control.hpp>
 #include <rainy/core/type_traits.hpp>
+#include <rainy/core/diagnostics/exceptions.hpp>
 
 #if RAINY_USING_MSVC
 #pragma warning(push)
@@ -32,7 +33,7 @@ namespace rainy::foundation::container {
     class optional;
 }
 
-namespace rainy::foundation::exceptions::runtime {
+namespace rainy::core::exceptions::runtime {
     class bad_optional_access final : public runtime_error {
     public:
         using base = runtime_error;
@@ -446,42 +447,42 @@ namespace rainy::foundation::container {
 
         RAINY_NODISCARD constexpr value_type *operator->() {
             if (!has_value()) {
-                foundation::exceptions::runtime::throw_bad_optional_access();
+                core::exceptions::runtime::throw_bad_optional_access();
             }
             return utility::addressof(this->value_);
         }
 
         RAINY_NODISCARD constexpr const value_type *operator->() const {
             if (!has_value()) {
-                foundation::exceptions::runtime::throw_bad_optional_access();
+                core::exceptions::runtime::throw_bad_optional_access();
             }
             return utility::addressof(this->value_);
         }
 
         RAINY_NODISCARD constexpr Ty &value() & {
             if (!has_value()) {
-                foundation::exceptions::runtime::throw_bad_optional_access();
+                core::exceptions::runtime::throw_bad_optional_access();
             }
             return this->value_;
         }
 
         RAINY_NODISCARD constexpr const Ty &value() const & {
             if (!has_value()) {
-                foundation::exceptions::runtime::throw_bad_optional_access();
+                core::exceptions::runtime::throw_bad_optional_access();
             }
             return this->value_;
         }
 
         RAINY_NODISCARD constexpr Ty &&value() && {
             if (!has_value()) {
-                foundation::exceptions::runtime::throw_bad_optional_access();
+                core::exceptions::runtime::throw_bad_optional_access();
             }
             return utility::move(this->value_);
         }
 
         RAINY_NODISCARD constexpr const Ty &&value() const && {
             if (!has_value()) {
-                foundation::exceptions::runtime::throw_bad_optional_access();
+                core::exceptions::runtime::throw_bad_optional_access();
             }
             return utility::move(this->value_);
         }

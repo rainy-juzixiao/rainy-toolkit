@@ -13,29 +13,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */                                                                                                                                   \
-#ifndef RAINY_CORE_YESOD_CONTAINER_MOVABLE_BOX_HPP
-#define RAINY_CORE_YESOD_CONTAINER_MOVABLE_BOX_HPP
+#ifndef RAINY_CORE_CONTAINER_MOVABLE_BOX_HPP
+#define RAINY_CORE_CONTAINER_MOVABLE_BOX_HPP
 
 #include <rainy/core/type_traits.hpp>
 
 namespace rainy::foundation::container::implements {
     template <typename Ty>
     RAINY_CONSTEXPR_BOOL is_valid_movable_object =
-        type_traits::type_properties::is_copy_constructible_v<Ty> && type_traits::type_properties::is_destructible_v<Ty>;
+        type_traits::properties::is_copy_constructible_v<Ty> && type_traits::properties::is_destructible_v<Ty>;
 }
 
 namespace rainy::foundation::container {
     template <typename Ty>
     class movable_box {
     public:
-        template <typename UTy = Ty, type_traits::other_trans::enable_if_t<type_traits::type_properties::is_default_constructible_v<UTy>, int> = 0>
-        constexpr movable_box() noexcept(type_traits::type_properties::is_nothrow_default_constructible_v<UTy>) :
+        template <typename UTy = Ty, type_traits::other_trans::enable_if_t<type_traits::properties::is_default_constructible_v<UTy>, int> = 0>
+        constexpr movable_box() noexcept(type_traits::properties::is_nothrow_default_constructible_v<UTy>) :
             value_(), is_valid_{true} {
         }
 
         template <typename... Args>
         constexpr movable_box(std::in_place_t,
-                              Args &&...args) noexcept(type_traits::type_properties::is_nothrow_constructible_v<Ty, Args...>) :
+                              Args &&...args) noexcept(type_traits::properties::is_nothrow_constructible_v<Ty, Args...>) :
             value_(utility::forward<Args>(args)...), is_valid_{true} {
         }
 
@@ -45,7 +45,7 @@ namespace rainy::foundation::container {
             }
         }
 
-        template <type_traits::other_trans::enable_if_t<type_traits::type_properties::is_copy_constructible_v<Ty>, int> = 0>
+        template <type_traits::other_trans::enable_if_t<type_traits::properties::is_copy_constructible_v<Ty>, int> = 0>
         constexpr movable_box(const movable_box &right) : is_valid_{right.is_valid_} {
             if (right.is_valid_) {
                 utility::construct_in_place(value_, static_cast<const Ty &>(right.value_));
@@ -58,10 +58,10 @@ namespace rainy::foundation::container {
             }
         }
 
-        template <typename UTy = Ty,type_traits::other_trans::enable_if_t<type_traits::type_properties::is_copyable_v<UTy>, int> = 0>
+        template <typename UTy = Ty,type_traits::other_trans::enable_if_t<type_traits::properties::is_copyable_v<UTy>, int> = 0>
         constexpr movable_box &operator=(const movable_box &right) noexcept(
-            type_traits::type_properties::is_nothrow_copy_constructible_v<UTy> &&
-            type_traits::type_properties::is_nothrow_copy_assignable_v<UTy>) {
+            type_traits::properties::is_nothrow_copy_constructible_v<UTy> &&
+            type_traits::properties::is_nothrow_copy_assignable_v<UTy>) {
             if (is_valid_) {
                 if (right.is_valid_) {
                     static_cast<Ty &>(value_) = static_cast<const Ty &>(right.value_);
@@ -81,7 +81,7 @@ namespace rainy::foundation::container {
         }
 
         constexpr movable_box &operator=(movable_box &&right) noexcept(
-            type_traits::type_properties::is_nothrow_move_constructible_v<Ty>) {
+            type_traits::properties::is_nothrow_move_constructible_v<Ty>) {
             if (utility::addressof(right) == this) {
                 return *this;
             }
