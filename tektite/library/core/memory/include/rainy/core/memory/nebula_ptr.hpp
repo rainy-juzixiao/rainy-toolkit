@@ -15,12 +15,12 @@
  */
 #ifndef RAINY_CORE_MEMORY_NEBULA_PTR
 #define RAINY_CORE_MEMORY_NEBULA_PTR
+#include <rainy/core/algorithm.hpp>
+#include <rainy/core/container/compressed_pair.hpp>
+#include <rainy/core/memory/allocator.hpp>
 #include <rainy/core/platform.hpp>
 #include <rainy/core/type_traits.hpp>
-#include <rainy/core/container/compressed_pair.hpp>
-#include <rainy/core/algorithm.hpp>
 #include <rainy/core/diagnostics/exceptions.hpp>
-#include <rainy/core/memory/allocator.hpp>
 
 namespace rainy::core::memory {
     template <typename Ty>
@@ -264,7 +264,7 @@ namespace rainy::core::memory::implements {
         }
 
     protected:
-        foundation::container::compressed_pair<deleter_type, pointer> pair;
+        container::compressed_pair<deleter_type, pointer> pair;
     };
 }
 
