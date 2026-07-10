@@ -5,10 +5,7 @@
 #include <rainy/core/type_traits/modifers.hpp>
 
 #if RAINY_USING_GCC
-/*
-此命名空间是预先声明给gnu编译器的，请勿使用
-原因是此区域是处于混乱的
-*/
+
 namespace rainy::type_traits::implements::gcc_detail_impl {
     template <bool, typename Ty = void>
     struct enable_if {};

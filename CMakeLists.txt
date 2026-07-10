@@ -71,3 +71,5 @@ add_subdirectory(${PROJECT_SOURCE_DIR}/xaga/examples/reflection/)
 if (RAINY_USE_NODE_ADDON)
     add_subdirectory(${PROJECT_SOURCE_DIR}/xaga/internal_use/nodejs_integrate_test/)
 endif ()
+
+add_subdirectory(tektite/)

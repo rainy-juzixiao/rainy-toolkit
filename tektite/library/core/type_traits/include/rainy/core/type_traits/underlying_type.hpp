@@ -1,0 +1,114 @@
+/*
+* Copyright 2026 rainy-juzixiao
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+#ifndef RAINY_CORE_TYPE_TRAITS_UNDERLYING_TYPE_HPP
+#define RAINY_CORE_TYPE_TRAITS_UNDERLYING_TYPE_HPP
+
+namespace rainy::type_traits::other_trans {
+    /**
+     * @brief Retrieves the underlying integral type of an enum type.
+     *        获取枚举类型的底层整数类型。
+     *
+     * Returns the underlying integer type of enum type Ty.
+     *
+     * @tparam Ty The enum type
+     *            枚举类型
+     */
+    template <typename Ty>
+    struct underlying_type {
+        using type = __underlying_type(Ty);
+    };
+
+    /**
+     * @brief Alias template for underlying type, providing simplified access.
+     *        底层类型模板的别名简化，提供便捷访问。
+     *
+     * @tparam Ty The enum type
+     *            枚举类型
+     */
+    template <typename Ty>
+    using underlying_type_t = typename underlying_type<Ty>::type;
+}
+
+/**
+ * @def RAINY_ENABLE_ENUM_CLASS_BITMASK_OPERATORS
+ * @brief Enables bitmask operators for enum classes.
+ *        为枚举类启用位掩码操作符。
+ *
+ * @param EnumType The enum class type name to enable bitmask operations for
+ *                 要启用位掩码操作的枚举类类型名
+ *
+ * @brief
+ * This macro generates overloads for bitwise AND, OR, XOR, NOT, and their
+ * corresponding assignment operators for the specified enum class.
+ * It allows enum classes to be used as bitmasks, similar to traditional
+ * C++ enum flags.
+ *
+ * 该宏为枚举类生成按位与、或、异或、取反以及相应的赋值操作符重载。
+ * 使得枚举类可以作为位掩码使用，就像 C++ 中传统的枚举标志位一样。
+ *
+ * Generated operators include:
+ * 生成的操作符包括：
+ * - |  : Bitwise OR  / 按位或
+ * - &  : Bitwise AND / 按位与
+ * - ^  : Bitwise XOR / 按位异或
+ * - ~  : Bitwise NOT / 按位取反
+ * - |= : Bitwise OR assignment  / 按位或赋值
+ * - &= : Bitwise AND assignment / 按位与赋值
+ * - ^= : Bitwise XOR assignment / 按位异或赋值
+ *
+ * Usage example:
+ * 使用示例：
+ * @code
+ * enum class MyFlags { A = 1 << 0, B = 1 << 1, C = 1 << 2 };
+ * RAINY_ENABLE_ENUM_CLASS_BITMASK_OPERATORS(MyFlags)
+ *
+ * MyFlags flags = MyFlags::A | MyFlags::B;  // Bitwise combination allowed
+ *                                            // 允许按位组合
+ * flags &= ~MyFlags::A;                      // Bit operations allowed
+ *                                            // 允许位操作
+ * @endcode
+ */
+#define RAINY_ENABLE_ENUM_CLASS_BITMASK_OPERATORS(EnumType)                                                                           \
+    inline constexpr EnumType operator|(EnumType left, EnumType right) {                                                              \
+        using type = ::rainy::type_traits::other_trans::underlying_type_t<EnumType>;                                                  \
+        return static_cast<EnumType>(static_cast<type>(left) | static_cast<type>(right));                                             \
+    }                                                                                                                                 \
+    inline constexpr EnumType operator&(EnumType left, EnumType right) {                                                              \
+        using type = ::rainy::type_traits::other_trans::underlying_type_t<EnumType>;                                                  \
+        return static_cast<EnumType>(static_cast<type>(left) & static_cast<type>(right));                                             \
+    }                                                                                                                                 \
+    inline constexpr EnumType operator^(EnumType left, EnumType right) {                                                              \
+        using type = ::rainy::type_traits::other_trans::underlying_type_t<EnumType>;                                                  \
+        return static_cast<EnumType>(static_cast<type>(left) ^ static_cast<type>(right));                                             \
+    }                                                                                                                                 \
+    inline constexpr EnumType operator~(EnumType val) {                                                                               \
+        using type = ::rainy::type_traits::other_trans::underlying_type_t<EnumType>;                                                  \
+        return static_cast<EnumType>(~static_cast<type>(val));                                                                        \
+    }                                                                                                                                 \
+    inline constexpr EnumType &operator|=(EnumType &left, EnumType right) {                                                           \
+        left = left | right;                                                                                                          \
+        return left;                                                                                                                  \
+    }                                                                                                                                 \
+    inline constexpr EnumType &operator&=(EnumType &left, EnumType right) {                                                           \
+        left = left & right;                                                                                                          \
+        return left;                                                                                                                  \
+    }                                                                                                                                 \
+    inline constexpr EnumType &operator^=(EnumType &left, EnumType right) {                                                           \
+        left = left ^ right;                                                                                                          \
+        return left;                                                                                                                  \
+    }
+
+#endif

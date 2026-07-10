@@ -302,5 +302,3 @@ else ()
     target_compile_definitions(rainy-toolkit PUBLIC RAINY_HAS_CXX26_STATIC_REFLECTION=0)
     set(RAINY_TOOLKIT_HAVE_CXX26_STATIC_REFLECTION FALSE)
 endif ()
-
-add_subdirectory(tektite/)
