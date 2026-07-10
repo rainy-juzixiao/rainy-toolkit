@@ -16,9 +16,16 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/platform)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/type_traits)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/container)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/diagnostics)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/algorithm)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/memory)
+project(rainy-toolkit-core-diagnostics)
+
+add_rainy_library(
+        rainy-toolkit-core-diagnostics
+        ${PROJECT_SOURCE_DIR}/sources
+        ${PROJECT_SOURCE_DIR}/include
+)
+
+target_link_libraries(rainy-toolkit-core-diagnostics PUBLIC rainy-toolkit-core-platform rainy-toolkit-core-type_traits)
+
+rainy_load_flodar_files("${PROJECT_SOURCE_DIR}/tests/" ".cc" FILES_LIST)
+add_executable(rainy-toolkit-core-diagnostics-unit-test ${FILES_LIST})
+target_link_libraries(rainy-toolkit-core-diagnostics-unit-test PRIVATE Catch2::Catch2WithMain rainy-toolkit-core-diagnostics)
