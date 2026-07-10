@@ -1,3 +1,1 @@
-//
-// Created by rainy_juzixiao on 2026/7/10.
-//
+#include <rainy/core/diagnostics/contract.hpp>
