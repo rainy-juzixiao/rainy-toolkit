@@ -18,7 +18,7 @@
 
 cmake_minimum_required(VERSION 3.22.1)
 
-file(READ "${CMAKE_SOURCE_DIR}/version.txt" VERSION)
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/version.txt" VERSION)
 string(STRIP "${VERSION}" VERSION)
 
 project(rainy-toolkit VERSION ${VERSION} LANGUAGES CXX C)

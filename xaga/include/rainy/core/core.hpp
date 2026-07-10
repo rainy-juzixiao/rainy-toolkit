@@ -53,6 +53,7 @@
 #include <rainy/core/yesod/generate/marco_gen.hpp>
 #include <rainy/core/yesod/container.hpp>
 #include <rainy/core/yesod/source_location.hpp>
+#include <rainy/core/yesod/stacktrace.hpp>
 
 // clang-format on
 
@@ -718,35 +719,6 @@ namespace rainy::utility {
 }
 
 namespace rainy::utility {
-    /**
-     * @brief Primary template for hash function object.
-     *        Provides hash computation for various types.
-     *
-     *        哈希函数对象的主模板。
-     *        为各种类型提供哈希计算。
-     *
-     * @tparam key The type to compute hash for
-     *             要计算哈希的类型
-     */
-    template <typename key>
-    struct hash : implements::hash_enable_if<
-                      key, !type_traits::type_properties::is_const_v<key> && !type_traits::type_properties::is_volatile_v<key> &&
-                               (type_traits::primary_types::is_enum_v<key> || type_traits::primary_types::is_integral_v<key> ||
-                                type_traits::primary_types::is_pointer_v<key>)> {
-        /**
-         * @brief Computes hash value for the given key.
-         *        计算给定键的哈希值。
-         *
-         * @param keyval The value to hash
-         *               要哈希的值
-         * @return Hash value
-         *         哈希值
-         */
-        static std::size_t hash_this_val(const key &keyval) noexcept {
-            return implements::hash_representation(keyval);
-        }
-    };
-
     /**
      * @brief Specialization for float type.
      *        float 类型的特化。

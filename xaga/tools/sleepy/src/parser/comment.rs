@@ -63,6 +63,7 @@ enum CommentToken {
     OverloadDecl(String), // @overload_decl
     MainTemplate,
     SpecTemplate(Vec<String>),
+    Module(String),  // @module
 }
 
 fn tokenize_comment(raw: &str) -> Vec<CommentToken> {
@@ -242,6 +243,7 @@ fn tokenize_comment(raw: &str) -> Vec<CommentToken> {
         single_tag!("version", Version);
         single_tag!("date", Date);
         single_tag!("copyright", Copyright);
+        single_tag!("module", Module);
 
         // 多行 tags
         for tag_name in &[
@@ -436,6 +438,7 @@ pub fn parse_comment(raw: &str, name: &str, namespace_stack: Vec<String>) -> Par
         overload_decl: None,
         is_main_template: false,
         spec_template_args: vec![],
+        module: None,
     };
     let mut parser = CommentBlockParser::new();
     let mut params: HashMap<String, Param> = HashMap::new();
@@ -670,6 +673,9 @@ pub fn parse_comment(raw: &str, name: &str, namespace_stack: Vec<String>) -> Par
             }
             CommentToken::SpecTemplate(args) => {
                 basic.spec_template_args = args;
+            }
+            CommentToken::Module(name) => {
+                basic.module = Some(name);
             }
         }
     }
