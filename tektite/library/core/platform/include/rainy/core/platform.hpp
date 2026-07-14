@@ -854,7 +854,30 @@ namespace rainy::type_traits::properties {
 
 namespace rainy::core::builtin {
 #if RAINY_USING_AVX2 && RAINY_IS_X86_PLATFORM
-    RAINY_TOOLKIT_API std::int32_t ctz_avx2(std::uint32_t x) noexcept;
+    RAINY_INLINE std::int32_t ctz_avx2(std::uint32_t x) noexcept {
+        if (x == 0) {
+            return 32;
+        }
+        const __m256i v = _mm256_set1_epi32(static_cast<int>(x));
+        __m256i bits = _mm256_set1_epi32(1);
+        int i = 0;
+        while (_mm256_testz_si256(v, bits)) {
+            bits = _mm256_slli_epi32(bits, 1);
+            ++i;
+        }
+        return i;
+    }
+
+    RAINY_INLINE int ctz(const int mask) {
+#if RAINY_COMPILER_MSVC
+        unsigned long index;
+        _BitScanForward(&index, static_cast<unsigned long>(mask));
+        return static_cast<int>(index);
+#else
+        return __builtin_ctz(static_cast<unsigned int>(mask));
+#endif
+    }
+
 #endif
     constexpr rain_fn compare_memory(const void *mem1, const void *mem2, const std::size_t count) -> int {
         return __builtin_memcmp(mem1, mem2, count);
@@ -3502,6 +3525,16 @@ namespace rainy::core::implements {
         }
         return wait_for_check >= start && wait_for_check <= end;
     }
+}
+
+namespace rainy::core::implements {
+    RAINY_TOOLKIT_API void stl_internal_check(bool result);
+}
+
+namespace rainy::core::builtin {
+#if RAINY_USING_AVX2 && RAINY_IS_X86_PLATFORM
+    std::int32_t ctz_avx2(const std::uint32_t x) noexcept;
+#endif
 }
 
 #endif
