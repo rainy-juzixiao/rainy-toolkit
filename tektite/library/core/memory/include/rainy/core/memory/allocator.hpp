@@ -81,9 +81,18 @@ namespace rainy::core::memory {
             throw std::bad_alloc();
         }
 
-        RAINY_NODISCARD_RAW_PTR_ALLOC constexpr allocation_result<Ty *, size_type> allocate_at_least(
-            const size_type count) const {
+        RAINY_NODISCARD_RAW_PTR_ALLOC constexpr allocation_result<Ty *, size_type> allocate_at_least(const size_type count) const {
             return {allocate(count), count};
+        }
+
+        template <typename... Args>
+        RAINY_CONSTEXPR20 void construct(value_type *const ptr, Args &&...args) const
+            noexcept(type_traits::properties::is_nothrow_constructible_v<value_type, Args...>) {
+            utility::construct_at(ptr, utility::forward<Args>(args)...);
+        }
+
+        RAINY_CONSTEXPR20 void destroy(value_type *const ptr) const noexcept(std::is_nothrow_destructible_v<value_type>) {
+            ptr->~value_type();
         }
 
         constexpr void deallocate(Ty *const p, const size_type count) const {
@@ -120,9 +129,8 @@ namespace rainy::core::memory::implements {
 
     template <typename Alloc>
     struct has_select_on_container_copy_construction<
-        Alloc,
-        type_traits::other_trans::void_t<decltype(
-            utility::declval<const Alloc &>().select_on_container_copy_construction())>> : type_traits::helper::true_type {};
+        Alloc, type_traits::other_trans::void_t<decltype(utility::declval<const Alloc &>().select_on_container_copy_construction())>>
+        : type_traits::helper::true_type {};
 
     template <typename Alloc>
     struct std_allocator_traits;
@@ -257,8 +265,7 @@ namespace rainy::core::memory::implements {
     };
 
     template <typename Ty>
-    struct get_propagate_on_container_copy<
-        Ty, type_traits::other_trans::void_t<typename Ty::propagate_on_container_copy_assignment>> {
+    struct get_propagate_on_container_copy<Ty, type_traits::other_trans::void_t<typename Ty::propagate_on_container_copy_assignment>> {
         using type = typename Ty::propagate_on_container_copy_assignment;
     };
 
@@ -268,8 +275,7 @@ namespace rainy::core::memory::implements {
     };
 
     template <typename Ty>
-    struct get_propagate_on_container_move<
-        Ty, type_traits::other_trans::void_t<typename Ty::propagate_on_container_move_assignment>> {
+    struct get_propagate_on_container_move<Ty, type_traits::other_trans::void_t<typename Ty::propagate_on_container_move_assignment>> {
         using type = typename Ty::propagate_on_container_move_assignment;
     };
 
@@ -279,8 +285,7 @@ namespace rainy::core::memory::implements {
     };
 
     template <typename Ty>
-    struct get_propagate_on_container_swap<
-        Ty, type_traits::other_trans::void_t<typename Ty::propagate_on_container_swap>> {
+    struct get_propagate_on_container_swap<Ty, type_traits::other_trans::void_t<typename Ty::propagate_on_container_swap>> {
         using type = typename Ty::propagate_on_container_swap;
     };
 
@@ -337,13 +342,11 @@ namespace rainy::core::memory::implements {
         template <typename Other>
         using rebind_traits = allocator_traits<rebind_alloc<Other>>;
 
-        RAINY_NODISCARD_RAW_PTR_ALLOC static RAINY_CONSTEXPR20 pointer allocate(allocator_type &allocator,
-                                                                                const size_type count) {
+        RAINY_NODISCARD_RAW_PTR_ALLOC static RAINY_CONSTEXPR20 pointer allocate(allocator_type &allocator, const size_type count) {
             return allocator.allocate(count);
         }
 
-        RAINY_NODISCARD_RAW_PTR_ALLOC static RAINY_CONSTEXPR20 pointer allocate(allocator_type &allocator,
-                                                                                const size_type count,
+        RAINY_NODISCARD_RAW_PTR_ALLOC static RAINY_CONSTEXPR20 pointer allocate(allocator_type &allocator, const size_type count,
                                                                                 const const_void_pointer hint) {
             if constexpr (has_allocate_hint<allocator_type, size_type, const_void_pointer>::value) {
                 return allocator.allocate(count, hint);
@@ -381,7 +384,7 @@ namespace rainy::core::memory {
     template <typename Alloc>
     struct allocator_traits
         : type_traits::other_trans::conditional_t<implements::is_std_allocator<Alloc>, implements::std_allocator_traits<Alloc>,
-                                                   implements::normal_allocator_traits<Alloc>> {};
+                                                  implements::normal_allocator_traits<Alloc>> {};
 }
 
 namespace rainy::core::memory {
@@ -444,8 +447,7 @@ namespace rainy::core::memory {
             }
         }
 
-        RAINY_NODISCARD_RAW_PTR_ALLOC constexpr allocation_result<pointer> allocate_at_least(
-            const size_type count) const {
+        RAINY_NODISCARD_RAW_PTR_ALLOC constexpr allocation_result<pointer> allocate_at_least(const size_type count) const {
             return {allocate(count), count};
         }
 
@@ -455,8 +457,7 @@ namespace rainy::core::memory {
             utility::construct_at(ptr, utility::forward<Args>(args)...);
         }
 
-        RAINY_CONSTEXPR20 void destroy(value_type *const ptr) const noexcept(
-            std::is_nothrow_destructible_v<value_type>) {
+        RAINY_CONSTEXPR20 void destroy(value_type *const ptr) const noexcept(std::is_nothrow_destructible_v<value_type>) {
             ptr->~value_type();
         }
 
