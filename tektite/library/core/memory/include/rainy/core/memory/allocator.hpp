@@ -182,6 +182,10 @@ namespace rainy::core::memory::implements {
             ptr->~value_type();
         }
 
+        static size_type max_size(allocator_type al) noexcept {
+            return (utility::numeric_limits<size_type>::max)() / sizeof(value_type);
+        }
+
         RAINY_NODISCARD static RAINY_CONSTEXPR20 allocator_type
         select_on_container_copy_construction(const allocator_type &allocator) {
             if constexpr (has_select_on_container_copy_construction<allocator_type>::value) {
@@ -367,6 +371,14 @@ namespace rainy::core::memory::implements {
         template <typename Ty_>
         static RAINY_CONSTEXPR20 void destroy(allocator_type &allocator, Ty_ *ptr) {
             allocator.destroy(ptr);
+        }
+
+        static size_type max_size(allocator_type al) noexcept {
+            if constexpr (type_traits::extras::meta_method::has_max_size_v<allocator_type>) {
+                return al.max_size();
+            } else {
+                return (utility::numeric_limits<size_type>::max)() / sizeof(value_type);
+            }
         }
 
         RAINY_NODISCARD static RAINY_CONSTEXPR20 allocator_type
