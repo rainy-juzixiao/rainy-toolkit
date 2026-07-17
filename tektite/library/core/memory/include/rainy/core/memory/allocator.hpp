@@ -182,7 +182,7 @@ namespace rainy::core::memory::implements {
             ptr->~value_type();
         }
 
-        static size_type max_size(allocator_type al) noexcept {
+        RAINY_CONSTEXPR20 static size_type max_size(allocator_type al) noexcept {
             return (utility::numeric_limits<size_type>::max)() / sizeof(value_type);
         }
 
@@ -373,7 +373,7 @@ namespace rainy::core::memory::implements {
             allocator.destroy(ptr);
         }
 
-        static size_type max_size(allocator_type al) noexcept {
+        static RAINY_CONSTEXPR20 size_type max_size(allocator_type al) noexcept {
             if constexpr (type_traits::extras::meta_method::has_max_size_v<allocator_type>) {
                 return al.max_size();
             } else {
