@@ -17,6 +17,7 @@
 #define RAINY_CORE_TYPE_TRAITS_ITER_TRAITS_HPP
 #include <rainy/core/platform.hpp>
 #include <rainy/core/type_traits/modifers.hpp>
+#include <rainy/core/type_traits/type_relations.hpp>
 
 namespace rainy::type_traits::extras::iterators {
     /**
@@ -203,7 +204,7 @@ namespace rainy::type_traits::extras::iterators {
 namespace rainy::type_traits::extras::iterators::implements {
     template <typename Ty, bool Enable = type_traits::extras::iterators::has_value_type_v<Ty>>
     struct try_to_add_value_type {
-        using value_type =  utility::invalid_type;
+        using value_type = utility::invalid_type;
     };
 
     template <typename Ty>
@@ -221,7 +222,7 @@ namespace rainy::type_traits::extras::iterators::implements {
         using difference_type = typename Ty::difference_type;
     };
 
-    template <typename Ty, bool IsPointer = type_traits::implements::_is_pointer_v<Ty>,
+    template <typename Ty, bool IsPointer = rainy::type_traits::implements::_is_pointer_v<Ty>,
               bool Enable = type_traits::extras::iterators::has_iterator_category_v<Ty>>
     struct try_to_add_iterator_category {
         using iterator_category = utility::invalid_type;
@@ -529,6 +530,83 @@ namespace rainy::type_traits::extras::iterators {
      */
     template <typename Ty>
     RAINY_CONSTEXPR_BOOL has_const_iterator_v<Ty, other_trans::void_t<typename modifers::remove_cvref_t<Ty>::const_iterator>> = true;
+}
+
+
+namespace rainy::utility {
+    /**
+     * @brief Computes the distance between two iterators.
+     *        计算两个迭代器之间的距离。
+     *
+     * @tparam Iter Iterator type
+     *              迭代器类型
+     * @param first Iterator to the beginning of the range
+     *              指向范围起始的迭代器
+     * @param last Iterator to the end of the range
+     *             指向范围末尾的迭代器
+     * @return The number of elements between first and last
+     *         first 和 last 之间的元素数量
+     */
+    template <typename Iter>
+    RAINY_NODISCARD constexpr rain_fn distance(Iter first, Iter last) -> std::ptrdiff_t {
+        using category = typename iterator_traits<Iter>::iterator_category;
+        static_assert(type_traits::type_relations::is_base_of_v<std::input_iterator_tag, category>);
+
+        if constexpr (type_traits::type_relations::is_base_of_v<std::random_access_iterator_tag, category>) {
+            return last - first;
+        } else {
+            typename std::iterator_traits<Iter>::difference_type result = 0;
+            while (first != last) {
+                ++first;
+                ++result;
+            }
+            return result;
+        }
+    }
+
+    /**
+     * @brief Advances an iterator by a specified number of elements.
+     *        将迭代器向前或向后移动指定数量的元素。
+     *
+     * @tparam It Iterator type
+     *            迭代器类型
+     * @tparam Distance Type of the distance to advance
+     *                  前进距离的类型
+     * @param it Iterator to be advanced
+     *           需要移动的迭代器
+     * @param n Number of elements to advance (negative for backward movement)
+     *          要移动的元素数量（负数表示向后移动）
+     *
+     * @note For random access iterators, the operation is O(1).
+     *       对于随机访问迭代器，操作为 O(1)。
+     * @note For input iterators, only positive n is supported.
+     *       对于输入迭代器，仅支持正数 n。
+     * @note For bidirectional iterators, both positive and negative n are supported.
+     *       对于双向迭代器，支持正数和负数 n。
+     * @warning Advancing past the end of a range results in undefined behavior.
+     *          移动超过范围末尾会导致未定义行为。
+     */
+    template <typename It, typename Distance>
+    constexpr void advance(It &it, Distance n) {
+        using category = typename iterator_traits<It>::iterator_category;
+        static_assert(type_traits::type_relations::is_base_of_v<std::input_iterator_tag, category>);
+
+        auto dist = typename std::iterator_traits<It>::difference_type(n);
+        if constexpr (type_traits::type_relations::is_base_of_v<std::random_access_iterator_tag, category>) {
+            it += dist;
+        } else {
+            while (dist > 0) {
+                --dist;
+                ++it;
+            }
+            if constexpr (type_traits::type_relations::is_base_of_v<std::bidirectional_iterator_tag, category>) {
+                while (dist < 0) {
+                    ++dist;
+                    --it;
+                }
+            }
+        }
+    }
 }
 
 #endif

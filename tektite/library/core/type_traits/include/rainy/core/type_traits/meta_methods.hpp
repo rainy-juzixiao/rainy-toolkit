@@ -2491,7 +2491,7 @@ namespace rainy::type_traits::extras::meta_method {
     struct has_length : type_traits::helper::bool_constant<has_length_v<Ty>> {};
 }
 
-namespace rainy::foundation::memory::implements {
+namespace rainy::core::memory::implements {
     template <typename Ty, typename Elem>
     struct pointer_traits_base {
         using pointer = Ty;
@@ -2530,7 +2530,7 @@ namespace rainy::foundation::memory::implements {
         : implements::pointer_traits_base<Ty, typename Ty::element_type> {};
 }
 
-namespace rainy::foundation::memory {
+namespace rainy::core::memory {
     template <typename Ty>
     struct pointer_traits : implements::ptr_traits_sfinae_layer<Ty> {};
 
@@ -2561,7 +2561,7 @@ namespace rainy::foundation::memory {
 }
 
 namespace rainy::utility {
-    using foundation::memory::pointer_traits;
+    using core::memory::pointer_traits;
 }
 
 namespace rainy::utility::implements {
@@ -2584,7 +2584,7 @@ namespace rainy::utility::implements {
      */
     template <typename Ty>
     RAINY_CONSTEXPR_BOOL
-        has_to_address<Ty, type_traits::other_trans::void_t<decltype(foundation::memory::pointer_traits<Ty>::to_address(
+        has_to_address<Ty, type_traits::other_trans::void_t<decltype(core::memory::pointer_traits<Ty>::to_address(
                                utility::declval<const Ty &>()))>> = true;
 }
 
