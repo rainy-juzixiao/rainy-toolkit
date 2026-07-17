@@ -24,6 +24,7 @@
 #include <rainy/core/type_traits/primary_types.hpp>
 #include <rainy/core/type_traits/type_relations.hpp>
 #include <rainy/core/type_traits/properties.hpp>
+#include <rainy/core/type_traits/underlying_type.hpp>
 
 // NOLINTEND
 
