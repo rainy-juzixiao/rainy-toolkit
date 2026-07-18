@@ -831,7 +831,7 @@ namespace rainy::collections {
         RAINY_NODISCARD RAINY_CONSTEXPR20 vector slice(const size_type begin_slice = 0, const size_type end_slice = npos) const {
             const auto sz = size();
             const auto end_slice1 = (core::min) (sz, end_slice);
-            if (begin_slice >= sz or begin_slice == end_slice) {
+            if (begin_slice >= sz || begin_slice == end_slice) {
                 return vector(get_allocator());
             }
             const size_type count = end_slice1 - begin_slice;
@@ -855,7 +855,7 @@ namespace rainy::collections {
          */
         RAINY_NODISCARD RAINY_CONSTEXPR20 vector left(size_type n) const {
             const size_type sz = size();
-            if (n > sz or n == 0) {
+            if (n > sz || n == 0) {
                 return vector(get_allocator());
             }
             return slice(0, n);
