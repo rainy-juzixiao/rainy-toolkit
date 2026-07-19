@@ -25,7 +25,7 @@
 // NOLINTEND
 
 namespace rainy::core::exceptions {
-    class exception : public std::exception {
+    class RAINY_TOOLKIT_API exception : public std::exception {
     public:
         using base = std::exception;
         using source = diagnostics::source_location;
