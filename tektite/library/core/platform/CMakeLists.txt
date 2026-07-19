@@ -16,10 +16,10 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-project(rainy-toolkit-core-platform)
-
-add_rainy_library(
-        rainy-toolkit-core-platform
-        ${PROJECT_SOURCE_DIR}/sources
-        ${PROJECT_SOURCE_DIR}/include
+target_include_directories(rainy-toolkit-core PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
 )
+
+rainy_load_flodar_files("${CMAKE_CURRENT_SOURCE_DIR}/sources" ".cxx" SUBDIR_SOURCES)
+target_sources(rainy-toolkit-core PRIVATE ${SUBDIR_SOURCES})
