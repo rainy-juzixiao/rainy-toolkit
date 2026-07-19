@@ -18,6 +18,7 @@
  */
 #ifndef RAINY_CORE_ALGORITHM_BASIC_ALGORITHM_HPP
 #define RAINY_CORE_ALGORITHM_BASIC_ALGORITHM_HPP
+#include <algorithm>
 #include <rainy/core/type_traits/implements.hpp>
 #include <rainy/core/type_traits/iter_traits.hpp>
 #include <rainy/core/type_traits/properties.hpp>
