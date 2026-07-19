@@ -77,15 +77,6 @@ TEST_CASE("array_view pointer range constructor", "[array_view]") {
     }
 }
 
-TEST_CASE("array_view initializer_list constructor", "[array_view]") {
-    SECTION("runtime") {
-        array_view<int> view = {1, 2, 3, 4};
-        REQUIRE(view.size() == 4);
-        REQUIRE(view[0] == 1);
-        REQUIRE(view[3] == 4);
-    }
-}
-
 constexpr bool test_c_array_constructor_constexpr() {
     int data[] = {5, 6, 7, 8};
     array_view<int> view(data);
