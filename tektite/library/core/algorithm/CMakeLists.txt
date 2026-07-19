@@ -16,12 +16,13 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-project(rainy-toolkit-core-algorithm)
+target_include_directories(rainy-toolkit-core PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
 
-add_rainy_interface_library(rainy-toolkit-core-algorithm ${PROJECT_SOURCE_DIR}/include)
-
-target_link_libraries(rainy-toolkit-core-algorithm INTERFACE rainy-toolkit-core-type_traits)
-
-rainy_load_flodar_files("${PROJECT_SOURCE_DIR}/tests/" ".cc" FILES_LIST)
-add_executable(rainy-toolkit-core-algorithm-unit-test ${FILES_LIST})
-target_link_libraries(rainy-toolkit-core-algorithm-unit-test PRIVATE Catch2::Catch2WithMain rainy-toolkit-core-algorithm)
+rainy_load_flodar_files("${CMAKE_CURRENT_SOURCE_DIR}/tests" ".cc" SUBDIR_TESTS)
+set(RAINY_TOOLKIT_CORE_TEST_FILES
+    ${RAINY_TOOLKIT_CORE_TEST_FILES} ${SUBDIR_TESTS}
+    PARENT_SCOPE
+)

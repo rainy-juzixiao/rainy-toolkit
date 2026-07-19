@@ -16,21 +16,16 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-project(rainy-toolkit-core-diagnostics)
-
-add_rainy_library(
-        rainy-toolkit-core-diagnostics
-        ${PROJECT_SOURCE_DIR}/sources
-        ${PROJECT_SOURCE_DIR}/include
+target_include_directories(rainy-toolkit-core PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
 )
 
-target_link_libraries(rainy-toolkit-core-diagnostics PUBLIC
-        rainy-toolkit-core-platform
-        rainy-toolkit-core-type_traits
-        rainy-toolkit-core-exceptions
-        rainy-toolkit-core-text
-)
+rainy_load_flodar_files("${CMAKE_CURRENT_SOURCE_DIR}/sources" ".cxx" SUBDIR_SOURCES)
+target_sources(rainy-toolkit-core PRIVATE ${SUBDIR_SOURCES})
 
-rainy_load_flodar_files("${PROJECT_SOURCE_DIR}/tests/" ".cc" FILES_LIST)
-add_executable(rainy-toolkit-core-diagnostics-unit-test ${FILES_LIST})
-target_link_libraries(rainy-toolkit-core-diagnostics-unit-test PRIVATE Catch2::Catch2WithMain rainy-toolkit-core-diagnostics)
+rainy_load_flodar_files("${CMAKE_CURRENT_SOURCE_DIR}/tests" ".cc" SUBDIR_TESTS)
+set(RAINY_TOOLKIT_CORE_TEST_FILES
+    ${RAINY_TOOLKIT_CORE_TEST_FILES} ${SUBDIR_TESTS}
+    PARENT_SCOPE
+)
