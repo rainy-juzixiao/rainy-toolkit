@@ -18,6 +18,7 @@
  */
 #ifndef RAINY_CORE_UTILITY_BIT_HPP
 #define RAINY_CORE_UTILITY_BIT_HPP
+#include <bit>
 #include <rainy/core/platform.hpp>
 #include <rainy/core/type_traits/limits.hpp>
 
