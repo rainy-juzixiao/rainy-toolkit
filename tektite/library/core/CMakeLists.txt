@@ -84,6 +84,7 @@ add_subdirectory(text)
 add_subdirectory(diagnostics)
 
 add_executable(rainy-toolkit-core-unit-test ${RAINY_TOOLKIT_CORE_TEST_FILES})
+catch_discover_tests(rainy-toolkit-core-unit-test)
 target_link_libraries(rainy-toolkit-core-unit-test PRIVATE Catch2::Catch2WithMain rainy-toolkit-core)
 
 unset(RAINY_TOOLKIT_CORE_TEST_FILES)
