@@ -64,7 +64,8 @@ namespace rainy::core::diagnostics::contracts {
         const char *comment() const noexcept {
             return comment_;
         }
-        detection_mode detection_mode() const noexcept {
+
+        contracts::detection_mode detection_mode() const noexcept {
             return detection_mode_;
         }
 
