@@ -18,10 +18,21 @@
 
 project(rainy-toolkit-core-text)
 
-add_rainy_interface_library(rainy-toolkit-core-text ${PROJECT_SOURCE_DIR}/include)
+add_rainy_library(rainy-toolkit-core-text
+        ${PROJECT_SOURCE_DIR}/sources
+        ${PROJECT_SOURCE_DIR}/include
+)
 
-target_link_libraries(rainy-toolkit-core-text INTERFACE rainy-toolkit-core-platform rainy-toolkit-core-memory)
+target_link_libraries(rainy-toolkit-core-text PUBLIC
+        rainy-toolkit-core-platform
+        rainy-toolkit-core-memory
+        rainy-toolkit-core-utility
+        rainy-toolkit-core-container
+        rainy-toolkit-core-collections
+)
 
 rainy_load_flodar_files("${PROJECT_SOURCE_DIR}/tests/" ".cc" FILES_LIST)
 add_executable(rainy-toolkit-core-text-unit-test ${FILES_LIST})
+catch_discover_tests(rainy-toolkit-core-text-unit-test)
+set_target_properties(rainy-toolkit-core-text-unit-test PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 target_link_libraries(rainy-toolkit-core-text-unit-test PRIVATE Catch2::Catch2WithMain rainy-toolkit-core-text)
