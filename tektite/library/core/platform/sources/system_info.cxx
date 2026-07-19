@@ -16,9 +16,9 @@
 #include <rainy/core/platform.hpp>
 
 #if RAINY_USING_WINDOWS
+#include <windows.h>
 #include <VersionHelpers.h>
 #include <intrin.h>
-#include <windows.h>
 #else
 #include <unistd.h>
 
