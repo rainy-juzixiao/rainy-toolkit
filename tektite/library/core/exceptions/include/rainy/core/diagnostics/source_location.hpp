@@ -124,7 +124,7 @@ namespace rainy::core::diagnostics {
          */
         RAINY_NODISCARD std::string to_string() const {
             const unsigned long ln = line();
-            if (ln == 0) {
+            if (ln == 0 || empty()) {
                 return "(unknown source location)";
             }
             std::string r = file_name();
@@ -135,7 +135,7 @@ namespace rainy::core::diagnostics {
                 (void) std::snprintf(buffer, std::size(buffer), ":%lu", co);
                 r += buffer;
             }
-            if (const char *fn = function_name(); *fn != 0) {
+            if (const char *fn = function_name(); fn != nullptr && *fn != 0) {
                 r += " in function '";
                 r += fn;
                 r += '\'';
@@ -150,6 +150,12 @@ namespace rainy::core::diagnostics {
          * @return 如果两个对象的文件名、函数名、行号和列号都相同，则返回true；否则返回false。
          */
         friend bool operator==(const source_location &s1, const source_location &s2) noexcept {
+            if (s1.empty() && s2.empty()) {
+                return true;
+            }
+            if (s1.empty() || s2.empty()) {
+                return false;
+            }
             return std::strcmp(s1.file_, s2.file_) == 0 && std::strcmp(s1.function_, s2.function_) == 0 && s1.line_ == s2.line_ &&
                    s1.column_ == s2.column_;
         }
@@ -162,7 +168,17 @@ namespace rainy::core::diagnostics {
          * @return 如果两个对象的文件名、函数名、行号或列号不同，则返回true`；否则返回false`。
          */
         friend bool operator!=(const source_location &s1, const source_location &s2) noexcept {
+            if (s1.empty() && s2.empty()) {
+                return false;
+            }
+            if (s1.empty() || s2.empty()) {
+                return true;
+            }
             return !(s1 == s2);
+        }
+
+        bool empty() const noexcept {
+            return !file_;
         }
 
     private:
