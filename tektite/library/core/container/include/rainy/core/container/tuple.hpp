@@ -22,7 +22,7 @@
 #include <rainy/core/type_traits/logical.hpp>
 #include <rainy/core/type_traits/properties.hpp>
 
-namespace rainy::foundation::container {
+namespace rainy::core::container {
     /**
      * @brief A fixed-size collection of heterogeneous values.
      *        固定大小的异构值集合。
@@ -184,7 +184,7 @@ namespace rainy::foundation::container {
     constexpr const tuple_element_t<I, tuple<Types...>> &&get(const tuple<Types...> &&) noexcept;
 }
 
-namespace rainy::foundation::container::implements {
+namespace rainy::core::container::implements {
     template <typename Ty>
     struct tuple_val {
         constexpr tuple_val() : value() {
@@ -266,15 +266,15 @@ namespace rainy::foundation::container::implements {
 // NOLINTBEGIN
 namespace std {
     template <std::size_t I, typename... Types>
-    struct tuple_element<I, rainy::foundation::container::tuple<Types...>>
-        : rainy::foundation::container::tuple_element<I, rainy::foundation::container::tuple<Types...>> {};
+    struct tuple_element<I, rainy::core::container::tuple<Types...>>
+        : rainy::core::container::tuple_element<I, rainy::core::container::tuple<Types...>> {};
 
     template <typename... Types>
-    struct tuple_size<rainy::foundation::container::tuple<Types...>> : std::integral_constant<std::size_t, sizeof...(Types)> {};
+    struct tuple_size<rainy::core::container::tuple<Types...>> : std::integral_constant<std::size_t, sizeof...(Types)> {};
 }
 // NOLINTEND
 
-namespace rainy::foundation::container {
+namespace rainy::core::container {
     /**
      * @brief Primary template for tuple with at least one element.
      *        至少包含一个元素的tuple主模板。
@@ -644,7 +644,7 @@ namespace rainy::foundation::container {
     }
 }
 
-namespace rainy::foundation::container {
+namespace rainy::core::container {
     /**
      * @brief Provides the number of elements in a tuple.
      *        提供tuple中的元素数量。
@@ -681,20 +681,20 @@ namespace rainy::foundation::container {
 }
 
 namespace std {
-    using rainy::foundation::container::get;
+    using rainy::core::container::get;
 }
 
 namespace rainy::utility {
-    using rainy::foundation::container::forward_as_tuple;
-    using rainy::foundation::container::get;
-    using rainy::foundation::container::make_tuple;
+    using rainy::core::container::forward_as_tuple;
+    using rainy::core::container::get;
+    using rainy::core::container::make_tuple;
 
-    using rainy::foundation::container::tuple_element;
-    using rainy::foundation::container::tuple_element_t;
-    using rainy::foundation::container::tuple_size;
-    using rainy::foundation::container::tuple_size_v;
+    using rainy::core::container::tuple_element;
+    using rainy::core::container::tuple_element_t;
+    using rainy::core::container::tuple_size;
+    using rainy::core::container::tuple_size_v;
 
-    using rainy::foundation::container::tuple;
+    using rainy::core::container::tuple;
 }
 
 #endif

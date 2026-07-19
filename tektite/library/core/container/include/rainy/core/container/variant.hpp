@@ -15,9 +15,8 @@
  */
 #ifndef RAINY_CORE_CONTAINER_VARIANT_HPP
 #define RAINY_CORE_CONTAINER_VARIANT_HPP
-#include <rainy/core/type_traits.hpp>
 #include <rainy/core/diagnostics/source_location.hpp>
-#include <rainy/core/diagnostics/exceptions.hpp>
+#include <rainy/core/type_traits.hpp>
 
 #if RAINY_USING_MSVC
 #pragma warning(push)

@@ -16,9 +16,8 @@
 #ifndef RAINY_CORE_CONTAINER_OPTIONAL_HPP
 #define RAINY_CORE_CONTAINER_OPTIONAL_HPP
 #include <optional>
-#include <rainy/annotations/smf_control.hpp>
+#include <rainy/core/annotations/smf_control.hpp>
 #include <rainy/core/type_traits.hpp>
-#include <rainy/core/diagnostics/exceptions.hpp>
 
 #if RAINY_USING_MSVC
 #pragma warning(push)
@@ -131,7 +130,7 @@ namespace rainy::core::container::implements {
 
         union {
             std::in_place_t dummy;
-            type_traits::cv_modify::remove_cv_t<Ty> value_;
+            type_traits::modifers::remove_cv_t<Ty> value_;
         };
         bool has_value_;
     };
@@ -210,7 +209,7 @@ namespace rainy::core::container::implements {
 
         union {
             std::in_place_t dummy;
-            type_traits::cv_modify::remove_cv_t<Ty> value_;
+            type_traits::modifers::remove_cv_t<Ty> value_;
         };
         bool has_value_;
     };
@@ -223,10 +222,10 @@ namespace rainy::core::container::implements {
 
         template <typename UTy>
         using allow_direct_conversion = type_traits::helper::bool_constant<
-            !type_traits::type_relations::is_same_v<type_traits::cv_modify::remove_cvref_t<UTy>, optional<Ty>> &&
-            !type_traits::type_relations::is_same_v<type_traits::cv_modify::remove_cvref_t<UTy>, std::in_place_t> &&
-            !(type_traits::type_relations::is_same_v<type_traits::cv_modify::remove_cv_t<Ty>, bool> &&
-              type_traits::primary_types::is_specialization_v<type_traits::cv_modify::remove_cvref_t<UTy>, optional>) &&
+            !type_traits::type_relations::is_same_v<type_traits::modifers::remove_cvref_t<UTy>, optional<Ty>> &&
+            !type_traits::type_relations::is_same_v<type_traits::modifers::remove_cvref_t<UTy>, std::in_place_t> &&
+            !(type_traits::type_relations::is_same_v<type_traits::modifers::remove_cv_t<Ty>, bool> &&
+              type_traits::primary_types::is_specialization_v<type_traits::modifers::remove_cvref_t<UTy>, optional>) &&
             type_traits::properties::is_constructible_v<Ty, UTy>>;
 
         template <typename UTy>
@@ -238,7 +237,7 @@ namespace rainy::core::container::implements {
 
         template <typename UTy>
         using allow_unwrapping = type_traits::helper::bool_constant<type_traits::logical_traits::disjunction_v<
-            type_traits::type_relations::is_same<type_traits::cv_modify::remove_cv_t<Ty>, bool>,
+            type_traits::type_relations::is_same<type_traits::modifers::remove_cv_t<Ty>, bool>,
             type_traits::logical_traits::negation<type_traits::logical_traits::disjunction<
                 type_traits::type_relations::is_same<Ty, UTy>, type_traits::properties::is_constructible<Ty, optional<UTy> &>,
                 type_traits::properties::is_constructible<Ty, const optional<UTy> &>,
@@ -251,7 +250,7 @@ namespace rainy::core::container::implements {
 
         template <typename UTy>
         using allow_assignment = type_traits::helper::bool_constant<
-            !type_traits::type_relations::is_same_v<optional<Ty>, type_traits::cv_modify::remove_cvref_t<UTy>> &&
+            !type_traits::type_relations::is_same_v<optional<Ty>, type_traits::modifers::remove_cvref_t<UTy>> &&
             !type_traits::logical_traits::conjunction_v<
                 type_traits::composite_types::is_scalar<Ty>,
                 type_traits::type_relations::is_same<Ty, type_traits::other_trans::decay_t<UTy>>> &&
@@ -360,7 +359,7 @@ namespace rainy::core::container {
             base(std::in_place, ilist, utility::forward<Args>(args)...) {
         }
 
-        template <typename UTy = type_traits::cv_modify::remove_cv_t<Ty>,
+        template <typename UTy = type_traits::modifers::remove_cv_t<Ty>,
                   type_traits::other_trans::enable_if_t<allow_direct_conversion<UTy>::value, int> = 0>
         constexpr optional(UTy &&val) noexcept(type_traits::properties::is_nothrow_constructible_v<Ty, UTy>) : // NOLINT
             base(std::in_place, utility::forward<UTy>(val)) {
@@ -487,28 +486,28 @@ namespace rainy::core::container {
             return utility::move(this->value_);
         }
 
-        template <typename UTy = type_traits::cv_modify::remove_cv_t<Ty>>
-        RAINY_NODISCARD constexpr type_traits::cv_modify::remove_cv_t<Ty> value_or(UTy &&right) const & {
-            static_assert(type_traits::type_relations::is_convertible_v<const Ty &, type_traits::cv_modify::remove_cv_t<Ty>>,
+        template <typename UTy = type_traits::modifers::remove_cv_t<Ty>>
+        RAINY_NODISCARD constexpr type_traits::modifers::remove_cv_t<Ty> value_or(UTy &&right) const & {
+            static_assert(type_traits::type_relations::is_convertible_v<const Ty &, type_traits::modifers::remove_cv_t<Ty>>,
                           "The const overload of optional<Ty>::value_or requires const Ty& to be convertible to remove_cv_t<Ty> ");
-            static_assert(type_traits::type_relations::is_convertible_v<UTy, type_traits::cv_modify::remove_cv_t<Ty>>,
+            static_assert(type_traits::type_relations::is_convertible_v<UTy, type_traits::modifers::remove_cv_t<Ty>>,
                           "optional<Ty>::value_or(UTy) requires UTy to be convertible to remove_cv_t<Ty> ");
             if (this->has_value()) {
                 return static_cast<const Ty &>(this->value_);
             }
-            return static_cast<type_traits::cv_modify::remove_cv_t<Ty>>(utility::forward<UTy>(right));
+            return static_cast<type_traits::modifers::remove_cv_t<Ty>>(utility::forward<UTy>(right));
         }
 
-        template <typename UTy = type_traits::cv_modify::remove_cv_t<Ty>>
-        RAINY_NODISCARD constexpr type_traits::cv_modify::remove_cv_t<Ty> value_or(UTy &&right) && {
-            static_assert(type_traits::type_relations::is_convertible_v<Ty, type_traits::cv_modify::remove_cv_t<Ty>>,
+        template <typename UTy = type_traits::modifers::remove_cv_t<Ty>>
+        RAINY_NODISCARD constexpr type_traits::modifers::remove_cv_t<Ty> value_or(UTy &&right) && {
+            static_assert(type_traits::type_relations::is_convertible_v<Ty, type_traits::modifers::remove_cv_t<Ty>>,
                           "The rvalue overload of optional<Ty>::value_or requires Ty to be convertible to remove_cv_t<Ty> ");
-            static_assert(type_traits::type_relations::is_convertible_v<UTy, type_traits::cv_modify::remove_cv_t<Ty>>,
+            static_assert(type_traits::type_relations::is_convertible_v<UTy, type_traits::modifers::remove_cv_t<Ty>>,
                           "optional<Ty>::value_or(UTy) requires UTy to be convertible to remove_cv_t<Ty> ");
             if (this->has_value()) {
                 return static_cast<Ty &&>(this->value_);
             }
-            return static_cast<type_traits::cv_modify::remove_cv_t<Ty>>(utility::forward<UTy>(right));
+            return static_cast<type_traits::modifers::remove_cv_t<Ty>>(utility::forward<UTy>(right));
         }
 
         RAINY_CONSTEXPR20 void swap(optional &right) noexcept(type_traits::properties::is_nothrow_move_constructible_v<Ty> &&
