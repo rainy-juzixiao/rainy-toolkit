@@ -21,9 +21,13 @@ project(rainy-toolkit-core)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/platform)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/type_traits)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/annotations)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/container)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/diagnostics)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/exceptions)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/algorithm)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/utility)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/collections)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/container)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/text)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/diagnostics)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/memory)
 
 add_library(rainy-toolkit-core INTERFACE)
@@ -36,4 +40,6 @@ target_link_libraries(rainy-toolkit-core INTERFACE
         rainy-toolkit-core-diagnostics
         rainy-toolkit-core-algorithm
         rainy-toolkit-core-memory
+        rainy-toolkit-core-utility
+        rainy-toolkit-core-collections
 )

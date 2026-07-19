@@ -24,7 +24,12 @@ add_rainy_library(
         ${PROJECT_SOURCE_DIR}/include
 )
 
-target_link_libraries(rainy-toolkit-core-diagnostics PUBLIC rainy-toolkit-core-platform rainy-toolkit-core-type_traits)
+target_link_libraries(rainy-toolkit-core-diagnostics PUBLIC
+        rainy-toolkit-core-platform
+        rainy-toolkit-core-type_traits
+        rainy-toolkit-core-exceptions
+        rainy-toolkit-core-text
+)
 
 rainy_load_flodar_files("${PROJECT_SOURCE_DIR}/tests/" ".cc" FILES_LIST)
 add_executable(rainy-toolkit-core-diagnostics-unit-test ${FILES_LIST})
