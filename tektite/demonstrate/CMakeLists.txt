@@ -1,7 +1,7 @@
 add_executable(rainy-toolkit-demo-tekkitte "main.cpp")
 
 set_target_properties(rainy-toolkit-demo-tekkitte PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-target_link_libraries(rainy-toolkit-demo-tekkitte PRIVATE rainy-toolkit-core-platform)
+target_link_libraries(rainy-toolkit-demo-tekkitte PRIVATE rainy-toolkit-core)
 
 if (RAINY_USE_CROSSCOMPILE)
     set_target_properties(rainy-toolkit-demo-tekkitte PROPERTIES LINK_FLAGS "-static")
