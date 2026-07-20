@@ -47,16 +47,15 @@ function(rainy_load_flodar_files DIRECTORY EXTENSION RESULT_VAR)
     set(IS_LINUX FALSE)
     set(IS_MACOS FALSE)
     set(IS_POSIX FALSE)
+    set(IS_ARM64 FALSE)
     check_cxx_source_compiles("
-    #if defined(_M_ARM64) || defined(__aarch64__)
-    #error ARM64 not supported
+    #if defined(_M_ARM) || defined(_M_ARM64) || defined(__arm__) || defined(__aarch64__)
+    #error ARM64 supported
     #endif
     int main() { return 0; }
-    " IS_ARM64)
-    if (IS_ARM64)
-        set(IS_ARM64 false)
-    else ()
-        set(IS_ARM64 true)
+    " ARM64_REPORT)
+    if (NOT ARM64_REPORT)
+        set(IS_ARM64 TRUE)
     endif ()
     # 初始化结果列表
     set(FILE_LIST "")
