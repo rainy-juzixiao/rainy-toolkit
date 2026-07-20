@@ -141,3 +141,6 @@ temp/
 
  vcpkg_installed
 /.mcp.json
+
+# Auto-generated CMake toolchain files
+toolchains/generated/
