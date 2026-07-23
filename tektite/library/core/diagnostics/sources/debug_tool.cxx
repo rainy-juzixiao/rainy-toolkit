@@ -18,8 +18,8 @@
 // clang-format off
 
 #if RAINY_USING_WINDOWS
-#include <DbgEng.h>
-#include <DbgHelp.h>
+#include <dbgeng.h>
+#include <dbghelp.h>
 #include <windows.h>
 #include <cerrno>
 #include <cstdio>

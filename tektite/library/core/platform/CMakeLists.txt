@@ -23,3 +23,9 @@ target_include_directories(rainy-toolkit-core PUBLIC
 
 rainy_load_flodar_files("${CMAKE_CURRENT_SOURCE_DIR}/sources" ".cxx" SUBDIR_SOURCES)
 target_sources(rainy-toolkit-core PRIVATE ${SUBDIR_SOURCES})
+
+rainy_load_flodar_files("${CMAKE_CURRENT_SOURCE_DIR}/tests" ".cc" SUBDIR_TESTS)
+set(RAINY_TOOLKIT_CORE_TEST_FILES
+        ${RAINY_TOOLKIT_CORE_TEST_FILES} ${SUBDIR_TESTS}
+        PARENT_SCOPE
+)

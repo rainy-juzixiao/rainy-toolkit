@@ -17,7 +17,7 @@
 
 #if RAINY_USING_WINDOWS
 #include <windows.h>
-#include <VersionHelpers.h>
+#include <versionhelpers.h>
 #include <intrin.h>
 #else
 #include <unistd.h>
