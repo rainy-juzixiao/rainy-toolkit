@@ -1429,7 +1429,7 @@ namespace rainy::utility {
     using core::builtin::forward;
 }
 
-namespace rainy::core::pal {
+namespace rainy::core::layer {
     /* memory io */
 
     /**
@@ -3030,7 +3030,7 @@ namespace rainy::core::builtin {
     }
 }
 
-namespace rainy::core::pal {
+namespace rainy::core::layer {
     /**
      * \lang english
      * @brief Memory ordering enumeration for atomic operations.
