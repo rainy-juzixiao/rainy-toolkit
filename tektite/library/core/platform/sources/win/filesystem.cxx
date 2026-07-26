@@ -32,7 +32,6 @@
 #include <shlwapi.h>
 #include <windows.h>
 #include <winioctl.h>
-#pragma comment(lib "shlwapi")
 
 #if RAINY_USING_MSVC
 #pragma warning(push)

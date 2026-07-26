@@ -1117,7 +1117,7 @@ TEST_CASE("interlocked_bitops multithreaded", "[atomic][thread]") {
 
 TEST_CASE("iso_volatile_store basic", "[atomic]") {
     volatile std::intptr_t val = 0;
-    int value = 99;
+    std::intptr_t value = 99;
     iso_volatile_store(&val, reinterpret_cast<void*>(&value));
     REQUIRE(val == 99);
 }
