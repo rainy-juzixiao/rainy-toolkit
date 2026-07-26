@@ -22,7 +22,7 @@ namespace rainy::core::implements {
         }
         constexpr char error_info[] = "we found a error. before make more crushing, we must "
                                       "terminate this program. you can commit a issue in github.";
-        (void) std::fwrite(error_info, sizeof(char), sizeof(error_info), stderr);
+        (void) std::fwrite(error_info, sizeof(char), sizeof(error_info) - 1, stderr);
         std::abort();
     }
 }
