@@ -6,6 +6,7 @@
 #include <iostream>
 #include <rainy/core/layer.hpp>
 #include <string>
+#include <filesystem>
 
 #ifndef PATH_MAX
 #define PATH_MAX 4096
@@ -69,7 +70,7 @@ struct TempDir {
 
     TempDir() {
         native_char tmp[PATH_MAX];
-        const ssize_t tmp_len = layer::temp_directory_path_native(tmp, PATH_MAX);
+        const rainy::core::ssize_t tmp_len = layer::temp_directory_path_native(tmp, PATH_MAX);
         REQUIRE(tmp_len > 0);
 
         // Strip trailing separator from tmp so our format string controls the separator.
@@ -84,8 +85,10 @@ struct TempDir {
                           static_cast<unsigned long>(::GetCurrentProcessId()));
         REQUIRE(n > 0);
         // Clean up any stale directory from a previous test run (same PID).
-        (void) layer::remove_all_native(root);
-        if (!CreateDirectoryW(root, nullptr)) {
+        if (layer::exists_native(root)) {
+            (void) layer::remove_all_native(root);
+        }
+        if (!layer::create_directories_native(root)) {
             FAIL("Failed to create root directory");
         }
 #else
@@ -130,7 +133,7 @@ TEST_CASE("path::absolute_native", "[filesystem][path]") {
 
     SECTION("absolute of absolute path returns as-is") {
         native_char buf[PATH_MAX];
-        const ssize_t len = layer::absolute_native(d.sub, buf, PATH_MAX);
+        const rainy::core::ssize_t len = layer::absolute_native(d.sub, buf, PATH_MAX);
         REQUIRE(len > 0);
         buf[len] = '\0';
         REQUIRE(native_strcmp(buf, d.sub) == 0);
@@ -141,19 +144,19 @@ TEST_CASE("path::absolute_native", "[filesystem][path]") {
         REQUIRE(layer::current_path_native(cwd, PATH_MAX) > 0);
 
         native_char buf[PATH_MAX];
-        const ssize_t len = layer::absolute_native(_T("."), buf, PATH_MAX);
+        const rainy::core::ssize_t len = layer::absolute_native(_T("."), buf, PATH_MAX);
         REQUIRE(len > 0);
         buf[len] = '\0';
 #if RAINY_USING_WINDOWS
         REQUIRE(native_strcmp(buf, cwd) == 0);
 #else
-        REQUIRE(Catch::startsWith(buf, cwd)); 
+        REQUIRE(Catch::startsWith(buf, cwd));
 #endif
     }
 
     SECTION("absolute with buffer too small") {
         native_char buf[4];
-        const ssize_t len = layer::absolute_native(d.sub, buf, 2);
+        const rainy::core::ssize_t len = layer::absolute_native(d.sub, buf, 2);
         REQUIRE(len > 0);
     }
 }
@@ -163,7 +166,7 @@ TEST_CASE("path::canonical_native", "[filesystem][path]") {
 
     SECTION("canonical of existing file") {
         native_char buf[PATH_MAX];
-        const ssize_t len = layer::canonical_native(d.file_a, buf, PATH_MAX);
+        const rainy::core::ssize_t len = layer::canonical_native(d.file_a, buf, PATH_MAX);
         REQUIRE(len > 0);
         buf[len] = '\0';
         REQUIRE(native_strcmp(buf, d.file_a) == 0);
@@ -198,7 +201,7 @@ TEST_CASE("path::relative_native", "[filesystem][path]") {
 
     SECTION("self to self is .") {
         native_char buf[PATH_MAX];
-        const ssize_t len = layer::relative_native(d.file_a, d.file_a, buf, PATH_MAX);
+        const rainy::core::ssize_t len = layer::relative_native(d.file_a, d.file_a, buf, PATH_MAX);
         REQUIRE(len > 0);
         buf[len] = '\0';
         REQUIRE(native_strcmp(buf, _T(".")) == 0);
@@ -241,7 +244,7 @@ TEST_CASE("path::current_path_native", "[filesystem][cwd]") {
 
         layer::current_path_native(d.sub);
         native_char after[PATH_MAX];
-        const ssize_t len = layer::current_path_native(after, PATH_MAX);
+        const rainy::core::ssize_t len = layer::current_path_native(after, PATH_MAX);
         REQUIRE(len > 0);
         after[len] = '\0';
         REQUIRE(native_strcmp(after, d.sub) == 0);
@@ -599,7 +602,7 @@ TEST_CASE("symlink::create_symlink_native / read_symlink_native / copy_symlink",
         REQUIRE(layer::is_symlink_native(d.link_ab));
 
         native_char target[PATH_MAX];
-        const ssize_t len = layer::read_symlink_native(d.link_ab, target, PATH_MAX);
+        const rainy::core::ssize_t len = layer::read_symlink_native(d.link_ab, target, PATH_MAX);
         REQUIRE(len > 0);
         target[len] = '\0';
         REQUIRE(native_strcmp(target, d.file_a) == 0);
@@ -615,7 +618,7 @@ TEST_CASE("symlink::create_symlink_native / read_symlink_native / copy_symlink",
         REQUIRE(layer::is_symlink_native(copied));
 
         native_char target[PATH_MAX];
-        const ssize_t len = layer::read_symlink_native(copied, target, PATH_MAX);
+        const rainy::core::ssize_t len = layer::read_symlink_native(copied, target, PATH_MAX);
         REQUIRE(len > 0);
         target[len] = '\0';
         REQUIRE(native_strcmp(target, d.file_a) == 0);
@@ -727,14 +730,14 @@ TEST_CASE("space::space_native", "[filesystem][space]") {
 TEST_CASE("misc::temp_directory_path_native", "[filesystem][misc]") {
     SECTION("returns a directory path") {
         native_char buf[PATH_MAX];
-        const ssize_t len = layer::temp_directory_path_native(buf, PATH_MAX);
+        const rainy::core::ssize_t len = layer::temp_directory_path_native(buf, PATH_MAX);
         REQUIRE(len > 0);
         REQUIRE(layer::is_directory_native(buf));
     }
 
     SECTION("buffer too small") {
         native_char buf[2];
-        const ssize_t len = layer::temp_directory_path_native(buf, 2);
+        const rainy::core::ssize_t len = layer::temp_directory_path_native(buf, 2);
         REQUIRE(len != 0);
     }
 }

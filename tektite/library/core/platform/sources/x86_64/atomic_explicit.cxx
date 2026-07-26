@@ -429,7 +429,7 @@ namespace rainy::core::layer {
         bool result;
         RAINY_ATOMIC_BEGIN(success);
 #if RAINY_USING_MSVC
-        result = _InterlockedCompareExchange8(reinterpret_cast<volatile char *>(destination), exchange, comparand);
+        result = _InterlockedCompareExchange8(reinterpret_cast<volatile char *>(destination), exchange, comparand) == comparand;
 #else
         std::int8_t old = comparand;
         __asm__ __volatile__(
@@ -451,7 +451,7 @@ namespace rainy::core::layer {
         bool result;
         RAINY_ATOMIC_BEGIN(success);
 #if RAINY_USING_MSVC
-        result = _InterlockedCompareExchange16(destination, exchange, comparand);
+        result = _InterlockedCompareExchange16(destination, exchange, comparand) == comparand;
 #else
         std::int16_t old = comparand;
         __asm__ __volatile__(
