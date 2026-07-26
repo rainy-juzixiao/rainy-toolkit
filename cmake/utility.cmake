@@ -85,11 +85,11 @@ function(rainy_load_flodar_files DIRECTORY EXTENSION RESULT_VAR)
             if (IS_LINUX)
                 if ("${ENTRY}" MATCHES ".*[/\\\\]apple[/\\\\].*")
                     set(EXCLUDE_ENTRY TRUE)
-                endif()
+                endif ()
             else ()
                 if ("${ENTRY}" MATCHES ".*[/\\\\]linux[/\\\\].*")
                     set(EXCLUDE_ENTRY TRUE)
-                endif()
+                endif ()
             endif ()
         elseif (WIN32)  # 检查Windows平台排除条件
             if ("${ENTRY}" MATCHES ".*[/\\\\]posix[/\\\\].*")
@@ -380,13 +380,13 @@ function(rainy_add_node_addon)
 endfunction()
 
 function(target_link_libraries_if_exists target visibility)
-    foreach(lib ${ARGN})
-        if(TARGET ${lib})
+    foreach (lib ${ARGN})
+        if (TARGET ${lib})
             target_link_libraries(${target} ${visibility} ${lib})
-        else()
+        else ()
             message(STATUS "Target ${lib} does not exist, skipping")
-        endif()
-    endforeach()
+        endif ()
+    endforeach ()
 endfunction()
 
 function(rainy_configure_target TARGET_NAME)
@@ -510,4 +510,18 @@ function(rainy_configure_target TARGET_NAME)
             target_link_libraries(${TARGET_NAME} PRIVATE synchronization dbghelp shlwapi)
         endif ()
     endif ()
+    message(STATUS "${TARGET_NAME} library finished setup.")
+endfunction()
+
+function(add_rainy_interface_library TARGET_NAME INCLUDE_DIR)
+    add_library(${TARGET_NAME} INTERFACE)
+
+    target_include_directories(
+            ${TARGET_NAME}
+            PUBLIC INTERFACE
+            $<BUILD_INTERFACE:${INCLUDE_DIR}>
+            $<INSTALL_INTERFACE:include>
+    )
+
+    message(STATUS "${TARGET_NAME} interface library finished setup.")
 endfunction()
