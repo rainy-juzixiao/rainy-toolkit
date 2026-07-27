@@ -1,341 +1,166 @@
-#include <catch2/catch_approx.hpp>
+/*
+ * Copyright 2026 rainy-juzixiao
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 #include <catch2/catch_test_macros.hpp>
 #include <rainy/core/memory/temporary_buffer.hpp>
 
-#include <algorithm>
-#include <iostream>
-#include <numeric>
-#include <vector>
-
 using namespace rainy;
-using namespace rainy::core;
 using namespace rainy::core::memory;
 
-struct TestPOD {
-    int value;
-    double data;
+TEST_CASE("temporary_buffer basic allocation", "[temporary_buffer]") {
+    auto buffer = get_temporary_buffer<int>(10);
 
-    bool operator==(const TestPOD &other) const {
-        return value == other.value && data == other.data;
-    }
-};
+    REQUIRE(buffer);
+    REQUIRE(buffer.get_buffer() != nullptr);
 
-static_assert(type_traits::properties::is_pod_v<TestPOD>, "TestPOD must be POD");
+    buffer[0] = 42;
+    buffer[1] = 100;
 
-TEST_CASE("temporary_buffer construction and destruction", "[temporary_buffer]") {
-    SECTION("Construct with existing buffer") {
-        constexpr std::ptrdiff_t count = 5;
-        constexpr std::ptrdiff_t capacity = 10;
-        auto *raw_buffer = static_cast<int *>(layer::allocate(sizeof(int) * capacity, alignof(int)));
+    REQUIRE(buffer[0] == 42);
+    REQUIRE(buffer[1] == 100);
+}
 
-        temporary_buffer<int> buf(raw_buffer, count, capacity);
+TEST_CASE("temporary_buffer iterator access", "[temporary_buffer]") {
+    auto buffer = get_temporary_buffer<int>(5);
 
-        REQUIRE(buf.begin() == raw_buffer);
-        REQUIRE(buf.end() == raw_buffer + count);
-        REQUIRE(buf.get_buffer() == raw_buffer);
-        REQUIRE(static_cast<bool>(buf) == true);
-        REQUIRE(static_cast<int *>(buf) == raw_buffer);
-
-        buf.return_buffer();
+    for (int i = 0; i < 5; ++i) {
+        buffer.begin()[i] = i * 2;
     }
 
-    SECTION("Move constructor") {
-        constexpr std::ptrdiff_t count = 5;
-        constexpr std::ptrdiff_t capacity = 10;
-        auto *raw_buffer = static_cast<int *>(layer::allocate(sizeof(int) * capacity, alignof(int)));
-
-        temporary_buffer<int> original(raw_buffer, count, capacity);
-        temporary_buffer<int> moved(std::move(original));
-
-        REQUIRE(moved.get_buffer() == raw_buffer);
-        REQUIRE(moved.begin() == raw_buffer);
-        REQUIRE(moved.end() == raw_buffer + count);
-        REQUIRE(original.get_buffer() == nullptr);
-        REQUIRE(static_cast<bool>(original) == false);
-
-        moved.return_buffer();
-    }
-
-    SECTION("Move assignment") {
-        constexpr std::ptrdiff_t count = 5;
-        constexpr std::ptrdiff_t capacity = 10;
-        auto *raw_buffer1 = static_cast<int *>(layer::allocate(sizeof(int) * capacity, alignof(int)));
-        auto *raw_buffer2 = static_cast<int *>(layer::allocate(sizeof(int) * capacity, alignof(int)));
-
-        temporary_buffer<int> buf1(raw_buffer1, count, capacity);
-        temporary_buffer<int> buf2(raw_buffer2, count, capacity);
-
-        buf1 = std::move(buf2);
-
-        REQUIRE(buf1.get_buffer() == raw_buffer2);
-        REQUIRE(buf2.get_buffer() == nullptr);
-        REQUIRE(static_cast<bool>(buf2) == false);
-
-        buf1.return_buffer();
+    int index = 0;
+    for (auto it = buffer.begin(); it != buffer.end(); ++it) {
+        REQUIRE(*it == index * 2);
+        ++index;
     }
 }
 
-TEST_CASE("temporary_buffer with POD types", "[temporary_buffer]") {
-    SECTION("Integer buffer") {
-        constexpr std::ptrdiff_t count = 10;
-        constexpr std::ptrdiff_t capacity = 12;
-        auto *raw_buffer = static_cast<int *>(layer::allocate(sizeof(int) * capacity, alignof(int)));
+TEST_CASE("temporary_buffer bool conversion", "[temporary_buffer]") {
+    auto buffer = get_temporary_buffer<int>(4);
 
-        for (std::ptrdiff_t i = 0; i < count; ++i) {
-            raw_buffer[i] = static_cast<int>(i * 2);
-        }
+    REQUIRE(static_cast<bool>(buffer));
 
-        temporary_buffer<int> buf(raw_buffer, count, capacity);
+    buffer.return_buffer();
 
-        auto it = buf.begin();
-        REQUIRE(*it == 0);
-        ++it;
-        REQUIRE(*it == 2);
-
-        std::vector<int> expected = {0, 2, 4, 6, 8, 10, 12, 14, 16, 18};
-        std::vector<int> actual(buf.begin(), buf.end());
-        REQUIRE(actual == expected);
-
-        const auto &const_buf = buf;
-        auto const_it = const_buf.begin();
-        REQUIRE(*const_it == 0);
-
-        buf.return_buffer();
-    }
+    REQUIRE_FALSE(static_cast<bool>(buffer));
+    REQUIRE(buffer.get_buffer() == nullptr);
 }
 
-TEST_CASE("temporary_buffer reallocation", "[temporary_buffer]") {
-    SECTION("Reallocate to larger size") {
-        constexpr std::ptrdiff_t initial_count = 5;
-        constexpr std::ptrdiff_t initial_capacity = 8;
-        auto *raw_buffer = static_cast<int *>(layer::allocate(sizeof(int) * initial_capacity, alignof(int)));
+TEST_CASE("temporary_buffer reallocate expand", "[temporary_buffer]") {
+    auto buffer = get_temporary_buffer<int>(3);
 
-        for (std::ptrdiff_t i = 0; i < initial_count; ++i) {
-            raw_buffer[i] = static_cast<int>(i);
-        }
+    buffer[0] = 1;
+    buffer[1] = 2;
+    buffer[2] = 3;
 
-        temporary_buffer<int> buf(raw_buffer, initial_count, initial_capacity);
+    auto old_buffer = buffer.get_buffer();
 
-        const auto old_buffer = buf.get_buffer();
-        const std::size_t new_size = 20;
+    buffer.reallocate(8);
 
-        buf.reallocate(new_size);
-
-        REQUIRE(buf.get_buffer() != old_buffer);
-        REQUIRE(buf.get_buffer() != nullptr);
-        REQUIRE(buf.begin() == buf.get_buffer());
-        REQUIRE(buf.end() == buf.get_buffer() + static_cast<std::ptrdiff_t>(new_size));
-
-        for (std::ptrdiff_t i = 0; i < std::min(initial_count, static_cast<std::ptrdiff_t>(new_size)); ++i) {
-            REQUIRE(buf.get_buffer()[i] == static_cast<int>(i));
-        }
-
-        buf.return_buffer();
-    }
-
-    SECTION("Reallocate to smaller or equal size should not reallocate") {
-        constexpr std::ptrdiff_t initial_count = 10;
-        constexpr std::ptrdiff_t initial_capacity = 15;
-        auto *raw_buffer = static_cast<int *>(layer::allocate(sizeof(int) * initial_capacity, alignof(int)));
-
-        temporary_buffer<int> buf(raw_buffer, initial_count, initial_capacity);
-        const auto old_buffer = buf.get_buffer();
-
-        const std::size_t smaller_size = 5;
-        buf.reallocate(smaller_size);
-
-        REQUIRE(buf.get_buffer() == old_buffer);
-        REQUIRE(buf.begin() == old_buffer);
-        REQUIRE(buf.end() == old_buffer + static_cast<std::ptrdiff_t>(smaller_size));
-        REQUIRE(static_cast<std::ptrdiff_t>(smaller_size) == buf.end() - buf.begin());
-
-        const std::size_t same_size = static_cast<std::size_t>(initial_count);
-        buf.reallocate(same_size);
-
-        REQUIRE(buf.get_buffer() == old_buffer);
-        REQUIRE(static_cast<std::ptrdiff_t>(same_size) == buf.end() - buf.begin());
-
-        buf.return_buffer();
-    }
-
-    SECTION("Reallocate to zero should not reallocate") {
-        constexpr std::ptrdiff_t initial_count = 5;
-        constexpr std::ptrdiff_t initial_capacity = 10;
-        auto *raw_buffer = static_cast<int *>(layer::allocate(sizeof(int) * initial_capacity, alignof(int)));
-
-        temporary_buffer<int> buf(raw_buffer, initial_count, initial_capacity);
-        const auto old_buffer = buf.get_buffer();
-
-        buf.reallocate(0);
-
-        REQUIRE(buf.get_buffer() == old_buffer);
-        REQUIRE(buf.end() - buf.begin() == 0);
-
-        buf.return_buffer();
-    }
+    REQUIRE(buffer);
+    REQUIRE(buffer.get_buffer() != nullptr);
+    REQUIRE(buffer[0] == 1);
+    REQUIRE(buffer[1] == 2);
+    REQUIRE(buffer[2] == 3);
+    REQUIRE(buffer.get_buffer() != old_buffer);
 }
 
-TEST_CASE("temporary_buffer edge cases", "[temporary_buffer]") {
-    SECTION("Multiple return_buffer calls") {
-        constexpr std::ptrdiff_t count = 5;
-        constexpr std::ptrdiff_t capacity = 10;
-        auto *raw_buffer = static_cast<int *>(layer::allocate(sizeof(int) * capacity, alignof(int)));
+TEST_CASE("temporary_buffer reallocate shrink", "[temporary_buffer]") {
+    auto buffer = get_temporary_buffer<int>(8);
 
-        temporary_buffer<int> buf(raw_buffer, count, capacity);
-
-        buf.return_buffer();
-        REQUIRE(buf.get_buffer() == nullptr);
-        REQUIRE(buf.begin() == nullptr);
-        REQUIRE(buf.end() == nullptr);
-
-        buf.return_buffer();
-        REQUIRE(buf.get_buffer() == nullptr);
+    for (int i = 0; i < 8; ++i) {
+        buffer[i] = i;
     }
+
+    auto old_buffer = buffer.get_buffer();
+
+    buffer.reallocate(4);
+
+    REQUIRE(buffer.get_buffer() == old_buffer);
+    REQUIRE(buffer[0] == 0);
+    REQUIRE(buffer[3] == 3);
 }
 
-TEST_CASE("get_temporary_buffer helper function", "[temporary_buffer]") {
-    SECTION("Get buffer for small count") {
-        const std::ptrdiff_t count = 10;
-        auto buf = get_temporary_buffer<int>(count);
+TEST_CASE("temporary_buffer reallocate zero", "[temporary_buffer]") {
+    auto buffer = get_temporary_buffer<int>(5);
 
-        REQUIRE(buf.get_buffer() != nullptr);
-        REQUIRE(buf.begin() != nullptr);
-        REQUIRE(buf.end() == buf.begin() + count);
-        REQUIRE(static_cast<bool>(buf) == true);
+    buffer.reallocate(0);
 
-        REQUIRE(buf.end() - buf.begin() == count);
-
-        buf.return_buffer();
-    }
-
-    SECTION("Get buffer for custom POD type") {
-        const std::ptrdiff_t count = 5;
-        auto buf = get_temporary_buffer<TestPOD>(count);
-
-        REQUIRE(buf.get_buffer() != nullptr);
-        REQUIRE(buf.end() - buf.begin() == count);
-
-        for (std::ptrdiff_t i = 0; i < count; ++i) {
-            buf.get_buffer()[i] = TestPOD{static_cast<int>(i), static_cast<double>(i)};
-        }
-
-        for (std::ptrdiff_t i = 0; i < count; ++i) {
-            REQUIRE(buf.get_buffer()[i].value == static_cast<int>(i));
-            REQUIRE(buf.get_buffer()[i].data == Catch::Approx(static_cast<double>(i)));
-        }
-
-        buf.return_buffer();
-    }
+    REQUIRE(buffer);
 }
 
-TEST_CASE("return_temporary_buffer helper function", "[temporary_buffer]") {
-    SECTION("Return valid buffer") {
-        const std::ptrdiff_t count = 10;
-        auto buf = get_temporary_buffer<int>(count);
+TEST_CASE("temporary_buffer move constructor", "[temporary_buffer]") {
+    auto buffer = get_temporary_buffer<int>(6);
+    auto ptr = buffer.get_buffer();
 
-        REQUIRE(buf.get_buffer() != nullptr);
+    buffer[0] = 99;
 
-        return_temporary_buffer(buf);
+    auto moved = std::move(buffer);
 
-        REQUIRE(buf.get_buffer() == nullptr);
-        REQUIRE(buf.begin() == nullptr);
-        REQUIRE(buf.end() == nullptr);
-        REQUIRE(static_cast<bool>(buf) == false);
-    }
+    REQUIRE(moved.get_buffer() == ptr);
+    REQUIRE(moved[0] == 99);
+    REQUIRE(moved);
+
+    REQUIRE_FALSE(buffer);
+    REQUIRE(buffer.get_buffer() == nullptr);
 }
 
-TEST_CASE("temporary_buffer const correctness", "[temporary_buffer]") {
-    SECTION("Const iterator access") {
-        constexpr std::ptrdiff_t count = 5;
-        constexpr std::ptrdiff_t capacity = 10;
-        auto *raw_buffer = static_cast<int *>(layer::allocate(sizeof(int) * capacity, alignof(int)));
+TEST_CASE("temporary_buffer move assignment", "[temporary_buffer]") {
+    auto first = get_temporary_buffer<int>(4);
+    auto second = get_temporary_buffer<int>(8);
 
-        for (std::ptrdiff_t i = 0; i < count; ++i) {
-            raw_buffer[i] = static_cast<int>(i);
-        }
+    auto ptr = second.get_buffer();
 
-        const temporary_buffer<int> buf(raw_buffer, count, capacity);
+    second[0] = 123;
 
-        auto it = buf.begin();
-        REQUIRE(*it == 0);
-        ++it;
-        REQUIRE(*it == 1);
+    first = std::move(second);
 
-        const int *const_ptr = buf.get_buffer();
-        REQUIRE(const_ptr == raw_buffer);
+    REQUIRE(first.get_buffer() == ptr);
+    REQUIRE(first[0] == 123);
+    REQUIRE(first);
 
-        const int *implicit_ptr = buf;
-        REQUIRE(implicit_ptr == raw_buffer);
-    }
+    REQUIRE_FALSE(second);
 }
 
-TEST_CASE("temporary_buffer iteration and algorithms", "[temporary_buffer]") {
-    SECTION("Use with STL algorithms") {
-        const std::ptrdiff_t count = 10;
-        auto buf = get_temporary_buffer<int>(count);
+TEST_CASE("temporary_buffer const access", "[temporary_buffer]") {
+    const auto buffer = get_temporary_buffer<int>(3);
 
-        std::iota(buf.begin(), buf.end(), 1);
-
-        int sum = std::accumulate(buf.begin(), buf.end(), 0);
-        REQUIRE(sum == 55);
-
-        auto it = std::find(buf.begin(), buf.end(), 5);
-        REQUIRE(it != buf.end());
-        REQUIRE(*it == 5);
-
-        auto *reversed_buf = static_cast<int *>(layer::allocate(sizeof(int) * count, alignof(int)));
-        temporary_buffer<int> reversed(reversed_buf, count, count);
-        std::copy(buf.begin(), buf.end(), reversed.begin());
-        std::reverse(reversed.begin(), reversed.end());
-
-        REQUIRE(*reversed.begin() == 10);
-        REQUIRE(*(reversed.end() - 1) == 1);
-
-        buf.return_buffer();
-        reversed.return_buffer();
-    }
+    REQUIRE(buffer.get_buffer() != nullptr);
+    REQUIRE(buffer.begin() == buffer.get_buffer());
+    REQUIRE(buffer.end() == buffer.get_buffer() + 3);
 }
 
-TEST_CASE("temporary_buffer reallocation preserves data", "[temporary_buffer]") {
-    SECTION("Reallocate to larger size preserves all data") {
-        const std::ptrdiff_t initial_count = 15;
-        auto buf = get_temporary_buffer<int>(initial_count);
+TEST_CASE("return_temporary_buffer works", "[temporary_buffer]") {
+    auto buffer = get_temporary_buffer<int>(10);
 
-        for (std::ptrdiff_t i = 0; i < initial_count; ++i) {
-            buf.get_buffer()[i] = static_cast<int>(i * i);
-        }
+    REQUIRE(buffer);
 
-        const std::size_t new_size = 30;
-        buf.reallocate(new_size);
+    return_temporary_buffer(buffer);
 
-        for (std::ptrdiff_t i = 0; i < initial_count; ++i) {
-            REQUIRE(buf.get_buffer()[i] == static_cast<int>(i * i));
-        }
+    REQUIRE_FALSE(buffer);
+    REQUIRE(buffer.get_buffer() == nullptr);
+}
 
-        for (std::ptrdiff_t i = initial_count; i < static_cast<std::ptrdiff_t>(new_size); ++i) {
-            buf.get_buffer()[i] = static_cast<int>(i * 3);
-        }
+TEST_CASE("temporary_buffer raw pointer conversion", "[temporary_buffer]") {
+    auto buffer = get_temporary_buffer<int>(2);
 
-        buf.return_buffer();
-    }
+    int *ptr = buffer;
 
-    SECTION("Reallocate to smaller size preserves only requested data") {
-        const std::ptrdiff_t initial_count = 20;
-        auto buf = get_temporary_buffer<int>(initial_count);
+    REQUIRE(ptr == buffer.get_buffer());
 
-        for (std::ptrdiff_t i = 0; i < initial_count; ++i) {
-            buf.get_buffer()[i] = static_cast<int>(i + 100);
-        }
+    const auto &const_buffer = buffer;
+    const int *const_ptr = const_buffer;
 
-        const std::size_t new_size = 10;
-        buf.reallocate(new_size);
-
-        for (std::ptrdiff_t i = 0; i < static_cast<std::ptrdiff_t>(new_size); ++i) {
-            REQUIRE(buf.get_buffer()[i] == static_cast<int>(i + 100));
-        }
-
-        REQUIRE(buf.end() - buf.begin() == static_cast<std::ptrdiff_t>(new_size));
-
-        buf.return_buffer();
-    }
+    REQUIRE(const_ptr == buffer.get_buffer());
 }

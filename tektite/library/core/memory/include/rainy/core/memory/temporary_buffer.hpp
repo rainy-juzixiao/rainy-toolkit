@@ -1,5 +1,5 @@
 /*
-* Copyright 2026 rainy-juzixiao
+ * Copyright 2026 rainy-juzixiao
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,21 +43,8 @@ namespace rainy::core::memory {
         using const_iterator = const_pointer;
         using difference_type = std::ptrdiff_t;
 
-        /**
-         * @brief Constructs a temporary buffer from an existing buffer.
-         *        从现有缓冲区构造临时缓冲区。
-         *
-         * @param buffer Pointer to the memory buffer
-         *               指向内存缓冲区的指针
-         * @param count Number of initialized elements
-         *              已初始化元素的数量
-         * @param capacity Total capacity of the buffer in elements
-         *                 缓冲区的总容量（以元素为单位）
-         */
-        temporary_buffer(Ty *buffer, difference_type count, difference_type capacity) :
-            buffer_(buffer), count_(count), capacity_(capacity) {
-            core::implements::stl_internal_check(buffer);
-        }
+        template <typename UTy>
+        friend rain_fn get_temporary_buffer(std::ptrdiff_t count) noexcept -> temporary_buffer<UTy>;
 
         /**
          * @brief Move constructor.
@@ -169,9 +156,9 @@ namespace rainy::core::memory {
                     return;
                 }
             }
-            rainy_const reallocated_size = static_cast<std::size_t>(realloc * 1.2f);
+            rainy_const reallocated_size = static_cast<std::size_t>(realloc);
             auto new_buffer = static_cast<pointer>(layer::allocate(reallocated_size, alignof(Ty)));
-            builtin::copy_memory(new_buffer, buffer_, core::implements::get_size_of_n<Ty>(capacity_));
+            builtin::copy_memory(new_buffer, buffer_, core::implements::get_size_of_n<Ty>(count_));
             return_buffer();
             core::implements::stl_internal_check(new_buffer);
             buffer_ = new_buffer;
@@ -235,6 +222,11 @@ namespace rainy::core::memory {
         }
 
     private:
+        temporary_buffer(Ty *buffer, difference_type count, difference_type capacity) :
+            buffer_(buffer), count_(count), capacity_(capacity) {
+            core::implements::stl_internal_check(buffer);
+        }
+
         Ty *buffer_;
         std::ptrdiff_t count_;
         std::ptrdiff_t capacity_;
@@ -253,7 +245,7 @@ namespace rainy::core::memory {
      */
     template <typename Ty>
     rain_fn get_temporary_buffer(std::ptrdiff_t count) noexcept -> temporary_buffer<Ty> {
-        rainy_const new_size = static_cast<std::ptrdiff_t>(count * 1.2f);
+        rainy_const new_size = static_cast<std::ptrdiff_t>(count);
         return {static_cast<Ty *>(layer::allocate(core::implements::get_size_of_n<Ty>(new_size), alignof(Ty))), count, new_size};
     }
 
