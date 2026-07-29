@@ -44,6 +44,8 @@ inline static FILE *native_fopen(const native_char *path, const native_char *mod
     return _wfopen(path, mode);
 }
 #else
+#include <unistd.h>
+
 // In snprintf (narrow CRT), %s is correct for char*
 #define PRI_NATIVE_S "%s"
 // Native path separator: \ on Windows, / on POSIX
