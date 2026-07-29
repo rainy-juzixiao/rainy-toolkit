@@ -67,7 +67,13 @@ impl MarkdownGenerator {
             .enums
             .iter()
             .chain(doc.namespaces.iter().flat_map(|ns| ns.enums.iter()))
-            .filter(|e| !e.base.is_not_public)
+            .filter(|e| !e.is_scoped && !e.base.is_not_public)
+            .collect();
+        let visible_enum_classes: Vec<_> = doc
+            .enums
+            .iter()
+            .chain(doc.namespaces.iter().flat_map(|ns| ns.enums.iter()))
+            .filter(|e| e.is_scoped && !e.base.is_not_public)
             .collect();
         let visible_vars: Vec<_> = doc
             .variables
@@ -133,6 +139,19 @@ impl MarkdownGenerator {
             writeln!(out, "| Name | Description |").unwrap();
             writeln!(out, "|------|-------------|").unwrap();
             for e in &visible_enums {
+                let brief = self.get(&e.base.brief).map(|s| s.as_str()).unwrap_or("");
+                let anchor = class_anchor(&e.base.name);
+                writeln!(out, "| [`{}`](#{}) | {} |", e.base.name, anchor, brief).unwrap();
+            }
+            writeln!(out).unwrap();
+        }
+
+        if !visible_enum_classes.is_empty() {
+            writeln!(out, "## Enum Classes").unwrap();
+            writeln!(out).unwrap();
+            writeln!(out, "| Name | Description |").unwrap();
+            writeln!(out, "|------|-------------|").unwrap();
+            for e in &visible_enum_classes {
                 let brief = self.get(&e.base.brief).map(|s| s.as_str()).unwrap_or("");
                 let anchor = class_anchor(&e.base.name);
                 writeln!(out, "| [`{}`](#{}) | {} |", e.base.name, anchor, brief).unwrap();
@@ -236,6 +255,9 @@ impl MarkdownGenerator {
             out.push_str(&self.generate_class(c, 2));
         }
         for e in &visible_enums {
+            out.push_str(&self.generate_enum(e, 2));
+        }
+        for e in &visible_enum_classes {
             out.push_str(&self.generate_enum(e, 2));
         }
         for v in &visible_vars {
@@ -348,7 +370,12 @@ impl MarkdownGenerator {
         let visible_nested_enums: Vec<_> = c
             .nested_enums
             .iter()
-            .filter(|e| !e.base.is_not_public)
+            .filter(|e| !e.is_scoped && !e.base.is_not_public)
+            .collect();
+        let visible_nested_enum_classes: Vec<_> = c
+            .nested_enums
+            .iter()
+            .filter(|e| e.is_scoped && !e.base.is_not_public)
             .collect();
         if !visible_methods.is_empty() {
             writeln!(out, "### Member Functions").unwrap();
@@ -452,6 +479,18 @@ impl MarkdownGenerator {
             }
             writeln!(out).unwrap();
         }
+        if !visible_nested_enum_classes.is_empty() {
+            writeln!(out, "### Nested Enum Classes").unwrap();
+            writeln!(out).unwrap();
+            writeln!(out, "| Name | Description |").unwrap();
+            writeln!(out, "|------|-------------|").unwrap();
+            for e in &visible_nested_enum_classes {
+                let brief = self.get(&e.base.brief).map(|s| s.as_str()).unwrap_or("");
+                let anchor = class_anchor(&e.base.name);
+                writeln!(out, "| [{}](#{}) | {} |", e.base.name, anchor, brief).unwrap();
+            }
+            writeln!(out).unwrap();
+        }
         writeln!(out, "---").unwrap();
         writeln!(out).unwrap();
         // 成员函数详细文档
@@ -477,6 +516,10 @@ impl MarkdownGenerator {
         }
         // 嵌套枚举详细文档
         for e in &visible_nested_enums {
+            out.push_str(&self.generate_enum(e, heading + 1));
+        }
+        // 嵌套枚举类详细文档
+        for e in &visible_nested_enum_classes {
             out.push_str(&self.generate_enum(e, heading + 1));
         }
         out
