@@ -66,19 +66,19 @@ impl MarkdownGenerator {
         let visible_enums: Vec<_> = doc
             .enums
             .iter()
-            .chain(doc.namespaces.iter().flat_map(|ns| ns.enums.iter()))
+            .chain(doc.namespaces.iter().flat_map(|ns| collect_all_enums(ns)))
             .filter(|e| !e.is_scoped && !e.base.is_not_public)
             .collect();
         let visible_enum_classes: Vec<_> = doc
             .enums
             .iter()
-            .chain(doc.namespaces.iter().flat_map(|ns| ns.enums.iter()))
+            .chain(doc.namespaces.iter().flat_map(|ns| collect_all_enums(ns)))
             .filter(|e| e.is_scoped && !e.base.is_not_public)
             .collect();
         let visible_vars: Vec<_> = doc
             .variables
             .iter()
-            .chain(doc.namespaces.iter().flat_map(|ns| ns.variables.iter()))
+            .chain(doc.namespaces.iter().flat_map(|ns| collect_all_variables(ns)))
             .filter(|v| !v.base.is_not_public)
             .collect();
         let visible_constants: Vec<_> = doc
@@ -1309,6 +1309,22 @@ fn collect_all_variable_templates(ns: &NamespaceDocument) -> Vec<&VariableTempla
     let mut result: Vec<&VariableTemplateDocument> = ns.variable_templates.iter().collect();
     for sub in &ns.sub_namespaces {
         result.extend(collect_all_variable_templates(sub));
+    }
+    result
+}
+
+fn collect_all_enums(ns: &NamespaceDocument) -> Vec<&EnumDocument> {
+    let mut result: Vec<&EnumDocument> = ns.enums.iter().collect();
+    for sub in &ns.sub_namespaces {
+        result.extend(collect_all_enums(sub));
+    }
+    result
+}
+
+fn collect_all_variables(ns: &NamespaceDocument) -> Vec<&VariableDocument> {
+    let mut result: Vec<&VariableDocument> = ns.variables.iter().collect();
+    for sub in &ns.sub_namespaces {
+        result.extend(collect_all_variables(sub));
     }
     result
 }
