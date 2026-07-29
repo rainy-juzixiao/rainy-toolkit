@@ -12,31 +12,48 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 mod data;
+mod gen_compile_db;
+mod generator;
 mod i18n;
 mod parser;
-mod utils;
-mod generator;
 mod toolchain;
-mod gen_compile_db;
+mod utils;
 
-use std::collections::{HashMap, HashSet};
-use std::path::{Path, PathBuf};
 use anyhow::Context;
 use clang::{Clang, Index};
+use std::collections::{HashMap, HashSet};
+use std::path::{Path, PathBuf};
 
 fn main() -> anyhow::Result<()> {
     // --- Parse CLI arguments ---
     let args: Vec<String> = std::env::args().collect();
     let partial = args.iter().any(|a| a == "--partial");
 
+    if let Some(pos) = args.iter().position(|a| a == "--root") {
+        if let Some(root) = args.get(pos + 1) {
+            let root_path = std::path::Path::new(root);
+            std::env::set_current_dir(root_path)
+                .with_context(|| format!("cannot change directory to --root: {}", root))?;
+            println!(
+                "[sleepy] working directory set to: {}",
+                std::env::current_dir()
+                    .map(|p| p.display().to_string())
+                    .unwrap_or_else(|_| root.to_string())
+            );
+        } else {
+            anyhow::bail!("--root requires a path argument");
+        }
+    }
+
     let clang = Clang::new().unwrap();
     let index = Index::new(&clang, false, false);
 
     // 查找配置文件
-    let config_path = data::config::find_config()
-        .ok_or_else(|| anyhow::anyhow!(
+    let config_path = data::config::find_config().ok_or_else(|| {
+        anyhow::anyhow!(
             "no config file found, expected sleepy.json / sleepy.yaml in current directory"
-        ))?;
+        )
+    })?;
 
     println!("[sleepy] using config: {}", config_path.display());
     let config = data::config::load(&config_path)?;
@@ -53,16 +70,23 @@ fn main() -> anyhow::Result<()> {
 
     // Generate VitePress output
     if !all_docs.is_empty() {
-        let vp_gen = generator::rt_vitepress_markdown::VitePressMarkdownGenerator::new(&config.lang);
+        let vp_gen =
+            generator::rt_vitepress_markdown::VitePressMarkdownGenerator::new(&config.lang);
         if partial {
             // Partial mode: just the reference/ markdown pages
             let ref_dir = config.output_dir.join("reference");
             vp_gen.generate_reference_only(&all_docs, &ref_dir)?;
-            println!("[sleepy] VitePress reference pages generated at {}", ref_dir.display());
+            println!(
+                "[sleepy] VitePress reference pages generated at {}",
+                ref_dir.display()
+            );
         } else {
             // Full mode: config.mts + index.md + reference/
             vp_gen.generate_site(&all_docs, &config.output_dir)?;
-            println!("[sleepy] VitePress site generated at {}", config.output_dir.join("docs").display());
+            println!(
+                "[sleepy] VitePress site generated at {}",
+                config.output_dir.join("docs").display()
+            );
         }
     }
 
@@ -84,19 +108,27 @@ fn process_source(
         }
         None => toolchain::Toolchain::detect()?,
     };
-    let args = source.compile_flags.to_args(&source.include_dirs, &toolchain)?;
+    let args = source
+        .compile_flags
+        .to_args(&source.include_dirs, &toolchain)?;
     println!("[sleepy]   compiler args: {}", args.join(" "));
 
     let headers: Vec<PathBuf> = if !source.files.is_empty() {
-        source.files.iter()
+        source
+            .files
+            .iter()
             .map(|f| f.canonicalize().unwrap_or_else(|_| f.clone()))
             .collect()
     } else {
         let mut h = Vec::new();
         for dir in &source.include_dirs {
-            let canonical = dir.canonicalize()
+            let canonical = dir
+                .canonicalize()
                 .with_context(|| format!("cannot resolve: {}", dir.display()))?;
-            h.extend(gen_compile_db::collect_headers_pub(&canonical, &source.extensions));
+            h.extend(gen_compile_db::collect_headers_pub(
+                &canonical,
+                &source.extensions,
+            ));
         }
         h
     };
@@ -144,10 +176,12 @@ fn process_source(
     let source_output_dir = config.output_dir.join(&source.name);
     std::fs::create_dir_all(&source_output_dir)?;
     for (main_file, owned_files) in &owned_map {
-        let file_str = main_file.to_str()
+        let file_str = main_file
+            .to_str()
             .ok_or_else(|| anyhow::anyhow!("invalid path: {}", main_file.display()))?;
 
-        let tu = index.parser(file_str)
+        let tu = index
+            .parser(file_str)
             .arguments(&args)
             .incomplete(true)
             .skip_function_bodies(true)
@@ -157,7 +191,13 @@ fn process_source(
 
         for diag in tu.get_diagnostics() {
             if diag.get_severity() >= clang::diagnostic::Severity::Error {
-                eprintln!("[parse warn] {}: {}", file_str, diag.get_text());
+                eprintln!(
+                    "[parse warn] {} {}:{}: {}",
+                    file_str,
+                    diag.get_location().get_file_location().line,
+                    diag.get_location().get_file_location().column,
+                    diag.get_text()
+                );
             }
         }
 
@@ -175,7 +215,8 @@ fn process_source(
         let doc = parser::build_file_document(&tu, file_str, &context);
         let md = gen.generate_file(&doc);
 
-        let out_name = main_file.file_stem()
+        let out_name = main_file
+            .file_stem()
             .and_then(|s| s.to_str())
             .unwrap_or("unknown");
         let out_path = source_output_dir.join(format!("{}.md", out_name));
