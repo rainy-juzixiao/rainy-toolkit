@@ -75,15 +75,18 @@ impl MarkdownGenerator {
             .chain(doc.namespaces.iter().flat_map(|ns| ns.variables.iter()))
             .filter(|v| !v.base.is_not_public)
             .collect();
-        let visible_fns: Vec<_> = doc
-            .free_functions
+        let visible_fn_groups: Vec<_> = doc
+            .free_function_overloads
             .iter()
             .chain(
                 doc.namespaces
                     .iter()
-                    .flat_map(|ns| collect_all_functions(ns)),
+                    .flat_map(|ns| collect_all_function_groups(ns)),
             )
-            .filter(|c| !c.base.is_hidden && !c.base.is_not_public)
+            .filter(|g| {
+                !g.overloads.is_empty()
+                    && !g.overloads.iter().all(|f| f.base.is_hidden || f.base.is_not_public)
+            })
             .collect();
         let marcos: Vec<_> = doc
             .macros
@@ -135,15 +138,25 @@ impl MarkdownGenerator {
             writeln!(out).unwrap();
         }
 
-        if !visible_fns.is_empty() {
+        if !visible_fn_groups.is_empty() {
             writeln!(out, "## Functions").unwrap();
             writeln!(out).unwrap();
             writeln!(out, "| Name | Description |").unwrap();
             writeln!(out, "|------|-------------|").unwrap();
-            for f in &visible_fns {
-                let brief = self.get(&f.base.brief).map(|s| s.as_str()).unwrap_or("");
-                let anchor = class_anchor(&f.base.name);
-                writeln!(out, "| [`{}`](#{}) | {} |", f.base.name, anchor, brief).unwrap();
+            for group in &visible_fn_groups {
+                let brief = group
+                    .overloads
+                    .first()
+                    .and_then(|f| self.get(&f.base.brief))
+                    .map(|s| s.as_str())
+                    .unwrap_or("");
+                let anchor = class_anchor(&group.name);
+                let overload_note = if group.overloads.len() > 1 {
+                    format!(" *({} overloads)*", group.overloads.len())
+                } else {
+                    String::new()
+                };
+                writeln!(out, "| [`{}`](#{}){} | {} |", group.name, anchor, overload_note, brief).unwrap();
             }
             writeln!(out).unwrap();
         }
@@ -172,8 +185,8 @@ impl MarkdownGenerator {
         for v in &visible_vars {
             out.push_str(&self.generate_variable(v, 2));
         }
-        for f in &visible_fns {
-            out.push_str(&self.generate_free_function(f, 2));
+        for group in &visible_fn_groups {
+            out.push_str(&self.generate_free_function_overload_group(group, 2));
         }
         out
     }
@@ -744,6 +757,121 @@ impl MarkdownGenerator {
         out
     }
 
+    fn generate_free_function_overload_group(
+        &self,
+        group: &FreeFunctionOverloadGroup,
+        heading: usize,
+    ) -> String {
+        let mut out = String::new();
+        let h = "#".repeat(heading);
+        let anchor = class_anchor(&group.name);
+
+        writeln!(out, "{} `{}` {{#{}}}", h, group.name, anchor).unwrap();
+        writeln!(out).unwrap();
+
+        for (i, f) in group.overloads.iter().enumerate() {
+            if f.base.is_not_public || f.base.is_hidden {
+                continue;
+            }
+            if group.overloads.len() > 1 {
+                writeln!(out, "#### Overload {}", i + 1).unwrap();
+                writeln!(out).unwrap();
+            }
+            // 声明原型
+            if let Some(proto) = &f.decl_prototype {
+                writeln!(out, "```cpp").unwrap();
+                writeln!(out, "{}", proto).unwrap();
+                writeln!(out, "```").unwrap();
+                writeln!(out).unwrap();
+            }
+            // 修饰符 badges
+            let mut badges = Vec::new();
+            if f.is_static {
+                badges.push("`static`");
+            }
+            if f.is_inline {
+                badges.push("`inline`");
+            }
+            if f.is_constexpr {
+                badges.push("`constexpr`");
+            }
+            if f.is_noexcept {
+                badges.push("`noexcept`");
+            }
+            if !badges.is_empty() {
+                writeln!(out, "{}", badges.join(" ")).unwrap();
+                writeln!(out).unwrap();
+            }
+            // brief / details
+            if let Some(brief) = self.get(&f.base.brief) {
+                writeln!(out, "{}", brief).unwrap();
+                writeln!(out).unwrap();
+            }
+            if let Some(desc) = self.get(&f.base.description) {
+                writeln!(out, "{}", desc).unwrap();
+                writeln!(out).unwrap();
+            }
+            out.push_str(&self.generate_common_tags(&f.base));
+            // 参数表
+            let visible_params: Vec<_> =
+                f.params.iter().filter(|p| !p.name.is_empty()).collect();
+            if !visible_params.is_empty() {
+                writeln!(out, "**Parameters**").unwrap();
+                writeln!(out).unwrap();
+                writeln!(out, "| Name | Type | Direction | Description |").unwrap();
+                writeln!(out, "|------|------|-----------|-------------|").unwrap();
+                for p in &visible_params {
+                    let dir = match p.direction {
+                        ParamDirection::In => "in",
+                        ParamDirection::Out => "out",
+                        ParamDirection::InOut => "in,out",
+                    };
+                    let desc = self.get(&p.description).map(|s| s.as_str()).unwrap_or("");
+                    writeln!(
+                        out,
+                        "| `{}` | `{}` | {} | {} |",
+                        p.name, p.type_name, dir, desc
+                    )
+                    .unwrap();
+                }
+                writeln!(out).unwrap();
+            }
+            // 返回值
+            let has_return = self.get(&f.return_doc.description).is_some()
+                || !f.return_doc.return_values.is_empty();
+            if has_return {
+                writeln!(out, "**Returns**").unwrap();
+                writeln!(out).unwrap();
+                if let Some(ret) = self.get(&f.return_doc.description) {
+                    writeln!(out, "{}", ret).unwrap();
+                    writeln!(out).unwrap();
+                }
+                if !f.return_doc.return_values.is_empty() {
+                    writeln!(out, "| Value | Description |").unwrap();
+                    writeln!(out, "|-------|-------------|").unwrap();
+                    for rv in &f.return_doc.return_values {
+                        let desc = self.get(&rv.description).map(|s| s.as_str()).unwrap_or("");
+                        writeln!(out, "| `{}` | {} |", rv.value, desc).unwrap();
+                    }
+                    writeln!(out).unwrap();
+                }
+            }
+            // 异常
+            if !f.exceptions.is_empty() {
+                writeln!(out, "**Throws**").unwrap();
+                writeln!(out).unwrap();
+                writeln!(out, "| Exception | Description |").unwrap();
+                writeln!(out, "|-----------|-------------|").unwrap();
+                for ex in &f.exceptions {
+                    let desc = self.get(&ex.description).map(|s| s.as_str()).unwrap_or("");
+                    writeln!(out, "| `{}` | {} |", ex.exception_type, desc).unwrap();
+                }
+                writeln!(out).unwrap();
+            }
+        }
+        out
+    }
+
     fn generate_common_tags(&self, base: &BasicDocument) -> String {
         let mut out = String::new();
 
@@ -858,10 +986,10 @@ fn collect_all_classes(ns: &NamespaceDocument) -> Vec<&ClassDocument> {
     result
 }
 
-fn collect_all_functions(ns: &NamespaceDocument) -> Vec<&FreeFunctionDocument> {
-    let mut result: Vec<&FreeFunctionDocument> = ns.free_functions.iter().collect();
+fn collect_all_function_groups(ns: &NamespaceDocument) -> Vec<&FreeFunctionOverloadGroup> {
+    let mut result: Vec<&FreeFunctionOverloadGroup> = ns.free_function_overloads.iter().collect();
     for sub in &ns.sub_namespaces {
-        result.extend(collect_all_functions(sub));
+        result.extend(collect_all_function_groups(sub));
     }
     result
 }

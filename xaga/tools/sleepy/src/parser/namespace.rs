@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 use super::{alias::build_type_alias, class::build_class, comment::{extract_raw_comment, parse_comment}, concept::build_concept, enum_::build_enum, function::build_free_function, is_in_nodoc_range, macro_::build_macro, merge_namespace, variable::build_variable};
-use crate::data::document::NamespaceDocument;
+use crate::data::document::{FreeFunctionDocument, NamespaceDocument};
 use crate::parser::concept::is_concept_decl;
 use clang::{Entity, EntityKind};
 use crate::data::context::ParseContext;
@@ -41,7 +41,7 @@ pub fn build_namespace(
 
     let mut doc = NamespaceDocument {
         is_inline: entity.is_inline_namespace(),
-        free_functions: vec![],
+        free_function_overloads: vec![],
         variables: vec![],
         classes: vec![],
         enums: vec![],
@@ -51,6 +51,7 @@ pub fn build_namespace(
         sub_namespaces: vec![],
         base: parsed.basic,
     };
+    let mut raw_functions: Vec<FreeFunctionDocument> = Vec::new();
     for child in entity.get_children() {
         if is_in_nodoc_range(&child, context.nodoc_ranges) {
             continue;
@@ -58,7 +59,7 @@ pub fn build_namespace(
         match child.get_kind() {
             EntityKind::FunctionDecl | EntityKind::FunctionTemplate => {
                 if let Some(f) = build_free_function(&child, &child_ns) {
-                    doc.free_functions.push(f);
+                    raw_functions.push(f);
                 }
             }
             EntityKind::VarDecl => {
@@ -114,6 +115,12 @@ pub fn build_namespace(
             }
             _ => {}
         }
+    }
+
+    // Group free functions by name into overload groups
+    if !raw_functions.is_empty() {
+        doc.free_function_overloads =
+            super::group_free_functions(raw_functions);
     }
 
     Some(doc)
