@@ -131,7 +131,9 @@ pub enum LangContext {
     Scoped(LangTag),
 }
 
+#[derive(Clone)]
 pub struct FreeFunctionDocument {
+    pub decl_prototype: Option<String>,
     pub is_static: bool,
     pub is_inline: bool,
     pub is_constexpr: bool,
@@ -247,6 +249,12 @@ pub struct OverloadGroup {
     pub overloads: Vec<OverloadDoc>,
 }
 
+#[derive(Clone)]
+pub struct FreeFunctionOverloadGroup {
+    pub name: String,
+    pub overloads: Vec<FreeFunctionDocument>,
+}
+
 pub struct VariableDocument {
     pub is_constexpr: bool,
     pub is_constinit: bool,
@@ -273,7 +281,7 @@ pub struct ConceptDocument {
 
 pub struct NamespaceDocument {
     pub is_inline: bool,
-    pub free_functions: Vec<FreeFunctionDocument>,
+    pub free_function_overloads: Vec<FreeFunctionOverloadGroup>,
     pub variables: Vec<VariableDocument>,
     pub classes: Vec<ClassDocument>,
     pub enums: Vec<EnumDocument>,
@@ -295,7 +303,7 @@ pub struct FileDocument {
     pub copyright: Option<String>,
     pub license: Option<String>,
     pub namespaces: Vec<NamespaceDocument>,
-    pub free_functions: Vec<FreeFunctionDocument>,
+    pub free_function_overloads: Vec<FreeFunctionOverloadGroup>,
     pub variables: Vec<VariableDocument>,
     pub classes: Vec<ClassDocument>,
     pub enums: Vec<EnumDocument>,
