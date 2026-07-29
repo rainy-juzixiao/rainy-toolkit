@@ -22,7 +22,8 @@ pub mod namespace;
 pub mod variable;
 
 use crate::data::document::{
-    AccessLevel, ClassDocument, FileDocument, NamespaceDocument, OverloadDoc, OverloadGroup,
+    AccessLevel, ClassDocument, FileDocument, FreeFunctionDocument, FreeFunctionOverloadGroup,
+    NamespaceDocument, OverloadDoc, OverloadGroup,
 };
 
 pub(crate) use crate::data::context::{is_from_owned_file, ParseContext};
@@ -156,7 +157,7 @@ pub fn build_file_document(
         copyright: None,
         license: None,
         namespaces: vec![],
-        free_functions: vec![],
+        free_function_overloads: vec![],
         variables: vec![],
         classes: vec![],
         enums: vec![],
@@ -186,6 +187,7 @@ pub fn build_file_document(
     }
 
     let mut ns_map: IndexMap<String, NamespaceDocument> = IndexMap::new();
+    let mut raw_functions: Vec<FreeFunctionDocument> = Vec::new();
 
     for child in root.get_children() {
         if !is_from_owned_file(&child, context) {
@@ -213,7 +215,7 @@ pub fn build_file_document(
                 }
                 EntityKind::FunctionDecl | EntityKind::FunctionTemplate => {
                     if let Some(f) = build_free_function(&child, &namespace_stack) {
-                        doc.free_functions.push(f);
+                        raw_functions.push(f);
                     }
                 }
                 EntityKind::VarDecl => {
@@ -259,6 +261,10 @@ pub fn build_file_document(
     }
 
     doc.namespaces = ns_map.into_values().collect();
+
+    // Group free functions by name into overload groups
+    doc.free_function_overloads = group_free_functions(raw_functions);
+
     resolve_inheritance(&mut doc);
     doc
 }
@@ -486,7 +492,7 @@ fn count_proto_params(proto: &str) -> usize {
 fn merge_namespace(target: &mut NamespaceDocument, source: NamespaceDocument) {
     target.classes.extend(source.classes);
     target.enums.extend(source.enums);
-    target.free_functions.extend(source.free_functions);
+    merge_free_function_groups(&mut target.free_function_overloads, source.free_function_overloads);
     target.variables.extend(source.variables);
     target.aliases.extend(source.aliases);
     target.concepts.extend(source.concepts);
@@ -503,4 +509,33 @@ fn merge_namespace(target: &mut NamespaceDocument, source: NamespaceDocument) {
             target.sub_namespaces.push(sub);
         }
     }
+}
+
+fn merge_free_function_groups(
+    target: &mut Vec<FreeFunctionOverloadGroup>,
+    source: Vec<FreeFunctionOverloadGroup>,
+) {
+    for group in source {
+        if let Some(existing) = target.iter_mut().find(|g| g.name == group.name) {
+            existing.overloads.extend(group.overloads);
+        } else {
+            target.push(group);
+        }
+    }
+}
+
+pub fn group_free_functions(
+    fns: Vec<FreeFunctionDocument>,
+) -> Vec<FreeFunctionOverloadGroup> {
+    let mut map: indexmap::IndexMap<String, Vec<FreeFunctionDocument>> =
+        indexmap::IndexMap::new();
+    for f in fns {
+        map.entry(f.base.name.clone()).or_default().push(f);
+    }
+    map.into_iter()
+        .map(|(name, overloads)| FreeFunctionOverloadGroup {
+            name,
+            overloads,
+        })
+        .collect()
 }
