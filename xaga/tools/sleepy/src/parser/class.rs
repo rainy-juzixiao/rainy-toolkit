@@ -16,7 +16,10 @@ use super::{
     comment::{extract_raw_comment, parse_comment},
     enum_::build_enum,
     function::{build_access, build_template_params},
-    variable::build_member_field,
+    variable::{
+        build_constant as build_constant_field, build_member_field, build_variable_template,
+        is_constant_variable, is_variable_template_entity,
+    },
 };
 use crate::data::document::{
     AccessLevel, BaseClass, ClassDocument, ClassKind, MemberFunctionDocument, OverloadDoc,
@@ -44,6 +47,8 @@ pub fn build_class(entity: &Entity, namespace_stack: &[String]) -> Option<ClassD
     parsed.basic.is_template = is_template;
     parsed.basic.template_params = template_params;
     let mut member_fields = Vec::new();
+    let mut constant_members = Vec::new();
+    let mut variable_template_members = Vec::new();
     let mut nested_classes = Vec::new();
     let mut nested_enums = Vec::new();
     let mut nested_aliases = Vec::new();
@@ -98,6 +103,23 @@ pub fn build_class(entity: &Entity, namespace_stack: &[String]) -> Option<ClassD
                             decl_prototype,
                             doc: func_doc,
                         });
+                    }
+                }
+            }
+            EntityKind::VarDecl => {
+                // Static data members, constexpr constants, variable templates in class
+                if is_variable_template_entity(&child) {
+                    if let Some(vt) = build_variable_template(&child, &child_ns) {
+                        variable_template_members.push(vt);
+                    }
+                } else if is_constant_variable(&child) {
+                    if let Some(c) = build_constant_field(&child, &child_ns) {
+                        constant_members.push(c);
+                    }
+                } else {
+                    // Non-const static member — treat as regular field
+                    if let Some(f) = build_member_field(&child, &child_ns) {
+                        member_fields.push(f);
                     }
                 }
             }
@@ -161,6 +183,8 @@ pub fn build_class(entity: &Entity, namespace_stack: &[String]) -> Option<ClassD
         base_classes,
         overload_groups,
         member_fields,
+        constant_members,
+        variable_template_members,
         nested_classes,
         nested_enums,
         nested_aliases,
