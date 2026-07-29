@@ -75,6 +75,26 @@ impl MarkdownGenerator {
             .chain(doc.namespaces.iter().flat_map(|ns| ns.variables.iter()))
             .filter(|v| !v.base.is_not_public)
             .collect();
+        let visible_constants: Vec<_> = doc
+            .constants
+            .iter()
+            .chain(
+                doc.namespaces
+                    .iter()
+                    .flat_map(|ns| collect_all_constants(ns)),
+            )
+            .filter(|c| !c.base.is_not_public)
+            .collect();
+        let visible_variable_templates: Vec<_> = doc
+            .variable_templates
+            .iter()
+            .chain(
+                doc.namespaces
+                    .iter()
+                    .flat_map(|ns| collect_all_variable_templates(ns)),
+            )
+            .filter(|vt| !vt.base.is_not_public)
+            .collect();
         let visible_fn_groups: Vec<_> = doc
             .free_function_overloads
             .iter()
@@ -138,6 +158,42 @@ impl MarkdownGenerator {
             writeln!(out).unwrap();
         }
 
+        if !visible_constants.is_empty() {
+            writeln!(out, "## Constants").unwrap();
+            writeln!(out).unwrap();
+            writeln!(out, "| Name | Type | Description |").unwrap();
+            writeln!(out, "|------|------|-------------|").unwrap();
+            for c in &visible_constants {
+                let brief = self.get(&c.base.brief).map(|s| s.as_str()).unwrap_or("");
+                let anchor = class_anchor(&c.base.name);
+                writeln!(
+                    out,
+                    "| [`{}`](#{}) | `{}` | {} |",
+                    c.base.name, anchor, c.type_name, brief
+                )
+                .unwrap();
+            }
+            writeln!(out).unwrap();
+        }
+
+        if !visible_variable_templates.is_empty() {
+            writeln!(out, "## Variable Templates").unwrap();
+            writeln!(out).unwrap();
+            writeln!(out, "| Name | Type | Description |").unwrap();
+            writeln!(out, "|------|------|-------------|").unwrap();
+            for vt in &visible_variable_templates {
+                let brief = self.get(&vt.base.brief).map(|s| s.as_str()).unwrap_or("");
+                let anchor = class_anchor(&vt.base.name);
+                writeln!(
+                    out,
+                    "| [`{}`](#{}) | `{}` | {} |",
+                    vt.base.name, anchor, vt.type_name, brief
+                )
+                .unwrap();
+            }
+            writeln!(out).unwrap();
+        }
+
         if !visible_fn_groups.is_empty() {
             writeln!(out, "## Functions").unwrap();
             writeln!(out).unwrap();
@@ -184,6 +240,12 @@ impl MarkdownGenerator {
         }
         for v in &visible_vars {
             out.push_str(&self.generate_variable(v, 2));
+        }
+        for c in &visible_constants {
+            out.push_str(&self.generate_constant(c, 2));
+        }
+        for vt in &visible_variable_templates {
+            out.push_str(&self.generate_variable_template(vt, 2));
         }
         for group in &visible_fn_groups {
             out.push_str(&self.generate_free_function_overload_group(group, 2));
@@ -268,6 +330,16 @@ impl MarkdownGenerator {
             .iter()
             .filter(|f| matches!(f.access, AccessLevel::Public) && !f.base.is_not_public)
             .collect();
+        let visible_constants: Vec<_> = c
+            .constant_members
+            .iter()
+            .filter(|c| matches!(c.access, AccessLevel::Public) && !c.base.is_not_public)
+            .collect();
+        let visible_vt_members: Vec<_> = c
+            .variable_template_members
+            .iter()
+            .filter(|vt| matches!(vt.access, AccessLevel::Public) && !vt.base.is_not_public)
+            .collect();
         let visible_nested: Vec<_> = c
             .nested_classes
             .iter()
@@ -322,6 +394,40 @@ impl MarkdownGenerator {
             }
             writeln!(out).unwrap();
         }
+        if !visible_constants.is_empty() {
+            writeln!(out, "### Constants").unwrap();
+            writeln!(out).unwrap();
+            writeln!(out, "| Name | Type | Description |").unwrap();
+            writeln!(out, "|------|------|-------------|").unwrap();
+            for c in &visible_constants {
+                let brief = self.get(&c.base.brief).map(|s| s.as_str()).unwrap_or("");
+                let anchor = method_anchor(&c.base.name, &c.base.name);
+                writeln!(
+                    out,
+                    "| [{}](#{}) | `{}` | {} |",
+                    c.base.name, anchor, c.type_name, brief
+                )
+                .unwrap();
+            }
+            writeln!(out).unwrap();
+        }
+        if !visible_vt_members.is_empty() {
+            writeln!(out, "### Variable Templates").unwrap();
+            writeln!(out).unwrap();
+            writeln!(out, "| Name | Type | Description |").unwrap();
+            writeln!(out, "|------|------|-------------|").unwrap();
+            for vt in &visible_vt_members {
+                let brief = self.get(&vt.base.brief).map(|s| s.as_str()).unwrap_or("");
+                let anchor = method_anchor(&c.base.name, &vt.base.name);
+                writeln!(
+                    out,
+                    "| [{}](#{}) | `{}` | {} |",
+                    vt.base.name, anchor, vt.type_name, brief
+                )
+                .unwrap();
+            }
+            writeln!(out).unwrap();
+        }
         if !visible_nested.is_empty() {
             writeln!(out, "### Nested Classes").unwrap();
             writeln!(out).unwrap();
@@ -356,6 +462,14 @@ impl MarkdownGenerator {
         // 成员变量详细文档
         for f in &visible_fields {
             out.push_str(&self.generate_member_field(f, &c.base.name, heading + 1));
+        }
+        // 常量成员详细文档
+        for c in &visible_constants {
+            out.push_str(&self.generate_constant(c, heading + 1));
+        }
+        // 变量模板成员详细文档
+        for vt in &visible_vt_members {
+            out.push_str(&self.generate_variable_template(vt, heading + 1));
         }
         // 嵌套类详细文档（递归，heading +1）
         for n in &visible_nested {
@@ -676,6 +790,152 @@ impl MarkdownGenerator {
         out
     }
 
+    pub fn generate_constant(&self, c: &ConstantDocument, heading: usize) -> String {
+        let mut out = String::new();
+        let h = "#".repeat(heading);
+        let anchor = class_anchor(&c.base.name);
+
+        writeln!(out, "{} `{}` {{#{}}}", h, c.base.name, anchor).unwrap();
+        writeln!(out).unwrap();
+
+        // 声明
+        writeln!(out, "```cpp").unwrap();
+        let mut decl = String::new();
+        if c.is_static {
+            decl.push_str("static ");
+        }
+        if c.is_inline {
+            decl.push_str("inline ");
+        }
+        if c.is_constexpr {
+            decl.push_str("constexpr ");
+        }
+        if c.is_constinit {
+            decl.push_str("constinit ");
+        }
+        decl.push_str(&c.type_name);
+        decl.push(' ');
+        decl.push_str(&c.base.name);
+        if let Some(val) = &c.default_value {
+            decl.push_str(&format!(" = {}", val));
+        }
+        decl.push(';');
+        writeln!(out, "{}", decl).unwrap();
+        writeln!(out, "```").unwrap();
+        writeln!(out).unwrap();
+
+        // 模板标记
+        if c.base.is_main_template {
+            writeln!(out, "> **Primary template**").unwrap();
+            writeln!(out).unwrap();
+        }
+        if !c.base.spec_template_args.is_empty() {
+            writeln!(
+                out,
+                "> **Specialization** `<{}>`",
+                c.base.spec_template_args.join(", ")
+            )
+            .unwrap();
+            writeln!(out).unwrap();
+        }
+        if c.base.is_template && !c.base.template_params.is_empty() {
+            writeln!(out, "**Template parameters**").unwrap();
+            writeln!(out).unwrap();
+            writeln!(out, "| Parameter | Description |").unwrap();
+            writeln!(out, "|-----------|-------------|").unwrap();
+            for tp in &c.base.template_params {
+                let desc = self.get(&tp.description).map(|s| s.as_str()).unwrap_or("");
+                writeln!(out, "| `{}` | {} |", tp.name, desc).unwrap();
+            }
+            writeln!(out).unwrap();
+        }
+
+        if let Some(brief) = self.get(&c.base.brief) {
+            writeln!(out, "{}", brief).unwrap();
+            writeln!(out).unwrap();
+        }
+        if let Some(desc) = self.get(&c.base.description) {
+            writeln!(out, "{}", desc).unwrap();
+            writeln!(out).unwrap();
+        }
+        out.push_str(&self.generate_common_tags(&c.base));
+
+        out
+    }
+
+    pub fn generate_variable_template(&self, vt: &VariableTemplateDocument, heading: usize) -> String {
+        let mut out = String::new();
+        let h = "#".repeat(heading);
+        let anchor = class_anchor(&vt.base.name);
+
+        writeln!(out, "{} `{}` {{#{}}}", h, vt.base.name, anchor).unwrap();
+        writeln!(out).unwrap();
+
+        // 模板标记
+        if vt.base.is_main_template {
+            writeln!(out, "> **Primary template**").unwrap();
+            writeln!(out).unwrap();
+        }
+        if !vt.base.spec_template_args.is_empty() {
+            writeln!(
+                out,
+                "> **Specialization** `<{}>`",
+                vt.base.spec_template_args.join(", ")
+            )
+            .unwrap();
+            writeln!(out).unwrap();
+        }
+        if vt.base.is_template && !vt.base.template_params.is_empty() {
+            writeln!(out, "**Template parameters**").unwrap();
+            writeln!(out).unwrap();
+            writeln!(out, "| Parameter | Description |").unwrap();
+            writeln!(out, "|-----------|-------------|").unwrap();
+            for tp in &vt.base.template_params {
+                let desc = self.get(&tp.description).map(|s| s.as_str()).unwrap_or("");
+                writeln!(out, "| `{}` | {} |", tp.name, desc).unwrap();
+            }
+            writeln!(out).unwrap();
+        }
+
+        // 声明
+        writeln!(out, "```cpp").unwrap();
+        let mut decl = String::new();
+        if vt.is_static {
+            decl.push_str("static ");
+        }
+        if vt.is_inline {
+            decl.push_str("inline ");
+        }
+        if vt.is_constexpr {
+            decl.push_str("constexpr ");
+        }
+        if vt.is_const {
+            decl.push_str("const ");
+        }
+        decl.push_str(&vt.type_name);
+        decl.push(' ');
+        decl.push_str(&vt.base.name);
+        if let Some(val) = &vt.default_value {
+            decl.push_str(&format!(" = {}", val));
+        }
+        decl.push(';');
+        writeln!(out, "{}", decl).unwrap();
+        writeln!(out, "```").unwrap();
+        writeln!(out).unwrap();
+
+        if let Some(brief) = self.get(&vt.base.brief) {
+            writeln!(out, "{}", brief).unwrap();
+            writeln!(out).unwrap();
+        }
+        if let Some(desc) = self.get(&vt.base.description) {
+            writeln!(out, "{}", desc).unwrap();
+            writeln!(out).unwrap();
+        }
+        out.push_str(&self.generate_common_tags(&vt.base));
+
+        out
+    }
+
     pub fn generate_free_function(&self, f: &FreeFunctionDocument, heading: usize) -> String {
         let mut out = String::new();
         let h = "#".repeat(heading);
@@ -990,6 +1250,22 @@ fn collect_all_function_groups(ns: &NamespaceDocument) -> Vec<&FreeFunctionOverl
     let mut result: Vec<&FreeFunctionOverloadGroup> = ns.free_function_overloads.iter().collect();
     for sub in &ns.sub_namespaces {
         result.extend(collect_all_function_groups(sub));
+    }
+    result
+}
+
+fn collect_all_constants(ns: &NamespaceDocument) -> Vec<&ConstantDocument> {
+    let mut result: Vec<&ConstantDocument> = ns.constants.iter().collect();
+    for sub in &ns.sub_namespaces {
+        result.extend(collect_all_constants(sub));
+    }
+    result
+}
+
+fn collect_all_variable_templates(ns: &NamespaceDocument) -> Vec<&VariableTemplateDocument> {
+    let mut result: Vec<&VariableTemplateDocument> = ns.variable_templates.iter().collect();
+    for sub in &ns.sub_namespaces {
+        result.extend(collect_all_variable_templates(sub));
     }
     result
 }

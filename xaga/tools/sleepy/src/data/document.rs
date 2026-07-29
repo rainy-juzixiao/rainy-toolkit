@@ -11,7 +11,6 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-use std::fmt::{Display, Formatter};
 use crate::i18n::{I18n, LangTag};
 
 #[derive(Clone)]
@@ -197,6 +196,8 @@ pub struct ClassDocument {
     pub base_classes: Vec<BaseClass>,
     pub overload_groups: Vec<OverloadGroup>,
     pub member_fields: Vec<MemberFieldDocument>,
+    pub constant_members: Vec<ConstantDocument>,
+    pub variable_template_members: Vec<VariableTemplateDocument>,
     pub nested_classes: Vec<ClassDocument>,
     pub nested_enums: Vec<EnumDocument>,
     pub nested_aliases: Vec<TypeAliasDocument>,
@@ -255,6 +256,32 @@ pub struct FreeFunctionOverloadGroup {
     pub overloads: Vec<FreeFunctionDocument>,
 }
 
+/// A constant variable (const, constexpr, or constinit at file/namespace/class scope)
+#[derive(Clone)]
+pub struct ConstantDocument {
+    pub is_constexpr: bool,
+    pub is_constinit: bool,
+    pub is_static: bool,
+    pub is_inline: bool,
+    pub type_name: String,
+    pub default_value: Option<String>,
+    pub access: AccessLevel,
+    pub base: BasicDocument,
+}
+
+/// A variable template (e.g., `template<typename T> constexpr T pi = T(3.14);`)
+#[derive(Clone)]
+pub struct VariableTemplateDocument {
+    pub is_constexpr: bool,
+    pub is_const: bool,
+    pub is_static: bool,
+    pub is_inline: bool,
+    pub type_name: String,
+    pub default_value: Option<String>,
+    pub access: AccessLevel,
+    pub base: BasicDocument,
+}
+
 pub struct VariableDocument {
     pub is_constexpr: bool,
     pub is_constinit: bool,
@@ -283,6 +310,8 @@ pub struct NamespaceDocument {
     pub is_inline: bool,
     pub free_function_overloads: Vec<FreeFunctionOverloadGroup>,
     pub variables: Vec<VariableDocument>,
+    pub constants: Vec<ConstantDocument>,
+    pub variable_templates: Vec<VariableTemplateDocument>,
     pub classes: Vec<ClassDocument>,
     pub enums: Vec<EnumDocument>,
     pub aliases: Vec<TypeAliasDocument>,
@@ -305,6 +334,8 @@ pub struct FileDocument {
     pub namespaces: Vec<NamespaceDocument>,
     pub free_function_overloads: Vec<FreeFunctionOverloadGroup>,
     pub variables: Vec<VariableDocument>,
+    pub constants: Vec<ConstantDocument>,
+    pub variable_templates: Vec<VariableTemplateDocument>,
     pub classes: Vec<ClassDocument>,
     pub enums: Vec<EnumDocument>,
     pub aliases: Vec<TypeAliasDocument>,
