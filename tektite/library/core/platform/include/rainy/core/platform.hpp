@@ -3537,4 +3537,12 @@ namespace rainy::core::builtin {
 #endif
 }
 
+namespace rainy::utility {
+    /**
+     * @brief Empty monostate type for use in variants and similar contexts.
+     *        用于变体等场景的空monostate类型。
+     */
+    struct monostate {};
+}
+
 #endif
