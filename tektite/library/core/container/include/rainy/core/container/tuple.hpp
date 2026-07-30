@@ -337,16 +337,6 @@ namespace rainy::core::container::implements {
     constexpr const Head &get_val(const implements::tuple_impl<Uty, I, Head, Rest...> &t) noexcept {
         return implements::tuple_impl<Uty, I, Head, Rest...>::myhead(t);
     }
-
-    template <std::size_t I, typename Uty, typename Head>
-    constexpr Head &get_val(implements::tuple_impl<Uty, I, Head> &t) noexcept {
-        return implements::tuple_impl<Uty, I, Head>::myhead(t);
-    }
-
-    template <std::size_t I, typename Uty, typename Head>
-    constexpr const Head &get_val(const implements::tuple_impl<Uty, I, Head> &t) noexcept {
-        return implements::tuple_impl<Uty, I, Head>::myhead(t);
-    }
 }
 
 // NOLINTBEGIN
