@@ -4,7 +4,8 @@ MuZiYan（沐子言）是一个基于 Rust + libClang 开发的 C++ 文档生成
 
 ## 概述
 
-MuZiYan 通过解析 C++ 头文件中的 Doxygen 风格注释，自动生成结构化的文档。它直接使用 libClang 解析 AST，支持完整的 C++20/23 语法。
+MuZiYan 通过解析 C++ 头文件中的 Doxygen 风格注释，自动生成结构化的文档。它直接使用 libClang 解析 AST，支持完整的 C++20/23
+语法。
 
 ## 功能特性
 
@@ -38,26 +39,26 @@ sources:
       - hpp
     compile_flags:
       std: c++20
-      defines: []
-      includes: []
-      extra: []
+      defines: [ ]
+      includes: [ ]
+      extra: [ ]
     files:
       - include/core/core.hpp
 ```
 
 ### 配置项说明
 
-| 字段 | 说明 |
-|------|------|
-| `output_dir` | 文档输出目录 |
-| `lang` | 文档语言（english / chinese / japanese） |
-| `ignored_namespaces` | 要忽略的命名空间列表，其中的内容不会出现在文档中 |
-| `sources` | 源码配置组，可配置多个 |
-| `sources[].name` | 源名称，输出时作为子目录名 |
-| `sources[].include_dirs` | 头文件搜索路径 |
-| `sources[].extensions` | 要处理的文件后缀 |
-| `sources[].compile_flags` | 编译参数（std / defines / includes / extra） |
-| `sources[].files` | 精确指定文件列表（与 include_dirs 扫描二选一） |
+| 字段                      | 说明                                             |
+|---------------------------|--------------------------------------------------|
+| `output_dir`              | 文档输出目录                                     |
+| `lang`                    | 文档语言（english / chinese / japanese）         |
+| `ignored_namespaces`      | 要忽略的命名空间列表，其中的内容不会出现在文档中 |
+| `sources`                 | 源码配置组，可配置多个                           |
+| `sources[].name`          | 源名称，输出时作为子目录名                       |
+| `sources[].include_dirs`  | 头文件搜索路径                                   |
+| `sources[].extensions`    | 要处理的文件后缀                                 |
+| `sources[].compile_flags` | 编译参数（std / defines / includes / extra）     |
+| `sources[].files`         | 精确指定文件列表（与 include_dirs 扫描二选一）   |
 
 ## `__MUZIYAN_IS_HERE__`
 
