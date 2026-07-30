@@ -13,24 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <rainy/core/yesod/container/variant.hpp>
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_template_test_macros.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <rainy/core/container/variant.hpp>
 #include <stdexcept>
 #include <string>
 #include <vector>
 
 #if RAINY_USING_MSVC
 #pragma warning(push)
-#pragma warning(disable: 26800)
+#pragma warning(disable : 26800)
 #endif
 
-using namespace rainy::foundation::container;
+using namespace rainy::core::container;
 
 namespace Catch {
     template <typename... Types>
-    struct is_range<rainy::foundation::container::variant<Types...>> : std::false_type {};
+    struct is_range<rainy::core::container::variant<Types...>> : std::false_type {};
 }
 
 struct NonTrivial {
@@ -134,7 +134,8 @@ constexpr std::size_t constexpr_index(variant<int, double> v) {
 static_assert(constexpr_get_int(42) == 42, "constexpr get<T> must work");
 static_assert(constexpr_holds_int(42) == true, "constexpr holds_alternative must work");
 static_assert(constexpr_index(3.14) == 1, "constexpr index must work");
-static_assert(constexpr_get_int(variant<int, double>(std::in_place_index<0>, 7)) == 7, "constexpr in_place_index construction must work");
+static_assert(constexpr_get_int(variant<int, double>(std::in_place_index<0>, 7)) == 7,
+              "constexpr in_place_index construction must work");
 
 TEST_CASE("A variant is default constructed", "[variant][constructor][default]") {
     SECTION("a variant<int, double>") {
@@ -334,7 +335,8 @@ TEST_CASE("A variant is copy assigned", "[variant][assignment][copy]") {
         variant<int, ThrowOnCopy> rhs;
         try {
             rhs = ThrowOnCopy{};
-        } catch (...) {}
+        } catch (...) {
+        }
         if (rhs.valueless_by_exception()) {
             lhs = rhs;
         }
@@ -769,8 +771,9 @@ TEST_CASE("visit applies a visitor to the active alternative", "[variant][visit]
             variant<int, double, std::string> v(7);
             int result = visit(
                 [](auto &&x) -> int {
-                    if constexpr (std::is_same_v<std::decay_t<decltype(x)>, int>)
+                    if constexpr (std::is_same_v<std::decay_t<decltype(x)>, int>) {
                         return x;
+                    }
                     return -1;
                 },
                 v);
@@ -783,8 +786,9 @@ TEST_CASE("visit applies a visitor to the active alternative", "[variant][visit]
             variant<int, double, std::string> v(std::string("hello"));
             std::size_t sz = visit(
                 [](auto &&x) -> std::size_t {
-                    if constexpr (std::is_same_v<std::decay_t<decltype(x)>, std::string>)
+                    if constexpr (std::is_same_v<std::decay_t<decltype(x)>, std::string>) {
                         return x.size();
+                    }
                     return 0;
                 },
                 v);
@@ -814,8 +818,9 @@ TEST_CASE("visit applies a visitor to the active alternative", "[variant][visit]
         SECTION("visiting both simultaneously") {
             int sum = visit(
                 [](auto &&x, auto &&y) -> int {
-                    if constexpr (std::is_same_v<std::decay_t<decltype(x)>, int> && std::is_same_v<std::decay_t<decltype(y)>, int>)
+                    if constexpr (std::is_same_v<std::decay_t<decltype(x)>, int> && std::is_same_v<std::decay_t<decltype(y)>, int>) {
                         return x + y;
+                    }
                     return -1;
                 },
                 a, b);
@@ -950,8 +955,9 @@ TEST_CASE("variant correctly handles more than eight alternative types", "[varia
         BigVariant v(std::in_place_index<3>, 'X');
         char result = visit(
             [](auto &&x) -> char {
-                if constexpr (std::is_same_v<std::decay_t<decltype(x)>, char>)
+                if constexpr (std::is_same_v<std::decay_t<decltype(x)>, char>) {
                     return x;
+                }
                 return '\0';
             },
             v);
