@@ -1,5 +1,58 @@
 # Changelog
 
+## [1.2.0](https://github.com/rainy-juzixiao/rainy-toolkit/compare/v1.1.1...v1.2.0) (2026-07-30)
+
+
+### Features
+
+* **algorithm:** Added new algorithm and test case. ([cc78208](https://github.com/rainy-juzixiao/rainy-toolkit/commit/cc78208b7fc3f4fe90d2f535db23cdc626cdc714))
+* **chore:** Added diagnostics library. ([b9e0742](https://github.com/rainy-juzixiao/rainy-toolkit/commit/b9e07427869ab6a71da7ea127b6a635941e53704))
+* **container:** Enhance tuple and variant with allocator support ([c3a7fbe](https://github.com/rainy-juzixiao/rainy-toolkit/commit/c3a7fbeb63a115a3d4a431ca23ed39e52e4d435c))
+* **core:** Add memory library ([615fae2](https://github.com/rainy-juzixiao/rainy-toolkit/commit/615fae208e8d1e096f5c69555fd182887af3f209))
+* **core:** Add type_traits library. ([838093a](https://github.com/rainy-juzixiao/rainy-toolkit/commit/838093af75c6588911b065f89b3221140a9e70f2))
+* **core:** add utility core library. ([18ecb85](https://github.com/rainy-juzixiao/rainy-toolkit/commit/18ecb85ea9b64dde85a21040987262bbc78c0ddb))
+* **core:** Added atomic operations and filesystem operations, also fix some compile errors with use crosscompile from linux to windows. ([9734a80](https://github.com/rainy-juzixiao/rainy-toolkit/commit/9734a8025e8ddfe4bedad87b6d1e27276f689c0d))
+* **core:** Added collections library. ([bee8178](https://github.com/rainy-juzixiao/rainy-toolkit/commit/bee8178a99c42fac4fbac6de771e865d2d3fe341))
+* **core:** Added container library. ([78ee73e](https://github.com/rainy-juzixiao/rainy-toolkit/commit/78ee73e837d7de3d9922e03def31593458b669fe))
+* **core:** Added temporary_buffer for memory. ([af636ff](https://github.com/rainy-juzixiao/rainy-toolkit/commit/af636fff1b2a2a17b361032d504278625be70c27))
+* **core:** Added text library. ([fbf4333](https://github.com/rainy-juzixiao/rainy-toolkit/commit/fbf43338487c877b31b6022ee265a68c2eebbb63))
+* **core:** Fix some issues and remove add_rainy_library and add_rainy_interface_library, replaced by rainy_configure_target ([5850fa2](https://github.com/rainy-juzixiao/rainy-toolkit/commit/5850fa2e8f5dc14495aaaf84cd15a83e9dd84ffb))
+* **memory:** add destroy and construct method for allocator. ([de3b73d](https://github.com/rainy-juzixiao/rainy-toolkit/commit/de3b73dbacf6b448527e61c7c68efdc9c9d6fc73))
+* **memory:** add max_size method. ([4668d2e](https://github.com/rainy-juzixiao/rainy-toolkit/commit/4668d2e1869d7c49816a15f05bab1dbb883e883f))
+* **platform:** add ctz function. ([917b5ac](https://github.com/rainy-juzixiao/rainy-toolkit/commit/917b5ac2a29b4ed44e3cb6e6cd7b23a09ecf12bb))
+* **poly:** Add poly library with basic_poly, CMake config, and unit tests ([7736cc7](https://github.com/rainy-juzixiao/rainy-toolkit/commit/7736cc777925278c6e92bbaa99d98bfc6b625f3f))
+* **sleepy:** add __MUZIYAN_IS_HERE__ macro and ignored_namespaces config ([3c38125](https://github.com/rainy-juzixiao/rainy-toolkit/commit/3c38125c1ebc012ce50334ba2dcf0a3dedb09b16))
+* **sleepy:** add --root arg and improve diagnostic output ([a58f582](https://github.com/rainy-juzixiao/rainy-toolkit/commit/a58f582212296b0de0a9aebd4fcd812d847f02b8))
+* **sleepy:** add [@module](https://github.com/module) tag support and VitePress reference site generator ([a835ce0](https://github.com/rainy-juzixiao/rainy-toolkit/commit/a835ce048a9ad5c731f4e8621cce059598a27cc5))
+* **sleepy:** add free function overload resolution ([da315b3](https://github.com/rainy-juzixiao/rainy-toolkit/commit/da315b325f8ab8b7895faddad1d880baa45b5658))
+* **sleepy:** add variable template and constant support ([c829ec2](https://github.com/rainy-juzixiao/rainy-toolkit/commit/c829ec2b760e29c58afb75b552aeb85afd0d9b4f))
+* **sleepy:** split enums and enum classes in generated docs ([0ab64ff](https://github.com/rainy-juzixiao/rainy-toolkit/commit/0ab64fffb96ae93b630e671c85296272fadde06c))
+* **utility:** Added more hash support. ([7f9fd78](https://github.com/rainy-juzixiao/rainy-toolkit/commit/7f9fd786bed735879e20dcd2d6f23013f3c78bc6))
+
+
+### Bug Fixes
+
+* **algorithm:** Fix compile issues. ([9edf725](https://github.com/rainy-juzixiao/rainy-toolkit/commit/9edf725836d905ed5343871c0eda31f629684490))
+* **collections:** replace or to || ([5c25f5c](https://github.com/rainy-juzixiao/rainy-toolkit/commit/5c25f5c1187e50f25de9bc83e5113462337f51d0))
+* **container:** Fix ambiguous in implements::get_val ([7c4fba5](https://github.com/rainy-juzixiao/rainy-toolkit/commit/7c4fba5ceba02d344f5ef504e01d419de6b3173e))
+* **container:** Fix compile issues. ([3bca42f](https://github.com/rainy-juzixiao/rainy-toolkit/commit/3bca42f5a79b0821e3d3e0ba202e899936240f58))
+* **core:** Added monostate for platform.hpp and refactor to fix test case error in temporary_buffer.cc. ([f39408e](https://github.com/rainy-juzixiao/rainy-toolkit/commit/f39408eb323cbb38fde4e2f49d75e46dad5c93e4))
+* **core:** fallback remove add_rainy_interface_library. ([c4fc933](https://github.com/rainy-juzixiao/rainy-toolkit/commit/c4fc9332f79ad894eb3859003eb05daad2cd1328))
+* **diagnostics:** Fix compile errors. ([2365780](https://github.com/rainy-juzixiao/rainy-toolkit/commit/236578025b28698309f9f6baebf2cd869b543202))
+* **diagnostics:** Fix source location error. ([b9e4d98](https://github.com/rainy-juzixiao/rainy-toolkit/commit/b9e4d983155504f9c6e5e0298414eaeaacb8d809))
+* enforce ARM64 check. ([0a0ee90](https://github.com/rainy-juzixiao/rainy-toolkit/commit/0a0ee9088510dd72cdf5318c484dfd7fb5d322fd))
+* **exceptions:** Fix link error. ([d41924d](https://github.com/rainy-juzixiao/rainy-toolkit/commit/d41924dcf844b4c6ac083dc5ec76da14b0e4bc86))
+* fix properties.hpp ([b9c551c](https://github.com/rainy-juzixiao/rainy-toolkit/commit/b9c551ce8c3bf4412345d732e96364cfd929be1c))
+* Fix rainy-toolkit-core-unit-test ([4c22243](https://github.com/rainy-juzixiao/rainy-toolkit/commit/4c2224303d5606237067a00a30c7f8912bddf4e5))
+* Fix system_info.cxx ([4224009](https://github.com/rainy-juzixiao/rainy-toolkit/commit/422400977ac8959d6a41d41bc127c521a8425e26))
+* **memory:** Ensure max_size is constexpr from cxx20. ([1063ff6](https://github.com/rainy-juzixiao/rainy-toolkit/commit/1063ff64c705051f9ff874bf415cb31e36a15de5))
+* **memory:** fix some compile errors. ([3c35b2d](https://github.com/rainy-juzixiao/rainy-toolkit/commit/3c35b2dda2256fca0ac28774f0d7469f9596697f))
+* **platform:** add rainy::utility::monostate type and fix implicit declaration in filesystem.cc on POSIX ([8651cbf](https://github.com/rainy-juzixiao/rainy-toolkit/commit/8651cbf00c5229965cfb3e9628ce84e964709ba4))
+* **platform:** Fix system_info.cxx compile issues in windows. ([add5932](https://github.com/rainy-juzixiao/rainy-toolkit/commit/add5932310a4b75246e87f5911dc9069d37550cf))
+* **sleepy:** Fix escape for markdown generator. ([f7b1ac5](https://github.com/rainy-juzixiao/rainy-toolkit/commit/f7b1ac5871a5850fea681251ea652e37ac710188))
+* **type_traits:** fix some compile issues. and remove some internal function. ([edda8bb](https://github.com/rainy-juzixiao/rainy-toolkit/commit/edda8bbb0efbd269a90f79cfb454839f2d3e1edf))
+* **utility:** Fix compile issues. ([44dd101](https://github.com/rainy-juzixiao/rainy-toolkit/commit/44dd101b94d6793a9e04ee72381c8aa17d073f72))
+
 ## [1.1.1](https://github.com/rainy-juzixiao/rainy-toolkit/compare/v1.1.0...v1.1.1) (2026-05-20)
 
 
