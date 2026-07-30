@@ -30,7 +30,7 @@
 #define rainy_compiler_barrier() asm volatile("" ::: "memory")
 #endif
 
-// NODOCNEXTLINE
+// @NODOCBEGIN
 #define RAINY_INTERNALLAYER_ENABLE_ENUM_CLASS_BITMASK_OPERATORS(EnumType)                                                             \
     inline constexpr EnumType operator|(EnumType left, EnumType right) {                                                              \
         using type = __underlying_type(EnumType);                                                                                     \
@@ -60,6 +60,7 @@
         left = left ^ right;                                                                                                          \
         return left;                                                                                                                  \
     }
+// @NODOCEND
 
 /* 这是一个用C函数库封装的底层调用空间。外部用户不应当使用它。推荐使用foundation提供的模块 */
 namespace rainy::core::layer {
@@ -457,7 +458,9 @@ namespace rainy::core::layer {
         unknown = 0xFFFF
     };
 
+#if !RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
     RAINY_INTERNALLAYER_ENABLE_ENUM_CLASS_BITMASK_OPERATORS(perms);
+#endif
 
     /**
      * @brief Permission modification options enumeration.
@@ -603,7 +606,9 @@ namespace rainy::core::layer {
         create_hard_links = 256
     };
 
+#if !RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
     RAINY_INTERNALLAYER_ENABLE_ENUM_CLASS_BITMASK_OPERATORS(copy_options);
+#endif
 
     /**
      * @brief Directory iteration options enumeration.
