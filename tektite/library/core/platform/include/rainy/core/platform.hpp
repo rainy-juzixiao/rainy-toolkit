@@ -363,6 +363,7 @@ static_assert(false, "We detected you are using C++14 and below, and the library
 
 #endif
 
+// @NODOCBEGIN
 // NOLINTBEGIN
 /* 只有涉及到cast表达式时，我们才会使用这些宏 */
 #define rainy_let auto
@@ -370,6 +371,7 @@ static_assert(false, "We detected you are using C++14 and below, and the library
 #define rainy_const const auto
 #define rainy_cref const auto &
 // NOLINTEND
+// @NODOCEND
 
 #if RAINY_ENABLE_DEBUG
 
@@ -560,6 +562,35 @@ static_assert(false, "We detected you are using C++14 and below, and the library
 #include <meta>
 #endif
 
+#if RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
+
+namespace rainy::core {
+
+    /**
+     * \lang english
+     * @brief Indicates whether Rainy debug mode is enabled.
+     *        The value is determined by the RAINY_ENABLE_DEBUG configuration macro.
+     *
+     * \lang simp-chinese
+     * @brief 指示 Rainy 调试模式是否启用。
+     *        该值由 RAINY_ENABLE_DEBUG 配置宏决定。
+     */
+    constexpr bool is_rainy_enable_debug = RAINY_UNSPECVALUE;
+
+    /**
+     * \lang english
+     * @brief Indicates whether exception support is enabled.
+     *        The value depends on whether the compiler supports C++ exceptions.
+     *
+     * \lang simp-chinese
+     * @brief 指示异常支持是否启用。
+     *        该值取决于编译器是否支持 C++ 异常机制。
+     */
+    constexpr bool is_rainy_enable_exception = RAINY_UNSPECVALUE;
+}
+
+#else
+
 namespace rainy::core {
     constexpr bool is_rainy_enable_debug = RAINY_ENABLE_DEBUG;
 
@@ -569,6 +600,8 @@ namespace rainy::core {
     constexpr bool is_rainy_enable_exception = false;
 #endif
 }
+
+#endif
 
 namespace rainy::core {
     using errno_t = int;
@@ -615,6 +648,7 @@ namespace rainy::type_traits::other_trans {
         enable_if &operator=(enable_if &&) = delete;
     };
 
+#if !RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
     /**
      * \lang english
      * @brief Specialization of enable_if for the true case.
@@ -628,6 +662,7 @@ namespace rainy::type_traits::other_trans {
     struct enable_if<true, Ty> {
         using type = Ty;
     };
+#endif
 
     /**
      * \lang english
@@ -665,11 +700,12 @@ namespace rainy::type_traits::other_trans {
      * @tparam IfTrue Test 为 true 时使用的类型
      * @tparam IfFalse Test 为 false 时使用的类型
      */
-    template <bool, typename IfTrue, typename>
+    template <bool Test, typename IfTrue, typename IfFalse>
     struct conditional {
         using type = IfTrue;
     };
 
+#if !RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
     /**
      * \lang english
      * @brief Specialization of conditional for the false case.
@@ -685,6 +721,7 @@ namespace rainy::type_traits::other_trans {
     struct conditional<false, IfTrue, IfFalse> {
         using type = IfFalse;
     };
+#endif
 
     /**
      * \lang english
@@ -708,14 +745,14 @@ namespace rainy::type_traits::other_trans {
      * \lang english
      * @brief Utility metafunction that maps any sequence of types to void.
      *        Used for SFINAE detection idioms.
-     * @tparam ... Any types (unused)
+     * @tparam Types ... Any types (unused)
      *
      * \lang simp-chinese
      * @brief 将任意类型序列映射到 void 的工具元函数。
      *        用于 SFINAE 检测惯用法。
-     * @tparam ... 任意类型（未使用）
+     * @tparam Types ... 任意类型（未使用）
      */
-    template <typename...>
+    template <typename... Types>
     using void_t = void;
 
     /**
@@ -729,7 +766,7 @@ namespace rainy::type_traits::other_trans {
      *        在两个类型之间进行选择，不引入嵌套类型。
      * @tparam Test 控制选择的布尔值
      */
-    template <bool>
+    template <bool Test>
     struct select {
         /**
          * \lang english
@@ -742,10 +779,11 @@ namespace rainy::type_traits::other_trans {
          * @tparam Ty1 要返回的类型
          * @tparam Ty2 要忽略的类型
          */
-        template <typename Ty1, typename>
+        template <typename Ty1, typename Ty2>
         using apply = Ty1;
     };
 
+#if !RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
     /**
      * \lang english
      * @brief Specialization of select for the false case.
@@ -766,9 +804,10 @@ namespace rainy::type_traits::other_trans {
          * @tparam Ty1 要忽略的类型
          * @tparam Ty2 要返回的类型
          */
-        template <typename, typename Ty2>
+        template <typename Ty1, typename Ty2>
         using apply = Ty2;
     };
+#endif
 
     /**
      * @brief Dummy type placeholder for template metaprogramming.
@@ -825,35 +864,120 @@ namespace rainy::type_traits::other_trans {
 }
 
 namespace rainy::type_traits::modifers {
+    /**
+     * \lang english
+     * @brief Removes reference qualification from a type.
+     *        If Ty is an lvalue reference or rvalue reference, provides the referred type.
+     *        Otherwise, provides Ty itself.
+     * @tparam Ty Type to remove reference qualification from
+     *
+     * \lang simp-chinese
+     * @brief 移除类型中的引用限定。
+     *        如果 Ty 是左值引用或右值引用，则提供其引用所指向的类型。
+     *        否则，直接提供 Ty 类型本身。
+     * @tparam Ty 需要移除引用限定的类型
+     */
     template <typename Ty>
     struct remove_reference {
         using type = Ty;
     };
 
+#if !RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
+    /**
+     * \lang english
+     * @brief Specialization for lvalue reference types.
+     *        Removes the lvalue reference qualifier and provides the underlying type.
+     * @tparam Ty Type referenced by the lvalue reference
+     *
+     * \lang simp-chinese
+     * @brief 左值引用类型的特化版本。
+     *        移除左值引用限定，并提供其引用所对应的基础类型。
+     * @tparam Ty 左值引用所引用的类型
+     */
     template <typename Ty>
     struct remove_reference<Ty &> {
         using type = Ty;
     };
 
+    /**
+     * \lang english
+     * @brief Specialization for rvalue reference types.
+     *        Removes the rvalue reference qualifier and provides the underlying type.
+     * @tparam Ty Type referenced by the rvalue reference
+     *
+     * \lang simp-chinese
+     * @brief 右值引用类型的特化版本。
+     *        移除右值引用限定，并提供其引用所对应的基础类型。
+     * @tparam Ty 右值引用所引用的类型
+     */
     template <typename Ty>
     struct remove_reference<Ty &&> {
         using type = Ty;
     };
+#endif
 
+    /**
+     * \lang english
+     * @brief Convenience alias template for remove_reference.
+     *        Provides direct access to the nested type.
+     * @tparam Ty Type to remove reference qualification from
+     *
+     * \lang simp-chinese
+     * @brief remove_reference 的便捷别名模板。
+     *        提供对嵌套类型的直接访问。
+     * @tparam Ty 需要移除引用限定的类型
+     */
     template <typename Ty>
     using remove_reference_t = typename remove_reference<Ty>::type;
 }
 
 namespace rainy::type_traits::properties {
-    template <typename>
+    /**
+     * \lang english
+     * @brief Variable template that checks whether a type is an lvalue reference.
+     *        Provides true if Ty is an lvalue reference type, otherwise false.
+     * @tparam Ty Type to check for lvalue reference qualification
+     *
+     * \lang simp-chinese
+     * @brief 检查类型是否为左值引用的变量模板。
+     *        如果 Ty 是左值引用类型，则提供 true，否则提供 false。
+     * @tparam Ty 需要检查是否具有左值引用限定的类型
+     */
+    template <typename Ty>
     RAINY_CONSTEXPR_BOOL is_lvalue_reference_v = false;
 
+    /**
+     * \lang english
+     * @brief Specialization for lvalue reference types.
+     *        Indicates that the given type is an lvalue reference.
+     * @tparam Ty Type referenced by the lvalue reference
+     *
+     * \lang simp-chinese
+     * @brief 左值引用类型的特化版本。
+     *        表示给定类型是一个左值引用类型。
+     * @tparam Ty 左值引用所引用的类型
+     */
     template <typename Ty>
     RAINY_CONSTEXPR_BOOL is_lvalue_reference_v<Ty &> = true;
 }
 
 namespace rainy::core::builtin {
 #if RAINY_USING_AVX2 && RAINY_IS_X86_PLATFORM
+    /**
+     * \lang english
+     * @brief Counts the number of consecutive zero bits from the least significant bit.
+     *        Uses AVX2 instructions to accelerate the calculation on x86 platforms.
+     *        Returns 32 when the input value is zero.
+     * @param x Unsigned 32-bit integer value to inspect
+     * @return Number of trailing zero bits in x
+     *
+     * \lang simp-chinese
+     * @brief 计算从最低有效位开始连续零位的数量。
+     *        在 x86 平台上使用 AVX2 指令加速计算。
+     *        当输入值为零时返回 32。
+     * @param x 需要检查的无符号 32 位整数值
+     * @return x 中末尾连续零位的数量
+     */
     RAINY_INLINE std::int32_t ctz_avx2(std::uint32_t x) noexcept {
         if (x == 0) {
             return 32;
@@ -868,6 +992,19 @@ namespace rainy::core::builtin {
         return i;
     }
 
+    /**
+     * \lang english
+     * @brief Counts the number of trailing zero bits in an integer.
+     *        Uses compiler-specific intrinsics for efficient implementation.
+     * @param mask Integer value to inspect
+     * @return Number of consecutive zero bits from the least significant bit
+     *
+     * \lang simp-chinese
+     * @brief 计算整数末尾连续零位的数量。
+     *        使用编译器相关内建函数实现高效计算。
+     * @param mask 需要检查的整数值
+     * @return 从最低有效位开始连续零位的数量
+     */
     RAINY_INLINE int ctz(const int mask) {
 #if RAINY_COMPILER_MSVC
         unsigned long index;
@@ -879,10 +1016,53 @@ namespace rainy::core::builtin {
     }
 
 #endif
+
+    /**
+     * \lang english
+     * @brief Compares the contents of two memory blocks.
+     *        Returns a value indicating the lexicographical relationship between them.
+     * @param mem1 Pointer to the first memory block
+     * @param mem2 Pointer to the second memory block
+     * @param count Number of bytes to compare
+     * @return Negative value if mem1 is less than mem2,
+     *         zero if they are equal,
+     *         positive value if mem1 is greater than mem2
+     *
+     * \lang simp-chinese
+     * @brief 比较两个内存区域中的内容。
+     *        返回表示二者字典序关系的结果。
+     * @param mem1 指向第一个内存区域的指针
+     * @param mem2 指向第二个内存区域的指针
+     * @param count 需要比较的字节数量
+     * @return 如果 mem1 小于 mem2，则返回负值；
+     *         如果二者相等，则返回 0；
+     *         如果 mem1 大于 mem2，则返回正值
+     */
     constexpr rain_fn compare_memory(const void *mem1, const void *mem2, const std::size_t count) -> int {
         return __builtin_memcmp(mem1, mem2, count);
     }
 
+    /**
+     * \lang english
+     * @brief Compares the contents of two wide-character memory blocks.
+     *        Performs lexicographical comparison of wide-character sequences.
+     * @param mem1 Pointer to the first wide-character memory block
+     * @param mem2 Pointer to the second wide-character memory block
+     * @param count Number of wide characters to compare
+     * @return Negative value if mem1 is less than mem2,
+     *         zero if they are equal,
+     *         positive value if mem1 is greater than mem2
+     *
+     * \lang simp-chinese
+     * @brief 比较两个宽字符内存区域中的内容。
+     *        对宽字符序列执行字典序比较。
+     * @param mem1 指向第一个宽字符内存区域的指针
+     * @param mem2 指向第二个宽字符内存区域的指针
+     * @param count 需要比较的宽字符数量
+     * @return 如果 mem1 小于 mem2，则返回负值；
+     *         如果二者相等，则返回 0；
+     *         如果 mem1 大于 mem2，则返回正值
+     */
     constexpr rain_fn compare_wmemory(const wchar_t *mem1, const wchar_t *mem2, const std::size_t count) -> int {
 #if RAINY_USING_GCC
         for (std::size_t i = 0; i < count; ++i) {
@@ -1342,6 +1522,7 @@ namespace rainy::core::builtin {
         throw exception;
     }
 
+#if RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
     // NOLINTBEGIN
     /**
      * \lang english
@@ -1360,7 +1541,6 @@ namespace rainy::core::builtin {
      * @tparam Ty 序列中元素的类型
      * @tparam N 序列长度
      */
-#if RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
     template <template <typename U, U...> typename Struct, typename Ty, Ty N>
     struct make_integer_seq {
         using type = Struct<Ty>;
@@ -1519,66 +1699,491 @@ namespace rainy::core {
     /**
      * \lang english
      * @brief CPU instruction set feature flags.
-     *        Enumerates x86/x64 instruction set extensions that can be queried
-     *        at runtime via has_instruction().
+     *        Enumerates supported x86/x64 instruction set extensions that can
+     *        be queried at runtime through has_instruction().
      *
      * \lang simp-chinese
      * @brief CPU 指令集特性标志。
-     *        枚举 x86/x64 指令集扩展，可通过 has_instruction() 在运行时查询。
+     *        枚举支持查询的 x86/x64 指令集扩展，
+     *        可通过 has_instruction() 在运行时检测。
      */
     enum class instruction_set {
+
+        /**
+         * \lang english
+         * @brief Streaming SIMD Extensions 3.
+         *
+         * \lang simp-chinese
+         * @brief 流式 SIMD 扩展 3。
+         */
         sse3,
+
+        /**
+         * \lang english
+         * @brief Carry-less multiplication instruction support.
+         *
+         * \lang simp-chinese
+         * @brief 无进位乘法指令支持。
+         */
         pclmulqdq,
+
+        /**
+         * \lang english
+         * @brief Monitor and wait instruction support.
+         *
+         * \lang simp-chinese
+         * @brief Monitor/Wait 监控等待指令支持。
+         */
         monitor,
+
+        /**
+         * \lang english
+         * @brief Supplemental Streaming SIMD Extensions 3.
+         *
+         * \lang simp-chinese
+         * @brief 补充流式 SIMD 扩展 3。
+         */
         ssse3,
+
+        /**
+         * \lang english
+         * @brief Fused multiply-add instruction support.
+         *
+         * \lang simp-chinese
+         * @brief 融合乘加指令支持。
+         */
         fma,
+
+        /**
+         * \lang english
+         * @brief Compare and exchange 16-byte instruction support.
+         *
+         * \lang simp-chinese
+         * @brief 16 字节比较交换指令支持。
+         */
         cmpxchg16b,
+
+        /**
+         * \lang english
+         * @brief Streaming SIMD Extensions 4.1.
+         *
+         * \lang simp-chinese
+         * @brief 流式 SIMD 扩展 4.1。
+         */
         sse41,
+
+        /**
+         * \lang english
+         * @brief Streaming SIMD Extensions 4.2.
+         *
+         * \lang simp-chinese
+         * @brief 流式 SIMD 扩展 4.2。
+         */
         sse42,
+
+        /**
+         * \lang english
+         * @brief Move byte swap instruction support.
+         *
+         * \lang simp-chinese
+         * @brief 字节交换移动指令支持。
+         */
         movbe,
+
+        /**
+         * \lang english
+         * @brief Population count instruction support.
+         *
+         * \lang simp-chinese
+         * @brief 位计数指令支持。
+         */
         popcnt,
+
+        /**
+         * \lang english
+         * @brief AES instruction support.
+         *
+         * \lang simp-chinese
+         * @brief AES 加密指令支持。
+         */
         aes,
+
+        /**
+         * \lang english
+         * @brief XSAVE processor state management support.
+         *
+         * \lang simp-chinese
+         * @brief XSAVE 处理器状态保存支持。
+         */
         xsave,
+
+        /**
+         * \lang english
+         * @brief Operating system XSAVE support.
+         *
+         * \lang simp-chinese
+         * @brief 操作系统 XSAVE 支持。
+         */
         osxsave,
+
+        /**
+         * \lang english
+         * @brief Advanced Vector Extensions support.
+         *
+         * \lang simp-chinese
+         * @brief 高级向量扩展支持。
+         */
         avx,
+
+        /**
+         * \lang english
+         * @brief Half-precision floating-point conversion support.
+         *
+         * \lang simp-chinese
+         * @brief 半精度浮点转换支持。
+         */
         f16c,
+
+        /**
+         * \lang english
+         * @brief Hardware random number generation support.
+         *
+         * \lang simp-chinese
+         * @brief 硬件随机数生成支持。
+         */
         rdrand,
+
+        /**
+         * \lang english
+         * @brief Model-specific register support.
+         *
+         * \lang simp-chinese
+         * @brief 模型专用寄存器支持。
+         */
         msr,
+
+        /**
+         * \lang english
+         * @brief CMPXCHG8B instruction support.
+         *
+         * \lang simp-chinese
+         * @brief CMPXCHG8B 指令支持。
+         */
         cx8,
+
+        /**
+         * \lang english
+         * @brief Fast system call support.
+         *
+         * \lang simp-chinese
+         * @brief 快速系统调用支持。
+         */
         sep,
+
+        /**
+         * \lang english
+         * @brief Conditional move instruction support.
+         *
+         * \lang simp-chinese
+         * @brief 条件移动指令支持。
+         */
         cmov,
+
+        /**
+         * \lang english
+         * @brief Cache line flush instruction support.
+         *
+         * \lang simp-chinese
+         * @brief 缓存行刷新指令支持。
+         */
         clflush,
+
+        /**
+         * \lang english
+         * @brief MMX instruction support.
+         *
+         * \lang simp-chinese
+         * @brief MMX 指令支持。
+         */
         mmx,
+
+        /**
+         * \lang english
+         * @brief Floating-point state save/restore support.
+         *
+         * \lang simp-chinese
+         * @brief 浮点状态保存与恢复支持。
+         */
         fxsr,
+
+        /**
+         * \lang english
+         * @brief Streaming SIMD Extensions.
+         *
+         * \lang simp-chinese
+         * @brief 流式 SIMD 扩展。
+         */
         sse,
+
+        /**
+         * \lang english
+         * @brief Streaming SIMD Extensions 2.
+         *
+         * \lang simp-chinese
+         * @brief 流式 SIMD 扩展 2。
+         */
         sse2,
+
+        /**
+         * \lang english
+         * @brief FSGSBASE instruction support.
+         *
+         * \lang simp-chinese
+         * @brief FSGSBASE 指令支持。
+         */
         fsgsbase,
+
+        /**
+         * \lang english
+         * @brief Bit Manipulation Instruction Set 1.
+         *
+         * \lang simp-chinese
+         * @brief 位操作指令集 1。
+         */
         bmi1,
+
+        /**
+         * \lang english
+         * @brief Hardware Lock Elision support.
+         *
+         * \lang simp-chinese
+         * @brief 硬件锁省略支持。
+         */
         hle,
+
+        /**
+         * \lang english
+         * @brief Advanced Vector Extensions 2 support.
+         *
+         * \lang simp-chinese
+         * @brief 高级向量扩展 2 支持。
+         */
         avx2,
+
+        /**
+         * \lang english
+         * @brief Bit Manipulation Instruction Set 2.
+         *
+         * \lang simp-chinese
+         * @brief 位操作指令集 2。
+         */
         bmi2,
+
+        /**
+         * \lang english
+         * @brief Enhanced REP MOV/STOS support.
+         *
+         * \lang simp-chinese
+         * @brief 增强 REP MOV/STOS 指令支持。
+         */
         erms,
+
+        /**
+         * \lang english
+         * @brief INVPCID instruction support.
+         *
+         * \lang simp-chinese
+         * @brief INVPCID 指令支持。
+         */
         invpcid,
+
+        /**
+         * \lang english
+         * @brief Restricted Transactional Memory support.
+         *
+         * \lang simp-chinese
+         * @brief 限制事务内存支持。
+         */
         rtm,
+
+        /**
+         * \lang english
+         * @brief AVX-512 foundation support.
+         *
+         * \lang simp-chinese
+         * @brief AVX-512 基础支持。
+         */
         avx512f,
+
+        /**
+         * \lang english
+         * @brief RDSEED instruction support.
+         *
+         * \lang simp-chinese
+         * @brief RDSEED 指令支持。
+         */
         rdseed,
+
+        /**
+         * \lang english
+         * @brief ADX instruction support.
+         *
+         * \lang simp-chinese
+         * @brief ADX 指令支持。
+         */
         adx,
+
+        /**
+         * \lang english
+         * @brief AVX-512 prefetch support.
+         *
+         * \lang simp-chinese
+         * @brief AVX-512 预取支持。
+         */
         avx512pf,
+
+        /**
+         * \lang english
+         * @brief AVX-512 exponential and reciprocal support.
+         *
+         * \lang simp-chinese
+         * @brief AVX-512 指数与倒数运算支持。
+         */
         avx512er,
+
+        /**
+         * \lang english
+         * @brief AVX-512 conflict detection support.
+         *
+         * \lang simp-chinese
+         * @brief AVX-512 冲突检测支持。
+         */
         avx512cd,
+
+        /**
+         * \lang english
+         * @brief SHA instruction support.
+         *
+         * \lang simp-chinese
+         * @brief SHA 指令支持。
+         */
         sha,
+
+        /**
+         * \lang english
+         * @brief PREFETCHWT1 instruction support.
+         *
+         * \lang simp-chinese
+         * @brief PREFETCHWT1 指令支持。
+         */
         prefetchwt1,
+
+        /**
+         * \lang english
+         * @brief LAHF/SAHF instruction support in 64-bit mode.
+         *
+         * \lang simp-chinese
+         * @brief 64 位模式下 LAHF/SAHF 指令支持。
+         */
         lahf,
+
+        /**
+         * \lang english
+         * @brief Leading zero count support.
+         *
+         * \lang simp-chinese
+         * @brief 前导零计数支持。
+         */
         lzcnt,
+
+        /**
+         * \lang english
+         * @brief Advanced bit manipulation support.
+         *
+         * \lang simp-chinese
+         * @brief 高级位操作支持。
+         */
         abm,
+
+        /**
+         * \lang english
+         * @brief SSE4a support.
+         *
+         * \lang simp-chinese
+         * @brief SSE4a 支持。
+         */
         sse4a,
+
+        /**
+         * \lang english
+         * @brief Extended operation support.
+         *
+         * \lang simp-chinese
+         * @brief 扩展操作支持。
+         */
         xop,
+
+        /**
+         * \lang english
+         * @brief Trailing bit manipulation support.
+         *
+         * \lang simp-chinese
+         * @brief 尾部位操作支持。
+         */
         tbm,
+
+        /**
+         * \lang english
+         * @brief SYSCALL instruction support.
+         *
+         * \lang simp-chinese
+         * @brief SYSCALL 指令支持。
+         */
         syscall,
+
+        /**
+         * \lang english
+         * @brief Extended MMX support.
+         *
+         * \lang simp-chinese
+         * @brief 扩展 MMX 支持。
+         */
         mmxext,
+
+        /**
+         * \lang english
+         * @brief RDTSCP instruction support.
+         *
+         * \lang simp-chinese
+         * @brief RDTSCP 指令支持。
+         */
         rdtscp,
+
+        /**
+         * \lang english
+         * @brief 3DNow! extension support.
+         *
+         * \lang simp-chinese
+         * @brief 3DNow! 扩展支持。
+         */
         _3dnowext,
+
+        /**
+         * \lang english
+         * @brief 3DNow! instruction support.
+         *
+         * \lang simp-chinese
+         * @brief 3DNow! 指令支持。
+         */
         _3dnow,
+
+        /**
+         * \lang english
+         * @brief Indicates execution under a hypervisor environment.
+         *
+         * \lang simp-chinese
+         * @brief 表示当前运行于虚拟机监控器环境。
+         */
         hypervisor
     };
 }
@@ -1587,28 +2192,157 @@ namespace rainy::core::builtin {
     /**
      * \lang english
      * @brief Operating system version identifiers.
-     *        Used by get_os_version() to report the current OS version.
+     *        Enumerates supported operating system versions that can be
+     *        reported by get_os_version().
      *
      * \lang simp-chinese
      * @brief 操作系统版本标识符。
-     *        由 get_os_version() 用于报告当前操作系统版本。
+     *        枚举可由 get_os_version() 报告的受支持操作系统版本。
      */
     enum class version {
+
+        /**
+         * \lang english
+         * @brief Microsoft Windows 11.
+         *
+         * \lang simp-chinese
+         * @brief Microsoft Windows 11。
+         */
         windows11,
+
+        /**
+         * \lang english
+         * @brief Microsoft Windows 10.
+         *
+         * \lang simp-chinese
+         * @brief Microsoft Windows 10。
+         */
         windows10,
+
+        /**
+         * \lang english
+         * @brief Microsoft Windows 8.1.
+         *
+         * \lang simp-chinese
+         * @brief Microsoft Windows 8.1。
+         */
         windows8_1,
+
+        /**
+         * \lang english
+         * @brief Microsoft Windows 8.
+         *
+         * \lang simp-chinese
+         * @brief Microsoft Windows 8。
+         */
         windows8,
+
+        /**
+         * \lang english
+         * @brief Microsoft Windows 7 Service Pack 1.
+         *
+         * \lang simp-chinese
+         * @brief Microsoft Windows 7 Service Pack 1。
+         */
         windows7sp1,
+
+        /**
+         * \lang english
+         * @brief Microsoft Windows 7.
+         *
+         * \lang simp-chinese
+         * @brief Microsoft Windows 7。
+         */
         windows7,
+
+        /**
+         * \lang english
+         * @brief Windows Server operating system versions.
+         *
+         * \lang simp-chinese
+         * @brief Windows Server 操作系统版本。
+         */
         windows_server,
+
+        /**
+         * \lang english
+         * @brief Linux-like operating systems.
+         *
+         * \lang simp-chinese
+         * @brief Linux 类操作系统。
+         */
         linux_like,
+
+        /**
+         * \lang english
+         * @brief macOS Catalina.
+         *
+         * \lang simp-chinese
+         * @brief macOS Catalina。
+         */
         macos_catalina,
+
+        /**
+         * \lang english
+         * @brief macOS Big Sur.
+         *
+         * \lang simp-chinese
+         * @brief macOS Big Sur。
+         */
         macos_big_sur,
+
+        /**
+         * \lang english
+         * @brief macOS Monterey.
+         *
+         * \lang simp-chinese
+         * @brief macOS Monterey。
+         */
         macos_monterey,
+
+        /**
+         * \lang english
+         * @brief macOS Ventura.
+         *
+         * \lang simp-chinese
+         * @brief macOS Ventura。
+         */
         macos_ventura,
+
+        /**
+         * \lang english
+         * @brief macOS Sonoma.
+         *
+         * \lang simp-chinese
+         * @brief macOS Sonoma。
+         */
         macos_sonoma,
+
+        /**
+         * \lang english
+         * @brief macOS Sequoia.
+         *
+         * \lang simp-chinese
+         * @brief macOS Sequoia。
+         */
         macos_sequoia,
+
+        /**
+         * \lang english
+         * @brief macOS Tahoe.
+         *
+         * \lang simp-chinese
+         * @brief macOS Tahoe。
+         */
         macos_tahoe,
+
+        /**
+         * \lang english
+         * @brief Unknown or unsupported operating system version.
+         *
+         * \lang simp-chinese
+         * @brief 未知或不受支持的操作系统版本。
+         */
         unknown
     };
 
@@ -2682,10 +3416,39 @@ namespace rainy::core::builtin {
 }
 
 namespace rainy::utility {
+    /**
+     * \lang english
+     * @brief Tag type used for automatic type deduction.
+     *        Provides a lightweight compile-time marker object that can be
+     *        passed to APIs requiring automatic deduction behavior.
+     *
+     * \lang simp-chinese
+     * @brief 用于自动类型推导的标签类型。
+     *        提供一个轻量级的编译期标记对象，
+     *        可用于需要自动推导行为的接口。
+     */
     struct auto_deduce_t {
+
+        /**
+         * \lang english
+         * @brief Default constexpr constructor.
+         *
+         * \lang simp-chinese
+         * @brief 默认 constexpr 构造函数。
+         */
         explicit constexpr auto_deduce_t() = default;
     };
 
+
+    /**
+     * \lang english
+     * @brief Global tag object for requesting automatic type deduction.
+     *        Used as a convenient value of auto_deduce_t.
+     *
+     * \lang simp-chinese
+     * @brief 用于请求自动类型推导的全局标签对象。
+     *        作为 auto_deduce_t 类型的便捷实例使用。
+     */
     static constexpr auto_deduce_t auto_deduce{};
 }
 
@@ -2693,28 +3456,72 @@ namespace rainy::type_traits::helper {
     /**
      * \lang english
      * @brief Compile-time integral constant wrapper.
-     *        Wraps a constant value of a given type as a type for template metaprogramming.
-     * @tparam Ty The type of the constant value
-     * @tparam Data The constant value
+     *        Wraps a constant value of a specified type as a type for
+     *        template metaprogramming and compile-time computations.
+     * @tparam Ty Type of the stored constant value
+     * @tparam Data Constant value to store
      *
      * \lang simp-chinese
      * @brief 编译期整型常量包装器。
-     *        将指定类型的常量值封装为类型，用于模板元编程。
-     * @tparam Ty 值的类型
-     * @tparam Data 常量值
+     *        将指定类型的常量值封装为类型，
+     *        用于模板元编程以及编译期计算。
+     * @tparam Ty 存储常量值的类型
+     * @tparam Data 需要存储的常量值
      */
     template <typename Ty, Ty Data>
     struct integral_constant {
+
+        /**
+         * \lang english
+         * @brief Type of the stored constant value.
+         *
+         * \lang simp-chinese
+         * @brief 存储常量值的类型。
+         */
         using value_type = Ty;
+
+
+        /**
+         * \lang english
+         * @brief Self type alias.
+         *
+         * \lang simp-chinese
+         * @brief 当前类型的别名。
+         */
         using type = integral_constant;
 
-        constexpr explicit operator value_type() const noexcept {
-            return value;
-        }
-        constexpr value_type operator()() const noexcept {
-            return value;
-        }
 
+        /**
+         * \lang english
+         * @brief Converts the wrapper to the stored value type.
+         * @return Stored constant value.
+         *
+         * \lang simp-chinese
+         * @brief 将包装器转换为存储值类型。
+         * @return 存储的常量值。
+         */
+        constexpr explicit operator value_type() const noexcept;
+
+
+        /**
+         * \lang english
+         * @brief Function call operator returning the stored value.
+         * @return Stored constant value.
+         *
+         * \lang simp-chinese
+         * @brief 函数调用运算符，返回存储的常量值。
+         * @return 存储的常量值。
+         */
+        constexpr value_type operator()() const noexcept;
+
+
+        /**
+         * \lang english
+         * @brief Stored compile-time constant value.
+         *
+         * \lang simp-chinese
+         * @brief 存储的编译期常量值。
+         */
         static constexpr Ty value = Data;
     };
 
@@ -2759,9 +3566,10 @@ namespace rainy::type_traits::helper {
      *        默认使用 char 类型的空格字符 ' '。
      * @tparam CharType 字符类型
      */
-    template <typename>
+    template <typename CharType>
     struct char_space : integral_constant<char, ' '> {};
 
+#if !RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
     /**
      * \lang english
      * @brief wchar_t specialization of space character constant.
@@ -2791,6 +3599,7 @@ namespace rainy::type_traits::helper {
      */
     template <>
     struct char_space<char32_t> : integral_constant<char32_t, U' '> {};
+#endif
 
     /**
      * \lang english
@@ -2804,7 +3613,7 @@ namespace rainy::type_traits::helper {
     template <typename CharType>
     RAINY_INLINE_CONSTEXPR CharType char_space_v = char_space<CharType>::value;
 
-#if RAINY_HAS_CXX20 && defined(__cpp_lib_char8_t)
+#if RAINY_HAS_CXX20 && defined(__cpp_lib_char8_t) && !RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
     /**
      * \lang english
      * @brief char8_t specialization of space character constant (C++20 and later).
@@ -2830,6 +3639,7 @@ namespace rainy::type_traits::helper {
     template <typename CharType>
     struct char_null : integral_constant<char, '\0'> {};
 
+#if !RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
     /**
      * \lang english
      * @brief wchar_t specialization of null character constant.
@@ -2859,8 +3669,9 @@ namespace rainy::type_traits::helper {
      */
     template <>
     struct char_null<char32_t> : integral_constant<char32_t, U'\0'> {};
+#endif
 
-#if RAINY_HAS_CXX20 && defined(__cpp_lib_char8_t)
+#if RAINY_HAS_CXX20 && defined(__cpp_lib_char8_t) && !RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
     /**
      * \lang english
      * @brief char8_t specialization of null character constant (C++20 and later).
@@ -3174,7 +3985,9 @@ namespace rainy::utility {
      *        用于指示构造函数应使用分段方式构造 pair 或 tuple 等容器。
      */
     struct piecewise_construct_t {
+#if !RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
         explicit piecewise_construct_t() = default;
+#endif
     };
 
     /**
@@ -3281,68 +4094,508 @@ namespace rainy::utility {
         return back_insert_iterator<Container>(c);
     }
 }
-
 namespace rainy::utility {
+#if RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
     /**
      * \lang english
      * @brief Traits providing compile-time floating-point type properties.
-     * @tparam FloatingType The floating-point type
+     *        Provides information about the binary representation,
+     *        exponent layout, bit masks, and value limits of floating-point types.
+     * @tparam FloatingType Floating-point type to inspect
+     *
+     * \lang simp-chinese
+     * @brief 提供编译期浮点类型属性信息的 traits。
+     *        提供浮点类型的二进制表示、指数布局、
+     *        位掩码以及取值范围等信息。
+     * @tparam FloatingType 需要检查的浮点类型
+     */
+    template <>
+    struct floating_type_traits {
+        /**
+         * \lang english
+         * @brief Number of bits used by the mantissa.
+         *
+         * \lang simp-chinese
+         * @brief 尾数部分占用的位数。
+         */
+        static constexpr std::int32_t mantissa_bits = RAINY_UNSPECVALUE;
+
+        /**
+         * \lang english
+         * @brief Number of bits used by the exponent.
+         *
+         * \lang simp-chinese
+         * @brief 指数部分占用的位数。
+         */
+        static constexpr std::int32_t exponent_bits = RAINY_UNSPECVALUE;
+
+        /**
+         * \lang english
+         * @brief Maximum unbiased binary exponent.
+         *
+         * \lang simp-chinese
+         * @brief 最大无偏二进制指数。
+         */
+        static constexpr std::int32_t maximum_binary_exponent = RAINY_UNSPECVALUE;
+
+        /**
+         * \lang english
+         * @brief Minimum unbiased binary exponent.
+         *
+         * \lang simp-chinese
+         * @brief 最小无偏二进制指数。
+         */
+        static constexpr std::int32_t minimum_binary_exponent = RAINY_UNSPECVALUE;
+
+        /**
+         * \lang english
+         * @brief Exponent bias value used by the IEEE 754 representation.
+         *
+         * \lang simp-chinese
+         * @brief IEEE 754 表示中使用的指数偏移量。
+         */
+        static constexpr std::int32_t exponent_bias = RAINY_UNSPECVALUE;
+
+        /**
+         * \lang english
+         * @brief Bit position of the sign bit.
+         *
+         * \lang simp-chinese
+         * @brief 符号位所在的位位置。
+         */
+        static constexpr std::int32_t sign_shift = RAINY_UNSPECVALUE;
+
+        /**
+         * \lang english
+         * @brief Bit position where the exponent field begins.
+         *
+         * \lang simp-chinese
+         * @brief 指数字段开始的位置。
+         */
+        static constexpr std::int32_t exponent_shift = RAINY_UNSPECVALUE;
+
+        /**
+         * \lang english
+         * @brief Unsigned integer type used for bit manipulation.
+         *
+         * \lang simp-chinese
+         * @brief 用于位操作的无符号整数类型。
+         */
+        using uint_type = std::uint32_t;
+
+        /**
+         * \lang english
+         * @brief Mask for extracting the exponent field.
+         *
+         * \lang simp-chinese
+         * @brief 用于提取指数部分的掩码。
+         */
+        static constexpr std::uint32_t exponent_mask = RAINY_UNSPECVALUE;
+
+        /**
+         * \lang english
+         * @brief Mask for extracting the normalized mantissa including the implicit bit.
+         *
+         * \lang simp-chinese
+         * @brief 用于提取包含隐藏位的规格化尾数掩码。
+         */
+        static constexpr std::uint32_t normal_mantissa_mask = RAINY_UNSPECVALUE;
+
+        /**
+         * \lang english
+         * @brief Mask for extracting the denormalized mantissa.
+         *
+         * \lang simp-chinese
+         * @brief 用于提取非规格化尾数的掩码。
+         */
+        static constexpr std::uint32_t denormal_mantissa_mask = RAINY_UNSPECVALUE;
+
+        /**
+         * \lang english
+         * @brief Mask identifying the quiet NaN mantissa bit.
+         *
+         * \lang simp-chinese
+         * @brief 用于识别静默 NaN 尾数位的掩码。
+         */
+        static constexpr std::uint32_t special_nan_mantissa_mask = RAINY_UNSPECVALUE;
+
+        /**
+         * \lang english
+         * @brief Mask for the shifted sign bit.
+         *
+         * \lang simp-chinese
+         * @brief 移位后的符号位掩码。
+         */
+        static constexpr std::uint32_t shifted_sign_mask = RAINY_UNSPECVALUE;
+
+        /**
+         * \lang english
+         * @brief Mask for the shifted exponent field.
+         *
+         * \lang simp-chinese
+         * @brief 移位后的指数部分掩码。
+         */
+        static constexpr std::uint32_t shifted_exponent_mask = RAINY_UNSPECVALUE;
+
+        /**
+         * \lang english
+         * @brief Minimum positive normalized floating-point value.
+         *
+         * \lang simp-chinese
+         * @brief 最小正规格化浮点值。
+         */
+        static constexpr float minimum_value = RAINY_UNSPECVALUE;
+
+        /**
+         * \lang english
+         * @brief Maximum finite floating-point value.
+         *
+         * \lang simp-chinese
+         * @brief 最大有限浮点值。
+         */
+        static constexpr float maximum_value = RAINY_UNSPECVALUE;
+    };
+#else
+    /**
+     * \lang english
+     * @brief Traits providing compile-time floating-point type properties.
+     *        Defines information about the binary representation, masks,
+     *        exponent range, and limits of floating-point types.
+     * @tparam FloatingType The floating-point type to inspect
      *
      * \lang simp-chinese
      * @brief 提供编译期浮点类型特性的 traits。
-     * @tparam FloatingType 浮点类型
+     *        定义浮点类型的二进制表示、掩码、指数范围以及取值限制等信息。
+     * @tparam FloatingType 需要检查的浮点类型
      */
     template <typename FloatingType>
     struct floating_type_traits;
 
+    /**
+     * \lang english
+     * @brief Traits specialization for the float type.
+     *        Provides IEEE 754 single-precision floating-point layout information.
+     *
+     * \lang simp-chinese
+     * @brief float 类型的 traits 特化版本。
+     *        提供 IEEE 754 单精度浮点数布局相关信息。
+     */
     template <>
     struct floating_type_traits<float> {
+        /**
+         * \lang english
+         * @brief Number of bits used by the mantissa.
+         *
+         * \lang simp-chinese
+         * @brief 尾数部分占用的位数。
+         */
         static constexpr std::int32_t mantissa_bits = 24;
+
+        /**
+         * \lang english
+         * @brief Number of bits used by the exponent.
+         *
+         * \lang simp-chinese
+         * @brief 指数部分占用的位数。
+         */
         static constexpr std::int32_t exponent_bits = 8;
+
+        /**
+         * \lang english
+         * @brief Maximum unbiased binary exponent.
+         *
+         * \lang simp-chinese
+         * @brief 最大无偏二进制指数。
+         */
         static constexpr std::int32_t maximum_binary_exponent = 127;
+
+        /**
+         * \lang english
+         * @brief Minimum unbiased binary exponent.
+         *
+         * \lang simp-chinese
+         * @brief 最小无偏二进制指数。
+         */
         static constexpr std::int32_t minimum_binary_exponent = -126;
+
+        /**
+         * \lang english
+         * @brief Exponent bias value used by the IEEE 754 representation.
+         *
+         * \lang simp-chinese
+         * @brief IEEE 754 表示中使用的指数偏移量。
+         */
         static constexpr std::int32_t exponent_bias = 127;
+
+        /**
+         * \lang english
+         * @brief Bit position of the sign bit.
+         *
+         * \lang simp-chinese
+         * @brief 符号位所在的位位置。
+         */
         static constexpr std::int32_t sign_shift = 31;
+
+        /**
+         * \lang english
+         * @brief Bit position where the exponent field begins.
+         *
+         * \lang simp-chinese
+         * @brief 指数字段开始的位置。
+         */
         static constexpr std::int32_t exponent_shift = 23;
 
+        /**
+         * \lang english
+         * @brief Unsigned integer type used for bit manipulation.
+         *
+         * \lang simp-chinese
+         * @brief 用于位操作的无符号整数类型。
+         */
         using uint_type = std::uint32_t;
 
+        /**
+         * \lang english
+         * @brief Mask for extracting the exponent field.
+         *
+         * \lang simp-chinese
+         * @brief 用于提取指数部分的掩码。
+         */
         static constexpr std::uint32_t exponent_mask = 0x000000FFu;
+
+        /**
+         * \lang english
+         * @brief Mask for extracting the normalized mantissa including the implicit bit.
+         *
+         * \lang simp-chinese
+         * @brief 用于提取包含隐藏位的规格化尾数掩码。
+         */
         static constexpr std::uint32_t normal_mantissa_mask = 0x00FFFFFFu;
+
+        /**
+         * \lang english
+         * @brief Mask for extracting the denormalized mantissa.
+         *
+         * \lang simp-chinese
+         * @brief 用于提取非规格化尾数的掩码。
+         */
         static constexpr std::uint32_t denormal_mantissa_mask = 0x007FFFFFu;
+
+        /**
+         * \lang english
+         * @brief Mask identifying the quiet NaN mantissa bit.
+         *
+         * \lang simp-chinese
+         * @brief 用于识别静默 NaN 尾数位的掩码。
+         */
         static constexpr std::uint32_t special_nan_mantissa_mask = 0x00400000u;
+
+        /**
+         * \lang english
+         * @brief Mask for the shifted sign bit.
+         *
+         * \lang simp-chinese
+         * @brief 移位后的符号位掩码。
+         */
         static constexpr std::uint32_t shifted_sign_mask = 0x80000000u;
+
+        /**
+         * \lang english
+         * @brief Mask for the shifted exponent field.
+         *
+         * \lang simp-chinese
+         * @brief 移位后的指数部分掩码。
+         */
         static constexpr std::uint32_t shifted_exponent_mask = 0x7F800000u;
 
+        /**
+         * \lang english
+         * @brief Minimum positive normalized floating-point value.
+         *
+         * \lang simp-chinese
+         * @brief 最小正规格化浮点值。
+         */
         static constexpr float minimum_value = 0x1.000000p-126f;
+
+        /**
+         * \lang english
+         * @brief Maximum finite floating-point value.
+         *
+         * \lang simp-chinese
+         * @brief 最大有限浮点值。
+         */
         static constexpr float maximum_value = 0x1.FFFFFEp+127f;
     };
 
+    /**
+     * \lang english
+     * @brief Traits specialization for the double type.
+     *        Provides IEEE 754 double-precision floating-point layout information.
+     *
+     * \lang simp-chinese
+     * @brief double 类型的 traits 特化版本。
+     *        提供 IEEE 754 双精度浮点数布局相关信息。
+     */
     template <>
     struct floating_type_traits<double> {
+        /**
+         * \lang english
+         * @brief Number of bits used by the mantissa.
+         *
+         * \lang simp-chinese
+         * @brief 尾数部分占用的位数。
+         */
         static constexpr std::int32_t mantissa_bits = 53;
+
+        /**
+         * \lang english
+         * @brief Number of bits used by the exponent.
+         *
+         * \lang simp-chinese
+         * @brief 指数部分占用的位数。
+         */
         static constexpr std::int32_t exponent_bits = 11;
+
+        /**
+         * \lang english
+         * @brief Maximum unbiased binary exponent.
+         *
+         * \lang simp-chinese
+         * @brief 最大无偏二进制指数。
+         */
         static constexpr std::int32_t maximum_binary_exponent = 1023;
+
+        /**
+         * \lang english
+         * @brief Minimum unbiased binary exponent.
+         *
+         * \lang simp-chinese
+         * @brief 最小无偏二进制指数。
+         */
         static constexpr std::int32_t minimum_binary_exponent = -1022;
+
+        /**
+         * \lang english
+         * @brief Exponent bias value used by the IEEE 754 representation.
+         *
+         * \lang simp-chinese
+         * @brief IEEE 754 表示中使用的指数偏移量。
+         */
         static constexpr std::int32_t exponent_bias = 1023;
+
+        /**
+         * \lang english
+         * @brief Bit position of the sign bit.
+         *
+         * \lang simp-chinese
+         * @brief 符号位所在的位位置。
+         */
         static constexpr std::int32_t sign_shift = 63;
+
+        /**
+         * \lang english
+         * @brief Bit position where the exponent field begins.
+         *
+         * \lang simp-chinese
+         * @brief 指数字段开始的位置。
+         */
         static constexpr std::int32_t exponent_shift = 52;
 
+        /**
+         * \lang english
+         * @brief Unsigned integer type used for bit manipulation.
+         *
+         * \lang simp-chinese
+         * @brief 用于位操作的无符号整数类型。
+         */
         using uint_type = std::uint64_t;
 
+        /**
+         * \lang english
+         * @brief Mask for extracting the exponent field.
+         *
+         * \lang simp-chinese
+         * @brief 用于提取指数部分的掩码。
+         */
         static constexpr std::uint64_t exponent_mask = 0x00000000000007FFu;
+
+        /**
+         * \lang english
+         * @brief Mask for extracting the normalized mantissa including the implicit bit.
+         *
+         * \lang simp-chinese
+         * @brief 用于提取包含隐藏位的规格化尾数掩码。
+         */
         static constexpr std::uint64_t normal_mantissa_mask = 0x001FFFFFFFFFFFFFu;
+
+        /**
+         * \lang english
+         * @brief Mask for extracting the denormalized mantissa.
+         *
+         * \lang simp-chinese
+         * @brief 用于提取非规格化尾数的掩码。
+         */
         static constexpr std::uint64_t denormal_mantissa_mask = 0x000FFFFFFFFFFFFFu;
+
+        /**
+         * \lang english
+         * @brief Mask identifying the quiet NaN mantissa bit.
+         *
+         * \lang simp-chinese
+         * @brief 用于识别静默 NaN 尾数位的掩码。
+         */
         static constexpr std::uint64_t special_nan_mantissa_mask = 0x0008000000000000u;
+
+        /**
+         * \lang english
+         * @brief Mask for the shifted sign bit.
+         *
+         * \lang simp-chinese
+         * @brief 移位后的符号位掩码。
+         */
         static constexpr std::uint64_t shifted_sign_mask = 0x8000000000000000u;
+
+        /**
+         * \lang english
+         * @brief Mask for the shifted exponent field.
+         *
+         * \lang simp-chinese
+         * @brief 移位后的指数部分掩码。
+         */
         static constexpr std::uint64_t shifted_exponent_mask = 0x7FF0000000000000u;
 
+        /**
+         * \lang english
+         * @brief Minimum finite value represented by the floating-point type.
+         *
+         * \lang simp-chinese
+         * @brief 浮点类型可表示的最小有限值。
+         */
         static constexpr double minimum_value = 0x1.0000000000000p-1022;
+
+
+        /**
+         * \lang english
+         * @brief Maximum finite value represented by the floating-point type.
+         *
+         * \lang simp-chinese
+         * @brief 浮点类型可表示的最大有限值。
+         */
         static constexpr double maximum_value = 0x1.FFFFFFFFFFFFFp+1023;
     };
 
+    /**
+     * \lang english
+     * @brief Traits specialization for long double.
+     *        Uses double precision layout information as a fallback.
+     *
+     * \lang simp-chinese
+     * @brief long double 类型的 traits 特化版本。
+     *        使用 double 精度布局信息作为兼容实现。
+     */
     template <>
     struct floating_type_traits<long double> : floating_type_traits<double> {};
+#endif
 }
 
 namespace rainy::utility::implements {
@@ -3357,60 +4610,123 @@ namespace rainy::utility::implements {
      */
     struct ignore_type {
         explicit ignore_type() = default;
-
+#if !RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
         template <typename Ty>
         constexpr const ignore_type &operator=(const Ty &) const noexcept { // NOLINT
             return *this;
         }
+#endif
     };
 }
 
 namespace rainy::utility {
-    /** @brief Ignore constant.  忽略常量。 */
+    /**
+     * \lang english
+     * @brief Global ignore object used to explicitly discard values.
+     *        Provides a convenient instance of implements::ignore_type.
+     *
+     * \lang simp-chinese
+     * @brief 用于显式忽略值的全局 ignore 对象。
+     *        提供 implements::ignore_type 的便捷实例。
+     */
     inline constexpr implements::ignore_type ignore{};
 }
 
 #if RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
-/**
- * \lang english
- * @brief Runtime member annotation queries for C++26 static reflection.
- *        Provides has(), fetch(), get_or() to inspect member annotations
- *        without requiring std::meta syntax.
- *
- * \lang simp-chinese
- * @brief C++26 静态反射的运行时成员注释查询。
- *        提供 has()、fetch()、get_or() 来检查成员注释，
- *        无需直接使用 std::meta 语法。
- */
+namespace rainy::annotations::implements {
+    using info_handle = void *;
+}
+
 namespace rainy::annotations {
+    /**
+     * \lang english
+     * @brief Stores runtime member annotation information for C++26 static reflection.
+     *        Provides a lightweight representation of annotations attached to
+     *        reflected members.
+     *
+     * \lang simp-chinese
+     * @brief 存储 C++26 静态反射中的运行时成员注释信息。
+     *        提供反射成员所附加注释的轻量级表示。
+     */
     struct member_anno {
-        const std::meta::info *attns{nullptr};
-        std::size_t num_attns{0};
+        /**
+         * \lang english
+         * @brief Pointer to the annotation information array.
+         *
+         * \lang simp-chinese
+         * @brief 指向注释信息数组的指针。
+         */
+        const implements::info_handle *attns;
+
+        /**
+         * \lang english
+         * @brief Number of stored annotations.
+         *
+         * \lang simp-chinese
+         * @brief 存储的注释数量。
+         */
+        std::size_t num_attns;
     };
 
-    consteval auto make_member_anno(std::meta::info member) -> member_anno {
-        return member_anno{nullptr, 0};
-    }
+    /**
+     * \lang english
+     * @brief Creates a member annotation query object from a reflected member.
+     * @param member Reflected member information handle
+     * @return Member annotation information
+     *
+     * \lang simp-chinese
+     * @brief 根据反射成员创建成员注释查询对象。
+     * @param member 反射成员信息句柄
+     * @return 成员注释信息
+     */
+    consteval auto make_member_anno(implements::info_handle member) -> member_anno;
 }
 
-/**
- * \lang english
- * @brief Runtime type annotation queries for C++26 static reflection.
- *
- * \lang simp-chinese
- * @brief C++26 静态反射的运行时类型注释查询。
- */
 namespace rainy::annotations {
+    /**
+     * \lang english
+     * @brief Stores runtime type annotation information for C++26 static reflection.
+     *        Provides a lightweight representation of annotations attached to types.
+     *
+     * \lang simp-chinese
+     * @brief 存储 C++26 静态反射中的运行时类型注释信息。
+     *        提供类型所附加注释的轻量级表示。
+     */
     struct type_anno {
-        const std::meta::info *attns{nullptr};
-        std::size_t num_attns{0};
+        /**
+         * \lang english
+         * @brief Pointer to the annotation information array.
+         *
+         * \lang simp-chinese
+         * @brief 指向注释信息数组的指针。
+         */
+        const implements::info_handle *attns;
+
+        /**
+         * \lang english
+         * @brief Number of stored annotations.
+         *
+         * \lang simp-chinese
+         * @brief 存储的注释数量。
+         */
+        std::size_t num_attns;
     };
 
+    /**
+     * \lang english
+     * @brief Creates a type annotation query object for a type.
+     * @tparam Ty Type to inspect for annotations
+     * @return Type annotation information
+     *
+     * \lang simp-chinese
+     * @brief 为指定类型创建类型注释查询对象。
+     * @tparam Ty 需要检查注释的类型
+     * @return 类型注释信息
+     */
     template <typename Ty>
-    consteval auto make_type_anno() -> type_anno {
-        return type_anno{nullptr, 0};
-    }
+    consteval auto make_type_anno() -> type_anno;
 }
+
 #elif RAINY_HAS_CXX26 && RAINY_HAS_CXX26_STATIC_REFLECTION
 
 namespace rainy::annotations {
@@ -3502,6 +4818,8 @@ namespace rainy::annotations {
 
 #endif
 
+#if !RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
+
 namespace rainy::core::implements {
     constexpr bool is_pow_2(const std::size_t val) noexcept {
         return val != 0 && (val & (val - 1)) == 0;
@@ -3531,16 +4849,15 @@ namespace rainy::core::implements {
     RAINY_TOOLKIT_API void stl_internal_check(bool result);
 }
 
-namespace rainy::core::builtin {
-#if RAINY_USING_AVX2 && RAINY_IS_X86_PLATFORM
-    std::int32_t ctz_avx2(const std::uint32_t x) noexcept;
 #endif
-}
 
 namespace rainy::utility {
     /**
+     * \lang english
      * @brief Empty monostate type for use in variants and similar contexts.
-     *        用于变体等场景的空monostate类型。
+     *
+     * \lang simp-chinese
+     * @brief 用于变体等场景的空monostate类型。
      */
     struct monostate {};
 }
