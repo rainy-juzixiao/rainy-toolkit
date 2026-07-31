@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 rainy-juzixiao
+* Copyright 2026 rainy-juzixiao
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,8 +21,8 @@
  * 这些模板用于根据类型的可复制性、可移动性及其平凡性，为派生类选择合适的
  * 构造、复制、移动及赋值行为。
  */
-#ifndef RAINY_ANNOTATIONS_SMF_CONTROL_HPP
-#define RAINY_ANNOTATIONS_SMF_CONTROL_HPP
+#ifndef RAINY_CORE_ANNOTATIONS_SMF_CONTROL_HPP
+#define RAINY_CORE_ANNOTATIONS_SMF_CONTROL_HPP
 #include <rainy/core/platform.hpp>
 #include <rainy/core/type_traits/logical.hpp>
 #include <rainy/core/type_traits/properties.hpp>
