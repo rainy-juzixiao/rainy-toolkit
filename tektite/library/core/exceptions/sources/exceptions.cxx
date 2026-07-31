@@ -223,3 +223,30 @@ namespace rainy::core::exceptions {
         impl_ = new_impl;
     }
 }
+
+namespace rainy::core::exceptions {
+    static exception_handler_t global_exception_handler_impl = &std::terminate;
+    thread_local exception_handler_t current_thread_exception_handler_impl = &std::terminate;
+
+    exception_handler_t global_exception_handler(exception_handler_t new_handler) noexcept {
+        return (new_handler ? utility::exchange(global_exception_handler_impl, new_handler) : global_exception_handler_impl);
+    }
+
+    exception_handler_t current_thread_exception_handler(exception_handler_t new_handler) noexcept {
+        return (new_handler ? utility::exchange(current_thread_exception_handler_impl, new_handler)
+                            : current_thread_exception_handler_impl);
+    }
+}
+
+namespace rainy::core::exceptions::implements {
+    void invoke_exception_handler() noexcept {
+        {
+            const auto invoke_address = current_thread_exception_handler();
+            invoke_address();
+        }
+        {
+            const auto invoke_address = global_exception_handler();
+            invoke_address();
+        }
+    }
+}
