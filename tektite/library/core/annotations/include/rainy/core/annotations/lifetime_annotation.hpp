@@ -16,6 +16,7 @@
 #ifndef RAINY_CORE_ANNOTATIONS_LIFETIME_ANNOTATION_HPP
 #define RAINY_CORE_ANNOTATIONS_LIFETIME_ANNOTATION_HPP
 #include <rainy/core/diagnostics/exceptions.hpp>
+#include <rainy/core/layer.hpp>
 #include <rainy/core/type_traits.hpp>
 
 namespace rainy::annotations::lifetime {
@@ -76,10 +77,10 @@ namespace rainy::annotations::lifetime {
      * @brief A deferred initialization wrapper for types.
      *        类型的延迟初始化包装器。
      *
-     * @tparam T The type to be deferred-initialized
+     * @tparam Ty The type to be deferred-initialized
      *           需要延迟初始化的类型
      */
-    template <typename T>
+    template <typename Ty>
     class deferred_init {
     public:
         /**
@@ -106,7 +107,7 @@ namespace rainy::annotations::lifetime {
          * @throws core::exceptions::runtime::runtime_error if not initialized
          *         如果未初始化则抛出异常
          */
-        rain_fn value() noexcept -> T & {
+        rain_fn value() -> Ty & {
             core::exceptions::throw_exception_if<core::exceptions::runtime::runtime_error>(init);
             return t();
         }
@@ -124,8 +125,8 @@ namespace rainy::annotations::lifetime {
          */
         template <typename... Args>
         rain_fn construct(Args &&...args) -> void {
-            core::exceptions::throw_exception_if<core::exceptions::runtime::runtime_error>(init);
-            new (&data) T{utility::forward<Args>(args)...};
+            core::exceptions::throw_exception_if<core::exceptions::runtime::runtime_error>(!init);
+            new (&data) Ty{utility::forward<Args>(args)...};
             init = true;
         }
 
@@ -149,8 +150,8 @@ namespace rainy::annotations::lifetime {
         }
 
     private:
-        rain_fn t() -> T & {
-            return *std::launder(reinterpret_cast<T *>(&data));
+        rain_fn t() -> Ty & {
+            return *std::launder(reinterpret_cast<Ty *>(&data));
         }
 
         template <typename U>
@@ -158,12 +159,12 @@ namespace rainy::annotations::lifetime {
 
         rain_fn destroy() -> void {
             if (init) {
-                t().~T();
+                t().~Ty();
             }
             init = false;
         }
 
-        alignas(T) core::byte_t data[sizeof(T)];
+        alignas(Ty) core::byte_t data[sizeof(Ty)];
         bool init = false;
     };
 
@@ -171,10 +172,10 @@ namespace rainy::annotations::lifetime {
      * @brief Output parameter wrapper that guarantees initialization.
      *        保证初始化的输出参数包装器。
      *
-     * @tparam T The type of the output parameter
+     * @tparam Ty The type of the output parameter
      *           输出参数的类型
      */
-    template <typename T>
+    template <typename Ty>
     class out {
     public:
         template <typename>
@@ -189,7 +190,7 @@ namespace rainy::annotations::lifetime {
          * @throws core::exceptions::runtime::runtime_error if pointer is null
          *         如果指针为空则抛出异常
          */
-        out(T *t_) noexcept : t{t_}, has_t{true} {
+        out(Ty *t_) : t{t_}, has_t{true} {
             core::exceptions::throw_exception_if<core::exceptions::runtime::runtime_error>(t);
         }
 
@@ -202,7 +203,7 @@ namespace rainy::annotations::lifetime {
          * @throws core::exceptions::runtime::runtime_error if pointer is null
          *         如果指针为空则抛出异常
          */
-        out(deferred_init<T> *dt_) noexcept : dt{dt_}, has_t{false} {
+        out(deferred_init<Ty> *dt_) : dt{dt_}, has_t{false} {
             core::exceptions::throw_exception_if<core::exceptions::runtime::runtime_error>(dt);
         }
 
@@ -215,7 +216,7 @@ namespace rainy::annotations::lifetime {
          * @throws core::exceptions::runtime::runtime_error if pointer is null
          *         如果指针为空则抛出异常
          */
-        out(out<T> *ot_) noexcept : ot{ot_}, has_t{ot_->has_t} {
+        out(out<Ty> *ot_) : ot{ot_}, has_t{ot_->has_t} {
             core::exceptions::throw_exception_if<core::exceptions::runtime::runtime_error>(ot_);
             if (has_t) {
                 t = ot->t;
@@ -266,18 +267,18 @@ namespace rainy::annotations::lifetime {
         rain_fn construct(Args &&...args) -> void {
             using namespace type_traits::properties;
             if (has_t || called_construct()) {
-                if constexpr (is_constructible_v<T, Args...> && is_copy_assignable_v<T>) {
+                if constexpr (is_constructible_v<Ty, Args...> && is_copy_assignable_v<Ty>) {
                     core::exceptions::throw_exception_if<core::exceptions::runtime::runtime_error>(t);
-                    *t = T(utility::forward<Args>(args)...);
+                    *t = Ty(utility::forward<Args>(args)...);
                 } else {
                     core::exceptions::throw_exception_if<core::exceptions::runtime::runtime_error>(
                         false, "attempted to copy assign, but copy assignment is not available");
                 }
             } else {
-                core::exceptions::throw_exception<core::exceptions::runtime::runtime_error>(dt);
+                core::exceptions::throw_exception_if<core::exceptions::runtime::runtime_error>(dt);
                 if (dt->init) {
-                    if constexpr (is_constructible_v<T, Args...> && is_copy_assignable_v<T>) {
-                        dt->value() = T(utility::forward<Args>(args)...);
+                    if constexpr (is_constructible_v<Ty, Args...> && is_copy_assignable_v<Ty>) {
+                        dt->value() = Ty(utility::forward<Args>(args)...);
                     } else {
                         core::exceptions::throw_exception_if<core::exceptions::runtime::runtime_error>(
                             false, "attempted to copy assign, but copy assignment is not available");
@@ -298,7 +299,7 @@ namespace rainy::annotations::lifetime {
          * @throws core::exceptions::runtime::runtime_error if not properly initialized
          *         如果未正确初始化则抛出异常
          */
-        rain_fn value() noexcept -> T & {
+        rain_fn value() -> Ty & {
             if (has_t) {
                 core::exceptions::throw_exception_if<core::exceptions::runtime::runtime_error>(t);
                 return *t;
@@ -310,10 +311,10 @@ namespace rainy::annotations::lifetime {
 
     private:
         union {
-            T *t;
-            deferred_init<T> *dt;
+            Ty *t;
+            deferred_init<Ty> *dt;
         };
-        out<T> *ot = {};
+        out<Ty> *ot = {};
         bool has_t;
         int uncaught_count = core::exceptions::uncaught_exceptions();
         bool called_construct_ = false;
@@ -323,9 +324,17 @@ namespace rainy::annotations::lifetime {
 namespace rainy::annotations::lifetime::implements {
     class RAINY_TOOLKIT_API atomic_counter {
     public:
-        void operator++();
-        void operator--();
-        int get();
+        void operator++() {
+            core::layer::interlocked_increment32(&this->count);
+        }
+
+        void operator--() {
+            core::layer::interlocked_decrement32(&this->count);
+        }
+
+        int get() {
+            return core::layer::iso_volatile_load32(static_cast<const volatile int *>(&this->count));
+        }
 
     private:
         int count{0};
@@ -481,8 +490,7 @@ namespace rainy::annotations::lifetime {
          * @param t_ Pointer to the value
          *           指向值的指针
          */
-        borrow_out(Ty *t_) noexcept : out<Ty>{t_} {
-            ctrl = new implements::borrow_control_block{};
+        borrow_out(Ty *t_) : out<Ty>{t_}, ctrl(new implements::borrow_control_block{}) {
         }
 
         /**
@@ -492,8 +500,7 @@ namespace rainy::annotations::lifetime {
          * @param dt_ Pointer to deferred_init object
          *            指向deferred_init对象的指针
          */
-        borrow_out(deferred_init<Ty> *dt_) noexcept : out<Ty>{dt_} {
-            ctrl = new implements::borrow_control_block{};
+        borrow_out(deferred_init<Ty> *dt_) : out<Ty>{dt_}, ctrl(new implements::borrow_control_block{}) {
         }
 
         /**
@@ -503,8 +510,7 @@ namespace rainy::annotations::lifetime {
          * @param ot_ Pointer to out object
          *            指向out对象的指针
          */
-        borrow_out(out<Ty> *ot_) noexcept : out<Ty>{ot_} {
-            ctrl = new implements::borrow_control_block{};
+        borrow_out(out<Ty> *ot_) : out<Ty>{ot_}, ctrl(new implements::borrow_control_block{}) {
         }
 
         /**
@@ -719,8 +725,8 @@ namespace rainy::annotations::lifetime {
          * @param right The object to swap with
          *              要交换的对象
          */
-        template <typename UTy, type_traits::other_trans::enable_if_t<type_traits::properties::is_swappable_v<type>, int> = 0>
-        rain_fn swap(UTy &right) noexcept(type_traits::properties::is_nothrow_swappable_v<type>) -> void {
+        template <type_traits::other_trans::enable_if_t<type_traits::properties::is_swappable_v<type>, int> = 0>
+        rain_fn swap(take &right) noexcept(type_traits::properties::is_nothrow_swappable_v<type>) -> void {
             using std::swap;
             swap(take_resources, right.take_resources);
         }
