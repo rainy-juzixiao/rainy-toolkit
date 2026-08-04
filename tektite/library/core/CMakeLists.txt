@@ -20,24 +20,22 @@ project(rainy-toolkit-core)
 
 rainy_configure_target(rainy-toolkit-core)
 
+target_include_directories(rainy-toolkit-core PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>
+)
+
+rainy_load_flodar_files("${CMAKE_CURRENT_SOURCE_DIR}/sources" ".cxx" SUBDIR_SOURCES)
+target_sources(rainy-toolkit-core PRIVATE ${SUBDIR_SOURCES})
+
 set(RAINY_TOOLKIT_CORE_TEST_FILES "")
 
-add_subdirectory(platform)
-add_subdirectory(type_traits)
-add_subdirectory(annotations)
-add_subdirectory(algorithm)
-add_subdirectory(utility)
-add_subdirectory(exceptions)
-add_subdirectory(container)
-add_subdirectory(poly)
-add_subdirectory(memory)
-add_subdirectory(collections)
-add_subdirectory(text)
-add_subdirectory(diagnostics)
+rainy_load_flodar_files("${CMAKE_CURRENT_SOURCE_DIR}/tests" ".cc" RAINY_TOOLKIT_CORE_TEST_FILES)
 
 add_executable(rainy-toolkit-core-unit-test ${RAINY_TOOLKIT_CORE_TEST_FILES})
-#catch_discover_tests(rainy-toolkit-core-unit-test)
+
 target_link_libraries(rainy-toolkit-core-unit-test PRIVATE Catch2::Catch2WithMain rainy-toolkit-core)
+
 set_target_properties(rainy-toolkit-core-unit-test PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 unset(RAINY_TOOLKIT_CORE_TEST_FILES)
