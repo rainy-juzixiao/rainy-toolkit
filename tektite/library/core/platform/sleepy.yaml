@@ -1,0 +1,25 @@
+output_dir: ../../../../misc/docs/api
+lang: simp-chinese
+
+ignored_namespaces:
+  - implements
+  - detail
+  - impl
+
+sources:
+  - name: core_platform
+    include_dirs:
+      - include/
+    extensions:
+      - hpp
+      - h
+    compile_flags:
+      std: c++20
+      defines:
+        - RAINY_ENABLE_DEBUG=1
+        - RAINY_UNSPECVALUE=0
+      includes: []
+      extra: []
+    files:
+      - include/rainy/core/platform.hpp
+      - include/rainy/core/layer.hpp
