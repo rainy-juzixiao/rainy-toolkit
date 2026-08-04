@@ -135,12 +135,12 @@ namespace rainy::core::exceptions {
     }
 
     /**
- * @brief Returns the number of uncaught exceptions.
- *        返回未捕获异常的数量。
- *
- * @return Number of uncaught exceptions (0 if exceptions are disabled)
- *         未捕获异常的数量（如果异常被禁用则返回0）
- */
+     * @brief Returns the number of uncaught exceptions.
+     *        返回未捕获异常的数量。
+     *
+     * @return Number of uncaught exceptions (0 if exceptions are disabled)
+     *         未捕获异常的数量（如果异常被禁用则返回0）
+     */
     inline rain_fn uncaught_exceptions() noexcept -> int {
 #if __cpp_exceptions
         return std::uncaught_exceptions();
@@ -149,7 +149,7 @@ namespace rainy::core::exceptions {
 #endif
     }
 
-        /**
+    /**
      * @brief Exception handling semantics enumeration.
      *        异常处理语义枚举。
      *
@@ -269,11 +269,11 @@ namespace rainy::core::exceptions {
                     implements::report_error<void>(nullptr);
                 } else {
                     if constexpr (Semantic == exception_semantic::observe) {
-                        type_traits::other_trans::decay_t<Except> exception(utility::forward<Args>(args)...);
+                        Except exception(utility::forward<Args>(args)...);
                         implements::report_error<Except, true>(exception);
                     } else {
                         if constexpr (core::is_rainy_enable_exception) {
-                            type_traits::other_trans::decay_t<Except> exception(utility::forward<Args>(args)...);
+                            Except exception(utility::forward<Args>(args)...);
                             if constexpr (Semantic == exception_semantic::assertion) {
                                 implements::report_error<Except>(exception);
                             } else {
@@ -339,6 +339,8 @@ namespace rainy::core::exceptions::logic {
     public:
         using base = exception;
 
+        logic_error() = default;
+
         explicit logic_error(const char *message, const source &location = source::current()) : base(message, location) {
         }
     };
@@ -350,6 +352,9 @@ namespace rainy::core::exceptions::runtime {
     class runtime_error : public exception {
     public:
         using base = exception;
+
+        runtime_error(const source &location = source::current()) : base("runtime error", location) {
+        }
 
         explicit runtime_error(const char *message, const source &location = source::current()) : base(message, location) {
         }
