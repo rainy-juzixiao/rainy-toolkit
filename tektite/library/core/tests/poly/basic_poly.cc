@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include <rainy/core/poly/basic_poly.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_all.hpp>
-#include <rainy/core/basic_poly.hpp>
 #include <string>
 
 using namespace rainy;
