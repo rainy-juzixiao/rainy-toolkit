@@ -293,7 +293,7 @@ namespace rainy::core::exceptions {
 }
 
 #define RAINY_DEFINE_EXCEPTION(class_name, base_class, default_message)                                                               \
-    class class_name final : public base_class {                                                                                      \
+    class class_name : public base_class {                                                                                            \
     public:                                                                                                                           \
         using base = base_class;                                                                                                      \
         explicit class_name(const char *message = default_message, const source &location = source::current()) :                      \
@@ -313,7 +313,7 @@ namespace rainy::core::exceptions {
 
 
 #define RAINY_DEFINE_EXCEPTION_WITH_THROW(class_name, base_class, default_message, throw_func)                                        \
-    class class_name final : public base_class {                                                                                      \
+    class class_name : public base_class {                                                                                            \
     public:                                                                                                                           \
         using base = base_class;                                                                                                      \
         explicit class_name(const char *message = default_message, const source &location = source::current()) :                      \
@@ -326,7 +326,7 @@ namespace rainy::core::exceptions {
     }
 
 #define RAINY_DEFINE_EXCEPTION_CUSTOM(class_name, base_class, default_message, params, init_list)                                     \
-    class class_name final : public base_class {                                                                                      \
+    class class_name : public base_class {                                                                                            \
     public:                                                                                                                           \
         using base = base_class;                                                                                                      \
         explicit class_name(params, const char *message = default_message, const source &location = source::current()) :              \
@@ -349,17 +349,7 @@ namespace rainy::core::exceptions::logic {
 }
 
 namespace rainy::core::exceptions::runtime {
-    class runtime_error : public exception {
-    public:
-        using base = exception;
-
-        runtime_error(const source &location = source::current()) : base("runtime error", location) {
-        }
-
-        explicit runtime_error(const char *message, const source &location = source::current()) : base(message, location) {
-        }
-    };
-
+    RAINY_DEFINE_EXCEPTION_WITH_THROW(runtime_error, exception, "runtime error", throw_runtime_error)
     RAINY_DEFINE_EXCEPTION_WITH_THROW(bad_alloc, runtime_error, "bad allocation", throw_bad_alloc)
     RAINY_DEFINE_EXCEPTION_WITH_THROW(bad_cast, runtime_error, "bad cast", throw_bad_cast)
     RAINY_DEFINE_EXCEPTION_WITH_THROW(overflow_error, runtime_error, "overflow error", throw_overflow_error)
