@@ -16,6 +16,7 @@
 #ifndef RAINY_CORE_CONTAINER_INDIRECT_HPP
 #define RAINY_CORE_CONTAINER_INDIRECT_HPP
 #include <rainy/core/type_traits.hpp>
+#include <rainy/core/container/compressed_pair.hpp>
 
 namespace rainy::core::container {
     struct defered_init_t {};

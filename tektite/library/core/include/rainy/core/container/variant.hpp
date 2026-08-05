@@ -996,15 +996,17 @@ namespace std {
     using rainy::core::container::get; // NOLINT
 }
 
+namespace rainy::utility::container {
+    using core::container::visit;
+}
+
 namespace rainy::utility {
     using core::container::get;
     using core::container::get_if;
-    using core::container::holds_alternative;
     using core::container::variant;
     using core::container::variant_npos;
     using core::container::variant_size;
     using core::container::variant_size_v;
-    using core::container::visit;
 }
 
 #if RAINY_USING_GCC

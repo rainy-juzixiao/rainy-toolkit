@@ -111,7 +111,7 @@ namespace rainy::core::container {
 
     private:
         union {
-            type_traits::cv_modify::remove_cv_t<Ty> value_;
+            type_traits::modifers::remove_cv_t<Ty> value_;
         };
         bool is_valid_;
     };

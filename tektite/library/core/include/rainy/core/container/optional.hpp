@@ -17,6 +17,7 @@
 #define RAINY_CORE_CONTAINER_OPTIONAL_HPP
 #include <optional>
 #include <rainy/core/annotations/smf_control.hpp>
+#include <rainy/core/diagnostics/exceptions.hpp>
 #include <rainy/core/type_traits.hpp>
 
 #if RAINY_USING_MSVC
@@ -752,7 +753,7 @@ namespace rainy::core::container {
 
 #if RAINY_HAS_CXX20
     template <typename Ty, typename UTy>
-        requires type_traits::concepts::three_way_comparable_with<Ty, UTy>
+        requires std::three_way_comparable_with<Ty, UTy>
     constexpr std::compare_three_way_result_t<Ty, UTy> operator<=>(const optional<Ty> &left, const optional<UTy> &right) {
         if (left.has_value() && right.has_value()) {
             return *left <=> *right;
@@ -894,7 +895,7 @@ namespace rainy::core::container {
 
 #if RAINY_HAS_CXX20
     template <typename Ty, typename UTy>
-        requires(!implements::is_derived_from_optional<UTy>) && type_traits::concepts::three_way_comparable_with<Ty, UTy>
+        requires(!implements::is_derived_from_optional<UTy>) && std::three_way_comparable_with<Ty, UTy>
     constexpr std::compare_three_way_result_t<Ty, UTy> operator<=>(const optional<Ty> &left, const UTy &right) {
         return left.has_value() ? *left <=> right : std::strong_ordering::less;
     }
