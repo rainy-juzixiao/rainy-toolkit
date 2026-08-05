@@ -121,24 +121,24 @@ namespace rainy::core::implements {
 }
 
 namespace rainy::core::implements {
-    template <typename T, typename = void>
-    struct is_associative_container : std::false_type {};
+    template <typename Ty, typename = void>
+    struct is_associative_container : type_traits::helper::false_type {};
 
-    template <typename T>
-    struct is_associative_container<T, std::void_t<typename T::key_type, typename T::mapped_type>> : std::true_type {};
+    template <typename Ty>
+    struct is_associative_container<Ty, type_traits::other_trans::void_t<typename Ty::key_type, typename Ty::mapped_type>> : type_traits::helper::true_type {};
 
-    template <typename T>
-    inline constexpr bool is_associative_container_v = is_associative_container<T>::value;
+    template <typename Ty>
+    inline constexpr bool is_associative_container_v = is_associative_container<Ty>::value;
 
-    template <typename T, typename = void>
-    struct is_sequential_container : std::false_type {};
+    template <typename Ty, typename = void>
+    struct is_sequential_container : type_traits::helper::false_type {};
 
-    template <typename T>
-    struct is_sequential_container<T, std::void_t<typename T::value_type, decltype(std::declval<T>().begin())>>
-        : std::negation<is_associative_container<T>> {};
+    template <typename Ty>
+    struct is_sequential_container<Ty, type_traits::other_trans::void_t<typename Ty::value_type, decltype(utility::declval<Ty>().begin())>>
+        : type_traits::logical_traits::negation<is_associative_container<Ty>> {};
 
-    template <typename T>
-    inline constexpr bool is_sequential_container_v = is_sequential_container<T>::value;
+    template <typename Ty>
+    inline constexpr bool is_sequential_container_v = is_sequential_container<Ty>::value;
 }
 
 namespace rainy::core::implements {
@@ -146,10 +146,10 @@ namespace rainy::core::implements {
     constexpr rain_fn eval_traits_for_properties() noexcept -> traits {
         traits traits_{0};
 
-        if constexpr (type_traits::properties::is_lvalue_reference_v<Ty>) {
+        if constexpr (type_traits::primary_types::is_lvalue_reference_v<Ty>) {
             traits_ |= traits::is_lref;
         }
-        if constexpr (std::is_rvalue_reference_v<Ty>) {
+        if constexpr (type_traits::primary_types::is_rvalue_reference_v<Ty>) {
             traits_ |= traits::is_rref;
         }
 
@@ -519,12 +519,12 @@ namespace rainy::core::implements {
 
         constexpr typeinfo_component() = default;
 
-        template <typename TypeList, typename T>
+        template <typename TypeList, typename Ty>
         struct template_argument_generater {};
 
-        template <typename... Types, typename T>
-        struct template_argument_generater<rainy::type_traits::other_trans::type_list<Types...>, T> {
-            static constexpr std::array<MainTypeInfo, sizeof...(Types)> value = {T::template create<Types>()...};
+        template <typename... Types, typename Ty>
+        struct template_argument_generater<rainy::type_traits::other_trans::type_list<Types...>, Ty> {
+            static constexpr std::array<MainTypeInfo, sizeof...(Types)> value = {Ty::template create<Types>()...};
         };
 
         template <typename Ty>
@@ -538,7 +538,7 @@ namespace rainy::core::implements {
             raw.type_traits = traits;
             raw.is_comptaible = &is_compatible_impl<Ty>;
             raw.modfier = &type_modfier_impl<Ty>;
-            if constexpr (!std::is_void_v<Ty> && rainy::type_traits::properties::is_complete_v<Ty>) {
+            if constexpr (!type_traits::primary_types::is_void_v<Ty> && rainy::type_traits::properties::is_complete_v<Ty>) {
                 raw.size_of_the_type = sizeof(Ty);
                 raw.align_of_the_type = alignof(Ty);
             }
@@ -598,14 +598,14 @@ namespace rainy::core::implements {
     template <typename Ty>
     constexpr rain_fn typeinfo_component<MainTypeInfo>::type_modfier_impl(const type_operation op)
         -> const typeinfo_component<MainTypeInfo> * { // NOLINT
-        constexpr bool is_reference_ptr = std::is_reference_v<Ty> && std::is_pointer_v<type_traits::modifers::remove_reference_t<Ty>>;
-        if constexpr (!std::is_void_v<Ty>) {
+        constexpr bool is_reference_ptr = type_traits::composite_types::is_reference_v<Ty> && type_traits::primary_types::is_pointer_v<type_traits::modifers::remove_reference_t<Ty>>;
+        if constexpr (!type_traits::type_relations::is_void_v<Ty>) {
             switch (op) {
                 case type_operation::remove_pointer: {
                     if constexpr (is_reference_ptr) {
                         using referred_ptr = type_traits::modifers::remove_reference_t<Ty>;
                         using pointer_type = type_traits::modifers::remove_pointer_t<referred_ptr>;
-                        if constexpr (type_traits::properties::is_lvalue_reference_v<Ty>) {
+                        if constexpr (type_traits::primary_types::is_lvalue_reference_v<Ty>) {
                             return &typeinfo<MainTypeInfo, type_traits::modifers::add_lvalue_reference<pointer_type>>;
                         } else {
                             return &typeinfo<MainTypeInfo, type_traits::modifers::add_rvalue_reference<pointer_type>>;
@@ -620,13 +620,13 @@ namespace rainy::core::implements {
                         using pointer_type = type_traits::modifers::remove_pointer_t<referred_ptr>;
                         using non_const_pointer = type_traits::modifers::remove_const_t<pointer_type>;
                         using non_const_ptr = type_traits::modifers::add_pointer_t<non_const_pointer>;
-                        if constexpr (type_traits::properties::is_lvalue_reference_v<Ty>) {
+                        if constexpr (type_traits::primary_types::is_lvalue_reference_v<Ty>) {
                             return &typeinfo<MainTypeInfo, type_traits::modifers::add_lvalue_reference<non_const_ptr>>;
                         } else {
                             return &typeinfo<MainTypeInfo, type_traits::modifers::add_rvalue_reference<non_const_ptr>>;
                         }
                     } else {
-                        return &typeinfo<MainTypeInfo, std::remove_const_t<Ty>>;
+                        return &typeinfo<MainTypeInfo, type_traits::modifers::remove_const_t<Ty>>;
                     }
                 }
                 case type_operation::remove_volatile: {
@@ -635,13 +635,13 @@ namespace rainy::core::implements {
                         using pointer_type = type_traits::modifers::remove_pointer_t<referred_ptr>;
                         using non_volatile_pointer = type_traits::modifers::remove_volatile_t<pointer_type>;
                         using non_volatile_ptr = type_traits::modifers::add_pointer_t<non_volatile_pointer>;
-                        if constexpr (type_traits::properties::is_lvalue_reference_v<Ty>) {
+                        if constexpr (type_traits::primary_types::is_lvalue_reference_v<Ty>) {
                             return &typeinfo<MainTypeInfo, type_traits::modifers::add_lvalue_reference<non_volatile_ptr>>;
                         } else {
                             return &typeinfo<MainTypeInfo, type_traits::modifers::add_rvalue_reference<non_volatile_ptr>>;
                         }
                     } else {
-                        return &typeinfo<MainTypeInfo, std::remove_volatile_t<Ty>>;
+                        return &typeinfo<MainTypeInfo, type_traits::modifers::remove_volatile_t<Ty>>;
                     }
                 }
                 case type_operation::remove_const_volatile: {
@@ -650,13 +650,13 @@ namespace rainy::core::implements {
                         using pointer_type = type_traits::modifers::remove_pointer_t<referred_ptr>;
                         using non_cv_pointer = type_traits::modifers::remove_cv_t<pointer_type>;
                         using non_cv_ptr = type_traits::modifers::add_pointer_t<non_cv_pointer>;
-                        if constexpr (type_traits::properties::is_lvalue_reference_v<Ty>) {
+                        if constexpr (type_traits::primary_types::is_lvalue_reference_v<Ty>) {
                             return &typeinfo<MainTypeInfo, type_traits::modifers::add_lvalue_reference<non_cv_ptr>>;
                         } else {
                             return &typeinfo<MainTypeInfo, type_traits::modifers::add_rvalue_reference<non_cv_ptr>>;
                         }
                     } else {
-                        return &typeinfo<MainTypeInfo, std::remove_cv_t<Ty>>;
+                        return &typeinfo<MainTypeInfo, type_traits::modifers::remove_cv_t<Ty>>;
                     }
                 }
                 case type_operation::remove_cvref: {
@@ -701,21 +701,21 @@ namespace rainy::core::implements {
                     case raw_type_id(match_t):
                         return true;
                     case raw_type_id(match_t &):
-                        return std::is_convertible_v<match_t &, real_convert_type>;
+                        return type_traits::type_relations::is_convertible_v<match_t &, real_convert_type>;
                     case raw_type_id(match_t &&):
-                        return std::is_convertible_v<match_t &&, real_convert_type>;
+                        return type_traits::type_relations::is_convertible_v<match_t &&, real_convert_type>;
                     case raw_type_id(const match_t):
                         return true;
                     case raw_type_id(const match_t &):
-                        return std::is_convertible_v<const match_t &, real_convert_type>;
+                        return type_traits::type_relations::is_convertible_v<const match_t &, real_convert_type>;
                     case raw_type_id(const match_t &&):
-                        return std::is_convertible_v<const match_t &&, real_convert_type>;
+                        return type_traits::type_relations::is_convertible_v<const match_t &&, real_convert_type>;
                     case raw_type_id(const volatile match_t):
                         return true;
                     case raw_type_id(const volatile match_t &):
-                        return std::is_convertible_v<const volatile match_t &, real_convert_type>;
+                        return type_traits::type_relations::is_convertible_v<const volatile match_t &, real_convert_type>;
                     case raw_type_id(const volatile match_t &&):
-                        return std::is_convertible_v<const volatile match_t &&, real_convert_type>;
+                        return type_traits::type_relations::is_convertible_v<const volatile match_t &&, real_convert_type>;
                     default:
                         return false;
                 }
@@ -1176,9 +1176,9 @@ namespace rainy::core {
             if (!ConverterClass::is_convertible(type)) {
                 return false;
             }
-            if constexpr (!std::is_reference_v<target_type>) {
+            if constexpr (!type_traits::composite_types::is_reference_v<target_type>) {
                 if (dest && source) {
-                    *static_cast<std::remove_const_t<TargetType> *>(dest) = ConverterClass::basic_convert(source, type);
+                    *static_cast<type_traits::modifers::remove_const_t<TargetType> *>(dest) = ConverterClass::basic_convert(source, type);
                 }
             }
             return true;
@@ -1208,19 +1208,19 @@ namespace rainy::core {
 namespace rainy::core {
     template <typename Target>
     rain_fn dynamic_convert(const void *src, const typeinfo &src_type) -> decltype(auto) {
-        if constexpr (std::is_reference_v<std::remove_cv_t<Target>>) {
+        if constexpr (type_traits::composite_types::is_reference_v<std::remove_cv_t<Target>>) {
             rainy_let ptr = const_cast<void *>(src);
-            if constexpr (type_traits::properties::is_lvalue_reference_v<Target>) {
-                if constexpr (std::is_const_v<type_traits::modifers::remove_reference_t<Target>>) {
+            if constexpr (type_traits::primary_types::is_lvalue_reference_v<Target>) {
+                if constexpr (type_traits::properties::is_const_v<type_traits::modifers::remove_reference_t<Target>>) {
                     return *static_cast<const type_traits::modifers::remove_reference_t<Target> *>(ptr);
                 } else {
                     return *static_cast<type_traits::modifers::remove_reference_t<Target> *>(ptr);
                 }
-            } else if constexpr (std::is_rvalue_reference_v<Target>) {
-                if constexpr (std::is_const_v<type_traits::modifers::remove_reference_t<Target>>) {
-                    return std::move(*static_cast<const type_traits::modifers::remove_reference_t<Target> *>(ptr));
+            } else if constexpr (type_traits::primary_types::is_rvalue_reference_v<Target>) {
+                if constexpr (type_traits::properties::is_const_v<type_traits::modifers::remove_reference_t<Target>>) {
+                    return utility::move(*static_cast<const type_traits::modifers::remove_reference_t<Target> *>(ptr));
                 } else {
-                    return std::move(*static_cast<type_traits::modifers::remove_reference_t<Target> *>(ptr));
+                    return utility::move(*static_cast<type_traits::modifers::remove_reference_t<Target> *>(ptr));
                 }
             } else {
                 return *static_cast<Target *>(ptr);

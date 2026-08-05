@@ -931,32 +931,10 @@ namespace rainy::type_traits::modifers {
     using remove_reference_t = typename remove_reference<Ty>::type;
 }
 
-namespace rainy::type_traits::properties {
-    /**
-     * \lang english
-     * @brief Variable template that checks whether a type is an lvalue reference.
-     *        Provides true if Ty is an lvalue reference type, otherwise false.
-     * @tparam Ty Type to check for lvalue reference qualification
-     *
-     * \lang simp-chinese
-     * @brief 检查类型是否为左值引用的变量模板。
-     *        如果 Ty 是左值引用类型，则提供 true，否则提供 false。
-     * @tparam Ty 需要检查是否具有左值引用限定的类型
-     */
+namespace rainy::type_traits::implements {
     template <typename Ty>
     RAINY_CONSTEXPR_BOOL is_lvalue_reference_v = false;
 
-    /**
-     * \lang english
-     * @brief Specialization for lvalue reference types.
-     *        Indicates that the given type is an lvalue reference.
-     * @tparam Ty Type referenced by the lvalue reference
-     *
-     * \lang simp-chinese
-     * @brief 左值引用类型的特化版本。
-     *        表示给定类型是一个左值引用类型。
-     * @tparam Ty 左值引用所引用的类型
-     */
     template <typename Ty>
     RAINY_CONSTEXPR_BOOL is_lvalue_reference_v<Ty &> = true;
 }
@@ -1358,7 +1336,7 @@ namespace rainy::core::builtin {
      */
     template <typename Ty>
     RAINY_NODISCARD constexpr Ty &&forward(type_traits::modifers::remove_reference_t<Ty> &&arg) noexcept { // NOLINT
-        static_assert(!type_traits::properties::is_lvalue_reference_v<Ty>, "bad forward call");
+        static_assert(!type_traits::implements::is_lvalue_reference_v<Ty>, "bad forward call");
         return static_cast<Ty &&>(arg);
     }
 
