@@ -196,9 +196,11 @@ namespace rainy::core::container {
 
 namespace rainy::core::container::implements {
     template <typename Ty, typename Alloc, typename... Args>
-    using _alloc_tag = std::integral_constant<int,
-        !std::uses_allocator_v<Ty, Alloc> ? 0
-        : type_traits::properties::is_constructible_v<Ty, std::allocator_arg_t, const Alloc &, Args...> ? 1 : 2>;
+    using _alloc_tag =
+        std::integral_constant<int, !std::uses_allocator_v<Ty, Alloc> ? 0
+                                    : type_traits::properties::is_constructible_v<Ty, std::allocator_arg_t, const Alloc &, Args...>
+                                        ? 1
+                                        : 2>;
 
     template <typename Head, typename Alloc, typename HeadArg>
     constexpr Head _make_head(const Alloc &, HeadArg &&head_arg, std::integral_constant<int, 0>) {
@@ -236,8 +238,7 @@ namespace rainy::core::container::implements {
 
         template <typename Alloc, typename HeadArg>
         constexpr tuple_impl(std::allocator_arg_t tag, const Alloc &alloc, HeadArg &&head_arg) :
-            value(_make_head<Head>(alloc, utility::forward<HeadArg>(head_arg),
-                                   _alloc_tag<Head, Alloc, HeadArg &&>{})) {
+            value(_make_head<Head>(alloc, utility::forward<HeadArg>(head_arg), _alloc_tag<Head, Alloc, HeadArg &&>{})) {
         }
 
         static constexpr Head &myhead(tuple_impl &t) noexcept {
@@ -285,11 +286,9 @@ namespace rainy::core::container::implements {
         }
 
         template <typename Alloc, typename HeadArg, typename... TailArgs>
-        constexpr tuple_impl(std::allocator_arg_t tag, const Alloc &alloc, HeadArg &&head_arg,
-                             TailArgs &&...tail_args) :
+        constexpr tuple_impl(std::allocator_arg_t tag, const Alloc &alloc, HeadArg &&head_arg, TailArgs &&...tail_args) :
             inherited(tag, alloc, utility::forward<TailArgs>(tail_args)...),
-            value(_make_head<Head>(alloc, utility::forward<HeadArg>(head_arg),
-                                   _alloc_tag<Head, Alloc, HeadArg &&>{})) {
+            value(_make_head<Head>(alloc, utility::forward<HeadArg>(head_arg), _alloc_tag<Head, Alloc, HeadArg &&>{})) {
         }
 
         static constexpr Head &myhead(tuple_impl &t) noexcept {
@@ -1160,12 +1159,14 @@ namespace rainy::utility {
     using rainy::core::container::tuple_element_t;
     using rainy::core::container::tuple_size;
     using rainy::core::container::tuple_size_v;
+    using rainy::core::container::tuple;
+}
 
+namespace rainy::utility::container {
     using rainy::core::container::apply;
     using rainy::core::container::drop;
     using rainy::core::container::subtuple;
     using rainy::core::container::take;
-    using rainy::core::container::tuple;
     using rainy::core::container::tuple_cat;
 }
 
