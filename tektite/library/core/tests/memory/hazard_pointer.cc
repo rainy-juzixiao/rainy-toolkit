@@ -500,7 +500,7 @@ TEST_CASE("HazardPointer LockFreeStack") {
             all_values.insert(all_values.end(), mine.begin(), mine.end());
         });
     }
-    for (auto& t : threads) {
+    for (auto& t : mythreads) {
         t.join();
     }
 
