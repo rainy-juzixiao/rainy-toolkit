@@ -349,7 +349,8 @@ namespace rainy::core::text {
         }
 
         template <size_type N>
-        static RAINY_CONSTEXPR20 char_type *move(collections::array<char_type, N> &to, const char_type *from, const size_type count) {
+        static RAINY_CONSTEXPR20 char_type *move(rainy::collections::array<char_type, N> &to, const char_type *from,
+                                                  const size_type count) {
             if (N < count) {
                 return nullptr;
             }
