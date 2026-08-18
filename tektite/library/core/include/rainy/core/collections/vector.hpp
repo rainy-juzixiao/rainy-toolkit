@@ -23,7 +23,7 @@
 #include <rainy/core/type_traits.hpp>
 #include <rainy/core/utility/reverse_iterator.hpp>
 
-namespace rainy::core::collections {
+namespace rainy::collections {
     template <typename Ty, typename Alloc = core::memory::allocator<Ty>>
     class vector {
     public:

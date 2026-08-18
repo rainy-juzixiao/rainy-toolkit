@@ -19,7 +19,7 @@
 #include <catch2/catch_all.hpp>
 
 using namespace rainy;
-using namespace rainy::core::collections;
+using namespace rainy::collections;
 
 constexpr bool test_default_constructor_constexpr() {
     vector<int> v;
