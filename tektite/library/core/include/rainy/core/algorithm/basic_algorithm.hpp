@@ -288,6 +288,39 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * @brief Checks if two ranges are equal using a custom predicate.
+     *        使用自定义谓词检查两个范围是否相等。
+     *
+     * @tparam Iter1 First range iterator type
+     *               第一个范围的迭代器类型
+     * @tparam Iter2 Second range iterator type
+     *               第二个范围的迭代器类型
+     * @tparam Pred Binary predicate type
+     *               二元谓词类型
+     * @param first1 Iterator to the beginning of the first range
+     *               指向第一个范围起始的迭代器
+     * @param last1 Iterator to the end of the first range
+     *              指向第一个范围末尾的迭代器
+     * @param first2 Iterator to the beginning of the second range
+     *               指向第二个范围起始的迭代器
+     * @param last2 Iterator to the end of the second range
+     *              指向第二个范围末尾的迭代器
+     * @param pred Binary predicate that returns true if the elements should be
+     *             considered equal
+     *             二元谓词，如果元素应被视为相等则返回true
+     * @return true if the ranges are equal according to the predicate,
+     *         false otherwise
+     *         如果根据谓词范围相等则为true，否则为false
+     */
+    template <typename Iter1, typename Iter2, typename Pred>
+    RAINY_NODISCARD inline constexpr rain_fn equal(Iter1 first1, Iter1 last1, Iter2 first2, Iter2 last2, Pred pred) -> bool {
+        for (; first1 != last1 && first2 != last2 && pred(*first1, *first2); ++first2) {
+            ++first1;
+        }
+        return first1 == last1 && first2 == last2;
+    }
+
+    /**
      * @brief Lexicographically compares two ranges.
      *        字典序比较两个范围。
      *
