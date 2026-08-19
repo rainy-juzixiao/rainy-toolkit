@@ -115,7 +115,7 @@ TEST_CASE("tss_ptr with const values", "[tss_ptr]") {
 }
 
 TEST_CASE("tss_ptr with array type", "[tss_ptr]") {
-    tss_ptr<int[]> ptr;
+    tss_ptr<int> ptr;
     int arr[5] = {1, 2, 3, 4, 5};
     ptr = arr;
     int* p = ptr;
