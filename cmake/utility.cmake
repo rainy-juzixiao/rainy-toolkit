@@ -525,3 +525,65 @@ function(add_rainy_interface_library TARGET_NAME INCLUDE_DIR)
 
     message(STATUS "${TARGET_NAME} interface library finished setup.")
 endfunction()
+
+function(check_cxx26_static_reflection)
+    if (NOT RAINY_USE_CXX26_REFLECTION_TS)
+        message(STATUS "C++26 Static Reflection TS is disabled by RAINY_USE_CXX26_REFLECTION_TS")
+        set(RAINY_TOOLKIT_HAVE_CXX26_STATIC_REFLECTION FALSE PARENT_SCOPE)
+        set(RAINY_HAS_CXX26_STATIC_REFLECTION 0 PARENT_SCOPE)
+        return()
+    endif()
+
+    if (NOT COMPILER_ID MATCHES "GCC")
+        message(STATUS "C++26 Static Reflection TS only supported with GCC compiler")
+        set(RAINY_TOOLKIT_HAVE_CXX26_STATIC_REFLECTION FALSE PARENT_SCOPE)
+        set(RAINY_HAS_CXX26_STATIC_REFLECTION 0 PARENT_SCOPE)
+        return()
+    endif()
+
+    set(_test_flags "-std=c++26 -freflection")
+
+    # 创建临时测试文件
+    file(WRITE ${CMAKE_BINARY_DIR}/test_reflection.cpp "
+    #include <meta>
+
+    int main() {
+        class TestClass {
+            int foo;
+            int bar;
+        public:
+            int baz;
+            int quux;
+        };
+        constexpr static auto ctx = std::meta::access_context::unchecked();
+        static constexpr size_t member_count = std::meta::nonstatic_data_members_of(^^TestClass, ctx).size();
+        static_assert(member_count == 4);
+        return 0;
+    }
+    ")
+
+    # 直接调用编译器（不通过 CMake）
+    execute_process(
+            COMMAND ${CMAKE_CXX_COMPILER}
+            -std=c++26 -freflection
+            ${CMAKE_BINARY_DIR}/test_reflection.cpp
+            -o ${CMAKE_BINARY_DIR}/test_reflection.out
+            RESULT_VARIABLE _compile_result
+            ERROR_VARIABLE _compile_error
+            OUTPUT_VARIABLE _compile_output
+    )
+
+    file(REMOVE ${CMAKE_BINARY_DIR}/test_reflection.cpp)
+    file(REMOVE ${CMAKE_BINARY_DIR}/test_reflection.out)
+
+    if (_compile_result EQUAL 0)
+        message(STATUS "Compiler supports C++26 Static Reflection (with <meta> and ^^ reflection operator)")
+        set(RAINY_TOOLKIT_HAVE_CXX26_STATIC_REFLECTION TRUE PARENT_SCOPE)
+        set(RAINY_HAS_CXX26_STATIC_REFLECTION 1 PARENT_SCOPE)
+        set(_compile_flags "-std=c++26 -freflection" PARENT_SCOPE)
+    else()
+        message(STATUS "Compiler does NOT support C++26 Static Reflection, Disable it.")
+        set(RAINY_TOOLKIT_HAVE_CXX26_STATIC_REFLECTION FALSE PARENT_SCOPE)
+        set(RAINY_HAS_CXX26_STATIC_REFLECTION 0 PARENT_SCOPE)
+    endif()
+endfunction()

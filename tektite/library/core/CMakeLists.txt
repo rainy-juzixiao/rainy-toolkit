@@ -39,3 +39,9 @@ target_link_libraries(rainy-toolkit-core-unit-test PRIVATE Catch2::Catch2WithMai
 set_target_properties(rainy-toolkit-core-unit-test PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 unset(RAINY_TOOLKIT_CORE_TEST_FILES)
+
+check_cxx26_static_reflection()
+
+if (RAINY_TOOLKIT_HAVE_CXX26_STATIC_REFLECTION)
+    target_compile_options(rainy-toolkit-core PUBLIC -std=c++26 -freflection)
+endif()
