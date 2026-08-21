@@ -125,7 +125,8 @@ namespace rainy::core::implements {
     struct is_associative_container : type_traits::helper::false_type {};
 
     template <typename Ty>
-    struct is_associative_container<Ty, type_traits::other_trans::void_t<typename Ty::key_type, typename Ty::mapped_type>> : type_traits::helper::true_type {};
+     struct is_associative_container<Ty, type_traits::other_trans::void_t<typename Ty::key_type, typename Ty::mapped_type>>
+        : type_traits::helper::true_type {};
 
     template <typename Ty>
     inline constexpr bool is_associative_container_v = is_associative_container<Ty>::value;
@@ -134,7 +135,8 @@ namespace rainy::core::implements {
     struct is_sequential_container : type_traits::helper::false_type {};
 
     template <typename Ty>
-    struct is_sequential_container<Ty, type_traits::other_trans::void_t<typename Ty::value_type, decltype(utility::declval<Ty>().begin())>>
+    struct is_sequential_container<Ty,
+                                   type_traits::other_trans::void_t<typename Ty::value_type, decltype(utility::declval<Ty>().begin())>>
         : type_traits::logical_traits::negation<is_associative_container<Ty>> {};
 
     template <typename Ty>
@@ -328,12 +330,12 @@ namespace rainy::core::implements {
                 constexpr text::string_view full = std::meta::display_string_of(r);
                 constexpr auto last_dot = full.rfind('.');
                 constexpr text::string_view after_dot = (last_dot != text::string_view::npos && last_dot + 1 < full.size())
-                                                           ? full.substr(last_dot + 1)
-                                                           : (last_dot != text::string_view::npos ? text::string_view{} : full);
+                                                            ? full.substr(last_dot + 1)
+                                                            : (last_dot != text::string_view::npos ? text::string_view{} : full);
                 constexpr auto last_sep = after_dot.rfind("::");
                 constexpr text::string_view name = (last_sep != text::string_view::npos && last_sep + 2 <= after_dot.size())
-                                                      ? after_dot.substr(last_sep + 2)
-                                                      : after_dot;
+                                                       ? after_dot.substr(last_sep + 2)
+                                                       : after_dot;
                 raw_name = name;
             }
         }
@@ -468,11 +470,51 @@ namespace rainy::core::implements {
     template <auto Variable>
     constexpr rain_fn make_variable_name_array() -> auto {
         constexpr auto name_sv = make_variable_name_ref<Variable>();
-        std::array<char, name_sv.size()> arr{};
-        for (std::size_t i = 0; i < name_sv.size(); ++i) {
-            arr[i] = name_sv[i];
+#if RAINY_USING_CLANG || RAINY_USING_LLVM_GCC
+        if constexpr (constexpr bool has_anonymous = name_sv.find("(anonymous namespace)") != text::string_view::npos) {
+            constexpr text::string_view target = "(anonymous namespace)";
+            constexpr text::string_view replacement = "<unnamed>";
+            constexpr std::size_t target_len = target.size();
+            constexpr std::size_t replacement_len = replacement.size();
+
+            constexpr std::size_t count = [&]() constexpr {
+                std::size_t c = 0;
+                for (std::size_t i = 0; i <= name_sv.size() - target_len;) {
+                    if (name_sv.substr(i, target_len) == target) {
+                        ++c;
+                        i += target_len;
+                    } else {
+                        ++i;
+                    }
+                }
+                return c;
+            }();
+
+            constexpr std::size_t new_size = name_sv.size() + count * (replacement_len - target_len);
+            collections::array<char, new_size> arr{};
+
+            std::size_t src_idx = 0;
+            std::size_t dst_idx = 0;
+            while (src_idx < name_sv.size()) {
+                if (src_idx <= name_sv.size() - target_len && name_sv.substr(src_idx, target_len) == target) {
+                    for (std::size_t i = 0; i < replacement_len; ++i) {
+                        arr[dst_idx++] = replacement[i];
+                    }
+                    src_idx += target_len;
+                } else {
+                    arr[dst_idx++] = name_sv[src_idx++];
+                }
+            }
+            return arr;
+        } else
+#endif
+        {
+            collections::array<char, name_sv.size()> arr{};
+            for (std::size_t i = 0; i < name_sv.size(); ++i) {
+                arr[i] = name_sv[i];
+            }
+            return arr;
         }
-        return arr;
     }
 
     template <auto Variable>
@@ -598,7 +640,8 @@ namespace rainy::core::implements {
     template <typename Ty>
     constexpr rain_fn typeinfo_component<MainTypeInfo>::type_modfier_impl(const type_operation op)
         -> const typeinfo_component<MainTypeInfo> * { // NOLINT
-        constexpr bool is_reference_ptr = type_traits::composite_types::is_reference_v<Ty> && type_traits::primary_types::is_pointer_v<type_traits::modifers::remove_reference_t<Ty>>;
+        constexpr bool is_reference_ptr = type_traits::composite_types::is_reference_v<Ty> &&
+                                          type_traits::primary_types::is_pointer_v<type_traits::modifers::remove_reference_t<Ty>>;
         if constexpr (!type_traits::type_relations::is_void_v<Ty>) {
             switch (op) {
                 case type_operation::remove_pointer: {
@@ -1178,7 +1221,8 @@ namespace rainy::core {
             }
             if constexpr (!type_traits::composite_types::is_reference_v<target_type>) {
                 if (dest && source) {
-                    *static_cast<type_traits::modifers::remove_const_t<TargetType> *>(dest) = ConverterClass::basic_convert(source, type);
+                    *static_cast<type_traits::modifers::remove_const_t<TargetType> *>(dest) =
+                        ConverterClass::basic_convert(source, type);
                 }
             }
             return true;
