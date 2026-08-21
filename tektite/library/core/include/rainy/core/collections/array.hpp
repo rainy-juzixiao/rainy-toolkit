@@ -42,7 +42,7 @@ namespace rainy::collections::implements {
     template <typename Ty>
     struct array_traits<Ty, 0> {
         struct type {
-            RAINY_INLINE constexpr explicit operator Ty *() const noexcept {
+            RAINY_INLINE constexpr operator Ty *() const noexcept {
                 return nullptr;
             }
 
@@ -103,7 +103,7 @@ namespace rainy::collections {
          *       this constructor is also noexcept.
          * @note 若元素类型支持 noexcept 默认构造，则该构造函数同样为 noexcept。
          */
-        constexpr array() noexcept(type_traits::properties::is_nothrow_default_constructible_v<Ty>) : elements{} {
+        constexpr array() noexcept(type_traits::properties::is_nothrow_default_constructible_v<Ty>) {
         }
 
         /**

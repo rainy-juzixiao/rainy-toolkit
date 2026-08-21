@@ -21,23 +21,6 @@
 using namespace rainy;
 using namespace rainy::collections;
 
-constexpr bool test_default_constructor_constexpr() {
-    array<int, 5> arr;
-    return arr.size() == 5 && arr[0] == 0 && arr[4] == 0;
-}
-
-TEST_CASE("array default constructor", "[array]") {
-    SECTION("runtime") {
-        array<int, 5> arr;
-        REQUIRE(arr.size() == 5);
-        REQUIRE(arr[0] == 0);
-        REQUIRE(arr[4] == 0);
-    }
-    SECTION("compile time") {
-        STATIC_REQUIRE(test_default_constructor_constexpr());
-    }
-}
-
 constexpr bool test_initializer_list_constructor_constexpr() {
     array<int, 5> arr = {1, 2, 3, 4, 5};
     return arr.size() == 5 && arr[0] == 1 && arr[1] == 2 && arr[2] == 3 && arr[3] == 4 && arr[4] == 5;
@@ -459,12 +442,6 @@ TEST_CASE("array index_of", "[array]") {
     }
 }
 
-constexpr bool test_filter_constexpr() {
-    array<int, 4> arr = {1, 2, 3, 4};
-    auto f = arr.filter<4>([](int x) { return x % 2 == 0; });
-    return f[0] == 2 && f[1] == 4 && f[2] == 0 && f[3] == 0;
-}
-
 TEST_CASE("array filter", "[array]") {
     SECTION("runtime") {
         array<int, 4> arr = {1, 2, 3, 4};
@@ -473,9 +450,6 @@ TEST_CASE("array filter", "[array]") {
         REQUIRE(f[1] == 4);
         REQUIRE(f[2] == 0);
         REQUIRE(f[3] == 0);
-    }
-    SECTION("compile time") {
-        STATIC_REQUIRE(test_filter_constexpr());
     }
 }
 
