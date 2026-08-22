@@ -27,9 +27,9 @@ namespace rainy::core::diagnostics::contracts {
     class contract_violation;
 
     enum class assertion_kind {
-        pre = 1,
-        post = 2,
-        assert = 3
+        for_pre = 1,
+        for_post = 2,
+        for_assert = 3
     };
 
     enum class evaluation_semantic {
@@ -107,7 +107,7 @@ namespace rainy::core::diagnostics::contracts {
     };
 
     RAINY_INLINE contract_violation make_contract_violation(assertion_kind kind, evaluation_semantic semantic, detection_mode mode,
-                                                      const char *comment, source_location loc = source_location::current()) {
+                                                            const char *comment, source_location loc = source_location::current()) {
         return contract_violation(kind, semantic, mode, comment, loc);
     }
 
@@ -145,9 +145,7 @@ namespace rainy::core::diagnostics::contracts {
 namespace rainy::core::diagnostics::contracts::implements {
     void handle_contract_violation(const contract_violation &v) {
         const auto loc = v.location();
-        const char *k = v.kind() == contracts::assertion_kind::pre    ? "pre"
-                        : v.kind() == contracts::assertion_kind::post ? "post"
-                                                                      : "assert";
+        const char *k = v.kind() == contracts::assertion_kind::for_post ? "post" : "assert";
         std::fprintf(stderr, "%s:%u: %s: %s\n", loc.file_name() ? loc.file_name() : "?", loc.line(), k,
                      v.comment() ? v.comment() : "");
         std::fflush(stderr);
@@ -156,21 +154,22 @@ namespace rainy::core::diagnostics::contracts::implements {
 
 namespace rainy::core::diagnostics::contracts {
     RAINY_INLINE void expects(bool cond, const char *msg = nullptr, const source_location &loc = source_location::current()) {
-        check_contract(assertion_kind::pre, msg ? msg : "precondition", cond, loc);
+        check_contract(assertion_kind::for_pre, msg ? msg : "precondition", cond, loc);
     }
 
     RAINY_INLINE void ensures(bool cond, const char *msg = nullptr, const source_location &loc = source_location::current()) {
-        check_contract(assertion_kind::post, msg ? msg : "postcondition", cond, loc);
+        check_contract(assertion_kind::for_post, msg ? msg : "postcondition", cond, loc);
     }
 
-    RAINY_INLINE void contract_assert(bool cond, const char *msg = nullptr, const source_location &loc = source_location::current()) {
-        check_contract(assertion_kind::assert, msg ? msg : "assertion", cond, loc);
+    RAINY_INLINE void contract_assertion(bool cond, const char *msg = nullptr,
+                                         const source_location &loc = source_location::current()) {
+        check_contract(assertion_kind::for_assert, msg ? msg : "assertion", cond, loc);
     }
 }
 
 namespace rainy::utility {
     using rainy::core::diagnostics::contracts::assertion_kind;
-    using rainy::core::diagnostics::contracts::contract_assert;
+    using rainy::core::diagnostics::contracts::contract_assertion;
     using rainy::core::diagnostics::contracts::contract_violation;
     using rainy::core::diagnostics::contracts::detection_mode;
     using rainy::core::diagnostics::contracts::ensures;
