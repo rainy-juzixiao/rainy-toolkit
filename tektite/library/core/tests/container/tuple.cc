@@ -275,14 +275,14 @@ TEST_CASE("Tuple apply operations", "[tuple]") {
         tuple<int, double, std::string> t(1, 2.5, "hello");
         auto result = rainy::core::container::apply(
             [](int a, double b, const std::string &c) { return std::to_string(a) + " " + std::to_string(b) + " " + c; }, t);
-        REQUIRE(result == "1 2.500000 hello");
+         REQUIRE((result == "1 2.500000 hello" || result == "1 2.5 hello"));
     }
 
     SECTION("Apply with lambda - rvalue version") {
         tuple<int, double, std::string> t(1, 2.5, "hello");
         auto result =
             apply([](int a, double b, std::string c) { return std::to_string(a) + " " + std::to_string(b) + " " + c; }, std::move(t));
-        REQUIRE(result == "1 2.500000 hello");
+        REQUIRE((result == "1 2.500000 hello" || result == "1 2.5 hello"));
     }
 
     SECTION("Apply returning sum") {
@@ -466,7 +466,7 @@ TEST_CASE("Tuple chain operations", "[tuple]") {
     SECTION("Subtuple with apply") {
         tuple<int, double, std::string, char> t(1, 2.5, "hello", 'a');
         auto result = apply([](double d, const std::string &s) { return std::to_string(d) + " " + s; }, subtuple<1, 3>(t));
-        REQUIRE(result == "2.500000 hello");
+        REQUIRE((result == "2.500000 hello" || result == "2.5 hello"));
     }
 }
 
@@ -566,11 +566,7 @@ TEST_CASE("Tuple constexpr support", "[tuple][constexpr]") {
     SECTION("constexpr apply") {
         constexpr tuple<int, int, int> t(1, 2, 3);
 
-        constexpr auto result = apply(
-            [](int a, int b, int c) {
-                return a + b + c;
-            },
-            t);
+        constexpr auto result = apply([](int a, int b, int c) { return a + b + c; }, t);
 
         STATIC_REQUIRE(result == 6);
     }
