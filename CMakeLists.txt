@@ -25,7 +25,7 @@ option(RAINY_BUILD_WITH_DYNAMIC
 option(RAINY_USING_UTF8_INPUT_FOR_MSVC "Use utf-8 encoding for input. Reason: we need avoid mutilangauge problems." on)
 option(RAINY_USING_UTF8_OUTPUT_FOR_MSVC "Use utf-8 encoding for output. Reason: we need avoid mutilangauge problems." on)
 option(RAINY_USE_NODE_ADDON "Enable integration with node-addon-api (N-API)" off)
-option(RAINY_USE_CXX26_RELFECTION_TS "Allows rainy-toolkit to use reflection ts of c++ 26 features for meta library" ON)
+option(RAINY_USE_CXX26_REFLECTION_TS "Allows rainy-toolkit to use reflection ts of c++ 26 features for meta library" ON)
 option(RAINY_USE_CROSSCOMPILE "Enable cross compilation" OFF)
 
 set(RAINY_TOOLCHAIN_FILE "" CACHE FILEPATH "Path to CMake toolchain file for cross-compilation")
