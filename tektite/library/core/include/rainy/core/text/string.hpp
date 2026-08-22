@@ -2124,7 +2124,7 @@ namespace rainy::core::text {
             return pair_.get_second();
         }
 
-        utility::compressed_pair<Allocator, storage_type_> pair_;
+        container::compressed_pair<Allocator, storage_type_> pair_;
     };
 
     using string = basic_string<char>;

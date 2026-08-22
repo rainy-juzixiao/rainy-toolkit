@@ -24,7 +24,7 @@
 #include <tuple>
 #include <utility>
 
-namespace rainy::core::container {
+namespace rainy::container {
     /**
      * @brief A fixed-size collection of heterogeneous values.
      *        固定大小的异构值集合。
@@ -194,7 +194,7 @@ namespace rainy::core::container {
     constexpr const tuple_element_t<I, tuple<Types...>> &&get(const tuple<Types...> &&) noexcept;
 }
 
-namespace rainy::core::container::implements {
+namespace rainy::container::implements {
     template <typename Ty, typename Alloc, typename... Args>
     using _alloc_tag =
         std::integral_constant<int, !std::uses_allocator_v<Ty, Alloc> ? 0
@@ -341,15 +341,15 @@ namespace rainy::core::container::implements {
 // NOLINTBEGIN
 namespace std {
     template <std::size_t I, typename... Types>
-    struct tuple_element<I, rainy::core::container::tuple<Types...>>
-        : rainy::core::container::tuple_element<I, rainy::core::container::tuple<Types...>> {};
+    struct tuple_element<I, rainy::container::tuple<Types...>>
+        : rainy::container::tuple_element<I, rainy::container::tuple<Types...>> {};
 
     template <typename... Types>
-    struct tuple_size<rainy::core::container::tuple<Types...>> : std::integral_constant<std::size_t, sizeof...(Types)> {};
+    struct tuple_size<rainy::container::tuple<Types...>> : std::integral_constant<std::size_t, sizeof...(Types)> {};
 }
 // NOLINTEND
 
-namespace rainy::core::container {
+namespace rainy::container {
     template <typename... Types>
     class tuple : public implements::tuple_impl<tuple<Types...>, 0, Types...> {
     public:
@@ -1082,7 +1082,7 @@ namespace rainy::core::container {
     }
 }
 
-namespace rainy::core::container {
+namespace rainy::container {
     /**
      * @brief Provides the number of elements in a tuple.
      *        提供tuple中的元素数量。
@@ -1147,30 +1147,30 @@ namespace rainy::core::container {
 }
 
 namespace std {
-    using rainy::core::container::get;
-}
-
-namespace rainy::utility {
-    using rainy::core::container::forward_as_tuple;
-    using rainy::core::container::get;
-    using rainy::core::container::make_tuple;
-
-    using rainy::core::container::tuple_element;
-    using rainy::core::container::tuple_element_t;
-    using rainy::core::container::tuple_size;
-    using rainy::core::container::tuple_size_v;
-    using rainy::core::container::tuple;
+    using rainy::container::get;
 }
 
 namespace rainy::utility::container {
-    using rainy::core::container::apply;
-    using rainy::core::container::drop;
-    using rainy::core::container::subtuple;
-    using rainy::core::container::take;
-    using rainy::core::container::tuple_cat;
+    using rainy::container::forward_as_tuple;
+    using rainy::container::get;
+    using rainy::container::make_tuple;
+
+    using rainy::container::tuple_element;
+    using rainy::container::tuple_element_t;
+    using rainy::container::tuple_size;
+    using rainy::container::tuple_size_v;
+    using rainy::container::tuple;
 }
 
-namespace rainy::core::container::implements {
+namespace rainy::utility::container {
+    using rainy::container::apply;
+    using rainy::container::drop;
+    using rainy::container::subtuple;
+    using rainy::container::take;
+    using rainy::container::tuple_cat;
+}
+
+namespace rainy::container::implements {
     template <typename... TTypes, typename... UTypes, std::size_t... Is>
     constexpr bool compare_tuple_elements(const tuple<TTypes...> &left, const tuple<UTypes...> &right,
                                           type_traits::helper::index_sequence<Is...>) {
@@ -1178,7 +1178,7 @@ namespace rainy::core::container::implements {
     }
 }
 
-namespace rainy::core::container {
+namespace rainy::container {
     template <typename... TTypes, typename... UTypes>
     constexpr bool operator==(const tuple<TTypes...> &left, const tuple<UTypes...> &right) {
         if constexpr (sizeof...(TTypes) != sizeof...(UTypes)) {

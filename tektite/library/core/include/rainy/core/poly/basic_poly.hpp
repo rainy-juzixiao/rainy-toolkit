@@ -38,20 +38,20 @@ namespace rainy::core::implements {
 
         template <auto... Candidate>
         static auto make(type_traits::other_trans::value_list<Candidate...>) noexcept
-            -> decltype(utility::make_tuple(vtable_entry(Candidate)...));
+            -> decltype(container::make_tuple(vtable_entry(Candidate)...));
 
         template <typename... Func>
         RAINY_NODISCARD static constexpr auto make(type_traits::other_trans::type_list<Func...>) noexcept {
             if constexpr (sizeof...(Func) == 0u) {
                 return decltype(make_with_vl(typename Concept::template impl<inspector>{}))();
             } else if constexpr ((type_traits::primary_types::is_function_v<Func> && ...)) {
-                return decltype(utility::make_tuple(vtable_entry(utility::declval<Func>())...))();
+                return decltype(container::make_tuple(vtable_entry(utility::declval<Func>())...))();
             }
         }
 
         template <auto... V>
         RAINY_NODISCARD static constexpr auto make_with_vl(type_traits::other_trans::value_list<V...>) noexcept {
-            return decltype(utility::make_tuple(vtable_entry(V)...))();
+            return decltype(container::make_tuple(vtable_entry(V)...))();
         }
 
         template <typename Func>
@@ -90,7 +90,7 @@ namespace rainy::core::implements {
         RAINY_NODISCARD static auto fill_vtable(type_traits::helper::index_sequence<Index...>) noexcept {
             VtableType impl{};
             (fill_vtable_entry<Type, type_traits::other_trans::value_at<Index, typename Concept::template impl<Type>>::value>(
-                 utility::get<Index>(impl)),
+                 container::get<Index>(impl)),
              ...);
             return impl;
         }
@@ -113,9 +113,9 @@ namespace rainy::core {
     public:
         using inspector = typename Concept::template type<implements::poly_inspector>;
         using vtable_type = decltype(implements::make_vtable<Concept>::make_with_vl(typename Concept::template impl<inspector>{}));
-        static constexpr bool is_mono = utility::tuple_size_v<vtable_type> == 1u;
+        static constexpr bool is_mono = container::tuple_size_v<vtable_type> == 1u;
 
-        using type = type_traits::other_trans::conditional_t<is_mono, utility::tuple_element_t<0u, vtable_type>, const vtable_type *>;
+        using type = type_traits::other_trans::conditional_t<is_mono, container::tuple_element_t<0u, vtable_type>, const vtable_type *>;
 
         /**
          * @brief Gets the vtable instance for a specific type.
@@ -134,7 +134,7 @@ namespace rainy::core {
                 type_traits::helper::make_index_sequence<
                     type_traits::other_trans::value_list_size_v<typename Concept::template impl<Type>>>{});
             if constexpr (is_mono) {
-                return utility::get<0>(vtable);
+                return container::get<0>(vtable);
             } else {
                 return &vtable;
             }
@@ -171,7 +171,7 @@ namespace rainy::core {
             if constexpr (Poly::vtable_info::is_mono) {
                 return poly.vtable(poly._ptr, utility::forward<Args>(args)...);
             } else {
-                return utility::get<Member>(*poly.vtable)(poly._ptr, utility::forward<Args>(args)...);
+                return container::get<Member>(*poly.vtable)(poly._ptr, utility::forward<Args>(args)...);
             }
         }
 
@@ -197,7 +197,7 @@ namespace rainy::core {
                 static_assert(Member == 0, "Unknown member");
                 return poly.vtable(poly._ptr, utility::forward<Args>(args)...);
             } else {
-                return utility::get<Member>(*poly.vtable)(poly._ptr, utility::forward<Args>(args)...);
+                return container::get<Member>(*poly.vtable)(poly._ptr, utility::forward<Args>(args)...);
             }
         }
     };

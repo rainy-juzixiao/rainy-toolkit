@@ -1087,7 +1087,7 @@ namespace rainy::collections {
             return pair.get_first();
         }
 
-        core::container::compressed_pair<allocator_type, impl> pair;
+        container::compressed_pair<allocator_type, impl> pair;
     };
 
     template <typename InputIter,

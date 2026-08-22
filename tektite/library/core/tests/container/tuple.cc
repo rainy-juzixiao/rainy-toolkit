@@ -21,7 +21,7 @@
 #include <string>
 #include <vector>
 
-using namespace rainy::core::container;
+using namespace rainy::container;
 using Catch::Matchers::Equals;
 
 TEST_CASE("Tuple basic construction and element access", "[tuple]") {
@@ -45,7 +45,7 @@ TEST_CASE("Tuple basic construction and element access", "[tuple]") {
     }
 
     SECTION("Make tuple") {
-        auto t = rainy::core::container::make_tuple(42, 3.14, std::string("world"));
+        auto t = rainy::container::make_tuple(42, 3.14, std::string("world"));
         REQUIRE(get<0>(t) == 42);
         REQUIRE(get<1>(t) == 3.14);
         REQUIRE(get<2>(t) == "world");
@@ -55,7 +55,7 @@ TEST_CASE("Tuple basic construction and element access", "[tuple]") {
         int x = 42;
         std::string s = "test";
         double f = 3.14;
-        auto t = rainy::core::container::forward_as_tuple(x, s, f);
+        auto t = rainy::container::forward_as_tuple(x, s, f);
         REQUIRE(get<0>(t) == 42);
         REQUIRE(get<1>(t) == "test");
         REQUIRE(get<2>(t) == 3.14);
@@ -273,7 +273,7 @@ TEST_CASE("Tuple subtuple operations", "[tuple]") {
 TEST_CASE("Tuple apply operations", "[tuple]") {
     SECTION("Apply with lambda - const version") {
         tuple<int, double, std::string> t(1, 2.5, "hello");
-        auto result = rainy::core::container::apply(
+        auto result = rainy::container::apply(
             [](int a, double b, const std::string &c) { return std::to_string(a) + " " + std::to_string(b) + " " + c; }, t);
          REQUIRE((result == "1 2.500000 hello" || result == "1 2.5 hello"));
     }

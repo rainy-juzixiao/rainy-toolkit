@@ -18,6 +18,7 @@
 #include <optional>
 #include <rainy/core/annotations/smf_control.hpp>
 #include <rainy/core/diagnostics/exceptions.hpp>
+#include <rainy/core/text/string.hpp>
 #include <rainy/core/type_traits.hpp>
 
 #if RAINY_USING_MSVC
@@ -25,7 +26,7 @@
 #pragma warning(disable : 26495)
 #endif
 
-namespace rainy::core::container {
+namespace rainy::container {
     using std::nullopt;
     using std::nullopt_t;
 
@@ -38,8 +39,7 @@ namespace rainy::core::exceptions::runtime {
     public:
         using base = runtime_error;
 
-        explicit bad_optional_access(const source &location = source::current()) :
-            base(location.to_string() + " : bad variant access : ") {
+        explicit bad_optional_access(const source &location = source::current()) : base("bad variant access", location) {
         }
     };
 
@@ -52,7 +52,7 @@ namespace rainy::core::exceptions::runtime {
     // clang-format on
 }
 
-namespace rainy::core::container::implements {
+namespace rainy::container::implements {
 #if RAINY_HAS_CXX20
     template <typename UTy>
     concept is_derived_from_optional =
@@ -322,7 +322,7 @@ namespace rainy::core::container::implements {
     };
 }
 
-namespace rainy::core::container {
+namespace rainy::container {
     template <typename Ty>
     class optional final : private annotations::smf_control::control<implements::optional_base<Ty>> {
     public:
@@ -348,7 +348,7 @@ namespace rainy::core::container {
 
         constexpr optional() noexcept = default;
 
-        constexpr explicit optional(nullopt_t) noexcept {
+        constexpr optional(nullopt_t) noexcept {
         }
 
         template <typename... Args>
@@ -430,8 +430,7 @@ namespace rainy::core::container {
         RAINY_CONSTEXPR20 optional &operator=(optional<UTy> &&right) noexcept(
             type_traits::properties::is_nothrow_assignable_v<Ty &, const UTy &> &&
             type_traits::properties::is_nothrow_constructible_v<Ty, const UTy &>) /* strengthened */ {
-            static_assert(type_traits::properties::is_constructible_v<Ty, UTy> &&
-                              type_traits::properties::is_assignable_v<Ty &, UTy>,
+            static_assert(type_traits::properties::is_constructible_v<Ty, UTy> && type_traits::properties::is_assignable_v<Ty &, UTy>,
                           "Cannot passing right [type = optional<UTy>&&] to make a copy because "
                           "type_traits::properties::is_constructible_v<Ty, UTy> && "
                           "type_traits::properties::is_assignable_v<Ty &, UTy> results false");
@@ -538,9 +537,8 @@ namespace rainy::core::container {
         using base::reset;
 
         template <typename UTy, type_traits::other_trans::enable_if_t<allow_assignment<UTy>::value, int> = 0>
-        RAINY_CONSTEXPR20 optional &operator=(UTy &&right) noexcept(
-            type_traits::properties::is_nothrow_assignable_v<Ty &, UTy> &&
-            type_traits::properties::is_nothrow_constructible_v<Ty, UTy>) {
+        RAINY_CONSTEXPR20 optional &operator=(UTy &&right) noexcept(type_traits::properties::is_nothrow_assignable_v<Ty &, UTy> &&
+                                                                    type_traits::properties::is_nothrow_constructible_v<Ty, UTy>) {
             this->assign(utility::forward<UTy>(right));
             return *this;
         }
@@ -704,7 +702,7 @@ namespace rainy::core::container {
     }
 }
 
-namespace rainy::core::container {
+namespace rainy::container {
     template <typename Ty, typename UTy>
     constexpr bool operator==(const optional<Ty> &left, const optional<UTy> &right) {
         if (left.has_value() != right.has_value()) {
@@ -900,13 +898,6 @@ namespace rainy::core::container {
         return left.has_value() ? *left <=> right : std::strong_ordering::less;
     }
 #endif
-}
-
-namespace rainy::utility {
-    using core::container::make_optional;
-    using core::container::nullopt;
-    using core::container::nullopt_t;
-    using core::container::optional;
 }
 
 #if RAINY_USING_MSVC

@@ -26,11 +26,11 @@
 #pragma warning(disable : 26800)
 #endif
 
-using namespace rainy::core::container;
+using namespace rainy::container;
 
 namespace Catch {
     template <typename... Types>
-    struct is_range<rainy::core::container::variant<Types...>> : std::false_type {};
+    struct is_range<rainy::container::variant<Types...>> : std::false_type {};
 }
 
 struct NonTrivial {

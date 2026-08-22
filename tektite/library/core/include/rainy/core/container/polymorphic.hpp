@@ -18,7 +18,7 @@
 #include <rainy/core/type_traits.hpp>
 #include <rainy/core/container/compressed_pair.hpp>
 
-namespace rainy::core::container {
+namespace rainy::container {
     template <typename Ty, typename Alloc = std::allocator<Ty>>
     class polymorphic {
     public:

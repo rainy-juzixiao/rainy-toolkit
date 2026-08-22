@@ -40,11 +40,11 @@
  * See the applicable license for the specific language governing
  * permissions and limitations under the License.
  */
+#include <rainy/core/algorithm/basic_algorithm.hpp>
+#include <rainy/core/container/compressed_pair.hpp>
 #include <rainy/core/platform.hpp>
 #include <rainy/core/text/charconv.hpp>
 #include <rainy/core/text/implements/ryu_table.hpp>
-#include <rainy/core/container/compressed_pair.hpp>
-#include <rainy/core/algorithm/basic_algorithm.hpp>
 #include <rainy/core/type_traits/meta_methods.hpp>
 #include <rainy/core/utility/bit.hpp>
 
@@ -412,9 +412,9 @@ namespace rainy::core::text::implements::ryu {
     }
 
     template <typename CharType>
-    RAINY_NODISCARD utility::compressed_pair<CharType *, std::errc> d2fixed_buffered_n(CharType *first, CharType *const end,
-                                                                                       const double double_val,
-                                                                                       const std::uint32_t precision) {
+    RAINY_NODISCARD container::compressed_pair<CharType *, std::errc> d2fixed_buffered_n(CharType *first, CharType *const end,
+                                                                                         const double double_val,
+                                                                                         const std::uint32_t precision) {
         CharType *const original_first = first;
         const std::uint64_t right_bits = double_to_bits(double_val);
         // Case distinction; exit early for the easy cases.
@@ -596,8 +596,9 @@ namespace rainy::core::text::implements::ryu {
         // 处理零值
         if (bits == 0) {
             std::int32_t zero_len = 1 + (precision != 0 ? 1 : 0) + precision + 4; // "0" + "." + 零 + "e+00"
-            if (end - first < zero_len)
+            if (end - first < zero_len) {
                 return {end, std::errc::value_too_large};
+            }
 
             *first++ = '0';
             if (precision > 0) {
@@ -647,25 +648,29 @@ namespace rainy::core::text::implements::ryu {
                         remaining = 9;
                         break;
                     }
-                    if (end - first < 9)
+                    if (end - first < 9) {
                         return {end, std::errc::value_too_large};
+                    }
                     append_nine_digits(digits, first);
                     first += 9;
                     printed += 9;
                 } else if (digits != 0) {
                     remaining = decimal_length9(digits);
                     exp = i * 9 + static_cast<std::int32_t>(remaining) - 1;
-                    if (remaining > precision)
+                    if (remaining > precision) {
                         break;
+                    }
 
                     if (print_dot) {
-                        if (end - first < static_cast<std::ptrdiff_t>(remaining + 1))
+                        if (end - first < static_cast<std::ptrdiff_t>(remaining + 1)) {
                             return {end, std::errc::value_too_large};
+                        }
                         append_d_digits(remaining, digits, first);
                         first += remaining + 1; // 数字 + 小数点
                     } else {
-                        if (first == end)
+                        if (first == end) {
                             return {end, std::errc::value_too_large};
+                        }
                         *first++ = static_cast<char>('0' + digits);
                     }
                     printed = remaining;
@@ -687,25 +692,29 @@ namespace rainy::core::text::implements::ryu {
                         remaining = 9;
                         break;
                     }
-                    if (end - first < 9)
+                    if (end - first < 9) {
                         return {end, std::errc::value_too_large};
+                    }
                     append_nine_digits(digits, first);
                     first += 9;
                     printed += 9;
                 } else if (digits != 0) {
                     remaining = decimal_length9(digits);
                     exp = -(i + 1) * 9 + static_cast<std::int32_t>(remaining) - 1;
-                    if (remaining > precision)
+                    if (remaining > precision) {
                         break;
+                    }
 
                     if (print_dot) {
-                        if (end - first < static_cast<std::ptrdiff_t>(remaining + 1))
+                        if (end - first < static_cast<std::ptrdiff_t>(remaining + 1)) {
                             return {end, std::errc::value_too_large};
+                        }
                         append_d_digits(remaining, digits, first);
                         first += remaining + 1;
                     } else {
-                        if (first == end)
+                        if (first == end) {
                             return {end, std::errc::value_too_large};
+                        }
                         *first++ = static_cast<char>('0' + digits);
                     }
                     printed = remaining;
@@ -716,8 +725,9 @@ namespace rainy::core::text::implements::ryu {
 
         // 处理剩余位数
         std::uint32_t max_extra = precision - printed;
-        if (remaining == 0)
+        if (remaining == 0) {
             digits = 0;
+        }
 
         // 提取最后一位用于舍入判断
         std::uint32_t last_digit = 0;
@@ -748,8 +758,9 @@ namespace rainy::core::text::implements::ryu {
 
         // 输出剩余数字
         if (printed != 0) {
-            if (end - first < static_cast<std::ptrdiff_t>(max_extra))
+            if (end - first < static_cast<std::ptrdiff_t>(max_extra)) {
                 return {end, std::errc::value_too_large};
+            }
             if (digits == 0) {
                 std::memset(first, '0', max_extra);
             } else {
@@ -758,13 +769,15 @@ namespace rainy::core::text::implements::ryu {
             first += max_extra;
         } else {
             if (print_dot) {
-                if (end - first < static_cast<std::ptrdiff_t>(max_extra + 1))
+                if (end - first < static_cast<std::ptrdiff_t>(max_extra + 1)) {
                     return {end, std::errc::value_too_large};
+                }
                 append_d_digits(max_extra, digits, first);
                 first += max_extra + 1;
             } else {
-                if (first == end)
+                if (first == end) {
                     return {end, std::errc::value_too_large};
+                }
                 *first++ = static_cast<char>('0' + digits);
             }
         }
@@ -779,8 +792,9 @@ namespace rainy::core::text::implements::ryu {
                     break;
                 }
                 --round;
-                if (*round == '.')
+                if (*round == '.') {
                     continue;
+                }
                 if (*round == '9') {
                     *round = '0';
                     round_up = 1; // 继续进位
@@ -1021,9 +1035,10 @@ namespace rainy::core::text::implements::ryu {
     }
 
     template <typename CharType>
-    RAINY_NODISCARD core::container::compressed_pair<CharType *, std::errc> large_integer_to_chars(CharType *const first, CharType *const end,
-                                                                                           const std::uint32_t mantissa,
-                                                                                           const std::int32_t exponent) {
+    RAINY_NODISCARD container::compressed_pair<CharType *, std::errc> large_integer_to_chars(CharType *const first,
+                                                                                             CharType *const end,
+                                                                                             const std::uint32_t mantissa,
+                                                                                             const std::int32_t exponent) {
         core::implements::stl_internal_check(exponent > 0);
         core::implements::stl_internal_check(exponent <= 104);
         constexpr std::uint32_t data_size = 4;
@@ -1086,7 +1101,7 @@ namespace rainy::core::text::implements::ryu {
     }
 
     template <typename CharType>
-    RAINY_NODISCARD utility::compressed_pair<CharType *, std::errc> to_chars(CharType *const first, CharType *const end,
+    RAINY_NODISCARD container::compressed_pair<CharType *, std::errc> to_chars(CharType *const first, CharType *const end,
                                                                              const floating_decimal_32 value, chars_format fmt,
                                                                              const std::uint32_t ieee_mantissa,
                                                                              const std::uint32_t ieee_exponent) {
@@ -1252,12 +1267,12 @@ namespace rainy::core::text::implements::ryu {
         return {first + total_scientific_len, std::errc{}};
     }
 
-    RAINY_NODISCARD inline to_chars_result convert_to_chars_result(const utility::compressed_pair<char *, std::errc> &pair) {
+    RAINY_NODISCARD inline to_chars_result convert_to_chars_result(const container::compressed_pair<char *, std::errc> &pair) {
         return {pair.first, pair.second};
     }
 
     template <typename CharType>
-    RAINY_NODISCARD utility::compressed_pair<CharType *, std::errc> f2s_buffered_n(CharType *const first, CharType *const end,
+    RAINY_NODISCARD container::compressed_pair<CharType *, std::errc> f2s_buffered_n(CharType *const first, CharType *const end,
                                                                                    const float float_val, const chars_format fmt) {
 
         const std::uint32_t right_bits = float_to_bits(float_val);
@@ -1542,7 +1557,7 @@ namespace rainy::core::text::implements::ryu {
     }
 
     template <typename CharType>
-    RAINY_NODISCARD utility::compressed_pair<CharType *, std::errc> to_chars(CharType *const first, CharType *const end,
+    RAINY_NODISCARD container::compressed_pair<CharType *, std::errc> to_chars(CharType *const first, CharType *const end,
                                                                              const floating_decimal_64 value, chars_format fmt,
                                                                              const double float_val) {
         // Step 5: Print the decimal representation.
@@ -1824,7 +1839,7 @@ namespace rainy::core::text::implements::ryu {
     }
 
     template <typename CharType>
-    RAINY_NODISCARD utility::compressed_pair<CharType *, std::errc> d2s_buffered_n(CharType *const first, CharType *const end,
+    RAINY_NODISCARD container::compressed_pair<CharType *, std::errc> d2s_buffered_n(CharType *const first, CharType *const end,
                                                                                    const double float_val, const chars_format fmt) {
         // 先解码浮点数，然后进行规范化和次正规情况
         const std::uint64_t right_bits = double_to_bits(float_val);
@@ -2143,7 +2158,7 @@ namespace rainy::core::text::implements {
             table_end = table_begin + precision + 5;
         } else {
             table_begin = tables::ordinary_x_table;
-            table_end = table_begin + (core::min)(precision, tables::max_p) + 5;
+            table_end = table_begin + (core::min) (precision, tables::max_p) + 5;
         }
         // 二分查找合适的表项
         const uint_type *table_lower_bound;
@@ -2171,12 +2186,12 @@ namespace rainy::core::text::implements {
         int effective_precision;
         // 生成数字字符串
         if (use_fixed) {
-            effective_precision = (core::min)(precision - (scientific_exponent + 1), max_fixed_prec);
+            effective_precision = (core::min) (precision - (scientific_exponent + 1), max_fixed_prec);
             to_chars_result r = floating_to_chars_fixed_precision(buffer, utility::end(buffer), value, effective_precision);
             core::implements::stl_internal_check(r.ec == std::errc{});
             sig_end = r.ptr;
         } else {
-            effective_precision = (core::min)(precision - 1, max_sci_prec);
+            effective_precision = (core::min) (precision - 1, max_sci_prec);
             to_chars_result r = floating_to_chars_scientific_precision(buffer, utility::end(buffer), value, effective_precision);
             core::implements::stl_internal_check(r.ec == std::errc{});
             sig_end = core::algorithm::find(buffer, r.ptr, 'e');

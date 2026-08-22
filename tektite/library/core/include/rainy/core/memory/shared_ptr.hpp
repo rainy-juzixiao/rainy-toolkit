@@ -177,7 +177,7 @@ namespace rainy::core::memory::implements {
             delete this;
         }
 
-        utility::pair<Dx, Res> pair;
+        container::pair<Dx, Res> pair;
     };
 
     template <typename Res, typename Dx, typename Alloc>
@@ -209,7 +209,7 @@ namespace rainy::core::memory::implements {
             allocator_traits<allocator_type>::deallocate(alloc, this, 1);
         }
 
-        utility::pair<Dx, utility::pair<allocator_type, Res>> pair;
+        container::pair<Dx, container::pair<allocator_type, Res>> pair;
     };
 }
 
@@ -360,7 +360,7 @@ namespace rainy::core::memory::implements {
         template <typename Dx, typename UTy>
         friend Dx *get_deleter(const shared_ptr<UTy> &sx) noexcept;
 
-        utility::pair<element_type *, ref_count_base *> pair;
+        container::pair<element_type *, ref_count_base *> pair;
     };
 }
 

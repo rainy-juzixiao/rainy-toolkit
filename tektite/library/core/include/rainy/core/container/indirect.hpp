@@ -18,7 +18,7 @@
 #include <rainy/core/type_traits.hpp>
 #include <rainy/core/container/compressed_pair.hpp>
 
-namespace rainy::core::container {
+namespace rainy::container {
     struct defered_init_t {};
 
     inline constexpr defered_init_t defered_init;
@@ -478,7 +478,7 @@ namespace rainy::core::container {
         }
 
     private:
-        utility::compressed_pair<Alloc, Ty *> pair;
+        compressed_pair<Alloc, Ty *> pair;
     };
 
     template <typename Value>
@@ -489,7 +489,7 @@ namespace rainy::core::container {
         -> indirect<Value, typename std::allocator_traits<Allocator>::template rebind_alloc<Value>>;
 }
 
-namespace rainy::core::container {
+namespace rainy::container {
     template <typename Ty, typename Alloc, typename Uy, typename UAlloc>
     RAINY_CONSTEXPR20 bool operator==(const indirect<Ty, Alloc> &left,
                                       const indirect<Uy, UAlloc> &right) noexcept(noexcept(*left == *right)) {

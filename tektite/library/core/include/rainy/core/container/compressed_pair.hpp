@@ -15,11 +15,11 @@
  */
 #ifndef RAINY_CORE_CONTAINER_COMPRESSED_PAIR_HPP
 #define RAINY_CORE_CONTAINER_COMPRESSED_PAIR_HPP
+#include <rainy/core/container/tuple.hpp>
 #include <rainy/core/platform.hpp>
 #include <rainy/core/type_traits/implements.hpp>
-#include <rainy/core/container/tuple.hpp>
 
-namespace rainy::core::container {
+namespace rainy::container {
     /**
      * @brief A compressed pair that optimizes storage when one or both types are empty.
      *        Uses empty base optimization to reduce memory footprint.
@@ -36,7 +36,7 @@ namespace rainy::core::container {
     class compressed_pair;
 }
 
-namespace rainy::core::container::implements {
+namespace rainy::container::implements {
     template <typename Ty, bool = std::is_final_v<Ty>>
     struct compressed_pair_empty : std::false_type {};
 
@@ -167,9 +167,8 @@ namespace rainy::core::container::implements {
          *                    包含第二个元素参数的元组
          */
         template <typename... Args1, typename... Args2>
-        constexpr compressed_pair_impl(utility::piecewise_construct_t, utility::tuple<Args1...> first_args,
-                                       utility::tuple<Args2...> second_args) :
-            compressed_pair_impl(utility::piecewise_construct, utility::move(first_args), utility::move(second_args),
+        constexpr compressed_pair_impl(piecewise_construct_t, tuple<Args1...> first_args, tuple<Args2...> second_args) :
+            compressed_pair_impl(piecewise_construct, utility::move(first_args), utility::move(second_args),
                                  type_traits::helper::index_sequence_for<Args1...>{},
                                  type_traits::helper::index_sequence_for<Args2...>{}) {
         }
@@ -224,10 +223,9 @@ namespace rainy::core::container::implements {
 
     private:
         template <typename... Args1, typename... Args2, std::size_t... I1, std::size_t... I2>
-        constexpr compressed_pair_impl(utility::piecewise_construct_t, utility::tuple<Args1...> first_args,
-                                       utility::tuple<Args2...> second_args, type_traits::helper::index_sequence<I1...>,
-                                       type_traits::helper::index_sequence<I2...>) :
-            first(rainy::utility::get<I1>(utility::move(first_args))...), second(std::get<I2>(utility::move(second_args))...) {
+        constexpr compressed_pair_impl(piecewise_construct_t, tuple<Args1...> first_args, tuple<Args2...> second_args,
+                                       type_traits::helper::index_sequence<I1...>, type_traits::helper::index_sequence<I2...>) :
+            first(container::get<I1>(move(first_args))...), second(container::get<I2>(move(second_args))...) {
         }
     };
 
@@ -295,9 +293,8 @@ namespace rainy::core::container::implements {
          *                    包含第二个元素参数的元组
          */
         template <typename... Args1, typename... Args2>
-        constexpr compressed_pair_impl(utility::piecewise_construct_t, utility::tuple<Args1...> first_args,
-                                       utility::tuple<Args2...> second_args) :
-            compressed_pair_impl(utility::piecewise_construct, utility::move(first_args), utility::move(second_args),
+        constexpr compressed_pair_impl(piecewise_construct_t, tuple<Args1...> first_args, tuple<Args2...> second_args) :
+            compressed_pair_impl(piecewise_construct, utility::move(first_args), utility::move(second_args),
                                  type_traits::helper::index_sequence_for<Args1...>{},
                                  type_traits::helper::index_sequence_for<Args2...>{}) {
         }
@@ -350,11 +347,10 @@ namespace rainy::core::container::implements {
 
     private:
         template <typename... Args1, typename... Args2, std::size_t... I1, std::size_t... I2>
-        constexpr compressed_pair_impl(utility::piecewise_construct_t, utility::tuple<Args1...> first_args,
-                                       utility::tuple<Args2...> second_args, type_traits::helper::index_sequence<I1...>,
-                                       type_traits::helper::index_sequence<I2...>) :
-            type_traits::modifers::remove_cv_t<Ty1>(std::get<I1>(utility::move(first_args))...),
-            second(std::get<I2>(utility::move(second_args))...) {
+        constexpr compressed_pair_impl(piecewise_construct_t, tuple<Args1...> first_args, tuple<Args2...> second_args,
+                                       type_traits::helper::index_sequence<I1...>, type_traits::helper::index_sequence<I2...>) :
+            type_traits::modifers::remove_cv_t<Ty1>(container::get<I1>(utility::move(first_args))...),
+            second(container::get<I2>(utility::move(second_args))...) {
         }
     };
 
@@ -422,9 +418,8 @@ namespace rainy::core::container::implements {
          *                    包含第二个元素参数的元组
          */
         template <typename... Args1, typename... Args2>
-        constexpr compressed_pair_impl(utility::piecewise_construct_t, utility::tuple<Args1...> first_args,
-                                       utility::tuple<Args2...> second_args) :
-            compressed_pair_impl(utility::piecewise_construct, utility::move(first_args), utility::move(second_args),
+        constexpr compressed_pair_impl(piecewise_construct_t, tuple<Args1...> first_args, tuple<Args2...> second_args) :
+            compressed_pair_impl(piecewise_construct, utility::move(first_args), utility::move(second_args),
                                  type_traits::helper::index_sequence_for<Args1...>{},
                                  type_traits::helper::index_sequence_for<Args2...>{}) {
         }
@@ -476,11 +471,10 @@ namespace rainy::core::container::implements {
 
     private:
         template <typename... Args1, typename... Args2, std::size_t... I1, std::size_t... I2>
-        constexpr compressed_pair_impl(utility::piecewise_construct_t, utility::tuple<Args1...> first_args,
-                                       utility::tuple<Args2...> second_args, type_traits::helper::index_sequence<I1...>,
-                                       type_traits::helper::index_sequence<I2...>) :
-            first(std::get<I1>(utility::move(first_args))...),
-            type_traits::modifers::remove_cv_t<Ty2>(std::get<I2>(utility::move(second_args))...) {
+        constexpr compressed_pair_impl(piecewise_construct_t, tuple<Args1...> first_args, tuple<Args2...> second_args,
+                                       type_traits::helper::index_sequence<I1...>, type_traits::helper::index_sequence<I2...>) :
+            first(container::get<I1>(utility::move(first_args))...),
+            type_traits::modifers::remove_cv_t<Ty2>(container::get<I2>(utility::move(second_args))...) {
         }
     };
 
@@ -549,9 +543,8 @@ namespace rainy::core::container::implements {
          *                    包含第二个元素参数的元组
          */
         template <typename... Args1, typename... Args2>
-        constexpr compressed_pair_impl(utility::piecewise_construct_t, utility::tuple<Args1...> first_args,
-                                       utility::tuple<Args2...> second_args) :
-            compressed_pair_impl(utility::piecewise_construct, utility::move(first_args), utility::move(second_args),
+        constexpr compressed_pair_impl(piecewise_construct_t, tuple<Args1...> first_args, tuple<Args2...> second_args) :
+            compressed_pair_impl(piecewise_construct, utility::move(first_args), utility::move(second_args),
                                  type_traits::helper::index_sequence_for<Args1...>{},
                                  type_traits::helper::index_sequence_for<Args2...>{}) {
         }
@@ -600,11 +593,10 @@ namespace rainy::core::container::implements {
 
     private:
         template <typename... Args1, typename... Args2, std::size_t... I1, std::size_t... I2>
-        constexpr compressed_pair_impl(utility::piecewise_construct_t, utility::tuple<Args1...> first_args,
-                                       utility::tuple<Args2...> second_args, type_traits::helper::index_sequence<I1...>,
-                                       type_traits::helper::index_sequence<I2...>) :
-            type_traits::modifers::remove_cv_t<Ty1>(std::get<I1>(utility::move(first_args))...),
-            type_traits::modifers::remove_cv_t<Ty2>(std::get<I2>(utility::move(second_args))...) {
+        constexpr compressed_pair_impl(piecewise_construct_t, tuple<Args1...> first_args, tuple<Args2...> second_args,
+                                       type_traits::helper::index_sequence<I1...>, type_traits::helper::index_sequence<I2...>) :
+            type_traits::modifers::remove_cv_t<Ty1>(container::get<I1>(utility::move(first_args))...),
+            type_traits::modifers::remove_cv_t<Ty2>(container::get<I2>(utility::move(second_args))...) {
         }
     };
 
@@ -662,9 +654,8 @@ namespace rainy::core::container::implements {
          *                    包含第二个元素参数的元组
          */
         template <typename... Args1, typename... Args2>
-        constexpr compressed_pair_impl(utility::piecewise_construct_t, utility::tuple<Args1...> first_args,
-                                       utility::tuple<Args2...> second_args) :
-            compressed_pair_impl(utility::piecewise_construct, utility::move(first_args), utility::move(second_args),
+        constexpr compressed_pair_impl(piecewise_construct_t, tuple<Args1...> first_args, tuple<Args2...> second_args) :
+            compressed_pair_impl(piecewise_construct, move(first_args), move(second_args),
                                  type_traits::helper::index_sequence_for<Args1...>{},
                                  type_traits::helper::index_sequence_for<Args2...>{}) {
         }
@@ -716,11 +707,10 @@ namespace rainy::core::container::implements {
 
     private:
         template <typename... Args1, typename... Args2, std::size_t... I1, std::size_t... I2>
-        constexpr compressed_pair_impl(utility::piecewise_construct_t, utility::tuple<Args1...> first_args,
-                                       utility::tuple<Args2...> second_args, type_traits::helper::index_sequence<I1...>,
-                                       type_traits::helper::index_sequence<I2...>) :
-            type_traits::modifers::remove_cv_t<Ty1>(std::get<I1>(utility::move(first_args))...),
-            second(std::get<I2>(utility::move(second_args))...) {
+        constexpr compressed_pair_impl(piecewise_construct_t, tuple<Args1...> first_args, tuple<Args2...> second_args,
+                                       type_traits::helper::index_sequence<I1...>, type_traits::helper::index_sequence<I2...>) :
+            type_traits::modifers::remove_cv_t<Ty1>(container::get<I1>(utility::move(first_args))...),
+            second(container::get<I2>(utility::move(second_args))...) {
         }
     };
 
@@ -778,9 +768,8 @@ namespace rainy::core::container::implements {
          *                    包含第二个元素参数的元组
          */
         template <typename... Args1, typename... Args2>
-        constexpr compressed_pair_impl(utility::piecewise_construct_t, utility::tuple<Args1...> first_args,
-                                       utility::tuple<Args2...> second_args) :
-            compressed_pair_impl(utility::piecewise_construct, utility::move(first_args), utility::move(second_args),
+        constexpr compressed_pair_impl(piecewise_construct_t, tuple<Args1...> first_args, tuple<Args2...> second_args) :
+            compressed_pair_impl(piecewise_construct, utility::move(first_args), utility::move(second_args),
                                  type_traits::helper::index_sequence_for<Args1...>{},
                                  type_traits::helper::index_sequence_for<Args2...>{}) {
         }
@@ -834,15 +823,14 @@ namespace rainy::core::container::implements {
 
     private:
         template <typename... Args1, typename... Args2, std::size_t... I1, std::size_t... I2>
-        constexpr compressed_pair_impl(utility::piecewise_construct_t, utility::tuple<Args1...> first_args,
-                                       utility::tuple<Args2...> second_args, type_traits::helper::index_sequence<I1...>,
-                                       type_traits::helper::index_sequence<I2...>) :
-            first(rainy::utility::get<I1>(utility::move(first_args))...), second(std::get<I2>(utility::move(second_args))...) {
+        constexpr compressed_pair_impl(piecewise_construct_t, tuple<Args1...> first_args, tuple<Args2...> second_args,
+                                       type_traits::helper::index_sequence<I1...>, type_traits::helper::index_sequence<I2...>) :
+            first(container::get<I1>(utility::move(first_args))...), second(container::get<I2>(move(second_args))...) {
         }
     };
 }
 
-namespace rainy::core::container {
+namespace rainy::container {
     /**
      * @brief A compressed pair that optimizes storage when one or both types are empty.
      *        Uses empty base optimization to reduce memory footprint.
@@ -859,11 +847,10 @@ namespace rainy::core::container {
     class compressed_pair
         : public implements::compressed_pair_impl<
               Ty1, Ty2,
-              implements::compressed_pair_switch<Ty1, Ty2,
-                                                 type_traits::implements::is_same_v<type_traits::modifers::remove_cv_t<Ty1>,
-                                                                                    type_traits::modifers::remove_cv_t<Ty2>>,
-                                                 implements::compressed_pair_empty<Ty1>::value,
-                                                 implements::compressed_pair_empty<Ty2>::value>::value> {
+              implements::compressed_pair_switch<
+                  Ty1, Ty2,
+                  type_traits::implements::is_same_v<type_traits::modifers::remove_cv_t<Ty1>, type_traits::modifers::remove_cv_t<Ty2>>,
+                  implements::compressed_pair_empty<Ty1>::value, implements::compressed_pair_empty<Ty2>::value>::value> {
     public:
         using base = implements::compressed_pair_impl<
             Ty1, Ty2,
@@ -1015,10 +1002,6 @@ namespace rainy::core::container {
     constexpr rain_fn swap(compressed_pair<Ty1, Ty2> &left, compressed_pair<Ty1, Ty2> &right) -> void {
         left.swap(right);
     }
-}
-
-namespace rainy::utility {
-    using core::container::compressed_pair;
 }
 
 #endif

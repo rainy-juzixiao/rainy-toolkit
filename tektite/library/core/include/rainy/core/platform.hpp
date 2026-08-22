@@ -3951,7 +3951,7 @@ namespace rainy::core::layer {
     inline constexpr memory_order memory_order_seq_cst = memory_order::seq_cst;
 }
 
-namespace rainy::utility {
+namespace rainy::container {
     /**
      * \lang english
      * @brief Piecewise construction tag type.

@@ -19,7 +19,7 @@
 #include <rainy/core/type_traits.hpp>
 #include <utility>
 
-namespace rainy::core::container {
+namespace rainy::container {
     template <typename Ty1, typename Ty2>
     struct pair {
         using first_type = Ty1;
@@ -135,11 +135,6 @@ namespace rainy::core::container {
         type_traits::properties::is_nothrow_constructible_v<pair<Ty1, Ty2>, const Ty1 &, const Ty2 &>) {
         return pair<Ty1, Ty2>(val1, val2);
     }
-}
-
-namespace rainy::utility {
-    using core::container::pair;
-    using core::container::make_pair;
 }
 
 #endif
