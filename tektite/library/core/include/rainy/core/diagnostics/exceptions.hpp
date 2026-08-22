@@ -350,6 +350,7 @@ namespace rainy::core::exceptions::logic {
 
 namespace rainy::core::exceptions::runtime {
     RAINY_DEFINE_EXCEPTION_WITH_THROW(runtime_error, exception, "runtime error", throw_runtime_error)
+    RAINY_DEFINE_EXCEPTION_WITH_THROW(nullpointer_exception, exception, "detected nullpointer", throw_nullpointer_exception)
     RAINY_DEFINE_EXCEPTION_WITH_THROW(bad_alloc, runtime_error, "bad allocation", throw_bad_alloc)
     RAINY_DEFINE_EXCEPTION_WITH_THROW(bad_cast, runtime_error, "bad cast", throw_bad_cast)
     RAINY_DEFINE_EXCEPTION_WITH_THROW(overflow_error, runtime_error, "overflow error", throw_overflow_error)
