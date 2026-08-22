@@ -36,22 +36,6 @@ TEST_CASE("allocation_result value construction", "[allocator][allocation_result
     REQUIRE(result.count == 42);
 }
 
-TEST_CASE("allocation_result converting construction", "[allocator][allocation_result]") {
-    int dummy{};
-    fm::allocation_result<int*> src{&dummy, 7};
-    fm::allocation_result<const int*> dst{src};
-    REQUIRE(dst.ptr == &dummy);
-    REQUIRE(dst.count == 7);
-}
-
-TEST_CASE("allocation_result move converting construction", "[allocator][allocation_result]") {
-    int dummy{};
-    fm::allocation_result<int*> src{&dummy, 3};
-    fm::allocation_result<const int*> dst{std::move(src)};
-    REQUIRE(dst.ptr == &dummy);
-    REQUIRE(dst.count == 3);
-}
-
 TEST_CASE("allocator type aliases", "[allocator]") {
     using Alloc = fm::allocator<int>;
 

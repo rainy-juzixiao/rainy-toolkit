@@ -30,19 +30,6 @@ namespace rainy::core::memory {
 #else
     template <typename Ptr, typename SizeType = std::size_t>
     struct allocation_result {
-        constexpr allocation_result() noexcept = default;
-        constexpr allocation_result(Ptr ptr, SizeType count) noexcept : ptr(ptr), count(count) {
-        }
-
-        template <typename OtherPtr>
-        constexpr allocation_result(const allocation_result<OtherPtr> &other) noexcept : ptr(other.ptr), count(other.count) {
-        }
-
-        template <typename OtherPtr>
-        constexpr allocation_result(allocation_result<OtherPtr> &&other) noexcept :
-            ptr(utility::move(other.ptr)), count(utility::move(other.count)) {
-        }
-
         Ptr ptr;
         SizeType count;
     };
