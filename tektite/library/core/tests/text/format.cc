@@ -20,6 +20,11 @@
 
 namespace text = rainy::core::text;
 
+namespace rainy::core::text::implements {
+    template <typename Ty, typename CharType>
+    inline constexpr bool has_conflicting_formatter_v<std::optional<Ty>, CharType> = true;
+}
+
 #if RAINY_USING_MSVC
 #pragma warning(push)
 #pragma warning(disable : 4566)
