@@ -23,12 +23,12 @@
 #include <rainy/core/utility/reverse_iterator.hpp>
 #include <tuple>
 
-namespace rainy::collections {
+namespace rainy::core::collections {
     template <typename Ty, std::size_t N>
     class array;
 }
 
-namespace rainy::collections::implements {
+namespace rainy::core::collections::implements {
     template <typename Ty, std::size_t N>
     struct array_traits {
         using type = Ty[N];
@@ -57,7 +57,7 @@ namespace rainy::collections::implements {
     };
 }
 
-namespace rainy::collections {
+namespace rainy::core::collections {
     /**
      * @brief Static array template, similar to std::array but with enhanced encapsulation and functionality.
      *        静态数组模板array，类似于std::array，但是提供更多的封装和功能。
@@ -1023,7 +1023,7 @@ namespace std {
      *           数组大小
      */
     template <typename Ty, std::size_t N>
-    struct tuple_size<::rainy::collections::array<Ty, N>> : std::integral_constant<std::size_t, N> {};
+    struct tuple_size<::rainy::core::collections::array<Ty, N>> : std::integral_constant<std::size_t, N> {};
 
     /**
      * @brief Tuple element type specialization for array.
@@ -1037,7 +1037,7 @@ namespace std {
      *           数组大小
      */
     template <std::size_t Idx, typename Ty, std::size_t N>
-    struct tuple_element<Idx, ::rainy::collections::array<Ty, N>> {
+    struct tuple_element<Idx, ::rainy::core::collections::array<Ty, N>> {
         static_assert(Idx < N, "Index out of bounds");
         using type = Ty;
     };
@@ -1058,7 +1058,7 @@ namespace std {
      *         索引Idx处元素的引用
      */
     template <std::size_t Idx, typename Ty, size_t N>
-    constexpr rain_fn get(::rainy::collections::array<Ty, N> &val) noexcept -> Ty & {
+    constexpr rain_fn get(::rainy::core::collections::array<Ty, N> &val) noexcept -> Ty & {
         static_assert(Idx < N, "array index is within bounds");
         return val[Idx];
     }
@@ -1079,7 +1079,7 @@ namespace std {
      *         索引Idx处元素的右值引用
      */
     template <std::size_t Idx, typename Ty, size_t N>
-    constexpr rain_fn get(::rainy::collections::array<Ty, N> &&val) noexcept -> Ty && {
+    constexpr rain_fn get(::rainy::core::collections::array<Ty, N> &&val) noexcept -> Ty && {
         static_assert(Idx < N, "array index is within bounds");
         return std::move(val[Idx]);
     }
@@ -1100,7 +1100,7 @@ namespace std {
      *         索引Idx处元素的常量引用
      */
     template <std::size_t Idx, typename Ty, size_t N>
-    constexpr rain_fn get(const ::rainy::collections::array<Ty, N> &val) noexcept -> const Ty & {
+    constexpr rain_fn get(const ::rainy::core::collections::array<Ty, N> &val) noexcept -> const Ty & {
         static_assert(Idx < N, "array index is within bounds");
         return val[Idx];
     }
@@ -1121,13 +1121,13 @@ namespace std {
      *         索引Idx处元素的常量右值引用
      */
     template <std::size_t Idx, typename Ty, size_t N>
-    constexpr rain_fn get(const ::rainy::collections::array<Ty, N> &&val) noexcept -> const Ty && {
+    constexpr rain_fn get(const ::rainy::core::collections::array<Ty, N> &&val) noexcept -> const Ty && {
         static_assert(Idx < N, "array index is within bounds");
         return std::move(val[Idx]);
     }
 }
 
-namespace rainy::collections {
+namespace rainy::core::collections {
     /**
      * @brief Combines two arrays element-wise using a binary function.
      *        使用二元函数逐元素组合两个数组。
@@ -1159,5 +1159,11 @@ namespace rainy::collections {
         return arr;
     }
 }
+
+namespace rainy::collections {
+    using rainy::core::collections::array;
+    using rainy::core::collections::zip_with;
+}
+
 
 #endif

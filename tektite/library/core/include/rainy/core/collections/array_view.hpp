@@ -23,7 +23,7 @@
 #include <rainy/core/platform.hpp>
 #include <vector>
 
-namespace rainy::collections::views {
+namespace rainy::core::collections::views {
     /**
      * @brief A non-owning view over a contiguous sequence of elements.
      *        对连续元素序列的非拥有视图。
@@ -697,5 +697,11 @@ namespace rainy::collections::views {
         return array_view<Ty>(array);
     }
 }
+
+namespace rainy::collections::views {
+    using rainy::core::collections::views::array_view;
+    using rainy::core::collections::views::make_array_view;
+}
+
 
 #endif

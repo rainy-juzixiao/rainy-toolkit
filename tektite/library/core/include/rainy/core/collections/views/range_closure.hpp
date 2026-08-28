@@ -17,7 +17,7 @@
 #define RAINY_CORE_COLLECTIONS_VIEWS_RANGE_CLOSURE_HPP
 #include <rainy/core/yesod/collections/views/pipeline.hpp>
 
-namespace rainy::collections::views::implements {
+namespace rainy::core::collections::views::implements {
     template <typename Fx, typename... Types>
     class range_closure : public base<range_closure<Fx, Types...>> {
     public:

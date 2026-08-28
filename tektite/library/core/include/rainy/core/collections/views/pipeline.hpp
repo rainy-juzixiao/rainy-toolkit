@@ -17,7 +17,7 @@
 #define RAINY_CORE_COLLECTIONS_VIEWS_PIPELINE_HPP
 #include <rainy/core/type_traits.hpp>
 
-namespace rainy::collections::views::implements {
+namespace rainy::core::collections::views::implements {
     template <typename _Derived>
     struct base {};
 
@@ -87,7 +87,7 @@ namespace rainy::collections::views::implements {
     pipeline(A, B) -> pipeline<A, B>;
 }
 
-namespace rainy::collections::views::implements {
+namespace rainy::core::collections::views::implements {
 #if RAINY_HAS_CXX20
     template <typename L, typename R, enable_if_range_adaptor_closure<L> = 0, enable_if_range_adaptor_closure<R> = 0,
               typename = type_traits::other_trans::enable_if_t<std::is_constructible<typename std::remove_cv<L>::type, L>::value &&

@@ -19,7 +19,7 @@
 #include <rainy/core/type_traits.hpp>
 #include <utility>
 
-namespace rainy::container {
+namespace rainy::core::container {
     template <typename Ty1, typename Ty2>
     struct pair {
         using first_type = Ty1;
@@ -136,5 +136,11 @@ namespace rainy::container {
         return pair<Ty1, Ty2>(val1, val2);
     }
 }
+
+namespace rainy::container {
+    using rainy::core::container::pair;
+    using rainy::core::container::make_pair;
+}
+
 
 #endif

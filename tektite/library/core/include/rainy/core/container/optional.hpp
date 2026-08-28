@@ -26,7 +26,7 @@
 #pragma warning(disable : 26495)
 #endif
 
-namespace rainy::container {
+namespace rainy::core::container {
     using std::nullopt;
     using std::nullopt_t;
 
@@ -52,7 +52,7 @@ namespace rainy::core::exceptions::runtime {
     // clang-format on
 }
 
-namespace rainy::container::implements {
+namespace rainy::core::container::implements {
 #if RAINY_HAS_CXX20
     template <typename UTy>
     concept is_derived_from_optional =
@@ -322,7 +322,7 @@ namespace rainy::container::implements {
     };
 }
 
-namespace rainy::container {
+namespace rainy::core::container {
     template <typename Ty>
     class optional final : private annotations::smf_control::control<implements::optional_base<Ty>> {
     public:
@@ -702,7 +702,7 @@ namespace rainy::container {
     }
 }
 
-namespace rainy::container {
+namespace rainy::core::container {
     template <typename Ty, typename UTy>
     constexpr bool operator==(const optional<Ty> &left, const optional<UTy> &right) {
         if (left.has_value() != right.has_value()) {
@@ -903,5 +903,24 @@ namespace rainy::container {
 #if RAINY_USING_MSVC
 #pragma warning(pop)
 #endif
+
+namespace rainy::container {
+    using rainy::core::container::optional;
+    using rainy::core::container::nullopt;
+    using rainy::core::container::nullopt_t;
+    using rainy::core::container::make_optional;
+    using rainy::core::container::swap;
+    using rainy::core::container::operator==;
+    using rainy::core::container::operator<;
+#if !RAINY_HAS_CXX20
+    using rainy::core::container::operator!=;
+    using rainy::core::container::operator>;
+    using rainy::core::container::operator<=;
+    using rainy::core::container::operator>=;
+#else
+    using rainy::core::container::operator<=>;
+#endif
+}
+
 
 #endif

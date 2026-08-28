@@ -20,7 +20,7 @@
 #include <rainy/core/yesod/collections/views/pipeline.hpp>
 #include <rainy/core/yesod/collections/views/range_closure.hpp>
 
-namespace rainy::collections::views {
+namespace rainy::core::collections::views {
     /**
      * @brief CRTP base class for implementing view interfaces.
      *       用于实现视图接口的CRTP基类。
@@ -299,4 +299,9 @@ namespace rainy::collections::views {
         }
     };
 }
+namespace rainy::collections::views {
+    using rainy::core::collections::views::view_interface;
+}
+
+
 #endif
