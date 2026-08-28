@@ -357,7 +357,7 @@ namespace rainy::type_traits::other_trans {
      */
     template <typename Head, typename... Tail>
     struct type_list_pop_back<type_list<Head, Tail...>> {
-        using type = typename type_list_push_front<typename type_list_pop_back<type_list<Tail...>>::type, Head>::type;
+        using type = typename type_list_push_front<Head, typename type_list_pop_back<type_list<Tail...>>::type>::type;
     };
 
     /**

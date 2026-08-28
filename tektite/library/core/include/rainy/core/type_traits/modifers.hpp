@@ -309,7 +309,7 @@ namespace rainy::type_traits::modifers {
      */
     template <typename Ty>
     struct add_const_lvalue_ref {
-        using type = typename add_lvalue_reference<typename implements::_add_const<typename remove_reference<Ty>::type>::type>::type;
+        using type = typename add_lvalue_reference<const remove_reference_t<Ty>>::type;
     };
 
     /**
@@ -331,7 +331,7 @@ namespace rainy::type_traits::modifers {
      */
     template <typename Ty>
     struct add_const_rvalue_ref {
-        using type = typename add_rvalue_reference<typename implements::_add_const<typename remove_reference<Ty>::type>::type>::type;
+        using type = typename add_rvalue_reference<const remove_reference_t<Ty>>::type;
     };
 
     /**

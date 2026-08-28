@@ -318,7 +318,7 @@ namespace rainy::type_traits::properties {
      *            要检查的类型
      */
     template <typename Ty>
-    RAINY_CONSTEXPR_BOOL has_adl_swap_v = properties::has_adl_swap_v<Ty>;
+    RAINY_CONSTEXPR_BOOL has_adl_swap_v = type_traits::implements::has_adl_swap<Ty>;
 
     /**
      * @brief Type template for checking if type Ty has an ADL swap.
