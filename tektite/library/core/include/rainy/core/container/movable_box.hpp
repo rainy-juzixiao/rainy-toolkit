@@ -45,8 +45,9 @@ namespace rainy::core::container {
             }
         }
 
-        template <type_traits::other_trans::enable_if_t<type_traits::properties::is_copy_constructible_v<Ty>, int> = 0>
-        constexpr movable_box(const movable_box &right) : is_valid_{right.is_valid_} {
+        constexpr movable_box(const movable_box &right) noexcept(
+            type_traits::properties::is_nothrow_copy_constructible_v<Ty>)
+            requires(type_traits::properties::is_copy_constructible_v<Ty>) : is_valid_{right.is_valid_} {
             if (right.is_valid_) {
                 utility::construct_in_place(value_, static_cast<const Ty &>(right.value_));
             }
@@ -58,10 +59,10 @@ namespace rainy::core::container {
             }
         }
 
-        template <typename UTy = Ty,type_traits::other_trans::enable_if_t<type_traits::properties::is_copyable_v<UTy>, int> = 0>
         constexpr movable_box &operator=(const movable_box &right) noexcept(
-            type_traits::properties::is_nothrow_copy_constructible_v<UTy> &&
-            type_traits::properties::is_nothrow_copy_assignable_v<UTy>) {
+            type_traits::properties::is_nothrow_copy_constructible_v<Ty> &&
+            type_traits::properties::is_nothrow_copy_assignable_v<Ty>)
+            requires(type_traits::properties::is_copyable_v<Ty>) {
             if (is_valid_) {
                 if (right.is_valid_) {
                     static_cast<Ty &>(value_) = static_cast<const Ty &>(right.value_);

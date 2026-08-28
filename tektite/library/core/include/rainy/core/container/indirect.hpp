@@ -35,8 +35,8 @@ namespace rainy::core::container {
 
         static_assert(type_traits::composite_types::is_object_v<Ty>, "Ty must be a object");
         static_assert(!type_traits::composite_types::is_reference_v<Ty>, "Ty cannot be a reference type");
-        static_assert(!(type_traits::properties::is_const_v<type_traits::reference_modify::remove_reference_t<Ty>> ||
-                        type_traits::properties::is_volatile_v<type_traits::reference_modify::remove_reference_t<Ty>>),
+        static_assert(!(type_traits::properties::is_const_v<type_traits::modifers::remove_reference_t<Ty>> ||
+                        type_traits::properties::is_volatile_v<type_traits::modifers::remove_reference_t<Ty>>),
                       "Ty cannot be a const/volatile type");
         static_assert(!type_traits::type_relations::is_same_v<Ty, std::in_place_t>, "Ty cannot be std::in_place_t");
         static_assert(!type_traits::primary_types::is_specialization_v<Ty, std::in_place_type_t>,
