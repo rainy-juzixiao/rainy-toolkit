@@ -21,6 +21,7 @@
 #include <bit>
 #include <rainy/core/platform.hpp>
 #include <rainy/core/type_traits/limits.hpp>
+#include <rainy/core/type_traits/properties.hpp>
 
 namespace rainy::utility {
     /**

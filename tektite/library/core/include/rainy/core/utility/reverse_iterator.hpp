@@ -16,6 +16,7 @@
 #ifndef RAINY_CORE_YESOD_REVERSE_ITERATOR_HPP
 #define RAINY_CORE_YESOD_REVERSE_ITERATOR_HPP
 #include <rainy/core/type_traits/iter_traits.hpp>
+#include <rainy/core/type_traits/primary_types.hpp>
 
 namespace rainy::utility {
     template <typename Iter>
