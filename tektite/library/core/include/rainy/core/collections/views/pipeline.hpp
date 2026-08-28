@@ -38,11 +38,17 @@ namespace rainy::core::collections::views::implements {
 
     template <typename Ty>
     struct is_range_adaptor_closure_object<
-        Ty, std::void_t<decltype(derived_from_range_adaptor_closure(utility::declval<base<typename std::remove_cv<Ty>::type> &>()))>>
-        : std::integral_constant<bool, !is_range<typename std::remove_cv<Ty>::type>::value> {};
+        Ty, std::void_t<decltype(derived_from_range_adaptor_closure(utility::declval<
+                base<typename std::remove_cv<typename std::remove_reference<Ty>::type>::type> &>()))>>
+        : std::integral_constant<bool,
+                                 !is_range<typename std::remove_cv<typename std::remove_reference<Ty>::type>::type>::value> {};
 
     template <typename Ty>
     using enable_if_range_adaptor_closure = type_traits::other_trans::enable_if_t<is_range_adaptor_closure_object<Ty>::value, int>;
+
+    template <typename Ty>
+    using enable_if_not_range_adaptor_closure =
+        type_traits::other_trans::enable_if_t<!is_range_adaptor_closure_object<Ty>::value, int>;
 
     template <typename ClosureLeft, typename ClosureRight>
     struct pipeline : base<pipeline<ClosureLeft, ClosureRight>> {
@@ -96,7 +102,7 @@ namespace rainy::core::collections::views::implements {
         return pipeline{utility::forward<L>(l), utility::forward<R>(r)};
     }
 
-    template <typename L, typename R, enable_if_range_adaptor_closure<R> = 0,
+    template <typename L, typename R, enable_if_range_adaptor_closure<R> = 0, enable_if_not_range_adaptor_closure<L> = 0,
               typename = decltype(utility::declval<R &&>()(utility::declval<L &&>()))>
     constexpr auto operator|(L &&l, R &&r) {
         return utility::forward<R>(r)(utility::forward<L>(l));

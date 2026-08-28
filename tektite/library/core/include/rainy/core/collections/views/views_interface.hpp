@@ -17,8 +17,8 @@
 #define RAINY_CORE_COLLECTIONS_VIEWS_VIEWS_INTERFACE_HPP
 #include <rainy/core/platform.hpp>
 #include <rainy/core/type_traits.hpp>
-#include <rainy/core/yesod/collections/views/pipeline.hpp>
-#include <rainy/core/yesod/collections/views/range_closure.hpp>
+#include <rainy/core/collections/views/pipeline.hpp>
+#include <rainy/core/collections/views/range_closure.hpp>
 
 namespace rainy::core::collections::views {
     /**
@@ -39,7 +39,7 @@ namespace rainy::core::collections::views {
     class view_interface {
     public:
         static_assert(type_traits::primary_types::is_class_v<Derived> &&
-                      type_traits::type_relations::is_same_v<Derived, type_traits::cv_modify::remove_cv_t<Derived>>);
+                      type_traits::type_relations::is_same_v<Derived, type_traits::modifers::remove_cv_t<Derived>>);
 
         /**
          * @brief Checks if the view is empty.
@@ -125,7 +125,7 @@ namespace rainy::core::collections::views {
          *         如果视图非空则为true，否则为false
          */
         constexpr explicit operator bool() const {
-            return !empty(cast_to_derived());
+            return !cast_to_derived().empty();
         }
 
         /**
@@ -138,10 +138,9 @@ namespace rainy::core::collections::views {
          *         指向第一个元素的指针
          */
         template <typename D = Derived,
-                  typename = decltype(utility::to_address(utility::begin(utility::declval<view_interface<D>>().cast_to_derived())))>
+                  typename = decltype(utility::begin(utility::declval<view_interface<D>>().cast_to_derived()))>
         RAINY_NODISCARD constexpr rain_fn data() -> auto {
-            static_assert(type_traits::extras::iterators::is_contiguous_iterator_v<type_traits::extras::iterators::iterator_t<D>>);
-            return utility::to_address(utility::begin(cast_to_derived()));
+            return std::to_address(utility::begin(cast_to_derived()));
         }
 
         /**
@@ -154,10 +153,9 @@ namespace rainy::core::collections::views {
          *         指向第一个元素的常量指针
          */
         template <typename D = Derived,
-                  typename = decltype(utility::to_address(utility::begin(utility::declval<view_interface<D>>().cast_to_derived())))>
+                  typename = decltype(utility::begin(utility::declval<view_interface<D>>().cast_to_derived()))>
         RAINY_NODISCARD constexpr rain_fn data() const -> auto {
-            static_assert(type_traits::extras::iterators::is_contiguous_iterator_v<type_traits::extras::iterators::iterator_t<D>>);
-            return utility::to_address(utility::begin(cast_to_derived()));
+            return std::to_address(utility::begin(cast_to_derived()));
         }
 
         /**
@@ -169,7 +167,7 @@ namespace rainy::core::collections::views {
          */
         RAINY_NODISCARD constexpr rain_fn size() -> auto {
             auto &self = cast_to_derived();
-            return utility::distance(utility::begin(self), utility::end(self));
+            return std::distance(utility::begin(self), utility::end(self));
         }
 
         /**
@@ -181,7 +179,7 @@ namespace rainy::core::collections::views {
          */
         RAINY_NODISCARD constexpr rain_fn size() const -> auto {
             auto &self = cast_to_derived();
-            return utility::distance(utility::begin(self), utility::end(self));
+            return std::distance(utility::begin(self), utility::end(self));
         }
 
         /**
