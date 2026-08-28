@@ -21,7 +21,7 @@ using namespace rainy::type_traits::type_relations;
 namespace testing {
     struct base {};
     struct derived : base {};
-} // namespace testing
+}
 
 TEST_CASE("is_base_of", "[type_traits][type_relations]") {
     STATIC_REQUIRE(is_base_of_v<testing::base, testing::derived>);

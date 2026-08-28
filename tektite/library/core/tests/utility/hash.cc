@@ -65,7 +65,7 @@ namespace testing {
     struct int_wrapper {
         int value;
     };
-} // namespace testing
+}
 
 template <>
 struct rainy::utility::hash<testing::int_wrapper> {

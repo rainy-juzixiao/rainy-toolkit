@@ -23,7 +23,7 @@ using rainy::type_traits::other_trans::underlying_type_t;
 
 namespace testing {
     enum class scoped : unsigned char {};
-} // namespace testing
+}
 
 TEST_CASE("conjunction", "[type_traits][logical]") {
     STATIC_REQUIRE(conjunction<>::value);

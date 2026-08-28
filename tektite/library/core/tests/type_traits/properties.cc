@@ -61,7 +61,7 @@ namespace testing {
         left.value = right.value;
         right.value = temp;
     }
-} // namespace testing
+}
 
 TEST_CASE("type properties: cv and sign", "[type_traits][properties]") {
     STATIC_REQUIRE(is_const_v<const int>);

@@ -68,7 +68,7 @@ namespace testing {
         move_only(const move_only &) = delete;
         move_only &operator=(const move_only &) = delete;
     };
-} // namespace testing
+}
 
 TEST_CASE("movable_box holds move-only types", "[container][movable_box]") {
     movable_box<testing::move_only> box(std::in_place, 42);

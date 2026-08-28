@@ -37,7 +37,7 @@ namespace testing {
             return 2;
         }
     };
-} // namespace testing
+}
 
 TEST_CASE("polymorphic construction", "[container][polymorphic]") {
     polymorphic<testing::base> value;

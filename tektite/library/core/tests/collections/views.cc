@@ -90,7 +90,7 @@ namespace testing {
             return out;
         }
     };
-} // namespace testing
+}
 
 TEST_CASE("range_closure applies a stateless functor with captures", "[collections][views]") {
     std::vector<int> data{1, 2, 3, 4};

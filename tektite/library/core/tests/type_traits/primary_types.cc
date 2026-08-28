@@ -35,7 +35,7 @@ namespace testing {
     };
     template <typename...>
     struct variadic_template {};
-} // namespace testing
+}
 
 TEST_CASE("fundamental type categories", "[type_traits][primary_types]") {
     STATIC_REQUIRE(is_void_v<void>);
