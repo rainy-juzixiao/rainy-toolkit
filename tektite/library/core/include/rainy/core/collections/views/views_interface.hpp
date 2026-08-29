@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 rainy-juzixiao
+ * Copyright 2026 rainy-juzixiao
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,10 +15,10 @@
  */
 #ifndef RAINY_CORE_COLLECTIONS_VIEWS_VIEWS_INTERFACE_HPP
 #define RAINY_CORE_COLLECTIONS_VIEWS_VIEWS_INTERFACE_HPP
+#include <rainy/core/collections/views/implements/pipeline.hpp>
+#include <rainy/core/collections/views/implements/range_closure.hpp>
 #include <rainy/core/platform.hpp>
 #include <rainy/core/type_traits.hpp>
-#include <rainy/core/collections/views/pipeline.hpp>
-#include <rainy/core/collections/views/range_closure.hpp>
 
 namespace rainy::core::collections::views {
     /**
@@ -297,6 +297,7 @@ namespace rainy::core::collections::views {
         }
     };
 }
+
 namespace rainy::collections::views {
     using rainy::core::collections::views::view_interface;
 }

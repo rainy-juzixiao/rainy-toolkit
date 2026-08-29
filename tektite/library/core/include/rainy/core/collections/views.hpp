@@ -16,8 +16,8 @@
 #ifndef RAINY_CORE_YESOD_COLLECTIONS_VIEWS_HPP
 #define RAINY_CORE_YESOD_COLLECTIONS_VIEWS_HPP
 
-#include <rainy/core/collections/views/pipeline.hpp>
-#include <rainy/core/collections/views/range_closure.hpp>
+#include <rainy/core/collections/views/implements/pipeline.hpp>
+#include <rainy/core/collections/views/implements/range_closure.hpp>
 #include <rainy/core/collections/views/views_interface.hpp>
 
 #endif
