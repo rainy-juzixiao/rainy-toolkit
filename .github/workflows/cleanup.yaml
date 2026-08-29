@@ -24,7 +24,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          repo-url: ${{ github.repository }}
+          repo-url: https://github.com/rainy-juzixiao/rainy-toolkit
           max-days: 150
           dry-run: false
 
