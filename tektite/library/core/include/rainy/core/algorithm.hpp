@@ -17,5 +17,6 @@
 #define RAINY_CORE_ALGORITHM_HPP
 #include <rainy/core/algorithm/basic_algorithm.hpp>
 #include <rainy/core/algorithm/replace.hpp>
+#include <rainy/core/algorithm/nonmodifying.hpp>
 
 #endif
