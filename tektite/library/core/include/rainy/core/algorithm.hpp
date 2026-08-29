@@ -21,5 +21,6 @@
 #include <rainy/core/algorithm/modifying.hpp>
 #include <rainy/core/algorithm/partitioning.hpp>
 #include <rainy/core/algorithm/heap.hpp>
+#include <rainy/core/algorithm/sorting.hpp>
 
 #endif
