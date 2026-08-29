@@ -785,6 +785,7 @@ namespace rainy::algorithm {
     using core::algorithm::none_of;
     using core::algorithm::swap_ranges;
     using core::algorithm::transform;
+    using core::algorithm::upper_bound;
     using core::algorithm::uninitialized_move_backward;
 }
 
