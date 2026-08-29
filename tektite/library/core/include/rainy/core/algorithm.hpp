@@ -19,5 +19,6 @@
 #include <rainy/core/algorithm/replace.hpp>
 #include <rainy/core/algorithm/nonmodifying.hpp>
 #include <rainy/core/algorithm/modifying.hpp>
+#include <rainy/core/algorithm/partitioning.hpp>
 
 #endif
