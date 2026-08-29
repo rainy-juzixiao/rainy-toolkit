@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <rainy/foundation/os/dynamic_library/module_context.hpp>
+#include <rainy/foundation/os/module_context.hpp>
 
 namespace rainy::foundation::dynamic_library {
     struct module_context::module_context_private {

@@ -1,5 +1,5 @@
+#include <rainy/foundation/os/module_context.hpp>
 #include <catch2/catch_all.hpp>
-#include <rainy/foundation/os/dynamic_library/module_context.hpp>
 
 #include <string>
 

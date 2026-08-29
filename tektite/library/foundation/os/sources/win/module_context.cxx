@@ -17,7 +17,7 @@
 #include <rainy/core/text/string.hpp>
 #include <rainy/core/text/wstring_convert.hpp>
 
-#include <rainy/foundation/os/dynamic_library/module_context.hpp>
+#include <rainy/foundation/os/module_context.hpp>
 #include <string>
 #include <vector>
 #include <windows.h>

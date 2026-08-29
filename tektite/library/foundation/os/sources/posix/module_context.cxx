@@ -16,9 +16,9 @@
 #include <rainy/core/platform.hpp>
 #include <rainy/core/text/string.hpp>
 
+#include <rainy/foundation/os/module_context.hpp>
 #include <dlfcn.h>
 #include <filesystem>
-#include <rainy/foundation/os/dynamic_library/module_context.hpp>
 
 namespace rainy::foundation::dynamic_library::implements {
     static bool is_absolute_path(const core::text::string_view file_name) {
