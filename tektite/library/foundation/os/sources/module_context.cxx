@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 #include <rainy/foundation/os/dynamic_library/module_context.hpp>
-#include <filesystem>
 
 namespace rainy::foundation::dynamic_library {
     struct module_context::module_context_private {
@@ -33,7 +32,6 @@ namespace rainy::foundation::dynamic_library {
     }
 
     module_context::module_context(const core::text::string_view module_path, const bool load) noexcept {
-        namespace fs = std::filesystem;
         rainy_const ctx = create_ctx();
         if (load) {
             ctx->handle = implements::try_to_get_module(module_path, true);
@@ -90,7 +88,6 @@ namespace rainy::foundation::dynamic_library {
     }
 
     bool module_context::load(const core::text::string_view module_path) noexcept {
-        namespace fs = std::filesystem;
         release();
         if (!private_) {
             this->private_ = create_ctx();
@@ -104,7 +101,6 @@ namespace rainy::foundation::dynamic_library {
     }
 
     bool module_context::try_get_module(const core::text::string_view module_path) noexcept {
-        namespace fs = std::filesystem;
         release();
         if (!private_) {
             this->private_ = create_ctx();

@@ -41,6 +41,13 @@ namespace testing {
     };
 } // namespace testing
 
+template <>
+struct std::hash<rainy::core::text::hashed_string> {
+    std::size_t operator()(const rainy::core::text::hashed_string &key) const noexcept {
+        return key.hash_code();
+    }
+};
+
 namespace fact = rainy::foundation::fact;
 
 using product_factory = fact::unsynchronized_factory<testing::product, testing::unordered_map_storage>;

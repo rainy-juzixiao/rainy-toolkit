@@ -90,7 +90,7 @@ namespace rainy::foundation::concurrency {
 
     template <typename Fx, typename Arg>
     struct then_result {
-        using raw = std::invoke_result_t<type_traits::other_trans::decay_t<Fx>, Arg>;
+        using raw = std::invoke_result_t<std::decay_t<Fx>, Arg>;
         using type = typename is_future<raw>::inner; // 展平一层
         using is_wrapped = is_future<raw>;
     };
@@ -608,14 +608,14 @@ namespace rainy::foundation::concurrency {
             return valid() && state_->is_ready();
         }
 
-        template <typename Fx, typename Raw = std::invoke_result_t<type_traits::other_trans::decay_t<Fx>, Ty>,
+        template <typename Fx, typename Raw = std::invoke_result_t<std::decay_t<Fx>, Ty>,
                   typename UTy = typename is_future<Raw>::inner>
         rain_fn then(Fx &&fx) -> monad_future<UTy> {
             submit_fn inline_sub = [](functional::delegate<void()> callback) { callback(); };
             return then_impl<UTy, Raw>(utility::move(inline_sub), utility::forward<Fx>(fx));
         }
 
-        template <typename Exec, typename Fx, typename Raw = std::invoke_result_t<type_traits::other_trans::decay_t<Fx>, Ty>,
+        template <typename Exec, typename Fx, typename Raw = std::invoke_result_t<std::decay_t<Fx>, Ty>,
                   typename UTy = typename is_future<Raw>::inner>
         rain_fn then(Exec &&exec, Fx &&fx) -> monad_future<UTy> {
             return then_impl<UTy, Raw>(wrap_executor(utility::forward<Exec>(exec)), utility::forward<Fx>(fx));
@@ -677,7 +677,7 @@ namespace rainy::foundation::concurrency {
 
         template <typename Exec>
         static submit_fn wrap_executor(Exec &exec) {
-            if constexpr (std::is_same_v<type_traits::other_trans::decay_t<Exec>, submit_fn>) {
+            if constexpr (std::is_same_v<std::decay_t<Exec>, submit_fn>) {
                 return exec;
             } else {
                 return wrap_executor_ref(exec);
@@ -686,7 +686,7 @@ namespace rainy::foundation::concurrency {
 
         template <typename Exec>
         static submit_fn wrap_executor(Exec &&exec) {
-            if constexpr (std::is_same_v<type_traits::other_trans::decay_t<Exec>, submit_fn>) {
+            if constexpr (std::is_same_v<std::decay_t<Exec>, submit_fn>) {
                 return utility::move(exec);
             } else {
                 return wrap_executor_owned(utility::forward<Exec>(exec));
@@ -743,7 +743,7 @@ namespace rainy::foundation::concurrency {
         }
 
         template <typename Exec, typename Fx,
-                  typename Raw = std::invoke_result_t<type_traits::other_trans::decay_t<Fx>, std::exception_ptr>,
+                  typename Raw = std::invoke_result_t<std::decay_t<Fx>, std::exception_ptr>,
                   typename Unwrapped = typename is_future<Raw>::inner>
         monad_future catch_error_impl(Exec &&exec_or_fn, Fx &&handler) {
             static_assert(std::is_same_v<Unwrapped, Ty> || std::is_void_v<Ty>,
@@ -805,7 +805,7 @@ namespace rainy::foundation::concurrency {
             return monad_future<Ty>(utility::move(next));
         }
 
-        template <typename Exec, typename Fx, typename Raw = std::invoke_result_t<type_traits::other_trans::decay_t<Fx>>>
+        template <typename Exec, typename Fx, typename Raw = std::invoke_result_t<std::decay_t<Fx>>>
         monad_future<Ty> finally_impl(Exec &&exec_or_fn, Fx &&fx) {
             ensure_valid();
             auto next = make_shared_state<Ty>();
@@ -916,7 +916,7 @@ namespace rainy::foundation::concurrency {
             return state_->wait_until(abs);
         }
 
-        template <typename Fx, typename Raw = std::invoke_result_t<type_traits::other_trans::decay_t<Fx>, const Ty &>,
+        template <typename Fx, typename Raw = std::invoke_result_t<std::decay_t<Fx>, const Ty &>,
                   typename UTy = typename is_future<Raw>::inner>
         monad_future<UTy> then(Fx &&fx) const {
             ensure_valid();
@@ -1382,7 +1382,7 @@ namespace rainy::foundation::concurrency {
         packaged_task() noexcept = default;
 
         template <typename Fx, typename = type_traits::other_trans::enable_if_t<
-                                   !std::is_same_v<type_traits::other_trans::decay_t<Fx>, packaged_task>>>
+                                   !std::is_same_v<std::decay_t<Fx>, packaged_task>>>
         explicit packaged_task(Fx &&fx) : func_(utility::forward<Fx>(fx)), state_(make_shared_state<Rx>()) { // NOLINT
         }
 

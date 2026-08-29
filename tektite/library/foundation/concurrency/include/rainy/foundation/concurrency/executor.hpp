@@ -161,12 +161,12 @@ namespace rainy::foundation::concurrency::implements {
 
     template <async_category Category, typename Fx, typename... Args>
     rain_fn async_impl(const launch policy, Fx &&fx, Args &&...args)
-        -> future<type_traits::properties::invoke_result_t<type_traits::other_trans::decay_t<Fx>,
-                                                                type_traits::other_trans::decay_t<Args>...>> {
-        using Rx = type_traits::properties::invoke_result_t<type_traits::other_trans::decay_t<Fx>,
-                                                                 type_traits::other_trans::decay_t<Args>...>;
+        -> future<std::invoke_result_t<std::decay_t<Fx>,
+                                                                std::decay_t<Args>...>> {
+        using Rx = std::invoke_result_t<std::decay_t<Fx>,
+                                                                 std::decay_t<Args>...>;
         if ((policy & launch::async) == launch::async) {
-            packaged_task<Rx(type_traits::other_trans::decay_t<Args>...)> task(utility::forward<Fx>(fx));
+            packaged_task<Rx(std::decay_t<Args>...)> task(utility::forward<Fx>(fx));
             auto fut = task.get_future();
             if constexpr (Category == async_category::isolated) {
                 get_global_dedicated_executor().submit(utility::move(task), utility::forward<Args>(args)...);
@@ -201,43 +201,43 @@ namespace rainy::foundation::concurrency::implements {
 namespace rainy::foundation::concurrency {
     template <
         typename Fx, typename... Args,
-        type_traits::other_trans::enable_if_t<type_traits::properties::is_invocable_v<type_traits::other_trans::decay_t<Fx>,
-                                                                                           type_traits::other_trans::decay_t<Args>...>,
+        type_traits::other_trans::enable_if_t<type_traits::properties::is_invocable_v<std::decay_t<Fx>,
+                                                                                           std::decay_t<Args>...>,
                                               int> = 0>
     rain_fn async(const launch policy, Fx &&fx, Args &&...args)
-        -> future<type_traits::properties::invoke_result_t<type_traits::other_trans::decay_t<Fx>,
-                                                                type_traits::other_trans::decay_t<Args>...>> {
+        -> future<std::invoke_result_t<std::decay_t<Fx>,
+                                                                std::decay_t<Args>...>> {
         return implements::async_impl<implements::async_category::pool>(policy, utility::forward<Fx>(fx),
                                                                         utility::forward<Args>(args)...);
     }
 
     template <
         typename Fx, typename... Args,
-        type_traits::other_trans::enable_if_t<type_traits::properties::is_invocable_v<type_traits::other_trans::decay_t<Fx>,
-                                                                                           type_traits::other_trans::decay_t<Args>...>,
+        type_traits::other_trans::enable_if_t<type_traits::properties::is_invocable_v<std::decay_t<Fx>,
+                                                                                           std::decay_t<Args>...>,
                                               int> = 0>
     rain_fn async(Fx &&fx, Args &&...args)
-        -> future<type_traits::properties::invoke_result_t<type_traits::other_trans::decay_t<Fx>,
-                                                                type_traits::other_trans::decay_t<Args>...>> {
+        -> future<std::invoke_result_t<std::decay_t<Fx>,
+                                                                std::decay_t<Args>...>> {
         return async(launch::async | launch::deferred, utility::forward<Fx>(fx), utility::forward<Args>(args)...);
     }
 
     template <typename Fx, typename... Args>
     rain_fn async_isolated(const launch policy, Fx &&fx, Args &&...args)
-        -> future<type_traits::properties::invoke_result_t<type_traits::other_trans::decay_t<Fx>,
-                                                                type_traits::other_trans::decay_t<Args>...>> {
+        -> future<std::invoke_result_t<std::decay_t<Fx>,
+                                                                std::decay_t<Args>...>> {
         return implements::async_impl<implements::async_category::isolated>(policy, utility::forward<Fx>(fx),
                                                                             utility::forward<Args>(args)...);
     }
 
     template <
         typename Fx, typename... Args,
-        type_traits::other_trans::enable_if_t<type_traits::properties::is_invocable_v<type_traits::other_trans::decay_t<Fx>,
-                                                                                           type_traits::other_trans::decay_t<Args>...>,
+        type_traits::other_trans::enable_if_t<type_traits::properties::is_invocable_v<std::decay_t<Fx>,
+                                                                                           std::decay_t<Args>...>,
                                               int> = 0>
     rain_fn async_isolated(Fx &&fx, Args &&...args)
-        -> future<type_traits::properties::invoke_result_t<type_traits::other_trans::decay_t<Fx>,
-                                                                type_traits::other_trans::decay_t<Args>...>> {
+        -> future<std::invoke_result_t<std::decay_t<Fx>,
+                                                                std::decay_t<Args>...>> {
         return async_isolated(launch::async | launch::deferred, utility::forward<Fx>(fx), utility::forward<Args>(args)...);
     }
 }

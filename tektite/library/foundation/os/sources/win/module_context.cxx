@@ -59,7 +59,7 @@ namespace rainy::foundation::dynamic_library::implements {
             const std::vector<core::text::wstring> suffix_list = {L".dll"};
             // module_path 转宽字符，用于前后缀判断
             core::text::wstring_convert<core::text::codecvt_utf8<wchar_t>, core::text::basic_string, wchar_t,
-                                              std::char_traits, core::text::wstring::allocator_type, core::text::string::allocator_type>
+                                              core::text::char_traits, core::text::wstring::allocator_type, core::text::string::allocator_type>
                 converter;
             const core::text::wstring wide_path = converter.from_bytes(module_path.begin(), module_path.end());
             rainy_let retry = true;

@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef RAINY_FOUNDATION_DYNAMIC_LIBRARY_MODULE_module_context_HPP
-#define RAINY_FOUNDATION_DYNAMIC_LIBRARY_MODULE_module_context_HPP // NOLINT
+#ifndef RAINY_FOUNDATION_DYNAMIC_LIBRARY_MODULE_MODULE_CONTEXT_HPP
+#define RAINY_FOUNDATION_DYNAMIC_LIBRARY_MODULE_MODULE_CONTEXT_HPP // NOLINT
 #include <rainy/core/platform.hpp>
 #include <rainy/core/text/string_view.hpp>
 

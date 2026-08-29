@@ -108,7 +108,7 @@ namespace rainy::foundation::fact {
             return storage.end();
         }
 
-        template <typename... Args, type_traits::other_trans::enable_if_t<std::is_invocable_r_v<product *, type_traits::other_trans::decay_t<Fx>, Args...>, int> = 0>
+        template <typename... Args, type_traits::other_trans::enable_if_t<type_traits::properties::is_invocable_r_v<product *, type_traits::other_trans::decay_t<Fx>, Args...>, int> = 0>
         projection_holder make_product(const product_key &id, Args &&...args) const {
             if (const auto res = find(id); res != end()) {
                 return projection_holder{res->second(utility::forward<Args>(args)...)};
@@ -269,7 +269,7 @@ namespace rainy::foundation::fact {
             return impl_.end();
         }
 
-        template <typename... Args, type_traits::other_trans::enable_if_t<std::is_invocable_r_v<product *, type_traits::other_trans::decay_t<Fx>, Args...>, int> = 0>
+        template <typename... Args, type_traits::other_trans::enable_if_t<type_traits::properties::is_invocable_r_v<product *, type_traits::other_trans::decay_t<Fx>, Args...>, int> = 0>
         projection_holder make_product(const product_key &id, Args &&...args) const {
             return impl_.make_product(id, utility::forward<Args>(args)...);
         }
@@ -397,10 +397,10 @@ namespace rainy::foundation::fact::implements {
 
         template <typename... Args>
         using is_constructible_from_factory =
-            type_traits::helper::bool_constant<std::is_invocable_r_v<projection_holder, creater, Args...>>;
+            type_traits::helper::bool_constant<type_traits::properties::is_invocable_r_v<projection_holder, creater, Args...>>;
 
         using is_default_constructible_from_factory =
-            type_traits::helper::bool_constant<std::is_invocable_r_v<projection_holder, creater>>;
+            type_traits::helper::bool_constant<type_traits::properties::is_invocable_r_v<projection_holder, creater>>;
 
         template <typename... Args>
         static projection_holder make_product(const factory &factory, const product_key &id, Args &&...args) {

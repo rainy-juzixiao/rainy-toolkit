@@ -39,7 +39,7 @@ namespace rainy::core::text {
      * @tparam Traits The character traits type
      *                字符traits类型
      */
-    template <typename CharType, typename Traits = std::char_traits<CharType>>
+    template <typename CharType, typename Traits = char_traits<CharType>>
     class basic_hashed_string {
     public:
         using value_type = CharType;
@@ -83,10 +83,6 @@ namespace rainy::core::text {
 
         constexpr operator const_pointer() const noexcept {
             return str;
-        }
-
-        constexpr operator std::basic_string_view<value_type>() const noexcept {
-            return {str, size_};
         }
 
         RAINY_NODISCARD constexpr std::size_t hash_code() const noexcept {
@@ -168,17 +164,6 @@ namespace rainy::core::text {
 #if RAINY_HAS_CXX20
 #define rainy_match_u8hashed_string(x) ::rainy::core::text::u8hashed_string::eval_hash(x)
 #endif
-
-namespace std {
-    template <typename CharType, typename Traits>
-    struct hash<rainy::core::text::basic_hashed_string<CharType, Traits>> {
-        using argument_type = rainy::core::text::basic_hashed_string<CharType, Traits>;
-
-        RAINY_NODISCARD std::size_t operator()(const argument_type &val) const noexcept {
-            return val.hash_code();
-        }
-    };
-}
 
 namespace rainy::utility {
     template <typename CharType, typename Traits>
