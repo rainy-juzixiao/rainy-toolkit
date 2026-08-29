@@ -4351,6 +4351,116 @@ namespace rainy::core::layer {
     RAINY_TOOLKIT_API void *native_smtx_handle(smtx_t *const smtx) noexcept;
 }
 
+
+namespace rainy::core::layer {
+    /**
+     * @brief Queries the total and available physical memory of the system.
+     *        查询系统物理内存的总量与可用量。
+     *
+     * @param total Receives the total physical memory in bytes
+     *              接收物理内存总字节数
+     * @param available Receives the available physical memory in bytes
+     *                  接收物理内存可用字节数
+     * @return true on success
+     *         成功时返回true
+     */
+    RAINY_TOOLKIT_API rain_fn query_memory_capacity(std::size_t *total, std::size_t *available) noexcept -> bool;
+
+    /**
+     * @brief Reads an environment variable into a caller-provided buffer.
+     *        将环境变量读取到调用方提供的缓冲区。
+     *
+     * @param name The environment variable name
+     *             环境变量名
+     * @param buffer Receives the value followed by a null terminator
+     *               接收值与终止空字符
+     * @param length The buffer capacity in bytes
+     *               缓冲区容量（字节）
+     * @return true if the variable exists and fits into the buffer
+     *         变量存在且能放入缓冲区时返回true
+     */
+    RAINY_TOOLKIT_API rain_fn query_environment(const char *name, char *buffer, std::size_t length) noexcept -> bool;
+
+    /**
+     * @brief Creates or updates an environment variable.
+     *        创建或更新环境变量。
+     *
+     * @return true on success
+     *         成功时返回true
+     */
+    RAINY_TOOLKIT_API rain_fn set_environment(const char *name, const char *value) noexcept -> bool;
+
+    /**
+     * @brief Removes an environment variable.
+     *        移除环境变量。
+     *
+     * @return true on success
+     *         成功时返回true
+     */
+    RAINY_TOOLKIT_API rain_fn remove_environment(const char *name) noexcept -> bool;
+
+    /**
+     * @brief Queries the login name of the current user.
+     *        查询当前用户的登录名。
+     *
+     * @param buffer Receives the null-terminated login name
+     *               接收以空字符结尾的登录名
+     * @param length The buffer capacity in bytes
+     *               缓冲区容量（字节）
+     * @return true on success
+     *         成功时返回true
+     */
+    RAINY_TOOLKIT_API rain_fn query_user_name(char *buffer, std::size_t length) noexcept -> bool;
+
+    /**
+     * @brief Queries the group id of the current user.
+     *        查询当前用户所属组的id。
+     *
+     * @return The group id; 0 when the platform has no group concept
+     *         组id；平台无组概念时返回0
+     */
+    RAINY_TOOLKIT_API rain_fn current_group_id() noexcept -> std::uint32_t;
+
+    /**
+     * @brief Queries the group name for a group id.
+     *        查询组id对应的组名。
+     *
+     * @param group_id The group id to look up
+     *                 要查找的组id
+     * @param buffer Receives the null-terminated group name
+     *               接收以空字符结尾的组名
+     * @param length The buffer capacity in bytes
+     *               缓冲区容量（字节）
+     * @return true on success
+     *         成功时返回true
+     */
+    RAINY_TOOLKIT_API rain_fn query_group_name(std::uint32_t group_id, char *buffer, std::size_t length) noexcept -> bool;
+
+    /**
+     * @brief Fills a buffer with cryptographically secure random bytes from the system source.
+     *        使用系统随机源以加密安全方式填充缓冲区。
+     *
+     * @param buffer The buffer to fill
+     *               要填充的缓冲区
+     * @param length The number of bytes to generate
+     *               要生成的字节数
+     * @return true on success
+     *         成功时返回true
+     */
+    RAINY_TOOLKIT_API rain_fn system_random(void *buffer, std::size_t length) noexcept -> bool;
+
+#if RAINY_IS_ARM64
+    /**
+     * @brief Reads the ARM64 ELF hardware capability bitmap (AT_HWCAP).
+     *        读取ARM64的ELF硬件能力位图（AT_HWCAP）。
+     *
+     * @return The HWCAP bitmap; 0 when unavailable
+     *         HWCAP位图；不可用时返回0
+     */
+    RAINY_TOOLKIT_API rain_fn arm64_hwcap() noexcept -> unsigned long;
+#endif
+}
+
 #undef RAINY_INTERNALLAYER_ENABLE_ENUM_CLASS_BITMASK_OPERATORS
 
 #endif

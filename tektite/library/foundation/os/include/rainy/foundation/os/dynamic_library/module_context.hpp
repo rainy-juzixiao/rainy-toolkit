@@ -66,7 +66,8 @@ namespace rainy::foundation::dynamic_library {
         /**
          *
          */
-        module_context() noexcept : private_(nullptr) {}
+        module_context() noexcept : private_(nullptr) {
+        }
 
         /**
          * @brief 在构造期间对上下文进行初始化
@@ -75,19 +76,20 @@ namespace rainy::foundation::dynamic_library {
          */
         module_context(core::text::string_view module_path, bool load = true) noexcept; // NOLINT
 
-        module_context(const module_context& right) = delete; // 为了确保模块生命周期管理，禁用拷贝，若要实现类似效果，请让另一个module_context加载同样的模块路径以获得新的模块上下文
+        module_context(const module_context &right) =
+            delete; // 为了确保模块生命周期管理，禁用拷贝，若要实现类似效果，请让另一个module_context加载同样的模块路径以获得新的模块上下文
 
         /**
          * @brief 将上下文对象移动到当前模块
          */
-        module_context(module_context&& right) noexcept;
+        module_context(module_context &&right) noexcept;
 
-        module_context& operator=(const module_context& right) = delete; // 同上
+        module_context &operator=(const module_context &right) = delete; // 同上
 
         /**
          * @brief 将上下文对象移动到当前模块，如果当前模块仍然持有一个已有的模块，则会优先调用unload再执行
          */
-        module_context& operator=(module_context&& right) noexcept;
+        module_context &operator=(module_context &&right) noexcept;
 
         /**
          * @brief 自动在模块到达其生命周期末尾时，释放对当前模块的引用计数
@@ -119,7 +121,8 @@ namespace rainy::foundation::dynamic_library {
         /**
          * @brief 从指定的模块中获取其导出的符号
          * @param symbol_name 符号名称
-         * @attention 如果is_loaded()为false，则必为空地址。另外，如果当前上下文处于观察状态，请务必确保你观察的模块生命周期长于持有模块的生命周期
+         * @attention
+         * 如果is_loaded()为false，则必为空地址。另外，如果当前上下文处于观察状态，请务必确保你观察的模块生命周期长于持有模块的生命周期
          * @return 如果获取成功，返回该符号对应的地址，以farproc_fn类型的形式
          */
         RAINY_NODISCARD farproc_fn load_symbol(core::text::string_view symbol_name) const noexcept;
@@ -162,10 +165,10 @@ namespace rainy::foundation::dynamic_library {
     private:
         struct module_context_private;
 
-        static module_context_private* create_ctx();
-        static void destroy_ctx(module_context_private const* ctx);
+        static module_context_private *create_ctx();
+        static void destroy_ctx(module_context_private const *ctx);
 
-        module_context_private* private_;
+        module_context_private *private_;
     };
 }
 

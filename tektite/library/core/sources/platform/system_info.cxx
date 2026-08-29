@@ -331,7 +331,7 @@ namespace rainy::core::builtin {
     void cpuid(int query[4], int function_id) {
 #if RAINY_USING_MSVC && !RAINY_IS_ARM64
         __cpuid(query, function_id);
-#elif (RAINY_USING_GCC || RAINY_USING_CLANG) && (RAINY_IS_X86 || RAINY_IS_X86_64)
+#elif (RAINY_USING_GCC || RAINY_USING_CLANG) && RAINY_IS_X86_PLATFORM
         __asm__ volatile("cpuid" : "=a"(query[0]), "=b"(query[1]), "=c"(query[2]), "=d"(query[3]) : "a"(function_id), "c"(0));
 #else
         query[0] = query[1] = query[2] = query[3] = 0;
@@ -342,7 +342,7 @@ namespace rainy::core::builtin {
     void cpuidex(int query[4], int function_id, int subfunction_id) {
 #if RAINY_USING_MSVC && !RAINY_IS_ARM64
         __cpuidex(query, function_id, subfunction_id);
-#elif (RAINY_USING_GCC || RAINY_USING_CLANG) && (RAINY_IS_X86 || RAINY_IS_X86_64)
+#elif (RAINY_USING_GCC || RAINY_USING_CLANG) && RAINY_IS_X86_PLATFORM
         __asm__ volatile("cpuid"
                          : "=a"(query[0]), "=b"(query[1]), "=c"(query[2]), "=d"(query[3])
                          : "a"(function_id), "c"(subfunction_id));
