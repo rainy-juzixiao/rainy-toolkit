@@ -18,6 +18,8 @@
 
 project(rainy-toolkit-core)
 
+include(Catch)
+
 rainy_configure_target(rainy-toolkit-core)
 
 target_include_directories(rainy-toolkit-core PUBLIC
@@ -36,6 +38,8 @@ add_executable(rainy-toolkit-core-unit-test ${RAINY_TOOLKIT_CORE_TEST_FILES})
 
 target_link_libraries(rainy-toolkit-core-unit-test PRIVATE Catch2::Catch2WithMain rainy-toolkit-core)
 
+catch_discover_tests(rainy-toolkit-core-unit-test)
+
 set_target_properties(rainy-toolkit-core-unit-test PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 unset(RAINY_TOOLKIT_CORE_TEST_FILES)
@@ -45,3 +49,10 @@ check_cxx26_static_reflection()
 if (RAINY_TOOLKIT_HAVE_CXX26_STATIC_REFLECTION)
     target_compile_options(rainy-toolkit-core PUBLIC -std=c++26 -freflection)
 endif()
+
+install(TARGETS rainy-toolkit-core EXPORT rainy-toolkit-targets
+        RUNTIME DESTINATION ${RAINY_TOOLKIT_INSTALL_DIR}/bin
+        LIBRARY DESTINATION ${RAINY_TOOLKIT_INSTALL_DIR}/lib
+        ARCHIVE DESTINATION ${RAINY_TOOLKIT_INSTALL_DIR}/lib)
+
+install(DIRECTORY include/ DESTINATION ${RAINY_TOOLKIT_INSTALL_DIR}/include)

@@ -36,3 +36,16 @@ install(
         FILES ${CMAKE_CURRENT_BINARY_DIR}/rainy-toolkitConfigVersion.cmake
         DESTINATION ${RAINY_TOOLKIT_INSTALL_DIR}/lib/cmake/rainy-toolkit
 )
+
+install(
+        EXPORT rainy-toolkit-targets
+        FILE rainy-toolkitTargets.cmake
+        NAMESPACE rainy::
+        DESTINATION ${RAINY_TOOLKIT_INSTALL_DIR}/lib/cmake/rainy-toolkit
+)
+
+install(
+        FILES ${PROJECT_SOURCE_DIR}/cmake/rainy-toolkitPackageConfig.cmake
+        DESTINATION ${RAINY_TOOLKIT_INSTALL_DIR}/lib/cmake/rainy-toolkit
+        RENAME rainy-toolkitConfig.cmake
+)
