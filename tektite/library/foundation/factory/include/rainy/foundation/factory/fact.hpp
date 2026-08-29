@@ -22,6 +22,22 @@
 #include <rainy/core/text/hashed_string.hpp>
 #include <rainy/core/type_traits.hpp>
 
+namespace rainy::foundation::fact::implements {
+    // 提取函数签名（或函数指针）类型的返回类型，用于校验投影持有者的可构造性。
+    template <typename Fx>
+    struct function_return;
+
+    template <typename Rx, typename... Args>
+    struct function_return<Rx(Args...)> {
+        using type = Rx;
+    };
+
+    template <typename Rx, typename... Args>
+    struct function_return<Rx (*)(Args...)> {
+        using type = Rx;
+    };
+}
+
 namespace rainy::foundation::fact {
     template <typename Prod, template <typename Key, typename Mapped, typename...> typename Map,
               typename ProdKey = core::text::hashed_string,
@@ -41,7 +57,7 @@ namespace rainy::foundation::fact {
         using size_type = typename map::size_type;
         using projection_holder = ProjHolder<Prod>;
 
-        static_assert(type_traits::properties::is_constructible_v<projection_holder, type_traits::properties::invoke_result_t<Fx>>,
+        static_assert(type_traits::properties::is_constructible_v<projection_holder, typename implements::function_return<Fx>::type>,
                       "current function type cannot be used to construct projection_holder");
 
         unsynchronized_factory() noexcept = default;
@@ -92,7 +108,7 @@ namespace rainy::foundation::fact {
             return storage.end();
         }
 
-        template <typename... Args, type_traits::other_trans::enable_if_t<std::is_invocable_r_v<product *, Fx, Args...>, int> = 0>
+        template <typename... Args, type_traits::other_trans::enable_if_t<std::is_invocable_r_v<product *, type_traits::other_trans::decay_t<Fx>, Args...>, int> = 0>
         projection_holder make_product(const product_key &id, Args &&...args) const {
             if (const auto res = find(id); res != end()) {
                 return projection_holder{res->second(utility::forward<Args>(args)...)};
@@ -253,7 +269,7 @@ namespace rainy::foundation::fact {
             return impl_.end();
         }
 
-        template <typename... Args, type_traits::other_trans::enable_if_t<std::is_invocable_r_v<product *, Fx, Args...>, int> = 0>
+        template <typename... Args, type_traits::other_trans::enable_if_t<std::is_invocable_r_v<product *, type_traits::other_trans::decay_t<Fx>, Args...>, int> = 0>
         projection_holder make_product(const product_key &id, Args &&...args) const {
             return impl_.make_product(id, utility::forward<Args>(args)...);
         }
@@ -363,10 +379,11 @@ namespace rainy::foundation::fact::implements {
         typename Prod, typename ProdKey, template <typename Product, typename...> typename ProjHolder, typename Fx,
         template <typename FxType, typename...> typename Creater, template <typename Key, typename Mapped, typename...> typename Map,
         template <typename FactoryStorageType> typename Alloc,
-        template <typename, typename, template <typename, typename...> typename, typename, template <typename, typename...> typename,
-                  template <typename, typename, typename...> typename, template <typename> typename> typename FactoryTemplate>
-    struct factory_traits_impl<FactoryTemplate<Prod, ProdKey, ProjHolder, Fx, Creater, Map, Alloc>> {
-        using factory = FactoryTemplate<Prod, ProdKey, ProjHolder, Fx, Creater, Map, Alloc>;
+        template <typename, template <typename, typename, typename...> typename, typename,
+                  template <typename, typename...> typename, typename, template <typename, typename...> typename,
+                  template <typename> typename> typename FactoryTemplate>
+    struct factory_traits_impl<FactoryTemplate<Prod, Map, ProdKey, ProjHolder, Fx, Creater, Alloc>> {
+        using factory = FactoryTemplate<Prod, Map, ProdKey, ProjHolder, Fx, Creater, Alloc>;
         using product = Prod;
         using creater = typename factory::creater;
         using product_key = typename factory::product_key;

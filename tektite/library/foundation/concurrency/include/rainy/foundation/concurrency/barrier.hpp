@@ -17,6 +17,8 @@
 #define RAINY_FOUNDATION_CONCURRENCY_BARRIER_HPP
 #include <rainy/core/platform.hpp>
 #include <rainy/core/concurrency/atomic.hpp>
+#include <rainy/core/container/compressed_pair.hpp>
+#include <rainy/core/container/tuple.hpp>
 #include <rainy/core/diagnostics/contract.hpp>
 
 #define RAINY_NODISCARD_BARRIER_TOKEN                                                                                                 \
@@ -70,16 +72,16 @@ namespace rainy::foundation::concurrency {
     public:
         static_assert(
 #ifndef __cpp_noexcept_function_type
-            type_traits::primary_types::is_function_v<remove_pointer_t<ComplectionFunc>> ||
+            type_traits::primary_types::is_function_v<type_traits::modifers::remove_pointer_t<ComplectionFunc>> ||
 #endif
             type_traits::properties::is_nothrow_invocable_v<ComplectionFunc &>);
 
         using arrival_token = arrival_token<ComplectionFunc>;
 
         constexpr explicit barrier(const std::ptrdiff_t expected, ComplectionFunc function = ComplectionFunc()) noexcept :
-            data_(utility::piecewise_construct, utility::forward_as_tuple(utility::move(function)),
-                  utility::forward_as_tuple(expected << barrier_value_shift)) {
-            utility::expects(expected >= 0 && expected <= (max) (), "expected >= 0 and expected <= max()");
+            data_(container::piecewise_construct, container::forward_as_tuple(utility::move(function)),
+                  container::forward_as_tuple(expected << barrier_value_shift)) {
+            core::diagnostics::contracts::expects(expected >= 0 && expected <= (max) (), "expected >= 0 and expected <= max()");
         }
 
         barrier(const barrier &) = delete;
@@ -90,10 +92,10 @@ namespace rainy::foundation::concurrency {
         }
 
         RAINY_NODISCARD_BARRIER_TOKEN arrival_token arrive(std::ptrdiff_t update_value = 1) noexcept /* strengthened */ {
-            utility::expects(update_value > 0 && update_value <= (max) (), "update > 0");
+            core::diagnostics::contracts::expects(update_value > 0 && update_value <= (max) (), "update > 0");
             update_value <<= barrier_value_shift;
             std::ptrdiff_t current = data_.second.current.fetch_sub(update_value) - update_value;
-            utility::ensures(current >= 0, "update is less than or equal to the expected count for the current barrier phase");
+            core::diagnostics::contracts::ensures(current >= 0, "update is less than or equal to the expected count for the current barrier phase");
             if ((current & barrier_value_mask) == 0) {
                 completion_(current);
             }
@@ -102,7 +104,7 @@ namespace rainy::foundation::concurrency {
         }
 
         void wait(arrival_token &&arrival) const noexcept {
-            utility::expects((arrival.value & barrier_value_mask) == reinterpret_cast<intptr_t>(this),
+            core::diagnostics::contracts::expects((arrival.value & barrier_value_mask) == reinterpret_cast<intptr_t>(this),
                              "arrival is associated with the phase synchronization point for the current phase or "
                              "the immediately preceding phase of the same barrier object");
             const std::ptrdiff_t arrival_value = arrival.value & barrier_arrival_token_mask;
@@ -110,7 +112,7 @@ namespace rainy::foundation::concurrency {
             for (;;) {
                 // TRANSITION, GH-1133: should be core::layer::memory_order_acquire
                 const std::ptrdiff_t current = data_.second.current.load();
-                utility::ensures(current >= 0, "Invariant counter >= 0, possibly caused by preconditions violation");
+                core::diagnostics::contracts::ensures(current >= 0, "Invariant counter >= 0, possibly caused by preconditions violation");
                 if ((current & barrier_arrival_token_mask) != arrival_value) {
                     break;
                 }
@@ -122,7 +124,7 @@ namespace rainy::foundation::concurrency {
             // TRANSITION, GH-1133: should be core::layer::memory_order_acq_rel
             std::ptrdiff_t current = data_.second.current.fetch_sub(barrier_value_step) - barrier_value_step;
             const std::ptrdiff_t arrival = current & barrier_arrival_token_mask;
-            utility::ensures(current >= 0, "update is less than or equal to the expected count for the current barrier phase");
+            core::diagnostics::contracts::ensures(current >= 0, "update is less than or equal to the expected count for the current barrier phase");
             if ((current & barrier_value_mask) == 0) {
                 completion_(current);
                 return;
@@ -130,7 +132,7 @@ namespace rainy::foundation::concurrency {
             for (;;) {
                 data_.second.current.wait(current, core::layer::memory_order_relaxed);
                 current = data_.second.current.load();
-                utility::ensures(current >= 0, "Invariant counter >= 0, possibly caused by preconditions violation");
+                core::diagnostics::contracts::ensures(current >= 0, "Invariant counter >= 0, possibly caused by preconditions violation");
                 if ((current & barrier_arrival_token_mask) != arrival) {
                     break;
                 }
@@ -140,7 +142,7 @@ namespace rainy::foundation::concurrency {
         void arrive_and_drop() noexcept /* strengthened */ {
             const std::ptrdiff_t rem_count =
                 data_.second.total.fetch_sub(barrier_value_step, core::layer::memory_order_relaxed) - barrier_value_step;
-            utility::expects(rem_count >= 0, "he expected count for the current barrier phase is greater than zero (checked initial "
+            core::diagnostics::contracts::expects(rem_count >= 0, "he expected count for the current barrier phase is greater than zero (checked initial "
                                              "expected count, which is not less than the current)");
             (void) arrive(1);
         }
@@ -148,7 +150,7 @@ namespace rainy::foundation::concurrency {
     private:
         void completion_(const std::ptrdiff_t current) noexcept {
             const std::ptrdiff_t rem_count = data_.second.total.load(core::layer::memory_order_relaxed);
-            utility::expects(rem_count >= 0, "Invariant: initial expected count less than zero, "
+            core::diagnostics::contracts::expects(rem_count >= 0, "Invariant: initial expected count less than zero, "
                                              "possibly caused by preconditions violation ");
             data_.get_first()();
             const std::ptrdiff_t new_phase_count = rem_count | ((current + 1) & barrier_arrival_token_mask);
@@ -169,13 +171,13 @@ namespace rainy::foundation::concurrency {
             core::concurrency::atomic<std::ptrdiff_t> total;
         };
 
-        utility::compressed_pair<ComplectionFunc, counter_t> data_;
+        container::compressed_pair<ComplectionFunc, counter_t> data_;
     };
 
     class latch {
     public:
         explicit latch(const std::ptrdiff_t expected) noexcept : counter{expected} {
-            utility::expects(expected >= 0, "expected >= 0");
+            core::diagnostics::contracts::expects(expected >= 0, "expected >= 0");
         }
 
         latch(const latch &) = delete;
@@ -186,11 +188,11 @@ namespace rainy::foundation::concurrency {
         }
 
         void count_down(const std::ptrdiff_t update = 1) noexcept {
-            utility::expects(update >= 0, "update >= 0");
+            core::diagnostics::contracts::expects(update >= 0, "update >= 0");
             if (const volatile std::ptrdiff_t current = counter.fetch_sub(update) - update; current == 0) {
                 counter.notify_all();
             } else {
-                utility::ensures(current >= 0, "update <= counter");            
+                core::diagnostics::contracts::ensures(current >= 0, "update <= counter");            
             }
         }
 
@@ -204,17 +206,17 @@ namespace rainy::foundation::concurrency {
                 if (current == 0) {
                     return;
                 }
-                utility::ensures(current > 0, "Invariant counter >= 0, possibly caused by preconditions violation");
+                core::diagnostics::contracts::ensures(current > 0, "Invariant counter >= 0, possibly caused by preconditions violation");
                 counter.wait(current, core::layer::memory_order_relaxed);
             }
         }
 
         void arrive_and_wait(const std::ptrdiff_t update = 1) noexcept /* strengthened */ {
-            utility::expects(update >= 0, "update >= 0");
+            core::diagnostics::contracts::expects(update >= 0, "update >= 0");
             if (const std::ptrdiff_t current = counter.fetch_sub(update) - update; current == 0) {
                 counter.notify_all();
             } else {
-                utility::ensures(current > 0, "update <= counter");
+                core::diagnostics::contracts::ensures(current > 0, "update <= counter");
                 counter.wait(current, core::layer::memory_order_relaxed);
                 wait();
             }
