@@ -765,4 +765,27 @@ namespace rainy::core::algorithm {
     }
 }
 
+namespace rainy::algorithm {
+    using core::algorithm::all_of;
+    using core::algorithm::any_of;
+    using core::algorithm::binary_search;
+    using core::algorithm::copy;
+    using core::algorithm::copy_backward;
+    using core::algorithm::copy_n;
+    using core::algorithm::equal;
+    using core::algorithm::fill;
+    using core::algorithm::fill_n;
+    using core::algorithm::find;
+    using core::algorithm::find_if;
+    using core::algorithm::find_if_not;
+    using core::algorithm::lexicographical_compare;
+    using core::algorithm::lower_bound;
+    using core::algorithm::move;
+    using core::algorithm::move_backward;
+    using core::algorithm::none_of;
+    using core::algorithm::swap_ranges;
+    using core::algorithm::transform;
+    using core::algorithm::uninitialized_move_backward;
+}
+
 #endif

@@ -18,5 +18,6 @@
 #include <rainy/core/algorithm/basic_algorithm.hpp>
 #include <rainy/core/algorithm/replace.hpp>
 #include <rainy/core/algorithm/nonmodifying.hpp>
+#include <rainy/core/algorithm/modifying.hpp>
 
 #endif
