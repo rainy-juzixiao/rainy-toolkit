@@ -24,5 +24,7 @@
 #include <rainy/core/algorithm/sorting.hpp>
 #include <rainy/core/algorithm/binary_search.hpp>
 #include <rainy/core/algorithm/set_operations.hpp>
+#include <rainy/core/algorithm/minmax.hpp>
+#include <rainy/core/algorithm/permutation.hpp>
 
 #endif
