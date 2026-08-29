@@ -23,5 +23,6 @@
 #include <rainy/core/algorithm/heap.hpp>
 #include <rainy/core/algorithm/sorting.hpp>
 #include <rainy/core/algorithm/binary_search.hpp>
+#include <rainy/core/algorithm/set_operations.hpp>
 
 #endif
