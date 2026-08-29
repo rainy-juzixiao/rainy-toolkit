@@ -109,7 +109,7 @@ if (RAINY_USE_CROSSCOMPILE)
         target_link_libraries(rainy-toolkit PRIVATE ws2_32)
         target_link_libraries(rainy-toolkit PRIVATE Shlwapi)
         find_package(OpenSSL)
-        if(OpenSSL_FOUND)
+        if (OpenSSL_FOUND)
             target_link_libraries(rainy-toolkit PRIVATE OpenSSL::SSL)
             target_compile_definitions(rainy-toolkit PUBLIC RAINY_HAS_OPENSSL=1)
         else ()
@@ -131,7 +131,7 @@ if (RAINY_USE_CROSSCOMPILE)
         message("Linking libraries for linux package")
         target_link_libraries(rainy-toolkit PRIVATE uring)
         find_package(OpenSSL)
-        if(OpenSSL_FOUND)
+        if (OpenSSL_FOUND)
             target_link_libraries(rainy-toolkit PRIVATE OpenSSL::SSL)
             target_compile_definitions(rainy-toolkit PUBLIC RAINY_HAS_OPENSSL=1)
         else ()
@@ -149,7 +149,7 @@ if (RAINY_USE_CROSSCOMPILE)
                 ${CORESERVICES_LIBRARY}
         )
         find_package(OpenSSL)
-        if(OpenSSL_FOUND)
+        if (OpenSSL_FOUND)
             target_link_libraries(rainy-toolkit PRIVATE OpenSSL::SSL)
             target_compile_definitions(rainy-toolkit PRIVATE RAINY_HAS_OPENSSL=1)
         else ()
@@ -240,7 +240,7 @@ else ()
         target_link_libraries(rainy-toolkit PRIVATE ws2_32)
         target_link_libraries(rainy-toolkit PRIVATE Shlwapi)
         find_package(OpenSSL)
-        if(OpenSSL_FOUND)
+        if (OpenSSL_FOUND)
             target_link_libraries(rainy-toolkit PRIVATE OpenSSL::SSL)
             target_compile_definitions(rainy-toolkit PUBLIC RAINY_HAS_OPENSSL=1)
         else ()
@@ -253,7 +253,7 @@ else ()
 
         find_package(OpenSSL)
 
-        if(OpenSSL_FOUND)
+        if (OpenSSL_FOUND)
             target_link_libraries(rainy-toolkit PRIVATE OpenSSL::SSL)
             target_compile_definitions(rainy-toolkit PUBLIC RAINY_HAS_OPENSSL=1)
         else ()
@@ -274,7 +274,7 @@ else ()
 
         find_package(OpenSSL)
 
-        if(OpenSSL_FOUND)
+        if (OpenSSL_FOUND)
             target_link_libraries(rainy-toolkit PRIVATE OpenSSL::SSL)
             target_compile_definitions(rainy-toolkit PRIVATE RAINY_HAS_OPENSSL=1)
         else ()
@@ -346,55 +346,12 @@ if (APPLE)
     endif ()
 endif ()
 
-if (RAINY_USE_CXX26_RELFECTION_TS)
-    if (COMPILER_ID MATCHES "GCC")
-        set(_test_flags "-std=c++26 -freflection")
+check_cxx26_static_reflection()
 
-        # 创建临时测试文件
-        file(WRITE ${CMAKE_BINARY_DIR}/test_reflection.cpp "
-        #include <meta>
-
-        int main() {
-            class TestClass {
-                int foo;
-                int bar;
-            public:
-                int baz;
-                int quux;
-            };
-            constexpr static auto ctx = std::meta::access_context::unchecked();
-            static constexpr size_t member_count = std::meta::nonstatic_data_members_of(^^TestClass, ctx).size();
-            static_assert(member_count == 4);
-            return 0;
-        }
-        ")
-
-        # 直接调用编译器（不通过 CMake）
-        execute_process(
-                COMMAND ${CMAKE_CXX_COMPILER}
-                -std=c++26 -freflection
-                ${CMAKE_BINARY_DIR}/test_reflection.cpp
-                -o ${CMAKE_BINARY_DIR}/test_reflection.out
-                RESULT_VARIABLE _compile_result
-                ERROR_VARIABLE _compile_error
-                OUTPUT_VARIABLE _compile_output
-        )
-
-        file(REMOVE ${CMAKE_BINARY_DIR}/test_reflection.cpp)
-        file(REMOVE ${CMAKE_BINARY_DIR}/test_reflection.out)
-
-        if (_compile_result EQUAL 0)
-            message(STATUS "Compiler supports C++26 Static Reflection (with <meta> and ^^ reflection operator)")
-            target_compile_options(rainy-toolkit PUBLIC -std=c++26 -freflection)
-            target_compile_definitions(rainy-toolkit PUBLIC RAINY_HAS_CXX26_STATIC_REFLECTION=1)
-            set(RAINY_TOOLKIT_HAVE_CXX26_STATIC_REFLECTION TRUE)
-        else()
-            message(STATUS "Compiler does NOT support C++26 Static Reflection, Disable it.")
-            target_compile_definitions(rainy-toolkit PUBLIC RAINY_HAS_CXX26_STATIC_REFLECTION=0)
-            set(RAINY_TOOLKIT_HAVE_CXX26_STATIC_REFLECTION FALSE)
-        endif ()
-    endif ()
-else ()
-    target_compile_definitions(rainy-toolkit PUBLIC RAINY_HAS_CXX26_STATIC_REFLECTION=0)
-    set(RAINY_TOOLKIT_HAVE_CXX26_STATIC_REFLECTION FALSE)
+if (RAINY_TOOLKIT_HAVE_CXX26_STATIC_REFLECTION)
+    target_compile_options(rainy-toolkit PUBLIC -std=c++26 -freflection)
 endif ()
+
+add_compile_definitions(
+        RAINY_HAS_CXX26_STATIC_REFLECTION=${RAINY_HAS_CXX26_STATIC_REFLECTION}
+)

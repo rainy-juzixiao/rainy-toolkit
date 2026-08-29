@@ -1,0 +1,116 @@
+/*
+* Copyright 2026 rainy-juzixiao
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+#ifndef RAINY_CORE_COLLECTIONS_VIEWS_PIPELINE_HPP
+#define RAINY_CORE_COLLECTIONS_VIEWS_PIPELINE_HPP
+#include <rainy/core/type_traits.hpp>
+
+namespace rainy::core::collections::views::implements {
+    template <typename _Derived>
+    struct base {};
+
+    template <typename Ty>
+    Ty *derived_from_range_adaptor_closure(base<Ty> &) {
+        return nullptr;
+    }
+
+    template <typename Ty, typename = void>
+    struct is_range : type_traits::helper::false_type {};
+
+    template <typename Ty>
+    struct is_range<Ty,
+                    type_traits::other_trans::void_t<decltype(utility::declval<Ty>().begin()), decltype(utility::declval<Ty>().end())>>
+        : type_traits::helper::true_type {};
+
+    template <typename Ty, typename = void>
+    struct is_range_adaptor_closure_object : type_traits::helper::false_type {};
+
+    template <typename Ty>
+    struct is_range_adaptor_closure_object<
+        Ty, type_traits::other_trans::void_t<decltype(derived_from_range_adaptor_closure(
+                utility::declval<base<type_traits::modifers::remove_cv_t<type_traits::modifers::remove_reference_t<Ty>>> &>()))>>
+        : type_traits::helper::integral_constant<
+              bool, !is_range<type_traits::modifers::remove_cv_t<type_traits::modifers::remove_reference_t<Ty>>>::value> {};
+
+    template <typename Ty>
+    using enable_if_range_adaptor_closure = type_traits::other_trans::enable_if_t<is_range_adaptor_closure_object<Ty>::value, int>;
+
+    template <typename Ty>
+    using enable_if_not_range_adaptor_closure =
+        type_traits::other_trans::enable_if_t<!is_range_adaptor_closure_object<Ty>::value, int>;
+
+    template <typename ClosureLeft, typename ClosureRight>
+    struct pipeline : base<pipeline<ClosureLeft, ClosureRight>> {
+        static_assert(is_range_adaptor_closure_object<ClosureLeft>::value, "Left is not adaptor closure");
+        static_assert(is_range_adaptor_closure_object<ClosureRight>::value, "Right is not adaptor closure");
+
+        template <typename Ty1, typename Ty2>
+        constexpr explicit pipeline(Ty1 &&v1,
+                                    Ty2 &&v2) noexcept(type_traits::properties::is_nothrow_constructible_v<ClosureLeft, Ty1 &&> &&
+                                                       type_traits::properties::is_nothrow_constructible_v<ClosureRight, Ty2 &&>) :
+            left(utility::forward<Ty1>(v1)), right(utility::forward<Ty2>(v2)) {
+        }
+
+        template <typename Ty, typename = decltype(utility::declval<ClosureRight &>()(
+                                   utility::declval<ClosureLeft &>()(utility::declval<Ty &&>())))>
+        constexpr auto operator()(Ty &&v) & {
+            return right(left(utility::forward<Ty>(v)));
+        }
+
+        template <typename Ty, typename = decltype(utility::declval<const ClosureRight &>()(
+                                   utility::declval<const ClosureLeft &>()(utility::declval<Ty &&>())))>
+        constexpr auto operator()(Ty &&v) const & {
+            return right(left(utility::forward<Ty>(v)));
+        }
+
+        template <typename Ty, typename = decltype(utility::declval<ClosureRight &&>()(
+                                   utility::declval<ClosureLeft &&>()(utility::declval<Ty &&>())))>
+        constexpr auto operator()(Ty &&v) && {
+            return utility::move(right)(utility::move(left)(utility::forward<Ty>(v)));
+        }
+
+        template <typename Ty, typename = decltype(utility::declval<const ClosureRight &&>()(
+                                   utility::declval<const ClosureLeft &&>()(utility::declval<Ty &&>())))>
+        constexpr auto operator()(Ty &&v) const && {
+            return utility::move(right)(utility::move(left)(utility::forward<Ty>(v)));
+        }
+
+        ClosureLeft left;
+        ClosureRight right;
+    };
+
+    template <typename A, typename B>
+    pipeline(A, B) -> pipeline<A, B>;
+}
+
+namespace rainy::core::collections::views::implements {
+#if RAINY_HAS_CXX20
+    template <typename L, typename R, enable_if_range_adaptor_closure<L> = 0, enable_if_range_adaptor_closure<R> = 0,
+              typename = type_traits::other_trans::enable_if_t<
+                  type_traits::properties::is_constructible_v<type_traits::modifers::remove_cv_t<L>, L> &&
+                  type_traits::properties::is_constructible_v<type_traits::modifers::remove_cv_t<R>, R>>>
+    constexpr auto operator|(L &&l, R &&r) {
+        return pipeline{utility::forward<L>(l), utility::forward<R>(r)};
+    }
+
+    template <typename L, typename R, enable_if_range_adaptor_closure<R> = 0, enable_if_not_range_adaptor_closure<L> = 0,
+              typename = decltype(utility::declval<R &&>()(utility::declval<L &&>()))>
+    constexpr auto operator|(L &&l, R &&r) {
+        return utility::forward<R>(r)(utility::forward<L>(l));
+    }
+#endif
+}
+
+#endif
