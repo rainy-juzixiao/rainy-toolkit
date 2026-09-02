@@ -29,6 +29,7 @@
 #include <rainy/foundation/concurrency/condition_variable.hpp>
 #include <rainy/foundation/concurrency/pool.hpp>
 #include <rainy/foundation/concurrency/executor.hpp>
+#include <rainy/foundation/concurrency/rcu.hpp>
 // NOLINTEND
 
 #endif
