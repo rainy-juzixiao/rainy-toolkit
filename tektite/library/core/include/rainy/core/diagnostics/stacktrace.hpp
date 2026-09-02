@@ -13,15 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef RAINY_CORE_YESOD_STACKTRACE_HPP
-#define RAINY_CORE_YESOD_STACKTRACE_HPP
+#ifndef RAINY_CORE_DIAGNOSTICS_STACKTRACE_HPP
+#define RAINY_CORE_DIAGNOSTICS_STACKTRACE_HPP
 
 #include <ostream>
 #include <rainy/core/layer.hpp>
 #include <rainy/core/type_traits/properties.hpp>
-#include <rainy/core/yesod/collections.hpp>
-#include <rainy/core/yesod/hash.hpp>
-#include <rainy/core/yesod/text.hpp>
+#include <rainy/core/collections/vector.hpp>
+#include <rainy/core/utility/hash.hpp>
+#include <rainy/core/text/string.hpp>
 
 namespace rainy::foundation::diagnostics {
     class stacktrace_entry {
@@ -51,18 +51,18 @@ namespace rainy::foundation::diagnostics {
             return frame_ != nullptr;
         }
 
-        foundation::text::string description() const {
+        core::text::string description() const {
             char buffer[4096];
-            if (core::pal::resolve_stack_frame(frame_, buffer, sizeof(buffer))) {
+            if (core::layer::resolve_stack_frame(frame_, buffer, sizeof(buffer))) {
                 char demangled[4096];
-                core::pal::demangle(buffer, demangled, sizeof(demangled));
-                return foundation::text::string(demangled);
+                core::layer::demangle(buffer, demangled, sizeof(demangled));
+                return core::text::string(demangled);
             }
-            return foundation::text::string();
+            return core::text::string();
         }
 
-        foundation::text::string source_file() const {
-            foundation::text::string desc = description();
+        core::text::string source_file() const {
+            core::text::string desc = description();
             const char *str = desc.c_str();
             const char *last_slash = nullptr;
 
@@ -73,13 +73,13 @@ namespace rainy::foundation::diagnostics {
             }
 
             if (last_slash) {
-                return foundation::text::string(last_slash + 1);
+                return core::text::string(last_slash + 1);
             }
-            return foundation::text::string();
+            return core::text::string();
         }
 
         std::uint_least32_t source_line() const {
-            foundation::text::string desc = description();
+            core::text::string desc = description();
             const char *str = desc.c_str();
             const char *line_start = nullptr;
 
@@ -174,7 +174,7 @@ namespace rainy::foundation::diagnostics {
 
         static basic_stacktrace current(size_type skip, size_type max_depth, const allocator_type &alloc = allocator_type()) noexcept {
             basic_stacktrace result(alloc);
-            constexpr std::size_t max_frame_dump = core::pal::max_frames_dump;
+            constexpr std::size_t max_frame_dump = core::layer::max_frames_dump;
             size_type frames_to_collect = (core::min) (max_depth, max_frame_dump);
 
             if (frames_to_collect > result.max_size() && frames_to_collect <= max_frame_dump) {
@@ -182,7 +182,7 @@ namespace rainy::foundation::diagnostics {
             }
 
             core::native_frame_ptr_t buffer[max_frame_dump];
-            size_type actual_frames = core::pal::collect_stack_frame(buffer, frames_to_collect, skip);
+            size_type actual_frames = core::layer::collect_stack_frame(buffer, frames_to_collect, skip);
 
             for (size_type i = 0; i < actual_frames; ++i) {
                 result.frames_.push_back(stacktrace_entry(buffer[i]));
@@ -191,7 +191,7 @@ namespace rainy::foundation::diagnostics {
             return result;
         }
 
-        basic_stacktrace() noexcept(type_traits::type_properties::is_nothrow_default_constructible_v<allocator_type>) : frames_() {
+        basic_stacktrace() noexcept(type_traits::properties::is_nothrow_default_constructible_v<allocator_type>) : frames_() {
         }
 
         explicit basic_stacktrace(const allocator_type &alloc) noexcept : frames_(alloc) {
@@ -367,13 +367,13 @@ namespace rainy::foundation::diagnostics {
         left.swap(right);
     }
 
-    RAINY_INLINE foundation::text::string to_string(const stacktrace_entry &frame) {
+    RAINY_INLINE core::text::string to_string(const stacktrace_entry &frame) {
         return frame.description();
     }
 
     template <class Allocator>
-    foundation::text::string to_string(const basic_stacktrace<Allocator> &stacktrace) {
-        foundation::text::string result;
+    core::text::string to_string(const basic_stacktrace<Allocator> &stacktrace) {
+        core::text::string result;
         for (const auto &entry: stacktrace) {
             result += to_string(entry);
             result += "\n";

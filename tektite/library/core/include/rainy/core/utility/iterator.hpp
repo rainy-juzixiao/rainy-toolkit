@@ -15,9 +15,363 @@
  */
 #ifndef RAINY_UTILITY_ITERATOR_HPP
 #define RAINY_UTILITY_ITERATOR_HPP
+#include <rainy/core/collections/views/views_interface.hpp>
 #include <rainy/core/platform.hpp>
 #include <rainy/core/type_traits.hpp>
 #include <rainy/core/utility/reverse_iterator.hpp>
+
+namespace rainy::core::collections::views::implements {
+    template <typename Iter>
+    class iterator_range_iterator {
+    public:
+        using iterator_category = typename utility::iterator_traits<Iter>::iterator_category;
+        using value_type = typename utility::iterator_traits<Iter>::value_type;
+        using difference_type = typename utility::iterator_traits<Iter>::difference_type;
+        using pointer = typename utility::iterator_traits<Iter>::pointer;
+        using reference = typename utility::iterator_traits<Iter>::reference;
+
+        /**
+         * @brief Constructs an iterator_range_iterator from an underlying iterator.
+         *        从底层迭代器构造iterator_range_iterator。
+         *
+         * @param iter The underlying iterator to wrap
+         *             要包装的底层迭代器
+         */
+        iterator_range_iterator(Iter iter) : iter_{iter} {
+        }
+
+        /**
+         * @brief Dereference operator.
+         *        解引用运算符。
+         *
+         * @return Reference to the element pointed to by the underlying iterator
+         *         底层迭代器所指向元素的引用
+         */
+        decltype(auto) operator*() const {
+            return (*iter_);
+        }
+
+        /**
+         * @brief Arrow operator.
+         *        箭头运算符。
+         *
+         * @return Pointer to the element pointed to by the underlying iterator
+         *         指向底层迭代器所指向元素的指针
+         */
+        pointer operator->() const {
+            return utility::addressof(*iter_);
+        }
+
+        /**
+         * @brief Prefix increment operator.
+         *        前置自增运算符。
+         *
+         * @return Reference to this iterator after increment
+         *         自增后此迭代器的引用
+         */
+        rain_fn operator++()->iterator_range_iterator & {
+            ++iter_;
+            return *this;
+        }
+
+        /**
+         * @brief Postfix increment operator.
+         *        后置自增运算符。
+         *
+         * @return Copy of this iterator before increment
+         *         自增前此迭代器的副本
+         */
+        rain_fn operator++(int) {
+            iterator_range_iterator temp = *this;
+            ++iter_;
+            return temp;
+        }
+
+        /**
+         * @brief Prefix decrement operator.
+         *        前置自减运算符。
+         *
+         * @return Reference to this iterator after decrement
+         *         自减后此迭代器的引用
+         */
+        rain_fn operator--() {
+            --iter_;
+            return *this;
+        }
+
+        /**
+         * @brief Postfix decrement operator.
+         *        后置自减运算符。
+         *
+         * @return Copy of this iterator before decrement
+         *         自减前此迭代器的副本
+         */
+        rain_fn operator--(int) {
+            iterator_range_iterator temp = *this;
+            --iter_;
+            return temp;
+        }
+
+        /**
+         * @brief Addition operator.
+         *        加法运算符。
+         *
+         * @param n Number of positions to advance
+         *          前进的位置数
+         * @return New iterator advanced by n positions
+         *         前进n个位置后的新迭代器
+         */
+        rain_fn operator+(difference_type n) const->iterator_range_iterator {
+            return iterator_range_iterator(iter_ + n);
+        }
+
+        /**
+         * @brief Subtraction operator.
+         *        减法运算符。
+         *
+         * @param n Number of positions to move back
+         *          后退的位置数
+         * @return New iterator moved back by n positions
+         *         后退n个位置后的新迭代器
+         */
+        rain_fn operator-(difference_type n) const->iterator_range_iterator {
+            return iterator_range_iterator(iter_ - n);
+        }
+
+        /**
+         * @brief Addition assignment operator.
+         *        加法赋值运算符。
+         *
+         * @param n Number of positions to advance
+         *          前进的位置数
+         * @return Reference to this iterator after advancement
+         *         前进后此迭代器的引用
+         */
+        rain_fn &operator+=(difference_type n) {
+            iter_ += n;
+            return *this;
+        }
+
+        /**
+         * @brief Subtraction assignment operator.
+         *        减法赋值运算符。
+         *
+         * @param n Number of positions to move back
+         *          后退的位置数
+         * @return Reference to this iterator after moving back
+         *         后退后此迭代器的引用
+         */
+        rain_fn &operator-=(difference_type n) {
+            iter_ -= n;
+            return *this;
+        }
+
+        /**
+         * @brief Difference operator.
+         *        差运算符。
+         *
+         * @param other Another iterator to compare with
+         *              要比较的另一个迭代器
+         * @return Distance between this iterator and other
+         *         此迭代器与other之间的距离
+         */
+        rain_fn operator-(const iterator_range_iterator &other) const->difference_type {
+            return iter_ - other.iter_;
+        }
+
+        /**
+         * @brief Equality comparison operator.
+         *        相等比较运算符。
+         *
+         * @param left Left-hand side iterator
+         *             左侧迭代器
+         * @param right Right-hand side iterator
+         *              右侧迭代器
+         * @return true if iterators are equal, false otherwise
+         *         如果迭代器相等则为true，否则为false
+         */
+        friend bool operator==(const iterator_range_iterator &left, const iterator_range_iterator &right) noexcept {
+            return left.iter_ == right.iter_;
+        }
+
+        /**
+         * @brief Inequality comparison operator.
+         *        不等比较运算符。
+         *
+         * @param left Left-hand side iterator
+         *             左侧迭代器
+         * @param right Right-hand side iterator
+         *              右侧迭代器
+         * @return true if iterators are not equal, false otherwise
+         *         如果迭代器不相等则为true，否则为false
+         */
+        friend bool operator!=(const iterator_range_iterator &left, const iterator_range_iterator &right) noexcept {
+            return !(left.iter_ == right.iter_);
+        }
+
+    private:
+        Iter iter_;
+    };
+
+    template <typename Iter>
+    class adapter_iterator_range : public views::view_interface<adapter_iterator_range<Iter>> {
+    public:
+        using iterator = iterator_range_iterator<Iter>;
+        using const_iterator = const iterator_range_iterator<const Iter>;
+        using reference = type_traits::extras::iterators::iterator_reference_t<iterator>;
+        using const_reference = type_traits::modifers::add_const_t<reference>;
+        using difference_type = type_traits::extras::iterators::iterator_difference_t<const_iterator>;
+        using value_type = type_traits::extras::iterators::iter_value_t<const_iterator>;
+
+        /**
+         * @brief Default constructor.
+         *        默认构造函数。
+         */
+        adapter_iterator_range() : begin_{}, end_{} {
+        }
+
+        /**
+         * @brief Constructs an adapter_iterator_range from begin and end iterators.
+         *        从开始和结束迭代器构造adapter_iterator_range。
+         *
+         * @param begin Iterator to the beginning of the range
+         *              指向范围起始的迭代器
+         * @param end Iterator to the end of the range
+         *            指向范围末尾的迭代器
+         */
+        adapter_iterator_range(Iter begin, Iter end) : begin_{begin}, end_{end} {
+        }
+
+        /**
+         * @brief Returns a const reference to the base range.
+         *        返回基范围的常量引用。
+         *
+         * @return Const reference to this adapter_iterator_range
+         *         此adapter_iterator_range的常量引用
+         */
+        RAINY_NODISCARD constexpr rain_fn base() const & noexcept -> const adapter_iterator_range & {
+            return *this;
+        }
+
+        /**
+         * @brief Returns an rvalue reference to the base range.
+         *        返回基范围的右值引用。
+         *
+         * @return Rvalue reference to this adapter_iterator_range
+         *         此adapter_iterator_range的右值引用
+         */
+        RAINY_NODISCARD constexpr rain_fn base() && noexcept -> adapter_iterator_range {
+            return utility::move(*this);
+        }
+
+        /**
+         * @brief Returns an iterator to the beginning.
+         *        返回指向起始的迭代器。
+         *
+         * @return Iterator to the first element
+         *         指向第一个元素的迭代器
+         */
+        rain_fn begin() noexcept -> iterator {
+            return iterator{begin_};
+        }
+
+        /**
+         * @brief Returns an iterator to the end.
+         *        返回指向末尾的迭代器。
+         *
+         * @return Iterator to one past the last element
+         *         指向最后一个元素之后位置的迭代器
+         */
+        rain_fn end() noexcept -> iterator {
+            return iterator{end_};
+        }
+
+        /**
+         * @brief Returns a const iterator to the beginning.
+         *        返回指向起始的常量迭代器。
+         *
+         * @return Const iterator to the first element
+         *         指向第一个元素的常量迭代器
+         */
+        rain_fn begin() const noexcept -> const_iterator {
+            return const_iterator{begin_};
+        }
+
+        /**
+         * @brief Returns a const iterator to the end.
+         *        返回指向末尾的常量迭代器。
+         *
+         * @return Const iterator to one past the last element
+         *         指向最后一个元素之后位置的常量迭代器
+         */
+        rain_fn end() const noexcept -> const_iterator {
+            return const_iterator{end_};
+        }
+
+        /**
+         * @brief Returns a const iterator to the beginning (explicit).
+         *        返回指向起始的常量迭代器（显式）。
+         *
+         * @return Const iterator to the first element
+         *         指向第一个元素的常量迭代器
+         */
+        rain_fn cbegin() const noexcept -> const_iterator {
+            return const_iterator{begin_};
+        }
+
+        /**
+         * @brief Returns a const iterator to the end (explicit).
+         *        返回指向末尾的常量迭代器（显式）。
+         *
+         * @return Const iterator to one past the last element
+         *         指向最后一个元素之后位置的常量迭代器
+         */
+        rain_fn cend() const noexcept -> const_iterator {
+            return const_iterator{end_};
+        }
+
+    private:
+        Iter begin_;
+        Iter end_;
+    };
+}
+
+namespace rainy::core::collections::views {
+    /**
+     * @brief A range view over an iterator pair.
+     *        基于迭代器对的区间视图。
+     *
+     * This class provides a view over a range defined by a pair of iterators,
+     * inheriting all functionality from adapter_iterator_range.
+     *
+     * 此类提供由一对迭代器定义的区间的视图，
+     * 继承自 adapter_iterator_range 的所有功能。
+     *
+     * @tparam Iter The underlying iterator type
+     *              底层迭代器类型
+     */
+    template <typename Iter>
+    class iterator_range : public implements::adapter_iterator_range<Iter> {
+    public:
+        using base = implements::adapter_iterator_range<Iter>;
+
+        /**
+         * @brief Constructs an iterator_range from begin and end iterators.
+         *        从开始和结束迭代器构造 iterator_range。
+         *
+         * @param begin Iterator to the beginning of the range
+         *              指向范围起始的迭代器
+         * @param end Iterator to the end of the range
+         *            指向范围末尾的迭代器
+         */
+        iterator_range(Iter begin, Iter end) : base(begin, end) {
+        }
+    };
+}
+
+namespace rainy::collections::views {
+    using core::collections::views::iterator_range;
+}
 
 namespace rainy::utility {
     template <typename Ty>
@@ -26,8 +380,8 @@ namespace rainy::utility {
         using pointer = Ty *;
         using reference = Ty &;
 
-        constexpr input_iterator_pointer(value_type &&val) noexcept(type_traits::properties::is_nothrow_move_constructible_v<value_type>) :
-            value{std::move(val)} {
+        constexpr input_iterator_pointer(value_type &&val) noexcept(
+            type_traits::properties::is_nothrow_move_constructible_v<value_type>) : value{std::move(val)} {
         }
 
         RAINY_NODISCARD constexpr pointer operator->() noexcept {
@@ -67,7 +421,7 @@ namespace rainy::utility {
         /**
          * @brief 构造一个常量迭代器
          * @param current 当前迭代器位置
-         */ 
+         */
         explicit constexpr const_iterator(iterator_type current) noexcept : current(current) {
         }
 
@@ -478,17 +832,18 @@ namespace rainy::utility {
     };
 
     template <typename MapContainer, typename Iterator>
-    class map_mapped_iterator_impl : public utility::bidirectional_iterator<map_mapped_iterator_impl<MapContainer, Iterator>,
-                                     utility::make_iterator_traits<typename std::iterator_traits<Iterator>::difference_type,
-                                     std::bidirectional_iterator_tag,
-                                     typename MapContainer::mapped_type *,
-                                     typename MapContainer::mapped_type &,
-                                     typename MapContainer::mapped_type >> {
-    public:
-        using base = utility::bidirectional_iterator<map_mapped_iterator_impl<MapContainer, Iterator>,
+    class map_mapped_iterator_impl
+        : public utility::bidirectional_iterator<
+              map_mapped_iterator_impl<MapContainer, Iterator>,
               utility::make_iterator_traits<typename std::iterator_traits<Iterator>::difference_type, std::bidirectional_iterator_tag,
-              typename MapContainer::mapped_type *, typename MapContainer::mapped_type &, typename MapContainer::mapped_type >>
-            ;
+                                            typename MapContainer::mapped_type *, typename MapContainer::mapped_type &,
+                                            typename MapContainer::mapped_type>> {
+    public:
+        using base = utility::bidirectional_iterator<
+            map_mapped_iterator_impl<MapContainer, Iterator>,
+            utility::make_iterator_traits<typename std::iterator_traits<Iterator>::difference_type, std::bidirectional_iterator_tag,
+                                          typename MapContainer::mapped_type *, typename MapContainer::mapped_type &,
+                                          typename MapContainer::mapped_type>>;
 
         // 关键：显式构造函数接受底层迭代器
         explicit map_mapped_iterator_impl(Iterator it) : current_(it) {
@@ -498,17 +853,15 @@ namespace rainy::utility {
         map_mapped_iterator_impl() = default;
 
         // 非 const 访问（仅当 Iterator 是非 const 时可用）
-        template <
-            typename Iter = Iterator,
-            typename = type_traits::other_trans::enable_if_t<!std::is_const_v<std::remove_reference_t<typename std::iterator_traits<Iter>::reference>> >>
-                       typename base::reference get_element_impl() noexcept {
+        template <typename Iter = Iterator, typename = type_traits::other_trans::enable_if_t<!std::is_const_v<
+                                                std::remove_reference_t<typename std::iterator_traits<Iter>::reference>>>>
+        typename base::reference get_element_impl() noexcept {
             return current_->second;
         }
 
-        template <
-            typename Iter = Iterator,
-            typename = type_traits::other_trans::enable_if_t<!std::is_const_v<std::remove_reference_t<typename std::iterator_traits<Iter>::reference>> >>
-                       typename base::pointer get_pointer_impl() noexcept {
+        template <typename Iter = Iterator, typename = type_traits::other_trans::enable_if_t<!std::is_const_v<
+                                                std::remove_reference_t<typename std::iterator_traits<Iter>::reference>>>>
+        typename base::pointer get_pointer_impl() noexcept {
             return utility::addressof(current_->second);
         }
 

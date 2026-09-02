@@ -19,6 +19,7 @@
 #include <rainy/core/platform.hpp>
 #include <rainy/core/type_traits.hpp>
 #include <rainy/core/utility/hash.hpp>
+#include <rainy/core/text/char_traits.hpp>
 
 namespace rainy::core::text::implements {
     inline constexpr std::size_t fnv_offset_basis = 14695981039346656037ULL;
