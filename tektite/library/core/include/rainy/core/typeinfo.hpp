@@ -125,7 +125,7 @@ namespace rainy::core::implements {
     struct is_associative_container : type_traits::helper::false_type {};
 
     template <typename Ty>
-     struct is_associative_container<Ty, type_traits::other_trans::void_t<typename Ty::key_type, typename Ty::mapped_type>>
+    struct is_associative_container<Ty, type_traits::other_trans::void_t<typename Ty::key_type, typename Ty::mapped_type>>
         : type_traits::helper::true_type {};
 
     template <typename Ty>
@@ -1117,7 +1117,7 @@ namespace rainy::core::implements {
     template <typename Type>
     using derived_func = derived_info<Type> (*)(void *);
 
-    using converter_func = std::function<void *(void *)>;
+    using converter_func = void* (*)(void *);
 
     struct conversion_key {
         bool operator==(const conversion_key &right) const {

@@ -159,7 +159,7 @@ TEST_CASE("A variant is default constructed", "[variant][constructor][default]")
                 REQUIRE(NonTrivial::construct_count == 1);
             }
         }
-        AND_WHEN("the variant goes out of scope") {
+        SECTION("the variant goes out of scope") {
             SECTION("NonTrivial's destructor is called exactly once") {
                 REQUIRE(NonTrivial::destruct_count == 1);
             }
