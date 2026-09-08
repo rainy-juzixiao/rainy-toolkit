@@ -23,6 +23,11 @@
 #include <string>
 #include <filesystem>
 
+#if RAINY_USING_GCC
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-truncation"
+#endif
+
 #ifndef PATH_MAX
 #define PATH_MAX 4096
 #endif
@@ -789,3 +794,7 @@ TEST_CASE("edge::error_cases", "[filesystem][edge]") {
         REQUIRE(layer::remove_all_native(_T("/tmp/_____should_not_exist_12345_____")) == 0);
     }
 }
+
+#if RAINY_USING_GCC
+#pragma GCC diagnostic pop
+#endif
