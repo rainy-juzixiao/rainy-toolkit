@@ -30,6 +30,15 @@ catch_discover_tests(rainy-toolkit-foundation-io-network-unit-test)
 set_target_properties(rainy-toolkit-foundation-io-network-unit-test PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 unset(RAINY_FOUNDATION_IO_NETWORK_TEST_FILES)
 
+if (OpenSSL_FOUND)
+target_link_libraries(
+        rainy-toolkit-foundation-io-network-unit-test
+        PRIVATE
+        OpenSSL::SSL
+        OpenSSL::Crypto
+)
+endif ()
+
 install(TARGETS rainy-toolkit-foundation-io-network EXPORT rainy-toolkit-targets
         RUNTIME DESTINATION ${RAINY_TOOLKIT_INSTALL_DIR}/bin
         LIBRARY DESTINATION ${RAINY_TOOLKIT_INSTALL_DIR}/lib
