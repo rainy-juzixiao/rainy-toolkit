@@ -140,7 +140,7 @@ namespace rainy::core::collections::views {
         template <typename D = Derived,
                   typename = decltype(utility::begin(utility::declval<view_interface<D>>().cast_to_derived()))>
         RAINY_NODISCARD constexpr rain_fn data() -> auto {
-            return std::to_address(utility::begin(cast_to_derived()));
+            return utility::to_address(utility::begin(cast_to_derived()));
         }
 
         /**
@@ -155,7 +155,7 @@ namespace rainy::core::collections::views {
         template <typename D = Derived,
                   typename = decltype(utility::begin(utility::declval<view_interface<D>>().cast_to_derived()))>
         RAINY_NODISCARD constexpr rain_fn data() const -> auto {
-            return std::to_address(utility::begin(cast_to_derived()));
+            return utility::to_address(utility::begin(cast_to_derived()));
         }
 
         /**
@@ -167,7 +167,7 @@ namespace rainy::core::collections::views {
          */
         RAINY_NODISCARD constexpr rain_fn size() -> auto {
             auto &self = cast_to_derived();
-            return std::distance(utility::begin(self), utility::end(self));
+            return utility::distance(utility::begin(self), utility::end(self));
         }
 
         /**
@@ -179,7 +179,7 @@ namespace rainy::core::collections::views {
          */
         RAINY_NODISCARD constexpr rain_fn size() const -> auto {
             auto &self = cast_to_derived();
-            return std::distance(utility::begin(self), utility::end(self));
+            return utility::distance(utility::begin(self), utility::end(self));
         }
 
         /**

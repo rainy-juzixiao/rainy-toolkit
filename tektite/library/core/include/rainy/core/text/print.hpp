@@ -62,7 +62,7 @@ namespace rainy::core::text {
 
     template <typename... Args>
     void print(const string_view fmt, Args &&...args) {
-        print(stdout, fmt, std::forward<Args>(args)...);
+        print(stdout, fmt, utility::forward<Args>(args)...);
     }
 
     template <typename... Args>
@@ -78,7 +78,7 @@ namespace rainy::core::text {
 
     template <typename... Args>
     void println(FILE *stream, const string_view fmt, Args &&...args) {
-        print(stream, fmt, std::forward<Args>(args)...);
+        print(stream, fmt, utility::forward<Args>(args)...);
         std::fputc('\n', stream);
         std::fflush(stream);
     }

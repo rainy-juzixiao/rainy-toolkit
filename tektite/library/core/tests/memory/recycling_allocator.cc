@@ -75,6 +75,6 @@ TEST_CASE("get_recycling_allocator preserves custom allocators and replaces std 
     const auto preserved = fm::get_recycling_allocator<fm::recycling_allocator<int>, void>::get(custom);
     STATIC_REQUIRE(std::is_same_v<std::remove_cv_t<decltype(preserved)>, fm::recycling_allocator<int>>);
 
-    const auto recycled = fm::get_recycling_allocator<std::allocator<int>, void>::get(std::allocator<int>{});
+    const auto recycled = fm::get_recycling_allocator<rainy::core::memory::allocator<int>, void>::get(rainy::core::memory::allocator<int>{});
     STATIC_REQUIRE(std::is_same_v<std::remove_cv_t<decltype(recycled)>, fm::recycling_allocator<int, void>>);
 }

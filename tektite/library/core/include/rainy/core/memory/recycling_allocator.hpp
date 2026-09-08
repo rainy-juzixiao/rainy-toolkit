@@ -75,10 +75,10 @@ namespace rainy::core::memory {
     };
 
     template <typename Ty, typename Purpose>
-    struct get_recycling_allocator<std::allocator<Ty>, Purpose> {
+    struct get_recycling_allocator<memory::allocator<Ty>, Purpose> {
         using type = recycling_allocator<Ty, Purpose>;
 
-        static type get(const std::allocator<Ty> &) {
+        static type get(const memory::allocator<Ty> &) {
             return type();
         }
     };

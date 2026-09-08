@@ -316,21 +316,21 @@ namespace rainy::core::concurrency::implements {
     };
 
     template <typename Ty>
-    struct select_ops_type<Ty, std::enable_if_t<sizeof(Ty) == 1>> {
+    struct select_ops_type<Ty, type_traits::other_trans::enable_if_t<sizeof(Ty) == 1>> {
         using type = std::int8_t;
     };
     template <typename Ty>
-    struct select_ops_type<Ty, std::enable_if_t<sizeof(Ty) == 2 && !type_traits::type_relations::is_same_v<Ty, std::int16_t> &&
+    struct select_ops_type<Ty, type_traits::other_trans::enable_if_t<sizeof(Ty) == 2 && !type_traits::type_relations::is_same_v<Ty, std::int16_t> &&
                                                 !type_traits::type_relations::is_same_v<Ty, std::uint16_t>>> {
         using type = std::int16_t;
     };
     template <typename Ty>
-    struct select_ops_type<Ty, std::enable_if_t<sizeof(Ty) == 4 && !type_traits::type_relations::is_same_v<Ty, std::int32_t> &&
+    struct select_ops_type<Ty, type_traits::other_trans::enable_if_t<sizeof(Ty) == 4 && !type_traits::type_relations::is_same_v<Ty, std::int32_t> &&
                                                 !type_traits::type_relations::is_same_v<Ty, std::uint32_t>>> {
         using type = std::int32_t;
     };
     template <typename Ty>
-    struct select_ops_type<Ty, std::enable_if_t<sizeof(Ty) == 8 && !type_traits::type_relations::is_same_v<Ty, std::int64_t> &&
+    struct select_ops_type<Ty, type_traits::other_trans::enable_if_t<sizeof(Ty) == 8 && !type_traits::type_relations::is_same_v<Ty, std::int64_t> &&
                                                 !type_traits::type_relations::is_same_v<Ty, std::uint64_t>>> {
         using type = std::int64_t;
     };
@@ -385,9 +385,9 @@ namespace rainy::core::concurrency::implements {
         using float_type = long double;
 
         using int_type =
-            std::conditional_t<sizeof(long double) == 4, std::uint32_t,
-                               std::conditional_t<sizeof(long double) == 8, std::uint64_t,
-                                                  std::conditional_t<sizeof(long double) == 16, layer::native_double_word_t, void>>>;
+            type_traits::other_trans::conditional_t<sizeof(long double) == 4, std::uint32_t,
+                               type_traits::other_trans::conditional_t<sizeof(long double) == 8, std::uint64_t,
+                                                  type_traits::other_trans::conditional_t<sizeof(long double) == 16, layer::native_double_word_t, void>>>;
 
         static_assert(!type_traits::type_relations::is_same_v<int_type, void>, "unsupport platform");
         static_assert(sizeof(float_type) == sizeof(int_type));

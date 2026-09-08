@@ -20,32 +20,32 @@
 #include <rainy/core/text/format/format_arg.hpp>
 #include <rainy/core/text/string.hpp>
 #include <rainy/core/text/string_view.hpp>
+#include <rainy/core/container/optional.hpp>
 
 namespace rainy::core::exceptions::runtime {
     RAINY_DEFINE_EXCEPTION_WITH_THROW(format_error, runtime_error, "bad format_error", throw_format_error)
 }
 
-
 namespace rainy::core::text {
-    template <class Context>
+    template <typename Context>
     class basic_format_args;
 
-    template <class Context>
+    template <typename Context>
     class basic_format_arg;
 
-    template <typename T, typename CharT, typename = void>
+    template <typename Ty, typename CharType, typename = void>
     struct formatter {
-        static_assert(sizeof(T) == 0, "formatter must be specialized for this type");
+        static_assert(sizeof(Ty) == 0, "formatter must be specialized for this type");
     };
 
-    template <typename CharT>
+    template <typename CharType>
     class basic_format_parse_context {
     public:
-        using char_type = CharT;
-        using const_iterator = typename basic_string_view<CharT>::const_iterator;
+        using char_type = CharType;
+        using const_iterator = typename basic_string_view<CharType>::const_iterator;
         using iterator = const_iterator;
 
-        constexpr explicit basic_format_parse_context(basic_string_view<CharT> fmt, size_t num_args = 0) noexcept :
+        constexpr explicit basic_format_parse_context(basic_string_view<CharType> fmt, size_t num_args = 0) noexcept :
             fmt_(fmt), num_args_(num_args), next_arg_id_(0), manual_indexing_(false) {
         }
 
@@ -61,7 +61,7 @@ namespace rainy::core::text {
         }
 
         constexpr void advance_to(const_iterator it) {
-            fmt_ = basic_string_view<CharT>(it, fmt_.end());
+            fmt_ = basic_string_view<CharType>(it, fmt_.end());
         }
 
         RAINY_NODISCARD constexpr size_t next_arg_id() {
@@ -96,36 +96,36 @@ namespace rainy::core::text {
         }
 
     private:
-        basic_string_view<CharT> fmt_;
+        basic_string_view<CharType> fmt_;
         size_t num_args_;
         size_t next_arg_id_;
         bool manual_indexing_;
     };
 
-    template <class Out, class CharT>
+    template <typename Out, class CharType>
     class basic_format_context {
     public:
         using iterator = Out;
-        using char_type = CharT;
+        using char_type = CharType;
 
-        template <class T>
-        using formatter_type = formatter<T, CharT>;
+        template <typename Ty>
+        using formatter_type = formatter<Ty, CharType>;
 
     private:
         basic_format_args<basic_format_context> args_;
         Out out_;
-        std::optional<std::locale> loc_; // 可选的 locale
+        container::optional<std::locale> loc_; // 可选的 locale
 
         basic_format_context(const basic_format_context &) = delete;
         basic_format_context &operator=(const basic_format_context &) = delete;
 
     public:
         basic_format_context(Out out, basic_format_args<basic_format_context> args) :
-            args_(args), out_(std::move(out)), loc_(std::nullopt) {
+            args_(args), out_(utility::move(out)), loc_(std::nullopt) {
         }
 
         basic_format_context(Out out, basic_format_args<basic_format_context> args, const std::locale &loc) :
-            args_(args), out_(std::move(out)), loc_(loc) {
+            args_(args), out_(utility::move(out)), loc_(loc) {
         }
 
         basic_format_arg<basic_format_context> arg(size_t id) const noexcept {
@@ -137,16 +137,16 @@ namespace rainy::core::text {
         }
 
         iterator out() {
-            return std::move(out_);
+            return utility::move(out_);
         }
 
         void advance_to(iterator it) {
-            out_ = std::move(it);
+            out_ = utility::move(it);
         }
     };
 
-    template <typename CharT>
-    using format_buffer_iterator = utility::back_insert_iterator<basic_string<CharT>>;
+    template <typename CharType>
+    using format_buffer_iterator = utility::back_insert_iterator<basic_string<CharType>>;
 
     using format_context = basic_format_context<format_buffer_iterator<char>, char>;
     using wformat_context = basic_format_context<format_buffer_iterator<wchar_t>, wchar_t>;
@@ -159,7 +159,7 @@ namespace rainy::core::text {
 
     template <typename Context, typename... Args>
     constexpr auto make_format_args(const Args &...args) noexcept {
-        return __format_arg_store<Context, Args...>(std::index_sequence_for<Args...>{}, args...);
+        return __format_arg_store<Context, Args...>(type_traits::helper::index_sequence_for<Args...>{}, args...);
     }
 
     template <typename... Args>

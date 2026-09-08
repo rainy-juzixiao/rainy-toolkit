@@ -454,7 +454,7 @@ namespace rainy::core::container {
          * @return Reference to this tuple
          *         此tuple的引用
          */
-        constexpr tuple &operator=(tuple &&right) noexcept((std::is_nothrow_move_assignable_v<Types> && ...)) {
+        constexpr tuple &operator=(tuple &&right) noexcept((type_traits::properties::is_nothrow_move_assignable_v<Types> && ...)) {
             move_assign_impl(right, type_traits::helper::index_sequence_for<Types...>{});
             return *this;
         }
@@ -488,7 +488,7 @@ namespace rainy::core::container {
          * @param right The right tuple to swap with
          *              要交换的另一个tuple
          */
-        constexpr void swap(tuple &right) noexcept((std::is_nothrow_swappable_v<Types> && ...)) {
+        constexpr void swap(tuple &right) noexcept((type_traits::properties::is_nothrow_swappable_v<Types> && ...)) {
             base::swap_impl(right);
         }
 

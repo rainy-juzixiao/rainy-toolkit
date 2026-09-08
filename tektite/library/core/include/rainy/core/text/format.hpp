@@ -21,8 +21,8 @@
 #include <rainy/core/text/format/range_formatter.hpp>
 
 namespace rainy::core::text::implements {
-    template <typename CharT>
-    constexpr const CharT *find_next_brace(const CharT *begin, const CharT *end, CharT ch) {
+    template <typename CharType>
+    constexpr const CharType *find_next_brace(const CharType *begin, const CharType *end, CharType ch) {
         for (; begin != end; ++begin) {
             if (*begin == ch) {
                 // 检查是否是转义的 {{ 或 }}
@@ -36,27 +36,27 @@ namespace rainy::core::text::implements {
         return end;
     }
 
-    template <typename OutputIt, typename CharT>
-    OutputIt write_char(OutputIt out, CharT c) {
+    template <typename OutputIt, typename CharType>
+    OutputIt write_char(OutputIt out, CharType c) {
         *out = c;
         ++out;
         return out;
     }
 
-    template <typename OutputIt, typename CharT>
-    OutputIt write_string(OutputIt out, const CharT *begin, const CharT *end) {
+    template <typename OutputIt, typename CharType>
+    OutputIt write_string(OutputIt out, const CharType *begin, const CharType *end) {
         return std::copy(begin, end, out);
     }
 
     // 写入字符串视图
-    template <typename OutputIt, typename CharT>
-    OutputIt write_string(OutputIt out, basic_string_view<CharT> str) {
+    template <typename OutputIt, typename CharType>
+    OutputIt write_string(OutputIt out, basic_string_view<CharType> str) {
         return std::copy(str.begin(), str.end(), out);
     }
 
     // 格式化单个参数
-    template <typename OutputIt, typename CharT>
-    OutputIt format_arg(OutputIt out, basic_format_parse_context<CharT> &parse_ctx, basic_format_context<OutputIt, CharT> &format_ctx,
+    template <typename OutputIt, typename CharType>
+    OutputIt format_arg(OutputIt out, basic_format_parse_context<CharType> &parse_ctx, basic_format_context<OutputIt, CharType> &format_ctx,
                         size_t arg_id) {
 
         auto arg = format_ctx.arg(arg_id);
@@ -64,19 +64,19 @@ namespace rainy::core::text::implements {
             exceptions::runtime::throw_format_error("argument index out of range");
         }
         return arg.visit([&](auto &&value) -> OutputIt { // NOLINT
-            using T = type_traits::other_trans::decay_t<decltype(value)>;
+            using type = type_traits::other_trans::decay_t<decltype(value)>;
 
-            if constexpr (std::is_same_v<T, std::monostate>) {
+            if constexpr (type_traits::type_relations::is_same_v<type, std::monostate>) {
                 exceptions::runtime::throw_format_error("invalid argument");
                 return out;
-            } else if constexpr (std::is_same_v<T, typename basic_format_arg<basic_format_context<OutputIt, CharT>>::handle>) {
+            } else if constexpr (type_traits::type_relations::is_same_v<type, typename basic_format_arg<basic_format_context<OutputIt, CharType>>::handle>) {
                 // 自定义类型通过 handle 处理
                 value.format(parse_ctx, format_ctx);
                 return format_ctx.out();
             } else {
                 // 使用对应类型的 formatter
-                using Context = basic_format_context<OutputIt, CharT>;
-                typename Context::template formatter_type<T> f;
+                using Context = basic_format_context<OutputIt, CharType>;
+                typename Context::template formatter_type<type> f;
                 // 解析格式规范
                 parse_ctx.advance_to(f.parse(parse_ctx));
                 // 格式化值
@@ -86,26 +86,26 @@ namespace rainy::core::text::implements {
         });
     }
 
-    template <typename OutputIt, typename CharT>
-    OutputIt do_vformat(OutputIt out, basic_string_view<CharT> fmt, basic_format_parse_context<CharT> &parse_ctx,
-                        basic_format_context<OutputIt, CharT> &format_ctx,
-                        basic_format_args<basic_format_context<OutputIt, CharT>> args) {
+    template <typename OutputIt, typename CharType>
+    OutputIt do_vformat(OutputIt out, basic_string_view<CharType> fmt, basic_format_parse_context<CharType> &parse_ctx,
+                        basic_format_context<OutputIt, CharType> &format_ctx,
+                        basic_format_args<basic_format_context<OutputIt, CharType>> args) {
         (void) parse_ctx;
-        const CharT *p = fmt.data();
-        const CharT *end = p + fmt.size();
+        const CharType *p = fmt.data();
+        const CharType *end = p + fmt.size();
         size_t next_auto_arg_id = 0;
 
         while (p != end) {
             // 查找下一个 '{'
-            const CharT *brace_begin = find_next_brace(p, end, CharT('{'));
+            const CharType *brace_begin = find_next_brace(p, end, CharType('{'));
 
             // 输出 '{' 之前的文字部分
             while (p != brace_begin) {
-                if (*p == CharT('{') || *p == CharT('}')) {
+                if (*p == CharType('{') || *p == CharType('}')) {
                     // 转义的 {{ 或 }}，只输出一个
                     out = write_char(out, *p);
                     ++p;
-                    if (p != end && (*p == CharT('{') || *p == CharT('}'))) {
+                    if (p != end && (*p == CharType('{') || *p == CharType('}'))) {
                         ++p; // 跳过第二个
                     }
                 } else {
@@ -125,25 +125,25 @@ namespace rainy::core::text::implements {
             }
 
             // 检查是否是转义的 {{
-            if (*p == CharT('{')) {
-                out = write_char(out, CharT('{'));
+            if (*p == CharType('{')) {
+                out = write_char(out, CharType('{'));
                 ++p;
                 continue;
             }
 
             // 解析参数 ID
             size_t arg_id = 0;
-            const CharT *spec_begin = p; // 先记录位置
+            const CharType *spec_begin = p; // 先记录位置
 
-            if (*p >= CharT('0') && *p <= CharT('9')) {
+            if (*p >= CharType('0') && *p <= CharType('9')) {
                 // 显式索引
                 arg_id = 0;
-                while (p != end && *p >= CharT('0') && *p <= CharT('9')) {
-                    arg_id = arg_id * 10 + (*p - CharT('0'));
+                while (p != end && *p >= CharType('0') && *p <= CharType('9')) {
+                    arg_id = arg_id * 10 + (*p - CharType('0'));
                     ++p;
                 }
                 spec_begin = p; // 更新 spec_begin 到数字之后
-            } else if (*p == CharT('}') || *p == CharT(':')) {
+            } else if (*p == CharType('}') || *p == CharType(':')) {
                 // 自动索引：{} 或 {:...}
                 arg_id = next_auto_arg_id++;
                 // spec_begin 已经正确指向当前位置
@@ -156,15 +156,15 @@ namespace rainy::core::text::implements {
             }
 
             // 解析格式规范
-            if (p != end && *p == CharT(':')) {
+            if (p != end && *p == CharType(':')) {
                 ++p;
                 spec_begin = p; // 格式规范从 ':' 之后开始
                 int brace_level = 0;
 
                 while (p != end) {
-                    if (*p == CharT('{')) {
+                    if (*p == CharType('{')) {
                         ++brace_level;
-                    } else if (*p == CharT('}')) {
+                    } else if (*p == CharType('}')) {
                         if (brace_level == 0) {
                             break;
                         }
@@ -173,12 +173,12 @@ namespace rainy::core::text::implements {
                     ++p;
                 }
             }
-            if (p == end || *p != CharT('}')) {
+            if (p == end || *p != CharType('}')) {
                 exceptions::runtime::throw_format_error("invalid format string: unmatched '{'");
             }
             // 创建格式规范的解析上下文
-            basic_string_view<CharT> spec(spec_begin, p - spec_begin);
-            basic_format_parse_context<CharT> arg_parse_ctx(spec, args.size());
+            basic_string_view<CharType> spec(spec_begin, p - spec_begin);
+            basic_format_parse_context<CharType> arg_parse_ctx(spec, args.size());
             // 格式化参数
             format_ctx.advance_to(out);
             out = format_arg(out, arg_parse_ctx, format_ctx, arg_id);
@@ -189,25 +189,25 @@ namespace rainy::core::text::implements {
     }
 
     // 核心格式化实现
-    template <typename OutputIt, typename CharT>
-    OutputIt vformat_to_impl(OutputIt out, basic_string_view<CharT> fmt, basic_format_args<basic_format_context<OutputIt, CharT>> args,
+    template <typename OutputIt, typename CharType>
+    OutputIt vformat_to_impl(OutputIt out, basic_string_view<CharType> fmt, basic_format_args<basic_format_context<OutputIt, CharType>> args,
                              std::optional<std::locale> loc = std::nullopt) {
 
-        basic_format_parse_context<CharT> parse_ctx(fmt, args.size());
+        basic_format_parse_context<CharType> parse_ctx(fmt, args.size());
 
         if (loc.has_value()) {
-            basic_format_context<OutputIt, CharT> format_ctx(out, args, loc.value());
+            basic_format_context<OutputIt, CharType> format_ctx(out, args, loc.value());
             return do_vformat(out, fmt, parse_ctx, format_ctx, args);
         }
-        basic_format_context<OutputIt, CharT> format_ctx(out, args);
+        basic_format_context<OutputIt, CharType> format_ctx(out, args);
         return do_vformat(out, fmt, parse_ctx, format_ctx, args);
     }
 }
 
 namespace rainy::core::text {
-    template <typename OutputIt, typename CharT>
-    OutputIt vformat_to(OutputIt out, basic_string_view<CharT> fmt, // NOLINT
-                        basic_format_args<basic_format_context<OutputIt, CharT>> args) {
+    template <typename OutputIt, typename CharType>
+    OutputIt vformat_to(OutputIt out, basic_string_view<CharType> fmt, // NOLINT
+                        basic_format_args<basic_format_context<OutputIt, CharType>> args) {
         try {
             return implements::vformat_to_impl(out, fmt, args, std::nullopt);
         } catch (const std::exception &e) {
@@ -216,9 +216,9 @@ namespace rainy::core::text {
         return out; // never reach
     }
 
-    template <typename OutputIt, typename CharT>
-    OutputIt vformat_to(OutputIt out, const std::locale &loc, basic_string_view<CharT> fmt, // NOLINT
-                        basic_format_args<basic_format_context<OutputIt, CharT>> args) {
+    template <typename OutputIt, typename CharType>
+    OutputIt vformat_to(OutputIt out, const std::locale &loc, basic_string_view<CharType> fmt, // NOLINT
+                        basic_format_args<basic_format_context<OutputIt, CharType>> args) {
 
         try {
             return implements::vformat_to_impl(out, fmt, args, loc);

@@ -17,16 +17,17 @@
 #define RAINY_FOUNDATION_MEMORY_HAZARD_POINTER_HPP
 
 #include <functional>
-#include <rainy/core/platform.hpp>
 #include <rainy/core/algorithm/basic_algorithm.hpp>
-#include <rainy/core/concurrency/atomic.hpp>
 #include <rainy/core/collections/vector.hpp>
+#include <rainy/core/concurrency/atomic.hpp>
+#include <rainy/core/functional/delegate.hpp>
+#include <rainy/core/platform.hpp>
 
 namespace rainy::core::memory {
     /**
      * @brief 用于管理hazard_pointer及其被析出的对象的操作
      */
-    template <typename T>
+    template <typename Ty>
     class hazard_pointer_domain;
 }
 
@@ -35,59 +36,60 @@ namespace rainy::core::memory::implements {
         static constexpr std::size_t MAX_HAZARDS_PER_THREAD = 8;
 
         thread_hazard_list() {
-            for (auto& h : hazards) {
+            for (auto &h: hazards) {
                 h.store(nullptr, concurrency::memory_order_relaxed);
             }
         }
 
-        concurrency::atomic<void*> hazards[MAX_HAZARDS_PER_THREAD];
+        concurrency::atomic<void *> hazards[MAX_HAZARDS_PER_THREAD];
         thread_hazard_list *next{nullptr};
         concurrency::atomic<bool> active{true};
     };
 
     struct retire_node {
-        void* ptr;
-        std::function<void(void*)> deleter;
-        retire_node* next{nullptr};
+        void *ptr;
+        functional::delegate<void(void *)> deleter;
+        retire_node *next{nullptr};
 
-        retire_node(void* p, std::function<void(void*)> d)
-            : ptr(p), deleter(std::move(d)) {}
+        retire_node(void *p, functional::delegate<void(void *)> d) : ptr(p), deleter(utility::move(d)) {
+        }
     };
 
     class RAINY_TOOLKIT_API hazard_pointer_registry {
     public:
         static hazard_pointer_registry &instance();
 
-        thread_hazard_list* get_thread_list();
+        thread_hazard_list *get_thread_list();
 
         void mark_inactive();
 
-        RAINY_NODISCARD collections::vector<void*> scan_hazard_pointers() const;
+        RAINY_NODISCARD collections::vector<void *> scan_hazard_pointers() const;
 
         RAINY_NODISCARD std::size_t get_active_thread_count() const;
 
         ~hazard_pointer_registry();
+
     private:
         hazard_pointer_registry() = default;
 
-        concurrency::atomic<thread_hazard_list*> head_{nullptr};
+        concurrency::atomic<thread_hazard_list *> head_{nullptr};
         concurrency::atomic<std::size_t> thread_count_{0};
     };
 
     class RAINY_TOOLKIT_API global_reclamation_manager {
     public:
-        static global_reclamation_manager& instance();
+        static global_reclamation_manager &instance();
 
-        void add_orphaned_nodes(retire_node* head, std::size_t count);
+        void add_orphaned_nodes(retire_node *head, std::size_t count);
 
-        std::size_t reclaim(const collections::vector<void*>& protected_ptrs);
+        std::size_t reclaim(const collections::vector<void *> &protected_ptrs);
 
         RAINY_NODISCARD std::size_t get_orphaned_count() const;
 
     private:
         global_reclamation_manager() = default;
 
-        concurrency::atomic<retire_node*> head_{nullptr};
+        concurrency::atomic<retire_node *> head_{nullptr};
         concurrency::atomic<std::size_t> count_{0};
     };
 }
@@ -97,27 +99,27 @@ namespace rainy::core::memory {
     public:
         hazard_pointer();
 
-        hazard_pointer(hazard_pointer&& other) noexcept;
+        hazard_pointer(hazard_pointer &&other) noexcept;
 
-        hazard_pointer& operator=(hazard_pointer&& other) noexcept;
+        hazard_pointer &operator=(hazard_pointer &&other) noexcept;
 
         ~hazard_pointer();
 
-        hazard_pointer(const hazard_pointer&) = delete;
-        hazard_pointer& operator=(const hazard_pointer&) = delete;
+        hazard_pointer(const hazard_pointer &) = delete;
+        hazard_pointer &operator=(const hazard_pointer &) = delete;
 
-        template <typename T>
-        T* protect(T* ptr) noexcept {
+        template <typename Ty>
+        Ty *protect(Ty *ptr) noexcept {
             if (slot_) {
-                slot_->store(static_cast<void*>(ptr), concurrency::memory_order_release);
-                return static_cast<T*>(slot_->load());
+                slot_->store(static_cast<void *>(ptr), concurrency::memory_order_release);
+                return static_cast<Ty *>(slot_->load());
             }
             return nullptr;
         }
 
-        template <typename T>
-        bool try_protect(T *&ptr, const concurrency::atomic<T *> &src) noexcept {
-            T *old = ptr;
+        template <typename Ty>
+        bool try_protect(Ty *&ptr, const concurrency::atomic<Ty *> &src) noexcept {
+            Ty *old = ptr;
             reset_protection(old);
             ptr = src.load(concurrency::memory_order_acquire);
             if (old != ptr) {
@@ -126,13 +128,13 @@ namespace rainy::core::memory {
             return old == ptr;
         }
 
-        template <typename T>
-        void reset_protection(const T *ptr) noexcept {
+        template <typename Ty>
+        void reset_protection(const Ty *ptr) noexcept {
             if (!ptr) {
                 slot_->store(nullptr, concurrency::memory_order_release);
                 return;
             }
-            slot_->store(static_cast<void *>(const_cast<T *>(ptr)), concurrency::memory_order_release);
+            slot_->store(static_cast<void *>(const_cast<Ty *>(ptr)), concurrency::memory_order_release);
         }
 
         void reset_protection(std::nullptr_t = nullptr) noexcept { // NOLINT
@@ -141,16 +143,16 @@ namespace rainy::core::memory {
 
         RAINY_NODISCARD bool is_protected() const noexcept;
 
-        RAINY_NODISCARD void* get_protected() const noexcept;
+        RAINY_NODISCARD void *get_protected() const noexcept;
 
     private:
-        static inline const void* SLOT_OWNED_MARKER = reinterpret_cast<void*>(0x1);
+        static inline const void *SLOT_OWNED_MARKER = reinterpret_cast<void *>(0x1);
 
-        concurrency::atomic<void*>* slot_;
+        concurrency::atomic<void *> *slot_;
         std::size_t slot_index_;
     };
 
-    template <typename T>
+    template <typename Ty>
     class hazard_pointer_domain {
     public:
         static hazard_pointer_domain &global() {
@@ -162,7 +164,7 @@ namespace rainy::core::memory {
             return {};
         }
 
-        void retire(T *ptr);
+        void retire(Ty *ptr);
 
         std::size_t reclaim();
 
@@ -185,7 +187,7 @@ namespace rainy::core::memory {
         hazard_pointer_domain() = default;
 
         struct thread_retire_list {
-            implements::retire_node* head = nullptr;
+            implements::retire_node *head = nullptr;
             std::size_t count = 0;
 
             /*
@@ -196,21 +198,21 @@ namespace rainy::core::memory {
             static constexpr std::size_t BASE_RECLAIM_THRESHOLD = 64;
             static constexpr std::size_t RECLAIM_THRESHOLD_PER_THREAD = 16;
 
-           RAINY_NODISCARD std::size_t get_adaptive_threshold() const { // NOLINT
-                const auto & registry = implements::hazard_pointer_registry::instance();
+            RAINY_NODISCARD std::size_t get_adaptive_threshold() const { // NOLINT
+                const auto &registry = implements::hazard_pointer_registry::instance();
                 const std::size_t active_threads = registry.get_active_thread_count(); // 先
                 // 避免极端值
-                return (core::min)(static_cast<std::size_t>(512),
-                                BASE_RECLAIM_THRESHOLD + active_threads * RECLAIM_THRESHOLD_PER_THREAD);
+                return (core::min) (static_cast<std::size_t>(512),
+                                    BASE_RECLAIM_THRESHOLD + active_threads * RECLAIM_THRESHOLD_PER_THREAD);
             }
 
-            void add(T* ptr);
-            std::size_t scan_and_reclaim(const collections::vector<void*>& protected_ptrs);
+            void add(Ty *ptr);
+            std::size_t scan_and_reclaim(const collections::vector<void *> &protected_ptrs);
             void reclaim_all();
             ~thread_retire_list();
         };
 
-        static thread_retire_list& get_thread_retire_list() {
+        static thread_retire_list &get_thread_retire_list() {
             thread_local thread_retire_list list;
             return list;
         }
@@ -222,12 +224,12 @@ namespace rainy::core::memory {
 
     // Template implementations
 
-    template <typename T>
-    void hazard_pointer_domain<T>::retire(T* ptr) {
+    template <typename Ty>
+    void hazard_pointer_domain<Ty>::retire(Ty *ptr) {
         if (!ptr) {
             return;
         }
-        auto& retire_list = get_thread_retire_list();
+        auto &retire_list = get_thread_retire_list();
         retire_list.add(ptr);
         objects_retired_.fetch_add(1, concurrency::memory_order_relaxed);
         if (retire_list.count >= retire_list.get_adaptive_threshold()) {
@@ -235,12 +237,12 @@ namespace rainy::core::memory {
         }
     }
 
-    template <typename T>
-    std::size_t hazard_pointer_domain<T>::reclaim() {
+    template <typename Ty>
+    std::size_t hazard_pointer_domain<Ty>::reclaim() {
         scan_count_.fetch_add(1, concurrency::memory_order_relaxed);
-        const auto& registry = implements::hazard_pointer_registry::instance();
+        const auto &registry = implements::hazard_pointer_registry::instance();
         auto protected_ptrs = registry.scan_hazard_pointers();
-        auto& retire_list = get_thread_retire_list();
+        auto &retire_list = get_thread_retire_list();
         std::size_t reclaimed = retire_list.scan_and_reclaim(protected_ptrs);
         // 先清理不在保护状态的hazard_pointer
         reclaimed += implements::global_reclamation_manager::instance().reclaim(protected_ptrs);
@@ -249,8 +251,8 @@ namespace rainy::core::memory {
         return reclaimed;
     }
 
-    template <typename T>
-    auto hazard_pointer_domain<T>::get_stats() const -> stats {
+    template <typename Ty>
+    auto hazard_pointer_domain<Ty>::get_stats() const -> stats {
         const auto &registry = implements::hazard_pointer_registry::instance();
         stats ret{};
         ret.hazard_pointers_allocated = registry.get_active_thread_count() * implements::thread_hazard_list::MAX_HAZARDS_PER_THREAD;
@@ -260,27 +262,25 @@ namespace rainy::core::memory {
         return ret;
     }
 
-    template <typename T>
-    void hazard_pointer_domain<T>::thread_retire_list::add(T* ptr) {
-        auto* node = new implements::retire_node(static_cast<void*>(ptr),
-                                             [](void* p) { delete static_cast<T*>(p); });
+    template <typename Ty>
+    void hazard_pointer_domain<Ty>::thread_retire_list::add(Ty *ptr) {
+        auto *node = new implements::retire_node(static_cast<void *>(ptr), [](void *p) { delete static_cast<Ty *>(p); });
         node->next = head;
         head = node;
         ++count;
     }
 
-    template <typename T>
-    std::size_t hazard_pointer_domain<T>::thread_retire_list::scan_and_reclaim(
-        const collections::vector<void*>& protected_ptrs) {
+    template <typename Ty>
+    std::size_t hazard_pointer_domain<Ty>::thread_retire_list::scan_and_reclaim(const collections::vector<void *> &protected_ptrs) {
         std::size_t reclaimed = 0;
-        implements::retire_node** curr = &head;
+        implements::retire_node **curr = &head;
         while (*curr) {
             bool is_protected = false;
             if (core::algorithm::binary_search(protected_ptrs.begin(), protected_ptrs.end(), (*curr)->ptr)) {
                 is_protected = true;
             }
             if (!is_protected) {
-                const implements::retire_node* to_delete = *curr;
+                const implements::retire_node *to_delete = *curr;
                 *curr = (*curr)->next;
                 to_delete->deleter(to_delete->ptr);
                 delete to_delete;
@@ -294,9 +294,9 @@ namespace rainy::core::memory {
         return reclaimed;
     }
 
-    template <typename T>
-    void hazard_pointer_domain<T>::thread_retire_list::reclaim_all() {
-        const auto & registry = implements::hazard_pointer_registry::instance();
+    template <typename Ty>
+    void hazard_pointer_domain<Ty>::thread_retire_list::reclaim_all() {
+        const auto &registry = implements::hazard_pointer_registry::instance();
         const auto protected_ptrs = registry.scan_hazard_pointers(); // 先扫描所有受保护的hazard_pointer
         scan_and_reclaim(protected_ptrs);
         // 把仍在保护的节点添加到全局表
@@ -307,8 +307,8 @@ namespace rainy::core::memory {
         }
     }
 
-    template <typename T>
-    hazard_pointer_domain<T>::thread_retire_list::~thread_retire_list() {
+    template <typename Ty>
+    hazard_pointer_domain<Ty>::thread_retire_list::~thread_retire_list() {
         reclaim_all();
     }
 

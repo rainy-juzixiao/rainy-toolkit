@@ -38,7 +38,7 @@ namespace rainy::type_traits::other_trans {
         using Ty1 = modifers::remove_reference_t<Ty>;
 
         using Ty2 = typename select<implements::_is_function_v<Ty1>>::template apply<
-            modifers::add_pointer<Ty1>, modifers::remove_cv<std::conditional_t<!implements::_is_function_v<Ty1>, Ty1, void>>>;
+            modifers::add_pointer<Ty1>, modifers::remove_cv<type_traits::other_trans::conditional_t<!implements::_is_function_v<Ty1>, Ty1, void>>>;
 
         using type =
             typename select<implements::_is_array_v<Ty1>>::template apply<modifers::add_pointer<modifers::remove_extent_t<Ty1>>,

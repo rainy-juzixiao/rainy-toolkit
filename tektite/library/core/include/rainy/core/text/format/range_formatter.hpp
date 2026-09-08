@@ -160,7 +160,7 @@ namespace rainy::core::text {
                 basic_string<CharType> element_str;
                 auto element_out = utility::back_inserter(element_str);
                 using element_context = basic_format_context<decltype(element_out), CharType>;
-                element_context element_ctx(std::move(element_out), basic_format_args<element_context>{});
+                element_context element_ctx(utility::move(element_out), basic_format_args<element_context>{});
                 element_formatter_.format(element, element_ctx);
                 result.append(element_str);
             }
@@ -201,19 +201,19 @@ namespace rainy::core::text {
 
             switch (align) {
                 case implements::align_type::left: {
-                    out = algorithm::copy(str.begin(), str.end(), std::move(out));
-                    return algorithm::fill_n(std::move(out), padding, fill_);
+                    out = algorithm::copy(str.begin(), str.end(), utility::move(out));
+                    return algorithm::fill_n(utility::move(out), padding, fill_);
                 }
                 case implements::align_type::right: {
-                    out = algorithm::fill_n(std::move(out), padding, fill_);
-                    return algorithm::copy(str.begin(), str.end(), std::move(out));
+                    out = algorithm::fill_n(utility::move(out), padding, fill_);
+                    return algorithm::copy(str.begin(), str.end(), utility::move(out));
                 }
                 case implements::align_type::center: {
                     auto lp = padding / 2;
                     auto rp = padding - lp;
-                    out = algorithm::fill_n(std::move(out), lp, fill_);
-                    out = algorithm::copy(str.begin(), str.end(), std::move(out));
-                    return algorithm::fill_n(std::move(out), rp, fill_);
+                    out = algorithm::fill_n(utility::move(out), lp, fill_);
+                    out = algorithm::copy(str.begin(), str.end(), utility::move(out));
+                    return algorithm::fill_n(utility::move(out), rp, fill_);
                 }
                 default: {
                     return algorithm::copy(str.begin(), str.end(), ctx.out());

@@ -15,6 +15,7 @@
  */
 #ifndef RAINY_YESOD_TEXT_FORMAT_FORMAT_ARG_HPP
 #define RAINY_YESOD_TEXT_FORMAT_FORMAT_ARG_HPP
+#include <rainy/core/container/variant.hpp>
 #include <rainy/core/text/string.hpp>
 #include <string_view>
 #include <variant>
@@ -23,41 +24,48 @@ namespace rainy::core::text {
     template <typename Context, typename... Args>
     class __format_arg_store;
 
-    template <typename CharT>
+    template <typename CharType>
     class basic_format_parse_context;
 }
 
 namespace rainy::core::text::implements {
     // 检查类型是否为有符号整数
-    template <typename T>
+    template <typename Ty>
     struct is_signed_integer
-        : std::bool_constant<std::is_integral_v<T> && std::is_signed_v<T> && !std::is_same_v<T, bool> && !std::is_same_v<T, char> &&
-                             !std::is_same_v<T, wchar_t> && !std::is_same_v<T, char16_t> && !std::is_same_v<T, char32_t>> {};
+        : type_traits::helper::bool_constant<
+              type_traits::primary_types::is_integral_v<Ty> && type_traits::properties::is_signed_v<Ty> &&
+              !type_traits::type_relations::is_same_v<Ty, bool> && !type_traits::type_relations::is_same_v<Ty, char> &&
+              !type_traits::type_relations::is_same_v<Ty, wchar_t> && !type_traits::type_relations::is_same_v<Ty, char16_t> &&
+              !type_traits::type_relations::is_same_v<Ty, char32_t>> {};
 
-    template <typename T>
-    inline constexpr bool is_signed_integer_v = is_signed_integer<T>::value;
+    template <typename Ty>
+    inline constexpr bool is_signed_integer_v = is_signed_integer<Ty>::value;
 
     // 检查类型是否为无符号整数
-    template <typename T>
-    struct is_unsigned_integer : std::bool_constant<std::is_integral_v<T> && std::is_unsigned_v<T> && !std::is_same_v<T, bool>> {};
+    template <typename Ty>
+    struct is_unsigned_integer : type_traits::helper::bool_constant<type_traits::primary_types::is_integral_v<Ty> &&
+                                                                    type_traits::properties::is_unsigned_v<Ty> &&
+                                                                    !type_traits::type_relations::is_same_v<Ty, bool>> {};
 
-    template <typename T>
-    inline constexpr bool is_unsigned_integer_v = is_unsigned_integer<T>::value;
+    template <typename Ty>
+    inline constexpr bool is_unsigned_integer_v = is_unsigned_integer<Ty>::value;
 
     // 检查类型是否为字符类型
-    template <typename T, typename CharT>
-    struct is_char_type : std::bool_constant<std::is_same_v<T, CharT>> {};
+    template <typename Ty, typename CharType>
+    struct is_char_type : type_traits::helper::bool_constant<type_traits::type_relations::is_same_v<Ty, CharType>> {};
 
-    template <typename T, typename CharT>
-    inline constexpr bool is_char_type_v = is_char_type<T, CharT>::value;
+    template <typename Ty, typename CharType>
+    inline constexpr bool is_char_type_v = is_char_type<Ty, CharType>::value;
 
     // 检查类型是否为字符串类型
-    template <typename T, typename CharT>
-    struct is_string_type : std::bool_constant<std::is_same_v<T, const CharT *> || std::is_same_v<T, std::basic_string_view<CharT>> ||
-                                               std::is_convertible_v<T, std::basic_string_view<CharT>>> {};
+    template <typename Ty, typename CharType>
+    struct is_string_type
+        : type_traits::helper::bool_constant<type_traits::type_relations::is_same_v<Ty, const CharType *> ||
+                                             type_traits::type_relations::is_same_v<Ty, std::basic_string_view<CharType>> ||
+                                             type_traits::type_relations::is_convertible_v<Ty, std::basic_string_view<CharType>>> {};
 
-    template <typename T, typename CharT>
-    inline constexpr bool is_string_type_v = is_string_type<T, CharT>::value;
+    template <typename Ty, typename CharType>
+    inline constexpr bool is_string_type_v = is_string_type<Ty, CharType>::value;
 
     // 参数类型枚举
     enum class arg_type : unsigned char {
@@ -78,33 +86,33 @@ namespace rainy::core::text::implements {
     };
 
     // 类型到 arg_type 的映射
-    template <typename T, typename CharT>
+    template <typename Ty, typename CharType>
     struct type_to_arg_type {
         static constexpr arg_type value = []() {
-            using U = type_traits::other_trans::decay_t<T>;
-            if constexpr (std::is_same_v<U, bool>) {
+            using U = type_traits::other_trans::decay_t<Ty>;
+            if constexpr (type_traits::type_relations::is_same_v<U, bool>) {
                 return arg_type::bool_type;
-            } else if constexpr (std::is_same_v<U, CharT>) {
+            } else if constexpr (type_traits::type_relations::is_same_v<U, CharType>) {
                 return arg_type::char_type;
-            } else if constexpr (std::is_same_v<U, int>) {
+            } else if constexpr (type_traits::type_relations::is_same_v<U, int>) {
                 return arg_type::int_type;
-            } else if constexpr (std::is_same_v<U, unsigned int>) {
+            } else if constexpr (type_traits::type_relations::is_same_v<U, unsigned int>) {
                 return arg_type::uint_type;
-            } else if constexpr (std::is_same_v<U, long long>) {
+            } else if constexpr (type_traits::type_relations::is_same_v<U, long long>) {
                 return arg_type::long_long_type;
-            } else if constexpr (std::is_same_v<U, unsigned long long>) {
+            } else if constexpr (type_traits::type_relations::is_same_v<U, unsigned long long>) {
                 return arg_type::ulong_long_type;
-            } else if constexpr (std::is_same_v<U, float>) {
+            } else if constexpr (type_traits::type_relations::is_same_v<U, float>) {
                 return arg_type::float_type;
-            } else if constexpr (std::is_same_v<U, double>) {
+            } else if constexpr (type_traits::type_relations::is_same_v<U, double>) {
                 return arg_type::double_type;
-            } else if constexpr (std::is_same_v<U, long double>) {
+            } else if constexpr (type_traits::type_relations::is_same_v<U, long double>) {
                 return arg_type::long_double_type;
-            } else if constexpr (std::is_same_v<U, const CharT *>) {
+            } else if constexpr (type_traits::type_relations::is_same_v<U, const CharType *>) {
                 return arg_type::cstring_type;
-            } else if constexpr (is_string_type_v<U, CharT>) {
+            } else if constexpr (is_string_type_v<U, CharType>) {
                 return arg_type::string_type;
-            } else if constexpr (std::is_pointer_v<U>) {
+            } else if constexpr (type_traits::primary_types::is_pointer_v<U>) {
                 return arg_type::pointer_type;
             } else if constexpr (is_signed_integer_v<U>) {
                 return arg_type::long_long_type;
@@ -116,8 +124,8 @@ namespace rainy::core::text::implements {
         }();
     };
 
-    template <typename T, typename CharT>
-    inline constexpr arg_type type_to_arg_type_v = type_to_arg_type<T, CharT>::value;
+    template <typename Ty, typename CharType>
+    inline constexpr arg_type type_to_arg_type_v = type_to_arg_type<Ty, CharType>::value;
 
     // 检查类型是否为整数类型（用于动态宽度/精度）
     constexpr bool is_integral_arg_type(arg_type type) noexcept {
@@ -149,17 +157,17 @@ namespace rainy::core::text::implements {
     };
 
     template <typename>
-    struct is_format_arg_store : std::false_type {};
+    struct is_format_arg_store : type_traits::helper::false_type {};
 
-    template <class Context, class... Args>
-    struct is_format_arg_store<__format_arg_store<Context, Args...>> : std::true_type {};
+    template <typename Context, typename... Args>
+    struct is_format_arg_store<__format_arg_store<Context, Args...>> : type_traits::helper::true_type {};
 
-    template <typename T>
-    inline constexpr bool is_format_arg_store_v = is_format_arg_store<T>::value;
+    template <typename Ty>
+    inline constexpr bool is_format_arg_store_v = is_format_arg_store<Ty>::value;
 }
 
 namespace rainy::core::text {
-    template <class Context>
+    template <typename Context>
     class basic_format_arg {
     public:
         class handle;
@@ -190,16 +198,19 @@ namespace rainy::core::text {
         }
 
         // 其他整数类型的转换构造函数
-        template <typename T,
-                  std::enable_if_t<implements::is_signed_integer_v<T> && !std::is_same_v<T, int> && !std::is_same_v<T, long long int>,
-                                   int> = 0>
-        explicit basic_format_arg(T v) noexcept : value_(static_cast<long long int>(v)), type_(implements::arg_type::long_long_type) {
+        template <typename Ty, type_traits::other_trans::enable_if_t<implements::is_signed_integer_v<Ty> &&
+                                                                         !type_traits::type_relations::is_same_v<Ty, int> &&
+                                                                         !type_traits::type_relations::is_same_v<Ty, long long int>,
+                                                                     int> = 0>
+        explicit basic_format_arg(Ty v) noexcept : value_(static_cast<long long int>(v)), type_(implements::arg_type::long_long_type) {
         }
 
-        template <typename T, std::enable_if_t<implements::is_unsigned_integer_v<T> && !std::is_same_v<T, unsigned int> &&
-                                                   !std::is_same_v<T, unsigned long long int>,
-                                               int> = 0>
-        explicit basic_format_arg(T v) noexcept :
+        template <typename Ty,
+                  type_traits::other_trans::enable_if_t<implements::is_unsigned_integer_v<Ty> &&
+                                                            !type_traits::type_relations::is_same_v<Ty, unsigned int> &&
+                                                            !type_traits::type_relations::is_same_v<Ty, unsigned long long int>,
+                                                        int> = 0>
+        explicit basic_format_arg(Ty v) noexcept :
             value_(static_cast<unsigned long long int>(v)), type_(implements::arg_type::ulong_long_type) {
         }
 
@@ -217,12 +228,12 @@ namespace rainy::core::text {
         explicit basic_format_arg(const char_type *s) : value_(s), type_(implements::arg_type::cstring_type) {
         }
 
-        template <class traits>
+        template <typename traits>
         explicit basic_format_arg(std::basic_string_view<char_type, traits> s) noexcept :
             value_(basic_string_view<char_type>(s.data(), s.size())), type_(implements::arg_type::string_type) {
         }
 
-        template <class traits, class Allocator>
+        template <typename traits, typename Allocator>
         explicit basic_format_arg(const std::basic_string<char_type, traits, Allocator> &s) noexcept :
             value_(basic_string_view<char_type>(s.data(), s.size())), type_(implements::arg_type::string_type) {
         }
@@ -232,21 +243,25 @@ namespace rainy::core::text {
             value_(static_cast<const void *>(nullptr)), type_(implements::arg_type::pointer_type) {
         }
 
-        template <class T>
-        explicit basic_format_arg(T *p) noexcept : value_(static_cast<const void *>(p)), type_(implements::arg_type::pointer_type) {
+        template <typename Ty>
+        explicit basic_format_arg(Ty *p) noexcept : value_(static_cast<const void *>(p)), type_(implements::arg_type::pointer_type) {
         }
 
-        template <typename T, std::enable_if_t<!std::is_same_v<type_traits::other_trans::decay_t<T>, bool> && !std::is_same_v<type_traits::other_trans::decay_t<T>, char_type> &&
-                                                   !std::is_integral_v<type_traits::other_trans::decay_t<T>> &&
-                                                   !std::is_floating_point_v<type_traits::other_trans::decay_t<T>> && !std::is_pointer_v<type_traits::other_trans::decay_t<T>> &&
-                                                   !implements::is_string_type_v<type_traits::other_trans::decay_t<T>, char_type> &&
-                                                   !implements::is_format_arg_store_v<type_traits::other_trans::decay_t<T>>,
-                                               int> = 0>
-        explicit basic_format_arg(T &&v) noexcept : value_(handle(std::forward<T>(v))), type_(implements::arg_type::custom_type) {
+        template <typename Ty, type_traits::other_trans::enable_if_t<
+                                   !type_traits::type_relations::is_same_v<type_traits::other_trans::decay_t<Ty>, bool> &&
+                                       !type_traits::type_relations::is_same_v<type_traits::other_trans::decay_t<Ty>, char_type> &&
+                                       !type_traits::primary_types::is_integral_v<type_traits::other_trans::decay_t<Ty>> &&
+                                       !type_traits::primary_types::is_floating_point_v<type_traits::other_trans::decay_t<Ty>> &&
+                                       !type_traits::primary_types::is_pointer_v<type_traits::other_trans::decay_t<Ty>> &&
+                                       !implements::is_string_type_v<type_traits::other_trans::decay_t<Ty>, char_type> &&
+                                       !implements::is_format_arg_store_v<type_traits::other_trans::decay_t<Ty>>,
+                                   int> = 0>
+        explicit basic_format_arg(Ty &&v) noexcept :
+            value_(handle(utility::forward<Ty>(v))), type_(implements::arg_type::custom_type) {
         }
 
         explicit operator bool() const noexcept {
-            return !std::holds_alternative<std::monostate>(value_);
+            return !core::container::holds_alternative<std::monostate>(value_);
         }
 
         // 获取类型信息
@@ -267,24 +282,24 @@ namespace rainy::core::text {
         // visit 实现
         template <typename Visitor>
         decltype(auto) visit(Visitor &&vis) {
-            return std::visit(std::forward<Visitor>(vis), value_);
+            return core::container::visit(utility::forward<Visitor>(vis), value_);
         }
 
         template <typename R, typename Visitor>
         R visit(Visitor &&vis) {
-            return std::visit<R>(std::forward<Visitor>(vis), value_);
+            return core::container::visit<R>(utility::forward<Visitor>(vis), value_);
         }
 
     private:
-        std::variant<std::monostate, bool, char_type, int, unsigned int, long long int, unsigned long long int, float, double,
-                     long double, const char_type *, basic_string<char_type>, basic_string_view<char_type>, const void *, handle>
+        container::variant<std::monostate, bool, char_type, int, unsigned int, long long int, unsigned long long int, float, double,
+                           long double, const char_type *, basic_string<char_type>, basic_string_view<char_type>, const void *, handle>
             value_;
 
         // 存储类型信息用于运行时检查
         implements::arg_type type_;
     };
 
-    template <class Context>
+    template <typename Context>
     class basic_format_arg<Context>::handle {
     private:
         using char_type = typename Context::char_type;
@@ -292,16 +307,17 @@ namespace rainy::core::text {
         const void *ptr_;
         void (*format_)(basic_format_parse_context<char_type> &, Context &, const void *);
 
-        template <class T>
+        template <typename Ty>
         static void format_impl(basic_format_parse_context<char_type> &parse_ctx, Context &format_ctx, const void *ptr) {
-            typename Context::template formatter_type<type_traits::modifers::remove_cvref_t<T>> f;
+            typename Context::template formatter_type<type_traits::modifers::remove_cvref_t<Ty>> f;
             parse_ctx.advance_to(f.parse(parse_ctx));
-            format_ctx.advance_to(f.format(*static_cast<const T *>(ptr), format_ctx));
+            format_ctx.advance_to(f.format(*static_cast<const Ty *>(ptr), format_ctx));
         }
 
     public:
-        template <class T>
-        explicit handle(T &&val) noexcept : ptr_(std::addressof(val)), format_(format_impl<std::remove_reference_t<T>>) {
+        template <typename Ty>
+        explicit handle(Ty &&val) noexcept :
+            ptr_(utility::addressof(val)), format_(format_impl<type_traits::modifers::remove_reference_t<Ty>>) {
         }
 
         void format(basic_format_parse_context<char_type> &parse_ctx, Context &ctx) const {
@@ -311,11 +327,11 @@ namespace rainy::core::text {
         friend class basic_format_arg<Context>;
     };
 
-    template <class Context, class... Args>
+    template <typename Context, typename... Args>
     class __format_arg_store {
     public:
         template <size_t... Is>
-        constexpr __format_arg_store(std::index_sequence<Is...>, const Args &...values) noexcept :
+        constexpr __format_arg_store(type_traits::helper::index_sequence<Is...>, const Args &...values) noexcept :
             args{basic_format_arg<Context>(values)...} {
         }
 

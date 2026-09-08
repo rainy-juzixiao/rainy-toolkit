@@ -988,7 +988,7 @@ namespace rainy::utility {
     class reference_wrapper {
     public:
         static_assert(type_traits::implements::_is_object_v<Ty> || type_traits::implements::_is_function_v<Ty>,
-                      "reference_wrapper<T> requires T to be an object type or a function type.");
+                      "reference_wrapper<Ty> requires Ty to be an object type or a function type.");
 
         /**
          * @brief The type of the referenced object or function
@@ -1096,7 +1096,7 @@ namespace rainy::utility {
      * @tparam Ty The type of the referenced object
      *            被引用对象的类型
      */
-    template <class Ty>
+    template <typename Ty>
     reference_wrapper(Ty &) -> reference_wrapper<Ty>;
 
     /**
@@ -1366,25 +1366,25 @@ namespace rainy::utility::implements {
 
     template <typename Callable, typename Ty1, typename RemoveCvref>
     struct invoker_impl<Callable, Ty1, RemoveCvref, true, false>
-        : std::conditional_t<
-              std::is_same_v<typename rainy::type_traits::primary_types::member_pointer_traits<RemoveCvref>::class_type,
+        : type_traits::other_trans::conditional_t<
+              type_traits::type_relations::is_same_v<typename rainy::type_traits::primary_types::member_pointer_traits<RemoveCvref>::class_type,
                              type_traits::modifers::remove_cvref_t<Ty1>> ||
                   std::is_base_of_v<typename rainy::type_traits::primary_types::member_pointer_traits<RemoveCvref>::class_type,
                                     type_traits::modifers::remove_cvref_t<Ty1>>,
               invoker_pmf_object,
-              std::conditional_t<rainy::type_traits::primary_types::is_specialization_v<type_traits::modifers::remove_cvref_t<Ty1>,
+              type_traits::other_trans::conditional_t<rainy::type_traits::primary_types::is_specialization_v<type_traits::modifers::remove_cvref_t<Ty1>,
                                                                                         std::reference_wrapper>,
                                  invoker_pmf_refwrap, invoker_pmf_pointer>> {};
 
     template <typename Callable, typename Ty1, typename RemoveCvref>
     struct invoker_impl<Callable, Ty1, RemoveCvref, false, true>
-        : std::conditional_t<
-              std::is_same_v<typename rainy::type_traits::primary_types::member_pointer_traits<RemoveCvref>::class_type,
+        : type_traits::other_trans::conditional_t<
+              type_traits::type_relations::is_same_v<typename rainy::type_traits::primary_types::member_pointer_traits<RemoveCvref>::class_type,
                              type_traits::modifers::remove_cvref_t<Ty1>> ||
                   std::is_base_of_v<typename rainy::type_traits::primary_types::member_pointer_traits<RemoveCvref>::class_type,
                                     type_traits::modifers::remove_cvref_t<Ty1>>,
               invoker_pmd_object,
-              std::conditional_t<rainy::type_traits::primary_types::is_specialization_v<type_traits::modifers::remove_cvref_t<Ty1>,
+              type_traits::other_trans::conditional_t<rainy::type_traits::primary_types::is_specialization_v<type_traits::modifers::remove_cvref_t<Ty1>,
                                                                                         std::reference_wrapper>,
                                  invoker_pmd_refwrap, invoker_pmd_pointer>> {};
 
@@ -2218,7 +2218,7 @@ namespace rainy::utility::implements {
 
     template <typename Ty>
     struct dtor_impl {
-        static RAINY_CONSTEXPR20 void invoke(const Ty *object) noexcept(std::is_nothrow_destructible_v<Ty>) {
+        static RAINY_CONSTEXPR20 void invoke(const Ty *object) noexcept(type_traits::properties::is_nothrow_destructible_v<Ty>) {
             if (object) {
                 object->~Ty();
             }
@@ -2430,307 +2430,307 @@ namespace rainy::utility::cpp_methods {
      * @brief String representation of operator+
      *        operator+ 的字符串表示
      */
-    static constexpr std::string_view method_operator_add = "operator+";
+    static constexpr auto method_operator_add = "operator+";
 
     /**
      * @brief String representation of operator-
      *        operator- 的字符串表示
      */
-    static constexpr std::string_view method_operator_sub = "operator-";
+    static constexpr auto method_operator_sub = "operator-";
 
     /**
      * @brief String representation of operator*
      *        operator* 的字符串表示
      */
-    static constexpr std::string_view method_operator_mul = "operator*";
+    static constexpr auto method_operator_mul = "operator*";
 
     /**
      * @brief String representation of operator/
      *        operator/ 的字符串表示
      */
-    static constexpr std::string_view method_operator_div = "operator/";
+    static constexpr auto method_operator_div = "operator/";
 
     /**
      * @brief String representation of operator%
      *        operator% 的字符串表示
      */
-    static constexpr std::string_view method_operator_mod = "operator%";
+    static constexpr auto method_operator_mod = "operator%";
 
     /**
      * @brief String representation of operator==
      *        operator== 的字符串表示
      */
-    static constexpr std::string_view method_operator_eq = "operator==";
+    static constexpr auto method_operator_eq = "operator==";
 
     /**
      * @brief String representation of operator!=
      *        operator!= 的字符串表示
      */
-    static constexpr std::string_view method_operator_neq = "operator!=";
+    static constexpr auto method_operator_neq = "operator!=";
 
     /**
      * @brief String representation of operator<
      *        operator< 的字符串表示
      */
-    static constexpr std::string_view method_operator_lt = "operator<";
+    static constexpr auto method_operator_lt = "operator<";
 
     /**
      * @brief String representation of operator>
      *        operator> 的字符串表示
      */
-    static constexpr std::string_view method_operator_gt = "operator>";
+    static constexpr auto method_operator_gt = "operator>";
 
     /**
      * @brief String representation of operator<=
      *        operator<= 的字符串表示
      */
-    static constexpr std::string_view method_operator_le = "operator<=";
+    static constexpr auto method_operator_le = "operator<=";
 
     /**
      * @brief String representation of operator>=
      *        operator>= 的字符串表示
      */
-    static constexpr std::string_view method_operator_ge = "operator>=";
+    static constexpr auto method_operator_ge = "operator>=";
 
     /**
      * @brief String representation of operator=
      *        operator= 的字符串表示
      */
-    static constexpr std::string_view method_operator_assign = "operator=";
+    static constexpr auto method_operator_assign = "operator=";
 
     /**
      * @brief String representation of operator[]
      *        operator[] 的字符串表示
      */
-    static constexpr std::string_view method_operator_index = "operator[]";
+    static constexpr auto method_operator_index = "operator[]";
 
     /**
      * @brief String representation of operator()
      *        operator() 的字符串表示
      */
-    static constexpr std::string_view method_operator_call = "operator()";
+    static constexpr auto method_operator_call = "operator()";
 
     /**
      * @brief String representation of operator->
      *        operator-> 的字符串表示
      */
-    static constexpr std::string_view method_operator_arrow = "operator->";
+    static constexpr auto method_operator_arrow = "operator->";
 
     /**
      * @brief String representation of operator* (dereference)
      *        operator*（解引用）的字符串表示
      */
-    static constexpr std::string_view method_operator_deref = "operator*";
+    static constexpr auto method_operator_deref = "operator*";
 
     /**
      * @brief String representation of operator& (address-of)
      *        operator&（取地址）的字符串表示
      */
-    static constexpr std::string_view method_operator_addr = "operator&";
+    static constexpr auto method_operator_addr = "operator&";
 
     /**
      * @brief String representation of operator++ (prefix)
      *        operator++（前缀）的字符串表示
      */
-    static constexpr std::string_view method_operator_preinc = "operator++";
+    static constexpr auto method_operator_preinc = "operator++";
 
     /**
      * @brief String representation of operator++ (postfix)
      *        operator++（后缀）的字符串表示
      */
-    static constexpr std::string_view method_operator_postinc = "operator++(int)";
+    static constexpr auto method_operator_postinc = "operator++(int)";
 
     /**
      * @brief String representation of operator-- (prefix)
      *        operator--（前缀）的字符串表示
      */
-    static constexpr std::string_view method_operator_predec = "operator--";
+    static constexpr auto method_operator_predec = "operator--";
 
     /**
      * @brief String representation of operator-- (postfix)
      *        operator--（后缀）的字符串表示
      */
-    static constexpr std::string_view method_operator_postdec = "operator--(int)";
+    static constexpr auto method_operator_postdec = "operator--(int)";
 
     /**
      * @brief String representation of operator||
      *        operator|| 的字符串表示
      */
-    static constexpr std::string_view method_operator_or = "operator||";
+    static constexpr auto method_operator_or = "operator||";
 
     /**
      * @brief String representation of operator&&
      *        operator&& 的字符串表示
      */
-    static constexpr std::string_view method_operator_and = "operator&&";
+    static constexpr auto method_operator_and = "operator&&";
 
     /**
      * @brief String representation of operator!
      *        operator! 的字符串表示
      */
-    static constexpr std::string_view method_operator_not = "operator!";
+    static constexpr auto method_operator_not = "operator!";
 
     /**
      * @brief String representation of operator|
      *        operator| 的字符串表示
      */
-    static constexpr std::string_view method_operator_bit_or = "operator|";
+    static constexpr auto method_operator_bit_or = "operator|";
 
     /**
      * @brief String representation of operator& (bitwise AND)
      *        operator&（按位与）的字符串表示
      */
-    static constexpr std::string_view method_operator_bit_and = "operator&";
+    static constexpr auto method_operator_bit_and = "operator&";
 
     /**
      * @brief String representation of operator^
      *        operator^ 的字符串表示
      */
-    static constexpr std::string_view method_operator_bit_xor = "operator^";
+    static constexpr auto method_operator_bit_xor = "operator^";
 
     /**
      * @brief String representation of operator~
      *        operator~ 的字符串表示
      */
-    static constexpr std::string_view method_operator_bit_not = "operator~";
+    static constexpr auto method_operator_bit_not = "operator~";
 
     /**
      * @brief String representation of operator<<
      *        operator<< 的字符串表示
      */
-    static constexpr std::string_view method_operator_shift_l = "operator<<";
+    static constexpr auto method_operator_shift_l = "operator<<";
 
     /**
      * @brief String representation of operator>>
      *        operator>> 的字符串表示
      */
-    static constexpr std::string_view method_operator_shift_r = "operator>>";
+    static constexpr auto method_operator_shift_r = "operator>>";
 
     /**
      * @brief String representation of begin()
      *        begin() 的字符串表示
      */
-    static constexpr std::string_view method_begin = "begin";
+    static constexpr auto method_begin = "begin";
 
     /**
      * @brief String representation of end()
      *        end() 的字符串表示
      */
-    static constexpr std::string_view method_end = "end";
+    static constexpr auto method_end = "end";
 
     /**
      * @brief String representation of cbegin()
      *        cbegin() 的字符串表示
      */
-    static constexpr std::string_view method_cbegin = "cbegin";
+    static constexpr auto method_cbegin = "cbegin";
 
     /**
      * @brief String representation of cend()
      *        cend() 的字符串表示
      */
-    static constexpr std::string_view method_cend = "cend";
+    static constexpr auto method_cend = "cend";
 
     /**
      * @brief String representation of rbegin()
      *        rbegin() 的字符串表示
      */
-    static constexpr std::string_view method_rbegin = "rbegin";
+    static constexpr auto method_rbegin = "rbegin";
 
     /**
      * @brief String representation of rend()
      *        rend() 的字符串表示
      */
-    static constexpr std::string_view method_rend = "rend";
+    static constexpr auto method_rend = "rend";
 
     /**
      * @brief String representation of size()
      *        size() 的字符串表示
      */
-    static constexpr std::string_view method_size = "size";
+    static constexpr auto method_size = "size";
 
     /**
      * @brief String representation of empty()
      *        empty() 的字符串表示
      */
-    static constexpr std::string_view method_empty = "empty";
+    static constexpr auto method_empty = "empty";
 
     /**
      * @brief String representation of clear()
      *        clear() 的字符串表示
      */
-    static constexpr std::string_view method_clear = "clear";
+    static constexpr auto method_clear = "clear";
 
     /**
      * @brief String representation of push_back()
      *        push_back() 的字符串表示
      */
-    static constexpr std::string_view method_push_back = "push_back";
+    static constexpr auto method_push_back = "push_back";
 
     /**
      * @brief String representation of pop_back()
      *        pop_back() 的字符串表示
      */
-    static constexpr std::string_view method_pop_back = "pop_back";
+    static constexpr auto method_pop_back = "pop_back";
 
     /**
      * @brief String representation of length()
      *        length() 的字符串表示
      */
-    static constexpr std::string_view method_length = "length";
+    static constexpr auto method_length = "length";
 
     /**
      * @brief String representation of insert()
      *        insert() 的字符串表示
      */
-    static constexpr std::string_view method_insert = "insert";
+    static constexpr auto method_insert = "insert";
 
     /**
      * @brief String representation of erase()
      *        erase() 的字符串表示
      */
-    static constexpr std::string_view method_erase = "erase";
+    static constexpr auto method_erase = "erase";
 
     /**
      * @brief String representation of find()
      *        find() 的字符串表示
      */
-    static constexpr std::string_view method_find = "find";
+    static constexpr auto method_find = "find";
 
     /**
      * @brief String representation of resize()
      *        resize() 的字符串表示
      */
-    static constexpr std::string_view method_resize = "resize";
+    static constexpr auto method_resize = "resize";
 
     /**
      * @brief String representation of swap()
      *        swap() 的字符串表示
      */
-    static constexpr std::string_view method_swap = "swap";
+    static constexpr auto method_swap = "swap";
 
     /**
      * @brief String representation of at()
      *        at() 的字符串表示
      */
-    static constexpr std::string_view method_at = "at";
+    static constexpr auto method_at = "at";
 
     /**
      * @brief String representation of front()
      *        front() 的字符串表示
      */
-    static constexpr std::string_view method_front = "front";
+    static constexpr auto method_front = "front";
 
     /**
      * @brief String representation of back()
      *        back() 的字符串表示
      */
-    static constexpr std::string_view method_back = "back";
+    static constexpr auto method_back = "back";
 
     /**
      * @brief String representation of append()
      *        append() 的字符串表示
      */
-    static constexpr std::string_view method_append = "append";
+    static constexpr auto method_append = "append";
 }
 
 namespace rainy::core {
@@ -2877,22 +2877,22 @@ namespace rainy::type_traits::properties {
      *        检查类型是否为顺序容器的类型模板。
      *        顺序容器支持 push_back 或是数组。
      *
-     * @tparam T The type to check
+     * @tparam Ty The type to check
      *           要检查的类型
      */
-    template <typename T>
+    template <typename Ty>
     struct is_sequential_container
-        : helper::bool_constant<type_traits::extras::meta_method::has_push_back_v<T> || primary_types::is_array_v<T>> {};
+        : helper::bool_constant<type_traits::extras::meta_method::has_push_back_v<Ty> || primary_types::is_array_v<Ty>> {};
 
     /**
      * @brief Variable template for checking if a type is a sequential container.
      *        检查类型是否为顺序容器的变量模板。
      *
-     * @tparam T The type to check
+     * @tparam Ty The type to check
      *           要检查的类型
      */
-    template <typename T>
-    RAINY_CONSTEXPR_BOOL is_sequential_container_v = is_sequential_container<T>::value;
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL is_sequential_container_v = is_sequential_container<Ty>::value;
 
     /**
      * @brief Type template for checking if a type is an associative container.
@@ -2902,29 +2902,29 @@ namespace rainy::type_traits::properties {
      *        检查类型是否为关联容器的类型模板。
      *        关联容器支持使用键或键值对的插入，不支持 push_back。
      *
-     * @tparam T The type to check
+     * @tparam Ty The type to check
      *           要检查的类型
      */
-    template <typename T>
-    struct is_associative_container : helper::bool_constant<type_traits::extras::meta_method::has_insert_for_key_v<T> &&
-                                                            type_traits::extras::meta_method::has_insert_for_key_and_value_v<T> &&
-                                                            !type_traits::extras::meta_method::has_push_back_v<T>> {};
+    template <typename Ty>
+    struct is_associative_container : helper::bool_constant<type_traits::extras::meta_method::has_insert_for_key_v<Ty> &&
+                                                            type_traits::extras::meta_method::has_insert_for_key_and_value_v<Ty> &&
+                                                            !type_traits::extras::meta_method::has_push_back_v<Ty>> {};
 
     /**
      * @brief Variable template for checking if a type is an associative container.
      *        检查类型是否为关联容器的变量模板。
      *
-     * @tparam T The type to check
+     * @tparam Ty The type to check
      *           要检查的类型
      */
-    template <typename T>
-    RAINY_CONSTEXPR_BOOL is_associative_container_v = is_associative_container<T>::value;
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL is_associative_container_v = is_associative_container<Ty>::value;
 
     /**
      * @brief Type template for checking if a type is map-like (has key_type and mapped_type).
      *        检查类型是否为类似映射的类型（具有 key_type 和 mapped_type）的类型模板。
      *
-     * @tparam T The type to check
+     * @tparam Ty The type to check
      *           要检查的类型
      */
     template <typename, typename = void>
@@ -2934,21 +2934,21 @@ namespace rainy::type_traits::properties {
      * @brief Specialization that detects key_type and mapped_type members.
      *        检测 key_type 和 mapped_type 成员的特化。
      *
-     * @tparam T The type to check
+     * @tparam Ty The type to check
      *           要检查的类型
      */
-    template <typename T>
-    struct is_map_like<T, other_trans::void_t<typename T::key_type, typename T::mapped_type>> : helper::true_type {};
+    template <typename Ty>
+    struct is_map_like<Ty, other_trans::void_t<typename Ty::key_type, typename Ty::mapped_type>> : helper::true_type {};
 
     /**
      * @brief Variable template for checking if a type is map-like.
      *        检查类型是否为类似映射的类型的变量模板。
      *
-     * @tparam T The type to check
+     * @tparam Ty The type to check
      *           要检查的类型
      */
-    template <typename T>
-    inline constexpr bool is_map_like_v = is_map_like<T>::value;
+    template <typename Ty>
+    inline constexpr bool is_map_like_v = is_map_like<Ty>::value;
 }
 
 #endif

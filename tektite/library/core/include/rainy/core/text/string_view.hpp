@@ -640,7 +640,7 @@ namespace rainy::core::text {
         size_type size_{0};
     };
 
-    template <class It, class End>
+    template <typename It, class End>
     basic_string_view(It, End) -> basic_string_view<type_traits::extras::iterators::iter_value_t<It>>;
 
     using string_view = basic_string_view<char>;

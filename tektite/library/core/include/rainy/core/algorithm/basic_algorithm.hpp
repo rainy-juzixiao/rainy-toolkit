@@ -41,7 +41,7 @@ namespace rainy::core::algorithm {
      * @return Iterator to the element past the last swapped element in the second range
      *         指向第二个范围中最后一个被交换元素之后位置的迭代器
      */
-    template <class ForwardIt1, class ForwardIt2>
+    template <typename ForwardIt1, typename ForwardIt2>
     RAINY_CONSTEXPR20 rain_fn swap_ranges(ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2) -> ForwardIt2 {
         for (; first1 != last1; ++first1, ++first2) {
             std::iter_swap(first1, first2);

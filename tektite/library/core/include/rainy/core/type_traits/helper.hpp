@@ -83,7 +83,7 @@ namespace rainy::type_traits::helper {
      */
     template <typename Ty, Ty... Vals>
     struct integer_sequence {
-        static_assert(implements::is_integral_v<Ty>, "integer_sequence<T, I...> requires T to be an integral type.");
+        static_assert(implements::is_integral_v<Ty>, "integer_sequence<Ty, I...> requires Ty to be an integral type.");
 
         using value_type = Ty;
 
@@ -100,16 +100,16 @@ namespace rainy::type_traits::helper {
     };
 
     /**
-     * @brief Creates an integer_sequence of type T with values 0, 1, ..., N-1.
+     * @brief Creates an integer_sequence of type Ty with values 0, 1, ..., N-1.
      *        创建类型T的integer_sequence，值为0, 1, ..., N-1。
      *
-     * @tparam T The integral type
+     * @tparam Ty The integral type
      *           整型类型
      * @tparam N The size of the sequence
      *           序列的大小
      */
-    template <typename T, T N>
-    using make_integer_sequence = typename core::builtin::make_integer_seq<integer_sequence, T, N>::type;
+    template <typename Ty, Ty N>
+    using make_integer_sequence = typename core::builtin::make_integer_seq<integer_sequence, Ty, N>::type;
 
     /**
      * @brief Compile-time sequence of size_t indices.
@@ -177,7 +177,7 @@ namespace rainy::type_traits::helper {
     template <typename Ty>
     struct make_unsigned {
         static_assert(implements::is_integral_v<Ty> || implements::_is_enum_v<Ty>,
-                      "make_unsigned<T> requires Ty to be an integral or enum type");
+                      "make_unsigned<Ty> requires Ty to be an integral or enum type");
 
         using type = implements::_conditional_t<
             implements::_is_const_v<Ty>,
@@ -205,7 +205,7 @@ namespace rainy::type_traits::helper {
     template <typename Ty>
     struct make_signed {
         static_assert(implements::is_integral_v<Ty> || implements::_is_enum_v<Ty>,
-                      "make_signed<T> requires Ty to be an integral or enum type");
+                      "make_signed<Ty> requires Ty to be an integral or enum type");
 
         using type =
             implements::_conditional_t<implements::_is_const_v<Ty>,

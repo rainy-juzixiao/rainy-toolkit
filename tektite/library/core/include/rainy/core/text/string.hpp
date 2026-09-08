@@ -44,13 +44,13 @@ namespace rainy::core::text {
         using traits_type = Traits;
         using value_type = CharType;
         using allocator_type = Allocator;
-        using size_type = typename std::allocator_traits<Allocator>::size_type;
-        using difference_type = typename std::allocator_traits<Allocator>::difference_type;
+        using size_type = typename memory::allocator_traits<Allocator>::size_type;
+        using difference_type = typename memory::allocator_traits<Allocator>::difference_type;
         using reference = value_type &;
         using const_reference = value_type const &;
-        using pointer = typename std::allocator_traits<Allocator>::pointer;
-        using const_pointer = typename std::allocator_traits<Allocator>::const_pointer;
-        using allocator_traits = std::allocator_traits<allocator_type>;
+        using pointer = typename memory::allocator_traits<Allocator>::pointer;
+        using const_pointer = typename memory::allocator_traits<Allocator>::const_pointer;
+        using allocator_traits = memory::allocator_traits<allocator_type>;
         using iterator = value_type *;
         using const_iterator = const value_type *;
         using reverse_iterator = utility::reverse_iterator<iterator>;
@@ -497,7 +497,7 @@ namespace rainy::core::text {
         }
 
         RAINY_CONSTEXPR20 void swap(basic_string &right) noexcept {
-            if constexpr (std::allocator_traits<Allocator>::propagate_on_container_swap::value) {
+            if constexpr (memory::allocator_traits<Allocator>::propagate_on_container_swap::value) {
                 std::swap(right.get_al(), right.get_al());
             } else {
                 assert(right.get_al() == this->get_al());
@@ -515,8 +515,8 @@ namespace rainy::core::text {
         // NOLINTEND
 
         RAINY_CONSTEXPR20 basic_string &operator=(basic_string &&right) noexcept(
-            std::allocator_traits<Allocator>::propagate_on_container_move_assignment::value ||
-            std::allocator_traits<Allocator>::is_always_equal::value) {
+            memory::allocator_traits<Allocator>::propagate_on_container_move_assignment::value ||
+            memory::allocator_traits<Allocator>::is_always_equal::value) {
             assign(utility::move(right));
             return *this;
         }
@@ -563,10 +563,10 @@ namespace rainy::core::text {
         }
 
         RAINY_CONSTEXPR20 basic_string &assign(const basic_string &str) {
-            if (std::addressof(str) == this) {
+            if (utility::addressof(str) == this) {
                 return *this;
             }
-            if RAINY_CONSTEXPR20 (std::allocator_traits<Allocator>::propagate_on_container_copy_assignment::value) {
+            if RAINY_CONSTEXPR20 (memory::allocator_traits<Allocator>::propagate_on_container_copy_assignment::value) {
                 if (this->get_al() != str.get_al()) {
                     basic_string temp{this->get_al()};
                     temp.swap(*this);
@@ -589,7 +589,7 @@ namespace rainy::core::text {
         }
 
         RAINY_CONSTEXPR20 basic_string &assign(basic_string &&right) noexcept { // NOLINT
-            if RAINY_CONSTEXPR20 (std::allocator_traits<Allocator>::propagate_on_container_move_assignment::value) {
+            if RAINY_CONSTEXPR20 (memory::allocator_traits<Allocator>::propagate_on_container_move_assignment::value) {
                 right.swap(*this);
             } else {
                 if (this->get_al() == right.get_al()) {
@@ -1751,7 +1751,7 @@ namespace rainy::core::text {
 #if RAINY_HAS_CXX20
             if (std::is_constant_evaluated()) {
                 for (size_type i = 0; i != n; ++i) {
-                    std::construct_at(std::addressof(begin[i]));
+                    std::construct_at(utility::addressof(begin[i]));
                 }
             }
 #else

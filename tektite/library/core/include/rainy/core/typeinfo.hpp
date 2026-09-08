@@ -178,42 +178,42 @@ namespace rainy::core::implements {
     constexpr rain_fn eval_traits_for_fundamental() noexcept -> traits {
         traits traits_{0};
 
-        if constexpr (std::is_void_v<Ty>) {
+        if constexpr (type_traits::type_relations::is_void_v<Ty>) {
             traits_ |= traits::is_void;
         }
 
-        if constexpr (std::is_pointer_v<rainy::type_traits::modifers::remove_cvref_t<Ty>> || std::is_same_v<Ty, std::nullptr_t>) {
+        if constexpr (type_traits::primary_types::is_pointer_v<rainy::type_traits::modifers::remove_cvref_t<Ty>> || type_traits::type_relations::is_same_v<Ty, std::nullptr_t>) {
             traits_ |= traits::is_pointer;
         }
 
-        if constexpr (std::is_integral_v<Ty>) {
+        if constexpr (type_traits::primary_types::is_integral_v<Ty>) {
             traits_ |= traits::is_integer;
         }
 
-        if constexpr (std::is_same_v<Ty, std::nullptr_t>) {
+        if constexpr (type_traits::type_relations::is_same_v<Ty, std::nullptr_t>) {
             traits_ |= traits::is_nullptr_t;
         }
 
-        if constexpr (std::is_floating_point_v<Ty>) {
+        if constexpr (type_traits::primary_types::is_floating_point_v<Ty>) {
             traits_ |= traits::is_floating_point;
         }
 
-        if constexpr (std::is_unsigned_v<Ty>) {
+        if constexpr (type_traits::properties::is_unsigned_v<Ty>) {
             traits_ |= traits::is_unsigned;
         }
-        if constexpr (std::is_signed_v<Ty>) {
+        if constexpr (type_traits::properties::is_signed_v<Ty>) {
             traits_ |= traits::is_signed;
         }
 
-        if constexpr (std::is_fundamental_v<Ty>) {
+        if constexpr (type_traits::composite_types::is_fundamental_v<Ty>) {
             traits_ |= traits::is_fundamental;
         }
 
-        if constexpr (std::is_trivially_default_constructible_v<Ty> && std::is_trivially_copyable_v<Ty>) {
+        if constexpr (type_traits::properties::is_trivially_default_constructible_v<Ty> && type_traits::properties::is_trivially_copyable_v<Ty>) {
             traits_ |= traits::is_trivial;
         }
 
-        if constexpr (std::is_arithmetic_v<Ty>) {
+        if constexpr (type_traits::composite_types::is_arithmetic_v<Ty>) {
             traits_ |= traits::is_arithmetic;
         }
 
@@ -226,7 +226,7 @@ namespace rainy::core::implements {
 
         using decay_type = type_traits::other_trans::decay_t<Ty>;
 
-        if constexpr (std::is_class_v<decay_type>) {
+        if constexpr (type_traits::primary_types::is_class_v<decay_type>) {
             traits_ |= traits::is_class;
         }
 
@@ -250,7 +250,7 @@ namespace rainy::core::implements {
             }
         }
 
-        if constexpr (std::is_array_v<Ty>) {
+        if constexpr (type_traits::primary_types::is_array_v<Ty>) {
             traits_ |= traits::is_array;
         }
 
@@ -1143,7 +1143,7 @@ namespace rainy::core::implements {
 
     template <typename Derived, typename Base>
     void register_base() {
-        static_assert(std::is_base_of_v<Base, Derived>);
+        static_assert(type_traits::type_relations::is_base_of_v<Base, Derived>);
         converter_func up_fn = [](void *ptr) -> void * { return static_cast<Base *>(static_cast<Derived *>(ptr)); };
         register_direct_base(typeinfo::get_type_hash<Derived>(), typeinfo::get_type_hash<Base>(), up_fn);
     }

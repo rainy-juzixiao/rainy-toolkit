@@ -241,8 +241,8 @@ namespace rainy::core::algorithm {
     template <typename InputIt1, typename InputIt2, typename OutIt, typename Comp>
     constexpr rain_fn set_union(InputIt1 first1, InputIt1 last1, InputIt2 first2, InputIt2 last2, OutIt dest, Comp comp)
         -> OutIt {
-        return implements::set_operation(first1, last1, first2, last2, dest, comp, std::true_type{}, std::true_type{},
-                                         std::true_type{});
+        return implements::set_operation(first1, last1, first2, last2, dest, comp, type_traits::helper::true_type{}, type_traits::helper::true_type{},
+                                         type_traits::helper::true_type{});
     }
 
     /**
@@ -271,8 +271,8 @@ namespace rainy::core::algorithm {
     template <typename InputIt1, typename InputIt2, typename OutIt, typename Comp>
     constexpr rain_fn set_intersection(InputIt1 first1, InputIt1 last1, InputIt2 first2, InputIt2 last2, OutIt dest, Comp comp)
         -> OutIt {
-        return implements::set_operation(first1, last1, first2, last2, dest, comp, std::false_type{}, std::false_type{},
-                                         std::true_type{});
+        return implements::set_operation(first1, last1, first2, last2, dest, comp, type_traits::helper::false_type{}, type_traits::helper::false_type{},
+                                         type_traits::helper::true_type{});
     }
 
     /**
@@ -301,8 +301,8 @@ namespace rainy::core::algorithm {
     template <typename InputIt1, typename InputIt2, typename OutIt, typename Comp>
     constexpr rain_fn set_difference(InputIt1 first1, InputIt1 last1, InputIt2 first2, InputIt2 last2, OutIt dest, Comp comp)
         -> OutIt {
-        return implements::set_operation(first1, last1, first2, last2, dest, comp, std::true_type{}, std::false_type{},
-                                         std::false_type{});
+        return implements::set_operation(first1, last1, first2, last2, dest, comp, type_traits::helper::true_type{}, type_traits::helper::false_type{},
+                                         type_traits::helper::false_type{});
     }
 
     /**
@@ -331,8 +331,8 @@ namespace rainy::core::algorithm {
     template <typename InputIt1, typename InputIt2, typename OutIt, typename Comp>
     constexpr rain_fn set_symmetric_difference(InputIt1 first1, InputIt1 last1, InputIt2 first2, InputIt2 last2, OutIt dest,
                                                Comp comp) -> OutIt {
-        return implements::set_operation(first1, last1, first2, last2, dest, comp, std::true_type{}, std::true_type{},
-                                         std::false_type{});
+        return implements::set_operation(first1, last1, first2, last2, dest, comp, type_traits::helper::true_type{}, type_traits::helper::true_type{},
+                                         type_traits::helper::false_type{});
     }
 
     /**

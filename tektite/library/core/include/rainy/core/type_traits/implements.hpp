@@ -422,7 +422,7 @@ namespace rainy::type_traits::implements {
     struct make_unsigned_by_size<4> {
         template <typename Ty>
         using apply =
-            typename _select<is_same_v<Ty, long> || is_same_v<Ty, unsigned long>>::template type<unsigned long, unsigned int>;
+            typename _select<is_same_v<Ty, long> || is_same_v<Ty, unsigned long>>::template apply<unsigned long, unsigned int>;
     };
 
     template <>
@@ -514,9 +514,9 @@ namespace rainy::type_traits::implements {
         template <typename, typename>
         static helper::false_type test_for_one_arg(...);
 
-        template <typename T>
-        static helper::true_type ref_test(T);
-        template <typename T>
+        template <typename Ty>
+        static helper::true_type ref_test(Ty);
+        template <typename Ty>
         static helper::false_type ref_test(...);
     };
 

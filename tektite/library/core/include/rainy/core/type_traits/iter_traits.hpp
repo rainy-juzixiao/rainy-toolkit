@@ -319,8 +319,8 @@ namespace rainy::type_traits::extras::iterators {
      *
      * @tparam DifferenceType The type used to represent distances between iterators
      *                        用于表示迭代器之间距离的类型
-     * @tparam Category The iterator category tag (e.g., std::forward_iterator_tag)
-     *                  迭代器类别标签（例如 std::forward_iterator_tag）
+     * @tparam Category The iterator category tag (e.g., utility::forward_iterator_tag)
+     *                  迭代器类别标签（例如 utility::forward_iterator_tag）
      * @tparam Pointer The pointer type (usually value_type*)
      *                 指针类型（通常是 value_type*）
      * @tparam Reference The reference type (usually value_type&)
@@ -555,7 +555,7 @@ namespace rainy::utility {
         if constexpr (type_traits::type_relations::is_base_of_v<std::random_access_iterator_tag, category>) {
             return last - first;
         } else {
-            typename std::iterator_traits<Iter>::difference_type result = 0;
+            typename type_traits::extras::iterators::iterator_traits<Iter>::difference_type result = 0;
             while (first != last) {
                 ++first;
                 ++result;
@@ -591,7 +591,7 @@ namespace rainy::utility {
         using category = typename iterator_traits<It>::iterator_category;
         static_assert(type_traits::type_relations::is_base_of_v<std::input_iterator_tag, category>);
 
-        auto dist = typename std::iterator_traits<It>::difference_type(n);
+        auto dist = typename type_traits::extras::iterators::iterator_traits<It>::difference_type(n);
         if constexpr (type_traits::type_relations::is_base_of_v<std::random_access_iterator_tag, category>) {
             it += dist;
         } else {

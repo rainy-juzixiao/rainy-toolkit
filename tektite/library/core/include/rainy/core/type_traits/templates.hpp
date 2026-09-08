@@ -123,12 +123,12 @@ namespace rainy::type_traits::extras::templates {
      * @brief Replaces the last template parameter of a template instantiation.
      *        替换模板实例化的最后一个模板参数。
      *
-     * @tparam T The template instantiation type
+     * @tparam Ty The template instantiation type
      *            模板实例化类型
      * @tparam NewLast The new type for the last parameter
      *                 最后一个参数的新类型
      */
-    template <typename T, typename NewLast>
+    template <typename Ty, typename NewLast>
     struct replace_last_parameter;
 
     /**

@@ -40,11 +40,11 @@ namespace rainy::core::container {
 }
 
 namespace rainy::core::container::implements {
-    template <typename Ty, bool = std::is_final_v<Ty>>
-    struct compressed_pair_empty : std::false_type {};
+    template <typename Ty, bool = type_traits::properties::is_final_v<Ty>>
+    struct compressed_pair_empty : type_traits::helper::false_type {};
 
     template <typename Ty>
-    struct compressed_pair_empty<Ty, false> : std::is_empty<Ty> {};
+    struct compressed_pair_empty<Ty, false> : type_traits::properties::is_empty<Ty> {};
 
     template <typename Ty1, typename Ty2, bool is_same, bool first_empty, bool second_empty>
     struct compressed_pair_switch;
@@ -106,7 +106,7 @@ namespace rainy::core::container::implements {
     template <typename Ty1, typename Ty2, int Version>
     class compressed_pair_impl;
 
-    template <class Ty1, typename Ty2>
+    template <typename Ty1, typename Ty2>
     class compressed_pair_impl<Ty1, Ty2, 0> {
     public:
         using first_type = Ty1;
@@ -904,8 +904,8 @@ namespace rainy::core::container {
          * @return Reference to this pair
          *         此对的引用
          */
-        constexpr rain_fn operator=(compressed_pair &&other) noexcept(std::is_nothrow_move_assignable_v<Ty1> &&
-                                                                      std::is_nothrow_move_assignable_v<Ty2>)
+        constexpr rain_fn operator=(compressed_pair &&other) noexcept(type_traits::properties::is_nothrow_move_assignable_v<Ty1> &&
+                                                                      type_traits::properties::is_nothrow_move_assignable_v<Ty2>)
             ->compressed_pair & {
             utility::construct_in_place(this->get_first(), utility::move(other.get_first()));
             utility::construct_in_place(this->get_second(), utility::move(other.get_second()));
@@ -981,7 +981,7 @@ namespace rainy::core::container {
          * @return Reference to this pair
          *         此对的引用
          */
-        constexpr rain_fn operator=(compressed_pair &&other) noexcept(std::is_nothrow_move_assignable_v<Ty>)->compressed_pair & {
+        constexpr rain_fn operator=(compressed_pair &&other) noexcept(type_traits::properties::is_nothrow_move_assignable_v<Ty>)->compressed_pair & {
             this->get_first() = utility::move(other.get_first());
             this->get_second() = utility::move(other.get_second());
             return *this;

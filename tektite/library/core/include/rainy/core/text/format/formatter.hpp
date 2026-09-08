@@ -178,7 +178,7 @@ namespace rainy::core::text {
             }
             return arg.visit([](auto &&value) -> int { // NOLINT
                 using Ty = type_traits::other_trans::decay_t<decltype(value)>;
-                if constexpr (std::is_integral_v<Ty> && !type_traits::type_relations::is_same_v<Ty, bool>) {
+                if constexpr (type_traits::primary_types::is_integral_v<Ty> && !type_traits::type_relations::is_same_v<Ty, bool>) {
                     return static_cast<int>(value);
                 }
                 exceptions::runtime::throw_format_error("argument must be an integer");
@@ -389,7 +389,7 @@ namespace rainy::core::text {
     template <typename Ty, typename CharType>
     struct formatter<
         Ty, CharType,
-        std::enable_if_t<std::is_integral_v<Ty> && !type_traits::type_relations::is_same_v<Ty, bool> &&
+        type_traits::other_trans::enable_if_t<type_traits::primary_types::is_integral_v<Ty> && !type_traits::type_relations::is_same_v<Ty, bool> &&
                          !type_traits::type_relations::is_same_v<Ty, char> && !type_traits::type_relations::is_same_v<Ty, wchar_t> &&
                          !type_traits::type_relations::is_same_v<Ty, char16_t> &&
                          !type_traits::type_relations::is_same_v<Ty, char32_t>>> {
@@ -510,12 +510,12 @@ namespace rainy::core::text {
 
         template <typename IntType>
         static void write_int(IntType value, implements::stack_buffer<CharType> &buf, int base, bool uppercase) noexcept {
-            using UType = std::make_unsigned_t<IntType>;
+            using UType = type_traits::helper::make_unsigned_t<IntType>;
 
             bool negative = false;
             UType uval;
 
-            if constexpr (std::is_signed_v<IntType>) {
+            if constexpr (type_traits::properties::is_signed_v<IntType>) {
                 if (value < 0) {
                     negative = true;
                     uval = static_cast<UType>(~static_cast<UType>(value) + 1u);

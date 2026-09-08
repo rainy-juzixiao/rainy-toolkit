@@ -17,9 +17,10 @@
 #define RAINY_CORE_CONTAINER_POLYMORPHIC_HPP
 #include <rainy/core/type_traits.hpp>
 #include <rainy/core/container/compressed_pair.hpp>
+#include <rainy/core/memory/allocator.hpp>
 
 namespace rainy::core::container {
-    template <typename Ty, typename Alloc = std::allocator<Ty>>
+    template <typename Ty, typename Alloc = memory::allocator<Ty>>
     class polymorphic {
     public:
         using value_type = Ty;
@@ -49,7 +50,7 @@ namespace rainy::core::container {
         }
 
         RAINY_CONSTEXPR20 polymorphic(const polymorphic &other) :
-            pair(std::allocator_traits<allocator_type>::select_on_container_copy_construction(other.pair.get_first()), nullptr) {
+            pair(memory::allocator_traits<allocator_type>::select_on_container_copy_construction(other.pair.get_first()), nullptr) {
             if (other.pair.get_second() != nullptr) {
                 copy_from(other);
             }
@@ -67,7 +68,7 @@ namespace rainy::core::container {
         }
 
         RAINY_CONSTEXPR20 polymorphic(std::allocator_arg_t, const Alloc &a,
-                                      polymorphic &&other) noexcept(std::allocator_traits<Alloc>::is_always_equal::value) :
+                                      polymorphic &&other) noexcept(memory::pointer_traits<Alloc>::is_always_equal::value) :
             pair(a, nullptr) {
             if (pair.get_first() == other.pair.get_first()) {
                 pair.get_second() = other.pair.get_second();
@@ -149,10 +150,10 @@ namespace rainy::core::container {
             return *this;
         }
 
-        RAINY_CONSTEXPR20 polymorphic &operator=(polymorphic &&other) noexcept(std::allocator_traits<Alloc>::is_always_equal::value) {
+        RAINY_CONSTEXPR20 polymorphic &operator=(polymorphic &&other) noexcept(memory::allocator_traits<Alloc>::is_always_equal::value) {
             if (this != &other) {
                 reset();
-                if constexpr (std::allocator_traits<Alloc>::is_always_equal::value) {
+                if constexpr (memory::allocator_traits<Alloc>::is_always_equal::value) {
                     pair.get_first() = utility::move(other.pair.get_first());
                     pair.get_second() = other.pair.get_second();
                     other.pair.get_second() = nullptr;
@@ -197,13 +198,13 @@ namespace rainy::core::container {
             return pair.get_first();
         }
 
-        RAINY_CONSTEXPR20 void swap(polymorphic &other) noexcept(std::allocator_traits<Alloc>::is_always_equal::value) {
+        RAINY_CONSTEXPR20 void swap(polymorphic &other) noexcept(memory::allocator_traits<Alloc>::is_always_equal::value) {
             if (this != &other) {
                 void *temp_ptr = pair.get_second();
                 pair.get_second() = other.pair.get_second();
                 other.pair.get_second() = temp_ptr;
 
-                if constexpr (!std::allocator_traits<Alloc>::is_always_equal::value) {
+                if constexpr (!memory::allocator_traits<Alloc>::is_always_equal::value) {
                     allocator_type temp_alloc = utility::move(pair.get_first());
                     pair.get_first() = utility::move(other.pair.get_first());
                     other.pair.get_first() = utility::move(temp_alloc);
@@ -231,22 +232,22 @@ namespace rainy::core::container {
             }
 
             void destroy(allocator_type &alloc) noexcept override {
-                using block_allocator = typename std::allocator_traits<allocator_type>::template rebind_alloc<control_block>;
+                using block_allocator = typename memory::allocator_traits<allocator_type>::template rebind_alloc<control_block>;
                 block_allocator block_alloc(alloc);
                 auto *derived_this = static_cast<control_block *>(this);
-                std::allocator_traits<block_allocator>::destroy(block_alloc, derived_this);
-                std::allocator_traits<block_allocator>::deallocate(block_alloc, derived_this, 1);
+                memory::allocator_traits<block_allocator>::destroy(block_alloc, derived_this);
+                memory::allocator_traits<block_allocator>::deallocate(block_alloc, derived_this, 1);
             }
 
             control_block_base *clone(allocator_type &alloc) const override {
-                using block_allocator = typename std::allocator_traits<allocator_type>::template rebind_alloc<control_block>;
+                using block_allocator = typename memory::allocator_traits<allocator_type>::template rebind_alloc<control_block>;
                 block_allocator block_alloc(alloc);
-                auto *ptr = std::allocator_traits<block_allocator>::allocate(block_alloc, 1);
+                auto *ptr = memory::allocator_traits<block_allocator>::allocate(block_alloc, 1);
                 try {
-                    std::allocator_traits<block_allocator>::construct(block_alloc, ptr, value);
+                    memory::allocator_traits<block_allocator>::construct(block_alloc, ptr, value);
                     return ptr;
                 } catch (...) {
-                    std::allocator_traits<block_allocator>::deallocate(block_alloc, ptr, 1);
+                    memory::allocator_traits<block_allocator>::deallocate(block_alloc, ptr, 1);
                     throw;
                 }
             }
@@ -263,42 +264,42 @@ namespace rainy::core::container {
         };
 
         void construct_default() {
-            using block_allocator = typename std::allocator_traits<allocator_type>::template rebind_alloc<control_block<Ty>>; // NOLINT
+            using block_allocator = typename memory::allocator_traits<allocator_type>::template rebind_alloc<control_block<Ty>>; // NOLINT
             block_allocator block_alloc(pair.get_first());
-            auto *ptr = std::allocator_traits<block_allocator>::allocate(block_alloc, 1);
+            auto *ptr = memory::allocator_traits<block_allocator>::allocate(block_alloc, 1);
             try {
-                std::allocator_traits<block_allocator>::construct(block_alloc, ptr);
+                memory::allocator_traits<block_allocator>::construct(block_alloc, ptr);
                 pair.get_second() = ptr;
             } catch (...) {
-                std::allocator_traits<block_allocator>::deallocate(block_alloc, ptr, 1);
+                memory::allocator_traits<block_allocator>::deallocate(block_alloc, ptr, 1);
                 throw;
             }
         }
 
         template <typename UTy, typename... Args>
         void construct_inplace(Args &&...args) {
-            using block_allocator = typename std::allocator_traits<allocator_type>::template rebind_alloc<control_block<UTy>>; // NOLINT
+            using block_allocator = typename memory::allocator_traits<allocator_type>::template rebind_alloc<control_block<UTy>>; // NOLINT
             block_allocator block_alloc(pair.get_first());
-            auto *ptr = std::allocator_traits<block_allocator>::allocate(block_alloc, 1);
+            auto *ptr = memory::allocator_traits<block_allocator>::allocate(block_alloc, 1);
             try {
-                std::allocator_traits<block_allocator>::construct(block_alloc, ptr, utility::forward<Args>(args)...);
+                memory::allocator_traits<block_allocator>::construct(block_alloc, ptr, utility::forward<Args>(args)...);
                 pair.get_second() = ptr;
             } catch (...) {
-                std::allocator_traits<block_allocator>::deallocate(block_alloc, ptr, 1);
+                memory::allocator_traits<block_allocator>::deallocate(block_alloc, ptr, 1);
                 throw;
             }
         }
 
         template <typename UTy, typename V>
         void construct_from_value(V &&v) {
-            using block_allocator = typename std::allocator_traits<allocator_type>::template rebind_alloc<control_block<UTy>>; // NOLINT
+            using block_allocator = typename memory::allocator_traits<allocator_type>::template rebind_alloc<control_block<UTy>>; // NOLINT
             block_allocator block_alloc(pair.get_first());
-            auto *ptr = std::allocator_traits<block_allocator>::allocate(block_alloc, 1);
+            auto *ptr = memory::allocator_traits<block_allocator>::allocate(block_alloc, 1);
             try {
-                std::allocator_traits<block_allocator>::construct(block_alloc, ptr, utility::forward<V>(v));
+                memory::allocator_traits<block_allocator>::construct(block_alloc, ptr, utility::forward<V>(v));
                 pair.get_second() = ptr;
             } catch (...) {
-                std::allocator_traits<block_allocator>::deallocate(block_alloc, ptr, 1);
+                memory::allocator_traits<block_allocator>::deallocate(block_alloc, ptr, 1);
                 throw;
             }
         }

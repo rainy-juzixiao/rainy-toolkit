@@ -381,11 +381,11 @@ namespace rainy::utility {
         using reference = Ty &;
 
         constexpr input_iterator_pointer(value_type &&val) noexcept(
-            type_traits::properties::is_nothrow_move_constructible_v<value_type>) : value{std::move(val)} {
+            type_traits::properties::is_nothrow_move_constructible_v<value_type>) : value{utility::move(val)} {
         }
 
         RAINY_NODISCARD constexpr pointer operator->() noexcept {
-            return std::addressof(value);
+            return utility::addressof(value);
         }
 
         RAINY_NODISCARD constexpr reference operator*() noexcept {
@@ -835,13 +835,13 @@ namespace rainy::utility {
     class map_mapped_iterator_impl
         : public utility::bidirectional_iterator<
               map_mapped_iterator_impl<MapContainer, Iterator>,
-              utility::make_iterator_traits<typename std::iterator_traits<Iterator>::difference_type, std::bidirectional_iterator_tag,
+              utility::make_iterator_traits<typename type_traits::extras::iterators::iterator_traits<Iterator>::difference_type, std::bidirectional_iterator_tag,
                                             typename MapContainer::mapped_type *, typename MapContainer::mapped_type &,
                                             typename MapContainer::mapped_type>> {
     public:
         using base = utility::bidirectional_iterator<
             map_mapped_iterator_impl<MapContainer, Iterator>,
-            utility::make_iterator_traits<typename std::iterator_traits<Iterator>::difference_type, std::bidirectional_iterator_tag,
+            utility::make_iterator_traits<typename type_traits::extras::iterators::iterator_traits<Iterator>::difference_type, std::bidirectional_iterator_tag,
                                           typename MapContainer::mapped_type *, typename MapContainer::mapped_type &,
                                           typename MapContainer::mapped_type>>;
 
@@ -854,13 +854,13 @@ namespace rainy::utility {
 
         // 非 const 访问（仅当 Iterator 是非 const 时可用）
         template <typename Iter = Iterator, typename = type_traits::other_trans::enable_if_t<!std::is_const_v<
-                                                std::remove_reference_t<typename std::iterator_traits<Iter>::reference>>>>
+                                                type_traits::modifers::remove_reference_t<typename type_traits::extras::iterators::iterator_traits<Iter>::reference>>>>
         typename base::reference get_element_impl() noexcept {
             return current_->second;
         }
 
         template <typename Iter = Iterator, typename = type_traits::other_trans::enable_if_t<!std::is_const_v<
-                                                std::remove_reference_t<typename std::iterator_traits<Iter>::reference>>>>
+                                                type_traits::modifers::remove_reference_t<typename type_traits::extras::iterators::iterator_traits<Iter>::reference>>>>
         typename base::pointer get_pointer_impl() noexcept {
             return utility::addressof(current_->second);
         }

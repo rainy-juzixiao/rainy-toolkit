@@ -27,8 +27,8 @@ namespace rainy::core::container {
 
         template <
             typename uty1 = Ty1, typename uty2 = Ty2,
-            type_traits::other_trans::enable_if_t<std::conjunction_v<std::is_default_constructible<uty1>, std::is_default_constructible<uty2>>, int> = 0>
-        constexpr pair() noexcept(std::is_nothrow_default_constructible_v<Ty1> && std::is_nothrow_default_constructible_v<Ty1>) :
+            type_traits::other_trans::enable_if_t<type_traits::logical_traits::conjunction_v<type_traits::properties::is_default_constructible<uty1>, type_traits::properties::is_default_constructible<uty2>>, int> = 0>
+        constexpr pair() noexcept(type_traits::properties::is_nothrow_default_constructible_v<Ty1> && type_traits::properties::is_nothrow_default_constructible_v<Ty1>) :
             first(), second() {
         }
 
@@ -37,7 +37,7 @@ namespace rainy::core::container {
         constexpr pair(pair &&) = default;
 
         template <typename uty1 = Ty1, typename uty2 = Ty2,
-                  typename = type_traits::other_trans::enable_if_t<std::conjunction_v<std::is_copy_constructible<uty1>, std::is_copy_constructible<uty2>>>>
+                  typename = type_traits::other_trans::enable_if_t<type_traits::logical_traits::conjunction_v<type_traits::properties::is_copy_constructible<uty1>, type_traits::properties::is_copy_constructible<uty2>>>>
         constexpr pair(const Ty1 &val1, const Ty2 &val2) noexcept(type_traits::properties::is_nothrow_copy_constructible_v<uty1> &&
                                                                   type_traits::properties::is_nothrow_copy_constructible_v<uty2>) :
             first(val1), second(val2) {
@@ -45,7 +45,7 @@ namespace rainy::core::container {
 
         template <typename other1, typename other2,
                   typename = type_traits::other_trans::enable_if_t<
-                      std::conjunction_v<std::is_constructible<Ty1, const other1 &>, std::is_constructible<Ty2, const other2 &>>>>
+                      type_traits::logical_traits::conjunction_v<type_traits::properties::is_constructible<Ty1, const other1 &>, type_traits::properties::is_constructible<Ty2, const other2 &>>>>
         constexpr pair(const pair<other1, other2> &right) noexcept(type_traits::properties::is_nothrow_constructible_v<Ty1, other1> && // NOLINT
                                                                    type_traits::properties::is_nothrow_constructible_v<Ty2, other2>) :
             first(right.first), second(right.second) {
@@ -53,7 +53,7 @@ namespace rainy::core::container {
 
         template <
             typename other1, typename other2,
-            typename = type_traits::other_trans::enable_if_t<std::conjunction_v<std::is_constructible<Ty1, other1>, std::is_constructible<Ty2, other2>>>>
+            typename = type_traits::other_trans::enable_if_t<type_traits::logical_traits::conjunction_v<type_traits::properties::is_constructible<Ty1, other1>, type_traits::properties::is_constructible<Ty2, other2>>>>
         constexpr pair(const pair<other1, other2> &&right) noexcept(type_traits::properties::is_nothrow_constructible_v<Ty1, other1> && // NOLINT
                                                                     type_traits::properties::is_nothrow_constructible_v<Ty2, other2>) :
             first(utility::forward<const other1>(right.first)), second(utility::forward<const other2>(right.second)) {
@@ -61,7 +61,7 @@ namespace rainy::core::container {
 
         template <
             typename other1, typename other2,
-            typename = type_traits::other_trans::enable_if_t<std::conjunction_v<std::is_constructible<Ty1, other1>, std::is_constructible<Ty2, other2>>>>
+            typename = type_traits::other_trans::enable_if_t<type_traits::logical_traits::conjunction_v<type_traits::properties::is_constructible<Ty1, other1>, type_traits::properties::is_constructible<Ty2, other2>>>>
         constexpr pair(other1 &&val1, other2 &&val2) noexcept(type_traits::properties::is_nothrow_constructible_v<Ty1, other1> &&
                                                               type_traits::properties::is_nothrow_constructible_v<Ty2, other2>) :
             first(utility::forward<other1>(val1)), second(utility::forward<other2>(val2)) {
@@ -98,7 +98,7 @@ namespace rainy::core::container {
 
         template <typename U1, typename U2,
                   typename = type_traits::other_trans::enable_if_t<
-                      std::conjunction_v<std::is_assignable<Ty1 &, const U1 &>, std::is_assignable<Ty2 &, const U2 &>>>>
+                      type_traits::logical_traits::conjunction_v<type_traits::properties::is_assignable<Ty1 &, const U1 &>, type_traits::properties::is_assignable<Ty2 &, const U2 &>>>>
         constexpr pair &operator=(const pair<U1, U2> &p) {
             first = p.first;
             second = p.second;
@@ -118,8 +118,8 @@ namespace rainy::core::container {
             return *this;
         }
 
-        constexpr void swap(pair &p) noexcept(std::is_nothrow_swappable_v<first_type> && std::is_nothrow_swappable_v<second_type>) {
-            if (this != std::addressof(p)) {
+        constexpr void swap(pair &p) noexcept(type_traits::properties::is_nothrow_swappable_v<first_type> && type_traits::properties::is_nothrow_swappable_v<second_type>) {
+            if (this != utility::addressof(p)) {
                 using std::swap;
                 swap(first, p.first);
                 swap(second, p.second);

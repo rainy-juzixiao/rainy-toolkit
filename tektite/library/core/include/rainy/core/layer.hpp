@@ -3716,13 +3716,13 @@ namespace rainy::core::layer {
      * 此类型表示可以使用双字CAS指令（x86上的CMPXCHG8B，x64上的CMPXCHG16B）
      * 进行原子操作的一对值。
      *
-     * @tparam T The base word type (typically uint32_t or uint64_t)
+     * @tparam Ty The base word type (typically uint32_t or uint64_t)
      *           基本字类型（通常为uint32_t或uint64_t）
      */
-    template <typename T>
-    struct alignas(sizeof(T) * 2) double_word_t {
-        T lo; ///< Low word (first word) / 低字（第一个字）
-        T hi; ///< High word (second word) / 高字（第二个字）
+    template <typename Ty>
+    struct alignas(sizeof(Ty) * 2) double_word_t {
+        Ty lo; ///< Low word (first word) / 低字（第一个字）
+        Ty hi; ///< High word (second word) / 高字（第二个字）
 
         /**
          * @brief Equality comparison operator.

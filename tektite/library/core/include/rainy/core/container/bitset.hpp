@@ -74,20 +74,20 @@ namespace rainy::core::container {
             sanitize();
         }
 
-        template <typename CharT, typename Traits, typename Allocator>
-        constexpr explicit bitset(const core::text::basic_string<CharT, Traits, Allocator> &str,
-                                  typename core::text::basic_string<CharT, Traits, Allocator>::size_type pos = 0,
-                                  typename core::text::basic_string<CharT, Traits, Allocator>::size_type n =
-                                      core::text::basic_string<CharT, Traits, Allocator>::npos,
-                                  CharT zero = CharT('0'), CharT one = CharT('1')) :
-            bitset(core::text::basic_string_view<CharT, Traits>(str), pos, n, zero, one) {
+        template <typename CharType, typename Traits, typename Allocator>
+        constexpr explicit bitset(const core::text::basic_string<CharType, Traits, Allocator> &str,
+                                  typename core::text::basic_string<CharType, Traits, Allocator>::size_type pos = 0,
+                                  typename core::text::basic_string<CharType, Traits, Allocator>::size_type n =
+                                      core::text::basic_string<CharType, Traits, Allocator>::npos,
+                                  CharType zero = CharType('0'), CharType one = CharType('1')) :
+            bitset(core::text::basic_string_view<CharType, Traits>(str), pos, n, zero, one) {
         }
 
-        template <typename CharT, typename Traits>
+        template <typename CharType, typename Traits>
         constexpr explicit bitset(
-            core::text::basic_string_view<CharT, Traits> str, typename core::text::basic_string_view<CharT, Traits>::size_type pos = 0,
-            typename core::text::basic_string_view<CharT, Traits>::size_type n = core::text::basic_string_view<CharT, Traits>::npos,
-            CharT zero = CharT('0'), CharT one = CharT('1')) : data{} {
+            core::text::basic_string_view<CharType, Traits> str, typename core::text::basic_string_view<CharType, Traits>::size_type pos = 0,
+            typename core::text::basic_string_view<CharType, Traits>::size_type n = core::text::basic_string_view<CharType, Traits>::npos,
+            CharType zero = CharType('0'), CharType one = CharType('1')) : data{} {
             if (pos > str.size()) {
                 throw std::out_of_range("bitset::bitset");
             }
@@ -96,7 +96,7 @@ namespace rainy::core::container {
             std::size_t bits_to_copy = std::min(rlen, N);
 
             for (std::size_t i = 0; i < bits_to_copy; ++i) {
-                CharT ch = str[pos + rlen - 1 - i];
+                CharType ch = str[pos + rlen - 1 - i];
                 if (Traits::eq(ch, one)) {
                     set(i);
                 } else if (!Traits::eq(ch, zero)) {
@@ -105,12 +105,12 @@ namespace rainy::core::container {
             }
         }
 
-        template <typename CharT>
+        template <typename CharType>
         constexpr explicit bitset(
-            const CharT *str, typename core::text::basic_string_view<CharT>::size_type n = core::text::basic_string_view<CharT>::npos,
-            CharT zero = CharT('0'), CharT one = CharT('1')) :
-            bitset(n == core::text::basic_string_view<CharT>::npos ? core::text::basic_string_view<CharT>(str)
-                                                                   : core::text::basic_string_view<CharT>(str, n),
+            const CharType *str, typename core::text::basic_string_view<CharType>::size_type n = core::text::basic_string_view<CharType>::npos,
+            CharType zero = CharType('0'), CharType one = CharType('1')) :
+            bitset(n == core::text::basic_string_view<CharType>::npos ? core::text::basic_string_view<CharType>(str)
+                                                                   : core::text::basic_string_view<CharType>(str, n),
                    0, n, zero, one) {
         }
 
@@ -320,9 +320,9 @@ namespace rainy::core::container {
             return data[0];
         }
 
-        template <typename CharT = char, typename Traits = std::char_traits<CharT>, typename Allocator = std::allocator<CharT>>
-        constexpr core::text::basic_string<CharT, Traits, Allocator> to_string(CharT zero = CharT('0'), CharT one = CharT('1')) const {
-            core::text::basic_string<CharT, Traits, Allocator> result(N, zero);
+        template <typename CharType = char, typename Traits = std::char_traits<CharType>, typename Allocator = memory::allocator<CharType>>
+        constexpr core::text::basic_string<CharType, Traits, Allocator> to_string(CharType zero = CharType('0'), CharType one = CharType('1')) const {
+            core::text::basic_string<CharType, Traits, Allocator> result(N, zero);
             for (std::size_t i = 0; i < N; ++i) {
                 if (test(i)) {
                     result[N - 1 - i] = one;

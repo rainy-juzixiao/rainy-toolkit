@@ -33,9 +33,9 @@ namespace rainy::type_traits::properties::implements {
     struct is_destructible : helper::false_type {};
 
     template <typename Ty>
-    struct is_destructible<Ty, other_trans::void_t<decltype(utility::declval<Ty &>().~Ty())>> : std::true_type {};
+    struct is_destructible<Ty, other_trans::void_t<decltype(utility::declval<Ty &>().~Ty())>> : type_traits::helper::true_type {};
 
-    template <class Ty>
+    template <typename Ty>
     struct is_destructible<Ty &> : helper::true_type {};
 
     template <typename Ty>
@@ -51,9 +51,9 @@ namespace rainy::type_traits::properties::implements {
     struct is_destructible<Ret(Args...) const> : helper::false_type {};
 
     template <typename Ret, typename... Args>
-    struct is_destructible<Ret(Args...) volatile> : std::false_type {};
+    struct is_destructible<Ret(Args...) volatile> : type_traits::helper::false_type {};
     template <typename Ret, typename... Args>
-    struct is_destructible<Ret(Args...) const volatile> : std::false_type {};
+    struct is_destructible<Ret(Args...) const volatile> : type_traits::helper::false_type {};
 
     template <typename Ty, std::size_t N>
     struct is_destructible<Ty[N]> : is_destructible<Ty> {};
@@ -1509,7 +1509,7 @@ namespace rainy::type_traits::properties {
      */
     template <typename Ty, bool = type_traits::primary_types::is_class_v<Ty> || type_traits::primary_types::is_union_v<Ty> ||
                                   type_traits::primary_types::is_array_v<Ty> || type_traits::primary_types::is_function_v<Ty>>
-    RAINY_CONSTEXPR_BOOL prefer_pass_by_value_v = sizeof(Ty) <= 2 * sizeof(void *) && std::is_trivially_copy_constructible_v<Ty>;
+    RAINY_CONSTEXPR_BOOL prefer_pass_by_value_v = sizeof(Ty) <= 2 * sizeof(void *) && type_traits::properties::is_trivially_copy_constructible_v<Ty>;
 
     /**
      * @brief Variable template for determining if a type should be passed by value.

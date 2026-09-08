@@ -640,19 +640,19 @@ namespace rainy::type_traits::other_trans {
      */
     template <typename Ty, template <typename...> class List, typename First, typename... Rest>
     struct is_type_in_list<Ty, List<First, Rest...>>
-        : other_trans::conditional_t<implements::is_same_v<Ty, First>, std::true_type, is_type_in_list<Ty, List<Rest...>>> {};
+        : other_trans::conditional_t<implements::is_same_v<Ty, First>, type_traits::helper::true_type, is_type_in_list<Ty, List<Rest...>>> {};
 
     /**
      * @brief Specialization for empty list (type not found).
      *        空列表的特化（类型未找到）。
      *
-     * @tparam T The type that was not found
+     * @tparam Ty The type that was not found
      *           未找到的类型
      * @tparam List The template template parameter
      *              模板模板参数
      */
-    template <typename T, template <typename...> class List>
-    struct is_type_in_list<T, List<>> : std::false_type {};
+    template <typename Ty, template <typename...> class List>
+    struct is_type_in_list<Ty, List<>> : type_traits::helper::false_type {};
 
     /**
      * @brief Constant representing "not found" for type list indices.
@@ -896,45 +896,45 @@ namespace rainy::type_traits::other_trans {
      * @tparam Ty The type to convert
      *            要转换的类型
      */
-    template <class Ty>
+    template <typename Ty>
     using as_list = typename implements::as_list_impl<Ty>::type;
 
     /**
      * @brief Checks if a type is contained in a type list.
      *        检查类型是否包含在类型列表中。
      *
-     * @tparam T The type to search for
+     * @tparam Ty The type to search for
      *           要搜索的类型
      * @tparam List The type list to search
      *              要搜索的类型列表
      */
-    template <typename T, typename List>
+    template <typename Ty, typename List>
     struct type_list_contains;
 
     /**
      * @brief Specialization for empty list (type not found).
      *        空列表的特化（类型未找到）。
      *
-     * @tparam T The type that was not found
+     * @tparam Ty The type that was not found
      *           未找到的类型
      */
-    template <typename T>
-    struct type_list_contains<T, type_list<>> : std::false_type {};
+    template <typename Ty>
+    struct type_list_contains<Ty, type_list<>> : type_traits::helper::false_type {};
 
     /**
      * @brief Recursive specialization that performs the search.
      *        执行搜索的递归特化。
      *
-     * @tparam T The type to search for
+     * @tparam Ty The type to search for
      *           要搜索的类型
      * @tparam First The first type in the current sublist
      *               当前子列表中的第一个类型
      * @tparam Rest The remaining types
      *              剩余类型
      */
-    template <typename T, typename First, typename... Rest>
-    struct type_list_contains<T, type_list<First, Rest...>>
-        : std::conditional_t<std::is_same_v<T, First>, std::true_type, type_list_contains<T, type_list<Rest...>>> {};
+    template <typename Ty, typename First, typename... Rest>
+    struct type_list_contains<Ty, type_list<First, Rest...>>
+        : type_traits::other_trans::conditional_t<type_traits::type_relations::is_same_v<Ty, First>, type_traits::helper::true_type, type_list_contains<Ty, type_list<Rest...>>> {};
 
     /**
      * @brief Removes duplicate types from a type list, preserving order of first occurrence.
@@ -959,12 +959,12 @@ namespace rainy::type_traits::other_trans {
      * @brief Specialization for single-element list.
      *        单元素列表的特化。
      *
-     * @tparam T The single type
+     * @tparam Ty The single type
      *           单一类型
      */
-    template <typename T>
-    struct unique_type_list<type_list<T>> {
-        using type = type_list<T>;
+    template <typename Ty>
+    struct unique_type_list<type_list<Ty>> {
+        using type = type_list<Ty>;
     };
 
     /**
@@ -1012,7 +1012,7 @@ namespace rainy::type_traits::other_trans {
 
     template <size_t Size, typename First, typename... Rest>
     struct select_type<Size, type_list<First, Rest...>> {
-        using type = std::conditional_t<(Size <= sizeof(First)), First, typename select_type<Size, type_list<Rest...>>::type>;
+        using type = type_traits::other_trans::conditional_t<(Size <= sizeof(First)), First, typename select_type<Size, type_list<Rest...>>::type>;
     };
 
     template <size_t Size>

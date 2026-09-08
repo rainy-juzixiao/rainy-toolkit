@@ -101,7 +101,7 @@ namespace rainy::core::memory::implements {
 
         template <typename UTy,
                   type_traits::other_trans::enable_if_t<type_traits::type_relations::is_convertible_v<UTy *, pointer> &&
-                                                            std::is_copy_constructible_v<deleter_type>,
+                                                            type_traits::properties::is_copy_constructible_v<deleter_type>,
                                                         int> = 0>
         RAINY_CONSTEXPR20 nebula_ptr_base(UTy *pointer, deleter_type deleter) : pair(deleter, pointer) {
         }
@@ -121,10 +121,10 @@ namespace rainy::core::memory::implements {
 
         template <typename Dx2 = Dx,
                   type_traits::other_trans::enable_if_t<
-                      type_traits::logical_traits::conjunction_v<std::is_reference<Dx2>,
-                                                                  std::is_constructible<Dx2, std::remove_reference_t<Dx2>>>,
+                      type_traits::logical_traits::conjunction_v<type_traits::composite_types::is_reference<Dx2>,
+                                                                  type_traits::properties::is_constructible<Dx2, type_traits::modifers::remove_reference_t<Dx2>>>,
                       int> = 0>
-        nebula_ptr_base(pointer, std::remove_reference_t<Dx> &&) = delete;
+        nebula_ptr_base(pointer, type_traits::modifers::remove_reference_t<Dx> &&) = delete;
 
         RAINY_CONSTEXPR20 ~nebula_ptr_base() {
             reset(nullptr);
@@ -197,12 +197,12 @@ namespace rainy::core::memory::implements {
             return static_cast<const nebula_ptr_base<Cast, Dx> &>(*this);
         }
 
-        template <typename Base, type_traits::other_trans::enable_if_t<std::is_base_of_v<Base, Ty>, int> = 0>
+        template <typename Base, type_traits::other_trans::enable_if_t<type_traits::type_relations::is_base_of_v<Base, Ty>, int> = 0>
         nebula_ptr_base<Base, Dx> &upcast() noexcept {
             return reinterpret_cast<nebula_ptr_base<Base, Dx> &>(*this);
         }
 
-        template <typename Base, type_traits::other_trans::enable_if_t<std::is_base_of_v<Base, Ty>, int> = 0>
+        template <typename Base, type_traits::other_trans::enable_if_t<type_traits::type_relations::is_base_of_v<Base, Ty>, int> = 0>
         const nebula_ptr_base<Base, Dx> &upcast() const noexcept {
             return reinterpret_cast<nebula_ptr_base<Base, Dx> &>(*this);
         }
@@ -403,18 +403,18 @@ namespace rainy::core::memory {
     nebula_ptr<Ty> make_nebula(const std::size_t num,
                                Args... args) noexcept(type_traits::properties::is_nothrow_constructible_v<Ty>) {
         using elem = type_traits::modifers::remove_extent_t<Ty>;
-        std::allocator<elem> alloc;
+        memory::allocator<elem> alloc;
         auto *data = alloc.allocate(num);
 
         std::size_t constructed = 0;
         try {
             for (; constructed < num; ++constructed) {
-                memory::allocator_traits<std::allocator<elem>>::construct(alloc, &data[constructed], args...);
+                memory::allocator_traits<memory::allocator<elem>>::construct(alloc, &data[constructed], args...);
             }
             return nebula_ptr<Ty>(data, num);
         } catch (...) {
             for (std::size_t i = 0; i < constructed; ++i) {
-                memory::allocator_traits<std::allocator<elem>>::destroy(alloc, &data[i]);
+                memory::allocator_traits<memory::allocator<elem>>::destroy(alloc, &data[i]);
             }
             alloc.deallocate(data, num);
             throw;

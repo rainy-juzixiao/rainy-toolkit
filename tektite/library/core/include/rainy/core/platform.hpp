@@ -937,6 +937,11 @@ namespace rainy::type_traits::implements {
 
     template <typename Ty>
     RAINY_CONSTEXPR_BOOL is_lvalue_reference_v<Ty &> = true;
+
+    template <typename Ty>
+    RAINY_NODISCARD constexpr rain_fn impl_move(Ty &&arg) noexcept -> type_traits::modifers::remove_reference_t<Ty> && {
+        return static_cast<type_traits::modifers::remove_reference_t<Ty> &&>(arg);
+    }
 }
 
 namespace rainy::core::builtin {
@@ -3028,7 +3033,7 @@ namespace rainy::core {
      * \lang english
      * @brief Finds the largest element in a range using a custom comparison.
      * @tparam Iter Iterator type
-     * @tparam Pred Binary predicate type (bool pred(const T&, const T&))
+     * @tparam Pred Binary predicate type (bool pred(const Ty&, const Ty&))
      * @param first Iterator to the beginning of the range
      * @param end Iterator to the end of the range
      * @param pred Comparison function object that returns true if the first argument is less than the second
@@ -3090,7 +3095,7 @@ namespace rainy::core {
      * \lang english
      * @brief Finds the smallest element in a range using a custom comparison.
      * @tparam Iter Iterator type
-     * @tparam Pred Binary predicate type (bool pred(const T&, const T&))
+     * @tparam Pred Binary predicate type (bool pred(const Ty&, const Ty&))
      * @param first Iterator to the beginning of the range
      * @param end Iterator to the end of the range
      * @param pred Comparison function object that returns true if the first argument is less than the second
@@ -3478,8 +3483,9 @@ namespace rainy::type_traits::helper {
          * @brief 将包装器转换为存储值类型。
          * @return 存储的常量值。
          */
-        constexpr explicit operator value_type() const noexcept;
-
+        constexpr explicit operator value_type() const noexcept {
+            return Data;
+        }
 
         /**
          * \lang english
@@ -3490,7 +3496,9 @@ namespace rainy::type_traits::helper {
          * @brief 函数调用运算符，返回存储的常量值。
          * @return 存储的常量值。
          */
-        constexpr value_type operator()() const noexcept;
+        constexpr value_type operator()() const noexcept {
+            return Data;
+        }
 
 
         /**
@@ -3988,7 +3996,7 @@ namespace rainy::utility {
      * @brief 在容器末尾插入元素的输出迭代器。
      * @tparam Container 容器类型（必须支持 push_back()）
      */
-    template <class Container>
+    template <typename Container>
     class back_insert_iterator {
     public:
         using iterator_category = std::output_iterator_tag;
@@ -4008,7 +4016,7 @@ namespace rainy::utility {
          * @brief 为给定容器构造 back_insert_iterator。
          * @param c 要插入元素的容器
          */
-        explicit back_insert_iterator(Container &c) : container(std::addressof(c)) {
+        explicit back_insert_iterator(Container &c) : container(utility::addressof(c)) {
         }
 
         /**
@@ -4031,7 +4039,7 @@ namespace rainy::utility {
          * @brief 通过 push_back 移动赋值一个值。
          */
         back_insert_iterator &operator=(typename Container::value_type &&value) {
-            container->push_back(std::move(value));
+            container->push_back(type_traits::implements::impl_move(value));
             return *this;
         }
 
@@ -4067,7 +4075,7 @@ namespace rainy::utility {
      * @param c 要插入元素的容器
      * @return back_insert_iterator<Container>
      */
-    template <class Container>
+    template <typename Container>
     back_insert_iterator<Container> back_inserter(Container &c) {
         return back_insert_iterator<Container>(c);
     }
@@ -4841,8 +4849,8 @@ namespace rainy::utility {
 }
 
 namespace rainy::core::implements {
-    void throw_exception_out_of_range(const char* msg);
-    void throw_exception_length_error(const char* msg);
+    void throw_exception_out_of_range(const char *msg);
+    void throw_exception_length_error(const char *msg);
 }
 
 #endif

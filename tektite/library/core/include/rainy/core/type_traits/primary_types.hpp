@@ -582,6 +582,88 @@ namespace rainy::type_traits::primary_types {
      */
     template <typename Ty>
     struct array_size : helper::integral_constant<std::size_t, array_size_v<Ty>> {};
+
+    /**
+     * @brief Variable template for detecting unbounded array types.
+     *        Returns true for array types with unknown bound (e.g., Ty[]).
+     *
+     *        检测无界数组类型的变量模板。
+     *        对于未知边界的数组类型（如 Ty[]）返回 true。
+     *
+     * @tparam Ty Type to check
+     *            要检查的类型
+     */
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL is_unbounded_array_v = false;
+
+    /**
+     * @brief Variable template for detecting unbounded array types (partial specialization).
+     *        Specialization for unbounded arrays.
+     *
+     *        检测无界数组类型的变量模板（偏特化）。
+     *        无界数组的特化版本。
+     *
+     * @tparam Ty Array element type
+     *            数组元素类型
+     */
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL is_unbounded_array_v<Ty[]> = true;
+
+    /**
+     * @brief Type template for detecting unbounded array types.
+     *        Provides ::value member constant indicating whether Ty is an unbounded array.
+     *
+     *        检测无界数组类型的类型模板。
+     *        通过 ::value 成员常量指示 Ty 是否为无界数组。
+     *
+     * @tparam Ty Type to check
+     *            要检查的类型
+     */
+    template <typename Ty>
+    struct is_unbounded_array : helper::bool_constant<is_unbounded_array_v<Ty>> {};
+
+    /**
+     * @brief Variable template for detecting bounded array types.
+     *        Returns true for array types with known bound (e.g., Ty[N]).
+     *
+     *        检测有界数组类型的变量模板。
+     *        对于已知边界的数组类型（如 Ty[N]）返回 true。
+     *
+     * @tparam Ty Type to check
+     *            要检查的类型
+     */
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL is_bounded_array_v = false;
+
+    /**
+     * @brief Variable template for detecting bounded array types (partial specialization).
+     *        Specialization for bounded arrays.
+     *
+     *        检测有界数组类型的变量模板（偏特化）。
+     *        有界数组的特化版本。
+     *
+     * @tparam Ty Array element type
+     *            数组元素类型
+     * @tparam Ni Array size
+     *            数组大小
+     */
+    template <typename Ty, std::size_t Ni>
+    RAINY_CONSTEXPR_BOOL is_bounded_array_v<Ty[Ni]> = true;
+
+    /**
+     * @brief Type template for detecting bounded array types.
+     *        Provides ::value member constant indicating whether Ty is a bounded array.
+     *
+     *        检测有界数组类型的类型模板。
+     *        通过 ::value 成员常量指示 Ty 是否为有界数组。
+     *
+     * @tparam Ty Type to check
+     *            要检查的类型
+     * @tparam Ni Array size (used for specialization)
+     *            数组大小（用于特化）
+     */
+    template <typename Ty, std::size_t Ni>
+    struct is_bounded_array : helper::bool_constant<is_bounded_array_v<Ty>> {};
 }
 
 #endif

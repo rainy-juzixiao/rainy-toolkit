@@ -51,32 +51,32 @@ namespace rainy::core::text {
 }
 
 namespace rainy::core::text::implements {
-    template <typename T, typename UTy>
-    bool mul_overflow_helper(T a, T b, UTy &result) {
+    template <typename Ty, typename UTy>
+    bool mul_overflow_helper(Ty a, Ty b, UTy &result) {
         if (a == 0 || b == 0) {
             result = 0;
             return false;
         }
-        if constexpr (type_traits::properties::is_signed_v<T>) {
+        if constexpr (type_traits::properties::is_signed_v<Ty>) {
             if (a > 0 && b > 0) {
-                if (a > (utility::numeric_limits<T>::max)() / b) {
+                if (a > (utility::numeric_limits<Ty>::max)() / b) {
                     return true;
                 }
             } else if (a < 0 && b < 0) {
-                if (a < (utility::numeric_limits<T>::max)() / b) {
+                if (a < (utility::numeric_limits<Ty>::max)() / b) {
                     return true;
                 }
             } else if (a > 0 && b < 0) {
-                if (b < (utility::numeric_limits<T>::min)() / a) {
+                if (b < (utility::numeric_limits<Ty>::min)() / a) {
                     return true;
                 }
             } else if (a < 0 && b > 0) {
-                if (a < (utility::numeric_limits<T>::min)() / b) {
+                if (a < (utility::numeric_limits<Ty>::min)() / b) {
                     return true;
                 }
             }
         } else {
-            if (a > (utility::numeric_limits<T>::max)() / b) {
+            if (a > (utility::numeric_limits<Ty>::max)() / b) {
                 return true;
             }
         }
@@ -422,7 +422,7 @@ namespace rainy::core::text::implements {
         if (value == 0) {
             *begin = '0';
             return {begin + 1, std::errc{}};
-        } else if constexpr (std::is_signed_v<Ty>) {
+        } else if constexpr (type_traits::properties::is_signed_v<Ty>) {
             if (value < 0) {
                 *begin++ = '-';
                 val = unsigned_type(~value) + unsigned_type(1);
@@ -450,9 +450,9 @@ namespace rainy::core::text::implements {
 }
 
 namespace rainy::core::text {
-#define RAINY_GENERATE_FUN_STUB_TO_CHARS(T)                                                                                           \
-    RAINY_CONSTEXPR23 inline to_chars_result to_chars(char *begin, char *end, T value, int base = 10) {                               \
-        return rainy::core::text::implements::to_chars_impl<T>(begin, end, value, base);                                              \
+#define RAINY_GENERATE_FUN_STUB_TO_CHARS(Ty)                                                                                           \
+    RAINY_CONSTEXPR23 inline to_chars_result to_chars(char *begin, char *end, Ty value, int base = 10) {                               \
+        return rainy::core::text::implements::to_chars_impl<Ty>(begin, end, value, base);                                              \
     }
 
     RAINY_GENERATE_FUN_STUB_TO_CHARS(char)
@@ -475,7 +475,7 @@ namespace rainy::core::text {
         assert(2 <= base && base <= 36);
         from_chars_result result{begin, {}};
         int sign = 1;
-        if constexpr (std::is_signed_v<Ty>) {
+        if constexpr (type_traits::properties::is_signed_v<Ty>) {
             if (begin != end && *begin == '-') {
                 sign = -1;
                 ++begin;
@@ -503,7 +503,7 @@ namespace rainy::core::text {
             if (!valid) {
                 result.ec = std::errc::result_out_of_range; // Overflow
             } else {
-                if constexpr (std::is_signed_v<Ty>) {
+                if constexpr (type_traits::properties::is_signed_v<Ty>) {
                     // 对于有符号类型，需要特殊处理范围检查
                     // min 的绝对值可能比 max 大 1 (例如 int: min=-2147483648, max=2147483647)
                     constexpr unsigned_type max_positive = static_cast<unsigned_type>((utility::numeric_limits<Ty>::max)());

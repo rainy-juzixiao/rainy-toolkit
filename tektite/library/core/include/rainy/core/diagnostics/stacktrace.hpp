@@ -150,7 +150,7 @@ namespace rainy::foundation::diagnostics {
         friend class basic_stacktrace;
     };
 
-    template <class Allocator>
+    template <typename Allocator>
     class basic_stacktrace {
     public:
         using value_type = stacktrace_entry;
@@ -217,8 +217,8 @@ namespace rainy::foundation::diagnostics {
         }
 
         basic_stacktrace &operator=(basic_stacktrace &&right) noexcept(
-            std::allocator_traits<Allocator>::propagate_on_container_move_assignment::value ||
-            std::allocator_traits<Allocator>::is_always_equal::value) {
+            core::memory::allocator_traits<Allocator>::propagate_on_container_move_assignment::value ||
+            core::memory::allocator_traits<Allocator>::is_always_equal::value) {
             frames_ = utility::move(right.frames_);
             return *this;
         }
@@ -351,8 +351,8 @@ namespace rainy::foundation::diagnostics {
 
 #endif
 
-        void swap(basic_stacktrace &right) noexcept(std::allocator_traits<Allocator>::propagate_on_container_swap::value ||
-                                                    std::allocator_traits<Allocator>::is_always_equal::value) {
+        void swap(basic_stacktrace &right) noexcept(core::memory::allocator_traits<Allocator>::propagate_on_container_swap::value ||
+                                                    core::memory::allocator_traits<Allocator>::is_always_equal::value) {
             frames_.swap(right.frames_);
         }
 
@@ -360,7 +360,7 @@ namespace rainy::foundation::diagnostics {
         collections::vector<value_type, allocator_type> frames_;
     };
 
-    using stacktrace = basic_stacktrace<std::allocator<stacktrace_entry>>;
+    using stacktrace = basic_stacktrace<core::memory::allocator<stacktrace_entry>>;
 
     template <typename Allocator>
     void swap(basic_stacktrace<Allocator> &left, basic_stacktrace<Allocator> &right) noexcept(noexcept(left.swap(right))) {
@@ -371,7 +371,7 @@ namespace rainy::foundation::diagnostics {
         return frame.description();
     }
 
-    template <class Allocator>
+    template <typename Allocator>
     core::text::string to_string(const basic_stacktrace<Allocator> &stacktrace) {
         core::text::string result;
         for (const auto &entry: stacktrace) {
@@ -386,7 +386,7 @@ namespace rainy::foundation::diagnostics {
         return os;
     }
 
-    template <class Allocator>
+    template <typename Allocator>
     std::ostream &operator<<(std::ostream &os, const basic_stacktrace<Allocator> &stacktrace) {
         os << to_string(stacktrace).c_str();
         return os;

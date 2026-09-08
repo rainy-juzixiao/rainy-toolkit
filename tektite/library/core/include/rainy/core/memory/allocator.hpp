@@ -41,8 +41,8 @@ namespace rainy::core::memory {
         using value_type = Ty;
         using size_type = std::size_t;
         using difference_type = std::ptrdiff_t;
-        using propagate_on_container_move_assignment = std::true_type;
-        using is_always_equal = std::true_type;
+        using propagate_on_container_move_assignment = type_traits::helper::true_type;
+        using is_always_equal = type_traits::helper::true_type;
 
         constexpr allocator() noexcept = default;
 
@@ -78,7 +78,7 @@ namespace rainy::core::memory {
             utility::construct_at(ptr, utility::forward<Args>(args)...);
         }
 
-        RAINY_CONSTEXPR20 void destroy(value_type *const ptr) const noexcept(std::is_nothrow_destructible_v<value_type>) {
+        RAINY_CONSTEXPR20 void destroy(value_type *const ptr) const noexcept(type_traits::properties::is_nothrow_destructible_v<value_type>) {
             ptr->~value_type();
         }
 
@@ -135,10 +135,10 @@ namespace rainy::core::memory::implements {
         using size_type = std::size_t;
         using difference_type = ptrdiff_t;
 
-        using propagate_on_container_copy_assignment = std::false_type;
-        using propagate_on_container_move_assignment = std::true_type;
-        using propagate_on_container_swap = std::false_type;
-        using is_always_equal = std::true_type;
+        using propagate_on_container_copy_assignment = type_traits::helper::false_type;
+        using propagate_on_container_move_assignment = type_traits::helper::true_type;
+        using propagate_on_container_swap = type_traits::helper::false_type;
+        using is_always_equal = type_traits::helper::true_type;
 
         template <typename Other>
         using rebind_alloc = std::allocator<Other>;
@@ -198,7 +198,7 @@ namespace rainy::core::memory::implements {
         using ptr_t = typename get_pointer_type<Ty>::type;
         using val_t = typename Ty::value_type;
 
-        using type = typename std::pointer_traits<ptr_t>::template rebind<const val_t>;
+        using type = typename memory::pointer_traits<ptr_t>::template rebind<const val_t>;
     };
 
     template <typename Ty>
@@ -210,7 +210,7 @@ namespace rainy::core::memory::implements {
     struct get_void_pointer_type {
         using ptr_t = typename get_pointer_type<Ty>::type;
 
-        using type = typename std::pointer_traits<ptr_t>::template rebind<void>;
+        using type = typename memory::pointer_traits<ptr_t>::template rebind<void>;
     };
 
     template <typename Ty>
@@ -221,7 +221,7 @@ namespace rainy::core::memory::implements {
     template <typename Ty, typename = void>
     struct get_const_void_pointer_type {
         using ptr_t = typename get_pointer_type<Ty>::type;
-        using type = typename std::pointer_traits<ptr_t>::template rebind<const void>;
+        using type = typename memory::pointer_traits<ptr_t>::template rebind<const void>;
     };
 
     template <typename Ty>
@@ -232,7 +232,7 @@ namespace rainy::core::memory::implements {
     template <typename Ty, typename = void>
     struct get_difference_type {
         using ptr_t = typename get_pointer_type<Ty>::type;
-        using type = typename std::pointer_traits<ptr_t>::difference_type;
+        using type = typename memory::pointer_traits<ptr_t>::difference_type;
     };
 
     template <typename Ty>
@@ -242,7 +242,7 @@ namespace rainy::core::memory::implements {
 
     template <typename Ty, typename = void>
     struct get_size_type {
-        using type = std::make_unsigned_t<typename get_difference_type<Ty>::type>;
+        using type = type_traits::helper::make_unsigned_t<typename get_difference_type<Ty>::type>;
     };
 
     template <typename Ty>
@@ -456,7 +456,7 @@ namespace rainy::core::memory {
             utility::construct_at(ptr, utility::forward<Args>(args)...);
         }
 
-        RAINY_CONSTEXPR20 void destroy(value_type *const ptr) const noexcept(std::is_nothrow_destructible_v<value_type>) {
+        RAINY_CONSTEXPR20 void destroy(value_type *const ptr) const noexcept(type_traits::properties::is_nothrow_destructible_v<value_type>) {
             ptr->~value_type();
         }
 

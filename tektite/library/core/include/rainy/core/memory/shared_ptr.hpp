@@ -25,7 +25,7 @@ namespace rainy::core::memory {
     template <typename Ty>
     class shared_ptr;
 
-    template <typename T>
+    template <typename Ty>
     class weak_ptr;
 }
 
@@ -34,19 +34,19 @@ namespace rainy::core::memory::implements {
     struct can_scalar_del : type_traits::helper::false_type {};
     template <typename Ty>
     struct can_scalar_del<Ty, type_traits::other_trans::void_t<decltype(delete utility::declval<Ty *>())>>
-        : std::bool_constant<!type_traits::type_relations::is_void_v<Ty>> {};
+        : type_traits::helper::bool_constant<!type_traits::type_relations::is_void_v<Ty>> {};
 
     template <typename Ty, typename = void>
     struct can_del_arr : type_traits::helper::false_type {};
 
     template <typename Ty>
-    struct can_del_arr<Ty, type_traits::other_trans::void_t<decltype(delete[] utility::declval<Ty *>())>> : std::true_type {};
+    struct can_del_arr<Ty, type_traits::other_trans::void_t<decltype(delete[] utility::declval<Ty *>())>> : type_traits::helper::true_type {};
 
     template <typename Fx, typename Arg, typename = void>
-    struct is_callable_function_object : std::false_type {};
+    struct is_callable_function_object : type_traits::helper::false_type {};
 
     template <typename Fx, typename Arg>
-    struct is_callable_function_object<Fx, Arg, std::void_t<decltype(utility::declval<Fx>()(utility::declval<Arg>()))>>
+    struct is_callable_function_object<Fx, Arg, type_traits::other_trans::void_t<decltype(utility::declval<Fx>()(utility::declval<Arg>()))>>
         : type_traits::helper::true_type {};
 
     template <typename Ty, typename UTy>
@@ -62,16 +62,16 @@ namespace rainy::core::memory::implements {
     struct shared_pointer_compatible : type_traits::type_relations::is_convertible<Ty *, UTy *>::type {};
 
     template <typename UTy, size_t Ext>
-    struct shared_pointer_compatible<UTy[Ext], UTy[]> : std::true_type {};
+    struct shared_pointer_compatible<UTy[Ext], UTy[]> : type_traits::helper::true_type {};
 
     template <typename UTy, size_t Ext>
-    struct shared_pointer_compatible<UTy[Ext], const UTy[]> : std::true_type {};
+    struct shared_pointer_compatible<UTy[Ext], const UTy[]> : type_traits::helper::true_type {};
 
     template <typename UTy, size_t Ext>
-    struct shared_pointer_compatible<UTy[Ext], volatile UTy[]> : std::true_type {};
+    struct shared_pointer_compatible<UTy[Ext], volatile UTy[]> : type_traits::helper::true_type {};
 
     template <typename UTy, size_t Ext>
-    struct shared_pointer_compatible<UTy[Ext], const volatile UTy[]> : std::true_type {};
+    struct shared_pointer_compatible<UTy[Ext], const volatile UTy[]> : type_traits::helper::true_type {};
 }
 
 namespace rainy::core::memory::implements {
@@ -217,7 +217,7 @@ namespace rainy::core::memory::implements {
     template <typename Ty>
     class shared_ptr_base {
     public:
-        using element_type = std::remove_extent_t<Ty>;
+        using element_type = type_traits::modifers::remove_extent_t<Ty>;
 
         RAINY_NODISCARD long use_count() const noexcept {
             return pair.second ? pair.second->use_count() : 0;
@@ -404,7 +404,7 @@ namespace rainy::core::memory::implements {
     public:
         template <typename... Args>
         explicit ref_count_allocated(Args &&...args) {
-            ::new (static_cast<void *>(&storage)) Ty(std::forward<Args>(args)...);
+            ::new (static_cast<void *>(&storage)) Ty(utility::forward<Args>(args)...);
         }
 
         Ty *get_ptr() noexcept {
@@ -472,7 +472,7 @@ namespace rainy::core::memory::implements {
 
     template <typename Ty>
     struct can_enable_shared<Ty, type_traits::other_trans::void_t<typename Ty::rts_enable_shared_type>>
-        : std::bool_constant<std::is_convertible_v<type_traits::modifers::remove_cv_t<Ty> *, typename Ty::rts_enable_shared_type *>> {};
+        : type_traits::helper::bool_constant<type_traits::type_relations::is_convertible_v<type_traits::modifers::remove_cv_t<Ty> *, typename Ty::rts_enable_shared_type *>> {};
 }
 
 namespace rainy::core::memory {
@@ -494,7 +494,7 @@ namespace rainy::core::memory {
                           implements::shared_convertible<UTy, Ty>>,
                       int> = 0>
         shared_ptr(UTy *ptr) { // NOLINT
-            if constexpr (std::is_array_v<Ty>) {
+            if constexpr (type_traits::primary_types::is_array_v<Ty>) {
                 set_ptr_and_deleter(ptr, default_deleter<Ty[]>{});
             } else {
                 implements::temporary_owner<Ty> owner(ptr);
@@ -689,7 +689,7 @@ namespace rainy::core::memory {
             return get();
         }
 
-        template <typename U = Ty, type_traits::other_trans::enable_if_t<std::is_array_v<U>, int> = 0>
+        template <typename U = Ty, type_traits::other_trans::enable_if_t<type_traits::primary_types::is_array_v<U>, int> = 0>
         element_type &operator[](const std::size_t index) const noexcept {
             return get()[index];
         }
@@ -744,10 +744,10 @@ namespace rainy::core::memory {
         }
     };
 
-    template <typename T>
-    shared_ptr(weak_ptr<T>) -> shared_ptr<T>;
-    template <typename T, typename D>
-    shared_ptr(nebula_ptr<T, D>) -> shared_ptr<T>;
+    template <typename Ty>
+    shared_ptr(weak_ptr<Ty>) -> shared_ptr<Ty>;
+    template <typename Ty, typename D>
+    shared_ptr(nebula_ptr<Ty, D>) -> shared_ptr<Ty>;
 
     template <typename Ty, typename... Args,
               type_traits::other_trans::enable_if_t<!type_traits::primary_types::is_array_v<Ty>, int> = 0>
@@ -757,7 +757,7 @@ namespace rainy::core::memory {
         return result;
     }
 
-    template <typename Ty, type_traits::other_trans::enable_if_t<std::is_unbounded_array_v<Ty>, int> = 0>
+    template <typename Ty, type_traits::other_trans::enable_if_t<type_traits::primary_types::is_unbounded_array_v<Ty>, int> = 0>
     shared_ptr<Ty> make_shared(std::size_t count) {
         using element_type = type_traits::modifers::remove_extent_t<Ty>;
         implements::ref_count_allocated_array<element_type> *control_block = nullptr;
@@ -773,9 +773,9 @@ namespace rainy::core::memory {
         // NOLINTEND
     }
 
-    template <typename Ty, type_traits::other_trans::enable_if_t<std::is_bounded_array_v<Ty>, int> = 0>
+    template <typename Ty, type_traits::other_trans::enable_if_t<type_traits::primary_types::is_bounded_array_v<Ty>, int> = 0>
     shared_ptr<Ty> make_shared() {
-        constexpr std::size_t count = std::extent_v<Ty>;
+        constexpr std::size_t count = type_traits::modifers::extent_v<Ty>;
         using element_type = type_traits::modifers::remove_extent_t<Ty>;
         implements::ref_count_allocated_array<element_type> *control_block = nullptr;
         // NOLINTBEGIN
@@ -790,7 +790,7 @@ namespace rainy::core::memory {
         // NOLINTEND
     }
 
-    template <typename Ty, type_traits::other_trans::enable_if_t<std::is_unbounded_array_v<Ty>, int> = 0>
+    template <typename Ty, type_traits::other_trans::enable_if_t<type_traits::primary_types::is_unbounded_array_v<Ty>, int> = 0>
     shared_ptr<Ty> make_shared(std::size_t count, const type_traits::modifers::remove_extent_t<Ty> &u) {
         using element_type = type_traits::modifers::remove_extent_t<Ty>;
         implements::ref_count_allocated_array<element_type> *control_block = nullptr;
@@ -806,9 +806,9 @@ namespace rainy::core::memory {
         // NOLINTEND
     }
 
-    template <typename Ty, type_traits::other_trans::enable_if_t<std::is_bounded_array_v<Ty>, int> = 0>
+    template <typename Ty, type_traits::other_trans::enable_if_t<type_traits::primary_types::is_bounded_array_v<Ty>, int> = 0>
     shared_ptr<Ty> make_shared(const type_traits::modifers::remove_extent_t<Ty> &u) {
-        constexpr std::size_t count = std::extent_v<Ty>;
+        constexpr std::size_t count = type_traits::modifers::extent_v<Ty>;
         using element_type = type_traits::modifers::remove_extent_t<Ty>;
         implements::ref_count_allocated_array<element_type> *control_block = nullptr;
         // NOLINTBEGIN

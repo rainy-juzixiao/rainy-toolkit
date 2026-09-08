@@ -19,6 +19,7 @@
 #include <rainy/core/container/pair.hpp>
 #include <rainy/core/text/string.hpp>
 #include <rainy/core/typeinfo.hpp>
+#include <rainy/core/functional/functor.hpp>
 
 #if RAINY_HAS_CXX26 && RAINY_HAS_CXX26_STATIC_REFLECTION
 #include <rainy/core/annotations/moon.hpp>
@@ -56,7 +57,7 @@ namespace rainy::core::meta::implements {
         using type = Ty;
     };
 
-    template <typename Enum, typename Ty, typename Pred = std::equal_to<>, typename Decay = type_traits::other_trans::decay_t<Enum>>
+    template <typename Enum, typename Ty, typename Pred = functional::equal<>, typename Decay = type_traits::other_trans::decay_t<Enum>>
     using enable_if_t = typename enable_if_enum<
         type_traits::primary_types::is_enum_v<Decay> && type_traits::properties::is_invocable_r_v<bool, Pred, char, char>, Ty>::type;
 }

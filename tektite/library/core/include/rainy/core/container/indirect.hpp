@@ -17,13 +17,14 @@
 #define RAINY_CORE_CONTAINER_INDIRECT_HPP
 #include <rainy/core/type_traits.hpp>
 #include <rainy/core/container/compressed_pair.hpp>
+#include <rainy/core/memory/allocator.hpp>
 
 namespace rainy::core::container {
     struct defered_init_t {};
 
     inline constexpr defered_init_t defered_init;
 
-    template <typename Ty, typename Alloc = std::allocator<Ty>>
+    template <typename Ty, typename Alloc = memory::allocator<Ty>>
     class indirect {
     public:
         using value_type = Ty;
@@ -45,12 +46,12 @@ namespace rainy::core::container {
         template <type_traits::other_trans::enable_if_t<type_traits::properties::is_default_constructible_v<Ty>, int> = 0>
         RAINY_CONSTEXPR20 indirect() noexcept(type_traits::properties::is_nothrow_default_constructible_v<Ty>) :
             pair(allocator_type{}, nullptr) {
-            pointer ptr = std::allocator_traits<allocator_type>::allocate(pair.get_first(), 1);
+            pointer ptr = memory::allocator_traits<allocator_type>::allocate(pair.get_first(), 1);
             try {
-                std::allocator_traits<allocator_type>::construct(pair.get_first(), ptr);
+                memory::allocator_traits<allocator_type>::construct(pair.get_first(), ptr);
                 pair.get_second() = ptr;
             } catch (...) {
-                std::allocator_traits<allocator_type>::deallocate(pair.get_first(), ptr, 1);
+                memory::allocator_traits<allocator_type>::deallocate(pair.get_first(), ptr, 1);
                 throw;
             }
         }
@@ -64,12 +65,12 @@ namespace rainy::core::container {
         RAINY_CONSTEXPR20 indirect(std::in_place_t, // NOLINT
                                    Args &&...args) noexcept(type_traits::properties::is_nothrow_default_constructible_v<Ty>) :
             pair(allocator_type{}, nullptr) {
-            pointer ptr = std::allocator_traits<allocator_type>::allocate(pair.get_first(), 1);
+            pointer ptr = memory::allocator_traits<allocator_type>::allocate(pair.get_first(), 1);
             try {
-                std::allocator_traits<allocator_type>::construct(pair.get_first(), ptr, utility::forward<Args>(args)...);
+                memory::allocator_traits<allocator_type>::construct(pair.get_first(), ptr, utility::forward<Args>(args)...);
                 pair.get_second() = ptr;
             } catch (...) {
-                std::allocator_traits<allocator_type>::deallocate(pair.get_first(), ptr, 1);
+                memory::allocator_traits<allocator_type>::deallocate(pair.get_first(), ptr, 1);
                 throw;
             }
         }
@@ -80,12 +81,12 @@ namespace rainy::core::container {
         RAINY_CONSTEXPR20 indirect(std::in_place_t, std::initializer_list<Elem> ilist, Args &&...args) noexcept(
             type_traits::properties::is_nothrow_constructible_v<Ty, std::initializer_list<Elem> &, Args...>) :
             pair(allocator_type{}, nullptr) {
-            pointer ptr = std::allocator_traits<allocator_type>::allocate(pair.get_first(), 1);
+            pointer ptr = memory::allocator_traits<allocator_type>::allocate(pair.get_first(), 1);
             try {
-                std::allocator_traits<allocator_type>::construct(pair.get_first(), ptr, ilist, utility::forward<Args>(args)...);
+                memory::allocator_traits<allocator_type>::construct(pair.get_first(), ptr, ilist, utility::forward<Args>(args)...);
                 pair.get_second() = ptr;
             } catch (...) {
-                std::allocator_traits<allocator_type>::deallocate(pair.get_first(), ptr, 1);
+                memory::allocator_traits<allocator_type>::deallocate(pair.get_first(), ptr, 1);
                 throw;
             }
         }
@@ -96,12 +97,12 @@ namespace rainy::core::container {
         RAINY_CONSTEXPR20 indirect(std::allocator_arg_t, const allocator_type &allocator) noexcept(
             type_traits::properties::is_nothrow_default_constructible_v<Ty> &&
             type_traits::properties::is_nothrow_copy_constructible_v<allocator_type>) : pair(allocator, nullptr) {
-            pointer ptr = std::allocator_traits<allocator_type>::allocate(pair.get_first(), 1);
+            pointer ptr = memory::allocator_traits<allocator_type>::allocate(pair.get_first(), 1);
             try {
-                std::allocator_traits<allocator_type>::construct(pair.get_first(), ptr);
+                memory::allocator_traits<allocator_type>::construct(pair.get_first(), ptr);
                 pair.get_second() = ptr;
             } catch (...) {
-                std::allocator_traits<allocator_type>::deallocate(pair.get_first(), ptr, 1);
+                memory::allocator_traits<allocator_type>::deallocate(pair.get_first(), ptr, 1);
                 throw;
             }
         }
@@ -120,25 +121,25 @@ namespace rainy::core::container {
         RAINY_CONSTEXPR20 indirect(std::in_place_t, const allocator_type &allocator, Args &&...args) noexcept(
             type_traits::properties::is_nothrow_default_constructible_v<Ty> &&
             type_traits::properties::is_nothrow_copy_constructible_v<allocator_type>) : pair(allocator, nullptr) {
-            pointer ptr = std::allocator_traits<allocator_type>::allocate(pair.get_first(), 1);
+            pointer ptr = memory::allocator_traits<allocator_type>::allocate(pair.get_first(), 1);
             try {
-                std::allocator_traits<allocator_type>::construct(pair.get_first(), ptr, utility::forward<Args>(args)...);
+                memory::allocator_traits<allocator_type>::construct(pair.get_first(), ptr, utility::forward<Args>(args)...);
                 pair.get_second() = ptr;
             } catch (...) {
-                std::allocator_traits<allocator_type>::deallocate(pair.get_first(), ptr, 1);
+                memory::allocator_traits<allocator_type>::deallocate(pair.get_first(), ptr, 1);
                 throw;
             }
         }
 
         RAINY_CONSTEXPR20 indirect(const indirect &right) noexcept(type_traits::properties::is_nothrow_copy_constructible_v<Ty>) :
-            pair(std::allocator_traits<allocator_type>::select_on_container_copy_construction(right.pair.get_first()), nullptr) {
+            pair(memory::allocator_traits<allocator_type>::select_on_container_copy_construction(right.pair.get_first()), nullptr) {
             if (right.pair.get_second() != nullptr) {
-                pointer ptr = std::allocator_traits<allocator_type>::allocate(pair.get_first(), 1);
+                pointer ptr = memory::allocator_traits<allocator_type>::allocate(pair.get_first(), 1);
                 try {
-                    std::allocator_traits<allocator_type>::construct(pair.get_first(), ptr, *right.pair.get_second());
+                    memory::allocator_traits<allocator_type>::construct(pair.get_first(), ptr, *right.pair.get_second());
                     pair.get_second() = ptr;
                 } catch (...) {
-                    std::allocator_traits<allocator_type>::deallocate(pair.get_first(), ptr, 1);
+                    memory::allocator_traits<allocator_type>::deallocate(pair.get_first(), ptr, 1);
                     throw;
                 }
             }
@@ -155,12 +156,12 @@ namespace rainy::core::container {
                                                                                               Args...> &&
                                      type_traits::properties::is_nothrow_copy_constructible_v<allocator_type>) :
             pair(allocator, nullptr) {
-            pointer ptr = std::allocator_traits<allocator_type>::allocate(pair.get_first(), 1);
+            pointer ptr = memory::allocator_traits<allocator_type>::allocate(pair.get_first(), 1);
             try {
-                std::allocator_traits<allocator_type>::construct(pair.get_first(), ptr, ilist, utility::forward<Args>(args)...);
+                memory::allocator_traits<allocator_type>::construct(pair.get_first(), ptr, ilist, utility::forward<Args>(args)...);
                 pair.get_second() = ptr;
             } catch (...) {
-                std::allocator_traits<allocator_type>::deallocate(pair.get_first(), ptr, 1);
+                memory::allocator_traits<allocator_type>::deallocate(pair.get_first(), ptr, 1);
                 throw;
             }
         }
@@ -173,12 +174,12 @@ namespace rainy::core::container {
                       int> = 0>
         RAINY_CONSTEXPR20 explicit indirect(U &&u) noexcept( // NOLINT
             type_traits::properties::is_nothrow_constructible_v<Ty, U &&>) : pair(allocator_type{}, nullptr) {
-            pointer ptr = std::allocator_traits<allocator_type>::allocate(pair.get_first(), 1);
+            pointer ptr = memory::allocator_traits<allocator_type>::allocate(pair.get_first(), 1);
             try {
-                std::allocator_traits<allocator_type>::construct(pair.get_first(), ptr, utility::forward<U>(u));
+                memory::allocator_traits<allocator_type>::construct(pair.get_first(), ptr, utility::forward<U>(u));
                 pair.get_second() = ptr;
             } catch (...) {
-                std::allocator_traits<allocator_type>::deallocate(pair.get_first(), ptr, 1);
+                memory::allocator_traits<allocator_type>::deallocate(pair.get_first(), ptr, 1);
                 if constexpr (!type_traits::properties::is_nothrow_constructible_v<Ty, U &&>) {
                     throw;
                 }
@@ -195,12 +196,12 @@ namespace rainy::core::container {
         RAINY_CONSTEXPR20 explicit indirect(std::allocator_arg_t, const allocator_type &allocator, U &&u) noexcept(
             type_traits::properties::is_nothrow_constructible_v<Ty, U &&> &&
             type_traits::properties::is_nothrow_copy_constructible_v<allocator_type>) : pair(allocator, nullptr) {
-            pointer ptr = std::allocator_traits<allocator_type>::allocate(pair.get_first(), 1);
+            pointer ptr = memory::allocator_traits<allocator_type>::allocate(pair.get_first(), 1);
             try {
-                std::allocator_traits<allocator_type>::construct(pair.get_first(), ptr, utility::forward<U>(u));
+                memory::allocator_traits<allocator_type>::construct(pair.get_first(), ptr, utility::forward<U>(u));
                 pair.get_second() = ptr;
             } catch (...) {
-                std::allocator_traits<allocator_type>::deallocate(pair.get_first(), ptr, 1);
+                memory::allocator_traits<allocator_type>::deallocate(pair.get_first(), ptr, 1);
                 throw;
             }
         }
@@ -216,12 +217,12 @@ namespace rainy::core::container {
         RAINY_CONSTEXPR20 indirect(const indirect<Uy, UAlloc> &right) noexcept( // NOLINT
             type_traits::properties::is_nothrow_constructible_v<Ty, const Uy &>) : pair(allocator_type{}, nullptr) {
             if (!right.empty()) {
-                pointer ptr = std::allocator_traits<allocator_type>::allocate(pair.first(), 1);
+                pointer ptr = memory::allocator_traits<allocator_type>::allocate(pair.first(), 1);
                 try {
-                    std::allocator_traits<allocator_type>::construct(pair.first(), ptr, *right);
+                    memory::allocator_traits<allocator_type>::construct(pair.first(), ptr, *right);
                     pair.get_second() = ptr;
                 } catch (...) {
-                    std::allocator_traits<allocator_type>::deallocate(pair.first(), ptr, 1);
+                    memory::allocator_traits<allocator_type>::deallocate(pair.first(), ptr, 1);
                     throw;
                 }
             }
@@ -234,13 +235,13 @@ namespace rainy::core::container {
         RAINY_CONSTEXPR20 indirect(indirect<Uy, UAlloc> &&right) noexcept( // NOLINT
             type_traits::properties::is_nothrow_constructible_v<Ty, Uy &&>) : pair(allocator_type{}, nullptr) {
             if (!right.empty()) {
-                pointer ptr = std::allocator_traits<allocator_type>::allocate(pair.first(), 1);
+                pointer ptr = memory::allocator_traits<allocator_type>::allocate(pair.first(), 1);
                 try {
-                    std::allocator_traits<allocator_type>::construct(pair.first(), ptr, utility::move(*right));
+                    memory::allocator_traits<allocator_type>::construct(pair.first(), ptr, utility::move(*right));
                     pair.get_second() = ptr;
                     right.reset();
                 } catch (...) {
-                    std::allocator_traits<allocator_type>::deallocate(pair.first(), ptr, 1);
+                    memory::allocator_traits<allocator_type>::deallocate(pair.first(), ptr, 1);
                     throw;
                 }
             }
@@ -258,12 +259,12 @@ namespace rainy::core::container {
                 } else if (pair.get_second() != nullptr) {
                     *pair.get_second() = *right.pair.get_second();
                 } else {
-                    pointer ptr = std::allocator_traits<allocator_type>::allocate(pair.get_first(), 1);
+                    pointer ptr = memory::allocator_traits<allocator_type>::allocate(pair.get_first(), 1);
                     try {
-                        std::allocator_traits<allocator_type>::construct(pair.get_first(), ptr, *right.pair.get_second());
+                        memory::allocator_traits<allocator_type>::construct(pair.get_first(), ptr, *right.pair.get_second());
                         pair.get_second() = ptr;
                     } catch (...) {
-                        std::allocator_traits<allocator_type>::deallocate(pair.get_first(), ptr, 1);
+                        memory::allocator_traits<allocator_type>::deallocate(pair.get_first(), ptr, 1);
                         throw;
                     }
                 }
@@ -289,12 +290,12 @@ namespace rainy::core::container {
             if (pair.get_second() != nullptr) {
                 *pair.get_second() = utility::forward<U>(u);
             } else {
-                pointer ptr = std::allocator_traits<allocator_type>::allocate(pair.get_first(), 1);
+                pointer ptr = memory::allocator_traits<allocator_type>::allocate(pair.get_first(), 1);
                 try {
-                    std::allocator_traits<allocator_type>::construct(pair.get_first(), ptr, utility::forward<U>(u));
+                    memory::allocator_traits<allocator_type>::construct(pair.get_first(), ptr, utility::forward<U>(u));
                     pair.get_second() = ptr;
                 } catch (...) {
-                    std::allocator_traits<allocator_type>::deallocate(pair.get_first(), ptr, 1);
+                    memory::allocator_traits<allocator_type>::deallocate(pair.get_first(), ptr, 1);
                     throw;
                 }
             }
@@ -310,12 +311,12 @@ namespace rainy::core::container {
             } else if (pair.get_second() != nullptr) {
                 *pair.get_second() = *right;
             } else {
-                pointer ptr = std::allocator_traits<allocator_type>::allocate(pair.first(), 1);
+                pointer ptr = memory::allocator_traits<allocator_type>::allocate(pair.first(), 1);
                 try {
-                    std::allocator_traits<allocator_type>::construct(pair.first(), ptr, *right);
+                    memory::allocator_traits<allocator_type>::construct(pair.first(), ptr, *right);
                     pair.get_second() = ptr;
                 } catch (...) {
-                    std::allocator_traits<allocator_type>::deallocate(pair.first(), ptr, 1);
+                    memory::allocator_traits<allocator_type>::deallocate(pair.first(), ptr, 1);
                     throw;
                 }
             }
@@ -332,13 +333,13 @@ namespace rainy::core::container {
                 *pair.get_second() = utility::move(*right);
                 right.reset();
             } else {
-                pointer ptr = std::allocator_traits<allocator_type>::allocate(pair.first(), 1);
+                pointer ptr = memory::allocator_traits<allocator_type>::allocate(pair.first(), 1);
                 try {
-                    std::allocator_traits<allocator_type>::construct(pair.first(), ptr, utility::move(*right));
+                    memory::allocator_traits<allocator_type>::construct(pair.first(), ptr, utility::move(*right));
                     pair.get_second() = ptr;
                     right.reset();
                 } catch (...) {
-                    std::allocator_traits<allocator_type>::deallocate(pair.first(), ptr, 1);
+                    memory::allocator_traits<allocator_type>::deallocate(pair.first(), ptr, 1);
                     throw;
                 }
             }
@@ -350,12 +351,12 @@ namespace rainy::core::container {
         RAINY_CONSTEXPR20 reference
         emplace(Args &&...args) noexcept(type_traits::properties::is_nothrow_constructible_v<Ty, Args...>) {
             reset();
-            pointer ptr = std::allocator_traits<allocator_type>::allocate(pair.get_first(), 1);
+            pointer ptr = memory::allocator_traits<allocator_type>::allocate(pair.get_first(), 1);
             try {
-                std::allocator_traits<allocator_type>::construct(pair.get_first(), ptr, utility::forward<Args>(args)...);
+                memory::allocator_traits<allocator_type>::construct(pair.get_first(), ptr, utility::forward<Args>(args)...);
                 pair.get_second() = ptr;
             } catch (...) {
-                std::allocator_traits<allocator_type>::deallocate(pair.get_first(), ptr, 1);
+                memory::allocator_traits<allocator_type>::deallocate(pair.get_first(), ptr, 1);
                 throw;
             }
             return *pair.get_second();
@@ -367,12 +368,12 @@ namespace rainy::core::container {
         RAINY_CONSTEXPR20 reference emplace(std::initializer_list<Elem> ilist, Args &&...args) noexcept(
             type_traits::properties::is_nothrow_constructible_v<Ty, std::initializer_list<Elem> &, Args...>) {
             reset();
-            pointer ptr = std::allocator_traits<allocator_type>::allocate(pair.get_first(), 1);
+            pointer ptr = memory::allocator_traits<allocator_type>::allocate(pair.get_first(), 1);
             try {
-                std::allocator_traits<allocator_type>::construct(pair.get_first(), ptr, ilist, utility::forward<Args>(args)...);
+                memory::allocator_traits<allocator_type>::construct(pair.get_first(), ptr, ilist, utility::forward<Args>(args)...);
                 pair.get_second() = ptr;
             } catch (...) {
-                std::allocator_traits<allocator_type>::deallocate(pair.get_first(), ptr, 1);
+                memory::allocator_traits<allocator_type>::deallocate(pair.get_first(), ptr, 1);
                 throw;
             }
             return *pair.get_second();
@@ -387,12 +388,12 @@ namespace rainy::core::container {
             type_traits::properties::is_nothrow_copy_constructible_v<allocator_type>) {
             reset();
             pair.get_first() = allocator;
-            pointer ptr = std::allocator_traits<allocator_type>::allocate(pair.get_first(), 1);
+            pointer ptr = memory::allocator_traits<allocator_type>::allocate(pair.get_first(), 1);
             try {
-                std::allocator_traits<allocator_type>::construct(pair.get_first(), ptr, utility::forward<Args>(args)...);
+                memory::allocator_traits<allocator_type>::construct(pair.get_first(), ptr, utility::forward<Args>(args)...);
                 pair.get_second() = ptr;
             } catch (...) {
-                std::allocator_traits<allocator_type>::deallocate(pair.get_first(), ptr, 1);
+                memory::allocator_traits<allocator_type>::deallocate(pair.get_first(), ptr, 1);
                 throw;
             }
             return *pair.get_second();
@@ -400,8 +401,8 @@ namespace rainy::core::container {
 
         RAINY_CONSTEXPR20 void reset() noexcept {
             if (pair.get_second() != nullptr) {
-                std::allocator_traits<allocator_type>::destroy(pair.get_first(), pair.get_second());
-                std::allocator_traits<allocator_type>::deallocate(pair.get_first(), pair.get_second(), 1);
+                memory::allocator_traits<allocator_type>::destroy(pair.get_first(), pair.get_second());
+                memory::allocator_traits<allocator_type>::deallocate(pair.get_first(), pair.get_second(), 1);
                 pair.get_second() = nullptr;
             }
         }
@@ -486,7 +487,7 @@ namespace rainy::core::container {
 
     template <typename Allocator, typename Value>
     indirect(std::allocator_arg_t, Allocator, Value)
-        -> indirect<Value, typename std::allocator_traits<Allocator>::template rebind_alloc<Value>>;
+        -> indirect<Value, typename memory::allocator_traits<Allocator>::template rebind_alloc<Value>>;
 }
 
 namespace rainy::core::container {
