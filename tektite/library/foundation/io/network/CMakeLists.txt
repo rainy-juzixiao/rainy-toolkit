@@ -15,7 +15,7 @@ target_link_libraries(rainy-toolkit-foundation-io-network PUBLIC rainy-toolkit-f
 
 find_package(OpenSSL QUIET)
 if (OpenSSL_FOUND)
-    target_link_libraries(rainy-toolkit-foundation-io-network PRIVATE OpenSSL::SSL)
+    target_link_libraries(rainy-toolkit-foundation-io-network PRIVATE OpenSSL::SSL OpenSSL::Crypto)
     target_compile_definitions(rainy-toolkit-foundation-io-network PUBLIC RAINY_HAS_OPENSSL=1)
 else ()
     target_compile_definitions(rainy-toolkit-foundation-io-network PUBLIC RAINY_HAS_OPENSSL=0)
