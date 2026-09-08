@@ -395,7 +395,7 @@ namespace rainy::core::exceptions::runtime {
 
         system_error(const int ev, const std::error_category &ecat, const core::text::string &what_arg,
                      const source &location = diagnostics::source_location::current()) :
-            estr(make_err_msg(std::error_code(ev, ecat), what_arg)), ec{ec} {
+            estr(make_err_msg(std::error_code(ev, ecat), what_arg)), ec{std::error_code(ev, ecat)} {
             this->build_message(estr.c_str(), location);
         }
 

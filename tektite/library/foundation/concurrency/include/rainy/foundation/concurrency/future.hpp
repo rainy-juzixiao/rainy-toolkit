@@ -1200,7 +1200,7 @@ namespace rainy::foundation::concurrency {
         }
 
         template <typename Allocator>
-        promise(memory::allocator_arg_t, const Allocator &) : promise() {
+        promise(std::allocator_arg_t, const Allocator &) : promise() {
         }
 
         promise(promise &&right) noexcept : state_(utility::move(right.state_)), future_retrieved_(right.future_retrieved_) {
@@ -1287,7 +1287,7 @@ namespace rainy::foundation::concurrency {
         }
 
         template <typename Allocator>
-        promise(memory::allocator_arg_t, const Allocator &) : promise() {
+        promise(std::allocator_arg_t, const Allocator &) : promise() {
         }
 
         promise(promise &&right) noexcept : state_(utility::move(right.state_)), future_retrieved_(right.future_retrieved_) {
@@ -1369,7 +1369,7 @@ namespace rainy::foundation::concurrency {
 
 namespace std { // NOLINT
     template <typename Ty, typename Alloc>
-    struct uses_allocator<rainy::foundation::concurrency::promise<Ty>, Alloc> : type_traits::helper::true_type {}; // NOLINT
+    struct uses_allocator<rainy::foundation::concurrency::promise<Ty>, Alloc> : rainy::type_traits::helper::true_type {}; // NOLINT
 }
 
 namespace rainy::foundation::concurrency {
