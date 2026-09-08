@@ -348,9 +348,9 @@ add_definitions(
 
 check_cxx26_static_reflection()
 
-if (RAINY_TOOLKIT_HAVE_CXX26_STATIC_REFLECTION)
-    target_compile_options(rainy-toolkit PUBLIC -std=c++26 -freflection)
-endif ()
+#if (RAINY_TOOLKIT_HAVE_CXX26_STATIC_REFLECTION)
+#    target_compile_options(rainy-toolkit PUBLIC -std=c++26 -freflection)
+#endif ()
 
 add_compile_definitions(
         RAINY_HAS_CXX26_STATIC_REFLECTION=${RAINY_HAS_CXX26_STATIC_REFLECTION}
