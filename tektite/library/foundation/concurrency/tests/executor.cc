@@ -449,7 +449,7 @@ TEST_CASE_METHOD(PriorityActorPoolFixture, "high priority tasks execute before b
                 pool.submit([&] { low_started.fetch_add(1, rainy::core::layer::memory_order_relaxed); }, actor_priority::low);
             }
 
-            auto f = ex.submit(actor_priority::high, [&] {
+            auto f = ex.submit_with_priority(actor_priority::high, [&] {
                 high_done.store(true, rainy::core::layer::memory_order_release);
                 return 1;
             });
@@ -538,7 +538,7 @@ TEST_CASE_METHOD(PriorityActorPoolFixture, "executor chaining works with priorit
         SECTION("running chained async computation") {
 
             auto f =
-                ex.submit(actor_priority::high, [] { return 5; }).then([](int x) { return x * 2; }).then([](int x) { return x + 3; });
+                ex.submit_with_priority(actor_priority::high, [] { return 5; }).then([](int x) { return x * 2; }).then([](int x) { return x + 3; });
 
             SECTION("chain produces correct result") {
                 REQUIRE(f.get() == 13);

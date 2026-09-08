@@ -75,7 +75,7 @@ namespace rainy::foundation::concurrency {
         }
 
         template <typename F, typename R = type_traits::properties::invoke_result_t<type_traits::other_trans::decay_t<F>>>
-        monad_future<R> submit(const actor_priority priority, F &&f) {
+        monad_future<R> submit_with_priority(const actor_priority priority, F &&f) {
             auto state = make_shared_state<R>();
             auto *sched = get_scheduler();
             auto fn = utility::forward<F>(f);
@@ -104,8 +104,8 @@ namespace rainy::foundation::concurrency {
         }
 
         template <typename F, typename... Args, typename R = type_traits::properties::invoke_result_t<type_traits::other_trans::decay_t<F>, type_traits::other_trans::decay_t<Args>...>>
-        monad_future<R> submit(const actor_priority priority, F &&f, Args &&...args) {
-            return submit(priority,
+        monad_future<R> submit_with_priority(const actor_priority priority, F &&f, Args &&...args) {
+            return submit_with_priority(priority,
                           [fn = utility::forward<F>(f), tup = std::make_tuple(utility::forward<Args>(args)...)]() mutable -> R {
                               return std::apply(utility::move(fn), utility::move(tup));
                           });
