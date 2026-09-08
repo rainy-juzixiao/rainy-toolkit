@@ -248,15 +248,15 @@ namespace rainy::foundation::collections::implements {
         using allocator_type = Allocator;
         using reference = value_type &;
         using const_reference = const value_type &;
-        using pointer = typename memory::allocator_traits<Allocator>::pointer;
-        using const_pointer = typename memory::allocator_traits<Allocator>::const_pointer;
+        using pointer = typename core::memory::allocator_traits<Allocator>::pointer;
+        using const_pointer = typename core::memory::allocator_traits<Allocator>::const_pointer;
 
-        using list_type = list<value_type, typename memory::allocator_traits<Allocator>::template rebind_alloc<value_type>>;
+        using list_type = list<value_type, typename core::memory::allocator_traits<Allocator>::template rebind_alloc<value_type>>;
         using list_iterator = typename list_type::iterator;
         using const_list_iterator = typename list_type::const_iterator;
 
         using bucket_type = core::collections::vector<list_iterator>;
-        using bucket_allocator = typename memory::allocator_traits<Allocator>::template rebind_alloc<bucket_type>;
+        using bucket_allocator = typename core::memory::allocator_traits<Allocator>::template rebind_alloc<bucket_type>;
 
         using iterator = unordered_map_iterator<list_iterator>;
         using const_iterator = unordered_map_iterator<const_list_iterator>;

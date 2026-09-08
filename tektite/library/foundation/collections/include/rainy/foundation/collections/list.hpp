@@ -231,7 +231,7 @@ namespace rainy::foundation::collections {
             return *this;
         }
 
-        list &operator=(list &&right) noexcept(memory::allocator_traits<Allocator>::is_always_equal::value) {
+        list &operator=(list &&right) noexcept(core::memory::allocator_traits<Allocator>::is_always_equal::value) {
             if (this != &right) {
                 clear();
                 if constexpr (node_allocator_traits::propagate_on_container_move_assignment::value) {
@@ -801,8 +801,8 @@ namespace rainy::foundation::collections {
 
         void deallocate_this_node() {
             if (ptr) {
-                memory::allocator_traits<Alloc>::destroy(this->allocator, ptr);
-                memory::allocator_traits<Alloc>::deallocate(this->allocator, ptr, 1);
+                core::memory::allocator_traits<Alloc>::destroy(this->allocator, ptr);
+                core::memory::allocator_traits<Alloc>::deallocate(this->allocator, ptr, 1);
             }
             ptr = nullptr;
         }
