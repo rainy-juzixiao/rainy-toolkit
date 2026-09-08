@@ -52,7 +52,7 @@ project(rainy-toolkit VERSION ${VERSION} LANGUAGES CXX C)
 
 message(STATUS "Current rainy-toolkit version is ${VERSION}")
 
-set(RAINY_TOOLKIT_CODE_NAME "xaga")
+set(RAINY_TOOLKIT_CODE_NAME "tektite")
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
