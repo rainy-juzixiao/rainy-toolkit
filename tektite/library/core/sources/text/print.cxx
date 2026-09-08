@@ -17,6 +17,7 @@
 
 #if RAINY_USING_WINDOWS
 #include <windows.h>
+#include <io.h>
 
 namespace rainy::core::text::implements {
     class print_lock {

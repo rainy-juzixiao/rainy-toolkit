@@ -109,7 +109,7 @@ namespace rainy::core::layer {
         if (!mtx) {
             return thrd_result::nomem;
         }
-        rainy_let mutex = static_cast<implements::mutex_handle *>(*mtx);
+        rainy_let mutex = static_cast<mutex_handle *>(*mtx);
         mutex->type = flags;
         mutex->count = 0;
         mutex->handle = nullptr;
@@ -121,7 +121,7 @@ namespace rainy::core::layer {
         if (!mtx) {
             return thrd_result::nomem;
         }
-        *mtx = core::pal::allocate(sizeof(implements::mutex_handle), alignof(implements::mutex_handle));
+        *mtx = core::layer::allocate(sizeof(mutex_handle), alignof(mutex_handle));
         mtx_init(mtx, flags);
         return thrd_result::success;
     }
@@ -130,29 +130,29 @@ namespace rainy::core::layer {
         if (!mtx) {
             return thrd_result::nomem;
         }
-        return implements::mtx_do_lock(mtx, nullptr);
+        return mtx_do_lock(mtx, nullptr);
     }
 
     thrd_result mtx_trylock(mtx_t *const mtx) noexcept {
         if (!mtx) {
             return thrd_result::nomem;
         }
-        rainy_let mutex = static_cast<implements::mutex_handle *>(*mtx);
+        rainy_let mutex = static_cast<mutex_handle *>(*mtx);
         utility::expects((mutex->type & (mutex_types::try_mtx | mutex_types::timed_mtx)) != 0, "trylock not supported by mutex");
         ::timespec xt{};
         xt.tv_sec = 0;
         xt.tv_nsec = 0;
-        return implements::mtx_do_lock(mtx, &xt);
+        return mtx_do_lock(mtx, &xt);
     }
 
     thrd_result mtx_unlock(mtx_t *const mtx) noexcept {
         if (!mtx) {
             return thrd_result::nomem;
         }
-        rainy_let mutex = static_cast<implements::mutex_handle *>(*mtx);
+        rainy_let mutex = static_cast<mutex_handle *>(*mtx);
         if (--mutex->count == 0) {
             mutex->thread_id = 0;
-            auto *srw_lock = implements::get_srw_lock(mtx);
+            auto *srw_lock = get_srw_lock(mtx);
             _Analysis_assume_lock_held_(*srw_lock);
             ReleaseSRWLockExclusive(srw_lock);
         }
@@ -165,7 +165,7 @@ namespace rainy::core::layer {
             return thrd_result::nomem;
         }
         thrd_result res{};
-        res = implements::mtx_do_lock(mtx, xt);
+        res = mtx_do_lock(mtx, xt);
         return res == thrd_result::busy ? thrd_result::timed_out : res;
     }
 
@@ -174,7 +174,7 @@ namespace rainy::core::layer {
             errno = EINVAL;
             return false;
         }
-        rainy_let mutex = static_cast<implements::mutex_handle *>(*mtx);
+        rainy_let mutex = static_cast<mutex_handle *>(*mtx);
         return mutex->count != 0 && mutex->thread_id == GetCurrentThreadId();
     }
 
@@ -182,10 +182,10 @@ namespace rainy::core::layer {
         if (!mtx) {
             return thrd_result::nomem;
         }
-        rainy_let mutex = static_cast<implements::mutex_handle *>(*mtx);
+        rainy_let mutex = static_cast<mutex_handle *>(*mtx);
         // utility::expects(mutex->count == 0, "mutex destroyed while busy");
         //  移除对count的检查，不再保证 (若仍有线程持有该锁，行为未定义)
-        core::pal::deallocate(mutex, sizeof(implements::mutex_handle), alignof(implements::mutex_handle));
+        core::layer::deallocate(mutex, sizeof(mutex_handle), alignof(mutex_handle));
         *mtx = nullptr;
         return thrd_result::success;
     }
@@ -194,7 +194,7 @@ namespace rainy::core::layer {
         if (!mtx) {
             return nullptr;
         }
-        rainy_let mutex = static_cast<implements::mutex_handle *>(*mtx);
+        rainy_let mutex = static_cast<mutex_handle *>(*mtx);
         return &mutex->handle;
     }
 }

@@ -426,6 +426,84 @@ namespace rainy::core::exceptions::runtime {
         core::text::string estr;
         std::error_code ec;
     };
+
+    inline rain_fn throw_system_error(const std::error_code ec, const core::text::string &what_arg,
+                                      const diagnostics::source_location &location = diagnostics::source_location::current()) -> void {
+        throw system_error{ec, what_arg, location};
+    }
+
+    inline rain_fn throw_system_error(const std::error_code ec, const char *what_arg,
+                                      const diagnostics::source_location &location = diagnostics::source_location::current()) -> void {
+        throw system_error{ec, what_arg, location};
+    }
+
+    inline rain_fn throw_system_error(const std::error_code ec,
+                                      const diagnostics::source_location &location = diagnostics::source_location::current()) -> void {
+        throw system_error{ec, location};
+    }
+
+    inline rain_fn throw_system_error(const int ev, const std::error_category &ecat, const core::text::string &what_arg,
+                                      const diagnostics::source_location &location = diagnostics::source_location::current()) -> void {
+        throw system_error{ev, ecat, what_arg, location};
+    }
+
+    inline rain_fn throw_system_error(const int ev, const std::error_category &ecat, const char *what_arg,
+                                      const diagnostics::source_location &location = diagnostics::source_location::current()) -> void {
+        throw system_error{ev, ecat, what_arg, location};
+    }
+
+    inline rain_fn throw_system_error(const int ev, const std::error_category &ecat,
+                                      const diagnostics::source_location &location = diagnostics::source_location::current()) -> void {
+        throw system_error{ev, ecat, location};
+    }
+
+    inline rain_fn make_system_error(const std::error_code ec, const core::text::string &what_arg,
+                                     const diagnostics::source_location &location = diagnostics::source_location::current())
+        -> system_error {
+        return system_error{ec, what_arg, location};
+    }
+
+    inline rain_fn make_system_error(const std::error_code ec, const char *what_arg,
+                                     const diagnostics::source_location &location = diagnostics::source_location::current())
+        -> system_error {
+        return system_error{ec, what_arg, location};
+    }
+
+    inline rain_fn make_system_error(const std::error_code ec,
+                                     const diagnostics::source_location &location = diagnostics::source_location::current())
+        -> system_error {
+        return system_error{ec, location};
+    }
+
+    inline rain_fn make_system_error(const int ev, const std::error_category &ecat, const core::text::string &what_arg,
+                                     const diagnostics::source_location &location = diagnostics::source_location::current())
+        -> system_error {
+        return system_error{ev, ecat, what_arg, location};
+    }
+
+    inline rain_fn make_system_error(const int ev, const std::error_category &ecat, const char *what_arg,
+                                     const diagnostics::source_location &location = diagnostics::source_location::current())
+        -> system_error {
+        return system_error{ev, ecat, what_arg, location};
+    }
+
+    inline rain_fn make_system_error(const int ev, const std::error_category &ecat,
+                                     const diagnostics::source_location &location = diagnostics::source_location::current())
+        -> system_error {
+        return system_error{ev, ecat, location};
+    }
+
+    inline rain_fn throw_system_error_code(const std::error_code ec,
+                                           const diagnostics::source_location &location = diagnostics::source_location::current())
+        -> void {
+        throw system_error{ec, location};
+    }
+
+    inline rain_fn throw_system_error_code(int ev, const std::error_category &ecat,
+                                           const diagnostics::source_location &location = diagnostics::source_location::current())
+        -> void {
+        throw system_error{ev, ecat, location};
+    }
 }
 
 #endif
