@@ -73,7 +73,7 @@ namespace rainy::foundation::io::net::ip {
             return (network().to_uint() & other.netmask().to_uint()) == other.network().to_uint();
         }
 
-        template <typename Allocator = memory::allocator<char>>
+        template <typename Allocator = core::memory::allocator<char>>
         text::basic_string<char, text::char_traits<char>, Allocator> to_string(const Allocator &alloc = Allocator()) const {
             auto result = network().to_string(alloc);
             result += '/';
@@ -167,7 +167,7 @@ namespace rainy::foundation::io::net::ip {
             return address_v6{self_net} == other.network();
         }
 
-        template <typename Allocator = memory::allocator<char>>
+        template <typename Allocator = core::memory::allocator<char>>
         text::basic_string<char, text::char_traits<char>, Allocator> to_string(const Allocator &alloc = Allocator()) const {
             auto result = network().to_string(alloc);
             result += '/';
