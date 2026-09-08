@@ -56,8 +56,8 @@ namespace rainy::foundation::dynamic_library::implements {
     core::handle load_module(const core::text::string_view module_path, const bool crossplatform) noexcept {
         core::handle hand = 0;
         if (crossplatform) {
-            const std::vector<core::text::string> prefix_list = {"lib"};
-            const std::vector<core::text::string> suffix_list = {core::text::string{get_suffixes_sys()}};
+            const core::collections::vector<core::text::string> prefix_list = {"lib"};
+            const core::collections::vector<core::text::string> suffix_list = {core::text::string{get_suffixes_sys()}};
             rainy_let retry = true;
             core::text::string attempt;
             for (rainy_let prefix = 0u; retry && !hand && prefix < prefix_list.size(); ++prefix) {
@@ -88,8 +88,8 @@ namespace rainy::foundation::dynamic_library::implements {
     core::handle try_to_get_module(const core::text::string_view module_path, const bool crossplatform) noexcept {
         core::handle hand = 0;
         if (crossplatform) {
-            const std::vector<core::text::string> prefix_list = {"lib"};
-            const std::vector<core::text::string> suffix_list = {{get_suffixes_sys()}};
+            const core::collections::vector<core::text::string> prefix_list = {"lib"};
+            const core::collections::vector<core::text::string> suffix_list = {{get_suffixes_sys()}};
             rainy_let retry = true;
             core::text::string attempt;
             for (rainy_let prefix = 0u; retry && !hand && prefix < prefix_list.size(); ++prefix) {

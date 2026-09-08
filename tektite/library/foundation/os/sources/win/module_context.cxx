@@ -55,8 +55,8 @@ namespace rainy::foundation::dynamic_library::implements {
     core::handle load_module(const core::text::string_view module_path, const bool crossplatform) noexcept {
         core::handle hand = 0;
         if (crossplatform) {
-            const std::vector<core::text::wstring> prefix_list = {L"", L"lib"};
-            const std::vector<core::text::wstring> suffix_list = {L".dll"};
+            const core::collections::vector<core::text::wstring> prefix_list = {L"", L"lib"};
+            const core::collections::vector<core::text::wstring> suffix_list = {L".dll"};
             // module_path 转宽字符，用于前后缀判断
             core::text::wstring_convert<core::text::codecvt_utf8<wchar_t>, core::text::basic_string, wchar_t,
                                               core::text::char_traits, core::text::wstring::allocator_type, core::text::string::allocator_type>
@@ -94,8 +94,8 @@ namespace rainy::foundation::dynamic_library::implements {
     core::handle try_to_get_module(const core::text::string_view module_path, const bool crossplatform) noexcept {
         core::handle hand = 0;
         if (crossplatform) {
-            const std::vector<core::text::wstring> prefix_list = {L"", L"lib"};
-            const std::vector<core::text::wstring> suffix_list = {L".dll"};
+            const core::collections::vector<core::text::wstring> prefix_list = {L"", L"lib"};
+            const core::collections::vector<core::text::wstring> suffix_list = {L".dll"};
             const core::text::wstring wide_path(module_path.begin(), module_path.end());
             rainy_let retry = true;
             core::text::wstring attempt;
