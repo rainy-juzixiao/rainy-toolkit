@@ -121,7 +121,7 @@ namespace rainy::foundation::io::net::ip {
                    (static_cast<uint_type>(bytes_[2]) << 8) | static_cast<uint_type>(bytes_[3]);
         }
 
-        template <typename Allocator = memory::allocator<char>>
+        template <typename Allocator = core::memory::allocator<char>>
         text::basic_string<char, text::char_traits<char>, Allocator> to_string(const Allocator &alloc = Allocator()) const {
             char buf[16]{}; // INET_ADDRSTRLEN
             implements::ipv4_bytes raw{};
@@ -263,7 +263,7 @@ namespace rainy::foundation::io::net::ip {
             return bytes_;
         }
 
-        template <typename Allocator = memory::allocator<char>>
+        template <typename Allocator = core::memory::allocator<char>>
         RAINY_NODISCARD text::basic_string<char, text::char_traits<char>, Allocator> to_string(const Allocator &alloc = Allocator()) const {
             char buf[46]{}; // INET6_ADDRSTRLEN
             implements::ipv6_bytes raw{};
@@ -401,7 +401,7 @@ namespace rainy::foundation::io::net::ip {
             return is_v4_ ? v4_.is_multicast() : v6_.is_multicast();
         }
 
-        template <typename Allocator = memory::allocator<char>>
+        template <typename Allocator = core::memory::allocator<char>>
         RAINY_NODISCARD rain_fn to_string(const Allocator &alloc = Allocator()) const
             -> text::basic_string<char, text::char_traits<char>, Allocator> {
             return is_v4_ ? v4_.to_string(alloc) : v6_.to_string(alloc);
