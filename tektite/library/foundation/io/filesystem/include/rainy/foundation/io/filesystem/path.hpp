@@ -600,7 +600,7 @@ namespace rainy::foundation::io::filesystem {
             return pathstr_;
         }
 
-        template <class ECharT, class Traits = text::char_traits<ECharT>, class Allocator = memory::allocator<ECharT>>
+        template <typename ECharT, typename Traits = text::char_traits<ECharT>, typename Allocator = core::memory::allocator<ECharT>>
         text::basic_string<ECharT, Traits, Allocator> string(const Allocator &a = Allocator()) const {
             auto s = implements::path_to_utf8(*this);
             return {utility::move(s), a};
@@ -644,7 +644,7 @@ namespace rainy::foundation::io::filesystem {
             return {r.data(), r.size()};
         }
 
-        template <typename ECharT, typename Traits = text::char_traits<ECharT>, typename Allocator = memory::allocator<ECharT>>
+        template <typename ECharT, typename Traits = text::char_traits<ECharT>, typename Allocator = core::memory::allocator<ECharT>>
         RAINY_NODISCARD text::basic_string<ECharT, Traits, Allocator> generic_string(const Allocator &allocator = Allocator()) const {
             if constexpr (type_traits::type_relations::is_same_v<ECharT, char>) {
                 auto s = implements::path_to_utf8(*this);
