@@ -201,7 +201,7 @@ TEST_CASE("char_traits move", "[char_traits]") {
     SECTION("move to rainy::collections::array") {
         rainy::collections::array<char, 6> dest{};
         const char* src = "hello";
-        char_traits<char>::move(dest, src, 5);
+        char_traits<char>::move(dest, src, 6);
         REQUIRE(std::string(dest.data()) == "hello");
     }
 

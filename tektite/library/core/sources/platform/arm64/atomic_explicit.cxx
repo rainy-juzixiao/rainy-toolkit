@@ -933,11 +933,11 @@ namespace rainy::core::layer {
         void *old;
         unsigned int tmp;
         __asm__ __volatile__("1:\n"
-                             "ldxr   %0, [%3]\n" // old = *destination
-                             "cmp    %0, %4\n" // old == comparand ?
-                             "b.ne   2f\n" // 不相等直接退出
-                             "stxr   %w1, %5, [%3]\n" // 尝试写 exchange
-                             "cbnz   %w1, 1b\n" // 写失败则重试
+                             "ldxr   %0, [%3]\n" 
+                             "cmp    %0, %4\n"
+                             "b.ne   2f\n"
+                             "stxr   %w1, %5, [%3]\n" 
+                             "cbnz   %w1, 1b\n" 
                              "2:\n"
                              : "=&r"(old), "=&r"(tmp), "+m"(*destination)
                              : "r"(destination), "r"(comparand), "r"(exchange)
@@ -966,28 +966,27 @@ namespace rainy::core::layer {
     std::int8_t interlocked_and8_explicit(volatile std::int8_t *value, std::int8_t mask, memory_order order) {
         std::int8_t old_val, new_val;
         RAINY_ARM64_ATOMIC_OP_8(value, old_val, new_val, &mask);
-        return new_val;
+        return old_val;
     }
 
     std::int16_t interlocked_and16_explicit(volatile std::int16_t *value, std::int16_t mask, memory_order order) {
         std::int16_t old_val, new_val;
         RAINY_ARM64_ATOMIC_OP_16(value, old_val, new_val, &mask);
-        return new_val;
+        return old_val;
     }
 
     std::int32_t interlocked_and32_explicit(volatile std::int32_t *value, std::int32_t mask, memory_order order) {
         std::int32_t old_val, new_val;
         RAINY_ARM64_ATOMIC_OP_32(value, old_val, new_val, &mask);
-        return new_val;
+        return old_val;
     }
 
     std::int64_t interlocked_and64_explicit(volatile std::int64_t *value, std::int64_t mask, memory_order order) {
         std::int64_t old_val, new_val;
         RAINY_ARM64_ATOMIC_OP_64(value, old_val, new_val, &mask);
-        return new_val;
+        return old_val;
     }
 
-    // ========== bitwise OR operations ==========
     std::intptr_t interlocked_or_explicit(volatile std::intptr_t *value, std::intptr_t mask, memory_order order) {
 #if RAINY_USING_64_BIT_PLATFORM
         return interlocked_or64_explicit(reinterpret_cast<volatile std::int64_t *>(value), mask, order);
@@ -999,28 +998,27 @@ namespace rainy::core::layer {
     std::int8_t interlocked_or8_explicit(volatile std::int8_t *value, std::int8_t mask, memory_order order) {
         std::int8_t old_val, new_val;
         RAINY_ARM64_ATOMIC_OP_8(value, old_val, new_val, | mask);
-        return new_val;
+        return old_val;
     }
 
     std::int16_t interlocked_or16_explicit(volatile std::int16_t *value, std::int16_t mask, memory_order order) {
         std::int16_t old_val, new_val;
         RAINY_ARM64_ATOMIC_OP_16(value, old_val, new_val, | mask);
-        return new_val;
+        return old_val;
     }
 
     std::int32_t interlocked_or32_explicit(volatile std::int32_t *value, std::int32_t mask, memory_order order) {
         std::int32_t old_val, new_val;
         RAINY_ARM64_ATOMIC_OP_32(value, old_val, new_val, | mask);
-        return new_val;
+        return old_val;
     }
 
     std::int64_t interlocked_or64_explicit(volatile std::int64_t *value, std::int64_t mask, memory_order order) {
         std::int64_t old_val, new_val;
         RAINY_ARM64_ATOMIC_OP_64(value, old_val, new_val, | mask);
-        return new_val;
+        return old_val;
     }
 
-    // ========== bitwise XOR operations ==========
     std::intptr_t interlocked_xor_explicit(volatile std::intptr_t *value, std::intptr_t mask, memory_order order) {
 #if RAINY_USING_64_BIT_PLATFORM
         return interlocked_xor64_explicit(reinterpret_cast<volatile std::int64_t *>(value), mask, order);
@@ -1032,28 +1030,27 @@ namespace rainy::core::layer {
     std::int8_t interlocked_xor8_explicit(volatile std::int8_t *value, std::int8_t mask, memory_order order) {
         std::int8_t old_val, new_val;
         RAINY_ARM64_ATOMIC_OP_8(value, old_val, new_val, ^mask);
-        return new_val;
+        return old_val;
     }
 
     std::int16_t interlocked_xor16_explicit(volatile std::int16_t *value, std::int16_t mask, memory_order order) {
         std::int16_t old_val, new_val;
         RAINY_ARM64_ATOMIC_OP_16(value, old_val, new_val, ^mask);
-        return new_val;
+        return old_val;
     }
 
     std::int32_t interlocked_xor32_explicit(volatile std::int32_t *value, std::int32_t mask, memory_order order) {
         std::int32_t old_val, new_val;
         RAINY_ARM64_ATOMIC_OP_32(value, old_val, new_val, ^mask);
-        return new_val;
+        return old_val;
     }
 
     std::int64_t interlocked_xor64_explicit(volatile std::int64_t *value, std::int64_t mask, memory_order order) {
         std::int64_t old_val, new_val;
         RAINY_ARM64_ATOMIC_OP_64(value, old_val, new_val, ^mask);
-        return new_val;
+        return old_val;
     }
 
-    // ========== atomic load operations ==========
     std::intptr_t iso_volatile_load_explicit(const volatile std::intptr_t *address, memory_order order) {
 #if RAINY_USING_64_BIT_PLATFORM
         return iso_volatile_load64_explicit(reinterpret_cast<const volatile std::int64_t *>(address), order);
@@ -1110,7 +1107,6 @@ namespace rainy::core::layer {
         return value;
     }
 
-    // ========== atomic store operations ==========
     void iso_volatile_store_explicit(volatile void *address, void *value, memory_order order) {
 #if RAINY_USING_64_BIT_PLATFORM
         iso_volatile_store64_explicit(static_cast<volatile std::int64_t *>(address), *static_cast<std::uint64_t *>(value), order);
@@ -1163,6 +1159,7 @@ namespace rainy::core::layer {
         }
     }
 }
+
 
 // NOLINTEND(cppcoreguidelines-avoid-do-while,readability-duplicate-branches,clang-analyzer-core.UndefinedBinaryOperatorResult)
 

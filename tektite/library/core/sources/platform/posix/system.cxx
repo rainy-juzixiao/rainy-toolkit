@@ -20,6 +20,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <grp.h>
+#include <pwd.h>
 #include <unistd.h>
 
 namespace rainy::core::layer {
@@ -57,7 +58,22 @@ namespace rainy::core::layer {
         if (!buffer || length == 0) {
             return false;
         }
-        return ::getlogin_r(buffer, length) == 0;
+        if (::getlogin_r(buffer, length) == 0) {
+            return true;
+        }
+        // 在无控制终端/登录会话的环境（例如 CI 容器）中，getlogin_r 可能失败，试试用这个法子
+        passwd storage{};
+        passwd *result = nullptr;
+        char aux[1024];
+        if (::getpwuid_r(::geteuid(), &storage, aux, sizeof(aux), &result) != 0 || !result || !result->pw_name) {
+            return false;
+        }
+        const std::size_t name_length = std::strlen(result->pw_name);
+        if (name_length >= length) {
+            return false;
+        }
+        std::memcpy(buffer, result->pw_name, name_length + 1);
+        return true;
     }
 
     rain_fn current_group_id() noexcept -> std::uint32_t {

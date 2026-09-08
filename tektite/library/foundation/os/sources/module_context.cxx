@@ -31,7 +31,7 @@ namespace rainy::foundation::dynamic_library {
         }
     }
 
-    module_context::module_context(const core::text::string_view module_path, const bool load) noexcept {
+    module_context::module_context(const core::text::string_view module_path, const bool load) noexcept : private_(nullptr) {
         rainy_const ctx = create_ctx();
         if (load) {
             ctx->handle = implements::try_to_get_module(module_path, true);

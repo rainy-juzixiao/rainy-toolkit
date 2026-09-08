@@ -270,7 +270,7 @@ namespace rainy::functional::implements {
             }
         }
 
-        pointer pointer_;
+        pointer pointer_{};
     };
 
     template <typename Fx>
