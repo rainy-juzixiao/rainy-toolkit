@@ -45,7 +45,7 @@ namespace rainy::foundation::io {
     using high_resolution_timer = basic_waitable_timer<std::chrono::high_resolution_clock>;
 }
 
-#define NET_TS_REBIND_ALLOC(alloc, t) typename memory::allocator_traits<alloc>::template rebind_alloc<t>
+#define NET_TS_REBIND_ALLOC(alloc, t) typename core::memory::allocator_traits<alloc>::template rebind_alloc<t>
 
 #define NET_TS_DEFINE_TAGGED_HANDLER_ALLOCATOR_PTR(purpose, op)                                                                       \
     struct ptr {                                                                                                                      \

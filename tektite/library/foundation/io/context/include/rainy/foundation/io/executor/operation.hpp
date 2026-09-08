@@ -92,7 +92,7 @@ namespace rainy::foundation::io::implements {
                     typedef typename ::rainy::core::memory::get_recycling_allocator<
                         Alloc, ::rainy::core::concurrency::implements::thread_info_base::default_tag>::type
                         recycling_allocator_type;
-                    typename memory::allocator_traits<recycling_allocator_type>::template rebind_alloc<executor_op> a1(
+                    typename core::memory::allocator_traits<recycling_allocator_type>::template rebind_alloc<executor_op> a1(
                         ::rainy::core::memory::get_recycling_allocator<
                             Alloc, ::rainy::core::concurrency::implements::thread_info_base::default_tag>::get(*a));
                     a1.deallocate(static_cast<executor_op *>(v), 1);
