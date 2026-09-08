@@ -20,6 +20,7 @@
 #include <exception>
 #include <rainy/core/diagnostics/source_location.hpp>
 #include <rainy/core/platform.hpp>
+#include <rainy/core/text/string.hpp>
 #include <rainy/core/type_traits.hpp>
 
 // NOLINTEND
@@ -346,16 +347,85 @@ namespace rainy::core::exceptions::logic {
     };
 
     RAINY_DEFINE_EXCEPTION_WITH_THROW(out_of_range, logic_error, "out_of_range", throw_out_of_range)
+    RAINY_DEFINE_EXCEPTION_WITH_THROW(length_error, logic_error, "length error", throw_length_error)
 }
 
 namespace rainy::core::exceptions::runtime {
-    RAINY_DEFINE_EXCEPTION_WITH_THROW(runtime_error, exception, "runtime error", throw_runtime_error)
+    class runtime_error : public exception {
+    public:
+        using base = exception;
+
+        explicit runtime_error(const char *message = "runtime error", const source &location = source::current()) :
+            base(message, location) {
+        }
+    };
+
+    inline auto throw_runtime_error(const char *message = "runtime error",
+                                    const utility::source_location &location = utility::source_location::current()) -> void {
+        throw_exception(runtime_error{message, location});
+    }
+
     RAINY_DEFINE_EXCEPTION_WITH_THROW(nullpointer_exception, exception, "detected nullpointer", throw_nullpointer_exception)
     RAINY_DEFINE_EXCEPTION_WITH_THROW(bad_alloc, runtime_error, "bad allocation", throw_bad_alloc)
     RAINY_DEFINE_EXCEPTION_WITH_THROW(bad_cast, runtime_error, "bad cast", throw_bad_cast)
     RAINY_DEFINE_EXCEPTION_WITH_THROW(overflow_error, runtime_error, "overflow error", throw_overflow_error)
     RAINY_DEFINE_EXCEPTION_WITH_THROW(underflow_error, runtime_error, "underflow error", throw_underflow_error)
     RAINY_DEFINE_EXCEPTION_WITH_THROW(domain_error, runtime_error, "domain error", throw_domain_error)
+}
+
+namespace rainy::core::exceptions::runtime {
+    class system_error : public runtime_error {
+    public:
+        using source = source;
+
+        system_error(const std::error_code ec, const core::text::string &what_arg,
+                     const source &location = diagnostics::source_location::current()) : estr(make_err_msg(ec, what_arg)), ec{ec} {
+            this->build_message(estr.c_str(), location);
+        }
+
+        system_error(const std::error_code ec, const char *what_arg,
+                     const source &location = diagnostics::source_location::current()) : estr(make_err_msg(ec, what_arg)), ec{ec} {
+            this->build_message(estr.c_str(), location);
+        }
+
+        system_error(const std::error_code ec, const source &location = diagnostics::source_location::current()) :
+            estr(make_err_msg(ec, ec.message())), ec{ec} { // NOLINT
+            this->build_message(estr.c_str(), location);
+        }
+
+        system_error(const int ev, const std::error_category &ecat, const core::text::string &what_arg,
+                     const source &location = diagnostics::source_location::current()) :
+            estr(make_err_msg(std::error_code(ev, ecat), what_arg)), ec{ec} {
+            this->build_message(estr.c_str(), location);
+        }
+
+        system_error(const int ev, const std::error_category &ecat, const char *what_arg,
+                     const source &location = diagnostics::source_location::current()) :
+            estr(make_err_msg(std::error_code(ev, ecat), what_arg)), ec{std::error_code(ev, ecat)} {
+            this->build_message(estr.c_str(), location);
+        }
+
+        system_error(const int ev, const std::error_category &ecat, const source &location = diagnostics::source_location::current()) :
+            estr(make_err_msg(std::error_code(ev, ecat), std::error_code(ev, ecat).message())), ec{std::error_code(ev, ecat)} {
+            this->build_message(estr.c_str(), location);
+        }
+
+        const std::error_code &code() const noexcept {
+            return ec;
+        }
+
+    private:
+        static core::text::string make_err_msg(std::error_code error_code, core::text::string message) {
+            if (!message.empty()) {
+                message.append(": ");
+            }
+            message.append(error_code.message());
+            return message;
+        }
+
+        core::text::string estr;
+        std::error_code ec;
+    };
 }
 
 #endif

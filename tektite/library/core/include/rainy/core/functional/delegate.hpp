@@ -17,6 +17,7 @@
 #define RAINY_CORE_FUNCTIONAL_DELEGATE_HPP
 #include <rainy/core/platform.hpp>
 #include <rainy/core/typeinfo.hpp>
+#include <rainy/core/diagnostics/exceptions.hpp>
 
 namespace rainy::functional::exceptions {
     class invalid_delegate : public core::exceptions::runtime::runtime_error {

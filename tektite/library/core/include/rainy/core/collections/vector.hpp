@@ -17,7 +17,6 @@
 #define RAINY_CORE_COLLECTIONS_VECTOR_HPP
 #include <rainy/core/algorithm/basic_algorithm.hpp>
 #include <rainy/core/container/compressed_pair.hpp>
-#include <rainy/core/diagnostics/exceptions.hpp>
 #include <rainy/core/memory/allocator.hpp>
 #include <rainy/core/platform.hpp>
 #include <rainy/core/type_traits.hpp>
@@ -508,14 +507,14 @@ namespace rainy::core::collections {
 
         RAINY_CONSTEXPR20 const_reference at(size_type index) const {
             if (index >= size()) {
-                core::exceptions::logic::throw_out_of_range("vector::at — index out of range");
+                core::implements::throw_exception_out_of_range("vector::at — index out of range");
             }
             return vec_object().start[index];
         }
 
         RAINY_CONSTEXPR20 reference at(size_type index) {
             if (index >= size()) {
-                core::exceptions::logic::throw_out_of_range("vector::at — index out of range");
+                core::implements::throw_exception_out_of_range("vector::at — index out of range");
             }
             return vec_object().start[index];
         }

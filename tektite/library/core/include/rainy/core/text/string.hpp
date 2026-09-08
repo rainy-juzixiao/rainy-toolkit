@@ -84,7 +84,7 @@ namespace rainy::core::text {
                                        allocator_type const &allocator = allocator_type()) : pair_{allocator, {}} {
             auto other_size = right.size();
             if (pos > other_size) {
-                throw std::out_of_range{exception_string_};
+                core::implements::throw_exception_out_of_range(exception_string_);
             }
             count = (core::min) (other_size - pos, count);
             allocate_plus_one_(count);
@@ -144,7 +144,7 @@ namespace rainy::core::text {
             init_empty_();
             auto other_size = right.size();
             if (pos > other_size) {
-                throw std::out_of_range{exception_string_};
+                core::implements::throw_exception_out_of_range(exception_string_);
             }
             count = (core::min) (other_size - pos, count);
             if (pos != 0) {
@@ -213,7 +213,7 @@ namespace rainy::core::text {
             auto data = sv.data();
             auto sv_size = sv.size();
             if (pos > sv_size) {
-                throw std::out_of_range{exception_string_};
+                core::implements::throw_exception_out_of_range(exception_string_);
             }
             count = (core::min) (sv_size - pos, count);
             allocate_plus_one_(count);
@@ -264,7 +264,7 @@ namespace rainy::core::text {
 
         RAINY_CONSTEXPR20 const_reference at(size_type pos) const {
             if (pos >= size()) {
-                throw std::out_of_range{exception_string_};
+                core::implements::throw_exception_out_of_range(exception_string_);
             }
             return *(begin_() + pos);
         }
@@ -426,7 +426,7 @@ namespace rainy::core::text {
             if (std::is_constant_evaluated()) {
                 basic_string temp{};
                 temp.allocate_plus_one_(new_cap);
-                for (const auto ch : *this) {
+                for (const auto ch: *this) {
                     temp.push_back(ch);
                 }
                 temp.swap_without_ator(*this);
@@ -472,7 +472,7 @@ namespace rainy::core::text {
         template <typename Operation>
         RAINY_CONSTEXPR20 void resize_and_overwrite(size_type count, Operation op) {
             if (count > max_size()) {
-                throw std::length_error("resize_and_overwrite: count exceeds max_size");
+                core::implements::throw_exception_length_error("resize_and_overwrite: count exceeds max_size");
             }
             if (count > capacity()) {
                 reserve(count);
@@ -580,7 +580,7 @@ namespace rainy::core::text {
         RAINY_CONSTEXPR20 basic_string &assign(const basic_string &str, size_type pos, size_type count = npos) {
             auto str_size = str.size();
             if (pos > str_size) {
-                throw std::out_of_range{exception_string_};
+                core::implements::throw_exception_out_of_range(exception_string_);
             }
             count = (core::min) (npos, (core::min) (str_size - pos, count));
             auto str_begin = str.begin_();
@@ -645,7 +645,7 @@ namespace rainy::core::text {
         RAINY_CONSTEXPR20 basic_string &assign(const StringViewLike &sv, size_type pos, size_type count = npos) {
             auto sv_size = sv.size();
             if (pos > sv_size) {
-                throw std::out_of_range{exception_string_};
+                core::implements::throw_exception_out_of_range(exception_string_);
             }
             count = (core::min) (npos, (core::min) (sv_size - pos, count));
             auto data = sv.data();
@@ -694,7 +694,7 @@ namespace rainy::core::text {
         RAINY_CONSTEXPR20 basic_string &append(const basic_string &str, size_type pos, size_type count = npos) {
             auto str_size = str.size();
             if (pos > str_size) {
-                throw std::out_of_range{exception_string_};
+                core::implements::throw_exception_out_of_range(exception_string_);
             }
             count = (core::min) (npos, (core::min) (str_size - pos, count));
             return append(str.begin_() + pos, count);
@@ -731,7 +731,7 @@ namespace rainy::core::text {
         RAINY_CONSTEXPR20 basic_string &append(const StringViewLike &sv, size_type pos, size_type count = npos) {
             auto sv_size = sv.size();
             if (pos > sv_size) {
-                throw std::out_of_range{exception_string_};
+                core::implements::throw_exception_out_of_range(exception_string_);
             }
             count = (core::min) (npos, (core::min) (sv_size - count, count));
             return append(sv.data() + pos, count);
@@ -1092,7 +1092,7 @@ namespace rainy::core::text {
         RAINY_CONSTEXPR20 basic_string &insert(size_type index, size_type count, CharType ch) {
             auto size = this->size();
             if (index > size) {
-                throw std::out_of_range{exception_string_};
+                core::implements::throw_exception_out_of_range(exception_string_);
             }
             reserve(size + count);
             auto start = begin_() + index;
@@ -1131,7 +1131,7 @@ namespace rainy::core::text {
         RAINY_CONSTEXPR20 basic_string &insert(size_type index, const basic_string &str, size_type s_index, size_type count = npos) {
             auto s_size = str.size();
             if (s_index > s_size) {
-                throw std::out_of_range{exception_string_};
+                core::implements::throw_exception_out_of_range(exception_string_);
             }
             count = (core::min) (npos, (core::min) (s_size - s_index, count));
             auto s_start = str.begin_() + s_index;
@@ -1224,7 +1224,7 @@ namespace rainy::core::text {
             auto sv_size = sv.size();
             auto size = this->size();
             if (t_index > sv_size) {
-                throw std::out_of_range{exception_string_};
+                core::implements::throw_exception_out_of_range(exception_string_);
             }
             count = (core::min) (npos, (core::min) (sv_size - t_index, count));
             auto sv_data = sv.data();
@@ -1295,7 +1295,7 @@ namespace rainy::core::text {
         RAINY_CONSTEXPR20 basic_string &erase(size_type index = 0, size_type count = npos) {
             auto size = this->size();
             if (index > size) {
-                throw std::out_of_range{exception_string_};
+                core::implements::throw_exception_out_of_range(exception_string_);
             }
             count = (core::min) (npos, (core::min) (size - index, count));
             auto start = begin_() + index;
@@ -1335,7 +1335,7 @@ namespace rainy::core::text {
                                                 size_type count2 = npos) {
             auto str_size = str.size();
             if (pos2 > str_size) {
-                throw std::out_of_range{exception_string_};
+                core::implements::throw_exception_out_of_range(exception_string_);
             }
             count2 = (core::min) (npos, (core::min) (count2, str_size - pos2));
             auto begin = str.begin_();
@@ -1402,10 +1402,11 @@ namespace rainy::core::text {
                       type_traits::type_relations::is_convertible_v<const StringViewLike &, std::basic_string_view<value_type>> &&
                           (!type_traits::type_relations::is_convertible_v<const StringViewLike &, const value_type *>),
                       int> = 0>
-        RAINY_CONSTEXPR20 basic_string &replace(size_type pos, size_type count, const StringViewLike &sv, size_type pos2, size_type count2 = npos) {
+        RAINY_CONSTEXPR20 basic_string &replace(size_type pos, size_type count, const StringViewLike &sv, size_type pos2,
+                                                size_type count2 = npos) {
             auto sv_size = sv.size();
             if (pos2 > sv_size) {
-                throw std::out_of_range{exception_string_};
+                core::implements::throw_exception_out_of_range(exception_string_);
             }
             count2 = (core::min) (npos, (core::min) (sv_size - pos2, count2));
             auto data = sv.data();
@@ -1531,14 +1532,15 @@ namespace rainy::core::text {
             return substr(pos);
         }
 
-        RAINY_CONSTEXPR20 collections::vector<basic_string> split(value_type delim) const {
+        template <typename Alloc = memory::allocator<basic_string>>
+        RAINY_CONSTEXPR20 collections::vector<basic_string, Alloc> split(value_type delim) const {
             if (empty()) {
                 return {};
             }
             size_type previous = 0;
             size_type current = find_first_of(delim);
             basic_string_view<value_type> str_view = (*this);
-            collections::vector<basic_string> res{};
+            collections::vector<basic_string, Alloc> res{};
             while (current != npos) {
                 res.push_back(basic_string(str_view.substr(previous, current - previous)));
                 previous = current + 1;
@@ -1853,7 +1855,7 @@ namespace rainy::core::text {
                 return;
             }
             if (count > max_size()) {
-                throw std::length_error("basic_string: requested size exceeds max_size()");
+                core::implements::throw_exception_length_error("basic_string: requested size exceeds max_size()");
             }
             ++count;
             auto ptr = allocator_traits::allocate(this->get_al(), count);
@@ -1880,7 +1882,7 @@ namespace rainy::core::text {
 #if RAINY_HAS_CXX20
                 if (std::is_constant_evaluated()) {
                     // In constexpr, only swap initialized elements to avoid reading indeterminate values
-                    auto max_len = (core::max)(s.mylength, r.mylength);
+                    auto max_len = (core::max) (s.mylength, r.mylength);
                     for (size_type i = 0; i <= max_len; ++i) {
                         std::swap(s.storage_union_.localbuffer[i], r.storage_union_.localbuffer[i]);
                     }
@@ -1962,7 +1964,7 @@ namespace rainy::core::text {
         RAINY_CONSTEXPR20 void insert_(size_type index, value_type const *first, value_type const *last) {
             auto size = this->size();
             if (index > size) {
-                throw std::out_of_range{exception_string_};
+                core::implements::throw_exception_out_of_range(exception_string_);
             }
             auto length = last - first;
             auto new_size = size + length;
@@ -2009,7 +2011,7 @@ namespace rainy::core::text {
         RAINY_CONSTEXPR20 void replace_(size_type pos, size_type count, value_type const *first2, value_type const *last2) {
             auto size = this->size();
             if (pos > size) {
-                throw std::out_of_range{exception_string_};
+                core::implements::throw_exception_out_of_range(exception_string_);
             }
             auto begin = begin_();
             auto first1 = begin + pos;
@@ -2032,7 +2034,7 @@ namespace rainy::core::text {
                 temp.swap(*this);
             } else
 #endif
-            if (!(last1 < first2 || last2 < first1) && new_size <= capacity()) {
+                if (!(last1 < first2 || last2 < first1) && new_size <= capacity()) {
                 auto diff = length1 - length2;
                 // NOLINTBEGIN
                 if (std::is_constant_evaluated()) {
@@ -2306,9 +2308,9 @@ namespace rainy::core::text {
 namespace rainy::text {
     using core::text::basic_string;
     using core::text::string;
-    using core::text::wstring;
     using core::text::u16string;
     using core::text::u32string;
+    using core::text::wstring;
 #if RAINY_HAS_CXX20
     using core::text::u8string;
 #endif

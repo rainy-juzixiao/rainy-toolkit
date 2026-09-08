@@ -17,11 +17,17 @@
 #define RAINY_CORE_COLLECTIONS_ARRAY_VIEW_HPP
 #include <array>
 #include <exception>
-#include <rainy/core/collections/array.hpp>
-#include <rainy/core/collections/vector.hpp>
-#include <rainy/core/utility/reverse_iterator.hpp>
 #include <rainy/core/platform.hpp>
+#include <rainy/core/utility/reverse_iterator.hpp>
 #include <vector>
+
+namespace rainy::core::collections {
+    template <typename Ty, typename Alloc>
+    class vector;
+
+    template <typename Ty, std::size_t Alloc>
+    class array;
+}
 
 namespace rainy::core::collections::views {
     /**
@@ -83,7 +89,8 @@ namespace rainy::core::collections::views {
          * @param last Pointer to one past the last element
          *             指向最后一个元素之后位置的指针
          */
-        constexpr array_view(const_pointer first, const_pointer last) noexcept : data_(const_cast<pointer>(first)), size_(last - first) {
+        constexpr array_view(const_pointer first, const_pointer last) noexcept :
+            data_(const_cast<pointer>(first)), size_(last - first) {
         }
 
         /**
@@ -210,6 +217,36 @@ namespace rainy::core::collections::views {
         template <typename OtherType, type_traits::other_trans::enable_if_t<
                                           type_traits::type_relations::is_convertible_v<OtherType (*)[], Ty (*)[]>, int> = 0>
         constexpr array_view(array_view<OtherType> const &other) noexcept : array_view(other.data(), other.size()) {
+        }
+
+        /**
+         * @brief Constructs a view from a collections::vector.
+         *        从collections::vector构造视图。
+         *
+         * @tparam C Vector element type
+         *           vector元素类型
+         * @tparam Alloc Vector Allocator type
+         *           vector分配器类型
+         * @param value Vector reference
+         *              vector引用
+         */
+        template <typename C, typename Alloc>
+        RAINY_CONSTEXPR20 array_view(collections::vector<C, Alloc> &value) noexcept : array_view(data(value), value.size()) {
+        }
+
+        /**
+         * @brief Constructs a const view from a const collections::vector.
+         *        从const collections::vector构造常量视图。
+         *
+         * @tparam C Vector element type
+         *           vector元素类型
+         * @tparam Alloc Vector Allocator type
+         *           vector分配器类型
+         * @param value Const vector reference
+         *              const vector引用
+         */
+        template <typename C, typename Alloc>
+        RAINY_CONSTEXPR20 array_view(collections::vector<C, Alloc> const &value) noexcept : array_view(data(value), value.size()) {
         }
 
         /**

@@ -15,6 +15,7 @@
  */
 
 #include <rainy/core/collections/array_view.hpp>
+#include <rainy/core/collections/array.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_all.hpp>
 

@@ -4840,4 +4840,9 @@ namespace rainy::utility {
     struct monostate {};
 }
 
+namespace rainy::core::implements {
+    void throw_exception_out_of_range(const char* msg);
+    void throw_exception_length_error(const char* msg);
+}
+
 #endif
