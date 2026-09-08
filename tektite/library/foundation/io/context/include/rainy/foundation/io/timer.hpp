@@ -257,7 +257,7 @@ namespace rainy::foundation::io {
                         } catch (...) {}
                         executor.on_work_finished();
                     },
-                    memory::allocator<void>{});
+                    core::memory::allocator<void>{});
             }
 
             void run() {
