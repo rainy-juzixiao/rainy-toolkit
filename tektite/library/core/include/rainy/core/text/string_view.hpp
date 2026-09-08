@@ -657,4 +657,15 @@ namespace rainy::core::text {
     }
 }
 
+namespace rainy::text {
+    using core::text::basic_string_view;
+    using core::text::string_view;
+    using core::text::wstring_view;
+    using core::text::u16string_view;
+    using core::text::u32string_view;
+#if RAINY_HAS_CXX20
+    using core::text::u8string_view;
+#endif
+}
+
 #endif

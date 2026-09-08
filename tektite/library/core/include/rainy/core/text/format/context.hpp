@@ -173,4 +173,17 @@ namespace rainy::core::text {
     }
 }
 
+namespace rainy::text {
+    using core::text::basic_format_parse_context;
+    using core::text::format_parse_context;
+    using core::text::wformat_parse_context;
+    using core::text::basic_format_context;
+    using core::text::format_context;
+    using core::text::wformat_context;
+    using core::text::format_args;
+    using core::text::wformat_args;
+    using core::text::make_format_args;
+    using core::text::make_wformat_args;
+}
+
 #endif

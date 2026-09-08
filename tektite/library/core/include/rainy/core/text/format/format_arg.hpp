@@ -350,4 +350,9 @@ namespace rainy::core::text {
     };
 }
 
+namespace rainy::text {
+    using core::text::basic_format_arg;
+    using core::text::basic_format_args;
+}
+
 #endif

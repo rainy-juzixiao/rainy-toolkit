@@ -334,4 +334,11 @@ namespace rainy::core::text {
     }
 }
 
+namespace rainy::text {
+    using core::text::format;
+    using core::text::format_to;
+    using core::text::vformat;
+    using core::text::vformat_to;
+}
+
 #endif

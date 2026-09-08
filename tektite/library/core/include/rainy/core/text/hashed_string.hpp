@@ -182,4 +182,15 @@ namespace rainy::utility {
     };
 }
 
+namespace rainy::text {
+    using core::text::basic_hashed_string;
+    using core::text::hashed_string;
+    using core::text::whashed_string;
+    using core::text::u16hashed_string;
+    using core::text::u32hashed_string;
+#if RAINY_HAS_CXX20
+    using core::text::u8hashed_string;
+#endif
+}
+
 #endif

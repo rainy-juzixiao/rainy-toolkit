@@ -2303,4 +2303,15 @@ namespace rainy::core::text {
 #pragma GCC diagnostic pop
 #endif
 
+namespace rainy::text {
+    using core::text::basic_string;
+    using core::text::string;
+    using core::text::wstring;
+    using core::text::u16string;
+    using core::text::u32string;
+#if RAINY_HAS_CXX20
+    using core::text::u8string;
+#endif
+}
+
 #endif

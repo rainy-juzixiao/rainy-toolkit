@@ -236,4 +236,8 @@ namespace rainy::core::text {
         : range_formatter<implements::range_value_t<Range>, CharType> {};
 }
 
+namespace rainy::text {
+    using core::text::range_formatter;
+}
+
 #endif

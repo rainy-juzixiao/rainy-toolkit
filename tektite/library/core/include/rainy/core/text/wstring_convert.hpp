@@ -775,4 +775,12 @@ namespace rainy::core::text {
     };
 }
 
+namespace rainy::text {
+    using core::text::codecvt_mode;
+    using core::text::codecvt_utf8;
+    using core::text::codecvt_utf16;
+    using core::text::codecvt_utf8_utf16;
+    using core::text::wstring_convert;
+}
+
 #endif

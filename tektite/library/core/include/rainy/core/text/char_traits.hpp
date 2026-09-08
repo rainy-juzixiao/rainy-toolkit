@@ -420,4 +420,8 @@ namespace rainy::core::text {
     };
 }
 
+namespace rainy::text {
+    using core::text::char_traits;
+}
+
 #endif

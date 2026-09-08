@@ -580,4 +580,12 @@ namespace rainy::core::text {
     RAINY_TOOLKIT_API to_chars_result to_chars(char *begin, char *end, long double value, chars_format fmt, int precision) noexcept;
 }
 
+namespace rainy::text {
+    using core::text::to_chars_result;
+    using core::text::from_chars_result;
+    using core::text::chars_format;
+    using core::text::to_chars;
+    using core::text::from_chars;
+}
+
 #endif

@@ -1191,4 +1191,8 @@ public:
 };
 #endif
 
+namespace rainy::text {
+    using core::text::formatter;
+}
+
 #endif
