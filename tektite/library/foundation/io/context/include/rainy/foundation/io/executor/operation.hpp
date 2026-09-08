@@ -78,7 +78,7 @@ namespace rainy::foundation::io::implements {
             static executor_op *allocate(const Alloc &a) {
                 using recycling_allocator_type = typename ::rainy::core::memory::get_recycling_allocator<
                     Alloc, ::rainy::core::concurrency::implements::thread_info_base::default_tag>::type;
-                typename core::core::memory::allocator_traits<recycling_allocator_type>::template rebind_alloc<executor_op> a1(
+                typename core::memory::allocator_traits<recycling_allocator_type>::template rebind_alloc<executor_op> a1(
                     ::rainy::core::memory::get_recycling_allocator<
                         Alloc, ::rainy::core::concurrency::implements::thread_info_base::default_tag>::get(a));
                 return a1.allocate(1);
