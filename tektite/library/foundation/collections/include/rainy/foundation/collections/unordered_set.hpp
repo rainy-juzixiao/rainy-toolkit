@@ -237,15 +237,15 @@ namespace rainy::foundation::collections::implements {
         using allocator_type = Allocator;
         using reference = value_type &;
         using const_reference = const value_type &;
-        using pointer = typename std::allocator_traits<Allocator>::pointer;
-        using const_pointer = typename std::allocator_traits<Allocator>::const_pointer;
+        using pointer = typename memory::allocator_traits<Allocator>::pointer;
+        using const_pointer = typename memory::allocator_traits<Allocator>::const_pointer;
 
-        using list_type = list<value_type, typename std::allocator_traits<Allocator>::template rebind_alloc<value_type>>;
+        using list_type = list<value_type, typename memory::allocator_traits<Allocator>::template rebind_alloc<value_type>>;
         using list_iterator = typename list_type::iterator;
         using const_list_iterator = typename list_type::const_iterator;
 
-        using bucket_type = std::vector<list_iterator>;
-        using bucket_allocator = typename std::allocator_traits<Allocator>::template rebind_alloc<bucket_type>;
+        using bucket_type = core::collections::vector<list_iterator>;
+        using bucket_allocator = typename memory::allocator_traits<Allocator>::template rebind_alloc<bucket_type>;
 
         using iterator = unordered_set_iterator<list_iterator>;
         using const_iterator = unordered_set_iterator<const_list_iterator>;
@@ -393,7 +393,7 @@ namespace rainy::foundation::collections::implements {
             }
         }
 
-        template <typename P, typename = type_traits::other_trans::enable_if_t<std::is_constructible_v<value_type, P &&>>>
+        template <typename P, typename = type_traits::other_trans::enable_if_t<type_traits::properties::is_constructible_v<value_type, P &&>>>
         container::pair<iterator, bool> insert(P &&value) {
             if constexpr (Multi) {
                 return container::make_pair(insert_multi(utility::forward<P>(value)), true);
@@ -669,7 +669,7 @@ namespace rainy::foundation::collections::implements {
             if (new_bucket_count == buckets_.size()) {
                 return;
             }
-            std::vector<bucket_type> new_buckets(new_bucket_count);
+            core::collections::vector<bucket_type> new_buckets(new_bucket_count);
             for (auto it = elements_.begin(); it != elements_.end(); ++it) {
                 size_type bucket_idx = hash_(*it) % new_bucket_count;
                 new_buckets[bucket_idx].push_back(it);
@@ -903,7 +903,7 @@ namespace rainy::foundation::collections::implements {
         }
 
         list_type elements_;
-        std::vector<bucket_type> buckets_;
+        core::collections::vector<bucket_type> buckets_;
         size_type size_;
         float max_load_factor_;
         hasher hash_;
