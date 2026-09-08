@@ -37,13 +37,13 @@ namespace rainy::foundation::concurrency {
             worker_thread_.reset();
         }
 
-        void start_dedicated(std::vector<actor_worker *> peers) {
+        void start_dedicated(core::collections::vector<actor_worker *> peers) {
             utility::expects(!on_complete_.empty(), "set_on_complete must be called before start_dedicated");
             peers_ = utility::move(peers);
             worker_thread_ = core::memory::make_nebula<thread>(thread::policy::auto_join, [this] { run_loop(); });
         }
 
-        void set_peers(std::vector<actor_worker *> peers) {
+        void set_peers(core::collections::vector<actor_worker *> peers) {
             peers_ = utility::move(peers);
         }
 
@@ -135,7 +135,7 @@ namespace rainy::foundation::concurrency {
         std::size_t id_;
         core::concurrency::atomic<bool> stop_;
         work_stealing_deque local_queue_;
-        std::vector<actor_worker *> peers_;
+        core::collections::vector<actor_worker *> peers_;
         on_complete on_complete_;
 
         mutex cv_mutex_;

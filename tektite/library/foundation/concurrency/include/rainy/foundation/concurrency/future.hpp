@@ -79,18 +79,18 @@ namespace rainy::foundation::concurrency {
     class promise;
 
     template <typename Ty>
-    struct is_future : std::false_type {
+    struct is_future : type_traits::helper::false_type {
         using inner = Ty;
     };
 
     template <typename Ty>
-    struct is_future<monad_future<Ty>> : std::true_type {
+    struct is_future<monad_future<Ty>> : type_traits::helper::true_type {
         using inner = Ty;
     };
 
     template <typename Fx, typename Arg>
     struct then_result {
-        using raw = std::invoke_result_t<std::decay_t<Fx>, Arg>;
+        using raw = type_traits::properties::invoke_result_t<type_traits::other_trans::decay_t<Fx>, Arg>;
         using type = typename is_future<raw>::inner; // 展平一层
         using is_wrapped = is_future<raw>;
     };
@@ -122,7 +122,7 @@ namespace rainy::foundation::concurrency {
         shared_state &operator=(const shared_state &) = delete;
 
         ~shared_state() {
-            std::vector<functional::delegate<void()>> to_drain;
+            core::collections::vector<functional::delegate<void()>> to_drain;
             {
                 lock_guard lk(mutex_);
                 if (status_ == status::fulfilling_at_exit) {
@@ -147,7 +147,7 @@ namespace rainy::foundation::concurrency {
         }
 
         void set_value(Ty value) {
-            std::vector<functional::delegate<void()>> to_drain;
+            core::collections::vector<functional::delegate<void()>> to_drain;
             {
                 lock_guard lk(mutex_);
                 throw_if_already_satisfied();
@@ -160,7 +160,7 @@ namespace rainy::foundation::concurrency {
         }
 
         void set_exception(std::exception_ptr ep) {
-            std::vector<functional::delegate<void()>> to_drain;
+            core::collections::vector<functional::delegate<void()>> to_drain;
             {
                 lock_guard lk(mutex_);
                 throw_if_already_satisfied();
@@ -310,7 +310,7 @@ namespace rainy::foundation::concurrency {
         }
 
         void flush_at_exit() {
-            std::vector<functional::delegate<void()>> to_drain;
+            core::collections::vector<functional::delegate<void()>> to_drain;
             {
                 lock_guard lk(mutex_);
                 if (status_ == status::fulfilling_at_exit) {
@@ -324,7 +324,7 @@ namespace rainy::foundation::concurrency {
             drain(utility::move(to_drain));
         }
 
-        static void drain(std::vector<functional::delegate<void()>> callbacks) {
+        static void drain(core::collections::vector<functional::delegate<void()>> callbacks) {
             for (auto &cb: callbacks) {
                 cb();
                 cb.reset();
@@ -336,7 +336,7 @@ namespace rainy::foundation::concurrency {
         mutable functional::delegate<void()> deferred_fn_;
         mutable status status_;
 
-        std::vector<functional::delegate<void()>> continuations_;
+        core::collections::vector<functional::delegate<void()>> continuations_;
         std::variant<std::monostate, Ty, std::exception_ptr> result_;
     };
 }
@@ -348,7 +348,7 @@ namespace rainy::foundation::concurrency {
         shared_state() = default;
 
         ~shared_state() {
-            std::vector<functional::delegate<void()>> to_drain;
+            core::collections::vector<functional::delegate<void()>> to_drain;
             {
                 lock_guard lk(mutex_);
                 if (status_ == status::fulfilling_at_exit) {
@@ -365,7 +365,7 @@ namespace rainy::foundation::concurrency {
         }
 
         void set_value() {
-            std::vector<functional::delegate<void()>> to_drain;
+            core::collections::vector<functional::delegate<void()>> to_drain;
             {
                 lock_guard lk(mutex_);
                 throw_if_already_satisfied();
@@ -377,7 +377,7 @@ namespace rainy::foundation::concurrency {
         }
 
         void set_exception(std::exception_ptr ep) {
-            std::vector<functional::delegate<void()>> to_drain;
+            core::collections::vector<functional::delegate<void()>> to_drain;
             {
                 lock_guard lk(mutex_);
                 throw_if_already_satisfied();
@@ -502,7 +502,7 @@ namespace rainy::foundation::concurrency {
         }
 
         void flush_at_exit() {
-            std::vector<functional::delegate<void()>> to_drain;
+            core::collections::vector<functional::delegate<void()>> to_drain;
             {
                 lock_guard lk(mutex_);
                 if (status_ == status::fulfilling_at_exit) {
@@ -528,7 +528,7 @@ namespace rainy::foundation::concurrency {
             fn();
         }
 
-        static void drain(std::vector<functional::delegate<void()>> callbacks) {
+        static void drain(core::collections::vector<functional::delegate<void()>> callbacks) {
             for (auto &cb: callbacks) {
                 cb();
                 cb.reset();
@@ -541,7 +541,7 @@ namespace rainy::foundation::concurrency {
         mutable status status_{status::pending};
 
         std::exception_ptr exception_;
-        std::vector<functional::delegate<void()>> continuations_;
+        core::collections::vector<functional::delegate<void()>> continuations_;
     };
 }
 
@@ -608,14 +608,14 @@ namespace rainy::foundation::concurrency {
             return valid() && state_->is_ready();
         }
 
-        template <typename Fx, typename Raw = std::invoke_result_t<std::decay_t<Fx>, Ty>,
+        template <typename Fx, typename Raw = type_traits::properties::invoke_result_t<type_traits::other_trans::decay_t<Fx>, Ty>,
                   typename UTy = typename is_future<Raw>::inner>
         rain_fn then(Fx &&fx) -> monad_future<UTy> {
             submit_fn inline_sub = [](functional::delegate<void()> callback) { callback(); };
             return then_impl<UTy, Raw>(utility::move(inline_sub), utility::forward<Fx>(fx));
         }
 
-        template <typename Exec, typename Fx, typename Raw = std::invoke_result_t<std::decay_t<Fx>, Ty>,
+        template <typename Exec, typename Fx, typename Raw = type_traits::properties::invoke_result_t<type_traits::other_trans::decay_t<Fx>, Ty>,
                   typename UTy = typename is_future<Raw>::inner>
         rain_fn then(Exec &&exec, Fx &&fx) -> monad_future<UTy> {
             return then_impl<UTy, Raw>(wrap_executor(utility::forward<Exec>(exec)), utility::forward<Fx>(fx));
@@ -677,7 +677,7 @@ namespace rainy::foundation::concurrency {
 
         template <typename Exec>
         static submit_fn wrap_executor(Exec &exec) {
-            if constexpr (std::is_same_v<std::decay_t<Exec>, submit_fn>) {
+            if constexpr (type_traits::type_relations::is_same_v<type_traits::other_trans::decay_t<Exec>, submit_fn>) {
                 return exec;
             } else {
                 return wrap_executor_ref(exec);
@@ -686,7 +686,7 @@ namespace rainy::foundation::concurrency {
 
         template <typename Exec>
         static submit_fn wrap_executor(Exec &&exec) {
-            if constexpr (std::is_same_v<std::decay_t<Exec>, submit_fn>) {
+            if constexpr (type_traits::type_relations::is_same_v<type_traits::other_trans::decay_t<Exec>, submit_fn>) {
                 return utility::move(exec);
             } else {
                 return wrap_executor_owned(utility::forward<Exec>(exec));
@@ -715,7 +715,7 @@ namespace rainy::foundation::concurrency {
                                     next->set_exception(inner_state->get_exception());
                                 } else {
                                     try {
-                                        if constexpr (std::is_void_v<UTy>) {
+                                        if constexpr (type_traits::type_relations::is_void_v<UTy>) {
                                             inner_state->get();
                                             next->set_value();
                                         } else {
@@ -727,7 +727,7 @@ namespace rainy::foundation::concurrency {
                                 }
                             });
                         } else {
-                            if constexpr (std::is_void_v<UTy>) {
+                            if constexpr (type_traits::type_relations::is_void_v<UTy>) {
                                 fn(utility::move(cur->value_ref_unsafe()));
                                 next->set_value();
                             } else {
@@ -743,10 +743,10 @@ namespace rainy::foundation::concurrency {
         }
 
         template <typename Exec, typename Fx,
-                  typename Raw = std::invoke_result_t<std::decay_t<Fx>, std::exception_ptr>,
+                  typename Raw = type_traits::properties::invoke_result_t<type_traits::other_trans::decay_t<Fx>, std::exception_ptr>,
                   typename Unwrapped = typename is_future<Raw>::inner>
         monad_future catch_error_impl(Exec &&exec_or_fn, Fx &&handler) {
-            static_assert(std::is_same_v<Unwrapped, Ty> || std::is_void_v<Ty>,
+            static_assert(type_traits::type_relations::is_same_v<Unwrapped, Ty> || type_traits::type_relations::is_void_v<Ty>,
                           "catch_error handler must return Ty or monad_future<Ty>");
             ensure_valid();
             auto next = make_shared_state<Ty>();
@@ -766,7 +766,7 @@ namespace rainy::foundation::concurrency {
                                         next->set_exception(inner_state->get_exception());
                                     } else {
                                         try {
-                                            if constexpr (std::is_void_v<Ty>) {
+                                            if constexpr (type_traits::type_relations::is_void_v<Ty>) {
                                                 inner_state->get();
                                                 next->set_value();
                                             } else {
@@ -778,7 +778,7 @@ namespace rainy::foundation::concurrency {
                                     }
                                 });
                             } else {
-                                if constexpr (std::is_void_v<Ty>) {
+                                if constexpr (type_traits::type_relations::is_void_v<Ty>) {
                                     fn(cur->get_exception());
                                     next->set_value();
                                 } else {
@@ -790,7 +790,7 @@ namespace rainy::foundation::concurrency {
                         }
                     } else {
                         try {
-                            if constexpr (std::is_void_v<Ty>) {
+                            if constexpr (type_traits::type_relations::is_void_v<Ty>) {
                                 cur->get();
                                 next->set_value();
                             } else {
@@ -805,7 +805,7 @@ namespace rainy::foundation::concurrency {
             return monad_future<Ty>(utility::move(next));
         }
 
-        template <typename Exec, typename Fx, typename Raw = std::invoke_result_t<std::decay_t<Fx>>>
+        template <typename Exec, typename Fx, typename Raw = type_traits::properties::invoke_result_t<type_traits::other_trans::decay_t<Fx>>>
         monad_future<Ty> finally_impl(Exec &&exec_or_fn, Fx &&fx) {
             ensure_valid();
             auto next = make_shared_state<Ty>();
@@ -820,7 +820,7 @@ namespace rainy::foundation::concurrency {
                             next->set_exception(cur->get_exception());
                         } else {
                             try {
-                                if constexpr (std::is_void_v<Ty>) {
+                                if constexpr (type_traits::type_relations::is_void_v<Ty>) {
                                     cur->get();
                                     next->set_value();
                                 } else {
@@ -916,7 +916,7 @@ namespace rainy::foundation::concurrency {
             return state_->wait_until(abs);
         }
 
-        template <typename Fx, typename Raw = std::invoke_result_t<std::decay_t<Fx>, const Ty &>,
+        template <typename Fx, typename Raw = type_traits::properties::invoke_result_t<type_traits::other_trans::decay_t<Fx>, const Ty &>,
                   typename UTy = typename is_future<Raw>::inner>
         monad_future<UTy> then(Fx &&fx) const {
             ensure_valid();
@@ -939,7 +939,7 @@ namespace rainy::foundation::concurrency {
                                 next_cap->set_exception(inner_state->get_exception());
                             } else {
                                 try {
-                                    if constexpr (std::is_void_v<UTy>) {
+                                    if constexpr (type_traits::type_relations::is_void_v<UTy>) {
                                         inner_state->get();
                                         next_cap->set_value();
                                     } else {
@@ -952,7 +952,7 @@ namespace rainy::foundation::concurrency {
                         });
                     } else {
                         // fx 返回普通值，原有路径
-                        if constexpr (std::is_void_v<UTy>) {
+                        if constexpr (type_traits::type_relations::is_void_v<UTy>) {
                             fn(cur->get_shared());
                             next->set_value();
                         } else {
@@ -1200,7 +1200,7 @@ namespace rainy::foundation::concurrency {
         }
 
         template <typename Allocator>
-        promise(std::allocator_arg_t, const Allocator &) : promise() {
+        promise(memory::allocator_arg_t, const Allocator &) : promise() {
         }
 
         promise(promise &&right) noexcept : state_(utility::move(right.state_)), future_retrieved_(right.future_retrieved_) {
@@ -1287,7 +1287,7 @@ namespace rainy::foundation::concurrency {
         }
 
         template <typename Allocator>
-        promise(std::allocator_arg_t, const Allocator &) : promise() {
+        promise(memory::allocator_arg_t, const Allocator &) : promise() {
         }
 
         promise(promise &&right) noexcept : state_(utility::move(right.state_)), future_retrieved_(right.future_retrieved_) {
@@ -1369,7 +1369,7 @@ namespace rainy::foundation::concurrency {
 
 namespace std { // NOLINT
     template <typename Ty, typename Alloc>
-    struct uses_allocator<rainy::foundation::concurrency::promise<Ty>, Alloc> : std::true_type {}; // NOLINT
+    struct uses_allocator<rainy::foundation::concurrency::promise<Ty>, Alloc> : type_traits::helper::true_type {}; // NOLINT
 }
 
 namespace rainy::foundation::concurrency {
@@ -1382,7 +1382,7 @@ namespace rainy::foundation::concurrency {
         packaged_task() noexcept = default;
 
         template <typename Fx, typename = type_traits::other_trans::enable_if_t<
-                                   !std::is_same_v<std::decay_t<Fx>, packaged_task>>>
+                                   !type_traits::type_relations::is_same_v<type_traits::other_trans::decay_t<Fx>, packaged_task>>>
         explicit packaged_task(Fx &&fx) : func_(utility::forward<Fx>(fx)), state_(make_shared_state<Rx>()) { // NOLINT
         }
 
@@ -1454,7 +1454,7 @@ namespace rainy::foundation::concurrency {
     private:
         void invoke_and_set(std::shared_ptr<shared_state<Rx>> &st, const bool at_thread_exit, Args... args) {
             try {
-                if constexpr (std::is_void_v<Rx>) {
+                if constexpr (type_traits::type_relations::is_void_v<Rx>) {
                     func_(utility::forward<Args>(args)...);
                     st->set_value();
                 } else {

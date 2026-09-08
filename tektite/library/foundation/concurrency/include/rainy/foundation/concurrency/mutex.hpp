@@ -186,13 +186,13 @@ namespace rainy::foundation::concurrency {
 namespace rainy::foundation::concurrency::implements {
     template <class Clock, class Duration>
     RAINY_INLINE ::timespec to_abs_timespec(const std::chrono::time_point<Clock, Duration> &tp) { // NOLINT
-        if constexpr (std::is_same_v<Clock, std::chrono::system_clock>) {
+        if constexpr (type_traits::type_relations::is_same_v<Clock, std::chrono::system_clock>) {
             auto ns = std::chrono::time_point_cast<std::chrono::nanoseconds>(tp).time_since_epoch();
             ::timespec ts{};
             ts.tv_sec = static_cast<time_t>(ns.count() / 1'000'000'000);
             ts.tv_nsec = static_cast<long>(ns.count() % 1'000'000'000);
             return ts;
-        } else if constexpr (std::is_same_v<Clock, std::chrono::steady_clock>) {
+        } else if constexpr (type_traits::type_relations::is_same_v<Clock, std::chrono::steady_clock>) {
             // 把 steady_clock 转为 system_clock
             auto now_sys = std::chrono::system_clock::now();
             auto now_steady = std::chrono::steady_clock::now();
@@ -854,7 +854,7 @@ namespace rainy::foundation::concurrency {
      * @param func 可调用对象
      * @param args 可调用对象参数
      */
-    template <class Callable, class... Args>
+    template <class Callable, typename... Args>
     rain_fn call_once(once_flag &flag, Callable &&func, Args &&...args) -> void {
         if (flag.called.load(core::layer::memory_order_acquire)) {
             return;

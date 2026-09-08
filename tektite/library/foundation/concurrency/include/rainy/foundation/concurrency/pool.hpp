@@ -46,7 +46,7 @@ namespace rainy::foundation::concurrency {
                     }
                 });
             }
-            std::vector<actor_worker *> all_peers;
+            core::collections::vector<actor_worker *> all_peers;
             all_peers.reserve(actor_count_);
             for (auto &a: actors_) {
                 all_peers.push_back(a.get());
@@ -161,8 +161,8 @@ namespace rainy::foundation::concurrency {
         mutex idle_mutex_;
         condition_variable idle_cv_;
 
-        std::vector<core::memory::nebula_ptr<thread>> threads_;
-        std::vector<core::memory::nebula_ptr<actor_worker>> actors_;
+        core::collections::vector<core::memory::nebula_ptr<thread>> threads_;
+        core::collections::vector<core::memory::nebula_ptr<actor_worker>> actors_;
         core::concurrency::atomic<int> submit_count_{0};
         core::concurrency::atomic<int> complete_count_{0};
     };
@@ -189,7 +189,7 @@ namespace rainy::foundation::concurrency {
                     }
                 });
             }
-            std::vector<actor_worker *> all_peers;
+            core::collections::vector<actor_worker *> all_peers;
             all_peers.reserve(actor_count_);
             for (auto &a: actors_) {
                 all_peers.push_back(a.get());
@@ -279,7 +279,7 @@ namespace rainy::foundation::concurrency {
         core::concurrency::atomic<bool> stop_{false};
         mutex idle_mutex_;
         condition_variable idle_cv_;
-        std::vector<core::memory::nebula_ptr<actor_worker>> actors_;
+        core::collections::vector<core::memory::nebula_ptr<actor_worker>> actors_;
     };
 }
 
@@ -428,8 +428,8 @@ namespace rainy::foundation::concurrency {
         mutex idle_mutex_;
         condition_variable idle_cv_;
 
-        std::vector<core::memory::nebula_ptr<actor_worker>> actors_;
-        std::vector<core::memory::nebula_ptr<thread>> threads_;
+        core::collections::vector<core::memory::nebula_ptr<actor_worker>> actors_;
+        core::collections::vector<core::memory::nebula_ptr<thread>> threads_;
         core::concurrency::atomic<int> submit_count_{0};
         core::concurrency::atomic<int> complete_count_{0};
     };
@@ -489,7 +489,7 @@ namespace rainy::foundation::concurrency {
                 }
 
                 // 同层 peers 注入，支持层内 stealing
-                std::vector<actor_worker *> peers;
+                core::collections::vector<actor_worker *> peers;
                 peers.reserve(actors_per_tier_);
                 for (auto &a: tier_actors) {
                     peers.push_back(a.get());
@@ -702,10 +702,10 @@ namespace rainy::foundation::concurrency {
         mutex idle_mutex_;
         condition_variable idle_cv_;
 
-        std::array<std::vector<core::memory::nebula_ptr<actor_worker>>, actor_priority_levels> actors_;
+        std::array<core::collections::vector<core::memory::nebula_ptr<actor_worker>>, actor_priority_levels> actors_;
         std::array<core::concurrency::atomic<std::size_t>, actor_priority_levels> round_robin_;
 
-        std::vector<core::memory::nebula_ptr<thread>> threads_;
+        core::collections::vector<core::memory::nebula_ptr<thread>> threads_;
         core::concurrency::atomic<int> submit_count_{0};
         core::concurrency::atomic<int> complete_count_{0};
     };
@@ -881,7 +881,7 @@ namespace rainy::foundation::concurrency {
         std::queue<functional::move_only_delegate<void()>> task_queue_;
 
         mutable mutex threads_mutex_;
-        std::vector<core::memory::nebula_ptr<thread>> threads_;
+        core::collections::vector<core::memory::nebula_ptr<thread>> threads_;
 
         mutable mutex idle_mutex_;
         condition_variable idle_cv_;

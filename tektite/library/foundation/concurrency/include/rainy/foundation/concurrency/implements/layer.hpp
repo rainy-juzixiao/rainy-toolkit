@@ -82,7 +82,7 @@ namespace rainy::foundation::concurrency::implements {
 namespace rainy::foundation::concurrency::implements {
 #if !defined(__cpp_lib_is_clock) || __cpp_lib_is_clock < 201907L
     template <typename Ty, typename = void>
-    struct is_clock : std::false_type {};
+    struct is_clock : type_traits::helper::false_type {};
 
     template <typename Ty>
     struct is_clock<Ty, type_traits::other_trans::void_t<typename Ty::rep, typename Ty::period, typename Ty::duration,
