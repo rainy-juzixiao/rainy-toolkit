@@ -18,34 +18,34 @@
 message("Checking compiler...")
 RAINY_GET_CXX_COMPILER_ID(COMPILER_ID)
 
-set(RAINY_TOOLKIT_CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
+#set(RAINY_TOOLKIT_CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
+#
+#if (CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64|ARM64)$")
+#    message(STATUS "Target architecture is ARM64")
+#endif ()
+#
+#rainy_load_flodar_files("${PROJECT_SOURCE_DIR}/xaga/sources" ".cxx" SPECIAL_FILES_LIST)
+#
+#if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+#    set(rainy_toolkit_libraryname "rainy-toolkit-debug-package")
+#else ()
+#    set(rainy_toolkit_libraryname "rainy-toolkit-release-package")
+#endif ()
+#
+#if (RAINY_BUILD_WITH_DYNAMIC AND NOT RAINY_USE_CROSSCOMPILE)
+#    message("Build dynamic library target")
+#    add_library(rainy-toolkit SHARED ${SPECIAL_FILES_LIST})
+#    set_target_properties(rainy-toolkit PROPERTIES OUTPUT_NAME ${rainy_toolkit_libraryname})
+#    target_compile_definitions(rainy-toolkit PRIVATE RAINY_DYNAMIC_EXPORTS=1)
+#    target_compile_definitions(rainy-toolkit PUBLIC RAINY_USING_DYNAMIC=1)
+#else ()
+#    message("Building library target")
+#    add_library(rainy-toolkit STATIC ${SPECIAL_FILES_LIST})
+#    target_compile_definitions(rainy-toolkit PRIVATE RAINY_DYNAMIC_EXPORTS=0)
+#    target_compile_definitions(rainy-toolkit PUBLIC RAINY_USING_DYNAMIC=0)
+#endif ()
 
-if (CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64|ARM64)$")
-    message(STATUS "Target architecture is ARM64")
-endif ()
-
-rainy_load_flodar_files("${PROJECT_SOURCE_DIR}/xaga/sources" ".cxx" SPECIAL_FILES_LIST)
-
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(rainy_toolkit_libraryname "rainy-toolkit-debug-package")
-else ()
-    set(rainy_toolkit_libraryname "rainy-toolkit-release-package")
-endif ()
-
-if (RAINY_BUILD_WITH_DYNAMIC AND NOT RAINY_USE_CROSSCOMPILE)
-    message("Build dynamic library target")
-    add_library(rainy-toolkit SHARED ${SPECIAL_FILES_LIST})
-    set_target_properties(rainy-toolkit PROPERTIES OUTPUT_NAME ${rainy_toolkit_libraryname})
-    target_compile_definitions(rainy-toolkit PRIVATE RAINY_DYNAMIC_EXPORTS=1)
-    target_compile_definitions(rainy-toolkit PUBLIC RAINY_USING_DYNAMIC=1)
-else ()
-    message("Building library target")
-    add_library(rainy-toolkit STATIC ${SPECIAL_FILES_LIST})
-    target_compile_definitions(rainy-toolkit PRIVATE RAINY_DYNAMIC_EXPORTS=0)
-    target_compile_definitions(rainy-toolkit PUBLIC RAINY_USING_DYNAMIC=0)
-endif ()
-
-set_target_properties(rainy-toolkit PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+#set_target_properties(rainy-toolkit PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 add_definitions(
         -DRAINY_TOOLKIT_PROJECT_VERSION="${PROJECT_VERSION}"
@@ -54,297 +54,297 @@ add_definitions(
         -DRAINY_TOOLKIT_PROJECT_PATCH=${PROJECT_VERSION_PATCH}
 )
 
-target_include_directories(
-        rainy-toolkit
-        PUBLIC
-        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/xaga/include>
-        $<INSTALL_INTERFACE:include>
-)
-
-message(STATUS "The rainy-toolkit will use ${COMPILER_ID} complier to compile the sources files")
-message(STATUS "Starting configure the library")
-
-if (RAINY_USE_CROSSCOMPILE)
-    if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
-        if (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
-            if ((COMPILER_ID MATCHES "MSVC") OR (COMPILER_ID MATCHES "MSVC-Clang"))
-                if (RAINY_USE_AVX2_BOOST)
-                    message("The rainy-toolkit will using avx2 boost")
-                    target_compile_definitions(rainy-toolkit PUBLIC RAINY_USING_AVX2=1)
-                    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /arch:AVX2")
-                else ()
-                    target_compile_definitions(rainy-toolkit PUBLIC RAINY_USING_AVX2=0)
-                endif ()
-                set(MY_VERSIONINFO_RC "${CMAKE_BINARY_DIR}/version.rc")
-                configure_file("${PROJECT_SOURCE_DIR}/cmake/msvc/version_template.rc"
-                        "${MY_VERSIONINFO_RC}")
-                target_sources(rainy-toolkit PRIVATE "${MY_VERSIONINFO_RC}")
-            elseif (CMAKE_COMPILER_IS_GNUCXX OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT MSVC))
-                if (RAINY_USE_AVX2_BOOST)
-                    message("The rainy-toolkit will using avx2 boost")
-                    add_definitions(-DRAINY_USING_AVX2=1)
-                    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2")
-                else ()
-                    add_definitions(-DRAINY_USING_AVX2=0)
-                endif ()
-            endif ()
-        endif ()
-        if (COMPILER_ID MATCHES "MSVC" AND NOT COMPILER_ID MATCHES "Clang")
-            if (RAINY_USING_UTF8_INPUT_FOR_MSVC)
-                target_compile_options(rainy-toolkit PUBLIC /source-charset:utf-8)
-            else ()
-                target_compile_options(rainy-toolkit PUBLIC /execution-charset:gbk)
-            endif ()
-            if (RAINY_USING_UTF8_OUTPUT_FOR_MSVC)
-                target_compile_options(rainy-toolkit PUBLIC /source-charset:utf-8)
-            else ()
-                target_compile_options(rainy-toolkit PUBLIC /execution-charset:gbk)
-            endif ()
-        endif ()
-        message("Linking libraries for windows package")
-        target_link_libraries(rainy-toolkit PRIVATE windowsapp)
-        target_link_libraries(rainy-toolkit PRIVATE synchronization)
-        target_link_libraries(rainy-toolkit PRIVATE dbghelp)
-        target_link_libraries(rainy-toolkit PRIVATE dbgeng)
-        target_link_libraries(rainy-toolkit PRIVATE ws2_32)
-        target_link_libraries(rainy-toolkit PRIVATE Shlwapi)
-        find_package(OpenSSL)
-        if (OpenSSL_FOUND)
-            target_link_libraries(rainy-toolkit PRIVATE OpenSSL::SSL)
-            target_compile_definitions(rainy-toolkit PUBLIC RAINY_HAS_OPENSSL=1)
-        else ()
-            target_compile_definitions(rainy-toolkit PUBLIC RAINY_HAS_OPENSSL=0)
-            message(WARNING "OpenSSL not found, building without TLS support")
-        endif ()
-    elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
-        if (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
-            if (CMAKE_COMPILER_IS_GNUCXX OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT MSVC))
-                if (RAINY_USE_AVX2_BOOST)
-                    message("The rainy-toolkit will using avx2 boost")
-                    add_definitions(-DRAINY_USING_AVX2=1)
-                    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2")
-                else ()
-                    add_definitions(-DRAINY_USING_AVX2=0)
-                endif ()
-            endif ()
-        endif ()
-        message("Linking libraries for linux package")
-        target_link_libraries(rainy-toolkit PRIVATE uring)
-        find_package(OpenSSL)
-        if (OpenSSL_FOUND)
-            target_link_libraries(rainy-toolkit PRIVATE OpenSSL::SSL)
-            target_compile_definitions(rainy-toolkit PUBLIC RAINY_HAS_OPENSSL=1)
-        else ()
-            target_compile_definitions(rainy-toolkit PUBLIC RAINY_HAS_OPENSSL=0)
-            message(WARNING "OpenSSL not found, building without TLS support")
-        endif ()
-    elseif (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-        message("Linking libraries for macos package")
-        find_library(COREFOUNDATION_LIBRARY CoreFoundation)
-        find_library(SECURITY_LIBRARY Security)
-        find_library(CORESERVICES_LIBRARY CoreServices)
-        target_link_libraries(rainy-toolkit PRIVATE
-                ${COREFOUNDATION_LIBRARY}
-                ${SECURITY_LIBRARY}
-                ${CORESERVICES_LIBRARY}
-        )
-        find_package(OpenSSL)
-        if (OpenSSL_FOUND)
-            target_link_libraries(rainy-toolkit PRIVATE OpenSSL::SSL)
-            target_compile_definitions(rainy-toolkit PRIVATE RAINY_HAS_OPENSSL=1)
-        else ()
-            target_compile_definitions(rainy-toolkit PRIVATE RAINY_HAS_OPENSSL=0)
-            message(WARNING "OpenSSL not found, building without TLS support")
-        endif ()
-    else ()
-        message(FATAL_ERROR "Unsupported platform: ${CMAKE_SYSTEM_NAME}")
-    endif ()
-else ()
-    if (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
-        if ((COMPILER_ID MATCHES "MSVC") OR (COMPILER_ID MATCHES "MSVC-Clang"))
-            if (RAINY_USE_AVX2_BOOST)
-                message("The rainy-toolkit will using avx2 boost")
-                target_compile_definitions(rainy-toolkit PUBLIC RAINY_USING_AVX2=1)
-                set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /arch:AVX2")
-            else ()
-                target_compile_definitions(rainy-toolkit PUBLIC RAINY_USING_AVX2=0)
-            endif ()
-            set(MY_VERSIONINFO_RC "${CMAKE_BINARY_DIR}/version.rc")
-            configure_file("${PROJECT_SOURCE_DIR}/cmake/msvc/version_template.rc"
-                    "${MY_VERSIONINFO_RC}")
-            target_sources(rainy-toolkit PRIVATE "${MY_VERSIONINFO_RC}")
-        endif ()
-    endif ()
-
-    if (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
-        if (CMAKE_COMPILER_IS_GNUCXX OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT MSVC))
-            message("Detect Clang compiler or GNU compiler")
-            if (RAINY_USE_AVX2_BOOST)
-                message("The rainy-toolkit will using avx2 boost")
-                add_definitions(-DRAINY_USING_AVX2=1)
-                set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2")
-            else ()
-                add_definitions(-DRAINY_USING_AVX2=0)
-            endif ()
-        elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND MSVC)
-            message("Detect Clang-MSVC Cli compiler")
-            if (RAINY_USE_AVX2_BOOST)
-                message("The rainy-toolkit will using avx2 boost")
-                add_definitions(-DRAINY_USING_AVX2=1)
-                set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /arch:AVX2")
-            else ()
-                add_definitions(-DRAINY_USING_AVX2=0)
-            endif ()
-        endif ()
-    endif ()
-
-    if (MSVC AND NOT (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
-        message("Detect MSVC compiler")
-        if (RAINY_CAN_USE_AVX2)
-            message("The rainy-toolkit will using avx2 boost")
-            add_definitions(-DRAINY_USING_AVX2=1)
-            add_compile_options(/arch:AVX2)
-        else ()
-            add_definitions(-DRAINY_USING_AVX2=0)
-        endif ()
-
-        if (NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-            if (RAINY_USING_UTF8_INPUT_FOR_MSVC)
-                message("Using UTF-8 for input encoding.")
-                target_compile_options(rainy-toolkit PUBLIC /source-charset:utf-8)
-            else ()
-                message("Using GBK for input encoding.")
-                target_compile_options(rainy-toolkit PUBLIC /execution-charset:gbk)
-            endif ()
-
-            if (RAINY_USING_UTF8_OUTPUT_FOR_MSVC)
-                message("Using UTF-8 for output encoding.")
-                target_compile_options(rainy-toolkit PUBLIC /source-charset:utf-8)
-            else ()
-                message("Using GBK for output encoding.")
-                target_compile_options(rainy-toolkit PUBLIC /execution-charset:gbk)
-            endif ()
-        endif ()
-    endif ()
-
-    if (COMPILER_ID MATCHES "MSVC")
-        target_compile_options(rainy-toolkit PRIVATE /W4 /w14996)
-    endif ()
-
-    if (WIN32)
-        message("Linking libraries for windows package")
-        target_link_libraries(rainy-toolkit PRIVATE windowsapp)
-        target_link_libraries(rainy-toolkit PRIVATE synchronization)
-        target_link_libraries(rainy-toolkit PRIVATE dbghelp)
-        target_link_libraries(rainy-toolkit PRIVATE dbgeng)
-        target_link_libraries(rainy-toolkit PRIVATE ws2_32)
-        target_link_libraries(rainy-toolkit PRIVATE Shlwapi)
-        find_package(OpenSSL)
-        if (OpenSSL_FOUND)
-            target_link_libraries(rainy-toolkit PRIVATE OpenSSL::SSL)
-            target_compile_definitions(rainy-toolkit PUBLIC RAINY_HAS_OPENSSL=1)
-        else ()
-            target_compile_definitions(rainy-toolkit PUBLIC RAINY_HAS_OPENSSL=0)
-            message(WARNING "OpenSSL not found, building without TLS support")
-        endif ()
-    elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
-        message("Linking libraries for linux package")
-        target_link_libraries(rainy-toolkit PRIVATE uring)
-
-        find_package(OpenSSL)
-
-        if (OpenSSL_FOUND)
-            target_link_libraries(rainy-toolkit PRIVATE OpenSSL::SSL)
-            target_compile_definitions(rainy-toolkit PUBLIC RAINY_HAS_OPENSSL=1)
-        else ()
-            target_compile_definitions(rainy-toolkit PUBLIC RAINY_HAS_OPENSSL=0)
-            message(WARNING "OpenSSL not found, building without TLS support")
-        endif ()
-    elseif (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-        message("Linking libraries for macos package")
-        find_library(COREFOUNDATION_LIBRARY CoreFoundation)
-        find_library(SECURITY_LIBRARY Security)
-        find_library(CORESERVICES_LIBRARY CoreServices)
-
-        target_link_libraries(rainy-toolkit PRIVATE
-                ${COREFOUNDATION_LIBRARY}
-                ${SECURITY_LIBRARY}
-                ${CORESERVICES_LIBRARY}
-        )
-
-        find_package(OpenSSL)
-
-        if (OpenSSL_FOUND)
-            target_link_libraries(rainy-toolkit PRIVATE OpenSSL::SSL)
-            target_compile_definitions(rainy-toolkit PRIVATE RAINY_HAS_OPENSSL=1)
-        else ()
-            target_compile_definitions(rainy-toolkit PRIVATE RAINY_HAS_OPENSSL=0)
-            message(WARNING "OpenSSL not found, building without TLS support")
-        endif ()
-    else ()
-        message(FATAL_ERROR "Unsupported platform: ${CMAKE_SYSTEM_NAME}")
-    endif ()
-endif ()
-
-if (COMPILER_ID MATCHES "MSVC")
-    target_compile_options(rainy-toolkit PRIVATE /W4 /w14996)
-endif ()
-
-if (RAINY_USE_NODE_ADDON)
-    message(STATUS "RAINY_USE_NODE_ADDON is ON: attempting to integrate node-addon-api")
-    if (EXISTS "${PROJECT_SOURCE_DIR}/node_modules/node-addon-api")
-        set(NODE_ADDON_API_DIR "${PROJECT_SOURCE_DIR}/node_modules/node-addon-api")
-        message(STATUS "Found node-addon-api in ${NODE_ADDON_API_DIR}")
-    else ()
-        message(FATAL_ERROR "node-addon-api not found in node_modules. Please run 'npm install'")
-    endif ()
-
-    target_include_directories(rainy-toolkit
-            PUBLIC
-            $<BUILD_INTERFACE:${NODE_ADDON_API_DIR}>
-            $<INSTALL_INTERFACE:include/node-addon-api>
-    )
-
-    target_compile_definitions(rainy-toolkit PUBLIC NAPI_CPP_EXCEPTIONS)
-    target_compile_definitions(rainy-toolkit PUBLIC NAPI_VERSION=8)
-    message(STATUS "rainy-toolkit will be built with node-addon-api support")
-    message("[rainy-toolkit] Node addon support enabled")
-    rainy_find_nodejs()
-endif ()
-
-# 由于部分MacOS的工具链提供的一部分C++20头文件处于EXPERIMENTAL特性，因此，需要检查是否打开
-if (APPLE)
-    include(CheckCXXSourceCompiles)
-
-    set(CMAKE_REQUIRED_FLAGS "-std=c++20")
-
-    check_cxx_source_compiles("
-        #include <stop_token>
-        int main() {
-            std::stop_source ss;
-            std::stop_token st = ss.get_token();
-            return 0;
-        }
-    " LIBCPP_STOP_TOKEN_AVAILABLE)
-
-    if (NOT LIBCPP_STOP_TOKEN_AVAILABLE)
-        set(CMAKE_REQUIRED_DEFINITIONS "-D_LIBCPP_ENABLE_EXPERIMENTAL")
-        check_cxx_source_compiles("
-            #include <stop_token>
-            int main() {
-                std::stop_source ss;
-                std::stop_token st = ss.get_token();
-                return 0;
-            }
-        " LIBCPP_STOP_TOKEN_AVAILABLE_WITH_EXPERIMENTAL)
-        unset(CMAKE_REQUIRED_DEFINITIONS)
-
-        if (LIBCPP_STOP_TOKEN_AVAILABLE_WITH_EXPERIMENTAL)
-            message(STATUS "Enabling _LIBCPP_ENABLE_EXPERIMENTAL for some experimental support")
-            add_compile_definitions(_LIBCPP_ENABLE_EXPERIMENTAL)
-        endif ()
-    endif ()
-endif ()
+#target_include_directories(
+#        rainy-toolkit
+#        PUBLIC
+#        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/xaga/include>
+#        $<INSTALL_INTERFACE:include>
+#)
+#
+#message(STATUS "The rainy-toolkit will use ${COMPILER_ID} complier to compile the sources files")
+#message(STATUS "Starting configure the library")
+#
+#if (RAINY_USE_CROSSCOMPILE)
+#    if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
+#        if (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+#            if ((COMPILER_ID MATCHES "MSVC") OR (COMPILER_ID MATCHES "MSVC-Clang"))
+#                if (RAINY_USE_AVX2_BOOST)
+#                    message("The rainy-toolkit will using avx2 boost")
+#                    target_compile_definitions(rainy-toolkit PUBLIC RAINY_USING_AVX2=1)
+#                    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /arch:AVX2")
+#                else ()
+#                    target_compile_definitions(rainy-toolkit PUBLIC RAINY_USING_AVX2=0)
+#                endif ()
+#                set(MY_VERSIONINFO_RC "${CMAKE_BINARY_DIR}/version.rc")
+#                configure_file("${PROJECT_SOURCE_DIR}/cmake/msvc/version_template.rc"
+#                        "${MY_VERSIONINFO_RC}")
+#                target_sources(rainy-toolkit PRIVATE "${MY_VERSIONINFO_RC}")
+#            elseif (CMAKE_COMPILER_IS_GNUCXX OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT MSVC))
+#                if (RAINY_USE_AVX2_BOOST)
+#                    message("The rainy-toolkit will using avx2 boost")
+#                    add_definitions(-DRAINY_USING_AVX2=1)
+#                    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2")
+#                else ()
+#                    add_definitions(-DRAINY_USING_AVX2=0)
+#                endif ()
+#            endif ()
+#        endif ()
+#        if (COMPILER_ID MATCHES "MSVC" AND NOT COMPILER_ID MATCHES "Clang")
+#            if (RAINY_USING_UTF8_INPUT_FOR_MSVC)
+#                target_compile_options(rainy-toolkit PUBLIC /source-charset:utf-8)
+#            else ()
+#                target_compile_options(rainy-toolkit PUBLIC /execution-charset:gbk)
+#            endif ()
+#            if (RAINY_USING_UTF8_OUTPUT_FOR_MSVC)
+#                target_compile_options(rainy-toolkit PUBLIC /source-charset:utf-8)
+#            else ()
+#                target_compile_options(rainy-toolkit PUBLIC /execution-charset:gbk)
+#            endif ()
+#        endif ()
+#        message("Linking libraries for windows package")
+#        target_link_libraries(rainy-toolkit PRIVATE windowsapp)
+#        target_link_libraries(rainy-toolkit PRIVATE synchronization)
+#        target_link_libraries(rainy-toolkit PRIVATE dbghelp)
+#        target_link_libraries(rainy-toolkit PRIVATE dbgeng)
+#        target_link_libraries(rainy-toolkit PRIVATE ws2_32)
+#        target_link_libraries(rainy-toolkit PRIVATE Shlwapi)
+#        find_package(OpenSSL)
+#        if (OpenSSL_FOUND)
+#            target_link_libraries(rainy-toolkit PRIVATE OpenSSL::SSL)
+#            target_compile_definitions(rainy-toolkit PUBLIC RAINY_HAS_OPENSSL=1)
+#        else ()
+#            target_compile_definitions(rainy-toolkit PUBLIC RAINY_HAS_OPENSSL=0)
+#            message(WARNING "OpenSSL not found, building without TLS support")
+#        endif ()
+#    elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+#        if (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+#            if (CMAKE_COMPILER_IS_GNUCXX OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT MSVC))
+#                if (RAINY_USE_AVX2_BOOST)
+#                    message("The rainy-toolkit will using avx2 boost")
+#                    add_definitions(-DRAINY_USING_AVX2=1)
+#                    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2")
+#                else ()
+#                    add_definitions(-DRAINY_USING_AVX2=0)
+#                endif ()
+#            endif ()
+#        endif ()
+#        message("Linking libraries for linux package")
+#        target_link_libraries(rainy-toolkit PRIVATE uring)
+#        find_package(OpenSSL)
+#        if (OpenSSL_FOUND)
+#            target_link_libraries(rainy-toolkit PRIVATE OpenSSL::SSL)
+#            target_compile_definitions(rainy-toolkit PUBLIC RAINY_HAS_OPENSSL=1)
+#        else ()
+#            target_compile_definitions(rainy-toolkit PUBLIC RAINY_HAS_OPENSSL=0)
+#            message(WARNING "OpenSSL not found, building without TLS support")
+#        endif ()
+#    elseif (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+#        message("Linking libraries for macos package")
+#        find_library(COREFOUNDATION_LIBRARY CoreFoundation)
+#        find_library(SECURITY_LIBRARY Security)
+#        find_library(CORESERVICES_LIBRARY CoreServices)
+#        target_link_libraries(rainy-toolkit PRIVATE
+#                ${COREFOUNDATION_LIBRARY}
+#                ${SECURITY_LIBRARY}
+#                ${CORESERVICES_LIBRARY}
+#        )
+#        find_package(OpenSSL)
+#        if (OpenSSL_FOUND)
+#            target_link_libraries(rainy-toolkit PRIVATE OpenSSL::SSL)
+#            target_compile_definitions(rainy-toolkit PRIVATE RAINY_HAS_OPENSSL=1)
+#        else ()
+#            target_compile_definitions(rainy-toolkit PRIVATE RAINY_HAS_OPENSSL=0)
+#            message(WARNING "OpenSSL not found, building without TLS support")
+#        endif ()
+#    else ()
+#        message(FATAL_ERROR "Unsupported platform: ${CMAKE_SYSTEM_NAME}")
+#    endif ()
+#else ()
+#    if (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+#        if ((COMPILER_ID MATCHES "MSVC") OR (COMPILER_ID MATCHES "MSVC-Clang"))
+#            if (RAINY_USE_AVX2_BOOST)
+#                message("The rainy-toolkit will using avx2 boost")
+#                target_compile_definitions(rainy-toolkit PUBLIC RAINY_USING_AVX2=1)
+#                set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /arch:AVX2")
+#            else ()
+#                target_compile_definitions(rainy-toolkit PUBLIC RAINY_USING_AVX2=0)
+#            endif ()
+#            set(MY_VERSIONINFO_RC "${CMAKE_BINARY_DIR}/version.rc")
+#            configure_file("${PROJECT_SOURCE_DIR}/cmake/msvc/version_template.rc"
+#                    "${MY_VERSIONINFO_RC}")
+#            target_sources(rainy-toolkit PRIVATE "${MY_VERSIONINFO_RC}")
+#        endif ()
+#    endif ()
+#
+#    if (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+#        if (CMAKE_COMPILER_IS_GNUCXX OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT MSVC))
+#            message("Detect Clang compiler or GNU compiler")
+#            if (RAINY_USE_AVX2_BOOST)
+#                message("The rainy-toolkit will using avx2 boost")
+#                add_definitions(-DRAINY_USING_AVX2=1)
+#                set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2")
+#            else ()
+#                add_definitions(-DRAINY_USING_AVX2=0)
+#            endif ()
+#        elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND MSVC)
+#            message("Detect Clang-MSVC Cli compiler")
+#            if (RAINY_USE_AVX2_BOOST)
+#                message("The rainy-toolkit will using avx2 boost")
+#                add_definitions(-DRAINY_USING_AVX2=1)
+#                set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /arch:AVX2")
+#            else ()
+#                add_definitions(-DRAINY_USING_AVX2=0)
+#            endif ()
+#        endif ()
+#    endif ()
+#
+#    if (MSVC AND NOT (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
+#        message("Detect MSVC compiler")
+#        if (RAINY_CAN_USE_AVX2)
+#            message("The rainy-toolkit will using avx2 boost")
+#            add_definitions(-DRAINY_USING_AVX2=1)
+#            add_compile_options(/arch:AVX2)
+#        else ()
+#            add_definitions(-DRAINY_USING_AVX2=0)
+#        endif ()
+#
+#        if (NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+#            if (RAINY_USING_UTF8_INPUT_FOR_MSVC)
+#                message("Using UTF-8 for input encoding.")
+#                target_compile_options(rainy-toolkit PUBLIC /source-charset:utf-8)
+#            else ()
+#                message("Using GBK for input encoding.")
+#                target_compile_options(rainy-toolkit PUBLIC /execution-charset:gbk)
+#            endif ()
+#
+#            if (RAINY_USING_UTF8_OUTPUT_FOR_MSVC)
+#                message("Using UTF-8 for output encoding.")
+#                target_compile_options(rainy-toolkit PUBLIC /source-charset:utf-8)
+#            else ()
+#                message("Using GBK for output encoding.")
+#                target_compile_options(rainy-toolkit PUBLIC /execution-charset:gbk)
+#            endif ()
+#        endif ()
+#    endif ()
+#
+#    if (COMPILER_ID MATCHES "MSVC")
+#        target_compile_options(rainy-toolkit PRIVATE /W4 /w14996)
+#    endif ()
+#
+#    if (WIN32)
+#        message("Linking libraries for windows package")
+#        target_link_libraries(rainy-toolkit PRIVATE windowsapp)
+#        target_link_libraries(rainy-toolkit PRIVATE synchronization)
+#        target_link_libraries(rainy-toolkit PRIVATE dbghelp)
+#        target_link_libraries(rainy-toolkit PRIVATE dbgeng)
+#        target_link_libraries(rainy-toolkit PRIVATE ws2_32)
+#        target_link_libraries(rainy-toolkit PRIVATE Shlwapi)
+#        find_package(OpenSSL)
+#        if (OpenSSL_FOUND)
+#            target_link_libraries(rainy-toolkit PRIVATE OpenSSL::SSL)
+#            target_compile_definitions(rainy-toolkit PUBLIC RAINY_HAS_OPENSSL=1)
+#        else ()
+#            target_compile_definitions(rainy-toolkit PUBLIC RAINY_HAS_OPENSSL=0)
+#            message(WARNING "OpenSSL not found, building without TLS support")
+#        endif ()
+#    elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+#        message("Linking libraries for linux package")
+#        target_link_libraries(rainy-toolkit PRIVATE uring)
+#
+#        find_package(OpenSSL)
+#
+#        if (OpenSSL_FOUND)
+#            target_link_libraries(rainy-toolkit PRIVATE OpenSSL::SSL)
+#            target_compile_definitions(rainy-toolkit PUBLIC RAINY_HAS_OPENSSL=1)
+#        else ()
+#            target_compile_definitions(rainy-toolkit PUBLIC RAINY_HAS_OPENSSL=0)
+#            message(WARNING "OpenSSL not found, building without TLS support")
+#        endif ()
+#    elseif (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+#        message("Linking libraries for macos package")
+#        find_library(COREFOUNDATION_LIBRARY CoreFoundation)
+#        find_library(SECURITY_LIBRARY Security)
+#        find_library(CORESERVICES_LIBRARY CoreServices)
+#
+#        target_link_libraries(rainy-toolkit PRIVATE
+#                ${COREFOUNDATION_LIBRARY}
+#                ${SECURITY_LIBRARY}
+#                ${CORESERVICES_LIBRARY}
+#        )
+#
+#        find_package(OpenSSL)
+#
+#        if (OpenSSL_FOUND)
+#            target_link_libraries(rainy-toolkit PRIVATE OpenSSL::SSL)
+#            target_compile_definitions(rainy-toolkit PRIVATE RAINY_HAS_OPENSSL=1)
+#        else ()
+#            target_compile_definitions(rainy-toolkit PRIVATE RAINY_HAS_OPENSSL=0)
+#            message(WARNING "OpenSSL not found, building without TLS support")
+#        endif ()
+#    else ()
+#        message(FATAL_ERROR "Unsupported platform: ${CMAKE_SYSTEM_NAME}")
+#    endif ()
+#endif ()
+#
+#if (COMPILER_ID MATCHES "MSVC")
+#    target_compile_options(rainy-toolkit PRIVATE /W4 /w14996)
+#endif ()
+#
+#if (RAINY_USE_NODE_ADDON)
+#    message(STATUS "RAINY_USE_NODE_ADDON is ON: attempting to integrate node-addon-api")
+#    if (EXISTS "${PROJECT_SOURCE_DIR}/node_modules/node-addon-api")
+#        set(NODE_ADDON_API_DIR "${PROJECT_SOURCE_DIR}/node_modules/node-addon-api")
+#        message(STATUS "Found node-addon-api in ${NODE_ADDON_API_DIR}")
+#    else ()
+#        message(FATAL_ERROR "node-addon-api not found in node_modules. Please run 'npm install'")
+#    endif ()
+#
+#    target_include_directories(rainy-toolkit
+#            PUBLIC
+#            $<BUILD_INTERFACE:${NODE_ADDON_API_DIR}>
+#            $<INSTALL_INTERFACE:include/node-addon-api>
+#    )
+#
+#    target_compile_definitions(rainy-toolkit PUBLIC NAPI_CPP_EXCEPTIONS)
+#    target_compile_definitions(rainy-toolkit PUBLIC NAPI_VERSION=8)
+#    message(STATUS "rainy-toolkit will be built with node-addon-api support")
+#    message("[rainy-toolkit] Node addon support enabled")
+#    rainy_find_nodejs()
+#endif ()
+#
+## 由于部分MacOS的工具链提供的一部分C++20头文件处于EXPERIMENTAL特性，因此，需要检查是否打开
+#if (APPLE)
+#    include(CheckCXXSourceCompiles)
+#
+#    set(CMAKE_REQUIRED_FLAGS "-std=c++20")
+#
+#    check_cxx_source_compiles("
+#        #include <stop_token>
+#        int main() {
+#            std::stop_source ss;
+#            std::stop_token st = ss.get_token();
+#            return 0;
+#        }
+#    " LIBCPP_STOP_TOKEN_AVAILABLE)
+#
+#    if (NOT LIBCPP_STOP_TOKEN_AVAILABLE)
+#        set(CMAKE_REQUIRED_DEFINITIONS "-D_LIBCPP_ENABLE_EXPERIMENTAL")
+#        check_cxx_source_compiles("
+#            #include <stop_token>
+#            int main() {
+#                std::stop_source ss;
+#                std::stop_token st = ss.get_token();
+#                return 0;
+#            }
+#        " LIBCPP_STOP_TOKEN_AVAILABLE_WITH_EXPERIMENTAL)
+#        unset(CMAKE_REQUIRED_DEFINITIONS)
+#
+#        if (LIBCPP_STOP_TOKEN_AVAILABLE_WITH_EXPERIMENTAL)
+#            message(STATUS "Enabling _LIBCPP_ENABLE_EXPERIMENTAL for some experimental support")
+#            add_compile_definitions(_LIBCPP_ENABLE_EXPERIMENTAL)
+#        endif ()
+#    endif ()
+#endif ()
 
 check_cxx26_static_reflection()
 
