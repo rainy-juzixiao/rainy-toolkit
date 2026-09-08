@@ -13,7 +13,7 @@ struct PooledExecutorFixture {
     }
 };
 
-SCENARIO_METHOD(PooledExecutorFixture, "executor basic submit/get", "[executor]") {
+TEST_CASE_METHOD(PooledExecutorFixture, "executor basic submit/get", "[executor]") {
     SECTION("a pooled executor") {
         SECTION("submitting simple values") {
             auto f = ex.submit([] { return 42; });
@@ -28,7 +28,7 @@ SCENARIO_METHOD(PooledExecutorFixture, "executor basic submit/get", "[executor]"
     }
 }
 
-SCENARIO_METHOD(PooledExecutorFixture, "executor submit with arguments", "[executor]") {
+TEST_CASE_METHOD(PooledExecutorFixture, "executor submit with arguments", "[executor]") {
     SECTION("an executor") {
         SECTION("submitting callable with parameters") {
 
@@ -44,7 +44,7 @@ SCENARIO_METHOD(PooledExecutorFixture, "executor submit with arguments", "[execu
     }
 }
 
-SCENARIO_METHOD(PooledExecutorFixture, "future then chaining", "[executor][then]") {
+TEST_CASE_METHOD(PooledExecutorFixture, "future then chaining", "[executor][then]") {
     SECTION("an executor") {
         SECTION("chaining string transformations") {
 
@@ -70,7 +70,7 @@ SCENARIO_METHOD(PooledExecutorFixture, "future then chaining", "[executor][then]
     }
 }
 
-SCENARIO_METHOD(PooledExecutorFixture, "catch_error recovers from exceptions", "[executor][error]") {
+TEST_CASE_METHOD(PooledExecutorFixture, "catch_error recovers from exceptions", "[executor][error]") {
     SECTION("an executor") {
         SECTION("upstream throws") {
 
@@ -107,7 +107,7 @@ SCENARIO_METHOD(PooledExecutorFixture, "catch_error recovers from exceptions", "
     }
 }
 
-SCENARIO_METHOD(PooledExecutorFixture, "finally executes regardless of outcome", "[executor][finally]") {
+TEST_CASE_METHOD(PooledExecutorFixture, "finally executes regardless of outcome", "[executor][finally]") {
     SECTION("an executor and a counter") {
         atomic<int> counter{0};
 
@@ -133,7 +133,7 @@ SCENARIO_METHOD(PooledExecutorFixture, "finally executes regardless of outcome",
     }
 }
 
-SCENARIO_METHOD(PooledExecutorFixture, "full async chain works end-to-end", "[executor][chain]") {
+TEST_CASE_METHOD(PooledExecutorFixture, "full async chain works end-to-end", "[executor][chain]") {
     SECTION("an executor") {
         atomic<bool> finally_called{false};
 
@@ -154,7 +154,7 @@ SCENARIO_METHOD(PooledExecutorFixture, "full async chain works end-to-end", "[ex
 }
 
 
-SCENARIO_METHOD(PooledExecutorFixture, "wait_all completes all submitted tasks", "[executor][bulk]") {
+TEST_CASE_METHOD(PooledExecutorFixture, "wait_all completes all submitted tasks", "[executor][bulk]") {
     SECTION("an executor") {
         constexpr int N = 10000;
         atomic<int> done{0};
@@ -178,7 +178,7 @@ SCENARIO_METHOD(PooledExecutorFixture, "wait_all completes all submitted tasks",
 }
 
 
-SCENARIO_METHOD(PooledExecutorFixture, "executor supports concurrent submit", "[executor][concurrency]") {
+TEST_CASE_METHOD(PooledExecutorFixture, "executor supports concurrent submit", "[executor][concurrency]") {
     SECTION("an executor") {
         constexpr int PRODUCERS = 8;
         constexpr int TASKS_PER = 500;
@@ -268,7 +268,7 @@ struct PinnedActorPoolFixture {
 };
 
 
-SCENARIO_METHOD(PinnedActorPoolFixture, "pinned_actor_pool basic submit/get", "[pinned_actor_pool]") {
+TEST_CASE_METHOD(PinnedActorPoolFixture, "pinned_actor_pool basic submit/get", "[pinned_actor_pool]") {
     SECTION("a pinned actor pool with executor") {
         SECTION("submitting simple tasks") {
             auto f1 = ex.submit([] { return 123; });
@@ -285,7 +285,7 @@ SCENARIO_METHOD(PinnedActorPoolFixture, "pinned_actor_pool basic submit/get", "[
 }
 
 
-SCENARIO_METHOD(PinnedActorPoolFixture, "submit_to directs task to specific actor", "[pinned_actor_pool][submit_to]") {
+TEST_CASE_METHOD(PinnedActorPoolFixture, "submit_to directs task to specific actor", "[pinned_actor_pool][submit_to]") {
     SECTION("a pinned actor pool") {
         atomic<int> counter{0};
 
@@ -314,7 +314,7 @@ SCENARIO_METHOD(PinnedActorPoolFixture, "submit_to directs task to specific acto
 }
 
 
-SCENARIO_METHOD(PinnedActorPoolFixture, "order of tasks to same actor is preserved", "[pinned_actor_pool][ordering]") {
+TEST_CASE_METHOD(PinnedActorPoolFixture, "order of tasks to same actor is preserved", "[pinned_actor_pool][ordering]") {
     SECTION("a pinned actor pool") {
         constexpr int N = 1000;
         std::vector<int> order;
@@ -338,7 +338,7 @@ SCENARIO_METHOD(PinnedActorPoolFixture, "order of tasks to same actor is preserv
     }
 }
 
-SCENARIO_METHOD(PinnedActorPoolFixture, "wait_all completes bulk tasks", "[pinned_actor_pool][bulk]") {
+TEST_CASE_METHOD(PinnedActorPoolFixture, "wait_all completes bulk tasks", "[pinned_actor_pool][bulk]") {
     SECTION("a pinned actor pool") {
         constexpr int N = 10000;
         atomic<int> done{0};
@@ -360,7 +360,7 @@ SCENARIO_METHOD(PinnedActorPoolFixture, "wait_all completes bulk tasks", "[pinne
     }
 }
 
-SCENARIO_METHOD(PinnedActorPoolFixture, "handles concurrent submissions correctly", "[pinned_actor_pool][concurrency]") {
+TEST_CASE_METHOD(PinnedActorPoolFixture, "handles concurrent submissions correctly", "[pinned_actor_pool][concurrency]") {
     SECTION("a pinned actor pool") {
         constexpr int PRODUCERS = 4;
         constexpr int TASKS_PER = 500;
@@ -400,7 +400,7 @@ struct PriorityActorPoolFixture {
     }
 };
 
-SCENARIO_METHOD(PriorityActorPoolFixture, "priority_actor_pool basic submit/get", "[priority_actor_pool][basic]") {
+TEST_CASE_METHOD(PriorityActorPoolFixture, "priority_actor_pool basic submit/get", "[priority_actor_pool][basic]") {
 
     SECTION("a priority actor pool") {
         SECTION("submitting simple tasks") {
@@ -416,7 +416,7 @@ SCENARIO_METHOD(PriorityActorPoolFixture, "priority_actor_pool basic submit/get"
     }
 }
 
-SCENARIO_METHOD(PriorityActorPoolFixture, "default submit uses normal priority", "[priority_actor_pool][priority]") {
+TEST_CASE_METHOD(PriorityActorPoolFixture, "default submit uses normal priority", "[priority_actor_pool][priority]") {
 
     SECTION("a priority pool") {
         atomic<int> counter{0};
@@ -436,7 +436,7 @@ SCENARIO_METHOD(PriorityActorPoolFixture, "default submit uses normal priority",
     }
 }
 
-SCENARIO_METHOD(PriorityActorPoolFixture, "high priority tasks execute before backlog", "[priority_actor_pool][priority][ordering]") {
+TEST_CASE_METHOD(PriorityActorPoolFixture, "high priority tasks execute before backlog", "[priority_actor_pool][priority][ordering]") {
 
     SECTION("a priority pool with backlog") {
 
@@ -465,7 +465,7 @@ SCENARIO_METHOD(PriorityActorPoolFixture, "high priority tasks execute before ba
     }
 }
 
-SCENARIO_METHOD(PriorityActorPoolFixture, "low priority tasks are not starved", "[priority_actor_pool][fairness]") {
+TEST_CASE_METHOD(PriorityActorPoolFixture, "low priority tasks are not starved", "[priority_actor_pool][fairness]") {
     SECTION("continuous high priority workload") {
 
         constexpr int LOW_TASKS = 200;
@@ -490,7 +490,7 @@ SCENARIO_METHOD(PriorityActorPoolFixture, "low priority tasks are not starved", 
     }
 }
 
-SCENARIO_METHOD(PriorityActorPoolFixture, "work stealing occurs within same tier", "[priority_actor_pool][steal]") {
+TEST_CASE_METHOD(PriorityActorPoolFixture, "work stealing occurs within same tier", "[priority_actor_pool][steal]") {
 
     SECTION("a priority pool") {
 
@@ -512,7 +512,7 @@ SCENARIO_METHOD(PriorityActorPoolFixture, "work stealing occurs within same tier
     }
 }
 
-SCENARIO_METHOD(PriorityActorPoolFixture, "submit_to out-of-range falls back to routing", "[priority_actor_pool][submit_to]") {
+TEST_CASE_METHOD(PriorityActorPoolFixture, "submit_to out-of-range falls back to routing", "[priority_actor_pool][submit_to]") {
 
     SECTION("a priority pool") {
 
@@ -531,7 +531,7 @@ SCENARIO_METHOD(PriorityActorPoolFixture, "submit_to out-of-range falls back to 
     }
 }
 
-SCENARIO_METHOD(PriorityActorPoolFixture, "executor chaining works with priority pool", "[priority_actor_pool][executor][chain]") {
+TEST_CASE_METHOD(PriorityActorPoolFixture, "executor chaining works with priority pool", "[priority_actor_pool][executor][chain]") {
 
     SECTION("an executor on priority pool") {
 
@@ -547,7 +547,7 @@ SCENARIO_METHOD(PriorityActorPoolFixture, "executor chaining works with priority
     }
 }
 
-SCENARIO_METHOD(PriorityActorPoolFixture, "supports concurrent submissions", "[priority_actor_pool][concurrency]") {
+TEST_CASE_METHOD(PriorityActorPoolFixture, "supports concurrent submissions", "[priority_actor_pool][concurrency]") {
     SECTION("a priority pool") {
         constexpr int PRODUCERS = 6;
         constexpr int TASKS_PER = 400;
@@ -592,7 +592,7 @@ void simulate_blocking_work(std::chrono::milliseconds duration) {
     std::this_thread::sleep_for(duration);
 }
 
-SCENARIO_METHOD(BlockingActorPoolFixture, "blocking_actor_pool basic submit and wait", "[blocking_actor_pool][basic]") {
+TEST_CASE_METHOD(BlockingActorPoolFixture, "blocking_actor_pool basic submit and wait", "[blocking_actor_pool][basic]") {
     SECTION("a blocking actor pool with default configuration") {
         SECTION("submitting non-blocking simple tasks") {
             auto f1 = ex.submit([] { return 100; });
@@ -643,7 +643,7 @@ SCENARIO_METHOD(BlockingActorPoolFixture, "blocking_actor_pool basic submit and 
     }
 }
 
-SCENARIO_METHOD(BlockingActorPoolFixture, "blocking_actor_pool wait_all semantics", "[blocking_actor_pool][synchronization]") {
+TEST_CASE_METHOD(BlockingActorPoolFixture, "blocking_actor_pool wait_all semantics", "[blocking_actor_pool][synchronization]") {
     SECTION("a blocking actor pool with multiple tasks") {
         atomic<int> counter{0};
 
@@ -670,7 +670,7 @@ SCENARIO_METHOD(BlockingActorPoolFixture, "blocking_actor_pool wait_all semantic
     }
 }
 
-SCENARIO_METHOD(BlockingActorPoolFixture, "blocking_actor_pool dynamic thread scaling", "[blocking_actor_pool][scaling]") {
+TEST_CASE_METHOD(BlockingActorPoolFixture, "blocking_actor_pool dynamic thread scaling", "[blocking_actor_pool][scaling]") {
     SECTION("a blocking actor pool with base_threads=2, max_threads=8") {
 
         SECTION("submitting many blocking tasks") {
@@ -701,7 +701,7 @@ SCENARIO_METHOD(BlockingActorPoolFixture, "blocking_actor_pool dynamic thread sc
     }
 }
 
-SCENARIO_METHOD(BlockingActorPoolFixture, "blocking_actor_pool traits reporting", "[blocking_actor_pool][traits]") {
+TEST_CASE_METHOD(BlockingActorPoolFixture, "blocking_actor_pool traits reporting", "[blocking_actor_pool][traits]") {
     SECTION("a blocking actor pool") {
         auto traits = pool.traits();
 
@@ -735,7 +735,7 @@ SCENARIO_METHOD(BlockingActorPoolFixture, "blocking_actor_pool traits reporting"
     }
 }
 
-SCENARIO_METHOD(BlockingActorPoolFixture, "blocking_actor_pool concurrent task execution", "[blocking_actor_pool][concurrency]") {
+TEST_CASE_METHOD(BlockingActorPoolFixture, "blocking_actor_pool concurrent task execution", "[blocking_actor_pool][concurrency]") {
     SECTION("a blocking actor pool") {
         atomic<int> concurrent_execution{0};
         atomic<int> max_concurrent{0};
@@ -768,7 +768,7 @@ SCENARIO_METHOD(BlockingActorPoolFixture, "blocking_actor_pool concurrent task e
     }
 }
 
-SCENARIO_METHOD(BlockingActorPoolFixture, "blocking_actor_pool exception handling", "[blocking_actor_pool][exceptions]") {
+TEST_CASE_METHOD(BlockingActorPoolFixture, "blocking_actor_pool exception handling", "[blocking_actor_pool][exceptions]") {
     SECTION("a blocking actor pool") {
         SECTION("a task throws an exception") {
             auto fut = ex.submit([]() -> int {
@@ -793,7 +793,7 @@ SCENARIO_METHOD(BlockingActorPoolFixture, "blocking_actor_pool exception handlin
     }
 }
 
-SCENARIO_METHOD(BlockingActorPoolFixture, "blocking_actor_pool task ordering semantics", "[blocking_actor_pool][ordering]") {
+TEST_CASE_METHOD(BlockingActorPoolFixture, "blocking_actor_pool task ordering semantics", "[blocking_actor_pool][ordering]") {
     SECTION("a blocking actor pool") {
         std::vector<int> execution_order;
         std::mutex order_mutex;

@@ -61,11 +61,11 @@ namespace rainy::foundation::io {
         }
 
         template <typename Executor>
-        executor(Executor e) : impl_(impl<Executor, memory::allocator<void>>::create(e)) { // NOLINT
+        executor(Executor e) : impl_(impl<Executor, core::memory::allocator<void>>::create(e)) { // NOLINT
         }
 
         template <typename Executor, typename Allocator>
-        executor(memory::allocator_arg_t, const Allocator &a, Executor e) : impl_(impl<Executor, Allocator>::create(e, a)) {
+        executor(std::allocator_arg_t, const Allocator &a, Executor e) : impl_(impl<Executor, Allocator>::create(e, a)) {
         }
 
         ~executor() {
