@@ -338,7 +338,7 @@ namespace rainy::foundation::io {
         class impl<system_executor, Allocator> : public impl_base {
         public:
             static impl_base *create(const system_executor &, const Allocator & = Allocator()) {
-                return &implements::global<impl<system_executor, memory::allocator<void>>>();
+                return &implements::global<impl<system_executor, core::memory::allocator<void>>>();
             }
 
             impl() : impl_base(true) {
@@ -503,7 +503,7 @@ namespace rainy::foundation::io {
 
 namespace std { // NOLINT
     template <typename Allocator>
-    struct uses_allocator<rainy::foundation::io::executor, Allocator> : type_traits::helper::true_type {};
+    struct uses_allocator<rainy::foundation::io::executor, Allocator> : rainy::type_traits::helper::true_type {};
 }
 
 #endif
