@@ -81,7 +81,7 @@ namespace rainy::core::text::implements {
     template <typename T, typename CharT>
     struct type_to_arg_type {
         static constexpr arg_type value = []() {
-            using U = std::decay_t<T>;
+            using U = type_traits::other_trans::decay_t<T>;
             if constexpr (std::is_same_v<U, bool>) {
                 return arg_type::bool_type;
             } else if constexpr (std::is_same_v<U, CharT>) {
@@ -236,11 +236,11 @@ namespace rainy::core::text {
         explicit basic_format_arg(T *p) noexcept : value_(static_cast<const void *>(p)), type_(implements::arg_type::pointer_type) {
         }
 
-        template <typename T, std::enable_if_t<!std::is_same_v<std::decay_t<T>, bool> && !std::is_same_v<std::decay_t<T>, char_type> &&
-                                                   !std::is_integral_v<std::decay_t<T>> &&
-                                                   !std::is_floating_point_v<std::decay_t<T>> && !std::is_pointer_v<std::decay_t<T>> &&
-                                                   !implements::is_string_type_v<std::decay_t<T>, char_type> &&
-                                                   !implements::is_format_arg_store_v<std::decay_t<T>>,
+        template <typename T, std::enable_if_t<!std::is_same_v<type_traits::other_trans::decay_t<T>, bool> && !std::is_same_v<type_traits::other_trans::decay_t<T>, char_type> &&
+                                                   !std::is_integral_v<type_traits::other_trans::decay_t<T>> &&
+                                                   !std::is_floating_point_v<type_traits::other_trans::decay_t<T>> && !std::is_pointer_v<type_traits::other_trans::decay_t<T>> &&
+                                                   !implements::is_string_type_v<type_traits::other_trans::decay_t<T>, char_type> &&
+                                                   !implements::is_format_arg_store_v<type_traits::other_trans::decay_t<T>>,
                                                int> = 0>
         explicit basic_format_arg(T &&v) noexcept : value_(handle(std::forward<T>(v))), type_(implements::arg_type::custom_type) {
         }

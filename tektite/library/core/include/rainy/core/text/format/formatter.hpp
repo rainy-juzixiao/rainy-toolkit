@@ -177,7 +177,7 @@ namespace rainy::core::text {
                 exceptions::runtime::throw_format_error("argument must be an integer");
             }
             return arg.visit([](auto &&value) -> int { // NOLINT
-                using Ty = std::decay_t<decltype(value)>;
+                using Ty = type_traits::other_trans::decay_t<decltype(value)>;
                 if constexpr (std::is_integral_v<Ty> && !type_traits::type_relations::is_same_v<Ty, bool>) {
                     return static_cast<int>(value);
                 }

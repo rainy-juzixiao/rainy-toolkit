@@ -163,7 +163,7 @@ namespace rainy::core::implements {
             traits_ |= traits::is_volatile;
         }
 
-        using decay_type = std::decay_t<Ty>;
+        using decay_type = type_traits::other_trans::decay_t<Ty>;
         if constexpr (is_associative_container_v<decay_type>) {
             traits_ |= traits::is_associative_container;
         }
@@ -224,7 +224,7 @@ namespace rainy::core::implements {
     constexpr rain_fn eval_traits_for_compound() noexcept -> traits {
         traits traits_{0};
 
-        using decay_type = std::decay_t<Ty>;
+        using decay_type = type_traits::other_trans::decay_t<Ty>;
 
         if constexpr (std::is_class_v<decay_type>) {
             traits_ |= traits::is_class;

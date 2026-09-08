@@ -119,7 +119,7 @@ namespace rainy::core::system {
      *        返回当前用户登录名；失败时返回空串。
      */
     RAINY_NODISCARD inline rain_fn user_name() -> text::string {
-        char buffer[256];
+        char buffer[270];
         if (!layer::query_user_name(buffer, sizeof(buffer))) {
             return text::string{};
         }

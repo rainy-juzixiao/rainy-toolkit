@@ -64,7 +64,7 @@ namespace rainy::core::text::implements {
             exceptions::runtime::throw_format_error("argument index out of range");
         }
         return arg.visit([&](auto &&value) -> OutputIt { // NOLINT
-            using T = std::decay_t<decltype(value)>;
+            using T = type_traits::other_trans::decay_t<decltype(value)>;
 
             if constexpr (std::is_same_v<T, std::monostate>) {
                 exceptions::runtime::throw_format_error("invalid argument");
