@@ -341,15 +341,15 @@ namespace rainy::foundation::io::implements {
         std::queue<completion_op *> ready_queue_;
 
         static thread_local bool in_event_loop_;
-        concurrency::atomic<bool> destroying_{false};
+        core::concurrency::atomic<bool> destroying_{false};
     };
 
     thread_local bool kqueue_impl::in_event_loop_ = false;
 }
 
 namespace rainy::foundation::io::implements {
-    memory::nebula_ptr<io_context_impl_base> create_io_context_impl(int concurrency_hint) {
-        auto impl = memory::make_nebula<kqueue_impl>(concurrency_hint);
+    core::memory::nebula_ptr<io_context_impl_base> create_io_context_impl(int concurrency_hint) {
+        auto impl = core::memory::make_nebula<kqueue_impl>(concurrency_hint);
         impl->init(concurrency_hint);
         return impl;
     }
