@@ -218,12 +218,12 @@ namespace rainy::foundation::io::net::ip {
             return endpoint_;
         }
 
-        template <typename Allocator = memory::allocator<char>>
+        template <typename Allocator = core::memory::allocator<char>>
         text::basic_string<char, text::char_traits<char>, Allocator> host_name(const Allocator &alloc = Allocator()) const {
             return {host_.data(), host_.size(), alloc};
         }
 
-        template <typename Allocator = memory::allocator<char>>
+        template <typename Allocator = core::memory::allocator<char>>
         text::basic_string<char, text::char_traits<char>, Allocator> service_name(const Allocator &alloc = Allocator()) const {
             return {service_.data(), service_.size(), alloc};
         }
@@ -447,7 +447,7 @@ namespace rainy::foundation::io::net::ip {
                     auto r = do_resolve(protocol, text::string_view{host}, text::string_view{svc}, f, ec);
                     handler(ec, utility::move(r));
                 },
-                memory::allocator<void>{});
+                core::memory::allocator<void>{});
 
             return init.result.get();
         }
@@ -465,7 +465,7 @@ namespace rainy::foundation::io::net::ip {
                     auto r = do_reverse_resolve(e, ec);
                     handler(ec, utility::move(r));
                 },
-                memory::allocator<void>{});
+                core::memory::allocator<void>{});
 
             return init.result.get();
         }

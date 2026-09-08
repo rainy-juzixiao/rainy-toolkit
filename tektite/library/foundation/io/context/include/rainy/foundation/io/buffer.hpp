@@ -759,7 +759,7 @@ namespace rainy::foundation::io {
             handler(ec, total);
         };
 
-        stream.get_executor().post(utility::move(do_read), memory::allocator<void>{});
+        stream.get_executor().post(utility::move(do_read), core::memory::allocator<void>{});
         return init.result.get();
     }
 
@@ -804,7 +804,7 @@ namespace rainy::foundation::io {
             handler(ec, total);
         };
 
-        stream.get_executor().post(utility::move(do_read), memory::allocator<void>{});
+        stream.get_executor().post(utility::move(do_read), core::memory::allocator<void>{});
         return init.result.get();
     }
 
@@ -838,7 +838,7 @@ namespace rainy::foundation::io {
             }
             handler(ec, total);
         };
-        stream.get_executor().post(utility::move(do_write), memory::allocator<void>{});
+        stream.get_executor().post(utility::move(do_write), core::memory::allocator<void>{});
         return init.result.get();
     }
 
@@ -878,7 +878,7 @@ namespace rainy::foundation::io {
             }
             handler(ec, total);
         };
-        stream.get_executor().post(utility::move(do_write), memory::allocator<void>{});
+        stream.get_executor().post(utility::move(do_write), core::memory::allocator<void>{});
         return init.result.get();
     }
 
@@ -982,7 +982,7 @@ namespace rainy::foundation::io {
                 std::size_t count = implements::read_until_impl(s, buf, delim, ec);
                 handler(ec, count);
             },
-            memory::allocator<void>{});
+            core::memory::allocator<void>{});
         return init.result.get();
     }
 
@@ -1001,7 +1001,7 @@ namespace rainy::foundation::io {
                 std::size_t count = implements::read_until_impl(s, buf, core::text::string_view{delim_s}, ec);
                 handler(ec, count);
             },
-            memory::allocator<void>{});
+            core::memory::allocator<void>{});
         return init.result.get();
     }
 }
