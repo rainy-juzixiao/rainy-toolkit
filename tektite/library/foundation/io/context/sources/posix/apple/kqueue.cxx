@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 #include <rainy/foundation/io/io_context.hpp>
+#include <rainy/core/layer.hpp>
+#include <rainy/core/concurrency/atomic.hpp>
+#include <rainy/foundation/concurrency/mutex.hpp>
 
 #include <array>
 #include <queue>
@@ -38,26 +41,26 @@ namespace rainy::foundation::io::implements {
             destroy();
         }
 
-        concurrency::thrd_result init(const int concurrency_hint) noexcept override {
+        core::layer::thrd_result init(const int concurrency_hint) noexcept override {
             concurrency_hint_ = concurrency_hint;
             kq_ = ::kqueue();
             if (kq_ < 0) {
-                return concurrency::thrd_result::error;
+                return core::layer::thrd_result::error;
             }
             struct kevent ev{};
             EV_SET(&ev, WAKEUP_IDENT, EVFILT_USER, EV_ADD | EV_CLEAR, NOTE_FFNOP, 0, &non_op);
             if (::kevent(kq_, &ev, 1, nullptr, 0, nullptr) < 0) {
                 ::close(kq_);
                 kq_ = -1;
-                return concurrency::thrd_result::error;
+                return core::layer::thrd_result::error;
             }
 
             kq_initialized_ = true;
-            return concurrency::thrd_result::success;
+            return core::layer::thrd_result::success;
         }
 
         void destroy() noexcept override {
-            destroying_.store(true, concurrency::memory_order_release);
+            destroying_.store(true, core::core::concurrency::memory_order_release);
             if (kq_initialized_) {
                 struct kevent ev{};
                 EV_SET(&ev, WAKEUP_IDENT, EVFILT_USER, EV_DELETE, 0, 0, nullptr);
@@ -71,12 +74,12 @@ namespace rainy::foundation::io::implements {
         std::size_t run() override {
             std::size_t total = 0;
             in_event_loop_ = true;
-            while (!stopped_.load(concurrency::memory_order_acquire)) {
+            while (!stopped_.load(core::concurrency::memory_order_acquire)) {
                 total += drain_ready_queue();
-                if (stopped_.load(concurrency::memory_order_acquire)) {
+                if (stopped_.load(core::concurrency::memory_order_acquire)) {
                     break;
                 }
-                if (work_count_.load(concurrency::memory_order_acquire) <= 0) {
+                if (work_count_.load(core::concurrency::memory_order_acquire) <= 0) {
                     break;
                 }
                 total += harvest(1, nullptr);
@@ -86,7 +89,7 @@ namespace rainy::foundation::io::implements {
         }
 
         std::size_t run_one() override {
-            if (stopped_.load(concurrency::memory_order_acquire)) {
+            if (stopped_.load(core::concurrency::memory_order_acquire)) {
                 return 0;
             }
             in_event_loop_ = true;
@@ -102,7 +105,7 @@ namespace rainy::foundation::io::implements {
                     return 1;
                 }
             }
-            if (work_count_.load(concurrency::memory_order_acquire) <= 0) {
+            if (work_count_.load(core::concurrency::memory_order_acquire) <= 0) {
                 in_event_loop_ = false;
                 return 0;
             }
@@ -114,7 +117,7 @@ namespace rainy::foundation::io::implements {
         std::size_t run_one_for(std::uint64_t timeout_ns) override {
             in_event_loop_ = true;
             std::size_t n = 0;
-            if (!stopped_.load(concurrency::memory_order_acquire)) {
+            if (!stopped_.load(core::concurrency::memory_order_acquire)) {
                 if (timeout_ns == 0) {
                     n = harvest(0, nullptr);
                 } else {
@@ -131,7 +134,7 @@ namespace rainy::foundation::io::implements {
         std::size_t poll() override {
             std::size_t total = 0;
             in_event_loop_ = true;
-            while (!stopped_.load(concurrency::memory_order_acquire)) {
+            while (!stopped_.load(core::concurrency::memory_order_acquire)) {
                 const std::size_t n = harvest(0, nullptr);
                 if (n == 0) {
                     break;
@@ -143,7 +146,7 @@ namespace rainy::foundation::io::implements {
         }
 
         std::size_t poll_one() override {
-            if (stopped_.load(concurrency::memory_order_acquire)) {
+            if (stopped_.load(core::concurrency::memory_order_acquire)) {
                 return 0;
             }
             in_event_loop_ = true;
@@ -156,31 +159,31 @@ namespace rainy::foundation::io::implements {
         }
 
         void stop() noexcept override {
-            if (!stopped_.exchange(true, concurrency::memory_order_acq_rel)) {
+            if (!stopped_.exchange(true, core::concurrency::memory_order_acq_rel)) {
                 wakeup();
             }
         }
 
         void restart() noexcept override {
-            stopped_.store(false, concurrency::memory_order_release);
+            stopped_.store(false, core::concurrency::memory_order_release);
         }
 
         RAINY_NODISCARD bool stopped() const noexcept override {
-            return stopped_.load(concurrency::memory_order_acquire);
+            return stopped_.load(core::concurrency::memory_order_acquire);
         }
 
         void on_work_started() noexcept override {
-            work_count_.fetch_add(1, concurrency::memory_order_relaxed);
+            work_count_.fetch_add(1, core::concurrency::memory_order_relaxed);
         }
 
         void on_work_finished() noexcept override {
-            if (work_count_.fetch_sub(1, concurrency::memory_order_acq_rel) == 1) {
+            if (work_count_.fetch_sub(1, core::concurrency::memory_order_acq_rel) == 1) {
                 wakeup();
             }
         }
 
         void post_immediate_completion(completion_op *op, bool) noexcept override {
-            if (destroying_.load(concurrency::memory_order_acquire)) {
+            if (destroying_.load(core::concurrency::memory_order_acquire)) {
                 if (op) {
                     op_result r{op, 0, 0};
                     op->complete(r, false);
@@ -196,11 +199,11 @@ namespace rainy::foundation::io::implements {
             }
         }
 
-        concurrency::thrd_result associate_handle(completion_op *op, const std::uintptr_t /*fd*/, void * /*extra*/) noexcept override {
+        core::layer::thrd_result associate_handle(completion_op *op, const std::uintptr_t /*fd*/, void * /*extra*/) noexcept override {
             if (op) {
                 op->io_handle = reinterpret_cast<void *>(static_cast<std::uintptr_t>(kq_));
             }
-            return concurrency::thrd_result::success;
+            return core::layer::thrd_result::success;
         }
 
         RAINY_NODISCARD bool running_in_this_thread() const noexcept override {
@@ -317,7 +320,7 @@ namespace rainy::foundation::io::implements {
         }
 
         void wakeup() noexcept {
-            if (destroying_.load(concurrency::memory_order_acquire)) {
+            if (destroying_.load(core::concurrency::memory_order_acquire)) {
                 return;
             }
             if (!kq_initialized_) {
@@ -325,7 +328,7 @@ namespace rainy::foundation::io::implements {
             }
             struct kevent ev{};
             EV_SET(&ev, WAKEUP_IDENT, EVFILT_USER, 0, NOTE_TRIGGER, 0, &non_op);
-            if (!destroying_.load(concurrency::memory_order_acquire) && kq_initialized_) {
+            if (!destroying_.load(core::concurrency::memory_order_acquire) && kq_initialized_) {
                 ::kevent(kq_, &ev, 1, nullptr, 0, nullptr);
             }
         }
