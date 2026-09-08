@@ -84,7 +84,7 @@ namespace rainy::foundation::dynamic_library::implements {
                 }
             }
         } else {
-            const std::wstring wide_path(module_path.begin(), module_path.end());
+            const core::text::wstring wide_path(module_path.begin(), module_path.end());
             HMODULE mod = LoadLibraryExW(wide_path.c_str(), nullptr, LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
             hand = to_handle(mod);
         }
@@ -116,7 +116,7 @@ namespace rainy::foundation::dynamic_library::implements {
                 }
             }
         } else {
-            const std::wstring wide_path(module_path.begin(), module_path.end());
+            const core::text::wstring wide_path(module_path.begin(), module_path.end());
             HMODULE mod = GetModuleHandleW(wide_path.c_str());
             hand = to_handle(mod);
         }

@@ -123,7 +123,7 @@ namespace rainy::foundation::dynamic_library::implements {
         }
         const native_handle hand = from_handle(handle); // NOLINT
         dlerror();
-        void *sym = dlsym(hand, std::string(symbol_name.data(), symbol_name.size()).c_str());
+        void *sym = dlsym(hand, core::text::string(symbol_name.data(), symbol_name.size()).c_str());
         if (!sym) {
             return nullptr;
         }
