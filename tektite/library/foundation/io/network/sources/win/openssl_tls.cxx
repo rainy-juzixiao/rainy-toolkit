@@ -213,7 +213,7 @@ namespace rainy::foundation::io::net::implements {
             return {};
         }
 
-        std::error_code set_alpn_protos(const collections::vector<text::string> &protos) noexcept override {
+        std::error_code set_alpn_protos(const core::collections::vector<text::string> &protos) noexcept override {
             alpn_protos_ = protos;
             if (ssl_ctx_ && !protos.empty()) {
                 core::collections::vector<unsigned char> alpn_data;
@@ -352,7 +352,7 @@ namespace rainy::foundation::io::net::implements {
             return method_;
         }
 
-        RAINY_NODISCARD const collections::vector<text::string> &alpn_protos() const noexcept override {
+        RAINY_NODISCARD const core::collections::vector<text::string> &alpn_protos() const noexcept override {
             return alpn_protos_;
         }
 
@@ -509,8 +509,8 @@ namespace rainy::foundation::io::net::implements {
         text::string cert_file_;
         text::string key_file_;
         text::string key_password_;
-        collections::vector<text::string> alpn_protos_;
-        collections::vector<text::string> verify_paths_;
+        core::collections::vector<text::string> alpn_protos_;
+        core::collections::vector<text::string> verify_paths_;
     };
 
     class ssl_stream_impl final : public ssl_stream_impl_base {
@@ -1222,7 +1222,7 @@ namespace rainy::foundation::io::net::implements {
         }
 
         SSL *ssl_{nullptr};
-        memory::nebula_ptr<SSL_CTX, decltype([](SSL_CTX *p) { SSL_CTX_free(p); })> owned_ctx_;
+        core::memory::nebula_ptr<SSL_CTX, decltype([](SSL_CTX *p) { SSL_CTX_free(p); })> owned_ctx_;
         native_socket_t socket_fd_{invalid_socket_value};
         ssl_context_impl *pending_ctx_{nullptr};
         bool is_server_{false};
@@ -1235,13 +1235,13 @@ namespace rainy::foundation::io::net::implements {
         bool wants_write_{false};
     };
 
-    memory::nebula_ptr<ssl_context_impl_base> create_ssl_context_impl() {
-        return memory::make_nebula<ssl_context_impl>();
-    }
+   core::memory::nebula_ptr<ssl_context_impl_base> create_ssl_context_impl() {
+        return core::memory::make_nebula<ssl_context_impl>();
+   }
 
-    memory::nebula_ptr<ssl_stream_impl_base> create_ssl_stream_impl() {
-        return memory::make_nebula<ssl_stream_impl>();
-    }
+   core::memory::nebula_ptr<ssl_stream_impl_base> create_ssl_stream_impl() {
+        return core::memory::make_nebula<ssl_stream_impl>();
+   }
 }
 
 #else

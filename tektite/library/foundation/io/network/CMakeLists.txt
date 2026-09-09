@@ -13,6 +13,14 @@ target_sources(rainy-toolkit-foundation-io-network PRIVATE ${NETWORK_SOURCES})
 
 target_link_libraries(rainy-toolkit-foundation-io-network PUBLIC rainy-toolkit-foundation-io-context)
 
+if (WIN32)
+    target_link_libraries(rainy-toolkit-foundation-io-network PRIVATE 
+        mswsock
+        ws2_32
+        crypt32
+    )
+endif ()
+
 find_package(OpenSSL QUIET)
 if (OpenSSL_FOUND)
     target_link_libraries(rainy-toolkit-foundation-io-network PRIVATE OpenSSL::SSL OpenSSL::Crypto)
@@ -31,12 +39,12 @@ set_target_properties(rainy-toolkit-foundation-io-network-unit-test PROPERTIES R
 unset(RAINY_FOUNDATION_IO_NETWORK_TEST_FILES)
 
 if (OpenSSL_FOUND)
-target_link_libraries(
-        rainy-toolkit-foundation-io-network-unit-test
-        PRIVATE
-        OpenSSL::SSL
-        OpenSSL::Crypto
-)
+    target_link_libraries(
+            rainy-toolkit-foundation-io-network-unit-test
+            PRIVATE
+            OpenSSL::SSL
+            OpenSSL::Crypto
+    )
 endif ()
 
 install(TARGETS rainy-toolkit-foundation-io-network EXPORT rainy-toolkit-targets
@@ -45,9 +53,5 @@ install(TARGETS rainy-toolkit-foundation-io-network EXPORT rainy-toolkit-targets
         ARCHIVE DESTINATION ${RAINY_TOOLKIT_INSTALL_DIR}/lib)
 
 install(DIRECTORY include/ DESTINATION ${RAINY_TOOLKIT_INSTALL_DIR}/include)
-
-if (WIN32)
-    target_link_libraries(rainy-toolkit-foundation-io-network PRIVATE mswsock)
-endif ()
 
 unset(NETWORK_SOURCES)
