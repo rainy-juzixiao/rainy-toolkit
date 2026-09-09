@@ -80,15 +80,15 @@ namespace rainy::foundation::os::implements {
         if (snapshot == INVALID_HANDLE_VALUE) {
             return entries;
         }
-        PROCESSENTRY32A item{};
+        PROCESSENTRY32 item{};
         item.dwSize = sizeof(item);
-        if (::Process32FirstA(snapshot, &item)) {
+        if (::Process32First(snapshot, &item)) {
             do {
                 process_entry entry{};
                 entry.id = static_cast<std::uint64_t>(item.th32ProcessID);
                 entry.name = core::text::string{item.szExeFile};
-                entries.push_back(core::utility::move(entry));
-            } while (::Process32NextA(snapshot, &item));
+                entries.push_back(utility::move(entry));
+            } while (::Process32Next(snapshot, &item));
         }
         ::CloseHandle(snapshot);
         return entries;
