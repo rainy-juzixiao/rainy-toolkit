@@ -4849,8 +4849,8 @@ namespace rainy::utility {
 }
 
 namespace rainy::core::implements {
-    void throw_exception_out_of_range(const char *msg);
-    void throw_exception_length_error(const char *msg);
+    RAINY_TOOLKIT_API void throw_exception_out_of_range(const char *msg);
+    RAINY_TOOLKIT_API void throw_exception_length_error(const char *msg);
 }
 
 #endif
