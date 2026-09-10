@@ -103,7 +103,7 @@ namespace rainy::core::collections {
          *       this constructor is also noexcept.
          * @note 若元素类型支持 noexcept 默认构造，则该构造函数同样为 noexcept。
          */
-        constexpr array() noexcept(type_traits::properties::is_nothrow_default_constructible_v<Ty>) {
+        constexpr array() noexcept(type_traits::properties::is_nothrow_default_constructible_v<Ty>) : elements{} {
         }
 
         /**

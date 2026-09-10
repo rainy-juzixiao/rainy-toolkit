@@ -60,7 +60,7 @@ namespace rainy::foundation::io::implements {
         }
 
         void destroy() noexcept override {
-            destroying_.store(true, core::core::concurrency::memory_order_release);
+            destroying_.store(true, core::concurrency::memory_order_release);
             if (kq_initialized_) {
                 struct kevent ev{};
                 EV_SET(&ev, WAKEUP_IDENT, EVFILT_USER, EV_DELETE, 0, 0, nullptr);

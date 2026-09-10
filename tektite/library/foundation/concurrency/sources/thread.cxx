@@ -136,7 +136,7 @@ namespace rainy::foundation::concurrency {
 #endif
 }
 
-namespace rainy::foundation::system::this_thread {
+namespace rainy::foundation::concurrency::this_thread {
     concurrency::thread::id get_id() noexcept {
         return concurrency::thread::id{concurrency::implements::get_thread_id()};
     }

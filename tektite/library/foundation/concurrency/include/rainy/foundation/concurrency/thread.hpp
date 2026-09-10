@@ -121,7 +121,7 @@ namespace rainy::foundation::concurrency {
     }
 }
 
-namespace rainy::foundation::system::this_thread::implements {
+namespace rainy::foundation::concurrency::this_thread::implements {
     template <typename Rep, typename Period>
     RAINY_NODISCARD auto to_absolute_time(const std::chrono::duration<Rep, Period> &rel_time) noexcept {
         constexpr auto zero = std::chrono::duration<Rep, Period>::zero();
@@ -141,7 +141,7 @@ namespace rainy::foundation::system::this_thread::implements {
     using concurrency::implements::thread_sleep_for;
 }
 
-namespace rainy::foundation::system::this_thread {
+namespace rainy::foundation::concurrency::this_thread {
     template <typename Clock, typename Duration>
     void sleep_until(const std::chrono::time_point<Clock, Duration> &abs_time) {
 #if RAINY_HAS_CXX20
@@ -169,14 +169,14 @@ namespace rainy::foundation::system::this_thread {
     }
 
 #if RAINY_USING_LINUX
-    RAINY_NODISCARD ::pthread_t get_current_thread() noexcept;
+    RAINY_TOOLKIT_API RAINY_NODISCARD ::pthread_t get_current_thread() noexcept;
 #else
-    RAINY_NODISCARD void *get_current_thread() noexcept;
+    RAINY_TOOLKIT_API RAINY_NODISCARD void *get_current_thread() noexcept;
 #endif
 
-    RAINY_NODISCARD concurrency::thread::id get_id() noexcept;
+    RAINY_TOOLKIT_API RAINY_NODISCARD concurrency::thread::id get_id() noexcept;
 
-    void yield() noexcept;
+    RAINY_TOOLKIT_API void yield() noexcept;
 }
 
 namespace rainy::foundation::concurrency {
@@ -191,7 +191,7 @@ namespace rainy::foundation::concurrency {
         }
 
         friend id thread::get_id() const noexcept;
-        friend id system::this_thread::get_id() noexcept;
+        friend id this_thread::get_id() noexcept;
 
         friend bool operator==(id left, id right) noexcept;
 
@@ -216,11 +216,11 @@ namespace rainy::foundation::concurrency {
     };
 
 #if !RAINY_HAS_CXX20
-    RAINY_NODISCARD bool operator!=(thread::id left, thread::id right) noexcept;
-    RAINY_NODISCARD bool operator<(thread::id left, thread::id right) noexcept;
-    RAINY_NODISCARD bool operator<=(thread::id left, thread::id right) noexcept;
-    RAINY_NODISCARD bool operator>(thread::id left, thread::id right) noexcept;
-    RAINY_NODISCARD bool operator>=(thread::id left, thread::id right) noexcept;
+    RAINY_TOOLKIT_API RAINY_NODISCARD bool operator!=(thread::id left, thread::id right) noexcept;
+    RAINY_TOOLKIT_API RAINY_NODISCARD bool operator<(thread::id left, thread::id right) noexcept;
+    RAINY_TOOLKIT_API RAINY_NODISCARD bool operator<=(thread::id left, thread::id right) noexcept;
+    RAINY_TOOLKIT_API RAINY_NODISCARD bool operator>(thread::id left, thread::id right) noexcept;
+    RAINY_TOOLKIT_API RAINY_NODISCARD bool operator>=(thread::id left, thread::id right) noexcept;
 #endif
 }
 
