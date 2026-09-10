@@ -416,7 +416,7 @@ namespace rainy::foundation::concurrency {
          */
         template <typename Lock, typename Pred>
         rain_fn wait(Lock &lock, stop_token stoken, Pred pred) -> bool {
-            std::stop_callback cb(stoken, [this] { notify_all(); });
+            stop_callback cb(stoken, [this] { notify_all(); });
             while (!stoken.stop_requested()) {
                 if (pred()) {
                     return true;
@@ -438,7 +438,7 @@ namespace rainy::foundation::concurrency {
         template <typename Lock, typename Clock, typename Duration, typename Pred>
         rain_fn wait_until(Lock &lock, stop_token stoken, const std::chrono::time_point<Clock, Duration> &abs_time, Pred pred)
             -> bool {
-            std::stop_callback cb(stoken, [this] { notify_all(); });
+            stop_callback cb(stoken, [this] { notify_all(); });
             while (!stoken.stop_requested()) {
                 if (pred()) {
                     return true;
