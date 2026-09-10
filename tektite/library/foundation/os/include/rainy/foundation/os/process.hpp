@@ -110,25 +110,25 @@ namespace rainy::foundation::os {
      * @brief Returns the id of the current process.
      *        返回当前进程的id。
      */
-    RAINY_NODISCARD rain_fn current_process_id() noexcept -> std::uint64_t;
+    RAINY_NODISCARD RAINY_TOOLKIT_API rain_fn current_process_id() noexcept -> std::uint64_t;
 
     /**
      * @brief Enumerates every running process on the system.
      *        枚举系统上所有运行中的进程。
      */
-    RAINY_NODISCARD rain_fn process_list() noexcept -> core::collections::vector<process_entry>;
+    RAINY_NODISCARD RAINY_TOOLKIT_API rain_fn process_list() noexcept -> core::collections::vector<process_entry>;
 
     /**
      * @brief Queries the scheduling priority of the current process.
      *        查询当前进程的调度优先级。
      */
-    RAINY_NODISCARD rain_fn current_priority() noexcept -> int;
+    RAINY_NODISCARD RAINY_TOOLKIT_API rain_fn current_priority() noexcept -> int;
 
     /**
      * @brief Updates the scheduling priority of the current process.
      *        更新当前进程的调度优先级。
      */
-    rain_fn set_current_priority(int priority) noexcept -> bool;
+    RAINY_TOOLKIT_API rain_fn set_current_priority(int priority) noexcept -> bool;
 
     /**
      * @brief An owned handle over a process spawned from this library.
