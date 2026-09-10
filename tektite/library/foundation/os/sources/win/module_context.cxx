@@ -24,7 +24,6 @@
 
 namespace rainy::foundation::dynamic_library::implements {
     RAINY_TOOLKIT_LOCAL_API static bool is_absolute_path(const core::text::string_view file_name) {
-        // Windows绝对路径：带盘符 (C:\...) 或 UNC 路径 (\\...)
         if (file_name.size() >= 3 && std::isalpha(static_cast<unsigned char>(file_name[0])) && file_name[1] == ':' &&
             (file_name[2] == '\\' || file_name[2] == '/')) {
             return true;
@@ -66,7 +65,7 @@ namespace rainy::foundation::dynamic_library::implements {
             core::text::wstring attempt;
             for (rainy_let prefix = 0u; retry && !hand && prefix < prefix_list.size(); ++prefix) {
                 for (rainy_let suffix = 0u; retry && !hand && suffix < suffix_list.size(); ++suffix) {
-                    // 已有对应前缀则不再拼接（与Linux逻辑对称）
+                    // 已有对应前缀则不再拼接
                     if (!prefix_list[prefix].empty() && wide_path.starts_with(prefix_list[prefix])) {
                         attempt = wide_path;
                     } else {
@@ -78,7 +77,7 @@ namespace rainy::foundation::dynamic_library::implements {
                     }
                     HMODULE mod = LoadLibraryExW(attempt.c_str(), nullptr, LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
                     hand = to_handle(mod);
-                    // 绝对路径下，文件存在但加载失败，停止重试（与Linux retry=false逻辑对称）
+                    // 绝对路径下，文件存在但加载失败，停止重试
                     if (!hand && is_absolute_path(module_path) && file_exist(attempt)) {
                         retry = false;
                     }
@@ -97,7 +96,10 @@ namespace rainy::foundation::dynamic_library::implements {
         if (crossplatform) {
             const core::collections::vector<core::text::wstring> prefix_list = {L"", L"lib"};
             const core::collections::vector<core::text::wstring> suffix_list = {L".dll"};
-            const core::text::wstring wide_path(module_path.begin(), module_path.end());
+            core::text::wstring_convert<core::text::codecvt_utf8<wchar_t>, core::text::basic_string, wchar_t,
+                                              core::text::char_traits, core::text::wstring::allocator_type, core::text::string::allocator_type>
+                converter;
+            const core::text::wstring wide_path = converter.from_bytes(module_path.begin(), module_path.end());
             rainy_let retry = true;
             core::text::wstring attempt;
             for (rainy_let prefix = 0u; retry && !hand && prefix < prefix_list.size(); ++prefix) {
@@ -123,7 +125,10 @@ namespace rainy::foundation::dynamic_library::implements {
                 hand = to_handle(mod);
             }
         } else {
-            const core::text::wstring wide_path(module_path.begin(), module_path.end());
+            core::text::wstring_convert<core::text::codecvt_utf8<wchar_t>, core::text::basic_string, wchar_t,
+                                              core::text::char_traits, core::text::wstring::allocator_type, core::text::string::allocator_type>
+                converter;
+            const core::text::wstring wide_path = converter.from_bytes(module_path.begin(), module_path.end());
             HMODULE mod = GetModuleHandleW(wide_path.c_str());
             if (!mod) {
                 mod = LoadLibraryExW(wide_path.c_str(), nullptr, LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
