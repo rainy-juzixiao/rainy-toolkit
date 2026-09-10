@@ -27,6 +27,7 @@
 #include <rainy/foundation/concurrency/thread.hpp>
 #include <rainy/core/concurrency/tss_ptr.hpp>
 #include <rainy/foundation/concurrency/condition_variable.hpp>
+#include <rainy/foundation/concurrency/stop_token.hpp>
 #include <rainy/foundation/concurrency/pool.hpp>
 #include <rainy/foundation/concurrency/executor.hpp>
 #include <rainy/foundation/concurrency/rcu.hpp>
