@@ -896,7 +896,7 @@ namespace rainy::foundation::io::filesystem {
             }
             const string_type dot(1, static_cast<value_type>('.')); // NOLINT
             const string_type dotdot(2, static_cast<value_type>('.')); // NOLINT
-            collections::vector<string_type> parts;
+            core::collections::vector<string_type> parts;
             const bool has_root_dir = has_root_directory();
             const path rn = root_name();
 
