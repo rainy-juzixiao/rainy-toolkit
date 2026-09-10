@@ -365,7 +365,7 @@ namespace rainy::core::text {
             // NOLINTBEGIN
 #if RAINY_HAS_CXX20
             if (std::is_constant_evaluated()) {
-                for (auto p = data_ + pos; p >= data_; --p) {
+                for (auto p = data_ + pos;; --p) {
                     bool match = true;
                     for (size_type i = 0; i < s.size_; ++i) {
                         if (!traits_type::eq(p[i], s.data_[i])) {
@@ -376,14 +376,20 @@ namespace rainy::core::text {
                     if (match) {
                         return static_cast<size_type>(p - data_);
                     }
+                    if (p == data_) {
+                        break;
+                    }
                 }
                 return npos;
             }
 #endif
             // NOLINTEND
-            for (auto p = data_ + pos; p >= data_; --p) {
+            for (auto p = data_ + pos;; --p) {
                 if (traits_type::compare(p, s.data_, s.size_) == 0) {
                     return p - data_;
+                }
+                if (p == data_) {
+                    break;
                 }
             }
             return npos;
@@ -394,9 +400,12 @@ namespace rainy::core::text {
                 return npos;
             }
             pos = (core::min) (pos, size_ - 1);
-            for (auto p = data_ + pos; p >= data_; --p) {
+            for (auto p = data_ + pos;; --p) {
                 if (traits_type::eq(*p, c)) {
                     return p - data_;
+                }
+                if (p == data_) {
+                    break;
                 }
             }
             return npos;
@@ -436,9 +445,12 @@ namespace rainy::core::text {
                 return npos;
             }
             pos = (core::min) (pos, size_ - 1);
-            for (auto p = data_ + pos; p >= data_; --p) {
+            for (auto p = data_ + pos;; --p) {
                 if (s.find(*p) != npos) {
                     return p - data_;
+                }
+                if (p == data_) {
+                    break;
                 }
             }
             return npos;
@@ -487,9 +499,12 @@ namespace rainy::core::text {
                 return npos;
             }
             pos = (core::min) (pos, size_ - 1);
-            for (auto p = data_ + pos; p >= data_; --p) {
+            for (auto p = data_ + pos;; --p) {
                 if (s.find(*p) == npos) {
                     return p - data_;
+                }
+                if (p == data_) {
+                    break;
                 }
             }
             return npos;

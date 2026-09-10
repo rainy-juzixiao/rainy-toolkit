@@ -24,7 +24,7 @@
 #endif
 
 namespace rainy::core::concurrency::implements {
-    class thread_info_base : type_traits::helper::non_copyable {
+    class RAINY_TOOLKIT_API thread_info_base : type_traits::helper::non_copyable {
     public:
         struct default_tag {
             enum {

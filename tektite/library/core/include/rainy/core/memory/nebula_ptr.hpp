@@ -403,21 +403,27 @@ namespace rainy::core::memory {
     nebula_ptr<Ty> make_nebula(const std::size_t num,
                                Args... args) noexcept(type_traits::properties::is_nothrow_constructible_v<Ty>) {
         using elem = type_traits::modifers::remove_extent_t<Ty>;
-        memory::allocator<elem> alloc;
-        auto *data = alloc.allocate(num);
-
-        std::size_t constructed = 0;
-        try {
-            for (; constructed < num; ++constructed) {
-                memory::allocator_traits<memory::allocator<elem>>::construct(alloc, &data[constructed], args...);
+        if constexpr (sizeof...(Args) == 0) {
+            return nebula_ptr<Ty>(new elem[num](), num);
+        } else {
+            auto *data = new elem[num]();
+            std::size_t rebuilt = 0;
+            try {
+                for (; rebuilt < num; ++rebuilt) {
+                    data[rebuilt].~elem();
+                    utility::construct_at(&data[rebuilt], args...);
+                }
+            } catch (...) {
+                for (std::size_t i = 0; i < rebuilt; ++i) {
+                    data[i].~elem();
+                }
+                for (std::size_t i = rebuilt + 1; i < num; ++i) {
+                    data[i].~elem();
+                }
+                ::operator delete[](data);
+                throw;
             }
             return nebula_ptr<Ty>(data, num);
-        } catch (...) {
-            for (std::size_t i = 0; i < constructed; ++i) {
-                memory::allocator_traits<memory::allocator<elem>>::destroy(alloc, &data[i]);
-            }
-            alloc.deallocate(data, num);
-            throw;
         }
     }
 

@@ -38,21 +38,22 @@ namespace rainy::core::algorithm::implements {
 
     template <typename RandomIt, typename Comp>
     constexpr void sift_down(RandomIt first, RandomIt node, RandomIt last, Comp comp) {
+        auto size = last - first;
         while (true) {
-            RandomIt left = first + ((node - first) * 2 + 1);
-            if (left >= last) {
+            auto node_index = node - first;
+            auto child_index = node_index * 2 + 1;
+            if (child_index >= size) {
                 break;
             }
-            RandomIt best = left;
-            RandomIt right = left + 1;
-            if (right < last && comp(*left, *right)) {
-                best = right;
+            RandomIt child = first + child_index;
+            if (child_index + 1 < size && comp(*child, *(child + 1))) {
+                ++child;
             }
-            if (!comp(*node, *best)) {
+            if (!comp(*node, *child)) {
                 break;
             }
-            core::algorithm::iter_swap(node, best);
-            node = best;
+            core::algorithm::iter_swap(node, child);
+            node = child;
         }
     }
 }

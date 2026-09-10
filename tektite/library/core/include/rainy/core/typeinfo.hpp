@@ -433,9 +433,15 @@ namespace rainy::core::implements {
         if (bracket_start == text::string_view::npos || bracket_end == text::string_view::npos) {
             return "";
         }
+        if (bracket_start + 1 >= bracket_end) {
+            return "";
+        }
         auto content = func_name.substr(bracket_start + 1, bracket_end - bracket_start - 1);
+        if (content.empty()) {
+            return "";
+        }
         bool is_parenthesized = false;
-        if (!content.empty() && content[0] == '(') {
+        if (content[0] == '(') {
             auto last_rparen = content.rfind(')');
             if (last_rparen != text::string_view::npos && last_rparen + 1 < content.size()) {
                 is_parenthesized = true;
@@ -447,19 +453,22 @@ namespace rainy::core::implements {
         auto last_dot = content.rfind('.');
         auto last_arrow = content.rfind("->");
         auto last_colon = content.rfind("::");
-        if (last_dot == text::string_view::npos) {
-            last_dot = 0;
+        auto last_sep = text::string_view::npos;
+        if (last_dot != text::string_view::npos) {
+            last_sep = last_dot;
         }
-        if (last_arrow == text::string_view::npos) {
-            last_arrow = 0;
+        if (last_arrow != text::string_view::npos && last_arrow > last_sep) {
+            last_sep = last_arrow;
         }
-        if (last_colon == text::string_view::npos) {
-            last_colon = 0;
+        if (last_colon != text::string_view::npos && last_colon > last_sep) {
+            last_sep = last_colon;
         }
-        auto last_sep = (core::max) ({last_dot, last_arrow, last_colon});
-        if (last_sep != 0) {
+        if (last_sep != text::string_view::npos) {
             auto sep_len = (last_sep == last_arrow || last_sep == last_colon) ? 2 : 1;
-            return content.substr(last_sep + sep_len);
+            if (last_sep + sep_len <= content.size()) {
+                return content.substr(last_sep + sep_len);
+            }
+            return content;
         }
         return content;
 #else
