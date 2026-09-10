@@ -40,7 +40,7 @@ namespace rainy::foundation::io::filesystem {
          * @brief  构造并立即打开文件
          */
         explicit random_access_file(io::io_context &ctx,
-                                    const std::filesystem::path &path,
+                                    const filesystem::path &path,
                                     open_mode mode = open_mode::read_only)
             : file_(ctx, path, mode) {}
 
@@ -56,7 +56,7 @@ namespace rainy::foundation::io::filesystem {
         random_access_file(random_access_file &&) noexcept = default;
         random_access_file &operator=(random_access_file &&) noexcept = default;
 
-        std::error_code open(const std::filesystem::path &path,
+        std::error_code open(const filesystem::path &path,
                              open_mode mode = open_mode::read_only) {
             return file_.open(path, mode);
         }

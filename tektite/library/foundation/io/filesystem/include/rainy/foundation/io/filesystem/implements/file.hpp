@@ -36,7 +36,7 @@ namespace rainy::foundation::io::filesystem::implements {
          * @param  executor    调用方持有的 io_context 的 executor
          * @return 错误码，成功时 value()==0
          */
-        virtual std::error_code open(const std::filesystem::path &path, open_mode mode,
+        virtual std::error_code open(const filesystem::path &path, open_mode mode,
                                      io_context::executor_type executor) noexcept = 0;
 
         virtual void close() noexcept = 0;

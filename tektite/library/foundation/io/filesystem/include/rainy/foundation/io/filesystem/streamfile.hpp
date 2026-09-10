@@ -20,6 +20,7 @@
 #include <rainy/foundation/io/filesystem/basic_file.hpp>
 #include <rainy/foundation/io/buffer.hpp>
 #include <rainy/foundation/io/io_context.hpp>
+#include <rainy/foundation/io/filesystem/path.hpp>
 #include <system_error>
 
 namespace rainy::foundation::io::filesystem {
@@ -27,7 +28,7 @@ namespace rainy::foundation::io::filesystem {
     public:
         using executor_type = io::io_context::executor_type;
 
-        explicit stream_file(io::io_context &ctx, const std::filesystem::path &path, open_mode mode = open_mode::read_only) :
+        explicit stream_file(io::io_context &ctx, const filesystem::path &path, open_mode mode = open_mode::read_only) :
             file_(ctx, path, mode), offset_(0) {
             if (has_flag(mode, open_mode::append)) {
                 std::error_code ec;
@@ -54,7 +55,7 @@ namespace rainy::foundation::io::filesystem {
             return *this;
         }
 
-        std::error_code open(const std::filesystem::path &path, open_mode mode = open_mode::read_only) {
+        std::error_code open(const filesystem::path &path, open_mode mode = open_mode::read_only) {
             auto ec = file_.open(path, mode);
             if (!ec) {
                 offset_ = has_flag(mode, open_mode::append) ? file_.size(ec) : 0;

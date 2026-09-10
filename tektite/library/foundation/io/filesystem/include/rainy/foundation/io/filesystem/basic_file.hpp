@@ -31,7 +31,7 @@ namespace rainy::foundation::io::filesystem {
          * @param  path  目标路径
          * @param  mode  打开模式，默认只读
          */
-        explicit basic_file(io_context &ctx, const std::filesystem::path &path, open_mode mode = open_mode::read_only) :
+        explicit basic_file(io_context &ctx, const filesystem::path &path, open_mode mode = open_mode::read_only) :
             ctx_(&ctx), impl_(implements::make_file_impl()) {
             std::error_code ec = impl_->open(path, mode, ctx_->get_executor());
             if (ec) {
@@ -57,7 +57,7 @@ namespace rainy::foundation::io::filesystem {
             }
         }
 
-        std::error_code open(const std::filesystem::path &path, open_mode mode = open_mode::read_only) {
+        std::error_code open(const filesystem::path &path, open_mode mode = open_mode::read_only) {
             return impl_->open(path, mode, ctx_->get_executor());
         }
 
