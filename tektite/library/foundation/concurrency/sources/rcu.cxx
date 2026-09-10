@@ -54,7 +54,7 @@ namespace rainy::foundation::concurrency::implements {
                 if (ctr == rcu_ctr_invalid || ctr == target) {
                     break;
                 }
-                foundation::system::this_thread::yield();
+                this_thread::yield();
             }
         }
     }

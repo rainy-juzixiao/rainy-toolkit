@@ -72,13 +72,13 @@ TEST_CASE("rcu_synchronize waits for pre-existing readers", "[rcu][synchronize]"
         dom.lock();
         reader_entered.store(true, rainy::core::layer::memory_order_release);
         while (!reader_should_exit.load(rainy::core::layer::memory_order_acquire)) {
-            rainy::foundation::system::this_thread::yield();
+            rainy::foundation::concurrency::this_thread::yield();
         }
         dom.unlock();
     }};
 
     while (!reader_entered.load(rainy::core::layer::memory_order_acquire)) {
-        rainy::foundation::system::this_thread::yield();
+        rainy::foundation::concurrency::this_thread::yield();
     }
 
     thread synchronizer{[&] {
@@ -87,7 +87,7 @@ TEST_CASE("rcu_synchronize waits for pre-existing readers", "[rcu][synchronize]"
     }};
 
     // 读侧仍持有保护区域，synchronize 不应返回
-    rainy::foundation::system::this_thread::yield();
+    this_thread::yield();
     REQUIRE_FALSE(synchronize_returned.load(rainy::core::layer::memory_order_acquire));
 
     reader_should_exit.store(true, rainy::core::layer::memory_order_release);
