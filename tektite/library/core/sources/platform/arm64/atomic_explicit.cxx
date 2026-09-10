@@ -49,45 +49,45 @@
 #if RAINY_USING_MSVC
 namespace rainy::core::layer {
     long interlocked_increment_explicit(volatile long *value, memory_order order) {
-        return interlocked_exchange_add_explicit(reinterpret_cast<volatile std::intptr_t *>(value), +1, order);
+        return interlocked_exchange_add_explicit(reinterpret_cast<volatile std::intptr_t *>(value), +1, order) + 1;
     }
 
     std::int8_t interlocked_increment8_explicit(volatile std::int8_t *value, memory_order order) {
-        return interlocked_exchange_add8_explicit(value, +1, order);
+        return interlocked_exchange_add8_explicit(value, +1, order) + 1;
     }
 
     std::int16_t interlocked_increment16_explicit(volatile std::int16_t *value, memory_order order) {
-        return interlocked_exchange_add16_explicit(value, +1, order);
+        return interlocked_exchange_add16_explicit(value, +1, order) + 1;
     }
 
     std::int32_t interlocked_increment32_explicit(volatile std::int32_t *value, memory_order order) {
-        return interlocked_exchange_add32_explicit(value, 1, order);
+        return interlocked_exchange_add32_explicit(value, 1, order) + 1;
     }
 
     std::int64_t interlocked_increment64_explicit(volatile std::int64_t *value, memory_order order) {
-        return interlocked_exchange_add64_explicit(value, 1, order);
+        return interlocked_exchange_add64_explicit(value, 1, order) + 1;
     }
 }
 
 namespace rainy::core::layer {
     long interlocked_decrement_explicit(volatile long *value, memory_order order) {
-        return interlocked_exchange_add_explicit(reinterpret_cast<volatile std::intptr_t *>(value), -1, order);
+        return interlocked_exchange_add_explicit(reinterpret_cast<volatile std::intptr_t *>(value), -1, order) - 1;
     }
 
     std::int8_t interlocked_decrement8_explicit(volatile std::int8_t *value, memory_order order) {
-        return interlocked_exchange_add8_explicit(value, -1, order);
+        return interlocked_exchange_add8_explicit(value, -1, order) - 1;
     }
 
     std::int16_t interlocked_decrement16_explicit(volatile std::int16_t *value, memory_order order) {
-        return interlocked_exchange_add16_explicit(value, -1, order);
+        return interlocked_exchange_add16_explicit(value, -1, order) - 1;
     }
 
     std::int32_t interlocked_decrement32_explicit(volatile std::int32_t *value, memory_order order) {
-        return interlocked_exchange_add32_explicit(value, -1, order);
+        return interlocked_exchange_add32_explicit(value, -1, order) - 1;
     }
 
     std::int64_t interlocked_decrement64_explicit(volatile std::int64_t *value, memory_order order) {
-        return interlocked_exchange_add64_explicit(value, -1, order);
+        return interlocked_exchange_add64_explicit(value, -1, order) - 1;
     }
 }
 

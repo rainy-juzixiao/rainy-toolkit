@@ -524,7 +524,7 @@ namespace rainy::foundation::io::net::implements {
 }
 
 namespace rainy::foundation::io::net::implements {
-    memory::nebula_ptr<socket_impl_base> create_socket_impl() {
-        return memory::make_nebula<macos_socket_impl>();
+    core::memory::nebula_ptr<socket_impl_base> create_socket_impl() {
+        return core::memory::make_nebula<macos_socket_impl>();
     }
 }
