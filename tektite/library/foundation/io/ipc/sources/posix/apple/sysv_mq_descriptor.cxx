@@ -15,6 +15,7 @@
  */
 #include <rainy/foundation/io/ipc/implements/message_queue_impl.hpp>
 #include <rainy/foundation/concurrency/executor.hpp>
+#include <rainy/foundation/concurrency/thread.hpp>
 #include <cerrno>
 #include <cstring>
 #include <sys/msg.h>
@@ -104,7 +105,7 @@ namespace rainy::foundation::io::ipc::message_queue::implements {
             return static_cast<std::ptrdiff_t>(len);
         }
 
-        std::ptrdiff_t receive(void *buf, std::size_t len, priority &priority, std::error_code &ec) noexcept override {
+        std::ptrdiff_t receive(void *buf, std::size_t len, enum priority &priority, std::error_code &ec) noexcept override {
             if (msgid_ < 0) {
                 ec = posix_error(EBADF);
                 return -1;
@@ -121,7 +122,7 @@ namespace rainy::foundation::io::ipc::message_queue::implements {
                 return -1;
             }
             std::memcpy(buf, msgbuf->mtext, static_cast<std::size_t>(r));
-            priority = static_cast<priority>(msgbuf->mtype);
+            priority = static_cast<enum priority>(msgbuf->mtype);
             std::free(msgbuf);
             ec.clear();
             return static_cast<std::ptrdiff_t>(r);
@@ -175,7 +176,7 @@ namespace rainy::foundation::io::ipc::message_queue::implements {
                 return -1;
             }
             std::memcpy(buf, msgbuf->mtext, static_cast<std::size_t>(r));
-            priority = static_cast<priority>(msgbuf->mtype);
+            priority = static_cast<enum priority>(msgbuf->mtype);
             std::free(msgbuf);
             ec.clear();
             return static_cast<std::ptrdiff_t>(r);
@@ -212,7 +213,7 @@ namespace rainy::foundation::io::ipc::message_queue::implements {
                     ec = std::make_error_code(std::errc::timed_out);
                     return -1;
                 }
-                std::this_thread::sleep_for(std::chrono::milliseconds{10});
+                concurrency::this_thread::sleep_for(std::chrono::milliseconds{10});
             } while (true);
         }
 
@@ -232,7 +233,7 @@ namespace rainy::foundation::io::ipc::message_queue::implements {
                 auto r = ::msgrcv(msgid_, msgbuf, len, 0, IPC_NOWAIT);
                 if (r >= 0) {
                     std::memcpy(buf, msgbuf->mtext, static_cast<std::size_t>(r));
-                    priority = static_cast<priority>(msgbuf->mtype);
+                    priority = static_cast<enum priority>(msgbuf->mtype);
                     std::free(msgbuf);
                     ec.clear();
                     return static_cast<std::ptrdiff_t>(r);
@@ -247,7 +248,7 @@ namespace rainy::foundation::io::ipc::message_queue::implements {
                     ec = std::make_error_code(std::errc::timed_out);
                     return -1;
                 }
-                std::this_thread::sleep_for(std::chrono::milliseconds{10});
+                concurrency::this_thread::sleep_for(std::chrono::milliseconds{10});
             } while (true);
         }
 

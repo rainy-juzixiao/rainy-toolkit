@@ -272,7 +272,7 @@ namespace rainy::foundation::io::ipc::stream::implements {
         return impl;
     }
 
-    utility::pair<core::memory::nebula_ptr<descriptor_impl_base>, core::memory::nebula_ptr<descriptor_impl_base>> create_pipe_impl(
+    core::container::pair<core::memory::nebula_ptr<descriptor_impl_base>, core::memory::nebula_ptr<descriptor_impl_base>> create_pipe_impl(
         executor_type executor, std::error_code &ec) {
         int fds[2] = {-1, -1};
         if (::pipe(fds) != 0) {
