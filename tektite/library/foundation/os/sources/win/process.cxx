@@ -29,9 +29,14 @@ namespace rainy::foundation::os::implements {
         native_process result{};
         core::text::string command_line = exec;
         for (const auto &argument : args) {
-            command_line += " \"";
-            command_line += argument;
-            command_line += "\"";
+            command_line += " ";
+            if (argument.find_first_of(" \t") != core::text::string::npos) { // 确保参数包含空白时才加引号，避免影响 cmd 等解释器对 /c 等开关的解析
+                command_line += "\"";
+                command_line += argument;
+                command_line += "\"";
+            } else {
+                command_line += argument;
+            }
         }
         STARTUPINFOA startup{};
         startup.cb = sizeof(startup);

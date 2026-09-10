@@ -117,9 +117,17 @@ namespace rainy::foundation::dynamic_library::implements {
                     }
                 }
             }
+            if (!hand) {
+                // GetModuleHandle 可能无法通过名称返回已加载系统模块的句柄，这里进行fallback处理
+                HMODULE mod = LoadLibraryExW(wide_path.c_str(), nullptr, LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
+                hand = to_handle(mod);
+            }
         } else {
             const core::text::wstring wide_path(module_path.begin(), module_path.end());
             HMODULE mod = GetModuleHandleW(wide_path.c_str());
+            if (!mod) {
+                mod = LoadLibraryExW(wide_path.c_str(), nullptr, LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
+            }
             hand = to_handle(mod);
         }
         return hand;
