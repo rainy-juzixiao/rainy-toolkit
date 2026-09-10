@@ -359,9 +359,13 @@ TEST_CASE("message_queue large message round-trip", "[message_queue][sync]") {
     test_cleanup cleanup;
     attributes attr;
     attr.max_messages = 10;
+#if RAINY_USING_MACOS
+    attr.max_message_size = 1000;
+#else
     attr.max_message_size = 4096;
+#endif
     auto mq = message_queue::create(global_ctx().get_executor(), QUEUE_NAME, attr);
-    std::string large(4000, 'L');
+    std::string large(attr.max_message_size, 'L');
     mq.push(const_buffer(large.data(), large.size()));
 
     std::string recv(4096, '\0');
