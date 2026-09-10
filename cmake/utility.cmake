@@ -47,16 +47,15 @@ function(rainy_load_flodar_files DIRECTORY EXTENSION RESULT_VAR)
     set(IS_LINUX FALSE)
     set(IS_MACOS FALSE)
     set(IS_POSIX FALSE)
+    set(IS_ARM64 FALSE)
     check_cxx_source_compiles("
-    #if defined(_M_ARM64) || defined(__aarch64__)
-    #error ARM64 not supported
+    #if defined(_M_ARM) || defined(_M_ARM64) || defined(__arm__) || defined(__aarch64__)
+    #error ARM64 supported
     #endif
     int main() { return 0; }
-    " IS_ARM64)
-    if (IS_ARM64)
-        set(IS_ARM64 false)
-    else ()
-        set(IS_ARM64 true)
+    " ARM64_REPORT)
+    if (NOT ARM64_REPORT)
+        set(IS_ARM64 TRUE)
     endif ()
     # 初始化结果列表
     set(FILE_LIST "")
@@ -86,11 +85,11 @@ function(rainy_load_flodar_files DIRECTORY EXTENSION RESULT_VAR)
             if (IS_LINUX)
                 if ("${ENTRY}" MATCHES ".*[/\\\\]apple[/\\\\].*")
                     set(EXCLUDE_ENTRY TRUE)
-                endif()
+                endif ()
             else ()
                 if ("${ENTRY}" MATCHES ".*[/\\\\]linux[/\\\\].*")
                     set(EXCLUDE_ENTRY TRUE)
-                endif()
+                endif ()
             endif ()
         elseif (WIN32)  # 检查Windows平台排除条件
             if ("${ENTRY}" MATCHES ".*[/\\\\]posix[/\\\\].*")
@@ -381,11 +380,210 @@ function(rainy_add_node_addon)
 endfunction()
 
 function(target_link_libraries_if_exists target visibility)
-    foreach(lib ${ARGN})
-        if(TARGET ${lib})
+    foreach (lib ${ARGN})
+        if (TARGET ${lib})
             target_link_libraries(${target} ${visibility} ${lib})
-        else()
+        else ()
             message(STATUS "Target ${lib} does not exist, skipping")
-        endif()
-    endforeach()
+        endif ()
+    endforeach ()
+endfunction()
+
+function(rainy_configure_target TARGET_NAME)
+    if (RAINY_BUILD_WITH_DYNAMIC AND NOT RAINY_USE_CROSSCOMPILE)
+        add_library(${TARGET_NAME} SHARED)
+        target_compile_definitions(${TARGET_NAME} PRIVATE RAINY_DYNAMIC_EXPORTS=1)
+        target_compile_definitions(${TARGET_NAME} PUBLIC RAINY_USING_DYNAMIC=1)
+    else ()
+        add_library(${TARGET_NAME} STATIC)
+        target_compile_definitions(${TARGET_NAME} PRIVATE RAINY_DYNAMIC_EXPORTS=0)
+        target_compile_definitions(${TARGET_NAME} PUBLIC RAINY_USING_DYNAMIC=0)
+    endif ()
+
+    set_target_properties(${TARGET_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
+    if (RAINY_USE_CROSSCOMPILE)
+        if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
+            if (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+                if (CMAKE_COMPILER_IS_GNUCXX OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT MSVC))
+                    if (RAINY_USE_AVX2_BOOST)
+                        add_definitions(-DRAINY_USING_AVX2=1)
+                        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2")
+                    else ()
+                        add_definitions(-DRAINY_USING_AVX2=0)
+                    endif ()
+                elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND MSVC)
+                    if (RAINY_USE_AVX2_BOOST)
+                        add_definitions(-DRAINY_USING_AVX2=1)
+                        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /arch:AVX2")
+                    else ()
+                        add_definitions(-DRAINY_USING_AVX2=0)
+                    endif ()
+                endif ()
+            endif ()
+            if (COMPILER_ID MATCHES "MSVC" AND NOT COMPILER_ID MATCHES "Clang")
+                if (RAINY_CAN_USE_AVX2)
+                    add_definitions(-DRAINY_USING_AVX2=1)
+                    add_compile_options(/arch:AVX2)
+                else ()
+                    add_definitions(-DRAINY_USING_AVX2=0)
+                endif ()
+                if (RAINY_USING_UTF8_INPUT_FOR_MSVC)
+                    target_compile_options(${TARGET_NAME} PUBLIC /source-charset:utf-8)
+                else ()
+                    target_compile_options(${TARGET_NAME} PUBLIC /execution-charset:gbk)
+                endif ()
+                if (RAINY_USING_UTF8_OUTPUT_FOR_MSVC)
+                    target_compile_options(${TARGET_NAME} PUBLIC /source-charset:utf-8)
+                else ()
+                    target_compile_options(${TARGET_NAME} PUBLIC /execution-charset:gbk)
+                endif ()
+            endif ()
+            message("Linking libraries for windows package(CROSS-COMPILE)")
+            if (MINGW)
+                message(STATUS "Detected MINGW")
+                set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--enable-stdcall-fixup -Wl,--no-as-needed")
+                set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--enable-stdcall-fixup -Wl,--no-as-needed")
+            endif ()
+            target_link_libraries(${TARGET_NAME} PUBLIC synchronization dbghelp shlwapi)
+        elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+            if (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+                if (CMAKE_COMPILER_IS_GNUCXX OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT MSVC))
+                    if (RAINY_USE_AVX2_BOOST)
+                        add_definitions(-DRAINY_USING_AVX2=1)
+                        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2")
+                    else ()
+                        add_definitions(-DRAINY_USING_AVX2=0)
+                    endif ()
+                endif ()
+            endif ()
+        elseif (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+        else ()
+            message(FATAL_ERROR "Unsupported platform for cross-compilation: ${CMAKE_SYSTEM_NAME}")
+        endif ()
+    else ()
+        if (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+            if (CMAKE_COMPILER_IS_GNUCXX OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT MSVC))
+                if (RAINY_USE_AVX2_BOOST)
+                    target_compile_definitions(${TARGET_NAME} PRIVATE -DRAINY_USING_AVX2=1)
+                    target_compile_options(${TARGET_NAME} PRIVATE -mavx2)
+                else ()
+                    target_compile_definitions(${TARGET_NAME} PRIVATE -DRAINY_USING_AVX2=0)
+                endif ()
+            elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND MSVC)
+                if (RAINY_USE_AVX2_BOOST)
+                    add_definitions(-DRAINY_USING_AVX2=1)
+                    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /arch:AVX2")
+                else ()
+                    add_definitions(-DRAINY_USING_AVX2=0)
+                endif ()
+            endif ()
+        endif ()
+
+        if (MSVC AND NOT (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
+            if (RAINY_CAN_USE_AVX2)
+                add_definitions(-DRAINY_USING_AVX2=1)
+                add_compile_options(/arch:AVX2)
+            else ()
+                add_definitions(-DRAINY_USING_AVX2=0)
+            endif ()
+            if (NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+                if (RAINY_USING_UTF8_INPUT_FOR_MSVC)
+                    target_compile_options(${TARGET_NAME} PUBLIC /source-charset:utf-8)
+                else ()
+                    target_compile_options(${TARGET_NAME} PUBLIC /execution-charset:gbk)
+                endif ()
+                if (RAINY_USING_UTF8_OUTPUT_FOR_MSVC)
+                    target_compile_options(${TARGET_NAME} PUBLIC /source-charset:utf-8)
+                else ()
+                    target_compile_options(${TARGET_NAME} PUBLIC /execution-charset:gbk)
+                endif ()
+            endif ()
+        endif ()
+
+        if (WIN32)
+            message("Linking libraries for windows package")
+            if (MINGW)
+                set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--enable-stdcall-fixup -Wl,--no-as-needed")
+                set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--enable-stdcall-fixup -Wl,--no-as-needed")
+            endif ()
+            target_link_libraries(${TARGET_NAME} PRIVATE synchronization dbghelp shlwapi)
+        endif ()
+    endif ()
+    message(STATUS "${TARGET_NAME} library finished setup.")
+endfunction()
+
+function(add_rainy_interface_library TARGET_NAME INCLUDE_DIR)
+    add_library(${TARGET_NAME} INTERFACE)
+
+    target_include_directories(
+            ${TARGET_NAME}
+            PUBLIC INTERFACE
+            $<BUILD_INTERFACE:${INCLUDE_DIR}>
+            $<INSTALL_INTERFACE:include>
+    )
+
+    message(STATUS "${TARGET_NAME} interface library finished setup.")
+endfunction()
+
+function(check_cxx26_static_reflection)
+    if (NOT RAINY_USE_CXX26_REFLECTION_TS)
+        message(STATUS "C++26 Static Reflection TS is disabled by RAINY_USE_CXX26_REFLECTION_TS")
+        set(RAINY_TOOLKIT_HAVE_CXX26_STATIC_REFLECTION FALSE PARENT_SCOPE)
+        set(RAINY_HAS_CXX26_STATIC_REFLECTION 0 PARENT_SCOPE)
+        return()
+    endif ()
+
+    if (NOT COMPILER_ID MATCHES "GCC")
+        message(STATUS "C++26 Static Reflection TS only supported with GCC compiler")
+        set(RAINY_TOOLKIT_HAVE_CXX26_STATIC_REFLECTION FALSE PARENT_SCOPE)
+        set(RAINY_HAS_CXX26_STATIC_REFLECTION 0 PARENT_SCOPE)
+        return()
+    endif ()
+
+    set(_test_flags "-std=c++26 -freflection")
+
+    # 创建临时测试文件
+    file(WRITE ${CMAKE_BINARY_DIR}/test_reflection.cpp "
+    #include <meta>
+
+    int main() {
+        class TestClass {
+            int foo;
+            int bar;
+        public:
+            int baz;
+            int quux;
+        };
+        constexpr static auto ctx = std::meta::access_context::unchecked();
+        static constexpr size_t member_count = std::meta::nonstatic_data_members_of(^^TestClass, ctx).size();
+        static_assert(member_count == 4);
+        return 0;
+    }
+    ")
+
+    # 直接调用编译器（不通过 CMake）
+    execute_process(
+            COMMAND ${CMAKE_CXX_COMPILER}
+            -std=c++26 -freflection
+            ${CMAKE_BINARY_DIR}/test_reflection.cpp
+            -o ${CMAKE_BINARY_DIR}/test_reflection.out
+            RESULT_VARIABLE _compile_result
+            ERROR_VARIABLE _compile_error
+            OUTPUT_VARIABLE _compile_output
+    )
+
+    file(REMOVE ${CMAKE_BINARY_DIR}/test_reflection.cpp)
+    file(REMOVE ${CMAKE_BINARY_DIR}/test_reflection.out)
+
+    if (_compile_result EQUAL 0)
+        message(STATUS "Compiler supports C++26 Static Reflection (with <meta> and ^^ reflection operator)")
+        set(RAINY_TOOLKIT_HAVE_CXX26_STATIC_REFLECTION TRUE PARENT_SCOPE)
+        set(RAINY_HAS_CXX26_STATIC_REFLECTION 1 PARENT_SCOPE)
+        set(_compile_flags "-std=c++26 -freflection" PARENT_SCOPE)
+    else ()
+        message(STATUS "Compiler does NOT support C++26 Static Reflection, Disable it.")
+        set(RAINY_TOOLKIT_HAVE_CXX26_STATIC_REFLECTION FALSE PARENT_SCOPE)
+        set(RAINY_HAS_CXX26_STATIC_REFLECTION 0 PARENT_SCOPE)
+    endif ()
 endfunction()

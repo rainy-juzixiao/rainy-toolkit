@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 rainy-juzixiao
+ * Copyright 2026 rainy-juzixiao
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -52,11 +52,11 @@
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
-#include <initializer_list>
 #include <exception>
+#include <initializer_list>
+#include <memory>
 #include <string_view>
 #include <utility>
-#include <memory>
 
 #ifdef __linux__
 #include <csignal>
@@ -990,7 +990,7 @@ namespace rainy::core::builtin {
      * @return Ty* 构造完成的对象指针，如果 location 为空则返回 nullptr
      */
     template <typename Ty, typename... Args>
-    RAINY_CONSTEXPR20 rain_fn construct_at(Ty *location, Args &&...args) noexcept(noexcept(::new (static_cast<void *>(location))
+    RAINY_CONSTEXPR20 rain_fn construct_at(Ty *location, Args &&...args) noexcept(noexcept(::new(static_cast<void *>(location))
                                                                                                Ty(builtin::forward<Args>(args)...)))
         -> Ty * {
         if (!location) {
@@ -2345,7 +2345,7 @@ namespace rainy::core::builtin {
      * @return 如果值近似相等则返回 true，否则返回 false
      */
     static RAINY_INLINE rain_fn almost_equal(double p1, double p2) -> bool {
-        return (std::abs(p1 - p2) * 1000000000000. <= (core::min) (std::abs(p1), std::abs(p2)));
+        return (std::abs(p1 - p2) * 1000000000000. <= (core::min)(std::abs(p1), std::abs(p2)));
     }
 }
 

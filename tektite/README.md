@@ -1,0 +1,7 @@
+## Tektite
+
+Tektite是rainy-toolkit的重构基础设施部分，它通过将不同的库模块拆分成多个target以便维护各个模块，而不需要因为某个target的变动导致其编译的重复进行。同时，实现按需使用，以便不再需要编译其它不必要的基础设施。
+
+目前rainy-toolkit正在通过yesod分支逐步重构core核心库，并计划在后续逐步合并并删除xaga，并发布一个breaking change来重构库体系。
+
+同时，Tektite也将可能作为rainy-toolkit实现模块支持的一个最佳途径

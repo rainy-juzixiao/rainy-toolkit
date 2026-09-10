@@ -49,11 +49,11 @@ impl MarkdownGenerator {
         writeln!(out, "# {}", file_name).unwrap();
         writeln!(out).unwrap();
 
-        if let Some(brief) = self.get(&doc.brief) {
+        if let Some(brief) = self.get(&doc.brief).map(|s| escape_html(s)) {
             writeln!(out, "{}", brief).unwrap();
             writeln!(out).unwrap();
         }
-        if let Some(desc) = self.get(&doc.description) {
+        if let Some(desc) = self.get(&doc.description).map(|s| escape_html(s)) {
             writeln!(out, "{}", desc).unwrap();
             writeln!(out).unwrap();
         }
@@ -66,24 +66,53 @@ impl MarkdownGenerator {
         let visible_enums: Vec<_> = doc
             .enums
             .iter()
-            .chain(doc.namespaces.iter().flat_map(|ns| ns.enums.iter()))
-            .filter(|e| !e.base.is_not_public)
+            .chain(doc.namespaces.iter().flat_map(|ns| collect_all_enums(ns)))
+            .filter(|e| !e.is_scoped && !e.base.is_not_public)
+            .collect();
+        let visible_enum_classes: Vec<_> = doc
+            .enums
+            .iter()
+            .chain(doc.namespaces.iter().flat_map(|ns| collect_all_enums(ns)))
+            .filter(|e| e.is_scoped && !e.base.is_not_public)
             .collect();
         let visible_vars: Vec<_> = doc
             .variables
             .iter()
-            .chain(doc.namespaces.iter().flat_map(|ns| ns.variables.iter()))
+            .chain(doc.namespaces.iter().flat_map(|ns| collect_all_variables(ns)))
             .filter(|v| !v.base.is_not_public)
             .collect();
-        let visible_fns: Vec<_> = doc
-            .free_functions
+        let visible_constants: Vec<_> = doc
+            .constants
             .iter()
             .chain(
                 doc.namespaces
                     .iter()
-                    .flat_map(|ns| collect_all_functions(ns)),
+                    .flat_map(|ns| collect_all_constants(ns)),
             )
-            .filter(|c| !c.base.is_hidden && !c.base.is_not_public)
+            .filter(|c| !c.base.is_not_public)
+            .collect();
+        let visible_variable_templates: Vec<_> = doc
+            .variable_templates
+            .iter()
+            .chain(
+                doc.namespaces
+                    .iter()
+                    .flat_map(|ns| collect_all_variable_templates(ns)),
+            )
+            .filter(|vt| !vt.base.is_not_public)
+            .collect();
+        let visible_fn_groups: Vec<_> = doc
+            .free_function_overloads
+            .iter()
+            .chain(
+                doc.namespaces
+                    .iter()
+                    .flat_map(|ns| collect_all_function_groups(ns)),
+            )
+            .filter(|g| {
+                !g.overloads.is_empty()
+                    && !g.overloads.iter().all(|f| f.base.is_hidden || f.base.is_not_public)
+            })
             .collect();
         let marcos: Vec<_> = doc
             .macros
@@ -97,7 +126,7 @@ impl MarkdownGenerator {
             writeln!(out, "| Name | Description |").unwrap();
             writeln!(out, "|------|-------------|").unwrap();
             for c in &visible_classes {
-                let brief = self.get(&c.base.brief).map(|s| s.as_str()).unwrap_or("");
+                let brief = self.get(&c.base.brief).map(|s| escape_html(s)).unwrap_or_default();
                 let anchor = class_anchor(&c.base.name);
                 writeln!(out, "| [`{}`](#{}) | {} |", c.base.name, anchor, brief).unwrap();
             }
@@ -110,7 +139,20 @@ impl MarkdownGenerator {
             writeln!(out, "| Name | Description |").unwrap();
             writeln!(out, "|------|-------------|").unwrap();
             for e in &visible_enums {
-                let brief = self.get(&e.base.brief).map(|s| s.as_str()).unwrap_or("");
+                let brief = self.get(&e.base.brief).map(|s| escape_html(s)).unwrap_or_default();
+                let anchor = class_anchor(&e.base.name);
+                writeln!(out, "| [`{}`](#{}) | {} |", e.base.name, anchor, brief).unwrap();
+            }
+            writeln!(out).unwrap();
+        }
+
+        if !visible_enum_classes.is_empty() {
+            writeln!(out, "## Enum Classes").unwrap();
+            writeln!(out).unwrap();
+            writeln!(out, "| Name | Description |").unwrap();
+            writeln!(out, "|------|-------------|").unwrap();
+            for e in &visible_enum_classes {
+                let brief = self.get(&e.base.brief).map(|s| escape_html(s)).unwrap_or_default();
                 let anchor = class_anchor(&e.base.name);
                 writeln!(out, "| [`{}`](#{}) | {} |", e.base.name, anchor, brief).unwrap();
             }
@@ -123,7 +165,7 @@ impl MarkdownGenerator {
             writeln!(out, "| Name | Type | Description |").unwrap();
             writeln!(out, "|------|------|-------------|").unwrap();
             for v in &visible_vars {
-                let brief = self.get(&v.base.brief).map(|s| s.as_str()).unwrap_or("");
+                let brief = self.get(&v.base.brief).map(|s| escape_html(s)).unwrap_or_default();
                 let anchor = class_anchor(&v.base.name);
                 writeln!(
                     out,
@@ -135,15 +177,61 @@ impl MarkdownGenerator {
             writeln!(out).unwrap();
         }
 
-        if !visible_fns.is_empty() {
+        if !visible_constants.is_empty() {
+            writeln!(out, "## Constants").unwrap();
+            writeln!(out).unwrap();
+            writeln!(out, "| Name | Type | Description |").unwrap();
+            writeln!(out, "|------|------|-------------|").unwrap();
+            for c in &visible_constants {
+                let brief = self.get(&c.base.brief).map(|s| escape_html(s)).unwrap_or_default();
+                let anchor = class_anchor(&c.base.name);
+                writeln!(
+                    out,
+                    "| [`{}`](#{}) | `{}` | {} |",
+                    c.base.name, anchor, c.type_name, brief
+                )
+                .unwrap();
+            }
+            writeln!(out).unwrap();
+        }
+
+        if !visible_variable_templates.is_empty() {
+            writeln!(out, "## Variable Templates").unwrap();
+            writeln!(out).unwrap();
+            writeln!(out, "| Name | Type | Description |").unwrap();
+            writeln!(out, "|------|------|-------------|").unwrap();
+            for vt in &visible_variable_templates {
+                let brief = self.get(&vt.base.brief).map(|s| escape_html(s)).unwrap_or_default();
+                let anchor = class_anchor(&vt.base.name);
+                writeln!(
+                    out,
+                    "| [`{}`](#{}) | `{}` | {} |",
+                    vt.base.name, anchor, vt.type_name, brief
+                )
+                .unwrap();
+            }
+            writeln!(out).unwrap();
+        }
+
+        if !visible_fn_groups.is_empty() {
             writeln!(out, "## Functions").unwrap();
             writeln!(out).unwrap();
             writeln!(out, "| Name | Description |").unwrap();
             writeln!(out, "|------|-------------|").unwrap();
-            for f in &visible_fns {
-                let brief = self.get(&f.base.brief).map(|s| s.as_str()).unwrap_or("");
-                let anchor = class_anchor(&f.base.name);
-                writeln!(out, "| [`{}`](#{}) | {} |", f.base.name, anchor, brief).unwrap();
+            for group in &visible_fn_groups {
+                let brief = group
+                    .overloads
+                    .first()
+                    .and_then(|f| self.get(&f.base.brief))
+                    .map(|s| s.as_str())
+                    .unwrap_or("");
+                let anchor = class_anchor(&group.name);
+                let overload_note = if group.overloads.len() > 1 {
+                    format!(" *({} overloads)*", group.overloads.len())
+                } else {
+                    String::new()
+                };
+                writeln!(out, "| [`{}`](#{}){} | {} |", group.name, anchor, overload_note, escape_html(brief)).unwrap();
             }
             writeln!(out).unwrap();
         }
@@ -155,7 +243,7 @@ impl MarkdownGenerator {
             writeln!(out, "|------|-------------|").unwrap();
             for m in &marcos {
                 let brief = self.get(&m.base.brief).map(|s| s.as_str()).unwrap_or("");
-                writeln!(out, "| [`{}`](#{}) | {} |", m.base.name, m.base.name, brief).unwrap();
+                writeln!(out, "| [`{}`](#{}) | {} |", m.base.name, m.base.name, escape_html(brief)).unwrap();
             }
             writeln!(out).unwrap();
         }
@@ -169,11 +257,20 @@ impl MarkdownGenerator {
         for e in &visible_enums {
             out.push_str(&self.generate_enum(e, 2));
         }
+        for e in &visible_enum_classes {
+            out.push_str(&self.generate_enum(e, 2));
+        }
         for v in &visible_vars {
             out.push_str(&self.generate_variable(v, 2));
         }
-        for f in &visible_fns {
-            out.push_str(&self.generate_free_function(f, 2));
+        for c in &visible_constants {
+            out.push_str(&self.generate_constant(c, 2));
+        }
+        for vt in &visible_variable_templates {
+            out.push_str(&self.generate_variable_template(vt, 2));
+        }
+        for group in &visible_fn_groups {
+            out.push_str(&self.generate_free_function_overload_group(group, 2));
         }
         out
     }
@@ -190,6 +287,7 @@ impl MarkdownGenerator {
         writeln!(out, "{} {} `{}`", h, kind, c.base.name).unwrap();
         writeln!(out).unwrap();
 
+        let class_name = &c.base.name;
         // 模板标记
         if c.base.is_main_template {
             writeln!(out, "> **Primary template**").unwrap();
@@ -211,18 +309,18 @@ impl MarkdownGenerator {
             writeln!(out, "| Parameter | Description |").unwrap();
             writeln!(out, "|-----------|-------------|").unwrap();
             for tp in &c.base.template_params {
-                let desc = self.get(&tp.description).map(|s| s.as_str()).unwrap_or("");
+                let desc = self.get(&tp.description).map(|s| escape_html(s)).unwrap_or_default();
                 writeln!(out, "| `{}` | {} |", tp.name, desc).unwrap();
             }
             writeln!(out).unwrap();
         }
         // brief / details
         if let Some(brief) = self.get(&c.base.brief) {
-            writeln!(out, "{}", brief).unwrap();
+            writeln!(out, "{}", escape_html(brief)).unwrap();
             writeln!(out).unwrap();
         }
         if let Some(desc) = self.get(&c.base.description) {
-            writeln!(out, "{}", desc).unwrap();
+            writeln!(out, "{}", escape_html(desc)).unwrap();
             writeln!(out).unwrap();
         }
         // 继承
@@ -236,7 +334,7 @@ impl MarkdownGenerator {
                         AccessLevel::Protected => "protected",
                         AccessLevel::Private => "private",
                     };
-                    format!("`{}` {}", access, b.name)
+                    format!("`{}` {}", access, escape_html(&b.name))
                 })
                 .collect();
             writeln!(out, "**Inherits:** {}", bases.join(", ")).unwrap();
@@ -255,6 +353,16 @@ impl MarkdownGenerator {
             .iter()
             .filter(|f| matches!(f.access, AccessLevel::Public) && !f.base.is_not_public)
             .collect();
+        let visible_constants: Vec<_> = c
+            .constant_members
+            .iter()
+            .filter(|c| matches!(c.access, AccessLevel::Public) && !c.base.is_not_public)
+            .collect();
+        let visible_vt_members: Vec<_> = c
+            .variable_template_members
+            .iter()
+            .filter(|vt| matches!(vt.access, AccessLevel::Public) && !vt.base.is_not_public)
+            .collect();
         let visible_nested: Vec<_> = c
             .nested_classes
             .iter()
@@ -263,7 +371,12 @@ impl MarkdownGenerator {
         let visible_nested_enums: Vec<_> = c
             .nested_enums
             .iter()
-            .filter(|e| !e.base.is_not_public)
+            .filter(|e| !e.is_scoped && !e.base.is_not_public)
+            .collect();
+        let visible_nested_enum_classes: Vec<_> = c
+            .nested_enums
+            .iter()
+            .filter(|e| e.is_scoped && !e.base.is_not_public)
             .collect();
         if !visible_methods.is_empty() {
             writeln!(out, "### Member Functions").unwrap();
@@ -286,7 +399,7 @@ impl MarkdownGenerator {
                 writeln!(
                     out,
                     "| [{}](#{}){}  | {} |",
-                    group.name, anchor, overload_note, brief
+                    escape_html(&group.name), anchor, overload_note, escape_html(brief)
                 )
                 .unwrap();
             }
@@ -303,7 +416,41 @@ impl MarkdownGenerator {
                 writeln!(
                     out,
                     "| [{}](#{}) | `{}` | {} |",
-                    f.base.name, anchor, f.type_name, brief
+                    escape_html(&f.base.name), anchor, f.type_name, escape_html(brief)
+                )
+                .unwrap();
+            }
+            writeln!(out).unwrap();
+        }
+        if !visible_constants.is_empty() {
+            writeln!(out, "### Constants").unwrap();
+            writeln!(out).unwrap();
+            writeln!(out, "| Name | Type | Description |").unwrap();
+            writeln!(out, "|------|------|-------------|").unwrap();
+            for c in &visible_constants {
+                let brief = self.get(&c.base.brief).map(|s| s.as_str()).unwrap_or("");
+                let anchor = method_anchor(class_name, &c.base.name);
+                writeln!(
+                    out,
+                    "| [{}](#{}) | `{}` | {} |",
+                    escape_html(&c.base.name), anchor, c.type_name, escape_html(brief)
+                )
+                .unwrap();
+            }
+            writeln!(out).unwrap();
+        }
+        if !visible_vt_members.is_empty() {
+            writeln!(out, "### Variable Templates").unwrap();
+            writeln!(out).unwrap();
+            writeln!(out, "| Name | Type | Description |").unwrap();
+            writeln!(out, "|------|------|-------------|").unwrap();
+            for vt in &visible_vt_members {
+                let brief = self.get(&vt.base.brief).map(|s| s.as_str()).unwrap_or("");
+                let anchor = method_anchor(&c.base.name, &vt.base.name);
+                writeln!(
+                    out,
+                    "| [{}](#{}) | `{}` | {} |",
+                    escape_html(&vt.base.name), anchor, vt.type_name, escape_html(brief)
                 )
                 .unwrap();
             }
@@ -317,7 +464,7 @@ impl MarkdownGenerator {
             for n in &visible_nested {
                 let brief = self.get(&n.base.brief).map(|s| s.as_str()).unwrap_or("");
                 let anchor = class_anchor(&n.base.name);
-                writeln!(out, "| [{}](#{}) | {} |", n.base.name, anchor, brief).unwrap();
+                writeln!(out, "| [{}](#{}) | {} |", escape_html(&n.base.name), anchor, escape_html(brief)).unwrap();
             }
             writeln!(out).unwrap();
         }
@@ -329,7 +476,19 @@ impl MarkdownGenerator {
             for e in &visible_nested_enums {
                 let brief = self.get(&e.base.brief).map(|s| s.as_str()).unwrap_or("");
                 let anchor = class_anchor(&e.base.name);
-                writeln!(out, "| [{}](#{}) | {} |", e.base.name, anchor, brief).unwrap();
+                writeln!(out, "| [{}](#{}) | {} |", escape_html(&e.base.name), anchor, escape_html(brief)).unwrap();
+            }
+            writeln!(out).unwrap();
+        }
+        if !visible_nested_enum_classes.is_empty() {
+            writeln!(out, "### Nested Enum Classes").unwrap();
+            writeln!(out).unwrap();
+            writeln!(out, "| Name | Description |").unwrap();
+            writeln!(out, "|------|-------------|").unwrap();
+            for e in &visible_nested_enum_classes {
+                let brief = self.get(&e.base.brief).map(|s| s.as_str()).unwrap_or("");
+                let anchor = class_anchor(&e.base.name);
+                writeln!(out, "| [{}](#{}) | {} |", e.base.name, anchor, escape_html(brief)).unwrap();
             }
             writeln!(out).unwrap();
         }
@@ -344,12 +503,24 @@ impl MarkdownGenerator {
         for f in &visible_fields {
             out.push_str(&self.generate_member_field(f, &c.base.name, heading + 1));
         }
+        // 常量成员详细文档
+        for c in &visible_constants {
+            out.push_str(&self.generate_constant(c, heading + 1));
+        }
+        // 变量模板成员详细文档
+        for vt in &visible_vt_members {
+            out.push_str(&self.generate_variable_template(vt, heading + 1));
+        }
         // 嵌套类详细文档（递归，heading +1）
         for n in &visible_nested {
             out.push_str(&self.generate_class(n, heading + 1));
         }
         // 嵌套枚举详细文档
         for e in &visible_nested_enums {
+            out.push_str(&self.generate_enum(e, heading + 1));
+        }
+        // 嵌套枚举类详细文档
+        for e in &visible_nested_enum_classes {
             out.push_str(&self.generate_enum(e, heading + 1));
         }
         out
@@ -422,11 +593,11 @@ impl MarkdownGenerator {
             }
             // brief / details
             if let Some(brief) = self.get(&o.doc.base.brief) {
-                writeln!(out, "{}", brief).unwrap();
+                writeln!(out, "{}", escape_html(brief)).unwrap();
                 writeln!(out).unwrap();
             }
             if let Some(desc) = self.get(&o.doc.base.description) {
-                writeln!(out, "{}", desc).unwrap();
+                writeln!(out, "{}", escape_html(desc)).unwrap();
                 writeln!(out).unwrap();
             }
             // 通用注释块
@@ -449,7 +620,7 @@ impl MarkdownGenerator {
                     writeln!(
                         out,
                         "| `{}` | `{}` | {} | {} |",
-                        p.name, p.type_name, dir, desc
+                        p.name, p.type_name, dir, escape_html(desc)
                     )
                     .unwrap();
                 }
@@ -462,7 +633,7 @@ impl MarkdownGenerator {
                 writeln!(out, "**Returns**").unwrap();
                 writeln!(out).unwrap();
                 if let Some(ret) = self.get(&o.doc.return_doc.description) {
-                    writeln!(out, "{}", ret).unwrap();
+                    writeln!(out, "{}", escape_html(ret)).unwrap();
                     writeln!(out).unwrap();
                 }
                 if !o.doc.return_doc.return_values.is_empty() {
@@ -470,7 +641,7 @@ impl MarkdownGenerator {
                     writeln!(out, "|-------|-------------|").unwrap();
                     for rv in &o.doc.return_doc.return_values {
                         let desc = self.get(&rv.description).map(|s| s.as_str()).unwrap_or("");
-                        writeln!(out, "| `{}` | {} |", rv.value, desc).unwrap();
+                        writeln!(out, "| `{}` | {} |", rv.value, escape_html(desc)).unwrap();
                     }
                     writeln!(out).unwrap();
                 }
@@ -483,7 +654,7 @@ impl MarkdownGenerator {
                 writeln!(out, "|-----------|-------------|").unwrap();
                 for ex in &o.doc.exceptions {
                     let desc = self.get(&ex.description).map(|s| s.as_str()).unwrap_or("");
-                    writeln!(out, "| `{}` | {} |", ex.exception_type, desc).unwrap();
+                    writeln!(out, "| `{}` | {} |", ex.exception_type, escape_html(desc)).unwrap();
                 }
                 writeln!(out).unwrap();
             }
@@ -529,11 +700,11 @@ impl MarkdownGenerator {
         writeln!(out, "```").unwrap();
         writeln!(out).unwrap();
         if let Some(brief) = self.get(&f.base.brief) {
-            writeln!(out, "{}", brief).unwrap();
+            writeln!(out, "{}", escape_html(brief)).unwrap();
             writeln!(out).unwrap();
         }
         if let Some(desc) = self.get(&f.base.description) {
-            writeln!(out, "{}", desc).unwrap();
+            writeln!(out, "{}", escape_html(desc)).unwrap();
             writeln!(out).unwrap();
         }
         out.push_str(&self.generate_common_tags(&f.base));
@@ -559,11 +730,11 @@ impl MarkdownGenerator {
             writeln!(out).unwrap();
         }
         if let Some(brief) = self.get(&e.base.brief) {
-            writeln!(out, "{}", brief).unwrap();
+            writeln!(out, "{}", escape_html(brief)).unwrap();
             writeln!(out).unwrap();
         }
         if let Some(desc) = self.get(&e.base.description) {
-            writeln!(out, "{}", desc).unwrap();
+            writeln!(out, "{}", escape_html(desc)).unwrap();
             writeln!(out).unwrap();
         }
         out.push_str(&self.generate_common_tags(&e.base));
@@ -578,9 +749,9 @@ impl MarkdownGenerator {
                 let brief = self.get(&v.brief).map(|s| s.as_str()).unwrap_or("");
                 let desc = self.get(&v.description).map(|s| s.as_str()).unwrap_or("");
                 let combined = if !brief.is_empty() && !desc.is_empty() {
-                    format!("{} {}", brief, desc)
+                    format!("{} {}", escape_html(brief), escape_html(desc))
                 } else {
-                    format!("{}{}", brief, desc)
+                    format!("{}{}", escape_html(brief), escape_html(desc))
                 };
                 writeln!(out, "| `{}` | `{}` | {} |", v.name, val, combined).unwrap();
             }
@@ -644,21 +815,167 @@ impl MarkdownGenerator {
             writeln!(out, "| Parameter | Description |").unwrap();
             writeln!(out, "|-----------|-------------|").unwrap();
             for tp in &v.base.template_params {
-                let desc = self.get(&tp.description).map(|s| s.as_str()).unwrap_or("");
+                let desc = self.get(&tp.description).map(|s| escape_html(s)).unwrap_or_default();
                 writeln!(out, "| `{}` | {} |", tp.name, desc).unwrap();
             }
             writeln!(out).unwrap();
         }
 
         if let Some(brief) = self.get(&v.base.brief) {
-            writeln!(out, "{}", brief).unwrap();
+            writeln!(out, "{}", escape_html(brief)).unwrap();
             writeln!(out).unwrap();
         }
         if let Some(desc) = self.get(&v.base.description) {
-            writeln!(out, "{}", desc).unwrap();
+            writeln!(out, "{}", escape_html(desc)).unwrap();
             writeln!(out).unwrap();
         }
         out.push_str(&self.generate_common_tags(&v.base));
+
+        out
+    }
+
+    pub fn generate_constant(&self, c: &ConstantDocument, heading: usize) -> String {
+        let mut out = String::new();
+        let h = "#".repeat(heading);
+        let anchor = class_anchor(&c.base.name);
+
+        writeln!(out, "{} `{}` {{#{}}}", h, c.base.name, anchor).unwrap();
+        writeln!(out).unwrap();
+
+        // 声明
+        writeln!(out, "```cpp").unwrap();
+        let mut decl = String::new();
+        if c.is_static {
+            decl.push_str("static ");
+        }
+        if c.is_inline {
+            decl.push_str("inline ");
+        }
+        if c.is_constexpr {
+            decl.push_str("constexpr ");
+        }
+        if c.is_constinit {
+            decl.push_str("constinit ");
+        }
+        decl.push_str(&c.type_name);
+        decl.push(' ');
+        decl.push_str(&c.base.name);
+        if let Some(val) = &c.default_value {
+            decl.push_str(&format!(" = {}", val));
+        }
+        decl.push(';');
+        writeln!(out, "{}", decl).unwrap();
+        writeln!(out, "```").unwrap();
+        writeln!(out).unwrap();
+
+        // 模板标记
+        if c.base.is_main_template {
+            writeln!(out, "> **Primary template**").unwrap();
+            writeln!(out).unwrap();
+        }
+        if !c.base.spec_template_args.is_empty() {
+            writeln!(
+                out,
+                "> **Specialization** `<{}>`",
+                c.base.spec_template_args.join(", ")
+            )
+            .unwrap();
+            writeln!(out).unwrap();
+        }
+        if c.base.is_template && !c.base.template_params.is_empty() {
+            writeln!(out, "**Template parameters**").unwrap();
+            writeln!(out).unwrap();
+            writeln!(out, "| Parameter | Description |").unwrap();
+            writeln!(out, "|-----------|-------------|").unwrap();
+            for tp in &c.base.template_params {
+                let desc = self.get(&tp.description).map(|s| escape_html(s)).unwrap_or_default();
+                writeln!(out, "| `{}` | {} |", tp.name, desc).unwrap();
+            }
+            writeln!(out).unwrap();
+        }
+
+        if let Some(brief) = self.get(&c.base.brief) {
+            writeln!(out, "{}", escape_html(brief)).unwrap();
+            writeln!(out).unwrap();
+        }
+        if let Some(desc) = self.get(&c.base.description) {
+            writeln!(out, "{}", escape_html(desc)).unwrap();
+            writeln!(out).unwrap();
+        }
+        out.push_str(&self.generate_common_tags(&c.base));
+
+        out
+    }
+
+    pub fn generate_variable_template(&self, vt: &VariableTemplateDocument, heading: usize) -> String {
+        let mut out = String::new();
+        let h = "#".repeat(heading);
+        let anchor = class_anchor(&vt.base.name);
+
+        writeln!(out, "{} `{}` {{#{}}}", h, vt.base.name, anchor).unwrap();
+        writeln!(out).unwrap();
+
+        // 模板标记
+        if vt.base.is_main_template {
+            writeln!(out, "> **Primary template**").unwrap();
+            writeln!(out).unwrap();
+        }
+        if !vt.base.spec_template_args.is_empty() {
+            writeln!(
+                out,
+                "> **Specialization** `<{}>`",
+                vt.base.spec_template_args.join(", ")
+            )
+            .unwrap();
+            writeln!(out).unwrap();
+        }
+        if vt.base.is_template && !vt.base.template_params.is_empty() {
+            writeln!(out, "**Template parameters**").unwrap();
+            writeln!(out).unwrap();
+            writeln!(out, "| Parameter | Description |").unwrap();
+            writeln!(out, "|-----------|-------------|").unwrap();
+            for tp in &vt.base.template_params {
+                let desc = self.get(&tp.description).map(|s| escape_html(s)).unwrap_or_default();
+                writeln!(out, "| `{}` | {} |", tp.name, desc).unwrap();
+            }
+            writeln!(out).unwrap();
+        }
+
+        // 声明
+        writeln!(out, "```cpp").unwrap();
+        let mut decl = String::new();
+        if vt.is_static {
+            decl.push_str("static ");
+        }
+        if vt.is_inline {
+            decl.push_str("inline ");
+        }
+        if vt.is_constexpr {
+            decl.push_str("constexpr ");
+        }
+        if vt.is_const {
+            decl.push_str("const ");
+        }
+        decl.push_str(&vt.type_name);
+        decl.push(' ');
+        decl.push_str(&vt.base.name);
+        if let Some(val) = &vt.default_value {
+            decl.push_str(&format!(" = {}", val));
+        }
+        decl.push(';');
+        writeln!(out, "{}", decl).unwrap();
+        writeln!(out, "```").unwrap();
+        writeln!(out).unwrap();
+
+        if let Some(brief) = self.get(&vt.base.brief) {
+            writeln!(out, "{}", escape_html(brief)).unwrap();
+            writeln!(out).unwrap();
+        }
+        if let Some(desc) = self.get(&vt.base.description) {
+            writeln!(out, "{}", escape_html(desc)).unwrap();
+            writeln!(out).unwrap();
+        }
+        out.push_str(&self.generate_common_tags(&vt.base));
 
         out
     }
@@ -691,11 +1008,11 @@ impl MarkdownGenerator {
         }
 
         if let Some(brief) = self.get(&f.base.brief) {
-            writeln!(out, "{}", brief).unwrap();
+            writeln!(out, "{}", escape_html(brief)).unwrap();
             writeln!(out).unwrap();
         }
         if let Some(desc) = self.get(&f.base.description) {
-            writeln!(out, "{}", desc).unwrap();
+            writeln!(out, "{}", escape_html(desc)).unwrap();
             writeln!(out).unwrap();
         }
         out.push_str(&self.generate_common_tags(&f.base));
@@ -716,7 +1033,7 @@ impl MarkdownGenerator {
                 writeln!(
                     out,
                     "| `{}` | `{}` | {} | {} |",
-                    p.name, p.type_name, dir, desc
+                    p.name, p.type_name, dir, escape_html(desc)
                 )
                 .unwrap();
             }
@@ -725,7 +1042,7 @@ impl MarkdownGenerator {
 
         // 返回
         if let Some(ret) = self.get(&f.return_doc.description) {
-            writeln!(out, "**Returns:** {}", ret).unwrap();
+            writeln!(out, "**Returns:** {}", escape_html(ret)).unwrap();
             writeln!(out).unwrap();
         }
 
@@ -737,9 +1054,124 @@ impl MarkdownGenerator {
             writeln!(out, "|-----------|-------------|").unwrap();
             for ex in &f.exceptions {
                 let desc = self.get(&ex.description).map(|s| s.as_str()).unwrap_or("");
-                writeln!(out, "| `{}` | {} |", ex.exception_type, desc).unwrap();
+                writeln!(out, "| `{}` | {} |", ex.exception_type, escape_html(desc)).unwrap();
             }
             writeln!(out).unwrap();
+        }
+        out
+    }
+
+    fn generate_free_function_overload_group(
+        &self,
+        group: &FreeFunctionOverloadGroup,
+        heading: usize,
+    ) -> String {
+        let mut out = String::new();
+        let h = "#".repeat(heading);
+        let anchor = class_anchor(&group.name);
+
+        writeln!(out, "{} `{}` {{#{}}}", h, group.name, anchor).unwrap();
+        writeln!(out).unwrap();
+
+        for (i, f) in group.overloads.iter().enumerate() {
+            if f.base.is_not_public || f.base.is_hidden {
+                continue;
+            }
+            if group.overloads.len() > 1 {
+                writeln!(out, "#### Overload {}", i + 1).unwrap();
+                writeln!(out).unwrap();
+            }
+            // 声明原型
+            if let Some(proto) = &f.decl_prototype {
+                writeln!(out, "```cpp").unwrap();
+                writeln!(out, "{}", proto).unwrap();
+                writeln!(out, "```").unwrap();
+                writeln!(out).unwrap();
+            }
+            // 修饰符 badges
+            let mut badges = Vec::new();
+            if f.is_static {
+                badges.push("`static`");
+            }
+            if f.is_inline {
+                badges.push("`inline`");
+            }
+            if f.is_constexpr {
+                badges.push("`constexpr`");
+            }
+            if f.is_noexcept {
+                badges.push("`noexcept`");
+            }
+            if !badges.is_empty() {
+                writeln!(out, "{}", badges.join(" ")).unwrap();
+                writeln!(out).unwrap();
+            }
+            // brief / details
+            if let Some(brief) = self.get(&f.base.brief) {
+                writeln!(out, "{}", escape_html(brief)).unwrap();
+                writeln!(out).unwrap();
+            }
+            if let Some(desc) = self.get(&f.base.description) {
+                writeln!(out, "{}", escape_html(desc)).unwrap();
+                writeln!(out).unwrap();
+            }
+            out.push_str(&self.generate_common_tags(&f.base));
+            // 参数表
+            let visible_params: Vec<_> =
+                f.params.iter().filter(|p| !p.name.is_empty()).collect();
+            if !visible_params.is_empty() {
+                writeln!(out, "**Parameters**").unwrap();
+                writeln!(out).unwrap();
+                writeln!(out, "| Name | Type | Direction | Description |").unwrap();
+                writeln!(out, "|------|------|-----------|-------------|").unwrap();
+                for p in &visible_params {
+                    let dir = match p.direction {
+                        ParamDirection::In => "in",
+                        ParamDirection::Out => "out",
+                        ParamDirection::InOut => "in,out",
+                    };
+                    let desc = self.get(&p.description).map(|s| s.as_str()).unwrap_or("");
+                    writeln!(
+                        out,
+                        "| `{}` | `{}` | {} | {} |",
+                        p.name, p.type_name, dir, escape_html(desc)
+                    )
+                    .unwrap();
+                }
+                writeln!(out).unwrap();
+            }
+            // 返回值
+            let has_return = self.get(&f.return_doc.description).is_some()
+                || !f.return_doc.return_values.is_empty();
+            if has_return {
+                writeln!(out, "**Returns**").unwrap();
+                writeln!(out).unwrap();
+                if let Some(ret) = self.get(&f.return_doc.description) {
+                    writeln!(out, "{}", escape_html(ret)).unwrap();
+                    writeln!(out).unwrap();
+                }
+                if !f.return_doc.return_values.is_empty() {
+                    writeln!(out, "| Value | Description |").unwrap();
+                    writeln!(out, "|-------|-------------|").unwrap();
+                    for rv in &f.return_doc.return_values {
+                        let desc = self.get(&rv.description).map(|s| s.as_str()).unwrap_or("");
+                        writeln!(out, "| `{}` | {} |", rv.value, escape_html(desc)).unwrap();
+                    }
+                    writeln!(out).unwrap();
+                }
+            }
+            // 异常
+            if !f.exceptions.is_empty() {
+                writeln!(out, "**Throws**").unwrap();
+                writeln!(out).unwrap();
+                writeln!(out, "| Exception | Description |").unwrap();
+                writeln!(out, "|-----------|-------------|").unwrap();
+                for ex in &f.exceptions {
+                    let desc = self.get(&ex.description).map(|s| s.as_str()).unwrap_or("");
+                    writeln!(out, "| `{}` | {} |", ex.exception_type, escape_html(desc)).unwrap();
+                }
+                writeln!(out).unwrap();
+            }
         }
         out
     }
@@ -748,36 +1180,36 @@ impl MarkdownGenerator {
         let mut out = String::new();
 
         if let Some(note) = self.get(&base.note) {
-            writeln!(out, "> **Note:** {}", note).unwrap();
+            writeln!(out, "> **Note:** {}", escape_html(note)).unwrap();
             writeln!(out).unwrap();
         }
         if let Some(warn) = self.get(&base.warning) {
-            writeln!(out, "> **Warning:** {}", warn).unwrap();
+            writeln!(out, "> **Warning:** {}", escape_html(warn)).unwrap();
             writeln!(out).unwrap();
         }
         if let Some(attn) = self.get(&base.attention) {
-            writeln!(out, "> **Attention:** {}", attn).unwrap();
+            writeln!(out, "> **Attention:** {}", escape_html(attn)).unwrap();
             writeln!(out).unwrap();
         }
         if let Some(rem) = self.get(&base.remark) {
-            writeln!(out, "> **Remark:** {}", rem).unwrap();
+            writeln!(out, "> **Remark:** {}", escape_html(rem)).unwrap();
             writeln!(out).unwrap();
         }
         if let Some(dep) = self.get(&base.deprecated) {
-            writeln!(out, "> **Deprecated:** {}", dep).unwrap();
+            writeln!(out, "> **Deprecated:** {}", escape_html(dep)).unwrap();
             writeln!(out).unwrap();
         }
         if let Some(since) = &base.since {
-            writeln!(out, "> **Since:** {}", since).unwrap();
+            writeln!(out, "> **Since:** {}", escape_html(since)).unwrap();
             writeln!(out).unwrap();
         }
         if let Some(ver) = &base.version {
-            writeln!(out, "> **Version:** {}", ver).unwrap();
+            writeln!(out, "> **Version:** {}", escape_html(ver)).unwrap();
             writeln!(out).unwrap();
         }
         if let Some(todos) = self.get_vec(&base.todo) {
             for t in todos {
-                writeln!(out, "> **TODO:** {}", t).unwrap();
+                writeln!(out, "> **TODO:** {}", escape_html(t)).unwrap();
             }
             if !todos.is_empty() {
                 writeln!(out).unwrap();
@@ -785,7 +1217,7 @@ impl MarkdownGenerator {
         }
         if let Some(bugs) = self.get_vec(&base.bug) {
             for b in bugs {
-                writeln!(out, "> **Bug:** {}", b).unwrap();
+                writeln!(out, "> **Bug:** {}", escape_html(b)).unwrap();
             }
             if !bugs.is_empty() {
                 writeln!(out).unwrap();
@@ -793,7 +1225,7 @@ impl MarkdownGenerator {
         }
         if let Some(pres) = self.get_vec(&base.pre) {
             for p in pres {
-                writeln!(out, "> **Pre:** {}", p).unwrap();
+                writeln!(out, "> **Pre:** {}", escape_html(p)).unwrap();
             }
             if !pres.is_empty() {
                 writeln!(out).unwrap();
@@ -801,14 +1233,14 @@ impl MarkdownGenerator {
         }
         if let Some(posts) = self.get_vec(&base.post) {
             for p in posts {
-                writeln!(out, "> **Post:** {}", p).unwrap();
+                writeln!(out, "> **Post:** {}", escape_html(p)).unwrap();
             }
             if !posts.is_empty() {
                 writeln!(out).unwrap();
             }
         }
         if !base.see_also.is_empty() {
-            writeln!(out, "**See also:** {}", base.see_also.join(", ")).unwrap();
+            writeln!(out, "**See also:** {}", escape_html(&base.see_also.join(", "))).unwrap();
             writeln!(out).unwrap();
         }
         if !base.code_examples.is_empty() {
@@ -822,11 +1254,11 @@ impl MarkdownGenerator {
         }
         for par in &base.par {
             if let Some(title) = self.get(&par.title) {
-                writeln!(out, "**{}**", title).unwrap();
+                writeln!(out, "**{}**", escape_html(title)).unwrap();
                 writeln!(out).unwrap();
             }
             if let Some(content) = self.get(&par.content) {
-                writeln!(out, "{}", content).unwrap();
+                writeln!(out, "{}", escape_html(content)).unwrap();
                 writeln!(out).unwrap();
             }
         }
@@ -836,17 +1268,73 @@ impl MarkdownGenerator {
 }
 
 fn class_anchor(name: &str) -> String {
-    name.to_lowercase()
+    let lower = name.to_lowercase();
+    // Operator-specific multi-char sequences MUST be encoded BEFORE the
+    // template-char replacements below, otherwise operator< vs operator<<
+    // vs operator> vs operator>> all collapse to the same bare "operator"
+    // anchor and VitePress reports duplicate-id errors.
+    let lower = lower
+        .replace("operator<=>", "operator_spaceship")
+        .replace("operator<<=", "operator_ltlt_eq")
+        .replace("operator>>=", "operator_gtgt_eq")
+        .replace("operator<<", "operator_ltlt")
+        .replace("operator>>", "operator_gtgt")
+        .replace("operator<=", "operator_le")
+        .replace("operator>=", "operator_ge")
+        .replace("operator<", "operator_lt")
+        .replace("operator>", "operator_gt");
+
+    lower
         .replace("::", "-")
         .replace('<', "-")
         .replace('>', "")
+        .chars()
+        .map(|c| {
+            if c.is_alphanumeric() || c == '-' || c == '_' {
+                c.to_string()
+            } else {
+                // Encode special characters as safe HTML ID fragments.
+                // This prevents VitePress from stripping/stomping on chars
+                // like (), [], = etc. that appear in remaining operator names.
+                match c {
+                    '(' => "-28-".to_string(),
+                    ')' => "-29-".to_string(),
+                    '[' => "-91-".to_string(),
+                    ']' => "-93-".to_string(),
+                    '=' => "-61-".to_string(),
+                    '+' => "-43-".to_string(),
+                    '*' => "-42-".to_string(),
+                    '/' => "-47-".to_string(),
+                    '%' => "-37-".to_string(),
+                    '&' => "-38-".to_string(),
+                    '|' => "-124-".to_string(),
+                    '~' => "-126-".to_string(),
+                    '!' => "-33-".to_string(),
+                    ',' => "-44-".to_string(),
+                    ' ' => "-".to_string(),
+                    _ => {
+                        // Fallback hex for any other unexpected char
+                        let mut s = String::new();
+                        for b in c.to_string().bytes() {
+                            let _ = write!(s, "-{:02x}", b);
+                        }
+                        s
+                    }
+                }
+            }
+        })
+        .collect::<String>()
+        .split('-')
+        .filter(|s| !s.is_empty())
+        .collect::<Vec<_>>()
+        .join("-")
 }
 
 fn method_anchor(class_name: &str, method_name: &str) -> String {
     format!(
         "{}-{}",
         class_anchor(class_name),
-        method_name.to_lowercase()
+        class_anchor(method_name)
     )
 }
 
@@ -858,10 +1346,49 @@ fn collect_all_classes(ns: &NamespaceDocument) -> Vec<&ClassDocument> {
     result
 }
 
-fn collect_all_functions(ns: &NamespaceDocument) -> Vec<&FreeFunctionDocument> {
-    let mut result: Vec<&FreeFunctionDocument> = ns.free_functions.iter().collect();
+fn collect_all_function_groups(ns: &NamespaceDocument) -> Vec<&FreeFunctionOverloadGroup> {
+    let mut result: Vec<&FreeFunctionOverloadGroup> = ns.free_function_overloads.iter().collect();
     for sub in &ns.sub_namespaces {
-        result.extend(collect_all_functions(sub));
+        result.extend(collect_all_function_groups(sub));
     }
     result
+}
+
+fn collect_all_constants(ns: &NamespaceDocument) -> Vec<&ConstantDocument> {
+    let mut result: Vec<&ConstantDocument> = ns.constants.iter().collect();
+    for sub in &ns.sub_namespaces {
+        result.extend(collect_all_constants(sub));
+    }
+    result
+}
+
+fn collect_all_variable_templates(ns: &NamespaceDocument) -> Vec<&VariableTemplateDocument> {
+    let mut result: Vec<&VariableTemplateDocument> = ns.variable_templates.iter().collect();
+    for sub in &ns.sub_namespaces {
+        result.extend(collect_all_variable_templates(sub));
+    }
+    result
+}
+
+fn collect_all_enums(ns: &NamespaceDocument) -> Vec<&EnumDocument> {
+    let mut result: Vec<&EnumDocument> = ns.enums.iter().collect();
+    for sub in &ns.sub_namespaces {
+        result.extend(collect_all_enums(sub));
+    }
+    result
+}
+
+fn collect_all_variables(ns: &NamespaceDocument) -> Vec<&VariableDocument> {
+    let mut result: Vec<&VariableDocument> = ns.variables.iter().collect();
+    for sub in &ns.sub_namespaces {
+        result.extend(collect_all_variables(sub));
+    }
+    result
+}
+
+/// 转义HTML特殊字符 `&lt;` 和 `&gt;`，防止Vue将C++模板语法当作HTML标签解析。
+/// 仅用于非反引号包裹的普通文本（如 brief、description 等），
+/// 不应用于类型名等准确代码片段。
+fn escape_html(s: &str) -> String {
+    s.replace('<', "&lt;").replace('>', "&gt;")
 }

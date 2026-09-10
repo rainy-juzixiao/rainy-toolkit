@@ -53,7 +53,9 @@ pub fn build_free_function(
     let (is_template, template_params) = build_template_params(entity, &parsed.tparams_desc);
     parsed.basic.is_template = is_template;
     parsed.basic.template_params = template_params;
+    let decl_prototype = build_free_function_prototype(entity, &parsed.return_doc.type_name);
     let doc = FreeFunctionDocument {
+        decl_prototype,
         is_static: entity
             .get_storage_class()
             .map(|s| s == clang::StorageClass::Static)
@@ -270,5 +272,29 @@ fn build_prototype(entity: &Entity, doc: &MemberFunctionDocument) -> Option<Stri
     }
     proto.push(';');
 
+    Some(proto)
+}
+
+fn build_free_function_prototype(entity: &Entity, return_type: &str) -> Option<String> {
+    let name = entity.get_name()?;
+    let params: Vec<String> = entity
+        .get_children()
+        .into_iter()
+        .filter(|c| c.get_kind() == EntityKind::ParmDecl)
+        .map(|c| {
+            c.get_type()
+                .map(|t| t.get_display_name())
+                .unwrap_or_default()
+        })
+        .collect();
+    let mut proto = if return_type.is_empty() {
+        format!("{}({})", name, params.join(", "))
+    } else {
+        format!("{} {}({})", return_type, name, params.join(", "))
+    };
+    if is_noexcept(entity) {
+        proto.push_str(" noexcept");
+    }
+    proto.push(';');
     Some(proto)
 }

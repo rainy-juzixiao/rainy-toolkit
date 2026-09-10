@@ -1,0 +1,601 @@
+/*
+ * Copyright 2026 rainy-juzixiao
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+#ifndef RAINY_FOUNDATION_CONCURRENCY_ATOMICINFRA_ATOMIC_OPS_HPP
+#define RAINY_FOUNDATION_CONCURRENCY_ATOMICINFRA_ATOMIC_OPS_HPP
+#include <rainy/core/concurrency/atomicinfra/fwd.hpp>
+#include <rainy/core/type_traits/type_relations.hpp>
+
+#include <cstring>
+
+namespace rainy::core::concurrency::implements {
+    template <size_t ByteSize>
+    struct atomic_ops_base;
+
+    template <>
+    struct atomic_ops_base<1> {
+        using type = std::int8_t;
+
+        static type load(const volatile type *p, memory_order o) noexcept {
+            return layer::iso_volatile_load8_explicit(p, o);
+        }
+
+        static void store(volatile type *p, type v, memory_order o) noexcept {
+            layer::iso_volatile_store8_explicit(p, v, o);
+        }
+
+        static type exch(volatile type *p, type v, memory_order o) noexcept {
+            return layer::interlocked_exchange8_explicit(p, v, o);
+        }
+
+        static bool cas(volatile type *p, type &exp, type des, memory_order s, memory_order f) noexcept {
+            type old = exp;
+            bool ok = layer::interlocked_compare_exchange8_explicit(p, des, old, s, f);
+            if (!ok) {
+                exp = layer::iso_volatile_load8_explicit(p, f);
+            }
+            return ok;
+        }
+
+        static type add(volatile type *p, type v, memory_order o) noexcept {
+            return layer::interlocked_exchange_add8_explicit(p, v, o);
+        }
+
+        static type sub(volatile type *p, type v, memory_order o) noexcept {
+            return layer::interlocked_exchange_subtract8_explicit(p, v, o);
+        }
+
+        static type band(volatile type *p, type v, memory_order o) noexcept {
+            return layer::interlocked_and8_explicit(p, v, o);
+        }
+
+        static type bor(volatile type *p, type v, memory_order o) noexcept {
+            return layer::interlocked_or8_explicit(p, v, o);
+        }
+
+        static type bxor(volatile type *p, type v, memory_order o) noexcept {
+            return layer::interlocked_xor8_explicit(p, v, o);
+        }
+
+        static type inc(volatile type *p, memory_order o) noexcept {
+            return layer::interlocked_increment8_explicit(p, o);
+        }
+
+        static type dec(volatile type *p, memory_order o) noexcept {
+            return layer::interlocked_decrement8_explicit(p, o);
+        }
+    };
+
+    template <>
+    struct atomic_ops_base<2> {
+        using type = std::int16_t;
+
+        static type load(const volatile type *p, memory_order o) noexcept {
+            return layer::iso_volatile_load16_explicit(p, o);
+        }
+
+        static void store(volatile type *p, type v, memory_order o) noexcept {
+            layer::iso_volatile_store16_explicit(p, v, o);
+        }
+
+        static type exch(volatile type *p, type v, memory_order o) noexcept {
+            return layer::interlocked_exchange16_explicit(p, v, o);
+        }
+
+        static bool cas(volatile type *p, type &exp, type des, memory_order s, memory_order f) noexcept {
+            type old = exp;
+            bool ok = layer::interlocked_compare_exchange16_explicit(p, des, old, s, f);
+            if (!ok) {
+                exp = layer::iso_volatile_load16_explicit(p, f);
+            }
+            return ok;
+        }
+
+        static type add(volatile type *p, type v, memory_order o) noexcept {
+            return layer::interlocked_exchange_add16_explicit(p, v, o);
+        }
+
+        static type sub(volatile type *p, type v, memory_order o) noexcept {
+            return layer::interlocked_exchange_subtract16_explicit(p, v, o);
+        }
+
+        static type band(volatile type *p, type v, memory_order o) noexcept {
+            return layer::interlocked_and16_explicit(p, v, o);
+        }
+
+        static type bor(volatile type *p, type v, memory_order o) noexcept {
+            return layer::interlocked_or16_explicit(p, v, o);
+        }
+
+        static type bxor(volatile type *p, type v, memory_order o) noexcept {
+            return layer::interlocked_xor16_explicit(p, v, o);
+        }
+
+        static type inc(volatile type *p, memory_order o) noexcept {
+            return layer::interlocked_increment16_explicit(p, o);
+        }
+
+        static type dec(volatile type *p, memory_order o) noexcept {
+            return layer::interlocked_decrement16_explicit(p, o);
+        }
+    };
+
+    template <>
+    struct atomic_ops_base<4> {
+        using type = std::int32_t;
+
+        static type load(const volatile type *p, memory_order o) noexcept {
+            return layer::iso_volatile_load32_explicit(p, o);
+        }
+
+        static void store(volatile type *p, type v, memory_order o) noexcept {
+            layer::iso_volatile_store32_explicit(p, v, o);
+        }
+
+        static type exch(volatile type *p, type v, memory_order o) noexcept {
+            return layer::interlocked_exchange32_explicit(p, v, o);
+        }
+
+        static bool cas(volatile type *p, type &exp, type des, memory_order s, memory_order f) noexcept {
+            type old = exp;
+            bool ok = layer::interlocked_compare_exchange32_explicit(p, des, old, s, f);
+            if (!ok) {
+                exp = layer::iso_volatile_load32_explicit(p, f);
+            }
+            return ok;
+        }
+
+        static type add(volatile type *p, type v, memory_order o) noexcept {
+            return layer::interlocked_exchange_add32_explicit(p, v, o);
+        }
+
+        static type sub(volatile type *p, type v, memory_order o) noexcept {
+            return layer::interlocked_exchange_subtract32_explicit(p, v, o);
+        }
+
+        static type band(volatile type *p, type v, memory_order o) noexcept {
+            return layer::interlocked_and32_explicit(p, v, o);
+        }
+
+        static type bor(volatile type *p, type v, memory_order o) noexcept {
+            return layer::interlocked_or32_explicit(p, v, o);
+        }
+
+        static type bxor(volatile type *p, type v, memory_order o) noexcept {
+            return layer::interlocked_xor32_explicit(p, v, o);
+        }
+
+        static type inc(volatile type *p, memory_order o) noexcept {
+            return layer::interlocked_increment32_explicit(p, o);
+        }
+
+        static type dec(volatile type *p, memory_order o) noexcept {
+            return layer::interlocked_decrement32_explicit(p, o);
+        }
+    };
+
+    template <>
+    struct atomic_ops_base<8> {
+        using type = std::int64_t;
+
+        static type load(const volatile type *p, memory_order o) noexcept {
+            return layer::iso_volatile_load64_explicit(p, o);
+        }
+
+        static void store(volatile type *p, type v, memory_order o) noexcept {
+            layer::iso_volatile_store64_explicit(p, v, o);
+        }
+
+        static type exch(volatile type *p, type v, memory_order o) noexcept {
+            return layer::interlocked_exchange64_explicit(p, v, o);
+        }
+
+        static bool cas(volatile type *p, type &exp, type des, memory_order s, memory_order f) noexcept {
+            type old = exp;
+            bool ok = layer::interlocked_compare_exchange64_explicit(p, des, old, s, f);
+            if (!ok) {
+                exp = layer::iso_volatile_load64_explicit(p, f);
+            }
+            return ok;
+        }
+
+        static type add(volatile type *p, type v, memory_order o) noexcept {
+            return layer::interlocked_exchange_add64_explicit(p, v, o);
+        }
+
+        static type sub(volatile type *p, type v, memory_order o) noexcept {
+            return layer::interlocked_exchange_subtract64_explicit(p, v, o);
+        }
+
+        static type band(volatile type *p, type v, memory_order o) noexcept {
+            return layer::interlocked_and64_explicit(p, v, o);
+        }
+
+        static type bor(volatile type *p, type v, memory_order o) noexcept {
+            return layer::interlocked_or64_explicit(p, v, o);
+        }
+
+        static type bxor(volatile type *p, type v, memory_order o) noexcept {
+            return layer::interlocked_xor64_explicit(p, v, o);
+        }
+
+        static type inc(volatile type *p, memory_order o) noexcept {
+            return layer::interlocked_increment64_explicit(p, o);
+        }
+
+        static type dec(volatile type *p, memory_order o) noexcept {
+            return layer::interlocked_decrement64_explicit(p, o);
+        }
+    };
+
+    template <typename Ty>
+    struct atomic_ops {
+        using type = Ty;
+        using base_ops = atomic_ops_base<sizeof(Ty)>;
+        using base_type = typename base_ops::type;
+
+        static base_type to_base(const type &v) noexcept {
+            base_type b{};
+            std::memcpy(&b, &v, sizeof(type));
+            return b;
+        }
+
+        static type to_type(base_type b) noexcept {
+            type t{};
+            std::memcpy(&t, &b, sizeof(type));
+            return t;
+        }
+
+        static type load(const volatile type *p, memory_order o) noexcept {
+            return to_type(base_ops::load(reinterpret_cast<const volatile base_type *>(p), o));
+        }
+
+        static void store(volatile type *p, type v, memory_order o) noexcept {
+            base_ops::store(reinterpret_cast<volatile base_type *>(p), to_base(v), o);
+        }
+
+        static type exch(volatile type *p, type v, memory_order o) noexcept {
+            return to_type(base_ops::exch(reinterpret_cast<volatile base_type *>(p), to_base(v), o));
+        }
+
+        static bool cas(volatile type *p, type &exp, type des, memory_order s, memory_order f) noexcept {
+            base_type exp_base = to_base(exp);
+            bool ok = base_ops::cas(reinterpret_cast<volatile base_type *>(p), exp_base, to_base(des), s, f);
+            if (!ok) {
+                exp = to_type(exp_base);
+            }
+            return ok;
+        }
+
+        static type add(volatile type *p, type v, memory_order o) noexcept {
+            return to_type(base_ops::add(reinterpret_cast<volatile base_type *>(p), to_base(v), o));
+        }
+
+        static type sub(volatile type *p, type v, memory_order o) noexcept {
+            return to_type(base_ops::sub(reinterpret_cast<volatile base_type *>(p), to_base(v), o));
+        }
+
+        static type band(volatile type *p, type v, memory_order o) noexcept {
+            return to_type(base_ops::band(reinterpret_cast<volatile base_type *>(p), to_base(v), o));
+        }
+
+        static type bor(volatile type *p, type v, memory_order o) noexcept {
+            return to_type(base_ops::bor(reinterpret_cast<volatile base_type *>(p), to_base(v), o));
+        }
+
+        static type bxor(volatile type *p, type v, memory_order o) noexcept {
+            return to_type(base_ops::bxor(reinterpret_cast<volatile base_type *>(p), to_base(v), o));
+        }
+
+        static type inc(volatile type *p, memory_order o) noexcept {
+            return to_type(base_ops::inc(reinterpret_cast<volatile base_type *>(p), o));
+        }
+
+        static type dec(volatile type *p, memory_order o) noexcept {
+            return to_type(base_ops::dec(reinterpret_cast<volatile base_type *>(p), o));
+        }
+    };
+}
+
+namespace rainy::core::concurrency::implements {
+    template <typename Ty, typename = void>
+    struct select_ops_type {
+        using type = Ty;
+    };
+
+    template <typename Ty>
+    struct select_ops_type<Ty, type_traits::other_trans::enable_if_t<sizeof(Ty) == 1>> {
+        using type = std::int8_t;
+    };
+    template <typename Ty>
+    struct select_ops_type<Ty, type_traits::other_trans::enable_if_t<sizeof(Ty) == 2 && !type_traits::type_relations::is_same_v<Ty, std::int16_t> &&
+                                                !type_traits::type_relations::is_same_v<Ty, std::uint16_t>>> {
+        using type = std::int16_t;
+    };
+    template <typename Ty>
+    struct select_ops_type<Ty, type_traits::other_trans::enable_if_t<sizeof(Ty) == 4 && !type_traits::type_relations::is_same_v<Ty, std::int32_t> &&
+                                                !type_traits::type_relations::is_same_v<Ty, std::uint32_t>>> {
+        using type = std::int32_t;
+    };
+    template <typename Ty>
+    struct select_ops_type<Ty, type_traits::other_trans::enable_if_t<sizeof(Ty) == 8 && !type_traits::type_relations::is_same_v<Ty, std::int64_t> &&
+                                                !type_traits::type_relations::is_same_v<Ty, std::uint64_t>>> {
+        using type = std::int64_t;
+    };
+
+    template <typename Ty, typename Ops>
+    Ty atomic_fetch_max(volatile Ty *p, Ty val, memory_order order) noexcept {
+        Ty old = Ops::load(p, memory_order::relaxed);
+        while (old < val) {
+            Ty exp = old;
+            if (Ops::cas(p, exp, val, order, memory_order::relaxed)) {
+                break;
+            }
+            old = exp; // cas 失败时 exp 已被更新为当前值
+        }
+        return old;
+    }
+
+    template <typename Ty, typename Ops>
+    Ty atomic_fetch_min(volatile Ty *p, Ty val, memory_order order) noexcept {
+        Ty old = Ops::load(p, memory_order::relaxed);
+        while (old > val) {
+            Ty exp = old;
+            if (Ops::cas(p, exp, val, order, memory_order::relaxed)) {
+                break;
+            }
+            old = exp;
+        }
+        return old;
+    }
+}
+
+namespace rainy::core::concurrency::implements {
+    template <typename Float>
+    struct float_int_traits;
+
+    template <>
+    struct float_int_traits<float> {
+        using float_type = float;
+        using int_type = std::int32_t;
+        static_assert(sizeof(float_type) == sizeof(int_type));
+    };
+
+    template <>
+    struct float_int_traits<double> {
+        using float_type = double;
+        using int_type = std::int64_t;
+        static_assert(sizeof(float_type) == sizeof(int_type));
+    };
+
+    template <>
+    struct float_int_traits<long double> {
+        using float_type = long double;
+
+        using int_type =
+            type_traits::other_trans::conditional_t<sizeof(long double) == 4, std::uint32_t,
+                               type_traits::other_trans::conditional_t<sizeof(long double) == 8, std::uint64_t,
+                                                  type_traits::other_trans::conditional_t<sizeof(long double) == 16, layer::native_double_word_t, void>>>;
+
+        static_assert(!type_traits::type_relations::is_same_v<int_type, void>, "unsupport platform");
+        static_assert(sizeof(float_type) == sizeof(int_type));
+    };
+
+    template <typename Float>
+    struct atomic_ops_float {
+        using type = Float;
+        using traits = float_int_traits<Float>;
+        using int_type = typename traits::int_type;
+
+        static constexpr bool is_double_word = type_traits::type_relations::is_same_v<int_type, layer::native_double_word_t>;
+
+        static int_type to_int(Float f) noexcept {
+            int_type result;
+            std::memcpy(&result, &f, sizeof(Float));
+            return result;
+        }
+
+        static Float to_float(int_type i) noexcept {
+            Float result;
+            std::memcpy(&result, &i, sizeof(Float));
+            return result;
+        }
+
+        static Float load(const volatile type *p, memory_order o) noexcept {
+            if constexpr (is_double_word) {
+                auto raw = layer::atomic_load_double_word(reinterpret_cast<const volatile layer::native_double_word_t *>(p), o);
+                return to_float(raw);
+            } else {
+                using iops = atomic_ops<int_type>;
+                return to_float(iops::load(reinterpret_cast<const volatile int_type *>(p), o));
+            }
+        }
+
+        static void store(volatile type *p, Float v, memory_order o) noexcept {
+            if constexpr (is_double_word) {
+                layer::atomic_store_double_word(reinterpret_cast<volatile layer::native_double_word_t *>(p), to_int(v), o);
+            } else {
+                using iops = atomic_ops<int_type>;
+                iops::store(reinterpret_cast<volatile int_type *>(p), to_int(v), o);
+            }
+        }
+
+        static Float exch(volatile type *p, Float v, memory_order o) noexcept {
+            if constexpr (is_double_word) {
+                auto new_dw = to_int(v);
+                auto cur_dw =
+                    layer::atomic_load_double_word(reinterpret_cast<volatile layer::native_double_word_t *>(p), memory_order::relaxed);
+                while (!layer::interlocked_compare_exchange_double_word(reinterpret_cast<volatile layer::native_double_word_t *>(p),
+                                                                        new_dw, &cur_dw)) {
+                }
+                return to_float(cur_dw);
+            } else {
+                using iops = atomic_ops<int_type>;
+                return to_float(iops::exch(reinterpret_cast<volatile int_type *>(p), to_int(v), o));
+            }
+        }
+
+        static bool cas(volatile type *p, Float &expected, Float desired, memory_order s, memory_order f) noexcept {
+            if constexpr (is_double_word) {
+                auto exp_dw = to_int(expected);
+                bool ok = layer::interlocked_compare_exchange_double_word(reinterpret_cast<volatile layer::native_double_word_t *>(p),
+                                                                          to_int(desired), &exp_dw);
+                if (!ok) {
+                    expected = to_float(exp_dw);
+                }
+                return ok;
+            } else {
+                using iops = atomic_ops<int_type>;
+                int_type exp_i = to_int(expected);
+                bool ok = iops::cas(reinterpret_cast<volatile int_type *>(p), exp_i, to_int(desired), s, f);
+                if (!ok) {
+                    expected = to_float(exp_i);
+                }
+                return ok;
+            }
+        }
+    };
+
+    template <>
+    struct atomic_ops<float> : atomic_ops_float<float> {};
+    template <>
+    struct atomic_ops<double> : atomic_ops_float<double> {};
+    template <>
+    struct atomic_ops<long double> : atomic_ops_float<long double> {};
+}
+
+namespace rainy::core::concurrency::implements {
+    template <typename Ty>
+    struct atomic_ops_pointer {
+        using type = Ty *;
+        using iops = atomic_ops<std::intptr_t>;
+
+        static std::intptr_t to_int(Ty *p) noexcept {
+            return reinterpret_cast<std::intptr_t>(p);
+        }
+
+        static Ty *to_ptr(std::intptr_t i) noexcept {
+            return reinterpret_cast<Ty *>(i);
+        }
+
+        static volatile std::intptr_t *as_int_ptr(volatile type *p) noexcept {
+            return reinterpret_cast<volatile std::intptr_t *>(p);
+        }
+
+        static const volatile std::intptr_t *as_int_ptr(const volatile type *p) noexcept {
+            return reinterpret_cast<const volatile std::intptr_t *>(p);
+        }
+
+        static Ty *load(const volatile type *p, memory_order o) noexcept {
+            return to_ptr(iops::load(as_int_ptr(p), o));
+        }
+
+        static void store(volatile type *p, Ty *v, memory_order o) noexcept {
+            iops::store(as_int_ptr(p), to_int(v), o);
+        }
+
+        static Ty *exch(volatile type *p, Ty *v, memory_order o) noexcept {
+            return to_ptr(iops::exch(as_int_ptr(p), to_int(v), o));
+        }
+
+        static bool cas(volatile type *p, Ty *&expected, Ty *desired, memory_order s, memory_order f) noexcept {
+            std::intptr_t exp_i = to_int(expected);
+            bool ok = iops::cas(as_int_ptr(p), exp_i, to_int(desired), s, f);
+            if (!ok) {
+                expected = to_ptr(exp_i);
+            }
+            return ok;
+        }
+
+        static Ty *ptr_add(volatile type *p, std::ptrdiff_t n, memory_order o) noexcept {
+            std::intptr_t byte_offset = static_cast<std::intptr_t>(n) * static_cast<std::intptr_t>(sizeof(Ty));
+            return to_ptr(layer::interlocked_exchange_add_explicit(as_int_ptr(p), byte_offset, o));
+        }
+
+        static Ty *ptr_sub(volatile type *p, std::ptrdiff_t n, memory_order o) noexcept {
+            std::intptr_t byte_offset = static_cast<std::intptr_t>(n) * static_cast<std::intptr_t>(sizeof(Ty));
+            return to_ptr(layer::interlocked_exchange_subtract_explicit(as_int_ptr(p), byte_offset, o));
+        }
+    };
+
+    template <typename Ty>
+    struct atomic_ops<Ty *> : atomic_ops_pointer<Ty> {};
+
+    template <>
+    struct atomic_ops<bool> {
+        using type = bool;
+        using iops = atomic_ops<std::int8_t>;
+        using int_type = std::int8_t;
+
+        static volatile int_type *as_int(volatile type *p) noexcept {
+            return reinterpret_cast<volatile int_type *>(p);
+        }
+
+        static const volatile int_type *as_int(const volatile type *p) noexcept {
+            return reinterpret_cast<const volatile int_type *>(p);
+        }
+
+        static type load(const volatile type *p, memory_order o) noexcept {
+            return iops::load(as_int(p), o) != 0;
+        }
+
+        static void store(volatile type *p, type v, memory_order o) noexcept {
+            iops::store(as_int(p), static_cast<int_type>(v), o);
+        }
+
+        static type exch(volatile type *p, type v, memory_order o) noexcept {
+            return iops::exch(as_int(p), static_cast<int_type>(v), o) != 0;
+        }
+
+        static bool cas(volatile type *p, type &expected, type desired, memory_order s, memory_order f) noexcept {
+            int_type exp_i = static_cast<int_type>(expected);
+            bool ok = iops::cas(as_int(p), exp_i, static_cast<int_type>(desired), s, f);
+            if (!ok) {
+                expected = (exp_i != 0);
+            }
+            return ok;
+        }
+    };
+
+    template <typename Ty>
+    Ty *atomic_ptr_fetch_max(Ty *volatile *p, Ty *val, memory_order order) noexcept {
+        using ops = atomic_ops<Ty *>;
+        Ty *old = ops::load(p, memory_order::relaxed);
+        while (old < val) {
+            Ty *exp = old;
+            if (ops::cas(p, exp, val, order, memory_order::relaxed)) {
+                break;
+            }
+            old = exp;
+        }
+        return old;
+    }
+
+    template <typename Ty>
+    Ty *atomic_ptr_fetch_min(Ty *volatile *p, Ty *val, memory_order order) noexcept {
+        using ops = atomic_ops<Ty *>;
+        Ty *old = ops::load(p, memory_order::relaxed);
+        while (old > val) {
+            Ty *exp = old;
+            if (ops::cas(p, exp, val, order, memory_order::relaxed)) {
+                break;
+            }
+            old = exp;
+        }
+        return old;
+    }
+}
+
+#endif

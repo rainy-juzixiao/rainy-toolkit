@@ -1,0 +1,35 @@
+name: Clean up old workflow runs (by time)
+
+on:
+  schedule:
+    - cron: '30 17 * * *'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  delete-workflow-runs:
+    runs-on: ubuntu-latest
+
+    permissions:
+      actions: write
+      contents: read
+
+    steps:
+      - name: Delete workflow runs.
+        id: delete-workflow-runs
+        uses: tagdots/delete-workflow-runs@6384f56e65ab6e4e2e7193b3cffd3aae93b4636a
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          repo-url: https://github.com/rainy-juzixiao/rainy-toolkit
+          max-days: 150
+          dry-run: false
+
+      - name: Display operation results
+        id: get_data
+        shell: bash
+        run: |
+          cat data_dict.log | jq .
