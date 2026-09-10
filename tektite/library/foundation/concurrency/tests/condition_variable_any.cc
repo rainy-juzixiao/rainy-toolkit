@@ -155,7 +155,7 @@ TEST_CASE("wait_until returns no_timeout when notified before deadline", "[condi
     }
 }
 
-#if RAINY_HAS_CXX20
+#if 0
 
 TEST_CASE("wait with stop_token can be interrupted", "[condition_variable_any]") {
     SECTION("A condition variable_any, a mutex and a stop source") {

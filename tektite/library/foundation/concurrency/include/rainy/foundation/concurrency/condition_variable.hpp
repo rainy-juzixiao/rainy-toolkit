@@ -21,10 +21,6 @@
 #include <rainy/foundation/concurrency/mutex.hpp>
 #include <rainy/foundation/concurrency/implements/layer.hpp>
 
-#if RAINY_HAS_CXX20
-#include <stop_token>
-#endif
-
 namespace rainy::foundation::concurrency {
     enum class cv_status {
         no_timeout,
@@ -406,7 +402,7 @@ namespace rainy::foundation::concurrency {
             return wait_until(lock, std::chrono::system_clock::now() + rel_time, utility::move(pred));
         }
 
-#if RAINY_HAS_CXX20
+#if 0
 
         /**
          * @brief 带中断支持的谓词等待
