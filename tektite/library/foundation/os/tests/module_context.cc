@@ -8,7 +8,7 @@ using namespace rainy::foundation;
 namespace {
 #ifdef _WIN32
     constexpr const char *system_library = "ntdll.dll";
-    constexpr const char *exported_symbol = "RtlUlongByteSwap";
+    constexpr const char *exported_symbol = "RtlCaptureContext";
 #else
     constexpr const char *system_library = "libm.so.6";
     constexpr const char *exported_symbol = "cos";
