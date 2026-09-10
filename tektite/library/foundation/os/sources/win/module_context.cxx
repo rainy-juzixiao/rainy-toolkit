@@ -66,15 +66,16 @@ namespace rainy::foundation::dynamic_library::implements {
             core::text::wstring attempt;
             for (rainy_let prefix = 0u; retry && !hand && prefix < prefix_list.size(); ++prefix) {
                 for (rainy_let suffix = 0u; retry && !hand && suffix < suffix_list.size(); ++suffix) {
-                    // 已有对应前缀则跳过（与Linux逻辑对称）
+                    // 已有对应前缀则不再拼接（与Linux逻辑对称）
                     if (!prefix_list[prefix].empty() && wide_path.starts_with(prefix_list[prefix])) {
-                        continue;
+                        attempt = wide_path;
+                    } else {
+                        attempt = prefix_list[prefix] + wide_path;
                     }
-                    // 已有对应后缀则跳过
-                    if (!suffix_list[suffix].empty() && wide_path.ends_with(suffix_list[suffix])) {
-                        continue;
+                    // 已有对应后缀则不再拼接
+                    if (suffix_list[suffix].empty() || !wide_path.ends_with(suffix_list[suffix])) {
+                        attempt += suffix_list[suffix];
                     }
-                    attempt = prefix_list[prefix] + wide_path + suffix_list[suffix];
                     HMODULE mod = LoadLibraryExW(attempt.c_str(), nullptr, LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
                     hand = to_handle(mod);
                     // 绝对路径下，文件存在但加载失败，停止重试（与Linux retry=false逻辑对称）
@@ -102,12 +103,13 @@ namespace rainy::foundation::dynamic_library::implements {
             for (rainy_let prefix = 0u; retry && !hand && prefix < prefix_list.size(); ++prefix) {
                 for (rainy_let suffix = 0u; retry && !hand && suffix < suffix_list.size(); ++suffix) {
                     if (!prefix_list[prefix].empty() && wide_path.starts_with(prefix_list[prefix])) {
-                        continue;
+                        attempt = wide_path;
+                    } else {
+                        attempt = prefix_list[prefix] + wide_path;
                     }
-                    if (!suffix_list[suffix].empty() && wide_path.ends_with(suffix_list[suffix])) {
-                        continue;
+                    if (suffix_list[suffix].empty() || !wide_path.ends_with(suffix_list[suffix])) {
+                        attempt += suffix_list[suffix];
                     }
-                    attempt = prefix_list[prefix] + wide_path + suffix_list[suffix];
                     HMODULE mod = GetModuleHandleW(attempt.c_str());
                     hand = to_handle(mod);
                     if (!hand && is_absolute_path(module_path) && file_exist(attempt)) {

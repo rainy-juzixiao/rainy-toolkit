@@ -10,7 +10,7 @@ namespace {
 #ifdef _WIN32
     constexpr const char *exit_program = "cmd";
     std::vector<std::string> exit_arguments() {
-        return {"/c", "exit", "7"};
+        return {"/c", "exit 7"};
     }
 #else
     constexpr const char *exit_program = "sh";

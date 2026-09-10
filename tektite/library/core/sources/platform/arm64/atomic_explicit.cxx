@@ -49,7 +49,9 @@
 #if RAINY_USING_MSVC
 namespace rainy::core::layer {
     long interlocked_increment_explicit(volatile long *value, memory_order order) {
-        return interlocked_exchange_add_explicit(reinterpret_cast<volatile std::intptr_t *>(value), +1, order) + 1;
+        long result;
+        RAINY_ATOMIC_DISPATCH(_InterlockedIncrement, result, order, value);
+        return result;
     }
 
     std::int8_t interlocked_increment8_explicit(volatile std::int8_t *value, memory_order order) {
@@ -71,7 +73,9 @@ namespace rainy::core::layer {
 
 namespace rainy::core::layer {
     long interlocked_decrement_explicit(volatile long *value, memory_order order) {
-        return interlocked_exchange_add_explicit(reinterpret_cast<volatile std::intptr_t *>(value), -1, order) - 1;
+        long result;
+        RAINY_ATOMIC_DISPATCH(_InterlockedDecrement, result, order, value);
+        return result;
     }
 
     std::int8_t interlocked_decrement8_explicit(volatile std::int8_t *value, memory_order order) {
@@ -93,9 +97,11 @@ namespace rainy::core::layer {
 
 namespace rainy::core::layer {
     std::intptr_t interlocked_exchange_add_explicit(volatile std::intptr_t *value, const std::intptr_t amount, memory_order order) {
-        std::intptr_t new_val;
-        RAINY_ATOMIC_DISPATCH(_InterlockedExchangeAdd, new_val, order, reinterpret_cast<volatile long *>(value), amount);
-        return new_val;
+#if RAINY_USING_64_BIT_PLATFORM
+        return interlocked_exchange_add64_explicit(reinterpret_cast<volatile std::int64_t *>(value), amount, order);
+#else
+        return interlocked_exchange_add32_explicit(reinterpret_cast<volatile std::int32_t *>(value), amount, order);
+#endif
     }
 
     std::int8_t interlocked_exchange_add8_explicit(volatile std::int8_t *value, std::int8_t amount, memory_order order) {
@@ -222,7 +228,7 @@ namespace rainy::core::layer {
 
     void *interlocked_exchange_pointer_explicit(volatile void **target, void *value, memory_order order) {
         void *result{};
-        RAINY_ATOMIC_DISPATCH(_InterlockedExchangePointer, value, order, const_cast<void **>(target), value);
+        RAINY_ATOMIC_DISPATCH(_InterlockedExchangePointer, result, order, const_cast<void **>(target), value);
         return result;
     }
 

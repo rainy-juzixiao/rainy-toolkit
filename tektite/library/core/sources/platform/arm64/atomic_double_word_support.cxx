@@ -28,31 +28,21 @@
 namespace rainy::core::layer {
     bool interlocked_compare_exchange_double_word(volatile native_double_word_t *destination, native_double_word_t exchange,
                                                   native_double_word_t *comparand) noexcept {
-        long long result;
-        RAINY_ATOMIC_DISPATCH(_InterlockedCompareExchange128, result, memory_order::seq_cst,
-                              reinterpret_cast<volatile long long *>(destination), static_cast<long long>(exchange.hi),
-                              static_cast<long long>(exchange.lo), reinterpret_cast<long long *>(comparand));
-        return result != 0;
+        return _InterlockedCompareExchange128(reinterpret_cast<volatile long long *>(destination), static_cast<long long>(exchange.hi),
+                                              static_cast<long long>(exchange.lo), reinterpret_cast<long long *>(comparand)) != 0;
     }
 
-    native_double_word_t atomic_load_double_word(const volatile native_double_word_t *address, memory_order order) noexcept {
+    native_double_word_t atomic_load_double_word(const volatile native_double_word_t *address, memory_order /*order*/) noexcept {
         native_double_word_t expected{0, 0};
-        long long result;
-        RAINY_ATOMIC_DISPATCH(_InterlockedCompareExchange128, result, order,
-                              reinterpret_cast<volatile long long *>(const_cast<volatile native_double_word_t *>(address)), 0LL, 0LL,
-                              reinterpret_cast<long long *>(&expected));
-        (void) result;
+        _InterlockedCompareExchange128(reinterpret_cast<volatile long long *>(const_cast<volatile native_double_word_t *>(address)),
+                                       0LL, 0LL, reinterpret_cast<long long *>(&expected));
         return expected;
     }
 
     void atomic_store_double_word(volatile native_double_word_t *address, native_double_word_t value, memory_order order) noexcept {
         native_double_word_t expected = atomic_load_double_word(address, memory_order::relaxed);
-        long long result;
-        do {
-            RAINY_ATOMIC_DISPATCH(_InterlockedCompareExchange128, result, order, reinterpret_cast<volatile long long *>(address),
-                                  static_cast<long long>(value.hi), static_cast<long long>(value.lo),
-                                  reinterpret_cast<long long *>(&expected));
-        } while (result == 0);
+        while (!interlocked_compare_exchange_double_word(address, value, &expected)) {
+        }
     }
 }
 
