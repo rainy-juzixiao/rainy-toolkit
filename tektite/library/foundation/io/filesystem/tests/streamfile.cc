@@ -35,7 +35,7 @@ protected:
     }
 
     void create_test_file(const std::string &content) {
-        std::ofstream file(test_file_path, std::ios::binary);
+        std::ofstream file(test_file_path.c_str(), std::ios::binary);
         file.write(content.data(), content.size());
         file.close();
     }
