@@ -16,6 +16,7 @@
 #include <rainy/foundation/os/process.hpp>
 
 #include <dirent.h>
+#include <signal.h>
 #include <sys/resource.h>
 #include <spawn.h>
 #include <sys/wait.h>
