@@ -89,10 +89,32 @@ namespace rainy::foundation::io::ipc::semaphore::implements {
                 ts.tv_sec += 1;
                 ts.tv_nsec -= 1000000000L;
             }
+#if RAINY_USING_MACOS
+            for (;;) {
+                if (::sem_trywait(sem_) == 0) {
+                    return {};
+                }
+                if (errno == EINTR) {
+                    continue;
+                }
+                if (errno != EAGAIN) {
+                    return posix_error();
+                }
+                struct timeval now;
+                ::gettimeofday(&now, nullptr);
+                if (now.tv_sec > ts.tv_sec ||
+                    (now.tv_sec == ts.tv_sec && now.tv_usec * 1000L >= ts.tv_nsec)) {
+                    return posix_error(ETIMEDOUT);
+                }
+                const struct timespec small_request = {0, 1000000L};
+                ::nanosleep(&small_request, nullptr);
+            }
+#else
             if (::sem_timedwait(sem_, &ts) == -1) {
                 return posix_error();
             }
             return {};
+#endif
         }
 
         std::error_code post() noexcept override {
