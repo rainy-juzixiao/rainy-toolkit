@@ -69,7 +69,7 @@ namespace rainy::foundation::io::filesystem::implements {
                 return {errno, std::system_category()};
             }
             if (const auto res = macos_socket_proxy{executor}.associate_handle(nullptr, static_cast<std::uintptr_t>(fd_), nullptr);
-                res != concurrency::thrd_result::success) {
+                res != core::layer::thrd_result::success) {
                 ::close(fd_);
                 fd_ = -1;
                 return {EINVAL, std::system_category()};
@@ -172,7 +172,7 @@ namespace rainy::foundation::io::filesystem::implements {
 }
 
 namespace rainy::foundation::io::filesystem::implements {
-    memory::unique_ptr<file_impl_base> make_file_impl() {
-        return memory::make_unique<kqueue_file_impl>();
+    core::memory::unique_ptr<file_impl_base> make_file_impl() {
+        return core::memory::make_unique<kqueue_file_impl>();
     }
 }
