@@ -37,7 +37,7 @@ protected:
     }
 
     std::string read_file_content() {
-        std::ifstream file(test_file_path, std::ios::binary);
+        std::ifstream file(test_file_path.c_str(), std::ios::binary);
         return std::string(std::istreambuf_iterator<char>(file),
                            std::istreambuf_iterator<char>());
     }
