@@ -749,6 +749,96 @@ namespace rainy::core::memory {
     template <typename Ty, typename D>
     shared_ptr(nebula_ptr<Ty, D>) -> shared_ptr<Ty>;
 
+    template <typename Ty, typename UTy>
+    bool operator==(const shared_ptr<Ty> &left, const shared_ptr<UTy> &right) noexcept {
+        return left.get() == right.get();
+    }
+
+    template <typename Ty, typename UTy>
+    bool operator!=(const shared_ptr<Ty> &left, const shared_ptr<UTy> &right) noexcept {
+        return !(left == right);
+    }
+
+    template <typename Ty, typename UTy>
+    bool operator<(const shared_ptr<Ty> &left, const shared_ptr<UTy> &right) noexcept {
+        return left.get() < right.get();
+    }
+
+    template <typename Ty, typename UTy>
+    bool operator>(const shared_ptr<Ty> &left, const shared_ptr<UTy> &right) noexcept {
+        return right < left;
+    }
+
+    template <typename Ty, typename UTy>
+    bool operator<=(const shared_ptr<Ty> &left, const shared_ptr<UTy> &right) noexcept {
+        return !(right < left);
+    }
+
+    template <typename Ty, typename UTy>
+    bool operator>=(const shared_ptr<Ty> &left, const shared_ptr<UTy> &right) noexcept {
+        return !(left < right);
+    }
+
+    template <typename Ty>
+    bool operator==(const shared_ptr<Ty> &left, std::nullptr_t) noexcept {
+        return left.get() == nullptr;
+    }
+
+    template <typename Ty>
+    bool operator==(std::nullptr_t, const shared_ptr<Ty> &right) noexcept {
+        return nullptr == right.get();
+    }
+
+    template <typename Ty>
+    bool operator!=(const shared_ptr<Ty> &left, std::nullptr_t) noexcept {
+        return !(left == nullptr);
+    }
+
+    template <typename Ty>
+    bool operator!=(std::nullptr_t, const shared_ptr<Ty> &right) noexcept {
+        return !(nullptr == right);
+    }
+
+    template <typename Ty>
+    bool operator<(const shared_ptr<Ty> &left, std::nullptr_t) noexcept {
+        return left.get() < static_cast<typename shared_ptr<Ty>::pointer>(nullptr);
+    }
+
+    template <typename Ty>
+    bool operator<(std::nullptr_t, const shared_ptr<Ty> &right) noexcept {
+        return static_cast<typename shared_ptr<Ty>::pointer>(nullptr) < right.get();
+    }
+
+    template <typename Ty>
+    bool operator>(const shared_ptr<Ty> &left, std::nullptr_t) noexcept {
+        return nullptr < left;
+    }
+
+    template <typename Ty>
+    bool operator>(std::nullptr_t, const shared_ptr<Ty> &right) noexcept {
+        return right < nullptr;
+    }
+
+    template <typename Ty>
+    bool operator<=(const shared_ptr<Ty> &left, std::nullptr_t) noexcept {
+        return !(nullptr < left);
+    }
+
+    template <typename Ty>
+    bool operator<=(std::nullptr_t, const shared_ptr<Ty> &right) noexcept {
+        return !(right < nullptr);
+    }
+
+    template <typename Ty>
+    bool operator>=(const shared_ptr<Ty> &left, std::nullptr_t) noexcept {
+        return !(left < nullptr);
+    }
+
+    template <typename Ty>
+    bool operator>=(std::nullptr_t, const shared_ptr<Ty> &right) noexcept {
+        return !(nullptr < right);
+    }
+
     template <typename Ty, typename... Args,
               type_traits::other_trans::enable_if_t<!type_traits::primary_types::is_array_v<Ty>, int> = 0>
     shared_ptr<Ty> make_shared(Args &&...args) {
