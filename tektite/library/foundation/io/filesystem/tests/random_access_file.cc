@@ -2,14 +2,16 @@
 #include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <rainy/foundation/io/filesystem/path.hpp>
+#include <rainy/foundation/io/filesystem/operations.hpp>
 #include <rainy/foundation/io/filesystem/random_access_file.hpp>
-
-namespace fs = std::filesystem;
 
 using namespace rainy;
 using namespace rainy::foundation;
 using namespace rainy::foundation::io;
 using namespace rainy::foundation::io::filesystem;
+
+namespace fs = rainy::foundation::io::filesystem;
 
 class RandomAccessFileFixture {
 protected:

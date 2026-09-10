@@ -4,14 +4,16 @@
 #include <filesystem>
 #include <fstream>
 #include <rainy/foundation/io/filesystem/streamfile.hpp>
+#include <rainy/foundation/io/filesystem/path.hpp>
+#include <rainy/foundation/io/filesystem/operations.hpp>
 #include <rainy/core/collections/vector.hpp>
-
-namespace fs = std::filesystem;
 
 using namespace rainy;
 using namespace rainy::foundation;
 using namespace rainy::foundation::io;
 using namespace rainy::foundation::io::filesystem;
+
+namespace fs = rainy::foundation::io::filesystem;
 
 // Test fixture for file operations
 class StreamFileFixture {
