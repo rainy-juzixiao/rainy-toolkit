@@ -9,6 +9,9 @@ namespace {
 #ifdef _WIN32
     constexpr const char *system_library = "ntdll.dll";
     constexpr const char *exported_symbol = "RtlCaptureContext";
+#elif RAINY_USING_MACOS
+    constexpr const char *system_library = "libSystem.B.dylib";
+    constexpr const char *exported_symbol = "cos";
 #else
     constexpr const char *system_library = "libm.so.6";
     constexpr const char *exported_symbol = "cos";

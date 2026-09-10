@@ -23,6 +23,10 @@
 #include <unistd.h>
 #include <cstring>
 #include <cerrno>
+#include <cstdlib>
+#if RAINY_USING_MACOS
+#include <sys/sysctl.h>
+#endif
 
 extern char **environ; // for extern
 
@@ -81,6 +85,29 @@ namespace rainy::foundation::os::implements {
 
     rain_fn query_process_list() noexcept -> core::collections::vector<process_entry> {
         core::collections::vector<process_entry> entries;
+#if RAINY_USING_MACOS
+        // macOS 没有 /proc，改用 KERN_PROC 的 sysctl 枚举所有进程。
+        int mib[4] = {CTL_KERN, KERN_PROC, KERN_PROC_ALL, 0};
+        std::size_t size = 0;
+        if (::sysctl(mib, 4, nullptr, &size, nullptr, 0) != 0) {
+            return entries;
+        }
+        auto *procs = static_cast<struct kinfo_proc *>(std::malloc(size));
+        if (!procs) {
+            return entries;
+        }
+        if (::sysctl(mib, 4, procs, &size, nullptr, 0) == 0) {
+            const int count = static_cast<int>(size / sizeof(struct kinfo_proc));
+            for (int i = 0; i < count; ++i) {
+                process_entry entry{};
+                entry.id = static_cast<std::uint64_t>(procs[i].kp_proc.p_pid);
+                entry.name = core::text::string{procs[i].kp_proc.p_comm};
+                entries.push_back(utility::move(entry));
+            }
+        }
+        std::free(procs);
+        return entries;
+#else
         DIR *directory = ::opendir("/proc");
         if (!directory) {
             return entries;
@@ -116,6 +143,7 @@ namespace rainy::foundation::os::implements {
         }
         ::closedir(directory);
         return entries;
+#endif
     }
 
     rain_fn current_priority() noexcept -> int {

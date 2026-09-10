@@ -31,11 +31,20 @@ namespace rainy::core::layer {
         return ::getauxval(AT_HWCAP);
 #elif RAINY_USING_MACOS
         unsigned long hwcap = 0;
-        size_t size = sizeof(hwcap);
-        if (sysctlbyname("hw.optional.advsimd", &hwcap, &size, nullptr, 0) == 0) {
-            return hwcap;
-        }
-        return 0;
+        auto query = [&hwcap](const char *name, unsigned long bit) {
+            int present = 0;
+            size_t size = sizeof(present);
+            if (::sysctlbyname(name, &present, &size, nullptr, 0) == 0 && present) {
+                hwcap |= bit;
+            }
+        };
+        query("hw.optional.advsimd", 1UL << 0);
+        query("hw.optional.arm.FEAT_AES", 1UL << 3);
+        query("hw.optional.arm.FEAT_PMULL", 1UL << 4);
+        query("hw.optional.arm.FEAT_SHA1", 1UL << 5);
+        query("hw.optional.arm.FEAT_SHA256", 1UL << 6);
+        query("hw.optional.arm.FEAT_CRC32", 1UL << 7);
+        return hwcap;
 #elif RAINY_USING_WINDOWS
         unsigned long hwcap = 0;
         if (IsProcessorFeaturePresent(PF_ARM_V8_INSTRUCTIONS_AVAILABLE)) {

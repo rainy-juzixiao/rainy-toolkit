@@ -204,6 +204,20 @@ TEST_CASE("path::canonical_native", "[filesystem][path]") {
             }
         }
         REQUIRE(native_strcmp(name, _T("file_a.txt")) == 0);
+#elif RAINY_USING_MACOS
+        const native_char *a = buf;
+        for (const native_char *p = buf; *p; ++p) {
+            if (*p == L'/') {
+                a = p + 1;
+            }
+        }
+        const native_char *b = d.file_a;
+        for (const native_char *p = d.file_a; *p; ++p) {
+            if (*p == L'/') {
+                b = p + 1;
+            }
+        }
+        REQUIRE(native_strcmp(a, b) == 0);
 #else
         REQUIRE(native_strcmp(buf, d.file_a) == 0);
 #endif

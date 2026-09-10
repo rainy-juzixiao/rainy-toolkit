@@ -40,7 +40,12 @@ namespace rainy::foundation::io::ipc::message_queue::implements {
     };
 
     static key_t name_to_key(const char *name) {
-        return ::ftok(name, 'q');
+        unsigned long hash = 5381UL;
+        for (const unsigned char *p = reinterpret_cast<const unsigned char *>(name); *p != '\0'; ++p) {
+            hash = (hash * 33UL) + *p;
+        }
+        const key_t key = static_cast<key_t>(hash);
+        return key == static_cast<key_t>(-1) ? static_cast<key_t>(-2) : key;
     }
 
     static std::size_t msgbuf_size(std::size_t data_size) {
