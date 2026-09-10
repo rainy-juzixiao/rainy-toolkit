@@ -396,17 +396,30 @@ TEST_CASE("HazardPointer MoveAssignmentReleasesOldProtection") {
 
 TEST_CASE("HazardPointer CrossThreadReclamation") {
     drain_reclamation();
-    std::thread worker([] {
-        // thread_local 使保护持续到线程退出,节点被置入全局孤儿表
+    rainy_const ptr = new int(5);
+    std::atomic<bool> holder_ready{false};
+    std::atomic<bool> release_holder{false};
+    std::thread holder([&] {
         thread_local hazard_pointer tls_hp;
-        auto& hp = tls_hp;
-        rainy_const ptr = new int(5);
+        tls_hp.protect(ptr);
+        holder_ready.store(true, std::memory_order_release);
+        while (!release_holder.load(std::memory_order_acquire)) {
+            std::this_thread::yield();
+        }
+    });
+    while (!holder_ready.load(std::memory_order_acquire)) {
+        std::this_thread::yield();
+    }
+    std::thread worker([ptr] {
+        hazard_pointer hp = hazard_pointer_domain<int>::global().acquire();
         hp.protect(ptr);
         hazard_pointer_domain<int>::global().retire(ptr);
     });
     worker.join();
-    // worker 已退出,其槽位已清空;孤儿节点此时不受保护,应能由其他线程回收
     REQUIRE(implements::global_reclamation_manager::instance().get_orphaned_count() > 0);
+    REQUIRE(hazard_pointer_domain<int>::global().reclaim() == 0);
+    release_holder.store(true, std::memory_order_release);
+    holder.join();
     REQUIRE(hazard_pointer_domain<int>::global().reclaim() >= 1);
     REQUIRE(implements::global_reclamation_manager::instance().get_orphaned_count() == 0);
 }
@@ -446,8 +459,6 @@ TEST_CASE("HazardPointer DomainIsolation") {
 }
 
 TEST_CASE("HazardPointer LockFreeStack") {
-    // 端到端集成:8 线程基于库 atomic 的无锁栈,pop 使用 try_protect 保护,
-    // 验证弹出的值集合完整且最终无泄漏
     using rainy::core::concurrency::atomic;
     using rainy::core::concurrency::memory_order;
     auto& domain = hazard_pointer_domain<stack_node>::global();

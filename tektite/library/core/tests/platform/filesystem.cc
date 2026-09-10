@@ -191,7 +191,22 @@ TEST_CASE("path::canonical_native", "[filesystem][path]") {
         const rainy::core::ssize_t len = layer::canonical_native(d.file_a, buf, PATH_MAX);
         REQUIRE(len > 0);
         buf[len] = '\0';
+#if RAINY_USING_WINDOWS
+        native_char again[PATH_MAX];
+        const rainy::core::ssize_t len2 = layer::canonical_native(buf, again, PATH_MAX);
+        REQUIRE(len2 > 0);
+        again[len2] = '\0';
+        REQUIRE(native_strcmp(again, buf) == 0);
+        const native_char *name = buf;
+        for (const native_char *p = buf; *p; ++p) {
+            if (*p == L'\\' || *p == L'/') {
+                name = p + 1;
+            }
+        }
+        REQUIRE(native_strcmp(name, _T("file_a.txt")) == 0);
+#else
         REQUIRE(native_strcmp(buf, d.file_a) == 0);
+#endif
     }
 
     SECTION("canonical of non-existent fails") {
