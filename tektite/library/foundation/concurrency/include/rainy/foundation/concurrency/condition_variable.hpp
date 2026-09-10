@@ -19,6 +19,7 @@
 #include <memory>
 #include <rainy/core/platform.hpp>
 #include <rainy/foundation/concurrency/mutex.hpp>
+#include <rainy/foundation/concurrency/stop_token.hpp>
 #include <rainy/foundation/concurrency/implements/layer.hpp>
 
 namespace rainy::foundation::concurrency {
@@ -402,7 +403,6 @@ namespace rainy::foundation::concurrency {
             return wait_until(lock, std::chrono::system_clock::now() + rel_time, utility::move(pred));
         }
 
-#if 0
 
         /**
          * @brief 带中断支持的谓词等待
@@ -415,7 +415,7 @@ namespace rainy::foundation::concurrency {
          * @return pred() 为 true 时返回 true；停止请求且 pred() 为 false 时返回 false
          */
         template <typename Lock, typename Pred>
-        rain_fn wait(Lock &lock, std::stop_token stoken, Pred pred) -> bool {
+        rain_fn wait(Lock &lock, stop_token stoken, Pred pred) -> bool {
             std::stop_callback cb(stoken, [this] { notify_all(); });
             while (!stoken.stop_requested()) {
                 if (pred()) {
@@ -436,7 +436,7 @@ namespace rainy::foundation::concurrency {
          * @return pred() 为 true 时返回 true；超时或停止请求且 pred() 为 false 时返回 false
          */
         template <typename Lock, typename Clock, typename Duration, typename Pred>
-        rain_fn wait_until(Lock &lock, std::stop_token stoken, const std::chrono::time_point<Clock, Duration> &abs_time, Pred pred)
+        rain_fn wait_until(Lock &lock, stop_token stoken, const std::chrono::time_point<Clock, Duration> &abs_time, Pred pred)
             -> bool {
             std::stop_callback cb(stoken, [this] { notify_all(); });
             while (!stoken.stop_requested()) {
@@ -460,12 +460,11 @@ namespace rainy::foundation::concurrency {
          * @return pred() 为 true 时返回 true；超时或停止请求且 pred() 为 false 时返回 false
          */
         template <typename Lock, typename Rep, typename Period, typename Pred>
-        rain_fn wait_for(Lock &lock, std::stop_token stoken, const std::chrono::duration<Rep, Period> &rel_time, Pred pred) -> bool {
+        rain_fn wait_for(Lock &lock, stop_token stoken, const std::chrono::duration<Rep, Period> &rel_time, Pred pred) -> bool {
             return wait_until(lock, utility::move(stoken), std::chrono::system_clock::now() + rel_time + std::chrono::milliseconds(1),
                               utility::move(pred));
         }
 
-#endif
         /**
          * @brief 获取底层平台条件变量的原生句柄
          */

@@ -4,6 +4,7 @@
 #include <chrono>
 #include <rainy/foundation/concurrency/condition_variable.hpp>
 #include <rainy/foundation/concurrency/mutex.hpp>
+#include <rainy/foundation/concurrency/thread.hpp>
 #include <stop_token>
 #include <thread>
 
@@ -155,13 +156,11 @@ TEST_CASE("wait_until returns no_timeout when notified before deadline", "[condi
     }
 }
 
-#if 0
-
 TEST_CASE("wait with stop_token can be interrupted", "[condition_variable_any]") {
     SECTION("A condition variable_any, a mutex and a stop source") {
         condition_variable_any cv;
         mutex mtx;
-        std::stop_source stop_src;
+        stop_source stop_src;
         bool flag = false;
         bool result_from_thread = true;
 
@@ -171,7 +170,7 @@ TEST_CASE("wait with stop_token can be interrupted", "[condition_variable_any]")
                 result_from_thread = cv.wait(lock, stop_src.get_token(), [&]{ return flag; });
             });
 
-            std::this_thread::sleep_for(50ms);
+            this_thread::sleep_for(50ms);
             stop_src.request_stop();
 
             SECTION("The waiting thread returns false due to stop request") {
@@ -182,5 +181,3 @@ TEST_CASE("wait with stop_token can be interrupted", "[condition_variable_any]")
         }
     }
 }
-
-#endif
