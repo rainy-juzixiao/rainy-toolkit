@@ -413,7 +413,7 @@ namespace rainy::foundation::io::ipc::message_queue::implements {
         }
     };
 
-    memory::nebula_ptr<message_queue_impl_base>
+    core::memory::nebula_ptr<message_queue_impl_base>
     create_message_queue_impl(executor_type executor, const char *name, const attributes &attr, direction dir, std::error_code &ec) {
         auto key = name_to_key(name);
         if (key == static_cast<key_t>(-1)) {
@@ -429,10 +429,10 @@ namespace rainy::foundation::io::ipc::message_queue::implements {
             return create_null_message_queue_impl(executor);
         }
         ec.clear();
-        return memory::make_nebula<sysv_mq_impl>(msgid, maxmsgs, msgsize);
+        return core::memory::make_nebula<sysv_mq_impl>(msgid, maxmsgs, msgsize);
     }
 
-    memory::nebula_ptr<message_queue_impl_base>
+    core::memory::nebula_ptr<message_queue_impl_base>
     open_message_queue_impl(executor_type executor, const char *name, direction dir, std::error_code &ec) {
         auto key = name_to_key(name);
         if (key == static_cast<key_t>(-1)) {
@@ -450,10 +450,10 @@ namespace rainy::foundation::io::ipc::message_queue::implements {
             return create_null_message_queue_impl(executor);
         }
         ec.clear();
-        return memory::make_nebula<sysv_mq_impl>(msgid, 0, 0);
+        return core::memory::make_nebula<sysv_mq_impl>(msgid, 0, 0);
     }
 
-    memory::nebula_ptr<message_queue_impl_base>
+    core::memory::nebula_ptr<message_queue_impl_base>
     open_or_create_message_queue_impl(executor_type executor, const char *name, const attributes &attr, direction dir,
                                        std::error_code &ec) {
         auto key = name_to_key(name);
@@ -470,11 +470,11 @@ namespace rainy::foundation::io::ipc::message_queue::implements {
             return create_null_message_queue_impl(executor);
         }
         ec.clear();
-        return memory::make_nebula<sysv_mq_impl>(msgid, maxmsgs, msgsize);
+        return core::memory::make_nebula<sysv_mq_impl>(msgid, maxmsgs, msgsize);
     }
 
-    memory::nebula_ptr<message_queue_impl_base> create_null_message_queue_impl(executor_type executor) {
-        return memory::make_nebula<null_mq_impl>(executor);
+    core::memory::nebula_ptr<message_queue_impl_base> create_null_message_queue_impl(executor_type executor) {
+        return core::memory::make_nebula<null_mq_impl>(executor);
     }
 
     std::error_code unlink_message_queue(const char *name) noexcept {

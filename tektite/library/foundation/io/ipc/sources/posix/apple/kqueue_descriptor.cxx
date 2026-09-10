@@ -239,17 +239,17 @@ namespace rainy::foundation::io::ipc::stream::implements {
 
     using kqueue_anon_pipe_impl = kqueue_descriptor_impl;
 
-    memory::nebula_ptr<descriptor_impl_base> create_descriptor_impl(executor_type executor) {
-        return memory::make_nebula<kqueue_descriptor_impl>(executor);
+    core::memory::nebula_ptr<descriptor_impl_base> create_descriptor_impl(executor_type executor) {
+        return core::memory::make_nebula<kqueue_descriptor_impl>(executor);
     }
 
-    memory::nebula_ptr<descriptor_impl_base> create_descriptor_impl_from_native(executor_type executor, native_handle_type handle) {
-        auto impl = memory::make_nebula<kqueue_descriptor_impl>(executor);
+    core::memory::nebula_ptr<descriptor_impl_base> create_descriptor_impl_from_native(executor_type executor, native_handle_type handle) {
+        auto impl = core::memory::make_nebula<kqueue_descriptor_impl>(executor);
         static_cast<void>(impl->attach(handle));
         return impl;
     }
 
-    memory::nebula_ptr<descriptor_impl_base> create_console_impl(executor_type executor, console_stream_kind kind) {
+    core::memory::nebula_ptr<descriptor_impl_base> create_console_impl(executor_type executor, console_stream_kind kind) {
         int fd = -1;
         switch (kind) {
             case console_stream_kind::input:
@@ -265,14 +265,14 @@ namespace rainy::foundation::io::ipc::stream::implements {
                 return create_null_impl(executor);
         }
         const int duped = ::dup(fd);
-        auto impl = memory::make_nebula<kqueue_descriptor_impl>(executor);
+        auto impl = core::memory::make_nebula<kqueue_descriptor_impl>(executor);
         if (duped >= 0) {
             static_cast<void>(impl->attach(static_cast<native_handle_type>(duped)));
         }
         return impl;
     }
 
-    utility::pair<memory::nebula_ptr<descriptor_impl_base>, memory::nebula_ptr<descriptor_impl_base>> create_pipe_impl(
+    utility::pair<core::memory::nebula_ptr<descriptor_impl_base>, core::memory::nebula_ptr<descriptor_impl_base>> create_pipe_impl(
         executor_type executor, std::error_code &ec) {
         int fds[2] = {-1, -1};
         if (::pipe(fds) != 0) {
@@ -294,15 +294,15 @@ namespace rainy::foundation::io::ipc::stream::implements {
                 return {};
             }
         }
-        auto read_impl = memory::make_nebula<kqueue_anon_pipe_impl>(executor);
-        auto write_impl = memory::make_nebula<kqueue_anon_pipe_impl>(executor);
+        auto read_impl = core::memory::make_nebula<kqueue_anon_pipe_impl>(executor);
+        auto write_impl = core::memory::make_nebula<kqueue_anon_pipe_impl>(executor);
         static_cast<void>(read_impl->attach(static_cast<native_handle_type>(fds[0])));
         static_cast<void>(write_impl->attach(static_cast<native_handle_type>(fds[1])));
         ec.clear();
         return {utility::move(read_impl), utility::move(write_impl)};
     }
 
-    memory::nebula_ptr<descriptor_impl_base> create_named_pipe_server_impl(executor_type executor, const char *name,
+    core::memory::nebula_ptr<descriptor_impl_base> create_named_pipe_server_impl(executor_type executor, const char *name,
                                                                            pipe_direction dir, std::error_code &ec) {
         if (::mkfifo(name, 0600) != 0 && errno != EEXIST) {
             ec = posix_error();
@@ -330,13 +330,13 @@ namespace rainy::foundation::io::ipc::stream::implements {
             int fl = ::fcntl(fd, F_GETFL, 0);
             ::fcntl(fd, F_SETFL, fl & ~O_NONBLOCK);
         }
-        auto impl = memory::make_nebula<kqueue_descriptor_impl>(executor);
+        auto impl = core::memory::make_nebula<kqueue_descriptor_impl>(executor);
         static_cast<void>(impl->attach(static_cast<native_handle_type>(fd)));
         ec.clear();
         return impl;
     }
 
-    memory::nebula_ptr<descriptor_impl_base> create_named_pipe_client_impl(executor_type executor, const char *name,
+    core::memory::nebula_ptr<descriptor_impl_base> create_named_pipe_client_impl(executor_type executor, const char *name,
                                                                            pipe_direction dir, std::error_code &ec) {
         int flags = O_CLOEXEC;
         switch (dir) {
@@ -357,7 +357,7 @@ namespace rainy::foundation::io::ipc::stream::implements {
             return create_null_impl(executor);
         }
 
-        auto impl = memory::make_nebula<kqueue_descriptor_impl>(executor);
+        auto impl = core::memory::make_nebula<kqueue_descriptor_impl>(executor);
         static_cast<void>(impl->attach(static_cast<native_handle_type>(fd)));
         ec.clear();
         return impl;
