@@ -20,6 +20,8 @@
 
 #include <cstring>
 
+#if !RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
+
 namespace rainy::core::concurrency::implements {
     template <size_t ByteSize>
     struct atomic_ops_base;
@@ -320,18 +322,21 @@ namespace rainy::core::concurrency::implements {
         using type = std::int8_t;
     };
     template <typename Ty>
-    struct select_ops_type<Ty, type_traits::other_trans::enable_if_t<sizeof(Ty) == 2 && !type_traits::type_relations::is_same_v<Ty, std::int16_t> &&
-                                                !type_traits::type_relations::is_same_v<Ty, std::uint16_t>>> {
+    struct select_ops_type<
+        Ty, type_traits::other_trans::enable_if_t<sizeof(Ty) == 2 && !type_traits::type_relations::is_same_v<Ty, std::int16_t> &&
+                                                  !type_traits::type_relations::is_same_v<Ty, std::uint16_t>>> {
         using type = std::int16_t;
     };
     template <typename Ty>
-    struct select_ops_type<Ty, type_traits::other_trans::enable_if_t<sizeof(Ty) == 4 && !type_traits::type_relations::is_same_v<Ty, std::int32_t> &&
-                                                !type_traits::type_relations::is_same_v<Ty, std::uint32_t>>> {
+    struct select_ops_type<
+        Ty, type_traits::other_trans::enable_if_t<sizeof(Ty) == 4 && !type_traits::type_relations::is_same_v<Ty, std::int32_t> &&
+                                                  !type_traits::type_relations::is_same_v<Ty, std::uint32_t>>> {
         using type = std::int32_t;
     };
     template <typename Ty>
-    struct select_ops_type<Ty, type_traits::other_trans::enable_if_t<sizeof(Ty) == 8 && !type_traits::type_relations::is_same_v<Ty, std::int64_t> &&
-                                                !type_traits::type_relations::is_same_v<Ty, std::uint64_t>>> {
+    struct select_ops_type<
+        Ty, type_traits::other_trans::enable_if_t<sizeof(Ty) == 8 && !type_traits::type_relations::is_same_v<Ty, std::int64_t> &&
+                                                  !type_traits::type_relations::is_same_v<Ty, std::uint64_t>>> {
         using type = std::int64_t;
     };
 
@@ -384,10 +389,11 @@ namespace rainy::core::concurrency::implements {
     struct float_int_traits<long double> {
         using float_type = long double;
 
-        using int_type =
-            type_traits::other_trans::conditional_t<sizeof(long double) == 4, std::uint32_t,
-                               type_traits::other_trans::conditional_t<sizeof(long double) == 8, std::uint64_t,
-                                                  type_traits::other_trans::conditional_t<sizeof(long double) == 16, layer::native_double_word_t, void>>>;
+        using int_type = type_traits::other_trans::conditional_t<
+            sizeof(long double) == 4, std::uint32_t,
+            type_traits::other_trans::conditional_t<
+                sizeof(long double) == 8, std::uint64_t,
+                type_traits::other_trans::conditional_t<sizeof(long double) == 16, layer::native_double_word_t, void>>>;
 
         static_assert(!type_traits::type_relations::is_same_v<int_type, void>, "unsupport platform");
         static_assert(sizeof(float_type) == sizeof(int_type));
@@ -597,5 +603,7 @@ namespace rainy::core::concurrency::implements {
         return old;
     }
 }
+
+#endif
 
 #endif

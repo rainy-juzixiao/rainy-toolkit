@@ -19,12 +19,51 @@
 #include <rainy/core/memory/allocator.hpp>
 
 namespace rainy::core::text {
+    /**
+     * \lang english
+     * @brief Character traits type used by the text classes.
+     *
+     * @tparam Elem The character element type
+     *
+     * \lang simp-chinese
+     * @brief 供文本类使用的字符 traits 类型。
+     *
+     * @tparam Elem 字符元素类型
+     */
     template <typename Elem>
     struct char_traits;
 
+    /**
+     * \lang english
+     * @brief A dynamically-sized character string with small-string optimization.
+     *
+     * @tparam CharType The character type
+     * @tparam Traits The character traits type
+     * @tparam Allocator The allocator type
+     *
+     * \lang simp-chinese
+     * @brief 带有短字符串优化的动态字符字符串。
+     *
+     * @tparam CharType 字符类型
+     * @tparam Traits 字符 traits 类型
+     * @tparam Allocator 分配器类型
+     */
     template <typename CharType, typename Traits = char_traits<CharType>, typename Allocator = memory::allocator<CharType>>
     class basic_string;
 
+    /**
+     * \lang english
+     * @brief A non-owning view over a character sequence.
+     *
+     * @tparam CharType The character type
+     * @tparam Traits The character traits type
+     *
+     * \lang simp-chinese
+     * @brief 字符序列的非拥有视图。
+     *
+     * @tparam CharType 字符类型
+     * @tparam Traits 字符 traits 类型
+     */
     template <typename CharType, typename Traits = char_traits<CharType>>
     class basic_string_view;
 }

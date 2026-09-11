@@ -23,7 +23,46 @@
 
 namespace rainy::core::text {
     template <typename CharType, typename Traits>
+    /**
+     * \lang english
+     * @brief Formatter specialization for rainy basic_string_view values.
+     *
+     * @tparam CharType The character type
+     * @tparam Traits The character traits type
+     *
+     * \lang simp-chinese
+     * @brief 面向 rainy basic_string_view 值的 formatter 特化。
+     *
+     * @tparam CharType 字符类型
+     * @tparam Traits 字符 traits 类型
+     */
     struct formatter<basic_string_view<CharType, Traits>, CharType> {
+        /**
+         * \lang english
+         * @brief Parses the string format specification (fill/align, width, precision, type).
+         *
+         * @param ctx The parse context
+         * @return An iterator past the parsed specification
+         *
+         * \lang simp-chinese
+         * @brief 解析字符串格式规范（填充/对齐、宽度、精度、类型）。
+         *
+         * @param ctx 解析上下文
+         * @return 指向已解析规范末尾之后的迭代器
+         */
+        /**
+         * \lang english
+         * @brief Parses the pointer format specification.
+         *
+         * @param ctx The parse context
+         * @return An iterator past the parsed specification
+         *
+         * \lang simp-chinese
+         * @brief 解析指针格式规范。
+         *
+         * @param ctx 解析上下文
+         * @return 指向已解析规范末尾之后的迭代器
+         */
         constexpr auto parse(basic_format_parse_context<CharType> &ctx) -> typename basic_format_parse_context<CharType>::iterator {
             auto it = ctx.begin();
             auto end = ctx.end();
@@ -106,6 +145,23 @@ namespace rainy::core::text {
             return it;
         }
 
+        /**
+         * \lang english
+         * @brief Formats the string view into the output context.
+         *
+         * @tparam FormatContext The format context type
+         * @param str The string view to format
+         * @param ctx The format context
+         * @return The output iterator after formatting
+         *
+         * \lang simp-chinese
+         * @brief 将字符串视图格式化到输出上下文中。
+         *
+         * @tparam FormatContext 格式化上下文类型
+         * @param str 待格式化的字符串视图
+         * @param ctx 格式化上下文
+         * @return 格式化完成后的输出迭代器
+         */
         template <typename FormatContext>
         auto format(const basic_string_view<CharType, Traits> &str, FormatContext &ctx) const -> typename FormatContext::iterator {
             if (!specs_.dynamic_width && !specs_.dynamic_precision && specs_.width <= 0 && specs_.precision < 0) {
@@ -190,12 +246,135 @@ namespace rainy::core::text {
     };
 
     template <typename CharType, typename Traits, typename Alloc>
+    /**
+     * \lang english
+     * @brief Formatter specialization for rainy basic_string values.
+     *
+     * @tparam CharType The character type
+     * @tparam Traits The character traits type
+     * @tparam Alloc The allocator type
+     *
+     * \lang simp-chinese
+     * @brief 面向 rainy basic_string 值的 formatter 特化。
+     *
+     * @tparam CharType 字符类型
+     * @tparam Traits 字符 traits 类型
+     * @tparam Alloc 分配器类型
+     */
     struct formatter<basic_string<CharType, Traits, Alloc>, CharType> {
+        /**
+         * \lang english
+         * @brief Parses the string format specification, delegating to the string_view formatter.
+         *
+         * @param ctx The parse context
+         * @return An iterator past the parsed specification
+         *
+         * \lang simp-chinese
+         * @brief 解析字符串格式规范，委托给 string_view formatter 处理。
+         *
+         * @param ctx 解析上下文
+         * @return 指向已解析规范末尾之后的迭代器
+         */
+        /**
+         * \lang english
+         * @brief Parses the string format specification, delegating to the string_view formatter.
+         *
+         * @param ctx The parse context
+         * @return An iterator past the parsed specification
+         *
+         * \lang simp-chinese
+         * @brief 解析字符串格式规范，委托给 string_view formatter 处理。
+         *
+         * @param ctx 解析上下文
+         * @return 指向已解析规范末尾之后的迭代器
+         */
+        /**
+         * \lang english
+         * @brief Parses the string format specification, delegating to the string_view formatter.
+         *
+         * @param ctx The parse context
+         * @return An iterator past the parsed specification
+         *
+         * \lang simp-chinese
+         * @brief 解析字符串格式规范，委托给 string_view formatter 处理。
+         *
+         * @param ctx 解析上下文
+         * @return 指向已解析规范末尾之后的迭代器
+         */
+        /**
+         * \lang english
+         * @brief Parses the string format specification, delegating to the string_view formatter.
+         *
+         * @param ctx The parse context
+         * @return An iterator past the parsed specification
+         *
+         * \lang simp-chinese
+         * @brief 解析字符串格式规范，委托给 string_view formatter 处理。
+         *
+         * @param ctx 解析上下文
+         * @return 指向已解析规范末尾之后的迭代器
+         */
+        /**
+         * \lang english
+         * @brief Parses the string format specification, delegating to the string_view formatter.
+         *
+         * @param ctx The parse context
+         * @return An iterator past the parsed specification
+         *
+         * \lang simp-chinese
+         * @brief 解析字符串格式规范，委托给 string_view formatter 处理。
+         *
+         * @param ctx 解析上下文
+         * @return 指向已解析规范末尾之后的迭代器
+         */
+        /**
+         * \lang english
+         * @brief Parses the bool format specification ('s' for text, 'd'/'b'/'o'/'x'/'X' for digits).
+         *
+         * @param ctx The parse context
+         * @return An iterator past the parsed specification
+         *
+         * \lang simp-chinese
+         * @brief 解析 bool 格式规范（'s' 输出文本，'d'/'b'/'o'/'x'/'X' 输出数字）。
+         *
+         * @param ctx 解析上下文
+         * @return 指向已解析规范末尾之后的迭代器
+         */
+        /**
+         * \lang english
+         * @brief Parses the character format specification.
+         *
+         * @param ctx The parse context
+         * @return An iterator past the parsed specification
+         *
+         * \lang simp-chinese
+         * @brief 解析字符格式规范。
+         *
+         * @param ctx 解析上下文
+         * @return 指向已解析规范末尾之后的迭代器
+         */
     public:
         constexpr auto parse(basic_format_parse_context<CharType> &ctx) -> typename basic_format_parse_context<CharType>::iterator {
             return underlying_.parse(ctx);
         }
 
+        /**
+         * \lang english
+         * @brief Formats the string into the output context.
+         *
+         * @tparam FormatContext The format context type
+         * @param str The string to format
+         * @param ctx The format context
+         * @return The output iterator after formatting
+         *
+         * \lang simp-chinese
+         * @brief 将字符串格式化到输出上下文中。
+         *
+         * @tparam FormatContext 格式化上下文类型
+         * @param str 待格式化的字符串
+         * @param ctx 格式化上下文
+         * @return 格式化完成后的输出迭代器
+         */
         template <typename FormatContext>
         auto format(const basic_string<CharType> &str, FormatContext &ctx) const -> typename FormatContext::iterator {
             return underlying_.format(basic_string_view<CharType>(str.data(), str.size()), ctx);
@@ -206,12 +385,53 @@ namespace rainy::core::text {
     };
 
     template <typename CharType>
+    /**
+     * \lang english
+     * @brief Formatter specialization for null-terminated character pointers.
+     *
+     * @tparam CharType The character type
+     *
+     * \lang simp-chinese
+     * @brief 面向以空字符结尾的字符指针的 formatter 特化。
+     *
+     * @tparam CharType 字符类型
+     */
     struct formatter<const CharType *, CharType> {
     public:
+        /**
+         * \lang english
+         * @brief Parses the character string format specification.
+         *
+         * @param ctx The parse context
+         * @return An iterator past the parsed specification
+         *
+         * \lang simp-chinese
+         * @brief 解析字符字符串格式规范。
+         *
+         * @param ctx 解析上下文
+         * @return 指向已解析规范末尾之后的迭代器
+         */
         constexpr auto parse(basic_format_parse_context<CharType> &ctx) -> typename basic_format_parse_context<CharType>::iterator {
             return underlying_.parse(ctx);
         }
 
+        /**
+         * \lang english
+         * @brief Formats the null-terminated character string into the output context.
+         *
+         * @tparam FormatContext The format context type
+         * @param str The character string to format
+         * @param ctx The format context
+         * @return The output iterator after formatting
+         *
+         * \lang simp-chinese
+         * @brief 将以空字符结尾的字符串格式化到输出上下文中。
+         *
+         * @tparam FormatContext 格式化上下文类型
+         * @param str 待格式化的字符串
+         * @param ctx 格式化上下文
+         * @return 格式化完成后的输出迭代器
+         */
         template <typename FormatContext>
         auto format(const CharType *str, FormatContext &ctx) const -> typename FormatContext::iterator {
             return underlying_.format(basic_string_view<CharType>(str), ctx);
@@ -222,12 +442,55 @@ namespace rainy::core::text {
     };
 
     template <typename CharType, std::size_t N>
+    /**
+     * \lang english
+     * @brief Formatter specialization for fixed-size character arrays.
+     *
+     * @tparam CharType The character type
+     * @tparam N The array size
+     *
+     * \lang simp-chinese
+     * @brief 面向固定大小字符数组的 formatter 特化。
+     *
+     * @tparam CharType 字符类型
+     * @tparam N 数组大小
+     */
     struct formatter<const CharType[N], CharType> {
     public:
+        /**
+         * \lang english
+         * @brief Parses the character array format specification.
+         *
+         * @param ctx The parse context
+         * @return An iterator past the parsed specification
+         *
+         * \lang simp-chinese
+         * @brief 解析字符数组格式规范。
+         *
+         * @param ctx 解析上下文
+         * @return 指向已解析规范末尾之后的迭代器
+         */
         constexpr auto parse(basic_format_parse_context<CharType> &ctx) -> typename basic_format_parse_context<CharType>::iterator {
             return underlying_.parse(ctx);
         }
 
+        /**
+         * \lang english
+         * @brief Formats the character array into the output context.
+         *
+         * @tparam FormatContext The format context type
+         * @param str The character array to format
+         * @param ctx The format context
+         * @return The output iterator after formatting
+         *
+         * \lang simp-chinese
+         * @brief 将字符数组格式化到输出上下文中。
+         *
+         * @tparam FormatContext 格式化上下文类型
+         * @param str 待格式化的字符数组
+         * @param ctx 格式化上下文
+         * @return 格式化完成后的输出迭代器
+         */
         template <typename FormatContext>
         auto format(const CharType (&str)[N], FormatContext &ctx) const -> typename FormatContext::iterator {
             return underlying_.format(basic_string_view<CharType>(str, N), ctx);
@@ -238,12 +501,57 @@ namespace rainy::core::text {
     };
 
     template <typename CharType, typename Traits, typename Alloc>
+    /**
+     * \lang english
+     * @brief Formatter specialization for std::basic_string values.
+     *
+     * @tparam CharType The character type
+     * @tparam Traits The character traits type
+     * @tparam Alloc The allocator type
+     *
+     * \lang simp-chinese
+     * @brief 面向 std::basic_string 值的 formatter 特化。
+     *
+     * @tparam CharType 字符类型
+     * @tparam Traits 字符 traits 类型
+     * @tparam Alloc 分配器类型
+     */
     struct formatter<std::basic_string<CharType, Traits, Alloc>, CharType> {
     public:
+        /**
+         * \lang english
+         * @brief Parses the string format specification.
+         *
+         * @param ctx The parse context
+         * @return An iterator past the parsed specification
+         *
+         * \lang simp-chinese
+         * @brief 解析字符串格式规范。
+         *
+         * @param ctx 解析上下文
+         * @return 指向已解析规范末尾之后的迭代器
+         */
         constexpr auto parse(basic_format_parse_context<CharType> &ctx) -> typename basic_format_parse_context<CharType>::iterator {
             return underlying_.parse(ctx);
         }
 
+        /**
+         * \lang english
+         * @brief Formats the std::basic_string into the output context.
+         *
+         * @tparam FormatContext The format context type
+         * @param str The string to format
+         * @param ctx The format context
+         * @return The output iterator after formatting
+         *
+         * \lang simp-chinese
+         * @brief 将 std::basic_string 格式化到输出上下文中。
+         *
+         * @tparam FormatContext 格式化上下文类型
+         * @param str 待格式化的字符串
+         * @param ctx 格式化上下文
+         * @return 格式化完成后的输出迭代器
+         */
         template <typename FormatContext>
         auto format(const std::basic_string<CharType> &str, FormatContext &ctx) const -> typename FormatContext::iterator {
             return underlying_.format(basic_string_view<CharType>(str.data(), str.size()), ctx);
@@ -254,12 +562,55 @@ namespace rainy::core::text {
     };
 
     template <typename CharType, typename Traits>
+    /**
+     * \lang english
+     * @brief Formatter specialization for std::basic_string_view values.
+     *
+     * @tparam CharType The character type
+     * @tparam Traits The character traits type
+     *
+     * \lang simp-chinese
+     * @brief 面向 std::basic_string_view 值的 formatter 特化。
+     *
+     * @tparam CharType 字符类型
+     * @tparam Traits 字符 traits 类型
+     */
     struct formatter<std::basic_string_view<CharType, Traits>, CharType> {
     public:
+        /**
+         * \lang english
+         * @brief Parses the string view format specification.
+         *
+         * @param ctx The parse context
+         * @return An iterator past the parsed specification
+         *
+         * \lang simp-chinese
+         * @brief 解析字符串视图格式规范。
+         *
+         * @param ctx 解析上下文
+         * @return 指向已解析规范末尾之后的迭代器
+         */
         constexpr auto parse(basic_format_parse_context<CharType> &ctx) -> typename basic_format_parse_context<CharType>::iterator {
             return underlying_.parse(ctx);
         }
 
+        /**
+         * \lang english
+         * @brief Formats the string view into the output context.
+         *
+         * @tparam FormatContext The format context type
+         * @param str The string view to format
+         * @param ctx The format context
+         * @return The output iterator after formatting
+         *
+         * \lang simp-chinese
+         * @brief 将字符串视图格式化到输出上下文中。
+         *
+         * @tparam FormatContext 格式化上下文类型
+         * @param str 待格式化的字符串视图
+         * @param ctx 格式化上下文
+         * @return 格式化完成后的输出迭代器
+         */
         template <typename FormatContext>
         auto format(const basic_string_view<CharType> &str, FormatContext &ctx) const -> typename FormatContext::iterator {
             return underlying_.format(basic_string_view<CharType>(str.data(), str.size()), ctx);
@@ -272,8 +623,36 @@ namespace rainy::core::text {
 
 namespace rainy::core::text {
     template <typename CharType>
+    /**
+     * \lang english
+     * @brief Formatter specialization for bool values, supporting "true"/"false" or "1"/"0" output.
+     *
+     * @tparam CharType The character type
+     *
+     * \lang simp-chinese
+     * @brief 面向 bool 值的 formatter 特化，支持输出 "true"/"false" 或 "1"/"0"。
+     *
+     * @tparam CharType 字符类型
+     */
     struct formatter<bool, CharType> {
     public:
+        /**
+         * \lang english
+         * @brief Parses the bool format specification.
+         *
+         * Supported presentation types: 's' (string), 'd', 'b', 'o', 'x' and 'X'.
+         *
+         * @param ctx The parse context
+         * @return An iterator past the parsed specification
+         *
+         * \lang simp-chinese
+         * @brief 解析 bool 格式规范。
+         *
+         * 支持的表示类型：'s'（字符串）、'd'、'b'、'o'、'x' 和 'X'。
+         *
+         * @param ctx 解析上下文
+         * @return 指向已解析规范末尾之后的迭代器
+         */
         constexpr auto parse(basic_format_parse_context<CharType> &ctx) -> typename basic_format_parse_context<CharType>::iterator {
             auto it = ctx.begin();
             auto end = ctx.end();
@@ -294,6 +673,23 @@ namespace rainy::core::text {
             return it;
         }
 
+        /**
+         * \lang english
+         * @brief Formats the bool value into the output context.
+         *
+         * @tparam FormatContext The format context type
+         * @param value The bool value to format
+         * @param ctx The format context
+         * @return The output iterator after formatting
+         *
+         * \lang simp-chinese
+         * @brief 将 bool 值格式化到输出上下文中。
+         *
+         * @tparam FormatContext 格式化上下文类型
+         * @param value 待格式化的 bool 值
+         * @param ctx 格式化上下文
+         * @return 格式化完成后的输出迭代器
+         */
         template <typename FormatContext>
         auto format(bool value, FormatContext &ctx) const -> typename FormatContext::iterator {
 
@@ -322,7 +718,37 @@ namespace rainy::core::text {
     };
 
     template <typename Ty, typename CharType>
+    /**
+     * \lang english
+     * @brief Formatter specialization for object pointers, formatting them as hexadecimal addresses.
+     *
+     * @tparam Ty The pointed-to type
+     * @tparam CharType The character type
+     *
+     * \lang simp-chinese
+     * @brief 面向对象指针的 formatter 特化，将指针格式化为十六进制地址。
+     *
+     * @tparam Ty 所指向的类型
+     * @tparam CharType 字符类型
+     */
     struct formatter<Ty *, CharType> {
+        /**
+         * \lang english
+         * @brief Parses the pointer format specification.
+         *
+         * Only an empty specification is accepted for pointers.
+         *
+         * @param ctx The parse context
+         * @return An iterator past the parsed specification
+         *
+         * \lang simp-chinese
+         * @brief 解析指针格式规范。
+         *
+         * 指针仅接受空的格式规范。
+         *
+         * @param ctx 解析上下文
+         * @return 指向已解析规范末尾之后的迭代器
+         */
         constexpr auto parse(basic_format_parse_context<CharType> &ctx) -> typename basic_format_parse_context<CharType>::iterator {
             auto it = ctx.begin();
             if (it != ctx.end() && *it != '}') {
@@ -331,6 +757,23 @@ namespace rainy::core::text {
             return it;
         }
 
+        /**
+         * \lang english
+         * @brief Formats the pointer as a 0x-prefixed hexadecimal address.
+         *
+         * @tparam FormatContext The format context type
+         * @param value The pointer to format
+         * @param ctx The format context
+         * @return The output iterator after formatting
+         *
+         * \lang simp-chinese
+         * @brief 将指针格式化为以 0x 为前缀的十六进制地址。
+         *
+         * @tparam FormatContext 格式化上下文类型
+         * @param value 待格式化的指针
+         * @param ctx 格式化上下文
+         * @return 格式化完成后的输出迭代器
+         */
         template <typename FormatContext>
         auto format(Ty *value, FormatContext &ctx) const -> typename FormatContext::iterator {
             using UInt = uintptr_t;
@@ -361,8 +804,36 @@ namespace rainy::core::text {
 
 namespace rainy::core::text {
     template <typename CharType>
+    /**
+     * \lang english
+     * @brief Formatter specialization for single character values.
+     *
+     * @tparam CharType The character type
+     *
+     * \lang simp-chinese
+     * @brief 面向单个字符值的 formatter 特化。
+     *
+     * @tparam CharType 字符类型
+     */
     struct formatter<CharType, CharType> {
     public:
+        /**
+         * \lang english
+         * @brief Parses the character format specification.
+         *
+         * Only an empty specification is accepted for characters.
+         *
+         * @param ctx The parse context
+         * @return An iterator past the parsed specification
+         *
+         * \lang simp-chinese
+         * @brief 解析字符格式规范。
+         *
+         * 字符仅接受空的格式规范。
+         *
+         * @param ctx 解析上下文
+         * @return 指向已解析规范末尾之后的迭代器
+         */
         constexpr auto parse(basic_format_parse_context<CharType> &ctx) -> typename basic_format_parse_context<CharType>::iterator {
 
             auto it = ctx.begin();
@@ -372,6 +843,23 @@ namespace rainy::core::text {
             return it;
         }
 
+        /**
+         * \lang english
+         * @brief Writes the character to the output context.
+         *
+         * @tparam FormatContext The format context type
+         * @param value The character to format
+         * @param ctx The format context
+         * @return The output iterator after formatting
+         *
+         * \lang simp-chinese
+         * @brief 将字符写入输出上下文。
+         *
+         * @tparam FormatContext 格式化上下文类型
+         * @param value 待格式化的字符
+         * @param ctx 格式化上下文
+         * @return 格式化完成后的输出迭代器
+         */
         template <typename FormatContext>
         auto format(CharType value, FormatContext &ctx) const -> typename FormatContext::iterator {
             auto out = ctx.out();
@@ -387,6 +875,32 @@ namespace rainy::core::text {
 
 namespace rainy::core::text {
     template <typename Ty, typename CharType>
+    /**
+     * \lang english
+     * @brief Formatter specialization for integral types, supporting decimal, hex, octal and binary output.
+     *
+     * @tparam Ty The integral type
+     * @tparam CharType The character type
+     *
+     * \lang simp-chinese
+     * @brief 面向整数类型的 formatter 特化，支持十进制、十六进制、八进制与二进制输出。
+     *
+     * @tparam Ty 整数类型
+     * @tparam CharType 字符类型
+     */
+        /**
+         * \lang english
+         * @brief Parses the integer format specification (fill/align, sign, 'L', zero-fill, width, type).
+         *
+         * @param ctx The parse context
+         * @return An iterator past the parsed specification
+         *
+         * \lang simp-chinese
+         * @brief 解析整数格式规范（填充/对齐、符号、'L'、零填充、宽度、类型）。
+         *
+         * @param ctx 解析上下文
+         * @return 指向已解析规范末尾之后的迭代器
+         */
     struct formatter<
         Ty, CharType,
         type_traits::other_trans::enable_if_t<type_traits::primary_types::is_integral_v<Ty> && !type_traits::type_relations::is_same_v<Ty, bool> &&
@@ -443,6 +957,23 @@ namespace rainy::core::text {
             return it;
         }
 
+        /**
+         * \lang english
+         * @brief Formats the integer value into the output context.
+         *
+         * @tparam FormatContext The format context type
+         * @param value The integer value to format
+         * @param ctx The format context
+         * @return The output iterator after formatting
+         *
+         * \lang simp-chinese
+         * @brief 将整数值格式化到输出上下文中。
+         *
+         * @tparam FormatContext 格式化上下文类型
+         * @param value 待格式化的整数值
+         * @param ctx 格式化上下文
+         * @return 格式化完成后的输出迭代器
+         */
         template <typename FormatContext>
         auto format(Ty value, FormatContext &ctx) const -> typename FormatContext::iterator {
             implements::stack_buffer<CharType> buf;
@@ -734,6 +1265,32 @@ namespace rainy::core::text {
 
 namespace rainy::core::text {
     template <typename Ty, typename CharType>
+    /**
+     * \lang english
+     * @brief Formatter specialization for floating-point types, supporting fixed, scientific, general and hex formats.
+     *
+     * @tparam Ty The floating-point type
+     * @tparam CharType The character type
+     *
+     * \lang simp-chinese
+     * @brief 面向浮点类型的 formatter 特化，支持定点、科学计数、常规与十六进制格式。
+     *
+     * @tparam Ty 浮点类型
+     * @tparam CharType 字符类型
+     */
+        /**
+         * \lang english
+         * @brief Parses the floating-point format specification (fill/align, width, precision, 'L', type).
+         *
+         * @param ctx The parse context
+         * @return An iterator past the parsed specification
+         *
+         * \lang simp-chinese
+         * @brief 解析浮点格式规范（填充/对齐、宽度、精度、'L'、类型）。
+         *
+         * @param ctx 解析上下文
+         * @return 指向已解析规范末尾之后的迭代器
+         */
     struct formatter<Ty, CharType, type_traits::other_trans::enable_if_t<type_traits::primary_types::is_floating_point_v<Ty>>> {
     public:
         constexpr auto parse(basic_format_parse_context<CharType> &ctx) -> typename basic_format_parse_context<CharType>::iterator {
@@ -808,6 +1365,23 @@ namespace rainy::core::text {
             return it;
         }
 
+        /**
+         * \lang english
+         * @brief Formats the floating-point value into the output context.
+         *
+         * @tparam FormatContext The format context type
+         * @param value The floating-point value to format
+         * @param ctx The format context
+         * @return The output iterator after formatting
+         *
+         * \lang simp-chinese
+         * @brief 将浮点数值格式化到输出上下文中。
+         *
+         * @tparam FormatContext 格式化上下文类型
+         * @param value 待格式化的浮点数值
+         * @param ctx 格式化上下文
+         * @return 格式化完成后的输出迭代器
+         */
         template <typename FormatContext>
         auto format(Ty value, FormatContext &ctx) const -> typename FormatContext::iterator {
             basic_string<CharType> str;
@@ -1176,15 +1750,50 @@ namespace rainy::core::text {
 }
 
 #if RAINY_HAS_CXX20
+/**
+ * \lang english
+ * @brief std::formatter specialization that formats a rainy source_location via its to_string().
+ *
+ * \lang simp-chinese
+ * @brief 通过 source_location 的 to_string() 对其进行格式化的 std::formatter 特化。
+ */
 template <>
 class std::formatter<rainy::core::diagnostics::source_location, char> {
 public:
     explicit formatter() noexcept = default;
 
+    /**
+     * \lang english
+     * @brief Accepts an empty format specification.
+     *
+     * @param ctx The parse context
+     * @return An iterator past the parsed specification
+     *
+     * \lang simp-chinese
+     * @brief 接受空格式规范。
+     *
+     * @param ctx 解析上下文
+     * @return 指向已解析规范末尾之后的迭代器
+     */
     static auto parse(format_parse_context &ctx) noexcept {
         return ctx.begin();
     }
 
+    /**
+     * \lang english
+     * @brief Formats the source location as its string representation.
+     *
+     * @param value The source location to format
+     * @param fc The format context
+     * @return The output iterator after formatting
+     *
+     * \lang simp-chinese
+     * @brief 将源码位置格式化为其字符串表示。
+     *
+     * @param value 待格式化的源码位置
+     * @param fc 格式化上下文
+     * @return 格式化完成后的输出迭代器
+     */
     RAINY_NODISCARD static auto format(const rainy::core::diagnostics::source_location &value, std::format_context fc) noexcept {
         return std::format_to(fc.out(), "{}", value.to_string());
     }

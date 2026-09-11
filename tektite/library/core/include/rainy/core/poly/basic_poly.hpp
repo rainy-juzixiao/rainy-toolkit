@@ -99,14 +99,17 @@ namespace rainy::core::implements {
 
 namespace rainy::core {
     /**
+     * \lang english
      * @brief Virtual table provider for polymorphic concepts.
-     *        Generates and stores the vtable for a given concept.
-     *
-     *        多态概念的虚表提供者。
-     *        为给定概念生成并存储虚表。
+     *         Generates and stores the vtable for a given concept.
      *
      * @tparam Concept The concept that defines the polymorphic interface
-     *                 定义多态接口的概念
+     *
+     * \lang simp-chinese
+     * @brief 多态概念的虚表提供者。
+     *         为给定概念生成并存储虚表。
+     *
+     * @tparam Concept 定义多态接口的概念
      */
     template <typename Concept>
     class poly_vtable {
@@ -118,13 +121,17 @@ namespace rainy::core {
         using type = type_traits::other_trans::conditional_t<is_mono, container::tuple_element_t<0u, vtable_type>, const vtable_type *>;
 
         /**
+         * \lang english
          * @brief Gets the vtable instance for a specific type.
-         *        获取特定类型的虚表实例。
          *
          * @tparam Type The concrete type to get the vtable for
-         *              要获取虚表的具体类型
          * @return The vtable (direct value if mono, pointer otherwise)
-         *         虚表（如果是单函数则为直接值，否则为指针）
+         *
+         * \lang simp-chinese
+         * @brief 获取特定类型的虚表实例。
+         *
+         * @tparam Type 要获取虚表的具体类型
+         * @return 虚表（如果是单函数则为直接值，否则为指针）
          */
         template <typename Type>
         RAINY_NODISCARD static rain_fn instance() noexcept -> type {
@@ -142,28 +149,36 @@ namespace rainy::core {
     };
 
     /**
+     * \lang english
      * @brief Base class for polymorphic objects providing virtual call dispatching.
-     *        为多态对象提供虚调用分派的基类。
      *
      * @tparam Poly The derived polymorphic type (CRTP)
-     *              派生的多态类型（CRTP）
+     *
+     * \lang simp-chinese
+     * @brief 为多态对象提供虚调用分派的基类。
+     *
+     * @tparam Poly 派生的多态类型（CRTP）
      */
     template <typename Poly>
     struct poly_base {
         /**
+         * \lang english
          * @brief Invokes a member function on a const polymorphic object.
-         *        在常量多态对象上调用成员函数。
          *
          * @tparam Member The index of the member function to invoke
-         *                要调用的成员函数索引
          * @tparam Args The argument types
-         *              参数类型
          * @param self The const polymorphic object
-         *             常量多态对象
          * @param args The arguments to forward
-         *             要转发的参数
          * @return The result of the function call
-         *         函数调用的结果
+         *
+         * \lang simp-chinese
+         * @brief 在常量多态对象上调用成员函数。
+         *
+         * @tparam Member 要调用的成员函数索引
+         * @tparam Args 参数类型
+         * @param self 常量多态对象
+         * @param args 要转发的参数
+         * @return 函数调用的结果
          */
         template <std::size_t Member, typename... Args>
         rain_fn invoke(const poly_base &self, Args &&...args) const -> decltype(auto) {
@@ -176,19 +191,23 @@ namespace rainy::core {
         }
 
         /**
+         * \lang english
          * @brief Invokes a member function on a mutable polymorphic object.
-         *        在可变多态对象上调用成员函数。
          *
          * @tparam Member The index of the member function to invoke
-         *                要调用的成员函数索引
          * @tparam Args The argument types
-         *              参数类型
          * @param self The mutable polymorphic object
-         *             可变多态对象
          * @param args The arguments to forward
-         *             要转发的参数
          * @return The result of the function call
-         *         函数调用的结果
+         *
+         * \lang simp-chinese
+         * @brief 在可变多态对象上调用成员函数。
+         *
+         * @tparam Member 要调用的成员函数索引
+         * @tparam Args 参数类型
+         * @param self 可变多态对象
+         * @param args 要转发的参数
+         * @return 函数调用的结果
          */
         template <std::size_t Member, typename... Args>
         rain_fn invoke(poly_base &self, Args &&...args) -> decltype(auto) {
@@ -203,21 +222,25 @@ namespace rainy::core {
     };
 
     /**
+     * \lang english
      * @brief Helper function to make polymorphic calls.
-     *        进行多态调用的辅助函数。
      *
      * @tparam Member The index of the member function to invoke
-     *                要调用的成员函数索引
      * @tparam Poly The polymorphic type
-     *              多态类型
      * @tparam Args The argument types
-     *              参数类型
      * @param self The polymorphic object
-     *             多态对象
      * @param args The arguments to forward
-     *             要转发的参数
      * @return The result of the function call
-     *         函数调用的结果
+     *
+     * \lang simp-chinese
+     * @brief 进行多态调用的辅助函数。
+     *
+     * @tparam Member 要调用的成员函数索引
+     * @tparam Poly 多态类型
+     * @tparam Args 参数类型
+     * @param self 多态对象
+     * @param args 要转发的参数
+     * @return 函数调用的结果
      */
     template <std::size_t Member, typename Poly, typename... Args>
     rain_fn poly_call(Poly &&self, Args &&...args) -> decltype(auto) {
@@ -225,11 +248,15 @@ namespace rainy::core {
     }
 
     /**
+     * \lang english
      * @brief Basic polymorphic wrapper that stores a void pointer and vtable.
-     *        存储void指针和虚表的基本多态包装器。
      *
      * @tparam AbstractBody The abstract concept body that defines the interface
-     *                      定义接口的抽象概念主体
+     *
+     * \lang simp-chinese
+     * @brief 存储void指针和虚表的基本多态包装器。
+     *
+     * @tparam AbstractBody 定义接口的抽象概念主体
      */
     template <typename AbstractBody>
     class basic_poly : AbstractBody::template type<poly_base<basic_poly<AbstractBody>>> {
@@ -241,19 +268,26 @@ namespace rainy::core {
         using vtable_type = typename vtable_info::type;
 
         /**
+         * \lang english
          * @brief Default constructor
-         *        默认构造函数
+         *
+         * \lang simp-chinese
+         * @brief 默认构造函数
          */
         basic_poly() noexcept = default;
 
         /**
+         * \lang english
          * @brief Constructs from a pointer to a concrete type.
-         *        从指向具体类型的指针构造。
          *
          * @tparam Type The concrete type
-         *              具体类型
          * @param ptr Pointer to the object to wrap
-         *            要包装的对象的指针
+         *
+         * \lang simp-chinese
+         * @brief 从指向具体类型的指针构造。
+         *
+         * @tparam Type 具体类型
+         * @param ptr 要包装的对象的指针
          */
         template <typename Type>
         basic_poly(Type *ptr) noexcept : // NOLINT
@@ -263,20 +297,27 @@ namespace rainy::core {
         }
 
         /**
+         * \lang english
          * @brief Constructs a null polymorphic object.
-         *        构造空多态对象。
          *
-         * @param  nullptr_t
+         * @param nullptr_t
+         *
+         * \lang simp-chinese
+         * @brief 构造空多态对象。
          */
         basic_poly(std::nullptr_t) { // NOLINT
         }
 
         /**
+         * \lang english
          * @brief Move constructor
-         *        移动构造函数
          *
          * @param other The other polymorphic object to move from
-         *              要移动的另一个多态对象
+         *
+         * \lang simp-chinese
+         * @brief 移动构造函数
+         *
+         * @param other 要移动的另一个多态对象
          */
         basic_poly(basic_poly &&other) noexcept : _ptr(other._ptr), vtable(other.vtable) {
             other._ptr = nullptr;
@@ -284,13 +325,17 @@ namespace rainy::core {
         }
 
         /**
+         * \lang english
          * @brief Move assignment operator
-         *        移动赋值运算符
          *
          * @param other The other polymorphic object to move from
-         *              要移动的另一个多态对象
          * @return Reference to this object
-         *         此对象的引用
+         *
+         * \lang simp-chinese
+         * @brief 移动赋值运算符
+         *
+         * @param other 要移动的另一个多态对象
+         * @return 此对象的引用
          */
         basic_poly &operator=(basic_poly &&other) noexcept {
             if (this != &other) {
@@ -303,12 +348,15 @@ namespace rainy::core {
         }
 
         /**
+         * \lang english
          * @brief Assigns a null pointer.
-         *        赋值为空指针。
          *
-         * @param  nullptr_t
          * @return Reference to this object
-         *         此对象的引用
+         *
+         * \lang simp-chinese
+         * @brief 赋值为空指针。
+         *
+         * @return 此对象的引用
          */
         basic_poly &operator=(std::nullptr_t) noexcept {
             _ptr = nullptr;
@@ -316,20 +364,29 @@ namespace rainy::core {
         }
 
         /**
+         * \lang english
          * @brief Copy constructor
-         *        拷贝构造函数
+         *
+         * \lang simp-chinese
+         * @brief 拷贝构造函数
          */
         basic_poly(const basic_poly &) = default;
 
         /**
+         * \lang english
          * @brief Copy assignment operator
-         *        拷贝赋值运算符
+         *
+         * \lang simp-chinese
+         * @brief 拷贝赋值运算符
          */
         basic_poly &operator=(const basic_poly &) = default;
 
         /**
+         * \lang english
          * @brief Resets to null state.
-         *        重置为空状态。
+         *
+         * \lang simp-chinese
+         * @brief 重置为空状态。
          */
         rain_fn reset() noexcept -> void {
             _ptr = nullptr;
@@ -337,13 +394,17 @@ namespace rainy::core {
         }
 
         /**
+         * \lang english
          * @brief Resets to point to a new object.
-         *        重置为指向新对象。
          *
          * @tparam Type The concrete type
-         *              具体类型
          * @param ptr Pointer to the new object
-         *            新对象的指针
+         *
+         * \lang simp-chinese
+         * @brief 重置为指向新对象。
+         *
+         * @tparam Type 具体类型
+         * @param ptr 新对象的指针
          */
         template <typename Type>
         rain_fn reset(Type *ptr) noexcept -> void {
@@ -353,55 +414,75 @@ namespace rainy::core {
         }
 
         /**
+         * \lang english
          * @brief Checks if the object is empty.
-         *        检查对象是否为空。
          *
          * @return true if empty, false otherwise
-         *         如果为空则为true，否则为false
+         *
+         * \lang simp-chinese
+         * @brief 检查对象是否为空。
+         *
+         * @return 如果为空则为true，否则为false
          */
         rain_fn empty() const noexcept -> bool {
             return vtable == nullptr;
         }
 
         /**
+         * \lang english
          * @brief Checks if the object holds a non-null pointer.
-         *        检查对象是否持有非空指针。
          *
          * @return true if pointer is non-null, false otherwise
-         *         如果指针非空则为true，否则为false
+         *
+         * \lang simp-chinese
+         * @brief 检查对象是否持有非空指针。
+         *
+         * @return 如果指针非空则为true，否则为false
          */
         RAINY_NODISCARD explicit operator bool() const noexcept {
             return _ptr != nullptr;
         }
 
         /**
+         * \lang english
          * @brief Arrow operator to access the abstract interface.
-         *        箭头运算符，用于访问抽象接口。
          *
          * @return Pointer to the abstract interface
-         *         指向抽象接口的指针
+         *
+         * \lang simp-chinese
+         * @brief 箭头运算符，用于访问抽象接口。
+         *
+         * @return 指向抽象接口的指针
          */
         RAINY_NODISCARD rain_fn operator->() noexcept -> abstract_type * {
             return this;
         }
 
         /**
+         * \lang english
          * @brief Const arrow operator to access the abstract interface.
-         *        常量箭头运算符，用于访问抽象接口。
          *
          * @return Pointer to the abstract interface
-         *         指向抽象接口的常量指针
+         *
+         * \lang simp-chinese
+         * @brief 常量箭头运算符，用于访问抽象接口。
+         *
+         * @return 指向抽象接口的常量指针
          */
         RAINY_NODISCARD rain_fn operator->() const noexcept -> const abstract_type * {
             return this;
         }
 
         /**
+         * \lang english
          * @brief Gets the stored pointer as void*.
-         *        获取存储的指针作为void*。
          *
          * @return The stored void pointer
-         *         存储的void指针
+         *
+         * \lang simp-chinese
+         * @brief 获取存储的指针作为void*。
+         *
+         * @return 存储的void指针
          */
         rain_fn target_as_void_ptr() const noexcept -> void * {
             return _ptr;

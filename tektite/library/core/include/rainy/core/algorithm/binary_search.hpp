@@ -20,21 +20,25 @@
 
 namespace rainy::core::algorithm {
     /**
+     * \lang english
      * @brief Finds the first element greater than a value in a partitioned range (operator<).
-     *        在分区范围中查找第一个大于某值的元素（operator<）。
      *
      * @tparam ForwardIt Forward iterator type
-     *                   前向迭代器类型
      * @tparam Ty The value type
-     *            值类型
      * @param first Iterator to the beginning of the range
-     *              指向范围起始的迭代器
      * @param last Iterator to the end of the range
-     *             指向范围末尾的迭代器
      * @param value The value to compare against
-     *              要比较的值
      * @return Iterator to the first element greater than value
-     *         指向第一个大于value元素的迭代器
+     *
+     * \lang simp-chinese
+     * @brief 在分区范围中查找第一个大于某值的元素（operator<）。
+     *
+     * @tparam ForwardIt 前向迭代器类型
+     * @tparam Ty 值类型
+     * @param first 指向范围起始的迭代器
+     * @param last 指向范围末尾的迭代器
+     * @param value 要比较的值
+     * @return 指向第一个大于value元素的迭代器
      */
     template <typename ForwardIt, typename Ty>
     RAINY_NODISCARD constexpr rain_fn upper_bound(ForwardIt first, ForwardIt last, const Ty &value) -> ForwardIt {
@@ -43,25 +47,29 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Finds the subrange of elements equal to a value in a partitioned range.
-     *        在分区范围中查找等于某值的子范围。
      *
      * @tparam ForwardIt Forward iterator type
-     *                   前向迭代器类型
      * @tparam Ty The value type
-     *            值类型
      * @tparam Comp The comparison type
-     *              比较器类型
      * @param first Iterator to the beginning of the range
-     *              指向范围起始的迭代器
      * @param last Iterator to the end of the range
-     *             指向范围末尾的迭代器
      * @param value The value to compare against
-     *              要比较的值
      * @param comp The comparison to apply
-     *             要应用的比较器
      * @return Pair of iterators delimiting the equal range
-     *         界定相等范围的迭代器对
+     *
+     * \lang simp-chinese
+     * @brief 在分区范围中查找等于某值的子范围。
+     *
+     * @tparam ForwardIt 前向迭代器类型
+     * @tparam Ty 值类型
+     * @tparam Comp 比较器类型
+     * @param first 指向范围起始的迭代器
+     * @param last 指向范围末尾的迭代器
+     * @param value 要比较的值
+     * @param comp 要应用的比较器
+     * @return 界定相等范围的迭代器对
      */
     template <typename ForwardIt, typename Ty, typename Comp>
     RAINY_NODISCARD constexpr rain_fn equal_range(ForwardIt first, ForwardIt last, const Ty &value, Comp comp)
@@ -72,19 +80,23 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Finds the subrange of elements equal to a value (operator<).
-     *        查找等于某值的子范围（operator<）。
      *
      * @tparam ForwardIt Forward iterator type
-     *                   前向迭代器类型
      * @tparam Ty The value type
-     *            值类型
      * @param first Iterator to the beginning of the range
-     *              指向范围起始的迭代器
      * @param last Iterator to the end of the range
-     *             指向范围末尾的迭代器
      * @param value The value to compare against
-     *              要比较的值
+     *
+     * \lang simp-chinese
+     * @brief 查找等于某值的子范围（operator<）。
+     *
+     * @tparam ForwardIt 前向迭代器类型
+     * @tparam Ty 值类型
+     * @param first 指向范围起始的迭代器
+     * @param last 指向范围末尾的迭代器
+     * @param value 要比较的值
      */
     template <typename ForwardIt, typename Ty>
     RAINY_NODISCARD constexpr rain_fn equal_range(ForwardIt first, ForwardIt last, const Ty &value)

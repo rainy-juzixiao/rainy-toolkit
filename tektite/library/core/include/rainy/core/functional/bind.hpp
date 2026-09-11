@@ -14,7 +14,10 @@
  * limitations under the License.
  */
 /**
+ * \lang english
  * @file bind.hpp
+ *
+ * \lang simp-chinese
  * @brief 可调用对象绑定库
  */
 #ifndef RAINY_CORE_FUNCTIONAL_BIND_HPP
@@ -107,6 +110,18 @@ namespace rainy::functional::implements {
 }
 
 namespace rainy::functional::placeholders {
+    /**
+     * \lang english
+     * @brief Placeholder objects _1 through _20 for binding arguments.
+     *
+     *  When passed to bind or bind_front, each placeholder is replaced by the
+     *  corresponding positional argument of the later call.
+     *
+     * \lang simp-chinese
+     * @brief 用于绑定参数的占位符对象 _1 到 _20。
+     *
+     *  当传递给bind或bind_front时，每个占位符会被后续调用中对应的位置参数替换。
+     */
     inline constexpr implements::placeholder_t<1> _1{};
     inline constexpr implements::placeholder_t<2> _2{};
     inline constexpr implements::placeholder_t<3> _3{};
@@ -130,6 +145,24 @@ namespace rainy::functional::placeholders {
 }
 
 namespace rainy::functional {
+    /**
+     * \lang english
+     * @brief A callable object that binds a function with a set of arguments.
+     *
+     *  Bound arguments may be values or placeholders; placeholders are replaced
+     *  by the corresponding arguments of the eventual call.
+     *
+     * @tparam Fx The type of the bound function.
+     * @tparam BoundArgs The types of the bound arguments.
+     *
+     * \lang simp-chinese
+     * @brief 将函数与一组参数绑定在一起的可调用对象。
+     *
+     *  绑定的参数可以是值或占位符；占位符会被最终调用中对应的参数替换。
+     *
+     * @tparam Fx 被绑定函数的类型。
+     * @tparam BoundArgs 被绑定参数的类型。
+     */
     template <typename Fx, typename... BoundArgs>
     class binder {
     public:
@@ -138,15 +171,69 @@ namespace rainy::functional {
         using func_type = Fx;
         using bound_args = container::tuple<type_traits::other_trans::decay_t<BoundArgs>...>;
 
+        /**
+         * \lang english
+         * @brief Constructs a binder from a function and its bound arguments.
+         * @param func The function to bind.
+         * @param args The arguments to bind.
+         *
+         * \lang simp-chinese
+         * @brief 从函数及其绑定参数构造binder。
+         * @param func 要绑定的函数。
+         * @param args 要绑定的参数。
+         */
         constexpr binder(Fx func, BoundArgs... args) : pair{func, container::make_tuple(args...)} {
         }
 
+        /**
+         * \lang english
+         * @brief Copy constructor.
+         *
+         * \lang simp-chinese
+         * @brief 拷贝构造函数。
+         */
         constexpr binder(const binder &) = default;
+        /**
+         * \lang english
+         * @brief Move constructor.
+         *
+         * \lang simp-chinese
+         * @brief 移动构造函数。
+         */
         constexpr binder(binder &&) = default;
 
+        /**
+         * \lang english
+         * @brief Copy assignment operator.
+         *
+         * \lang simp-chinese
+         * @brief 拷贝赋值运算符。
+         */
         constexpr binder &operator=(const binder &) = default;
+        /**
+         * \lang english
+         * @brief Move assignment operator.
+         *
+         * \lang simp-chinese
+         * @brief 移动赋值运算符。
+         */
         constexpr binder &operator=(binder &&) = default;
 
+        /**
+         * \lang english
+         * @brief Invokes the bound function, substituting placeholders with the call arguments.
+         *
+         * @tparam CallArgs The types of the arguments supplied to the call.
+         * @param args The arguments supplied to the call.
+         * @return The result of invoking the bound function.
+         *
+         * \lang simp-chinese
+         * @brief 调用绑定的函数，将占位符替换为调用参数。
+         *
+         * @tparam CallArgs 调用时提供的参数类型。
+         * @param args 调用时提供的参数。
+         * @return 调用绑定函数的结果。
+         */
 #if RAINY_HAS_CXX20
         template <typename... CallArgs>
             requires implements::can_call_binder<func_type, bound_args, container::tuple<CallArgs...>, impl_bound_seq>
@@ -174,10 +261,26 @@ namespace rainy::functional {
         container::compressed_pair<Fx, container::tuple<type_traits::other_trans::decay_t<BoundArgs>...>> pair;
     };
 
+    /**
+     * \lang english
+     * @brief Deduces the binder type from a function and its bound arguments.
+     *
+     * \lang simp-chinese
+     * @brief 从函数及其绑定参数推导binder类型。
+     */
     template <typename Fx, typename... Args>
     binder(Fx, Args...) -> binder<Fx, Args...>;
 
     /**
+     * \lang english
+     * @brief Binds a function with one or more arguments.
+     * @tparam Fx The type of the function, deduced from the argument.
+     * @tparam Args The types of the arguments to bind.
+     * @param fx The target function to bind.
+     * @param args The arguments to bind.
+     * @return A function object that invokes the bound expression.
+     *
+     * \lang simp-chinese
      * @brief 将函数和多个参数进行绑定
      * @tparam Fx 由参数推导，函数的类型
      * @tparam Args 要绑定的参数的类型
@@ -217,6 +320,24 @@ namespace rainy::functional::implements {
 }
 
 namespace rainy::functional {
+    /**
+     * \lang english
+     * @brief A callable object that binds a set of leading arguments to a function.
+     *
+     *  When invoked, the bound arguments are passed first, followed by the
+     *  arguments of the eventual call.
+     *
+     * @tparam Fx The type of the bound function.
+     * @tparam BoundArgs The types of the bound leading arguments.
+     *
+     * \lang simp-chinese
+     * @brief 将一组前置参数与函数绑定在一起的可调用对象。
+     *
+     *  调用时，绑定的参数会先被传入，随后才是最终调用时提供的参数。
+     *
+     * @tparam Fx 被绑定函数的类型。
+     * @tparam BoundArgs 被绑定的前置参数类型。
+     */
     template <typename Fx, typename... BoundArgs>
     class binder_front {
     public:
@@ -225,11 +346,37 @@ namespace rainy::functional {
         using func_type = Fx;
         using bound_args = container::tuple<type_traits::other_trans::decay_t<BoundArgs>...>;
 
+        /**
+         * \lang english
+         * @brief Constructs a binder_front from a function and its bound leading arguments.
+         * @param f The function to bind.
+         * @param bound_args The leading arguments to bind.
+         *
+         * \lang simp-chinese
+         * @brief 从函数及其绑定的前置参数构造binder_front。
+         * @param f 要绑定的函数。
+         * @param bound_args 要绑定的前置参数。
+         */
         template <typename Fx2, typename... BoundArgs2>
         constexpr binder_front(Fx2 &&f, BoundArgs2 &&...bound_args) :
             pair(utility::forward<Fx2>(f), container::make_tuple(utility::forward<BoundArgs2>(bound_args)...)) {
         }
 
+        /**
+         * \lang english
+         * @brief Invokes the bound function with the bound leading arguments followed by the call arguments.
+         *
+         * @tparam Args The types of the arguments supplied to the call.
+         * @param args The arguments supplied to the call.
+         * @return The result of invoking the bound function.
+         *
+         * \lang simp-chinese
+         * @brief 以绑定的前置参数及随后的调用参数调用绑定的函数。
+         *
+         * @tparam Args 调用时提供的参数类型。
+         * @param args 调用时提供的参数。
+         * @return 调用绑定函数的结果。
+         */
         template <typename... Args,
                   type_traits::other_trans::enable_if_t<
                       implements::can_call_front_binder<Fx, bound_args, impl_bound_seq, type_traits::other_trans::type_list<Args...>>,
@@ -244,9 +391,35 @@ namespace rainy::functional {
         container::compressed_pair<Fx, bound_args> pair;
     };
 
+    /**
+     * \lang english
+     * @brief Deduces the binder_front type from a function and its bound leading arguments.
+     *
+     * \lang simp-chinese
+     * @brief 从函数及其绑定的前置参数推导binder_front类型。
+     */
     template <typename Fx, typename... BoundArgs>
     binder_front(Fx, BoundArgs...) -> binder_front<Fx, BoundArgs...>;
 
+    /**
+     * \lang english
+     * @brief Binds a set of leading arguments to a function.
+     *
+     * @tparam Fx The type of the function, deduced from the argument.
+     * @tparam Args The types of the leading arguments to bind.
+     * @param f The target function to bind.
+     * @param args The leading arguments to bind.
+     * @return A function object that passes the bound arguments first, followed by the call arguments.
+     *
+     * \lang simp-chinese
+     * @brief 将一组前置参数绑定到函数上。
+     *
+     * @tparam Fx 函数的类型，由参数推导。
+     * @tparam Args 要绑定的前置参数类型。
+     * @param f 要绑定的目标函数。
+     * @param args 要绑定的前置参数。
+     * @return 一个函数对象，先传入绑定参数，再传入调用参数。
+     */
     template <typename Fx, typename... Args>
     constexpr rain_fn bind_front(Fx &&f, Args &&...args) -> binder_front<Fx, Args...> {
         return binder_front<Fx, Args...>(utility::forward<Fx>(f), utility::forward<Args>(args)...);

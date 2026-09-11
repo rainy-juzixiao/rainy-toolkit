@@ -20,57 +20,84 @@
 
 namespace rainy::core::layer {
     /**
+     * \lang english
      * @brief Maximum number of stack frames to dump.
-     *        要转储的最大堆栈帧数。
+     *
+     * \lang simp-chinese
+     * @brief 要转储的最大堆栈帧数。
      */
     constexpr int max_frames_dump = 128;
 
     /**
+     * \lang english
      * @brief Triggers a debug breakpoint.
-     *        触发调试断点。
+     *
+     * \lang simp-chinese
+     * @brief 触发调试断点。
      */
     RAINY_TOOLKIT_API void breakpoint() noexcept;
 
     /**
+     * \lang english
      * @brief Triggers a debug breakpoint only if a debugger is present.
-     *        仅在调试器存在时触发调试断点。
+     *
+     * \lang simp-chinese
+     * @brief 仅在调试器存在时触发调试断点。
      */
     RAINY_TOOLKIT_API void breakpoint_if_debugging() noexcept;
 
     /**
+     * \lang english
      * @brief Checks whether a debugger is currently attached to the process.
-     *        检查当前是否有调试器附加到进程。
+     *
+     * \lang simp-chinese
+     * @brief 检查当前是否有调试器附加到进程。
      */
     RAINY_TOOLKIT_API bool is_debugger_present() noexcept;
 
     /**
+     * \lang english
      * @brief Triggers a debug breakpoint (always).
-     *        触发调试断点（始终）。
+     *
+     * \lang simp-chinese
+     * @brief 触发调试断点（始终）。
      */
     RAINY_TOOLKIT_API rain_fn debug_break() -> void;
 
     /**
+     * \lang english
      * @brief Collects stack frames for debugging.
-     *        收集堆栈帧用于调试。
+     *
+     * \lang simp-chinese
+     * @brief 收集堆栈帧用于调试。
      */
     RAINY_TOOLKIT_API rain_fn collect_stack_frame(native_frame_ptr_t *out_frames, std::size_t max_frames_count,
                                                   std::size_t skip) noexcept -> std::size_t;
 
     /**
+     * \lang english
      * @brief Safely dumps stack frames to memory.
-     *        安全地将堆栈帧转储到内存。
+     *
+     * \lang simp-chinese
+     * @brief 安全地将堆栈帧转储到内存。
      */
     RAINY_TOOLKIT_API rain_fn safe_dump_to(void *memory, std::size_t size, std::size_t skip) noexcept -> std::size_t;
 
     /**
+     * \lang english
      * @brief Resolves a stack frame to a human-readable string.
-     *        将堆栈帧解析为人类可读的字符串。
+     *
+     * \lang simp-chinese
+     * @brief 将堆栈帧解析为人类可读的字符串。
      */
     RAINY_TOOLKIT_API rain_fn resolve_stack_frame(native_frame_ptr_t frame, cstring buf, std::size_t buf_size) noexcept -> bool;
 
     /**
+     * \lang english
      * @brief Demangles a C++ name to a human-readable form.
-     *        将C++名称解修饰为人类可读的形式。
+     *
+     * \lang simp-chinese
+     * @brief 将C++名称解修饰为人类可读的形式。
      */
     RAINY_TOOLKIT_API rain_fn demangle(czstring name, cstring buf, std::size_t buffer_length) -> void;
 }
