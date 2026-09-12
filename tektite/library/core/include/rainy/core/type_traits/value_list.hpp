@@ -21,11 +21,15 @@ namespace rainy::type_traits::implements {
 
 namespace rainy::type_traits::other_trans {
     /**
+     * \lang english
      * @brief A compile-time list of non-type template parameters (values).
-     *        非类型模板参数（值）的编译时列表。
      *
      * @tparam Values The values contained in the list
-     *                列表中包含的值
+     *
+     * \lang simp-chinese
+     * @brief 非类型模板参数（值）的编译时列表。
+     *
+     * @tparam Values 列表中包含的值
      */
     template <auto... Values>
     struct value_list {
@@ -34,49 +38,65 @@ namespace rainy::type_traits::other_trans {
     };
 
     /**
+     * \lang english
      * @brief Retrieves the value at a given index in a value list.
-     *        获取值列表中指定索引处的值。
      *
      * @tparam N The index to retrieve
-     *           要获取的索引
      * @tparam ValueList The value list to query
-     *                   要查询的值列表
+     *
+     * \lang simp-chinese
+     * @brief 获取值列表中指定索引处的值。
+     *
+     * @tparam N 要获取的索引
+     * @tparam ValueList 要查询的值列表
      */
     template <std::size_t N, typename ValueList>
     struct value_at;
 
     /**
+     * \lang english
      * @brief Specialization that forwards to the implementation.
-     *        转发给实现的特化。
      *
      * @tparam N The index to retrieve
-     *           要获取的索引
      * @tparam Values The values in the list
-     *                列表中的值
+     *
+     * \lang simp-chinese
+     * @brief 转发给实现的特化。
+     *
+     * @tparam N 要获取的索引
+     * @tparam Values 列表中的值
      */
     template <std::size_t N, auto... Values>
     struct value_at<N, value_list<Values...>> : implements::value_at_impl<N, Values...> {};
 
     /**
+     * \lang english
      * @brief Adds a value to the front of a value list.
-     *        在值列表的前面添加一个值。
      *
      * @tparam Value The value to add
-     *               要添加的值
      * @tparam ValueList The value list to modify
-     *                   要修改的值列表
+     *
+     * \lang simp-chinese
+     * @brief 在值列表的前面添加一个值。
+     *
+     * @tparam Value 要添加的值
+     * @tparam ValueList 要修改的值列表
      */
     template <auto Value, typename ValueList>
     struct value_list_push_front {};
 
     /**
+     * \lang english
      * @brief Specialization that performs the front push.
-     *        执行前推操作的特化。
      *
      * @tparam Value The value to add
-     *               要添加的值
      * @tparam Values The existing values
-     *                现有的值
+     *
+     * \lang simp-chinese
+     * @brief 执行前推操作的特化。
+     *
+     * @tparam Value 要添加的值
+     * @tparam Values 现有的值
      */
     template <auto Value, auto... Values>
     struct value_list_push_front<Value, value_list<Values...>> {
@@ -84,25 +104,33 @@ namespace rainy::type_traits::other_trans {
     };
 
     /**
+     * \lang english
      * @brief Adds a value to the back of a value list.
-     *        在值列表的后面添加一个值。
      *
      * @tparam Value The value to add
-     *               要添加的值
      * @tparam ValueList The value list to modify
-     *                   要修改的值列表
+     *
+     * \lang simp-chinese
+     * @brief 在值列表的后面添加一个值。
+     *
+     * @tparam Value 要添加的值
+     * @tparam ValueList 要修改的值列表
      */
     template <auto Value, typename ValueList>
     struct value_list_push_back {};
 
     /**
+     * \lang english
      * @brief Specialization that performs the back push.
-     *        执行后推操作的特化。
      *
      * @tparam Value The value to add
-     *               要添加的值
      * @tparam Values The existing values
-     *                现有的值
+     *
+     * \lang simp-chinese
+     * @brief 执行后推操作的特化。
+     *
+     * @tparam Value 要添加的值
+     * @tparam Values 现有的值
      */
     template <auto Value, auto... Values>
     struct value_list_push_back<Value, value_list<Values...>> {
@@ -110,25 +138,33 @@ namespace rainy::type_traits::other_trans {
     };
 
     /**
+     * \lang english
      * @brief Adds multiple values to the back of a value list.
-     *        在值列表的后面添加多个值。
      *
      * @tparam ValueList The value list to modify
-     *                   要修改的值列表
      * @tparam PushValues The values to add to the back
-     *                    要添加到后面的值
+     *
+     * \lang simp-chinese
+     * @brief 在值列表的后面添加多个值。
+     *
+     * @tparam ValueList 要修改的值列表
+     * @tparam PushValues 要添加到后面的值
      */
     template <typename ValueList, auto... PushValues>
     struct value_list_push_back_all;
 
     /**
+     * \lang english
      * @brief Specialization that performs the multiple back push.
-     *        执行多个后推操作的特化。
      *
      * @tparam Values The existing values
-     *                现有的值
      * @tparam PushValues The values to add to the back
-     *                    要添加到后面的值
+     *
+     * \lang simp-chinese
+     * @brief 执行多个后推操作的特化。
+     *
+     * @tparam Values 现有的值
+     * @tparam PushValues 要添加到后面的值
      */
     template <auto... Values, auto... PushValues>
     struct value_list_push_back_all<value_list<Values...>, PushValues...> {
@@ -136,25 +172,33 @@ namespace rainy::type_traits::other_trans {
     };
 
     /**
+     * \lang english
      * @brief Adds multiple values to the front of a value list.
-     *        在值列表的前面添加多个值。
      *
      * @tparam ValueList The value list to modify
-     *                   要修改的值列表
      * @tparam PushValues The values to add to the front
-     *                    要添加到前面的值
+     *
+     * \lang simp-chinese
+     * @brief 在值列表的前面添加多个值。
+     *
+     * @tparam ValueList 要修改的值列表
+     * @tparam PushValues 要添加到前面的值
      */
     template <typename ValueList, auto... PushValues>
     struct value_list_push_front_all;
 
     /**
+     * \lang english
      * @brief Specialization that performs the multiple front push.
-     *        执行多个前推操作的特化。
      *
      * @tparam Values The existing values
-     *                现有的值
      * @tparam PushValues The values to add to the front
-     *                    要添加到前面的值
+     *
+     * \lang simp-chinese
+     * @brief 执行多个前推操作的特化。
+     *
+     * @tparam Values 现有的值
+     * @tparam PushValues 要添加到前面的值
      */
     template <auto... Values, auto... PushValues>
     struct value_list_push_front_all<value_list<Values...>, PushValues...> {
@@ -162,96 +206,128 @@ namespace rainy::type_traits::other_trans {
     };
 
     /**
+     * \lang english
      * @brief Variable template for getting the size of a value list.
-     *        获取值列表大小的变量模板。
      *
      * @tparam ValueList The value list
-     *                   值列表
+     *
+     * \lang simp-chinese
+     * @brief 获取值列表大小的变量模板。
+     *
+     * @tparam ValueList 值列表
      */
     template <typename ValueList>
     RAINY_INLINE_CONSTEXPR std::size_t value_list_size_v = ValueList::size;
 
     /**
+     * \lang english
      * @brief Type template for getting the size of a value list.
-     *        获取值列表大小的类型模板。
      *
      * @tparam ValueList The value list
-     *                   值列表
+     *
+     * \lang simp-chinese
+     * @brief 获取值列表大小的类型模板。
+     *
+     * @tparam ValueList 值列表
      */
     template <typename ValueList>
     struct value_list_size : helper::integer_sequence<std::size_t, value_list_size_v<ValueList>> {};
 
     /**
+     * \lang english
      * @brief Variable template for counting occurrences of a value in a value list.
-     *        计算值在值列表中出现次数的变量模板。
      *
      * @tparam Target The value to count
-     *                要计数的值
      * @tparam ValueList The value list to search
-     *                   要搜索的值列表
+     *
+     * \lang simp-chinese
+     * @brief 计算值在值列表中出现次数的变量模板。
+     *
+     * @tparam Target 要计数的值
+     * @tparam ValueList 要搜索的值列表
      */
     template <auto Target, typename ValueList>
     RAINY_INLINE_CONSTEXPR std::size_t count_value_v = 0;
 
     /**
+     * \lang english
      * @brief Specialization that performs the count.
-     *        执行计数的特化。
      *
      * @tparam Target The value to count
-     *                要计数的值
      * @tparam Values The values in the list
-     *                列表中的值
+     *
+     * \lang simp-chinese
+     * @brief 执行计数的特化。
+     *
+     * @tparam Target 要计数的值
+     * @tparam Values 列表中的值
      */
     template <auto Target, auto... Values>
     RAINY_INLINE_CONSTEXPR std::size_t count_value_v<Target, value_list<Values...>> =
         (0 + ... + (static_cast<std::size_t>(Target == Values ? 1 : 0)));
 
     /**
+     * \lang english
      * @brief Type template for counting occurrences of a value in a value list.
-     *        计算值在值列表中出现次数的类型模板。
      *
      * @tparam Target The value to count
-     *                要计数的值
      * @tparam ValueList The value list to search
-     *                   要搜索的值列表
+     *
+     * \lang simp-chinese
+     * @brief 计算值在值列表中出现次数的类型模板。
+     *
+     * @tparam Target 要计数的值
+     * @tparam ValueList 要搜索的值列表
      */
     template <auto Target, typename ValueList>
     struct count_value : helper::integral_constant<std::size_t, count_value_v<Target, ValueList>> {};
 
     /**
+     * \lang english
      * @brief Extracts a sub-list starting from a given index.
-     *        从给定索引开始提取子列表。
      *
      * @tparam StartIndex The starting index
-     *                    起始索引
      * @tparam ValueList The value list to slice
-     *                   要切片的值列表
+     *
+     * \lang simp-chinese
+     * @brief 从给定索引开始提取子列表。
+     *
+     * @tparam StartIndex 起始索引
+     * @tparam ValueList 要切片的值列表
      */
     template <std::size_t StartIndex, typename ValueList>
     struct sub_value_list;
 
     /**
+     * \lang english
      * @brief Recursive specialization to skip to the start index.
-     *        跳过到起始索引的递归特化。
      *
      * @tparam StartIndex The remaining index
-     *                    剩余索引
      * @tparam First The first value (to be skipped)
-     *               第一个值（将被跳过）
      * @tparam Rest The remaining values
-     *              剩余值
+     *
+     * \lang simp-chinese
+     * @brief 跳过到起始索引的递归特化。
+     *
+     * @tparam StartIndex 剩余索引
+     * @tparam First 第一个值（将被跳过）
+     * @tparam Rest 剩余值
      */
     template <std::size_t StartIndex, auto First, auto... Rest>
     struct sub_value_list<StartIndex, value_list<First, Rest...>> : sub_value_list<StartIndex - 1, value_list<Rest...>> {};
 
     /**
+     * \lang english
      * @brief Specialization that returns the sub-list starting from index 0.
-     *        返回从索引0开始的子列表的特化。
      *
      * @tparam First The first value
-     *               第一个值
      * @tparam Rest The remaining values
-     *              剩余值
+     *
+     * \lang simp-chinese
+     * @brief 返回从索引0开始的子列表的特化。
+     *
+     * @tparam First 第一个值
+     * @tparam Rest 剩余值
      */
     template <auto First, auto... Rest>
     struct sub_value_list<0, value_list<First, Rest...>> {
@@ -259,8 +335,11 @@ namespace rainy::type_traits::other_trans {
     };
 
     /**
+     * \lang english
      * @brief Specialization for empty list at index 0.
-     *        索引0的空列表的特化。
+     *
+     * \lang simp-chinese
+     * @brief 索引0的空列表的特化。
      */
     template <>
     struct sub_value_list<0, value_list<>> {
@@ -268,11 +347,15 @@ namespace rainy::type_traits::other_trans {
     };
 
     /**
+     * \lang english
      * @brief Specialization when index is beyond list size.
-     *        当索引超出列表大小时的特化。
      *
      * @tparam StartIndex The out-of-range index
-     *                    超出范围的索引
+     *
+     * \lang simp-chinese
+     * @brief 当索引超出列表大小时的特化。
+     *
+     * @tparam StartIndex 超出范围的索引
      */
     template <std::size_t StartIndex>
     struct sub_value_list<StartIndex, value_list<>> {

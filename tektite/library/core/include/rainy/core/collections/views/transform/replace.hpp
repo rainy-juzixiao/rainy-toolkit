@@ -20,12 +20,16 @@
 
 namespace rainy::core::collections::views::implements {
     /**
+     * \lang english
      * @brief Functor that passes elements through, substituting a held replacement
-     *        for every element that compares equal to a held old value.
-     *        透传元素的函子，对每个与持有旧值相等的元素替换为持有的新值。
+     *         for every element that compares equal to a held old value.
      *
      * @tparam Ty The element value type
-     *            元素值类型
+     *
+     * \lang simp-chinese
+     * @brief 透传元素的函子，对每个与持有旧值相等的元素替换为持有的新值。
+     *
+     * @tparam Ty 元素值类型
      */
     template <typename Ty>
     struct replace_functor {
@@ -42,14 +46,18 @@ namespace rainy::core::collections::views::implements {
     };
 
     /**
+     * \lang english
      * @brief Functor that passes elements through, substituting a held replacement
-     *        for every element satisfying a held predicate.
-     *        透传元素的函子，对每个满足持有谓词的元素替换为持有的新值。
+     *         for every element satisfying a held predicate.
      *
      * @tparam Pred The predicate type
-     *              谓词类型
      * @tparam Ty The element value type
-     *            元素值类型
+     *
+     * \lang simp-chinese
+     * @brief 透传元素的函子，对每个满足持有谓词的元素替换为持有的新值。
+     *
+     * @tparam Pred 谓词类型
+     * @tparam Ty 元素值类型
      */
     template <typename Pred, typename Ty>
     struct replace_if_functor {
@@ -66,12 +74,16 @@ namespace rainy::core::collections::views::implements {
     };
 
     /**
+     * \lang english
      * @brief Functor that copies elements, substituting a held replacement for
-     *        every element that compares equal to a held old value.
-     *        拷贝元素的函子，对每个与持有旧值相等的元素替换为持有的新值。
+     *         every element that compares equal to a held old value.
      *
      * @tparam Ty The element value type
-     *            元素值类型
+     *
+     * \lang simp-chinese
+     * @brief 拷贝元素的函子，对每个与持有旧值相等的元素替换为持有的新值。
+     *
+     * @tparam Ty 元素值类型
      */
     template <typename Ty>
     struct replace_copy_functor {
@@ -88,14 +100,18 @@ namespace rainy::core::collections::views::implements {
     };
 
     /**
+     * \lang english
      * @brief Functor that copies elements, substituting a held replacement for
-     *        every element satisfying a held predicate.
-     *        拷贝元素的函子，对每个满足持有谓词的元素替换为持有的新值。
+     *         every element satisfying a held predicate.
      *
      * @tparam Pred The predicate type
-     *              谓词类型
      * @tparam Ty The element value type
-     *            元素值类型
+     *
+     * \lang simp-chinese
+     * @brief 拷贝元素的函子，对每个满足持有谓词的元素替换为持有的新值。
+     *
+     * @tparam Pred 谓词类型
+     * @tparam Ty 元素值类型
      */
     template <typename Pred, typename Ty>
     struct replace_copy_if_functor {
@@ -114,53 +130,69 @@ namespace rainy::core::collections::views::implements {
 
 namespace rainy::core::collections::views {
     /**
+     * \lang english
      * @brief A lazy view that replaces every element equal to an old value with a new one.
-     *        将每个等于旧值的元素替换为新元素的惰性视图。
      *
      * @tparam ViewOrContainer The underlying range type
-     *                         底层范围类型
      * @tparam Ty The element value type
-     *            元素值类型
+     *
+     * \lang simp-chinese
+     * @brief 将每个等于旧值的元素替换为新元素的惰性视图。
+     *
+     * @tparam ViewOrContainer 底层范围类型
+     * @tparam Ty 元素值类型
      */
     template <typename ViewOrContainer, typename Ty>
     using replace_view = transform_view<ViewOrContainer, implements::replace_functor<Ty>>;
 
     /**
+     * \lang english
      * @brief A lazy view that replaces every element satisfying a predicate with a new value.
-     *        将每个满足谓词的元素替换为新值的惰性视图。
      *
      * @tparam ViewOrContainer The underlying range type
-     *                         底层范围类型
      * @tparam Pred The predicate type
-     *              谓词类型
      * @tparam Ty The element value type
-     *            元素值类型
+     *
+     * \lang simp-chinese
+     * @brief 将每个满足谓词的元素替换为新值的惰性视图。
+     *
+     * @tparam ViewOrContainer 底层范围类型
+     * @tparam Pred 谓词类型
+     * @tparam Ty 元素值类型
      */
     template <typename ViewOrContainer, typename Pred, typename Ty>
     using replace_if_view = transform_view<ViewOrContainer, implements::replace_if_functor<Pred, Ty>>;
 
     /**
+     * \lang english
      * @brief A lazy view whose elements are copies with replaced values.
-     *        元素为替换后副本的惰性视图。
      *
      * @tparam ViewOrContainer The underlying range type
-     *                         底层范围类型
      * @tparam Ty The element value type
-     *            元素值类型
+     *
+     * \lang simp-chinese
+     * @brief 元素为替换后副本的惰性视图。
+     *
+     * @tparam ViewOrContainer 底层范围类型
+     * @tparam Ty 元素值类型
      */
     template <typename ViewOrContainer, typename Ty>
     using replace_copy_view = transform_view<ViewOrContainer, implements::replace_copy_functor<Ty>>;
 
     /**
+     * \lang english
      * @brief A lazy view whose elements are copies with values replaced by a predicate.
-     *        元素为按谓词替换后副本的惰性视图。
      *
      * @tparam ViewOrContainer The underlying range type
-     *                         底层范围类型
      * @tparam Pred The predicate type
-     *              谓词类型
      * @tparam Ty The element value type
-     *            元素值类型
+     *
+     * \lang simp-chinese
+     * @brief 元素为按谓词替换后副本的惰性视图。
+     *
+     * @tparam ViewOrContainer 底层范围类型
+     * @tparam Pred 谓词类型
+     * @tparam Ty 元素值类型
      */
     template <typename ViewOrContainer, typename Pred, typename Ty>
     using replace_copy_if_view = transform_view<ViewOrContainer, implements::replace_copy_if_functor<Pred, Ty>>;

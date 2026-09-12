@@ -4619,9 +4619,12 @@ namespace rainy::utility {
 }
 
 #if RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
+
+// @NODOCBEGIN
 namespace rainy::annotations::implements {
     using info_handle = void *;
 }
+// @NODOCEND
 
 namespace rainy::annotations {
     /**

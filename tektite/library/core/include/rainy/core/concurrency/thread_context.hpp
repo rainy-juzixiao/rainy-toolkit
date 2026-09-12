@@ -219,10 +219,40 @@ namespace rainy::core::concurrency::implements {
 }
 
 namespace rainy::core::concurrency {
+    /**
+     * \lang english
+     * @brief Provides access to the thread-local execution context.
+     *
+     *  Hosts the per-thread call stack used to track the innermost active
+     *  context (such as the recycling allocator or executor state) for the calling thread.
+     *
+     * \lang simp-chinese
+     * @brief 提供对线程局部执行上下文的访问。
+     *
+     *  持有用于跟踪调用线程最内层活动上下文（例如回收分配器或执行器状态）的每线程调用栈。
+     */
     class thread_context {
     public:
+        /**
+         * \lang english
+         * @brief The call stack type associated with the current thread.
+         *
+         * \lang simp-chinese
+         * @brief 与当前线程关联的调用栈类型。
+         */
         using thread_call_stack = implements::call_stack<thread_context, implements::thread_info_base>;
 
+        /**
+         * \lang english
+         * @brief Returns the top of the current thread's call stack.
+         *
+         * @return The top `thread_info_base` of the current thread's call stack, or `nullptr` if the stack is empty.
+         *
+         * \lang simp-chinese
+         * @brief 返回当前线程调用栈的栈顶。
+         *
+         * @return 当前线程调用栈的栈顶 `thread_info_base`，若调用栈为空则返回 `nullptr`。
+         */
         static implements::thread_info_base *top_of_thread_call_stack();
     };
 }

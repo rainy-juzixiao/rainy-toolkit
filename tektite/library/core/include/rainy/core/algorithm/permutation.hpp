@@ -21,21 +21,25 @@
 
 namespace rainy::core::algorithm {
     /**
+     * \lang english
      * @brief Checks whether two ranges are permutations of each other.
-     *        检查两个范围是否互为排列。
      *
      * @tparam InputIt1 First input iterator type
-     *                  第一个输入迭代器类型
      * @tparam InputIt2 Second input iterator type
-     *                  第二个输入迭代器类型
      * @param first1 Iterator to the beginning of the first range
-     *               指向第一个范围起始的迭代器
      * @param last1 Iterator to the end of the first range
-     *              指向第一个范围末尾的迭代器
      * @param first2 Iterator to the beginning of the second range
-     *               指向第二个范围起始的迭代器
      * @return true if the ranges are permutations of each other
-     *         如果两个范围互为排列则为true
+     *
+     * \lang simp-chinese
+     * @brief 检查两个范围是否互为排列。
+     *
+     * @tparam InputIt1 第一个输入迭代器类型
+     * @tparam InputIt2 第二个输入迭代器类型
+     * @param first1 指向第一个范围起始的迭代器
+     * @param last1 指向第一个范围末尾的迭代器
+     * @param first2 指向第二个范围起始的迭代器
+     * @return 如果两个范围互为排列则为true
      */
     template <typename InputIt1, typename InputIt2>
     RAINY_NODISCARD constexpr rain_fn is_permutation(InputIt1 first1, InputIt1 last1, InputIt2 first2) -> bool {
@@ -62,21 +66,25 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Transforms the range into the next lexicographic permutation; returns true if one exists.
-     *        将范围变换为下一个字典序排列；存在则返回true。
      *
      * @tparam BidirIt Bidirectional iterator type
-     *                 双向迭代器类型
      * @tparam Comp The comparison type
-     *              比较器类型
      * @param first Iterator to the beginning of the range
-     *              指向范围起始的迭代器
      * @param last Iterator to the end of the range
-     *             指向范围末尾的迭代器
      * @param comp The comparison to apply
-     *             要应用的比较器
      * @return true if the next permutation exists
-     *         如果存在下一个排列则为true
+     *
+     * \lang simp-chinese
+     * @brief 将范围变换为下一个字典序排列；存在则返回true。
+     *
+     * @tparam BidirIt 双向迭代器类型
+     * @tparam Comp 比较器类型
+     * @param first 指向范围起始的迭代器
+     * @param last 指向范围末尾的迭代器
+     * @param comp 要应用的比较器
+     * @return 如果存在下一个排列则为true
      */
     template <typename BidirIt, typename Comp>
     constexpr rain_fn next_permutation(BidirIt first, BidirIt last, Comp comp) -> bool {
@@ -103,8 +111,11 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Transforms the range into the next lexicographic permutation (operator<).
-     *        将范围变换为下一个字典序排列（operator<）。
+     *
+     * \lang simp-chinese
+     * @brief 将范围变换为下一个字典序排列（operator<）。
      */
     template <typename BidirIt>
     constexpr rain_fn next_permutation(BidirIt first, BidirIt last) -> bool {
@@ -112,21 +123,25 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Transforms the range into the previous lexicographic permutation; returns true if one exists.
-     *        将范围变换为上一个字典序排列；存在则返回true。
      *
      * @tparam BidirIt Bidirectional iterator type
-     *                 双向迭代器类型
      * @tparam Comp The comparison type
-     *              比较器类型
      * @param first Iterator to the beginning of the range
-     *              指向范围起始的迭代器
      * @param last Iterator to the end of the range
-     *             指向范围末尾的迭代器
      * @param comp The comparison to apply
-     *             要应用的比较器
      * @return true if the previous permutation exists
-     *         如果存在上一个排列则为true
+     *
+     * \lang simp-chinese
+     * @brief 将范围变换为上一个字典序排列；存在则返回true。
+     *
+     * @tparam BidirIt 双向迭代器类型
+     * @tparam Comp 比较器类型
+     * @param first 指向范围起始的迭代器
+     * @param last 指向范围末尾的迭代器
+     * @param comp 要应用的比较器
+     * @return 如果存在上一个排列则为true
      */
     template <typename BidirIt, typename Comp>
     constexpr rain_fn prev_permutation(BidirIt first, BidirIt last, Comp comp) -> bool {
@@ -153,8 +168,11 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Transforms the range into the previous lexicographic permutation (operator<).
-     *        将范围变换为上一个字典序排列（operator<）。
+     *
+     * \lang simp-chinese
+     * @brief 将范围变换为上一个字典序排列（operator<）。
      */
     template <typename BidirIt>
     constexpr rain_fn prev_permutation(BidirIt first, BidirIt last) -> bool {
