@@ -22,6 +22,8 @@
 #include <rainy/core/type_traits.hpp>
 #include <rainy/core/diagnostics/exceptions.hpp>
 
+#if !RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
+
 namespace rainy::core::memory {
     template <typename Ty>
     struct default_deleter {
@@ -107,6 +109,7 @@ namespace rainy::core::memory::implements {
         }
 
         nebula_ptr_base(const nebula_ptr_base &) = delete;
+
         nebula_ptr_base(nebula_ptr_base &&right) noexcept : pair{utility::exchange(right.pair, {})} {
         }
 
@@ -469,5 +472,564 @@ namespace rainy::core::memory {
         return unique_ptr<Ty>(data, num);
     }
 }
+
+#else
+
+namespace rainy::core::memory {
+    /**
+     * \lang english
+     * @brief The default deleter for nebula_ptr, deleting the managed object.
+     *
+     * @tparam Ty The type of the managed object
+     *
+     * \lang simp-chinese
+     * @brief nebula_ptr 的默认删除器，负责删除被管理的对象。
+     *
+     * @tparam Ty 被管理对象的类型
+     */
+    template <typename Ty>
+    struct default_deleter {
+        /**
+         * \lang english
+         * @brief Default constructor.
+         *
+         * \lang simp-chinese
+         * @brief 默认构造函数。
+         */
+        constexpr default_deleter() noexcept = default;
+
+        /**
+         * \lang english
+         * @brief Constructs a default_deleter from an in_place tag.
+         *
+         * @param tag The in-place tag (unused)
+         *
+         * \lang simp-chinese
+         * @brief 从 in_place 标记构造 default_deleter。
+         *
+         * @param tag in-place 标记（未使用）
+         */
+        constexpr default_deleter(std::in_place_t) noexcept;
+
+        /**
+         * \lang english
+         * @brief Converting constructor from a deleter of a convertible type.
+         *
+         * @tparam U The source element type
+         * @param deleter The deleter to convert from
+         *
+         * \lang simp-chinese
+         * @brief 从可转换类型的删除器转换的构造函数。
+         *
+         * @tparam U 源元素类型
+         * @param deleter 要转换的删除器
+         */
+        template <typename U,
+                  typename = type_traits::other_trans::enable_if_t<type_traits::type_relations::is_convertible_v<U *, Ty *>>>
+        constexpr explicit default_deleter(const default_deleter<U> &) noexcept;
+
+        /**
+         * \lang english
+         * @brief Deletes the managed object.
+         *
+         * @param resource Pointer to the object to delete
+         *
+         * \lang simp-chinese
+         * @brief 删除被管理的对象。
+         *
+         * @param resource 指向要删除对象的指针
+         */
+        RAINY_CONSTEXPR20 rain_fn operator()(const Ty *resource) const noexcept -> void;
+    };
+
+    /**
+     * \lang english
+     * @brief The default deleter specialization for arrays.
+     *
+     * @tparam Ty The element type of the managed array
+     *
+     * \lang simp-chinese
+     * @brief 数组类型的默认删除器特化。
+     *
+     * @tparam Ty 被管理数组的元素类型
+     */
+    template <typename Ty>
+    struct default_deleter<Ty[]> {
+        /**
+         * \lang english
+         * @brief Default constructor.
+         *
+         * \lang simp-chinese
+         * @brief 默认构造函数。
+         */
+        constexpr default_deleter() noexcept = default;
+
+        /**
+         * \lang english
+         * @brief Constructs a default_deleter from a placeholder tag.
+         *
+         * @param tag The placeholder tag (unused)
+         *
+         * \lang simp-chinese
+         * @brief 从占位标记构造 default_deleter。
+         *
+         * @param tag 占位标记（未使用）
+         */
+        constexpr default_deleter(utility::placeholder_t) noexcept;
+
+        /**
+         * \lang english
+         * @brief Converting constructor from a deleter of a convertible array type.
+         *
+         * @tparam U The source element type
+         * @param deleter The deleter to convert from
+         *
+         * \lang simp-chinese
+         * @brief 从可转换数组类型的删除器转换的构造函数。
+         *
+         * @tparam U 源元素类型
+         * @param deleter 要转换的删除器
+         */
+        template <typename U,
+                  typename = type_traits::other_trans::enable_if_t<
+                      type_traits::type_relations::is_convertible_v<U (*)[], Ty (*)[]>>>
+        constexpr explicit default_deleter(const default_deleter<U[]> &) noexcept;
+
+        /**
+         * \lang english
+         * @brief Converting constructor from a deleter of a convertible element type.
+         *
+         * @tparam U The source element type
+         * @param deleter The deleter to convert from
+         *
+         * \lang simp-chinese
+         * @brief 从可转换元素类型的删除器转换的构造函数。
+         *
+         * @tparam U 源元素类型
+         * @param deleter 要转换的删除器
+         */
+        template <typename U,
+                  typename = type_traits::other_trans::enable_if_t<type_traits::type_relations::is_convertible_v<U *, Ty *>>>
+        constexpr explicit default_deleter(const default_deleter<U> &) noexcept;
+
+        /**
+         * \lang english
+         * @brief Deletes the managed array.
+         *
+         * @param resource Pointer to the array to delete
+         *
+         * \lang simp-chinese
+         * @brief 删除被管理的数组。
+         *
+         * @param resource 指向要删除数组的指针
+         */
+        RAINY_CONSTEXPR20 rain_fn operator()(const Ty *resource) const noexcept -> void;
+    };
+}
+
+namespace rainy::core::memory::implements {
+    /**
+     * \lang english
+     * @brief Base implementation of nebula_ptr holding the deleter and the raw pointer.
+     *
+     * @tparam Ty The managed element type.
+     * @tparam Dx The deleter type.
+     *
+     * \lang simp-chinese
+     * @brief nebula_ptr 的基类实现，持有删除器与原始指针。
+     *
+     * @tparam Ty 被管理的元素类型。
+     * @tparam Dx 删除器类型。
+     */
+    template <typename Ty, typename Dx>
+    class nebula_ptr_base {
+    public:
+        using element_type = Ty;
+        using pointer = element_type *;
+        using const_pointer = const element_type *;
+        using deleter_type = Dx;
+
+        template <typename, typename>
+        friend class nebula_ptr_base;
+
+        template <typename, typename>
+        friend class nebula_ptr;
+
+        /**
+         * \lang english
+         * @brief Default constructor. Constructs a null nebula_ptr_base.
+         *
+         * \lang simp-chinese
+         * @brief 默认构造函数。构造一个空的 nebula_ptr_base。
+         */
+        constexpr nebula_ptr_base() noexcept;
+
+        /**
+         * \lang english
+         * @brief Constructs a null nebula_ptr_base from nullptr.
+         *
+         * \lang simp-chinese
+         * @brief 从 nullptr 构造一个空的 nebula_ptr_base。
+         */
+        constexpr nebula_ptr_base(std::nullptr_t) noexcept;
+
+        /**
+         * \lang english
+         * @brief Constructs a nebula_ptr_base owning the given pointer.
+         *
+         * \lang simp-chinese
+         * @brief 构造一个拥有给定指针的 nebula_ptr_base。
+         */
+        RAINY_CONSTEXPR20 nebula_ptr_base(element_type *pointer) noexcept;
+
+        /**
+         * \lang english
+         * @brief Constructs a nebula_ptr_base owning the given pointer with the given deleter.
+         *
+         * \lang simp-chinese
+         * @brief 使用给定删除器构造拥有给定指针的 nebula_ptr_base。
+         */
+        template <
+            type_traits::other_trans::enable_if_t<type_traits::properties::is_copy_constructible_v<deleter_type>, int> = 0>
+        RAINY_CONSTEXPR20 nebula_ptr_base(element_type *pointer, deleter_type deleter);
+
+        /**
+         * \lang english
+         * @brief Constructs a nebula_ptr_base owning the given convertible pointer.
+         *
+         * \lang simp-chinese
+         * @brief 构造一个拥有给定可转换指针的 nebula_ptr_base。
+         */
+        template <typename UTy,
+                  type_traits::other_trans::enable_if_t<type_traits::type_relations::is_convertible_v<UTy *, pointer>, int> = 0>
+        RAINY_CONSTEXPR20 nebula_ptr_base(UTy *pointer) noexcept;
+
+        /**
+         * \lang english
+         * @brief Constructs a nebula_ptr_base owning the given convertible pointer with the given deleter.
+         *
+         * \lang simp-chinese
+         * @brief 使用给定删除器构造拥有给定可转换指针的 nebula_ptr_base。
+         */
+        template <typename UTy,
+                  type_traits::other_trans::enable_if_t<type_traits::type_relations::is_convertible_v<UTy *, pointer> &&
+                                                            type_traits::properties::is_copy_constructible_v<deleter_type>,
+                                                        int> = 0>
+        RAINY_CONSTEXPR20 nebula_ptr_base(UTy *pointer, deleter_type deleter);
+
+        nebula_ptr_base(const nebula_ptr_base &) = delete;
+        nebula_ptr_base(nebula_ptr_base &&right) noexcept;
+
+        template <typename UTy, typename UDx,
+                  type_traits::other_trans::enable_if_t<type_traits::type_relations::is_convertible_v<UTy *, pointer> &&
+                                                            type_traits::properties::is_constructible_v<Dx, UDx &&>,
+                                                        int> = 0>
+        RAINY_CONSTEXPR20 nebula_ptr_base(nebula_ptr_base<UTy, UDx> &&right) noexcept;
+
+        template <typename Dx2 = Dx,
+                  type_traits::other_trans::enable_if_t<
+                      type_traits::logical_traits::conjunction_v<type_traits::composite_types::is_reference<Dx2>,
+                                                                  type_traits::properties::is_constructible<Dx2, type_traits::modifers::remove_reference_t<Dx2>>>,
+                      int> = 0>
+        nebula_ptr_base(pointer, type_traits::modifers::remove_reference_t<Dx> &&) = delete;
+
+        RAINY_CONSTEXPR20 ~nebula_ptr_base();
+
+        nebula_ptr_base &operator=(const nebula_ptr_base &) = delete;
+
+        RAINY_NODISCARD constexpr bool empty() const noexcept;
+        RAINY_NODISCARD constexpr operator bool() const noexcept;
+        RAINY_CONSTEXPR20 void reset(element_type *pointer = nullptr);
+        RAINY_CONSTEXPR20 nebula_ptr_base &operator=(std::nullptr_t);
+        RAINY_CONSTEXPR20 nebula_ptr_base &operator=(element_type *pointer);
+        RAINY_CONSTEXPR20 nebula_ptr_base &operator=(nebula_ptr_base &&right) noexcept;
+
+        template <typename UTy, typename UDx,
+                  type_traits::other_trans::enable_if_t<type_traits::type_relations::is_convertible_v<UTy *, pointer> &&
+                                                            type_traits::properties::is_constructible_v<Dx, UDx &&>,
+                                                        int> = 0>
+        RAINY_CONSTEXPR20 nebula_ptr_base &operator=(nebula_ptr_base<UTy, UDx> &&right) noexcept;
+
+        template <typename Reint, typename Dx_ = default_deleter<Reint>>
+        nebula_ptr_base<Reint, Dx_> &reinterpret() noexcept;
+
+        template <typename Reint, typename Dx_ = default_deleter<Reint>>
+        const nebula_ptr_base<Reint, Dx_> &reinterpret() const noexcept;
+
+        template <typename Cast, typename Dx_ = default_deleter<Cast>,
+                  type_traits::other_trans::enable_if_t<type_traits::type_relations::is_convertible_v<Ty, Cast>, int> = 0>
+        constexpr nebula_ptr_base<Cast, Dx_> &cast() noexcept;
+
+        template <typename Cast, typename Dx_ = default_deleter<Cast>,
+                  type_traits::other_trans::enable_if_t<type_traits::type_relations::is_convertible_v<Ty, Cast>, int> = 0>
+        constexpr const nebula_ptr_base<Cast, Dx_> &cast() const noexcept;
+
+        template <typename Base, type_traits::other_trans::enable_if_t<type_traits::type_relations::is_base_of_v<Base, Ty>, int> = 0>
+        nebula_ptr_base<Base, Dx> &upcast() noexcept;
+
+        template <typename Base, type_traits::other_trans::enable_if_t<type_traits::type_relations::is_base_of_v<Base, Ty>, int> = 0>
+        const nebula_ptr_base<Base, Dx> &upcast() const noexcept;
+
+        RAINY_NODISCARD constexpr pointer *operator&() noexcept;
+        RAINY_NODISCARD constexpr const pointer *operator&() const noexcept;
+        RAINY_NODISCARD constexpr pointer release() noexcept;
+        RAINY_NODISCARD constexpr pointer get() noexcept;
+        RAINY_NODISCARD constexpr const_pointer get() const noexcept;
+        RAINY_NODISCARD constexpr deleter_type &get_deleter() noexcept;
+        RAINY_NODISCARD constexpr const deleter_type &get_deleter() const noexcept;
+        constexpr pointer operator->() noexcept;
+        constexpr const_pointer operator->() const noexcept;
+        constexpr type_traits::modifers::add_lvalue_reference_t<element_type> operator*();
+        constexpr type_traits::modifers::add_lvalue_reference_t<const element_type> operator*() const;
+        constexpr type_traits::modifers::add_lvalue_reference_t<element_type> as_reference();
+        RAINY_NODISCARD constexpr type_traits::modifers::add_lvalue_reference_t<const element_type> as_reference() const;
+        constexpr void swap(nebula_ptr_base &right) noexcept;
+
+    protected:
+        container::compressed_pair<deleter_type, pointer> pair;
+    };
+}
+
+namespace rainy::core::memory {
+    /**
+     * \lang english
+     * @brief A smart pointer with unique ownership semantics.
+     *
+     * @tparam Ty The type of the managed object
+     * @tparam Dx The deleter type used to release the managed object
+     *
+     * \lang simp-chinese
+     * @brief 具有唯一所有权语义的智能指针。
+     *
+     * @tparam Ty 被管理对象的类型
+     * @tparam Dx 用于释放被管理对象的删除器类型
+     */
+    template <typename Ty, typename Dx = default_deleter<Ty>>
+    class nebula_ptr : public implements::nebula_ptr_base<Ty, Dx> {
+    public:
+        using nebula_base = implements::nebula_ptr_base<Ty, Dx>;
+        using nebula_base::nebula_base;
+    };
+
+    /**
+     * \lang english
+     * @brief Specialization of nebula_ptr for dynamic arrays.
+     *
+     * @tparam Ty The element type of the managed array
+     * @tparam Dx The deleter type used to release the managed array
+     *
+     * \lang simp-chinese
+     * @brief nebula_ptr 针对动态数组的特化。
+     *
+     * @tparam Ty 被管理数组的元素类型
+     * @tparam Dx 用于释放被管理数组的删除器类型
+     */
+    template <typename Ty, typename Dx>
+    class nebula_ptr<Ty[], Dx> : public implements::nebula_ptr_base<Ty, Dx> {
+    public:
+        using base = implements::nebula_ptr_base<Ty, Dx>;
+        using element_type = typename base::element_type;
+        using size_type = std::size_t;
+        using pointer = typename base::pointer;
+        using base::base;
+
+        nebula_ptr(element_type *ptr, const size_type length);
+        RAINY_CONSTEXPR20 ~nebula_ptr();
+
+        element_type &operator[](const size_type idx) noexcept;
+        const element_type &operator[](const size_type idx) const noexcept;
+
+        element_type &at(const size_type idx);
+        const element_type &at(const size_type idx) const;
+
+        constexpr pointer begin() noexcept;
+        constexpr pointer end() noexcept;
+        constexpr pointer begin() const noexcept;
+        constexpr pointer end() const noexcept;
+
+        RAINY_CONSTEXPR20 void fill(const Ty &val) noexcept(
+            type_traits::properties::is_nothrow_constructible_v<Ty>);
+
+        RAINY_CONSTEXPR20 void fill_with_ilist(std::initializer_list<Ty> ilist) noexcept(
+            type_traits::properties::is_nothrow_constructible_v<Ty>);
+
+        RAINY_CONSTEXPR20 void reset(element_type *pointer, size_type new_size = 0);
+
+        RAINY_CONSTEXPR20 nebula_ptr &operator=(std::nullptr_t);
+        RAINY_CONSTEXPR20 nebula_ptr &operator=(element_type *pointer);
+
+        template <size_type N>
+        RAINY_CONSTEXPR20 nebula_ptr &operator=(element_type (*arr)[N]);
+
+        constexpr nebula_ptr &operator=(nebula_ptr &&right) noexcept;
+
+        RAINY_NODISCARD constexpr size_type has_range() const noexcept;
+        RAINY_NODISCARD constexpr size_type size() const noexcept;
+        RAINY_NODISCARD constexpr size_type length() const noexcept;
+
+    private:
+        constexpr void range_check(const size_type idx) const;
+
+        size_type length_{0};
+    };
+
+    /**
+     * \lang english
+     * @brief Creates a nebula_ptr owning a dynamically allocated object.
+     *
+     * @tparam Ty The type of the object to create
+     * @tparam Args The argument types forwarded to the constructor
+     * @param args Arguments forwarded to the constructor of Ty
+     * @return A nebula_ptr owning the newly created object
+     *
+     * \lang simp-chinese
+     * @brief 创建一个拥有动态分配对象的 nebula_ptr。
+     *
+     * @tparam Ty 要创建的对象的类型
+     * @tparam Args 转发给构造函数的参数类型
+     * @param args 转发给 Ty 构造函数实参
+     * @return 拥有新创建对象的 nebula_ptr
+     */
+    template <typename Ty, typename... Args,
+              type_traits::other_trans::enable_if_t<!type_traits::primary_types::is_array_v<Ty>, int> = 0>
+    nebula_ptr<Ty> make_nebula(Args &&...args) noexcept(
+        type_traits::properties::is_nothrow_constructible_v<Ty, Args...>);
+
+    /**
+     * \lang english
+     * @brief Creates a nebula_ptr owning a dynamically allocated array.
+     *
+     * @tparam Ty The array type to create (must be a dynamic array)
+     * @tparam Args The argument types forwarded to each element constructor
+     * @param num The number of elements in the array
+     * @param args Arguments forwarded to each element constructor
+     * @return A nebula_ptr owning the newly created array
+     *
+     * \lang simp-chinese
+     * @brief 创建一个拥有动态分配数组的 nebula_ptr。
+     *
+     * @tparam Ty 要创建的数组类型（必须是动态数组）
+     * @tparam Args 转发给每个元素构造函数的参数类型
+     * @param num 数组中的元素数量
+     * @param args 转发给每个元素构造函数的实参
+     * @return 拥有新创建数组的 nebula_ptr
+     */
+    template <typename Ty, typename... Args,
+              type_traits::other_trans::enable_if_t<type_traits::primary_types::is_array_v<Ty> && type_traits::modifers::extent_v<Ty> == 0, int> = 0>
+    nebula_ptr<Ty> make_nebula(const std::size_t num,
+                               Args... args) noexcept(type_traits::properties::is_nothrow_constructible_v<Ty>);
+
+    /**
+     * \lang english
+     * @brief Creates a nebula_ptr owning a dynamically allocated array filled from an initializer list.
+     *
+     * @tparam Ty The array type to create (must be a dynamic array)
+     * @tparam Args The argument types forwarded to the initializer list
+     * @param num The number of elements in the array
+     * @param ilist The initializer list to copy element values from
+     * @return A nebula_ptr owning the newly created array
+     *
+     * \lang simp-chinese
+     * @brief 创建一个拥有动态分配数组的 nebula_ptr，数组由初始化列表填充。
+     *
+     * @tparam Ty 要创建的数组类型（必须是动态数组）
+     * @tparam Args 转发给初始化列表的参数类型
+     * @param num 数组中的元素数量
+     * @param ilist 要从中拷贝元素值的初始化列表
+     * @return 拥有新创建数组的 nebula_ptr
+     */
+    template <typename Ty, typename... Args,
+              type_traits::other_trans::enable_if_t<type_traits::primary_types::is_array_v<Ty> && type_traits::modifers::extent_v<Ty> == 0, int> = 0>
+    nebula_ptr<Ty> make_nebula(const std::size_t num,
+                               std::initializer_list<type_traits::modifers::remove_extent_t<Ty>> ilist) noexcept(
+        type_traits::properties::is_nothrow_constructible_v<Ty>);
+
+    /**
+     * \lang english
+     * @brief An alias of nebula_ptr providing unique-ownership smart pointer semantics.
+     *
+     * @tparam Ty The type of the managed object
+     * @tparam Dx The deleter type used to release the managed object
+     *
+     * \lang simp-chinese
+     * @brief nebula_ptr 的别名，提供唯一所有权智能指针语义。
+     *
+     * @tparam Ty 被管理对象的类型
+     * @tparam Dx 用于释放被管理对象的删除器类型
+     */
+    template <typename Ty, typename Dx = default_deleter<Ty>>
+    using unique_ptr = nebula_ptr<Ty, Dx>;
+
+    /**
+     * \lang english
+     * @brief Creates a unique_ptr owning a dynamically allocated object.
+     *
+     * @tparam Ty The type of the object to create
+     * @tparam Args The argument types forwarded to the constructor
+     * @param args Arguments forwarded to the constructor of Ty
+     * @return A unique_ptr owning the newly created object
+     *
+     * \lang simp-chinese
+     * @brief 创建一个拥有动态分配对象的 unique_ptr。
+     *
+     * @tparam Ty 要创建的对象的类型
+     * @tparam Args 转发给构造函数的参数类型
+     * @param args 转发给 Ty 构造函数实参
+     * @return 拥有新创建对象的 unique_ptr
+     */
+    template <typename Ty, typename... Args,
+              type_traits::other_trans::enable_if_t<!type_traits::primary_types::is_array_v<Ty> , int> = 0>
+    unique_ptr<Ty> make_unique(Args &&...args) noexcept(
+        type_traits::properties::is_nothrow_constructible_v<Ty, Args...>);
+
+    /**
+     * \lang english
+     * @brief Creates a unique_ptr owning a dynamically allocated array.
+     *
+     * @tparam Ty The array type to create (must be a dynamic array)
+     * @tparam Args The argument types forwarded to the constructor
+     * @param num The number of elements in the array
+     * @return A unique_ptr owning the newly created array
+     *
+     * \lang simp-chinese
+     * @brief 创建一个拥有动态分配数组的 unique_ptr。
+     *
+     * @tparam Ty 要创建的数组类型（必须是动态数组）
+     * @tparam Args 转发给构造函数的参数类型
+     * @param num 数组中的元素数量
+     * @return 拥有新创建数组的 unique_ptr
+     */
+    template <typename Ty, typename... Args,
+              type_traits::other_trans::enable_if_t<type_traits::primary_types::is_array_v<Ty> && type_traits::modifers::extent_v<Ty> == 0, int> = 0>
+    unique_ptr<Ty> make_unique(const std::size_t num) noexcept(
+        type_traits::properties::is_nothrow_constructible_v<Ty>);
+
+    /**
+     * \lang english
+     * @brief Creates a unique_ptr owning a dynamically allocated array filled from an initializer list.
+     *
+     * @tparam Ty The array type to create (must be a dynamic array)
+     * @tparam Args The argument types forwarded to the initializer list
+     * @param num The number of elements in the array
+     * @param ilist The initializer list to copy element values from
+     * @return A unique_ptr owning the newly created array
+     *
+     * \lang simp-chinese
+     * @brief 创建一个拥有动态分配数组的 unique_ptr，数组由初始化列表填充。
+     *
+     * @tparam Ty 要创建的数组类型（必须是动态数组）
+     * @tparam Args 转发给初始化列表的参数类型
+     * @param num 数组中的元素数量
+     * @param ilist 要从中拷贝元素值的初始化列表
+     * @return 拥有新创建数组的 unique_ptr
+     */
+    template <typename Ty, typename... Args,
+              type_traits::other_trans::enable_if_t<type_traits::primary_types::is_array_v<Ty> && type_traits::modifers::extent_v<Ty> == 0, int> = 0>
+    unique_ptr<Ty> make_unique(const std::size_t num,
+                               std::initializer_list<type_traits::modifers::remove_extent_t<Ty>> ilist) noexcept(
+        type_traits::properties::is_nothrow_constructible_v<Ty>);
+}
+
+#endif
 
 #endif

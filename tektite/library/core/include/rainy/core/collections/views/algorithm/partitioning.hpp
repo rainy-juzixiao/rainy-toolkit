@@ -21,19 +21,23 @@
 
 namespace rainy::core::collections::views {
     /**
+     * \lang english
      * @brief Checks whether a range is partitioned by a predicate.
-     *        检查范围是否已按谓词分区。
      *
      * @tparam Range The range type
-     *               范围类型
      * @tparam Pred The predicate type
-     *              谓词类型
      * @param range The range to check
-     *              要检查的范围
      * @param pred The predicate to apply
-     *             要应用的谓词
      * @return true if the range is partitioned
-     *         如果范围已分区则为true
+     *
+     * \lang simp-chinese
+     * @brief 检查范围是否已按谓词分区。
+     *
+     * @tparam Range 范围类型
+     * @tparam Pred 谓词类型
+     * @param range 要检查的范围
+     * @param pred 要应用的谓词
+     * @return 如果范围已分区则为true
      */
     template <typename Range, typename Pred>
     RAINY_NODISCARD constexpr auto is_partitioned(Range &&range, Pred pred) -> bool {
@@ -41,19 +45,23 @@ namespace rainy::core::collections::views {
     }
 
     /**
+     * \lang english
      * @brief Reorders a range so that elements satisfying pred come first.
-     *        重排范围使满足pred的元素排在前面。
      *
      * @tparam Range The range type
-     *               范围类型
      * @tparam Pred The predicate type
-     *              谓词类型
      * @param range The range to partition
-     *              要分区的范围
      * @param pred The predicate to apply
-     *             要应用的谓词
      * @return Iterator to the first element of the second group
-     *         指向第二组第一个元素的迭代器
+     *
+     * \lang simp-chinese
+     * @brief 重排范围使满足pred的元素排在前面。
+     *
+     * @tparam Range 范围类型
+     * @tparam Pred 谓词类型
+     * @param range 要分区的范围
+     * @param pred 要应用的谓词
+     * @return 指向第二组第一个元素的迭代器
      */
     template <typename Range, typename Pred>
     constexpr auto partition(Range &&range, Pred pred) {
@@ -61,25 +69,29 @@ namespace rainy::core::collections::views {
     }
 
     /**
+     * \lang english
      * @brief Partitions a range, copying the two groups into separate destinations.
-     *        分区范围，将两组元素分别拷贝到不同目标。
      *
      * @tparam Range The range type
-     *               范围类型
      * @tparam OutIt1 First output iterator type
-     *                第一个输出迭代器类型
      * @tparam OutIt2 Second output iterator type
-     *                第二个输出迭代器类型
      * @tparam Pred The predicate type
-     *              谓词类型
      * @param range The range to partition
-     *              要分区的范围
      * @param dest_true Iterator to the destination of elements satisfying pred
-     *                  满足pred元素的输出迭代器
      * @param dest_false Iterator to the destination of elements not satisfying pred
-     *                   不满足pred元素的输出迭代器
      * @return Pair of iterators to the ends of both destination ranges
-     *         两个目标范围末尾的迭代器对
+     *
+     * \lang simp-chinese
+     * @brief 分区范围，将两组元素分别拷贝到不同目标。
+     *
+     * @tparam Range 范围类型
+     * @tparam OutIt1 第一个输出迭代器类型
+     * @tparam OutIt2 第二个输出迭代器类型
+     * @tparam Pred 谓词类型
+     * @param range 要分区的范围
+     * @param dest_true 满足pred元素的输出迭代器
+     * @param dest_false 不满足pred元素的输出迭代器
+     * @return 两个目标范围末尾的迭代器对
      */
     template <typename Range, typename OutIt1, typename OutIt2, typename Pred>
     constexpr auto partition_copy(Range &&range, OutIt1 dest_true, OutIt2 dest_false, Pred pred) {
@@ -88,19 +100,23 @@ namespace rainy::core::collections::views {
     }
 
     /**
+     * \lang english
      * @brief Partitions a range preserving the relative order within each group.
-     *        分区范围，同时保持各组内元素的相对顺序。
      *
      * @tparam Range The range type
-     *               范围类型
      * @tparam Pred The predicate type
-     *              谓词类型
      * @param range The range to partition
-     *              要分区的范围
      * @param pred The predicate to apply
-     *             要应用的谓词
      * @return Iterator to the first element of the second group
-     *         指向第二组第一个元素的迭代器
+     *
+     * \lang simp-chinese
+     * @brief 分区范围，同时保持各组内元素的相对顺序。
+     *
+     * @tparam Range 范围类型
+     * @tparam Pred 谓词类型
+     * @param range 要分区的范围
+     * @param pred 要应用的谓词
+     * @return 指向第二组第一个元素的迭代器
      */
     template <typename Range, typename Pred>
     constexpr auto stable_partition(Range &&range, Pred pred) {
@@ -108,19 +124,23 @@ namespace rainy::core::collections::views {
     }
 
     /**
+     * \lang english
      * @brief Finds the partition point of a partitioned range.
-     *        查找已分区范围的分区点。
      *
      * @tparam Range The range type
-     *               范围类型
      * @tparam Pred The predicate type
-     *              谓词类型
      * @param range The range to inspect
-     *              要检查的范围
      * @param pred The predicate to apply
-     *             要应用的谓词
      * @return Iterator to the first element not satisfying pred
-     *         指向第一个不满足pred元素的迭代器
+     *
+     * \lang simp-chinese
+     * @brief 查找已分区范围的分区点。
+     *
+     * @tparam Range 范围类型
+     * @tparam Pred 谓词类型
+     * @param range 要检查的范围
+     * @param pred 要应用的谓词
+     * @return 指向第一个不满足pred元素的迭代器
      */
     template <typename Range, typename Pred>
     RAINY_NODISCARD constexpr auto partition_point(Range &&range, Pred pred) {

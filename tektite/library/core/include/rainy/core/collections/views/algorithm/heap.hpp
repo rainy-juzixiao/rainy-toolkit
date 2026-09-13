@@ -21,13 +21,17 @@
 
 namespace rainy::core::collections::views {
     /**
+     * \lang english
      * @brief Turns a range into a max-heap with respect to comp.
-     *        将范围转换为关于comp的最大堆。
      *
      * @tparam Range The range type
-     *               范围类型
      * @param range The range to heapify
-     *              要建堆的范围
+     *
+     * \lang simp-chinese
+     * @brief 将范围转换为关于comp的最大堆。
+     *
+     * @tparam Range 范围类型
+     * @param range 要建堆的范围
      */
     template <typename Range>
     constexpr auto make_heap(Range &&range) {
@@ -35,13 +39,17 @@ namespace rainy::core::collections::views {
     }
 
     /**
+     * \lang english
      * @brief Inserts the last element of a range into the preceding heap.
-     *        将范围的最后一个元素插入前缀堆。
      *
      * @tparam Range The range type
-     *               范围类型
      * @param range The range whose last element is inserted
-     *              插入其末元素的范围
+     *
+     * \lang simp-chinese
+     * @brief 将范围的最后一个元素插入前缀堆。
+     *
+     * @tparam Range 范围类型
+     * @param range 插入其末元素的范围
      */
     template <typename Range>
     constexpr auto push_heap(Range &&range) {
@@ -49,13 +57,17 @@ namespace rainy::core::collections::views {
     }
 
     /**
+     * \lang english
      * @brief Swaps the heap head with the last element of a range and restores the heap invariant.
-     *        将堆顶与范围末元素交换并恢复堆性质。
      *
      * @tparam Range The range type
-     *               范围类型
      * @param range The heap range
-     *              堆范围
+     *
+     * \lang simp-chinese
+     * @brief 将堆顶与范围末元素交换并恢复堆性质。
+     *
+     * @tparam Range 范围类型
+     * @param range 堆范围
      */
     template <typename Range>
     constexpr auto pop_heap(Range &&range) {
@@ -63,13 +75,17 @@ namespace rainy::core::collections::views {
     }
 
     /**
+     * \lang english
      * @brief Sorts a heap range into ascending order.
-     *        将堆范围排序为升序。
      *
      * @tparam Range The range type
-     *               范围类型
      * @param range The heap range
-     *              堆范围
+     *
+     * \lang simp-chinese
+     * @brief 将堆范围排序为升序。
+     *
+     * @tparam Range 范围类型
+     * @param range 堆范围
      */
     template <typename Range>
     constexpr auto sort_heap(Range &&range) {
@@ -77,15 +93,19 @@ namespace rainy::core::collections::views {
     }
 
     /**
+     * \lang english
      * @brief Finds the first position where a range is no longer a heap.
-     *        查找范围不再满足堆性质的第一个位置。
      *
      * @tparam Range The range type
-     *               范围类型
      * @param range The range to inspect
-     *              要检查的范围
      * @return Iterator to the end of the longest heap prefix
-     *         指向最长堆前缀末尾的迭代器
+     *
+     * \lang simp-chinese
+     * @brief 查找范围不再满足堆性质的第一个位置。
+     *
+     * @tparam Range 范围类型
+     * @param range 要检查的范围
+     * @return 指向最长堆前缀末尾的迭代器
      */
     template <typename Range>
     RAINY_NODISCARD constexpr auto is_heap_until(Range &&range) {
@@ -93,15 +113,19 @@ namespace rainy::core::collections::views {
     }
 
     /**
+     * \lang english
      * @brief Checks whether a range is a max-heap.
-     *        检查范围是否为最大堆。
      *
      * @tparam Range The range type
-     *               范围类型
      * @param range The range to inspect
-     *              要检查的范围
      * @return true if the range is a max-heap
-     *         如果范围是最大堆则为true
+     *
+     * \lang simp-chinese
+     * @brief 检查范围是否为最大堆。
+     *
+     * @tparam Range 范围类型
+     * @param range 要检查的范围
+     * @return 如果范围是最大堆则为true
      */
     template <typename Range>
     RAINY_NODISCARD constexpr auto is_heap(Range &&range) -> bool {

@@ -19,9 +19,37 @@
 #include <rainy/core/type_traits/underlying_type.hpp>
 
 namespace rainy::core::text {
+    /**
+     * \lang english
+     * @brief Mode flags controlling byte-order-mark handling and byte order for the codecvt facets.
+     *
+     * \lang simp-chinese
+     * @brief 控制 codecvt facet 的字节序标记处理与字节序的模式标志。
+     */
     enum class codecvt_mode {
+        /**
+         * \lang english
+         * @brief Consumes a leading byte-order mark when converting from bytes.
+         *
+         * \lang simp-chinese
+         * @brief 从字节转换时消费开头的字节序标记。
+         */
         consume_header = 4,
+        /**
+         * \lang english
+         * @brief Generates a byte-order mark when converting to bytes.
+         *
+         * \lang simp-chinese
+         * @brief 转换为字节时生成字节序标记。
+         */
         generate_header = 2,
+        /**
+         * \lang english
+         * @brief Uses little-endian byte order for UTF-16 conversions.
+         *
+         * \lang simp-chinese
+         * @brief UTF-16 转换使用小端字节序。
+         */
         little_endian = 1
     };
 
@@ -31,12 +59,48 @@ namespace rainy::core::text {
 
     RAINY_ENABLE_ENUM_CLASS_BITMASK_OPERATORS(codecvt_mode);
 
+    /**
+     * \lang english
+     * @brief Converts between UTF-8 byte sequences and wide-character strings.
+     *
+     * @tparam Elem The wide-character element type
+     * @tparam Maxcode The maximum Unicode code point allowed
+     * @tparam Mode The conversion mode flags
+     *
+     * \lang simp-chinese
+     * @brief 在 UTF-8 字节序列与宽字符串之间进行转换。
+     *
+     * @tparam Elem 宽字符元素类型
+     * @tparam Maxcode 允许的最大 Unicode 码点
+     * @tparam Mode 转换模式标志
+     */
     template <typename Elem, unsigned long Maxcode = 0x10ffff, codecvt_mode Mode = codecvt_mode{}>
     class codecvt_utf8 {
     public:
+        /**
+         * \lang english
+         * @brief The byte (octet) element type.
+         *
+         * \lang simp-chinese
+         * @brief 字节（八位组）元素类型。
+         */
         using byte_type = char;
+        /**
+         * \lang english
+         * @brief The wide-character element type.
+         *
+         * \lang simp-chinese
+         * @brief 宽字符元素类型。
+         */
         using wide_type = Elem;
 
+        /**
+         * \lang english
+         * @brief The outcome of a conversion step.
+         *
+         * \lang simp-chinese
+         * @brief 一次转换步骤的结果状态。
+         */
         enum class result {
             ok,
             partial,
@@ -44,6 +108,31 @@ namespace rainy::core::text {
             noconv
         };
 
+        /**
+         * \lang english
+         * @brief Converts UTF-8 bytes to wide characters.
+         *
+         * @param from_begin Pointer to the first byte to convert
+         * @param from_end Pointer one past the last byte to convert
+         * @param from_next On output, points one past the last byte consumed
+         * @param to_begin Pointer to the first wide-character output element
+         * @param to_end Pointer one past the last wide-character output element
+         * @param to_next On output, points one past the last element written
+         * @param seen_header Tracks whether a byte-order mark has been seen
+         * @return The conversion result
+         *
+         * \lang simp-chinese
+         * @brief 将 UTF-8 字节转换为宽字符。
+         *
+         * @param from_begin 指向待转换首字节的指针
+         * @param from_end 指向末字节之后位置的指针
+         * @param from_next 输出时指向最后一个已消费字节之后
+         * @param to_begin 指向首个宽字符输出元素的指针
+         * @param to_end 指向末个宽字符输出元素之后位置的指针
+         * @param to_next 输出时指向最后一个已写入元素之后
+         * @param seen_header 跟踪是否已遇到字节序标记
+         * @return 转换结果
+         */
         static result to_wide(const byte_type *from_begin, const byte_type *from_end, const byte_type *&from_next, wide_type *to_begin,
                               wide_type *to_end, wide_type *&to_next, bool &seen_header) {
             from_next = from_begin;
@@ -123,6 +212,31 @@ namespace rainy::core::text {
             return from_begin == from_next ? result::partial : result::ok;
         }
 
+        /**
+         * \lang english
+         * @brief Converts wide characters to UTF-8 bytes.
+         *
+         * @param from_begin Pointer to the first wide character to convert
+         * @param from_end Pointer one past the last wide character to convert
+         * @param from_next On output, points one past the last wide character consumed
+         * @param to_begin Pointer to the first byte output element
+         * @param to_end Pointer one past the last byte output element
+         * @param to_next On output, points one past the last element written
+         * @param seen_header Tracks whether a byte-order mark has been seen
+         * @return The conversion result
+         *
+         * \lang simp-chinese
+         * @brief 将宽字符转换为 UTF-8 字节。
+         *
+         * @param from_begin 指向待转换首宽字符的指针
+         * @param from_end 指向末宽字符之后位置的指针
+         * @param from_next 输出时指向最后一个已消费宽字符之后
+         * @param to_begin 指向首字节输出元素的指针
+         * @param to_end 指向末字节输出元素之后位置的指针
+         * @param to_next 输出时指向最后一个已写入元素之后
+         * @param seen_header 跟踪是否已遇到字节序标记
+         * @return 转换结果
+         */
        static result to_bytes(const wide_type *from_begin, const wide_type *from_end, const wide_type *&from_next,
                                byte_type *to_begin, byte_type *to_end, byte_type *&to_next, bool &seen_header) {
             from_next = from_begin;
@@ -209,12 +323,48 @@ namespace rainy::core::text {
 }
 
 namespace rainy::core::text {
+    /**
+     * \lang english
+     * @brief Converts between UTF-16 byte sequences and wide-character strings, honoring the configured byte order.
+     *
+     * @tparam Elem The wide-character element type
+     * @tparam Maxcode The maximum Unicode code point allowed
+     * @tparam Mode The conversion mode flags
+     *
+     * \lang simp-chinese
+     * @brief 在 UTF-16 字节序列与宽字符串之间进行转换，遵循配置的字节序。
+     *
+     * @tparam Elem 宽字符元素类型
+     * @tparam Maxcode 允许的最大 Unicode 码点
+     * @tparam Mode 转换模式标志
+     */
     template <typename Elem, unsigned long Maxcode = 0x10ffff, codecvt_mode Mode = codecvt_mode{}>
     class codecvt_utf16 {
     public:
+        /**
+         * \lang english
+         * @brief The byte (octet) element type.
+         *
+         * \lang simp-chinese
+         * @brief 字节（八位组）元素类型。
+         */
         using byte_type = char;
+        /**
+         * \lang english
+         * @brief The wide-character element type.
+         *
+         * \lang simp-chinese
+         * @brief 宽字符元素类型。
+         */
         using wide_type = Elem;
 
+        /**
+         * \lang english
+         * @brief The outcome of a conversion step.
+         *
+         * \lang simp-chinese
+         * @brief 一次转换步骤的结果状态。
+         */
         enum class result {
             ok,
             partial,
@@ -222,6 +372,31 @@ namespace rainy::core::text {
             noconv
         };
 
+        /**
+         * \lang english
+         * @brief Converts UTF-16 bytes (in the configured byte order) to wide characters.
+         *
+         * @param from_begin Pointer to the first byte to convert
+         * @param from_end Pointer one past the last byte to convert
+         * @param from_next On output, points one past the last byte consumed
+         * @param to_begin Pointer to the first wide-character output element
+         * @param to_end Pointer one past the last wide-character output element
+         * @param to_next On output, points one past the last element written
+         * @param seen_header Tracks whether a byte-order mark has been seen
+         * @return The conversion result
+         *
+         * \lang simp-chinese
+         * @brief 将 UTF-16 字节（按配置的字节序）转换为宽字符。
+         *
+         * @param from_begin 指向待转换首字节的指针
+         * @param from_end 指向末字节之后位置的指针
+         * @param from_next 输出时指向最后一个已消费字节之后
+         * @param to_begin 指向首个宽字符输出元素的指针
+         * @param to_end 指向末个宽字符输出元素之后位置的指针
+         * @param to_next 输出时指向最后一个已写入元素之后
+         * @param seen_header 跟踪是否已遇到字节序标记
+         * @return 转换结果
+         */
         static result to_wide(const byte_type *from_begin, const byte_type *from_end, const byte_type *&from_next, wide_type *to_begin,
                               wide_type *to_end, wide_type *&to_next, bool &seen_header) {
             from_next = from_begin;
@@ -327,6 +502,31 @@ namespace rainy::core::text {
             return from_next == from_end ? result::ok : result::partial;
         }
 
+        /**
+         * \lang english
+         * @brief Converts wide characters to UTF-16 bytes in the configured byte order.
+         *
+         * @param from_begin Pointer to the first wide character to convert
+         * @param from_end Pointer one past the last wide character to convert
+         * @param from_next On output, points one past the last wide character consumed
+         * @param to_begin Pointer to the first byte output element
+         * @param to_end Pointer one past the last byte output element
+         * @param to_next On output, points one past the last element written
+         * @param seen_header Tracks whether a byte-order mark has been seen
+         * @return The conversion result
+         *
+         * \lang simp-chinese
+         * @brief 将宽字符按配置的字节序转换为 UTF-16 字节。
+         *
+         * @param from_begin 指向待转换首宽字符的指针
+         * @param from_end 指向末宽字符之后位置的指针
+         * @param from_next 输出时指向最后一个已消费宽字符之后
+         * @param to_begin 指向首字节输出元素的指针
+         * @param to_end 指向末字节输出元素之后位置的指针
+         * @param to_next 输出时指向最后一个已写入元素之后
+         * @param seen_header 跟踪是否已遇到字节序标记
+         * @return 转换结果
+         */
         static result to_bytes(const wide_type *from_begin, const wide_type *from_end, const wide_type *&from_next,
                                byte_type *to_begin, byte_type *to_end, byte_type *&to_next, bool &seen_header) {
             from_next = from_begin;
@@ -422,12 +622,48 @@ namespace rainy::core::text {
 }
 
 namespace rainy::core::text {
+    /**
+     * \lang english
+     * @brief Converts between UTF-8 byte sequences and wide-character strings, encoding characters outside the BMP as surrogate pairs.
+     *
+     * @tparam Elem The wide-character element type
+     * @tparam Maxcode The maximum Unicode code point allowed
+     * @tparam Mode The conversion mode flags
+     *
+     * \lang simp-chinese
+     * @brief 在 UTF-8 字节序列与宽字符串之间进行转换，对 BMP 之外的字符编码为代理对。
+     *
+     * @tparam Elem 宽字符元素类型
+     * @tparam Maxcode 允许的最大 Unicode 码点
+     * @tparam Mode 转换模式标志
+     */
     template <typename Elem, unsigned long Maxcode = 0x10ffff, codecvt_mode Mode = codecvt_mode{}>
     class codecvt_utf8_utf16 {
     public:
+        /**
+         * \lang english
+         * @brief The byte (octet) element type.
+         *
+         * \lang simp-chinese
+         * @brief 字节（八位组）元素类型。
+         */
         using byte_type = char;
+        /**
+         * \lang english
+         * @brief The wide-character element type.
+         *
+         * \lang simp-chinese
+         * @brief 宽字符元素类型。
+         */
         using wide_type = Elem;
 
+        /**
+         * \lang english
+         * @brief The outcome of a conversion step.
+         *
+         * \lang simp-chinese
+         * @brief 一次转换步骤的结果状态。
+         */
         enum class result {
             ok,
             partial,
@@ -435,6 +671,31 @@ namespace rainy::core::text {
             noconv
         };
 
+        /**
+         * \lang english
+         * @brief Converts UTF-8 bytes to wide characters, decoding surrogate pairs outside the BMP.
+         *
+         * @param from_begin Pointer to the first byte to convert
+         * @param from_end Pointer one past the last byte to convert
+         * @param from_next On output, points one past the last byte consumed
+         * @param to_begin Pointer to the first wide-character output element
+         * @param to_end Pointer one past the last wide-character output element
+         * @param to_next On output, points one past the last element written
+         * @param seen_header Tracks whether a byte-order mark has been seen
+         * @return The conversion result
+         *
+         * \lang simp-chinese
+         * @brief 将 UTF-8 字节转换为宽字符，对 BMP 之外的码点解码为代理对。
+         *
+         * @param from_begin 指向待转换首字节的指针
+         * @param from_end 指向末字节之后位置的指针
+         * @param from_next 输出时指向最后一个已消费字节之后
+         * @param to_begin 指向首个宽字符输出元素的指针
+         * @param to_end 指向末个宽字符输出元素之后位置的指针
+         * @param to_next 输出时指向最后一个已写入元素之后
+         * @param seen_header 跟踪是否已遇到字节序标记
+         * @return 转换结果
+         */
         static result to_wide(const byte_type *from_begin, const byte_type *from_end, const byte_type *&from_next, wide_type *to_begin,
                               wide_type *to_end, wide_type *&to_next, bool &seen_header) {
             from_next = from_begin;
@@ -554,6 +815,31 @@ namespace rainy::core::text {
             return from_begin == from_next ? result::partial : result::ok;
         }
 
+        /**
+         * \lang english
+         * @brief Converts wide characters to UTF-8 bytes, encoding characters outside the BMP as surrogate pairs.
+         *
+         * @param from_begin Pointer to the first wide character to convert
+         * @param from_end Pointer one past the last wide character to convert
+         * @param from_next On output, points one past the last wide character consumed
+         * @param to_begin Pointer to the first byte output element
+         * @param to_end Pointer one past the last byte output element
+         * @param to_next On output, points one past the last element written
+         * @param seen_header Tracks whether a byte-order mark has been seen
+         * @return The conversion result
+         *
+         * \lang simp-chinese
+         * @brief 将宽字符转换为 UTF-8 字节，对 BMP 之外的码点编码为代理对。
+         *
+         * @param from_begin 指向待转换首宽字符的指针
+         * @param from_end 指向末宽字符之后位置的指针
+         * @param from_next 输出时指向最后一个已消费宽字符之后
+         * @param to_begin 指向首字节输出元素的指针
+         * @param to_end 指向末字节输出元素之后位置的指针
+         * @param to_next 输出时指向最后一个已写入元素之后
+         * @param seen_header 跟踪是否已遇到字节序标记
+         * @return 转换结果
+         */
         static result to_bytes(const wide_type *from_begin, const wide_type *from_end, const wide_type *&from_next,
                                byte_type *to_begin, byte_type *to_end, byte_type *&to_next, bool &seen_header) {
             from_next = from_begin;
@@ -661,6 +947,27 @@ namespace rainy::core::text {
 }
 
 namespace rainy::core::text {
+    /**
+     * \lang english
+     * @brief A stateful conversion wrapper between byte strings and wide strings using a codecvt facet.
+     *
+     * @tparam Codecvt The codecvt facet type performing the actual conversion
+     * @tparam StringTemplate The string class template for both string kinds
+     * @tparam Elem The wide-character element type
+     * @tparam CharTraits The character traits template
+     * @tparam WideAlloc The allocator for wide strings
+     * @tparam ByteAlloc The allocator for byte strings
+     *
+     * \lang simp-chinese
+     * @brief 使用 codecvt facet 在字节字符串与宽字符串之间进行有状态转换的包装类型。
+     *
+     * @tparam Codecvt 执行实际转换的 codecvt facet 类型
+     * @tparam StringTemplate 两类字符串共同使用的字符串类模板
+     * @tparam Elem 宽字符元素类型
+     * @tparam CharTraits 字符 traits 模板
+     * @tparam WideAlloc 宽字符串的分配器
+     * @tparam ByteAlloc 字节字符串的分配器
+     */
     // clang-format off
     template <
         typename Codecvt,
@@ -673,27 +980,108 @@ namespace rainy::core::text {
     class wstring_convert {
     public:
         // clang-format on
+        /**
+         * \lang english
+         * @brief The byte string type.
+         *
+         * \lang simp-chinese
+         * @brief 字节字符串类型。
+         */
         using byte_string = StringTemplate<char, CharTraits<char>, ByteAlloc>;
+        /**
+         * \lang english
+         * @brief The wide string type.
+         *
+         * \lang simp-chinese
+         * @brief 宽字符串类型。
+         */
         using wide_string = StringTemplate<Elem, CharTraits<Elem>, WideAlloc>;
 
+        /**
+         * \lang english
+         * @brief Constructs a converter without error strings; conversions use empty strings on error.
+         *
+         * \lang simp-chinese
+         * @brief 构造不含错误字符串的转换器；出错时转换结果为空字符串。
+         */
         explicit wstring_convert() : cvtcount(0), seen_header(false) {
         }
 
+        /**
+         * \lang english
+         * @brief Constructs a converter with the strings returned when a conversion fails.
+         *
+         * @param byte_err The byte string returned on failure
+         * @param wide_err The wide string returned on failure
+         *
+         * \lang simp-chinese
+         * @brief 构造转换器，并指定转换失败时返回的字符串。
+         *
+         * @param byte_err 失败时返回的字节字符串
+         * @param wide_err 失败时返回的宽字符串
+         */
         explicit wstring_convert(const byte_string &byte_err, const wide_string &wide_err = wide_string()) :
             byte_err_string(byte_err), wide_err_string(wide_err), cvtcount(0), seen_header(false) {
         }
 
+        /**
+         * \lang english
+         * @brief Destroys the converter.
+         *
+         * \lang simp-chinese
+         * @brief 销毁转换器。
+         */
         ~wstring_convert() {
         }
 
+        /**
+         * \lang english
+         * @brief Deleted: a converter is not copyable.
+         *
+         * \lang simp-chinese
+         * @brief 已删除：转换器不可拷贝。
+         */
         wstring_convert(const wstring_convert &) = delete;
+        /**
+         * \lang english
+         * @brief Deleted: a converter is not copy-assignable.
+         *
+         * \lang simp-chinese
+         * @brief 已删除：转换器不可拷贝赋值。
+         */
         wstring_convert &operator=(const wstring_convert &) = delete;
 
+        /**
+         * \lang english
+         * @brief Converts a single byte to a wide string.
+         *
+         * @param byte The byte to convert
+         * @return The converted wide string
+         *
+         * \lang simp-chinese
+         * @brief 将单个字节转换为宽字符串。
+         *
+         * @param byte 待转换的字节
+         * @return 转换后的宽字符串
+         */
         wide_string from_bytes(char byte) {
             char buf[2] = {byte, '\0'};
             return from_bytes(buf);
         }
 
+        /**
+         * \lang english
+         * @brief Converts a null-terminated byte string to a wide string.
+         *
+         * @param ptr The null-terminated byte string to convert
+         * @return The converted wide string
+         *
+         * \lang simp-chinese
+         * @brief 将以空字符结尾的字节字符串转换为宽字符串。
+         *
+         * @param ptr 待转换的以空字符结尾的字节字符串
+         * @return 转换后的宽字符串
+         */
         wide_string from_bytes(const char *ptr) {
             if (!ptr) {
                 return wide_err_string;
@@ -701,10 +1089,38 @@ namespace rainy::core::text {
             return from_bytes(ptr, ptr + std::strlen(ptr));
         }
 
+        /**
+         * \lang english
+         * @brief Converts a byte string to a wide string.
+         *
+         * @param str The byte string to convert
+         * @return The converted wide string
+         *
+         * \lang simp-chinese
+         * @brief 将字节字符串转换为宽字符串。
+         *
+         * @param str 待转换的字节字符串
+         * @return 转换后的宽字符串
+         */
         wide_string from_bytes(const byte_string &str) {
             return from_bytes(str.data(), str.data() + str.size());
         }
 
+        /**
+         * \lang english
+         * @brief Converts the byte range [first, last) to a wide string.
+         *
+         * @param first Pointer to the first byte to convert
+         * @param last Pointer one past the last byte to convert
+         * @return The converted wide string
+         *
+         * \lang simp-chinese
+         * @brief 将字节区间 [first, last) 转换为宽字符串。
+         *
+         * @param first 指向待转换首字节的指针
+         * @param last 指向末字节之后位置的指针
+         * @return 转换后的宽字符串
+         */
         wide_string from_bytes(const char *first, const char *last) {
             if (!first || !last || first > last) {
                 return wide_err_string;
@@ -726,11 +1142,37 @@ namespace rainy::core::text {
             return result;
         }
 
+        /**
+         * \lang english
+         * @brief Converts a single wide character to a byte string.
+         *
+         * @param wchar The wide character to convert
+         * @return The converted byte string
+         *
+         * \lang simp-chinese
+         * @brief 将单个宽字符转换为字节字符串。
+         *
+         * @param wchar 待转换的宽字符
+         * @return 转换后的字节字符串
+         */
         byte_string to_bytes(Elem wchar) {
             Elem buf[2] = {wchar, L'\0'};
             return to_bytes(buf);
         }
 
+        /**
+         * \lang english
+         * @brief Converts a null-terminated wide string to a byte string.
+         *
+         * @param wptr The null-terminated wide string to convert
+         * @return The converted byte string
+         *
+         * \lang simp-chinese
+         * @brief 将以空字符结尾的宽字符串转换为字节字符串。
+         *
+         * @param wptr 待转换的以空字符结尾的宽字符串
+         * @return 转换后的字节字符串
+         */
         byte_string to_bytes(const Elem *wptr) {
             if (!wptr) {
                 return byte_err_string;
@@ -738,10 +1180,38 @@ namespace rainy::core::text {
             return to_bytes(wptr, wptr + std::char_traits<Elem>::length(wptr));
         }
 
+        /**
+         * \lang english
+         * @brief Converts a wide string to a byte string.
+         *
+         * @param wstr The wide string to convert
+         * @return The converted byte string
+         *
+         * \lang simp-chinese
+         * @brief 将宽字符串转换为字节字符串。
+         *
+         * @param wstr 待转换的宽字符串
+         * @return 转换后的字节字符串
+         */
         byte_string to_bytes(const wide_string &wstr) {
             return to_bytes(wstr.data(), wstr.data() + wstr.size());
         }
 
+        /**
+         * \lang english
+         * @brief Converts the wide-character range [first, last) to a byte string.
+         *
+         * @param first Pointer to the first wide character to convert
+         * @param last Pointer one past the last wide character to convert
+         * @return The converted byte string
+         *
+         * \lang simp-chinese
+         * @brief 将宽字符区间 [first, last) 转换为字节字符串。
+         *
+         * @param first 指向待转换首宽字符的指针
+         * @param last 指向末宽字符之后位置的指针
+         * @return 转换后的字节字符串
+         */
         byte_string to_bytes(const Elem *first, const Elem *last) {
             if (!first || !last || first > last) {
                 return byte_err_string;
@@ -763,6 +1233,17 @@ namespace rainy::core::text {
             return result;
         }
 
+        /**
+         * \lang english
+         * @brief Returns the number of characters converted by the most recent call.
+         *
+         * @return The number of converted characters
+         *
+         * \lang simp-chinese
+         * @brief 返回最近一次调用转换的字符数量。
+         *
+         * @return 已转换的字符数量
+         */
         std::size_t converted() const noexcept {
             return cvtcount;
         }

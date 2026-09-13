@@ -4619,9 +4619,12 @@ namespace rainy::utility {
 }
 
 #if RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
+
+// @NODOCBEGIN
 namespace rainy::annotations::implements {
     using info_handle = void *;
 }
+// @NODOCEND
 
 namespace rainy::annotations {
     /**
@@ -4848,9 +4851,13 @@ namespace rainy::utility {
     struct monostate {};
 }
 
+#if !RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
+
 namespace rainy::core::implements {
     RAINY_TOOLKIT_API void throw_exception_out_of_range(const char *msg);
     RAINY_TOOLKIT_API void throw_exception_length_error(const char *msg);
 }
+
+#endif
 
 #endif

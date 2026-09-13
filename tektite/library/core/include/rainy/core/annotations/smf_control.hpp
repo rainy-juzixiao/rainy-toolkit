@@ -14,12 +14,18 @@
  * limitations under the License.
  */
 /**
+ * \lang english
  * @file smf_control.hpp
+ * @brief Annotation utilities that automatically control special member function generation based on type properties.
+ *
+ *  These templates select appropriate construction, copy, move and assignment behaviors for derived classes
+ *  according to the copyability, movability and triviality of the types.
+ *
+ * \lang simp-chinese
  * @brief 提供基于类型性质自动控制特殊成员函数生成方式的注解工具。
- * @brief
- * 
- * 这些模板用于根据类型的可复制性、可移动性及其平凡性，为派生类选择合适的
- * 构造、复制、移动及赋值行为。
+ *
+ *  这些模板用于根据类型的可复制性、可移动性及其平凡性，为派生类选择合适的
+ *  构造、复制、移动及赋值行为。
  */
 #ifndef RAINY_CORE_ANNOTATIONS_SMF_CONTROL_HPP
 #define RAINY_CORE_ANNOTATIONS_SMF_CONTROL_HPP
@@ -29,11 +35,17 @@
 
 namespace rainy::annotations::smf_control {
     /**
+     * \lang english
+     * @brief Base class that provides a construct_from forwarding interface for derived classes.
+     *
+     * @tparam Derived The derived type, which must implement construct_impl_, with the signature:
+     *                 template <typename Ty> void construct_impl_(Ty &&other);
+     *
+     * \lang simp-chinese
      * @brief 为派生类提供 construct_from 转发接口的基类。
      *
-     * @tparam Derived 派生类型，需要实现 construct_impl_。签名如下：
-     * template <typename Ty> 
-     * void construct_impl_(Ty&& other);
+     * @tparam Derived 派生类型，需要实现 construct_impl_，签名如下：
+     *                 template <typename Ty> void construct_impl_(Ty &&other);
      */
     template <typename Derived>
     struct constructible_base {
@@ -45,11 +57,17 @@ namespace rainy::annotations::smf_control {
     };
 
     /**
+     * \lang english
+     * @brief Base class that provides an assign_from forwarding interface for derived classes.
+     *
+     * @tparam Derived The derived type, which must implement assign_impl_, with the signature:
+     *                 template <typename Ty> void assign_impl_(Ty &&other);
+     *
+     * \lang simp-chinese
      * @brief 为派生类提供 assign_from 转发接口的基类。
      *
-     * @tparam Derived 派生类型，需要实现 assign_impl_。
-     * template <typename Ty> 
-     * void assign_impl_(Ty&& other);
+     * @tparam Derived 派生类型，需要实现 assign_impl_，签名如下：
+     *                 template <typename Ty> void assign_impl_(Ty &&other);
      */
     template <typename Derived>
     struct assignable_base {
@@ -61,9 +79,17 @@ namespace rainy::annotations::smf_control {
     };
 
     /**
+     * \lang english
+     * @brief Wrapper type for handling non-trivial copy construction.
+     *
+     *  If the wrapped type requires explicit copy behavior, Base::construct_from is invoked in the copy constructor.
+     *
+     * @tparam Base The base class.
+     *
+     * \lang simp-chinese
      * @brief 用于处理非平凡复制构造的包装类型。
      *
-     * 若被包装类型需要显式复制行为，则会在复制构造中调用 Base::construct_from。
+     *  若被包装类型需要显式复制行为，则会在复制构造中调用 Base::construct_from。
      *
      * @tparam Base 基类。
      */
@@ -84,6 +110,12 @@ namespace rainy::annotations::smf_control {
     };
 
     /**
+     * \lang english
+     * @brief Wrapper type that explicitly deletes copy construction.
+     *
+     * @tparam Base The base class.
+     *
+     * \lang simp-chinese
      * @brief 显式删除复制构造的包装类型。
      *
      * @tparam Base 基类。
@@ -100,11 +132,22 @@ namespace rainy::annotations::smf_control {
     };
 
     /**
+     * \lang english
+     * @brief Selects the copy control strategy according to type properties.
+     *
+     *  - Uses Base if all types are trivially copyable.
+     *  - Uses non_trivial_copy if all types are copyable but non-trivial.
+     *  - Otherwise deletes copy behavior.
+     *
+     * @tparam Base The base class.
+     * @tparam Types The types used for the traits checks.
+     *
+     * \lang simp-chinese
      * @brief 根据类型特性选择复制控制策略。
      *
-     * - 若所有类型可平凡复制，使用 Base。
-     * - 若所有类型可复制但非平凡，使用 non_trivial_copy。
-     * - 否则删除复制行为。
+     *  - 若所有类型可平凡复制，使用 Base。
+     *  - 若所有类型可复制但非平凡，使用 non_trivial_copy。
+     *  - 否则删除复制行为。
      *
      * @tparam Base 基类。
      * @tparam Types 用于 traits 判断的类型。
@@ -117,9 +160,18 @@ namespace rainy::annotations::smf_control {
                                                 non_trivial_copy<Base>, deleted_copy<Base>>>;
     
     /**
+     * \lang english
+     * @brief Non-trivial move construction control.
+     *
+     *  If the type requires explicit move construction, Base::construct_from is invoked.
+     *
+     * @tparam Base The base class.
+     * @tparam Types The types used for the traits checks.
+     *
+     * \lang simp-chinese
      * @brief 非平凡移动构造控制。
      *
-     * 若类型需要显式移动构造，则调用 Base::construct_from。
+     *  若类型需要显式移动构造，则调用 Base::construct_from。
      *
      * @tparam Base 基类。
      * @tparam Types traits 检测类型。
@@ -142,6 +194,12 @@ namespace rainy::annotations::smf_control {
     };
 
     /**
+     * \lang english
+     * @brief Wrapper type that deletes move construction.
+     *
+     * @tparam Base The base class.
+     *
+     * \lang simp-chinese
      * @brief 删除移动构造的包装类型。
      *
      * @tparam Base 基类。
@@ -159,6 +217,13 @@ namespace rainy::annotations::smf_control {
     };
 
     /**
+     * \lang english
+     * @brief Selects the move construction strategy according to type properties.
+     *
+     * @tparam Base The base class.
+     * @tparam Types The type parameters.
+     *
+     * \lang simp-chinese
      * @brief 根据类型特性选择移动构造策略。
      *
      * @tparam Base 基类。
@@ -175,9 +240,15 @@ namespace rainy::annotations::smf_control {
             >>;
     
     /**
+     * \lang english
+     * @brief Non-trivial copy assignment control.
+     *
+     *  Calls Base::assign_from during copy assignment.
+     *
+     * \lang simp-chinese
      * @brief 非平凡复制赋值控制。
      *
-     * 在复制赋值时调用 Base::assign_from。
+     *  在复制赋值时调用 Base::assign_from。
      */
     template <typename Base, typename... Types>
     struct non_trivial_copy_assign : move_control<Base, Types...> {
@@ -198,6 +269,10 @@ namespace rainy::annotations::smf_control {
     };
 
     /**
+     * \lang english
+     * @brief Wrapper type that deletes copy assignment.
+     *
+     * \lang simp-chinese
      * @brief 删除复制赋值操作的包装类型。
      */
     template <typename Base, typename... Types>
@@ -213,6 +288,10 @@ namespace rainy::annotations::smf_control {
     };
 
     /**
+     * \lang english
+     * @brief Selects the copy assignment strategy according to type properties.
+     *
+     * \lang simp-chinese
      * @brief 根据类型特性选择复制赋值策略。
      */
     template <typename Base, typename... Types>
@@ -229,6 +308,10 @@ namespace rainy::annotations::smf_control {
             >>;
     
     /**
+     * \lang english
+     * @brief Non-trivial move assignment control.
+     *
+     * \lang simp-chinese
      * @brief 非平凡移动赋值操作控制。
      */
     template <typename Base, typename... Types>
@@ -249,6 +332,10 @@ namespace rainy::annotations::smf_control {
     };
 
     /**
+     * \lang english
+     * @brief Wrapper type that deletes move assignment.
+     *
+     * \lang simp-chinese
      * @brief 删除移动赋值操作的包装类型。
      */
     template <typename Base, typename... Types>
@@ -264,9 +351,15 @@ namespace rainy::annotations::smf_control {
     };
 
     /**
+     * \lang english
+     * @brief The final unified special member function control selector.
+     *
+     *  Selects the concrete copy, move and assignment strategies through layered control.
+     *
+     * \lang simp-chinese
      * @brief 最终统一的特殊成员函数控制选择器。
      *
-     * 通过层层控制选择复制、移动、赋值的具体策略。
+     *  通过层层控制选择复制、移动、赋值的具体策略。
      */
     template <typename Base, typename... Types>
     using move_assign_control = type_traits::other_trans::conditional_t<
@@ -280,6 +373,13 @@ namespace rainy::annotations::smf_control {
             non_trivial_move_assign<Base, Types...>, deleted_move_assign<Base, Types...>>>;
     
     /**
+     * \lang english
+     * @brief The final unified control type alias.
+     *
+     * @tparam Base The base class.
+     * @tparam Types The types used for the traits checks.
+     *
+     * \lang simp-chinese
      * @brief 最终统一的控制类型别名。
      *
      * @tparam Base 基类。
