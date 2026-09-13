@@ -1010,6 +1010,82 @@ namespace rainy::core::container {
 
     /**
      * \lang english
+     * @brief Deduction guide for constructing a tuple from a list of arguments.
+     *
+     * Deduces the element types by decaying each argument type (removing references,
+     * cv-qualifiers, and performing array-to-pointer / function-to-pointer decay).
+     *
+     * \lang simp-chinese
+     * @brief 从参数列表构造 tuple 的推导指引。
+     *
+     * 通过对每个参数类型进行退化（去除引用、cv 限定符，并执行数组到指针、
+     * 函数到指针的退化）来推导元素类型。
+     */
+    template <typename... Types>
+    tuple(Types...) -> tuple<type_traits::other_trans::decay_t<Types>...>;
+
+    /**
+     * \lang english
+     * @brief Deduction guide for copy-constructing a tuple from another tuple.
+     *
+     * \lang simp-chinese
+     * @brief 从另一个 tuple 拷贝构造的推导指引。
+     */
+    template <typename... Types>
+    tuple(tuple<Types...>) -> tuple<Types...>;
+
+    /**
+     * \lang english
+     * @brief Deduction guide for copy-constructing a tuple from another tuple.
+     *
+     * \lang simp-chinese
+     * @brief 从另一个 tuple 拷贝构造的推导指引。
+     */
+    template <typename... Types>
+    tuple(tuple<Types...> &) -> tuple<Types...>;
+    
+    /**
+     * \lang english
+     * @brief Deduction guide for copy-constructing a tuple from another tuple.
+     *
+     * \lang simp-chinese
+     * @brief 从另一个 tuple 拷贝构造的推导指引。
+     */
+    template <typename... Types>
+    tuple(const tuple<Types...> &) -> tuple<Types...>;
+
+    /**
+     * \lang english
+     * @brief Deduction guide for copy-constructing a tuple from another tuple.
+     *
+     * \lang simp-chinese
+     * @brief 从另一个 tuple 拷贝构造的推导指引。
+     */
+    template <typename... Types>
+    tuple(tuple<Types...> &&) -> tuple<Types...>;
+
+    /**
+     * \lang english
+     * @brief Deduction guide for copy-constructing a tuple from another tuple.
+     *
+     * \lang simp-chinese
+     * @brief 从另一个 tuple 拷贝构造的推导指引。
+     */
+    template <typename... Types>
+    tuple(const tuple<Types...> &&) -> tuple<Types...>;
+
+    /**
+     * \lang english
+     * @brief Deduction guide for allocator-extended construction.
+     *
+     * \lang simp-chinese
+     * @brief 分配器扩展构造的推导指引。
+     */
+    template <typename Alloc, typename... Types>
+    tuple(std::allocator_arg_t, const Alloc &, Types...) -> tuple<type_traits::other_trans::decay_t<Types>...>;
+
+    /**
+     * \lang english
      * @brief Gets a reference to the element at index I in a mutable tuple.
      *
      * @tparam I The index of the element to access
