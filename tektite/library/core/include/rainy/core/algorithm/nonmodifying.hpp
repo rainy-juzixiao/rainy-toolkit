@@ -21,21 +21,25 @@
 
 namespace rainy::core::algorithm {
     /**
+     * \lang english
      * @brief Applies a function to every element of the range.
-     *        对范围内的每个元素应用函数。
      *
      * @tparam InputIt Input iterator type
-     *                 输入迭代器类型
      * @tparam Fx The function type
-     *            函数类型
      * @param first Iterator to the beginning of the range
-     *              指向范围起始的迭代器
      * @param last Iterator to the end of the range
-     *             指向范围末尾的迭代器
      * @param fx The function to apply
-     *           要应用的函数
      * @return The moved function object
-     *         移动后的函数对象
+     *
+     * \lang simp-chinese
+     * @brief 对范围内的每个元素应用函数。
+     *
+     * @tparam InputIt 输入迭代器类型
+     * @tparam Fx 函数类型
+     * @param first 指向范围起始的迭代器
+     * @param last 指向范围末尾的迭代器
+     * @param fx 要应用的函数
+     * @return 移动后的函数对象
      */
     template <typename InputIt, typename Fx>
     constexpr rain_fn for_each(InputIt first, InputIt last, Fx fx) -> Fx {
@@ -46,23 +50,27 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Applies a function to the first n elements of the range.
-     *        对范围的前n个元素应用函数。
      *
      * @tparam InputIt Input iterator type
-     *                 输入迭代器类型
      * @tparam Size The count type
-     *              数量类型
      * @tparam Fx The function type
-     *            函数类型
      * @param first Iterator to the beginning of the range
-     *              指向范围起始的迭代器
      * @param n The number of elements to apply the function to
-     *          要应用函数的元素数量
      * @param fx The function to apply
-     *           要应用的函数
      * @return Iterator one past the last element visited
-     *         指向最后一个被访问元素之后的迭代器
+     *
+     * \lang simp-chinese
+     * @brief 对范围的前n个元素应用函数。
+     *
+     * @tparam InputIt 输入迭代器类型
+     * @tparam Size 数量类型
+     * @tparam Fx 函数类型
+     * @param first 指向范围起始的迭代器
+     * @param n 要应用函数的元素数量
+     * @param fx 要应用的函数
+     * @return 指向最后一个被访问元素之后的迭代器
      */
     template <typename InputIt, typename Size, typename Fx>
     constexpr rain_fn for_each_n(InputIt first, Size n, Fx fx) -> InputIt {
@@ -73,21 +81,25 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Counts the elements equal to a value.
-     *        统计等于某值的元素数量。
      *
      * @tparam InputIt Input iterator type
-     *                 输入迭代器类型
      * @tparam Ty The value type to count
-     *            要统计的值类型
      * @param first Iterator to the beginning of the range
-     *              指向范围起始的迭代器
      * @param last Iterator to the end of the range
-     *             指向范围末尾的迭代器
      * @param value The value to count
-     *              要统计的值
      * @return The number of matching elements
-     *         匹配元素的数量
+     *
+     * \lang simp-chinese
+     * @brief 统计等于某值的元素数量。
+     *
+     * @tparam InputIt 输入迭代器类型
+     * @tparam Ty 要统计的值类型
+     * @param first 指向范围起始的迭代器
+     * @param last 指向范围末尾的迭代器
+     * @param value 要统计的值
+     * @return 匹配元素的数量
      */
     template <typename InputIt, typename Ty>
     RAINY_NODISCARD constexpr rain_fn count(InputIt first, InputIt last, const Ty &value)
@@ -102,21 +114,25 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Counts the elements satisfying a predicate.
-     *        统计满足谓词的元素数量。
      *
      * @tparam InputIt Input iterator type
-     *                 输入迭代器类型
      * @tparam Pred The predicate type
-     *              谓词类型
      * @param first Iterator to the beginning of the range
-     *              指向范围起始的迭代器
      * @param last Iterator to the end of the range
-     *             指向范围末尾的迭代器
      * @param pred The predicate to apply
-     *             要应用的谓词
      * @return The number of matching elements
-     *         匹配元素的数量
+     *
+     * \lang simp-chinese
+     * @brief 统计满足谓词的元素数量。
+     *
+     * @tparam InputIt 输入迭代器类型
+     * @tparam Pred 谓词类型
+     * @param first 指向范围起始的迭代器
+     * @param last 指向范围末尾的迭代器
+     * @param pred 要应用的谓词
+     * @return 匹配元素的数量
      */
     template <typename InputIt, typename Pred>
     RAINY_NODISCARD constexpr rain_fn count_if(InputIt first, InputIt last, Pred pred)
@@ -131,21 +147,25 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Finds the first position where two ranges differ.
-     *        查找两个范围第一个不同的位置。
      *
      * @tparam InputIt1 First input iterator type
-     *                  第一个输入迭代器类型
      * @tparam InputIt2 Second input iterator type
-     *                  第二个输入迭代器类型
      * @param first1 Iterator to the beginning of the first range
-     *               指向第一个范围起始的迭代器
      * @param last1 Iterator to the end of the first range
-     *              指向第一个范围末尾的迭代器
      * @param first2 Iterator to the beginning of the second range
-     *               指向第二个范围起始的迭代器
      * @return A pair of iterators to the first mismatching elements
-     *         指向第一对不同元素的迭代器对
+     *
+     * \lang simp-chinese
+     * @brief 查找两个范围第一个不同的位置。
+     *
+     * @tparam InputIt1 第一个输入迭代器类型
+     * @tparam InputIt2 第二个输入迭代器类型
+     * @param first1 指向第一个范围起始的迭代器
+     * @param last1 指向第一个范围末尾的迭代器
+     * @param first2 指向第二个范围起始的迭代器
+     * @return 指向第一对不同元素的迭代器对
      */
     template <typename InputIt1, typename InputIt2>
     RAINY_NODISCARD constexpr rain_fn mismatch(InputIt1 first1, InputIt1 last1, InputIt2 first2)
@@ -157,25 +177,29 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Finds the first position where two ranges differ under a predicate.
-     *        在谓词下查找两个范围第一个不同的位置。
      *
      * @tparam InputIt1 First input iterator type
-     *                  第一个输入迭代器类型
      * @tparam InputIt2 Second input iterator type
-     *                  第二个输入迭代器类型
      * @tparam Pred The predicate type
-     *              谓词类型
      * @param first1 Iterator to the beginning of the first range
-     *               指向第一个范围起始的迭代器
      * @param last1 Iterator to the end of the first range
-     *              指向第一个范围末尾的迭代器
      * @param first2 Iterator to the beginning of the second range
-     *               指向第二个范围起始的迭代器
      * @param pred The predicate to apply
-     *             要应用的谓词
      * @return A pair of iterators to the first mismatching elements
-     *         指向第一对不同元素的迭代器对
+     *
+     * \lang simp-chinese
+     * @brief 在谓词下查找两个范围第一个不同的位置。
+     *
+     * @tparam InputIt1 第一个输入迭代器类型
+     * @tparam InputIt2 第二个输入迭代器类型
+     * @tparam Pred 谓词类型
+     * @param first1 指向第一个范围起始的迭代器
+     * @param last1 指向第一个范围末尾的迭代器
+     * @param first2 指向第二个范围起始的迭代器
+     * @param pred 要应用的谓词
+     * @return 指向第一对不同元素的迭代器对
      */
     template <typename InputIt1, typename InputIt2, typename Pred>
     RAINY_NODISCARD constexpr rain_fn mismatch(InputIt1 first1, InputIt1 last1, InputIt2 first2, Pred pred)
@@ -187,23 +211,27 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Finds the first element from a set within a range.
-     *        在范围内查找来自集合的第一个元素。
      *
      * @tparam InputIt Input iterator type
-     *                 输入迭代器类型
      * @tparam ForwardIt Forward iterator type
-     *                   前向迭代器类型
      * @param first Iterator to the beginning of the range
-     *              指向范围起始的迭代器
      * @param last Iterator to the end of the range
-     *             指向范围末尾的迭代器
      * @param first2 Iterator to the beginning of the set
-     *               指向集合起始的迭代器
      * @param last2 Iterator to the end of the set
-     *              指向集合末尾的迭代器
      * @return Iterator to the first found element, or last
-     *         指向第一个找到元素的迭代器，未找到则返回last
+     *
+     * \lang simp-chinese
+     * @brief 在范围内查找来自集合的第一个元素。
+     *
+     * @tparam InputIt 输入迭代器类型
+     * @tparam ForwardIt 前向迭代器类型
+     * @param first 指向范围起始的迭代器
+     * @param last 指向范围末尾的迭代器
+     * @param first2 指向集合起始的迭代器
+     * @param last2 指向集合末尾的迭代器
+     * @return 指向第一个找到元素的迭代器，未找到则返回last
      */
     template <typename InputIt, typename ForwardIt>
     RAINY_NODISCARD constexpr rain_fn find_first_of(InputIt first, InputIt last, ForwardIt first2, ForwardIt last2)
@@ -219,27 +247,31 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Finds the first element from a set within a range under a predicate.
-     *        在谓词下查找来自集合的第一个元素。
      *
      * @tparam InputIt Input iterator type
-     *                 输入迭代器类型
      * @tparam ForwardIt Forward iterator type
-     *                   前向迭代器类型
      * @tparam Pred The predicate type
-     *              谓词类型
      * @param first Iterator to the beginning of the range
-     *              指向范围起始的迭代器
      * @param last Iterator to the end of the range
-     *             指向范围末尾的迭代器
      * @param first2 Iterator to the beginning of the set
-     *               指向集合起始的迭代器
      * @param last2 Iterator to the end of the set
-     *              指向集合末尾的迭代器
      * @param pred The predicate to apply
-     *             要应用的谓词
      * @return Iterator to the first found element, or last
-     *         指向第一个找到元素的迭代器，未找到则返回last
+     *
+     * \lang simp-chinese
+     * @brief 在谓词下查找来自集合的第一个元素。
+     *
+     * @tparam InputIt 输入迭代器类型
+     * @tparam ForwardIt 前向迭代器类型
+     * @tparam Pred 谓词类型
+     * @param first 指向范围起始的迭代器
+     * @param last 指向范围末尾的迭代器
+     * @param first2 指向集合起始的迭代器
+     * @param last2 指向集合末尾的迭代器
+     * @param pred 要应用的谓词
+     * @return 指向第一个找到元素的迭代器，未找到则返回last
      */
     template <typename InputIt, typename ForwardIt, typename Pred>
     RAINY_NODISCARD constexpr rain_fn find_first_of(InputIt first, InputIt last, ForwardIt first2, ForwardIt last2, Pred pred)
@@ -255,17 +287,21 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Finds the first two adjacent equal elements.
-     *        查找第一对相邻的相等元素。
      *
      * @tparam ForwardIt Forward iterator type
-     *                   前向迭代器类型
      * @param first Iterator to the beginning of the range
-     *              指向范围起始的迭代器
      * @param last Iterator to the end of the range
-     *             指向范围末尾的迭代器
      * @return Iterator to the first of the adjacent equal elements, or last
-     *         指向相邻相等元素中第一个的迭代器，未找到则返回last
+     *
+     * \lang simp-chinese
+     * @brief 查找第一对相邻的相等元素。
+     *
+     * @tparam ForwardIt 前向迭代器类型
+     * @param first 指向范围起始的迭代器
+     * @param last 指向范围末尾的迭代器
+     * @return 指向相邻相等元素中第一个的迭代器，未找到则返回last
      */
     template <typename ForwardIt>
     RAINY_NODISCARD constexpr rain_fn adjacent_find(ForwardIt first, ForwardIt last)
@@ -283,21 +319,25 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Finds the first two adjacent elements satisfying a binary predicate.
-     *        查找第一对满足二元谓词的相邻元素。
      *
      * @tparam ForwardIt Forward iterator type
-     *                   前向迭代器类型
      * @tparam Pred The predicate type
-     *              谓词类型
      * @param first Iterator to the beginning of the range
-     *              指向范围起始的迭代器
      * @param last Iterator to the end of the range
-     *             指向范围末尾的迭代器
      * @param pred The predicate to apply
-     *             要应用的谓词
      * @return Iterator to the first of the matching adjacent elements, or last
-     *         指向匹配相邻元素中第一个的迭代器，未找到则返回last
+     *
+     * \lang simp-chinese
+     * @brief 查找第一对满足二元谓词的相邻元素。
+     *
+     * @tparam ForwardIt 前向迭代器类型
+     * @tparam Pred 谓词类型
+     * @param first 指向范围起始的迭代器
+     * @param last 指向范围末尾的迭代器
+     * @param pred 要应用的谓词
+     * @return 指向匹配相邻元素中第一个的迭代器，未找到则返回last
      */
     template <typename ForwardIt, typename Pred>
     RAINY_NODISCARD constexpr rain_fn adjacent_find(ForwardIt first, ForwardIt last, Pred pred) -> ForwardIt {
@@ -314,23 +354,27 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Searches for the first occurrence of a subsequence in a range.
-     *        在范围内查找子序列的第一次出现。
      *
      * @tparam ForwardIt1 First forward iterator type
-     *                    第一个前向迭代器类型
      * @tparam ForwardIt2 Second forward iterator type
-     *                    第二个前向迭代器类型
      * @param first1 Iterator to the beginning of the range to search
-     *               指向被搜索范围起始的迭代器
      * @param last1 Iterator to the end of the range to search
-     *              指向被搜索范围末尾的迭代器
      * @param first2 Iterator to the beginning of the subsequence
-     *               指向子序列起始的迭代器
      * @param last2 Iterator to the end of the subsequence
-     *              指向子序列末尾的迭代器
      * @return Iterator to the beginning of the first occurrence, or last1
-     *         指向第一次出现位置起始的迭代器，未找到则返回last1
+     *
+     * \lang simp-chinese
+     * @brief 在范围内查找子序列的第一次出现。
+     *
+     * @tparam ForwardIt1 第一个前向迭代器类型
+     * @tparam ForwardIt2 第二个前向迭代器类型
+     * @param first1 指向被搜索范围起始的迭代器
+     * @param last1 指向被搜索范围末尾的迭代器
+     * @param first2 指向子序列起始的迭代器
+     * @param last2 指向子序列末尾的迭代器
+     * @return 指向第一次出现位置起始的迭代器，未找到则返回last1
      */
     template <typename ForwardIt1, typename ForwardIt2>
     RAINY_NODISCARD constexpr rain_fn search(ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2, ForwardIt2 last2)
@@ -354,27 +398,31 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Searches for the first occurrence of a subsequence under a predicate.
-     *        在谓词下查找子序列的第一次出现。
      *
      * @tparam ForwardIt1 First forward iterator type
-     *                    第一个前向迭代器类型
      * @tparam ForwardIt2 Second forward iterator type
-     *                    第二个前向迭代器类型
      * @tparam Pred The predicate type
-     *              谓词类型
      * @param first1 Iterator to the beginning of the range to search
-     *               指向被搜索范围起始的迭代器
      * @param last1 Iterator to the end of the range to search
-     *              指向被搜索范围末尾的迭代器
      * @param first2 Iterator to the beginning of the subsequence
-     *               指向子序列起始的迭代器
      * @param last2 Iterator to the end of the subsequence
-     *              指向子序列末尾的迭代器
      * @param pred The predicate to apply
-     *             要应用的谓词
      * @return Iterator to the beginning of the first occurrence, or last1
-     *         指向第一次出现位置起始的迭代器，未找到则返回last1
+     *
+     * \lang simp-chinese
+     * @brief 在谓词下查找子序列的第一次出现。
+     *
+     * @tparam ForwardIt1 第一个前向迭代器类型
+     * @tparam ForwardIt2 第二个前向迭代器类型
+     * @tparam Pred 谓词类型
+     * @param first1 指向被搜索范围起始的迭代器
+     * @param last1 指向被搜索范围末尾的迭代器
+     * @param first2 指向子序列起始的迭代器
+     * @param last2 指向子序列末尾的迭代器
+     * @param pred 要应用的谓词
+     * @return 指向第一次出现位置起始的迭代器，未找到则返回last1
      */
     template <typename ForwardIt1, typename ForwardIt2, typename Pred>
     RAINY_NODISCARD constexpr rain_fn search(ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2, ForwardIt2 last2,
@@ -398,23 +446,27 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Searches for the last occurrence of a subsequence in a range.
-     *        在范围内查找子序列的最后一次出现。
      *
      * @tparam ForwardIt1 First forward iterator type
-     *                    第一个前向迭代器类型
      * @tparam ForwardIt2 Second forward iterator type
-     *                    第二个前向迭代器类型
      * @param first1 Iterator to the beginning of the range to search
-     *               指向被搜索范围起始的迭代器
      * @param last1 Iterator to the end of the range to search
-     *              指向被搜索范围末尾的迭代器
      * @param first2 Iterator to the beginning of the subsequence
-     *               指向子序列起始的迭代器
      * @param last2 Iterator to the end of the subsequence
-     *              指向子序列末尾的迭代器
      * @return Iterator to the beginning of the last occurrence, or last1
-     *         指向最后一次出现位置起始的迭代器，未找到则返回last1
+     *
+     * \lang simp-chinese
+     * @brief 在范围内查找子序列的最后一次出现。
+     *
+     * @tparam ForwardIt1 第一个前向迭代器类型
+     * @tparam ForwardIt2 第二个前向迭代器类型
+     * @param first1 指向被搜索范围起始的迭代器
+     * @param last1 指向被搜索范围末尾的迭代器
+     * @param first2 指向子序列起始的迭代器
+     * @param last2 指向子序列末尾的迭代器
+     * @return 指向最后一次出现位置起始的迭代器，未找到则返回last1
      */
     template <typename ForwardIt1, typename ForwardIt2>
     RAINY_NODISCARD constexpr rain_fn find_end(ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2, ForwardIt2 last2)
@@ -436,27 +488,31 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Searches for the last occurrence of a subsequence under a predicate.
-     *        在谓词下查找子序列的最后一次出现。
      *
      * @tparam ForwardIt1 First forward iterator type
-     *                    第一个前向迭代器类型
      * @tparam ForwardIt2 Second forward iterator type
-     *                    第二个前向迭代器类型
      * @tparam Pred The predicate type
-     *              谓词类型
      * @param first1 Iterator to the beginning of the range to search
-     *               指向被搜索范围起始的迭代器
      * @param last1 Iterator to the end of the range to search
-     *              指向被搜索范围末尾的迭代器
      * @param first2 Iterator to the beginning of the subsequence
-     *               指向子序列起始的迭代器
      * @param last2 Iterator to the end of the subsequence
-     *              指向子序列末尾的迭代器
      * @param pred The predicate to apply
-     *             要应用的谓词
      * @return Iterator to the beginning of the last occurrence, or last1
-     *         指向最后一次出现位置起始的迭代器，未找到则返回last1
+     *
+     * \lang simp-chinese
+     * @brief 在谓词下查找子序列的最后一次出现。
+     *
+     * @tparam ForwardIt1 第一个前向迭代器类型
+     * @tparam ForwardIt2 第二个前向迭代器类型
+     * @tparam Pred 谓词类型
+     * @param first1 指向被搜索范围起始的迭代器
+     * @param last1 指向被搜索范围末尾的迭代器
+     * @param first2 指向子序列起始的迭代器
+     * @param last2 指向子序列末尾的迭代器
+     * @param pred 要应用的谓词
+     * @return 指向最后一次出现位置起始的迭代器，未找到则返回last1
      */
     template <typename ForwardIt1, typename ForwardIt2, typename Pred>
     RAINY_NODISCARD constexpr rain_fn find_end(ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2, ForwardIt2 last2,
@@ -477,25 +533,29 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Searches for the first occurrence of n consecutive copies of a value.
-     *        查找n个连续相等值的第一次出现。
      *
      * @tparam ForwardIt Forward iterator type
-     *                   前向迭代器类型
      * @tparam Size The count type
-     *              数量类型
      * @tparam Ty The value type
-     *            值类型
      * @param first Iterator to the beginning of the range
-     *              指向范围起始的迭代器
      * @param last Iterator to the end of the range
-     *             指向范围末尾的迭代器
      * @param count The length of the sequence to find
-     *              要查找序列的长度
      * @param value The value to find
-     *              要查找的值
      * @return Iterator to the beginning of the found sequence, or last
-     *         指向找到序列起始的迭代器，未找到则返回last
+     *
+     * \lang simp-chinese
+     * @brief 查找n个连续相等值的第一次出现。
+     *
+     * @tparam ForwardIt 前向迭代器类型
+     * @tparam Size 数量类型
+     * @tparam Ty 值类型
+     * @param first 指向范围起始的迭代器
+     * @param last 指向范围末尾的迭代器
+     * @param count 要查找序列的长度
+     * @param value 要查找的值
+     * @return 指向找到序列起始的迭代器，未找到则返回last
      */
     template <typename ForwardIt, typename Size, typename Ty>
     RAINY_NODISCARD constexpr rain_fn search_n(ForwardIt first, ForwardIt last, Size count, const Ty &value)
@@ -522,29 +582,33 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Searches for the first occurrence of n consecutive elements satisfying pred.
-     *        查找n个连续满足pred元素的第一次出现。
      *
      * @tparam ForwardIt Forward iterator type
-     *                   前向迭代器类型
      * @tparam Size The count type
-     *              数量类型
      * @tparam Ty The value type
-     *            值类型
      * @tparam Pred The predicate type
-     *              谓词类型
      * @param first Iterator to the beginning of the range
-     *              指向范围起始的迭代器
      * @param last Iterator to the end of the range
-     *             指向范围末尾的迭代器
      * @param count The length of the sequence to find
-     *              要查找序列的长度
      * @param value The value forwarded to the predicate
-     *              传递给谓词的值
      * @param pred The predicate to apply
-     *             要应用的谓词
      * @return Iterator to the beginning of the found sequence, or last
-     *         指向找到序列起始的迭代器，未找到则返回last
+     *
+     * \lang simp-chinese
+     * @brief 查找n个连续满足pred元素的第一次出现。
+     *
+     * @tparam ForwardIt 前向迭代器类型
+     * @tparam Size 数量类型
+     * @tparam Ty 值类型
+     * @tparam Pred 谓词类型
+     * @param first 指向范围起始的迭代器
+     * @param last 指向范围末尾的迭代器
+     * @param count 要查找序列的长度
+     * @param value 传递给谓词的值
+     * @param pred 要应用的谓词
+     * @return 指向找到序列起始的迭代器，未找到则返回last
      */
     template <typename ForwardIt, typename Size, typename Ty, typename Pred>
     RAINY_NODISCARD constexpr rain_fn search_n(ForwardIt first, ForwardIt last, Size count, const Ty &value, Pred pred)

@@ -21,19 +21,23 @@
 
 namespace rainy::core::collections::views {
     /**
+     * \lang english
      * @brief Checks whether a range is a permutation of a second sequence.
-     *        检查范围是否为第二个序列的排列。
      *
      * @tparam Range The first range type
-     *               第一个范围类型
      * @tparam InputIt The second sequence iterator type
-     *                 第二个序列迭代器类型
      * @param range The first range
-     *              第一个范围
      * @param first2 Iterator to the beginning of the second sequence
-     *               指向第二个序列起始的迭代器
      * @return true if the sequences are permutations of each other
-     *         如果两个序列互为排列则为true
+     *
+     * \lang simp-chinese
+     * @brief 检查范围是否为第二个序列的排列。
+     *
+     * @tparam Range 第一个范围类型
+     * @tparam InputIt 第二个序列迭代器类型
+     * @param range 第一个范围
+     * @param first2 指向第二个序列起始的迭代器
+     * @return 如果两个序列互为排列则为true
      */
     template <typename Range, typename InputIt>
     RAINY_NODISCARD constexpr auto is_permutation(Range &&range, InputIt first2) -> bool {
@@ -41,15 +45,19 @@ namespace rainy::core::collections::views {
     }
 
     /**
+     * \lang english
      * @brief Transforms a range into the next lexicographic permutation.
-     *        将范围变换为下一个字典序排列。
      *
      * @tparam Range The range type
-     *               范围类型
      * @param range The range to transform
-     *              要变换的范围
      * @return true if the next permutation exists
-     *         如果存在下一个排列则为true
+     *
+     * \lang simp-chinese
+     * @brief 将范围变换为下一个字典序排列。
+     *
+     * @tparam Range 范围类型
+     * @param range 要变换的范围
+     * @return 如果存在下一个排列则为true
      */
     template <typename Range>
     constexpr auto next_permutation(Range &&range) -> bool {
@@ -57,15 +65,19 @@ namespace rainy::core::collections::views {
     }
 
     /**
+     * \lang english
      * @brief Transforms a range into the previous lexicographic permutation.
-     *        将范围变换为上一个字典序排列。
      *
      * @tparam Range The range type
-     *               范围类型
      * @param range The range to transform
-     *              要变换的范围
      * @return true if the previous permutation exists
-     *         如果存在上一个排列则为true
+     *
+     * \lang simp-chinese
+     * @brief 将范围变换为上一个字典序排列。
+     *
+     * @tparam Range 范围类型
+     * @param range 要变换的范围
+     * @return 如果存在上一个排列则为true
      */
     template <typename Range>
     constexpr auto prev_permutation(Range &&range) -> bool {

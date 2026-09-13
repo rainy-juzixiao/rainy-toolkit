@@ -26,21 +26,39 @@
 
 namespace rainy::core::diagnostics {
     /**
+     * \lang english
+     * @brief Provides metadata about the current source code location, including file name, function name, line and column numbers.
+     *  The source_location class captures metadata of the current code location at compile time or at runtime.
+     * @remark This class is typically used for debugging, logging, and error reporting to obtain the specific code location at runtime.
+     *
+     * \lang simp-chinese
      * @brief 提供当前代码源文件位置的元数据，包括文件名、函数名、行号和列号。
-     * source_location类用于在编译时或运行时捕获当前代码位置的元数据信息。
-     * @remark
-     * 该类通常用于调试、日志记录和错误报告，以便在运行时获得代码的具体位置。
+     *  source_location类用于在编译时或运行时捕获当前代码位置的元数据信息。
+     * @remark 该类通常用于调试、日志记录和错误报告，以便在运行时获得代码的具体位置。
      */
     class source_location {
     public:
         /**
+         * \lang english
+         * @brief Default constructor, initializing an unknown source location.
+         *  The default constructor sets all location data to default values (null pointers or zero).
+         *
+         * \lang simp-chinese
          * @brief 默认构造函数，初始化为未知的源位置。
-         * 默认构造函数将所有位置数据设置为默认值（空指针或零）。
+         *  默认构造函数将所有位置数据设置为默认值（空指针或零）。
          */
         constexpr source_location() noexcept : file_(nullptr), function_(nullptr), line_(0), column_(0) {
         }
 
         /**
+         * \lang english
+         * @brief Constructs a source_location with the given file name, line number, function name, and column number.
+         * @param file The source file name.
+         * @param ln The line number in the source file.
+         * @param function The function name.
+         * @param col The column number (default is 0).
+         *
+         * \lang simp-chinese
          * @brief 构造函数，使用提供的文件名、行号、函数名和列号来初始化source_location`。
          * @param file 源文件名。
          * @param ln 源文件中的行号。
@@ -53,6 +71,11 @@ namespace rainy::core::diagnostics {
 
 #if RAINY_HAS_CXX20
         /**
+         * \lang english
+         * @brief Constructs a source_location from a std::source_location object (available only in C++20 and later).
+         * @param loc The std::source_location object from the standard library.
+         *
+         * \lang simp-chinese
          * @brief 从std::source_location对象构造source_location（仅在 C++20 及更高版本中可用）。
          * @param loc 标准库中的std::source_location对象。
          */
@@ -61,6 +84,16 @@ namespace rainy::core::diagnostics {
         }
 #endif
         /**
+         * \lang english
+         * @brief Obtains a source_location object for the current code location.
+         * @param line The line number of the current code, defaulting to the compiler built-in macro __builtin_LINE().
+         * @param col The column number of the current code, defaulting to the compiler built-in macro __builtin_COLUMN() (except GCC, which is 0).
+         * @param file The file name of the current code, defaulting to the compiler built-in macro __builtin_FILE().
+         * @param function The function name of the current code, defaulting to the compiler built-in macro __builtin_FUNCTION().
+         *
+         * @return A source_location object for the current code location.
+         *
+         * \lang simp-chinese
          * @brief 获取当前代码位置的source_location对象。
          * @param line 当前代码的行号，默认使用编译器内建宏__builtin_LINE()获取。
          * @param col 当前代码的列号，默认使用编译器内建宏__builtin_COLUMN()获取（GCC除外，GCC为0）。
@@ -86,6 +119,11 @@ namespace rainy::core::diagnostics {
         }
 
         /**
+         * \lang english
+         * @brief Gets the source file name.
+         * @return A pointer to the source file name.
+         *
+         * \lang simp-chinese
          * @brief 获取源文件名。
          * @return 返回源文件名的指针。
          */
@@ -94,6 +132,11 @@ namespace rainy::core::diagnostics {
         }
 
         /**
+         * \lang english
+         * @brief Gets the function name.
+         * @return A pointer to the function name.
+         *
+         * \lang simp-chinese
          * @brief 获取函数名。
          * @return 返回函数名的指针。
          */
@@ -102,6 +145,11 @@ namespace rainy::core::diagnostics {
         }
 
         /**
+         * \lang english
+         * @brief Gets the line number in the source file.
+         * @return The line number in the source file.
+         *
+         * \lang simp-chinese
          * @brief 获取源文件中的行号。
          * @return 返回源文件中的行号。
          */
@@ -110,6 +158,11 @@ namespace rainy::core::diagnostics {
         }
 
         /**
+         * \lang english
+         * @brief Gets the column number in the source file.
+         * @return The column number in the source file.
+         *
+         * \lang simp-chinese
          * @brief 获取源文件中的列号
          * @return 返回源文件中的列号
          */
@@ -118,6 +171,12 @@ namespace rainy::core::diagnostics {
         }
 
         /**
+         * \lang english
+         * @brief Converts the source location information to a string representation.
+         * @return A string containing the file name, line number, column number, and function name.
+         * @remark If the line number is 0, a string representing an unknown source location is returned.
+         *
+         * \lang simp-chinese
          * @brief 将源位置信息转换为字符串表示形式
          * @return 返回包含文件名、行号、列号和函数名的字符串
          * @remark 如果行号为0，则返回表示未知源位置的字符串
@@ -144,6 +203,13 @@ namespace rainy::core::diagnostics {
         }
 
         /**
+         * \lang english
+         * @brief Determines whether two source_location objects are equal.
+         * @param s1 The first source_location object.
+         * @param s2 The second source_location object.
+         * @return true if the file names, function names, line numbers, and column numbers of the two objects are all identical; otherwise false.
+         *
+         * \lang simp-chinese
          * @brief 判断两个source_location对象是否相等。
          * @param s1 第一个source_location对象。
          * @param s2 第二个source_location对象。
@@ -161,6 +227,14 @@ namespace rainy::core::diagnostics {
         }
 
         /**
+         * \lang english
+         * @brief Determines whether two source_location objects are not equal.
+         *
+         * @param s1 The first source_location object.
+         * @param s2 The second source_location object.
+         * @return true if the file names, function names, line numbers, or column numbers of the two objects differ; otherwise false.
+         *
+         * \lang simp-chinese
          * @brief 判断两个source_location对象是否不相等。
          *
          * @param s1 第一个source_location对象。
@@ -177,6 +251,17 @@ namespace rainy::core::diagnostics {
             return !(s1 == s2);
         }
 
+        /**
+         * \lang english
+         * @brief Checks whether this source_location is empty (unknown).
+         *
+         * @return true if the source location has no file name, false otherwise.
+         *
+         * \lang simp-chinese
+         * @brief 检查此source_location是否为空（未知）。
+         *
+         * @return 如果源位置没有文件名则为true，否则为false。
+         */
         bool empty() const noexcept {
             return !file_;
         }
@@ -189,6 +274,12 @@ namespace rainy::core::diagnostics {
     };
 
     /**
+     * \lang english
+     * @brief Obtains a source_location object for the current code location.
+     * @param ret An optional default source_location object, defaulting to source_location::current().
+     * @return A source_location object for the current code location.
+     *
+     * \lang simp-chinese
      * @brief 获取当前代码位置的source_location对象。
      * @param ret 可选的默认source_location对象，默认为source_location::current()。
      * @return 返回当前代码位置的source_location对象。

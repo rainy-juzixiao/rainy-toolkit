@@ -20,21 +20,25 @@
 
 namespace rainy::core::algorithm {
     /**
+     * \lang english
      * @brief Replaces every element equal to old_value in-place with new_value.
-     *        就地将每个等于old_value的元素替换为new_value。
      *
      * @tparam ForwardIt Forward iterator type
-     *                   前向迭代器类型
      * @tparam Ty The element value type
-     *            元素值类型
      * @param first Iterator to the beginning of the range
-     *              指向范围起始的迭代器
      * @param last Iterator to the end of the range
-     *             指向范围末尾的迭代器
      * @param old_value The value to be replaced
-     *                  要被替换的值
      * @param new_value The replacement value
-     *                  替换值
+     *
+     * \lang simp-chinese
+     * @brief 就地将每个等于old_value的元素替换为new_value。
+     *
+     * @tparam ForwardIt 前向迭代器类型
+     * @tparam Ty 元素值类型
+     * @param first 指向范围起始的迭代器
+     * @param last 指向范围末尾的迭代器
+     * @param old_value 要被替换的值
+     * @param new_value 替换值
      */
     template <typename ForwardIt, typename Ty>
     constexpr rain_fn replace(ForwardIt first, ForwardIt last, const Ty &old_value, const Ty &new_value)
@@ -47,23 +51,27 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Replaces every element satisfying pred in-place with new_value.
-     *        就地将每个满足pred的元素替换为new_value。
      *
      * @tparam ForwardIt Forward iterator type
-     *                   前向迭代器类型
      * @tparam Pred The predicate type
-     *              谓词类型
      * @tparam Ty The element value type
-     *            元素值类型
      * @param first Iterator to the beginning of the range
-     *              指向范围起始的迭代器
      * @param last Iterator to the end of the range
-     *             指向范围末尾的迭代器
      * @param pred The predicate to apply
-     *             要应用的谓词
      * @param new_value The replacement value
-     *                  替换值
+     *
+     * \lang simp-chinese
+     * @brief 就地将每个满足pred的元素替换为new_value。
+     *
+     * @tparam ForwardIt 前向迭代器类型
+     * @tparam Pred 谓词类型
+     * @tparam Ty 元素值类型
+     * @param first 指向范围起始的迭代器
+     * @param last 指向范围末尾的迭代器
+     * @param pred 要应用的谓词
+     * @param new_value 替换值
      */
     template <typename ForwardIt, typename Pred, typename Ty>
     constexpr rain_fn replace_if(ForwardIt first, ForwardIt last, Pred pred, const Ty &new_value)
@@ -76,27 +84,31 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Copies the range, replacing every element equal to old_value with new_value.
-     *        拷贝范围，将每个等于old_value的元素替换为new_value。
      *
      * @tparam InputIt Input iterator type
-     *                 输入迭代器类型
      * @tparam OutIt Output iterator type
-     *               输出迭代器类型
      * @tparam Ty The element value type
-     *            元素值类型
      * @param first Iterator to the beginning of the source range
-     *              指向源范围起始的迭代器
      * @param last Iterator to the end of the source range
-     *             指向源范围末尾的迭代器
      * @param dest Iterator to the beginning of the destination range
-     *             指向目标范围起始的迭代器
      * @param old_value The value to be replaced
-     *                  要被替换的值
      * @param new_value The replacement value
-     *                  替换值
      * @return Iterator to the end of the destination range
-     *         指向目标范围末尾的迭代器
+     *
+     * \lang simp-chinese
+     * @brief 拷贝范围，将每个等于old_value的元素替换为new_value。
+     *
+     * @tparam InputIt 输入迭代器类型
+     * @tparam OutIt 输出迭代器类型
+     * @tparam Ty 元素值类型
+     * @param first 指向源范围起始的迭代器
+     * @param last 指向源范围末尾的迭代器
+     * @param dest 指向目标范围起始的迭代器
+     * @param old_value 要被替换的值
+     * @param new_value 替换值
+     * @return 指向目标范围末尾的迭代器
      */
     template <typename InputIt, typename OutIt, typename Ty>
     constexpr rain_fn replace_copy(InputIt first, InputIt last, OutIt dest, const Ty &old_value, const Ty &new_value)
@@ -108,29 +120,33 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Copies the range, replacing every element satisfying pred with new_value.
-     *        拷贝范围，将每个满足pred的元素替换为new_value。
      *
      * @tparam InputIt Input iterator type
-     *                 输入迭代器类型
      * @tparam OutIt Output iterator type
-     *               输出迭代器类型
      * @tparam Pred The predicate type
-     *              谓词类型
      * @tparam Ty The element value type
-     *            元素值类型
      * @param first Iterator to the beginning of the source range
-     *              指向源范围起始的迭代器
      * @param last Iterator to the end of the source range
-     *             指向源范围末尾的迭代器
      * @param dest Iterator to the beginning of the destination range
-     *             指向目标范围起始的迭代器
      * @param pred The predicate to apply
-     *             要应用的谓词
      * @param new_value The replacement value
-     *                  替换值
      * @return Iterator to the end of the destination range
-     *         指向目标范围末尾的迭代器
+     *
+     * \lang simp-chinese
+     * @brief 拷贝范围，将每个满足pred的元素替换为new_value。
+     *
+     * @tparam InputIt 输入迭代器类型
+     * @tparam OutIt 输出迭代器类型
+     * @tparam Pred 谓词类型
+     * @tparam Ty 元素值类型
+     * @param first 指向源范围起始的迭代器
+     * @param last 指向源范围末尾的迭代器
+     * @param dest 指向目标范围起始的迭代器
+     * @param pred 要应用的谓词
+     * @param new_value 替换值
+     * @return 指向目标范围末尾的迭代器
      */
     template <typename InputIt, typename OutIt, typename Pred, typename Ty>
     constexpr rain_fn replace_copy_if(InputIt first, InputIt last, OutIt dest, Pred pred, const Ty &new_value)

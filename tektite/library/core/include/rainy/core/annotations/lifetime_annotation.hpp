@@ -32,11 +32,15 @@ namespace rainy::annotations::lifetime {
 */
 namespace rainy::annotations::lifetime {
     /**
+     * \lang english
      * @brief Input parameter annotation indicating the parameter is used for input only.
-     *        输入参数注解，表示参数仅用于输入。
      *
      * @tparam Ty The parameter type
-     *            参数类型
+     *
+     * \lang simp-chinese
+     * @brief 输入参数注解，表示参数仅用于输入。
+     *
+     * @tparam Ty 参数类型
      */
     template <typename Ty>
     using in = type_traits::other_trans::enable_if_t<
@@ -44,68 +48,94 @@ namespace rainy::annotations::lifetime {
         type_traits::other_trans::conditional_t<type_traits::properties::prefer_pass_by_value_v<Ty>, Ty const, Ty const &>>;
 
     /**
+     * \lang english
      * @brief Move-from parameter annotation indicating the parameter will be moved from.
-     *        移动来源参数注解，表示参数将被移动。
      *
      * @tparam Ty The parameter type
-     *            参数类型
+     *
+     * \lang simp-chinese
+     * @brief 移动来源参数注解，表示参数将被移动。
+     *
+     * @tparam Ty 参数类型
      */
     template <typename Ty>
     using move_from = type_traits::other_trans::enable_if_t<!type_traits::type_relations::is_void_v<Ty>, Ty &&>;
 
     /**
+     * \lang english
      * @brief Read-only parameter annotation.
-     *        只读参数注解。
      *
      * @tparam Ty The parameter type
-     *            参数类型
+     *
+     * \lang simp-chinese
+     * @brief 只读参数注解。
+     *
+     * @tparam Ty 参数类型
      */
     template <typename Ty>
     using read_only = Ty const &;
 
     /**
+     * \lang english
      * @brief Static read-only parameter annotation (alias for read_only).
-     *        静态只读参数注解（read_only的别名）。
      *
      * @tparam Ty The parameter type
-     *            参数类型
+     *
+     * \lang simp-chinese
+     * @brief 静态只读参数注解（read_only的别名）。
+     *
+     * @tparam Ty 参数类型
      */
     template <typename Ty>
     using static_read_only = read_only<Ty>;
 
     /**
+     * \lang english
      * @brief A deferred initialization wrapper for types.
-     *        类型的延迟初始化包装器。
      *
      * @tparam Ty The type to be deferred-initialized
-     *           需要延迟初始化的类型
+     *
+     * \lang simp-chinese
+     * @brief 类型的延迟初始化包装器。
+     *
+     * @tparam Ty 需要延迟初始化的类型
      */
     template <typename Ty>
     class deferred_init {
     public:
         /**
+         * \lang english
          * @brief Default constructor. Does not initialize the contained object.
-         *        默认构造函数。不初始化包含的对象。
+         *
+         * \lang simp-chinese
+         * @brief 默认构造函数。不初始化包含的对象。
          */
         deferred_init() noexcept { // NOLINT
         }
 
         /**
+         * \lang english
          * @brief Destructor. Destroys the contained object if initialized.
-         *        析构函数。如果已初始化，则销毁包含的对象。
+         *
+         * \lang simp-chinese
+         * @brief 析构函数。如果已初始化，则销毁包含的对象。
          */
         ~deferred_init() noexcept {
             destroy();
         }
 
         /**
+         * \lang english
          * @brief Accesses the contained value.
-         *        访问包含的值。
          *
          * @return Reference to the contained object
-         *         包含对象的引用
          * @throws core::exceptions::runtime::runtime_error if not initialized
-         *         如果未初始化则抛出异常
+         *
+         * \lang simp-chinese
+         * @brief 访问包含的值。
+         *
+         * @return 包含对象的引用
+         * @throws 如果未初始化则抛出异常
          */
         rain_fn value() -> Ty & {
             core::exceptions::throw_exception_if<core::exceptions::runtime::runtime_error>(init);
@@ -113,15 +143,19 @@ namespace rainy::annotations::lifetime {
         }
 
         /**
+         * \lang english
          * @brief Constructs the contained object with the given arguments.
-         *        使用给定的参数构造包含的对象。
          *
          * @tparam Args Constructor argument types
-         *               构造函数参数类型
          * @param args Arguments to forward to the constructor
-         *             要转发给构造函数的参数
          * @throws core::exceptions::runtime::runtime_error if already initialized
-         *         如果已初始化则抛出异常
+         *
+         * \lang simp-chinese
+         * @brief 使用给定的参数构造包含的对象。
+         *
+         * @tparam Args 构造函数参数类型
+         * @param args 要转发给构造函数的参数
+         * @throws 如果已初始化则抛出异常
          */
         template <typename... Args>
         rain_fn construct(Args &&...args) -> void {
@@ -131,19 +165,25 @@ namespace rainy::annotations::lifetime {
         }
 
         /**
+         * \lang english
          * @brief Checks whether the contained object has been initialized.
-         *        检查包含的对象是否已被初始化。
          *
          * @return true if the contained object has been constructed, false otherwise.
-         *         如果包含的对象已被构造则返回 true，否则返回 false。
          *
          * @note This function is noexcept and never throws exceptions.
-         *       此函数是 noexcept 的，永远不会抛出异常。
          *
          * @see construct() To initialize the contained object.
-         *       参见 construct() 以初始化包含的对象。
          * @see value() To access the contained object (throws if not initialized).
-         *       参见 value() 以访问包含的对象（未初始化时抛出异常）。
+         *
+         * \lang simp-chinese
+         * @brief 检查包含的对象是否已被初始化。
+         *
+         * @return 如果包含的对象已被构造则返回 true，否则返回 false。
+         *
+         * @note 此函数是 noexcept 的，永远不会抛出异常。
+         *
+         * @see 参见 construct() 以初始化包含的对象。
+         * @see 参见 value() 以访问包含的对象（未初始化时抛出异常）。
          */
         rain_fn is_init() const noexcept -> bool {
             return init;
@@ -169,11 +209,15 @@ namespace rainy::annotations::lifetime {
     };
 
     /**
+     * \lang english
      * @brief Output parameter wrapper that guarantees initialization.
-     *        保证初始化的输出参数包装器。
      *
      * @tparam Ty The type of the output parameter
-     *           输出参数的类型
+     *
+     * \lang simp-chinese
+     * @brief 保证初始化的输出参数包装器。
+     *
+     * @tparam Ty 输出参数的类型
      */
     template <typename Ty>
     class out {
@@ -182,39 +226,51 @@ namespace rainy::annotations::lifetime {
         friend class borrow_out;
 
         /**
+         * \lang english
          * @brief Constructs an out wrapper from a raw pointer.
-         *        从原始指针构造out包装器。
          *
          * @param t_ Pointer to an already constructed object
-         *           指向已构造对象的指针
          * @throws core::exceptions::runtime::runtime_error if pointer is null
-         *         如果指针为空则抛出异常
+         *
+         * \lang simp-chinese
+         * @brief 从原始指针构造out包装器。
+         *
+         * @param t_ 指向已构造对象的指针
+         * @throws 如果指针为空则抛出异常
          */
         out(Ty *t_) : t{t_}, has_t{true} {
             core::exceptions::throw_exception_if<core::exceptions::runtime::runtime_error>(t);
         }
 
         /**
+         * \lang english
          * @brief Constructs an out wrapper from a deferred_init object.
-         *        从deferred_init对象构造out包装器。
          *
          * @param dt_ Pointer to a deferred_init object
-         *            指向deferred_init对象的指针
          * @throws core::exceptions::runtime::runtime_error if pointer is null
-         *         如果指针为空则抛出异常
+         *
+         * \lang simp-chinese
+         * @brief 从deferred_init对象构造out包装器。
+         *
+         * @param dt_ 指向deferred_init对象的指针
+         * @throws 如果指针为空则抛出异常
          */
         out(deferred_init<Ty> *dt_) : dt{dt_}, has_t{false} {
             core::exceptions::throw_exception_if<core::exceptions::runtime::runtime_error>(dt);
         }
 
         /**
+         * \lang english
          * @brief Constructs an out wrapper from another out object.
-         *        从另一个out对象构造out包装器。
          *
          * @param ot_ Pointer to another out object
-         *            指向另一个out对象的指针
          * @throws core::exceptions::runtime::runtime_error if pointer is null
-         *         如果指针为空则抛出异常
+         *
+         * \lang simp-chinese
+         * @brief 从另一个out对象构造out包装器。
+         *
+         * @param ot_ 指向另一个out对象的指针
+         * @throws 如果指针为空则抛出异常
          */
         out(out<Ty> *ot_) : ot{ot_}, has_t{ot_->has_t} {
             core::exceptions::throw_exception_if<core::exceptions::runtime::runtime_error>(ot_);
@@ -226,11 +282,15 @@ namespace rainy::annotations::lifetime {
         }
 
         /**
+         * \lang english
          * @brief Returns a reference to the called_construct flag.
-         *        返回called_construct标志的引用。
          *
          * @return Reference to the flag indicating whether construct was called
-         *         指示是否调用了construct的标志的引用
+         *
+         * \lang simp-chinese
+         * @brief 返回called_construct标志的引用。
+         *
+         * @return 指示是否调用了construct的标志的引用
          */
         rain_fn called_construct() -> bool & {
             if (ot) {
@@ -241,8 +301,11 @@ namespace rainy::annotations::lifetime {
         }
 
         /**
+         * \lang english
          * @brief Destructor. Ensures proper cleanup if construction was interrupted.
-         *        析构函数。确保如果构造被中断则进行适当的清理。
+         *
+         * \lang simp-chinese
+         * @brief 析构函数。确保如果构造被中断则进行适当的清理。
          */
         ~out() {
             if (called_construct() && uncaught_count != core::exceptions::uncaught_exceptions()) {
@@ -253,15 +316,19 @@ namespace rainy::annotations::lifetime {
         }
 
         /**
+         * \lang english
          * @brief Constructs or assigns the output value.
-         *        构造或赋值输出值。
          *
          * @tparam Args Constructor argument types
-         *               构造函数参数类型
          * @param args Arguments to forward to the constructor or assignment
-         *             要转发给构造函数或赋值的参数
          * @throws core::exceptions::runtime::runtime_error on failure
-         *         失败时抛出异常
+         *
+         * \lang simp-chinese
+         * @brief 构造或赋值输出值。
+         *
+         * @tparam Args 构造函数参数类型
+         * @param args 要转发给构造函数或赋值的参数
+         * @throws 失败时抛出异常
          */
         template <typename... Args>
         rain_fn construct(Args &&...args) -> void {
@@ -291,13 +358,17 @@ namespace rainy::annotations::lifetime {
         }
 
         /**
+         * \lang english
          * @brief Accesses the output value.
-         *        访问输出值。
          *
          * @return Reference to the output value
-         *         输出值的引用
          * @throws core::exceptions::runtime::runtime_error if not properly initialized
-         *         如果未正确初始化则抛出异常
+         *
+         * \lang simp-chinese
+         * @brief 访问输出值。
+         *
+         * @return 输出值的引用
+         * @throws 如果未正确初始化则抛出异常
          */
         rain_fn value() -> Ty & {
             if (has_t) {
@@ -352,14 +423,17 @@ namespace rainy::annotations::lifetime::implements {
         using type = type_traits::modifers::remove_cvref_t<Ty>;
 
         /**
+         * \lang english
          * @brief Constructs a mutable reference wrapper.
-         *        构造可变引用包装器。
+         * @param ctrl Pointer to borrow control block
+         * @throws core::exceptions::runtime::runtime_error if immutable references exist or mutable reference already active
+         *
+         * \lang simp-chinese
+         * @brief 构造可变引用包装器。
          *
          * @param value Reference to the value         *              值的引用
-         * @param ctrl Pointer to borrow control block
-         *             指向借用控制块的指针
-         * @throws core::exceptions::runtime::runtime_error if immutable references exist or mutable reference already active
-         *         如果存在不可变引用或可变引用已激活则抛出异常
+         * @param ctrl 指向借用控制块的指针
+         * @throws 如果存在不可变引用或可变引用已激活则抛出异常
          */
         refwrap(type &value, borrow_control_block *ctrl) : value{utility::addressof(value)}, ctrl{ctrl} {
             core::exceptions::throw_exception_if<core::exceptions::runtime::runtime_error>(
@@ -373,13 +447,17 @@ namespace rainy::annotations::lifetime::implements {
         }
 
         /**
+         * \lang english
          * @brief Conversion operator to mutable reference.
-         *        到可变引用的转换运算符。
          *
          * @return Mutable reference to the value
-         *         值的可变引用
          * @throws core::exceptions::runtime::runtime_error if immutable references exist or mutable reference not active
-         *         如果存在不可变引用或可变引用未激活则抛出异常
+         *
+         * \lang simp-chinese
+         * @brief 到可变引用的转换运算符。
+         *
+         * @return 值的可变引用
+         * @throws 如果存在不可变引用或可变引用未激活则抛出异常
          */
         operator type &() {
             core::exceptions::throw_exception_if<core::exceptions::runtime::runtime_error>(
@@ -401,15 +479,19 @@ namespace rainy::annotations::lifetime::implements {
         using type = type_traits::modifers::remove_volatile_t<type_traits::modifers::remove_reference_t<Ty>>;
 
         /**
+         * \lang english
          * @brief Constructs an immutable reference wrapper.
-         *        构造不可变引用包装器。
          *
          * @param value Reference to the value
-         *              值的引用
          * @param ctrl Pointer to borrow control block
-         *             指向借用控制块的指针
          * @throws core::exceptions::runtime::runtime_error if mutable reference is active
-         *         如果可变引用已激活则抛出异常
+         *
+         * \lang simp-chinese
+         * @brief 构造不可变引用包装器。
+         *
+         * @param value 值的引用
+         * @param ctrl 指向借用控制块的指针
+         * @throws 如果可变引用已激活则抛出异常
          */
         crefwrap(type &value, borrow_control_block *ctrl) : value{utility::addressof(value)}, ctrl{ctrl} {
             core::exceptions::throw_exception_if<core::exceptions::runtime::runtime_error>(
@@ -421,13 +503,17 @@ namespace rainy::annotations::lifetime::implements {
         }
 
         /**
+         * \lang english
          * @brief Conversion operator to const reference.
-         *        到常量引用的转换运算符。
          *
          * @return Const reference to the value
-         *         值的常量引用
          * @throws core::exceptions::runtime::runtime_error if mutable reference is active
-         *         如果可变引用已激活则抛出异常
+         *
+         * \lang simp-chinese
+         * @brief 到常量引用的转换运算符。
+         *
+         * @return 值的常量引用
+         * @throws 如果可变引用已激活则抛出异常
          */
         operator const type &() {
             core::exceptions::throw_exception_if<core::exceptions::runtime::runtime_error>(
@@ -439,8 +525,11 @@ namespace rainy::annotations::lifetime::implements {
         }
 
         /**
+         * \lang english
          * @brief Explicitly releases the reference.
-         *        显式释放引用。
+         *
+         * \lang simp-chinese
+         * @brief 显式释放引用。
          */
         void release() {
             if (!ctrl) {
@@ -461,19 +550,23 @@ namespace rainy::annotations::lifetime::implements {
 
 namespace rainy::annotations::lifetime {
     /**
-     * @brief 借用所有权注解
-     * @brief 仅允许一个mut引用或是多个不可变引用在其所在的生命周期
-     * @brief 若声明在函数，则生命周期为整个函数其作用域
-     * @brief 若局部声明，则由其所在作用域决定
-     * @param Ty 要借用的类型
-     */
-    /**
+     * \lang english
      * @brief Borrow ownership annotation.
-     * @brief Allows either one mutable reference or multiple immutable references within its lifetime.
-     * @brief If declared in a function, the lifetime spans the entire function scope.
-     * @brief If declared locally, the lifetime is determined by its scope.
+     *
+     * Allows either one mutable reference or multiple immutable references within its lifetime.
+     * If declared in a function, the lifetime spans the entire function scope.
+     * If declared locally, the lifetime is determined by its scope.
+     *
      * @tparam Ty The type to borrow
-     *            要借用的类型
+     *
+     * \lang simp-chinese
+     * @brief 借用所有权注解。
+     *
+     * 仅允许一个mut引用或是多个不可变引用在其所在的生命周期。
+     * 若声明在函数，则生命周期为整个函数其作用域。
+     * 若局部声明，则由其所在作用域决定。
+     *
+     * @tparam Ty 要借用的类型
      */
     template <typename Ty>
     class borrow_out : public out<Ty> {
@@ -484,54 +577,74 @@ namespace rainy::annotations::lifetime {
         using crefwrap = implements::crefwrap<Ty>;
 
         /**
+         * \lang english
          * @brief Constructs a borrow_out from a raw pointer.
-         *        从原始指针构造borrow_out。
          *
          * @param t_ Pointer to the value
-         *           指向值的指针
+         *
+         * \lang simp-chinese
+         * @brief 从原始指针构造borrow_out。
+         *
+         * @param t_ 指向值的指针
          */
         borrow_out(Ty *t_) : out<Ty>{t_}, ctrl(new implements::borrow_control_block{}) {
         }
 
         /**
+         * \lang english
          * @brief Constructs a borrow_out from a deferred_init object.
-         *        从deferred_init对象构造borrow_out。
          *
          * @param dt_ Pointer to deferred_init object
-         *            指向deferred_init对象的指针
+         *
+         * \lang simp-chinese
+         * @brief 从deferred_init对象构造borrow_out。
+         *
+         * @param dt_ 指向deferred_init对象的指针
          */
         borrow_out(deferred_init<Ty> *dt_) : out<Ty>{dt_}, ctrl(new implements::borrow_control_block{}) {
         }
 
         /**
+         * \lang english
          * @brief Constructs a borrow_out from an out object.
-         *        从out对象构造borrow_out。
          *
          * @param ot_ Pointer to out object
-         *            指向out对象的指针
+         *
+         * \lang simp-chinese
+         * @brief 从out对象构造borrow_out。
+         *
+         * @param ot_ 指向out对象的指针
          */
         borrow_out(out<Ty> *ot_) : out<Ty>{ot_}, ctrl(new implements::borrow_control_block{}) {
         }
 
         /**
+         * \lang english
          * @brief Copy constructor. Shares the control block.
-         *        拷贝构造函数。共享控制块。
          *
          * @param other Another borrow_out to copy from
-         *              要拷贝的另一个borrow_out
+         *
+         * \lang simp-chinese
+         * @brief 拷贝构造函数。共享控制块。
+         *
+         * @param other 要拷贝的另一个borrow_out
          */
         borrow_out(const borrow_out &other) : out<Ty>{other}, ctrl{other.ctrl} {
             ++ctrl->strong_count;
         }
 
         /**
+         * \lang english
          * @brief Copy assignment operator. Shares the control block.
-         *        拷贝赋值运算符。共享控制块。
          *
          * @param other Another borrow_out to copy from
-         *              要拷贝的另一个borrow_out
          * @return Reference to this object
-         *         此对象的引用
+         *
+         * \lang simp-chinese
+         * @brief 拷贝赋值运算符。共享控制块。
+         *
+         * @param other 要拷贝的另一个borrow_out
+         * @return 此对象的引用
          */
         rain_fn operator=(const borrow_out &other)->borrow_out & {
             if (this != &other) {
@@ -544,30 +657,41 @@ namespace rainy::annotations::lifetime {
         }
 
         /**
+         * \lang english
          * @brief Destructor. Releases the control block when no longer needed.
-         *        析构函数。不再需要时释放控制块。
+         *
+         * \lang simp-chinese
+         * @brief 析构函数。不再需要时释放控制块。
          */
         ~borrow_out() {
             release_ctrl();
         }
 
         /**
+         * \lang english
          * @brief Obtains a mutable reference wrapper.
-         *        获取可变引用包装器。
          *
          * @return Mutable reference wrapper
-         *         可变引用包装器
+         *
+         * \lang simp-chinese
+         * @brief 获取可变引用包装器。
+         *
+         * @return 可变引用包装器
          */
         rain_fn mut() -> refwrap {
             return refwrap{this->value(), ctrl};
         }
 
         /**
+         * \lang english
          * @brief Obtains an immutable (const) reference wrapper.
-         *        获取不可变（常量）引用包装器。
          *
          * @return Immutable reference wrapper
-         *         不可变引用包装器
+         *
+         * \lang simp-chinese
+         * @brief 获取不可变（常量）引用包装器。
+         *
+         * @return 不可变引用包装器
          */
         rain_fn const_ref() -> crefwrap {
             return crefwrap{this->value(), ctrl};
@@ -592,23 +716,31 @@ namespace rainy::annotations::lifetime {
 
 namespace rainy::annotations::lifetime::implements {
     /**
+     * \lang english
      * @brief Trait to detect if a type is not a take<Ty> specialization.
-     *        检测类型是否为take<Ty>特化的特性。
      *
      * @tparam Ty The type to check
-     *            要检查的类型
+     *
+     * \lang simp-chinese
+     * @brief 检测类型是否为take<Ty>特化的特性。
+     *
+     * @tparam Ty 要检查的类型
      */
     template <typename Ty>
     static RAINY_CONSTEXPR_BOOL not_take_v = true;
 
     /**
+     * \lang english
      * @brief Specialization that detects take<Ty>.
-     *        检测take<Ty>的特化。
      *
      * @tparam Template The template type
-     *                  模板类型
      * @tparam Ty The inner type
-     *            内部类型
+     *
+     * \lang simp-chinese
+     * @brief 检测take<Ty>的特化。
+     *
+     * @tparam Template 模板类型
+     * @tparam Ty 内部类型
      */
     template <template <typename Ty> typename Template, typename Ty>
     static RAINY_CONSTEXPR_BOOL not_take_v<Template<Ty>> = type_traits::type_relations::is_same_v<Template<Ty>, take<Ty>>;
@@ -616,11 +748,15 @@ namespace rainy::annotations::lifetime::implements {
 
 namespace rainy::annotations::lifetime {
     /**
+     * \lang english
      * @brief Ownership transfer annotation that moves resources.
-     *        移动资源的所有权转移注解。
      *
      * @tparam Ty The type whose ownership is being transferred
-     *            所有权被转移的类型
+     *
+     * \lang simp-chinese
+     * @brief 移动资源的所有权转移注解。
+     *
+     * @tparam Ty 所有权被转移的类型
      */
     template <typename Ty>
     class take : type_traits::helper::non_copyable {
@@ -637,78 +773,106 @@ namespace rainy::annotations::lifetime {
         static constexpr bool is_nothrow_move_assignible = type_traits::properties::is_nothrow_move_assignable_v<type>;
 
         /**
+         * \lang english
          * @brief Constructs a take from an lvalue reference (moves from it).
-         *        从左值引用构造take（从中移动）。
          *
          * @param resources Lvalue reference to resources
-         *                  资源的左值引用
+         *
+         * \lang simp-chinese
+         * @brief 从左值引用构造take（从中移动）。
+         *
+         * @param resources 资源的左值引用
          */
         take(Ty &resources) noexcept(is_nothrow_move_construtible) : take_resources{utility::move(resources)} {
         }
 
         /**
+         * \lang english
          * @brief Constructs a take from an rvalue reference.
-         *        从右值引用构造take。
          *
          * @param resources Rvalue reference to resources
-         *                  资源的右值引用
+         *
+         * \lang simp-chinese
+         * @brief 从右值引用构造take。
+         *
+         * @param resources 资源的右值引用
          */
         take(Ty &&resources) noexcept(is_nothrow_move_construtible) : take_resources{utility::move(resources)} {
         }
 
         /**
+         * \lang english
          * @brief Move constructor.
-         *        移动构造函数。
          *
          * @param right Another take to move from
-         *              要移动的另一个take
+         *
+         * \lang simp-chinese
+         * @brief 移动构造函数。
+         *
+         * @param right 要移动的另一个take
          */
         take(take &&right) noexcept(is_nothrow_move_construtible) : take_resources{utility::move(right.take_resources)} {
         }
 
         /**
+         * \lang english
          * @brief Conversion operator to reference.
-         *        到引用的转换运算符。
          *
          * @return Reference to the held resources
-         *         持有的资源的引用
+         *
+         * \lang simp-chinese
+         * @brief 到引用的转换运算符。
+         *
+         * @return 持有的资源的引用
          */
         operator reference() noexcept {
             return take_resources;
         }
 
         /**
+         * \lang english
          * @brief Address-of operator.
-         *        取地址运算符。
          *
          * @return Pointer to the held resources
-         *         指向持有的资源的指针
+         *
+         * \lang simp-chinese
+         * @brief 取地址运算符。
+         *
+         * @return 指向持有的资源的指针
          */
         rain_fn operator&() noexcept -> pointer {
             return &take_resources;
         }
 
         /**
+         * \lang english
          * @brief Gets a reference to the held resources.
-         *        获取持有的资源的引用。
          *
          * @return Reference to the held resources
-         *         持有的资源的引用
+         *
+         * \lang simp-chinese
+         * @brief 获取持有的资源的引用。
+         *
+         * @return 持有的资源的引用
          */
         rain_fn get() -> reference {
             return take_resources;
         }
 
         /**
+         * \lang english
          * @brief Assignment operator from any assignable type.
-         *        从任何可赋值类型的赋值运算符。
          *
          * @tparam UTy The assigned type
-         *             被赋值的类型
          * @param value Value to assign
-         *              要赋值的值
          * @return Reference to the held resources
-         *         持有的资源的引用
+         *
+         * \lang simp-chinese
+         * @brief 从任何可赋值类型的赋值运算符。
+         *
+         * @tparam UTy 被赋值的类型
+         * @param value 要赋值的值
+         * @return 持有的资源的引用
          */
         template <typename UTy, type_traits::other_trans::enable_if_t<type_traits::properties::is_assignable_v<type, UTy>, int> = 0>
         rain_fn operator=(UTy &&value) noexcept(type_traits::properties::is_nothrow_assignable_v<type, UTy>)->reference {
@@ -717,13 +881,17 @@ namespace rainy::annotations::lifetime {
         }
 
         /**
+         * \lang english
          * @brief Swaps the held resources with another object.
-         *        与另一个对象交换持有的资源。
          *
          * @tparam UTy The type to swap with
-         *             要交换的类型
          * @param right The object to swap with
-         *              要交换的对象
+         *
+         * \lang simp-chinese
+         * @brief 与另一个对象交换持有的资源。
+         *
+         * @tparam UTy 要交换的类型
+         * @param right 要交换的对象
          */
         template <type_traits::other_trans::enable_if_t<type_traits::properties::is_swappable_v<type>, int> = 0>
         rain_fn swap(take &right) noexcept(type_traits::properties::is_nothrow_swappable_v<type>) -> void {
@@ -732,15 +900,19 @@ namespace rainy::annotations::lifetime {
         }
 
         /**
+         * \lang english
          * @brief Function call operator if the held type is invocable.
-         *        如果持有的类型可调用，则提供函数调用运算符。
          *
          * @tparam Args Argument types
-         *              参数类型
          * @param args Arguments to forward
-         *             要转发的参数
          * @return Result of invoking the held callable
-         *         调用持有的可调用对象的结果
+         *
+         * \lang simp-chinese
+         * @brief 如果持有的类型可调用，则提供函数调用运算符。
+         *
+         * @tparam Args 参数类型
+         * @param args 要转发的参数
+         * @return 调用持有的可调用对象的结果
          */
         template <typename... Args,
                   type_traits::other_trans::enable_if_t<type_traits::properties::is_invocable_v<type, Args...>, int> = 0>
@@ -749,13 +921,17 @@ namespace rainy::annotations::lifetime {
         }
 
         /**
+         * \lang english
          * @brief Move assignment operator.
-         *        移动赋值运算符。
          *
          * @param right Another take to move from
-         *              要移动的另一个take
          * @return Reference to this object
-         *         此对象的引用
+         *
+         * \lang simp-chinese
+         * @brief 移动赋值运算符。
+         *
+         * @param right 要移动的另一个take
+         * @return 此对象的引用
          */
         rain_fn operator=(take &&right) noexcept(is_nothrow_move_assignible)->take & {
             take_resources = utility::move(right.take_resources);
@@ -770,47 +946,133 @@ namespace rainy::annotations::lifetime {
 // NOLINTBEGIN
 namespace rainy::annotations::lifetime {
     /**
+     * \lang english
      * @brief Uninitialized storage wrapper.
-     *        未初始化存储的包装器。
      *
      * @tparam Ty The type to store uninitialized
-     *            要未初始化存储的类型
+     *
+     * \lang simp-chinese
+     * @brief 未初始化存储的包装器。
+     *
+     * @tparam Ty 要未初始化存储的类型
      */
     template <typename Ty>
     struct uninitialized {
         using type = Ty;
 
+        /**
+         * \lang english
+         * @brief Default constructor. Leaves the contained value uninitialized.
+         *
+         * \lang simp-chinese
+         * @brief 默认构造函数。保持包含的值未初始化。
+         */
         uninitialized() {
         }
+
+        /**
+         * \lang english
+         * @brief Copy constructor. Copies the contained value.
+         *
+         * @param other The other uninitialized object to copy from
+         *
+         * \lang simp-chinese
+         * @brief 拷贝构造函数。拷贝包含的值。
+         *
+         * @param other 要拷贝的另一个uninitialized对象
+         */
         uninitialized(const uninitialized &) = default;
+
+        /**
+         * \lang english
+         * @brief Move constructor. Moves the contained value.
+         *
+         * @param other The other uninitialized object to move from
+         *
+         * \lang simp-chinese
+         * @brief 移动构造函数。移动包含的值。
+         *
+         * @param other 要移动的另一个uninitialized对象
+         */
         uninitialized(uninitialized &&) = default;
+
+        /**
+         * \lang english
+         * @brief Copy assignment operator. Copies the contained value.
+         *
+         * @param other The other uninitialized object to copy from
+         * @return Reference to this object
+         *
+         * \lang simp-chinese
+         * @brief 拷贝赋值运算符。拷贝包含的值。
+         *
+         * @param other 要拷贝的另一个uninitialized对象
+         * @return 此对象的引用
+         */
         uninitialized &operator=(const uninitialized &) = default;
+
+        /**
+         * \lang english
+         * @brief Move assignment operator. Moves the contained value.
+         *
+         * @param other The other uninitialized object to move from
+         * @return Reference to this object
+         *
+         * \lang simp-chinese
+         * @brief 移动赋值运算符。移动包含的值。
+         *
+         * @param other 要移动的另一个uninitialized对象
+         * @return 此对象的引用
+         */
         uninitialized &operator=(uninitialized &&) = default;
 
         type value;
     };
 
     /**
+     * \lang english
      * @brief Deleted specialization for const types.
-     *        常量类型的已删除特化。
+     *
+     * \lang simp-chinese
+     * @brief 常量类型的已删除特化。
      */
     template <typename Ty>
     struct uninitialized<const Ty> {
+        /**
+         * \lang english
+         * @brief Deleted default constructor.
+         *
+         * \lang simp-chinese
+         * @brief 已删除的默认构造函数。
+         */
         uninitialized() = delete;
     };
 
     /**
+     * \lang english
      * @brief Deleted specialization for lvalue reference types.
-     *        左值引用类型的已删除特化。
+     *
+     * \lang simp-chinese
+     * @brief 左值引用类型的已删除特化。
      */
     template <typename Ty>
     struct uninitialized<Ty &> {
+        /**
+         * \lang english
+         * @brief Deleted default constructor.
+         *
+         * \lang simp-chinese
+         * @brief 已删除的默认构造函数。
+         */
         uninitialized() = delete;
     };
 
     /**
+     * \lang english
      * @brief Deleted specialization for const lvalue reference types.
-     *        常量左值引用类型的已删除特化。
+     *
+     * \lang simp-chinese
+     * @brief 常量左值引用类型的已删除特化。
      */
     template <typename Ty>
     struct uninitialized<const Ty &> {
@@ -818,8 +1080,11 @@ namespace rainy::annotations::lifetime {
     };
 
     /**
+     * \lang english
      * @brief Deleted specialization for rvalue reference types.
-     *        右值引用类型的已删除特化。
+     *
+     * \lang simp-chinese
+     * @brief 右值引用类型的已删除特化。
      */
     template <typename Ty>
     struct uninitialized<Ty &&> {
@@ -827,11 +1092,21 @@ namespace rainy::annotations::lifetime {
     };
 
     /**
+     * \lang english
      * @brief Deleted specialization for const rvalue reference types.
-     *        常量右值引用类型的已删除特化。
+     *
+     * \lang simp-chinese
+     * @brief 常量右值引用类型的已删除特化。
      */
     template <typename Ty>
     struct uninitialized<const Ty &&> {
+        /**
+         * \lang english
+         * @brief Deleted default constructor.
+         *
+         * \lang simp-chinese
+         * @brief 已删除的默认构造函数。
+         */
         uninitialized() = delete;
     };
 }

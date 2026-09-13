@@ -21,27 +21,31 @@
 
 namespace rainy::core::algorithm {
     /**
+     * \lang english
      * @brief Checks whether one sorted range contains another sorted range.
-     *        检查一个有序范围是否包含另一个有序范围。
      *
      * @tparam InputIt1 First input iterator type
-     *                  第一个输入迭代器类型
      * @tparam InputIt2 Second input iterator type
-     *                  第二个输入迭代器类型
      * @tparam Comp The comparison type
-     *              比较器类型
      * @param first1 Iterator to the beginning of the containing range
-     *               指向包含范围起始的迭代器
      * @param last1 Iterator to the end of the containing range
-     *              指向包含范围末尾的迭代器
      * @param first2 Iterator to the beginning of the contained range
-     *               指向被包含范围起始的迭代器
      * @param last2 Iterator to the end of the contained range
-     *              指向被包含范围末尾的迭代器
      * @param comp The comparison to apply
-     *             要应用的比较器
      * @return true if the second range is a subsequence of the first
-     *         如果第二个范围是第一个范围的子序列则为true
+     *
+     * \lang simp-chinese
+     * @brief 检查一个有序范围是否包含另一个有序范围。
+     *
+     * @tparam InputIt1 第一个输入迭代器类型
+     * @tparam InputIt2 第二个输入迭代器类型
+     * @tparam Comp 比较器类型
+     * @param first1 指向包含范围起始的迭代器
+     * @param last1 指向包含范围末尾的迭代器
+     * @param first2 指向被包含范围起始的迭代器
+     * @param last2 指向被包含范围末尾的迭代器
+     * @param comp 要应用的比较器
+     * @return 如果第二个范围是第一个范围的子序列则为true
      */
     template <typename InputIt1, typename InputIt2, typename Comp>
     RAINY_NODISCARD constexpr rain_fn includes(InputIt1 first1, InputIt1 last1, InputIt2 first2, InputIt2 last2, Comp comp)
@@ -58,8 +62,11 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Checks whether one sorted range contains another (operator<).
-     *        检查一个有序范围是否包含另一个（operator<）。
+     *
+     * \lang simp-chinese
+     * @brief 检查一个有序范围是否包含另一个（operator<）。
      */
     template <typename InputIt1, typename InputIt2>
     RAINY_NODISCARD constexpr rain_fn includes(InputIt1 first1, InputIt1 last1, InputIt2 first2, InputIt2 last2) -> bool {
@@ -68,31 +75,35 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Merges two sorted ranges into a destination.
-     *        将两个有序范围合并到目标位置。
      *
      * @tparam InputIt1 First input iterator type
-     *                  第一个输入迭代器类型
      * @tparam InputIt2 Second input iterator type
-     *                  第二个输入迭代器类型
      * @tparam OutIt Output iterator type
-     *               输出迭代器类型
      * @tparam Comp The comparison type
-     *              比较器类型
      * @param first1 Iterator to the beginning of the first range
-     *               指向第一个范围起始的迭代器
      * @param last1 Iterator to the end of the first range
-     *              指向第一个范围末尾的迭代器
      * @param first2 Iterator to the beginning of the second range
-     *               指向第二个范围起始的迭代器
      * @param last2 Iterator to the end of the second range
-     *              指向第二个范围末尾的迭代器
      * @param dest Iterator to the beginning of the destination
-     *             指向目标起始的迭代器
      * @param comp The comparison to apply
-     *             要应用的比较器
      * @return Iterator to the end of the destination range
-     *         指向目标范围末尾的迭代器
+     *
+     * \lang simp-chinese
+     * @brief 将两个有序范围合并到目标位置。
+     *
+     * @tparam InputIt1 第一个输入迭代器类型
+     * @tparam InputIt2 第二个输入迭代器类型
+     * @tparam OutIt 输出迭代器类型
+     * @tparam Comp 比较器类型
+     * @param first1 指向第一个范围起始的迭代器
+     * @param last1 指向第一个范围末尾的迭代器
+     * @param first2 指向第二个范围起始的迭代器
+     * @param last2 指向第二个范围末尾的迭代器
+     * @param dest 指向目标起始的迭代器
+     * @param comp 要应用的比较器
+     * @return 指向目标范围末尾的迭代器
      */
     template <typename InputIt1, typename InputIt2, typename OutIt, typename Comp>
     constexpr rain_fn merge(InputIt1 first1, InputIt1 last1, InputIt2 first2, InputIt2 last2, OutIt dest, Comp comp) -> OutIt {
@@ -115,8 +126,11 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Merges two sorted ranges into a destination (operator<).
-     *        将两个有序范围合并到目标位置（operator<）。
+     *
+     * \lang simp-chinese
+     * @brief 将两个有序范围合并到目标位置（operator<）。
      */
     template <typename InputIt1, typename InputIt2, typename OutIt>
     constexpr rain_fn merge(InputIt1 first1, InputIt1 last1, InputIt2 first2, InputIt2 last2, OutIt dest) -> OutIt {
@@ -125,21 +139,25 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Merges two adjacent sorted halves of a range in-place.
-     *        就地合并范围内两个相邻的有序半区。
      *
      * @tparam BidirIt Bidirectional iterator type
-     *                 双向迭代器类型
      * @tparam Comp The comparison type
-     *              比较器类型
      * @param first Iterator to the beginning of the range
-     *              指向范围起始的迭代器
      * @param middle Iterator to the beginning of the second sorted half
-     *               指向第二个有序半区起始的迭代器
      * @param last Iterator to the end of the range
-     *             指向范围末尾的迭代器
      * @param comp The comparison to apply
-     *             要应用的比较器
+     *
+     * \lang simp-chinese
+     * @brief 就地合并范围内两个相邻的有序半区。
+     *
+     * @tparam BidirIt 双向迭代器类型
+     * @tparam Comp 比较器类型
+     * @param first 指向范围起始的迭代器
+     * @param middle 指向第二个有序半区起始的迭代器
+     * @param last 指向范围末尾的迭代器
+     * @param comp 要应用的比较器
      */
     template <typename BidirIt, typename Comp>
     constexpr rain_fn inplace_merge(BidirIt first, BidirIt middle, BidirIt last, Comp comp) -> void {
@@ -176,8 +194,11 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Merges two adjacent sorted halves of a range in-place (operator<).
-     *        就地合并范围内两个相邻的有序半区（operator<）。
+     *
+     * \lang simp-chinese
+     * @brief 就地合并范围内两个相邻的有序半区（operator<）。
      */
     template <typename BidirIt>
     constexpr rain_fn inplace_merge(BidirIt first, BidirIt middle, BidirIt last) -> void {
@@ -226,17 +247,21 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Computes the union of two sorted ranges into a destination.
-     *        计算两个有序范围的并集到目标位置。
      *
      * @tparam InputIt1 First input iterator type
-     *                  第一个输入迭代器类型
      * @tparam InputIt2 Second input iterator type
-     *                  第二个输入迭代器类型
      * @tparam OutIt Output iterator type
-     *               输出迭代器类型
      * @tparam Comp The comparison type
-     *              比较器类型
+     *
+     * \lang simp-chinese
+     * @brief 计算两个有序范围的并集到目标位置。
+     *
+     * @tparam InputIt1 第一个输入迭代器类型
+     * @tparam InputIt2 第二个输入迭代器类型
+     * @tparam OutIt 输出迭代器类型
+     * @tparam Comp 比较器类型
      */
     template <typename InputIt1, typename InputIt2, typename OutIt, typename Comp>
     constexpr rain_fn set_union(InputIt1 first1, InputIt1 last1, InputIt2 first2, InputIt2 last2, OutIt dest, Comp comp)
@@ -246,8 +271,11 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Computes the union of two sorted ranges (operator<).
-     *        计算两个有序范围的并集（operator<）。
+     *
+     * \lang simp-chinese
+     * @brief 计算两个有序范围的并集（operator<）。
      */
     template <typename InputIt1, typename InputIt2, typename OutIt>
     constexpr rain_fn set_union(InputIt1 first1, InputIt1 last1, InputIt2 first2, InputIt2 last2, OutIt dest) -> OutIt {
@@ -256,17 +284,21 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Computes the intersection of two sorted ranges into a destination.
-     *        计算两个有序范围的交集到目标位置。
      *
      * @tparam InputIt1 First input iterator type
-     *                  第一个输入迭代器类型
      * @tparam InputIt2 Second input iterator type
-     *                  第二个输入迭代器类型
      * @tparam OutIt Output iterator type
-     *               输出迭代器类型
      * @tparam Comp The comparison type
-     *              比较器类型
+     *
+     * \lang simp-chinese
+     * @brief 计算两个有序范围的交集到目标位置。
+     *
+     * @tparam InputIt1 第一个输入迭代器类型
+     * @tparam InputIt2 第二个输入迭代器类型
+     * @tparam OutIt 输出迭代器类型
+     * @tparam Comp 比较器类型
      */
     template <typename InputIt1, typename InputIt2, typename OutIt, typename Comp>
     constexpr rain_fn set_intersection(InputIt1 first1, InputIt1 last1, InputIt2 first2, InputIt2 last2, OutIt dest, Comp comp)
@@ -276,8 +308,11 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Computes the intersection of two sorted ranges (operator<).
-     *        计算两个有序范围的交集（operator<）。
+     *
+     * \lang simp-chinese
+     * @brief 计算两个有序范围的交集（operator<）。
      */
     template <typename InputIt1, typename InputIt2, typename OutIt>
     constexpr rain_fn set_intersection(InputIt1 first1, InputIt1 last1, InputIt2 first2, InputIt2 last2, OutIt dest) -> OutIt {
@@ -286,17 +321,21 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Computes the difference of two sorted ranges into a destination.
-     *        计算两个有序范围的差集到目标位置。
      *
      * @tparam InputIt1 First input iterator type
-     *                  第一个输入迭代器类型
      * @tparam InputIt2 Second input iterator type
-     *                  第二个输入迭代器类型
      * @tparam OutIt Output iterator type
-     *               输出迭代器类型
      * @tparam Comp The comparison type
-     *              比较器类型
+     *
+     * \lang simp-chinese
+     * @brief 计算两个有序范围的差集到目标位置。
+     *
+     * @tparam InputIt1 第一个输入迭代器类型
+     * @tparam InputIt2 第二个输入迭代器类型
+     * @tparam OutIt 输出迭代器类型
+     * @tparam Comp 比较器类型
      */
     template <typename InputIt1, typename InputIt2, typename OutIt, typename Comp>
     constexpr rain_fn set_difference(InputIt1 first1, InputIt1 last1, InputIt2 first2, InputIt2 last2, OutIt dest, Comp comp)
@@ -306,8 +345,11 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Computes the difference of two sorted ranges (operator<).
-     *        计算两个有序范围的差集（operator<）。
+     *
+     * \lang simp-chinese
+     * @brief 计算两个有序范围的差集（operator<）。
      */
     template <typename InputIt1, typename InputIt2, typename OutIt>
     constexpr rain_fn set_difference(InputIt1 first1, InputIt1 last1, InputIt2 first2, InputIt2 last2, OutIt dest) -> OutIt {
@@ -316,17 +358,21 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Computes the symmetric difference of two sorted ranges into a destination.
-     *        计算两个有序范围的对称差到目标位置。
      *
      * @tparam InputIt1 First input iterator type
-     *                  第一个输入迭代器类型
      * @tparam InputIt2 Second input iterator type
-     *                  第二个输入迭代器类型
      * @tparam OutIt Output iterator type
-     *               输出迭代器类型
      * @tparam Comp The comparison type
-     *              比较器类型
+     *
+     * \lang simp-chinese
+     * @brief 计算两个有序范围的对称差到目标位置。
+     *
+     * @tparam InputIt1 第一个输入迭代器类型
+     * @tparam InputIt2 第二个输入迭代器类型
+     * @tparam OutIt 输出迭代器类型
+     * @tparam Comp 比较器类型
      */
     template <typename InputIt1, typename InputIt2, typename OutIt, typename Comp>
     constexpr rain_fn set_symmetric_difference(InputIt1 first1, InputIt1 last1, InputIt2 first2, InputIt2 last2, OutIt dest,
@@ -336,8 +382,11 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Computes the symmetric difference of two sorted ranges (operator<).
-     *        计算两个有序范围的对称差（operator<）。
+     *
+     * \lang simp-chinese
+     * @brief 计算两个有序范围的对称差（operator<）。
      */
     template <typename InputIt1, typename InputIt2, typename OutIt>
     constexpr rain_fn set_symmetric_difference(InputIt1 first1, InputIt1 last1, InputIt2 first2, InputIt2 last2, OutIt dest)

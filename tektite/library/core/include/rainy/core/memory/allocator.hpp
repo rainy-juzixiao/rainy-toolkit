@@ -20,6 +20,8 @@
 #include <rainy/core/platform.hpp>
 #include <rainy/core/type_traits.hpp>
 
+#if !RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
+
 namespace rainy::core::memory {
     template <typename Alloc>
     struct allocator_traits;
@@ -397,6 +399,7 @@ namespace rainy::core::memory {
         using const_reference = const value_type &;
 
         static constexpr std::size_t align = alignof(value_type);
+
         static constexpr std::size_t element_size = sizeof(value_type);
 
         RAINY_CONSTEXPR20 block_allocator() noexcept = default;
@@ -410,7 +413,9 @@ namespace rainy::core::memory {
         RAINY_CONSTEXPR20 ~block_allocator() = default;
 
         constexpr block_allocator(block_allocator &&) noexcept = default;
+
         constexpr block_allocator &operator=(const block_allocator &) noexcept = default;
+
         constexpr block_allocator &operator=(block_allocator &&) noexcept = default;
 
         RAINY_NODISCARD_RAW_PTR_ALLOC RAINY_CONSTEXPR20 pointer allocate(const size_type count) const {
@@ -496,5 +501,1034 @@ namespace rainy::core::memory::implements {
         pointer ptr;
     };
 }
+
+#else
+
+namespace rainy::core::memory {
+    /**
+     * \lang english
+     * @brief Provides uniform interface to query and use allocator types.
+     *
+     * @tparam Alloc The allocator type to inspect
+     *
+     * \lang simp-chinese
+     * @brief 提供统一接口来查询和使用分配器类型。
+     *
+     * @tparam Alloc 要检查的分配器类型
+     */
+    template <typename Alloc>
+    struct allocator_traits;
+
+#if RAINY_HAS_CXX23
+    /**
+     * \lang english
+     * @brief The result type of an at-least allocation request.
+     *
+     * @tparam Ptr The pointer type returned by the allocation
+     *
+     * \lang simp-chinese
+     * @brief “至少分配”请求的结果类型。
+     *
+     * @tparam Ptr 分配返回的指针类型
+     */
+    template <typename Ptr, typename = std::size_t>
+    struct allocation_result : std::allocation_result<Ptr> {};
+#else
+    /**
+     * \lang english
+     * @brief The result type of an at-least allocation request.
+     *
+     * @tparam Ptr The pointer type returned by the allocation
+     * @tparam SizeType The size type used to report the allocated count
+     *
+     * \lang simp-chinese
+     * @brief “至少分配”请求的结果类型。
+     *
+     * @tparam Ptr 分配返回的指针类型
+     * @tparam SizeType 用于报告已分配数量的尺寸类型
+     */
+    template <typename Ptr, typename SizeType = std::size_t>
+    struct allocation_result {
+        /**
+         * \lang english
+         * @brief The pointer returned by the allocation.
+         *
+         * \lang simp-chinese
+         * @brief 分配返回的指针。
+         */
+        Ptr ptr;
+
+        /**
+         * \lang english
+         * @brief The number of elements actually allocated.
+         *
+         * \lang simp-chinese
+         * @brief 实际分配的元素数量。
+         */
+        SizeType count;
+    };
+#endif
+
+    /**
+     * \lang english
+     * @brief A stateless allocator that allocates raw memory for objects.
+     *
+     * @tparam Ty The type of objects the allocator provides storage for
+     *
+     * \lang simp-chinese
+     * @brief 为对象分配原始内存的无状态分配器。
+     *
+     * @tparam Ty 分配器为其提供存储的对象类型
+     */
+    template <typename Ty>
+    class allocator {
+    public:
+        /**
+         * \lang english
+         * @brief The type of objects the allocator provides storage for.
+         *
+         * \lang simp-chinese
+         * @brief 分配器为其提供存储的对象类型。
+         */
+        using value_type = Ty;
+
+        /**
+         * \lang english
+         * @brief The type used to express sizes of allocations.
+         *
+         * \lang simp-chinese
+         * @brief 用于表示分配大小的类型。
+         */
+        using size_type = std::size_t;
+
+        /**
+         * \lang english
+         * @brief The type used to express differences between pointers.
+         *
+         * \lang simp-chinese
+         * @brief 用于表示指针之间差值的类型。
+         */
+        using difference_type = std::ptrdiff_t;
+
+        /**
+         * \lang english
+         * @brief Trait indicating that the allocator propagates on container move
+         *        assignment.
+         *
+         * \lang simp-chinese
+         * @brief 指示分配器在容器移动赋值时传播的特征。
+         */
+        using propagate_on_container_move_assignment = type_traits::helper::true_type;
+
+        /**
+         * \lang english
+         * @brief Trait indicating that all instances of the allocator are equal.
+         *
+         * \lang simp-chinese
+         * @brief 指示分配器的所有实例始终相等的特征。
+         */
+        using is_always_equal = type_traits::helper::true_type;
+
+        /**
+         * \lang english
+         * @brief Default constructor.
+         *
+         * \lang simp-chinese
+         * @brief 默认构造函数。
+         */
+        constexpr allocator() noexcept = default;
+
+        /**
+         * \lang english
+         * @brief Copy constructor.
+         *
+         * \lang simp-chinese
+         * @brief 拷贝构造函数。
+         */
+        constexpr allocator(const allocator &) noexcept = default;
+
+        /**
+         * \lang english
+         * @brief Converting constructor from another allocator type.
+         *
+         * @tparam U The element type of the source allocator
+         *
+         * \lang simp-chinese
+         * @brief 从另一个分配器类型转换的构造函数。
+         *
+         * @tparam U 源分配器的元素类型
+         */
+        template <typename U>
+        constexpr allocator(const allocator<U> &) noexcept;
+
+        /**
+         * \lang english
+         * @brief Destructor.
+         *
+         * \lang simp-chinese
+         * @brief 析构函数。
+         */
+        constexpr ~allocator() = default;
+
+        /**
+         * \lang english
+         * @brief Copy assignment operator.
+         *
+         * \lang simp-chinese
+         * @brief 拷贝赋值运算符。
+         */
+        constexpr allocator &operator=(const allocator &) = default;
+
+        /**
+         * \lang english
+         * @brief Allocates storage for count objects.
+         *
+         * @param count The number of objects to allocate.
+         * @return Pointer to the allocated storage.
+         *
+         * \lang simp-chinese
+         * @brief 为 count 个对象分配存储。
+         *
+         * @param count 要分配的对象数量。
+         * @return 指向已分配存储的指针。
+         */
+        RAINY_NODISCARD_RAW_PTR_ALLOC constexpr Ty *allocate(const size_type count) const;
+
+        /**
+         * \lang english
+         * @brief Allocates at least count objects.
+         *
+         * @param count The minimum number of objects to allocate.
+         * @return The allocated pointer and the actual number of objects allocated.
+         *
+         * \lang simp-chinese
+         * @brief 分配至少 count 个对象。
+         *
+         * @param count 要分配的对象最小数量。
+         * @return 已分配的指针和实际分配的对象数量。
+         */
+        RAINY_NODISCARD_RAW_PTR_ALLOC constexpr allocation_result<Ty *, size_type> allocate_at_least(const size_type count) const;
+
+        /**
+         * \lang english
+         * @brief Constructs an object of type Ty in the given storage.
+         *
+         * @tparam Args The argument types used to construct the object.
+         * @param ptr Pointer to the storage where the object is constructed.
+         * @param args Arguments forwarded to the constructor of Ty.
+         *
+         * \lang simp-chinese
+         * @brief 在给定存储中构造一个 Ty 类型的对象。
+         *
+         * @tparam Args 用于构造对象的参数类型。
+         * @param ptr 指向构造对象所在存储的指针。
+         * @param args 转发给 Ty 构造函数实参。
+         */
+        template <typename... Args>
+        RAINY_CONSTEXPR20 void construct(value_type *const ptr, Args &&...args) const
+            noexcept(type_traits::properties::is_nothrow_constructible_v<value_type, Args...>);
+
+        /**
+         * \lang english
+         * @brief Destroys the object at the given storage.
+         *
+         * @param ptr Pointer to the object to destroy.
+         *
+         * \lang simp-chinese
+         * @brief 销毁给定存储处的对象。
+         *
+         * @param ptr 指向要销毁对象的指针。
+         */
+        RAINY_CONSTEXPR20 void destroy(value_type *const ptr) const noexcept(
+            type_traits::properties::is_nothrow_destructible_v<value_type>);
+
+        /**
+         * \lang english
+         * @brief Deallocates storage previously allocated by allocate.
+         *
+         * @param p Pointer to the storage to deallocate.
+         * @param count The number of objects the storage was allocated for.
+         *
+         * \lang simp-chinese
+         * @brief 归还先前由 allocate 分配的存储。
+         *
+         * @param p 指向要归还存储的指针。
+         * @param count 该存储被分配时的对象数量。
+         */
+        constexpr void deallocate(Ty *const p, const size_type count) const;
+    };
+
+    /**
+     * \lang english
+     * @brief Compares two allocators for equality.
+     *
+     * @tparam Ty The element type of the left-hand side allocator
+     * @tparam Other The element type of the right-hand side allocator
+     * @return true
+     *
+     * \lang simp-chinese
+     * @brief 比较两个分配器是否相等。
+     *
+     * @tparam Ty 左侧分配器的元素类型
+     * @tparam Other 右侧分配器的元素类型
+     * @return true
+     */
+    template <typename Ty, typename Other>
+    RAINY_NODISCARD constexpr bool operator==(const allocator<Ty> &, const allocator<Other> &) noexcept;
+
+    /**
+     * \lang english
+     * @brief Compares two allocators for inequality.
+     *
+     * @tparam Ty The element type of the left-hand side allocator
+     * @tparam Other The element type of the right-hand side allocator
+     * @return false
+     *
+     * \lang simp-chinese
+     * @brief 比较两个分配器是否不相等。
+     *
+     * @tparam Ty 左侧分配器的元素类型
+     * @tparam Other 右侧分配器的元素类型
+     * @return false
+     */
+    template <typename Ty, typename Other>
+    RAINY_NODISCARD bool operator!=(const allocator<Ty> &, const allocator<Other> &) noexcept;
+}
+
+// @NODOCBEGIN
+namespace rainy::core::memory::implements {
+    template <typename Alloc>
+    RAINY_CONSTEXPR_BOOL is_std_allocator = false;
+
+    template <typename Elem>
+    RAINY_CONSTEXPR_BOOL is_std_allocator<std::allocator<Elem>> = true;
+
+    template <typename Alloc, typename = void>
+    struct has_select_on_container_copy_construction : type_traits::helper::false_type {};
+
+    template <typename Alloc>
+    struct has_select_on_container_copy_construction<
+        Alloc, type_traits::other_trans::void_t<decltype(utility::declval<const Alloc &>().select_on_container_copy_construction())>>
+        : type_traits::helper::true_type {};
+
+    template <typename Alloc>
+    struct std_allocator_traits;
+
+    template <typename Type>
+    struct std_allocator_traits<std::allocator<Type>> {
+        using allocator_type = std::allocator<Type>;
+        using value_type = typename allocator_type::value_type;
+        using pointer = value_type *;
+        using const_pointer = const value_type *;
+        using void_pointer = void *;
+        using const_void_pointer = const void *;
+        using size_type = std::size_t;
+        using difference_type = ptrdiff_t;
+        using propagate_on_container_copy_assignment = type_traits::helper::false_type;
+        using propagate_on_container_move_assignment = type_traits::helper::true_type;
+        using propagate_on_container_swap = type_traits::helper::false_type;
+        using is_always_equal = type_traits::helper::true_type;
+
+        template <typename Other>
+        using rebind_alloc = std::allocator<Other>;
+
+        template <typename Other>
+        using rebind_traits = allocator_traits<std::allocator<Other>>;
+
+        RAINY_CONSTEXPR20 static pointer allocate(allocator_type al, size_type count);
+        RAINY_CONSTEXPR20 static pointer allocate(allocator_type al, size_type count, const_void_pointer *);
+        RAINY_CONSTEXPR20 static void deallocate(allocator_type al, pointer ptr, size_type count);
+
+        template <typename Uty, typename... Args>
+        RAINY_CONSTEXPR20 static void construct(allocator_type, Uty *ptr, Args &&...args) noexcept(
+            noexcept(utility::construct_at(ptr, utility::forward<Args>(args)...)));
+
+        template <typename Uty>
+        RAINY_CONSTEXPR20 static void destroy(allocator_type, Uty *ptr);
+
+        RAINY_CONSTEXPR20 static size_type max_size(allocator_type al) noexcept;
+
+        RAINY_NODISCARD static RAINY_CONSTEXPR20 allocator_type
+        select_on_container_copy_construction(const allocator_type &allocator);
+    };
+
+    template <typename Ty, typename = void>
+    struct get_pointer_type { using type = typename Ty::value_type *; };
+
+    template <typename Ty>
+    struct get_pointer_type<Ty, type_traits::other_trans::void_t<typename Ty::pointer>> {
+        using type = typename Ty::pointer;
+    };
+
+    template <typename Ty, typename = void>
+    struct get_const_pointer_type { using type = typename Ty::const_pointer; };
+
+    template <typename Ty>
+    struct get_const_pointer_type<Ty, type_traits::other_trans::void_t<typename Ty::const_pointer>> {
+        using type = typename Ty::const_pointer;
+    };
+
+    template <typename Ty, typename = void>
+    struct get_void_pointer_type { using type = typename Ty::void_pointer; };
+
+    template <typename Ty>
+    struct get_void_pointer_type<Ty, type_traits::other_trans::void_t<typename Ty::void_pointer>> {
+        using type = typename Ty::void_pointer;
+    };
+
+    template <typename Ty, typename = void>
+    struct get_const_void_pointer_type { using type = typename Ty::const_void_pointer; };
+
+    template <typename Ty>
+    struct get_const_void_pointer_type<Ty, type_traits::other_trans::void_t<typename Ty::const_void_pointer>> {
+        using type = typename Ty::const_void_pointer;
+    };
+
+    template <typename Ty, typename = void>
+    struct get_difference_type { using type = typename Ty::difference_type; };
+
+    template <typename Ty>
+    struct get_difference_type<Ty, type_traits::other_trans::void_t<typename Ty::difference_type>> {
+        using type = typename Ty::difference_type;
+    };
+
+    template <typename Ty, typename = void>
+    struct get_size_type { using type = typename Ty::size_type; };
+
+    template <typename Ty>
+    struct get_size_type<Ty, type_traits::other_trans::void_t<typename Ty::size_type>> {
+        using type = typename Ty::size_type;
+    };
+
+    template <typename Ty, typename = void>
+    struct get_propagate_on_container_copy { using type = type_traits::helper::false_type; };
+
+    template <typename Ty>
+    struct get_propagate_on_container_copy<Ty, type_traits::other_trans::void_t<typename Ty::propagate_on_container_copy_assignment>> {
+        using type = typename Ty::propagate_on_container_copy_assignment;
+    };
+
+    template <typename Ty, typename = void>
+    struct get_propagate_on_container_move { using type = type_traits::helper::false_type; };
+
+    template <typename Ty>
+    struct get_propagate_on_container_move<Ty, type_traits::other_trans::void_t<typename Ty::propagate_on_container_move_assignment>> {
+        using type = typename Ty::propagate_on_container_move_assignment;
+    };
+
+    template <typename Ty, typename = void>
+    struct get_propagate_on_container_swap { using type = type_traits::helper::false_type; };
+
+    template <typename Ty>
+    struct get_propagate_on_container_swap<Ty, type_traits::other_trans::void_t<typename Ty::propagate_on_container_swap>> {
+        using type = typename Ty::propagate_on_container_swap;
+    };
+
+    template <typename Ty, typename = void>
+    struct get_is_always_equal { using type = typename Ty::is_always_equal; };
+
+    template <typename Ty>
+    struct get_is_always_equal<Ty, type_traits::other_trans::void_t<typename Ty::is_always_equal>> {
+        using type = typename Ty::is_always_equal;
+    };
+
+    template <typename Ty, typename Other, typename = void>
+    struct get_rebind_type {
+        using type = typename type_traits::extras::templates::replace_first_parameter<Other, Ty>::type;
+    };
+
+    template <typename Ty, typename Other>
+    struct get_rebind_type<Ty, Other, type_traits::other_trans::void_t<typename Ty::template rebind<Other>::other>> {
+        using type = typename Ty::template rebind<Other>::other;
+    };
+
+    template <typename Alloc, typename SizeType, typename ConstVoidPointer, typename = void>
+    struct has_allocate_hint : type_traits::helper::false_type {};
+
+    template <typename Alloc, typename SizeType, typename ConstVoidPointer>
+    struct has_allocate_hint<Alloc, SizeType, ConstVoidPointer,
+                             type_traits::other_trans::void_t<decltype(utility::declval<Alloc &>().allocate(
+                                 utility::declval<const SizeType &>(), utility::declval<const ConstVoidPointer &>()))>>
+        : type_traits::helper::false_type {};
+
+    template <typename Alloc>
+    struct normal_allocator_traits {
+        using allocator_type = Alloc;
+        using value_type = typename Alloc::value_type;
+        using pointer = typename get_pointer_type<Alloc>::type;
+        using const_pointer = typename get_const_pointer_type<Alloc>::type;
+        using void_pointer = typename get_void_pointer_type<Alloc>::type;
+        using const_void_pointer = typename get_const_void_pointer_type<Alloc>::type;
+        using size_type = typename get_size_type<Alloc>::type;
+        using difference_type = typename get_difference_type<Alloc>::type;
+        using propagate_on_container_copy_assignment = typename get_propagate_on_container_copy<Alloc>::type;
+        using propagate_on_container_move_assignment = typename get_propagate_on_container_move<Alloc>::type;
+        using propagate_on_container_swap = typename get_propagate_on_container_swap<Alloc>::type;
+        using is_always_equal = typename get_is_always_equal<Alloc>::type;
+
+        template <typename Other>
+        using rebind_alloc = typename get_rebind_type<Alloc, Other>::type;
+
+        template <typename Other>
+        using rebind_traits = allocator_traits<rebind_alloc<Other>>;
+
+        RAINY_NODISCARD_RAW_PTR_ALLOC static RAINY_CONSTEXPR20 pointer allocate(allocator_type &allocator, const size_type count);
+        RAINY_NODISCARD_RAW_PTR_ALLOC static RAINY_CONSTEXPR20 pointer allocate(allocator_type &allocator, const size_type count,
+                                                                                const const_void_pointer hint);
+        static RAINY_CONSTEXPR20 void deallocate(allocator_type &allocator, pointer ptr, size_type count);
+
+        template <typename Ty_, typename... Args>
+        static RAINY_CONSTEXPR20 void construct(allocator_type &allocator, Ty_ *ptr, Args &&...args);
+
+        template <typename Ty_>
+        static RAINY_CONSTEXPR20 void destroy(allocator_type &allocator, Ty_ *ptr);
+
+        static RAINY_CONSTEXPR20 size_type max_size(allocator_type al) noexcept;
+
+        RAINY_NODISCARD static RAINY_CONSTEXPR20 allocator_type
+        select_on_container_copy_construction(const allocator_type &allocator);
+    };
+}
+// @NODOCEND
+
+namespace rainy::core::memory {
+    /**
+     * \lang english
+     * @brief Provides uniform interface to query and use allocator types.
+     *
+     *  This is the primary interface through which the library accesses an
+     *  allocator. All nested types and static member functions describe the
+     *  operations that an allocator of type Alloc must support.
+     *
+     * @tparam Alloc The allocator type to inspect.
+     *
+     * \lang simp-chinese
+     * @brief 提供统一接口来查询和使用分配器类型。
+     *
+     *  这是库访问分配器所使用的主要接口。所有嵌套类型与静态成员函数描述
+     *  类型为 Alloc 的分配器必须支持的操作。
+     *
+     * @tparam Alloc 要检查的分配器类型。
+     */
+    template <typename Alloc>
+    struct allocator_traits {
+        /**
+         * \lang english
+         * @brief The allocator type itself.
+         *
+         * \lang simp-chinese
+         * @brief 分配器类型本身。
+         */
+        using allocator_type = Alloc;
+
+        /**
+         * \lang english
+         * @brief The type of values allocated by the allocator.
+         *
+         * \lang simp-chinese
+         * @brief 分配器所分配值的类型。
+         */
+        using value_type = typename Alloc::value_type;
+
+        /**
+         * \lang english
+         * @brief The pointer type of the allocator.
+         *
+         * \lang simp-chinese
+         * @brief 分配器的指针类型。
+         */
+        using pointer = typename implements::get_pointer_type<Alloc>::type;
+
+        /**
+         * \lang english
+         * @brief The const pointer type of the allocator.
+         *
+         * \lang simp-chinese
+         * @brief 分配器的常量指针类型。
+         */
+        using const_pointer = typename implements::get_const_pointer_type<Alloc>::type;
+
+        /**
+         * \lang english
+         * @brief The void pointer type of the allocator.
+         *
+         * \lang simp-chinese
+         * @brief 分配器的 void 指针类型。
+         */
+        using void_pointer = typename implements::get_void_pointer_type<Alloc>::type;
+
+        /**
+         * \lang english
+         * @brief The const void pointer type of the allocator.
+         *
+         * \lang simp-chinese
+         * @brief 分配器的 const void 指针类型。
+         */
+        using const_void_pointer = typename implements::get_const_void_pointer_type<Alloc>::type;
+
+        /**
+         * \lang english
+         * @brief The size type of the allocator.
+         *
+         * \lang simp-chinese
+         * @brief 分配器的尺寸类型。
+         */
+        using size_type = typename implements::get_size_type<Alloc>::type;
+
+        /**
+         * \lang english
+         * @brief The difference type of the allocator.
+         *
+         * \lang simp-chinese
+         * @brief 分配器的差值类型。
+         */
+        using difference_type = typename implements::get_difference_type<Alloc>::type;
+
+        /**
+         * \lang english
+         * @brief Trait indicating whether the allocator propagates on container
+         *        copy assignment.
+         *
+         * \lang simp-chinese
+         * @brief 指示分配器是否在容器拷贝赋值时传播的特征。
+         */
+        using propagate_on_container_copy_assignment = typename implements::get_propagate_on_container_copy<Alloc>::type;
+
+        /**
+         * \lang english
+         * @brief Trait indicating whether the allocator propagates on container
+         *        move assignment.
+         *
+         * \lang simp-chinese
+         * @brief 指示分配器是否在容器移动赋值时传播的特征。
+         */
+        using propagate_on_container_move_assignment = typename implements::get_propagate_on_container_move<Alloc>::type;
+
+        /**
+         * \lang english
+         * @brief Trait indicating whether the allocator propagates on container swap.
+         *
+         * \lang simp-chinese
+         * @brief 指示分配器是否在容器交换时传播的特征。
+         */
+        using propagate_on_container_swap = typename implements::get_propagate_on_container_swap<Alloc>::type;
+
+        /**
+         * \lang english
+         * @brief Trait indicating whether all instances of the allocator are equal.
+         *
+         * \lang simp-chinese
+         * @brief 指示分配器的所有实例是否相等的特征。
+         */
+        using is_always_equal = typename implements::get_is_always_equal<Alloc>::type;
+
+        /**
+         * \lang english
+         * @brief The allocator type rebound to a different value type.
+         *
+         * @tparam Other The new value type.
+         *
+         * \lang simp-chinese
+         * @brief 重绑定到不同值类型的分配器类型。
+         *
+         * @tparam Other 新的值类型。
+         */
+        template <typename Other>
+        using rebind_alloc = typename implements::get_rebind_type<Alloc, Other>::type;
+
+        /**
+         * \lang english
+         * @brief The allocator_traits of the rebound allocator.
+         *
+         * @tparam Other The new value type.
+         *
+         * \lang simp-chinese
+         * @brief 重绑定分配器的 allocator_traits。
+         *
+         * @tparam Other 新的值类型。
+         */
+        template <typename Other>
+        using rebind_traits = allocator_traits<rebind_alloc<Other>>;
+
+        /**
+         * \lang english
+         * @brief Allocates storage for count objects.
+         *
+         * @param allocator The allocator to use.
+         * @param count The number of objects to allocate.
+         * @return Pointer to the allocated storage.
+         *
+         * \lang simp-chinese
+         * @brief 为 count 个对象分配存储。
+         *
+         * @param allocator 要使用的分配器。
+         * @param count 要分配的对象数量。
+         * @return 指向已分配存储的指针。
+         */
+        RAINY_NODISCARD_RAW_PTR_ALLOC static RAINY_CONSTEXPR20 pointer allocate(allocator_type &allocator,
+                                                                                const size_type count);
+
+        /**
+         * \lang english
+         * @brief Allocates storage for count objects with an allocation hint.
+         *
+         * @param allocator The allocator to use.
+         * @param count The number of objects to allocate.
+         * @param hint The allocation hint.
+         * @return Pointer to the allocated storage.
+         *
+         * \lang simp-chinese
+         * @brief 使用分配提示为 count 个对象分配存储。
+         *
+         * @param allocator 要使用的分配器。
+         * @param count 要分配的对象数量。
+         * @param hint 分配提示。
+         * @return 指向已分配存储的指针。
+         */
+        RAINY_NODISCARD_RAW_PTR_ALLOC static RAINY_CONSTEXPR20 pointer allocate(allocator_type &allocator,
+                                                                                const size_type count,
+                                                                                const const_void_pointer hint);
+
+        /**
+         * \lang english
+         * @brief Deallocates storage previously allocated by allocate.
+         *
+         * @param allocator The allocator to use.
+         * @param ptr The pointer to deallocate.
+         * @param count The number of objects originally allocated.
+         *
+         * \lang simp-chinese
+         * @brief 归还先前由 allocate 分配的存储。
+         *
+         * @param allocator 要使用的分配器。
+         * @param ptr 要归还的指针。
+         * @param count 最初分配的对象数量。
+         */
+        static RAINY_CONSTEXPR20 void deallocate(allocator_type &allocator, pointer ptr, size_type count);
+
+        /**
+         * \lang english
+         * @brief Constructs an object in the given storage.
+         *
+         * @tparam Ty_ The object type to construct.
+         * @tparam Args The constructor argument types.
+         * @param allocator The allocator to use.
+         * @param ptr The storage where the object is constructed.
+         * @param args The arguments forwarded to the constructor.
+         *
+         * \lang simp-chinese
+         * @brief 在给定存储中构造一个对象。
+         *
+         * @tparam Ty_ 要构造的对象类型。
+         * @tparam Args 构造函数参数类型。
+         * @param allocator 要使用的分配器。
+         * @param ptr 构造对象所在的存储。
+         * @param args 转发给构造函数的实参。
+         */
+        template <typename Ty_, typename... Args>
+        static RAINY_CONSTEXPR20 void construct(allocator_type &allocator, Ty_ *ptr, Args &&...args);
+
+        /**
+         * \lang english
+         * @brief Destroys the object at the given storage.
+         *
+         * @tparam Ty_ The object type to destroy.
+         * @param allocator The allocator to use.
+         * @param ptr The object to destroy.
+         *
+         * \lang simp-chinese
+         * @brief 销毁给定存储处的对象。
+         *
+         * @tparam Ty_ 要销毁的对象类型。
+         * @param allocator 要使用的分配器。
+         * @param ptr 要销毁的对象。
+         */
+        template <typename Ty_>
+        static RAINY_CONSTEXPR20 void destroy(allocator_type &allocator, Ty_ *ptr);
+
+        /**
+         * \lang english
+         * @brief Returns the maximum number of objects that can be allocated.
+         *
+         * @param al The allocator to query.
+         * @return The maximum number of objects.
+         *
+         * \lang simp-chinese
+         * @brief 返回可分配的对象最大数量。
+         *
+         * @param al 要查询的分配器。
+         * @return 对象最大数量。
+         */
+        static RAINY_CONSTEXPR20 size_type max_size(allocator_type al) noexcept;
+
+        /**
+         * \lang english
+         * @brief Produces the allocator to use when copy-constructing a container.
+         *
+         * @param allocator The source allocator.
+         * @return The allocator to use for the copy.
+         *
+         * \lang simp-chinese
+         * @brief 生成拷贝构造容器时应使用的分配器。
+         *
+         * @param allocator 源分配器。
+         * @return 用于拷贝的分配器。
+         */
+        RAINY_NODISCARD static RAINY_CONSTEXPR20 allocator_type
+        select_on_container_copy_construction(const allocator_type &allocator);
+    };
+}
+
+namespace rainy::core::memory {
+    /**
+     * \lang english
+     * @brief An allocator that serves allocations from a fixed in-place block.
+     *
+     * @tparam Ty The element type
+     * @tparam N The number of elements that fit in the internal block
+     *
+     * \lang simp-chinese
+     * @brief 从固定内联块中提供分配的分配器。
+     *
+     * @tparam Ty 元素类型
+     * @tparam N 内部块可容纳的元素数量
+     */
+    template <typename Ty, std::size_t N>
+    class block_allocator {
+    public:
+        /**
+         * \lang english
+         * @brief The element type of the allocator.
+         *
+         * \lang simp-chinese
+         * @brief 分配器的元素类型。
+         */
+        using value_type = Ty;
+
+        /**
+         * \lang english
+         * @brief The pointer type of the allocator.
+         *
+         * \lang simp-chinese
+         * @brief 分配器的指针类型。
+         */
+        using pointer = value_type *;
+
+        /**
+         * \lang english
+         * @brief The size type of the allocator.
+         *
+         * \lang simp-chinese
+         * @brief 分配器的尺寸类型。
+         */
+        using size_type = std::size_t;
+
+        /**
+         * \lang english
+         * @brief The reference type of the allocator.
+         *
+         * \lang simp-chinese
+         * @brief 分配器的引用类型。
+         */
+        using reference = value_type &;
+
+        /**
+         * \lang english
+         * @brief The const reference type of the allocator.
+         *
+         * \lang simp-chinese
+         * @brief 分配器的常量引用类型。
+         */
+        using const_reference = const value_type &;
+
+        /**
+         * \lang english
+         * @brief The alignment of the internal storage block.
+         *
+         * \lang simp-chinese
+         * @brief 内部存储块的对齐方式。
+         */
+        static constexpr std::size_t align = alignof(value_type);
+
+        /**
+         * \lang english
+         * @brief The size of one element.
+         *
+         * \lang simp-chinese
+         * @brief 单个元素的大小。
+         */
+        static constexpr std::size_t element_size = sizeof(value_type);
+
+        /**
+         * \lang english
+         * @brief Default constructor.
+         *
+         * \lang simp-chinese
+         * @brief 默认构造函数。
+         */
+        RAINY_CONSTEXPR20 block_allocator() noexcept = default;
+
+        /**
+         * \lang english
+         * @brief Copy constructor.
+         *
+         * \lang simp-chinese
+         * @brief 拷贝构造函数。
+         */
+        RAINY_CONSTEXPR20 block_allocator(const block_allocator &) noexcept = default;
+
+        /**
+         * \lang english
+         * @brief Converting constructor from another block_allocator type.
+         *
+         * @tparam U The element type of the source allocator
+         * @tparam N_ The block size of the source allocator
+         *
+         * \lang simp-chinese
+         * @brief 从另一个 block_allocator 类型转换的构造函数。
+         *
+         * @tparam U 源分配器的元素类型
+         * @tparam N_ 源分配器的块大小
+         */
+        template <typename U, std::size_t N_>
+        RAINY_CONSTEXPR20 explicit block_allocator(const block_allocator<U, N_> &) noexcept;
+
+        /**
+         * \lang english
+         * @brief Destructor.
+         *
+         * \lang simp-chinese
+         * @brief 析构函数。
+         */
+        RAINY_CONSTEXPR20 ~block_allocator() = default;
+
+        /**
+         * \lang english
+         * @brief Move constructor.
+         *
+         * \lang simp-chinese
+         * @brief 移动构造函数。
+         */
+        constexpr block_allocator(block_allocator &&) noexcept = default;
+
+        /**
+         * \lang english
+         * @brief Copy assignment operator.
+         *
+         * \lang simp-chinese
+         * @brief 拷贝赋值运算符。
+         */
+        constexpr block_allocator &operator=(const block_allocator &) noexcept = default;
+
+        /**
+         * \lang english
+         * @brief Move assignment operator.
+         *
+         * \lang simp-chinese
+         * @brief 移动赋值运算符。
+         */
+        constexpr block_allocator &operator=(block_allocator &&) noexcept = default;
+
+        /**
+         * \lang english
+         * @brief Allocates storage for count objects of type Ty.
+         *
+         * @param count The number of objects to allocate storage for
+         * @return Pointer to the allocated storage
+         *
+         * \lang simp-chinese
+         * @brief 为 count 个 Ty 类型对象分配存储。
+         *
+         * @param count 要分配存储的对象数量
+         * @return 指向已分配存储的指针
+         */
+        RAINY_NODISCARD_RAW_PTR_ALLOC RAINY_CONSTEXPR20 pointer allocate(const size_type count) const;
+
+        /**
+         * \lang english
+         * @brief Deallocates storage previously allocated by allocate.
+         *
+         * @param block Pointer to the storage to deallocate
+         * @param count The number of objects the storage was allocated for
+         *
+         * \lang simp-chinese
+         * @brief 归还先前由 allocate 分配的存储。
+         *
+         * @param block 指向要归还存储的指针
+         * @param count 该存储被分配时的对象数量
+         */
+        RAINY_CONSTEXPR20 void deallocate(value_type *block, const size_type count) const;
+
+        /**
+         * \lang english
+         * @brief Allocates at least count objects of type Ty.
+         *
+         * @param count The minimum number of objects to allocate storage for
+         * @return The allocated pointer and the actual number of objects allocated
+         *
+         * \lang simp-chinese
+         * @brief 分配至少 count 个 Ty 类型对象。
+         *
+         * @param count 要分配存储的对象最小数量
+         * @return 已分配的指针和实际分配的对象数量
+         */
+        RAINY_NODISCARD_RAW_PTR_ALLOC constexpr allocation_result<pointer> allocate_at_least(const size_type count) const;
+
+        /**
+         * \lang english
+         * @brief Constructs an object of type Ty in the given storage.
+         *
+         * @tparam Args The argument types used to construct the object
+         * @param ptr Pointer to the storage where the object is constructed
+         * @param args Arguments forwarded to the constructor of Ty
+         *
+         * \lang simp-chinese
+         * @brief 在给定存储中构造一个 Ty 类型的对象。
+         *
+         * @tparam Args 用于构造对象的参数类型
+         * @param ptr 指向构造对象所在存储的指针
+         * @param args 转发给 Ty 构造函数实参
+         */
+        template <typename... Args>
+        RAINY_CONSTEXPR20 void construct(value_type *const ptr, Args &&...args) const
+            noexcept(type_traits::properties::is_nothrow_constructible_v<value_type, Args...>);
+
+        /**
+         * \lang english
+         * @brief Destroys the object at the given storage.
+         *
+         * @param ptr Pointer to the object to destroy
+         *
+         * \lang simp-chinese
+         * @brief 销毁给定存储处的对象。
+         *
+         * @param ptr 指向要销毁对象的指针
+         */
+        RAINY_CONSTEXPR20 void destroy(value_type *const ptr) const noexcept(
+            type_traits::properties::is_nothrow_destructible_v<value_type>);
+    };
+}
+
+// @NODOCBEGIN
+namespace rainy::core::memory::implements {
+    template <typename Alloc>
+    struct alloc_construct_ptr {
+        using pointer = typename allocator_traits<Alloc>::pointer;
+
+        RAINY_CONSTEXPR20 explicit alloc_construct_ptr(Alloc &alloc);
+        RAINY_NODISCARD RAINY_CONSTEXPR20 pointer release() noexcept;
+        RAINY_CONSTEXPR20 void allocate();
+        RAINY_CONSTEXPR20 ~alloc_construct_ptr();
+
+        alloc_construct_ptr(const alloc_construct_ptr &) = delete;
+        alloc_construct_ptr &operator=(const alloc_construct_ptr &) = delete;
+
+        Alloc &alloc;
+        pointer ptr;
+    };
+}
+// @NODOCEND
+
+#endif
 
 #endif

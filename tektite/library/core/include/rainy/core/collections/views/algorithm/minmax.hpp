@@ -21,8 +21,11 @@
 
 namespace rainy::core::collections::views {
     /**
+     * \lang english
      * @brief Finds the smallest element of a range.
-     *        查找范围中最小的元素。
+     *
+     * \lang simp-chinese
+     * @brief 查找范围中最小的元素。
      */
     template <typename Range>
     RAINY_NODISCARD constexpr auto min_element(Range &&range) {
@@ -30,8 +33,11 @@ namespace rainy::core::collections::views {
     }
 
     /**
+     * \lang english
      * @brief Finds the greatest element of a range.
-     *        查找范围中最大的元素。
+     *
+     * \lang simp-chinese
+     * @brief 查找范围中最大的元素。
      */
     template <typename Range>
     RAINY_NODISCARD constexpr auto max_element(Range &&range) {
@@ -39,8 +45,11 @@ namespace rainy::core::collections::views {
     }
 
     /**
+     * \lang english
      * @brief Finds both the smallest and greatest elements of a range.
-     *        同时查找范围中最小和最大的元素。
+     *
+     * \lang simp-chinese
+     * @brief 同时查找范围中最小和最大的元素。
      */
     template <typename Range>
     RAINY_NODISCARD constexpr auto minmax_element(Range &&range) {
@@ -48,8 +57,11 @@ namespace rainy::core::collections::views {
     }
 
     /**
+     * \lang english
      * @brief Returns the smaller of two values.
-     *        返回两个值中较小的一个。
+     *
+     * \lang simp-chinese
+     * @brief 返回两个值中较小的一个。
      */
     template <typename Ty>
     RAINY_NODISCARD constexpr auto min(const Ty &left, const Ty &right) -> const Ty & {
@@ -57,8 +69,11 @@ namespace rainy::core::collections::views {
     }
 
     /**
+     * \lang english
      * @brief Returns the greater of two values.
-     *        返回两个值中较大的一个。
+     *
+     * \lang simp-chinese
+     * @brief 返回两个值中较大的一个。
      */
     template <typename Ty>
     RAINY_NODISCARD constexpr auto max(const Ty &left, const Ty &right) -> const Ty & {
@@ -66,8 +81,11 @@ namespace rainy::core::collections::views {
     }
 
     /**
+     * \lang english
      * @brief Clamps a value into the [low, high] range.
-     *        将值限制在[low, high]范围内。
+     *
+     * \lang simp-chinese
+     * @brief 将值限制在[low, high]范围内。
      */
     template <typename Ty>
     RAINY_NODISCARD constexpr auto clamp(const Ty &value, const Ty &low, const Ty &high) -> const Ty & {

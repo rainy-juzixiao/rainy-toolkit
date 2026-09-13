@@ -26,91 +26,159 @@
 
 namespace rainy::core::container {
     /**
+     * \lang english
      * @brief A fixed-size collection of heterogeneous values.
-     *        固定大小的异构值集合。
      *
      * @tparam Types The types of elements contained in the tuple
-     *               tuple中包含的元素类型
+     *
+     * \lang simp-chinese
+     * @brief 固定大小的异构值集合。
+     *
+     * @tparam Types tuple中包含的元素类型
      */
     template <typename... Types>
     class tuple;
 
     /**
+     * \lang english
      * @brief Specialization for empty tuple.
-     *        空tuple的特化。
+     *
+     * \lang simp-chinese
+     * @brief 空tuple的特化。
      */
     template <>
     class tuple<> {
     public:
         /**
+         * \lang english
          * @brief Default constructor.
-         *        默认构造函数。
+         *
+         * \lang simp-chinese
+         * @brief 默认构造函数。
          */
         constexpr tuple() noexcept = default;
 
         /**
+         * \lang english
          * @brief Copy constructor.
-         *        拷贝构造函数。
+         *
+         * \lang simp-chinese
+         * @brief 拷贝构造函数。
          */
         constexpr tuple(const tuple &) = default;
 
         /**
+         * \lang english
          * @brief Move constructor.
-         *        移动构造函数。
+         *
+         * \lang simp-chinese
+         * @brief 移动构造函数。
          */
         constexpr tuple(tuple &&) = default;
 
         /**
+         * \lang english
          * @brief Copy assignment operator.
-         *        拷贝赋值运算符。
+         *
+         * \lang simp-chinese
+         * @brief 拷贝赋值运算符。
          */
         constexpr tuple &operator=(const tuple &) = default;
 
         /**
+         * \lang english
          * @brief Move assignment operator.
-         *        移动赋值运算符。
+         *
+         * \lang simp-chinese
+         * @brief 移动赋值运算符。
          */
         constexpr tuple &operator=(tuple &&) = default;
 
         /**
+         * \lang english
          * @brief Swaps two empty tuples (no-op).
-         *        交换两个空tuple（无操作）。
          *
          * @param right The right tuple to swap with
-         *              要交换的另一个tuple
+         *
+         * \lang simp-chinese
+         * @brief 交换两个空tuple（无操作）。
+         *
+         * @param right 要交换的另一个tuple
          */
         static constexpr void swap(tuple &) noexcept {
         }
 
+        /**
+         * \lang english
+         * @brief Allocator-extended default constructor.
+         *
+         * @tparam Alloc Allocator type
+         * @param tag allocator_arg_t tag for disambiguation
+         * @param alloc The allocator to use
+         *
+         * \lang simp-chinese
+         * @brief 分配器扩展的默认构造函数。
+         *
+         * @tparam Alloc 分配器类型
+         * @param tag 用于消歧的 allocator_arg_t 标签
+         * @param alloc 要使用的分配器
+         */
         template <typename Alloc>
         constexpr tuple(std::allocator_arg_t, const Alloc &) noexcept {
         }
 
+        /**
+         * \lang english
+         * @brief Allocator-extended constructor with arguments.
+         *
+         * @tparam Alloc Allocator type
+         * @tparam Args Types of the arguments
+         * @param tag allocator_arg_t tag for disambiguation
+         * @param alloc The allocator to use
+         * @param args Values used to construct the elements
+         *
+         * \lang simp-chinese
+         * @brief 带参数的分配器扩展构造函数。
+         *
+         * @tparam Alloc 分配器类型
+         * @tparam Args 参数的类型
+         * @param tag 用于消歧的 allocator_arg_t 标签
+         * @param alloc 要使用的分配器
+         * @param args 用于构造元素的值
+         */
         template <typename Alloc, typename... Args>
         constexpr tuple(std::allocator_arg_t, const Alloc &, Args &&...) noexcept {
         }
     };
 
     /**
+     * \lang english
      * @brief Provides compile-time access to the type of a tuple element.
-     *        提供对tuple元素类型的编译时访问。
      *
      * @tparam Indices The index of the element
-     *                 元素的索引
      * @tparam Tuple The tuple type
-     *               tuple类型
+     *
+     * \lang simp-chinese
+     * @brief 提供对tuple元素类型的编译时访问。
+     *
+     * @tparam Indices 元素的索引
+     * @tparam Tuple tuple类型
      */
     template <std::size_t Indices, typename Tuple>
     struct tuple_element {};
 
     /**
+     * \lang english
      * @brief Specialization for tuple types.
-     *        tuple类型的特化。
      *
      * @tparam Indices The index of the element
-     *                 元素的索引
      * @tparam Types The types contained in the tuple
-     *               tuple中包含的类型
+     *
+     * \lang simp-chinese
+     * @brief tuple类型的特化。
+     *
+     * @tparam Indices 元素的索引
+     * @tparam Types tuple中包含的类型
      */
     template <std::size_t Indices, typename... Types>
     struct tuple_element<Indices, tuple<Types...>> {
@@ -118,77 +186,97 @@ namespace rainy::core::container {
     };
 
     /**
+     * \lang english
      * @brief Alias template for tuple element type.
-     *        tuple元素类型的别名模板。
      *
      * @tparam Indicies The index of the element
-     *                  元素的索引
      * @tparam Tuple The tuple type
-     *               tuple类型
+     *
+     * \lang simp-chinese
+     * @brief tuple元素类型的别名模板。
+     *
+     * @tparam Indicies 元素的索引
+     * @tparam Tuple tuple类型
      */
     template <std::size_t Indicies, typename Tuple>
     using tuple_element_t = typename tuple_element<Indicies, Tuple>::type;
 
     /**
+     * \lang english
      * @brief Gets a reference to the element at index I in a mutable tuple.
-     *        获取可变tuple中索引I处元素的引用。
      *
      * @tparam I The index of the element to access
-     *           要访问的元素的索引
      * @tparam Types The types contained in the tuple
-     *               tuple中包含的类型
      * @param t The tuple to access
-     *          要访问的tuple
      * @return Reference to the element at index I
-     *         索引I处元素的引用
+     *
+     * \lang simp-chinese
+     * @brief 获取可变tuple中索引I处元素的引用。
+     *
+     * @tparam I 要访问的元素的索引
+     * @tparam Types tuple中包含的类型
+     * @param t 要访问的tuple
+     * @return 索引I处元素的引用
      */
     template <std::size_t I, typename... Types>
     constexpr tuple_element_t<I, tuple<Types...>> &get(tuple<Types...> &) noexcept;
 
     /**
+     * \lang english
      * @brief Gets a const reference to the element at index I in a const tuple.
-     *        获取常量tuple中索引I处元素的常量引用。
      *
      * @tparam I The index of the element to access
-     *           要访问的元素的索引
      * @tparam Types The types contained in the tuple
-     *               tuple中包含的类型
      * @param t The const tuple to access
-     *          要访问的常量tuple
      * @return Const reference to the element at index I
-     *         索引I处元素的常量引用
+     *
+     * \lang simp-chinese
+     * @brief 获取常量tuple中索引I处元素的常量引用。
+     *
+     * @tparam I 要访问的元素的索引
+     * @tparam Types tuple中包含的类型
+     * @param t 要访问的常量tuple
+     * @return 索引I处元素的常量引用
      */
     template <std::size_t I, typename... Types>
     constexpr const tuple_element_t<I, tuple<Types...>> &get(const tuple<Types...> &) noexcept;
 
     /**
+     * \lang english
      * @brief Gets an rvalue reference to the element at index I in a mutable tuple.
-     *        获取可变tuple中索引I处元素的右值引用。
      *
      * @tparam I The index of the element to access
-     *           要访问的元素的索引
      * @tparam Types The types contained in the tuple
-     *               tuple中包含的类型
      * @param t The tuple to access (as rvalue)
-     *          要访问的tuple（作为右值）
      * @return Rvalue reference to the element at index I
-     *         索引I处元素的右值引用
+     *
+     * \lang simp-chinese
+     * @brief 获取可变tuple中索引I处元素的右值引用。
+     *
+     * @tparam I 要访问的元素的索引
+     * @tparam Types tuple中包含的类型
+     * @param t 要访问的tuple（作为右值）
+     * @return 索引I处元素的右值引用
      */
     template <std::size_t I, typename... Types>
     constexpr tuple_element_t<I, tuple<Types...>> &&get(tuple<Types...> &&) noexcept;
 
     /**
+     * \lang english
      * @brief Gets a const rvalue reference to the element at index I in a const tuple.
-     *        获取常量tuple中索引I处元素的常量右值引用。
      *
      * @tparam I The index of the element to access
-     *           要访问的元素的索引
      * @tparam Types The types contained in the tuple
-     *               tuple中包含的类型
      * @param t The const tuple to access (as rvalue)
-     *          要访问的常量tuple（作为右值）
      * @return Const rvalue reference to the element at index I
-     *         索引I处元素的常量右值引用
+     *
+     * \lang simp-chinese
+     * @brief 获取常量tuple中索引I处元素的常量右值引用。
+     *
+     * @tparam I 要访问的元素的索引
+     * @tparam Types tuple中包含的类型
+     * @param t 要访问的常量tuple（作为右值）
+     * @return 索引I处元素的常量右值引用
      */
     template <std::size_t I, typename... Types>
     constexpr const tuple_element_t<I, tuple<Types...>> &&get(const tuple<Types...> &&) noexcept;
@@ -359,24 +447,46 @@ namespace rainy::core::container {
             tuple, typename type_traits::other_trans::type_list_pop_front<type_traits::other_trans::type_list<Types...>>::type>::type;
 
         /**
+         * \lang english
          * @brief Default constructor.
-         *        默认构造函数。
+         *
+         * \lang simp-chinese
+         * @brief 默认构造函数。
          */
         constexpr tuple() : base() {
         }
 
         /**
+         * \lang english
          * @brief Copy constructor.
-         *        拷贝构造函数。
+         *
+         * \lang simp-chinese
+         * @brief 拷贝构造函数。
          */
         constexpr tuple(const tuple &) = default;
 
         /**
+         * \lang english
          * @brief Move constructor.
-         *        移动构造函数。
+         *
+         * \lang simp-chinese
+         * @brief 移动构造函数。
          */
         constexpr tuple(tuple &&) = default;
 
+        /**
+         * \lang english
+         * @brief Constructs a tuple from the given arguments.
+         *
+         * @tparam Args Types of the arguments
+         * @param args Values used to construct the tuple elements
+         *
+         * \lang simp-chinese
+         * @brief 从给定参数构造tuple。
+         *
+         * @tparam Args 参数的类型
+         * @param args 用于构造tuple元素的值
+         */
         template <
             typename... Args,
             type_traits::other_trans::enable_if_t<
@@ -384,6 +494,19 @@ namespace rainy::core::container {
         constexpr tuple(Args &&...args) : base(utility::forward<Args>(args)...) {
         }
 
+        /**
+         * \lang english
+         * @brief Constructs a tuple by copying each element from another tuple.
+         *
+         * @tparam Args Types of the elements of the source tuple
+         * @param right The source tuple to copy from
+         *
+         * \lang simp-chinese
+         * @brief 通过从另一个tuple拷贝每个元素来构造tuple。
+         *
+         * @tparam Args 源tuple的元素类型
+         * @param right 要拷贝的源tuple
+         */
         template <
             typename... Args,
             type_traits::other_trans::enable_if_t<
@@ -393,38 +516,46 @@ namespace rainy::core::container {
         }
 
         /**
+         * \lang english
          * @brief Allocator-extended default constructor.
-         *        分配器扩展的默认构造函数。
          *
          * @tparam Alloc Allocator type
-         *               分配器类型
          * @param tag allocator_arg_t tag for disambiguation
-         *            用于消歧的 allocator_arg_t 标签
          * @param alloc The allocator to use
-         *              要使用的分配器
+         *
+         * \lang simp-chinese
+         * @brief 分配器扩展的默认构造函数。
+         *
+         * @tparam Alloc 分配器类型
+         * @param tag 用于消歧的 allocator_arg_t 标签
+         * @param alloc 要使用的分配器
          */
         template <typename Alloc>
         constexpr tuple(std::allocator_arg_t tag, const Alloc &alloc) : base(tag, alloc) {
         }
 
         /**
+         * \lang english
          * @brief Allocator-extended constructor with arguments.
-         *        带参数的分配器扩展构造函数。
          *
          * @tparam Alloc Allocator type
-         *               分配器类型
          * @tparam HeadArg Type of the head argument
-         *                 头参数的类型
          * @tparam TailArgs Types of the remaining arguments
-         *                  剩余参数的类型
          * @param tag allocator_arg_t tag for disambiguation
-         *            用于消歧的 allocator_arg_t 标签
          * @param alloc The allocator to use
-         *              要使用的分配器
          * @param head_arg Value for the first element
-         *                 第一个元素的值
          * @param tail_args Values for the remaining elements
-         *                  剩余元素的值
+         *
+         * \lang simp-chinese
+         * @brief 带参数的分配器扩展构造函数。
+         *
+         * @tparam Alloc 分配器类型
+         * @tparam HeadArg 头参数的类型
+         * @tparam TailArgs 剩余参数的类型
+         * @param tag 用于消歧的 allocator_arg_t 标签
+         * @param alloc 要使用的分配器
+         * @param head_arg 第一个元素的值
+         * @param tail_args 剩余元素的值
          */
         template <typename Alloc, typename HeadArg, typename... TailArgs>
         constexpr tuple(std::allocator_arg_t tag, const Alloc &alloc, HeadArg &&head_arg, TailArgs &&...tail_args) :
@@ -432,13 +563,17 @@ namespace rainy::core::container {
         }
 
         /**
+         * \lang english
          * @brief Copy assignment operator.
-         *        拷贝赋值运算符。
          *
          * @param right The right tuple to copy from
-         *              要拷贝的另一个tuple
          * @return Reference to this tuple
-         *         此tuple的引用
+         *
+         * \lang simp-chinese
+         * @brief 拷贝赋值运算符。
+         *
+         * @param right 要拷贝的另一个tuple
+         * @return 此tuple的引用
          */
         constexpr tuple &operator=(const tuple &right) {
             copy_assign_impl(right, type_traits::helper::index_sequence_for<Types...>{});
@@ -446,13 +581,17 @@ namespace rainy::core::container {
         }
 
         /**
+         * \lang english
          * @brief Move assignment operator.
-         *        移动赋值运算符。
          *
          * @param right The right tuple to move from
-         *              要移动的另一个tuple
          * @return Reference to this tuple
-         *         此tuple的引用
+         *
+         * \lang simp-chinese
+         * @brief 移动赋值运算符。
+         *
+         * @param right 要移动的另一个tuple
+         * @return 此tuple的引用
          */
         constexpr tuple &operator=(tuple &&right) noexcept((type_traits::properties::is_nothrow_move_assignable_v<Types> && ...)) {
             move_assign_impl(right, type_traits::helper::index_sequence_for<Types...>{});
@@ -460,17 +599,21 @@ namespace rainy::core::container {
         }
 
         /**
+         * \lang english
          * @brief Converting assignment from another tuple.
-         *        从另一个tuple的转换赋值。
          *
          * @tparam RightHead Type of the first element of the right tuple
-         *                   另一个tuple的第一个元素类型
          * @tparam RightRest Types of the remaining elements of the right tuple
-         *                   另一个tuple的剩余元素类型
          * @param right The right tuple to copy from
-         *              要拷贝的另一个tuple
          * @return Reference to this tuple
-         *         此tuple的引用
+         *
+         * \lang simp-chinese
+         * @brief 从另一个tuple的转换赋值。
+         *
+         * @tparam RightHead 另一个tuple的第一个元素类型
+         * @tparam RightRest 另一个tuple的剩余元素类型
+         * @param right 要拷贝的另一个tuple
+         * @return 此tuple的引用
          */
         template <typename... UTypes,
                   type_traits::other_trans::enable_if_t<sizeof...(UTypes) == sizeof...(Types) &&
@@ -482,24 +625,32 @@ namespace rainy::core::container {
         }
 
         /**
+         * \lang english
          * @brief Swaps the contents with another tuple.
-         *        与另一个tuple交换内容。
          *
          * @param right The right tuple to swap with
-         *              要交换的另一个tuple
+         *
+         * \lang simp-chinese
+         * @brief 与另一个tuple交换内容。
+         *
+         * @param right 要交换的另一个tuple
          */
         constexpr void swap(tuple &right) noexcept((type_traits::properties::is_nothrow_swappable_v<Types> && ...)) {
             base::swap_impl(right);
         }
 
         /**
+         * \lang english
          * @brief Gets a reference to the element at index I.
-         *        获取索引I处元素的引用。
          *
          * @tparam I The index of the element to access
-         *           要访问的元素的索引
          * @return Reference to the element at index I
-         *         索引I处元素的引用
+         *
+         * \lang simp-chinese
+         * @brief 获取索引I处元素的引用。
+         *
+         * @tparam I 要访问的元素的索引
+         * @return 索引I处元素的引用
          */
         template <std::size_t I>
         constexpr tuple_element_t<I, tuple> &get() noexcept {
@@ -508,13 +659,17 @@ namespace rainy::core::container {
         }
 
         /**
+         * \lang english
          * @brief Gets a const reference to the element at index I.
-         *        获取索引I处元素的常量引用。
          *
          * @tparam I The index of the element to access
-         *           要访问的元素的索引
          * @return Const reference to the element at index I
-         *         索引I处元素的常量引用
+         *
+         * \lang simp-chinese
+         * @brief 获取索引I处元素的常量引用。
+         *
+         * @tparam I 要访问的元素的索引
+         * @return 索引I处元素的常量引用
          */
         template <std::size_t I>
         constexpr const tuple_element_t<I, tuple> &get() const noexcept {
@@ -523,17 +678,21 @@ namespace rainy::core::container {
         }
 
         /**
+         * \lang english
          * @brief Concatenates this tuple with another tuple.
-         *        将当前tuple与另一个tuple连接。
          *
          * @tparam RightHead Type of the first element of the right tuple
-         *                   另一个tuple的第一个元素类型
          * @tparam RightRest Types of the remaining elements of the right tuple
-         *                   另一个tuple的剩余元素类型
          * @param right The right tuple to concatenate
-         *              要连接的另一个tuple
          * @return A new tuple containing all elements of this tuple followed by all elements of right
-         *         包含当前tuple所有元素后跟other所有元素的新tuple
+         *
+         * \lang simp-chinese
+         * @brief 将当前tuple与另一个tuple连接。
+         *
+         * @tparam RightHead 另一个tuple的第一个元素类型
+         * @tparam RightRest 另一个tuple的剩余元素类型
+         * @param right 要连接的另一个tuple
+         * @return 包含当前tuple所有元素后跟other所有元素的新tuple
          */
         template <typename RightHead, typename... RightRest>
         constexpr auto concat(const tuple<RightHead, RightRest...> &right) const {
@@ -542,17 +701,21 @@ namespace rainy::core::container {
         }
 
         /**
+         * \lang english
          * @brief Concatenates this tuple with another tuple (rvalue version).
-         *        将当前tuple与另一个tuple连接（右值版本）。
          *
          * @tparam RightHead Type of the first element of the right tuple
-         *                   另一个tuple的第一个元素类型
          * @tparam RightRest Types of the remaining elements of the right tuple
-         *                   另一个tuple的剩余元素类型
          * @param right The right tuple to concatenate
-         *              要连接的另一个tuple
          * @return A new tuple containing all elements of this tuple followed by all elements of right
-         *         包含当前tuple所有元素后跟other所有元素的新tuple
+         *
+         * \lang simp-chinese
+         * @brief 将当前tuple与另一个tuple连接（右值版本）。
+         *
+         * @tparam RightHead 另一个tuple的第一个元素类型
+         * @tparam RightRest 另一个tuple的剩余元素类型
+         * @param right 要连接的另一个tuple
+         * @return 包含当前tuple所有元素后跟other所有元素的新tuple
          */
         template <typename... UTypes>
         constexpr auto concat(tuple<Types...> &right) && {
@@ -561,13 +724,17 @@ namespace rainy::core::container {
         }
 
         /**
+         * \lang english
          * @brief Returns a new tuple with the first N elements removed.
-         *        返回移除了前N个元素的新tuple。
          *
          * @tparam N Number of elements to drop
-         *           要丢弃的元素数量
          * @return A tuple containing elements from index N to end
-         *         包含从索引N到末尾的元素的新tuple
+         *
+         * \lang simp-chinese
+         * @brief 返回移除了前N个元素的新tuple。
+         *
+         * @tparam N 要丢弃的元素数量
+         * @return 包含从索引N到末尾的元素的新tuple
          */
         template <std::size_t N>
         constexpr auto drop() const & {
@@ -582,13 +749,17 @@ namespace rainy::core::container {
         }
 
         /**
+         * \lang english
          * @brief Returns a new tuple with the first N elements removed.
-         *        返回移除了前N个元素的新tuple（右值版本）。
          *
          * @tparam N Number of elements to drop
-         *           要丢弃的元素数量
          * @return A tuple containing elements from index N to end
-         *         包含从索引N到末尾的元素的新tuple
+         *
+         * \lang simp-chinese
+         * @brief 返回移除了前N个元素的新tuple（右值版本）。
+         *
+         * @tparam N 要丢弃的元素数量
+         * @return 包含从索引N到末尾的元素的新tuple
          */
         template <std::size_t N>
         constexpr auto drop() && {
@@ -603,13 +774,17 @@ namespace rainy::core::container {
         }
 
         /**
+         * \lang english
          * @brief Returns a new tuple with the first N elements.
-         *        返回包含前N个元素的新tuple。
          *
          * @tparam N Number of elements to take
-         *           要获取的元素数量
          * @return A tuple containing the first N elements
-         *         包含前N个元素的新tuple
+         *
+         * \lang simp-chinese
+         * @brief 返回包含前N个元素的新tuple。
+         *
+         * @tparam N 要获取的元素数量
+         * @return 包含前N个元素的新tuple
          */
         template <std::size_t N>
         constexpr auto take() const & {
@@ -622,13 +797,17 @@ namespace rainy::core::container {
         }
 
         /**
+         * \lang english
          * @brief Returns a new tuple with the first N elements.
-         *        返回包含前N个元素的新tuple（右值版本）。
          *
          * @tparam N Number of elements to take
-         *           要获取的元素数量
          * @return A tuple containing the first N elements
-         *         包含前N个元素的新tuple
+         *
+         * \lang simp-chinese
+         * @brief 返回包含前N个元素的新tuple（右值版本）。
+         *
+         * @tparam N 要获取的元素数量
+         * @return 包含前N个元素的新tuple
          */
 
         template <std::size_t N>
@@ -642,15 +821,19 @@ namespace rainy::core::container {
         }
 
         /**
+         * \lang english
          * @brief Returns a subtuple containing elements from index Start to End (exclusive).
-         *        返回包含从索引Start到End（不包含）的元素的新tuple。
          *
          * @tparam Start Starting index (inclusive)
-         *               起始索引（包含）
          * @tparam End Ending index (exclusive)
-         *             结束索引（不包含）
          * @return A tuple containing elements in the range [Start, End)
-         *         包含范围[Start, End)内元素的新tuple
+         *
+         * \lang simp-chinese
+         * @brief 返回包含从索引Start到End（不包含）的元素的新tuple。
+         *
+         * @tparam Start 起始索引（包含）
+         * @tparam End 结束索引（不包含）
+         * @return 包含范围[Start, End)内元素的新tuple
          */
         template <std::size_t Start, std::size_t End>
         constexpr auto subtuple() const & {
@@ -664,15 +847,19 @@ namespace rainy::core::container {
         }
 
         /**
+         * \lang english
          * @brief Returns a subtuple containing elements from index Start to End (exclusive).
-         *        返回包含从索引Start到End（不包含）的元素的新tuple（右值版本）。
          *
          * @tparam Start Starting index (inclusive)
-         *               起始索引（包含）
          * @tparam End Ending index (exclusive)
-         *             结束索引（不包含）
          * @return A tuple containing elements in the range [Start, End)
-         *         包含范围[Start, End)内元素的新tuple
+         *
+         * \lang simp-chinese
+         * @brief 返回包含从索引Start到End（不包含）的元素的新tuple（右值版本）。
+         *
+         * @tparam Start 起始索引（包含）
+         * @tparam End 结束索引（不包含）
+         * @return 包含范围[Start, End)内元素的新tuple
          */
         template <std::size_t Start, std::size_t End>
         constexpr auto subtuple() && {
@@ -686,15 +873,19 @@ namespace rainy::core::container {
         }
 
         /**
+         * \lang english
          * @brief Applies a function to the elements of the tuple.
-         *        将函数应用于tuple的元素。
          *
          * @tparam Func Callable type
-         *              可调用类型
          * @param func The function to apply
-         *             要应用的函数
          * @return Result of the function call
-         *         函数调用的结果
+         *
+         * \lang simp-chinese
+         * @brief 将函数应用于tuple的元素。
+         *
+         * @tparam Func 可调用类型
+         * @param func 要应用的函数
+         * @return 函数调用的结果
          */
         template <typename Func>
         constexpr auto apply(Func &&func) const & {
@@ -702,15 +893,19 @@ namespace rainy::core::container {
         }
 
         /**
+         * \lang english
          * @brief Applies a function to the elements of the tuple.
-         *        将函数应用于tuple的元素（右值版本）。
          *
          * @tparam Func Callable type
-         *              可调用类型
          * @param func The function to apply
-         *             要应用的函数
          * @return Result of the function call
-         *         函数调用的结果
+         *
+         * \lang simp-chinese
+         * @brief 将函数应用于tuple的元素（右值版本）。
+         *
+         * @tparam Func 可调用类型
+         * @param func 要应用的函数
+         * @return 函数调用的结果
          */
         template <typename Func>
         constexpr auto apply(Func &&func) && {
@@ -718,19 +913,23 @@ namespace rainy::core::container {
         }
 
         /**
+         * \lang english
          * @brief Equality comparison between two tuples.
-         *        两个tuple之间的相等比较。
          *
          * @tparam TTypes Types of the left tuple
-         *                左tuple的类型
          * @tparam UTypes Types of the right tuple
-         *                右tuple的类型
          * @param left The left tuple
-         *             左tuple
          * @param right The right tuple
-         *              右tuple
          * @return true if the tuples are element-wise equal, false otherwise
-         *         如果tuple逐元素相等则为true，否则为false
+         *
+         * \lang simp-chinese
+         * @brief 两个tuple之间的相等比较。
+         *
+         * @tparam TTypes 左tuple的类型
+         * @tparam UTypes 右tuple的类型
+         * @param left 左tuple
+         * @param right 右tuple
+         * @return 如果tuple逐元素相等则为true，否则为false
          */
         template <typename... TTypes, typename... UTypes>
         friend inline constexpr bool operator==(const tuple<TTypes...> &left, const tuple<UTypes...> &right);
@@ -810,17 +1009,97 @@ namespace rainy::core::container {
     };
 
     /**
+     * \lang english
+     * @brief Deduction guide for constructing a tuple from a list of arguments.
+     *
+     * Deduces the element types by decaying each argument type (removing references,
+     * cv-qualifiers, and performing array-to-pointer / function-to-pointer decay).
+     *
+     * \lang simp-chinese
+     * @brief 从参数列表构造 tuple 的推导指引。
+     *
+     * 通过对每个参数类型进行退化（去除引用、cv 限定符，并执行数组到指针、
+     * 函数到指针的退化）来推导元素类型。
+     */
+    template <typename... Types>
+    tuple(Types...) -> tuple<type_traits::other_trans::decay_t<Types>...>;
+
+    /**
+     * \lang english
+     * @brief Deduction guide for copy-constructing a tuple from another tuple.
+     *
+     * \lang simp-chinese
+     * @brief 从另一个 tuple 拷贝构造的推导指引。
+     */
+    template <typename... Types>
+    tuple(tuple<Types...>) -> tuple<Types...>;
+
+    /**
+     * \lang english
+     * @brief Deduction guide for copy-constructing a tuple from another tuple.
+     *
+     * \lang simp-chinese
+     * @brief 从另一个 tuple 拷贝构造的推导指引。
+     */
+    template <typename... Types>
+    tuple(tuple<Types...> &) -> tuple<Types...>;
+    
+    /**
+     * \lang english
+     * @brief Deduction guide for copy-constructing a tuple from another tuple.
+     *
+     * \lang simp-chinese
+     * @brief 从另一个 tuple 拷贝构造的推导指引。
+     */
+    template <typename... Types>
+    tuple(const tuple<Types...> &) -> tuple<Types...>;
+
+    /**
+     * \lang english
+     * @brief Deduction guide for copy-constructing a tuple from another tuple.
+     *
+     * \lang simp-chinese
+     * @brief 从另一个 tuple 拷贝构造的推导指引。
+     */
+    template <typename... Types>
+    tuple(tuple<Types...> &&) -> tuple<Types...>;
+
+    /**
+     * \lang english
+     * @brief Deduction guide for copy-constructing a tuple from another tuple.
+     *
+     * \lang simp-chinese
+     * @brief 从另一个 tuple 拷贝构造的推导指引。
+     */
+    template <typename... Types>
+    tuple(const tuple<Types...> &&) -> tuple<Types...>;
+
+    /**
+     * \lang english
+     * @brief Deduction guide for allocator-extended construction.
+     *
+     * \lang simp-chinese
+     * @brief 分配器扩展构造的推导指引。
+     */
+    template <typename Alloc, typename... Types>
+    tuple(std::allocator_arg_t, const Alloc &, Types...) -> tuple<type_traits::other_trans::decay_t<Types>...>;
+
+    /**
+     * \lang english
      * @brief Gets a reference to the element at index I in a mutable tuple.
-     *        获取可变tuple中索引I处元素的引用。
      *
      * @tparam I The index of the element to access
-     *           要访问的元素的索引
      * @tparam Types The types contained in the tuple
-     *               tuple中包含的类型
      * @param t The tuple to access
-     *          要访问的tuple
      * @return Reference to the element at index I
-     *         索引I处元素的引用
+     *
+     * \lang simp-chinese
+     * @brief 获取可变tuple中索引I处元素的引用。
+     *
+     * @tparam I 要访问的元素的索引
+     * @tparam Types tuple中包含的类型
+     * @param t 要访问的tuple
+     * @return 索引I处元素的引用
      */
     template <std::size_t I, typename... Types>
     constexpr tuple_element_t<I, tuple<Types...>> &get(tuple<Types...> &t) noexcept {
@@ -828,17 +1107,21 @@ namespace rainy::core::container {
     }
 
     /**
+     * \lang english
      * @brief Gets a const reference to the element at index I in a const tuple.
-     *        获取常量tuple中索引I处元素的常量引用。
      *
      * @tparam I The index of the element to access
-     *           要访问的元素的索引
      * @tparam Types The types contained in the tuple
-     *               tuple中包含的类型
      * @param t The const tuple to access
-     *          要访问的常量tuple
      * @return Const reference to the element at index I
-     *         索引I处元素的常量引用
+     *
+     * \lang simp-chinese
+     * @brief 获取常量tuple中索引I处元素的常量引用。
+     *
+     * @tparam I 要访问的元素的索引
+     * @tparam Types tuple中包含的类型
+     * @param t 要访问的常量tuple
+     * @return 索引I处元素的常量引用
      */
     template <std::size_t I, typename... Types>
     constexpr const tuple_element_t<I, tuple<Types...>> &get(const tuple<Types...> &t) noexcept {
@@ -846,17 +1129,21 @@ namespace rainy::core::container {
     }
 
     /**
+     * \lang english
      * @brief Gets an rvalue reference to the element at index I in a mutable tuple.
-     *        获取可变tuple中索引I处元素的右值引用。
      *
      * @tparam I The index of the element to access
-     *           要访问的元素的索引
      * @tparam Types The types contained in the tuple
-     *               tuple中包含的类型
      * @param t The tuple to access (as rvalue)
-     *          要访问的tuple（作为右值）
      * @return Rvalue reference to the element at index I
-     *         索引I处元素的右值引用
+     *
+     * \lang simp-chinese
+     * @brief 获取可变tuple中索引I处元素的右值引用。
+     *
+     * @tparam I 要访问的元素的索引
+     * @tparam Types tuple中包含的类型
+     * @param t 要访问的tuple（作为右值）
+     * @return 索引I处元素的右值引用
      */
     template <std::size_t I, typename... Types>
     constexpr tuple_element_t<I, tuple<Types...>> &&get(tuple<Types...> &&t) noexcept { // NOLINT
@@ -864,17 +1151,21 @@ namespace rainy::core::container {
     }
 
     /**
+     * \lang english
      * @brief Gets a const rvalue reference to the element at index I in a const tuple.
-     *        获取常量tuple中索引I处元素的常量右值引用。
      *
      * @tparam I The index of the element to access
-     *           要访问的元素的索引
      * @tparam Types The types contained in the tuple
-     *               tuple中包含的类型
      * @param t The const tuple to access (as rvalue)
-     *          要访问的常量tuple（作为右值）
      * @return Const rvalue reference to the element at index I
-     *         索引I处元素的常量右值引用
+     *
+     * \lang simp-chinese
+     * @brief 获取常量tuple中索引I处元素的常量右值引用。
+     *
+     * @tparam I 要访问的元素的索引
+     * @tparam Types tuple中包含的类型
+     * @param t 要访问的常量tuple（作为右值）
+     * @return 索引I处元素的常量右值引用
      */
     template <std::size_t I, typename... Types>
     constexpr const tuple_element_t<I, tuple<Types...>> &&get(const tuple<Types...> &&t) noexcept {
@@ -882,17 +1173,21 @@ namespace rainy::core::container {
     }
 
     /**
+     * \lang english
      * @brief Drops the first N elements from a tuple.
-     *        从tuple中丢弃前N个元素。
      *
      * @tparam N Number of elements to drop
-     *           要丢弃的元素数量
      * @tparam Types Types in the tuple
-     *               tuple中的类型
      * @param t The tuple to drop from
-     *          要丢弃元素的tuple
      * @return A new tuple without the first N elements
-     *         不包含前N个元素的新tuple
+     *
+     * \lang simp-chinese
+     * @brief 从tuple中丢弃前N个元素。
+     *
+     * @tparam N 要丢弃的元素数量
+     * @tparam Types tuple中的类型
+     * @param t 要丢弃元素的tuple
+     * @return 不包含前N个元素的新tuple
      */
     template <std::size_t N, typename... Types>
     constexpr auto drop(const tuple<Types...> &t) {
@@ -900,17 +1195,21 @@ namespace rainy::core::container {
     }
 
     /**
+     * \lang english
      * @brief Drops the first N elements from a tuple (rvalue version).
-     *        从tuple中丢弃前N个元素（右值版本）。
      *
      * @tparam N Number of elements to drop
-     *           要丢弃的元素数量
      * @tparam Types Types in the tuple
-     *               tuple中的类型
      * @param t The tuple to drop from
-     *          要丢弃元素的tuple
      * @return A new tuple without the first N elements
-     *         不包含前N个元素的新tuple
+     *
+     * \lang simp-chinese
+     * @brief 从tuple中丢弃前N个元素（右值版本）。
+     *
+     * @tparam N 要丢弃的元素数量
+     * @tparam Types tuple中的类型
+     * @param t 要丢弃元素的tuple
+     * @return 不包含前N个元素的新tuple
      */
     template <std::size_t N, typename... Types>
     constexpr auto drop(tuple<Types...> &&t) {
@@ -918,17 +1217,21 @@ namespace rainy::core::container {
     }
 
     /**
+     * \lang english
      * @brief Takes the first N elements from a tuple.
-     *        从tuple中获取前N个元素。
      *
      * @tparam N Number of elements to take
-     *           要获取的元素数量
      * @tparam Types Types in the tuple
-     *               tuple中的类型
      * @param t The tuple to take from
-     *          要获取元素的tuple
      * @return A new tuple with the first N elements
-     *         包含前N个元素的新tuple
+     *
+     * \lang simp-chinese
+     * @brief 从tuple中获取前N个元素。
+     *
+     * @tparam N 要获取的元素数量
+     * @tparam Types tuple中的类型
+     * @param t 要获取元素的tuple
+     * @return 包含前N个元素的新tuple
      */
     template <std::size_t N, typename... Types>
     constexpr auto take(const tuple<Types...> &t) {
@@ -936,17 +1239,21 @@ namespace rainy::core::container {
     }
 
     /**
+     * \lang english
      * @brief Takes the first N elements from a tuple (rvalue version).
-     *        从tuple中获取前N个元素（右值版本）。
      *
      * @tparam N Number of elements to take
-     *           要获取的元素数量
      * @tparam Types Types in the tuple
-     *               tuple中的类型
      * @param t The tuple to take from
-     *          要获取元素的tuple
      * @return A new tuple with the first N elements
-     *         包含前N个元素的新tuple
+     *
+     * \lang simp-chinese
+     * @brief 从tuple中获取前N个元素（右值版本）。
+     *
+     * @tparam N 要获取的元素数量
+     * @tparam Types tuple中的类型
+     * @param t 要获取元素的tuple
+     * @return 包含前N个元素的新tuple
      */
     template <std::size_t N, typename... Types>
     constexpr auto take(tuple<Types...> &&t) {
@@ -954,19 +1261,23 @@ namespace rainy::core::container {
     }
 
     /**
+     * \lang english
      * @brief Extracts a subtuple from a tuple.
-     *        从tuple中提取子tuple。
      *
      * @tparam Start Starting index (inclusive)
-     *               起始索引（包含）
      * @tparam End Ending index (exclusive)
-     *             结束索引（不包含）
      * @tparam Types Types in the tuple
-     *               tuple中的类型
      * @param t The tuple to extract from
-     *          要提取的tuple
      * @return A tuple containing elements in the range [Start, End)
-     *         包含范围[Start, End)内元素的新tuple
+     *
+     * \lang simp-chinese
+     * @brief 从tuple中提取子tuple。
+     *
+     * @tparam Start 起始索引（包含）
+     * @tparam End 结束索引（不包含）
+     * @tparam Types tuple中的类型
+     * @param t 要提取的tuple
+     * @return 包含范围[Start, End)内元素的新tuple
      */
     template <std::size_t Start, std::size_t End, typename... Types>
     constexpr auto subtuple(const tuple<Types...> &t) {
@@ -974,19 +1285,23 @@ namespace rainy::core::container {
     }
 
     /**
+     * \lang english
      * @brief Extracts a subtuple from a tuple (rvalue version).
-     *        从tuple中提取子tuple（右值版本）。
      *
      * @tparam Start Starting index (inclusive)
-     *               起始索引（包含）
      * @tparam End Ending index (exclusive)
-     *             结束索引（不包含）
      * @tparam Types Types in the tuple
-     *               tuple中的类型
      * @param t The tuple to extract from
-     *          要提取的tuple
      * @return A tuple containing elements in the range [Start, End)
-     *         包含范围[Start, End)内元素的新tuple
+     *
+     * \lang simp-chinese
+     * @brief 从tuple中提取子tuple（右值版本）。
+     *
+     * @tparam Start 起始索引（包含）
+     * @tparam End 结束索引（不包含）
+     * @tparam Types tuple中的类型
+     * @param t 要提取的tuple
+     * @return 包含范围[Start, End)内元素的新tuple
      */
     template <std::size_t Start, std::size_t End, typename... Types>
     constexpr auto subtuple(tuple<Types...> &&t) {
@@ -994,19 +1309,23 @@ namespace rainy::core::container {
     }
 
     /**
+     * \lang english
      * @brief Applies a function to the elements of a tuple.
-     *        将函数应用于tuple的元素。
      *
      * @tparam Func Callable type
-     *              可调用类型
      * @tparam Types Types in the tuple
-     *               tuple中的类型
      * @param func The function to apply
-     *             要应用的函数
      * @param t The tuple to apply to
-     *          要应用函数的tuple
      * @return Result of the function call
-     *         函数调用的结果
+     *
+     * \lang simp-chinese
+     * @brief 将函数应用于tuple的元素。
+     *
+     * @tparam Func 可调用类型
+     * @tparam Types tuple中的类型
+     * @param func 要应用的函数
+     * @param t 要应用函数的tuple
+     * @return 函数调用的结果
      */
     template <typename Func, typename... Types>
     constexpr auto apply(Func &&func, const tuple<Types...> &t) {
@@ -1014,19 +1333,23 @@ namespace rainy::core::container {
     }
 
     /**
+     * \lang english
      * @brief Applies a function to the elements of a tuple (rvalue version).
-     *        将函数应用于tuple的元素（右值版本）。
      *
      * @tparam Func Callable type
-     *              可调用类型
      * @tparam Types Types in the tuple
-     *               tuple中的类型
      * @param func The function to apply
-     *             要应用的函数
      * @param t The tuple to apply to
-     *          要应用函数的tuple
      * @return Result of the function call
-     *         函数调用的结果
+     *
+     * \lang simp-chinese
+     * @brief 将函数应用于tuple的元素（右值版本）。
+     *
+     * @tparam Func 可调用类型
+     * @tparam Types tuple中的类型
+     * @param func 要应用的函数
+     * @param t 要应用函数的tuple
+     * @return 函数调用的结果
      */
     template <typename Func, typename... Types>
     constexpr auto apply(Func &&func, tuple<Types...> &&t) {
@@ -1034,15 +1357,19 @@ namespace rainy::core::container {
     }
 
     /**
+     * \lang english
      * @brief Creates a tuple by deducing the types of the arguments and decaying them.
-     *        通过推导参数类型并退化它们来创建tuple。
      *
      * @tparam Types The types of the arguments
-     *               参数的类型
      * @param args The values to store in the tuple
-     *             要存储在tuple中的值
      * @return A tuple containing the decayed copies of the arguments
-     *         包含参数退化副本的tuple
+     *
+     * \lang simp-chinese
+     * @brief 通过推导参数类型并退化它们来创建tuple。
+     *
+     * @tparam Types 参数的类型
+     * @param args 要存储在tuple中的值
+     * @return 包含参数退化副本的tuple
      */
     template <typename... Types>
     constexpr tuple<type_traits::other_trans::decay_t<Types>...> make_tuple(Types &&...args) {
@@ -1050,15 +1377,19 @@ namespace rainy::core::container {
     }
 
     /**
+     * \lang english
      * @brief Creates a tuple of references to the arguments.
-     *        创建参数引用的tuple。
      *
      * @tparam Types The types of the arguments
-     *               参数的类型
      * @param args The values to create references to
-     *             要创建引用的值
      * @return A tuple containing references to the arguments
-     *         包含参数引用的tuple
+     *
+     * \lang simp-chinese
+     * @brief 创建参数引用的tuple。
+     *
+     * @tparam Types 参数的类型
+     * @param args 要创建引用的值
+     * @return 包含参数引用的tuple
      */
     template <typename... Types>
     constexpr tuple<Types &&...> forward_as_tuple(Types &&...args) noexcept {
@@ -1066,15 +1397,19 @@ namespace rainy::core::container {
     }
 
     /**
+     * \lang english
      * @brief Swaps two tuples.
-     *        交换两个tuple。
      *
      * @tparam Types The types contained in the tuples
-     *               tuple中包含的类型
      * @param left The first tuple
-     *             第一个tuple
      * @param right The second tuple
-     *              第二个tuple
+     *
+     * \lang simp-chinese
+     * @brief 交换两个tuple。
+     *
+     * @tparam Types tuple中包含的类型
+     * @param left 第一个tuple
+     * @param right 第二个tuple
      */
     template <typename... Types>
     constexpr void swap(tuple<Types...> &left, tuple<Types...> &right) noexcept(noexcept(left.swap(right))) {
@@ -1084,11 +1419,15 @@ namespace rainy::core::container {
 
 namespace rainy::core::container {
     /**
+     * \lang english
      * @brief Provides the number of elements in a tuple.
-     *        提供tuple中的元素数量。
      *
      * @tparam Tuple The tuple type
-     *               tuple类型
+     *
+     * \lang simp-chinese
+     * @brief 提供tuple中的元素数量。
+     *
+     * @tparam Tuple tuple类型
      */
     template <typename Tuple>
     struct tuple_size {
@@ -1096,11 +1435,15 @@ namespace rainy::core::container {
     };
 
     /**
+     * \lang english
      * @brief Specialization for tuple types.
-     *        tuple类型的特化。
      *
      * @tparam Args The types contained in the tuple
-     *              tuple中包含的类型
+     *
+     * \lang simp-chinese
+     * @brief tuple类型的特化。
+     *
+     * @tparam Args tuple中包含的类型
      */
     template <typename... Args>
     struct tuple_size<tuple<Args...>> {
@@ -1108,29 +1451,37 @@ namespace rainy::core::container {
     };
 
     /**
+     * \lang english
      * @brief Variable template for tuple size.
-     *        tuple大小的变量模板。
      *
      * @tparam Tuple The tuple type
-     *               tuple类型
+     *
+     * \lang simp-chinese
+     * @brief tuple大小的变量模板。
+     *
+     * @tparam Tuple tuple类型
      */
     template <typename Tuple>
     static inline constexpr std::size_t tuple_size_v = tuple_size<Tuple>::value;
 
     /**
+     * \lang english
      * @brief Concatenates multiple tuples into a single tuple.
-     *        将多个tuple连接成一个单独的tuple。
      *
      * @tparam First Type of the first tuple
-     *               第一个tuple的类型
      * @tparam Rest Types of the remaining tuples
-     *              剩余tuple的类型
      * @param first The first tuple to concatenate
-     *              要连接的第一个tuple
      * @param rest The remaining tuples to concatenate
-     *             要连接的剩余tuple
      * @return A tuple containing all elements from all input tuples in order
-     *         包含所有输入tuple所有元素按顺序排列的新tuple
+     *
+     * \lang simp-chinese
+     * @brief 将多个tuple连接成一个单独的tuple。
+     *
+     * @tparam First 第一个tuple的类型
+     * @tparam Rest 剩余tuple的类型
+     * @param first 要连接的第一个tuple
+     * @param rest 要连接的剩余tuple
+     * @return 包含所有输入tuple所有元素按顺序排列的新tuple
      */
     template <typename First, typename... Rest>
     constexpr auto tuple_cat(First &&first, Rest &&...rest) {
@@ -1141,6 +1492,17 @@ namespace rainy::core::container {
         }
     }
 
+    /**
+     * \lang english
+     * @brief Concatenates zero tuples, producing an empty tuple.
+     *
+     * @return An empty tuple
+     *
+     * \lang simp-chinese
+     * @brief 连接零个tuple，产生一个空tuple。
+     *
+     * @return 空tuple
+     */
     constexpr auto tuple_cat() {
         return tuple<>{};
     }
@@ -1179,6 +1541,25 @@ namespace rainy::core::container::implements {
 }
 
 namespace rainy::core::container {
+    /**
+     * \lang english
+     * @brief Equality comparison between two tuples.
+     *
+     * @tparam TTypes Types of the left tuple
+     * @tparam UTypes Types of the right tuple
+     * @param left The left tuple
+     * @param right The right tuple
+     * @return true if the tuples are element-wise equal, false otherwise
+     *
+     * \lang simp-chinese
+     * @brief 两个tuple之间的相等比较。
+     *
+     * @tparam TTypes 左tuple的类型
+     * @tparam UTypes 右tuple的类型
+     * @param left 左tuple
+     * @param right 右tuple
+     * @return 如果tuple逐元素相等则为true，否则为false
+     */
     template <typename... TTypes, typename... UTypes>
     constexpr bool operator==(const tuple<TTypes...> &left, const tuple<UTypes...> &right) {
         if constexpr (sizeof...(TTypes) != sizeof...(UTypes)) {

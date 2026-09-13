@@ -149,21 +149,25 @@ namespace rainy::core::algorithm::implements {
 
 namespace rainy::core::algorithm {
     /**
+     * \lang english
      * @brief Finds the first position where the range is no longer sorted.
-     *        查找范围不再有序的第一个位置。
      *
      * @tparam ForwardIt Forward iterator type
-     *                   前向迭代器类型
      * @tparam Comp The comparison type
-     *              比较器类型
      * @param first Iterator to the beginning of the range
-     *              指向范围起始的迭代器
      * @param last Iterator to the end of the range
-     *             指向范围末尾的迭代器
      * @param comp The comparison to apply
-     *             要应用的比较器
      * @return Iterator to the end of the longest sorted prefix
-     *         指向最长有序前缀末尾的迭代器
+     *
+     * \lang simp-chinese
+     * @brief 查找范围不再有序的第一个位置。
+     *
+     * @tparam ForwardIt 前向迭代器类型
+     * @tparam Comp 比较器类型
+     * @param first 指向范围起始的迭代器
+     * @param last 指向范围末尾的迭代器
+     * @param comp 要应用的比较器
+     * @return 指向最长有序前缀末尾的迭代器
      */
     template <typename ForwardIt, typename Comp>
     RAINY_NODISCARD constexpr rain_fn is_sorted_until(ForwardIt first, ForwardIt last, Comp comp) -> ForwardIt {
@@ -180,15 +184,19 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Finds the first position where the range is no longer sorted (operator<).
-     *        查找范围不再有序的第一个位置（operator<）。
      *
      * @tparam ForwardIt Forward iterator type
-     *                   前向迭代器类型
      * @param first Iterator to the beginning of the range
-     *              指向范围起始的迭代器
      * @param last Iterator to the end of the range
-     *             指向范围末尾的迭代器
+     *
+     * \lang simp-chinese
+     * @brief 查找范围不再有序的第一个位置（operator<）。
+     *
+     * @tparam ForwardIt 前向迭代器类型
+     * @param first 指向范围起始的迭代器
+     * @param last 指向范围末尾的迭代器
      */
     template <typename ForwardIt>
     RAINY_NODISCARD constexpr rain_fn is_sorted_until(ForwardIt first, ForwardIt last) -> ForwardIt {
@@ -196,21 +204,25 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Checks whether the range is sorted with respect to comp.
-     *        检查范围是否按comp有序。
      *
      * @tparam ForwardIt Forward iterator type
-     *                   前向迭代器类型
      * @tparam Comp The comparison type
-     *              比较器类型
      * @param first Iterator to the beginning of the range
-     *              指向范围起始的迭代器
      * @param last Iterator to the end of the range
-     *             指向范围末尾的迭代器
      * @param comp The comparison to apply
-     *             要应用的比较器
      * @return true if the range is sorted
-     *         如果范围有序则为true
+     *
+     * \lang simp-chinese
+     * @brief 检查范围是否按comp有序。
+     *
+     * @tparam ForwardIt 前向迭代器类型
+     * @tparam Comp 比较器类型
+     * @param first 指向范围起始的迭代器
+     * @param last 指向范围末尾的迭代器
+     * @param comp 要应用的比较器
+     * @return 如果范围有序则为true
      */
     template <typename ForwardIt, typename Comp>
     RAINY_NODISCARD constexpr rain_fn is_sorted(ForwardIt first, ForwardIt last, Comp comp) -> bool {
@@ -218,15 +230,19 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Checks whether the range is sorted (operator<).
-     *        检查范围是否有序（operator<）。
      *
      * @tparam ForwardIt Forward iterator type
-     *                   前向迭代器类型
      * @param first Iterator to the beginning of the range
-     *              指向范围起始的迭代器
      * @param last Iterator to the end of the range
-     *             指向范围末尾的迭代器
+     *
+     * \lang simp-chinese
+     * @brief 检查范围是否有序（operator<）。
+     *
+     * @tparam ForwardIt 前向迭代器类型
+     * @param first 指向范围起始的迭代器
+     * @param last 指向范围末尾的迭代器
      */
     template <typename ForwardIt>
     RAINY_NODISCARD constexpr rain_fn is_sorted(ForwardIt first, ForwardIt last) -> bool {
@@ -234,19 +250,23 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Sorts the range in ascending order with respect to comp (introsort).
-     *        按comp将范围升序排序（introsort，非稳定）。
      *
      * @tparam RandomIt Random access iterator type
-     *                  随机访问迭代器类型
      * @tparam Comp The comparison type
-     *              比较器类型
      * @param first Iterator to the beginning of the range
-     *              指向范围起始的迭代器
      * @param last Iterator to the end of the range
-     *             指向范围末尾的迭代器
      * @param comp The comparison to apply
-     *             要应用的比较器
+     *
+     * \lang simp-chinese
+     * @brief 按comp将范围升序排序（introsort，非稳定）。
+     *
+     * @tparam RandomIt 随机访问迭代器类型
+     * @tparam Comp 比较器类型
+     * @param first 指向范围起始的迭代器
+     * @param last 指向范围末尾的迭代器
+     * @param comp 要应用的比较器
      */
     template <typename RandomIt, typename Comp>
     constexpr rain_fn sort(RandomIt first, RandomIt last, Comp comp) -> void {
@@ -254,15 +274,19 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Sorts the range in ascending order (operator<, introsort).
-     *        将范围升序排序（operator<，introsort，非稳定）。
      *
      * @tparam RandomIt Random access iterator type
-     *                  随机访问迭代器类型
      * @param first Iterator to the beginning of the range
-     *              指向范围起始的迭代器
      * @param last Iterator to the end of the range
-     *             指向范围末尾的迭代器
+     *
+     * \lang simp-chinese
+     * @brief 将范围升序排序（operator<，introsort，非稳定）。
+     *
+     * @tparam RandomIt 随机访问迭代器类型
+     * @param first 指向范围起始的迭代器
+     * @param last 指向范围末尾的迭代器
      */
     template <typename RandomIt>
     constexpr rain_fn sort(RandomIt first, RandomIt last) -> void {
@@ -270,19 +294,23 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Sorts the range stably in ascending order with respect to comp (merge sort).
-     *        按comp稳定升序排序（归并排序）。
      *
      * @tparam RandomIt Random access iterator type
-     *                  随机访问迭代器类型
      * @tparam Comp The comparison type
-     *              比较器类型
      * @param first Iterator to the beginning of the range
-     *              指向范围起始的迭代器
      * @param last Iterator to the end of the range
-     *             指向范围末尾的迭代器
      * @param comp The comparison to apply
-     *             要应用的比较器
+     *
+     * \lang simp-chinese
+     * @brief 按comp稳定升序排序（归并排序）。
+     *
+     * @tparam RandomIt 随机访问迭代器类型
+     * @tparam Comp 比较器类型
+     * @param first 指向范围起始的迭代器
+     * @param last 指向范围末尾的迭代器
+     * @param comp 要应用的比较器
      */
     template <typename RandomIt, typename Comp>
     constexpr rain_fn stable_sort(RandomIt first, RandomIt last, Comp comp) -> void {
@@ -297,15 +325,19 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Sorts the range stably in ascending order (operator<, merge sort).
-     *        稳定升序排序（operator<，归并排序）。
      *
      * @tparam RandomIt Random access iterator type
-     *                  随机访问迭代器类型
      * @param first Iterator to the beginning of the range
-     *              指向范围起始的迭代器
      * @param last Iterator to the end of the range
-     *             指向范围末尾的迭代器
+     *
+     * \lang simp-chinese
+     * @brief 稳定升序排序（operator<，归并排序）。
+     *
+     * @tparam RandomIt 随机访问迭代器类型
+     * @param first 指向范围起始的迭代器
+     * @param last 指向范围末尾的迭代器
      */
     template <typename RandomIt>
     constexpr rain_fn stable_sort(RandomIt first, RandomIt last) -> void {
@@ -313,21 +345,25 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Partially sorts the range: the smallest [first, middle) elements are sorted at the front.
-     *        部分排序：最小的[first, middle)个元素有序地放在前面。
      *
      * @tparam RandomIt Random access iterator type
-     *                  随机访问迭代器类型
      * @tparam Comp The comparison type
-     *              比较器类型
      * @param first Iterator to the beginning of the range
-     *              指向范围起始的迭代器
      * @param middle Iterator delimiting the sorted prefix
-     *               界定有序前缀的迭代器
      * @param last Iterator to the end of the range
-     *             指向范围末尾的迭代器
      * @param comp The comparison to apply
-     *             要应用的比较器
+     *
+     * \lang simp-chinese
+     * @brief 部分排序：最小的[first, middle)个元素有序地放在前面。
+     *
+     * @tparam RandomIt 随机访问迭代器类型
+     * @tparam Comp 比较器类型
+     * @param first 指向范围起始的迭代器
+     * @param middle 界定有序前缀的迭代器
+     * @param last 指向范围末尾的迭代器
+     * @param comp 要应用的比较器
      */
     template <typename RandomIt, typename Comp>
     constexpr rain_fn partial_sort(RandomIt first, RandomIt middle, RandomIt last, Comp comp) -> void {
@@ -345,17 +381,21 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Partially sorts the range with the default comparison.
-     *        使用默认比较的部分排序。
      *
      * @tparam RandomIt Random access iterator type
-     *                  随机访问迭代器类型
      * @param first Iterator to the beginning of the range
-     *              指向范围起始的迭代器
      * @param middle Iterator delimiting the sorted prefix
-     *               界定有序前缀的迭代器
      * @param last Iterator to the end of the range
-     *             指向范围末尾的迭代器
+     *
+     * \lang simp-chinese
+     * @brief 使用默认比较的部分排序。
+     *
+     * @tparam RandomIt 随机访问迭代器类型
+     * @param first 指向范围起始的迭代器
+     * @param middle 界定有序前缀的迭代器
+     * @param last 指向范围末尾的迭代器
      */
     template <typename RandomIt>
     constexpr rain_fn partial_sort(RandomIt first, RandomIt middle, RandomIt last) -> void {
@@ -363,27 +403,31 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Copies the smallest elements of the source range, sorted, into the destination.
-     *        将源范围中最小的若干元素排序后拷贝到目标范围。
      *
      * @tparam InputIt Input iterator type
-     *                 输入迭代器类型
      * @tparam RandomIt Random access iterator type of the destination
-     *                  目标的随机访问迭代器类型
      * @tparam Comp The comparison type
-     *              比较器类型
      * @param first Iterator to the beginning of the source range
-     *              指向源范围起始的迭代器
      * @param last Iterator to the end of the source range
-     *             指向源范围末尾的迭代器
      * @param dest_first Iterator to the beginning of the destination range
-     *                   指向目标范围起始的迭代器
      * @param dest_last Iterator to the end of the destination range
-     *                  指向目标范围末尾的迭代器
      * @param comp The comparison to apply
-     *             要应用的比较器
      * @return Iterator to the end of the written destination range
-     *         指向已写入目标范围末尾的迭代器
+     *
+     * \lang simp-chinese
+     * @brief 将源范围中最小的若干元素排序后拷贝到目标范围。
+     *
+     * @tparam InputIt 输入迭代器类型
+     * @tparam RandomIt 目标的随机访问迭代器类型
+     * @tparam Comp 比较器类型
+     * @param first 指向源范围起始的迭代器
+     * @param last 指向源范围末尾的迭代器
+     * @param dest_first 指向目标范围起始的迭代器
+     * @param dest_last 指向目标范围末尾的迭代器
+     * @param comp 要应用的比较器
+     * @return 指向已写入目标范围末尾的迭代器
      */
     template <typename InputIt, typename RandomIt, typename Comp>
     constexpr rain_fn partial_sort_copy(InputIt first, InputIt last, RandomIt dest_first, RandomIt dest_last, Comp comp)
@@ -408,23 +452,27 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Copies the smallest elements of the source range, sorted, into the destination (operator<).
-     *        将源范围中最小的若干元素排序后拷贝到目标范围（operator<）。
      *
      * @tparam InputIt Input iterator type
-     *                 输入迭代器类型
      * @tparam RandomIt Random access iterator type of the destination
-     *                  目标的随机访问迭代器类型
      * @param first Iterator to the beginning of the source range
-     *              指向源范围起始的迭代器
      * @param last Iterator to the end of the source range
-     *             指向源范围末尾的迭代器
      * @param dest_first Iterator to the beginning of the destination range
-     *                   指向目标范围起始的迭代器
      * @param dest_last Iterator to the end of the destination range
-     *                  指向目标范围末尾的迭代器
      * @return Iterator to the end of the written destination range
-     *         指向已写入目标范围末尾的迭代器
+     *
+     * \lang simp-chinese
+     * @brief 将源范围中最小的若干元素排序后拷贝到目标范围（operator<）。
+     *
+     * @tparam InputIt 输入迭代器类型
+     * @tparam RandomIt 目标的随机访问迭代器类型
+     * @param first 指向源范围起始的迭代器
+     * @param last 指向源范围末尾的迭代器
+     * @param dest_first 指向目标范围起始的迭代器
+     * @param dest_last 指向目标范围末尾的迭代器
+     * @return 指向已写入目标范围末尾的迭代器
      */
     template <typename InputIt, typename RandomIt>
     constexpr rain_fn partial_sort_copy(InputIt first, InputIt last, RandomIt dest_first, RandomIt dest_last) -> RandomIt {
@@ -433,21 +481,25 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Places the element that would be at position nth after sorting there, partitioning around it.
-     *        将排序后应位于nth位置的元素放到该处，并以其为界分区。
      *
      * @tparam RandomIt Random access iterator type
-     *                  随机访问迭代器类型
      * @tparam Comp The comparison type
-     *              比较器类型
      * @param first Iterator to the beginning of the range
-     *              指向范围起始的迭代器
      * @param nth Iterator delimiting the position to settle
-     *            界定待确定位置的迭代器
      * @param last Iterator to the end of the range
-     *             指向范围末尾的迭代器
      * @param comp The comparison to apply
-     *             要应用的比较器
+     *
+     * \lang simp-chinese
+     * @brief 将排序后应位于nth位置的元素放到该处，并以其为界分区。
+     *
+     * @tparam RandomIt 随机访问迭代器类型
+     * @tparam Comp 比较器类型
+     * @param first 指向范围起始的迭代器
+     * @param nth 界定待确定位置的迭代器
+     * @param last 指向范围末尾的迭代器
+     * @param comp 要应用的比较器
      */
     template <typename RandomIt, typename Comp>
     constexpr rain_fn nth_element(RandomIt first, RandomIt nth, RandomIt last, Comp comp) -> void {
@@ -458,17 +510,21 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Places the element that would be at position nth after sorting there (operator<).
-     *        将排序后应位于nth位置的元素放到该处（operator<）。
      *
      * @tparam RandomIt Random access iterator type
-     *                  随机访问迭代器类型
      * @param first Iterator to the beginning of the range
-     *              指向范围起始的迭代器
      * @param nth Iterator delimiting the position to settle
-     *            界定待确定位置的迭代器
      * @param last Iterator to the end of the range
-     *             指向范围末尾的迭代器
+     *
+     * \lang simp-chinese
+     * @brief 将排序后应位于nth位置的元素放到该处（operator<）。
+     *
+     * @tparam RandomIt 随机访问迭代器类型
+     * @param first 指向范围起始的迭代器
+     * @param nth 界定待确定位置的迭代器
+     * @param last 指向范围末尾的迭代器
      */
     template <typename RandomIt>
     constexpr rain_fn nth_element(RandomIt first, RandomIt nth, RandomIt last) -> void {
