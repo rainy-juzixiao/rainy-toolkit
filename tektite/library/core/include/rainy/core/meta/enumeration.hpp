@@ -593,6 +593,35 @@ namespace rainy::core::meta {
     }
 }
 
+namespace rainy::meta {
+    using core::meta::is_enum_value;
+    using core::meta::is_enum_value_v;
+
+    using core::meta::enum_count;
+    using core::meta::enum_values;
+    using core::meta::enum_value;
+    using core::meta::enum_entries;
+
+    using core::meta::enum_name;
+    using core::meta::enum_names;
+    using core::meta::enum_type_name;
+
+    using core::meta::enum_cast;
+    using core::meta::enum_integer;
+    using core::meta::enum_underlying;
+    using core::meta::enum_index;
+
+    using core::meta::enum_contains;
+    using core::meta::enum_flags_name;
+
+    using core::meta::customize_for_enum_name;
+    using core::meta::customize_for_enum_type_name;
+    using core::meta::customize_t;
+    using core::meta::default_tag;
+    using core::meta::invalid_tag;
+    using core::meta::case_insensitive;
+}
+
 #if RAINY_USING_CLANG || RAINY_USING_LLVM_GCC
 #pragma GCC diagnostic pop
 #endif
