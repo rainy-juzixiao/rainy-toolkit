@@ -60,19 +60,23 @@ namespace rainy::core::algorithm::implements {
 
 namespace rainy::core::algorithm {
     /**
+     * \lang english
      * @brief Turns a range into a max-heap with respect to comp.
-     *        将范围转换为关于comp的最大堆。
      *
      * @tparam RandomIt Random access iterator type
-     *                  随机访问迭代器类型
      * @tparam Comp The comparison type
-     *              比较器类型
      * @param first Iterator to the beginning of the range
-     *              指向范围起始的迭代器
      * @param last Iterator to the end of the range
-     *             指向范围末尾的迭代器
      * @param comp The comparison to apply
-     *             要应用的比较器
+     *
+     * \lang simp-chinese
+     * @brief 将范围转换为关于comp的最大堆。
+     *
+     * @tparam RandomIt 随机访问迭代器类型
+     * @tparam Comp 比较器类型
+     * @param first 指向范围起始的迭代器
+     * @param last 指向范围末尾的迭代器
+     * @param comp 要应用的比较器
      */
     template <typename RandomIt, typename Comp>
     constexpr rain_fn make_heap(RandomIt first, RandomIt last, Comp comp) -> void {
@@ -86,15 +90,19 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Turns a range into a max-heap ordered by operator<.
-     *        将范围转换为按operator<排序的最大堆。
      *
      * @tparam RandomIt Random access iterator type
-     *                  随机访问迭代器类型
      * @param first Iterator to the beginning of the range
-     *              指向范围起始的迭代器
      * @param last Iterator to the end of the range
-     *             指向范围末尾的迭代器
+     *
+     * \lang simp-chinese
+     * @brief 将范围转换为按operator<排序的最大堆。
+     *
+     * @tparam RandomIt 随机访问迭代器类型
+     * @param first 指向范围起始的迭代器
+     * @param last 指向范围末尾的迭代器
      */
     template <typename RandomIt>
     constexpr rain_fn make_heap(RandomIt first, RandomIt last) -> void {
@@ -102,19 +110,23 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Inserts the element before last into the heap [first, last - 1).
-     *        将last之前的元素插入堆[first, last - 1)。
      *
      * @tparam RandomIt Random access iterator type
-     *                  随机访问迭代器类型
      * @tparam Comp The comparison type
-     *              比较器类型
      * @param first Iterator to the beginning of the heap
-     *              指向堆起始的迭代器
      * @param last Iterator one past the element to insert
-     *             指向要插入元素之后的迭代器
      * @param comp The comparison to apply
-     *             要应用的比较器
+     *
+     * \lang simp-chinese
+     * @brief 将last之前的元素插入堆[first, last - 1)。
+     *
+     * @tparam RandomIt 随机访问迭代器类型
+     * @tparam Comp 比较器类型
+     * @param first 指向堆起始的迭代器
+     * @param last 指向要插入元素之后的迭代器
+     * @param comp 要应用的比较器
      */
     template <typename RandomIt, typename Comp>
     constexpr rain_fn push_heap(RandomIt first, RandomIt last, Comp comp) -> void {
@@ -122,15 +134,19 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Inserts the element before last into the heap ordered by operator<.
-     *        将last之前的元素插入按operator<排序的堆。
      *
      * @tparam RandomIt Random access iterator type
-     *                  随机访问迭代器类型
      * @param first Iterator to the beginning of the heap
-     *              指向堆起始的迭代器
      * @param last Iterator one past the element to insert
-     *             指向要插入元素之后的迭代器
+     *
+     * \lang simp-chinese
+     * @brief 将last之前的元素插入按operator<排序的堆。
+     *
+     * @tparam RandomIt 随机访问迭代器类型
+     * @param first 指向堆起始的迭代器
+     * @param last 指向要插入元素之后的迭代器
      */
     template <typename RandomIt>
     constexpr rain_fn push_heap(RandomIt first, RandomIt last) -> void {
@@ -138,19 +154,23 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Swaps the heap head with the last element and restores the heap invariant.
-     *        将堆顶与末尾元素交换，并恢复堆性质。
      *
      * @tparam RandomIt Random access iterator type
-     *                  随机访问迭代器类型
      * @tparam Comp The comparison type
-     *              比较器类型
      * @param first Iterator to the beginning of the heap
-     *              指向堆起始的迭代器
      * @param last Iterator to the end of the heap
-     *             指向堆末尾的迭代器
      * @param comp The comparison to apply
-     *             要应用的比较器
+     *
+     * \lang simp-chinese
+     * @brief 将堆顶与末尾元素交换，并恢复堆性质。
+     *
+     * @tparam RandomIt 随机访问迭代器类型
+     * @tparam Comp 比较器类型
+     * @param first 指向堆起始的迭代器
+     * @param last 指向堆末尾的迭代器
+     * @param comp 要应用的比较器
      */
     template <typename RandomIt, typename Comp>
     constexpr rain_fn pop_heap(RandomIt first, RandomIt last, Comp comp) -> void {
@@ -163,15 +183,19 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Swaps the heap head with the last element and restores the heap invariant (operator<).
-     *        将堆顶与末尾元素交换并恢复堆性质（operator<）。
      *
      * @tparam RandomIt Random access iterator type
-     *                  随机访问迭代器类型
      * @param first Iterator to the beginning of the heap
-     *              指向堆起始的迭代器
      * @param last Iterator to the end of the heap
-     *             指向堆末尾的迭代器
+     *
+     * \lang simp-chinese
+     * @brief 将堆顶与末尾元素交换并恢复堆性质（operator<）。
+     *
+     * @tparam RandomIt 随机访问迭代器类型
+     * @param first 指向堆起始的迭代器
+     * @param last 指向堆末尾的迭代器
      */
     template <typename RandomIt>
     constexpr rain_fn pop_heap(RandomIt first, RandomIt last) -> void {
@@ -179,19 +203,23 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Sorts a heap into ascending order with respect to comp.
-     *        将堆按comp排序为升序。
      *
      * @tparam RandomIt Random access iterator type
-     *                  随机访问迭代器类型
      * @tparam Comp The comparison type
-     *              比较器类型
      * @param first Iterator to the beginning of the heap
-     *              指向堆起始的迭代器
      * @param last Iterator to the end of the heap
-     *             指向堆末尾的迭代器
      * @param comp The comparison to apply
-     *             要应用的比较器
+     *
+     * \lang simp-chinese
+     * @brief 将堆按comp排序为升序。
+     *
+     * @tparam RandomIt 随机访问迭代器类型
+     * @tparam Comp 比较器类型
+     * @param first 指向堆起始的迭代器
+     * @param last 指向堆末尾的迭代器
+     * @param comp 要应用的比较器
      */
     template <typename RandomIt, typename Comp>
     constexpr rain_fn sort_heap(RandomIt first, RandomIt last, Comp comp) -> void {
@@ -202,15 +230,19 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Sorts a heap into ascending order (operator<).
-     *        将堆排序为升序（operator<）。
      *
      * @tparam RandomIt Random access iterator type
-     *                  随机访问迭代器类型
      * @param first Iterator to the beginning of the heap
-     *              指向堆起始的迭代器
      * @param last Iterator to the end of the heap
-     *             指向堆末尾的迭代器
+     *
+     * \lang simp-chinese
+     * @brief 将堆排序为升序（operator<）。
+     *
+     * @tparam RandomIt 随机访问迭代器类型
+     * @param first 指向堆起始的迭代器
+     * @param last 指向堆末尾的迭代器
      */
     template <typename RandomIt>
     constexpr rain_fn sort_heap(RandomIt first, RandomIt last) -> void {
@@ -218,21 +250,25 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Finds the first position where the range is no longer a heap.
-     *        查找范围不再满足堆性质的第一个位置。
      *
      * @tparam RandomIt Random access iterator type
-     *                  随机访问迭代器类型
      * @tparam Comp The comparison type
-     *              比较器类型
      * @param first Iterator to the beginning of the range
-     *              指向范围起始的迭代器
      * @param last Iterator to the end of the range
-     *             指向范围末尾的迭代器
      * @param comp The comparison to apply
-     *             要应用的比较器
      * @return Iterator to the end of the longest heap prefix
-     *         指向最长堆前缀末尾的迭代器
+     *
+     * \lang simp-chinese
+     * @brief 查找范围不再满足堆性质的第一个位置。
+     *
+     * @tparam RandomIt 随机访问迭代器类型
+     * @tparam Comp 比较器类型
+     * @param first 指向范围起始的迭代器
+     * @param last 指向范围末尾的迭代器
+     * @param comp 要应用的比较器
+     * @return 指向最长堆前缀末尾的迭代器
      */
     template <typename RandomIt, typename Comp>
     RAINY_NODISCARD constexpr rain_fn is_heap_until(RandomIt first, RandomIt last, Comp comp) -> RandomIt {
@@ -246,15 +282,19 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Finds the first position where the range is no longer a heap (operator<).
-     *        查找范围不再满足堆性质的第一个位置（operator<）。
      *
      * @tparam RandomIt Random access iterator type
-     *                  随机访问迭代器类型
      * @param first Iterator to the beginning of the range
-     *              指向范围起始的迭代器
      * @param last Iterator to the end of the range
-     *             指向范围末尾的迭代器
+     *
+     * \lang simp-chinese
+     * @brief 查找范围不再满足堆性质的第一个位置（operator<）。
+     *
+     * @tparam RandomIt 随机访问迭代器类型
+     * @param first 指向范围起始的迭代器
+     * @param last 指向范围末尾的迭代器
      */
     template <typename RandomIt>
     RAINY_NODISCARD constexpr rain_fn is_heap_until(RandomIt first, RandomIt last) -> RandomIt {
@@ -262,21 +302,25 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Checks whether the range is a max-heap with respect to comp.
-     *        检查范围是否为关于comp的最大堆。
      *
      * @tparam RandomIt Random access iterator type
-     *                  随机访问迭代器类型
      * @tparam Comp The comparison type
-     *              比较器类型
      * @param first Iterator to the beginning of the range
-     *              指向范围起始的迭代器
      * @param last Iterator to the end of the range
-     *             指向范围末尾的迭代器
      * @param comp The comparison to apply
-     *             要应用的比较器
      * @return true if the range is a max-heap
-     *         如果范围是最大堆则为true
+     *
+     * \lang simp-chinese
+     * @brief 检查范围是否为关于comp的最大堆。
+     *
+     * @tparam RandomIt 随机访问迭代器类型
+     * @tparam Comp 比较器类型
+     * @param first 指向范围起始的迭代器
+     * @param last 指向范围末尾的迭代器
+     * @param comp 要应用的比较器
+     * @return 如果范围是最大堆则为true
      */
     template <typename RandomIt, typename Comp>
     RAINY_NODISCARD constexpr rain_fn is_heap(RandomIt first, RandomIt last, Comp comp) -> bool {
@@ -284,15 +328,19 @@ namespace rainy::core::algorithm {
     }
 
     /**
+     * \lang english
      * @brief Checks whether the range is a max-heap ordered by operator<.
-     *        检查范围是否为按operator<排序的最大堆。
      *
      * @tparam RandomIt Random access iterator type
-     *                  随机访问迭代器类型
      * @param first Iterator to the beginning of the range
-     *              指向范围起始的迭代器
      * @param last Iterator to the end of the range
-     *             指向范围末尾的迭代器
+     *
+     * \lang simp-chinese
+     * @brief 检查范围是否为按operator<排序的最大堆。
+     *
+     * @tparam RandomIt 随机访问迭代器类型
+     * @param first 指向范围起始的迭代器
+     * @param last 指向范围末尾的迭代器
      */
     template <typename RandomIt>
     RAINY_NODISCARD constexpr rain_fn is_heap(RandomIt first, RandomIt last) -> bool {

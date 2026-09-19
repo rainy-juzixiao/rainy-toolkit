@@ -30,20 +30,82 @@
 #endif
 
 namespace rainy::core::container {
+    /**
+     * \lang english
+     * @brief A type-safe union that stores a value of exactly one of the listed types.
+     *
+     * @tparam Types The alternative types the variant may hold
+     *
+     * \lang simp-chinese
+     * @brief 一种类型安全的联合，恰好存储所列类型之一的值。
+     *
+     * @tparam Types variant 可能持有的备选类型
+     */
     template <typename... Types>
     class variant; // 前置声明
 
+    /**
+     * \lang english
+     * @brief A special index value indicating that the variant holds no value.
+     *
+     * \lang simp-chinese
+     * @brief 用于指示 variant 不持有任何值的特殊索引值。
+     */
     RAINY_INLINE_CONSTEXPR std::size_t variant_npos = type_traits::other_trans::type_list_npos;
 
+    /**
+     * \lang english
+     * @brief Provides the number of alternative types of a variant.
+     *
+     * @tparam Ty The type to inspect
+     *
+     * \lang simp-chinese
+     * @brief 提供 variant 备选类型的数量。
+     *
+     * @tparam Ty 要检查的类型
+     */
     template <typename Ty>
     struct variant_size; // undefined
 
+    /**
+     * \lang english
+     * @brief Specialization of variant_size for const-qualified variants.
+     *
+     * @tparam Ty The variant type
+     *
+     * \lang simp-chinese
+     * @brief variant_size 针对 const 限定 variant 的特化。
+     *
+     * @tparam Ty variant 类型
+     */
     template <typename Ty>
     struct variant_size<const Ty> : variant_size<Ty>::type {};
 
+    /**
+     * \lang english
+     * @brief Specialization of variant_size for the variant class template.
+     *
+     * @tparam Types The alternative types of the variant
+     *
+     * \lang simp-chinese
+     * @brief variant_size 针对 variant 类模板的特化。
+     *
+     * @tparam Types variant 的备选类型
+     */
     template <typename... Types>
     struct variant_size<variant<Types...>> : type_traits::helper::integral_constant<std::size_t, sizeof...(Types)> {};
 
+    /**
+     * \lang english
+     * @brief The number of alternative types of a variant.
+     *
+     * @tparam Ty The type to inspect
+     *
+     * \lang simp-chinese
+     * @brief variant 备选类型的数量。
+     *
+     * @tparam Ty 要检查的类型
+     */
     template <typename Ty>
     constexpr std::size_t variant_size_v = variant_size<Ty>::value;
 }
@@ -53,6 +115,7 @@ namespace rainy::core::exceptions::runtime {
                                       throw_bad_variant_access);
 }
 
+// @NODOCBEGIN
 namespace rainy::core::container::implements {
     template <bool TrivialTestruction, typename... Types>
     struct variant_storage {};
@@ -569,8 +632,22 @@ namespace rainy::core::container::implements {
         type_traits::logical_traits::conjunction_v<type_traits::properties::is_trivially_destructible<Types>...>,
         variant_base<Types...>, variant_destroy_layer<Types...>>;
 }
+// @NODOCEND
 
 namespace rainy::core::container {
+    /**
+     * \lang english
+     * @brief A type-safe union that stores a value of exactly one of the listed types.
+     *         The currently held alternative is identified by an index; the variant may also be valueless.
+     *
+     * @tparam Types The alternative types the variant may hold
+     *
+     * \lang simp-chinese
+     * @brief 一种类型安全的联合，恰好存储所列类型之一的值。
+     *         当前持有的备选类型由索引标识；variant 也可能处于无值状态。
+     *
+     * @tparam Types variant 可能持有的备选类型
+     */
     template <typename... Types>
     class variant : implements::variant_destroy_layer_t<Types...> {
     public:
@@ -578,11 +655,35 @@ namespace rainy::core::container {
         using type_list = type_traits::other_trans::type_list<Types...>;
         using base::storage;
 
+        /**
+         * \lang english
+         * @brief Default constructor. Constructs the variant holding the first alternative.
+         *
+         * @tparam First The first alternative type
+         *
+         * \lang simp-chinese
+         * @brief 默认构造函数。构造持有第一个备选类型的 variant。
+         *
+         * @tparam First 第一个备选类型
+         */
         template <typename First = type_traits::other_trans::type_at_t<0, type_list>,
                   type_traits::other_trans::enable_if_t<type_traits::properties::is_default_constructible_v<First>, int> = 0>
         constexpr variant() : base(std::in_place_index<0>) {
         }
 
+        /**
+         * \lang english
+         * @brief Converting constructor. Constructs the variant holding the alternative that best matches the given value.
+         *
+         * @tparam Ty The type of the value
+         * @param object The value used to initialize the held alternative
+         *
+         * \lang simp-chinese
+         * @brief 转换构造函数。构造持有与给定值最匹配的备选类型的 variant。
+         *
+         * @tparam Ty 值的类型
+         * @param object 用于初始化所持备选值的值
+         */
         template <typename Ty, type_traits::other_trans::enable_if_t<
                                    sizeof...(Types) != 0 &&
                                        !type_traits::type_relations::is_same_v<type_traits::modifers::remove_cvref_t<Ty>, type_list> &&
@@ -596,6 +697,21 @@ namespace rainy::core::container {
             base(std::in_place_index<implements::variant_init_index<Ty, Types...>::value>, utility::forward<Ty>(object)) {
         }
 
+        /**
+         * \lang english
+         * @brief In-place constructor by type. Constructs the alternative of type Ty from the given arguments.
+         *
+         * @tparam Ty The alternative type to construct
+         * @tparam Args The types of the arguments forwarded to the constructor of Ty
+         * @param args The arguments forwarded to the constructor of Ty
+         *
+         * \lang simp-chinese
+         * @brief 按类型就地构造函数。使用给定实参构造类型为 Ty 的备选值。
+         *
+         * @tparam Ty 要构造的备选类型
+         * @tparam Args 转发给 Ty 构造函数的实参类型
+         * @param args 转发给 Ty 构造函数的实参
+         */
         template <typename Ty, typename... Args, typename Idx = type_traits::other_trans::type_find_unique<Ty, type_list>,
                   type_traits::other_trans::enable_if_t<
                       Idx::value != base::invalid_index && type_traits::properties::is_constructible_v<Ty, Args...>, int> = 0>
@@ -604,6 +720,21 @@ namespace rainy::core::container {
             base(std::in_place_index<Idx::value>, utility::forward<Args>(args)...) {
         }
 
+        /**
+         * \lang english
+         * @brief In-place constructor by index. Constructs the alternative at index Idx from the given arguments.
+         *
+         * @tparam Idx The index of the alternative to construct
+         * @tparam Args The types of the arguments forwarded to the constructor of the alternative
+         * @param args The arguments forwarded to the constructor of the alternative
+         *
+         * \lang simp-chinese
+         * @brief 按索引就地构造函数。使用给定实参构造索引为 Idx 的备选值。
+         *
+         * @tparam Idx 要构造的备选值的索引
+         * @tparam Args 转发给备选值构造函数的实参类型
+         * @param args 转发给备选值构造函数的实参
+         */
         template <std::size_t Idx, typename... Args, typename Type = type_traits::other_trans::type_at_t<Idx, type_list>,
                   type_traits::other_trans::enable_if_t<
                       type_traits::properties::is_constructible_v<Type, Args...> &&
@@ -615,6 +746,25 @@ namespace rainy::core::container {
             base(std::in_place_index<Idx>, utility::forward<Args>(args)...) {
         }
 
+        /**
+         * \lang english
+         * @brief In-place constructor by type with an initializer list.
+         *
+         * @tparam Ty The alternative type to construct
+         * @tparam U The type of the elements of the initializer list
+         * @tparam Args The types of the remaining arguments forwarded to the constructor of Ty
+         * @param il The initializer list passed to the constructor of Ty
+         * @param args The remaining arguments forwarded to the constructor of Ty
+         *
+         * \lang simp-chinese
+         * @brief 带初始化器列表的按类型就地构造函数。
+         *
+         * @tparam Ty 要构造的备选类型
+         * @tparam U 初始化器列表元素的类型
+         * @tparam Args 转发给 Ty 构造函数的其余实参类型
+         * @param il 传递给 Ty 构造函数的初始化器列表
+         * @param args 转发给 Ty 构造函数的其余实参
+         */
         template <typename Ty, typename U, typename... Args,
                   typename Idx = type_traits::other_trans::type_find_unique<Ty, type_traits::other_trans::type_list<Types...>>,
                   type_traits::other_trans::enable_if_t<
@@ -626,6 +776,25 @@ namespace rainy::core::container {
             base(std::in_place_index<Idx::value>, il, utility::forward<Args>(args)...) {
         }
 
+        /**
+         * \lang english
+         * @brief In-place constructor by index with an initializer list.
+         *
+         * @tparam Idx The index of the alternative to construct
+         * @tparam U The type of the elements of the initializer list
+         * @tparam Args The types of the remaining arguments forwarded to the constructor of the alternative
+         * @param il The initializer list passed to the constructor of the alternative
+         * @param args The remaining arguments forwarded to the constructor of the alternative
+         *
+         * \lang simp-chinese
+         * @brief 带初始化器列表的按索引就地构造函数。
+         *
+         * @tparam Idx 要构造的备选值的索引
+         * @tparam U 初始化器列表元素的类型
+         * @tparam Args 转发给备选值构造函数的其余实参类型
+         * @param il 传递给备选值构造函数的初始化器列表
+         * @param args 转发给备选值构造函数的其余实参
+         */
         template <std::size_t Idx, typename U, typename... Args,
                   typename Ty = type_traits::other_trans::type_at_t<Idx, type_traits::other_trans::type_list<Types...>>,
                   type_traits::other_trans::enable_if_t<
@@ -635,18 +804,60 @@ namespace rainy::core::container {
             base(std::in_place_index<Idx>, il, utility::forward<Args>(args)...) {
         }
 
+        /**
+         * \lang english
+         * @brief Copy constructor. Copies the held alternative from the source variant.
+         *
+         * @param right The source variant to copy from
+         *
+         * \lang simp-chinese
+         * @brief 拷贝构造函数。从源 variant 拷贝所持有的备选值。
+         *
+         * @param right 要拷贝的源 variant
+         */
         constexpr variant(const variant &right) noexcept(
             type_traits::logical_traits::conjunction_v<type_traits::properties::is_nothrow_copy_constructible<Types>...>) {
             this->construct_from(right);
         }
 
+        /**
+         * \lang english
+         * @brief Move constructor. Moves the held alternative from the source variant.
+         *
+         * @param right The source variant to move from
+         *
+         * \lang simp-chinese
+         * @brief 移动构造函数。从源 variant 移动所持有的备选值。
+         *
+         * @param right 要移动的源 variant
+         */
         constexpr variant(variant &&right) noexcept(
             type_traits::logical_traits::conjunction_v<type_traits::properties::is_nothrow_move_constructible<Types>...>) {
             this->construct_from(utility::move(right));
         }
 
+        /**
+         * \lang english
+         * @brief Destructor. Destroys the held alternative if present.
+         *
+         * \lang simp-chinese
+         * @brief 析构函数。若存在所持有的备选值则销毁它。
+         */
         ~variant() = default;
 
+        /**
+         * \lang english
+         * @brief Copy assignment operator. Copies the held alternative from the source variant.
+         *
+         * @param right The source variant to copy from
+         * @return Reference to this variant
+         *
+         * \lang simp-chinese
+         * @brief 拷贝赋值运算符。从源 variant 拷贝所持有的备选值。
+         *
+         * @param right 要拷贝的源 variant
+         * @return 此 variant 的引用
+         */
         constexpr variant &operator=(const variant &right) {
             if (this == &right) {
                 return *this;
@@ -671,6 +882,19 @@ namespace rainy::core::container {
             return *this;
         }
 
+        /**
+         * \lang english
+         * @brief Move assignment operator. Moves the held alternative from the source variant.
+         *
+         * @param right The source variant to move from
+         * @return Reference to this variant
+         *
+         * \lang simp-chinese
+         * @brief 移动赋值运算符。从源 variant 移动所持有的备选值。
+         *
+         * @param right 要移动的源 variant
+         * @return 此 variant 的引用
+         */
         constexpr variant &operator=(variant &&right) noexcept(
             type_traits::logical_traits::conjunction_v<type_traits::properties::is_nothrow_move_constructible<Types>...,
                                                        type_traits::properties::is_nothrow_move_assignable<Types>...>) {
@@ -697,6 +921,21 @@ namespace rainy::core::container {
             return *this;
         }
 
+        /**
+         * \lang english
+         * @brief Converting assignment operator. Assigns a value to the variant, replacing the held alternative.
+         *
+         * @tparam Ty The type of the value
+         * @param object The value to assign
+         * @return Reference to this variant
+         *
+         * \lang simp-chinese
+         * @brief 转换赋值运算符。将值赋给 variant，替换所持有的备选值。
+         *
+         * @tparam Ty 值的类型
+         * @param object 要赋的值
+         * @return 此 variant 的引用
+         */
         template <typename Ty>
         constexpr variant &operator=(Ty &&object) {
             try {
@@ -712,6 +951,23 @@ namespace rainy::core::container {
             return *this;
         }
 
+        /**
+         * \lang english
+         * @brief Constructs a new alternative of type Ty in place, destroying the previous one.
+         *
+         * @tparam Ty The alternative type to construct
+         * @tparam Args The types of the arguments forwarded to the constructor of Ty
+         * @param args The arguments forwarded to the constructor of Ty
+         * @return A reference to the newly constructed alternative
+         *
+         * \lang simp-chinese
+         * @brief 就地构造类型为 Ty 的新备选值，销毁先前持有的值。
+         *
+         * @tparam Ty 要构造的备选类型
+         * @tparam Args 转发给 Ty 构造函数的实参类型
+         * @param args 转发给 Ty 构造函数的实参
+         * @return 新构造备选值的引用
+         */
         template <typename Ty, typename... Args,
                   typename Idx = type_traits::other_trans::type_find_unique<Ty, type_traits::other_trans::type_list<Types...>>,
                   type_traits::other_trans::enable_if_t<
@@ -720,6 +976,27 @@ namespace rainy::core::container {
             return emplace<Idx::value>(utility::forward<Args>(args)...);
         }
 
+        /**
+         * \lang english
+         * @brief Constructs a new alternative of type Ty in place from an initializer list and arguments.
+         *
+         * @tparam Ty The alternative type to construct
+         * @tparam U The type of the elements of the initializer list
+         * @tparam Args The types of the remaining arguments forwarded to the constructor of Ty
+         * @param il The initializer list passed to the constructor of Ty
+         * @param args The remaining arguments forwarded to the constructor of Ty
+         * @return A reference to the newly constructed alternative
+         *
+         * \lang simp-chinese
+         * @brief 使用初始化器列表和实参就地构造类型为 Ty 的新备选值。
+         *
+         * @tparam Ty 要构造的备选类型
+         * @tparam U 初始化器列表元素的类型
+         * @tparam Args 转发给 Ty 构造函数的其余实参类型
+         * @param il 传递给 Ty 构造函数的初始化器列表
+         * @param args 转发给 Ty 构造函数的其余实参
+         * @return 新构造备选值的引用
+         */
         template <typename Ty, typename U, typename... Args,
                   typename Idx = type_traits::other_trans::type_find_unique<Ty, type_traits::other_trans::type_list<Types...>>,
                   type_traits::other_trans::enable_if_t<
@@ -730,6 +1007,23 @@ namespace rainy::core::container {
             return emplace<Idx::value>(il, utility::forward<Args>(args)...);
         }
 
+        /**
+         * \lang english
+         * @brief Constructs a new alternative at index Idx in place, destroying the previous one.
+         *
+         * @tparam Idx The index of the alternative to construct
+         * @tparam Args The types of the arguments forwarded to the constructor of the alternative
+         * @param args The arguments forwarded to the constructor of the alternative
+         * @return A reference to the newly constructed alternative
+         *
+         * \lang simp-chinese
+         * @brief 就地构造索引为 Idx 的新备选值，销毁先前持有的值。
+         *
+         * @tparam Idx 要构造的备选值的索引
+         * @tparam Args 转发给备选值构造函数的实参类型
+         * @param args 转发给备选值构造函数的实参
+         * @return 新构造备选值的引用
+         */
         template <std::size_t Idx, typename... Args,
                   typename Ty = type_traits::other_trans::type_at_t<Idx, type_traits::other_trans::type_list<Types...>>,
                   type_traits::other_trans::enable_if_t<type_traits::properties::is_constructible_v<Ty, Args...>, int> = 0>
@@ -742,6 +1036,27 @@ namespace rainy::core::container {
             return implements::variant_raw_get<Idx>(this->storage());
         }
 
+        /**
+         * \lang english
+         * @brief Constructs a new alternative at index Idx in place from an initializer list and arguments.
+         *
+         * @tparam Idx The index of the alternative to construct
+         * @tparam U The type of the elements of the initializer list
+         * @tparam Args The types of the remaining arguments forwarded to the constructor of the alternative
+         * @param il The initializer list passed to the constructor of the alternative
+         * @param args The remaining arguments forwarded to the constructor of the alternative
+         * @return A reference to the newly constructed alternative
+         *
+         * \lang simp-chinese
+         * @brief 使用初始化器列表和实参就地构造索引为 Idx 的新备选值。
+         *
+         * @tparam Idx 要构造的备选值的索引
+         * @tparam U 初始化器列表元素的类型
+         * @tparam Args 转发给备选值构造函数的其余实参类型
+         * @param il 传递给备选值构造函数的初始化器列表
+         * @param args 转发给备选值构造函数的其余实参
+         * @return 新构造备选值的引用
+         */
         template <std::size_t Idx, typename U, typename... Args,
                   typename Ty = type_traits::other_trans::type_at_t<Idx, type_traits::other_trans::type_list<Types...>>,
                   type_traits::other_trans::enable_if_t<
@@ -755,6 +1070,17 @@ namespace rainy::core::container {
             return implements::variant_raw_get<Idx>(this->storage());
         }
 
+        /**
+         * \lang english
+         * @brief Swaps the held alternatives of two variants.
+         *
+         * @param other The variant to swap with
+         *
+         * \lang simp-chinese
+         * @brief 交换两个 variant 所持有的备选值。
+         *
+         * @param other 要与之交换的 variant
+         */
         constexpr void swap(variant &other) noexcept(
             type_traits::logical_traits::conjunction_v<type_traits::properties::is_nothrow_move_constructible<Types>...,
                                                        type_traits::properties::is_nothrow_swappable<Types>...>) {
@@ -767,6 +1093,23 @@ namespace rainy::core::container {
 }
 
 namespace rainy::core::container {
+    /**
+     * \lang english
+     * @brief Accesses the alternative at the given index. Throws bad_variant_access if the variant holds a different alternative.
+     *
+     * @tparam Index The index of the alternative to access
+     * @tparam Types The alternative types of the variant
+     * @param var The variant
+     * @return A reference to the alternative at the given index
+     *
+     * \lang simp-chinese
+     * @brief 访问给定索引处的备选值。若 variant 持有不同的备选值则抛出 bad_variant_access。
+     *
+     * @tparam Index 要访问的备选值的索引
+     * @tparam Types variant 的备选类型
+     * @param var variant
+     * @return 给定索引处备选值的引用
+     */
     template <std::size_t Index, typename... Types>
     constexpr decltype(auto) get(variant<Types...> &var) {
         static_assert(Index < sizeof...(Types), "Index out of bounds");
@@ -776,6 +1119,23 @@ namespace rainy::core::container {
         return implements::variant_raw_get<Index>(var.storage());
     }
 
+    /**
+     * \lang english
+     * @brief Accesses the alternative at the given index of a const variant. Throws bad_variant_access if the variant holds a different alternative.
+     *
+     * @tparam Index The index of the alternative to access
+     * @tparam Types The alternative types of the variant
+     * @param var The variant
+     * @return A const reference to the alternative at the given index
+     *
+     * \lang simp-chinese
+     * @brief 访问 const variant 中给定索引处的备选值。若 variant 持有不同的备选值则抛出 bad_variant_access。
+     *
+     * @tparam Index 要访问的备选值的索引
+     * @tparam Types variant 的备选类型
+     * @param var variant
+     * @return 给定索引处备选值的常量引用
+     */
     template <std::size_t Index, typename... Types>
     constexpr decltype(auto) get(const variant<Types...> &var) {
         static_assert(Index < sizeof...(Types), "Index out of bounds");
@@ -785,6 +1145,23 @@ namespace rainy::core::container {
         return implements::variant_raw_get<Index>(var.storage());
     }
 
+    /**
+     * \lang english
+     * @brief Accesses the alternative at the given index of an rvalue variant. Throws bad_variant_access if the variant holds a different alternative.
+     *
+     * @tparam Index The index of the alternative to access
+     * @tparam Types The alternative types of the variant
+     * @param var The variant
+     * @return An rvalue reference to the alternative at the given index
+     *
+     * \lang simp-chinese
+     * @brief 访问右值 variant 中给定索引处的备选值。若 variant 持有不同的备选值则抛出 bad_variant_access。
+     *
+     * @tparam Index 要访问的备选值的索引
+     * @tparam Types variant 的备选类型
+     * @param var variant
+     * @return 给定索引处备选值的右值引用
+     */
     template <std::size_t Index, typename... Types>
     constexpr decltype(auto) get(variant<Types...> &&var) {
         static_assert(Index < sizeof...(Types), "Index out of bounds");
@@ -794,6 +1171,23 @@ namespace rainy::core::container {
         return implements::variant_raw_get<Index>(utility::move(var).storage());
     }
 
+    /**
+     * \lang english
+     * @brief Accesses the alternative at the given index of a const rvalue variant. Throws bad_variant_access if the variant holds a different alternative.
+     *
+     * @tparam Index The index of the alternative to access
+     * @tparam Types The alternative types of the variant
+     * @param var The variant
+     * @return A const rvalue reference to the alternative at the given index
+     *
+     * \lang simp-chinese
+     * @brief 访问 const 右值 variant 中给定索引处的备选值。若 variant 持有不同的备选值则抛出 bad_variant_access。
+     *
+     * @tparam Index 要访问的备选值的索引
+     * @tparam Types variant 的备选类型
+     * @param var variant
+     * @return 给定索引处备选值的常量右值引用
+     */
     template <std::size_t Index, typename... Types>
     constexpr decltype(auto) get(const variant<Types...> &&var) {
         static_assert(Index < sizeof...(Types), "Index out of bounds");
@@ -803,6 +1197,23 @@ namespace rainy::core::container {
         return implements::variant_raw_get<Index>(utility::move(var).storage());
     }
 
+    /**
+     * \lang english
+     * @brief Returns a pointer to the alternative at the given index, or nullptr if the variant holds a different alternative.
+     *
+     * @tparam Index The index of the alternative to access
+     * @tparam Types The alternative types of the variant
+     * @param var The variant
+     * @return A pointer to the alternative, or nullptr
+     *
+     * \lang simp-chinese
+     * @brief 返回指向给定索引处备选值的指针；若 variant 持有不同的备选值则返回 nullptr。
+     *
+     * @tparam Index 要访问的备选值的索引
+     * @tparam Types variant 的备选类型
+     * @param var variant
+     * @return 指向备选值的指针；若不符合则返回 nullptr
+     */
     template <std::size_t Index, typename... Types>
     constexpr auto get_if(variant<Types...> *var) noexcept
         -> decltype(&implements::variant_raw_get<Index>(std::declval<variant<Types...> &>().storage())) {
@@ -813,6 +1224,23 @@ namespace rainy::core::container {
         return &implements::variant_raw_get<Index>(var->storage());
     }
 
+    /**
+     * \lang english
+     * @brief Returns a const pointer to the alternative at the given index, or nullptr if the variant holds a different alternative.
+     *
+     * @tparam Index The index of the alternative to access
+     * @tparam Types The alternative types of the variant
+     * @param var The variant
+     * @return A const pointer to the alternative, or nullptr
+     *
+     * \lang simp-chinese
+     * @brief 返回指向 const variant 中给定索引处备选值的常量指针；若 variant 持有不同的备选值则返回 nullptr。
+     *
+     * @tparam Index 要访问的备选值的索引
+     * @tparam Types variant 的备选类型
+     * @param var variant
+     * @return 指向备选值的常量指针；若不符合则返回 nullptr
+     */
     template <std::size_t Index, typename... Types>
     constexpr auto get_if(const variant<Types...> *var) noexcept
         -> decltype(&implements::variant_raw_get<Index>(std::declval<const variant<Types...> &>().storage())) {
@@ -823,6 +1251,23 @@ namespace rainy::core::container {
         return &implements::variant_raw_get<Index>(var->storage());
     }
 
+    /**
+     * \lang english
+     * @brief Checks whether the variant currently holds the alternative of the given type.
+     *
+     * @tparam Ty The type to check for
+     * @tparam Types The alternative types of the variant
+     * @param var The variant
+     * @return true if the variant holds the alternative of type Ty, false otherwise
+     *
+     * \lang simp-chinese
+     * @brief 检查 variant 当前是否持有给定类型的备选值。
+     *
+     * @tparam Ty 要检查的类型
+     * @tparam Types variant 的备选类型
+     * @param var variant
+     * @return 若 variant 持有类型为 Ty 的备选值则返回 true，否则返回 false
+     */
     template <typename Ty, typename... Types>
     constexpr bool holds_alternative(const variant<Types...> &var) noexcept {
         constexpr auto index = type_traits::other_trans::type_find_unique<Ty, type_traits::other_trans::type_list<Types...>>::value;
@@ -832,6 +1277,23 @@ namespace rainy::core::container {
 }
 
 namespace rainy::core::container {
+    /**
+     * \lang english
+     * @brief Accesses the alternative of the given type. Throws bad_variant_access if the variant holds a different alternative.
+     *
+     * @tparam Ty The type of the alternative to access
+     * @tparam Types The alternative types of the variant
+     * @param var The variant
+     * @return A reference to the alternative of type Ty
+     *
+     * \lang simp-chinese
+     * @brief 访问给定类型的备选值。若 variant 持有不同的备选值则抛出 bad_variant_access。
+     *
+     * @tparam Ty 要访问的备选值的类型
+     * @tparam Types variant 的备选类型
+     * @param var variant
+     * @return 类型为 Ty 的备选值的引用
+     */
     template <typename Ty, typename... Types>
     constexpr Ty &get(variant<Types...> &var) {
         constexpr auto index = type_traits::other_trans::type_find_unique<Ty, type_traits::other_trans::type_list<Types...>>::value;
@@ -839,6 +1301,23 @@ namespace rainy::core::container {
         return get<index>(var);
     }
 
+    /**
+     * \lang english
+     * @brief Accesses the alternative of the given type of an rvalue variant. Throws bad_variant_access if the variant holds a different alternative.
+     *
+     * @tparam Ty The type of the alternative to access
+     * @tparam Types The alternative types of the variant
+     * @param var The variant
+     * @return An rvalue reference to the alternative of type Ty
+     *
+     * \lang simp-chinese
+     * @brief 访问右值 variant 中给定类型的备选值。若 variant 持有不同的备选值则抛出 bad_variant_access。
+     *
+     * @tparam Ty 要访问的备选值的类型
+     * @tparam Types variant 的备选类型
+     * @param var variant
+     * @return 类型为 Ty 的备选值的右值引用
+     */
     template <typename Ty, typename... Types>
     constexpr Ty &&get(variant<Types...> &&var) {
         constexpr auto index = type_traits::other_trans::type_find_unique<Ty, type_traits::other_trans::type_list<Types...>>::value;
@@ -846,6 +1325,23 @@ namespace rainy::core::container {
         return get<index>(utility::move(var));
     }
 
+    /**
+     * \lang english
+     * @brief Accesses the alternative of the given type of a const variant. Throws bad_variant_access if the variant holds a different alternative.
+     *
+     * @tparam Ty The type of the alternative to access
+     * @tparam Types The alternative types of the variant
+     * @param var The variant
+     * @return A const reference to the alternative of type Ty
+     *
+     * \lang simp-chinese
+     * @brief 访问 const variant 中给定类型的备选值。若 variant 持有不同的备选值则抛出 bad_variant_access。
+     *
+     * @tparam Ty 要访问的备选值的类型
+     * @tparam Types variant 的备选类型
+     * @param var variant
+     * @return 类型为 Ty 的备选值的常量引用
+     */
     template <typename Ty, typename... Types>
     constexpr const Ty &get(const variant<Types...> &var) {
         constexpr auto index = type_traits::other_trans::type_find_unique<Ty, type_traits::other_trans::type_list<Types...>>::value;
@@ -853,6 +1349,23 @@ namespace rainy::core::container {
         return get<index>(var);
     }
 
+    /**
+     * \lang english
+     * @brief Accesses the alternative of the given type of a const rvalue variant. Throws bad_variant_access if the variant holds a different alternative.
+     *
+     * @tparam Ty The type of the alternative to access
+     * @tparam Types The alternative types of the variant
+     * @param var The variant
+     * @return A const rvalue reference to the alternative of type Ty
+     *
+     * \lang simp-chinese
+     * @brief 访问 const 右值 variant 中给定类型的备选值。若 variant 持有不同的备选值则抛出 bad_variant_access。
+     *
+     * @tparam Ty 要访问的备选值的类型
+     * @tparam Types variant 的备选类型
+     * @param var variant
+     * @return 类型为 Ty 的备选值的常量右值引用
+     */
     template <typename Ty, typename... Types>
     constexpr const Ty &&get(const variant<Types...> &&var) {
         constexpr auto index = type_traits::other_trans::type_find_unique<Ty, type_traits::other_trans::type_list<Types...>>::value;
@@ -860,6 +1373,23 @@ namespace rainy::core::container {
         return get<index>(utility::move(var));
     }
 
+    /**
+     * \lang english
+     * @brief Returns a pointer to the alternative of the given type, or nullptr if the variant holds a different alternative.
+     *
+     * @tparam Ty The type of the alternative to access
+     * @tparam Types The alternative types of the variant
+     * @param var The variant
+     * @return A pointer to the alternative, or nullptr
+     *
+     * \lang simp-chinese
+     * @brief 返回指向给定类型备选值的指针；若 variant 持有不同的备选值则返回 nullptr。
+     *
+     * @tparam Ty 要访问的备选值的类型
+     * @tparam Types variant 的备选类型
+     * @param var variant
+     * @return 指向备选值的指针；若不符合则返回 nullptr
+     */
     template <typename Ty, typename... Types>
     constexpr auto *get_if(variant<Types...> *var) noexcept {
         constexpr auto index = type_traits::other_trans::type_find_unique<Ty, type_traits::other_trans::type_list<Types...>>::value;
@@ -867,6 +1397,23 @@ namespace rainy::core::container {
         return get_if<index>(var);
     }
 
+    /**
+     * \lang english
+     * @brief Returns a const pointer to the alternative of the given type, or nullptr if the variant holds a different alternative.
+     *
+     * @tparam Ty The type of the alternative to access
+     * @tparam Types The alternative types of the variant
+     * @param var The variant
+     * @return A const pointer to the alternative, or nullptr
+     *
+     * \lang simp-chinese
+     * @brief 返回指向 const variant 中给定类型备选值的常量指针；若 variant 持有不同的备选值则返回 nullptr。
+     *
+     * @tparam Ty 要访问的备选值的类型
+     * @tparam Types variant 的备选类型
+     * @param var variant
+     * @return 指向备选值的常量指针；若不符合则返回 nullptr
+     */
     template <typename Ty, typename... Types>
     constexpr const auto *get_if(const variant<Types...> *var) noexcept {
         constexpr auto index = type_traits::other_trans::type_find_unique<Ty, type_traits::other_trans::type_list<Types...>>::value;
@@ -916,6 +1463,25 @@ namespace rainy::core::container::implements {
 }
 
 namespace rainy::core::container {
+    /**
+     * \lang english
+     * @brief Invokes a callable with the currently held alternative of each variant.
+     *
+     * @tparam Visitor The type of the callable
+     * @tparam Variants The types of the variants to visit
+     * @param visitor The callable invoked with the held alternatives
+     * @param variants The variants to visit
+     * @return The result of invoking the callable
+     *
+     * \lang simp-chinese
+     * @brief 使用每个 variant 当前持有的备选值调用可调用对象。
+     *
+     * @tparam Visitor 可调用对象的类型
+     * @tparam Variants 要访问的 variant 的类型
+     * @param visitor 以持有的备选值调用的可调用对象
+     * @param variants 要访问的 variant
+     * @return 调用可调用对象的结果
+     */
     template <typename Visitor, typename... Variants>
     constexpr decltype(auto) visit(Visitor &&visitor, Variants &&...variants) {
         if constexpr (sizeof...(Variants) == 1) {
@@ -925,6 +1491,27 @@ namespace rainy::core::container {
         }
     }
 
+    /**
+     * \lang english
+     * @brief Invokes a callable with the currently held alternative of each variant and casts the result to Rx.
+     *
+     * @tparam Rx The return type to cast the result to
+     * @tparam Visitor The type of the callable
+     * @tparam Variants The types of the variants to visit
+     * @param visitor The callable invoked with the held alternatives
+     * @param variants The variants to visit
+     * @return The result of invoking the callable, cast to Rx
+     *
+     * \lang simp-chinese
+     * @brief 使用每个 variant 当前持有的备选值调用可调用对象，并将结果转换为 Rx。
+     *
+     * @tparam Rx 结果要转换成的返回类型
+     * @tparam Visitor 可调用对象的类型
+     * @tparam Variants 要访问的 variant 的类型
+     * @param visitor 以持有的备选值调用的可调用对象
+     * @param variants 要访问的 variant
+     * @return 调用可调用对象的结果，转换为 Rx
+     */
     template <typename Rx, typename Visitor, typename... Variants>
     constexpr Rx visit(Visitor &&visitor, Variants &&...variants) {
         return static_cast<Rx>(visit(utility::forward<Visitor>(visitor), utility::forward<Variants>(variants)...));
@@ -932,6 +1519,23 @@ namespace rainy::core::container {
 }
 
 namespace rainy::core::container {
+    /**
+     * \lang english
+     * @brief Compares two variants for equality.
+     *
+     * @tparam Types The alternative types of the variants
+     * @param left The left variant
+     * @param right The right variant
+     * @return true if both variants are valueless, or hold the same alternative and their values are equal
+     *
+     * \lang simp-chinese
+     * @brief 比较两个 variant 是否相等。
+     *
+     * @tparam Types variant 的备选类型
+     * @param left 左侧 variant
+     * @param right 右侧 variant
+     * @return 若两个 variant 都无值，或持有相同的备选值且值相等则返回 true
+     */
     template <typename... Types>
     constexpr bool operator==(const variant<Types...> &left, const variant<Types...> &right) {
         if (left.index() != right.index()) {
@@ -950,11 +1554,45 @@ namespace rainy::core::container {
         return result;
     }
 
+    /**
+     * \lang english
+     * @brief Compares two variants for inequality.
+     *
+     * @tparam Types The alternative types of the variants
+     * @param left The left variant
+     * @param right The right variant
+     * @return true if the variants are not equal, false otherwise
+     *
+     * \lang simp-chinese
+     * @brief 比较两个 variant 是否不相等。
+     *
+     * @tparam Types variant 的备选类型
+     * @param left 左侧 variant
+     * @param right 右侧 variant
+     * @return 若两个 variant 不相等则返回 true，否则返回 false
+     */
     template <typename... Types>
     constexpr bool operator!=(const variant<Types...> &left, const variant<Types...> &right) {
         return !(left == right);
     }
 
+    /**
+     * \lang english
+     * @brief Compares two variants lexicographically with operator<.
+     *
+     * @tparam Types The alternative types of the variants
+     * @param left The left variant
+     * @param right The right variant
+     * @return true if left compares less than right, false otherwise
+     *
+     * \lang simp-chinese
+     * @brief 按字典序用 operator< 比较两个 variant。
+     *
+     * @tparam Types variant 的备选类型
+     * @param left 左侧 variant
+     * @param right 右侧 variant
+     * @return 若 left 小于 right 则返回 true，否则返回 false
+     */
     template <typename... Types>
     constexpr bool operator<(const variant<Types...> &left, const variant<Types...> &right) {
         if (right.valueless_by_exception()) {
@@ -976,16 +1614,67 @@ namespace rainy::core::container {
         return result;
     }
 
+    /**
+     * \lang english
+     * @brief Compares two variants lexicographically with operator>.
+     *
+     * @tparam Types The alternative types of the variants
+     * @param left The left variant
+     * @param right The right variant
+     * @return true if left compares greater than right, false otherwise
+     *
+     * \lang simp-chinese
+     * @brief 按字典序用 operator> 比较两个 variant。
+     *
+     * @tparam Types variant 的备选类型
+     * @param left 左侧 variant
+     * @param right 右侧 variant
+     * @return 若 left 大于 right 则返回 true，否则返回 false
+     */
     template <typename... Types>
     constexpr bool operator>(const variant<Types...> &left, const variant<Types...> &right) {
         return right < left;
     }
 
+    /**
+     * \lang english
+     * @brief Compares two variants lexicographically with operator<=.
+     *
+     * @tparam Types The alternative types of the variants
+     * @param left The left variant
+     * @param right The right variant
+     * @return true if left compares less than or equal to right, false otherwise
+     *
+     * \lang simp-chinese
+     * @brief 按字典序用 operator<= 比较两个 variant。
+     *
+     * @tparam Types variant 的备选类型
+     * @param left 左侧 variant
+     * @param right 右侧 variant
+     * @return 若 left 小于等于 right 则返回 true，否则返回 false
+     */
     template <typename... Types>
     constexpr bool operator<=(const variant<Types...> &left, const variant<Types...> &right) {
         return !(right < left);
     }
 
+    /**
+     * \lang english
+     * @brief Compares two variants lexicographically with operator>=.
+     *
+     * @tparam Types The alternative types of the variants
+     * @param left The left variant
+     * @param right The right variant
+     * @return true if left compares greater than or equal to right, false otherwise
+     *
+     * \lang simp-chinese
+     * @brief 按字典序用 operator>= 比较两个 variant。
+     *
+     * @tparam Types variant 的备选类型
+     * @param left 左侧 variant
+     * @param right 右侧 variant
+     * @return 若 left 大于等于 right 则返回 true，否则返回 false
+     */
     template <typename... Types>
     constexpr bool operator>=(const variant<Types...> &left, const variant<Types...> &right) {
         return !(left < right);

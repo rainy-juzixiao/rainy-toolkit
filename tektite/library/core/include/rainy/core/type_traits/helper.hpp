@@ -20,11 +20,15 @@
 
 namespace rainy::type_traits::helper {
     /**
+     * \lang english
      * @brief Wrapper template for holding a static value of type Ty.
-     *        用于持有类型Ty的静态值的包装器模板。
      *
      * @tparam Ty The type to wrap
-     *            要包装的类型
+     *
+     * \lang simp-chinese
+     * @brief 用于持有类型Ty的静态值的包装器模板。
+     *
+     * @tparam Ty 要包装的类型
      */
     template <typename Ty>
     struct wrapper {
@@ -32,18 +36,22 @@ namespace rainy::type_traits::helper {
     };
 
     /**
+     * \lang english
      * @brief Returns a reference to a fake object of type Ty.
-     *        返回类型Ty的伪对象的引用。
      *
-     * This function is useful in unevaluated contexts where a reference to an object
-     * of type Ty is needed without actually constructing one.
-     *
-     * 此函数在未求值上下文中很有用，当需要类型Ty的对象的引用而不实际构造一个时。
+     *  This function is useful in unevaluated contexts where a reference to an object
+     *  of type Ty is needed without actually constructing one.
      *
      * @tparam Ty The type of the fake object
-     *            伪对象的类型
      * @return Reference to a static fake object
-     *         静态伪对象的引用
+     *
+     * \lang simp-chinese
+     * @brief 返回类型Ty的伪对象的引用。
+     *
+     *  此函数在未求值上下文中很有用，当需要类型Ty的对象的引用而不实际构造一个时。
+     *
+     * @tparam Ty 伪对象的类型
+     * @return 静态伪对象的引用
      */
     template <typename Ty>
     constexpr modifers::remove_cvref_t<Ty> &get_fake_object() noexcept {
@@ -51,11 +59,15 @@ namespace rainy::type_traits::helper {
     }
 
     /**
+     * \lang english
      * @brief Identity template that holds the type Ty.
-     *        持有类型Ty的恒等模板。
      *
      * @tparam Ty The type to hold
-     *            要持有的类型
+     *
+     * \lang simp-chinese
+     * @brief 持有类型Ty的恒等模板。
+     *
+     * @tparam Ty 要持有的类型
      */
     template <typename Ty>
     struct identity {
@@ -63,23 +75,31 @@ namespace rainy::type_traits::helper {
     };
 
     /**
+     * \lang english
      * @brief Alias template for identity, providing direct access to the held type.
-     *        identity的别名模板，提供对持有类型的直接访问。
      *
      * @tparam Ty The type to hold
-     *            要持有的类型
+     *
+     * \lang simp-chinese
+     * @brief identity的别名模板，提供对持有类型的直接访问。
+     *
+     * @tparam Ty 要持有的类型
      */
     template <typename Ty>
     using identity_t = typename identity<Ty>::type;
 
     /**
+     * \lang english
      * @brief Compile-time sequence of integer values.
-     *        整数值的编译时序列。
      *
      * @tparam Ty The integral type of the values
-     *            值的整型类型
      * @tparam Vals The sequence of values
-     *              值的序列
+     *
+     * \lang simp-chinese
+     * @brief 整数值的编译时序列。
+     *
+     * @tparam Ty 值的整型类型
+     * @tparam Vals 值的序列
      */
     template <typename Ty, Ty... Vals>
     struct integer_sequence {
@@ -88,11 +108,15 @@ namespace rainy::type_traits::helper {
         using value_type = Ty;
 
         /**
+         * \lang english
          * @brief Returns the number of elements in the sequence.
-         *        返回序列中的元素数量。
          *
          * @return The size of the sequence
-         *         序列的大小
+         *
+         * \lang simp-chinese
+         * @brief 返回序列中的元素数量。
+         *
+         * @return 序列的大小
          */
         RAINY_NODISCARD static constexpr std::size_t size() noexcept {
             return sizeof...(Vals);
@@ -100,50 +124,69 @@ namespace rainy::type_traits::helper {
     };
 
     /**
+     * \lang english
      * @brief Creates an integer_sequence of type Ty with values 0, 1, ..., N-1.
-     *        创建类型T的integer_sequence，值为0, 1, ..., N-1。
      *
      * @tparam Ty The integral type
-     *           整型类型
      * @tparam N The size of the sequence
-     *           序列的大小
+     *
+     * \lang simp-chinese
+     * @brief 创建类型T的integer_sequence，值为0, 1, ..., N-1。
+     *
+     * @tparam Ty 整型类型
+     * @tparam N 序列的大小
      */
     template <typename Ty, Ty N>
     using make_integer_sequence = typename core::builtin::make_integer_seq<integer_sequence, Ty, N>::type;
 
     /**
+     * \lang english
      * @brief Compile-time sequence of size_t indices.
-     *        size_t索引的编译时序列。
      *
      * @tparam Vals The index values
-     *              索引值
+     *
+     * \lang simp-chinese
+     * @brief size_t索引的编译时序列。
+     *
+     * @tparam Vals 索引值
      */
     template <std::size_t... Vals>
     using index_sequence = integer_sequence<std::size_t, Vals...>;
 
     /**
+     * \lang english
      * @brief Creates an index_sequence of size Size with values 0, 1, ..., Size-1.
-     *        创建大小为Size的index_sequence，值为0, 1, ..., Size-1。
      *
      * @tparam Size The size of the sequence
-     *              序列的大小
+     *
+     * \lang simp-chinese
+     * @brief 创建大小为Size的index_sequence，值为0, 1, ..., Size-1。
+     *
+     * @tparam Size 序列的大小
      */
     template <std::size_t Size>
     using make_index_sequence = make_integer_sequence<std::size_t, Size>;
 
     /**
+     * \lang english
      * @brief Creates an index_sequence with the same size as the parameter pack Types.
-     *        创建与参数包Types大小相同的index_sequence。
      *
      * @tparam Types The parameter pack
-     *               参数包
+     *
+     * \lang simp-chinese
+     * @brief 创建与参数包Types大小相同的index_sequence。
+     *
+     * @tparam Types 参数包
      */
     template <typename... Types>
     using index_sequence_for = make_index_sequence<sizeof...(Types)>;
 
     /**
+     * \lang english
      * @brief Base class that makes derived classes non-copyable but movable.
-     *        使派生类不可拷贝但可移动的基类。
+     *
+     * \lang simp-chinese
+     * @brief 使派生类不可拷贝但可移动的基类。
      */
     class RAINY_TOOLKIT_API non_copyable {
     protected:
@@ -156,8 +199,11 @@ namespace rainy::type_traits::helper {
     };
 
     /**
+     * \lang english
      * @brief Base class that makes derived classes non-movable.
-     *        使派生类不可移动的基类。
+     *
+     * \lang simp-chinese
+     * @brief 使派生类不可移动的基类。
      */
     class RAINY_TOOLKIT_API non_moveable {
     protected:
@@ -168,11 +214,15 @@ namespace rainy::type_traits::helper {
     };
 
     /**
+     * \lang english
      * @brief Makes an unsigned version of an integral or enum type.
-     *        生成整型或枚举类型的无符号版本。
      *
      * @tparam Ty The integral or enum type to convert
-     *            要转换的整型或枚举类型
+     *
+     * \lang simp-chinese
+     * @brief 生成整型或枚举类型的无符号版本。
+     *
+     * @tparam Ty 要转换的整型或枚举类型
      */
     template <typename Ty>
     struct make_unsigned {
@@ -186,21 +236,29 @@ namespace rainy::type_traits::helper {
     };
 
     /**
+     * \lang english
      * @brief Alias template for make_unsigned, providing direct access to the unsigned type.
-     *        make_unsigned的别名模板，提供对无符号类型的直接访问。
      *
      * @tparam Ty The integral or enum type to convert
-     *            要转换的整型或枚举类型
+     *
+     * \lang simp-chinese
+     * @brief make_unsigned的别名模板，提供对无符号类型的直接访问。
+     *
+     * @tparam Ty 要转换的整型或枚举类型
      */
     template <typename Ty>
     using make_unsigned_t = typename make_unsigned<Ty>::type;
 
     /**
+     * \lang english
      * @brief Makes a signed version of an integral or enum type.
-     *        生成整型或枚举类型的有符号版本。
      *
      * @tparam Ty The integral or enum type to convert
-     *            要转换的整型或枚举类型
+     *
+     * \lang simp-chinese
+     * @brief 生成整型或枚举类型的有符号版本。
+     *
+     * @tparam Ty 要转换的整型或枚举类型
      */
     template <typename Ty>
     struct make_signed {
@@ -214,11 +272,15 @@ namespace rainy::type_traits::helper {
     };
 
     /**
+     * \lang english
      * @brief Alias template for make_signed, providing direct access to the signed type.
-     *        make_signed的别名模板，提供对有符号类型的直接访问。
      *
      * @tparam Ty The integral or enum type to convert
-     *            要转换的整型或枚举类型
+     *
+     * \lang simp-chinese
+     * @brief make_signed的别名模板，提供对有符号类型的直接访问。
+     *
+     * @tparam Ty 要转换的整型或枚举类型
      */
     template <typename Ty>
     using make_signed_t = typename make_signed<Ty>::type;

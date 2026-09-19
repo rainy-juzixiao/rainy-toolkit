@@ -29,6 +29,10 @@ fn main() -> anyhow::Result<()> {
     let args: Vec<String> = std::env::args().collect();
     let partial = args.iter().any(|a| a == "--partial");
 
+    // --- Parse CLI arguments ---
+    let args: Vec<String> = std::env::args().collect();
+    let partial = args.iter().any(|a| a == "--partial");
+
     if let Some(pos) = args.iter().position(|a| a == "--root") {
         if let Some(root) = args.get(pos + 1) {
             let root_path = std::path::Path::new(root);

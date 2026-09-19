@@ -21,17 +21,21 @@
 
 namespace rainy::type_traits::other_trans {
     /**
+     * \lang english
      * @brief Type decay template, mimicking the behavior of std::decay.
-     *        类型退化模板，模拟 std::decay 的行为。
      *
-     * Applies lvalue-to-rvalue, array-to-pointer, and function-to-pointer
-     * conversions to type Ty, and removes cv-qualifiers.
-     *
-     * 对类型 Ty 应用左值到右值、数组到指针、函数到指针的转换，
-     * 并移除 cv 限定符。
+     *  Applies lvalue-to-rvalue, array-to-pointer, and function-to-pointer
+     *  conversions to type Ty, and removes cv-qualifiers.
      *
      * @tparam Ty The type to decay
-     *            要退化的类型
+     *
+     * \lang simp-chinese
+     * @brief 类型退化模板，模拟 std::decay 的行为。
+     *
+     *  对类型 Ty 应用左值到右值、数组到指针、函数到指针的转换，
+     *  并移除 cv 限定符。
+     *
+     * @tparam Ty 要退化的类型
      */
     template <typename Ty>
     struct decay {
@@ -46,11 +50,15 @@ namespace rainy::type_traits::other_trans {
     };
 
     /**
+     * \lang english
      * @brief Alias template for type decay, providing simplified access.
-     *        类型退化模板的别名简化，提供便捷访问。
      *
      * @tparam Ty The type to decay
-     *            要退化的类型
+     *
+     * \lang simp-chinese
+     * @brief 类型退化模板的别名简化，提供便捷访问。
+     *
+     * @tparam Ty 要退化的类型
      */
     template <typename Ty>
     using decay_t = typename decay<Ty>::type;

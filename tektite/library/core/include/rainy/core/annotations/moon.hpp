@@ -26,23 +26,123 @@
 namespace rainy::annotations::moon {
     // clang-format off
 
+    /**
+     * \lang english
+     * @brief Tag that carries a new name used to rename a reflected member.
+     *
+     * \lang simp-chinese
+     * @brief 携带新名称的标签，用于重命名被反射的成员。
+     */
     struct rename_tag { char const* new_name; };
+
+    /**
+     * \lang english
+     * @brief Creates a rename_tag from a name.
+     *
+     * @param new_name The new name for the reflected member
+     * @return The rename_tag carrying the name
+     *
+     * \lang simp-chinese
+     * @brief 根据名称创建rename_tag。
+     *
+     * @param new_name 被反射成员的新名称
+     * @return 携带名称的rename_tag
+     */
     consteval rename_tag rename(core::text::string_view new_name = "") { return {std::define_static_string(new_name)}; }
 
+    /**
+     * \lang english
+     * @brief Tag that carries a prefix to be prepended to a reflected member name.
+     *
+     * \lang simp-chinese
+     * @brief 携带前缀的标签，该前缀会被添加到被反射成员名的前面。
+     */
     struct with_prefix_tag { char const* data; };
+
+    /**
+     * \lang english
+     * @brief Creates a with_prefix_tag from a prefix.
+     *
+     * @param prefix The prefix string
+     * @return The with_prefix_tag carrying the prefix
+     *
+     * \lang simp-chinese
+     * @brief 根据前缀创建with_prefix_tag。
+     *
+     * @param prefix 前缀字符串
+     * @return 携带前缀的with_prefix_tag
+     */
     consteval with_prefix_tag with_prefix(core::text::string_view prefix = "") { return {std::define_static_string(prefix)}; }
 
+    /**
+     * \lang english
+     * @brief Tag that carries a suffix to be appended to a reflected member name.
+     *
+     * \lang simp-chinese
+     * @brief 携带后缀的标签，该后缀会被添加到被反射成员名的后面。
+     */
     struct with_suffix_tag { char const* data; };
+
+    /**
+     * \lang english
+     * @brief Creates a with_suffix_tag from a suffix.
+     *
+     * @param suffix The suffix string
+     * @return The with_suffix_tag carrying the suffix
+     *
+     * \lang simp-chinese
+     * @brief 根据后缀创建with_suffix_tag。
+     *
+     * @param suffix 后缀字符串
+     * @return 携带后缀的with_suffix_tag
+     */
     consteval with_suffix_tag with_suffix(core::text::string_view suffix = "") { return {std::define_static_string(suffix)}; }
 
+    /**
+     * \lang english
+     * @brief Tag that disables applying a prefix to a reflected member name.
+     *
+     * \lang simp-chinese
+     * @brief 禁止为被反射成员名添加前缀的标签。
+     */
     struct no_prefix_tag {};
+
+    /**
+     * \lang english
+     * @brief Value of no_prefix_tag.
+     *
+     * \lang simp-chinese
+     * @brief no_prefix_tag的值。
+     */
     inline static constexpr auto no_prefix = no_prefix_tag{};
 
+    /**
+     * \lang english
+     * @brief Tag that disables applying a suffix to a reflected member name.
+     *
+     * \lang simp-chinese
+     * @brief 禁止为被反射成员名添加后缀的标签。
+     */
     struct no_suffix_tag {};
+
+    /**
+     * \lang english
+     * @brief Value of no_suffix_tag.
+     *
+     * \lang simp-chinese
+     * @brief no_suffix_tag的值。
+     */
     inline static constexpr auto no_suffix = no_suffix_tag{};
 
     // clang-format on
 
+    /**
+     * \lang english
+     * @brief Naming styles that can be applied to reflected member names.
+     *
+     * \lang simp-chinese
+     * @brief 可应用于被反射成员名的命名风格。
+     */
     enum class named_style {
         none,
         snake_case,
@@ -54,20 +154,86 @@ namespace rainy::annotations::moon {
 
     // clang-format off
 
+    /**
+     * \lang english
+     * @brief Tag that carries a named_style to apply to reflected member names.
+     *
+     * \lang simp-chinese
+     * @brief 携带命名风格（named_style）的标签，用于被反射成员名。
+     */
     struct use_name_style { named_style style; };
 
     // clang-format on
 
+    /**
+     * \lang english
+     * @brief No name style applied (keeps the original name).
+     *
+     * \lang simp-chinese
+     * @brief 不应用任何命名风格（保留原始名称）。
+     */
     inline static constexpr auto no_name_style = use_name_style{named_style::none};
+
+    /**
+     * \lang english
+     * @brief Applies the snake_case naming style.
+     *
+     * \lang simp-chinese
+     * @brief 应用snake_case命名风格。
+     */
     inline static constexpr auto use_snake_case = use_name_style{named_style::snake_case};
+
+    /**
+     * \lang english
+     * @brief Applies the PascalCase naming style.
+     *
+     * \lang simp-chinese
+     * @brief 应用PascalCase命名风格。
+     */
     inline static constexpr auto use_pascal = use_name_style{named_style::pascal};
+
+    /**
+     * \lang english
+     * @brief Applies the camelCase naming style.
+     *
+     * \lang simp-chinese
+     * @brief 应用camelCase命名风格。
+     */
     inline static constexpr auto use_camel = use_name_style{named_style::camel};
+
+    /**
+     * \lang english
+     * @brief Applies the ALL_CAPS naming style.
+     *
+     * \lang simp-chinese
+     * @brief 应用ALL_CAPS命名风格。
+     */
     inline static constexpr auto all_caps = use_name_style{named_style::all_caps};
+
+    /**
+     * \lang english
+     * @brief Applies the ALLCAPS naming style without underscores.
+     *
+     * \lang simp-chinese
+     * @brief 应用不带下划线的ALLCAPS命名风格。
+     */
     inline static constexpr auto all_caps_no_underline = use_name_style{named_style::all_caps_no_underline};
 
+    /**
+     * \lang english
+     * @brief Tag that indicates a member should be ignored during reflection processing.
+     *
+     * \lang simp-chinese
+     * @brief 指示在反射处理期间忽略某个成员的标签。
+     */
     struct ignore_tag {};
 
     /**
+     * \lang english
+     * @brief Indicates that moon static reflection should ignore certain members during processing.
+     * @attention If the moon module detects a custom registration source, this tag has no effect.
+     *
+     * \lang simp-chinese
      * @brief 指示moon静态反射在处理某些成员时，进行忽略
      * @attention 如果moon模块检测到有自定义的注册源，则此标签无效果
      */

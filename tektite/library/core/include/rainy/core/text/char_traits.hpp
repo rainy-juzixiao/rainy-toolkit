@@ -164,36 +164,171 @@ namespace rainy::core::text::implements {
 }
 
 namespace rainy::core::text {
+    /**
+     * \lang english
+     * @brief Character traits that define operations on character sequences for text classes.
+     *
+     * @tparam Elem The character element type
+     *
+     * \lang simp-chinese
+     * @brief 定义文本类对字符序列操作所需的字符 traits。
+     *
+     * @tparam Elem 字符元素类型
+     */
     template <typename Elem>
     struct char_traits {
+        /**
+         * \lang english
+         * @brief The character element type.
+         *
+         * \lang simp-chinese
+         * @brief 字符元素类型。
+         */
         using char_type = Elem;
+        /**
+         * \lang english
+         * @brief An integer type able to represent all characters plus the end-of-file value.
+         *
+         * \lang simp-chinese
+         * @brief 能够表示所有字符以及文件结束值的整数类型。
+         */
         using int_type = int;
+        /**
+         * \lang english
+         * @brief The type used to represent stream offsets.
+         *
+         * \lang simp-chinese
+         * @brief 用于表示流偏移量的类型。
+         */
         using off_type = std::streamoff;
+        /**
+         * \lang english
+         * @brief The type used to represent stream positions.
+         *
+         * \lang simp-chinese
+         * @brief 用于表示流位置的类型。
+         */
         using pos_type = std::streampos;
+        /**
+         * \lang english
+         * @brief The type used to represent conversion state.
+         *
+         * \lang simp-chinese
+         * @brief 用于表示转换状态的类型。
+         */
         using state_type = std::mbstate_t;
+        /**
+         * \lang english
+         * @brief The unsigned type used to represent sizes and counts.
+         *
+         * \lang simp-chinese
+         * @brief 用于表示大小与数量的无符号类型。
+         */
         using size_type = std::size_t;
 #if RAINY_HAS_CXX20
+        /**
+         * \lang english
+         * @brief The comparison category type used by three-way comparison.
+         *
+         * \lang simp-chinese
+         * @brief 三路比较使用的比较类别类型。
+         */
         using comparison_category = std::strong_ordering;
 #endif
 
+        /**
+         * \lang english
+         * @brief Assigns one character to another.
+         *
+         * @param char_to The target character
+         * @param char_from The source character
+         *
+         * \lang simp-chinese
+         * @brief 将一个字符赋值给另一个字符。
+         *
+         * @param char_to 目标字符
+         * @param char_from 源字符
+         */
         static constexpr void assign(char_type &char_to, const char_type &char_from) noexcept {
             char_to = char_from;
         }
 
+        /**
+         * \lang english
+         * @brief Assigns the same character to each element of a character array.
+         *
+         * @param char_to Pointer to the destination array
+         * @param num The number of characters to assign
+         * @param char_from The character to assign
+         *
+         * \lang simp-chinese
+         * @brief 将同一个字符赋值给字符数组中的每个元素。
+         *
+         * @param char_to 目标数组指针
+         * @param num 待赋值的字符数量
+         * @param char_from 待赋值的字符
+         */
         static RAINY_CONSTEXPR20 void assign(char_type *char_to, const size_type num, const char_type &char_from) {
             for (int i = 0; i < num; ++i) {
                 char_to[i] = char_from;
             }
         }
 
+        /**
+         * \lang english
+         * @brief Compares two characters for equality.
+         *
+         * @param left The left character
+         * @param right The right character
+         * @return true if both characters are equal
+         *
+         * \lang simp-chinese
+         * @brief 比较两个字符是否相等。
+         *
+         * @param left 左字符
+         * @param right 右字符
+         * @return 两个字符相等时返回 true
+         */
         static RAINY_CONSTEXPR20 bool eq(const char_type left, const char_type right) noexcept {
             return left == right;
         }
 
+        /**
+         * \lang english
+         * @brief Compares two int_type values for equality.
+         *
+         * @param left The left value
+         * @param right The right value
+         * @return true if both values are equal
+         *
+         * \lang simp-chinese
+         * @brief 比较两个 int_type 值是否相等。
+         *
+         * @param left 左值
+         * @param right 右值
+         * @return 两个值相等时返回 true
+         */
         static RAINY_CONSTEXPR20 bool eq_int_type(const int_type &left, const int_type &right) noexcept {
             return left == right;
         }
 
+        /**
+         * \lang english
+         * @brief Lexicographically compares up to count characters of two sequences.
+         *
+         * @param string1 The first character sequence
+         * @param string2 The second character sequence
+         * @param count The maximum number of characters to compare
+         * @return A negative value if the first sequence is less, zero if equal, a positive value otherwise
+         *
+         * \lang simp-chinese
+         * @brief 按字典序比较两个序列至多 count 个字符。
+         *
+         * @param string1 第一个字符序列
+         * @param string2 第二个字符序列
+         * @param count 最多比较的字符数
+         * @return 第一个序列较小时为负值，相等时为零，否则为正值
+         */
         static constexpr int compare(const char_type *string1, const char_type *string2, const size_type count) noexcept {
             if constexpr (type_traits::helper::is_wchar_t<char_type>) {
                 return core::builtin::compare_string(string1, string2, count);
@@ -271,6 +406,19 @@ namespace rainy::core::text {
             }
         }
 
+        /**
+         * \lang english
+         * @brief Returns the length of a null-terminated character sequence.
+         *
+         * @param string The null-terminated character sequence
+         * @return The number of characters before the terminating null
+         *
+         * \lang simp-chinese
+         * @brief 返回以空字符结尾的字符序列的长度。
+         *
+         * @param string 以空字符结尾的字符序列
+         * @return 终止空字符之前的字符数量
+         */
         static constexpr size_type length(const char_type *string) {
             if constexpr (type_traits::implements::is_same_v<char, char_type> ||
                           type_traits::implements::is_same_v<wchar_t, char_type>) {
@@ -284,6 +432,23 @@ namespace rainy::core::text {
             }
         }
 
+        /**
+         * \lang english
+         * @brief Finds the first occurrence of a character within a sequence.
+         *
+         * @param string The character sequence to search
+         * @param count The number of characters to search
+         * @param target The character to find
+         * @return A pointer to the first match, or nullptr if not found
+         *
+         * \lang simp-chinese
+         * @brief 在序列中查找字符首次出现的位置。
+         *
+         * @param string 待搜索的字符序列
+         * @param count 待搜索的字符数量
+         * @param target 待查找的字符
+         * @return 指向首次匹配位置的指针，未找到时返回 nullptr
+         */
         RAINY_NODISCARD static RAINY_CONSTEXPR20 const char_type *find(const char_type *string, std::size_t count,
                                                                        const char_type &target) {
 #if RAINY_HAS_CXX20
@@ -301,10 +466,42 @@ namespace rainy::core::text {
             }
         }
 
+        /**
+         * \lang english
+         * @brief Compares two characters with the less-than operator.
+         *
+         * @param left The left character
+         * @param right The right character
+         * @return true if left is less than right
+         *
+         * \lang simp-chinese
+         * @brief 使用小于运算符比较两个字符。
+         *
+         * @param left 左字符
+         * @param right 右字符
+         * @return left 小于 right 时返回 true
+         */
         static RAINY_CONSTEXPR20 bool lt(const char_type left, const char_type right) {
             return left < right;
         }
 
+        /**
+         * \lang english
+         * @brief Moves count characters from one sequence to another, allowing overlap.
+         *
+         * @param to Pointer to the destination sequence
+         * @param from Pointer to the source sequence
+         * @param count The number of characters to move
+         * @return Pointer to the destination sequence
+         *
+         * \lang simp-chinese
+         * @brief 将 count 个字符从源序列移动到目标序列，允许重叠。
+         *
+         * @param to 目标序列指针
+         * @param from 源序列指针
+         * @param count 待移动的字符数量
+         * @return 目标序列指针
+         */
         static RAINY_CONSTEXPR20 char_type *move(char_type *to, const char_type *from, size_type count) {
 #if RAINY_HAS_CXX20
             if (std::is_constant_evaluated()) {
@@ -340,6 +537,25 @@ namespace rainy::core::text {
             return to;
         }
 
+        /**
+         * \lang english
+         * @brief Moves characters into a std::array destination, returning nullptr if the array is too small.
+         *
+         * @tparam N The size of the destination array
+         * @param to The destination std::array
+         * @param from Pointer to the source sequence
+         * @param count The number of characters to move
+         * @return Pointer to the destination data, or nullptr if N is smaller than count
+         *
+         * \lang simp-chinese
+         * @brief 将字符移动到 std::array 目标中，数组过小时返回 nullptr。
+         *
+         * @tparam N 目标数组的大小
+         * @param to 目标 std::array
+         * @param from 源序列指针
+         * @param count 待移动的字符数量
+         * @return 目标数据指针；N 小于 count 时返回 nullptr
+         */
         template <size_type N>
         static RAINY_CONSTEXPR20 char_type *move(std::array<char_type, N> &to, const char_type *from, const size_type count) {
             if (N < count) {
@@ -348,6 +564,25 @@ namespace rainy::core::text {
             return move(to.data(), from, count);
         }
 
+        /**
+         * \lang english
+         * @brief Moves characters into a rainy::collections::array destination, returning nullptr if the array is too small.
+         *
+         * @tparam N The size of the destination array
+         * @param to The destination array
+         * @param from Pointer to the source sequence
+         * @param count The number of characters to move
+         * @return Pointer to the destination data, or nullptr if N is smaller than count
+         *
+         * \lang simp-chinese
+         * @brief 将字符移动到 rainy::collections::array 目标中，数组过小时返回 nullptr。
+         *
+         * @tparam N 目标数组的大小
+         * @param to 目标数组
+         * @param from 源序列指针
+         * @param count 待移动的字符数量
+         * @return 目标数据指针；N 小于 count 时返回 nullptr
+         */
         template <size_type N>
         static RAINY_CONSTEXPR20 char_type *move(rainy::collections::array<char_type, N> &to, const char_type *from,
                                                   const size_type count) {
@@ -357,6 +592,23 @@ namespace rainy::core::text {
             return move(to.data(), from, count);
         }
 
+        /**
+         * \lang english
+         * @brief Moves characters into an array_view destination, returning nullptr if the view is too small or empty.
+         *
+         * @param to The destination array_view
+         * @param from Pointer to the source sequence
+         * @param count The number of characters to move
+         * @return Pointer to the destination data, or nullptr if the view cannot hold count characters
+         *
+         * \lang simp-chinese
+         * @brief 将字符移动到 array_view 目标中，视图过小或为空时返回 nullptr。
+         *
+         * @param to 目标 array_view
+         * @param from 源序列指针
+         * @param count 待移动的字符数量
+         * @return 目标数据指针；视图无法容纳 count 个字符时返回 nullptr
+         */
         static RAINY_CONSTEXPR20 char_type *move(rainy::collections::views::array_view<char_type> &to, const char_type *from,
                                                  const size_type count) {
             if (to.size() < count || to.empty()) {
@@ -365,6 +617,23 @@ namespace rainy::core::text {
             return move(to.data(), from, count);
         }
 
+        /**
+         * \lang english
+         * @brief Moves characters into a std::vector destination, returning nullptr if the vector is too small or empty.
+         *
+         * @param to The destination std::vector
+         * @param from Pointer to the source sequence
+         * @param count The number of characters to move
+         * @return Pointer to the destination data, or nullptr if the vector cannot hold count characters
+         *
+         * \lang simp-chinese
+         * @brief 将字符移动到 std::vector 目标中，vector 过小或为空时返回 nullptr。
+         *
+         * @param to 目标 std::vector
+         * @param from 源序列指针
+         * @param count 待移动的字符数量
+         * @return 目标数据指针；vector 无法容纳 count 个字符时返回 nullptr
+         */
         static RAINY_CONSTEXPR20 char_type *move(std::vector<char_type> &to, const char_type *from, const size_type count) {
             if (to.size() < count || to.empty()) {
                 return nullptr;
@@ -373,6 +642,25 @@ namespace rainy::core::text {
         }
 
         template <size_type N>
+        /**
+         * \lang english
+         * @brief Moves characters into a raw C-array destination, returning nullptr if the array is too small.
+         *
+         * @tparam N The size of the destination array
+         * @param to The destination C-array
+         * @param from Pointer to the source sequence
+         * @param count The number of characters to move
+         * @return Pointer to the destination array, or nullptr if N is smaller than count
+         *
+         * \lang simp-chinese
+         * @brief 将字符移动到原生 C 数组目标中，数组过小时返回 nullptr。
+         *
+         * @tparam N 目标数组的大小
+         * @param to 目标 C 数组
+         * @param from 源序列指针
+         * @param count 待移动的字符数量
+         * @return 目标数组指针；N 小于 count 时返回 nullptr
+         */
         static RAINY_CONSTEXPR20 char_type *move_s(Elem (&to)[N], const char_type *from, const size_type count) {
             if (N < count) {
                 return nullptr;
@@ -380,6 +668,25 @@ namespace rainy::core::text {
             return move(to, from, N);
         }
 
+        /**
+         * \lang english
+         * @brief Bounds-checked move into a destination with explicit size, returning nullptr on overflow.
+         *
+         * @param dest Pointer to the destination buffer
+         * @param dest_size The size of the destination buffer
+         * @param from Pointer to the source sequence
+         * @param count The number of characters to move
+         * @return Pointer to the destination buffer, or nullptr if dest_size is smaller than count
+         *
+         * \lang simp-chinese
+         * @brief 带边界检查的移动，目标缓冲区显式给出大小，溢出时返回 nullptr。
+         *
+         * @param dest 目标缓冲区指针
+         * @param dest_size 目标缓冲区的大小
+         * @param from 源序列指针
+         * @param count 待移动的字符数量
+         * @return 目标缓冲区指针；dest_size 小于 count 时返回 nullptr
+         */
         static RAINY_CONSTEXPR20 char_type *move_s(char_type *dest, const size_type dest_size, const char_type *from,
                                                    const size_type count) {
             if (dest_size < count) {
@@ -388,6 +695,23 @@ namespace rainy::core::text {
             return move(dest, from, count);
         }
 
+        /**
+         * \lang english
+         * @brief Copies count characters from one sequence to another; the ranges must not overlap.
+         *
+         * @param string1 Pointer to the destination sequence
+         * @param string2 Pointer to the source sequence
+         * @param count The number of characters to copy
+         * @return Pointer to the destination sequence
+         *
+         * \lang simp-chinese
+         * @brief 将 count 个字符从源序列复制到目标序列；两个范围不得重叠。
+         *
+         * @param string1 目标序列指针
+         * @param string2 源序列指针
+         * @param count 待复制的字符数量
+         * @return 目标序列指针
+         */
         static RAINY_CONSTEXPR20 char_type *copy(char_type *const string1, const char_type *const string2,
                                                  const size_type count) noexcept /* strengthened */ {
 #if RAINY_HAS_CXX20
@@ -402,18 +726,68 @@ namespace rainy::core::text {
             return string1;
         }
 
+        /**
+         * \lang english
+         * @brief Converts a character to its int_type representation.
+         *
+         * @param ch The character to convert
+         * @return The int_type representation
+         *
+         * \lang simp-chinese
+         * @brief 将字符转换为其 int_type 表示。
+         *
+         * @param ch 待转换的字符
+         * @return int_type 表示
+         */
         static constexpr int_type to_int_type(const int_type &ch) {
             return ch;
         }
 
+        /**
+         * \lang english
+         * @brief Converts an int_type value back to a character.
+         *
+         * @param ch The int_type value to convert
+         * @return The character value
+         *
+         * \lang simp-chinese
+         * @brief 将 int_type 值转换回字符。
+         *
+         * @param ch 待转换的 int_type 值
+         * @return 字符值
+         */
         static constexpr char_type to_char_type(const int_type &ch) {
             return ch;
         }
 
+        /**
+         * \lang english
+         * @brief Returns the end-of-file int_type value.
+         *
+         * @return The EOF value
+         *
+         * \lang simp-chinese
+         * @brief 返回文件结束的 int_type 值。
+         *
+         * @return EOF 值
+         */
         static constexpr int_type eof() {
             return EOF;
         }
 
+        /**
+         * \lang english
+         * @brief Returns a value that is not equal to EOF, or the value itself if it is not EOF.
+         *
+         * @param ch The int_type value to check
+         * @return A non-EOF int_type value
+         *
+         * \lang simp-chinese
+         * @brief 返回一个不等于 EOF 的值；若给定值本身不是 EOF 则返回该值。
+         *
+         * @param ch 待检查的 int_type 值
+         * @return 非 EOF 的 int_type 值
+         */
         static constexpr int_type not_eof(const int_type &ch) {
             return ch != eof();
         }

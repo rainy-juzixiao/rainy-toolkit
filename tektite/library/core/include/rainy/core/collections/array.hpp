@@ -59,16 +59,20 @@ namespace rainy::core::collections::implements {
 
 namespace rainy::core::collections {
     /**
+     * \lang english
      * @brief Static array template, similar to std::array but with enhanced encapsulation and functionality.
-     *        静态数组模板array，类似于std::array，但是提供更多的封装和功能。
      *
      * @attention This array is non-aggregate type.
-     * @attention 该array是非聚合类型。
      *
      * @tparam Ty Element type
-     *            元素类型
      * @tparam N Array size
-     *           数组大小
+     *
+     * \lang simp-chinese
+     * @brief 静态数组模板array，类似于std::array，但是提供更多的封装和功能。
+     * @attention 该array是非聚合类型。
+     *
+     * @tparam Ty 元素类型
+     * @tparam N 数组大小
      */
     template <typename Ty, std::size_t N>
     class array {
@@ -93,27 +97,33 @@ namespace rainy::core::collections {
         static constexpr std::size_t npos = static_cast<std::size_t>(-1);
 
         /**
+         * \lang english
          * @brief Default constructor.
-         *        Constructs all elements with value-initialization.
-         *
-         *        默认构造函数。
-         *        以值初始化的方式构造所有元素。
+         *         Constructs all elements with value-initialization.
          *
          * @note If the element type supports noexcept default construction,
-         *       this constructor is also noexcept.
+         *        this constructor is also noexcept.
+         *
+         * \lang simp-chinese
+         * @brief 默认构造函数。
+         *         以值初始化的方式构造所有元素。
          * @note 若元素类型支持 noexcept 默认构造，则该构造函数同样为 noexcept。
          */
         constexpr array() noexcept(type_traits::properties::is_nothrow_default_constructible_v<Ty>) : elements{} {
         }
 
         /**
+         * \lang english
          * @brief Constructs array from an initializer list.
-         *        使用初始化列表对数组进行初始化。
          *
          * @param ilist Initializer list
-         *              初始化列表
          * @note If the initializer list size is greater than the array size,
-         *       std::terminate() will be called.
+         *        std::terminate() will be called.
+         *
+         * \lang simp-chinese
+         * @brief 使用初始化列表对数组进行初始化。
+         *
+         * @param ilist 初始化列表
          * @note 如果初始化列表的大小大于其数组大小，则std::terminate()将被调用。
          */
         constexpr array(std::initializer_list<Ty> ilist) :
@@ -124,17 +134,21 @@ namespace rainy::core::collections {
         }
 
         /**
+         * \lang english
          * @brief In-place construction using variadic arguments.
-         *        就地使用可变参数列表形式初始化数组。
          *
          * @tparam Inits Parameter types convertible to value_type
-         *               可转换为 value_type 的参数类型
          * @param inits Initialization parameter pack
-         *              初始化参数包
          * @details When the number of passed arguments does not exceed N and the types are convertible,
-         *          the array elements can be directly initialized.
-         * @details 当传入的参数数量不超过 N 且类型可转换时，可直接初始化数组元素。
+         *           the array elements can be directly initialized.
          * @note If the number of arguments exceeds N, a compile-time static_assert error will be triggered.
+         *
+         * \lang simp-chinese
+         * @brief 就地使用可变参数列表形式初始化数组。
+         *
+         * @tparam Inits 可转换为 value_type 的参数类型
+         * @param inits 初始化参数包
+         * @details 当传入的参数数量不超过 N 且类型可转换时，可直接初始化数组元素。
          * @note 若传入参数数量超过 N，会触发 static_assert 编译期错误。
          */
         template <typename... Inits,
@@ -148,12 +162,16 @@ namespace rainy::core::collections {
         }
 
         /**
+         * \lang english
          * @brief Copy constructor.
-         *        拷贝构造函数。
          *
          * @param right Another array of the same type
-         *              另一个同类型数组
          * @details Copies all elements from the parameter array to the current array one by one.
+         *
+         * \lang simp-chinese
+         * @brief 拷贝构造函数。
+         *
+         * @param right 另一个同类型数组
          * @details 将参数数组的所有元素逐个拷贝到当前数组中。
          */
         constexpr array(const array &right) : elements{} {
@@ -163,15 +181,19 @@ namespace rainy::core::collections {
         }
 
         /**
+         * \lang english
          * @brief Move constructor.
-         *        移动构造函数。
          *
          * @param right Another array of the same type (to be moved)
-         *              另一个同类型数组（将被移动）
          * @details Moves elements from the parameter array to the current array one by one.
-         * @details 将参数数组中的元素逐个移动到当前数组中。
          * @note If the element type supports noexcept move construction,
-         *       this constructor is also noexcept.
+         *        this constructor is also noexcept.
+         *
+         * \lang simp-chinese
+         * @brief 移动构造函数。
+         *
+         * @param right 另一个同类型数组（将被移动）
+         * @details 将参数数组中的元素逐个移动到当前数组中。
          * @note 若元素类型支持 noexcept 移动构造，则该构造函数同样为 noexcept。
          */
         constexpr array(array &&right) noexcept(type_traits::properties::is_nothrow_move_constructible_v<value_type>) :
@@ -179,17 +201,21 @@ namespace rainy::core::collections {
         }
 
         /**
+         * \lang english
          * @brief Constructs array with a fixed count of identical values.
-         *        使用固定数量与值进行构造。
          *
          * @param count Number of elements to fill
-         *              要填充的元素数量
          * @param value Value used for filling
-         *              用于填充的值
          * @details Assigns the first count elements to the specified value,
-         *          leaving the rest default-initialized.
-         * @details 将前 count 个元素赋值为指定值，其余保持默认初始化。
+         *           leaving the rest default-initialized.
          * @note If count >= N, assertion failure will be triggered.
+         *
+         * \lang simp-chinese
+         * @brief 使用固定数量与值进行构造。
+         *
+         * @param count 要填充的元素数量
+         * @param value 用于填充的值
+         * @details 将前 count 个元素赋值为指定值，其余保持默认初始化。
          * @note 若 count >= N，将触发断言失败。
          */
         constexpr array(std::size_t count, const_reference value) : elements{} {
@@ -202,17 +228,21 @@ namespace rainy::core::collections {
         }
 
         /**
+         * \lang english
          * @brief Constructs array from an iterator range.
-         *        使用迭代器区间构造数组。
          *
          * @tparam Iter Type satisfying iterator concept
-         *              满足迭代器概念的类型
          * @param begin Iterator to the beginning
-         *              起始迭代器
          * @param end Iterator to the end (exclusive)
-         *            结束迭代器（不含）
          * @details Copies elements from the iterator range into the array sequentially,
-         *          until reaching the end or filling the array.
+         *           until reaching the end or filling the array.
+         *
+         * \lang simp-chinese
+         * @brief 使用迭代器区间构造数组。
+         *
+         * @tparam Iter 满足迭代器概念的类型
+         * @param begin 起始迭代器
+         * @param end 结束迭代器（不含）
          * @details 从迭代器区间中依次复制元素到数组中，直到到达 end 或填满数组。
          */
         template <typename Iter, type_traits::other_trans::enable_if_t<type_traits::extras::iterators::is_iterator_v<Iter>, int> = 0>
@@ -228,19 +258,23 @@ namespace rainy::core::collections {
         }
 
         /**
+         * \lang english
          * @brief Constructs a new array by concatenating two arrays.
-         *        使用两个数组拼接构造新数组。
          *
          * @tparam L Size of the left array
-         *           左数组大小
          * @tparam R Size of the right array
-         *           右数组大小
          * @param left Left array
-         *             左侧数组
          * @param right Right array
-         *              右侧数组
          * @details When L + R does not exceed the current array size N,
-         *          copies the contents of the left and right arrays sequentially into the current array.
+         *           copies the contents of the left and right arrays sequentially into the current array.
+         *
+         * \lang simp-chinese
+         * @brief 使用两个数组拼接构造新数组。
+         *
+         * @tparam L 左数组大小
+         * @tparam R 右数组大小
+         * @param left 左侧数组
+         * @param right 右侧数组
          * @details 当 L + R 不超过当前数组大小 N 时，按顺序将左右数组内容拷贝至当前数组。
          */
         template <std::size_t L, std::size_t R>
@@ -258,17 +292,21 @@ namespace rainy::core::collections {
         RAINY_CONSTEXPR20 ~array() = default;
 
         /**
+         * \lang english
          * @brief Extracts a sub-range of the array.
-         *        截取数组的子区间。
          *
          * @tparam NewSize Size of the new array (defaults to original size N)
-         *                 新数组的大小（默认为原数组大小 N）
          * @param begin_slice Start position (inclusive)
-         *                    起始位置（包含）
          * @param end_slice End position (exclusive)
-         *                  结束位置（不包含）
          * @return Returns a new array copied from the specified range;
-         *         returns an empty array if parameters are invalid.
+         *          returns an empty array if parameters are invalid.
+         *
+         * \lang simp-chinese
+         * @brief 截取数组的子区间。
+         *
+         * @tparam NewSize 新数组的大小（默认为原数组大小 N）
+         * @param begin_slice 起始位置（包含）
+         * @param end_slice 结束位置（不包含）
          * @return 返回从指定区间复制的子数组；若参数非法则返回空数组。
          */
         template <std::size_t NewSize = N>
@@ -285,15 +323,19 @@ namespace rainy::core::collections {
         }
 
         /**
+         * \lang english
          * @brief Gets the first n elements from the left side of the array.
-         *        获取数组左侧的若干元素。
          *
          * @tparam NewSize Size of the new array (defaults to original size N)
-         *                 新数组的大小（默认为原数组大小 N）
          * @param n Number of elements to extract
-         *          要截取的元素数量
          * @return Returns a new array containing the first n elements;
-         *         returns an empty array if n is out of range.
+         *          returns an empty array if n is out of range.
+         *
+         * \lang simp-chinese
+         * @brief 获取数组左侧的若干元素。
+         *
+         * @tparam NewSize 新数组的大小（默认为原数组大小 N）
+         * @param n 要截取的元素数量
          * @return 返回包含前 n 个元素的新数组；若 n 超出范围则返回空数组。
          */
         template <std::size_t NewSize = N>
@@ -302,15 +344,19 @@ namespace rainy::core::collections {
         }
 
         /**
+         * \lang english
          * @brief Gets the last n elements from the right side of the array.
-         *        获取数组右侧的若干元素。
          *
          * @tparam NewSize Size of the new array (defaults to original size N)
-         *                 新数组的大小（默认为原数组大小 N）
          * @param n Number of elements to extract
-         *          要截取的元素数量
          * @return Returns a new array containing the last n elements;
-         *         returns an empty array if n is out of range.
+         *          returns an empty array if n is out of range.
+         *
+         * \lang simp-chinese
+         * @brief 获取数组右侧的若干元素。
+         *
+         * @tparam NewSize 新数组的大小（默认为原数组大小 N）
+         * @param n 要截取的元素数量
          * @return 返回包含后 n 个元素的新数组；若 n 超出范围则返回空数组。
          */
         template <std::size_t NewSize = N>
@@ -319,14 +365,18 @@ namespace rainy::core::collections {
         }
 
         /**
+         * \lang english
          * @brief Finds the index of a specified value in the array.
-         *        查找指定值在数组中的索引。
          *
          * @tparam UTy Type of the value to find
-         *             待查找的值的类型
          * @param value Value to find
-         *              要查找的值
          * @return Returns the index if a matching element is found, otherwise returns npos.
+         *
+         * \lang simp-chinese
+         * @brief 查找指定值在数组中的索引。
+         *
+         * @tparam UTy 待查找的值的类型
+         * @param value 要查找的值
          * @return 若找到匹配元素则返回其索引，否则返回 npos。
          */
         template <typename UTy,
@@ -339,17 +389,21 @@ namespace rainy::core::collections {
         }
 
         /**
+         * \lang english
          * @brief Filters array elements based on a predicate function.
-         *        根据谓词函数筛选数组元素。
          *
          * @tparam NewSize Size of the returned array (defaults to original size N)
-         *                 返回数组的大小（默认为原数组大小 N）
          * @tparam Pred Predicate function type, receives an element and returns a result convertible to bool
-         *              谓词函数类型，接收元素并返回可转换为 bool 的结果
          * @param pred Predicate used for filtering elements
-         *             用于筛选元素的谓词
          * @return Returns a new array containing elements that satisfy the predicate;
-         *         forces return of an empty array if NewSize is less than the number of filtered elements.
+         *          forces return of an empty array if NewSize is less than the number of filtered elements.
+         *
+         * \lang simp-chinese
+         * @brief 根据谓词函数筛选数组元素。
+         *
+         * @tparam NewSize 返回数组的大小（默认为原数组大小 N）
+         * @tparam Pred 谓词函数类型，接收元素并返回可转换为 bool 的结果
+         * @param pred 用于筛选元素的谓词
          * @return 返回一个新数组，包含满足谓词的元素；若 NewSize 小于筛选出的元素数，则强制返回空数组。
          */
         template <std::size_t NewSize = N, typename Pred>
@@ -371,10 +425,13 @@ namespace rainy::core::collections {
         }
 
         /**
+         * \lang english
          * @brief Returns a reversed version of the array.
-         *        返回数组的逆序版本。
          *
          * @return Returns a new array whose elements are in reverse order of the current array.
+         *
+         * \lang simp-chinese
+         * @brief 返回数组的逆序版本。
          * @return 返回一个新数组，其元素顺序与当前数组相反。
          */
         constexpr rain_fn reverse() const -> collections::array<value_type, N> {
@@ -383,14 +440,18 @@ namespace rainy::core::collections {
         }
 
         /**
+         * \lang english
          * @brief Applies a mapping function to each element of the array.
-         *        对数组中的每个元素应用映射函数。
          *
          * @tparam Fx Mapping function type
-         *            映射函数类型
          * @param func Mapping function
-         *             映射函数
          * @return Returns a new array whose elements are the results of applying the mapping function.
+         *
+         * \lang simp-chinese
+         * @brief 对数组中的每个元素应用映射函数。
+         *
+         * @tparam Fx 映射函数类型
+         * @param func 映射函数
          * @return 返回一个新数组，其元素为映射函数作用后的结果。
          */
         template <typename Fx>
@@ -403,12 +464,16 @@ namespace rainy::core::collections {
         }
 
         /**
+         * \lang english
          * @brief Folds array elements using a default initial value.
-         *        使用默认初始化值折叠数组元素。
          *
          * @tparam Init Type of the initial value for the fold operation
-         *              折叠操作的初始值类型
          * @return Returns the result of the fold computation.
+         *
+         * \lang simp-chinese
+         * @brief 使用默认初始化值折叠数组元素。
+         *
+         * @tparam Init 折叠操作的初始值类型
          * @return 返回折叠计算的结果。
          */
         template <typename Init>
@@ -417,14 +482,18 @@ namespace rainy::core::collections {
         }
 
         /**
+         * \lang english
          * @brief Folds array elements using a specified initial value.
-         *        使用指定初始值折叠数组元素。
          *
          * @tparam Init Type of the initial value
-         *              初始值类型
          * @param init_value Initial value used for fold computation
-         *                   用作折叠计算的初始值
          * @return Returns the result of the fold computation.
+         *
+         * \lang simp-chinese
+         * @brief 使用指定初始值折叠数组元素。
+         *
+         * @tparam Init 初始值类型
+         * @param init_value 用作折叠计算的初始值
          * @return 返回折叠计算的结果。
          */
         template <typename Init>
@@ -433,16 +502,20 @@ namespace rainy::core::collections {
         }
 
         /**
+         * \lang english
          * @brief Folds array elements using a specified initial type and binary function.
-         *        使用指定初始类型和二元函数折叠数组元素。
          *
          * @tparam Init Type of the initial value
-         *              初始值类型
          * @tparam Fx Binary fold function type
-         *            二元折叠函数类型
          * @param func Binary function used for folding
-         *             用于折叠的二元函数
          * @return Returns the result of the fold computation.
+         *
+         * \lang simp-chinese
+         * @brief 使用指定初始类型和二元函数折叠数组元素。
+         *
+         * @tparam Init 初始值类型
+         * @tparam Fx 二元折叠函数类型
+         * @param func 用于折叠的二元函数
          * @return 返回折叠计算的结果。
          */
         template <typename Init, typename Fx>
@@ -451,18 +524,22 @@ namespace rainy::core::collections {
         }
 
         /**
+         * \lang english
          * @brief Folds array elements using a specified initial value and binary function.
-         *        使用指定初始值和二元函数折叠数组元素。
          *
          * @tparam Fx Binary fold function type
-         *            二元折叠函数类型
          * @tparam Init Type of the initial value
-         *              初始值类型
          * @param func Binary function used for folding
-         *             用于折叠的二元函数
          * @param init_value Initial value for fold computation
-         *                   折叠计算的初始值
          * @return Returns the result of the fold computation.
+         *
+         * \lang simp-chinese
+         * @brief 使用指定初始值和二元函数折叠数组元素。
+         *
+         * @tparam Fx 二元折叠函数类型
+         * @tparam Init 初始值类型
+         * @param func 用于折叠的二元函数
+         * @param init_value 折叠计算的初始值
          * @return 返回折叠计算的结果。
          */
         template <typename Fx, typename Init>
@@ -471,15 +548,19 @@ namespace rainy::core::collections {
         }
 
         /**
+         * \lang english
          * @brief Concatenates two arrays.
-         *        拼接两个数组。
          *
          * @tparam Ni Size of the right array
-         *            右侧数组的大小
          * @param right Right array to concatenate
-         *              右侧待拼接的数组
          * @return Returns a new array containing elements from both the left and right arrays,
-         *         with a size of N + Ni.
+         *          with a size of N + Ni.
+         *
+         * \lang simp-chinese
+         * @brief 拼接两个数组。
+         *
+         * @tparam Ni 右侧数组的大小
+         * @param right 右侧待拼接的数组
          * @return 返回一个包含左侧与右侧元素的新数组，长度为 N + Ni。
          */
         template <std::size_t Ni>
@@ -490,14 +571,17 @@ namespace rainy::core::collections {
         }
 
         /**
+         * \lang english
          * @brief Accesses element at the specified index with bounds checking.
-         *        获取指定下标的元素（进行范围检查）。
          *
          * @attention This function performs range checking.
-         * @attention 此函数进行范围检查。
          * @param off Offset index
-         *            偏移量
          * @return Reference to the element at the corresponding index.
+         *
+         * \lang simp-chinese
+         * @brief 获取指定下标的元素（进行范围检查）。
+         * @attention 此函数进行范围检查。
+         * @param off 偏移量
          * @return 返回对应下标的元素引用。
          */
         RAINY_NODISCARD RAINY_ALWAYS_INLINE constexpr rain_fn at(difference_type off) -> reference {
@@ -506,14 +590,17 @@ namespace rainy::core::collections {
         }
 
         /**
+         * \lang english
          * @brief Accesses element at the specified index with bounds checking (const version).
-         *        获取指定下标的元素（进行范围检查，常量版本）。
          *
          * @attention This function performs range checking.
-         * @attention 此函数进行范围检查。
          * @param off Offset index
-         *            偏移量
          * @return Const reference to the element at the corresponding index.
+         *
+         * \lang simp-chinese
+         * @brief 获取指定下标的元素（进行范围检查，常量版本）。
+         * @attention 此函数进行范围检查。
+         * @param off 偏移量
          * @return 返回对应下标的元素引用。
          */
         RAINY_NODISCARD RAINY_ALWAYS_INLINE constexpr rain_fn at(difference_type off) const -> const_reference {
@@ -522,10 +609,13 @@ namespace rainy::core::collections {
         }
 
         /**
+         * \lang english
          * @brief Accesses the first element of the array.
-         *        获取当前数组第一个元素。
          *
          * @return Reference to the first element.
+         *
+         * \lang simp-chinese
+         * @brief 获取当前数组第一个元素。
          * @return 返回第一个元素的引用。
          */
         RAINY_NODISCARD RAINY_ALWAYS_INLINE constexpr rain_fn front() -> reference {
@@ -533,10 +623,13 @@ namespace rainy::core::collections {
         }
 
         /**
+         * \lang english
          * @brief Accesses the first element of the array (const version).
-         *        获取当前数组第一个元素（常量版本）。
          *
          * @return Const reference to the first element.
+         *
+         * \lang simp-chinese
+         * @brief 获取当前数组第一个元素（常量版本）。
          * @return 返回第一个元素的引用。
          */
         RAINY_NODISCARD RAINY_ALWAYS_INLINE constexpr rain_fn front() const -> const_reference {
@@ -544,10 +637,13 @@ namespace rainy::core::collections {
         }
 
         /**
+         * \lang english
          * @brief Accesses the last element of the array.
-         *        获取当前数组最后一个元素。
          *
          * @return Reference to the last element.
+         *
+         * \lang simp-chinese
+         * @brief 获取当前数组最后一个元素。
          * @return 返回最后一个元素的引用。
          */
         RAINY_NODISCARD RAINY_ALWAYS_INLINE constexpr rain_fn back() -> reference {
@@ -555,10 +651,13 @@ namespace rainy::core::collections {
         }
 
         /**
+         * \lang english
          * @brief Accesses the last element of the array (const version).
-         *        获取当前数组最后一个元素（常量版本）。
          *
          * @return Const reference to the last element.
+         *
+         * \lang simp-chinese
+         * @brief 获取当前数组最后一个元素（常量版本）。
          * @return 返回最后一个元素的引用。
          */
         RAINY_NODISCARD RAINY_ALWAYS_INLINE constexpr rain_fn back() const -> const_reference {
@@ -566,14 +665,17 @@ namespace rainy::core::collections {
         }
 
         /**
+         * \lang english
          * @brief Accesses element at the specified index without bounds checking.
-         *        获取指定下标的元素（不进行范围检查）。
          *
          * @attention This function does NOT perform range checking.
-         * @attention 此函数不进行范围检查。
          * @param idx Index
-         *            索引下标
          * @return Reference to the element at the corresponding index.
+         *
+         * \lang simp-chinese
+         * @brief 获取指定下标的元素（不进行范围检查）。
+         * @attention 此函数不进行范围检查。
+         * @param idx 索引下标
          * @return 返回对应下标的元素引用。
          */
         RAINY_NODISCARD RAINY_ALWAYS_INLINE constexpr rain_fn operator[](difference_type idx) noexcept -> reference {
@@ -581,14 +683,17 @@ namespace rainy::core::collections {
         }
 
         /**
+         * \lang english
          * @brief Accesses element at the specified index without bounds checking (const version).
-         *        获取指定下标的元素（不进行范围检查，常量版本）。
          *
          * @attention This function does NOT perform range checking.
-         * @attention 此函数不进行范围检查。
          * @param idx Index
-         *            索引下标
          * @return Const reference to the element at the corresponding index.
+         *
+         * \lang simp-chinese
+         * @brief 获取指定下标的元素（不进行范围检查，常量版本）。
+         * @attention 此函数不进行范围检查。
+         * @param idx 索引下标
          * @return 返回对应下标的元素引用。
          */
         RAINY_NODISCARD RAINY_ALWAYS_INLINE constexpr rain_fn operator[](difference_type idx) const noexcept -> const_reference {
@@ -596,32 +701,43 @@ namespace rainy::core::collections {
         }
 
         /**
+         * \lang english
          * @brief Swaps the data of this array with another array.
-         *        将一个对象的数据与当前对象的数据进行交换。
          *
          * @param right Array object to swap with
-         *              待交换的数组对象
+         *
+         * \lang simp-chinese
+         * @brief 将一个对象的数据与当前对象的数据进行交换。
+         *
+         * @param right 待交换的数组对象
          */
         RAINY_ALWAYS_INLINE RAINY_CONSTEXPR20 rain_fn swap(array &right) noexcept(impl_traits::is_nothrow_swappable::value) -> void {
             core::algorithm::swap_ranges(elements, elements + N, right.elements);
         }
 
         /**
+         * \lang english
          * @brief Fills the array with a specified value.
-         *        将一个值填充到数组中。
          *
          * @param value Value to fill the array with
-         *              要填充的值
+         *
+         * \lang simp-chinese
+         * @brief 将一个值填充到数组中。
+         *
+         * @param value 要填充的值
          */
         RAINY_CONSTEXPR20 rain_fn fill(const Ty &value) -> void {
             core::algorithm::fill_n(begin(), size(), value);
         }
 
         /**
+         * \lang english
          * @brief Gets the size of the array.
-         *        获取当前数组大小。
          *
          * @return Returns the size of the current array.
+         *
+         * \lang simp-chinese
+         * @brief 获取当前数组大小。
          * @return 返回当前数组大小。
          */
         RAINY_ALWAYS_INLINE constexpr static rain_fn size() noexcept -> size_type {
@@ -629,10 +745,13 @@ namespace rainy::core::collections {
         }
 
         /**
+         * \lang english
          * @brief Gets the maximum possible size of the array.
-         *        获取数组的最大可能大小。
          *
          * @return Returns N (same as size()).
+         *
+         * \lang simp-chinese
+         * @brief 获取数组的最大可能大小。
          * @return 返回 N（与 size() 相同）。
          */
         RAINY_INLINE constexpr rain_fn max_size() const noexcept -> size_type {
@@ -640,10 +759,13 @@ namespace rainy::core::collections {
         }
 
         /**
+         * \lang english
          * @brief Gets the length of the array.
-         *        获取数组的长度。
          *
          * @return Returns N (same as size()).
+         *
+         * \lang simp-chinese
+         * @brief 获取数组的长度。
          * @return 返回 N（与 size() 相同）。
          */
         RAINY_INLINE constexpr rain_fn length() const noexcept -> size_type {
@@ -651,10 +773,13 @@ namespace rainy::core::collections {
         }
 
         /**
+         * \lang english
          * @brief Checks if the array container is empty.
-         *        检查当前数组容器是否为空。
          *
          * @return true if size() == 0, false otherwise.
+         *
+         * \lang simp-chinese
+         * @brief 检查当前数组容器是否为空。
          * @return 容器状态。
          */
         RAINY_ALWAYS_INLINE constexpr static rain_fn empty() noexcept -> bool {
@@ -662,10 +787,13 @@ namespace rainy::core::collections {
         }
 
         /**
+         * \lang english
          * @brief Gets a pointer to the underlying array data.
-         *        获取当前数组地址。
          *
          * @return Pointer to the array's data.
+         *
+         * \lang simp-chinese
+         * @brief 获取当前数组地址。
          * @return 返回数组的地址，以指针形式。
          */
         RAINY_NODISCARD RAINY_ALWAYS_INLINE constexpr rain_fn data() noexcept -> pointer {
@@ -673,10 +801,13 @@ namespace rainy::core::collections {
         }
 
         /**
+         * \lang english
          * @brief Gets a const pointer to the underlying array data.
-         *        获取当前数组地址（常量版本）。
          *
          * @return Const pointer to the array's data.
+         *
+         * \lang simp-chinese
+         * @brief 获取当前数组地址（常量版本）。
          * @return 返回数组的地址，以指针形式。
          */
         RAINY_NODISCARD RAINY_ALWAYS_INLINE constexpr rain_fn data() const noexcept -> const_pointer {
@@ -684,10 +815,13 @@ namespace rainy::core::collections {
         }
 
         /**
+         * \lang english
          * @brief Gets an iterator to the beginning of the array.
-         *        获取指向当前数组起始位置的迭代器。
          *
          * @return Iterator to the beginning.
+         *
+         * \lang simp-chinese
+         * @brief 获取指向当前数组起始位置的迭代器。
          * @return 返回指向起始的迭代器。
          */
         RAINY_ALWAYS_INLINE constexpr rain_fn begin() -> iterator {
@@ -695,10 +829,13 @@ namespace rainy::core::collections {
         }
 
         /**
+         * \lang english
          * @brief Gets a const iterator to the beginning of the array.
-         *        获取指向当前数组起始位置的迭代器（常量版本）。
          *
          * @return Const iterator to the beginning.
+         *
+         * \lang simp-chinese
+         * @brief 获取指向当前数组起始位置的迭代器（常量版本）。
          * @return 返回指向起始的迭代器。
          */
         RAINY_ALWASY_INLINE_NODISCARD constexpr rain_fn begin() const -> const_iterator {
@@ -706,10 +843,13 @@ namespace rainy::core::collections {
         }
 
         /**
+         * \lang english
          * @brief Gets a const iterator to the beginning of the array.
-         *        获取指向当前数组起始位置的迭代器常量。
          *
          * @return Const iterator to the beginning.
+         *
+         * \lang simp-chinese
+         * @brief 获取指向当前数组起始位置的迭代器常量。
          * @return 返回指向起始的迭代器。
          */
         RAINY_ALWASY_INLINE_NODISCARD constexpr rain_fn cbegin() const -> const_iterator {
@@ -717,10 +857,13 @@ namespace rainy::core::collections {
         }
 
         /**
+         * \lang english
          * @brief Gets a reverse iterator to the beginning of the reversed array.
-         *        获取指向当前数组末尾位置的反向迭代器。
          *
          * @return Reverse iterator to the beginning.
+         *
+         * \lang simp-chinese
+         * @brief 获取指向当前数组末尾位置的反向迭代器。
          * @return 返回指向起始的反向迭代器。
          */
         RAINY_ALWASY_INLINE_NODISCARD constexpr rain_fn rbegin() -> reverse_iterator {
@@ -728,10 +871,13 @@ namespace rainy::core::collections {
         }
 
         /**
+         * \lang english
          * @brief Gets a const reverse iterator to the beginning of the reversed array.
-         *        获取指向当前数组末尾位置的反向迭代器（常量版本）。
          *
          * @return Const reverse iterator to the beginning.
+         *
+         * \lang simp-chinese
+         * @brief 获取指向当前数组末尾位置的反向迭代器（常量版本）。
          * @return 返回指向起始的反向迭代器。
          */
         RAINY_ALWASY_INLINE_NODISCARD constexpr rain_fn rbegin() const -> const_reverse_iterator {
@@ -739,10 +885,13 @@ namespace rainy::core::collections {
         }
 
         /**
+         * \lang english
          * @brief Gets a const reverse iterator to the beginning of the reversed array.
-         *        获取指向当前数组末尾位置的反向迭代器常量。
          *
          * @return Const reverse iterator to the beginning.
+         *
+         * \lang simp-chinese
+         * @brief 获取指向当前数组末尾位置的反向迭代器常量。
          * @return 返回指向起始的反向迭代器。
          */
         RAINY_ALWASY_INLINE_NODISCARD constexpr rain_fn crbegin() const -> const_reverse_iterator {
@@ -750,10 +899,13 @@ namespace rainy::core::collections {
         }
 
         /**
+         * \lang english
          * @brief Gets an iterator to the end of the array.
-         *        获取指向当前数组末尾位置的迭代器。
          *
          * @return Iterator to the end.
+         *
+         * \lang simp-chinese
+         * @brief 获取指向当前数组末尾位置的迭代器。
          * @return 返回指向末尾的迭代器。
          */
         RAINY_ALWASY_INLINE_NODISCARD constexpr rain_fn end() -> iterator {
@@ -761,10 +913,13 @@ namespace rainy::core::collections {
         }
 
         /**
+         * \lang english
          * @brief Gets a const iterator to the end of the array.
-         *        获取指向当前数组末尾位置的迭代器（常量版本）。
          *
          * @return Const iterator to the end.
+         *
+         * \lang simp-chinese
+         * @brief 获取指向当前数组末尾位置的迭代器（常量版本）。
          * @return 返回指向末尾的迭代器。
          */
         RAINY_ALWASY_INLINE_NODISCARD constexpr rain_fn end() const -> const_iterator {
@@ -772,10 +927,13 @@ namespace rainy::core::collections {
         }
 
         /**
+         * \lang english
          * @brief Gets a const iterator to the end of the array.
-         *        获取指向当前数组末尾位置的迭代器常量。
          *
          * @return Const iterator to the end.
+         *
+         * \lang simp-chinese
+         * @brief 获取指向当前数组末尾位置的迭代器常量。
          * @return 返回指向末尾的迭代器。
          */
         RAINY_ALWASY_INLINE_NODISCARD constexpr rain_fn cend() const -> const_iterator {
@@ -783,10 +941,13 @@ namespace rainy::core::collections {
         }
 
         /**
+         * \lang english
          * @brief Gets a reverse iterator to the end of the reversed array.
-         *        获取指向当前数组末尾位置的反向迭代器。
          *
          * @return Reverse iterator to the end.
+         *
+         * \lang simp-chinese
+         * @brief 获取指向当前数组末尾位置的反向迭代器。
          * @return 返回指向末尾的反向迭代器。
          */
         RAINY_ALWASY_INLINE_NODISCARD constexpr rain_fn rend() -> reverse_iterator {
@@ -794,10 +955,13 @@ namespace rainy::core::collections {
         }
 
         /**
+         * \lang english
          * @brief Gets a const reverse iterator to the end of the reversed array.
-         *        获取指向当前数组末尾位置的反向迭代器（常量版本）。
          *
          * @return Const reverse iterator to the end.
+         *
+         * \lang simp-chinese
+         * @brief 获取指向当前数组末尾位置的反向迭代器（常量版本）。
          * @return 返回指向末尾的反向迭代器。
          */
         RAINY_ALWASY_INLINE_NODISCARD constexpr rain_fn rend() const -> const_reverse_iterator {
@@ -805,10 +969,13 @@ namespace rainy::core::collections {
         }
 
         /**
+         * \lang english
          * @brief Gets a const reverse iterator to the end of the reversed array.
-         *        获取指向当前数组末尾位置的反向迭代器常量。
          *
          * @return Const reverse iterator to the end.
+         *
+         * \lang simp-chinese
+         * @brief 获取指向当前数组末尾位置的反向迭代器常量。
          * @return 返回指向末尾的反向迭代器。
          */
         RAINY_ALWASY_INLINE_NODISCARD constexpr rain_fn crend() const -> const_reverse_iterator {
@@ -816,10 +983,13 @@ namespace rainy::core::collections {
         }
 
         /**
+         * \lang english
          * @brief Accesses the underlying C-style array directly.
-         *        用于访问原生数组，而不通过data。
          *
          * @return Reference to the underlying C-style array.
+         *
+         * \lang simp-chinese
+         * @brief 用于访问原生数组，而不通过data。
          * @return 返回原生数组的引用。
          */
         constexpr rain_fn access_carrays() noexcept -> carray_type & {
@@ -827,10 +997,13 @@ namespace rainy::core::collections {
         }
 
         /**
+         * \lang english
          * @brief Accesses the underlying C-style array directly (const version).
-         *        用于访问原生数组，而不通过data（常量版本）。
          *
          * @return Const reference to the underlying C-style array.
+         *
+         * \lang simp-chinese
+         * @brief 用于访问原生数组，而不通过data（常量版本）。
          * @return 返回原生数组的常量引用。
          */
         constexpr rain_fn access_carrays() const noexcept -> const carray_type & {
@@ -838,13 +1011,16 @@ namespace rainy::core::collections {
         }
 
         /**
+         * \lang english
          * @brief Copy assignment operator.
-         *        拷贝赋值运算符。
          *
          * @param right The source array to copy from.
-         * @param right 要拷贝的源数组。
          *
          * @return Reference to the current array object.
+         *
+         * \lang simp-chinese
+         * @brief 拷贝赋值运算符。
+         * @param right 要拷贝的源数组。
          * @return 返回当前数组对象的引用。
          */
         constexpr rain_fn operator=(const array &right)->array & {
@@ -853,16 +1029,19 @@ namespace rainy::core::collections {
         }
 
         /**
+         * \lang english
          * @brief Move assignment operator.
-         *        移动赋值运算符。
          *
          * @param right The source array to move from.
-         * @param right 要移动的源数组。
          *
          * @return Reference to the current array object.
-         * @return 返回当前数组对象的引用。
          *
          * @note This operator is noexcept if the type Ty is move-assignable.
+         *
+         * \lang simp-chinese
+         * @brief 移动赋值运算符。
+         * @param right 要移动的源数组。
+         * @return 返回当前数组对象的引用。
          * @note 如果类型 Ty 支持移动赋值，则该运算符为 noexcept。
          */
         constexpr rain_fn operator=(array &&right) noexcept(type_traits::properties::is_move_assignable_v<Ty>)->array & {
@@ -871,14 +1050,18 @@ namespace rainy::core::collections {
         }
 
         /**
+         * \lang english
          * @brief Equality comparison operator for arrays.
-         *        判断两个数组是否相等。
          *
          * @param left Left array
-         *             左侧数组
          * @param right Right array
-         *              右侧数组
          * @return true if all corresponding elements are equal, false otherwise.
+         *
+         * \lang simp-chinese
+         * @brief 判断两个数组是否相等。
+         *
+         * @param left 左侧数组
+         * @param right 右侧数组
          * @return 若两个数组元素一一对应且相等则返回 true，否则返回 false。
          */
         friend constexpr rain_fn operator==(const array &left, const array &right) noexcept -> bool {
@@ -886,14 +1069,18 @@ namespace rainy::core::collections {
         }
 
         /**
+         * \lang english
          * @brief Inequality comparison operator for arrays.
-         *        判断两个数组是否不相等。
          *
          * @param left Left array
-         *             左侧数组
          * @param right Right array
-         *              右侧数组
          * @return true if the arrays are not equal, false otherwise.
+         *
+         * \lang simp-chinese
+         * @brief 判断两个数组是否不相等。
+         *
+         * @param left 左侧数组
+         * @param right 右侧数组
          * @return 若两个数组不相等则返回 true，否则返回 false。
          */
         friend constexpr rain_fn operator!=(const array &left, const array &right) noexcept -> bool {
@@ -901,14 +1088,18 @@ namespace rainy::core::collections {
         }
 
         /**
+         * \lang english
          * @brief Less-than comparison operator for arrays (lexicographical).
-         *        判断左侧数组是否小于右侧数组（字典序比较）。
          *
          * @param left Left array
-         *             左侧数组
          * @param right Right array
-         *              右侧数组
          * @return true if left is lexicographically less than right, false otherwise.
+         *
+         * \lang simp-chinese
+         * @brief 判断左侧数组是否小于右侧数组（字典序比较）。
+         *
+         * @param left 左侧数组
+         * @param right 右侧数组
          * @return 若左侧数组在字典序上小于右侧数组则返回 true，否则返回 false。
          */
         friend constexpr rain_fn operator<(const array &left, const array &right) noexcept -> bool {
@@ -916,14 +1107,18 @@ namespace rainy::core::collections {
         }
 
         /**
+         * \lang english
          * @brief Greater-than comparison operator for arrays (lexicographical).
-         *        判断左侧数组是否大于右侧数组（字典序比较）。
          *
          * @param left Left array
-         *             左侧数组
          * @param right Right array
-         *              右侧数组
          * @return true if left is lexicographically greater than right, false otherwise.
+         *
+         * \lang simp-chinese
+         * @brief 判断左侧数组是否大于右侧数组（字典序比较）。
+         *
+         * @param left 左侧数组
+         * @param right 右侧数组
          * @return 若左侧数组在字典序上大于右侧数组则返回 true，否则返回 false。
          */
         friend constexpr rain_fn operator>(const array &left, const array &right) noexcept -> bool {
@@ -931,14 +1126,18 @@ namespace rainy::core::collections {
         }
 
         /**
+         * \lang english
          * @brief Less-than-or-equal comparison operator for arrays (lexicographical).
-         *        判断左侧数组是否小于等于右侧数组（字典序比较）。
          *
          * @param left Left array
-         *             左侧数组
          * @param right Right array
-         *              右侧数组
          * @return true if left is lexicographically less than or equal to right, false otherwise.
+         *
+         * \lang simp-chinese
+         * @brief 判断左侧数组是否小于等于右侧数组（字典序比较）。
+         *
+         * @param left 左侧数组
+         * @param right 右侧数组
          * @return 若左侧数组小于或等于右侧数组则返回 true，否则返回 false。
          */
         friend constexpr rain_fn operator<=(const array &left, const array &right) noexcept -> bool {
@@ -946,14 +1145,18 @@ namespace rainy::core::collections {
         }
 
         /**
+         * \lang english
          * @brief Greater-than-or-equal comparison operator for arrays (lexicographical).
-         *        判断左侧数组是否大于等于右侧数组（字典序比较）。
          *
          * @param left Left array
-         *             左侧数组
          * @param right Right array
-         *              右侧数组
          * @return true if left is lexicographically greater than or equal to right, false otherwise.
+         *
+         * \lang simp-chinese
+         * @brief 判断左侧数组是否大于等于右侧数组（字典序比较）。
+         *
+         * @param left 左侧数组
+         * @param right 右侧数组
          * @return 若左侧数组大于或等于右侧数组则返回 true，否则返回 false。
          */
         friend constexpr rain_fn operator>=(const array &left, const array &right) noexcept -> bool {
@@ -984,29 +1187,37 @@ namespace rainy::core::collections {
     };
 
     /**
+     * \lang english
      * @brief Deduction guide for array from C-style array.
-     *        从C风格数组推导array类型的指引。
      *
      * @tparam Ty Element type
-     *            元素类型
      * @tparam N Array size
-     *           数组大小
-     * @param  C-style array reference
-     *         C风格数组引用
+     * @param C -style array reference
+     *
+     * \lang simp-chinese
+     * @brief 从C风格数组推导array类型的指引。
+     *
+     * @tparam Ty 元素类型
+     * @tparam N 数组大小
+     * @param C C风格数组引用
      */
     template <typename Ty, std::size_t N>
     array(const Ty (&)[N]) -> array<Ty, N>;
 
     /**
+     * \lang english
      * @brief Deduction guide for array from std::array.
-     *        从std::array推导array类型的指引。
      *
      * @tparam Ty Element type
-     *            元素类型
      * @tparam N Array size
-     *           数组大小
-     * @param  std::array reference
-     *         std::array引用
+     * @param std ::array reference
+     *
+     * \lang simp-chinese
+     * @brief 从std::array推导array类型的指引。
+     *
+     * @tparam Ty 元素类型
+     * @tparam N 数组大小
+     * @param std std::array引用
      */
     template <typename Ty, std::size_t N>
     array(const std::array<Ty, N> &) -> array<Ty, N>;
@@ -1014,27 +1225,35 @@ namespace rainy::core::collections {
 
 namespace std {
     /**
+     * \lang english
      * @brief Tuple size specialization for array.
-     *        array的tuple_size特化。
      *
      * @tparam Ty Element type
-     *            元素类型
      * @tparam N Array size
-     *           数组大小
+     *
+     * \lang simp-chinese
+     * @brief array的tuple_size特化。
+     *
+     * @tparam Ty 元素类型
+     * @tparam N 数组大小
      */
     template <typename Ty, std::size_t N>
     struct tuple_size<::rainy::core::collections::array<Ty, N>> : std::integral_constant<std::size_t, N> {};
 
     /**
+     * \lang english
      * @brief Tuple element type specialization for array.
-     *        array的tuple_element特化。
      *
      * @tparam Idx Element index
-     *             元素索引
      * @tparam Ty Element type
-     *            元素类型
      * @tparam N Array size
-     *           数组大小
+     *
+     * \lang simp-chinese
+     * @brief array的tuple_element特化。
+     *
+     * @tparam Idx 元素索引
+     * @tparam Ty 元素类型
+     * @tparam N 数组大小
      */
     template <std::size_t Idx, typename Ty, std::size_t N>
     struct tuple_element<Idx, ::rainy::core::collections::array<Ty, N>> {
@@ -1043,19 +1262,23 @@ namespace std {
     };
 
     /**
+     * \lang english
      * @brief Gets reference to array element at compile-time index.
-     *        在编译期索引获取数组元素的引用。
      *
      * @tparam Idx Element index (must be within bounds)
-     *             元素索引（必须在范围内）
      * @tparam Ty Element type
-     *            元素类型
      * @tparam N Array size
-     *           数组大小
      * @param val Array to access
-     *            要访问的数组
      * @return Reference to the element at index Idx
-     *         索引Idx处元素的引用
+     *
+     * \lang simp-chinese
+     * @brief 在编译期索引获取数组元素的引用。
+     *
+     * @tparam Idx 元素索引（必须在范围内）
+     * @tparam Ty 元素类型
+     * @tparam N 数组大小
+     * @param val 要访问的数组
+     * @return 索引Idx处元素的引用
      */
     template <std::size_t Idx, typename Ty, size_t N>
     constexpr rain_fn get(::rainy::core::collections::array<Ty, N> &val) noexcept -> Ty & {
@@ -1064,19 +1287,23 @@ namespace std {
     }
 
     /**
+     * \lang english
      * @brief Gets rvalue reference to array element at compile-time index.
-     *        在编译期索引获取数组元素的右值引用。
      *
      * @tparam Idx Element index (must be within bounds)
-     *             元素索引（必须在范围内）
      * @tparam Ty Element type
-     *            元素类型
      * @tparam N Array size
-     *           数组大小
      * @param val Array to access (as rvalue)
-     *            要访问的数组（作为右值）
      * @return Rvalue reference to the element at index Idx
-     *         索引Idx处元素的右值引用
+     *
+     * \lang simp-chinese
+     * @brief 在编译期索引获取数组元素的右值引用。
+     *
+     * @tparam Idx 元素索引（必须在范围内）
+     * @tparam Ty 元素类型
+     * @tparam N 数组大小
+     * @param val 要访问的数组（作为右值）
+     * @return 索引Idx处元素的右值引用
      */
     template <std::size_t Idx, typename Ty, size_t N>
     constexpr rain_fn get(::rainy::core::collections::array<Ty, N> &&val) noexcept -> Ty && {
@@ -1085,19 +1312,23 @@ namespace std {
     }
 
     /**
+     * \lang english
      * @brief Gets const reference to array element at compile-time index.
-     *        在编译期索引获取数组元素的常量引用。
      *
      * @tparam Idx Element index (must be within bounds)
-     *             元素索引（必须在范围内）
      * @tparam Ty Element type
-     *            元素类型
      * @tparam N Array size
-     *           数组大小
      * @param val Const array to access
-     *            要访问的常量数组
      * @return Const reference to the element at index Idx
-     *         索引Idx处元素的常量引用
+     *
+     * \lang simp-chinese
+     * @brief 在编译期索引获取数组元素的常量引用。
+     *
+     * @tparam Idx 元素索引（必须在范围内）
+     * @tparam Ty 元素类型
+     * @tparam N 数组大小
+     * @param val 要访问的常量数组
+     * @return 索引Idx处元素的常量引用
      */
     template <std::size_t Idx, typename Ty, size_t N>
     constexpr rain_fn get(const ::rainy::core::collections::array<Ty, N> &val) noexcept -> const Ty & {
@@ -1106,19 +1337,23 @@ namespace std {
     }
 
     /**
+     * \lang english
      * @brief Gets const rvalue reference to array element at compile-time index.
-     *        在编译期索引获取数组元素的常量右值引用。
      *
      * @tparam Idx Element index (must be within bounds)
-     *             元素索引（必须在范围内）
      * @tparam Ty Element type
-     *            元素类型
      * @tparam N Array size
-     *           数组大小
      * @param val Const array to access (as rvalue)
-     *            要访问的常量数组（作为右值）
      * @return Const rvalue reference to the element at index Idx
-     *         索引Idx处元素的常量右值引用
+     *
+     * \lang simp-chinese
+     * @brief 在编译期索引获取数组元素的常量右值引用。
+     *
+     * @tparam Idx 元素索引（必须在范围内）
+     * @tparam Ty 元素类型
+     * @tparam N 数组大小
+     * @param val 要访问的常量数组（作为右值）
+     * @return 索引Idx处元素的常量右值引用
      */
     template <std::size_t Idx, typename Ty, size_t N>
     constexpr rain_fn get(const ::rainy::core::collections::array<Ty, N> &&val) noexcept -> const Ty && {
@@ -1129,25 +1364,29 @@ namespace std {
 
 namespace rainy::core::collections {
     /**
+     * \lang english
      * @brief Combines two arrays element-wise using a binary function.
-     *        使用二元函数逐元素组合两个数组。
      *
      * @tparam Ty Element type of the left array
-     *            左侧数组的元素类型
      * @tparam N Size of both arrays (must be identical)
-     *           两个数组的大小（必须相同）
      * @tparam UTy Element type of the right array
-     *             右侧数组的元素类型
      * @tparam Fx Binary function type
-     *            二元函数类型
      * @param left Left array
-     *             左侧数组
      * @param right Right array
-     *              右侧数组
      * @param func Binary function to apply to each pair of elements
-     *              应用于每对元素的二元函数
      * @return A new array where each element is the result of func(left[i], right[i])
-     *         新数组，每个元素是 func(left[i], right[i]) 的结果
+     *
+     * \lang simp-chinese
+     * @brief 使用二元函数逐元素组合两个数组。
+     *
+     * @tparam Ty 左侧数组的元素类型
+     * @tparam N 两个数组的大小（必须相同）
+     * @tparam UTy 右侧数组的元素类型
+     * @tparam Fx 二元函数类型
+     * @param left 左侧数组
+     * @param right 右侧数组
+     * @param func 应用于每对元素的二元函数
+     * @return 新数组，每个元素是 func(left[i], right[i]) 的结果
      */
     template <typename Ty, std::size_t N, typename UTy, typename Fx>
     RAINY_NODISCARD constexpr rain_fn zip_with(const array<Ty, N> &left, const array<UTy, N> &right, Fx &&func) -> auto {

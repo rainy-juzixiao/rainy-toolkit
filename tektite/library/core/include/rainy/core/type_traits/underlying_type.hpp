@@ -18,13 +18,17 @@
 
 namespace rainy::type_traits::other_trans {
     /**
+     * \lang english
      * @brief Retrieves the underlying integral type of an enum type.
-     *        获取枚举类型的底层整数类型。
      *
-     * Returns the underlying integer type of enum type Ty.
+     *  Returns the underlying integer type of enum type Ty.
      *
      * @tparam Ty The enum type
-     *            枚举类型
+     *
+     * \lang simp-chinese
+     * @brief 获取枚举类型的底层整数类型。
+     *
+     * @tparam Ty 枚举类型
      */
     template <typename Ty>
     struct underlying_type {
@@ -32,53 +36,74 @@ namespace rainy::type_traits::other_trans {
     };
 
     /**
+     * \lang english
      * @brief Alias template for underlying type, providing simplified access.
-     *        底层类型模板的别名简化，提供便捷访问。
      *
      * @tparam Ty The enum type
-     *            枚举类型
+     *
+     * \lang simp-chinese
+     * @brief 底层类型模板的别名简化，提供便捷访问。
+     *
+     * @tparam Ty 枚举类型
      */
     template <typename Ty>
     using underlying_type_t = typename underlying_type<Ty>::type;
 }
 
 /**
+ * \lang english
  * @def RAINY_ENABLE_ENUM_CLASS_BITMASK_OPERATORS
  * @brief Enables bitmask operators for enum classes.
- *        为枚举类启用位掩码操作符。
+ *
+ *  This macro generates overloads for bitwise AND, OR, XOR, NOT, and their
+ *  corresponding assignment operators for the specified enum class.
+ *  It allows enum classes to be used as bitmasks, similar to traditional
+ *  C++ enum flags.
  *
  * @param EnumType The enum class type name to enable bitmask operations for
- *                 要启用位掩码操作的枚举类类型名
  *
- * @brief
- * This macro generates overloads for bitwise AND, OR, XOR, NOT, and their
- * corresponding assignment operators for the specified enum class.
- * It allows enum classes to be used as bitmasks, similar to traditional
- * C++ enum flags.
+ *  Generated operators include:
+ *  - |  : Bitwise OR
+ *  - &  : Bitwise AND
+ *  - ^  : Bitwise XOR
+ *  - ~  : Bitwise NOT
+ *  - |= : Bitwise OR assignment
+ *  - &= : Bitwise AND assignment
+ *  - ^= : Bitwise XOR assignment
  *
- * 该宏为枚举类生成按位与、或、异或、取反以及相应的赋值操作符重载。
- * 使得枚举类可以作为位掩码使用，就像 C++ 中传统的枚举标志位一样。
- *
- * Generated operators include:
- * 生成的操作符包括：
- * - |  : Bitwise OR  / 按位或
- * - &  : Bitwise AND / 按位与
- * - ^  : Bitwise XOR / 按位异或
- * - ~  : Bitwise NOT / 按位取反
- * - |= : Bitwise OR assignment  / 按位或赋值
- * - &= : Bitwise AND assignment / 按位与赋值
- * - ^= : Bitwise XOR assignment / 按位异或赋值
- *
- * Usage example:
- * 使用示例：
+ *  Usage example:
  * @code
- * enum class MyFlags { A = 1 << 0, B = 1 << 1, C = 1 << 2 };
- * RAINY_ENABLE_ENUM_CLASS_BITMASK_OPERATORS(MyFlags)
+ *  enum class MyFlags { A = 1 << 0, B = 1 << 1, C = 1 << 2 };
+ *  RAINY_ENABLE_ENUM_CLASS_BITMASK_OPERATORS(MyFlags)
  *
- * MyFlags flags = MyFlags::A | MyFlags::B;  // Bitwise combination allowed
- *                                            // 允许按位组合
- * flags &= ~MyFlags::A;                      // Bit operations allowed
- *                                            // 允许位操作
+ *  MyFlags flags = MyFlags::A | MyFlags::B;  // Bitwise combination allowed
+ *  flags &= ~MyFlags::A;                      // Bit operations allowed
+ * @endcode
+ *
+ * \lang simp-chinese
+ * @brief 为枚举类启用位掩码操作符。
+ *
+ *  该宏为枚举类生成按位与、或、异或、取反以及相应的赋值操作符重载。
+ *  使得枚举类可以作为位掩码使用，就像 C++ 中传统的枚举标志位一样。
+ *
+ * @param EnumType 要启用位掩码操作的枚举类类型名
+ *
+ *  生成的操作符包括：
+ *  - |  : 按位或
+ *  - &  : 按位与
+ *  - ^  : 按位异或
+ *  - ~  : 按位取反
+ *  - |= : 按位或赋值
+ *  - &= : 按位与赋值
+ *  - ^= : 按位异或赋值
+ *
+ *  使用示例：
+ * @code
+ *  enum class MyFlags { A = 1 << 0, B = 1 << 1, C = 1 << 2 };
+ *  RAINY_ENABLE_ENUM_CLASS_BITMASK_OPERATORS(MyFlags)
+ *
+ *  MyFlags flags = MyFlags::A | MyFlags::B;  // 允许按位组合
+ *  flags &= ~MyFlags::A;                      // 允许位操作
  * @endcode
  */
 #define RAINY_ENABLE_ENUM_CLASS_BITMASK_OPERATORS(EnumType)                                                                           \

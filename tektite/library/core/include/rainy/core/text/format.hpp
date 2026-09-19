@@ -205,6 +205,27 @@ namespace rainy::core::text::implements {
 }
 
 namespace rainy::core::text {
+    /**
+     * \lang english
+     * @brief Formats the arguments according to the format string and writes the result to out.
+     *
+     * @tparam OutputIt The output iterator type
+     * @tparam CharType The character type
+     * @param out The output iterator
+     * @param fmt The format string
+     * @param args The pre-built format arguments
+     * @return The output iterator after writing
+     *
+     * \lang simp-chinese
+     * @brief 按照格式字符串格式化参数，并将结果写入 out。
+     *
+     * @tparam OutputIt 输出迭代器类型
+     * @tparam CharType 字符类型
+     * @param out 输出迭代器
+     * @param fmt 格式字符串
+     * @param args 预先构造的格式化参数
+     * @return 写入完成后的输出迭代器
+     */
     template <typename OutputIt, typename CharType>
     OutputIt vformat_to(OutputIt out, basic_string_view<CharType> fmt, // NOLINT
                         basic_format_args<basic_format_context<OutputIt, CharType>> args) {
@@ -216,6 +237,29 @@ namespace rainy::core::text {
         return out; // never reach
     }
 
+    /**
+     * \lang english
+     * @brief Formats the arguments with the given locale and writes the result to out.
+     *
+     * @tparam OutputIt The output iterator type
+     * @tparam CharType The character type
+     * @param out The output iterator
+     * @param loc The locale to use
+     * @param fmt The format string
+     * @param args The pre-built format arguments
+     * @return The output iterator after writing
+     *
+     * \lang simp-chinese
+     * @brief 使用给定的 locale 格式化参数，并将结果写入 out。
+     *
+     * @tparam OutputIt 输出迭代器类型
+     * @tparam CharType 字符类型
+     * @param out 输出迭代器
+     * @param loc 使用的 locale
+     * @param fmt 格式字符串
+     * @param args 预先构造的格式化参数
+     * @return 写入完成后的输出迭代器
+     */
     template <typename OutputIt, typename CharType>
     OutputIt vformat_to(OutputIt out, const std::locale &loc, basic_string_view<CharType> fmt, // NOLINT
                         basic_format_args<basic_format_context<OutputIt, CharType>> args) {
@@ -228,72 +272,296 @@ namespace rainy::core::text {
         return out; // never reach
     }
 
+    /**
+     * \lang english
+     * @brief Formats the arguments and returns the result as a string.
+     *
+     * @param fmt The format string
+     * @param args The pre-built format arguments
+     * @return The formatted string
+     *
+     * \lang simp-chinese
+     * @brief 格式化参数并返回 string 类型的结果。
+     *
+     * @param fmt 格式字符串
+     * @param args 预先构造的格式化参数
+     * @return 格式化得到的字符串
+     */
     RAINY_INLINE string vformat(const string_view fmt, const format_args args) {
         string result;
         text::vformat_to(utility::back_inserter(result), fmt, args);
         return result;
     }
 
+    /**
+     * \lang english
+     * @brief Formats the arguments and returns the result as a wstring.
+     *
+     * @param fmt The format string
+     * @param args The pre-built format arguments
+     * @return The formatted wide string
+     *
+     * \lang simp-chinese
+     * @brief 格式化参数并返回 wstring 类型的结果。
+     *
+     * @param fmt 格式字符串
+     * @param args 预先构造的格式化参数
+     * @return 格式化得到的宽字符串
+     */
     RAINY_INLINE wstring vformat(const wstring_view fmt, const wformat_args args) {
         wstring result;
         vformat_to(utility::back_inserter(result), fmt, args);
         return result;
     }
 
+    /**
+     * \lang english
+     * @brief Formats the arguments with the given locale and returns the result as a string.
+     *
+     * @param loc The locale to use
+     * @param fmt The format string
+     * @param args The pre-built format arguments
+     * @return The formatted string
+     *
+     * \lang simp-chinese
+     * @brief 使用给定的 locale 格式化参数，并返回 string 类型的结果。
+     *
+     * @param loc 使用的 locale
+     * @param fmt 格式字符串
+     * @param args 预先构造的格式化参数
+     * @return 格式化得到的字符串
+     */
     RAINY_INLINE string vformat(const std::locale &loc, const string_view fmt, const format_args args) {
         string result;
         vformat_to(utility::back_inserter(result), loc, fmt, args);
         return result;
     }
 
+    /**
+     * \lang english
+     * @brief Formats the arguments with the given locale and returns the result as a wstring.
+     *
+     * @param loc The locale to use
+     * @param fmt The format string
+     * @param args The pre-built format arguments
+     * @return The formatted wide string
+     *
+     * \lang simp-chinese
+     * @brief 使用给定的 locale 格式化参数，并返回 wstring 类型的结果。
+     *
+     * @param loc 使用的 locale
+     * @param fmt 格式字符串
+     * @param args 预先构造的格式化参数
+     * @return 格式化得到的宽字符串
+     */
     RAINY_INLINE wstring vformat(const std::locale &loc, const wstring_view fmt, const wformat_args args) {
         wstring result;
         vformat_to(utility::back_inserter(result), loc, fmt, args);
         return result;
     }
 
+    /**
+     * \lang english
+     * @brief Formats the arguments according to the format string and returns a string.
+     *
+     * @tparam Args The argument types
+     * @param fmt The format string
+     * @param args The arguments to format
+     * @return The formatted string
+     *
+     * \lang simp-chinese
+     * @brief 按照格式字符串格式化参数并返回 string。
+     *
+     * @tparam Args 参数类型
+     * @param fmt 格式字符串
+     * @param args 待格式化的参数
+     * @return 格式化得到的字符串
+     */
     template <typename... Args>
     string format(string_view fmt, const Args &...args) {
         auto arg_store = text::make_format_args(args...);
         return vformat(fmt, basic_format_args(arg_store));
     }
 
+    /**
+     * \lang english
+     * @brief Formats the arguments according to the format string and returns a wstring.
+     *
+     * @tparam Args The argument types
+     * @param fmt The format string
+     * @param args The arguments to format
+     * @return The formatted wide string
+     *
+     * \lang simp-chinese
+     * @brief 按照格式字符串格式化参数并返回 wstring。
+     *
+     * @tparam Args 参数类型
+     * @param fmt 格式字符串
+     * @param args 待格式化的参数
+     * @return 格式化得到的宽字符串
+     */
     template <typename... Args>
     wstring format(wstring_view fmt, const Args &...args) {
         auto arg_store = text::make_format_args(args...);
         return vformat(fmt, basic_format_args(arg_store));
     }
 
+    /**
+     * \lang english
+     * @brief Formats the arguments with the given locale and returns a string.
+     *
+     * @tparam Args The argument types
+     * @param loc The locale to use
+     * @param fmt The format string
+     * @param args The arguments to format
+     * @return The formatted string
+     *
+     * \lang simp-chinese
+     * @brief 使用给定的 locale 格式化参数并返回 string。
+     *
+     * @tparam Args 参数类型
+     * @param loc 使用的 locale
+     * @param fmt 格式字符串
+     * @param args 待格式化的参数
+     * @return 格式化得到的字符串
+     */
     template <typename... Args>
     string format(const std::locale &loc, string_view fmt, const Args &...args) {
         auto arg_store = text::make_format_args(args...);
         return vformat(loc, fmt, basic_format_args(arg_store));
     }
 
+    /**
+     * \lang english
+     * @brief Formats the arguments with the given locale and returns a wstring.
+     *
+     * @tparam Args The argument types
+     * @param loc The locale to use
+     * @param fmt The format string
+     * @param args The arguments to format
+     * @return The formatted wide string
+     *
+     * \lang simp-chinese
+     * @brief 使用给定的 locale 格式化参数并返回 wstring。
+     *
+     * @tparam Args 参数类型
+     * @param loc 使用的 locale
+     * @param fmt 格式字符串
+     * @param args 待格式化的参数
+     * @return 格式化得到的宽字符串
+     */
     template <typename... Args>
     wstring format(const std::locale &loc, wstring_view fmt, const Args &...args) {
         auto arg_store = text::make_format_args(args...);
         return vformat(loc, fmt, basic_format_args(arg_store));
     }
 
+    /**
+     * \lang english
+     * @brief Formats the arguments and writes the result to the output iterator.
+     *
+     * @tparam OutputIt The output iterator type
+     * @tparam Args The argument types
+     * @param out The output iterator
+     * @param fmt The format string
+     * @param args The arguments to format
+     * @return The output iterator after writing
+     *
+     * \lang simp-chinese
+     * @brief 格式化参数并将结果写入输出迭代器。
+     *
+     * @tparam OutputIt 输出迭代器类型
+     * @tparam Args 参数类型
+     * @param out 输出迭代器
+     * @param fmt 格式字符串
+     * @param args 待格式化的参数
+     * @return 写入完成后的输出迭代器
+     */
     template <typename OutputIt, typename... Args>
     OutputIt format_to(OutputIt out, string_view fmt, const Args &...args) {
         auto arg_store = text::make_format_args<format_context>(args...);
         return vformat_to(out, fmt, basic_format_args<format_context>(arg_store));
     }
 
+    /**
+     * \lang english
+     * @brief Formats the wide-char arguments and writes the result to the output iterator.
+     *
+     * @tparam OutputIt The output iterator type
+     * @tparam Args The argument types
+     * @param out The output iterator
+     * @param fmt The format string
+     * @param args The arguments to format
+     * @return The output iterator after writing
+     *
+     * \lang simp-chinese
+     * @brief 格式化宽字符参数并将结果写入输出迭代器。
+     *
+     * @tparam OutputIt 输出迭代器类型
+     * @tparam Args 参数类型
+     * @param out 输出迭代器
+     * @param fmt 格式字符串
+     * @param args 待格式化的参数
+     * @return 写入完成后的输出迭代器
+     */
     template <typename OutputIt, typename... Args>
     OutputIt format_to(OutputIt out, wstring_view fmt, const Args &...args) {
         auto arg_store = text::make_format_args<wformat_context>(args...);
         return vformat_to(out, fmt, basic_format_args<wformat_context>(arg_store));
     }
 
+    /**
+     * \lang english
+     * @brief Formats the arguments with the given locale and writes the result to the output iterator.
+     *
+     * @tparam OutputIt The output iterator type
+     * @tparam Args The argument types
+     * @param out The output iterator
+     * @param loc The locale to use
+     * @param fmt The format string
+     * @param args The arguments to format
+     * @return The output iterator after writing
+     *
+     * \lang simp-chinese
+     * @brief 使用给定的 locale 格式化参数并将结果写入输出迭代器。
+     *
+     * @tparam OutputIt 输出迭代器类型
+     * @tparam Args 参数类型
+     * @param out 输出迭代器
+     * @param loc 使用的 locale
+     * @param fmt 格式字符串
+     * @param args 待格式化的参数
+     * @return 写入完成后的输出迭代器
+     */
     template <typename OutputIt, typename... Args>
     OutputIt format_to(OutputIt out, const std::locale &loc, std::string_view fmt, const Args &...args) {
         auto arg_store = text::make_format_args<format_context>(args...);
         return vformat_to(out, loc, fmt, basic_format_args<format_context>(arg_store));
     }
 
+    /**
+     * \lang english
+     * @brief Formats the wide-char arguments with the given locale and writes the result to the output iterator.
+     *
+     * @tparam OutputIt The output iterator type
+     * @tparam Args The argument types
+     * @param out The output iterator
+     * @param loc The locale to use
+     * @param fmt The format string
+     * @param args The arguments to format
+     * @return The output iterator after writing
+     *
+     * \lang simp-chinese
+     * @brief 使用给定的 locale 格式化宽字符参数并将结果写入输出迭代器。
+     *
+     * @tparam OutputIt 输出迭代器类型
+     * @tparam Args 参数类型
+     * @param out 输出迭代器
+     * @param loc 使用的 locale
+     * @param fmt 格式字符串
+     * @param args 待格式化的参数
+     * @return 写入完成后的输出迭代器
+     */
     template <typename OutputIt, typename... Args>
     OutputIt format_to(OutputIt out, const std::locale &loc, std::wstring_view fmt, const Args &...args) {
         auto arg_store = text::make_format_args<wformat_context>(args...);

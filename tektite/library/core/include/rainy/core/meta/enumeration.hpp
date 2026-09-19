@@ -63,6 +63,23 @@ namespace rainy::core::meta::implements {
 }
 
 namespace rainy::core::meta {
+    /**
+     * \lang english
+     * @brief Whether static_cast<E>(V) is valid in a constant expression.
+     *
+     * Used by the fallback (non-static-reflection) implementation to filter out invalid enumerator values.
+     *
+     * @tparam E The enum type
+     * @tparam V The candidate value
+     *
+     * \lang simp-chinese
+     * @brief 指示 static_cast<E>(V) 在常量表达式中是否有效。
+     *
+     * 用于后备（非静态反射）实现，以过滤无效的枚举值。
+     *
+     * @tparam E 枚举类型
+     * @tparam V 候选值
+     */
 #if RAINY_USING_CLANG && __clang_major__ >= 16
     template <typename E, auto V, typename = void>
     inline constexpr bool is_enum_constexpr_static_cast_valid = false;
@@ -75,22 +92,77 @@ namespace rainy::core::meta {
     inline constexpr bool is_enum_constexpr_static_cast_valid = true;
 #endif
 
+    /**
+     * \lang english
+     * @brief A pair of a customization tag and an optional name, used to customize enum reflection results.
+     *
+     * \lang simp-chinese
+     * @brief 由定制标签和可选名称组成的类型，用于定制枚举反射结果。
+     */
     class customize_t : public container::pair<implements::customize_tag, text::string_view> {
     public:
+        /**
+         * \lang english
+         * @brief Constructs a custom tag with the given name.
+         *
+         * @param srt The custom name
+         *
+         * \lang simp-chinese
+         * @brief 使用给定的名称构造自定义标签。
+         *
+         * @param srt 自定义名称
+         */
         constexpr customize_t(text::string_view srt) : // NOLINT
             pair{implements::customize_tag::custom_tag, srt} {
         }
 
+        /**
+         * \lang english
+         * @brief Constructs a custom tag from a C-style string.
+         *
+         * @param srt The custom name
+         *
+         * \lang simp-chinese
+         * @brief 从C风格字符串构造自定义标签。
+         *
+         * @param srt 自定义名称
+         */
         constexpr customize_t(const char *srt) : customize_t{text::string_view{srt}} { // NOLINT
         }
 
+        /**
+         * \lang english
+         * @brief Constructs a tag from a predefined customization tag.
+         *
+         * @param tag The predefined tag, which must not be custom_tag
+         *
+         * \lang simp-chinese
+         * @brief 从预定义的定制标签构造。
+         *
+         * @param tag 预定义标签，不能是custom_tag
+         */
         constexpr customize_t(implements::customize_tag tag) : // NOLINT
             pair{tag, text::string_view{}} {
             assert(tag != implements::customize_tag::custom_tag);
         }
     };
 
+    /**
+     * \lang english
+     * @brief The default customization tag, meaning the library-provided default behavior is used.
+     *
+     * \lang simp-chinese
+     * @brief 默认定制标签，表示使用库提供的默认行为。
+     */
     inline constexpr customize_t default_tag{implements::customize_tag::default_tag};
+
+    /**
+     * \lang english
+     * @brief The invalid customization tag, meaning no name should be produced.
+     *
+     * \lang simp-chinese
+     * @brief 无效定制标签，表示不产生任何名称。
+     */
     inline constexpr customize_t invalid_tag{implements::customize_tag::invalid_tag};
 
     template <typename Enum>
@@ -144,6 +216,13 @@ namespace rainy::core::meta::implements {
 }
 
 namespace rainy::core::meta {
+    /**
+     * \lang english
+     * @brief Case-insensitive character comparison predicate.
+     *
+     * \lang simp-chinese
+     * @brief 大小写不敏感的字符比较谓词。
+     */
     inline constexpr auto case_insensitive = implements::case_insensitive<>{};
 }
 
@@ -349,6 +428,19 @@ namespace rainy::core::meta::implements {
 #endif
 
 namespace rainy::core::meta {
+    /**
+     * \lang english
+     * @brief Whether V is a valid enumerator of the enum type E.
+     *
+     * @tparam E The enum type
+     * @tparam V The candidate value
+     *
+     * \lang simp-chinese
+     * @brief 指示 V 是否为枚举类型 E 的有效枚举值。
+     *
+     * @tparam E 枚举类型
+     * @tparam V 候选值
+     */
     template <typename E, auto V>
     RAINY_CONSTEXPR_BOOL is_enum_value_v =
 #if RAINY_HAS_CXX26 && RAINY_HAS_CXX26_STATIC_REFLECTION
@@ -405,12 +497,42 @@ namespace rainy::core::meta {
 #endif
     }
 
+    /**
+     * \lang english
+     * @brief Returns the Idx-th enumerator value of the enum type.
+     *
+     * @tparam E The enum type
+     * @tparam Idx The index of the enumerator
+     * @return The enumerator value
+     *
+     * \lang simp-chinese
+     * @brief 返回枚举类型的第 Idx 个枚举值。
+     *
+     * @tparam E 枚举类型
+     * @tparam Idx 枚举值的索引
+     * @return 枚举值
+     */
     template <typename E, std::size_t Idx>
     constexpr rain_fn enum_value() noexcept -> E {
         constexpr auto values = enum_values<E>();
         return values[Idx];
     }
 
+    /**
+     * \lang english
+     * @brief Returns the idx-th enumerator value of the enum type.
+     *
+     * @tparam E The enum type
+     * @param idx The index of the enumerator
+     * @return The enumerator value
+     *
+     * \lang simp-chinese
+     * @brief 返回枚举类型的第 idx 个枚举值。
+     *
+     * @tparam E 枚举类型
+     * @param idx 枚举值的索引
+     * @return 枚举值
+     */
     template <typename E>
     constexpr rain_fn enum_value(std::size_t idx) noexcept
         -> type_traits::other_trans::enable_if_t<type_traits::primary_types::is_enum_v<E>, E> {
@@ -444,6 +566,21 @@ namespace rainy::core::meta {
 #endif
     }
 
+    /**
+     * \lang english
+     * @brief Returns the name of the given enumerator value.
+     *
+     * @tparam Enum The enum type
+     * @param EnumValue The enumerator value
+     * @return The name of the enumerator, or an empty string_view if not found
+     *
+     * \lang simp-chinese
+     * @brief 返回给定枚举值的名称。
+     *
+     * @tparam Enum 枚举类型
+     * @param EnumValue 枚举值
+     * @return 枚举值的名称，未找到时返回空string_view
+     */
     template <typename Enum>
     constexpr rain_fn enum_name(Enum EnumValue)
         -> type_traits::other_trans::enable_if_t<type_traits::primary_types::is_enum_v<Enum>, text::string_view> {
@@ -455,12 +592,40 @@ namespace rainy::core::meta {
         return {};
     }
 
+    /**
+     * \lang english
+     * @brief Returns the name of the enumerator given as a template argument.
+     *
+     * @tparam Enum The enum type
+     * @tparam EnumValue The enumerator value
+     * @return The name of the enumerator, or an empty string_view if not found
+     *
+     * \lang simp-chinese
+     * @brief 返回以模板参数给定的枚举值的名称。
+     *
+     * @tparam Enum 枚举类型
+     * @tparam EnumValue 枚举值
+     * @return 枚举值的名称，未找到时返回空string_view
+     */
     template <typename Enum, Enum EnumValue>
     constexpr rain_fn enum_name()
         -> type_traits::other_trans::enable_if_t<type_traits::primary_types::is_enum_v<Enum>, text::string_view> {
         return enum_name<Enum>(EnumValue);
     }
 
+    /**
+     * \lang english
+     * @brief Returns an array of all enumerator names.
+     *
+     * @tparam Enum The enum type
+     * @return An array of enumerator names
+     *
+     * \lang simp-chinese
+     * @brief 返回所有枚举值名称组成的数组。
+     *
+     * @tparam Enum 枚举类型
+     * @return 枚举值名称数组
+     */
     template <typename Enum>
     constexpr rain_fn enum_names() noexcept -> auto {
 #if RAINY_HAS_CXX26 && RAINY_HAS_CXX26_STATIC_REFLECTION
@@ -483,6 +648,25 @@ namespace rainy::core::meta {
 #endif
     }
 
+    /**
+     * \lang english
+     * @brief Converts a name to an optional enum value.
+     *
+     * @tparam Enum The enum type
+     * @tparam Pred The comparison predicate type
+     * @param name The name to convert
+     * @param pred The comparison predicate
+     * @return The matching enumerator value, or std::nullopt if no match
+     *
+     * \lang simp-chinese
+     * @brief 将名称转换为可选的枚举值。
+     *
+     * @tparam Enum 枚举类型
+     * @tparam Pred 比较谓词类型
+     * @param name 要转换的名称
+     * @param pred 比较谓词
+     * @return 匹配的枚举值，未匹配时返回std::nullopt
+     */
     template <typename Enum, typename Pred = std::equal_to<>>
     constexpr rain_fn enum_cast(const text::string_view name, Pred pred = {}) noexcept
         -> implements::enable_if_t<Enum, container::optional<Enum>, Pred> {
@@ -514,12 +698,42 @@ namespace rainy::core::meta {
         return static_cast<type_traits::other_trans::underlying_type_t<Enum>>(value);
     }
 
+    /**
+     * \lang english
+     * @brief Returns the underlying integer value of the enumerator (alias of enum_integer).
+     *
+     * @tparam Enum The enum type
+     * @param value The enumerator value
+     * @return The underlying integer value
+     *
+     * \lang simp-chinese
+     * @brief 返回枚举值的底层整数值（enum_integer的别名）。
+     *
+     * @tparam Enum 枚举类型
+     * @param value 枚举值
+     * @return 底层整数值
+     */
     template <typename Enum>
     RAINY_NODISCARD constexpr rain_fn enum_underlying(Enum value) noexcept
         -> implements::enable_if_t<Enum, type_traits::other_trans::underlying_type_t<Enum>> {
         return static_cast<type_traits::other_trans::underlying_type_t<Enum>>(value);
     }
 
+    /**
+     * \lang english
+     * @brief Returns the index of the enumerator within enum_values.
+     *
+     * @tparam Enum The enum type
+     * @param value The enumerator value
+     * @return The index, or std::nullopt if the value is not an enumerator
+     *
+     * \lang simp-chinese
+     * @brief 返回枚举值在enum_values中的索引。
+     *
+     * @tparam Enum 枚举类型
+     * @param value 枚举值
+     * @return 索引，若该值不是枚举值则返回std::nullopt
+     */
     template <typename Enum>
     RAINY_NODISCARD constexpr rain_fn enum_index(Enum value) noexcept
         -> implements::enable_if_t<Enum, container::optional<std::size_t>> {
@@ -544,16 +758,65 @@ namespace rainy::core::meta {
         return static_cast<bool>(enum_cast<Enum>(static_cast<type_traits::other_trans::underlying_type_t<Enum>>(value)).has_value());
     }
 
+    /**
+     * \lang english
+     * @brief Checks whether the template-argument value is a valid enumerator.
+     *
+     * @tparam Enum The enum type
+     * @tparam Value The value to check
+     * @return true if the value is an enumerator, false otherwise
+     *
+     * \lang simp-chinese
+     * @brief 检查以模板参数给定的值是否为有效枚举值。
+     *
+     * @tparam Enum 枚举类型
+     * @tparam Value 要检查的值
+     * @return 如果该值是枚举值则为true，否则为false
+     */
     template <typename Enum, Enum Value, implements::enable_if_t<Enum, int> = 0>
     RAINY_NODISCARD constexpr rain_fn enum_contains() noexcept -> bool {
         return enum_contains<Enum>(Value);
     }
 
+    /**
+     * \lang english
+     * @brief Checks whether the given underlying value corresponds to an enumerator.
+     *
+     * @tparam Enum The enum type
+     * @param value The underlying value to check
+     * @return true if the value is an enumerator, false otherwise
+     *
+     * \lang simp-chinese
+     * @brief 检查给定的底层整数值是否对应某个枚举值。
+     *
+     * @tparam Enum 枚举类型
+     * @param value 要检查的底层整数值
+     * @return 如果该值对应枚举值则为true，否则为false
+     */
     template <typename Enum>
     RAINY_NODISCARD constexpr rain_fn enum_contains(type_traits::other_trans::underlying_type_t<Enum> value) noexcept -> bool {
         return static_cast<bool>(enum_cast<Enum>(value).has_value());
     }
 
+    /**
+     * \lang english
+     * @brief Checks whether the given name matches an enumerator.
+     *
+     * @tparam Enum The enum type
+     * @tparam Pred The comparison predicate type
+     * @param name The name to check
+     * @param pred The comparison predicate
+     * @return true if the name matches an enumerator, false otherwise
+     *
+     * \lang simp-chinese
+     * @brief 检查给定的名称是否匹配某个枚举值。
+     *
+     * @tparam Enum 枚举类型
+     * @tparam Pred 比较谓词类型
+     * @param name 要检查的名称
+     * @param pred 比较谓词
+     * @return 如果名称匹配某个枚举值则为true，否则为false
+     */
     template <typename Enum, typename Pred = implements::case_insensitive<>>
     RAINY_NODISCARD constexpr rain_fn enum_contains(text::string_view name, Pred pred = {}) noexcept -> bool {
         return static_cast<bool>(enum_cast<Enum>(name, pred).has_value());
@@ -561,6 +824,23 @@ namespace rainy::core::meta {
 }
 
 namespace rainy::core::meta {
+    /**
+     * \lang english
+     * @brief Builds a combined name string for a bitwise-OR combination of flag enumerators.
+     *
+     * @tparam E The enum type
+     * @param value The combined flag value
+     * @param sep The separator between flag names
+     * @return The combined name string, or an empty string if the value is not a valid combination
+     *
+     * \lang simp-chinese
+     * @brief 为标志枚举值的按位或组合构建拼接后的名称字符串。
+     *
+     * @tparam E 枚举类型
+     * @param value 组合后的标志值
+     * @param sep 标志名称之间的分隔符
+     * @return 拼接后的名称字符串，若该值不是有效的组合则返回空字符串
+     */
     template <typename E>
     RAINY_NODISCARD rain_fn enum_flags_name(E value, const char sep = '|') -> implements::enable_if_t<E, text::string> {
         using D = type_traits::other_trans::decay_t<E>;

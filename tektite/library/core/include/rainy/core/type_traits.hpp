@@ -48,31 +48,39 @@
 
 namespace rainy::utility {
     /**
+     * \lang english
      * @brief Placeholder type for template metaprogramming and function argument tagging.
-     *        Used to indicate a position to be filled or as a default argument.
+     *         Used to indicate a position to be filled or as a default argument.
      *
-     *        用于模板元编程和函数参数标记的占位符类型。
-     *        用于指示需要填充的位置或作为默认参数。
+     * \lang simp-chinese
+     * @brief 用于模板元编程和函数参数标记的占位符类型。
+     *         用于指示需要填充的位置或作为默认参数。
      */
     struct placeholder_t final {
         explicit placeholder_t() = default;
     };
 
     /**
+     * \lang english
      * @brief Global constexpr instance of placeholder_t.
-     *        placeholder_t 的全局 constexpr 实例。
+     *
+     * \lang simp-chinese
+     * @brief placeholder_t 的全局 constexpr 实例。
      */
     constexpr placeholder_t placeholder{};
 
     /**
+     * \lang english
      * @brief Type-parameterized placeholder template.
-     *        Allows creating placeholders that carry type information.
-     *
-     *        类型参数化的占位符模板。
-     *        允许创建携带类型信息的占位符。
+     *         Allows creating placeholders that carry type information.
      *
      * @tparam Ty Type to associate with this placeholder (defaults to void)
-     *            与此占位符关联的类型（默认为 void）
+     *
+     * \lang simp-chinese
+     * @brief 类型参数化的占位符模板。
+     *         允许创建携带类型信息的占位符。
+     *
+     * @tparam Ty 与此占位符关联的类型（默认为 void）
      */
     template <typename = void>
     struct placeholder_type_t final {
@@ -80,24 +88,31 @@ namespace rainy::utility {
     };
 
     /**
+     * \lang english
      * @brief Global constexpr instance of placeholder_type_t<Ty>.
-     *        placeholder_type_t<Ty> 的全局 constexpr 实例。
      *
      * @tparam Ty Type associated with the placeholder
-     *            与占位符关联的类型
+     *
+     * \lang simp-chinese
+     * @brief placeholder_type_t<Ty> 的全局 constexpr 实例。
+     *
+     * @tparam Ty 与占位符关联的类型
      */
     template <typename Ty>
     constexpr placeholder_type_t<Ty> placeholder_type{};
 
     /**
+     * \lang english
      * @brief In-place construction tag with index.
-     *        Used to disambiguate constructors that take an index parameter.
-     *
-     *        带索引的就地构造标签。
-     *        用于区分接受索引参数的构造函数。
+     *         Used to disambiguate constructors that take an index parameter.
      *
      * @tparam Idx Index value for tag specialization
-     *             标签特化的索引值
+     *
+     * \lang simp-chinese
+     * @brief 带索引的就地构造标签。
+     *         用于区分接受索引参数的构造函数。
+     *
+     * @tparam Idx 标签特化的索引值
      */
     template <std::size_t>
     struct in_place_index_t final {
@@ -105,64 +120,110 @@ namespace rainy::utility {
     };
 
     /**
+     * \lang english
      * @brief Global constexpr instance of in_place_index_t<Idx>.
-     *        in_place_index_t<Idx> 的全局 constexpr 实例。
      *
      * @tparam Idx Index value
-     *             索引值
+     *
+     * \lang simp-chinese
+     * @brief in_place_index_t<Idx> 的全局 constexpr 实例。
+     *
+     * @tparam Idx 索引值
      */
     template <std::size_t Idx>
     constexpr in_place_index_t<Idx> in_place_index{};
 
     /**
+     * \lang english
      * @brief Variable template to check if a type is a specialization of in_place_index_t.
-     *        Primary template defaults to false.
-     *
-     *        检查类型是否为 in_place_index_t 特化的变量模板。
-     *        主模板默认为 false。
+     *         Primary template defaults to false.
      *
      * @tparam Ty Type to check
-     *            要检查的类型
+     *
+     * \lang simp-chinese
+     * @brief 检查类型是否为 in_place_index_t 特化的变量模板。
+     *         主模板默认为 false。
+     *
+     * @tparam Ty 要检查的类型
      */
     template <class>
     constexpr bool is_in_place_index_specialization = false;
 
     /**
+     * \lang english
      * @brief Variable template to check if a type is a specialization of in_place_index_t.
-     *        Specialization for in_place_index_t types.
-     *
-     *        检查类型是否为 in_place_index_t 特化的变量模板。
-     *        in_place_index_t 类型的特化。
+     *         Specialization for in_place_index_t types.
      *
      * @tparam Idx Index value
-     *             索引值
+     *
+     * \lang simp-chinese
+     * @brief 检查类型是否为 in_place_index_t 特化的变量模板。
+     *         in_place_index_t 类型的特化。
+     *
+     * @tparam Idx 索引值
      */
     template <std::size_t Idx>
     constexpr bool is_in_place_index_specialization<utility::in_place_index_t<Idx>> = true;
 
     /**
+     * \lang english
      * @brief Alias for std::allocator_arg_t.
-     *        Tag type for allocator construction disambiguation.
+     *         Tag type for allocator construction disambiguation.
      *
-     *        std::allocator_arg_t 的别名。
-     *        用于分配器构造歧义消除的标签类型。
+     * \lang simp-chinese
+     * @brief std::allocator_arg_t 的别名。
+     *         用于分配器构造歧义消除的标签类型。
      */
     using allocator_arg_t = std::allocator_arg_t;
 
     /**
+     * \lang english
      * @brief Global constexpr instance of allocator_arg_t.
-     *        allocator_arg_t 的全局 constexpr 实例。
+     *
+     * \lang simp-chinese
+     * @brief allocator_arg_t 的全局 constexpr 实例。
      */
     inline constexpr allocator_arg_t allocator_arg{};
 }
 
 namespace rainy::utility {
+    /**
+     * \lang english
+     * @brief RAII wrapper that invokes a callable when it goes out of scope.
+     *         The invocation can be canceled via to_invalidate.
+     *
+     * @tparam Callable The callable type to invoke on destruction
+     *
+     * \lang simp-chinese
+     * @brief 在离开作用域时调用可调用对象的 RAII 包装器。
+     *         可以通过 to_invalidate 取消调用。
+     *
+     * @tparam Callable 析构时要调用的可调用对象类型
+     */
     template <typename Callable>
     class finally_impl : Callable { // NOLINT
     public:
+        /**
+         * \lang english
+         * @brief Constructs a finally_impl from a callable.
+         *
+         * @param callable The callable to invoke on destruction
+         *
+         * \lang simp-chinese
+         * @brief 从可调用对象构造 finally_impl。
+         *
+         * @param callable 析构时要调用的可调用对象
+         */
         finally_impl(Callable &&callable) noexcept : Callable(utility::forward<Callable>(callable)), invalidate_(false) { // NOLINT
         }
 
+        /**
+         * \lang english
+         * @brief Invokes the wrapped callable unless the wrapper has been invalidated.
+         *
+         * \lang simp-chinese
+         * @brief 除非包装器已被取消，否则调用被包装的可调用对象。
+         */
         ~finally_impl() {
             if (!is_invalidate()) {
                 invoke_now();
@@ -174,22 +235,67 @@ namespace rainy::utility {
         finally_impl &operator=(const finally_impl &) = delete;
         finally_impl &operator=(finally_impl &&) = delete;
 
+        /**
+         * \lang english
+         * @brief Checks whether the invocation has been invalidated.
+         *
+         * @return true if the invocation is canceled, false otherwise
+         *
+         * \lang simp-chinese
+         * @brief 检查调用是否已被取消。
+         *
+         * @return 如果调用已被取消则为 true，否则为 false
+         */
         RAINY_NODISCARD bool is_invalidate() const noexcept {
             return invalidate_;
         }
 
+        /**
+         * \lang english
+         * @brief Invalidates the wrapper so the callable is not invoked on destruction.
+         *
+         * \lang simp-chinese
+         * @brief 使包装器失效，从而在析构时不会调用可调用对象。
+         */
         void to_invalidate() noexcept {
             invalidate_ = true;
         }
 
+        /**
+         * \lang english
+         * @brief Restores the wrapper to a usable state so the callable is invoked on destruction.
+         *
+         * \lang simp-chinese
+         * @brief 将包装器恢复为可用状态，使可调用对象在析构时被调用。
+         */
         void to_useable() noexcept {
             invalidate_ = false;
         }
 
+        /**
+         * \lang english
+         * @brief Invokes the wrapped callable immediately.
+         *
+         * \lang simp-chinese
+         * @brief 立即调用被包装的可调用对象。
+         */
         void invoke_now() const {
             (*this)();
         }
 
+        /**
+         * \lang english
+         * @brief Sets the invalidation state based on the result of a predicate.
+         *
+         * @tparam Pred The predicate type
+         * @param pred The predicate whose result determines the invalidation state
+         *
+         * \lang simp-chinese
+         * @brief 根据谓词的结果设置失效状态。
+         *
+         * @tparam Pred 谓词类型
+         * @param pred 其结果决定失效状态的谓词
+         */
         template <typename Pred>
         void set_condition(Pred &&pred) {
             invalidate_ = static_cast<bool>(pred());
@@ -199,6 +305,21 @@ namespace rainy::utility {
         bool invalidate_;
     };
 
+    /**
+     * \lang english
+     * @brief Creates a finally_impl that invokes the callable when it goes out of scope.
+     *
+     * @tparam Callable The callable type
+     * @param callable The callable to invoke on destruction
+     * @return A finally_impl wrapping the callable
+     *
+     * \lang simp-chinese
+     * @brief 创建一个 finally_impl，在离开作用域时调用可调用对象。
+     *
+     * @tparam Callable 可调用对象类型
+     * @param callable 析构时要调用的可调用对象
+     * @return 包装了可调用对象的 finally_impl
+     */
     template <typename Callable>
     auto make_finally(Callable &&callable) -> finally_impl<Callable> {
         return finally_impl<Callable>(utility::forward<Callable>(callable));
@@ -228,26 +349,35 @@ namespace rainy::utility {
 
 namespace rainy::type_traits::primary_types {
     /**
+     * \lang english
      * @brief Primary template for member pointer traits.
-     *        Provides information about member pointer types.
-     *
-     *        成员指针特性的主模板。
-     *        提供关于成员指针类型的信息。
+     *         Provides information about member pointer types.
      *
      * @tparam Ty The type to examine
-     *            要检查的类型
+     *
+     * \lang simp-chinese
+     * @brief 成员指针特性的主模板。
+     *         提供关于成员指针类型的信息。
+     *
+     * @tparam Ty 要检查的类型
      */
     template <typename>
     struct member_pointer_traits {
         /**
+         * \lang english
          * @brief Indicates whether the type is a valid member pointer.
-         *        指示类型是否为有效的成员指针。
+         *
+         * \lang simp-chinese
+         * @brief 指示类型是否为有效的成员指针。
          */
         static RAINY_CONSTEXPR_BOOL valid = false;
 
         /**
+         * \lang english
          * @brief The class type that the member pointer belongs to.
-         *        成员指针所属的类类型。
+         *
+         * \lang simp-chinese
+         * @brief 成员指针所属的类类型。
          */
         using class_type = void;
     };
@@ -280,28 +410,37 @@ namespace rainy::type_traits::primary_types {
     RAINY_MEMBER_POINTER_TRAITS_SPEC(const volatile && noexcept)
 
     /**
+     * \lang english
      * @brief Specialization of member_pointer_traits for actual member pointer types.
-     *        Provides the member type and class type for a valid member pointer.
-     *
-     *        member_pointer_traits 对于实际成员指针类型的特化。
-     *        为有效的成员指针提供成员类型和类类型。
+     *         Provides the member type and class type for a valid member pointer.
      *
      * @tparam Type The type of the member
-     *              成员的类型
      * @tparam Class The class type that the member belongs to
-     *               成员所属的类类型
+     *
+     * \lang simp-chinese
+     * @brief member_pointer_traits 对于实际成员指针类型的特化。
+     *         为有效的成员指针提供成员类型和类类型。
+     *
+     * @tparam Type 成员的类型
+     * @tparam Class 成员所属的类类型
      */
     template <typename Type, typename Class>
     struct member_pointer_traits<Type Class::*> {
         /**
+         * \lang english
          * @brief Indicates that this is a valid member pointer.
-         *        指示这是一个有效的成员指针。
+         *
+         * \lang simp-chinese
+         * @brief 指示这是一个有效的成员指针。
          */
         using type = Type;
 
         /**
+         * \lang english
          * @brief The class type that the member pointer belongs to.
-         *        成员指针所属的类类型。
+         *
+         * \lang simp-chinese
+         * @brief 成员指针所属的类类型。
          */
         using class_type = Class;
     };
@@ -354,44 +493,65 @@ namespace rainy::type_traits::implements {
               bool IsConstMemberFunction = false>
     struct function_traits_base {
         /**
+         * \lang english
          * @brief Indicates whether this is a member function pointer
-         *        指示是否为成员函数指针
+         *
+         * \lang simp-chinese
+         * @brief 指示是否为成员函数指针
          */
         static RAINY_CONSTEXPR_BOOL is_member_function_pointer = IsMemberFunctionPointer;
 
         /**
+         * \lang english
          * @brief Indicates whether this is a function pointer
-         *        指示是否为函数指针
+         *
+         * \lang simp-chinese
+         * @brief 指示是否为函数指针
          */
         static RAINY_CONSTEXPR_BOOL is_function_pointer = IsFunctionPointer;
 
         /**
+         * \lang english
          * @brief Indicates whether the function is noexcept
-         *        指示函数是否为 noexcept
+         *
+         * \lang simp-chinese
+         * @brief 指示函数是否为 noexcept
          */
         static RAINY_CONSTEXPR_BOOL is_noexcept = IsNoexcept;
 
         /**
+         * \lang english
          * @brief Indicates whether the member function is volatile-qualified
-         *        指示成员函数是否为 volatile 限定
+         *
+         * \lang simp-chinese
+         * @brief 指示成员函数是否为 volatile 限定
          */
         static RAINY_CONSTEXPR_BOOL is_volatile = IsVolatile;
 
         /**
+         * \lang english
          * @brief Indicates whether the member function is const-qualified
-         *        指示成员函数是否为 const 限定
+         *
+         * \lang simp-chinese
+         * @brief 指示成员函数是否为 const 限定
          */
         static RAINY_CONSTEXPR_BOOL is_const_member_function = IsConstMemberFunction;
 
         /**
+         * \lang english
          * @brief Indicates whether this is a valid function type
-         *        指示是否为有效的函数类型
+         *
+         * \lang simp-chinese
+         * @brief 指示是否为有效的函数类型
          */
         static RAINY_CONSTEXPR_BOOL valid = true;
 
         /**
+         * \lang english
          * @brief Indicates whether this is a function object
-         *        指示是否为函数对象
+         *
+         * \lang simp-chinese
+         * @brief 指示是否为函数对象
          */
         static RAINY_CONSTEXPR_BOOL is_function_object = false;
     };
@@ -399,14 +559,20 @@ namespace rainy::type_traits::implements {
     template <bool IsLvalue, bool IsRvalue>
     struct member_function_traits_base {
         /**
+         * \lang english
          * @brief Indicates whether the function can be invoked on lvalue objects
-         *        指示函数是否可以在左值对象上调用
+         *
+         * \lang simp-chinese
+         * @brief 指示函数是否可以在左值对象上调用
          */
         static RAINY_CONSTEXPR_BOOL is_invoke_for_lvalue = IsLvalue;
 
         /**
+         * \lang english
          * @brief Indicates whether the function can be invoked on rvalue objects
-         *        指示函数是否可以在右值对象上调用
+         *
+         * \lang simp-chinese
+         * @brief 指示函数是否可以在右值对象上调用
          */
         static RAINY_CONSTEXPR_BOOL is_invoke_for_rvalue = IsRvalue;
     };
@@ -422,8 +588,11 @@ namespace rainy::type_traits::implements {
 
     struct empty_function_traits {
         /**
+         * \lang english
          * @brief Indicates that this is not a valid function type
-         *        指示这不是一个有效的函数类型
+         *
+         * \lang simp-chinese
+         * @brief 指示这不是一个有效的函数类型
          */
         static RAINY_CONSTEXPR_BOOL valid = false;
     };
@@ -441,62 +610,92 @@ namespace rainy::type_traits::implements {
     template <typename Traits, bool Enable = Traits::valid>
     struct fn_obj_traits {
         /**
+         * \lang english
          * @brief List of argument types for the function object
-         *        函数对象的参数类型列表
+         *
+         * \lang simp-chinese
+         * @brief 函数对象的参数类型列表
          */
         using argument_list = typename Traits::argument_list;
 
         /**
+         * \lang english
          * @brief Return type of the function object
-         *        函数对象的返回类型
+         *
+         * \lang simp-chinese
+         * @brief 函数对象的返回类型
          */
         using return_type = typename Traits::return_type;
 
         /**
+         * \lang english
          * @brief Number of arguments the function object takes
-         *        函数对象接受的参数数量
+         *
+         * \lang simp-chinese
+         * @brief 函数对象接受的参数数量
          */
         static inline constexpr std::size_t arity = Traits::arity;
 
         /**
+         * \lang english
          * @brief Indicates whether the function object is noexcept
-         *        指示函数对象是否为 noexcept
+         *
+         * \lang simp-chinese
+         * @brief 指示函数对象是否为 noexcept
          */
         static RAINY_CONSTEXPR_BOOL is_noexcept = Traits::is_noexcept;
 
         /**
+         * \lang english
          * @brief Indicates whether the function object is volatile-qualified
-         *        指示函数对象是否为 volatile 限定
+         *
+         * \lang simp-chinese
+         * @brief 指示函数对象是否为 volatile 限定
          */
         static RAINY_CONSTEXPR_BOOL is_volatile = Traits::is_volatile;
 
         /**
+         * \lang english
          * @brief Indicates whether the function can be invoked on lvalue objects
-         *        指示函数是否可以在左值对象上调用
+         *
+         * \lang simp-chinese
+         * @brief 指示函数是否可以在左值对象上调用
          */
         static RAINY_CONSTEXPR_BOOL is_invoke_for_lvalue = false;
 
         /**
+         * \lang english
          * @brief Indicates whether the function can be invoked on rvalue objects
-         *        指示函数是否可以在右值对象上调用
+         *
+         * \lang simp-chinese
+         * @brief 指示函数是否可以在右值对象上调用
          */
         static RAINY_CONSTEXPR_BOOL is_invoke_for_rvalue = false;
 
         /**
+         * \lang english
          * @brief Indicates that this is a function object
-         *        指示这是一个函数对象
+         *
+         * \lang simp-chinese
+         * @brief 指示这是一个函数对象
          */
         static RAINY_CONSTEXPR_BOOL is_function_object = true;
 
         /**
+         * \lang english
          * @brief Indicates that this is a valid function type
-         *        指示这是一个有效的函数类型
+         *
+         * \lang simp-chinese
+         * @brief 指示这是一个有效的函数类型
          */
         static RAINY_CONSTEXPR_BOOL valid = true;
 
         /**
+         * \lang english
          * @brief Indicates whether the member function is const-qualified
-         *        指示成员函数是否为 const 限定
+         *
+         * \lang simp-chinese
+         * @brief 指示成员函数是否为 const 限定
          */
         static RAINY_CONSTEXPR_BOOL is_const_member_function = Traits::is_const_member_function;
     };
@@ -507,14 +706,17 @@ namespace rainy::type_traits::implements {
 
 namespace rainy::type_traits::primary_types {
     /**
+     * \lang english
      * @brief Primary template for function traits.
-     *        Provides comprehensive information about function types, function pointers, and function objects.
-     *
-     *        函数特性的主模板。
-     *        提供关于函数类型、函数指针和函数对象的全面信息。
+     *         Provides comprehensive information about function types, function pointers, and function objects.
      *
      * @tparam Ty The type to examine (function type, function pointer, or function object)
-     *            要检查的类型（函数类型、函数指针或函数对象）
+     *
+     * \lang simp-chinese
+     * @brief 函数特性的主模板。
+     *         提供关于函数类型、函数指针和函数对象的全面信息。
+     *
+     * @tparam Ty 要检查的类型（函数类型、函数指针或函数对象）
      */
     template <typename Ty>
     struct function_traits
@@ -522,77 +724,103 @@ namespace rainy::type_traits::primary_types {
               function_traits<typename implements::try_to_get_operator<type_traits::modifers::remove_cvref_t<Ty>>::type>> {};
 
     /**
+     * \lang english
      * @brief Specialization for void type.
-     *        Provides empty traits for void.
+     *         Provides empty traits for void.
      *
-     *        void类型的特化。
-     *        为void提供空特性。
+     * \lang simp-chinese
+     * @brief void类型的特化。
+     *         为void提供空特性。
      */
     template <>
     struct function_traits<void> : implements::empty_function_traits {};
 
     /**
+     * \lang english
      * @brief Specialization for normal function types.
-     *        Provides traits for regular function types.
-     *
-     *        普通函数类型的特化。
-     *        为常规函数类型提供特性。
+     *         Provides traits for regular function types.
      *
      * @tparam Rx Return type of the function
-     *            函数的返回类型
      * @tparam Args Parameter types of the function
-     *              函数的参数类型
+     *
+     * \lang simp-chinese
+     * @brief 普通函数类型的特化。
+     *         为常规函数类型提供特性。
+     *
+     * @tparam Rx 函数的返回类型
+     * @tparam Args 函数的参数类型
      */
     template <typename Rx, typename... Args>
     struct function_traits<Rx(Args...)> : implements::function_traits_base<> {
         /**
+         * \lang english
          * @brief Return type of the function
-         *        函数的返回类型
+         *
+         * \lang simp-chinese
+         * @brief 函数的返回类型
          */
         using return_type = Rx;
 
         /**
+         * \lang english
          * @brief List of parameter types
-         *        参数类型列表
+         *
+         * \lang simp-chinese
+         * @brief 参数类型列表
          */
         using argument_list = type_traits::other_trans::type_list<Args...>;
 
         /**
+         * \lang english
          * @brief Number of parameters
-         *        参数数量
+         *
+         * \lang simp-chinese
+         * @brief 参数数量
          */
         static inline constexpr std::size_t arity = sizeof...(Args);
     };
 
     /**
+     * \lang english
      * @brief Specialization for variadic function types.
-     *        Provides traits for C-style variadic functions.
-     *
-     *        可变参数函数类型的特化。
-     *        为C风格可变参数函数提供特性。
+     *         Provides traits for C-style variadic functions.
      *
      * @tparam Rx Return type of the function
-     *            函数的返回类型
      * @tparam Args Fixed parameter types of the function
-     *              函数的固定参数类型
+     *
+     * \lang simp-chinese
+     * @brief 可变参数函数类型的特化。
+     *         为C风格可变参数函数提供特性。
+     *
+     * @tparam Rx 函数的返回类型
+     * @tparam Args 函数的固定参数类型
      */
     template <typename Rx, typename... Args>
     struct function_traits<Rx(Args..., ...)> : implements::function_traits_base<> {
         /**
+         * \lang english
          * @brief Return type of the function
-         *        函数的返回类型
+         *
+         * \lang simp-chinese
+         * @brief 函数的返回类型
          */
         using return_type = Rx;
 
         /**
+         * \lang english
          * @brief List of fixed parameter types (excluding variadic part)
-         *        固定参数类型列表（不包括可变参数部分）
+         *
+         * \lang simp-chinese
+         * @brief 固定参数类型列表（不包括可变参数部分）
          */
         using argument_list = type_traits::other_trans::type_list<Args...>;
 
         /**
+         * \lang english
          * @brief Number of fixed parameters
-         *        固定参数数量
+         *
+         * \lang simp-chinese
+         * @brief 固定参数数量
          */
         static inline constexpr std::size_t arity = sizeof...(Args);
     };
@@ -603,133 +831,181 @@ namespace rainy::type_traits::primary_types {
     RAINY_DECLARE_NORMAL_FUNCTION_TRAITS(true, true, volatile noexcept)
 
     /**
+     * \lang english
      * @brief Specialization for function pointer types.
-     *        Provides traits for regular function pointers.
-     *
-     *        函数指针类型的特化。
-     *        为常规函数指针提供特性。
+     *         Provides traits for regular function pointers.
      *
      * @tparam Rx Return type of the function
-     *            函数的返回类型
      * @tparam Args Parameter types of the function
-     *              函数的参数类型
+     *
+     * \lang simp-chinese
+     * @brief 函数指针类型的特化。
+     *         为常规函数指针提供特性。
+     *
+     * @tparam Rx 函数的返回类型
+     * @tparam Args 函数的参数类型
      */
     template <typename Rx, typename... Args>
     struct function_traits<Rx (*)(Args...)> : implements::function_traits_base<false, true> {
         /**
+         * \lang english
          * @brief Return type of the function
-         *        函数的返回类型
+         *
+         * \lang simp-chinese
+         * @brief 函数的返回类型
          */
         using return_type = Rx;
 
         /**
+         * \lang english
          * @brief List of parameter types
-         *        参数类型列表
+         *
+         * \lang simp-chinese
+         * @brief 参数类型列表
          */
         using argument_list = type_traits::other_trans::type_list<Args...>;
 
         /**
+         * \lang english
          * @brief Number of parameters
-         *        参数数量
+         *
+         * \lang simp-chinese
+         * @brief 参数数量
          */
         static inline constexpr std::size_t arity = sizeof...(Args);
     };
 
     /**
+     * \lang english
      * @brief Specialization for variadic function pointer types.
-     *        Provides traits for C-style variadic function pointers.
-     *
-     *        可变参数函数指针类型的特化。
-     *        为C风格可变参数函数指针提供特性。
+     *         Provides traits for C-style variadic function pointers.
      *
      * @tparam Rx Return type of the function
-     *            函数的返回类型
      * @tparam Args Fixed parameter types of the function
-     *              函数的固定参数类型
+     *
+     * \lang simp-chinese
+     * @brief 可变参数函数指针类型的特化。
+     *         为C风格可变参数函数指针提供特性。
+     *
+     * @tparam Rx 函数的返回类型
+     * @tparam Args 函数的固定参数类型
      */
     template <typename Rx, typename... Args>
     struct function_traits<Rx (*)(Args..., ...)> : implements::function_traits_base<false, true> {
         /**
+         * \lang english
          * @brief Return type of the function
-         *        函数的返回类型
+         *
+         * \lang simp-chinese
+         * @brief 函数的返回类型
          */
         using return_type = Rx;
 
         /**
+         * \lang english
          * @brief List of fixed parameter types (excluding variadic part)
-         *        固定参数类型列表（不包括可变参数部分）
+         *
+         * \lang simp-chinese
+         * @brief 固定参数类型列表（不包括可变参数部分）
          */
         using argument_list = other_trans::type_list<Args...>;
 
         /**
+         * \lang english
          * @brief Number of fixed parameters
-         *        固定参数数量
+         *
+         * \lang simp-chinese
+         * @brief 固定参数数量
          */
         static inline constexpr std::size_t arity = sizeof...(Args);
     };
 
     /**
+     * \lang english
      * @brief Specialization for noexcept function pointer types.
-     *        Provides traits for noexcept function pointers.
-     *
-     *        noexcept函数指针类型的特化。
-     *        为noexcept函数指针提供特性。
+     *         Provides traits for noexcept function pointers.
      *
      * @tparam Rx Return type of the function
-     *            函数的返回类型
      * @tparam Args Parameter types of the function
-     *              函数的参数类型
+     *
+     * \lang simp-chinese
+     * @brief noexcept函数指针类型的特化。
+     *         为noexcept函数指针提供特性。
+     *
+     * @tparam Rx 函数的返回类型
+     * @tparam Args 函数的参数类型
      */
     template <typename Rx, typename... Args>
     struct function_traits<Rx (*)(Args...) noexcept> : implements::function_traits_base<false, true, true> {
         /**
+         * \lang english
          * @brief Return type of the function
-         *        函数的返回类型
+         *
+         * \lang simp-chinese
+         * @brief 函数的返回类型
          */
         using return_type = Rx;
 
         /**
+         * \lang english
          * @brief List of parameter types
-         *        参数类型列表
+         *
+         * \lang simp-chinese
+         * @brief 参数类型列表
          */
         using argument_list = type_traits::other_trans::type_list<Args...>;
 
         /**
+         * \lang english
          * @brief Number of parameters
-         *        参数数量
+         *
+         * \lang simp-chinese
+         * @brief 参数数量
          */
         static inline constexpr std::size_t arity = sizeof...(Args);
     };
 
     /**
+     * \lang english
      * @brief Specialization for variadic noexcept function pointer types.
-     *        Provides traits for C-style variadic noexcept function pointers.
-     *
-     *        可变参数noexcept函数指针类型的特化。
-     *        为C风格可变参数noexcept函数指针提供特性。
+     *         Provides traits for C-style variadic noexcept function pointers.
      *
      * @tparam Rx Return type of the function
-     *            函数的返回类型
      * @tparam Args Fixed parameter types of the function
-     *              函数的固定参数类型
+     *
+     * \lang simp-chinese
+     * @brief 可变参数noexcept函数指针类型的特化。
+     *         为C风格可变参数noexcept函数指针提供特性。
+     *
+     * @tparam Rx 函数的返回类型
+     * @tparam Args 函数的固定参数类型
      */
     template <typename Rx, typename... Args>
     struct function_traits<Rx (*)(Args..., ...) noexcept> : implements::function_traits_base<false, true, true> {
         /**
+         * \lang english
          * @brief Return type of the function
-         *        函数的返回类型
+         *
+         * \lang simp-chinese
+         * @brief 函数的返回类型
          */
         using return_type = Rx;
 
         /**
+         * \lang english
          * @brief List of fixed parameter types (excluding variadic part)
-         *        固定参数类型列表（不包括可变参数部分）
+         *
+         * \lang simp-chinese
+         * @brief 固定参数类型列表（不包括可变参数部分）
          */
         using argument_list = type_traits::other_trans::type_list<Args...>;
 
         /**
+         * \lang english
          * @brief Number of fixed parameters
-         *        固定参数数量
+         *
+         * \lang simp-chinese
+         * @brief 固定参数数量
          */
         static inline constexpr std::size_t arity = sizeof...(Args);
     };
@@ -784,41 +1060,57 @@ namespace rainy::type_traits::primary_types {
     RAINY_DECLARE_MEMBER_FUNCTION_TRAITS(false, true, false, false, true, volatile &&)
 
     /**
+     * \lang english
      * @brief Alias for function return type
-     *        函数返回类型的别名
      *
      * @tparam Fx Function type to query
-     *            要查询的函数类型
+     *
+     * \lang simp-chinese
+     * @brief 函数返回类型的别名
+     *
+     * @tparam Fx 要查询的函数类型
      */
     template <typename Fx>
     using function_return_type = typename function_traits<Fx>::return_type;
 
     /**
+     * \lang english
      * @brief Number of arguments for a function type
-     *        函数类型的参数数量
      *
      * @tparam Fx Function type to query
-     *            要查询的函数类型
+     *
+     * \lang simp-chinese
+     * @brief 函数类型的参数数量
+     *
+     * @tparam Fx 要查询的函数类型
      */
     template <typename Fx>
     static inline constexpr std::size_t arity = function_traits<Fx>::arity;
 
     /**
+     * \lang english
      * @brief List of argument types for a function type
-     *        函数类型的参数类型列表
      *
      * @tparam Fx Function type to query
-     *            要查询的函数类型
+     *
+     * \lang simp-chinese
+     * @brief 函数类型的参数类型列表
+     *
+     * @tparam Fx 要查询的函数类型
      */
     template <typename Fx>
     using function_argument_list = typename function_traits<Fx>::argument_list;
 
     /**
+     * \lang english
      * @brief Variable template for checking if a function type is variadic
-     *        检查函数类型是否为可变参数的变量模板
      *
      * @tparam Ty Type to check
-     *            要检查的类型
+     *
+     * \lang simp-chinese
+     * @brief 检查函数类型是否为可变参数的变量模板
+     *
+     * @tparam Ty 要检查的类型
      */
     template <typename Ty>
     RAINY_CONSTEXPR_BOOL is_variadic_function_v = false;
@@ -839,60 +1131,69 @@ namespace rainy::type_traits::primary_types {
     RAINY_CONSTEXPR_BOOL is_variadic_function_v<Rx(Args..., ...) volatile noexcept> = true;
 
     /**
+     * \lang english
      * @brief Primary template for constructing a new function type with modified parameter lists.
-     *        Allows inserting type lists at the front and end of the original argument list.
-     *
-     *        用于构造具有修改后参数列表的新函数类型的主模板。
-     *        允许在原始参数列表的前面和后面插入类型列表。
+     *         Allows inserting type lists at the front and end of the original argument list.
      *
      * @tparam NewRx The new return type for the function
-     *               函数的新返回类型
      * @tparam Fx The original function type to base the new type on
-     *            作为新类型基础的原始函数类型
      * @tparam TypeListFront Type list to insert at the beginning of the parameter list
-     *                       要插入到参数列表开头的类型列表
      * @tparam TypeListEnd Type list to insert at the end of the parameter list
-     *                     要插入到参数列表末尾的类型列表
      * @tparam ArgList The original argument list (deduced from Fx)
-     *                 原始参数列表（从Fx推导）
+     *
+     * \lang simp-chinese
+     * @brief 用于构造具有修改后参数列表的新函数类型的主模板。
+     *         允许在原始参数列表的前面和后面插入类型列表。
+     *
+     * @tparam NewRx 函数的新返回类型
+     * @tparam Fx 作为新类型基础的原始函数类型
+     * @tparam TypeListFront 要插入到参数列表开头的类型列表
+     * @tparam TypeListEnd 要插入到参数列表末尾的类型列表
+     * @tparam ArgList 原始参数列表（从Fx推导）
      */
     template <typename NewRx, typename Fx, typename TypeListFront = other_trans::type_list<>,
               typename TypeListEnd = other_trans::type_list<>, typename ArgList = function_argument_list<Fx>>
     struct make_normalfx_type_with_pl {};
 
     /**
+     * \lang english
      * @brief Specialization that performs the actual type construction.
-     *        Combines front list, original arguments, and end list into a new function type.
-     *
-     *        执行实际类型构造的特化。
-     *        将前置列表、原始参数和后置列表组合成新的函数类型。
+     *         Combines front list, original arguments, and end list into a new function type.
      *
      * @tparam NewRx The new return type
-     *               新的返回类型
      * @tparam Fx The original function type
-     *            原始函数类型
      * @tparam TypeListFrontArgs Types to insert at the front
-     *                           要插入到前面的类型
      * @tparam TypeListEndArgs Types to insert at the end
-     *                         要插入到后面的类型
      * @tparam OriginalArgs The original parameter types
-     *                      原始参数类型
+     *
+     * \lang simp-chinese
+     * @brief 执行实际类型构造的特化。
+     *         将前置列表、原始参数和后置列表组合成新的函数类型。
+     *
+     * @tparam NewRx 新的返回类型
+     * @tparam Fx 原始函数类型
+     * @tparam TypeListFrontArgs 要插入到前面的类型
+     * @tparam TypeListEndArgs 要插入到后面的类型
+     * @tparam OriginalArgs 原始参数类型
      */
     template <typename NewRx, typename Fx, typename... TypeListFrontArgs, typename... TypeListEndArgs, typename... OriginalArgs>
     struct make_normalfx_type_with_pl<NewRx, Fx, other_trans::type_list<TypeListFrontArgs...>,
                                       other_trans::type_list<TypeListEndArgs...>,
                                       type_traits::other_trans::type_list<OriginalArgs...>> {
         /**
+         * \lang english
          * @brief Helper template for constructing the new function type.
-         *        Handles both regular functions and member functions.
-         *
-         *        用于构造新函数类型的辅助模板。
-         *        处理普通函数和成员函数。
+         *         Handles both regular functions and member functions.
          *
          * @tparam UFx The function type (may be same as Fx)
-         *             函数类型（可能与Fx相同）
          * @tparam IsMemPtr Indicates whether this is a member function pointer
-         *                  指示是否为成员函数指针
+         *
+         * \lang simp-chinese
+         * @brief 用于构造新函数类型的辅助模板。
+         *         处理普通函数和成员函数。
+         *
+         * @tparam UFx 函数类型（可能与Fx相同）
+         * @tparam IsMemPtr 指示是否为成员函数指针
          */
         template <typename UFx, bool IsMemPtr = function_traits<UFx>::is_member_function_pointer>
         struct helper {
@@ -901,8 +1202,11 @@ namespace rainy::type_traits::primary_types {
             using prototype = NewRx(TypeListFrontArgs..., OriginalArgs..., TypeListEndArgs...);
 
             /**
+             * \lang english
              * @brief The resulting function type, with appropriate noexcept specification
-             *        最终的函数类型，带有适当的noexcept说明符
+             *
+             * \lang simp-chinese
+             * @brief 最终的函数类型，带有适当的noexcept说明符
              */
             using type =
                 other_trans::conditional_t<fn_traits::is_noexcept,
@@ -910,22 +1214,28 @@ namespace rainy::type_traits::primary_types {
         };
 
         /**
+         * \lang english
          * @brief Specialization for member function pointers.
-         *        Member function pointers have different syntax requirements.
-         *
-         *        成员函数指针的特化。
-         *        成员函数指针有不同的语法要求。
+         *         Member function pointers have different syntax requirements.
          *
          * @tparam UFx The member function pointer type
-         *             成员函数指针类型
+         *
+         * \lang simp-chinese
+         * @brief 成员函数指针的特化。
+         *         成员函数指针有不同的语法要求。
+         *
+         * @tparam UFx 成员函数指针类型
          */
         template <typename UFx>
         struct helper<UFx, true> {
             using fn_traits = function_traits<UFx>;
 
             /**
+             * \lang english
              * @brief The resulting member function pointer type
-             *        最终的成员函数指针类型
+             *
+             * \lang simp-chinese
+             * @brief 最终的成员函数指针类型
              */
             using type = other_trans::conditional_t<fn_traits::is_noexcept,
                                                     NewRx(TypeListFrontArgs..., OriginalArgs..., TypeListEndArgs...) noexcept,
@@ -933,8 +1243,11 @@ namespace rainy::type_traits::primary_types {
         };
 
         /**
+         * \lang english
          * @brief The constructed function type
-         *        构造完成的函数类型
+         *
+         * \lang simp-chinese
+         * @brief 构造完成的函数类型
          */
         using type = typename helper<Fx>::type;
     };
@@ -975,14 +1288,17 @@ namespace rainy::utility::implements {
 
 namespace rainy::utility {
     /**
+     * \lang english
      * @brief A wrapper that stores a reference to an object or function.
-     *        Provides reference semantics in contexts where copies are normally made.
-     *
-     *        存储对象或函数引用的包装器。
-     *        在通常进行拷贝的上下文中提供引用语义。
+     *         Provides reference semantics in contexts where copies are normally made.
      *
      * @tparam Ty The type of the referenced object or function
-     *            被引用对象或函数的类型
+     *
+     * \lang simp-chinese
+     * @brief 存储对象或函数引用的包装器。
+     *         在通常进行拷贝的上下文中提供引用语义。
+     *
+     * @tparam Ty 被引用对象或函数的类型
      */
     template <typename Ty>
     class reference_wrapper {
@@ -991,19 +1307,26 @@ namespace rainy::utility {
                       "reference_wrapper<Ty> requires Ty to be an object type or a function type.");
 
         /**
+         * \lang english
          * @brief The type of the referenced object or function
-         *        被引用对象或函数的类型
+         *
+         * \lang simp-chinese
+         * @brief 被引用对象或函数的类型
          */
         using type = Ty;
 
         /**
+         * \lang english
          * @brief Constructs a reference_wrapper from a compatible type.
-         *        从兼容类型构造 reference_wrapper。
          *
          * @tparam Uty The type of the value to wrap
-         *             要包装的值的类型
          * @param val The value to wrap a reference to
-         *            要包装引用的值
+         *
+         * \lang simp-chinese
+         * @brief 从兼容类型构造 reference_wrapper。
+         *
+         * @tparam Uty 要包装的值的类型
+         * @param val 要包装引用的值
          */
         template <typename Uty,
                   type_traits::other_trans::enable_if_t<type_traits::logical_traits::conjunction_v<
@@ -1020,37 +1343,49 @@ namespace rainy::utility {
         reference_wrapper(reference_wrapper &&) = delete;
 
         /**
+         * \lang english
          * @brief Conversion operator to the referenced type.
-         *        到被引用类型的转换运算符。
          *
          * @return Reference to the wrapped object
-         *         被包装对象的引用
+         *
+         * \lang simp-chinese
+         * @brief 到被引用类型的转换运算符。
+         *
+         * @return 被包装对象的引用
          */
         constexpr operator Ty &() const noexcept {
             return *reference_data;
         }
 
         /**
+         * \lang english
          * @brief Gets the wrapped reference.
-         *        获取被包装的引用。
          *
          * @return Reference to the wrapped object
-         *         被包装对象的引用
+         *
+         * \lang simp-chinese
+         * @brief 获取被包装的引用。
+         *
+         * @return 被包装对象的引用
          */
         RAINY_NODISCARD RAINY_CONSTEXPR20 Ty &get() const noexcept {
             return *reference_data;
         }
 
         /**
+         * \lang english
          * @brief Invokes the wrapped function with the given arguments.
-         *        使用给定参数调用被包装的函数。
          *
          * @tparam Args Argument types
-         *              参数类型
          * @param args Arguments to forward to the function
-         *             要转发给函数的参数
          * @return The result of the function call
-         *         函数调用的结果
+         *
+         * \lang simp-chinese
+         * @brief 使用给定参数调用被包装的函数。
+         *
+         * @tparam Args 参数类型
+         * @param args 要转发给函数的参数
+         * @return 函数调用的结果
          */
         template <typename... Args, type_traits::other_trans::enable_if_t<std::is_invocable_v<Ty, Args...>, int> = 0>
         constexpr decltype(auto) try_to_invoke_as_function(Args &&...args) const
@@ -1069,15 +1404,19 @@ namespace rainy::utility {
         }
 
         /**
+         * \lang english
          * @brief Function call operator to invoke the wrapped function.
-         *        调用被包装函数的函数调用运算符。
          *
          * @tparam Args Argument types
-         *              参数类型
          * @param args Arguments to forward to the function
-         *             要转发给函数的参数
          * @return The result of the function call
-         *         函数调用的结果
+         *
+         * \lang simp-chinese
+         * @brief 调用被包装函数的函数调用运算符。
+         *
+         * @tparam Args 参数类型
+         * @param args 要转发给函数的参数
+         * @return 函数调用的结果
          */
         template <typename... Args, type_traits::other_trans::enable_if_t<std::is_invocable_v<Ty, Args...>, int> = 0>
         constexpr decltype(auto) operator()(Args &&...args) const
@@ -1090,55 +1429,75 @@ namespace rainy::utility {
     };
 
     /**
+     * \lang english
      * @brief Deduction guide for reference_wrapper.
-     *        reference_wrapper 的推导指引。
      *
      * @tparam Ty The type of the referenced object
-     *            被引用对象的类型
+     *
+     * \lang simp-chinese
+     * @brief reference_wrapper 的推导指引。
+     *
+     * @tparam Ty 被引用对象的类型
      */
     template <typename Ty>
     reference_wrapper(Ty &) -> reference_wrapper<Ty>;
 
     /**
+     * \lang english
      * @brief Deduction guide for reference_wrapper with cv-qualifier removal.
-     *        带有 cv-限定符移除的 reference_wrapper 推导指引。
      *
      * @tparam Uty The type of the referenced object
-     *             被引用对象的类型
+     *
+     * \lang simp-chinese
+     * @brief 带有 cv-限定符移除的 reference_wrapper 推导指引。
+     *
+     * @tparam Uty 被引用对象的类型
      */
     template <typename Uty>
     reference_wrapper(Uty &) -> reference_wrapper<type_traits::modifers::remove_cvref_t<Uty>>;
 
     /**
+     * \lang english
      * @brief Deleted overload for rvalue references.
-     *        右值引用的已删除重载。
      *
      * @tparam Ty The type of the rvalue
-     *            右值的类型
+     *
+     * \lang simp-chinese
+     * @brief 右值引用的已删除重载。
+     *
+     * @tparam Ty 右值的类型
      */
     template <typename Ty>
     void ref(const Ty &&) = delete;
 
     /**
+     * \lang english
      * @brief Deleted overload for rvalue references.
-     *        右值引用的已删除重载。
      *
      * @tparam Ty The type of the rvalue
-     *            右值的类型
+     *
+     * \lang simp-chinese
+     * @brief 右值引用的已删除重载。
+     *
+     * @tparam Ty 右值的类型
      */
     template <typename Ty>
     void cref(const Ty &&) = delete;
 
     /**
+     * \lang english
      * @brief Creates a reference_wrapper to the given object.
-     *        为给定对象创建 reference_wrapper。
      *
      * @tparam Ty The type of the referenced object
-     *            被引用对象的类型
      * @param val The object to wrap a reference to
-     *            要包装引用的对象
      * @return A reference_wrapper to the object
-     *         对象的 reference_wrapper
+     *
+     * \lang simp-chinese
+     * @brief 为给定对象创建 reference_wrapper。
+     *
+     * @tparam Ty 被引用对象的类型
+     * @param val 要包装引用的对象
+     * @return 对象的 reference_wrapper
      */
     template <typename Ty>
     RAINY_NODISCARD RAINY_CONSTEXPR20 reference_wrapper<Ty> ref(Ty &val) noexcept {
@@ -1146,15 +1505,19 @@ namespace rainy::utility {
     }
 
     /**
+     * \lang english
      * @brief Returns the given reference_wrapper unchanged.
-     *        原样返回给定的 reference_wrapper。
      *
      * @tparam Ty The type of the referenced object
-     *            被引用对象的类型
      * @param val The reference_wrapper to return
-     *            要返回的 reference_wrapper
      * @return The same reference_wrapper
-     *         相同的 reference_wrapper
+     *
+     * \lang simp-chinese
+     * @brief 原样返回给定的 reference_wrapper。
+     *
+     * @tparam Ty 被引用对象的类型
+     * @param val 要返回的 reference_wrapper
+     * @return 相同的 reference_wrapper
      */
     template <typename Ty>
     RAINY_NODISCARD RAINY_CONSTEXPR20 reference_wrapper<Ty> ref(reference_wrapper<Ty> val) noexcept {
@@ -1162,15 +1525,19 @@ namespace rainy::utility {
     }
 
     /**
+     * \lang english
      * @brief Creates a const-qualified reference_wrapper to the given object.
-     *        为给定对象创建 const 限定的 reference_wrapper。
      *
      * @tparam Ty The type of the referenced object
-     *            被引用对象的类型
      * @param val The object to wrap a const reference to
-     *            要包装 const 引用的对象
      * @return A const-qualified reference_wrapper to the object
-     *         对象的 const 限定 reference_wrapper
+     *
+     * \lang simp-chinese
+     * @brief 为给定对象创建 const 限定的 reference_wrapper。
+     *
+     * @tparam Ty 被引用对象的类型
+     * @param val 要包装 const 引用的对象
+     * @return 对象的 const 限定 reference_wrapper
      */
     template <typename Ty>
     RAINY_NODISCARD RAINY_CONSTEXPR20 reference_wrapper<const Ty> cref(const Ty &val) noexcept {
@@ -1178,15 +1545,19 @@ namespace rainy::utility {
     }
 
     /**
+     * \lang english
      * @brief Returns the given reference_wrapper as a const-qualified wrapper.
-     *        将给定的 reference_wrapper 作为 const 限定包装器返回。
      *
      * @tparam Ty The type of the referenced object
-     *            被引用对象的类型
      * @param val The reference_wrapper to convert
-     *            要转换的 reference_wrapper
      * @return A const-qualified reference_wrapper
-     *         const 限定的 reference_wrapper
+     *
+     * \lang simp-chinese
+     * @brief 将给定的 reference_wrapper 作为 const 限定包装器返回。
+     *
+     * @tparam Ty 被引用对象的类型
+     * @param val 要转换的 reference_wrapper
+     * @return const 限定的 reference_wrapper
      */
     template <typename Ty>
     RAINY_NODISCARD RAINY_CONSTEXPR20 reference_wrapper<const Ty> cref(reference_wrapper<Ty> val) noexcept {
@@ -1196,14 +1567,17 @@ namespace rainy::utility {
 
 namespace rainy::type_traits::modifers {
     /**
+     * \lang english
      * @brief Primary template for unwrapping reference wrappers.
-     *        If Ty is not a reference wrapper, returns Ty unchanged.
-     *
-     *        解包引用包装器的主模板。
-     *        如果 Ty 不是引用包装器，则原样返回 Ty。
+     *         If Ty is not a reference wrapper, returns Ty unchanged.
      *
      * @tparam Ty The type to potentially unwrap
-     *            可能需要解包的类型
+     *
+     * \lang simp-chinese
+     * @brief 解包引用包装器的主模板。
+     *         如果 Ty 不是引用包装器，则原样返回 Ty。
+     *
+     * @tparam Ty 可能需要解包的类型
      */
     template <typename Ty>
     struct unwrap_reference {
@@ -1211,14 +1585,17 @@ namespace rainy::type_traits::modifers {
     };
 
     /**
+     * \lang english
      * @brief Specialization for rainy::utility::reference_wrapper.
-     *        Extracts the underlying type from a reference_wrapper.
-     *
-     *        rainy::utility::reference_wrapper 的特化。
-     *        从 reference_wrapper 中提取底层类型。
+     *         Extracts the underlying type from a reference_wrapper.
      *
      * @tparam Ty The type wrapped by reference_wrapper
-     *            reference_wrapper 包装的类型
+     *
+     * \lang simp-chinese
+     * @brief rainy::utility::reference_wrapper 的特化。
+     *         从 reference_wrapper 中提取底层类型。
+     *
+     * @tparam Ty reference_wrapper 包装的类型
      */
     template <typename Ty>
     struct unwrap_reference<utility::reference_wrapper<Ty>> {
@@ -1226,14 +1603,17 @@ namespace rainy::type_traits::modifers {
     };
 
     /**
+     * \lang english
      * @brief Specialization for std::reference_wrapper.
-     *        Extracts the underlying type from a std::reference_wrapper.
-     *
-     *        std::reference_wrapper 的特化。
-     *        从 std::reference_wrapper 中提取底层类型。
+     *         Extracts the underlying type from a std::reference_wrapper.
      *
      * @tparam Ty The type wrapped by std::reference_wrapper
-     *            std::reference_wrapper 包装的类型
+     *
+     * \lang simp-chinese
+     * @brief std::reference_wrapper 的特化。
+     *         从 std::reference_wrapper 中提取底层类型。
+     *
+     * @tparam Ty std::reference_wrapper 包装的类型
      */
     template <typename Ty>
     struct unwrap_reference<std::reference_wrapper<Ty>> {
@@ -1241,31 +1621,43 @@ namespace rainy::type_traits::modifers {
     };
 
     /**
+     * \lang english
      * @brief Alias template for unwrapping reference wrappers.
-     *        解包引用包装器的别名模板。
      *
      * @tparam Ty The type to potentially unwrap
-     *            可能需要解包的类型
+     *
+     * \lang simp-chinese
+     * @brief 解包引用包装器的别名模板。
+     *
+     * @tparam Ty 可能需要解包的类型
      */
     template <typename Ty>
     using unwrap_reference_t = typename unwrap_reference<Ty>::type;
 
     /**
+     * \lang english
      * @brief Alias template that decays and then unwraps a type.
-     *        先退化然后解包类型的别名模板。
      *
      * @tparam Ty The type to decay and unwrap
-     *            要退化并解包的类型
+     *
+     * \lang simp-chinese
+     * @brief 先退化然后解包类型的别名模板。
+     *
+     * @tparam Ty 要退化并解包的类型
      */
     template <typename Ty>
     using unwrap_ref_decay_t = unwrap_reference_t<other_trans::decay_t<Ty>>;
 
     /**
+     * \lang english
      * @brief Type template for decaying and unwrapping a type.
-     *        退化并解包类型的类型模板。
      *
      * @tparam Ty The type to decay and unwrap
-     *            要退化并解包的类型
+     *
+     * \lang simp-chinese
+     * @brief 退化并解包类型的类型模板。
+     *
+     * @tparam Ty 要退化并解包的类型
      */
     template <typename Ty>
     struct unwrap_ref_decay {
@@ -1399,16 +1791,19 @@ namespace rainy::utility::implements {
 
 namespace rainy::utility {
     /**
+     * \lang english
      * @brief Primary template for function object invoker.
-     *        Provides a unified interface for invoking various callable types.
-     *
-     *        函数对象调用器的主模板。
-     *        为调用各种可调用类型提供统一接口。
+     *         Provides a unified interface for invoking various callable types.
      *
      * @tparam Callable The type of the callable object
-     *                  可调用对象的类型
      * @tparam Ty1 The type of the first argument (or void if not applicable)
-     *             第一个参数的类型（如果不适用则为void）
+     *
+     * \lang simp-chinese
+     * @brief 函数对象调用器的主模板。
+     *         为调用各种可调用类型提供统一接口。
+     *
+     * @tparam Callable 可调用对象的类型
+     * @tparam Ty1 第一个参数的类型（如果不适用则为void）
      */
     template <typename Callable, typename Ty1 = void>
     struct invoker : implements::invoker_impl<Callable, Ty1> {};
@@ -1416,15 +1811,19 @@ namespace rainy::utility {
 
 namespace rainy::utility {
     /**
+     * \lang english
      * @brief Invokes a callable object with no arguments.
-     *        调用无参数的可调用对象。
      *
      * @tparam Callable The type of the callable object
-     *                  可调用对象的类型
      * @param obj The callable object to invoke
-     *            要调用的可调用对象
      * @return The result of invoking the callable object
-     *         调用可调用对象的结果
+     *
+     * \lang simp-chinese
+     * @brief 调用无参数的可调用对象。
+     *
+     * @tparam Callable 可调用对象的类型
+     * @param obj 要调用的可调用对象
+     * @return 调用可调用对象的结果
      */
     template <typename Callable>
     constexpr RAINY_INLINE auto invoke(Callable &&obj) noexcept(noexcept(static_cast<Callable &&>(obj)()))
@@ -1433,23 +1832,27 @@ namespace rainy::utility {
     }
 
     /**
+     * \lang english
      * @brief Invokes a callable object with one or more arguments.
-     *        调用带有一个或多个参数的可调用对象。
      *
      * @tparam Callable The type of the callable object
-     *                  可调用对象的类型
      * @tparam Ty1 The type of the first argument
-     *             第一个参数的类型
      * @tparam Args The types of the remaining arguments
-     *              剩余参数的类型
      * @param obj The callable object to invoke
-     *            要调用的可调用对象
      * @param arg1 The first argument
-     *             第一个参数
      * @param args The remaining arguments
-     *             剩余参数
      * @return The result of invoking the callable object with the given arguments
-     *         使用给定参数调用可调用对象的结果
+     *
+     * \lang simp-chinese
+     * @brief 调用带有一个或多个参数的可调用对象。
+     *
+     * @tparam Callable 可调用对象的类型
+     * @tparam Ty1 第一个参数的类型
+     * @tparam Args 剩余参数的类型
+     * @param obj 要调用的可调用对象
+     * @param arg1 第一个参数
+     * @param args 剩余参数
+     * @return 使用给定参数调用可调用对象的结果
      */
     template <typename Callable, typename Ty1, typename... Args>
     constexpr RAINY_INLINE auto invoke(Callable &&obj, Ty1 &&arg1, Args &&...args) noexcept(noexcept(
@@ -1471,19 +1874,23 @@ namespace rainy::utility::implements {
 
 namespace rainy::utility {
     /**
+     * \lang english
      * @brief Invokes a callable object with the arguments from a tuple.
-     *        使用元组中的参数调用可调用对象。
      *
      * @tparam Callable The type of the callable object
-     *                  可调用对象的类型
      * @tparam Tuple The type of the tuple containing the arguments
-     *               包含参数的元组类型
      * @param obj The callable object to invoke
-     *            要调用的可调用对象
      * @param tuple The tuple containing the arguments to pass to the callable
-     *              包含要传递给可调用对象的参数的元组
      * @return The result of invoking the callable object with the unpacked tuple arguments
-     *         使用解包后的元组参数调用可调用对象的结果
+     *
+     * \lang simp-chinese
+     * @brief 使用元组中的参数调用可调用对象。
+     *
+     * @tparam Callable 可调用对象的类型
+     * @tparam Tuple 包含参数的元组类型
+     * @param obj 要调用的可调用对象
+     * @param tuple 包含要传递给可调用对象的参数的元组
+     * @return 使用解包后的元组参数调用可调用对象的结果
      */
     template <typename Callable, typename Tuple>
     constexpr decltype(auto) apply(Callable &&obj, Tuple &&tuple) noexcept(noexcept(implements::apply_impl(
@@ -1576,72 +1983,87 @@ namespace rainy::type_traits::properties::implements {
 
 namespace rainy::type_traits::properties {
     /**
+     * \lang english
      * @brief Variable template for checking if a callable object can be invoked with the given arguments
-     *        and the result is convertible to the specified return type.
-     *
-     *        检查可调用对象是否可以使用给定参数调用，并且结果可以转换为指定的返回类型的变量模板。
+     *         and the result is convertible to the specified return type.
      *
      * @tparam Rx The required return type
-     *            要求的返回类型
      * @tparam Callable The type of the callable object
-     *                  可调用对象的类型
      * @tparam Args The types of the arguments
-     *              参数的类型
+     *
+     * \lang simp-chinese
+     * @brief 检查可调用对象是否可以使用给定参数调用，并且结果可以转换为指定的返回类型的变量模板。
+     *
+     * @tparam Rx 要求的返回类型
+     * @tparam Callable 可调用对象的类型
+     * @tparam Args 参数的类型
      */
     template <typename Rx, typename Callable, typename... Args>
     RAINY_CONSTEXPR_BOOL is_invocable_r_v = implements::is_invocable_r_helper<Rx, Callable, Args...>::value;
 
     /**
+     * \lang english
      * @brief Type template for checking if a callable object can be invoked with the given arguments
-     *        and the result is convertible to the specified return type.
-     *
-     *        检查可调用对象是否可以使用给定参数调用，并且结果可以转换为指定的返回类型的类型模板。
+     *         and the result is convertible to the specified return type.
      *
      * @tparam Rx The required return type
-     *            要求的返回类型
      * @tparam Callable The type of the callable object
-     *                  可调用对象的类型
      * @tparam Args The types of the arguments
-     *              参数的类型
+     *
+     * \lang simp-chinese
+     * @brief 检查可调用对象是否可以使用给定参数调用，并且结果可以转换为指定的返回类型的类型模板。
+     *
+     * @tparam Rx 要求的返回类型
+     * @tparam Callable 可调用对象的类型
+     * @tparam Args 参数的类型
      */
     template <typename Rx, typename Callable, typename... Args>
     struct is_invocable_r : helper::bool_constant<is_invocable_r_v<Rx, Callable, Args...>> {};
 
     /**
+     * \lang english
      * @brief Variable template for checking if a callable object can be invoked with the given arguments.
      *
-     *        检查可调用对象是否可以使用给定参数调用的变量模板。
-     *
      * @tparam Callable The type of the callable object
-     *                  可调用对象的类型
      * @tparam Args The types of the arguments
-     *              参数的类型
+     *
+     * \lang simp-chinese
+     * @brief 检查可调用对象是否可以使用给定参数调用的变量模板。
+     *
+     * @tparam Callable 可调用对象的类型
+     * @tparam Args 参数的类型
      */
     template <typename Callable, typename... Args>
     RAINY_CONSTEXPR_BOOL is_invocable_v = implements::is_invocable_helper<Callable, Args...>::value;
 
     /**
+     * \lang english
      * @brief Type template for checking if a callable object can be invoked with the given arguments.
      *
-     *        检查可调用对象是否可以使用给定参数调用的类型模板。
-     *
      * @tparam Callable The type of the callable object
-     *                  可调用对象的类型
      * @tparam Args The types of the arguments
-     *              参数的类型
+     *
+     * \lang simp-chinese
+     * @brief 检查可调用对象是否可以使用给定参数调用的类型模板。
+     *
+     * @tparam Callable 可调用对象的类型
+     * @tparam Args 参数的类型
      */
     template <typename Callable, typename... Args>
     struct is_invocable : helper::bool_constant<is_invocable_v<Callable, Args...>> {};
 
     /**
+     * \lang english
      * @brief Type template that yields the result type of invoking a callable object with the given arguments.
      *
-     *        产生使用给定参数调用可调用对象的结果类型的类型模板。
-     *
      * @tparam Callable The type of the callable object
-     *                  可调用对象的类型
      * @tparam Args The types of the arguments
-     *              参数的类型
+     *
+     * \lang simp-chinese
+     * @brief 产生使用给定参数调用可调用对象的结果类型的类型模板。
+     *
+     * @tparam Callable 可调用对象的类型
+     * @tparam Args 参数的类型
      */
     template <typename Callable, typename... Args>
     struct invoke_result {
@@ -1649,74 +2071,89 @@ namespace rainy::type_traits::properties {
     };
 
     /**
+     * \lang english
      * @brief Alias template for invoke_result, providing direct access to the result type.
      *
-     *        invoke_result 的别名模板，提供对结果类型的直接访问。
-     *
      * @tparam Callable The type of the callable object
-     *                  可调用对象的类型
      * @tparam Args The types of the arguments
-     *              参数的类型
+     *
+     * \lang simp-chinese
+     * @brief invoke_result 的别名模板，提供对结果类型的直接访问。
+     *
+     * @tparam Callable 可调用对象的类型
+     * @tparam Args 参数的类型
      */
     template <typename Callable, typename... Args>
     using invoke_result_t = typename invoke_result<Callable, Args...>::type;
 
     /**
+     * \lang english
      * @brief Variable template for checking if a callable object can be invoked with the given arguments
-     *        without throwing exceptions.
-     *
-     *        检查可调用对象是否可以使用给定参数调用且不抛出异常的变量模板。
+     *         without throwing exceptions.
      *
      * @tparam Callable The type of the callable object
-     *                  可调用对象的类型
      * @tparam Args The types of the arguments
-     *              参数的类型
+     *
+     * \lang simp-chinese
+     * @brief 检查可调用对象是否可以使用给定参数调用且不抛出异常的变量模板。
+     *
+     * @tparam Callable 可调用对象的类型
+     * @tparam Args 参数的类型
      */
     template <typename Callable, typename... Args>
     RAINY_CONSTEXPR_BOOL is_nothrow_invocable_v = implements::is_nothrow_invocable_helper<Callable, Args...>::value;
 
     /**
+     * \lang english
      * @brief Type template for checking if a callable object can be invoked with the given arguments
-     *        without throwing exceptions.
-     *
-     *        检查可调用对象是否可以使用给定参数调用且不抛出异常的类型模板。
+     *         without throwing exceptions.
      *
      * @tparam Callable The type of the callable object
-     *                  可调用对象的类型
      * @tparam Args The types of the arguments
-     *              参数的类型
+     *
+     * \lang simp-chinese
+     * @brief 检查可调用对象是否可以使用给定参数调用且不抛出异常的类型模板。
+     *
+     * @tparam Callable 可调用对象的类型
+     * @tparam Args 参数的类型
      */
     template <typename Callable, typename... Args>
     struct is_nothrow_invocable : helper::bool_constant<is_nothrow_invocable_v<Callable, Args...>> {};
 
     /**
+     * \lang english
      * @brief Variable template for checking if a callable object can be invoked with the given arguments
-     *        without throwing exceptions, and the result is convertible to the specified return type.
-     *
-     *        检查可调用对象是否可以使用给定参数调用且不抛出异常，并且结果可以转换为指定的返回类型的变量模板。
+     *         without throwing exceptions, and the result is convertible to the specified return type.
      *
      * @tparam Rx The required return type
-     *            要求的返回类型
      * @tparam Callable The type of the callable object
-     *                  可调用对象的类型
      * @tparam Args The types of the arguments
-     *              参数的类型
+     *
+     * \lang simp-chinese
+     * @brief 检查可调用对象是否可以使用给定参数调用且不抛出异常，并且结果可以转换为指定的返回类型的变量模板。
+     *
+     * @tparam Rx 要求的返回类型
+     * @tparam Callable 可调用对象的类型
+     * @tparam Args 参数的类型
      */
     template <typename Rx, typename Callable, typename... Args>
     RAINY_CONSTEXPR_BOOL is_nothrow_invocable_r_v = implements::is_nothrow_invocable_r_helper<Rx, Callable, Args...>::value;
 
     /**
+     * \lang english
      * @brief Type template for checking if a callable object can be invoked with the given arguments
-     *        without throwing exceptions, and the result is convertible to the specified return type.
-     *
-     *        检查可调用对象是否可以使用给定参数调用且不抛出异常，并且结果可以转换为指定的返回类型的类型模板。
+     *         without throwing exceptions, and the result is convertible to the specified return type.
      *
      * @tparam Rx The required return type
-     *            要求的返回类型
      * @tparam Callable The type of the callable object
-     *                  可调用对象的类型
      * @tparam Args The types of the arguments
-     *              参数的类型
+     *
+     * \lang simp-chinese
+     * @brief 检查可调用对象是否可以使用给定参数调用且不抛出异常，并且结果可以转换为指定的返回类型的类型模板。
+     *
+     * @tparam Rx 要求的返回类型
+     * @tparam Callable 可调用对象的类型
+     * @tparam Args 参数的类型
      */
     template <typename Rx, typename Callable, typename... Args>
     struct is_nothrow_invocable_r : helper::bool_constant<is_nothrow_invocable_r_v<Rx, Callable, Args...>> {};
@@ -1724,107 +2161,138 @@ namespace rainy::type_traits::properties {
 
 namespace rainy::type_traits::composite_types {
     /**
+     * \lang english
      * @brief Variable template for checking if a type is arithmetic.
-     *        Arithmetic types include integral and floating-point types.
-     *
-     *        检查类型是否为算术类型的变量模板。
-     *        算术类型包括整型和浮点型。
+     *         Arithmetic types include integral and floating-point types.
      *
      * @tparam Ty Type to check
-     *            要检查的类型
+     *
+     * \lang simp-chinese
+     * @brief 检查类型是否为算术类型的变量模板。
+     *         算术类型包括整型和浮点型。
+     *
+     * @tparam Ty 要检查的类型
      */
     template <typename Ty>
     RAINY_CONSTEXPR_BOOL is_arithmetic_v = implements::is_arithmetic_v<Ty>;
 
     /**
+     * \lang english
      * @brief Type template for checking if a type is arithmetic.
-     *        检查类型是否为算术类型的类型模板。
      *
      * @tparam Ty Type to check
-     *            要检查的类型
+     *
+     * \lang simp-chinese
+     * @brief 检查类型是否为算术类型的类型模板。
+     *
+     * @tparam Ty 要检查的类型
      */
     template <typename Ty>
     struct is_arithmetic : helper::bool_constant<is_arithmetic_v<Ty>> {};
 
     /**
+     * \lang english
      * @brief Variable template for checking if a type is fundamental.
-     *        Fundamental types include arithmetic types, void, and nullptr_t.
-     *
-     *        检查类型是否为基本类型的变量模板。
-     *        基本类型包括算术类型、void 和 nullptr_t。
+     *         Fundamental types include arithmetic types, void, and nullptr_t.
      *
      * @tparam Ty Type to check
-     *            要检查的类型
+     *
+     * \lang simp-chinese
+     * @brief 检查类型是否为基本类型的变量模板。
+     *         基本类型包括算术类型、void 和 nullptr_t。
+     *
+     * @tparam Ty 要检查的类型
      */
     template <typename Ty>
     RAINY_CONSTEXPR_BOOL is_fundamental_v =
         is_arithmetic_v<Ty> || primary_types::is_void_v<Ty> || primary_types::is_null_pointer_v<Ty>;
 
     /**
+     * \lang english
      * @brief Type template for checking if a type is fundamental.
-     *        检查类型是否为基本类型的类型模板。
      *
      * @tparam Ty Type to check
-     *            要检查的类型
+     *
+     * \lang simp-chinese
+     * @brief 检查类型是否为基本类型的类型模板。
+     *
+     * @tparam Ty 要检查的类型
      */
     template <typename Ty>
     struct is_fundamental : helper::bool_constant<is_fundamental_v<Ty>> {};
 
     /**
+     * \lang english
      * @brief Variable template for checking if a type is an object type.
-     *        Object types are cv-qualifiable and not void.
-     *
-     *        检查类型是否为对象类型的变量模板。
-     *        对象类型可以具有 cv 限定符，且不是 void。
+     *         Object types are cv-qualifiable and not void.
      *
      * @tparam Ty Type to check
-     *            要检查的类型
+     *
+     * \lang simp-chinese
+     * @brief 检查类型是否为对象类型的变量模板。
+     *         对象类型可以具有 cv 限定符，且不是 void。
+     *
+     * @tparam Ty 要检查的类型
      */
     template <typename Ty>
     RAINY_CONSTEXPR_BOOL is_object_v = properties::is_const_v<const Ty> && !primary_types::is_void_v<Ty>;
 
     /**
+     * \lang english
      * @brief Type template for checking if a type is an object type.
-     *        检查类型是否为对象类型的类型模板。
      *
      * @tparam Ty Type to check
-     *            要检查的类型
+     *
+     * \lang simp-chinese
+     * @brief 检查类型是否为对象类型的类型模板。
+     *
+     * @tparam Ty 要检查的类型
      */
     template <typename Ty>
     struct is_object : helper::bool_constant<is_object_v<Ty>> {};
 
     /**
+     * \lang english
      * @brief Variable template for checking if a type is a reference.
-     *        References include both lvalue and rvalue references.
-     *
-     *        检查类型是否为引用类型的变量模板。
-     *        引用类型包括左值引用和右值引用。
+     *         References include both lvalue and rvalue references.
      *
      * @tparam Ty Type to check
-     *            要检查的类型
+     *
+     * \lang simp-chinese
+     * @brief 检查类型是否为引用类型的变量模板。
+     *         引用类型包括左值引用和右值引用。
+     *
+     * @tparam Ty 要检查的类型
      */
     template <typename Ty>
     RAINY_CONSTEXPR_BOOL is_reference_v = implements::_is_reference_v<Ty>;
 
     /**
+     * \lang english
      * @brief Type template for checking if a type is a reference.
-     *        检查类型是否为引用类型的类型模板。
      *
      * @tparam Ty Type to check
-     *            要检查的类型
+     *
+     * \lang simp-chinese
+     * @brief 检查类型是否为引用类型的类型模板。
+     *
+     * @tparam Ty 要检查的类型
      */
     template <typename Ty>
     struct is_reference : helper::bool_constant<implements::_is_reference_v<Ty>> {};
 
     /**
+     * \lang english
      * @brief Variable template for checking if a type is a pointer to member.
-     *        Member pointers can point to either data members or member functions.
-     *
-     *        检查类型是否为成员指针的变量模板。
-     *        成员指针可以指向数据成员或成员函数。
+     *         Member pointers can point to either data members or member functions.
      *
      * @tparam Ty Type to check
-     *            要检查的类型
+     *
+     * \lang simp-chinese
+     * @brief 检查类型是否为成员指针的变量模板。
+     *         成员指针可以指向数据成员或成员函数。
+     *
+     * @tparam Ty 要检查的类型
      */
 #if RAINY_USING_CLANG
     template <typename Ty>
@@ -1836,58 +2304,76 @@ namespace rainy::type_traits::composite_types {
 #endif
 
     /**
+     * \lang english
      * @brief Type template for checking if a type is a pointer to member.
-     *        检查类型是否为成员指针的类型模板。
      *
      * @tparam Ty Type to check
-     *            要检查的类型
+     *
+     * \lang simp-chinese
+     * @brief 检查类型是否为成员指针的类型模板。
+     *
+     * @tparam Ty 要检查的类型
      */
     template <typename Ty>
     struct is_member_pointer : helper::bool_constant<is_member_pointer_v<Ty>> {};
 
     /**
+     * \lang english
      * @brief Variable template for checking if a type is scalar.
-     *        Scalar types include arithmetic, enum, pointer, member pointer, and nullptr_t.
-     *
-     *        检查类型是否为标量类型的变量模板。
-     *        标量类型包括算术、枚举、指针、成员指针和 nullptr_t。
+     *         Scalar types include arithmetic, enum, pointer, member pointer, and nullptr_t.
      *
      * @tparam Ty Type to check
-     *            要检查的类型
+     *
+     * \lang simp-chinese
+     * @brief 检查类型是否为标量类型的变量模板。
+     *         标量类型包括算术、枚举、指针、成员指针和 nullptr_t。
+     *
+     * @tparam Ty 要检查的类型
      */
     template <typename Ty>
     RAINY_CONSTEXPR_BOOL is_scalar_v = is_arithmetic_v<Ty> || primary_types::is_enum_v<Ty> || primary_types::is_pointer_v<Ty> ||
                                        is_member_pointer_v<Ty> || primary_types::is_null_pointer_v<Ty>;
 
     /**
+     * \lang english
      * @brief Type template for checking if a type is scalar.
-     *        检查类型是否为标量类型的类型模板。
      *
      * @tparam Ty Type to check
-     *            要检查的类型
+     *
+     * \lang simp-chinese
+     * @brief 检查类型是否为标量类型的类型模板。
+     *
+     * @tparam Ty 要检查的类型
      */
     template <typename Ty>
     struct is_scalar : helper::bool_constant<is_scalar_v<Ty>> {};
 
     /**
+     * \lang english
      * @brief Variable template for checking if a type is compound.
-     *        Compound types are all types that are not fundamental.
-     *
-     *        检查类型是否为复合类型的变量模板。
-     *        复合类型是不是基本类型的所有类型。
+     *         Compound types are all types that are not fundamental.
      *
      * @tparam Ty Type to check
-     *            要检查的类型
+     *
+     * \lang simp-chinese
+     * @brief 检查类型是否为复合类型的变量模板。
+     *         复合类型是不是基本类型的所有类型。
+     *
+     * @tparam Ty 要检查的类型
      */
     template <typename Ty>
     RAINY_CONSTEXPR_BOOL is_compound_v = !is_fundamental_v<Ty>;
 
     /**
+     * \lang english
      * @brief Type template for checking if a type is compound.
-     *        检查类型是否为复合类型的类型模板。
      *
      * @tparam Ty Type to check
-     *            要检查的类型
+     *
+     * \lang simp-chinese
+     * @brief 检查类型是否为复合类型的类型模板。
+     *
+     * @tparam Ty 要检查的类型
      */
     template <typename Ty>
     struct is_compound : helper::bool_constant<is_compound_v<Ty>> {};
@@ -1895,20 +2381,23 @@ namespace rainy::type_traits::composite_types {
 
 namespace rainy::utility {
     /**
+     * \lang english
      * @brief Helper function to get an overloaded member function pointer with proper type deduction.
-     *        Ensures the function pointer is not null and helps with overload resolution.
-     *
-     *        获取重载成员函数指针的辅助函数，带有正确的类型推导。
-     *        确保函数指针不为空，并帮助进行重载解析。
+     *         Ensures the function pointer is not null and helps with overload resolution.
      *
      * @tparam Class The class type containing the member function
-     *               包含成员函数的类类型
      * @tparam Fx The type of the member function
-     *            成员函数的类型
      * @param memfn The member function pointer
-     *              成员函数指针
      * @return The same member function pointer (validated non-null)
-     *         相同的成员函数指针（已验证非空）
+     *
+     * \lang simp-chinese
+     * @brief 获取重载成员函数指针的辅助函数，带有正确的类型推导。
+     *         确保函数指针不为空，并帮助进行重载解析。
+     *
+     * @tparam Class 包含成员函数的类类型
+     * @tparam Fx 成员函数的类型
+     * @param memfn 成员函数指针
+     * @return 相同的成员函数指针（已验证非空）
      */
 #if RAINY_HAS_CXX20
     template <typename Class, typename Fx>
@@ -1920,18 +2409,21 @@ namespace rainy::utility {
     }
 
     /**
+     * \lang english
      * @brief Helper function to get an overloaded function pointer with proper type deduction.
-     *        Ensures the function pointer is not null and helps with overload resolution.
-     *
-     *        获取重载函数指针的辅助函数，带有正确的类型推导。
-     *        确保函数指针不为空，并帮助进行重载解析。
+     *         Ensures the function pointer is not null and helps with overload resolution.
      *
      * @tparam Fx The type of the function
-     *            函数的类型
      * @param fn The function pointer
-     *           函数指针
      * @return The same function pointer (validated non-null)
-     *         相同的函数指针（已验证非空）
+     *
+     * \lang simp-chinese
+     * @brief 获取重载函数指针的辅助函数，带有正确的类型推导。
+     *         确保函数指针不为空，并帮助进行重载解析。
+     *
+     * @tparam Fx 函数的类型
+     * @param fn 函数指针
+     * @return 相同的函数指针（已验证非空）
      */
     template <typename Fx>
         requires(!type_traits::primary_types::is_member_function_pointer_v<Fx *> &&
@@ -1942,20 +2434,23 @@ namespace rainy::utility {
     }
 #else
     /**
+     * \lang english
      * @brief Helper function to get an overloaded member function pointer with proper type deduction (C++17 version).
-     *        Ensures the function pointer is not null and helps with overload resolution.
-     *
-     *        获取重载成员函数指针的辅助函数，带有正确的类型推导（C++17版本）。
-     *        确保函数指针不为空，并帮助进行重载解析。
+     *         Ensures the function pointer is not null and helps with overload resolution.
      *
      * @tparam Class The class type containing the member function
-     *               包含成员函数的类类型
      * @tparam Fx The type of the member function
-     *            成员函数的类型
      * @param memfn The member function pointer
-     *              成员函数指针
      * @return The same member function pointer (validated non-null)
-     *         相同的成员函数指针（已验证非空）
+     *
+     * \lang simp-chinese
+     * @brief 获取重载成员函数指针的辅助函数，带有正确的类型推导（C++17版本）。
+     *         确保函数指针不为空，并帮助进行重载解析。
+     *
+     * @tparam Class 包含成员函数的类类型
+     * @tparam Fx 成员函数的类型
+     * @param memfn 成员函数指针
+     * @return 相同的成员函数指针（已验证非空）
      */
     template <typename Class, typename Fx,
               type_traits::other_trans::enable_if_t<type_traits::primary_types::is_member_function_pointer_v<Fx Class::*> &&
@@ -1972,41 +2467,52 @@ namespace rainy::utility {
 
 namespace rainy::type_traits::concepts {
     /**
+     * \lang english
      * @brief Concept that checks if two types are exactly the same.
-     *        检查两个类型是否完全相同的概念。
      *
      * @tparam Ty1 The first type to compare
-     *             要比较的第一个类型
      * @tparam Ty2 The second type to compare
-     *             要比较的第二个类型
+     *
+     * \lang simp-chinese
+     * @brief 检查两个类型是否完全相同的概念。
+     *
+     * @tparam Ty1 要比较的第一个类型
+     * @tparam Ty2 要比较的第二个类型
      */
     template <typename Ty1, typename Ty2>
     concept same_as = type_relations::is_same_v<Ty1, Ty2>;
 
     /**
+     * \lang english
      * @brief Concept that checks if a type is derived from another type.
-     *        Requires both inheritance relationship and convertibility.
-     *
-     *        检查一个类型是否从另一个类型派生的概念。
-     *        需要同时满足继承关系和可转换性。
+     *         Requires both inheritance relationship and convertibility.
      *
      * @tparam base The base class type
-     *              基类类型
      * @tparam derived The derived class type to check
-     *                 要检查的派生类类型
+     *
+     * \lang simp-chinese
+     * @brief 检查一个类型是否从另一个类型派生的概念。
+     *         需要同时满足继承关系和可转换性。
+     *
+     * @tparam base 基类类型
+     * @tparam derived 要检查的派生类类型
      */
     template <typename base, typename derived>
     concept derived_from =
         __is_base_of(base, derived) && type_relations::is_convertible_v<const volatile derived *, const volatile base *>;
 
     /**
+     * \lang english
      * @brief Concept that checks if a type is one of the given types.
-     *        检查一个类型是否属于给定类型之一的概念。
      *
      * @tparam Ty The type to check
-     *            要检查的类型
      * @tparam Types The pack of possible types
-     *               可能的类型包
+     *
+     * \lang simp-chinese
+     * @brief 检查一个类型是否属于给定类型之一的概念。
+     *
+     * @tparam Ty 要检查的类型
+     * @tparam Types 可能的类型包
      */
     template <typename Ty, typename... Types>
     concept in_types = (type_traits::type_relations::is_any_of_v<Ty, Types...>);
@@ -2017,18 +2523,21 @@ namespace rainy::type_traits::concepts {
 
 namespace rainy::type_traits::concepts {
     /**
+     * \lang english
      * @brief Concept that checks if a type is formattable with the given context and formatter.
-     *        Requires both const and non-const formatter operations to be valid.
-     *
-     *        检查类型是否可以使用给定的上下文和格式化器进行格式化的概念。
-     *        要求常量和非常量格式化器操作都有效。
+     *         Requires both const and non-const formatter operations to be valid.
      *
      * @tparam Ty The type to check for formattability
-     *            要检查可格式化性的类型
      * @tparam Context The format context type (defaults to std::format_context)
-     *                 格式化上下文类型（默认为 std::format_context）
      * @tparam Formatter The formatter type for Ty (deduced from Context)
-     *                   Ty 的格式化器类型（从 Context 推导）
+     *
+     * \lang simp-chinese
+     * @brief 检查类型是否可以使用给定的上下文和格式化器进行格式化的概念。
+     *         要求常量和非常量格式化器操作都有效。
+     *
+     * @tparam Ty 要检查可格式化性的类型
+     * @tparam Context 格式化上下文类型（默认为 std::format_context）
+     * @tparam Formatter Ty 的格式化器类型（从 Context 推导）
      */
     template <typename Ty, typename Context = std::format_context,
               typename Formatter = typename Context::template formatter_type<std::remove_const_t<Ty>>>
@@ -2040,18 +2549,21 @@ namespace rainy::type_traits::concepts {
                                };
 
     /**
+     * \lang english
      * @brief Concept that checks if a type is formattable with non-const formatter only.
-     *        Similar to formattable_with but only requires non-const formatter operations.
-     *
-     *        检查类型是否仅使用非常量格式化器即可进行格式化的概念。
-     *        类似于 formattable_with，但仅要求非常量格式化器操作有效。
+     *         Similar to formattable_with but only requires non-const formatter operations.
      *
      * @tparam Ty The type to check for formattability
-     *            要检查可格式化性的类型
      * @tparam Context The format context type (defaults to std::format_context)
-     *                 格式化上下文类型（默认为 std::format_context）
      * @tparam Formatter The formatter type for Ty (deduced from Context)
-     *                   Ty 的格式化器类型（从 Context 推导）
+     *
+     * \lang simp-chinese
+     * @brief 检查类型是否仅使用非常量格式化器即可进行格式化的概念。
+     *         类似于 formattable_with，但仅要求非常量格式化器操作有效。
+     *
+     * @tparam Ty 要检查可格式化性的类型
+     * @tparam Context 格式化上下文类型（默认为 std::format_context）
+     * @tparam Formatter Ty 的格式化器类型（从 Context 推导）
      */
     template <typename Ty, typename Context = std::format_context,
               typename Formatter = typename Context::template formatter_type<std::remove_const_t<Ty>>>
@@ -2069,55 +2581,72 @@ namespace rainy::type_traits::concepts {
 
 namespace rainy::type_traits::extras::templates {
     /**
+     * \lang english
      * @brief Primary template for template traits.
-     *        Provides information about whether a type is a template instantiation.
-     *
-     *        模板特性的主模板。
-     *        提供关于类型是否为模板实例化的信息。
+     *         Provides information about whether a type is a template instantiation.
      *
      * @tparam Template The type to examine
-     *                  要检查的类型
+     *
+     * \lang simp-chinese
+     * @brief 模板特性的主模板。
+     *         提供关于类型是否为模板实例化的信息。
+     *
+     * @tparam Template 要检查的类型
      */
     template <typename Template>
     struct template_traits : helper::false_type {};
 
     /**
+     * \lang english
      * @brief Specialization for actual template instantiations.
-     *        Extracts the template template parameter and the type arguments.
-     *
-     *        实际模板实例化的特化。
-     *        提取模板模板参数和类型参数。
+     *         Extracts the template template parameter and the type arguments.
      *
      * @tparam Template The template template parameter
-     *                  模板模板参数
      * @tparam Types The template arguments
-     *               模板参数
+     *
+     * \lang simp-chinese
+     * @brief 实际模板实例化的特化。
+     *         提取模板模板参数和类型参数。
+     *
+     * @tparam Template 模板模板参数
+     * @tparam Types 模板参数
      */
     template <template <typename...> typename Template, typename... Types>
     struct template_traits<Template<Types...>> : helper::true_type {
         /**
+         * \lang english
          * @brief Type list containing all template arguments.
-         *        包含所有模板参数的类型列表。
+         *
+         * \lang simp-chinese
+         * @brief 包含所有模板参数的类型列表。
          */
         using types = other_trans::type_list<Types...>;
     };
 
     /**
+     * \lang english
      * @brief Variable template for checking if a type is a template instantiation.
-     *        检查类型是否为模板实例化的变量模板。
      *
      * @tparam Ty The type to check
-     *            要检查的类型
+     *
+     * \lang simp-chinese
+     * @brief 检查类型是否为模板实例化的变量模板。
+     *
+     * @tparam Ty 要检查的类型
      */
     template <typename Ty>
     RAINY_CONSTEXPR_BOOL is_template_v = template_traits<Ty>::value;
 
     /**
+     * \lang english
      * @brief Type template for checking if a type is a template instantiation.
-     *        检查类型是否为模板实例化的类型模板。
      *
      * @tparam Ty The type to check
-     *            要检查的类型
+     *
+     * \lang simp-chinese
+     * @brief 检查类型是否为模板实例化的类型模板。
+     *
+     * @tparam Ty 要检查的类型
      */
     template <typename Ty>
     struct is_template : helper::bool_constant<is_template_v<Ty>> {};
@@ -2145,20 +2674,23 @@ namespace rainy::core {
     RAINY_ENABLE_ENUM_CLASS_BITMASK_OPERATORS(method_flags);
 
     /**
+     * \lang english
      * @brief Deduces the method flags for a given function type and arguments at compile time.
-     *        Determines whether the function is static, member function, const/volatile qualified,
-     *        ref-qualified, and whether the invocation is noexcept.
-     *
-     *        在编译时推导给定函数类型和参数的方法标志。
-     *        确定函数是静态函数、成员函数、const/volatile限定、引用限定，
-     *        以及调用是否为noexcept。
+     *         Determines whether the function is static, member function, const/volatile qualified,
+     *         ref-qualified, and whether the invocation is noexcept.
      *
      * @tparam Fx The function type to analyze
-     *            要分析的函数类型
      * @tparam Args The argument types that would be used to invoke the function
-     *              将用于调用函数的参数类型
      * @return method_flags A bitmask of method flags indicating the function's properties
-     *                      method_flags 位掩码，指示函数的属性
+     *
+     * \lang simp-chinese
+     * @brief 在编译时推导给定函数类型和参数的方法标志。
+     *         确定函数是静态函数、成员函数、const/volatile限定、引用限定，
+     *         以及调用是否为noexcept。
+     *
+     * @tparam Fx 要分析的函数类型
+     * @tparam Args 将用于调用函数的参数类型
+     * @return method_flags 位掩码，指示函数的属性
      */
     template <typename Fx, typename... Args>
     constexpr rain_fn deduction_invoker_type() noexcept -> method_flags {
@@ -2228,30 +2760,36 @@ namespace rainy::utility::implements {
 
 namespace rainy::utility {
     /**
+     * \lang english
      * @brief Constructor invoker wrapper with SFINAE constraints.
-     *        Provides a unified interface for invoking constructors.
-     *
-     *        带有 SFINAE 约束的构造函数调用器包装器。
-     *        为调用构造函数提供统一接口。
+     *         Provides a unified interface for invoking constructors.
      *
      * @tparam Ty The type to construct
-     *            要构造的类型
      * @tparam Args The constructor argument types
-     *              构造函数参数类型
+     *
+     * \lang simp-chinese
+     * @brief 带有 SFINAE 约束的构造函数调用器包装器。
+     *         为调用构造函数提供统一接口。
+     *
+     * @tparam Ty 要构造的类型
+     * @tparam Args 构造函数参数类型
      */
     template <typename Ty, typename... Args>
     struct ctor : type_traits::other_trans::enable_if_t<type_traits::properties::is_constructible_v<Ty, Args...>,
                                                         implements::ctor_impl<Ty, Args...>> {};
 
     /**
+     * \lang english
      * @brief Destructor invoker wrapper with SFINAE constraints.
-     *        Provides a unified interface for invoking destructors.
-     *
-     *        带有 SFINAE 约束的析构函数调用器包装器。
-     *        为调用析构函数提供统一接口。
+     *         Provides a unified interface for invoking destructors.
      *
      * @tparam Ty The type to destroy
-     *            要销毁的类型
+     *
+     * \lang simp-chinese
+     * @brief 带有 SFINAE 约束的析构函数调用器包装器。
+     *         为调用析构函数提供统一接口。
+     *
+     * @tparam Ty 要销毁的类型
      */
     template <typename Ty>
     struct dtor
@@ -2260,15 +2798,19 @@ namespace rainy::utility {
 
 namespace rainy::utility {
     /**
+     * \lang english
      * @brief Gets a function pointer to the constructor invoker for type Ty.
-     *        获取指向类型 Ty 的构造函数调用器的函数指针。
      *
      * @tparam Ty The type to construct
-     *            要构造的类型
      * @tparam Args The constructor argument types
-     *              构造函数参数类型
      * @return Function pointer to ctor<Ty, Args...>::invoke
-     *         指向 ctor<Ty, Args...>::invoke 的函数指针
+     *
+     * \lang simp-chinese
+     * @brief 获取指向类型 Ty 的构造函数调用器的函数指针。
+     *
+     * @tparam Ty 要构造的类型
+     * @tparam Args 构造函数参数类型
+     * @return 指向 ctor<Ty, Args...>::invoke 的函数指针
      */
     template <typename Ty, typename... Args,
               typename type_traits::other_trans::enable_if_t<type_traits::properties::is_constructible_v<Ty, Args...>, int> = 0>
@@ -2277,13 +2819,17 @@ namespace rainy::utility {
     }
 
     /**
+     * \lang english
      * @brief Gets a function pointer to the destructor invoker for type Ty.
-     *        获取指向类型 Ty 的析构函数调用器的函数指针。
      *
      * @tparam Ty The type to destroy
-     *            要销毁的类型
      * @return Function pointer to dtor<Ty>::invoke
-     *         指向 dtor<Ty>::invoke 的函数指针
+     *
+     * \lang simp-chinese
+     * @brief 获取指向类型 Ty 的析构函数调用器的函数指针。
+     *
+     * @tparam Ty 要销毁的类型
+     * @return 指向 dtor<Ty>::invoke 的函数指针
      */
     template <typename Ty, type_traits::other_trans::enable_if_t<type_traits::properties::is_destructible_v<Ty>, int> = 0>
     constexpr rain_fn get_dtor_fn() -> auto {
@@ -2324,16 +2870,19 @@ namespace rainy::utility::implements {
 
 namespace rainy::utility {
     /**
+     * \lang english
      * @brief Assignment operator invoker wrapper with SFINAE constraints.
-     *        Provides a unified interface for invoking assignment operators.
-     *
-     *        带有 SFINAE 约束的赋值运算符调用器包装器。
-     *        为调用赋值运算符提供统一接口。
+     *         Provides a unified interface for invoking assignment operators.
      *
      * @tparam Ty The type being assigned to
-     *            被赋值的类型
      * @tparam Assign The type being assigned from
-     *                来源类型
+     *
+     * \lang simp-chinese
+     * @brief 带有 SFINAE 约束的赋值运算符调用器包装器。
+     *         为调用赋值运算符提供统一接口。
+     *
+     * @tparam Ty 被赋值的类型
+     * @tparam Assign 来源类型
      */
     template <typename Ty, typename Assign>
     struct assign : type_traits::other_trans::enable_if_t<type_traits::properties::is_assignable_v<Ty, Assign> &&
@@ -2342,28 +2891,34 @@ namespace rainy::utility {
                                                           implements::assign_impl<Ty, Assign>> {};
 
     /**
+     * \lang english
      * @brief Copy assignment operator invoker wrapper with SFINAE constraints.
-     *        Provides a unified interface for invoking copy assignment operators.
-     *
-     *        带有 SFINAE 约束的拷贝赋值运算符调用器包装器。
-     *        为调用拷贝赋值运算符提供统一接口。
+     *         Provides a unified interface for invoking copy assignment operators.
      *
      * @tparam Ty The type being copy assigned
-     *            被拷贝赋值的类型
+     *
+     * \lang simp-chinese
+     * @brief 带有 SFINAE 约束的拷贝赋值运算符调用器包装器。
+     *         为调用拷贝赋值运算符提供统一接口。
+     *
+     * @tparam Ty 被拷贝赋值的类型
      */
     template <typename Ty>
     struct copy_assign : type_traits::other_trans::enable_if_t<type_traits::properties::is_copy_assignable_v<Ty>,
                                                                implements::copy_assign_impl<Ty>> {};
 
     /**
+     * \lang english
      * @brief Move assignment operator invoker wrapper with fallback to copy.
-     *        Provides move assignment if available, otherwise falls back to copy assignment.
-     *
-     *        带有拷贝回退的移动赋值运算符调用器包装器。
-     *        如果可用则提供移动赋值，否则回退到拷贝赋值。
+     *         Provides move assignment if available, otherwise falls back to copy assignment.
      *
      * @tparam Ty The type being move assigned
-     *            被移动赋值的类型
+     *
+     * \lang simp-chinese
+     * @brief 带有拷贝回退的移动赋值运算符调用器包装器。
+     *         如果可用则提供移动赋值，否则回退到拷贝赋值。
+     *
+     * @tparam Ty 被移动赋值的类型
      */
     template <typename Ty>
     struct move_assign : type_traits::other_trans::conditional_t<
@@ -2374,15 +2929,19 @@ namespace rainy::utility {
 
 namespace rainy::utility {
     /**
+     * \lang english
      * @brief Gets a function pointer to the assignment operator invoker.
-     *        获取指向赋值运算符调用器的函数指针。
      *
      * @tparam Ty The type being assigned to
-     *            被赋值的类型
      * @tparam Assign The type being assigned from
-     *                来源类型
      * @return Function pointer to assign<Ty, Assign>::invoke
-     *         指向 assign<Ty, Assign>::invoke 的函数指针
+     *
+     * \lang simp-chinese
+     * @brief 获取指向赋值运算符调用器的函数指针。
+     *
+     * @tparam Ty 被赋值的类型
+     * @tparam Assign 来源类型
+     * @return 指向 assign<Ty, Assign>::invoke 的函数指针
      */
     template <typename Ty, typename Assign,
               type_traits::other_trans::enable_if_t<type_traits::properties::is_assignable_v<Ty, Assign> &&
@@ -2394,13 +2953,17 @@ namespace rainy::utility {
     }
 
     /**
+     * \lang english
      * @brief Gets a function pointer to the move assignment operator invoker.
-     *        获取指向移动赋值运算符调用器的函数指针。
      *
      * @tparam Ty The type being move assigned
-     *            被移动赋值的类型
      * @return Function pointer to move_assign<Ty>::invoke
-     *         指向 move_assign<Ty>::invoke 的函数指针
+     *
+     * \lang simp-chinese
+     * @brief 获取指向移动赋值运算符调用器的函数指针。
+     *
+     * @tparam Ty 被移动赋值的类型
+     * @return 指向 move_assign<Ty>::invoke 的函数指针
      */
     template <typename Ty, type_traits::other_trans::enable_if_t<type_traits::properties::is_move_assignable_v<Ty> ||
                                                                      type_traits::properties::is_nothrow_copy_assignable_v<Ty>,
@@ -2410,13 +2973,17 @@ namespace rainy::utility {
     }
 
     /**
+     * \lang english
      * @brief Gets a function pointer to the copy assignment operator invoker.
-     *        获取指向拷贝赋值运算符调用器的函数指针。
      *
      * @tparam Ty The type being copy assigned
-     *            被拷贝赋值的类型
      * @return Function pointer to copy_assign<Ty>::invoke
-     *         指向 copy_assign<Ty>::invoke 的函数指针
+     *
+     * \lang simp-chinese
+     * @brief 获取指向拷贝赋值运算符调用器的函数指针。
+     *
+     * @tparam Ty 被拷贝赋值的类型
+     * @return 指向 copy_assign<Ty>::invoke 的函数指针
      */
     template <typename Ty,
               type_traits::other_trans::enable_if_t<type_traits::properties::is_nothrow_copy_assignable_v<Ty>, int> = 0>
@@ -2427,329 +2994,486 @@ namespace rainy::utility {
 
 namespace rainy::utility::cpp_methods {
     /**
+     * \lang english
      * @brief String representation of operator+
-     *        operator+ 的字符串表示
+     *
+     * \lang simp-chinese
+     * @brief operator+ 的字符串表示
      */
     static constexpr auto method_operator_add = "operator+";
 
     /**
+     * \lang english
      * @brief String representation of operator-
-     *        operator- 的字符串表示
+     *
+     * \lang simp-chinese
+     * @brief operator- 的字符串表示
      */
     static constexpr auto method_operator_sub = "operator-";
 
     /**
+     * \lang english
      * @brief String representation of operator*
-     *        operator* 的字符串表示
+     *
+     * \lang simp-chinese
+     * @brief operator* 的字符串表示
      */
     static constexpr auto method_operator_mul = "operator*";
 
     /**
+     * \lang english
      * @brief String representation of operator/
-     *        operator/ 的字符串表示
+     *
+     * \lang simp-chinese
+     * @brief operator/ 的字符串表示
      */
     static constexpr auto method_operator_div = "operator/";
 
     /**
+     * \lang english
      * @brief String representation of operator%
-     *        operator% 的字符串表示
+     *
+     * \lang simp-chinese
+     * @brief operator% 的字符串表示
      */
     static constexpr auto method_operator_mod = "operator%";
 
     /**
+     * \lang english
      * @brief String representation of operator==
-     *        operator== 的字符串表示
+     *
+     * \lang simp-chinese
+     * @brief operator== 的字符串表示
      */
     static constexpr auto method_operator_eq = "operator==";
 
     /**
+     * \lang english
      * @brief String representation of operator!=
-     *        operator!= 的字符串表示
+     *
+     * \lang simp-chinese
+     * @brief operator!= 的字符串表示
      */
     static constexpr auto method_operator_neq = "operator!=";
 
     /**
+     * \lang english
      * @brief String representation of operator<
-     *        operator< 的字符串表示
+     *
+     * \lang simp-chinese
+     * @brief operator< 的字符串表示
      */
     static constexpr auto method_operator_lt = "operator<";
 
     /**
+     * \lang english
      * @brief String representation of operator>
-     *        operator> 的字符串表示
+     *
+     * \lang simp-chinese
+     * @brief operator> 的字符串表示
      */
     static constexpr auto method_operator_gt = "operator>";
 
     /**
+     * \lang english
      * @brief String representation of operator<=
-     *        operator<= 的字符串表示
+     *
+     * \lang simp-chinese
+     * @brief operator<= 的字符串表示
      */
     static constexpr auto method_operator_le = "operator<=";
 
     /**
+     * \lang english
      * @brief String representation of operator>=
-     *        operator>= 的字符串表示
+     *
+     * \lang simp-chinese
+     * @brief operator>= 的字符串表示
      */
     static constexpr auto method_operator_ge = "operator>=";
 
     /**
+     * \lang english
      * @brief String representation of operator=
-     *        operator= 的字符串表示
+     *
+     * \lang simp-chinese
+     * @brief operator= 的字符串表示
      */
     static constexpr auto method_operator_assign = "operator=";
 
     /**
+     * \lang english
      * @brief String representation of operator[]
-     *        operator[] 的字符串表示
+     *
+     * \lang simp-chinese
+     * @brief operator[] 的字符串表示
      */
     static constexpr auto method_operator_index = "operator[]";
 
     /**
+     * \lang english
      * @brief String representation of operator()
-     *        operator() 的字符串表示
+     *
+     * \lang simp-chinese
+     * @brief operator() 的字符串表示
      */
     static constexpr auto method_operator_call = "operator()";
 
     /**
+     * \lang english
      * @brief String representation of operator->
-     *        operator-> 的字符串表示
+     *
+     * \lang simp-chinese
+     * @brief operator-> 的字符串表示
      */
     static constexpr auto method_operator_arrow = "operator->";
 
     /**
+     * \lang english
      * @brief String representation of operator* (dereference)
-     *        operator*（解引用）的字符串表示
+     *
+     * \lang simp-chinese
+     * @brief operator*（解引用）的字符串表示
      */
     static constexpr auto method_operator_deref = "operator*";
 
     /**
+     * \lang english
      * @brief String representation of operator& (address-of)
-     *        operator&（取地址）的字符串表示
+     *
+     * \lang simp-chinese
+     * @brief operator&（取地址）的字符串表示
      */
     static constexpr auto method_operator_addr = "operator&";
 
     /**
+     * \lang english
      * @brief String representation of operator++ (prefix)
-     *        operator++（前缀）的字符串表示
+     *
+     * \lang simp-chinese
+     * @brief operator++（前缀）的字符串表示
      */
     static constexpr auto method_operator_preinc = "operator++";
 
     /**
+     * \lang english
      * @brief String representation of operator++ (postfix)
-     *        operator++（后缀）的字符串表示
+     *
+     * \lang simp-chinese
+     * @brief operator++（后缀）的字符串表示
      */
     static constexpr auto method_operator_postinc = "operator++(int)";
 
     /**
+     * \lang english
      * @brief String representation of operator-- (prefix)
-     *        operator--（前缀）的字符串表示
+     *
+     * \lang simp-chinese
+     * @brief operator--（前缀）的字符串表示
      */
     static constexpr auto method_operator_predec = "operator--";
 
     /**
+     * \lang english
      * @brief String representation of operator-- (postfix)
-     *        operator--（后缀）的字符串表示
+     *
+     * \lang simp-chinese
+     * @brief operator--（后缀）的字符串表示
      */
     static constexpr auto method_operator_postdec = "operator--(int)";
 
     /**
+     * \lang english
      * @brief String representation of operator||
-     *        operator|| 的字符串表示
+     *
+     * \lang simp-chinese
+     * @brief operator|| 的字符串表示
      */
     static constexpr auto method_operator_or = "operator||";
 
     /**
+     * \lang english
      * @brief String representation of operator&&
-     *        operator&& 的字符串表示
+     *
+     * \lang simp-chinese
+     * @brief operator&& 的字符串表示
      */
     static constexpr auto method_operator_and = "operator&&";
 
     /**
+     * \lang english
      * @brief String representation of operator!
-     *        operator! 的字符串表示
+     *
+     * \lang simp-chinese
+     * @brief operator! 的字符串表示
      */
     static constexpr auto method_operator_not = "operator!";
 
     /**
+     * \lang english
      * @brief String representation of operator|
-     *        operator| 的字符串表示
+     *
+     * \lang simp-chinese
+     * @brief operator| 的字符串表示
      */
     static constexpr auto method_operator_bit_or = "operator|";
 
     /**
+     * \lang english
      * @brief String representation of operator& (bitwise AND)
-     *        operator&（按位与）的字符串表示
+     *
+     * \lang simp-chinese
+     * @brief operator&（按位与）的字符串表示
      */
     static constexpr auto method_operator_bit_and = "operator&";
 
     /**
+     * \lang english
      * @brief String representation of operator^
-     *        operator^ 的字符串表示
+     *
+     * \lang simp-chinese
+     * @brief operator^ 的字符串表示
      */
     static constexpr auto method_operator_bit_xor = "operator^";
 
     /**
+     * \lang english
      * @brief String representation of operator~
-     *        operator~ 的字符串表示
+     *
+     * \lang simp-chinese
+     * @brief operator~ 的字符串表示
      */
     static constexpr auto method_operator_bit_not = "operator~";
 
     /**
+     * \lang english
      * @brief String representation of operator<<
-     *        operator<< 的字符串表示
+     *
+     * \lang simp-chinese
+     * @brief operator<< 的字符串表示
      */
     static constexpr auto method_operator_shift_l = "operator<<";
 
     /**
+     * \lang english
      * @brief String representation of operator>>
-     *        operator>> 的字符串表示
+     *
+     * \lang simp-chinese
+     * @brief operator>> 的字符串表示
      */
     static constexpr auto method_operator_shift_r = "operator>>";
 
     /**
+     * \lang english
      * @brief String representation of begin()
-     *        begin() 的字符串表示
+     *
+     * \lang simp-chinese
+     * @brief begin() 的字符串表示
      */
     static constexpr auto method_begin = "begin";
 
     /**
+     * \lang english
      * @brief String representation of end()
-     *        end() 的字符串表示
+     *
+     * \lang simp-chinese
+     * @brief end() 的字符串表示
      */
     static constexpr auto method_end = "end";
 
     /**
+     * \lang english
      * @brief String representation of cbegin()
-     *        cbegin() 的字符串表示
+     *
+     * \lang simp-chinese
+     * @brief cbegin() 的字符串表示
      */
     static constexpr auto method_cbegin = "cbegin";
 
     /**
+     * \lang english
      * @brief String representation of cend()
-     *        cend() 的字符串表示
+     *
+     * \lang simp-chinese
+     * @brief cend() 的字符串表示
      */
     static constexpr auto method_cend = "cend";
 
     /**
+     * \lang english
      * @brief String representation of rbegin()
-     *        rbegin() 的字符串表示
+     *
+     * \lang simp-chinese
+     * @brief rbegin() 的字符串表示
      */
     static constexpr auto method_rbegin = "rbegin";
 
     /**
+     * \lang english
      * @brief String representation of rend()
-     *        rend() 的字符串表示
+     *
+     * \lang simp-chinese
+     * @brief rend() 的字符串表示
      */
     static constexpr auto method_rend = "rend";
 
     /**
+     * \lang english
      * @brief String representation of size()
-     *        size() 的字符串表示
+     *
+     * \lang simp-chinese
+     * @brief size() 的字符串表示
      */
     static constexpr auto method_size = "size";
 
     /**
+     * \lang english
      * @brief String representation of empty()
-     *        empty() 的字符串表示
+     *
+     * \lang simp-chinese
+     * @brief empty() 的字符串表示
      */
     static constexpr auto method_empty = "empty";
 
     /**
+     * \lang english
      * @brief String representation of clear()
-     *        clear() 的字符串表示
+     *
+     * \lang simp-chinese
+     * @brief clear() 的字符串表示
      */
     static constexpr auto method_clear = "clear";
 
     /**
+     * \lang english
      * @brief String representation of push_back()
-     *        push_back() 的字符串表示
+     *
+     * \lang simp-chinese
+     * @brief push_back() 的字符串表示
      */
     static constexpr auto method_push_back = "push_back";
 
     /**
+     * \lang english
      * @brief String representation of pop_back()
-     *        pop_back() 的字符串表示
+     *
+     * \lang simp-chinese
+     * @brief pop_back() 的字符串表示
      */
     static constexpr auto method_pop_back = "pop_back";
 
     /**
+     * \lang english
      * @brief String representation of length()
-     *        length() 的字符串表示
+     *
+     * \lang simp-chinese
+     * @brief length() 的字符串表示
      */
     static constexpr auto method_length = "length";
 
     /**
+     * \lang english
      * @brief String representation of insert()
-     *        insert() 的字符串表示
+     *
+     * \lang simp-chinese
+     * @brief insert() 的字符串表示
      */
     static constexpr auto method_insert = "insert";
 
     /**
+     * \lang english
      * @brief String representation of erase()
-     *        erase() 的字符串表示
+     *
+     * \lang simp-chinese
+     * @brief erase() 的字符串表示
      */
     static constexpr auto method_erase = "erase";
 
     /**
+     * \lang english
      * @brief String representation of find()
-     *        find() 的字符串表示
+     *
+     * \lang simp-chinese
+     * @brief find() 的字符串表示
      */
     static constexpr auto method_find = "find";
 
     /**
+     * \lang english
      * @brief String representation of resize()
-     *        resize() 的字符串表示
+     *
+     * \lang simp-chinese
+     * @brief resize() 的字符串表示
      */
     static constexpr auto method_resize = "resize";
 
     /**
+     * \lang english
      * @brief String representation of swap()
-     *        swap() 的字符串表示
+     *
+     * \lang simp-chinese
+     * @brief swap() 的字符串表示
      */
     static constexpr auto method_swap = "swap";
 
     /**
+     * \lang english
      * @brief String representation of at()
-     *        at() 的字符串表示
+     *
+     * \lang simp-chinese
+     * @brief at() 的字符串表示
      */
     static constexpr auto method_at = "at";
 
     /**
+     * \lang english
      * @brief String representation of front()
-     *        front() 的字符串表示
+     *
+     * \lang simp-chinese
+     * @brief front() 的字符串表示
      */
     static constexpr auto method_front = "front";
 
     /**
+     * \lang english
      * @brief String representation of back()
-     *        back() 的字符串表示
+     *
+     * \lang simp-chinese
+     * @brief back() 的字符串表示
      */
     static constexpr auto method_back = "back";
 
     /**
+     * \lang english
      * @brief String representation of append()
-     *        append() 的字符串表示
+     *
+     * \lang simp-chinese
+     * @brief append() 的字符串表示
      */
     static constexpr auto method_append = "append";
 }
 
 namespace rainy::core {
     /**
+     * \lang english
      * @brief Accumulates values in a range using operator+.
-     *        使用 operator+ 累加范围内的值。
      *
      * @tparam InputIt Input iterator type
-     *                 输入迭代器类型
      * @tparam Ty Initial value and result type
-     *            初始值和结果类型
      * @param first Iterator to the beginning of the range
-     *              指向范围起始的迭代器
      * @param last Iterator to the end of the range
-     *             指向范围末尾的迭代器
      * @param init Initial value for accumulation
-     *             累加的初始值
      * @return The result of accumulating all elements with init
-     *         使用 init 累加所有元素的结果
+     *
+     * \lang simp-chinese
+     * @brief 使用 operator+ 累加范围内的值。
+     *
+     * @tparam InputIt 输入迭代器类型
+     * @tparam Ty 初始值和结果类型
+     * @param first 指向范围起始的迭代器
+     * @param last 指向范围末尾的迭代器
+     * @param init 累加的初始值
+     * @return 使用 init 累加所有元素的结果
      */
     template <typename InputIt, typename Ty>
     RAINY_INLINE constexpr rain_fn accumulate(InputIt first, InputIt last, Ty init) -> Ty {
@@ -2764,25 +3488,29 @@ namespace rainy::core {
     }
 
     /**
+     * \lang english
      * @brief Accumulates values in a range using a custom binary operation.
-     *        使用自定义二元操作累加范围内的值。
      *
      * @tparam InputIt Input iterator type
-     *                 输入迭代器类型
      * @tparam Ty Initial value and result type
-     *            初始值和结果类型
      * @tparam BinaryOperation Binary operation type
-     *                         二元操作类型
      * @param first Iterator to the beginning of the range
-     *              指向范围起始的迭代器
      * @param last Iterator to the end of the range
-     *             指向范围末尾的迭代器
      * @param init Initial value for accumulation
-     *             累加的初始值
      * @param op Binary operation to apply
-     *           要应用的二元操作
      * @return The result of applying op to all elements with init
-     *         使用 init 对所有元素应用 op 的结果
+     *
+     * \lang simp-chinese
+     * @brief 使用自定义二元操作累加范围内的值。
+     *
+     * @tparam InputIt 输入迭代器类型
+     * @tparam Ty 初始值和结果类型
+     * @tparam BinaryOperation 二元操作类型
+     * @param first 指向范围起始的迭代器
+     * @param last 指向范围末尾的迭代器
+     * @param init 累加的初始值
+     * @param op 要应用的二元操作
+     * @return 使用 init 对所有元素应用 op 的结果
      */
     template <typename InputIt, typename Ty, typename BinaryOperation>
     RAINY_INLINE constexpr rain_fn accumulate(InputIt first, InputIt last, Ty init, BinaryOperation op) -> Ty {
@@ -2795,40 +3523,50 @@ namespace rainy::core {
 
 namespace rainy::type_traits::properties {
     /**
+     * \lang english
      * @brief Variable template for checking if a type is movable.
-     *        A type is movable if it is an object type, move constructible,
-     *        assignable from rvalue, and swappable.
-     *
-     *        检查类型是否可移动的变量模板。
-     *        类型如果是对象类型、可移动构造、可从右值赋值且可交换，则是可移动的。
+     *         A type is movable if it is an object type, move constructible,
+     *         assignable from rvalue, and swappable.
      *
      * @tparam Ty The type to check
-     *            要检查的类型
+     *
+     * \lang simp-chinese
+     * @brief 检查类型是否可移动的变量模板。
+     *         类型如果是对象类型、可移动构造、可从右值赋值且可交换，则是可移动的。
+     *
+     * @tparam Ty 要检查的类型
      */
     template <typename Ty>
     RAINY_CONSTEXPR_BOOL is_movable_v = composite_types::is_object_v<Ty> && properties::is_move_constructible_v<Ty> &&
                                         properties::is_assignable_v<Ty &, Ty> && properties::is_swappable_v<Ty>;
 
     /**
+     * \lang english
      * @brief Type template for checking if a type is movable.
-     *        检查类型是否可移动的类型模板。
      *
      * @tparam Ty The type to check
-     *            要检查的类型
+     *
+     * \lang simp-chinese
+     * @brief 检查类型是否可移动的类型模板。
+     *
+     * @tparam Ty 要检查的类型
      */
     template <typename Ty>
     struct is_movable : helper::bool_constant<is_movable_v<Ty>> {};
 
     /**
+     * \lang english
      * @brief Variable template for checking if a type is copyable.
-     *        A type is copyable if it is copy constructible, movable,
-     *        and assignable from lvalue, const lvalue, and const rvalue.
-     *
-     *        检查类型是否可拷贝的变量模板。
-     *        类型如果是可拷贝构造、可移动、可从左值、常量左值和常量右值赋值，则是可拷贝的。
+     *         A type is copyable if it is copy constructible, movable,
+     *         and assignable from lvalue, const lvalue, and const rvalue.
      *
      * @tparam Ty The type to check
-     *            要检查的类型
+     *
+     * \lang simp-chinese
+     * @brief 检查类型是否可拷贝的变量模板。
+     *         类型如果是可拷贝构造、可移动、可从左值、常量左值和常量右值赋值，则是可拷贝的。
+     *
+     * @tparam Ty 要检查的类型
      */
     template <typename Ty>
     RAINY_CONSTEXPR_BOOL is_copyable_v =
@@ -2837,11 +3575,15 @@ namespace rainy::type_traits::properties {
         type_traits::properties::is_assignable_v<Ty &, const Ty>;
 
     /**
+     * \lang english
      * @brief Type template for checking if a type is copyable.
-     *        检查类型是否可拷贝的类型模板。
      *
      * @tparam Ty The type to check
-     *            要检查的类型
+     *
+     * \lang simp-chinese
+     * @brief 检查类型是否可拷贝的类型模板。
+     *
+     * @tparam Ty 要检查的类型
      */
     template <typename Ty>
     struct is_copyable : helper::bool_constant<is_copyable_v<Ty>> {};
@@ -2849,21 +3591,29 @@ namespace rainy::type_traits::properties {
 
 namespace rainy::utility {
     /**
+     * \lang english
      * @brief Maximum possible value for a signed difference type.
-     *        有符号差类型的最大可能值。
      *
      * @tparam Diff The signed difference type
-     *              有符号差类型
+     *
+     * \lang simp-chinese
+     * @brief 有符号差类型的最大可能值。
+     *
+     * @tparam Diff 有符号差类型
      */
     template <typename Diff>
     constexpr Diff max_possible_v{static_cast<type_traits::helper::make_unsigned_t<Diff>>(-1) >> 1};
 
     /**
+     * \lang english
      * @brief Minimum possible value for a signed difference type.
-     *        有符号差类型的最小可能值。
      *
      * @tparam Diff The signed difference type
-     *              有符号差类型
+     *
+     * \lang simp-chinese
+     * @brief 有符号差类型的最小可能值。
+     *
+     * @tparam Diff 有符号差类型
      */
     template <typename Diff>
     constexpr Diff min_possible_v{-max_possible_v<Diff> - 1};
@@ -2871,39 +3621,49 @@ namespace rainy::utility {
 
 namespace rainy::type_traits::properties {
     /**
+     * \lang english
      * @brief Type template for checking if a type is a sequential container.
-     *        Sequential containers support push_back or are arrays.
-     *
-     *        检查类型是否为顺序容器的类型模板。
-     *        顺序容器支持 push_back 或是数组。
+     *         Sequential containers support push_back or are arrays.
      *
      * @tparam Ty The type to check
-     *           要检查的类型
+     *
+     * \lang simp-chinese
+     * @brief 检查类型是否为顺序容器的类型模板。
+     *         顺序容器支持 push_back 或是数组。
+     *
+     * @tparam Ty 要检查的类型
      */
     template <typename Ty>
     struct is_sequential_container
         : helper::bool_constant<type_traits::extras::meta_method::has_push_back_v<Ty> || primary_types::is_array_v<Ty>> {};
 
     /**
+     * \lang english
      * @brief Variable template for checking if a type is a sequential container.
-     *        检查类型是否为顺序容器的变量模板。
      *
      * @tparam Ty The type to check
-     *           要检查的类型
+     *
+     * \lang simp-chinese
+     * @brief 检查类型是否为顺序容器的变量模板。
+     *
+     * @tparam Ty 要检查的类型
      */
     template <typename Ty>
     RAINY_CONSTEXPR_BOOL is_sequential_container_v = is_sequential_container<Ty>::value;
 
     /**
+     * \lang english
      * @brief Type template for checking if a type is an associative container.
-     *        Associative containers support insert with key or key-value pairs,
-     *        and do not support push_back.
-     *
-     *        检查类型是否为关联容器的类型模板。
-     *        关联容器支持使用键或键值对的插入，不支持 push_back。
+     *         Associative containers support insert with key or key-value pairs,
+     *         and do not support push_back.
      *
      * @tparam Ty The type to check
-     *           要检查的类型
+     *
+     * \lang simp-chinese
+     * @brief 检查类型是否为关联容器的类型模板。
+     *         关联容器支持使用键或键值对的插入，不支持 push_back。
+     *
+     * @tparam Ty 要检查的类型
      */
     template <typename Ty>
     struct is_associative_container : helper::bool_constant<type_traits::extras::meta_method::has_insert_for_key_v<Ty> &&
@@ -2911,41 +3671,57 @@ namespace rainy::type_traits::properties {
                                                             !type_traits::extras::meta_method::has_push_back_v<Ty>> {};
 
     /**
+     * \lang english
      * @brief Variable template for checking if a type is an associative container.
-     *        检查类型是否为关联容器的变量模板。
      *
      * @tparam Ty The type to check
-     *           要检查的类型
+     *
+     * \lang simp-chinese
+     * @brief 检查类型是否为关联容器的变量模板。
+     *
+     * @tparam Ty 要检查的类型
      */
     template <typename Ty>
     RAINY_CONSTEXPR_BOOL is_associative_container_v = is_associative_container<Ty>::value;
 
     /**
+     * \lang english
      * @brief Type template for checking if a type is map-like (has key_type and mapped_type).
-     *        检查类型是否为类似映射的类型（具有 key_type 和 mapped_type）的类型模板。
      *
      * @tparam Ty The type to check
-     *           要检查的类型
+     *
+     * \lang simp-chinese
+     * @brief 检查类型是否为类似映射的类型（具有 key_type 和 mapped_type）的类型模板。
+     *
+     * @tparam Ty 要检查的类型
      */
     template <typename, typename = void>
     struct is_map_like : helper::false_type {};
 
     /**
+     * \lang english
      * @brief Specialization that detects key_type and mapped_type members.
-     *        检测 key_type 和 mapped_type 成员的特化。
      *
      * @tparam Ty The type to check
-     *           要检查的类型
+     *
+     * \lang simp-chinese
+     * @brief 检测 key_type 和 mapped_type 成员的特化。
+     *
+     * @tparam Ty 要检查的类型
      */
     template <typename Ty>
     struct is_map_like<Ty, other_trans::void_t<typename Ty::key_type, typename Ty::mapped_type>> : helper::true_type {};
 
     /**
+     * \lang english
      * @brief Variable template for checking if a type is map-like.
-     *        检查类型是否为类似映射的类型的变量模板。
      *
      * @tparam Ty The type to check
-     *           要检查的类型
+     *
+     * \lang simp-chinese
+     * @brief 检查类型是否为类似映射的类型的变量模板。
+     *
+     * @tparam Ty 要检查的类型
      */
     template <typename Ty>
     inline constexpr bool is_map_like_v = is_map_like<Ty>::value;
