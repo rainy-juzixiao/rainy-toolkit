@@ -23,7 +23,7 @@
 #include <tuple>
 #include <utility>
 
-using namespace rainy::meta::moon;
+using namespace rainy::core::meta;
 
 #if RAINY_HAS_CXX26 && RAINY_HAS_CXX26_STATIC_REFLECTION
 
@@ -482,7 +482,7 @@ struct ManuallyRegistered {
 };
 
 template <>
-struct rainy::meta::moon::reflectet_for_type<ManuallyRegistered> {
+struct rainy::core::meta::reflectet_for_type<ManuallyRegistered> {
     static constexpr inline std::size_t count = 3;
 
     static constexpr auto make() noexcept {
@@ -605,10 +605,6 @@ TEST_CASE("C++26 static reflection - member_offset", "[moon][cxx26][member_offse
 #endif
 
 TEST_CASE("utility namespace aliases", "[moon][utility]") {
-    using rainy::utility::member_count_v;
-    using rainy::utility::struct_bind_tuple;
-    using rainy::utility::struct_to_tuple;
-
     REQUIRE(member_count_v<SimpleStruct> == 3);
 
     constexpr auto tuple = struct_to_tuple<SimpleStruct>();
