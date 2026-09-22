@@ -1,0 +1,266 @@
+/*
+ * Copyright 2026 rainy-juzixiao
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+#ifndef RAINY_FOUNDATION_CONTAINER_IMPLEMENTS_ANY_FWD_HPP
+#define RAINY_FOUNDATION_CONTAINER_IMPLEMENTS_ANY_FWD_HPP
+
+// NOLINTBEGIN
+
+#include <rainy/core/meta/tuple_like.hpp>
+#include <rainy/core/platform.hpp>
+#include <rainy/core/typeinfo.hpp>
+#include <utility>
+#include <variant>
+
+// NOLINTEND
+
+namespace rainy::foundation::container {
+    /**
+     * @brief 一个混合所有权的动态变量容器
+     * @brief
+     * 通常用于对不确定的变量或引用进行运算符或访问操作。同时，因其混合所有权的特性，在持有某个对象的时候，basic_any将会采用RAII策略，反之则仅保留使用权，因此，basic_any有大量功能不同于std::any
+     * @param Length 指定any小对象的缓冲区长度（一般留空）
+     * @param Align 指定any小对象的对齐长度（一般留空）
+     */
+    template <std::size_t Length = core::small_object_space_size - (sizeof(void *) * 2), std::size_t Align = alignof(std::max_align_t)>
+    class basic_any;
+
+    template <typename Type, typename = void>
+    RAINY_CONSTEXPR_BOOL is_any_convert_invocable = true;
+
+    template <typename Type>
+    RAINY_CONSTEXPR_BOOL is_any_convert_invocable<Type, type_traits::other_trans::void_t<decltype(utility::any_converter<Type>::invalid_mark)>> = false;
+
+    template <typename TargetType>
+    RAINY_NODISCARD bool is_any_convertible(const core::typeinfo &source_type) noexcept {
+        if constexpr (is_any_convert_invocable<TargetType>) {
+            return utility::any_converter<TargetType>::is_convertible(source_type);
+        } else {
+            return source_type.is_compatible(rainy_typeid(TargetType));
+        }
+    }
+
+    enum class any_iterator_category : std::int8_t {
+        input_iterator,
+        output_iterator,
+        forward_iterator,
+        bidirectional_iterator,
+        random_access_iterator,
+        contiguous_iterator // for cxx 20
+    };
+
+    struct any_default_match {
+        any_default_match() noexcept = default;
+        ~any_default_match() = default;
+        any_default_match(const any_default_match &) = default;
+        any_default_match(any_default_match &&) = default;
+    };
+
+    enum class any_inner_declaertion {
+        key_type,
+        value_type,
+        size_type
+    };
+}
+
+namespace rainy::foundation::container::implements {
+    struct any_binding_package {
+        const void *payload;
+        const core::typeinfo *type;
+    };
+
+    template <typename BasicAny, typename Type>
+    struct const_any_proxy_iterator;
+
+    template <typename BasicAny, typename Type>
+    struct any_proxy_iterator;
+}
+
+namespace rainy::foundation::container {
+    /// Tag type to select the wrapping constructor of any.
+    /// Usage: any(wrap_any_tag{}, value) wraps value inside an any.
+    struct wrap_any_tag {};
+}
+
+namespace rainy::foundation::container::implements {
+    template <typename Ty>
+    using add_const_helper_for_access_element = type_traits::modifers::add_const_t<type_traits::modifers::remove_reference_t<Ty>>;
+
+    template <typename Ty>
+    using access_elements_construct_type = type_traits::other_trans::conditional_t<
+        type_traits::composite_types::is_reference_v<Ty>,
+        type_traits::other_trans::conditional_t<
+            type_traits::primary_types::is_rvalue_reference_v<Ty>,
+            type_traits::modifers::add_rvalue_reference_t<add_const_helper_for_access_element<Ty>>,
+            type_traits::modifers::add_lvalue_reference_t<add_const_helper_for_access_element<Ty>>>,
+        add_const_helper_for_access_element<Ty>>;
+
+    template <typename Iter>
+    constexpr any_iterator_category get_iterator_category() noexcept {
+        if (type_traits::extras::iterators::is_contiguous_iterator_v<Iter>) {
+            return any_iterator_category::contiguous_iterator;
+        } else if constexpr (type_traits::extras::iterators::is_random_access_iterator_v<Iter>) { // NOLINT
+            return any_iterator_category::random_access_iterator;
+        } else if constexpr (type_traits::extras::iterators::is_bidirectional_iterator_v<Iter>) {
+            return any_iterator_category::bidirectional_iterator;
+        } else if constexpr (type_traits::extras::iterators::is_forward_iterator_v<Iter>) {
+            return any_iterator_category::forward_iterator;
+        } else if constexpr (type_traits::extras::iterators::is_output_iterator_v<Iter> &&
+                             !type_traits::extras::iterators::is_input_iterator_v<Iter>) {
+            return any_iterator_category::output_iterator;
+        } else {
+            static_assert(type_traits::extras::iterators::is_input_iterator_v<Iter> &&
+                          !type_traits::extras::iterators::is_output_iterator_v<Iter>);
+            return any_iterator_category::input_iterator;
+        }
+    }
+
+    template <typename Ty, typename = void>
+    RAINY_CONSTEXPR_BOOL is_char_any_can_output = false;
+
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL
+        is_char_any_can_output<Ty, type_traits::other_trans::void_t<decltype(utility::declval<std::basic_ostream<char>>() << utility::declval<Ty>())>> = true;
+
+    template <typename Ty, typename = void>
+    RAINY_CONSTEXPR_BOOL is_wchar_any_can_output = false;
+
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL
+        is_wchar_any_can_output<Ty, type_traits::other_trans::void_t<decltype(utility::declval<std::basic_ostream<wchar_t>>() << utility::declval<Ty>())>> = true;
+
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL is_index_tuple_v = false;
+
+    template <typename... Args>
+    RAINY_CONSTEXPR_BOOL is_index_tuple_v<std::tuple<Args...>> = true;
+
+    template <typename... Args>
+    RAINY_CONSTEXPR_BOOL is_index_tuple_v<core::container::tuple<Args...>> = true;
+}
+
+namespace rainy::foundation::container::implements {
+    enum class any_compare_operation {
+        less,
+        less_eq,
+        eq,
+        greater_eq,
+        greater
+    };
+
+    /**
+     * @brief any操作的调用功能号表
+     */
+    enum class any_operation {
+        /**
+         * @brief 调用比较器并执行比较
+         * @param 一个tuple，包装类型为：
+         * std::tuple<typename any::refernece*, typename any::reference*, any_compare_operation>
+         */
+        compare,
+        eval_hash,
+        query_for_is_tuple_like,
+        destructre_this_pack,
+        output_any,
+        add,
+        subtract,
+        incr_prefix,
+        decr_prefix,
+        incr_postfix,
+        decr_postfix,
+        multiply,
+        divide,
+        mod,
+        dereference,
+        access_element,
+        container_begin,
+        container_end,
+        assign,
+        get_reference,
+        get_lvalue_reference,
+        get_rvalue_reference,
+        construct_from,
+        swap_value,
+        query_inner_declaertion_type,
+        container_size,
+        container_resize,
+        container_insert_seq_like,
+        container_insert_map_like,
+        format,
+    };
+}
+
+namespace rainy::foundation::container::implements {
+    template <typename Ty>
+    constexpr std::size_t eval_for_destructure_pack_receiver_size() {
+        using implements::any_binding_package;
+        using namespace std;
+        if constexpr (type_traits::primary_types::function_traits<Ty>::valid && !is_member_object_pointer_v<Ty>) {
+            return type_traits::primary_types::function_traits<Ty>::arity;
+        } else if constexpr (core::meta::is_pair_v<Ty>) {
+            return core::meta::pair_traits<Ty>::size;
+        } else if constexpr (core::meta::is_tuple_v<Ty>) {
+            return core::meta::tuple_traits<Ty>::size;
+        } else if constexpr (constexpr std::size_t size = meta::member_count_v<remove_cvref_t<Ty>>; size != 0) {
+            return size;
+        } else {
+            return 0;
+        }
+    }
+
+    // 执行策略
+    struct any_execution_policy {
+        using operation = any_operation;
+
+        using invoke_fn = bool(operation op, void *this_p, void *data) noexcept;
+
+        template <typename Ty, typename BasicAnyImpl>
+        static bool invoke_impl(operation op, void *this_p, void *data);
+
+        invoke_fn *invoke;
+    };
+
+    /**
+     * @brief 获取一个执行器对象
+     * @tparam Ty 实例类型
+     * @tparam BasicAnyImpl basic_any的实例化类型
+     */
+    template <typename Ty, typename BasicAnyImpl>
+    inline const any_execution_policy any_execution_policy_object = {
+        +[](const any_execution_policy::operation op, void *this_, void *const data) noexcept -> bool {
+            return any_execution_policy::invoke_impl<Ty, BasicAnyImpl>(op, this_, data);
+        }};
+
+    template <bool UseConst, typename Ty, typename BasicAny>
+    bool destructure_impl(const BasicAny *view, const any_execution_policy *executer, Ty &&receiver);
+
+    template <std::size_t Idx = 0, typename Variant, typename TypeList, typename BasicAny>
+    RAINY_INLINE auto match_variant_helper(const BasicAny &res) {
+        if constexpr (Idx < type_traits::other_trans::type_list_size_v<TypeList>) {
+            using type = typename type_traits::other_trans::type_at_t<Idx, TypeList>;
+            if (res.template is<type>()) {
+                return Variant{res.template as<type>()};
+            }
+            if (res.template is_convertible<type>()) {
+                return Variant{res.template convert<type>()};
+            }
+            return match_variant_helper<Idx + 1, Variant, TypeList>(res);
+        } else {
+            return Variant{};
+        }
+    }
+}
+
+#endif
