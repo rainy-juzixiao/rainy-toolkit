@@ -55,8 +55,28 @@ namespace rainy::core::text {
      */
     template <typename Ty, typename CharType, typename = void>
     struct formatter {
-        static_assert(sizeof(Ty) == 0, "formatter must be specialized for this type");
+        using unspecialized_mark = void;
     };
+
+    /**
+     * \lang english
+     * @brief Checks whether a formatter is available for the given type.
+     *
+     * @tparam Ty The type to check
+     * @tparam CharType The character type
+     *
+     * \lang simp-chinese
+     * @brief 检查给定类型是否存在可用的 formatter。
+     *
+     * @tparam Ty 要检查的类型
+     * @tparam CharType 字符类型
+     */
+    template <typename Ty, typename CharType, typename = void>
+    RAINY_CONSTEXPR_BOOL is_formattable_v = true;
+
+    template <typename Ty, typename CharType>
+    RAINY_CONSTEXPR_BOOL
+        is_formattable_v<Ty, CharType, type_traits::other_trans::void_t<typename formatter<Ty, CharType>::unspecialized_mark>> = false;
 
     template <typename CharType>
     /**
@@ -309,10 +329,24 @@ namespace rainy::core::text {
         template <typename Ty>
         using formatter_type = formatter<Ty, CharType>;
 
+        /**
+         * \lang english
+         * @brief Checks whether a formatter is available for Ty and this character type.
+         *
+         * @tparam Ty The type to check
+         *
+         * \lang simp-chinese
+         * @brief 检查 Ty 在该字符类型下是否存在可用的 formatter。
+         *
+         * @tparam Ty 要检查的类型
+         */
+        template <typename Ty>
+        static constexpr bool is_formattable = is_formattable_v<Ty, CharType>;
+
     private:
         basic_format_args<basic_format_context> args_;
         Out out_;
-        container::optional<std::locale> loc_; // 可选的 locale
+        container::optional<std::locale> loc_;
 
         basic_format_context(const basic_format_context &) = delete;
         basic_format_context &operator=(const basic_format_context &) = delete;

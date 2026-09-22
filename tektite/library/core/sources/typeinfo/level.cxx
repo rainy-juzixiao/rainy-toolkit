@@ -177,7 +177,7 @@ namespace rainy::core::implements {
         }
     }
 
-    void *apply_offset(void *ptr, const rainy::core::typeinfo &source, const rainy::core::typeinfo &target) {
+    void *apply_offset(void *ptr, const core::typeinfo &source, const core::typeinfo &target) {
         if (!ptr || source.hash_code() == target.hash_code()) {
             return ptr;
         }
@@ -187,6 +187,38 @@ namespace rainy::core::implements {
             return (*fn)(ptr);
         }
         return nullptr;
+    }
+
+    class dynamic_converter_registry::impl {
+    public:
+        void register_converter(const core::typeinfo &to_type, const converter_fn fn) {
+            table_.emplace(to_type, fn);
+        }
+
+        RAINY_NODISCARD converter_fn find(const core::typeinfo &to_type) const {
+            auto *found = const_cast<converter_table_t &>(table_).find(to_type);
+            return found ? *found : nullptr;
+        }
+
+    private:
+        using converter_table_t = hash_map<core::typeinfo, converter_fn, std::hash<core::typeinfo>>;
+
+        converter_table_t table_;
+    };
+
+    dynamic_converter_registry &dynamic_converter_registry::instance() {
+        static dynamic_converter_registry instance;
+        static impl impl_instance;
+        instance.global_ptr = &impl_instance;
+        return instance;
+    }
+
+    void dynamic_converter_registry::register_converter(const core::typeinfo &to_type, const converter_fn fn) {
+        global_ptr->register_converter(to_type, fn);
+    }
+
+    converter_fn dynamic_converter_registry::find(const core::typeinfo &to_type) const {
+        return global_ptr->find(to_type);
     }
 
 }

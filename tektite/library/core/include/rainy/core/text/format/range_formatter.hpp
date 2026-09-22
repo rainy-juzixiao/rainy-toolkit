@@ -59,6 +59,13 @@ namespace rainy::core::text::implements {
 }
 
 namespace rainy::core::text {
+    template <typename Ty, typename CharType>
+    RAINY_CONSTEXPR_BOOL
+        is_formattable_v<Ty, CharType, type_traits::other_trans::enable_if_t<implements::is_formattable_range_v<Ty, CharType>>> =
+            is_formattable_v<type_traits::modifers::remove_cvref_t<implements::range_value_t<Ty>>, CharType>;
+}
+
+namespace rainy::core::text {
     /**
      * \lang english
      * @brief Formatter that formats a range of elements with separators and optional brackets.

@@ -2993,7 +2993,7 @@ namespace rainy::type_traits::extras::meta_method {
      */
     template <typename Ty>
     RAINY_CONSTEXPR_BOOL has_insert_for_key_and_value_v<
-        Ty, other_trans::void_t<decltype(utility::declval<Ty &>().insert(utility::declval<typename Ty::const_iterator>(),
+        Ty, other_trans::void_t<decltype(utility::declval<Ty &>().insert(utility::declval<typename Ty::key_type>(),
                                                                          utility::declval<typename Ty::value_type>()))>> = true;
 
     /**

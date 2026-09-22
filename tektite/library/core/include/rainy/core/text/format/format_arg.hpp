@@ -629,6 +629,8 @@ namespace rainy::core::text {
 
         template <typename Ty>
         static void format_impl(basic_format_parse_context<char_type> &parse_ctx, Context &format_ctx, const void *ptr) {
+            static_assert(Context::template is_formattable<type_traits::modifers::remove_cvref_t<Ty>>,
+                          "formatter must be specialized for this type");
             typename Context::template formatter_type<type_traits::modifers::remove_cvref_t<Ty>> f;
             parse_ctx.advance_to(f.parse(parse_ctx));
             format_ctx.advance_to(f.format(*static_cast<const Ty *>(ptr), format_ctx));

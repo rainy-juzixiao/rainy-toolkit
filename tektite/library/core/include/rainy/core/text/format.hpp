@@ -76,6 +76,7 @@ namespace rainy::core::text::implements {
             } else {
                 // 使用对应类型的 formatter
                 using Context = basic_format_context<OutputIt, CharType>;
+                static_assert(Context::template is_formattable<type>, "formatter must be specialized for this type");
                 typename Context::template formatter_type<type> f;
                 // 解析格式规范
                 parse_ctx.advance_to(f.parse(parse_ctx));
@@ -402,7 +403,7 @@ namespace rainy::core::text {
      */
     template <typename... Args>
     wstring format(wstring_view fmt, const Args &...args) {
-        auto arg_store = text::make_format_args(args...);
+        auto arg_store = text::make_format_args<wformat_context>(args...);
         return vformat(fmt, basic_format_args(arg_store));
     }
 

@@ -18,8 +18,8 @@
 
 // NOLINTBEGIN
 #include <rainy/core/platform.hpp>
-#include <rainy/core/text/fwd.hpp>
 #include <rainy/core/text/char_traits.hpp>
+#include <rainy/core/text/fwd.hpp>
 #include <rainy/core/type_traits.hpp>
 // NOLINTEND
 
@@ -235,10 +235,6 @@ namespace rainy::core::text {
         constexpr basic_string_view(const_pointer begin, const_pointer end) noexcept : data_(begin), size_(end - begin) {
         }
 
-        template <typename R, type_traits::other_trans::enable_if_t<
-                                  type_traits::extras::meta_method::has_data_v<type_traits::modifers::remove_cvref_t<R>> &&
-                                      type_traits::extras::meta_method::has_size_v<type_traits::modifers::remove_cvref_t<R>>,
-                                  int> = 0>
         /**
          * \lang english
          * @brief Constructs a string view from any contiguous range that provides data() and size().
@@ -252,17 +248,15 @@ namespace rainy::core::text {
          * @tparam R 连续范围类型
          * @param right 源范围
          */
+        template <typename R,
+                  type_traits::other_trans::enable_if_t<
+                      type_traits::extras::meta_method::has_data_v<type_traits::modifers::remove_cvref_t<R>> &&
+                          type_traits::extras::meta_method::has_size_v<type_traits::modifers::remove_cvref_t<R>> &&
+                          type_traits::type_relations::is_convertible_v<decltype(utility::declval<const R &>().data()), const_pointer>,
+                      int> = 0>
         constexpr basic_string_view(const R &right) : data_(right.data()), size_(right.size()) {
         }
 
-        template <
-            typename It, typename End,
-            type_traits::other_trans::enable_if_t<
-                type_traits::extras::iterators::is_contiguous_iterator_v<It> && type_traits::extras::iterators::is_iterator_v<End> &&
-                    type_traits::type_relations::is_same_v<type_traits::extras::iterators::iter_value_t<It>, value_type> &&
-                    !type_traits::type_relations::is_convertible_v<It, size_type> &&
-                    !type_traits::type_relations::is_convertible_v<End, size_type>,
-                int> = 0>
         /**
          * \lang english
          * @brief Constructs a string view from a pair of contiguous iterators.
@@ -280,6 +274,14 @@ namespace rainy::core::text {
          * @param begin 指向首字符的迭代器
          * @param end 指向末字符之后位置的迭代器
          */
+        template <
+            typename It, typename End,
+            type_traits::other_trans::enable_if_t<
+                type_traits::extras::iterators::is_contiguous_iterator_v<It> && type_traits::extras::iterators::is_iterator_v<End> &&
+                    type_traits::type_relations::is_same_v<type_traits::extras::iterators::iter_value_t<It>, value_type> &&
+                    !type_traits::type_relations::is_convertible_v<It, size_type> &&
+                    !type_traits::type_relations::is_convertible_v<End, size_type>,
+                int> = 0>
         constexpr basic_string_view(It begin, End end) noexcept :
             data_{begin}, size_{static_cast<size_type>(utility::distance(begin, end))} {
         }
@@ -2101,9 +2103,9 @@ namespace rainy::core::text {
 namespace rainy::text {
     using core::text::basic_string_view;
     using core::text::string_view;
-    using core::text::wstring_view;
     using core::text::u16string_view;
     using core::text::u32string_view;
+    using core::text::wstring_view;
 #if RAINY_HAS_CXX20
     using core::text::u8string_view;
 #endif

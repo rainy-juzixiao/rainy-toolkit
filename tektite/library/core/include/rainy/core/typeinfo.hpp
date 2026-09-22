@@ -739,7 +739,7 @@ namespace rainy::core::implements {
         -> bool { // NOLINT
         using match_t = rainy::type_traits::modifers::remove_cvref_t<Type>;
         using real_convert_type = type_traits::other_trans::conditional_t<type_traits::composite_types::is_reference_v<Type>, Type,
-                                                                          type_traits::modifers::add_lvalue_reference<Type>>;
+                                                                          type_traits::modifers::add_lvalue_reference_t<Type>>;
         if constexpr (type_traits::primary_types::is_void_v<rainy::type_traits::modifers::remove_cvref_t<Type>>) {
             return false;
         } else if constexpr (type_traits::primary_types::is_null_pointer_v<match_t>) {

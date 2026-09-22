@@ -17,6 +17,7 @@
 #define RAINY_CORE_ALGORITHM_HEAP_HPP
 
 #include <rainy/core/algorithm/basic_algorithm.hpp>
+#include <rainy/core/algorithm/modifying.hpp>
 
 namespace rainy::core::algorithm::implements {
     template <typename RandomIt, typename Comp>
