@@ -39,6 +39,63 @@ namespace rainy::core::text::implements {
     }
 
     template <typename Floating>
+    inline constexpr int exact_pow10_limit() noexcept {
+        constexpr int digits = std::numeric_limits<Floating>::digits;
+        constexpr std::uint64_t pow2_digits = digits >= 64 ? (std::numeric_limits<std::uint64_t>::max)()
+                                                          : (std::uint64_t(1) << digits);
+        int limit = 0;
+        std::uint64_t power_of_five = 1;
+        while (power_of_five <= (std::numeric_limits<std::uint64_t>::max)() / 5) {
+            const std::uint64_t next_power_of_five = power_of_five * 5;
+            if (next_power_of_five >= pow2_digits) {
+                break;
+            }
+            power_of_five = next_power_of_five;
+            ++limit;
+        }
+        return limit;
+    }
+
+    template <typename Floating>
+    inline constexpr std::uint64_t exact_significand_limit() noexcept {
+        constexpr int digits = std::numeric_limits<Floating>::digits;
+        return digits >= 64 ? (std::numeric_limits<std::uint64_t>::max)() : ((std::uint64_t(1) << digits) - 1);
+    }
+
+    template <typename Floating>
+    Floating refine_by_shortest_roundtrip(const char *begin, const char *end, Floating candidate) noexcept {
+        const auto matches = [begin, end](const Floating value) {
+            char buffer[64];
+            const auto result = text::to_chars(buffer, buffer + sizeof(buffer), value);
+            if (result.ec != std::errc{} || result.ptr - buffer != end - begin) {
+                return false;
+            }
+            for (const char *cursor = buffer, *input = begin; cursor != result.ptr; ++cursor, ++input) {
+                if (*cursor != *input) {
+                    return false;
+                }
+            }
+            return true;
+        };
+        if (matches(candidate)) {
+            return candidate;
+        }
+        constexpr int max_probes = 4;
+        for (int direction = 0; direction < 2; ++direction) {
+            const Floating bound = direction == 0 ? -std::numeric_limits<Floating>::infinity()
+                                                  : std::numeric_limits<Floating>::infinity();
+            Floating probe = candidate;
+            for (int i = 0; i < max_probes; ++i) {
+                probe = std::nextafter(probe, bound);
+                if (matches(probe)) {
+                    return probe;
+                }
+            }
+        }
+        return candidate;
+    }
+
+    template <typename Floating>
     inline Floating power_of_2(int exp) noexcept {
         if (exp == 0) {
             return static_cast<Floating>(1.0);
@@ -182,13 +239,26 @@ namespace rainy::core::text::implements {
             return {next, std::errc{}};
         }
         // 十进制格式处理
+        std::uint64_t significand = 0;
+        bool significand_overflow = false;
+        const auto append_significand = [&](const int digit) {
+            if (significand_overflow) {
+                return;
+            }
+            if (significand > ((std::numeric_limits<std::uint64_t>::max)() - static_cast<std::uint64_t>(digit)) / 10) {
+                significand_overflow = true;
+                return;
+            }
+            significand = significand * 10 + static_cast<std::uint64_t>(digit);
+        };
         while (next < end && *next >= '0' && *next <= '9') {
             int digit = *next - '0';
             integer_part = integer_part * static_cast<Floating>(10.0) + static_cast<Floating>(digit);
+            append_significand(digit);
             has_digits = true;
             ++next;
         }
-        // 解析小数点和小数部分（fixed 和 general 允许，scientific 也允许）
+        // 解析小数点和小数部分
         if (next < end && *next == '.') {
             has_dot = true;
             ++next;
@@ -196,6 +266,7 @@ namespace rainy::core::text::implements {
             while (next < end && *next >= '0' && *next <= '9') {
                 int digit = *next - '0';
                 fractional_part = fractional_part * static_cast<Floating>(10.0) + static_cast<Floating>(digit);
+                append_significand(digit);
                 fraction_digits++;
                 has_digits = true;
                 ++next;
@@ -204,13 +275,8 @@ namespace rainy::core::text::implements {
         if (!has_digits) {
             return {begin, std::errc::invalid_argument};
         }
-        // 合并整数部分和小数部分
-        Floating result = integer_part;
-        if (fraction_digits > 0) {
-            Floating divisor = power_of_10<Floating>(fraction_digits);
-            result += fractional_part / divisor;
-        }
         // 解析指数部分
+        int exp_value = 0;
         if (next < end && (*next == 'e' || *next == 'E') && fmt != chars_format::fixed) {
             has_exponent = true;
             ++next;
@@ -226,7 +292,6 @@ namespace rainy::core::text::implements {
                 return {begin, std::errc::invalid_argument};
             }
 
-            int exp_value = 0;
             while (next < end && *next >= '0' && *next <= '9') {
                 int digit = *next - '0';
                 if (exp_value > (INT_MAX - digit) / 10) {
@@ -239,18 +304,44 @@ namespace rainy::core::text::implements {
             if (exp_negative) {
                 exp_value = -exp_value;
             }
-            if (exp_value != 0) {
-                result *= static_cast<Floating>(std::pow(10.0, static_cast<double>(exp_value)));
-                if (!is_finite(result)) {
-                    return {next, std::errc::result_out_of_range};
-                }
-            }
         }
         // scientific 格式必须有指数
         if (fmt == chars_format::scientific && !has_exponent) {
             return {begin, std::errc::invalid_argument};
         }
-        value = minus_sign ? -result : result;
+        const int total_exponent = exp_value - fraction_digits;
+        if (!significand_overflow && significand <= exact_significand_limit<Floating>() &&
+            total_exponent >= -exact_pow10_limit<Floating>() && total_exponent <= exact_pow10_limit<Floating>()) {
+            const Floating scale = power_of_10<Floating>(total_exponent >= 0 ? total_exponent : -total_exponent);
+            const Floating mantissa = static_cast<Floating>(significand);
+            const Floating fast_result = total_exponent >= 0 ? mantissa * scale : mantissa / scale;
+            value = minus_sign ? -fast_result : fast_result;
+            return {next, std::errc{}};
+        }
+        Floating result = integer_part;
+        if (fraction_digits > 0) {
+            Floating divisor = power_of_10<Floating>(fraction_digits);
+            result += fractional_part / divisor;
+        }
+        if (exp_value != 0) {
+            const Floating power = static_cast<Floating>(std::pow(10.0, static_cast<double>(exp_value)));
+            if (exp_value < 0 && power == static_cast<Floating>(0.0) && result != static_cast<Floating>(0.0)) {
+                int remaining = exp_value;
+                while (remaining <= -20) {
+                    result *= power_of_10<Floating>(-20);
+                    remaining += 20;
+                }
+                if (remaining != 0) {
+                    result *= static_cast<Floating>(std::pow(10.0, static_cast<double>(remaining)));
+                }
+            } else {
+                result *= power;
+            }
+            if (!is_finite(result)) {
+                return {next, std::errc::result_out_of_range};
+            }
+        }
+        value = refine_by_shortest_roundtrip(begin, next, minus_sign ? -result : result);
         return {next, std::errc{}};
     }
 

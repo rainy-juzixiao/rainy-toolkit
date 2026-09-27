@@ -18,10 +18,12 @@
 #include <catch2/generators/catch_generators.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <cmath>
+#include <cstdint>
 #include <cstring>
 #include <limits>
 #include <rainy/core/text/string_view.hpp>
 #include <rainy/core/text/charconv.hpp>
+#include <random>
 #include <string>
 
 // NOLINTBEGIN(cpp-core-guidelines-do-while)
@@ -31,6 +33,13 @@ using namespace rainy::core::text;
 
 using Catch::Matchers::WithinAbs;
 using Catch::Matchers::WithinRel;
+
+namespace {
+    template <typename Ty>
+    bool same_bits(const Ty left, const Ty right) {
+        return std::memcmp(&left, &right, sizeof(Ty)) == 0;
+    }
+}
 
 TEST_CASE("Integer to_chars - All signed types boundaries", "[to_chars][integer][extreme]") {
     char buffer[256];
@@ -1188,6 +1197,7 @@ TEST_CASE("Float from_chars - Extreme magnitudes", "[from_chars][float][magnitud
             float val = 0.0f;
             auto r = from_chars(begin(fl_denorm), end(fl_denorm), val);
             REQUIRE(r.ec == std::errc{});
+            REQUIRE(same_bits(val, std::numeric_limits<float>::denorm_min()));
         }
 
         SECTION("Underflow to zero") {
@@ -1218,6 +1228,7 @@ TEST_CASE("Float from_chars - Extreme magnitudes", "[from_chars][float][magnitud
             double val = 0.0;
             auto r = from_chars(begin(db_denorm), end(db_denorm), val);
             REQUIRE(r.ec == std::errc{});
+            REQUIRE(same_bits(val, std::numeric_limits<double>::denorm_min()));
         }
     }
 }
@@ -1604,7 +1615,7 @@ TEST_CASE("Stress test - Random values", "[stress][random]") {
     }
 
     SECTION("Testing many random floats") {
-        SECTION("1000 random floats round-trip approximately") {
+        SECTION("1000 random floats round-trip bit-exactly") {
             std::srand(42);
             for (int i = 0; i < 1000; ++i) {
                 float orig = (float) std::rand() / RAND_MAX * 1000.0f;
@@ -1617,7 +1628,7 @@ TEST_CASE("Stress test - Random values", "[stress][random]") {
                 float parsed = 0.0f;
                 auto r2 = from_chars(buffer, r1.ptr, parsed);
                 REQUIRE(r2.ec == std::errc{});
-                REQUIRE_THAT(parsed, WithinRel(orig, 0.01f));
+                REQUIRE(same_bits(parsed, orig));
             }
         }
     }
@@ -1665,6 +1676,305 @@ TEST_CASE("Behavior characteristics", "[behavior]") {
             if (r.ptr < buffer + sizeof(buffer)) {
                 REQUIRE(*r.ptr == 'X');
             }
+        }
+    }
+}
+
+TEST_CASE("Float to_chars - Shortest representation sample table", "[to_chars][float][samples]") {
+    char buffer[256];
+
+    SECTION("double shortest strings") {
+        struct sample {
+            double value;
+            const char *text;
+        };
+        static constexpr sample samples[] = {
+            {0.0, "0"},
+            {-0.0, "-0"},
+            {2.0, "2"},
+            {-7.0, "-7"},
+            {1.5, "1.5"},
+            {0.1, "0.1"},
+            {3.141592653589793, "3.141592653589793"},
+            {0.3333333333333333, "0.3333333333333333"},
+            {1e6, "1e+06"},
+            {1e9, "1e+09"},
+            {1e-6, "1e-06"},
+            {1e-7, "1e-07"},
+            {1e21, "1e+21"},
+            {1e23, "1e+23"},
+            {-1.5e-8, "-1.5e-08"},
+            {123456789.12345679, "123456789.12345679"},
+            {1234567890123456768.0, "1234567890123456768"},
+            {(std::numeric_limits<double>::max)(), "1.7976931348623157e+308"},
+            {std::numeric_limits<double>::denorm_min(), "5e-324"},
+        };
+        for (const auto &item: samples) {
+            auto r = to_chars(buffer, buffer + sizeof(buffer), item.value);
+            REQUIRE(r.ec == std::errc{});
+            REQUIRE(std::string(buffer, r.ptr) == item.text);
+        }
+    }
+
+    SECTION("float shortest strings") {
+        struct sample {
+            float value;
+            const char *text;
+        };
+        static constexpr sample samples[] = {
+            {0.0f, "0"},
+            {-0.0f, "-0"},
+            {2.0f, "2"},
+            {1.5f, "1.5"},
+            {0.1f, "0.1"},
+            {3.1415926f, "3.1415925"}, // 该 float 的最短往返表示是 3.1415925
+            {1e9f, "1e+09"},
+            {1e-6f, "1e-06"},
+            {(std::numeric_limits<float>::max)(), "3.4028235e+38"},
+            {std::numeric_limits<float>::denorm_min(), "1e-45"},
+        };
+        for (const auto &item: samples) {
+            auto r = to_chars(buffer, buffer + sizeof(buffer), item.value);
+            REQUIRE(r.ec == std::errc{});
+            REQUIRE(std::string(buffer, r.ptr) == item.text);
+        }
+    }
+}
+
+TEST_CASE("Float from_chars - Correct rounding sample table", "[from_chars][float][accuracy]") {
+    SECTION("double samples parse bit-exactly") {
+        struct sample {
+            const char *text;
+            double expected;
+        };
+        static constexpr sample samples[] = {
+            {"0", 0.0},
+            {"-0.0", -0.0},
+            {"2.5", 2.5},
+            {"0.000001", 1e-6},
+            {"1e-06", 1e-6},
+            {"1e-07", 1e-7},
+            {"1e-15", 1e-15},
+            {"1e-300", 1e-300},
+            {"1e-308", 1e-308},
+            {"1e+308", 1e308},
+            {"1e+09", 1e9},
+            {"1e+21", 1e21},
+            {"1e+23", 1e23},
+            {"5e-324", std::numeric_limits<double>::denorm_min()},
+            {"2.5e-324", std::numeric_limits<double>::denorm_min()},
+            {"4.9406564584124654e-324", std::numeric_limits<double>::denorm_min()},
+            {"1e-320", 1e-320},
+            {"0.1", 0.1},
+            {"0.3333333333333333", 0.3333333333333333},
+            {"123456789.12345679", 123456789.12345679},
+            {"3.141592653589793", 3.141592653589793},
+            {"-1.5e-08", -1.5e-8},
+            {"1.5e-08", 1.5e-8},
+            {"1.0512728143832832e+133", 1.0512728143832832e133},
+            {"-3.7895594801439177e-75", -3.7895594801439177e-75},
+            {"-7.079852379779643e-217", -7.079852379779643e-217},
+            {"2.350509871056267e+198", 2.350509871056267e198},
+            {"1234567890123456768", 1234567890123456768.0},
+            {"1.7976931348623157e+308", (std::numeric_limits<double>::max)()},
+        };
+        for (const auto &item: samples) {
+            const std::size_t length = std::strlen(item.text);
+            double parsed = 0.0;
+            auto r = from_chars(item.text, item.text + length, parsed);
+            REQUIRE(r.ec == std::errc{});
+            REQUIRE(r.ptr == item.text + length);
+            REQUIRE(same_bits(parsed, item.expected));
+        }
+    }
+
+    SECTION("float samples parse bit-exactly") {
+        struct sample {
+            const char *text;
+            float expected;
+        };
+        static constexpr sample samples[] = {
+            {"1.5", 1.5f},
+            {"0.1", 0.1f},
+            {"3.1415926", 3.1415926f},
+            {"1e+09", 1e9f},
+            {"1e-45", std::numeric_limits<float>::denorm_min()},
+            {"2.5e-08", 2.5e-8f},
+            {"-1.5e-08", -1.5e-8f},
+            {"3.4028235e+38", (std::numeric_limits<float>::max)()},
+        };
+        for (const auto &item: samples) {
+            const std::size_t length = std::strlen(item.text);
+            float parsed = 0.0f;
+            auto r = from_chars(item.text, item.text + length, parsed);
+            REQUIRE(r.ec == std::errc{});
+            REQUIRE(r.ptr == item.text + length);
+            REQUIRE(same_bits(parsed, item.expected));
+        }
+    }
+
+    SECTION("range limit handling") {
+        SECTION("double overflow") {
+            const char text[] = "1e400";
+            double parsed = 0.0;
+            auto r = from_chars(text, text + 5, parsed);
+            if (r.ec == std::errc{}) {
+                REQUIRE(std::isinf(parsed));
+            } else {
+                REQUIRE(r.ec == std::errc::result_out_of_range);
+            }
+        }
+
+        SECTION("double underflow flushes to zero") {
+            const char text[] = "1e-400";
+            double parsed = 1.0;
+            auto r = from_chars(text, text + 6, parsed);
+            REQUIRE(r.ec == std::errc{});
+            REQUIRE(parsed == 0.0);
+        }
+    }
+}
+
+TEST_CASE("Round-trip conversion - Float shortest round-trip is bit-exact", "[roundtrip][float][bitexact]") {
+    char buffer[256];
+
+    const auto roundtrip_double = [&buffer](const double orig) {
+        auto r1 = to_chars(buffer, buffer + sizeof(buffer), orig);
+        REQUIRE(r1.ec == std::errc{});
+        double parsed = 0.0;
+        auto r2 = from_chars(buffer, r1.ptr, parsed);
+        REQUIRE(r2.ec == std::errc{});
+        REQUIRE(r2.ptr == r1.ptr);
+        REQUIRE(same_bits(parsed, orig));
+    };
+
+    const auto roundtrip_float = [&buffer](const float orig) {
+        auto r1 = to_chars(buffer, buffer + sizeof(buffer), orig);
+        REQUIRE(r1.ec == std::errc{});
+        float parsed = 0.0f;
+        auto r2 = from_chars(buffer, r1.ptr, parsed);
+        REQUIRE(r2.ec == std::errc{});
+        REQUIRE(r2.ptr == r1.ptr);
+        REQUIRE(same_bits(parsed, orig));
+    };
+
+    SECTION("fixed sample values (double)") {
+        static constexpr double samples[] = {
+            0.0,
+            -0.0,
+            1.0,
+            -1.0,
+            0.1,
+            0.5,
+            2.5,
+            0.3333333333333333,
+            3.141592653589793,
+            2.718281828459045,
+            1e-300,
+            1e300,
+            1e23,
+            1e-23,
+            -1.5e-8,
+            1.5e8,
+            0.000001,
+            123456789.12345679,
+            1234567890123456768.0,
+            1.0512728143832832e133,
+            -3.7895594801439177e-75,
+            (std::numeric_limits<double>::max)(),
+            (std::numeric_limits<double>::lowest)(),
+            (std::numeric_limits<double>::min)(),
+            std::numeric_limits<double>::denorm_min(),
+            -std::numeric_limits<double>::denorm_min(),
+            std::numeric_limits<double>::epsilon(),
+        };
+        for (const double value: samples) {
+            roundtrip_double(value);
+        }
+    }
+
+    SECTION("fixed sample values (float)") {
+        static constexpr float samples[] = {
+            0.0f,   -0.0f,   1.0f,      -1.0f,      0.1f,          1.5f,
+            3.1415926f, 1e9f, 1e-6f,     1e-45f,     (std::numeric_limits<float>::max)(),
+            (std::numeric_limits<float>::lowest)(), (std::numeric_limits<float>::min)(),
+            std::numeric_limits<float>::denorm_min(), std::numeric_limits<float>::epsilon(),
+        };
+        for (const float value: samples) {
+            roundtrip_float(value);
+        }
+    }
+
+    SECTION("power of ten sweep (double)") {
+        double value = 1.0;
+        for (int exponent = 0; exponent > -330; --exponent) {
+            if (value == 0.0) {
+                break;
+            }
+            roundtrip_double(value);
+            roundtrip_double(-value);
+            value /= 10.0;
+        }
+        value = 1.0;
+        for (int exponent = 0; exponent < 309; ++exponent) {
+            if (!std::isfinite(value)) {
+                break;
+            }
+            roundtrip_double(value);
+            roundtrip_double(-value);
+            value *= 10.0;
+        }
+    }
+
+    SECTION("subnormal sweep (double)") {
+        for (std::uint64_t bits = 1; bits < 4096; ++bits) {
+            double value = 0.0;
+            std::memcpy(&value, &bits, sizeof(value));
+            roundtrip_double(value);
+        }
+        const std::uint64_t high_subnormals[] = {
+            (std::uint64_t{1} << 51) - 1, std::uint64_t{1} << 51, (std::uint64_t{1} << 51) + 12345,
+            (std::uint64_t{1} << 52) - 1,
+        };
+        for (const std::uint64_t bits: high_subnormals) {
+            double value = 0.0;
+            std::memcpy(&value, &bits, sizeof(value));
+            roundtrip_double(value);
+        }
+    }
+
+    SECTION("deterministic random bit patterns (double)") {
+        std::mt19937_64 engine(0x5EEDu);
+        int produced = 0;
+        while (produced < 2000) {
+            const std::uint64_t bits = engine();
+            double value = 0.0;
+            std::memcpy(&value, &bits, sizeof(value));
+            if (!std::isfinite(value)) {
+                continue;
+            }
+            roundtrip_double(value);
+            ++produced;
+        }
+    }
+
+    SECTION("deterministic random bit patterns (float)") {
+        std::mt19937 engine(0xC0FFEEu);
+        int produced = 0;
+        while (produced < 2000) {
+            const std::uint32_t bits = engine();
+            float value = 0.0f;
+            std::memcpy(&value, &bits, sizeof(value));
+            if (!std::isfinite(value)) {
+                continue;
+            }
+            roundtrip_float(value);
+            ++produced;
+        }
+        for (std::uint32_t bits = 1; bits < 4096; ++bits) {
+            float value = 0.0f;
+            std::memcpy(&value, &bits, sizeof(value));
+            roundtrip_float(value);
         }
     }
 }
