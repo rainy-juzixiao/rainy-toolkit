@@ -379,7 +379,8 @@ namespace rainy::utility {
      * @param cont 容器对象
      * @return 指向第一个元素的迭代器
      */
-    template <typename Container>
+    template <typename Container, type_traits::other_trans::enable_if_t<
+                                      type_traits::extras::meta_method::try_to_invoke_begin<Container>::value, int> = 0>
     RAINY_NODISCARD constexpr rain_fn begin(Container &cont) noexcept(
         noexcept(type_traits::extras::meta_method::try_to_invoke_begin<Container>::invoke(cont)))
         -> decltype(type_traits::extras::meta_method::try_to_invoke_begin<Container>::invoke(cont)) {
@@ -401,7 +402,9 @@ namespace rainy::utility {
      * @param cont 常量容器对象
      * @return 指向第一个元素的常量迭代器
      */
-    template <typename Container>
+    template <typename Container,
+              type_traits::other_trans::enable_if_t<type_traits::extras::meta_method::try_to_invoke_begin<const Container>::value,
+                                                    int> = 0>
     RAINY_NODISCARD constexpr rain_fn begin(const Container &cont) noexcept(
         noexcept(type_traits::extras::meta_method::try_to_invoke_begin<const Container>::invoke(cont)))
         -> decltype(type_traits::extras::meta_method::try_to_invoke_begin<const Container>::invoke(cont)) {
@@ -445,7 +448,8 @@ namespace rainy::utility {
      * @param cont 容器对象
      * @return 指向最后一个元素之后位置的迭代器
      */
-    template <typename Container>
+    template <typename Container, type_traits::other_trans::enable_if_t<
+                                      type_traits::extras::meta_method::try_to_invoke_end<Container>::value, int> = 0>
     RAINY_NODISCARD constexpr rain_fn end(Container &cont) noexcept(
         noexcept(type_traits::extras::meta_method::try_to_invoke_end<Container>::invoke(cont)))
         -> decltype(type_traits::extras::meta_method::try_to_invoke_end<Container>::invoke(cont)) {
@@ -467,7 +471,9 @@ namespace rainy::utility {
      * @param cont 常量容器对象
      * @return 指向最后一个元素之后位置的常量迭代器
      */
-    template <typename Container>
+    template <typename Container,
+              type_traits::other_trans::enable_if_t<type_traits::extras::meta_method::try_to_invoke_end<const Container>::value,
+                                                    int> = 0>
     RAINY_NODISCARD constexpr rain_fn end(const Container &cont) noexcept(
         noexcept(type_traits::extras::meta_method::try_to_invoke_end<const Container>::invoke(cont)))
         -> decltype(type_traits::extras::meta_method::try_to_invoke_end<const Container>::invoke(cont)) {
