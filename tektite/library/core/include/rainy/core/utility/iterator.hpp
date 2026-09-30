@@ -2080,7 +2080,7 @@ namespace rainy::utility {
          * @note 适用类型：仅非 const 的底层迭代器。
          * @return 映射值的可变引用。
          */
-        template <typename Iter = Iterator, typename = type_traits::other_trans::enable_if_t<!std::is_const_v<
+        template <typename Iter = Iterator, typename = type_traits::other_trans::enable_if_t<!type_traits::properties::is_const_v<
                                                 type_traits::modifers::remove_reference_t<typename type_traits::extras::iterators::iterator_traits<Iter>::reference>>>>
         typename base::reference get_element_impl() noexcept {
             return current_->second;
@@ -2099,7 +2099,7 @@ namespace rainy::utility {
          * @note 适用类型：仅非 const 的底层迭代器。
          * @return 映射值的可变指针。
          */
-        template <typename Iter = Iterator, typename = type_traits::other_trans::enable_if_t<!std::is_const_v<
+        template <typename Iter = Iterator, typename = type_traits::other_trans::enable_if_t<!type_traits::properties::is_const_v<
                                                 type_traits::modifers::remove_reference_t<typename type_traits::extras::iterators::iterator_traits<Iter>::reference>>>>
         typename base::pointer get_pointer_impl() noexcept {
             return utility::addressof(current_->second);
@@ -3111,11 +3111,11 @@ namespace rainy::utility {
         explicit map_mapped_iterator_impl(Iterator it);
         map_mapped_iterator_impl() = default;
 
-        template <typename Iter = Iterator, typename = type_traits::other_trans::enable_if_t<!std::is_const_v<
+        template <typename Iter = Iterator, typename = type_traits::other_trans::enable_if_t<!type_traits::properties::is_const_v<
                                                 type_traits::modifers::remove_reference_t<typename type_traits::extras::iterators::iterator_traits<Iter>::reference>>>>
         typename base::reference get_element_impl() noexcept;
 
-        template <typename Iter = Iterator, typename = type_traits::other_trans::enable_if_t<!std::is_const_v<
+        template <typename Iter = Iterator, typename = type_traits::other_trans::enable_if_t<!type_traits::properties::is_const_v<
                                                 type_traits::modifers::remove_reference_t<typename type_traits::extras::iterators::iterator_traits<Iter>::reference>>>>
         typename base::pointer get_pointer_impl() noexcept;
 
