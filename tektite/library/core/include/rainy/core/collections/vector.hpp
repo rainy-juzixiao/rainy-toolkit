@@ -504,21 +504,20 @@ namespace rainy::core::collections {
                 return *this;
             }
             auto &allocator = get_al();
-            auto &object = vec_object();
-            if constexpr (!type_traits::properties::is_trivially_destructible_v<value_type>) {
-                for (pointer p = object.start; p != object.finish; ++p) {
-                    core::memory::allocator_traits<allocator_type>::destroy(allocator, p);
+            if constexpr (core::memory::allocator_traits<allocator_type>::propagate_on_container_move_assignment::value) {
+                release_storage(allocator);
+                allocator = utility::move(right.get_al());
+                steal_storage(right);
+            } else if (allocator == right.get_al()) {
+                release_storage(allocator);
+                steal_storage(right);
+            } else {
+                clear_and_release();
+                reserve(right.size());
+                for (auto &elem: right) {
+                    emplace_back(utility::move(elem));
                 }
             }
-            if (object.start) {
-                core::memory::allocator_traits<allocator_type>::deallocate(
-                    allocator, object.start, static_cast<size_type>(object.end_of_storage - object.start));
-            }
-            if constexpr (core::memory::allocator_traits<allocator_type>::propagate_on_container_move_assignment::value) {
-                allocator = utility::move(right.get_al());
-            }
-            object = right.vec_object();
-            right.vec_object() = {};
             return *this;
         }
 
@@ -2071,6 +2070,29 @@ namespace rainy::core::collections {
             Ty *finish{};
             Ty *end_of_storage{};
         };
+
+        void release_storage(allocator_type &allocator) noexcept {
+            auto &object = vec_object();
+            if constexpr (!type_traits::properties::is_trivially_destructible_v<value_type>) {
+                for (pointer p = object.start; p != object.finish; ++p) {
+                    core::memory::allocator_traits<allocator_type>::destroy(allocator, p);
+                }
+            }
+            if (object.start) {
+                core::memory::allocator_traits<allocator_type>::deallocate(
+                    allocator, object.start, static_cast<size_type>(object.end_of_storage - object.start));
+            }
+            object = {};
+        }
+
+        void clear_and_release() noexcept {
+            release_storage(get_al());
+        }
+
+        void steal_storage(vector &right) noexcept {
+            vec_object() = right.vec_object();
+            right.vec_object() = {};
+        }
 
         constexpr impl &vec_object() noexcept {
             return pair.second;
