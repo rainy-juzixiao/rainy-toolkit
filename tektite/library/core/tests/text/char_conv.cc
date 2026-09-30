@@ -1,5 +1,5 @@
 /*
-* Copyright 2026 rainy-juzixiao
+ * Copyright 2026 rainy-juzixiao
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,8 +21,8 @@
 #include <cstdint>
 #include <cstring>
 #include <limits>
-#include <rainy/core/text/string_view.hpp>
 #include <rainy/core/text/charconv.hpp>
+#include <rainy/core/text/string_view.hpp>
 #include <random>
 #include <string>
 
@@ -254,9 +254,7 @@ TEST_CASE("Integer to_chars - Buffer boundary tests", "[to_chars][integer][buffe
 }
 
 TEST_CASE("Integer from_chars - All signed types boundaries", "[from_chars][integer][extreme]") {
-    using utility::begin;
-    using utility::end;
-
+    using std::string_view;
     constexpr string_view sc_max = "127";
     constexpr string_view sc_min = "-128";
     constexpr string_view sc_ovf = "128";
@@ -456,8 +454,7 @@ TEST_CASE("Integer from_chars - All signed types boundaries", "[from_chars][inte
 }
 
 TEST_CASE("Integer from_chars - All bases exhaustive", "[from_chars][integer][bases]") {
-    using utility::begin;
-    using utility::end;
+    using std::string_view;
 
     constexpr string_view zero = "0";
     constexpr string_view one = "1";
@@ -605,8 +602,7 @@ TEST_CASE("Integer from_chars - All bases exhaustive", "[from_chars][integer][ba
 }
 
 TEST_CASE("Integer from_chars - Invalid input coverage", "[from_chars][integer][invalid]") {
-    using utility::begin;
-    using utility::end;
+    using std::string_view;
 
     constexpr string_view empty = "";
     constexpr string_view ws3 = "   ";
@@ -712,8 +708,8 @@ TEST_CASE("Integer from_chars - Invalid input coverage", "[from_chars][integer][
 }
 
 TEST_CASE("Integer from_chars - Overflow detection exhaustive", "[from_chars][integer][overflow]") {
-    using utility::begin;
-    using utility::end;
+    using std::string_view;
+
 
     constexpr string_view sc_1000 = "1000";
     constexpr string_view sc_neg1000 = "-1000";
@@ -1046,8 +1042,8 @@ TEST_CASE("Float to_chars - Precision edge cases", "[to_chars][float][precision]
 }
 
 TEST_CASE("Float from_chars - All special value strings", "[from_chars][float][special]") {
-    using utility::begin;
-    using utility::end;
+    using std::string_view;
+
 
     constexpr string_view inf_lc = "inf";
     constexpr string_view inf_cap = "Inf";
@@ -1150,8 +1146,8 @@ TEST_CASE("Float from_chars - All special value strings", "[from_chars][float][s
 }
 
 TEST_CASE("Float from_chars - Extreme magnitudes", "[from_chars][float][magnitude]") {
-    using utility::begin;
-    using utility::end;
+    using std::string_view;
+
 
     constexpr string_view fl_max = "3.4e38";
     constexpr string_view fl_ovf_bound = "3.5e38";
@@ -1234,8 +1230,8 @@ TEST_CASE("Float from_chars - Extreme magnitudes", "[from_chars][float][magnitud
 }
 
 TEST_CASE("Float from_chars - All format strings", "[from_chars][float][formats]") {
-    using utility::begin;
-    using utility::end;
+    using std::string_view;
+
 
     constexpr string_view sci_e_lc = "1.5e10";
     constexpr string_view sci_E_uc = "1.5E10";
@@ -1252,9 +1248,10 @@ TEST_CASE("Float from_chars - All format strings", "[from_chars][float][formats]
 
     constexpr string_view hex_lc_prefix = "0x1.8p3";
     constexpr string_view hex_uc_prefix = "0X1.8P3";
-    constexpr string_view hex_digits_lc = "0x1.abcp3";
-    constexpr string_view hex_digits_uc = "0x1.ABCp3";
-    constexpr string_view hex_neg = "-0x1.8p3";
+    constexpr string_view hex_plain = "1.8p3";
+    constexpr string_view hex_digits_lc = "1.abcp3";
+    constexpr string_view hex_digits_uc = "1.ABCp3";
+    constexpr string_view hex_neg = "-1.8p3";
 
     SECTION("Parsing scientific notation variants") {
         SECTION("Lowercase e") {
@@ -1335,43 +1332,90 @@ TEST_CASE("Float from_chars - All format strings", "[from_chars][float][formats]
     }
 
     SECTION("Parsing hexadecimal float") {
-        SECTION("0x prefix lowercase") {
-            float val = 0.0f;
+        SECTION("0x prefix is not consumed") {
+            float val = 99.0f;
             auto r = from_chars(begin(hex_lc_prefix), end(hex_lc_prefix), val, chars_format::hex);
             REQUIRE(r.ec == std::errc{});
-            REQUIRE_THAT(val, WithinRel(12.0f, 0.001f));
+            REQUIRE(r.ptr == begin(hex_lc_prefix) + 1);
+            REQUIRE(val == 0.0f);
         }
 
         SECTION("0X prefix uppercase") {
             float val = 0.0f;
             auto r = from_chars(begin(hex_uc_prefix), end(hex_uc_prefix), val, chars_format::hex);
             REQUIRE(r.ec == std::errc{});
+            REQUIRE(r.ptr == begin(hex_uc_prefix) + 1);
+            REQUIRE(val == 0.0f);
+        }
+
+        SECTION("hex digits with p exponent") {
+            float val = 0.0f;
+            auto r = from_chars(begin(hex_plain), end(hex_plain), val, chars_format::hex);
+            REQUIRE(r.ec == std::errc{});
+            REQUIRE(r.ptr == begin(hex_plain) + 5);
+            REQUIRE_THAT(val, WithinRel(12.0f, 0.001f));
         }
 
         SECTION("Hex digits A-F lowercase") {
             float val = 0.0f;
             auto r = from_chars(begin(hex_digits_lc), end(hex_digits_lc), val, chars_format::hex);
             REQUIRE(r.ec == std::errc{});
+            REQUIRE_THAT(val, WithinRel(13.3671875f, 0.001f));
         }
 
         SECTION("Hex digits A-F uppercase") {
             float val = 0.0f;
             auto r = from_chars(begin(hex_digits_uc), end(hex_digits_uc), val, chars_format::hex);
             REQUIRE(r.ec == std::errc{});
+            REQUIRE_THAT(val, WithinRel(13.3671875f, 0.001f));
         }
 
         SECTION("Negative hex float") {
             float val = 0.0f;
             auto r = from_chars(begin(hex_neg), end(hex_neg), val, chars_format::hex);
             REQUIRE(r.ec == std::errc{});
+            REQUIRE(r.ptr == begin(hex_neg) + 6);
             REQUIRE(val < 0);
+            REQUIRE_THAT(val, WithinRel(-12.0f, 0.001f));
         }
+
+        SECTION("Truncated p exponent is not part of the pattern") {
+            constexpr string_view text = "1.8p";
+            float val = 0.0f;
+            auto r = from_chars(begin(text), end(text), val, chars_format::hex);
+            REQUIRE(r.ec == std::errc{});
+            REQUIRE(r.ptr == begin(text) + 3);
+            REQUIRE_THAT(val, WithinRel(1.5f, 0.001f));
+        }
+    }
+
+    SECTION("Truncated decimal exponent is not part of the pattern") {
+        const char one_e[] = "1e";
+        double value = 0.0;
+        auto r = from_chars(one_e, one_e + 2, value);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(r.ptr == one_e + 1);
+        REQUIRE(value == 1.0);
+
+        const char one_e_plus[] = "1e+";
+        value = 0.0;
+        r = from_chars(one_e_plus, one_e_plus + 3, value);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(r.ptr == one_e_plus + 1);
+        REQUIRE(value == 1.0);
+
+        const char one_point_five_e[] = "1.5e";
+        value = 0.0;
+        r = from_chars(one_point_five_e, one_point_five_e + 4, value);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(r.ptr == one_point_five_e + 3);
+        REQUIRE(value == 1.5);
     }
 }
 
 TEST_CASE("Float from_chars - Invalid input exhaustive", "[from_chars][float][invalid]") {
-    using utility::begin;
-    using utility::end;
+    using std::string_view;
+
 
     constexpr string_view empty = "";
     constexpr string_view ws3 = "   ";
@@ -1600,8 +1644,9 @@ TEST_CASE("Stress test - Random values", "[stress][random]") {
             std::srand(42);
             for (int i = 0; i < 1000; ++i) {
                 int orig = std::rand();
-                if (std::rand() % 2)
+                if (std::rand() % 2) {
                     orig = -orig;
+                }
 
                 auto r1 = to_chars(buffer, buffer + sizeof(buffer), orig);
                 REQUIRE(r1.ec == std::errc{});
@@ -1619,8 +1664,9 @@ TEST_CASE("Stress test - Random values", "[stress][random]") {
             std::srand(42);
             for (int i = 0; i < 1000; ++i) {
                 float orig = (float) std::rand() / RAND_MAX * 1000.0f;
-                if (std::rand() % 2)
+                if (std::rand() % 2) {
                     orig = -orig;
+                }
 
                 auto r1 = to_chars(buffer, buffer + sizeof(buffer), orig);
                 REQUIRE(r1.ec == std::errc{});
@@ -1818,19 +1864,29 @@ TEST_CASE("Float from_chars - Correct rounding sample table", "[from_chars][floa
             const char text[] = "1e400";
             double parsed = 0.0;
             auto r = from_chars(text, text + 5, parsed);
-            if (r.ec == std::errc{}) {
-                REQUIRE(std::isinf(parsed));
-            } else {
-                REQUIRE(r.ec == std::errc::result_out_of_range);
-            }
+            REQUIRE(r.ec == std::errc::result_out_of_range);
+            REQUIRE(r.ptr == text + 5);
+            REQUIRE(std::isinf(parsed));
+            REQUIRE(parsed > 0);
         }
 
         SECTION("double underflow flushes to zero") {
             const char text[] = "1e-400";
             double parsed = 1.0;
             auto r = from_chars(text, text + 6, parsed);
-            REQUIRE(r.ec == std::errc{});
+            REQUIRE(r.ec == std::errc::result_out_of_range);
+            REQUIRE(r.ptr == text + 6);
             REQUIRE(parsed == 0.0);
+        }
+
+        SECTION("negative double underflow flushes to signed zero") {
+            const char text[] = "-1e-400";
+            double parsed = 1.0;
+            auto r = from_chars(text, text + 7, parsed);
+            REQUIRE(r.ec == std::errc::result_out_of_range);
+            REQUIRE(r.ptr == text + 7);
+            REQUIRE(parsed == 0.0);
+            REQUIRE(std::signbit(parsed));
         }
     }
 }
@@ -1895,10 +1951,21 @@ TEST_CASE("Round-trip conversion - Float shortest round-trip is bit-exact", "[ro
 
     SECTION("fixed sample values (float)") {
         static constexpr float samples[] = {
-            0.0f,   -0.0f,   1.0f,      -1.0f,      0.1f,          1.5f,
-            3.1415926f, 1e9f, 1e-6f,     1e-45f,     (std::numeric_limits<float>::max)(),
-            (std::numeric_limits<float>::lowest)(), (std::numeric_limits<float>::min)(),
-            std::numeric_limits<float>::denorm_min(), std::numeric_limits<float>::epsilon(),
+            0.0f,
+            -0.0f,
+            1.0f,
+            -1.0f,
+            0.1f,
+            1.5f,
+            3.1415926f,
+            1e9f,
+            1e-6f,
+            1e-45f,
+            (std::numeric_limits<float>::max)(),
+            (std::numeric_limits<float>::lowest)(),
+            (std::numeric_limits<float>::min)(),
+            std::numeric_limits<float>::denorm_min(),
+            std::numeric_limits<float>::epsilon(),
         };
         for (const float value: samples) {
             roundtrip_float(value);
@@ -1933,7 +2000,9 @@ TEST_CASE("Round-trip conversion - Float shortest round-trip is bit-exact", "[ro
             roundtrip_double(value);
         }
         const std::uint64_t high_subnormals[] = {
-            (std::uint64_t{1} << 51) - 1, std::uint64_t{1} << 51, (std::uint64_t{1} << 51) + 12345,
+            (std::uint64_t{1} << 51) - 1,
+            std::uint64_t{1} << 51,
+            (std::uint64_t{1} << 51) + 12345,
             (std::uint64_t{1} << 52) - 1,
         };
         for (const std::uint64_t bits: high_subnormals) {
