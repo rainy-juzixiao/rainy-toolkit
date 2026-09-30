@@ -3575,7 +3575,10 @@ namespace rainy::utility {
      * @param val 要转换的花哨指针
      * @return 从 pointer_traits 或 operator-> 获取的原始地址
      */
-    template <typename Pointer>
+    template <typename Pointer, type_traits::other_trans::enable_if_t<
+                                    implements::has_to_address<Pointer> ||
+                                        type_traits::extras::meta_method::has_operator_arrow_v<Pointer>,
+                                    int> = 0>
     RAINY_NODISCARD constexpr rain_fn to_address(const Pointer &val) noexcept -> auto {
         if constexpr (implements::has_to_address<Pointer>) {
             return pointer_traits<Pointer>::to_address(val);
