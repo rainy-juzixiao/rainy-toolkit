@@ -297,6 +297,53 @@ namespace rainy::foundation::collections::implements {
             }
         }
 
+        unordered_set(std::allocator_arg_t, const allocator_type &alloc) :
+            elements_(alloc), buckets_(), size_(0), max_load_factor_(default_max_load_factor_), hash_(), equal_() {
+            init_buckets(default_bucket_count_);
+        }
+
+        unordered_set(std::allocator_arg_t, const allocator_type &alloc, const size_type bucket_count,
+                      const hasher &hash = hasher(), const key_equal &equal = key_equal()) :
+            elements_(alloc), buckets_(), size_(0), max_load_factor_(default_max_load_factor_), hash_(hash), equal_(equal) {
+            init_buckets(bucket_count);
+        }
+
+        unordered_set(std::allocator_arg_t, const allocator_type &alloc, const unordered_set &other) :
+            elements_(other.elements_, alloc), buckets_(), size_(0), max_load_factor_(other.max_load_factor_),
+            hash_(other.hash_), equal_(other.equal_) {
+            init_buckets(other.buckets_.size());
+            for (auto it = elements_.begin(); it != elements_.end(); ++it) {
+                size_type bucket_idx = get_bucket_index(*it);
+                buckets_[bucket_idx].push_back(it);
+                ++size_;
+            }
+        }
+
+        unordered_set(std::allocator_arg_t, const allocator_type &alloc, unordered_set &&other) :
+            elements_(utility::move(other.elements_), alloc), buckets_(), size_(0), max_load_factor_(other.max_load_factor_),
+            hash_(other.hash_), equal_(other.equal_) {
+            init_buckets(other.buckets_.size());
+            for (auto it = elements_.begin(); it != elements_.end(); ++it) {
+                size_type bucket_idx = get_bucket_index(*it);
+                buckets_[bucket_idx].push_back(it);
+                ++size_;
+            }
+            if (other.elements_.empty()) {
+                other.clear();
+            }
+        }
+
+        unordered_set(std::allocator_arg_t, const allocator_type &alloc, std::initializer_list<value_type> init,
+                      size_type bucket_count = default_bucket_count_, const hasher &hash = hasher(),
+                      const key_equal &equal = key_equal()) :
+            elements_(alloc), buckets_(), size_(0), max_load_factor_(default_max_load_factor_), hash_(hash), equal_(equal) {
+            size_type actual_count = bucket_count > init.size() ? bucket_count : init.size();
+            init_buckets(actual_count);
+            for (const auto &item : init) {
+                insert(item);
+            }
+        }
+
         ~unordered_set() = default;
 
         unordered_set &operator=(const unordered_set &other) {
@@ -671,7 +718,7 @@ namespace rainy::foundation::collections::implements {
             }
             core::collections::vector<bucket_type> new_buckets(new_bucket_count);
             for (auto it = elements_.begin(); it != elements_.end(); ++it) {
-                size_type bucket_idx = hash_(*it) % new_bucket_count;
+                size_type bucket_idx = hash_(*it) & (new_bucket_count - 1);
                 new_buckets[bucket_idx].push_back(it);
             }
             buckets_ = utility::move(new_buckets);
@@ -762,12 +809,12 @@ namespace rainy::foundation::collections::implements {
         static constexpr float default_max_load_factor_ = 1.0f;
 
         size_type get_bucket_index(const key_type &key) const {
-            return hash_(key) % buckets_.size();
+            return hash_(key) & (buckets_.size() - 1);
         }
 
         template <typename K>
         size_type get_bucket_index(const K &key) const {
-            return hash_(key) % buckets_.size();
+            return hash_(key) & (buckets_.size() - 1);
         }
 
         size_type next_power_of_two(size_type n) const {
@@ -999,6 +1046,16 @@ namespace rainy::foundation::collections {
 namespace rainy::collections {
     using foundation::collections::unordered_set;
     using foundation::collections::unordered_multiset;
+}
+
+namespace std { // NOLINT
+    template <typename Key, typename Hash, typename KeyEqual, typename Allocator, typename Alloc>
+    struct uses_allocator<rainy::foundation::collections::unordered_set<Key, Hash, KeyEqual, Allocator>, Alloc> :
+        rainy::type_traits::helper::true_type {}; // NOLINT
+
+    template <typename Key, typename Hash, typename KeyEqual, typename Allocator, typename Alloc>
+    struct uses_allocator<rainy::foundation::collections::unordered_multiset<Key, Hash, KeyEqual, Allocator>, Alloc> :
+        rainy::type_traits::helper::true_type {}; // NOLINT
 }
 
 #endif
