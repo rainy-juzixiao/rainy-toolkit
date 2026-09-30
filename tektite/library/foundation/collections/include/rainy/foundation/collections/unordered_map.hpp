@@ -235,6 +235,13 @@ namespace rainy::foundation::collections::implements {
         list_node_type node_;
     };
 
+    template <typename Iterator, typename NodeType>
+    struct unordered_map_insert_return_type {
+        Iterator position;
+        bool inserted;
+        NodeType node;
+    };
+
     template <bool Multi, typename Key, typename Mapped, typename Hash, typename KeyEqual, typename Allocator>
     class unordered_map {
     public:
@@ -264,11 +271,7 @@ namespace rainy::foundation::collections::implements {
         using const_local_iterator = unordered_map_local_iterator<true, const_list_iterator>;
 
         using node_type = unordered_map_node_handle<Key, Mapped, Allocator>;
-        using insert_return_type = struct {
-            iterator position;
-            bool inserted;
-            node_type node;
-        };
+        using insert_return_type = unordered_map_insert_return_type<iterator, node_type>;
 
         unordered_map() noexcept : elements_(), buckets_(), size_(0), max_load_factor_(default_max_load_factor_), hash_(), equal_() {
             init_buckets(default_bucket_count_);
@@ -302,6 +305,56 @@ namespace rainy::foundation::collections::implements {
         unordered_map(std::initializer_list<value_type> init, size_type bucket_count = default_bucket_count_,
                       const hasher &hash = hasher(), const key_equal &equal = key_equal(),
                       const allocator_type &alloc = allocator_type()) :
+            elements_(alloc), buckets_(), size_(0), max_load_factor_(default_max_load_factor_), hash_(hash), equal_(equal) {
+            size_type actual_count = bucket_count > init.size() ? bucket_count : init.size();
+            init_buckets(actual_count);
+
+            for (const auto &item: init) {
+                insert(item);
+            }
+        }
+
+        unordered_map(std::allocator_arg_t, const allocator_type &alloc) :
+            elements_(alloc), buckets_(), size_(0), max_load_factor_(default_max_load_factor_), hash_(), equal_() {
+            init_buckets(default_bucket_count_);
+        }
+
+        unordered_map(std::allocator_arg_t, const allocator_type &alloc, const size_type bucket_count,
+                      const hasher &hash = hasher(), const key_equal &equal = key_equal()) :
+            elements_(alloc), buckets_(), size_(0), max_load_factor_(default_max_load_factor_), hash_(hash), equal_(equal) {
+            init_buckets(bucket_count);
+        }
+
+        unordered_map(std::allocator_arg_t, const allocator_type &alloc, const unordered_map &other) :
+            elements_(other.elements_, alloc), buckets_(), size_(0), max_load_factor_(other.max_load_factor_),
+            hash_(other.hash_), equal_(other.equal_) {
+            init_buckets(other.buckets_.size());
+            // 重建bucket索引
+            for (auto it = elements_.begin(); it != elements_.end(); ++it) {
+                size_type bucket_idx = get_bucket_index(it->first);
+                buckets_[bucket_idx].push_back(it);
+                ++size_;
+            }
+        }
+
+        unordered_map(std::allocator_arg_t, const allocator_type &alloc, unordered_map &&other) :
+            elements_(utility::move(other.elements_), alloc), buckets_(), size_(0), max_load_factor_(other.max_load_factor_),
+            hash_(other.hash_), equal_(other.equal_) {
+            init_buckets(other.buckets_.size());
+            for (auto it = elements_.begin(); it != elements_.end(); ++it) {
+                size_type bucket_idx = get_bucket_index(it->first);
+                buckets_[bucket_idx].push_back(it);
+                ++size_;
+            }
+            // 分配器不相等时list移动构造实际为拷贝，此时other仍持有元素；相等时元素已被取走，清理其残留的bucket索引
+            if (other.elements_.empty()) {
+                other.clear();
+            }
+        }
+
+        unordered_map(std::allocator_arg_t, const allocator_type &alloc, std::initializer_list<value_type> init,
+                      size_type bucket_count = default_bucket_count_, const hasher &hash = hasher(),
+                      const key_equal &equal = key_equal()) :
             elements_(alloc), buckets_(), size_(0), max_load_factor_(default_max_load_factor_), hash_(hash), equal_(equal) {
             size_type actual_count = bucket_count > init.size() ? bucket_count : init.size();
             init_buckets(actual_count);
@@ -704,7 +757,7 @@ namespace rainy::foundation::collections::implements {
             }
             core::collections::vector<bucket_type> new_buckets(new_bucket_count);
             for (auto it = elements_.begin(); it != elements_.end(); ++it) {
-                size_type bucket_idx = hash_(it->first) % new_bucket_count;
+                size_type bucket_idx = hash_(it->first) & (new_bucket_count - 1);
                 new_buckets[bucket_idx].push_back(it);
             }
             buckets_ = utility::move(new_buckets);
@@ -796,12 +849,12 @@ namespace rainy::foundation::collections::implements {
         static constexpr float default_max_load_factor_ = 1.0f;
 
         size_type get_bucket_index(const key_type &key) const {
-            return hash_(key) % buckets_.size();
+            return hash_(key) & (buckets_.size() - 1);
         }
 
         template <typename K>
         size_type get_bucket_index(const K &key) const {
-            return hash_(key) % buckets_.size();
+            return hash_(key) & (buckets_.size() - 1);
         }
 
         size_type next_power_of_two(size_type n) const {
@@ -1127,6 +1180,16 @@ namespace rainy::foundation::collections {
 namespace rainy::collections {
     using foundation::collections::unordered_map;
     using foundation::collections::unordered_multimap;
+}
+
+namespace std { // NOLINT
+    template <typename Key, typename Mapped, typename Hash, typename KeyEqual, typename Allocator, typename Alloc>
+    struct uses_allocator<rainy::foundation::collections::unordered_map<Key, Mapped, Hash, KeyEqual, Allocator>, Alloc> :
+        rainy::type_traits::helper::true_type {}; // NOLINT
+
+    template <typename Key, typename Mapped, typename Hash, typename KeyEqual, typename Allocator, typename Alloc>
+    struct uses_allocator<rainy::foundation::collections::unordered_multimap<Key, Mapped, Hash, KeyEqual, Allocator>, Alloc> :
+        rainy::type_traits::helper::true_type {}; // NOLINT
 }
 
 #endif

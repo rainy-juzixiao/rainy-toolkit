@@ -52,7 +52,7 @@ namespace rainy::foundation::collections {
             }
         };
 
-        using node_allocator_type = typename core::memory::allocator<node>;
+        using node_allocator_type = typename core::memory::allocator_traits<Allocator>::template rebind_alloc<node>;
         using node_allocator_traits = core::memory::allocator_traits<node_allocator_type>;
 
         using value_type = Ty;
@@ -209,6 +209,29 @@ namespace rainy::foundation::collections {
             for (const auto &item: ilist) {
                 push_back(item);
             }
+        }
+
+        list(std::allocator_arg_t, const allocator_type &alloc) : list(alloc) {
+        }
+
+        list(std::allocator_arg_t, const allocator_type &alloc, size_type count) : list(count, alloc) {
+        }
+
+        list(std::allocator_arg_t, const allocator_type &alloc, size_type count, const Ty &value) : list(count, value, alloc) {
+        }
+
+        template <typename InputIter,
+                  type_traits::other_trans::enable_if_t<type_traits::extras::iterators::is_iterator_v<InputIter>, int> = 0>
+        list(std::allocator_arg_t, const allocator_type &alloc, InputIter first, InputIter last) : list(first, last, alloc) {
+        }
+
+        list(std::allocator_arg_t, const allocator_type &alloc, const list &right) : list(right, alloc) {
+        }
+
+        list(std::allocator_arg_t, const allocator_type &alloc, list &&right) : list(utility::move(right), alloc) {
+        }
+
+        list(std::allocator_arg_t, const allocator_type &alloc, std::initializer_list<value_type> ilist) : list(ilist, alloc) {
         }
 
         ~list() {
@@ -853,6 +876,12 @@ namespace rainy::foundation::collections {
 
 namespace rainy::collections {
     using foundation::collections::list;
+}
+
+namespace std { // NOLINT
+    template <typename Ty, typename Allocator, typename Alloc>
+    struct uses_allocator<rainy::foundation::collections::list<Ty, Allocator>, Alloc> :
+        rainy::type_traits::helper::true_type {}; // NOLINT
 }
 
 #if RAINY_USING_MSVC
