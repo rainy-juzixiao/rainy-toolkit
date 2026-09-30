@@ -221,7 +221,7 @@ namespace rainy::core::exceptions {
     };
 
     template <typename Except>
-    constexpr void throw_exception(const Except &exception) {
+    RAINY_NORETURN constexpr void throw_exception(const Except &exception) {
         static_assert(type_traits::type_relations::is_base_of_v<std::exception, Except>,
                       "exception type must be derived from std::exception!");
 #if __cpp_exceptions
@@ -430,18 +430,18 @@ namespace rainy::core::exceptions {
     }
 }
 
-    /**
-     * \lang english
-     * @brief Defines an exception class deriving from the given base class.
-     *
-     *  The generated class provides a constructor taking an optional message
-     *  (defaulting to default_message) and a source location.
-     *
-     * \lang simp-chinese
-     * @brief 定义派生自给定基类的异常类。
-     *
-     *  生成的类提供接受可选消息（默认为default_message）和源码位置的构造函数。
-     */
+/**
+ * \lang english
+ * @brief Defines an exception class deriving from the given base class.
+ *
+ *  The generated class provides a constructor taking an optional message
+ *  (defaulting to default_message) and a source location.
+ *
+ * \lang simp-chinese
+ * @brief 定义派生自给定基类的异常类。
+ *
+ *  生成的类提供接受可选消息（默认为default_message）和源码位置的构造函数。
+ */
 #define RAINY_DEFINE_EXCEPTION(class_name, base_class, default_message)                                                               \
     class class_name : public base_class {                                                                                            \
     public:                                                                                                                           \
@@ -452,18 +452,18 @@ namespace rainy::core::exceptions {
     }
 
 
-    /**
-     * \lang english
-     * @brief Defines a non-final exception class deriving from the given base class.
-     *
-     *  Identical to RAINY_DEFINE_EXCEPTION except that the generated class is
-     *  not marked final and may be used as a base class.
-     *
-     * \lang simp-chinese
-     * @brief 定义派生自给定基类的非final异常类。
-     *
-     *  与RAINY_DEFINE_EXCEPTION相同，但生成的类未标记为final，可被用作基类。
-     */
+/**
+ * \lang english
+ * @brief Defines a non-final exception class deriving from the given base class.
+ *
+ *  Identical to RAINY_DEFINE_EXCEPTION except that the generated class is
+ *  not marked final and may be used as a base class.
+ *
+ * \lang simp-chinese
+ * @brief 定义派生自给定基类的非final异常类。
+ *
+ *  与RAINY_DEFINE_EXCEPTION相同，但生成的类未标记为final，可被用作基类。
+ */
 #define RAINY_DEFINE_EXCEPTION_NONFINAL(class_name, base_class, default_message)                                                      \
     class class_name : public base_class {                                                                                            \
     public:                                                                                                                           \
@@ -482,8 +482,9 @@ namespace rainy::core::exceptions {
             base(message, location) {                                                                                                 \
         }                                                                                                                             \
     };                                                                                                                                \
-    RAINY_INLINE rain_fn throw_func(const char *message = default_message,                                                            \
-                                    const utility::source_location &location = utility::source_location::current()) -> void {         \
+    RAINY_NORETURN RAINY_INLINE rain_fn throw_func(const char *message = default_message,                                             \
+                                                   const utility::source_location &location = utility::source_location::current())    \
+        -> void {                                                                                                                     \
         throw_exception(class_name{message, location});                                                                               \
     }
 
@@ -589,8 +590,9 @@ namespace rainy::core::exceptions::runtime {
      * @param message 异常描述，默认为"runtime error"。
      * @param location 抛出异常处的源码位置。
      */
-    inline auto throw_runtime_error(const char *message = "runtime error",
-                                    const utility::source_location &location = utility::source_location::current()) -> void {
+    RAINY_NORETURN inline auto throw_runtime_error(const char *message = "runtime error",
+                                                   const utility::source_location &location = utility::source_location::current())
+        -> void {
         throw_exception(runtime_error{message, location});
     }
 
@@ -1048,9 +1050,8 @@ namespace rainy::core::exceptions::runtime {
      * @param ec 错误码。
      * @param location 抛出异常处的源码位置。
      */
-    inline rain_fn throw_system_error_code(const std::error_code ec,
-                                           const diagnostics::source_location &location = diagnostics::source_location::current())
-        -> void {
+    RAINY_NORETURN inline rain_fn throw_system_error_code(
+        const std::error_code ec, const diagnostics::source_location &location = diagnostics::source_location::current()) -> void {
         throw system_error{ec, location};
     }
 
@@ -1067,9 +1068,9 @@ namespace rainy::core::exceptions::runtime {
      * @param ecat 错误类别。
      * @param location 抛出异常处的源码位置。
      */
-    inline rain_fn throw_system_error_code(int ev, const std::error_category &ecat,
-                                           const diagnostics::source_location &location = diagnostics::source_location::current())
-        -> void {
+    RAINY_NORETURN inline rain_fn throw_system_error_code(
+        int ev, const std::error_category &ecat,
+        const diagnostics::source_location &location = diagnostics::source_location::current()) -> void {
         throw system_error{ev, ecat, location};
     }
 }
