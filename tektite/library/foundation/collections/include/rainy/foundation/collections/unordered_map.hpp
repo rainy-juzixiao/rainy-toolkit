@@ -121,29 +121,31 @@ namespace rainy::foundation::collections::implements {
         return left.it != right.it;
     }
 
-    template <bool IsConst, typename ListIterator>
+    template <bool IsConst, typename ListIterator, typename BucketType>
     class unordered_map_local_iterator {
     public:
         using iterator_category = std::forward_iterator_tag;
         using value_type = typename ListIterator::value_type;
         using difference_type = std::ptrdiff_t;
-        using pointer = typename std::conditional<IsConst, typename value_type::const_pointer, typename value_type::pointer>::type;
+        using pointer = typename std::conditional<IsConst, const value_type *, value_type *>::type;
         using reference = typename std::conditional<IsConst, const value_type &, value_type &>::type;
 
     private:
-        ListIterator current_;
-        ListIterator end_;
+        using entry_iterator = typename std::conditional<IsConst, typename BucketType::const_iterator,
+                                                         typename BucketType::iterator>::type;
+        entry_iterator current_{};
+        entry_iterator end_{};
 
     public:
         unordered_map_local_iterator() = default;
-        unordered_map_local_iterator(ListIterator current, ListIterator end) : current_(current), end_(end) {
+        unordered_map_local_iterator(entry_iterator current, entry_iterator end) : current_(current), end_(end) {
         }
 
         reference operator*() const {
-            return *current_;
+            return **current_;
         }
         pointer operator->() const {
-            return &(*current_);
+            return &(**current_);
         }
 
         unordered_map_local_iterator &operator++() {
@@ -168,7 +170,7 @@ namespace rainy::foundation::collections::implements {
         }
 
         template <bool B = IsConst, typename = type_traits::other_trans::enable_if_t<B>>
-        unordered_map_local_iterator(const unordered_map_local_iterator<false, ListIterator> &other) :
+        unordered_map_local_iterator(const unordered_map_local_iterator<false, ListIterator, BucketType> &other) :
             current_(other.current_), end_(other.end_) { // NOLINT
         }
     };
@@ -267,8 +269,8 @@ namespace rainy::foundation::collections::implements {
 
         using iterator = unordered_map_iterator<list_iterator>;
         using const_iterator = unordered_map_iterator<const_list_iterator>;
-        using local_iterator = unordered_map_local_iterator<false, list_iterator>;
-        using const_local_iterator = unordered_map_local_iterator<true, const_list_iterator>;
+        using local_iterator = unordered_map_local_iterator<false, list_iterator, bucket_type>;
+        using const_local_iterator = unordered_map_local_iterator<true, const_list_iterator, bucket_type>;
 
         using node_type = unordered_map_node_handle<Key, Mapped, Allocator>;
         using insert_return_type = unordered_map_insert_return_type<iterator, node_type>;
@@ -374,18 +376,38 @@ namespace rainy::foundation::collections::implements {
             return *this;
         }
 
-        unordered_map &operator=(unordered_map &&other) noexcept {
-            if (this != &other) {
-                elements_ = utility::move(other.elements_);
-                buckets_ = utility::move(other.buckets_);
-                size_ = other.size_;
-                max_load_factor_ = other.max_load_factor_;
-                hash_ = utility::move(other.hash_);
-                equal_ = utility::move(other.equal_);
-
-                other.size_ = 0;
+        unordered_map &operator=(unordered_map &&other) noexcept(
+            core::memory::allocator_traits<allocator_type>::is_always_equal::value) {
+            if (this == &other) {
+                return *this;
+            }
+            if constexpr (core::memory::allocator_traits<allocator_type>::is_always_equal::value) {
+                assign_by_steal(other);
+            } else if (get_allocator() == other.get_allocator()) {
+                assign_by_steal(other);
+            } else {
+                clear();
+                reserve(other.size());
+                for (const auto &item: other) {
+                    if constexpr (Multi) {
+                        this->insert_multi(item.first, utility::move(item.second));
+                    } else {
+                        this->insert_unique(item.first, utility::move(item.second));
+                    }
+                }
+                other.clear();
             }
             return *this;
+        }
+
+        void assign_by_steal(unordered_map &other) noexcept {
+            elements_ = utility::move(other.elements_);
+            buckets_ = utility::move(other.buckets_);
+            size_ = other.size_;
+            max_load_factor_ = other.max_load_factor_;
+            hash_ = utility::move(other.hash_);
+            equal_ = utility::move(other.equal_);
+            other.size_ = 0;
         }
 
         unordered_map &operator=(std::initializer_list<value_type> init) {
@@ -684,18 +706,12 @@ namespace rainy::foundation::collections::implements {
 
         local_iterator begin(size_type n) {
             assert(n < bucket_count());
-            if (buckets_[n].empty()) {
-                return local_iterator(elements_.end(), elements_.end());
-            }
-            return local_iterator(buckets_[n].front(), elements_.end());
+            return local_iterator(buckets_[n].begin(), buckets_[n].end());
         }
 
         const_local_iterator begin(size_type n) const {
             assert(n < bucket_count());
-            if (buckets_[n].empty()) {
-                return const_local_iterator(elements_.end(), elements_.end());
-            }
-            return const_local_iterator(buckets_[n].front(), elements_.end());
+            return const_local_iterator(buckets_[n].begin(), buckets_[n].end());
         }
 
         const_local_iterator cbegin(size_type n) const {
@@ -704,12 +720,12 @@ namespace rainy::foundation::collections::implements {
 
         local_iterator end(size_type n) {
             assert(n < bucket_count());
-            return local_iterator(elements_.end(), elements_.end());
+            return local_iterator(buckets_[n].end(), buckets_[n].end());
         }
 
         const_local_iterator end(size_type n) const {
             assert(n < bucket_count());
-            return const_local_iterator(elements_.end(), elements_.end());
+            return const_local_iterator(buckets_[n].end(), buckets_[n].end());
         }
 
         const_local_iterator cend(size_type n) const {
@@ -898,6 +914,14 @@ namespace rainy::foundation::collections::implements {
             return elements_.end();
         }
 
+        container::pair<iterator, bool> insert_unique(const value_type &value) {
+            return insert_unique_keyed(value.first, value);
+        }
+
+        container::pair<iterator, bool> insert_unique(value_type &&value) {
+            return insert_unique_keyed(value.first, utility::move(value));
+        }
+
         template <typename... Args>
         container::pair<iterator, bool> insert_unique(Args &&...args) {
             if (static_cast<float>(size_ + 1) > static_cast<float>(buckets_.size()) * max_load_factor_) {
@@ -905,8 +929,29 @@ namespace rainy::foundation::collections::implements {
             }
             elements_.emplace_back(utility::forward<Args>(args)...);
             auto new_iter = std::prev(elements_.end());
+            return insert_unique_keyed_existing(new_iter);
+        }
+
+        template <typename... Args>
+        container::pair<iterator, bool> insert_unique_keyed(const key_type &key, Args &&...args) {
+            if (static_cast<float>(size_ + 1) > static_cast<float>(buckets_.size()) * max_load_factor_) {
+                rehash(buckets_.size() * 2);
+            }
+            const size_type bucket_idx = get_bucket_index(key);
+            auto existing = find_in_bucket(bucket_idx, key);
+            if (existing != elements_.end()) {
+                return container::make_pair(iterator(existing), false);
+            }
+            elements_.emplace_back(utility::forward<Args>(args)...);
+            auto new_iter = std::prev(elements_.end());
+            buckets_[bucket_idx].emplace_back(new_iter);
+            ++size_;
+            return container::make_pair(iterator{new_iter}, true);
+        }
+
+        container::pair<iterator, bool> insert_unique_keyed_existing(list_iterator new_iter) {
             const key_type &key = new_iter->first;
-            size_type bucket_idx = get_bucket_index(key);
+            const size_type bucket_idx = get_bucket_index(key);
             auto existing = find_in_bucket(bucket_idx, key);
             if (existing != elements_.end()) {
                 // 键已存在，删除新插入的元素并返回现有元素的迭代器
