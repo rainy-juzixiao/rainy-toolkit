@@ -1108,6 +1108,7 @@ namespace rainy::core::builtin {
      * 即使源和目标内存区域重叠也能正确处理。
      */
     RAINY_INLINE rain_fn move_memory(void *dest, std::size_t dest_size, const void *src, std::size_t src_count) -> void * {
+        (void) dest_size;
         return std::memmove(dest, src, src_count);
     }
 
@@ -1229,7 +1230,7 @@ namespace rainy::core::builtin {
      * 但不超过 `count` 字节。
      */
     RAINY_INLINE rain_fn fill_memory(void *dest, std::size_t count, const void *src, std::size_t src_count) -> void * {
-        return std::memcpy(dest, src, (std::min)(count, src_count));
+        return std::memcpy(dest, src, (std::min) (count, src_count));
     }
 
     /**
