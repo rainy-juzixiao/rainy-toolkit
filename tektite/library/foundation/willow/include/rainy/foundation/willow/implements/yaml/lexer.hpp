@@ -899,6 +899,30 @@ namespace rainy::foundation::willow::yaml::implements {
             return is_yaml_space(next) || is_line_terminator(next) || next == char_traits::eof();
         }
 
+        bool next_is_key_separator() {
+            if (current == char_traits::eof() || char_traits::to_char_type(current) != char_type(':')) {
+                return false;
+            }
+            if (in_flow()) {
+                return true;
+            }
+            if constexpr (contiguous_adapter) {
+                if (has_pushback_) {
+                    return true;
+                }
+                const char_type *scan = buffer_begin() + buffer_position();
+                const char_type *const last = buffer_end();
+                if (scan == last) {
+                    return true;
+                }
+                const auto after = char_traits::to_int_type(*scan);
+                return is_yaml_space(after) || is_line_terminator(after);
+            } else {
+                const auto next = peek_next();
+                return is_yaml_space(next) || is_line_terminator(next);
+            }
+        }
+
         void trim_trailing_spaces() {
             while (!string_buffer_.empty() && (string_buffer_.back() == ' ' || string_buffer_.back() == '\t')) {
                 string_buffer_.pop_back();
