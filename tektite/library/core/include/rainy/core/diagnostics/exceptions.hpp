@@ -124,7 +124,7 @@ namespace rainy::core::exceptions {
      *  派生自std::exception，并增加了源码位置信息，
      *  从而可以报告异常被抛出时的位置。
      */
-    class RAINY_TOOLKIT_API exception : public std::exception {
+    class exception : public std::exception {
     public:
         using base = std::exception;
         using source = diagnostics::source_location;
@@ -140,7 +140,10 @@ namespace rainy::core::exceptions {
          * @param message 异常描述。
          * @param location 抛出异常处的源码位置。
          */
-        explicit exception(const char *message, const source &location = source::current());
+        RAINY_CONSTEXPR26 explicit exception(const char *message, const source &location = source::current()) : base() {
+            build_message(message, location);
+        }
+
         /**
          * \lang english
          * @brief Returns the exception description.
@@ -150,7 +153,10 @@ namespace rainy::core::exceptions {
          * @brief 返回异常描述。
          * @return 异常消息文本。
          */
-        RAINY_NODISCARD const char *what() const noexcept override;
+        RAINY_NODISCARD RAINY_CONSTEXPR26 const char *what() const noexcept override {
+            return msg.c_str();
+        }
+
         /**
          * \lang english
          * @brief Copy constructor.
@@ -158,7 +164,9 @@ namespace rainy::core::exceptions {
          * \lang simp-chinese
          * @brief 拷贝构造函数。
          */
-        exception(const exception &other);
+        RAINY_CONSTEXPR26 exception(const exception &other) : base(other), msg(other.msg) {
+        }
+
         /**
          * \lang english
          * @brief Move constructor.
@@ -166,7 +174,9 @@ namespace rainy::core::exceptions {
          * \lang simp-chinese
          * @brief 移动构造函数。
          */
-        exception(exception &&other) noexcept;
+        RAINY_CONSTEXPR26 exception(exception &&other) noexcept : base(std::move(other)), msg(std::move(other.msg)) {
+        }
+
         /**
          * \lang english
          * @brief Copy assignment operator.
@@ -174,7 +184,14 @@ namespace rainy::core::exceptions {
          * \lang simp-chinese
          * @brief 拷贝赋值运算符。
          */
-        exception &operator=(const exception &other);
+        RAINY_CONSTEXPR26 exception &operator=(const exception &other) {
+            if (this != &other) {
+                base::operator=(other);
+                msg = other.msg;
+            }
+            return *this;
+        }
+
         /**
          * \lang english
          * @brief Move assignment operator.
@@ -182,7 +199,14 @@ namespace rainy::core::exceptions {
          * \lang simp-chinese
          * @brief 移动赋值运算符。
          */
-        exception &operator=(exception &&other) noexcept;
+        RAINY_CONSTEXPR26 exception &operator=(exception &&other) noexcept {
+            if (this != &other) {
+                base::operator=(std::move(other));
+                msg = std::move(other.msg);
+            }
+            return *this;
+        }
+
         /**
          * \lang english
          * @brief Destructor.
@@ -190,7 +214,8 @@ namespace rainy::core::exceptions {
          * \lang simp-chinese
          * @brief 析构函数。
          */
-        ~exception() override;
+        RAINY_CONSTEXPR26 ~exception() override {
+        }
 
     protected:
         /**
@@ -200,24 +225,55 @@ namespace rainy::core::exceptions {
          * \lang simp-chinese
          * @brief 供派生类使用的默认构造函数。
          */
-        exception();
-        /**
-         * \lang english
-         * @brief Builds the internal message from a description and a source location.
-         * @param message The exception description.
-         * @param location The source location to append to the message.
-         *
-         * \lang simp-chinese
-         * @brief 从描述和源码位置构建内部消息。
-         * @param message 异常描述。
-         * @param location 要追加到消息中的源码位置。
-         */
-        void build_message(const char *message, const source &location);
+        RAINY_CONSTEXPR26 exception() : base() {
+        }
+
+        RAINY_CONSTEXPR26 void build_message(const char *message, const source &location) {
+            msg.clear();
+            if (message != nullptr && *message != '\0') {
+                msg += message;
+            }
+            if (!location.empty()) {
+                if (!msg.empty()) {
+                    msg += " at ";
+                }
+                if (const char *file = location.file_name(); file != nullptr && *file != '\0') {
+                    msg += file;
+                    if (const unsigned int ln = location.line(); ln != 0) {
+                        msg += ':';
+                        append_uint(ln);
+                        if (const unsigned int col = location.column(); col != 0) {
+                            msg += ':';
+                            append_uint(col);
+                        }
+                    }
+                }
+                if (const char *func = location.function_name(); func != nullptr && *func != '\0') {
+                    msg += " in function '";
+                    msg += func;
+                    msg += '\'';
+                }
+            }
+        }
+
+        RAINY_CONSTEXPR26 void append_uint(unsigned int value) {
+            if (value == 0) {
+                msg += '0';
+                return;
+            }
+            char buffer[10];
+            int index = 0;
+            while (value > 0) {
+                buffer[index++] = static_cast<char>('0' + (value % 10));
+                value /= 10;
+            }
+            while (index > 0) {
+                msg += buffer[--index];
+            }
+        }
 
     private:
-        class impl;
-
-        impl *impl_;
+        core::text::string msg;
     };
 
     template <typename Except>
@@ -446,7 +502,7 @@ namespace rainy::core::exceptions {
     class class_name : public base_class {                                                                                            \
     public:                                                                                                                           \
         using base = base_class;                                                                                                      \
-        explicit class_name(const char *message = default_message, const source &location = source::current()) :                      \
+        RAINY_CONSTEXPR26 explicit class_name(const char *message = default_message, const source &location = source::current()) :    \
             base(message, location) {                                                                                                 \
         }                                                                                                                             \
     }
@@ -468,7 +524,7 @@ namespace rainy::core::exceptions {
     class class_name : public base_class {                                                                                            \
     public:                                                                                                                           \
         using base = base_class;                                                                                                      \
-        explicit class_name(const char *message = default_message, const source &location = source::current()) :                      \
+        RAINY_CONSTEXPR26 explicit class_name(const char *message = default_message, const source &location = source::current()) :    \
             base(message, location) {                                                                                                 \
         }                                                                                                                             \
     }
@@ -478,12 +534,12 @@ namespace rainy::core::exceptions {
     class class_name : public base_class {                                                                                            \
     public:                                                                                                                           \
         using base = base_class;                                                                                                      \
-        explicit class_name(const char *message = default_message, const source &location = source::current()) :                      \
+        RAINY_CONSTEXPR26 explicit class_name(const char *message = default_message, const source &location = source::current()) :    \
             base(message, location) {                                                                                                 \
         }                                                                                                                             \
     };                                                                                                                                \
-    RAINY_NORETURN RAINY_INLINE rain_fn throw_func(const char *message = default_message,                                             \
-                                                   const utility::source_location &location = utility::source_location::current())    \
+    RAINY_NORETURN RAINY_INLINE RAINY_CONSTEXPR26 rain_fn throw_func(                                                                 \
+        const char *message = default_message, const utility::source_location &location = utility::source_location::current())        \
         -> void {                                                                                                                     \
         throw_exception(class_name{message, location});                                                                               \
     }
@@ -492,8 +548,8 @@ namespace rainy::core::exceptions {
     class class_name : public base_class {                                                                                            \
     public:                                                                                                                           \
         using base = base_class;                                                                                                      \
-        explicit class_name(params, const char *message = default_message, const source &location = source::current()) :              \
-            base(message, location), init_list {                                                                                      \
+        RAINY_CONSTEXPR26 explicit class_name(params, const char *message = default_message,                                          \
+                                              const source &location = source::current()) : base(message, location), init_list {      \
         }                                                                                                                             \
     }
 
@@ -516,7 +572,7 @@ namespace rainy::core::exceptions::logic {
          * \lang simp-chinese
          * @brief 默认构造函数。
          */
-        logic_error() = default;
+        RAINY_CONSTEXPR26 logic_error() = default;
 
         /**
          * \lang english
@@ -529,7 +585,8 @@ namespace rainy::core::exceptions::logic {
          * @param message 异常描述。
          * @param location 抛出异常处的源码位置。
          */
-        explicit logic_error(const char *message, const source &location = source::current()) : base(message, location) {
+        RAINY_CONSTEXPR26 explicit logic_error(const char *message, const source &location = source::current()) :
+            base(message, location) {
         }
     };
 
@@ -541,6 +598,7 @@ namespace rainy::core::exceptions::logic {
      * @brief 越界访问异常类型，以及抛出辅助函数throw_out_of_range。
      */
     RAINY_DEFINE_EXCEPTION_WITH_THROW(out_of_range, logic_error, "out_of_range", throw_out_of_range)
+
     /**
      * \lang english
      * @brief Exception type for length errors, together with the throw helper throw_length_error.
@@ -549,6 +607,15 @@ namespace rainy::core::exceptions::logic {
      * @brief 长度错误异常类型，以及抛出辅助函数throw_length_error。
      */
     RAINY_DEFINE_EXCEPTION_WITH_THROW(length_error, logic_error, "length error", throw_length_error)
+
+    /**
+     * \lang english
+     * @brief Exception type for domain errors, together with the throw helper throw_domain_error.
+     *
+     * \lang simp-chinese
+     * @brief 定义域异常类型，以及抛出辅助函数throw_domain_error。
+     */
+    RAINY_DEFINE_EXCEPTION_WITH_THROW(domain_error, logic_error, "domain error", throw_domain_error)
 }
 
 namespace rainy::core::exceptions::runtime {
@@ -574,7 +641,7 @@ namespace rainy::core::exceptions::runtime {
          * @param message 异常描述，默认为"runtime error"。
          * @param location 抛出异常处的源码位置。
          */
-        explicit runtime_error(const char *message = "runtime error", const source &location = source::current()) :
+        RAINY_CONSTEXPR26 explicit runtime_error(const char *message = "runtime error", const source &location = source::current()) :
             base(message, location) {
         }
     };
@@ -590,8 +657,8 @@ namespace rainy::core::exceptions::runtime {
      * @param message 异常描述，默认为"runtime error"。
      * @param location 抛出异常处的源码位置。
      */
-    RAINY_NORETURN inline auto throw_runtime_error(const char *message = "runtime error",
-                                                   const utility::source_location &location = utility::source_location::current())
+    RAINY_NORETURN RAINY_CONSTEXPR26 inline auto throw_runtime_error(
+        const char *message = "runtime error", const utility::source_location &location = utility::source_location::current())
         -> void {
         throw_exception(runtime_error{message, location});
     }
@@ -676,8 +743,9 @@ namespace rainy::core::exceptions::runtime {
          * @param what_arg 错误的描述。
          * @param location 抛出异常处的源码位置。
          */
-        system_error(const std::error_code ec, const core::text::string &what_arg,
-                     const source &location = diagnostics::source_location::current()) : estr(make_err_msg(ec, what_arg)), ec{ec} {
+        RAINY_CONSTEXPR26 system_error(const std::error_code ec, const core::text::string &what_arg,
+                                       const source &location = diagnostics::source_location::current()) :
+            estr(make_err_msg(ec, what_arg)), ec{ec} {
             this->build_message(estr.c_str(), location);
         }
 
@@ -694,8 +762,9 @@ namespace rainy::core::exceptions::runtime {
          * @param what_arg 错误的描述。
          * @param location 抛出异常处的源码位置。
          */
-        system_error(const std::error_code ec, const char *what_arg,
-                     const source &location = diagnostics::source_location::current()) : estr(make_err_msg(ec, what_arg)), ec{ec} {
+        RAINY_CONSTEXPR26 system_error(const std::error_code ec, const char *what_arg,
+                                       const source &location = diagnostics::source_location::current()) :
+            estr(make_err_msg(ec, what_arg)), ec{ec} {
             this->build_message(estr.c_str(), location);
         }
 
@@ -710,7 +779,7 @@ namespace rainy::core::exceptions::runtime {
          * @param ec 错误码。
          * @param location 抛出异常处的源码位置。
          */
-        system_error(const std::error_code ec, const source &location = diagnostics::source_location::current()) :
+        RAINY_CONSTEXPR26 system_error(const std::error_code ec, const source &location = diagnostics::source_location::current()) :
             estr(make_err_msg(ec, ec.message())), ec{ec} { // NOLINT
             this->build_message(estr.c_str(), location);
         }
@@ -730,8 +799,8 @@ namespace rainy::core::exceptions::runtime {
          * @param what_arg 错误的描述。
          * @param location 抛出异常处的源码位置。
          */
-        system_error(const int ev, const std::error_category &ecat, const core::text::string &what_arg,
-                     const source &location = diagnostics::source_location::current()) :
+        RAINY_CONSTEXPR26 system_error(const int ev, const std::error_category &ecat, const core::text::string &what_arg,
+                                       const source &location = diagnostics::source_location::current()) :
             estr(make_err_msg(std::error_code(ev, ecat), what_arg)), ec{std::error_code(ev, ecat)} {
             this->build_message(estr.c_str(), location);
         }
@@ -751,8 +820,8 @@ namespace rainy::core::exceptions::runtime {
          * @param what_arg 错误的描述。
          * @param location 抛出异常处的源码位置。
          */
-        system_error(const int ev, const std::error_category &ecat, const char *what_arg,
-                     const source &location = diagnostics::source_location::current()) :
+        RAINY_CONSTEXPR26 system_error(const int ev, const std::error_category &ecat, const char *what_arg,
+                                       const source &location = diagnostics::source_location::current()) :
             estr(make_err_msg(std::error_code(ev, ecat), what_arg)), ec{std::error_code(ev, ecat)} {
             this->build_message(estr.c_str(), location);
         }
@@ -770,7 +839,8 @@ namespace rainy::core::exceptions::runtime {
          * @param ecat 错误类别。
          * @param location 抛出异常处的源码位置。
          */
-        system_error(const int ev, const std::error_category &ecat, const source &location = diagnostics::source_location::current()) :
+        RAINY_CONSTEXPR26 system_error(const int ev, const std::error_category &ecat,
+                                       const source &location = diagnostics::source_location::current()) :
             estr(make_err_msg(std::error_code(ev, ecat), std::error_code(ev, ecat).message())), ec{std::error_code(ev, ecat)} {
             this->build_message(estr.c_str(), location);
         }
@@ -784,12 +854,12 @@ namespace rainy::core::exceptions::runtime {
          * @brief 返回与此异常关联的错误码。
          * @return 底层的std::error_code。
          */
-        const std::error_code &code() const noexcept {
+        RAINY_CONSTEXPR26 const std::error_code &code() const noexcept {
             return ec;
         }
 
     private:
-        static core::text::string make_err_msg(std::error_code error_code, core::text::string message) {
+        RAINY_CONSTEXPR26 static core::text::string make_err_msg(std::error_code error_code, core::text::string message) {
             if (!message.empty()) {
                 message.append(": ");
             }
@@ -814,8 +884,9 @@ namespace rainy::core::exceptions::runtime {
      * @param what_arg 错误的描述。
      * @param location 抛出异常处的源码位置。
      */
-    inline rain_fn throw_system_error(const std::error_code ec, const core::text::string &what_arg,
-                                      const diagnostics::source_location &location = diagnostics::source_location::current()) -> void {
+    inline RAINY_CONSTEXPR26 rain_fn
+    throw_system_error(const std::error_code ec, const core::text::string &what_arg,
+                       const diagnostics::source_location &location = diagnostics::source_location::current()) -> void {
         throw system_error{ec, what_arg, location};
     }
 
@@ -832,8 +903,9 @@ namespace rainy::core::exceptions::runtime {
      * @param what_arg 错误的描述。
      * @param location 抛出异常处的源码位置。
      */
-    inline rain_fn throw_system_error(const std::error_code ec, const char *what_arg,
-                                      const diagnostics::source_location &location = diagnostics::source_location::current()) -> void {
+    inline RAINY_CONSTEXPR26 rain_fn
+    throw_system_error(const std::error_code ec, const char *what_arg,
+                       const diagnostics::source_location &location = diagnostics::source_location::current()) -> void {
         throw system_error{ec, what_arg, location};
     }
 
@@ -848,8 +920,8 @@ namespace rainy::core::exceptions::runtime {
      * @param ec 错误码。
      * @param location 抛出异常处的源码位置。
      */
-    inline rain_fn throw_system_error(const std::error_code ec,
-                                      const diagnostics::source_location &location = diagnostics::source_location::current()) -> void {
+    inline RAINY_CONSTEXPR26 rain_fn throw_system_error(
+        const std::error_code ec, const diagnostics::source_location &location = diagnostics::source_location::current()) -> void {
         throw system_error{ec, location};
     }
 
@@ -868,8 +940,9 @@ namespace rainy::core::exceptions::runtime {
      * @param what_arg 错误的描述。
      * @param location 抛出异常处的源码位置。
      */
-    inline rain_fn throw_system_error(const int ev, const std::error_category &ecat, const core::text::string &what_arg,
-                                      const diagnostics::source_location &location = diagnostics::source_location::current()) -> void {
+    inline RAINY_CONSTEXPR26 rain_fn
+    throw_system_error(const int ev, const std::error_category &ecat, const core::text::string &what_arg,
+                       const diagnostics::source_location &location = diagnostics::source_location::current()) -> void {
         throw system_error{ev, ecat, what_arg, location};
     }
 
@@ -888,8 +961,9 @@ namespace rainy::core::exceptions::runtime {
      * @param what_arg 错误的描述。
      * @param location 抛出异常处的源码位置。
      */
-    inline rain_fn throw_system_error(const int ev, const std::error_category &ecat, const char *what_arg,
-                                      const diagnostics::source_location &location = diagnostics::source_location::current()) -> void {
+    inline RAINY_CONSTEXPR26 rain_fn
+    throw_system_error(const int ev, const std::error_category &ecat, const char *what_arg,
+                       const diagnostics::source_location &location = diagnostics::source_location::current()) -> void {
         throw system_error{ev, ecat, what_arg, location};
     }
 
@@ -906,8 +980,9 @@ namespace rainy::core::exceptions::runtime {
      * @param ecat 错误类别。
      * @param location 抛出异常处的源码位置。
      */
-    inline rain_fn throw_system_error(const int ev, const std::error_category &ecat,
-                                      const diagnostics::source_location &location = diagnostics::source_location::current()) -> void {
+    inline RAINY_CONSTEXPR26 rain_fn
+    throw_system_error(const int ev, const std::error_category &ecat,
+                       const diagnostics::source_location &location = diagnostics::source_location::current()) -> void {
         throw system_error{ev, ecat, location};
     }
 
@@ -926,9 +1001,9 @@ namespace rainy::core::exceptions::runtime {
      * @param location 抛出异常处的源码位置。
      * @return 构造出的system_error对象。
      */
-    inline rain_fn make_system_error(const std::error_code ec, const core::text::string &what_arg,
-                                     const diagnostics::source_location &location = diagnostics::source_location::current())
-        -> system_error {
+    inline RAINY_CONSTEXPR26 rain_fn
+    make_system_error(const std::error_code ec, const core::text::string &what_arg,
+                      const diagnostics::source_location &location = diagnostics::source_location::current()) -> system_error {
         return system_error{ec, what_arg, location};
     }
 
@@ -947,9 +1022,9 @@ namespace rainy::core::exceptions::runtime {
      * @param location 抛出异常处的源码位置。
      * @return 构造出的system_error对象。
      */
-    inline rain_fn make_system_error(const std::error_code ec, const char *what_arg,
-                                     const diagnostics::source_location &location = diagnostics::source_location::current())
-        -> system_error {
+    inline RAINY_CONSTEXPR26 rain_fn
+    make_system_error(const std::error_code ec, const char *what_arg,
+                      const diagnostics::source_location &location = diagnostics::source_location::current()) -> system_error {
         return system_error{ec, what_arg, location};
     }
 
@@ -966,8 +1041,8 @@ namespace rainy::core::exceptions::runtime {
      * @param location 抛出异常处的源码位置。
      * @return 构造出的system_error对象。
      */
-    inline rain_fn make_system_error(const std::error_code ec,
-                                     const diagnostics::source_location &location = diagnostics::source_location::current())
+    inline RAINY_CONSTEXPR26 rain_fn
+    make_system_error(const std::error_code ec, const diagnostics::source_location &location = diagnostics::source_location::current())
         -> system_error {
         return system_error{ec, location};
     }
@@ -989,9 +1064,9 @@ namespace rainy::core::exceptions::runtime {
      * @param location 抛出异常处的源码位置。
      * @return 构造出的system_error对象。
      */
-    inline rain_fn make_system_error(const int ev, const std::error_category &ecat, const core::text::string &what_arg,
-                                     const diagnostics::source_location &location = diagnostics::source_location::current())
-        -> system_error {
+    inline RAINY_CONSTEXPR26 rain_fn
+    make_system_error(const int ev, const std::error_category &ecat, const core::text::string &what_arg,
+                      const diagnostics::source_location &location = diagnostics::source_location::current()) -> system_error {
         return system_error{ev, ecat, what_arg, location};
     }
 
@@ -1012,9 +1087,9 @@ namespace rainy::core::exceptions::runtime {
      * @param location 抛出异常处的源码位置。
      * @return 构造出的system_error对象。
      */
-    inline rain_fn make_system_error(const int ev, const std::error_category &ecat, const char *what_arg,
-                                     const diagnostics::source_location &location = diagnostics::source_location::current())
-        -> system_error {
+    inline RAINY_CONSTEXPR26 rain_fn
+    make_system_error(const int ev, const std::error_category &ecat, const char *what_arg,
+                      const diagnostics::source_location &location = diagnostics::source_location::current()) -> system_error {
         return system_error{ev, ecat, what_arg, location};
     }
 
@@ -1033,9 +1108,9 @@ namespace rainy::core::exceptions::runtime {
      * @param location 抛出异常处的源码位置。
      * @return 构造出的system_error对象。
      */
-    inline rain_fn make_system_error(const int ev, const std::error_category &ecat,
-                                     const diagnostics::source_location &location = diagnostics::source_location::current())
-        -> system_error {
+    inline RAINY_CONSTEXPR26 rain_fn
+    make_system_error(const int ev, const std::error_category &ecat,
+                      const diagnostics::source_location &location = diagnostics::source_location::current()) -> system_error {
         return system_error{ev, ecat, location};
     }
 
@@ -1050,7 +1125,7 @@ namespace rainy::core::exceptions::runtime {
      * @param ec 错误码。
      * @param location 抛出异常处的源码位置。
      */
-    RAINY_NORETURN inline rain_fn throw_system_error_code(
+    RAINY_NORETURN inline RAINY_CONSTEXPR26 rain_fn throw_system_error_code(
         const std::error_code ec, const diagnostics::source_location &location = diagnostics::source_location::current()) -> void {
         throw system_error{ec, location};
     }
@@ -1068,9 +1143,9 @@ namespace rainy::core::exceptions::runtime {
      * @param ecat 错误类别。
      * @param location 抛出异常处的源码位置。
      */
-    RAINY_NORETURN inline rain_fn throw_system_error_code(
-        int ev, const std::error_category &ecat,
-        const diagnostics::source_location &location = diagnostics::source_location::current()) -> void {
+    RAINY_NORETURN inline RAINY_CONSTEXPR26 rain_fn
+    throw_system_error_code(int ev, const std::error_category &ecat,
+                            const diagnostics::source_location &location = diagnostics::source_location::current()) -> void {
         throw system_error{ev, ecat, location};
     }
 }
