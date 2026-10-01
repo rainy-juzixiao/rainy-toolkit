@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 #include <rainy/foundation/willow/json.hpp>
+#include <rainy/foundation/willow/json5.hpp>
 
 namespace rainy::foundation::willow {
     thread_local std::pmr::unsynchronized_pool_resource pool{};
