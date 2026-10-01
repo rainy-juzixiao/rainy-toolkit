@@ -572,39 +572,44 @@ namespace rainy::foundation::willow::yaml::implements {
             if (str.empty()) {
                 return false;
             }
-            string_type cleaned;
-            cleaned.reserve(str.size());
-            for (const auto &ch: str) {
-                if (ch == '_') {
-                    continue;
-                }
-                if (ch == '+' || ch == '-') {
-                    if (!cleaned.empty()) {
-                        return false;
-                    }
-                    cleaned.push_back(ch);
-                    continue;
-                }
-                cleaned.push_back(ch);
+            if (str.find(char_type('_')) == string_type::npos) {
+                return is_number_like_data(str.data(), str.size());
             }
-            if (cleaned.empty()) {
+            core::collections::vector<char_type> cleaned;
+            cleaned.reserve(str.size());
+            for (const auto ch: str) {
+                if (ch != char_type('_')) {
+                    cleaned.push_back(ch);
+                }
+            }
+            return is_number_like_data(cleaned.data(), cleaned.size());
+        }
+
+        static bool is_number_like_data(const char_type *const first, const std::size_t length) {
+            if (length == 0) {
                 return false;
             }
-            const bool signed_value = cleaned[0] == '-' || cleaned[0] == '+';
+            for (std::size_t index = 1; index < length; ++index) {
+                if (first[index] == char_type('-') || first[index] == char_type('+')) {
+                    return false;
+                }
+            }
+            const bool signed_value = first[0] == char_type('-') || first[0] == char_type('+');
             std::size_t i = signed_value ? 1 : 0;
-            if (cleaned.size() > i + 2 && cleaned[i] == '0' && (cleaned[i + 1] == 'x' || cleaned[i + 1] == 'X')) {
-                for (std::size_t k = i + 2; k < cleaned.size(); ++k) {
-                    const auto c = cleaned[k];
-                    if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F'))) {
+            if (length > i + 2 && first[i] == char_type('0') && (first[i + 1] == char_type('x') || first[i + 1] == char_type('X'))) {
+                for (std::size_t k = i + 2; k < length; ++k) {
+                    const auto c = first[k];
+                    if (!((c >= char_type('0') && c <= char_type('9')) || (c >= char_type('a') && c <= char_type('f')) ||
+                          (c >= char_type('A') && c <= char_type('F')))) {
                         return false;
                     }
                 }
                 return true;
             }
-            if (cleaned.size() > i + 2 && cleaned[i] == '0' && cleaned[i + 1] == 'o') {
-                for (std::size_t k = i + 2; k < cleaned.size(); ++k) {
-                    const auto c = cleaned[k];
-                    if (c < '0' || c > '7') {
+            if (length > i + 2 && first[i] == char_type('0') && first[i + 1] == char_type('o')) {
+                for (std::size_t k = i + 2; k < length; ++k) {
+                    const auto c = first[k];
+                    if (c < char_type('0') || c > char_type('7')) {
                         return false;
                     }
                 }
@@ -612,13 +617,13 @@ namespace rainy::foundation::willow::yaml::implements {
             }
             bool has_digit = false;
             bool has_dot = false;
-            for (; i < cleaned.size(); ++i) {
-                const auto c = cleaned[i];
-                if (c >= '0' && c <= '9') {
+            for (; i < length; ++i) {
+                const auto c = first[i];
+                if (c >= char_type('0') && c <= char_type('9')) {
                     has_digit = true;
-                } else if (c == '.') {
+                } else if (c == char_type('.')) {
                     has_dot = true;
-                } else if (c == 'e' || c == 'E') {
+                } else if (c == char_type('e') || c == char_type('E')) {
                     return has_digit;
                 } else {
                     return false;
@@ -653,13 +658,7 @@ namespace rainy::foundation::willow::yaml::implements {
         }
 
         void write_raw_string(const string_type &str) {
-            for (const auto &ch: str) {
-                string_buffer_.push_back(ch);
-            }
-            if (!string_buffer_.empty()) {
-                put(string_buffer_.data(), string_buffer_.size());
-                string_buffer_.clear();
-            }
+            put(str.data(), str.size());
         }
 
         void dump_string(const string_type &str, const unsigned int current_indent) {
