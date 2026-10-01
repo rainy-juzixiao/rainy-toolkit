@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <rainy/foundation/willow/implements/common/config.hpp>
+#include <rainy/foundation/willow/json.hpp>
 
 namespace rainy::foundation::willow {
     thread_local std::pmr::unsynchronized_pool_resource pool{};
