@@ -15,9 +15,9 @@
  */
 #ifndef RAINY_CORE_CONTAINER_INDIRECT_HPP
 #define RAINY_CORE_CONTAINER_INDIRECT_HPP
-#include <rainy/core/type_traits.hpp>
 #include <rainy/core/container/compressed_pair.hpp>
 #include <rainy/core/memory/allocator.hpp>
+#include <rainy/core/type_traits.hpp>
 
 namespace rainy::core::container {
     /**
@@ -130,12 +130,18 @@ namespace rainy::core::container {
         RAINY_CONSTEXPR20 indirect() noexcept(type_traits::properties::is_nothrow_default_constructible_v<Ty>) :
             pair(allocator_type{}, nullptr) {
             pointer ptr = memory::allocator_traits<allocator_type>::allocate(pair.get_first(), 1);
-            try {
+
+            if constexpr (type_traits::properties::is_nothrow_default_constructible_v<Ty>) {
                 memory::allocator_traits<allocator_type>::construct(pair.get_first(), ptr);
                 pair.get_second() = ptr;
-            } catch (...) {
-                memory::allocator_traits<allocator_type>::deallocate(pair.get_first(), ptr, 1);
-                throw;
+            } else {
+                try {
+                    memory::allocator_traits<allocator_type>::construct(pair.get_first(), ptr);
+                    pair.get_second() = ptr;
+                } catch (...) {
+                    memory::allocator_traits<allocator_type>::deallocate(pair.get_first(), ptr, 1);
+                    throw;
+                }
             }
         }
 
@@ -168,15 +174,20 @@ namespace rainy::core::container {
         template <typename... Args,
                   type_traits::other_trans::enable_if_t<type_traits::properties::is_constructible_v<Ty, Args...>, int> = 0>
         RAINY_CONSTEXPR20 indirect(std::in_place_t, // NOLINT
-                                   Args &&...args) noexcept(type_traits::properties::is_nothrow_default_constructible_v<Ty>) :
+                                   Args &&...args) noexcept(type_traits::properties::is_nothrow_constructible_v<Ty, Args...>) :
             pair(allocator_type{}, nullptr) {
             pointer ptr = memory::allocator_traits<allocator_type>::allocate(pair.get_first(), 1);
-            try {
+            if constexpr (type_traits::properties::is_nothrow_constructible_v<Ty, Args...>) {
                 memory::allocator_traits<allocator_type>::construct(pair.get_first(), ptr, utility::forward<Args>(args)...);
                 pair.get_second() = ptr;
-            } catch (...) {
-                memory::allocator_traits<allocator_type>::deallocate(pair.get_first(), ptr, 1);
-                throw;
+            } else {
+                try {
+                    memory::allocator_traits<allocator_type>::construct(pair.get_first(), ptr, utility::forward<Args>(args)...);
+                    pair.get_second() = ptr;
+                } catch (...) {
+                    memory::allocator_traits<allocator_type>::deallocate(pair.get_first(), ptr, 1);
+                    throw;
+                }
             }
         }
 
@@ -285,9 +296,10 @@ namespace rainy::core::container {
                   type_traits::other_trans::enable_if_t<type_traits::properties::is_constructible_v<Ty, Args...> &&
                                                             type_traits::properties::is_copy_constructible_v<allocator_type>,
                                                         int> = 0>
-        RAINY_CONSTEXPR20 indirect(std::in_place_t, const allocator_type &allocator, Args &&...args) noexcept(
-            type_traits::properties::is_nothrow_default_constructible_v<Ty> &&
-            type_traits::properties::is_nothrow_copy_constructible_v<allocator_type>) : pair(allocator, nullptr) {
+        RAINY_CONSTEXPR20 indirect(std::in_place_t, const allocator_type &allocator,
+                                   Args &&...args) noexcept(type_traits::properties::is_nothrow_default_constructible_v<Ty> &&
+                                                            type_traits::properties::is_nothrow_copy_constructible_v<allocator_type>) :
+            pair(allocator, nullptr) {
             pointer ptr = memory::allocator_traits<allocator_type>::allocate(pair.get_first(), 1);
             try {
                 memory::allocator_traits<allocator_type>::construct(pair.get_first(), ptr, utility::forward<Args>(args)...);
@@ -353,8 +365,7 @@ namespace rainy::core::container {
                       int> = 0>
         RAINY_CONSTEXPR20 indirect(
             std::allocator_arg_t, const allocator_type &allocator, std::in_place_t, std::initializer_list<Elem> ilist,
-            Args &&...args) noexcept(type_traits::properties::is_nothrow_constructible_v<Ty, std::initializer_list<Elem> &,
-                                                                                              Args...> &&
+            Args &&...args) noexcept(type_traits::properties::is_nothrow_constructible_v<Ty, std::initializer_list<Elem> &, Args...> &&
                                      type_traits::properties::is_nothrow_copy_constructible_v<allocator_type>) :
             pair(allocator, nullptr) {
             pointer ptr = memory::allocator_traits<allocator_type>::allocate(pair.get_first(), 1);
@@ -424,9 +435,10 @@ namespace rainy::core::container {
                           !type_traits::type_relations::is_same_v<type_traits::other_trans::decay_t<U>, indirect> &&
                           !type_traits::type_relations::is_same_v<type_traits::other_trans::decay_t<U>, std::in_place_t>,
                       int> = 0>
-        RAINY_CONSTEXPR20 explicit indirect(std::allocator_arg_t, const allocator_type &allocator, U &&u) noexcept(
-            type_traits::properties::is_nothrow_constructible_v<Ty, U &&> &&
-            type_traits::properties::is_nothrow_copy_constructible_v<allocator_type>) : pair(allocator, nullptr) {
+        RAINY_CONSTEXPR20 explicit indirect(std::allocator_arg_t, const allocator_type &allocator,
+                                            U &&u) noexcept(type_traits::properties::is_nothrow_constructible_v<Ty, U &&> &&
+                                                            type_traits::properties::is_nothrow_copy_constructible_v<allocator_type>) :
+            pair(allocator, nullptr) {
             pointer ptr = memory::allocator_traits<allocator_type>::allocate(pair.get_first(), 1);
             try {
                 memory::allocator_traits<allocator_type>::construct(pair.get_first(), ptr, utility::forward<U>(u));
@@ -583,12 +595,17 @@ namespace rainy::core::container {
                 *pair.get_second() = utility::forward<U>(u);
             } else {
                 pointer ptr = memory::allocator_traits<allocator_type>::allocate(pair.get_first(), 1);
-                try {
+                if constexpr (type_traits::properties::is_nothrow_constructible_v<Ty, U &&>) {
                     memory::allocator_traits<allocator_type>::construct(pair.get_first(), ptr, utility::forward<U>(u));
                     pair.get_second() = ptr;
-                } catch (...) {
-                    memory::allocator_traits<allocator_type>::deallocate(pair.get_first(), ptr, 1);
-                    throw;
+                } else {
+                    try {
+                        memory::allocator_traits<allocator_type>::construct(pair.get_first(), ptr, utility::forward<U>(u));
+                        pair.get_second() = ptr;
+                    } catch (...) {
+                        memory::allocator_traits<allocator_type>::deallocate(pair.get_first(), ptr, 1);
+                        throw;
+                    }
                 }
             }
             return *this;
@@ -1884,11 +1901,11 @@ namespace rainy::core::container {
 }
 
 namespace rainy::container {
-    using rainy::core::container::defered_init_t;
     using rainy::core::container::defered_init;
+    using rainy::core::container::defered_init_t;
     using rainy::core::container::indirect;
-    using rainy::core::container::swap;
     using rainy::core::container::make_indirect;
+    using rainy::core::container::swap;
     using rainy::core::container::operator==;
     using rainy::core::container::operator!=;
     using rainy::core::container::operator<;
