@@ -85,7 +85,7 @@ namespace rainy::core::implements {
         using mask_register_type = register_t<integer_from_t<sizeof(Ty)>, vector_abi<Bits>>;
         static constexpr simd_size_type size = simd_size_v<Ty, vector_abi<Bits>>;
 
-        static register_type broadcast(Ty value) noexcept {
+        static RAINY_CONSTEXPR26 register_type broadcast(Ty value) noexcept {
             if constexpr (type_traits::primary_types::is_floating_point_v<Ty>) {
                 if constexpr (sizeof(Ty) == 4) {
                     if constexpr (Bits == 128) {
@@ -135,7 +135,7 @@ namespace rainy::core::implements {
             }
         }
 
-        static Ty get_lane(const register_type &reg, simd_size_type i) noexcept {
+        static RAINY_CONSTEXPR26 Ty get_lane(const register_type &reg, simd_size_type i) noexcept {
             if constexpr (type_traits::primary_types::is_floating_point_v<Ty>) {
                 if constexpr (sizeof(Ty) == 4) {
                     if constexpr (Bits == 128) {
@@ -189,7 +189,7 @@ namespace rainy::core::implements {
             }
         }
 
-        static void set_lane(register_type &reg, simd_size_type i, Ty value) noexcept {
+        static RAINY_CONSTEXPR26 void set_lane(register_type &reg, simd_size_type i, Ty value) noexcept {
             if constexpr (type_traits::primary_types::is_floating_point_v<Ty>) {
                 if constexpr (sizeof(Ty) == 4) {
                     if constexpr (Bits == 128) {
@@ -243,7 +243,7 @@ namespace rainy::core::implements {
             }
         }
 
-        static register_type add(register_type left, register_type right) noexcept {
+        static RAINY_CONSTEXPR26 register_type add(register_type left, register_type right) noexcept {
             if constexpr (type_traits::primary_types::is_floating_point_v<Ty>) {
                 if constexpr (sizeof(Ty) == 4) {
                     if constexpr (Bits == 128) {
@@ -299,7 +299,7 @@ namespace rainy::core::implements {
             }
         }
 
-        static register_type sub(register_type left, register_type right) noexcept {
+        static RAINY_CONSTEXPR26 register_type sub(register_type left, register_type right) noexcept {
             if constexpr (type_traits::primary_types::is_floating_point_v<Ty>) {
                 if constexpr (sizeof(Ty) == 4) {
                     if constexpr (Bits == 128) {
@@ -355,7 +355,7 @@ namespace rainy::core::implements {
             }
         }
 
-        static register_type mul(register_type left, register_type right) noexcept {
+        static RAINY_CONSTEXPR26 register_type mul(register_type left, register_type right) noexcept {
             if constexpr (type_traits::primary_types::is_floating_point_v<Ty>) {
                 if constexpr (sizeof(Ty) == 4) {
                     if constexpr (Bits == 128) {
@@ -403,7 +403,7 @@ namespace rainy::core::implements {
             }
         }
 
-        static register_type div(register_type left, register_type right) noexcept {
+        static RAINY_CONSTEXPR26 register_type div(register_type left, register_type right) noexcept {
             if constexpr (type_traits::primary_types::is_floating_point_v<Ty>) {
                 if constexpr (sizeof(Ty) == 4) {
                     if constexpr (Bits == 128) {
@@ -431,11 +431,11 @@ namespace rainy::core::implements {
             }
         }
 
-        static register_type mod(register_type left, register_type right) noexcept {
+        static RAINY_CONSTEXPR26 register_type mod(register_type left, register_type right) noexcept {
             return lane_binary(left, right, [](Ty a, Ty b) { return static_cast<Ty>(a % b); });
         }
 
-        static register_type bit_and(register_type left, register_type right) noexcept {
+        static RAINY_CONSTEXPR26 register_type bit_and(register_type left, register_type right) noexcept {
             if constexpr (type_traits::primary_types::is_floating_point_v<Ty>) {
                 if constexpr (sizeof(Ty) == 4) {
                     if constexpr (Bits == 128) {
@@ -471,7 +471,7 @@ namespace rainy::core::implements {
             }
         }
 
-        static register_type bit_or(register_type left, register_type right) noexcept {
+        static RAINY_CONSTEXPR26 register_type bit_or(register_type left, register_type right) noexcept {
             if constexpr (type_traits::primary_types::is_floating_point_v<Ty>) {
                 if constexpr (sizeof(Ty) == 4) {
                     if constexpr (Bits == 128) {
@@ -507,7 +507,7 @@ namespace rainy::core::implements {
             }
         }
 
-        static register_type bit_xor(register_type left, register_type right) noexcept {
+        static RAINY_CONSTEXPR26 register_type bit_xor(register_type left, register_type right) noexcept {
             if constexpr (type_traits::primary_types::is_floating_point_v<Ty>) {
                 if constexpr (sizeof(Ty) == 4) {
                     if constexpr (Bits == 128) {
@@ -543,7 +543,7 @@ namespace rainy::core::implements {
             }
         }
 
-        static register_type shl(register_type left, register_type right) noexcept {
+        static RAINY_CONSTEXPR26 register_type shl(register_type left, register_type right) noexcept {
             if constexpr (RAINY_SIMD_AVX2 && sizeof(Ty) >= 2 && !type_traits::primary_types::is_floating_point_v<Ty>) {
                 if constexpr (sizeof(Ty) == 8) {
                     if constexpr (Bits == 128) {
@@ -577,7 +577,7 @@ namespace rainy::core::implements {
             }
         }
 
-        static register_type shr(register_type left, register_type right) noexcept {
+        static RAINY_CONSTEXPR26 register_type shr(register_type left, register_type right) noexcept {
             if constexpr (RAINY_SIMD_AVX2 && sizeof(Ty) >= 2 && !type_traits::primary_types::is_floating_point_v<Ty>) {
                 if constexpr (sizeof(Ty) == 8) {
                     if constexpr (Bits == 128) {
@@ -611,7 +611,7 @@ namespace rainy::core::implements {
             }
         }
 
-        static register_type shl_scalar(register_type left, simd_size_type count) noexcept {
+        static RAINY_CONSTEXPR26 register_type shl_scalar(register_type left, simd_size_type count) noexcept {
             if constexpr (type_traits::primary_types::is_floating_point_v<Ty>) {
                 return left;
             } else if constexpr (sizeof(Ty) == 1 || Bits == 512) {
@@ -640,7 +640,7 @@ namespace rainy::core::implements {
             }
         }
 
-        static register_type shr_scalar(register_type left, simd_size_type count) noexcept {
+        static RAINY_CONSTEXPR26 register_type shr_scalar(register_type left, simd_size_type count) noexcept {
             if constexpr (type_traits::primary_types::is_floating_point_v<Ty>) {
                 return left;
             } else if constexpr (sizeof(Ty) == 1 || Bits == 512) {
@@ -669,11 +669,11 @@ namespace rainy::core::implements {
             }
         }
 
-        static register_type negate(register_type reg) noexcept {
+        static RAINY_CONSTEXPR26 register_type negate(register_type reg) noexcept {
             return sub(broadcast(static_cast<Ty>(0)), reg);
         }
 
-        static register_type bit_not(register_type reg) noexcept {
+        static RAINY_CONSTEXPR26 register_type bit_not(register_type reg) noexcept {
             if constexpr (type_traits::primary_types::is_floating_point_v<Ty>) {
                 if constexpr (sizeof(Ty) == 4) {
                     if constexpr (Bits == 128) {
@@ -709,7 +709,7 @@ namespace rainy::core::implements {
             }
         }
 
-        static mask_register_type cmp_eq(register_type left, register_type right) noexcept {
+        static RAINY_CONSTEXPR26 mask_register_type cmp_eq(register_type left, register_type right) noexcept {
             if constexpr (type_traits::primary_types::is_floating_point_v<Ty>) {
                 if constexpr (sizeof(Ty) == 4) {
                     if constexpr (Bits == 128) {
@@ -733,11 +733,11 @@ namespace rainy::core::implements {
             }
         }
 
-        static mask_register_type cmp_ne(register_type left, register_type right) noexcept {
+        static RAINY_CONSTEXPR26 mask_register_type cmp_ne(register_type left, register_type right) noexcept {
             return bit_not_mask(cmp_eq(left, right));
         }
 
-        static mask_register_type cmp_lt(register_type left, register_type right) noexcept {
+        static RAINY_CONSTEXPR26 mask_register_type cmp_lt(register_type left, register_type right) noexcept {
             if constexpr (type_traits::primary_types::is_floating_point_v<Ty>) {
                 if constexpr (sizeof(Ty) == 4) {
                     if constexpr (Bits == 128) {
@@ -763,7 +763,7 @@ namespace rainy::core::implements {
             }
         }
 
-        static mask_register_type cmp_le(register_type left, register_type right) noexcept {
+        static RAINY_CONSTEXPR26 mask_register_type cmp_le(register_type left, register_type right) noexcept {
             if constexpr (type_traits::primary_types::is_floating_point_v<Ty>) {
                 if constexpr (sizeof(Ty) == 4) {
                     if constexpr (Bits == 128) {
@@ -787,7 +787,7 @@ namespace rainy::core::implements {
             }
         }
 
-        static mask_register_type cmp_gt(register_type left, register_type right) noexcept {
+        static RAINY_CONSTEXPR26 mask_register_type cmp_gt(register_type left, register_type right) noexcept {
             if constexpr (type_traits::primary_types::is_floating_point_v<Ty>) {
                 if constexpr (sizeof(Ty) == 4) {
                     if constexpr (Bits == 128) {
@@ -813,7 +813,7 @@ namespace rainy::core::implements {
             }
         }
 
-        static mask_register_type cmp_ge(register_type left, register_type right) noexcept {
+        static RAINY_CONSTEXPR26 mask_register_type cmp_ge(register_type left, register_type right) noexcept {
             if constexpr (type_traits::primary_types::is_floating_point_v<Ty>) {
                 if constexpr (sizeof(Ty) == 4) {
                     if constexpr (Bits == 128) {
@@ -837,7 +837,7 @@ namespace rainy::core::implements {
             }
         }
 
-        static register_type blend(const mask_register_type &mask, const register_type &on_true,
+        static RAINY_CONSTEXPR26 register_type blend(const mask_register_type &mask, const register_type &on_true,
                                    const register_type &on_false) noexcept {
             if constexpr (Bits == 128) {
                 auto true_bits = bitcast<mask_register_type>(on_true);
@@ -865,7 +865,7 @@ namespace rainy::core::implements {
         }
 
         template <typename U, typename UAbi>
-        static register_type convert(const register_t<U, UAbi> &src) noexcept {
+        static RAINY_CONSTEXPR26 register_type convert(const register_t<U, UAbi> &src) noexcept {
             register_type result{};
             for (simd_size_type i = 0; i < size; ++i) {
                 set_lane(result, i, static_cast<Ty>(simd_ops<U, UAbi>::get_lane(src, i)));
@@ -873,53 +873,131 @@ namespace rainy::core::implements {
             return result;
         }
 
-        static register_type min_reg(register_type left, register_type right) noexcept {
+        static RAINY_CONSTEXPR26 register_type min_reg(register_type left, register_type right) noexcept {
             return blend(cmp_lt(right, left), right, left);
         }
 
-        static register_type max_reg(register_type left, register_type right) noexcept {
+        static RAINY_CONSTEXPR26 register_type max_reg(register_type left, register_type right) noexcept {
             return blend(cmp_lt(left, right), right, left);
         }
 
-        static register_type load(const Ty *ptr) noexcept {
+        static RAINY_CONSTEXPR26 register_type load(const Ty *ptr) noexcept {
             register_type result;
-            core::builtin::copy_memory(&result, ptr, sizeof(result));
+#if RAINY_HAS_CXX26
+            if (std::is_constant_evaluated()) {
+                for (simd_size_type i = 0; i < size; ++i) {
+                    result.m128_f32[i] = ptr[i];
+                }
+            } else
+#endif
+            {
+                core::builtin::copy_memory(&result, ptr, sizeof(result));
+            }
             return result;
         }
 
-        static void store(Ty *ptr, const register_type &reg) noexcept {
-            core::builtin::copy_memory(ptr, &reg, sizeof(reg));
+        static RAINY_CONSTEXPR26 void store(Ty *ptr, const register_type &reg) noexcept {
+#if RAINY_HAS_CXX26
+            if (std::is_constant_evaluated()) {
+                for (simd_size_type i = 0; i < size; ++i) {
+                    ptr[i] = reg.m128_f32[i];
+                }
+            } else
+#endif
+            {
+                core::builtin::copy_memory(ptr, &reg, sizeof(reg));
+            }
         }
 
         template <typename To, typename From>
-        static To bitcast(const From &src) noexcept {
+        static RAINY_CONSTEXPR26 To bitcast(const From &src) noexcept {
             To dst;
-            core::builtin::copy_memory(&dst, &src, sizeof(To));
+#if RAINY_HAS_CXX26
+            if (std::is_constant_evaluated()) {
+                const auto *src_bytes = reinterpret_cast<const unsigned char *>(&src);
+                auto *dst_bytes = reinterpret_cast<unsigned char *>(&dst);
+                for (std::size_t i = 0; i < sizeof(To); ++i) {
+                    dst_bytes[i] = src_bytes[i];
+                }
+            } else
+#endif
+            {
+                core::builtin::copy_memory(&dst, &src, sizeof(To));
+            }
             return dst;
         }
 
         using word = integer_from_t<sizeof(Ty)>;
 
-        static Ty word_op(Ty a, Ty b, int op) noexcept {
+        static RAINY_CONSTEXPR26 Ty word_op(Ty a, Ty b, int op) noexcept {
             word wa, wb;
-            core::builtin::copy_memory(&wa, &a, sizeof(wa));
-            core::builtin::copy_memory(&wb, &b, sizeof(wb));
+#if RAINY_HAS_CXX26
+            if (std::is_constant_evaluated()) {
+                const auto *a_bytes = reinterpret_cast<const unsigned char *>(&a);
+                auto *wa_bytes = reinterpret_cast<unsigned char *>(&wa);
+                for (std::size_t i = 0; i < sizeof(wa); ++i) {
+                    wa_bytes[i] = a_bytes[i];
+                }
+                const auto *b_bytes = reinterpret_cast<const unsigned char *>(&b);
+                auto *wb_bytes = reinterpret_cast<unsigned char *>(&wb);
+                for (std::size_t i = 0; i < sizeof(wb); ++i) {
+                    wb_bytes[i] = b_bytes[i];
+                }
+            } else
+#endif
+            {
+                core::builtin::copy_memory(&wa, &a, sizeof(wa));
+                core::builtin::copy_memory(&wb, &b, sizeof(wb));
+            }
             word wr = op == 0 ? static_cast<word>(wa & wb) : (op == 1 ? static_cast<word>(wa | wb) : static_cast<word>(wa ^ wb));
             Ty out;
-            core::builtin::copy_memory(&out, &wr, sizeof(out));
+#if RAINY_HAS_CXX26
+            if (std::is_constant_evaluated()) {
+                const auto *wr_bytes = reinterpret_cast<const unsigned char *>(&wr);
+                auto *out_bytes = reinterpret_cast<unsigned char *>(&out);
+                for (std::size_t i = 0; i < sizeof(out); ++i) {
+                    out_bytes[i] = wr_bytes[i];
+                }
+            } else
+#endif
+            {
+                core::builtin::copy_memory(&out, &wr, sizeof(out));
+            }
             return out;
         }
 
-        static Ty word_not(Ty a) noexcept {
+        static RAINY_CONSTEXPR26 Ty word_not(Ty a) noexcept {
             word wa;
-            core::builtin::copy_memory(&wa, &a, sizeof(wa));
+#if RAINY_HAS_CXX26
+            if (std::is_constant_evaluated()) {
+                const auto *a_bytes = reinterpret_cast<const unsigned char *>(&a);
+                auto *wa_bytes = reinterpret_cast<unsigned char *>(&wa);
+                for (std::size_t i = 0; i < sizeof(wa); ++i) {
+                    wa_bytes[i] = a_bytes[i];
+                }
+            } else
+#endif
+            {
+                core::builtin::copy_memory(&wa, &a, sizeof(wa));
+            }
             wa = static_cast<word>(~wa);
             Ty out;
-            core::builtin::copy_memory(&out, &wa, sizeof(out));
+#if RAINY_HAS_CXX26
+            if (std::is_constant_evaluated()) {
+                const auto *wa_bytes = reinterpret_cast<const unsigned char *>(&wa);
+                auto *out_bytes = reinterpret_cast<unsigned char *>(&out);
+                for (std::size_t i = 0; i < sizeof(out); ++i) {
+                    out_bytes[i] = wa_bytes[i];
+                }
+            } else
+#endif
+            {
+                core::builtin::copy_memory(&out, &wa, sizeof(out));
+            }
             return out;
         }
 
-        static mask_register_type bit_not_mask(mask_register_type mask) noexcept {
+        static RAINY_CONSTEXPR26 mask_register_type bit_not_mask(mask_register_type mask) noexcept {
             if constexpr (Bits == 128) {
                 return _mm_xor_si128(mask, _mm_set1_epi32(-1));
             } else if constexpr (Bits == 256 && RAINY_SIMD_AVX2) {
@@ -936,7 +1014,7 @@ namespace rainy::core::implements {
             }
         }
 
-        static mask_register_type integer_gt(const register_type &left, const register_type &right) noexcept {
+        static RAINY_CONSTEXPR26 mask_register_type integer_gt(const register_type &left, const register_type &right) noexcept {
             if constexpr (sizeof(Ty) == 4) {
                 if constexpr (Bits == 128) {
                     return bitcast<mask_register_type>(_mm_cmpgt_epi32(left, right));
@@ -964,7 +1042,7 @@ namespace rainy::core::implements {
             }
         }
 
-        static mask_register_type integer_eq(const register_type &left, const register_type &right) noexcept {
+        static RAINY_CONSTEXPR26 mask_register_type integer_eq(const register_type &left, const register_type &right) noexcept {
             if constexpr (sizeof(Ty) == 8) {
                 if constexpr (Bits == 128 && RAINY_SIMD_SSE41) {
                     return bitcast<mask_register_type>(_mm_cmpeq_epi64(left, right));
@@ -1003,7 +1081,7 @@ namespace rainy::core::implements {
         }
 
         template <typename Fn>
-        static register_type lane_binary(const register_type &left, const register_type &right, Fn fn) noexcept {
+        static RAINY_CONSTEXPR26 register_type lane_binary(const register_type &left, const register_type &right, Fn fn) noexcept {
             register_type result{};
             for (simd_size_type i = 0; i < size; ++i) {
                 set_lane(result, i, fn(get_lane(left, i), get_lane(right, i)));
@@ -1012,7 +1090,7 @@ namespace rainy::core::implements {
         }
 
         template <typename Fn>
-        static register_type lane_unary(const register_type &src, Fn fn) noexcept {
+        static RAINY_CONSTEXPR26 register_type lane_unary(const register_type &src, Fn fn) noexcept {
             register_type result{};
             for (simd_size_type i = 0; i < size; ++i) {
                 set_lane(result, i, fn(get_lane(src, i)));
@@ -1021,7 +1099,7 @@ namespace rainy::core::implements {
         }
 
         template <int Op>
-        static mask_register_type lane_mask(const register_type &left, const register_type &right) noexcept {
+        static RAINY_CONSTEXPR26 mask_register_type lane_mask(const register_type &left, const register_type &right) noexcept {
             mask_register_type result{};
             for (simd_size_type i = 0; i < size; ++i) {
                 bool r = false;
@@ -1044,7 +1122,7 @@ namespace rainy::core::implements {
             return result;
         }
 
-        static register_type broadcast_lanes(Ty value) noexcept {
+        static RAINY_CONSTEXPR26 register_type broadcast_lanes(Ty value) noexcept {
             register_type result{};
             for (simd_size_type i = 0; i < size; ++i) {
                 set_lane(result, i, value);
@@ -1059,31 +1137,31 @@ namespace rainy::core::implements {
         using mask_register_type = register_t<integer_from_t<sizeof(Ty)>, vector_abi<Bits>>;
         static constexpr simd_size_type size = simd_size_v<Ty, vector_abi<Bits>>;
 
-        static register_type broadcast(Ty value) noexcept {
+        static RAINY_CONSTEXPR26 register_type broadcast(Ty value) noexcept {
             return broadcast_impl(value, type_traits::helper::make_index_sequence<static_cast<std::size_t>(size)>{});
         }
 
-        static Ty get_lane(const register_type &reg, simd_size_type i) noexcept {
+        static RAINY_CONSTEXPR26 Ty get_lane(const register_type &reg, simd_size_type i) noexcept {
             return reg[i];
         }
 
-        static void set_lane(register_type &reg, simd_size_type i, Ty value) noexcept {
+        static RAINY_CONSTEXPR26 void set_lane(register_type &reg, simd_size_type i, Ty value) noexcept {
             reg[i] = value;
         }
 
-        static register_type add(register_type left, register_type right) noexcept {
+        static RAINY_CONSTEXPR26 register_type add(register_type left, register_type right) noexcept {
             return left + right;
         }
 
-        static register_type sub(register_type left, register_type right) noexcept {
+        static RAINY_CONSTEXPR26 register_type sub(register_type left, register_type right) noexcept {
             return left - right;
         }
 
-        static register_type mul(register_type left, register_type right) noexcept {
+        static RAINY_CONSTEXPR26 register_type mul(register_type left, register_type right) noexcept {
             return left * right;
         }
 
-        static register_type div(register_type left, register_type right) noexcept {
+        static RAINY_CONSTEXPR26 register_type div(register_type left, register_type right) noexcept {
             if constexpr (type_traits::primary_types::is_floating_point_v<Ty>) {
                 return left / right;
             } else {
@@ -1095,7 +1173,7 @@ namespace rainy::core::implements {
             }
         }
 
-        static register_type mod(register_type left, register_type right) noexcept {
+        static RAINY_CONSTEXPR26 register_type mod(register_type left, register_type right) noexcept {
             register_type result{};
             for (simd_size_type i = 0; i < size; ++i) {
                 result[i] = static_cast<Ty>(left[i] % right[i]);
@@ -1103,67 +1181,67 @@ namespace rainy::core::implements {
             return result;
         }
 
-        static register_type bit_and(register_type left, register_type right) noexcept {
+        static RAINY_CONSTEXPR26 register_type bit_and(register_type left, register_type right) noexcept {
             return left & right;
         }
 
-        static register_type bit_or(register_type left, register_type right) noexcept {
+        static RAINY_CONSTEXPR26 register_type bit_or(register_type left, register_type right) noexcept {
             return left | right;
         }
 
-        static register_type bit_xor(register_type left, register_type right) noexcept {
+        static RAINY_CONSTEXPR26 register_type bit_xor(register_type left, register_type right) noexcept {
             return left ^ right;
         }
 
-        static register_type shl(register_type left, register_type right) noexcept {
+        static RAINY_CONSTEXPR26 register_type shl(register_type left, register_type right) noexcept {
             return left << right;
         }
 
-        static register_type shr(register_type left, register_type right) noexcept {
+        static RAINY_CONSTEXPR26 register_type shr(register_type left, register_type right) noexcept {
             return left >> right;
         }
 
-        static register_type shl_scalar(register_type left, simd_size_type count) noexcept {
+        static RAINY_CONSTEXPR26 register_type shl_scalar(register_type left, simd_size_type count) noexcept {
             return left << count;
         }
 
-        static register_type shr_scalar(register_type left, simd_size_type count) noexcept {
+        static RAINY_CONSTEXPR26 register_type shr_scalar(register_type left, simd_size_type count) noexcept {
             return left >> count;
         }
 
-        static register_type negate(register_type reg) noexcept {
+        static RAINY_CONSTEXPR26 register_type negate(register_type reg) noexcept {
             return -reg;
         }
 
-        static register_type bit_not(register_type reg) noexcept {
+        static RAINY_CONSTEXPR26 register_type bit_not(register_type reg) noexcept {
             return ~reg;
         }
 
-        static mask_register_type cmp_eq(register_type left, register_type right) noexcept {
+        static RAINY_CONSTEXPR26 mask_register_type cmp_eq(register_type left, register_type right) noexcept {
             return bitcast<mask_register_type>(left == right);
         }
 
-        static mask_register_type cmp_ne(register_type left, register_type right) noexcept {
+        static RAINY_CONSTEXPR26 mask_register_type cmp_ne(register_type left, register_type right) noexcept {
             return bitcast<mask_register_type>(left != right);
         }
 
-        static mask_register_type cmp_lt(register_type left, register_type right) noexcept {
+        static RAINY_CONSTEXPR26 mask_register_type cmp_lt(register_type left, register_type right) noexcept {
             return bitcast<mask_register_type>(left < right);
         }
 
-        static mask_register_type cmp_le(register_type left, register_type right) noexcept {
+        static RAINY_CONSTEXPR26 mask_register_type cmp_le(register_type left, register_type right) noexcept {
             return bitcast<mask_register_type>(left <= right);
         }
 
-        static mask_register_type cmp_gt(register_type left, register_type right) noexcept {
+        static RAINY_CONSTEXPR26 mask_register_type cmp_gt(register_type left, register_type right) noexcept {
             return bitcast<mask_register_type>(left > right);
         }
 
-        static mask_register_type cmp_ge(register_type left, register_type right) noexcept {
+        static RAINY_CONSTEXPR26 mask_register_type cmp_ge(register_type left, register_type right) noexcept {
             return bitcast<mask_register_type>(left >= right);
         }
 
-        static register_type blend(const mask_register_type &mask, const register_type &on_true,
+        static RAINY_CONSTEXPR26 register_type blend(const mask_register_type &mask, const register_type &on_true,
                                    const register_type &on_false) noexcept {
             auto true_bits = bitcast<mask_register_type>(on_true);
             auto false_bits = bitcast<mask_register_type>(on_false);
@@ -1171,7 +1249,7 @@ namespace rainy::core::implements {
         }
 
         template <typename U, typename UAbi>
-        static register_type convert(const register_t<U, UAbi> &src) noexcept {
+        static RAINY_CONSTEXPR26 register_type convert(const register_t<U, UAbi> &src) noexcept {
             register_type result{};
             for (simd_size_type i = 0; i < size; ++i) {
                 result[i] = static_cast<Ty>(simd_ops<U, UAbi>::get_lane(src, i));
@@ -1179,33 +1257,62 @@ namespace rainy::core::implements {
             return result;
         }
 
-        static register_type min_reg(register_type left, register_type right) noexcept {
+        static RAINY_CONSTEXPR26 register_type min_reg(register_type left, register_type right) noexcept {
             return blend(cmp_lt(right, left), right, left);
         }
 
-        static register_type max_reg(register_type left, register_type right) noexcept {
+        static RAINY_CONSTEXPR26 register_type max_reg(register_type left, register_type right) noexcept {
             return blend(cmp_lt(left, right), right, left);
         }
 
-        static register_type load(const Ty *ptr) noexcept {
+        static RAINY_CONSTEXPR26 register_type load(const Ty *ptr) noexcept {
             register_type result;
-            core::builtin::copy_memory(&result, ptr, sizeof(result));
+#if RAINY_HAS_CXX26
+            if (std::is_constant_evaluated()) {
+                for (simd_size_type i = 0; i < size; ++i) {
+                    result[i] = ptr[i];
+                }
+            } else
+#endif
+            {
+                core::builtin::copy_memory(&result, ptr, sizeof(result));
+            }
             return result;
         }
 
-        static void store(Ty *ptr, const register_type &reg) noexcept {
-            core::builtin::copy_memory(ptr, &reg, sizeof(reg));
+        static RAINY_CONSTEXPR26 void store(Ty *ptr, const register_type &reg) noexcept {
+#if RAINY_HAS_CXX26
+            if (std::is_constant_evaluated()) {
+                for (simd_size_type i = 0; i < size; ++i) {
+                    ptr[i] = reg[i];
+                }
+            } else
+#endif
+            {
+                core::builtin::copy_memory(ptr, &reg, sizeof(reg));
+            }
         }
 
         template <typename To, typename From>
-        static To bitcast(const From &src) noexcept {
+        static RAINY_CONSTEXPR26 To bitcast(const From &src) noexcept {
             To dst;
-            core::builtin::copy_memory(&dst, &src, sizeof(To));
+#if RAINY_HAS_CXX26
+            if (std::is_constant_evaluated()) {
+                const auto *src_bytes = reinterpret_cast<const unsigned char *>(&src);
+                auto *dst_bytes = reinterpret_cast<unsigned char *>(&dst);
+                for (std::size_t i = 0; i < sizeof(To); ++i) {
+                    dst_bytes[i] = src_bytes[i];
+                }
+            } else
+#endif
+            {
+                core::builtin::copy_memory(&dst, &src, sizeof(To));
+            }
             return dst;
         }
 
         template <std::size_t... I>
-        static register_type broadcast_impl(Ty value, type_traits::helper::index_sequence<I...>) noexcept {
+        static RAINY_CONSTEXPR26 register_type broadcast_impl(Ty value, type_traits::helper::index_sequence<I...>) noexcept {
             return register_type{((void)I, value)...};
         }
     };
