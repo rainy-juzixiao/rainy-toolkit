@@ -9,30 +9,6 @@
 
 namespace rainy::foundation::willow::implements {
     template <typename BasicDocument>
-    struct value_state {
-        using key = core::text::string;
-        using properties_type = collections::unordered_map<key, typename BasicDocument::string_type>;
-
-        typename BasicDocument::string_type &operator[](const key &key) {
-            return properties[key];
-        }
-
-        bool contains(const key &key) const {
-            return properties.find(key) != properties.end();
-        }
-
-        bool empty() const noexcept {
-            return properties.empty();
-        }
-
-        void clear() {
-            properties.clear();
-        }
-
-        properties_type properties;
-    };
-
-    template <typename BasicDocument>
     struct value {
         using string_type = typename BasicDocument::string_type;
         using char_type = typename BasicDocument::char_type;
@@ -41,7 +17,6 @@ namespace rainy::foundation::willow::implements {
         using boolean_type = typename BasicDocument::boolean_type;
         using array_type = typename BasicDocument::array_type;
         using object_type = typename BasicDocument::object_type;
-        using state_type = value_state<BasicDocument>;
 
         value() {
             type = document_type::null;
@@ -142,23 +117,16 @@ namespace rainy::foundation::willow::implements {
                     data.object = nullptr;
                     break;
             }
-            state_ = other.state_ ? create<state_type>(*other.state_) : nullptr;
         }
 
         value(value &&other) noexcept {
             type = other.type;
             data = other.data;
-            state_ = other.state_;
             other.type = document_type::null;
             other.data.object = nullptr;
-            other.state_ = nullptr;
         }
 
         ~value() {
-            if (state_) {
-                destroy<state_type>(state_);
-                state_ = nullptr;
-            }
             switch (type) {
                 case document_type::object:
                     destroy<object_type>(data.object);
@@ -177,7 +145,6 @@ namespace rainy::foundation::willow::implements {
         void swap(value &other) noexcept {
             std::swap(type, other.type);
             std::swap(data, other.data);
-            std::swap(state_, other.state_);
         }
 
         void clear() {
@@ -193,10 +160,6 @@ namespace rainy::foundation::willow::implements {
                     break;
                 default:
                     break;
-            }
-            if (state_) {
-                destroy<state_type>(state_);
-                state_ = nullptr;
             }
             type = document_type::null;
             data.object = nullptr;
@@ -236,52 +199,21 @@ namespace rainy::foundation::willow::implements {
         }
 
         value &operator=(value const &other) {
-            if (other.state_) {
+            if (this != &other) {
                 value{other}.swap(*this);
-            } else {
-                state_type *keep = state_;
-                state_ = nullptr;
-                value{other}.swap(*this);
-                state_ = keep;
             }
             return (*this);
         }
 
         value &operator=(value &&other) noexcept {
-            state_type *keep = state_;
-            state_ = nullptr;
-            clear();
-            type = other.type;
-            data = std::move(other.data);
-            if (other.state_) {
-                state_ = other.state_;
-                other.state_ = nullptr;
-                if (keep) {
-                    destroy<state_type>(keep);
-                }
-            } else {
-                state_ = keep;
+            if (this != &other) {
+                clear();
+                type = other.type;
+                data = other.data;
+                other.type = document_type::null;
+                other.data.object = nullptr;
             }
-
-            other.type = document_type::null;
-            other.data.object = nullptr;
             return (*this);
-        }
-
-        bool has_state() const noexcept {
-            return state_ != nullptr;
-        }
-
-        state_type &state() {
-            if (!state_) {
-                state_ = create<state_type>();
-            }
-            return *state_;
-        }
-
-        const state_type &state() const noexcept {
-            static const state_type empty{};
-            return state_ ? *state_ : empty;
         }
 
         friend bool operator==(const value &lhs, const value &rhs) {
@@ -330,9 +262,6 @@ namespace rainy::foundation::willow::implements {
             float_type number_float;
             boolean_type boolean;
         } data;
-
-    private:
-        state_type *state_{nullptr};
     };
 
     template <typename BasicDocument>

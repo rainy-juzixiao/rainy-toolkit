@@ -65,7 +65,6 @@ namespace rainy::foundation::willow::json {
         using boolean_type = typename BasicDocument::boolean_type;
         using array_type = typename BasicDocument::array_type;
         using object_type = typename BasicDocument::object_type;
-        using state_type = typename BasicDocument::state_type;
         using initializer_list = typename BasicDocument::initializer_list;
         using iterator = typename BasicDocument::iterator;
         using const_iterator = typename BasicDocument::const_iterator;
@@ -93,8 +92,6 @@ namespace rainy::foundation::willow::json {
         using BasicDocument::is_primitive;
         using BasicDocument::type;
         using BasicDocument::type_name;
-        using BasicDocument::has_state;
-        using BasicDocument::state;
         using BasicDocument::begin;
         using BasicDocument::end;
         using BasicDocument::cbegin;
