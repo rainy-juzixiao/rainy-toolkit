@@ -25,7 +25,7 @@
 namespace rainy::foundation::willow {
     template <template <typename Key, typename Ty, typename... Args> typename ObjectType,
               template <typename Key, typename... Args> typename ArrayType, typename StringType, typename IntegerType,
-              typename FloatingType, typename BooleanType, template <typename Ty> typename Alloc>
+              typename FloatingType, typename BooleanType, template <typename Ty> typename Alloc, typename NodeTag>
     class basic_document {
     public:
         friend class document_iterator<basic_document>;
@@ -44,17 +44,26 @@ namespace rainy::foundation::willow {
         using integer_type = IntegerType;
         using float_type = FloatingType;
         using boolean_type = BooleanType;
-        using array_type = ArrayType<basic_document, allocator_type<basic_document>>;
+        using node_type = node_representation_t<basic_document, NodeTag>;
+        using array_type = ArrayType<node_type, allocator_type<node_type>>;
         using object_type = typename type_traits::extras::templates::replace_last_parameter<
-            ObjectType<string_type, basic_document>, allocator_type<std::pair<const string_type, basic_document>>>::type;
+            ObjectType<string_type, node_type>, allocator_type<std::pair<const string_type, node_type>>>::type;
         using state_type = implements::value_state<basic_document>;
-        using initializer_list = std::initializer_list<basic_document>;
+        using initializer_list = std::initializer_list<node_type>;
         using iterator = document_iterator<basic_document>;
         using const_iterator = document_iterator<const basic_document>;
         using reverse_iterator = utility::reverse_iterator<iterator>;
         using const_reverse_iterator = utility::reverse_iterator<const_iterator>;
 
         basic_document() noexcept = default;
+
+        node_type &as_node() noexcept {
+            return static_cast<node_type &>(*this);
+        }
+
+        const node_type &as_node() const noexcept {
+            return static_cast<const node_type &>(*this);
+        }
 
         basic_document(std::nullptr_t) {
         }
@@ -112,7 +121,7 @@ namespace rainy::foundation::willow {
             if (exact_type == document_type::object) {
                 assert(is_an_object);
                 value_ = document_type::object;
-                for (const basic_document &item: init_list) {
+                for (const node_type &item: init_list) {
                     object_type &object = (*value_.data.object);
                     array_type &values = (*item.value_.data.vector);
                     object.emplace(values[0].as_string(), values[1]);
@@ -512,7 +521,7 @@ namespace rainy::foundation::willow {
             return *this;
         }
 
-        basic_document &operator[](size_type index) {
+        node_type &operator[](size_type index) {
             if (is_null()) {
                 value_ = document_type::array;
             }
@@ -526,7 +535,7 @@ namespace rainy::foundation::willow {
             return vec[index];
         }
 
-        const basic_document &operator[](size_type index) const {
+        const node_type &operator[](size_type index) const {
             if (!is_array()) {
                 exceptions::willow::throw_willow_invalid_key("operator[] called on a non-array type");
             }
@@ -536,7 +545,7 @@ namespace rainy::foundation::willow {
             return (*value_.data.vector)[index];
         }
 
-        RAINY_INLINE basic_document &operator[](const typename object_type::key_type &key) {
+        RAINY_INLINE node_type &operator[](const typename object_type::key_type &key) {
             if (is_null()) {
                 value_ = document_type::object;
             }
@@ -546,7 +555,7 @@ namespace rainy::foundation::willow {
             return (*value_.data.object)[key];
         }
 
-        RAINY_INLINE basic_document &operator[](const typename object_type::key_type &key) const {
+        RAINY_INLINE node_type &operator[](const typename object_type::key_type &key) const {
             if (!is_object()) {
                 exceptions::willow::throw_willow_invalid_key("operator[] called on a non-object object");
             }
@@ -558,7 +567,7 @@ namespace rainy::foundation::willow {
         }
 
         template <typename CharType>
-        RAINY_INLINE basic_document &operator[](CharType *key) {
+        RAINY_INLINE node_type &operator[](CharType *key) {
             if (is_null()) {
                 value_ = document_type::object;
             }
@@ -569,7 +578,7 @@ namespace rainy::foundation::willow {
         }
 
         template <typename CharType>
-        RAINY_INLINE const basic_document &operator[](CharType *key) const {
+        RAINY_INLINE const node_type &operator[](CharType *key) const {
             if (!is_object()) {
                 exceptions::willow::throw_willow_invalid_key("operator[] called on a non-object object");
             }
@@ -644,9 +653,11 @@ namespace rainy::foundation::willow {
     RAINY_CONSTEXPR_BOOL is_basic_document_v = false;
 
     template <template <class Key, class Ty, class... Args> class ObjectType, template <class Key, class... Args> class ArrayType,
-              typename StringType, typename IntegerType, typename FloatingType, typename BooleanType, template <class Ty> class Alloc>
+              typename StringType, typename IntegerType, typename FloatingType, typename BooleanType, template <class Ty> class Alloc,
+              typename NodeTag>
     RAINY_CONSTEXPR_BOOL
-        is_basic_document_v<basic_document<ObjectType, ArrayType, StringType, IntegerType, FloatingType, BooleanType, Alloc>> = true;
+        is_basic_document_v<basic_document<ObjectType, ArrayType, StringType, IntegerType, FloatingType, BooleanType, Alloc, NodeTag>> =
+            true;
 
     template <typename Ty>
     struct is_basic_document : type_traits::helper::bool_constant<is_basic_document_v<Ty>> {};
