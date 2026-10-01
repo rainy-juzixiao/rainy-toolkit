@@ -48,7 +48,6 @@ namespace rainy::foundation::willow {
         using array_type = ArrayType<node_type, allocator_type<node_type>>;
         using object_type = typename type_traits::extras::templates::replace_last_parameter<
             ObjectType<string_type, node_type>, allocator_type<std::pair<const string_type, node_type>>>::type;
-        using state_type = implements::value_state<basic_document>;
         using initializer_list = std::initializer_list<node_type>;
         using iterator = document_iterator<basic_document>;
         using const_iterator = document_iterator<const basic_document>;
@@ -190,18 +189,6 @@ namespace rainy::foundation::willow {
 
         document_type type() const {
             return value_.type;
-        }
-
-        bool has_state() const noexcept {
-            return value_.has_state();
-        }
-
-        state_type &state() {
-            return value_.state();
-        }
-
-        const state_type &state() const noexcept {
-            return value_.state();
         }
 
         std::string_view type_name() const {
