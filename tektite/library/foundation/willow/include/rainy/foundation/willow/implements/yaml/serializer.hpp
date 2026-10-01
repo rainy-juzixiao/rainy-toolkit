@@ -40,12 +40,9 @@ namespace rainy::foundation::willow::yaml::implements {
         using integer_type = typename BasicDocument::integer_type;
         using float_type = typename BasicDocument::float_type;
         using boolean_type = typename BasicDocument::boolean_type;
-        using array_type = typename BasicDocument::array_type;
-        using object_type = typename BasicDocument::object_type;
         using char_traits = core::text::char_traits<char_type>;
         using char_int_type = typename char_traits::int_type;
         using args = serializer_args<BasicDocument>;
-        using state_type = typename BasicDocument::state_type;
         using node_type = facade<BasicDocument>;
 
         static constexpr std::size_t flush_threshold = 4096;
@@ -105,11 +102,10 @@ namespace rainy::foundation::willow::yaml::implements {
 
         template <typename Node>
         yaml_flow_style get_style(const Node &doc) const {
-            const auto notation = resolve_notation(doc);
-            if (notation == node_notation::flow) {
+            if (style_is_flow(doc)) {
                 return yaml_flow_style::flow;
             }
-            if (notation != node_notation::unspecified) {
+            if (has_explicit_block_style(doc)) {
                 return yaml_flow_style::block;
             }
             if (arg_.indent > 0) {
@@ -119,42 +115,45 @@ namespace rainy::foundation::willow::yaml::implements {
         }
 
         template <typename Node>
-        node_notation resolve_notation(const Node &doc) const {
-            if constexpr (type_traits::type_relations::is_same_v<Node, node_type>) {
-                if (doc.notation() != node_notation::unspecified) {
-                    return doc.notation();
+        bool style_is_flow(const Node &doc) const {
+            return style_key_is(doc, "flow", 4);
+        }
+
+        template <typename Node>
+        bool has_explicit_block_style(const Node &doc) const {
+            return style_key_is(doc, "block", 5);
+        }
+
+        template <typename Node>
+        bool style_key_is(const Node &doc, const char *const narrow, const std::size_t length) const {
+            if (!doc.has_style()) {
+                return false;
+            }
+            const auto &name = doc.style();
+            if (name.size() != length) {
+                return false;
+            }
+            for (std::size_t i = 0; i < length; ++i) {
+                if (static_cast<char>(name[i]) != narrow[i]) {
+                    return false;
                 }
             }
-            if (!doc.has_state()) {
-                return node_notation::unspecified;
-            }
-            const auto &properties = doc.state().properties;
-            const auto found = properties.find("yaml.style");
-            if (found == properties.end()) {
-                return node_notation::unspecified;
-            }
-            const auto name = found->second;
-            char buffer[16]{};
-            const auto count = name.size() < sizeof(buffer) ? name.size() : sizeof(buffer);
-            for (std::size_t i = 0; i < count; ++i) {
-                buffer[i] = static_cast<char>(name[i]);
-            }
-            return notation_from_name(buffer, count);
+            return true;
         }
 
         template <typename Node>
         bool has_yaml_anchor(const Node &doc) const {
-            return doc.has_state() && doc.state().contains("yaml.anchor");
+            return doc.has_anchor();
         }
 
         template <typename Node>
         bool has_yaml_alias(const Node &doc) const {
-            return doc.has_state() && doc.state().contains("yaml.alias");
+            return doc.has_alias();
         }
 
         template <typename Node>
         bool has_yaml_tag(const Node &doc) const {
-            return doc.has_state() && doc.state().contains("yaml.tag");
+            return doc.has_tag();
         }
 
         template <typename Node>
@@ -166,7 +165,7 @@ namespace rainy::foundation::willow::yaml::implements {
         void write_node_prefix(const Node &yaml, const bool trailing_space = true) {
             if (has_yaml_tag(yaml)) {
                 put(to_char_type('!'));
-                const auto &tag = yaml.state().properties.find("yaml.tag")->second;
+                const auto &tag = yaml.tag();
                 put(tag.data(), tag.size());
                 if (trailing_space) {
                     put(to_char_type(' '));
@@ -174,7 +173,7 @@ namespace rainy::foundation::willow::yaml::implements {
             }
             if (has_yaml_anchor(yaml)) {
                 put(to_char_type('&'));
-                const auto &anchor = yaml.state().properties.find("yaml.anchor")->second;
+                const auto &anchor = yaml.anchor();
                 put(anchor.data(), anchor.size());
                 if (trailing_space) {
                     put(to_char_type(' '));
@@ -187,7 +186,7 @@ namespace rainy::foundation::willow::yaml::implements {
                        const bool emit_prefix = true) {
             if (has_yaml_alias(yaml)) {
                 put(to_char_type('*'));
-                const auto &alias = yaml.state().properties.find("yaml.alias")->second;
+                const auto &alias = yaml.alias();
                 put(alias.data(), alias.size());
                 if (!in_sequence) {
                     put(to_char_type('\n'));
@@ -249,7 +248,9 @@ namespace rainy::foundation::willow::yaml::implements {
                 return;
             }
 
-            for (const auto &[key, value]: object) {
+            for (const auto &entry: object) {
+                const auto &key = entry.first;
+                const node_type &value = entry.second;
                 write_indent(current_indent);
                 write_key(key);
                 put(to_char_type(':'));
@@ -313,7 +314,8 @@ namespace rainy::foundation::willow::yaml::implements {
                 return;
             }
 
-            for (const auto &item: array) {
+            for (const auto &raw_item: array) {
+                const node_type &item = raw_item;
                 write_indent(current_indent);
                 put(to_char_type('-'));
                 if (is_nested_container(item) && !has_yaml_alias(item) && get_style(item) == yaml_flow_style::flow) {
@@ -355,7 +357,7 @@ namespace rainy::foundation::willow::yaml::implements {
         void dump_flow_node(const Node &yaml) {
             if (has_yaml_alias(yaml)) {
                 put(to_char_type('*'));
-                const auto &alias = yaml.state().properties.find("yaml.alias")->second;
+                const auto &alias = yaml.alias();
                 put(alias.data(), alias.size());
                 return;
             }

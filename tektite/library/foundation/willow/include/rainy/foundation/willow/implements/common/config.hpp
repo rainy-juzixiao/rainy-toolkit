@@ -79,10 +79,19 @@ namespace rainy::foundation::willow {
 #endif
 
 
+    template <typename BasicDocument, typename NodeTag = void>
+    struct node_representation {
+        using type = BasicDocument;
+    };
+
+    template <typename BasicDocument, typename NodeTag = void>
+    using node_representation_t = typename node_representation<BasicDocument, NodeTag>::type;
+
     template <template <typename Key, typename Ty, typename... Args> typename ObjectType = collections::unordered_map,
               template <typename Key, typename... Args> typename ArrayType = core::collections::vector,
               typename StringType = core::text::string, typename IntegerType = std::int32_t, typename FloatingType = double,
-              typename BooleanType = bool, template <typename Ty> typename Alloc = std::pmr::polymorphic_allocator>
+              typename BooleanType = bool, template <typename Ty> typename Alloc = std::pmr::polymorphic_allocator,
+              typename NodeTag = void>
     class basic_document;
 
     using document = basic_document<>;
