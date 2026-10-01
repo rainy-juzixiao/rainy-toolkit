@@ -15,6 +15,23 @@ target_link_libraries(rainy-toolkit-foundation-willow PUBLIC
         rainy-toolkit-foundation-collections
 )
 
+set(RAINY_FOUNDATION_WILLOW_TEST_FILES "")
+
+rainy_load_flodar_files("${CMAKE_CURRENT_SOURCE_DIR}/tests" ".cc" RAINY_FOUNDATION_WILLOW_TEST_FILES)
+
+add_executable(rainy-toolkit-foundation-willow-unit-test ${RAINY_FOUNDATION_WILLOW_TEST_FILES})
+
+target_link_libraries(rainy-toolkit-foundation-willow-unit-test PRIVATE
+        Catch2::Catch2WithMain
+        rainy-toolkit-foundation-willow
+)
+
+catch_discover_tests(rainy-toolkit-foundation-willow-unit-test)
+
+set_target_properties(rainy-toolkit-foundation-willow-unit-test PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
+unset(RAINY_FOUNDATION_WILLOW_TEST_FILES)
+
 unset(WILLOW_SOURCES)
 
 install(TARGETS rainy-toolkit-foundation-willow EXPORT rainy-toolkit-targets
