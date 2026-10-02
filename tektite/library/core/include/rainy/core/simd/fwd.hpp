@@ -38,7 +38,7 @@ namespace rainy::core {
     struct alignment;
 
     template <typename Ty, typename UTy = typename Ty::value_type>
-    RAINY_CONSTEXPR26 std::size_t alignment_v = alignment<Ty, UTy>::value;
+    inline constexpr std::size_t alignment_v = alignment<Ty, UTy>::value;
 }
 
 namespace rainy::core::implements {
@@ -215,7 +215,7 @@ namespace rainy::core {
     // simd-size-val<Ty, Abi> (exposition): width of basic_vec<Ty, Abi>; does not
     // require instantiation of basic_vec ([simd.syn] paragraph 2)
     template <typename Ty, typename Abi>
-    RAINY_CONSTEXPR26 simd_size_type simd_size_v = implements::simd_size_impl<Ty, Abi>::value;
+    inline constexpr simd_size_type simd_size_v = implements::simd_size_impl<Ty, Abi>::value;
 
     // [simd.traits], simd type traits (alignment is declared at the top of this header)
     template <typename Ty, typename V>
@@ -242,7 +242,7 @@ namespace rainy::core {
     inline constexpr flags<implements::convert_flag> flag_convert{};
     inline constexpr flags<implements::aligned_flag> flag_aligned{};
     template <std::size_t N, type_traits::other_trans::enable_if_t<implements::has_single_bit(N), int> = 0>
-    RAINY_CONSTEXPR26 flags<implements::overaligned_flag<N>> flag_overaligned{};
+    inline constexpr flags<implements::overaligned_flag<N>> flag_overaligned{};
 
     // [simd.class], Class template basic_vec
     template <typename Ty, typename Abi = native_abi_t<Ty>>
@@ -273,7 +273,7 @@ namespace rainy::core::implements {
 namespace rainy::core {
     // mask-element-size<Ty> (exposition): Bytes of basic_mask<Bytes, Abi> ([simd.syn] paragraph 3)
     template <typename Ty>
-    RAINY_CONSTEXPR26 std::size_t mask_element_size = implements::mask_element_size_impl<Ty>::value;
+    inline constexpr std::size_t mask_element_size = implements::mask_element_size_impl<Ty>::value;
 
     // [simd.creation], basic_vec and basic_mask creation
     template <typename Ty, typename Abi>

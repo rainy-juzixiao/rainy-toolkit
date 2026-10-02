@@ -33,7 +33,7 @@ namespace rainy::core::implements {
     RAINY_CONSTEXPR_BOOL is_basic_vec_v = is_basic_vec<V>::value;
 
     template <typename From, typename To>
-    RAINY_CONSTEXPR26 bool is_value_preserving() noexcept {
+    constexpr bool is_value_preserving() noexcept {
         using from_t = type_traits::implements::remove_cvref_t<From>;
         using to_t = type_traits::implements::remove_cvref_t<To>;
         if constexpr (type_traits::type_relations::is_same_v<from_t, to_t>) {
