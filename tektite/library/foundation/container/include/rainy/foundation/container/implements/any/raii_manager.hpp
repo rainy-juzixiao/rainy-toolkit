@@ -15,7 +15,7 @@
  */
 #ifndef RAINY_UTILITY_IMPLEMENTS_ANY_RAII_MANAGER_HPP
 #define RAINY_UTILITY_IMPLEMENTS_ANY_RAII_MANAGER_HPP // NOLINT
-#include <rettr/core/prerequisites.hpp>
+#include <rainy/core/platform.hpp>
 
 namespace rainy::foundation::container::implements {
     template <typename Ty, std::size_t Length>
@@ -38,7 +38,7 @@ namespace rainy::foundation::container::implements {
         }
 
         template <typename Ty>
-        RETTR_NODISCARD static void *copy(const void *const source) {
+        RAINY_NODISCARD static void *copy(const void *const source) {
             return ::new Ty(*static_cast<const Ty *>(source));
         }
 
