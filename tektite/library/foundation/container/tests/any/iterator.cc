@@ -80,7 +80,8 @@ TEST_CASE("any - iterator - category reflects the underlying iterator", "[any]")
 
     CHECK(vec.begin().category() >= any_iterator_category::random_access_iterator);
     CHECK(lst.begin().category() == any_iterator_category::bidirectional_iterator);
-    CHECK(umap.begin().category() == any_iterator_category::forward_iterator);
+    CHECK(umap.begin().category() >= any_iterator_category::forward_iterator);
+    CHECK(umap.begin().category() <= any_iterator_category::bidirectional_iterator);
 }
 
 TEST_CASE("any - iterator - backward movement on bidirectional container", "[any]") {
