@@ -43,7 +43,7 @@ namespace rainy::core {
 
 namespace rainy::core::implements {
     template <typename Ty>
-    RAINY_CONSTEXPR26 int popcount(Ty __x) noexcept {
+    constexpr int popcount(Ty __x) noexcept {
         using utype = type_traits::helper::make_unsigned_t<Ty>;
         utype u = static_cast<utype>(__x);
 
@@ -67,7 +67,7 @@ namespace rainy::core::implements {
     }
 
     template <typename Ty, type_traits::other_trans::enable_if_t<type_traits::properties::is_unsigned_v<Ty>, int> = 0>
-    RAINY_CONSTEXPR26 bool has_single_bit(Ty val) noexcept {
+    constexpr bool has_single_bit(Ty val) noexcept {
         return implements::popcount(val) == 1;
     }
 
