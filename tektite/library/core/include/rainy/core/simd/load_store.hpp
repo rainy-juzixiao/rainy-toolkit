@@ -22,7 +22,7 @@
 namespace rainy::core {
     template <typename V, typename It, typename... Flags,
               type_traits::other_trans::enable_if_t<type_traits::extras::iterators::is_contiguous_iterator_v<It>, int>>
-    constexpr V partial_load(It first, implements::iter_difference_t<It> n,
+    RAINY_CONSTEXPR26 V partial_load(It first, implements::iter_difference_t<It> n,
                                   const typename V::mask_type &mask, flags<Flags...> f) {
         (void)f;
         using ops = implements::simd_ops<typename V::value_type, typename V::abi_type>;
@@ -43,7 +43,7 @@ namespace rainy::core {
 
     template <typename V, typename It, typename... Flags,
               type_traits::other_trans::enable_if_t<type_traits::extras::iterators::is_contiguous_iterator_v<It>, int>>
-    constexpr V partial_load(It first, implements::iter_difference_t<It> n, flags<Flags...> f) {
+    RAINY_CONSTEXPR26 V partial_load(It first, implements::iter_difference_t<It> n, flags<Flags...> f) {
         (void)f;
         using ops = implements::simd_ops<typename V::value_type, typename V::abi_type>;
         if constexpr (std::is_pointer_v<It>) {
@@ -61,20 +61,20 @@ namespace rainy::core {
 
     template <typename V, typename It, typename... Flags,
               type_traits::other_trans::enable_if_t<type_traits::extras::iterators::is_contiguous_iterator_v<It>, int>>
-    constexpr V unchecked_load(It first, implements::iter_difference_t<It> n,
+    RAINY_CONSTEXPR26 V unchecked_load(It first, implements::iter_difference_t<It> n,
                                     const typename V::mask_type &mask, flags<Flags...> f) {
         return partial_load<V>(first, n, mask, f);
     }
 
     template <typename V, typename It, typename... Flags,
               type_traits::other_trans::enable_if_t<type_traits::extras::iterators::is_contiguous_iterator_v<It>, int>>
-    constexpr V unchecked_load(It first, implements::iter_difference_t<It> n, flags<Flags...> f) {
+    RAINY_CONSTEXPR26 V unchecked_load(It first, implements::iter_difference_t<It> n, flags<Flags...> f) {
         return partial_load<V>(first, n, typename V::mask_type(true), f);
     }
 
     template <typename Ty, typename Abi, typename It, typename... Flags,
               type_traits::other_trans::enable_if_t<type_traits::extras::iterators::is_contiguous_iterator_v<It>, int>>
-    constexpr void partial_store(const basic_vec<Ty, Abi> &val, It first, implements::iter_difference_t<It> n,
+    RAINY_CONSTEXPR26 void partial_store(const basic_vec<Ty, Abi> &val, It first, implements::iter_difference_t<It> n,
                                       const typename basic_vec<Ty, Abi>::mask_type &mask, flags<Flags...> f) {
         (void)f;
         using ops = implements::simd_ops<Ty, Abi>;
@@ -96,7 +96,7 @@ namespace rainy::core {
 
     template <typename Ty, typename Abi, typename It, typename... Flags,
               type_traits::other_trans::enable_if_t<type_traits::extras::iterators::is_contiguous_iterator_v<It>, int>>
-    constexpr void partial_store(const basic_vec<Ty, Abi> &val, It first, implements::iter_difference_t<It> n,
+    RAINY_CONSTEXPR26 void partial_store(const basic_vec<Ty, Abi> &val, It first, implements::iter_difference_t<It> n,
                                       flags<Flags...> f) {
         using ops = implements::simd_ops<Ty, Abi>;
         if constexpr (std::is_pointer_v<It>) {
@@ -115,14 +115,14 @@ namespace rainy::core {
 
     template <typename Ty, typename Abi, typename It, typename... Flags,
               type_traits::other_trans::enable_if_t<type_traits::extras::iterators::is_contiguous_iterator_v<It>, int>>
-    constexpr void unchecked_store(const basic_vec<Ty, Abi> &val, It first, implements::iter_difference_t<It> n,
+    RAINY_CONSTEXPR26 void unchecked_store(const basic_vec<Ty, Abi> &val, It first, implements::iter_difference_t<It> n,
                                         const typename basic_vec<Ty, Abi>::mask_type &mask, flags<Flags...> f) {
         partial_store(val, first, n, mask, f);
     }
 
     template <typename Ty, typename Abi, typename It, typename... Flags,
               type_traits::other_trans::enable_if_t<type_traits::extras::iterators::is_contiguous_iterator_v<It>, int>>
-    constexpr void unchecked_store(const basic_vec<Ty, Abi> &val, It first, implements::iter_difference_t<It> n,
+    RAINY_CONSTEXPR26 void unchecked_store(const basic_vec<Ty, Abi> &val, It first, implements::iter_difference_t<It> n,
                                         flags<Flags...> f) {
         partial_store(val, first, n, f);
     }

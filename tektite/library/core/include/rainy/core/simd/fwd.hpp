@@ -38,12 +38,12 @@ namespace rainy::core {
     struct alignment;
 
     template <typename Ty, typename UTy = typename Ty::value_type>
-    constexpr std::size_t alignment_v = alignment<Ty, UTy>::value;
+    RAINY_CONSTEXPR26 std::size_t alignment_v = alignment<Ty, UTy>::value;
 }
 
 namespace rainy::core::implements {
     template <typename Ty>
-    constexpr int popcount(Ty __x) noexcept {
+    RAINY_CONSTEXPR26 int popcount(Ty __x) noexcept {
         using utype = type_traits::helper::make_unsigned_t<Ty>;
         utype u = static_cast<utype>(__x);
 
@@ -67,14 +67,14 @@ namespace rainy::core::implements {
     }
 
     template <typename Ty, type_traits::other_trans::enable_if_t<type_traits::properties::is_unsigned_v<Ty>, int> = 0>
-    constexpr bool has_single_bit(Ty val) noexcept {
+    RAINY_CONSTEXPR26 bool has_single_bit(Ty val) noexcept {
         return implements::popcount(val) == 1;
     }
 
     struct load_store_tag {};
 
     template <std::size_t N, typename UTy>
-    constexpr UTy *assume_aligned(UTy *ptr) noexcept {
+    RAINY_CONSTEXPR26 UTy *assume_aligned(UTy *ptr) noexcept {
 #if RAINY_USING_CLANG || RAINY_USING_GCC
 
 #if RAINY_HAS_CXX20
@@ -100,7 +100,7 @@ namespace rainy::core::implements {
         // (iter_value_t<It>; bool for mask copy operations). Requires
         // alignment to be defined per [simd.traits].
         template <typename V, typename UTy>
-        static constexpr UTy *adjust_pointer(UTy *ptr) noexcept {
+        static RAINY_CONSTEXPR26 UTy *adjust_pointer(UTy *ptr) noexcept {
             return assume_aligned<alignment_v<V, type_traits::implements::remove_cv_t<UTy>>>(ptr);
         }
     };
@@ -111,7 +111,7 @@ namespace rainy::core::implements {
         static_assert(has_single_bit(N));
 
         template <typename UTy>
-        static constexpr UTy *adjust_pointer(UTy *ptr) noexcept {
+        static RAINY_CONSTEXPR26 UTy *adjust_pointer(UTy *ptr) noexcept {
             return assume_aligned<N>(ptr);
         }
     };
@@ -215,7 +215,7 @@ namespace rainy::core {
     // simd-size-val<Ty, Abi> (exposition): width of basic_vec<Ty, Abi>; does not
     // require instantiation of basic_vec ([simd.syn] paragraph 2)
     template <typename Ty, typename Abi>
-    constexpr simd_size_type simd_size_v = implements::simd_size_impl<Ty, Abi>::value;
+    RAINY_CONSTEXPR26 simd_size_type simd_size_v = implements::simd_size_impl<Ty, Abi>::value;
 
     // [simd.traits], simd type traits (alignment is declared at the top of this header)
     template <typename Ty, typename V>
@@ -233,7 +233,7 @@ namespace rainy::core {
     template <typename... Flags>
     struct flags {
         template <typename... Other>
-        friend constexpr auto operator|(flags, flags<Other...>) {
+        friend RAINY_CONSTEXPR26 auto operator|(flags, flags<Other...>) {
             return flags<Flags..., Other...>{};
         }
     };
@@ -242,7 +242,7 @@ namespace rainy::core {
     inline constexpr flags<implements::convert_flag> flag_convert{};
     inline constexpr flags<implements::aligned_flag> flag_aligned{};
     template <std::size_t N, type_traits::other_trans::enable_if_t<implements::has_single_bit(N), int> = 0>
-    constexpr flags<implements::overaligned_flag<N>> flag_overaligned{};
+    RAINY_CONSTEXPR26 flags<implements::overaligned_flag<N>> flag_overaligned{};
 
     // [simd.class], Class template basic_vec
     template <typename Ty, typename Abi = native_abi_t<Ty>>
@@ -273,381 +273,381 @@ namespace rainy::core::implements {
 namespace rainy::core {
     // mask-element-size<Ty> (exposition): Bytes of basic_mask<Bytes, Abi> ([simd.syn] paragraph 3)
     template <typename Ty>
-    constexpr std::size_t mask_element_size = implements::mask_element_size_impl<Ty>::value;
+    RAINY_CONSTEXPR26 std::size_t mask_element_size = implements::mask_element_size_impl<Ty>::value;
 
     // [simd.creation], basic_vec and basic_mask creation
     template <typename Ty, typename Abi>
-    constexpr auto chunk(const basic_vec<typename Ty::value_type, Abi> &val) noexcept;
+    RAINY_CONSTEXPR26 auto chunk(const basic_vec<typename Ty::value_type, Abi> &val) noexcept;
     template <typename Ty, typename Abi>
-    constexpr auto chunk(const basic_mask<mask_element_size<Ty>, Abi> &val) noexcept;
+    RAINY_CONSTEXPR26 auto chunk(const basic_mask<mask_element_size<Ty>, Abi> &val) noexcept;
     template <simd_size_type N, typename Ty, typename Abi>
-    constexpr auto chunk(const basic_vec<Ty, Abi> &val) noexcept;
+    RAINY_CONSTEXPR26 auto chunk(const basic_vec<Ty, Abi> &val) noexcept;
     template <simd_size_type N, std::size_t Bytes, typename Abi>
-    constexpr auto chunk(const basic_mask<Bytes, Abi> &val) noexcept;
+    RAINY_CONSTEXPR26 auto chunk(const basic_mask<Bytes, Abi> &val) noexcept;
 
     template <typename Ty, typename Abi0, typename... Abis>
-    constexpr resize_t<(basic_vec<Ty, Abi0>::size() + ... + basic_vec<Ty, Abis>::size()), basic_vec<Ty, Abi0>> cat(
+    RAINY_CONSTEXPR26 resize_t<(basic_vec<Ty, Abi0>::size() + ... + basic_vec<Ty, Abis>::size()), basic_vec<Ty, Abi0>> cat(
         const basic_vec<Ty, Abi0> &, const basic_vec<Ty, Abis> &...) noexcept;
     template <std::size_t Bytes, typename Abi0, typename... Abis>
-    constexpr resize_t<(basic_mask<Bytes, Abi0>::size() + ... + basic_mask<Bytes, Abis>::size()), basic_mask<Bytes, Abi0>> cat(
+    RAINY_CONSTEXPR26 resize_t<(basic_mask<Bytes, Abi0>::size() + ... + basic_mask<Bytes, Abis>::size()), basic_mask<Bytes, Abi0>> cat(
         const basic_mask<Bytes, Abi0> &, const basic_mask<Bytes, Abis> &...) noexcept;
 
     // [simd.mask.reductions], basic_mask reductions
     template <std::size_t Bytes, typename Abi>
-    constexpr bool all_of(const basic_mask<Bytes, Abi> &) noexcept;
+    RAINY_CONSTEXPR26 bool all_of(const basic_mask<Bytes, Abi> &) noexcept;
     template <std::size_t Bytes, typename Abi>
-    constexpr bool any_of(const basic_mask<Bytes, Abi> &) noexcept;
+    RAINY_CONSTEXPR26 bool any_of(const basic_mask<Bytes, Abi> &) noexcept;
     template <std::size_t Bytes, typename Abi>
-    constexpr bool none_of(const basic_mask<Bytes, Abi> &) noexcept;
+    RAINY_CONSTEXPR26 bool none_of(const basic_mask<Bytes, Abi> &) noexcept;
     template <std::size_t Bytes, typename Abi>
-    constexpr simd_size_type reduce_count(const basic_mask<Bytes, Abi> &) noexcept;
+    RAINY_CONSTEXPR26 simd_size_type reduce_count(const basic_mask<Bytes, Abi> &) noexcept;
     template <std::size_t Bytes, typename Abi>
-    constexpr simd_size_type reduce_min_index(const basic_mask<Bytes, Abi> &);
+    RAINY_CONSTEXPR26 simd_size_type reduce_min_index(const basic_mask<Bytes, Abi> &);
     template <std::size_t Bytes, typename Abi>
-    constexpr simd_size_type reduce_max_index(const basic_mask<Bytes, Abi> &);
+    RAINY_CONSTEXPR26 simd_size_type reduce_max_index(const basic_mask<Bytes, Abi> &);
 
-    constexpr bool all_of(bool) noexcept;
-    constexpr bool any_of(bool) noexcept;
-    constexpr bool none_of(bool) noexcept;
-    constexpr simd_size_type reduce_count(bool) noexcept;
-    constexpr simd_size_type reduce_min_index(bool);
-    constexpr simd_size_type reduce_max_index(bool);
+    RAINY_CONSTEXPR26 bool all_of(bool) noexcept;
+    RAINY_CONSTEXPR26 bool any_of(bool) noexcept;
+    RAINY_CONSTEXPR26 bool none_of(bool) noexcept;
+    RAINY_CONSTEXPR26 simd_size_type reduce_count(bool) noexcept;
+    RAINY_CONSTEXPR26 simd_size_type reduce_min_index(bool);
+    RAINY_CONSTEXPR26 simd_size_type reduce_max_index(bool);
 
     // [simd.reductions], basic_vec reductions
     template <typename Ty, typename Abi, typename BinaryOperation = functional::plus<>,
               type_traits::other_trans::enable_if_t<implements::is_reduction_op<BinaryOperation, Ty>::value, int> = 0>
-    constexpr Ty reduce(const basic_vec<Ty, Abi> &, BinaryOperation = {});
+    RAINY_CONSTEXPR26 Ty reduce(const basic_vec<Ty, Abi> &, BinaryOperation = {});
     template <typename Ty, typename Abi, typename BinaryOperation>
-    constexpr Ty reduce(const basic_vec<Ty, Abi> &val, const typename basic_vec<Ty, Abi>::mask_type &mask,
+    RAINY_CONSTEXPR26 Ty reduce(const basic_vec<Ty, Abi> &val, const typename basic_vec<Ty, Abi>::mask_type &mask,
                         type_traits::primary_types::type_identity_t<Ty> identity_element, BinaryOperation binary_op);
     template <typename Ty, typename Abi>
-    constexpr Ty reduce(const basic_vec<Ty, Abi> &val, const typename basic_vec<Ty, Abi>::mask_type &mask,
+    RAINY_CONSTEXPR26 Ty reduce(const basic_vec<Ty, Abi> &val, const typename basic_vec<Ty, Abi>::mask_type &mask,
                         functional::plus<> binary_op = {}) noexcept;
     template <typename Ty, typename Abi>
-    constexpr Ty reduce(const basic_vec<Ty, Abi> &val, const typename basic_vec<Ty, Abi>::mask_type &mask,
+    RAINY_CONSTEXPR26 Ty reduce(const basic_vec<Ty, Abi> &val, const typename basic_vec<Ty, Abi>::mask_type &mask,
                         functional::multiplies<> binary_op) noexcept;
     template <typename Ty, typename Abi>
-    constexpr Ty reduce(const basic_vec<Ty, Abi> &val, const typename basic_vec<Ty, Abi>::mask_type &mask,
+    RAINY_CONSTEXPR26 Ty reduce(const basic_vec<Ty, Abi> &val, const typename basic_vec<Ty, Abi>::mask_type &mask,
                         functional::bit_and<> binary_op) noexcept;
     template <typename Ty, typename Abi>
-    constexpr Ty reduce(const basic_vec<Ty, Abi> &val, const typename basic_vec<Ty, Abi>::mask_type &mask,
+    RAINY_CONSTEXPR26 Ty reduce(const basic_vec<Ty, Abi> &val, const typename basic_vec<Ty, Abi>::mask_type &mask,
                         functional::bit_or<> binary_op) noexcept;
     template <typename Ty, typename Abi>
-    constexpr Ty reduce(const basic_vec<Ty, Abi> &val, const typename basic_vec<Ty, Abi>::mask_type &mask,
+    RAINY_CONSTEXPR26 Ty reduce(const basic_vec<Ty, Abi> &val, const typename basic_vec<Ty, Abi>::mask_type &mask,
                         functional::bit_xor<> binary_op) noexcept;
     template <typename Ty, typename Abi>
-    constexpr Ty reduce_min(const basic_vec<Ty, Abi> &) noexcept;
+    RAINY_CONSTEXPR26 Ty reduce_min(const basic_vec<Ty, Abi> &) noexcept;
     template <typename Ty, typename Abi>
-    constexpr Ty reduce_min(const basic_vec<Ty, Abi> &, const typename basic_vec<Ty, Abi>::mask_type &) noexcept;
+    RAINY_CONSTEXPR26 Ty reduce_min(const basic_vec<Ty, Abi> &, const typename basic_vec<Ty, Abi>::mask_type &) noexcept;
     template <typename Ty, typename Abi>
-    constexpr Ty reduce_max(const basic_vec<Ty, Abi> &) noexcept;
+    RAINY_CONSTEXPR26 Ty reduce_max(const basic_vec<Ty, Abi> &) noexcept;
     template <typename Ty, typename Abi>
-    constexpr Ty reduce_max(const basic_vec<Ty, Abi> &, const typename basic_vec<Ty, Abi>::mask_type &) noexcept;
+    RAINY_CONSTEXPR26 Ty reduce_max(const basic_vec<Ty, Abi> &, const typename basic_vec<Ty, Abi>::mask_type &) noexcept;
 
     // [simd.alg], Algorithms
     template <typename Ty, typename Abi>
-    constexpr basic_vec<Ty, Abi> min(const basic_vec<Ty, Abi> &a, const basic_vec<Ty, Abi> &b) noexcept;
+    RAINY_CONSTEXPR26 basic_vec<Ty, Abi> min(const basic_vec<Ty, Abi> &a, const basic_vec<Ty, Abi> &b) noexcept;
     template <typename Ty, typename Abi>
-    constexpr basic_vec<Ty, Abi> max(const basic_vec<Ty, Abi> &a, const basic_vec<Ty, Abi> &b) noexcept;
+    RAINY_CONSTEXPR26 basic_vec<Ty, Abi> max(const basic_vec<Ty, Abi> &a, const basic_vec<Ty, Abi> &b) noexcept;
     template <typename Ty, typename Abi>
-    constexpr container::pair<basic_vec<Ty, Abi>, basic_vec<Ty, Abi>> minmax(const basic_vec<Ty, Abi> &a,
+    RAINY_CONSTEXPR26 container::pair<basic_vec<Ty, Abi>, basic_vec<Ty, Abi>> minmax(const basic_vec<Ty, Abi> &a,
                                                                                const basic_vec<Ty, Abi> &b) noexcept;
     template <typename Ty, typename Abi>
-    constexpr basic_vec<Ty, Abi> clamp(const basic_vec<Ty, Abi> &val, const basic_vec<Ty, Abi> &lo, const basic_vec<Ty, Abi> &hi);
+    RAINY_CONSTEXPR26 basic_vec<Ty, Abi> clamp(const basic_vec<Ty, Abi> &val, const basic_vec<Ty, Abi> &lo, const basic_vec<Ty, Abi> &hi);
 
     // [simd.cond]
     template <typename Ty, typename UTy>
-    constexpr auto select(bool c, const Ty &a, const UTy &b) -> type_traits::implements::remove_cvref_t<decltype(c ? a : b)>;
+    RAINY_CONSTEXPR26 auto select(bool c, const Ty &a, const UTy &b) -> type_traits::implements::remove_cvref_t<decltype(c ? a : b)>;
     template <std::size_t Bytes, typename Abi, typename Ty, typename U>
-    constexpr auto select(const basic_mask<Bytes, Abi> &c, const Ty &a, const U &b) noexcept
+    RAINY_CONSTEXPR26 auto select(const basic_mask<Bytes, Abi> &c, const Ty &a, const U &b) noexcept
         -> decltype(simd_select_impl(c, a, b));
 
     // basic_vec load and store functions
     template <typename V, typename It, typename... Flags,
               type_traits::other_trans::enable_if_t<type_traits::extras::iterators::is_contiguous_iterator_v<It>, int> = 0>
-    constexpr V unchecked_load(It first, implements::iter_difference_t<It> n, flags<Flags...> f = {});
+    RAINY_CONSTEXPR26 V unchecked_load(It first, implements::iter_difference_t<It> n, flags<Flags...> f = {});
     template <typename V, typename It, typename... Flags,
               type_traits::other_trans::enable_if_t<type_traits::extras::iterators::is_contiguous_iterator_v<It>, int> = 0>
-    constexpr V unchecked_load(It first, implements::iter_difference_t<It> n, const typename V::mask_type &k,
+    RAINY_CONSTEXPR26 V unchecked_load(It first, implements::iter_difference_t<It> n, const typename V::mask_type &k,
                                     flags<Flags...> f = {});
 
     template <typename V, typename It, typename... Flags,
               type_traits::other_trans::enable_if_t<type_traits::extras::iterators::is_contiguous_iterator_v<It>, int> = 0>
-    constexpr V partial_load(It first, implements::iter_difference_t<It> n, flags<Flags...> f = {});
+    RAINY_CONSTEXPR26 V partial_load(It first, implements::iter_difference_t<It> n, flags<Flags...> f = {});
     template <typename V, typename It, typename... Flags,
               type_traits::other_trans::enable_if_t<type_traits::extras::iterators::is_contiguous_iterator_v<It>, int> = 0>
-    constexpr V partial_load(It first, implements::iter_difference_t<It> n, const typename V::mask_type &k,
+    RAINY_CONSTEXPR26 V partial_load(It first, implements::iter_difference_t<It> n, const typename V::mask_type &k,
                                   flags<Flags...> f = {});
 
     template <typename Ty, typename Abi, typename It, typename... Flags,
               type_traits::other_trans::enable_if_t<type_traits::extras::iterators::is_contiguous_iterator_v<It>, int> = 0>
-    constexpr void unchecked_store(const basic_vec<Ty, Abi> &val, It first, implements::iter_difference_t<It> n,
+    RAINY_CONSTEXPR26 void unchecked_store(const basic_vec<Ty, Abi> &val, It first, implements::iter_difference_t<It> n,
                                         flags<Flags...> f = {});
     template <typename Ty, typename Abi, typename It, typename... Flags,
               type_traits::other_trans::enable_if_t<type_traits::extras::iterators::is_contiguous_iterator_v<It>, int> = 0>
-    constexpr void unchecked_store(const basic_vec<Ty, Abi> &val, It first, implements::iter_difference_t<It> n,
+    RAINY_CONSTEXPR26 void unchecked_store(const basic_vec<Ty, Abi> &val, It first, implements::iter_difference_t<It> n,
                                         const typename basic_vec<Ty, Abi>::mask_type &k, flags<Flags...> f = {});
 
     template <typename Ty, typename Abi, typename It, typename... Flags,
               type_traits::other_trans::enable_if_t<type_traits::extras::iterators::is_contiguous_iterator_v<It>, int> = 0>
-    constexpr void partial_store(const basic_vec<Ty, Abi> &val, It first, implements::iter_difference_t<It> n,
+    RAINY_CONSTEXPR26 void partial_store(const basic_vec<Ty, Abi> &val, It first, implements::iter_difference_t<It> n,
                                       flags<Flags...> f = {});
 
     template <typename Ty, typename Abi, typename It, typename... Flags,
               type_traits::other_trans::enable_if_t<type_traits::extras::iterators::is_contiguous_iterator_v<It>, int> = 0>
-    constexpr void partial_store(const basic_vec<Ty, Abi> &val, It first, implements::iter_difference_t<It> n,
+    RAINY_CONSTEXPR26 void partial_store(const basic_vec<Ty, Abi> &val, It first, implements::iter_difference_t<It> n,
                                       const typename basic_vec<Ty, Abi>::mask_type &k, flags<Flags...> f = {});
 
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> acos(const V &val);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> acos(const V &val);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> asin(const V &val);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> asin(const V &val);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> atan(const V &val);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> atan(const V &val);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> atan2(const V &y, const V &val);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> atan2(const V &y, const V &val);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> atan2(const deduced_vec_t<V> &y, const V &val);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> atan2(const deduced_vec_t<V> &y, const V &val);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> atan2(const V &y, const deduced_vec_t<V> &val);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> atan2(const V &y, const deduced_vec_t<V> &val);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> cos(const V &val);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> cos(const V &val);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> sin(const V &val);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> sin(const V &val);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> tan(const V &val);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> tan(const V &val);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> acosh(const V &val);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> acosh(const V &val);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> asinh(const V &val);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> asinh(const V &val);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> atanh(const V &val);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> atanh(const V &val);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> cosh(const V &val);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> cosh(const V &val);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> sinh(const V &val);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> sinh(const V &val);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> tanh(const V &val);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> tanh(const V &val);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> exp(const V &val);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> exp(const V &val);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> exp2(const V &val);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> exp2(const V &val);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> expm1(const V &val);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> expm1(const V &val);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> frexp(const V &value, rebind_t<int, deduced_vec_t<V>> *exp);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> frexp(const V &value, rebind_t<int, deduced_vec_t<V>> *exp);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr rebind_t<int, deduced_vec_t<V>> ilogb(const V &val);
+    RAINY_CONSTEXPR26 rebind_t<int, deduced_vec_t<V>> ilogb(const V &val);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> ldexp(const V &val, const rebind_t<int, deduced_vec_t<V>> &exp);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> ldexp(const V &val, const rebind_t<int, deduced_vec_t<V>> &exp);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> log(const V &val);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> log(const V &val);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> log10(const V &val);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> log10(const V &val);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> log1p(const V &val);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> log1p(const V &val);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> log2(const V &val);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> log2(const V &val);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> logb(const V &val);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> logb(const V &val);
     template <typename Ty, typename Abi>
-    constexpr basic_vec<Ty, Abi> modf(const type_traits::primary_types::type_identity_t<basic_vec<Ty, Abi>> &value,
+    RAINY_CONSTEXPR26 basic_vec<Ty, Abi> modf(const type_traits::primary_types::type_identity_t<basic_vec<Ty, Abi>> &value,
                                        basic_vec<Ty, Abi> *iptr);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> scalbn(const V &val, const rebind_t<int, deduced_vec_t<V>> &n);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> scalbn(const V &val, const rebind_t<int, deduced_vec_t<V>> &n);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> scalbln(const V &val, const rebind_t<long int, deduced_vec_t<V>> &n);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> scalbln(const V &val, const rebind_t<long int, deduced_vec_t<V>> &n);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> cbrt(const V &val);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> cbrt(const V &val);
     template <typename Ty, typename Abi,
               type_traits::other_trans::enable_if_t<
                   type_traits::primary_types::is_integral_v<Ty> && type_traits::properties::is_signed_v<Ty>, int> = 0>
-    constexpr basic_vec<Ty, Abi> abs(const basic_vec<Ty, Abi> &j);
+    RAINY_CONSTEXPR26 basic_vec<Ty, Abi> abs(const basic_vec<Ty, Abi> &j);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> abs(const V &j);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> abs(const V &j);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> fabs(const V &val);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> fabs(const V &val);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> hypot(const V &val, const V &y);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> hypot(const V &val, const V &y);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> hypot(const deduced_vec_t<V> &val, const V &y);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> hypot(const deduced_vec_t<V> &val, const V &y);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> hypot(const V &val, const deduced_vec_t<V> &y);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> hypot(const V &val, const deduced_vec_t<V> &y);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> hypot(const V &val, const V &y, const V &z);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> hypot(const V &val, const V &y, const V &z);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> hypot(const deduced_vec_t<V> &val, const V &y, const V &z);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> hypot(const deduced_vec_t<V> &val, const V &y, const V &z);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> hypot(const V &val, const deduced_vec_t<V> &y, const V &z);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> hypot(const V &val, const deduced_vec_t<V> &y, const V &z);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> hypot(const V &val, const V &y, const deduced_vec_t<V> &z);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> hypot(const V &val, const V &y, const deduced_vec_t<V> &z);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> hypot(const deduced_vec_t<V> &val, const deduced_vec_t<V> &y, const V &z);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> hypot(const deduced_vec_t<V> &val, const deduced_vec_t<V> &y, const V &z);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> hypot(const deduced_vec_t<V> &val, const V &y, const deduced_vec_t<V> &z);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> hypot(const deduced_vec_t<V> &val, const V &y, const deduced_vec_t<V> &z);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> hypot(const V &val, const deduced_vec_t<V> &y, const deduced_vec_t<V> &z);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> hypot(const V &val, const deduced_vec_t<V> &y, const deduced_vec_t<V> &z);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> pow(const V &val, const V &y);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> pow(const V &val, const V &y);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> pow(const deduced_vec_t<V> &val, const V &y);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> pow(const deduced_vec_t<V> &val, const V &y);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> pow(const V &val, const deduced_vec_t<V> &y);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> pow(const V &val, const deduced_vec_t<V> &y);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> sqrt(const V &val);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> sqrt(const V &val);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> erf(const V &val);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> erf(const V &val);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> erfc(const V &val);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> erfc(const V &val);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> lgamma(const V &val);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> lgamma(const V &val);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> tgamma(const V &val);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> tgamma(const V &val);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> ceil(const V &val);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> ceil(const V &val);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> floor(const V &val);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> floor(const V &val);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    deduced_vec_t<V> nearbyint(const V &val);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> nearbyint(const V &val);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    deduced_vec_t<V> rint(const V &val);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> rint(const V &val);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    rebind_t<long int, deduced_vec_t<V>> lrint(const V &val);
+    RAINY_CONSTEXPR26 rebind_t<long int, deduced_vec_t<V>> lrint(const V &val);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    rebind_t<long long int, deduced_vec_t<V>> llrint(const V &val);
+    RAINY_CONSTEXPR26 rebind_t<long long int, deduced_vec_t<V>> llrint(const V &val);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> round(const V &val);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> round(const V &val);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr rebind_t<long int, deduced_vec_t<V>> lround(const V &val);
+    RAINY_CONSTEXPR26 rebind_t<long int, deduced_vec_t<V>> lround(const V &val);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr rebind_t<long long int, deduced_vec_t<V>> llround(const V &val);
+    RAINY_CONSTEXPR26 rebind_t<long long int, deduced_vec_t<V>> llround(const V &val);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> trunc(const V &val);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> trunc(const V &val);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> fmod(const V &val, const V &y);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> fmod(const V &val, const V &y);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> fmod(const deduced_vec_t<V> &val, const V &y);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> fmod(const deduced_vec_t<V> &val, const V &y);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> fmod(const V &val, const deduced_vec_t<V> &y);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> fmod(const V &val, const deduced_vec_t<V> &y);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> remainder(const V &val, const V &y);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> remainder(const V &val, const V &y);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> remainder(const deduced_vec_t<V> &val, const V &y);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> remainder(const deduced_vec_t<V> &val, const V &y);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> remainder(const V &val, const deduced_vec_t<V> &y);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> remainder(const V &val, const deduced_vec_t<V> &y);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> remquo(const V &val, const V &y, rebind_t<int, deduced_vec_t<V>> *quo);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> remquo(const V &val, const V &y, rebind_t<int, deduced_vec_t<V>> *quo);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> remquo(const deduced_vec_t<V> &val, const V &y, rebind_t<int, deduced_vec_t<V>> *quo);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> remquo(const deduced_vec_t<V> &val, const V &y, rebind_t<int, deduced_vec_t<V>> *quo);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> remquo(const V &val, const deduced_vec_t<V> &y, rebind_t<int, deduced_vec_t<V>> *quo);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> remquo(const V &val, const deduced_vec_t<V> &y, rebind_t<int, deduced_vec_t<V>> *quo);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> copysign(const V &val, const V &y);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> copysign(const V &val, const V &y);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> copysign(const deduced_vec_t<V> &val, const V &y);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> copysign(const deduced_vec_t<V> &val, const V &y);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> copysign(const V &val, const deduced_vec_t<V> &y);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> copysign(const V &val, const deduced_vec_t<V> &y);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> nextafter(const V &val, const V &y);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> nextafter(const V &val, const V &y);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> nextafter(const deduced_vec_t<V> &val, const V &y);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> nextafter(const deduced_vec_t<V> &val, const V &y);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> nextafter(const V &val, const deduced_vec_t<V> &y);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> nextafter(const V &val, const deduced_vec_t<V> &y);
 
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> fdim(const V &val, const V &y);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> fdim(const V &val, const V &y);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> fdim(const deduced_vec_t<V> &val, const V &y);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> fdim(const deduced_vec_t<V> &val, const V &y);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> fdim(const V &val, const deduced_vec_t<V> &y);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> fdim(const V &val, const deduced_vec_t<V> &y);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> fmax(const V &val, const V &y);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> fmax(const V &val, const V &y);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> fmax(const deduced_vec_t<V> &val, const V &y);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> fmax(const deduced_vec_t<V> &val, const V &y);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> fmax(const V &val, const deduced_vec_t<V> &y);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> fmax(const V &val, const deduced_vec_t<V> &y);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> fmin(const V &val, const V &y);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> fmin(const V &val, const V &y);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> fmin(const deduced_vec_t<V> &val, const V &y);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> fmin(const deduced_vec_t<V> &val, const V &y);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> fmin(const V &val, const deduced_vec_t<V> &y);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> fmin(const V &val, const deduced_vec_t<V> &y);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> fma(const V &val, const V &y, const V &z);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> fma(const V &val, const V &y, const V &z);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> fma(const deduced_vec_t<V> &val, const V &y, const V &z);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> fma(const deduced_vec_t<V> &val, const V &y, const V &z);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> fma(const V &val, const deduced_vec_t<V> &y, const V &z);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> fma(const V &val, const deduced_vec_t<V> &y, const V &z);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> fma(const V &val, const V &y, const deduced_vec_t<V> &z);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> fma(const V &val, const V &y, const deduced_vec_t<V> &z);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> fma(const deduced_vec_t<V> &val, const deduced_vec_t<V> &y, const V &z);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> fma(const deduced_vec_t<V> &val, const deduced_vec_t<V> &y, const V &z);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> fma(const deduced_vec_t<V> &val, const V &y, const deduced_vec_t<V> &z);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> fma(const deduced_vec_t<V> &val, const V &y, const deduced_vec_t<V> &z);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> fma(const V &val, const deduced_vec_t<V> &y, const deduced_vec_t<V> &z);
+    RAINY_CONSTEXPR26 deduced_vec_t<V> fma(const V &val, const deduced_vec_t<V> &y, const deduced_vec_t<V> &z);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> lerp(const V &a, const V &b, const V &t) noexcept;
+    RAINY_CONSTEXPR26 deduced_vec_t<V> lerp(const V &a, const V &b, const V &t) noexcept;
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> lerp(const deduced_vec_t<V> &a, const V &b, const V &t) noexcept;
+    RAINY_CONSTEXPR26 deduced_vec_t<V> lerp(const deduced_vec_t<V> &a, const V &b, const V &t) noexcept;
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> lerp(const V &a, const deduced_vec_t<V> &b, const V &t) noexcept;
+    RAINY_CONSTEXPR26 deduced_vec_t<V> lerp(const V &a, const deduced_vec_t<V> &b, const V &t) noexcept;
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> lerp(const V &a, const V &b, const deduced_vec_t<V> &t) noexcept;
+    RAINY_CONSTEXPR26 deduced_vec_t<V> lerp(const V &a, const V &b, const deduced_vec_t<V> &t) noexcept;
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> lerp(const deduced_vec_t<V> &a, const deduced_vec_t<V> &b, const V &t) noexcept;
+    RAINY_CONSTEXPR26 deduced_vec_t<V> lerp(const deduced_vec_t<V> &a, const deduced_vec_t<V> &b, const V &t) noexcept;
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> lerp(const deduced_vec_t<V> &a, const V &b, const deduced_vec_t<V> &t) noexcept;
+    RAINY_CONSTEXPR26 deduced_vec_t<V> lerp(const deduced_vec_t<V> &a, const V &b, const deduced_vec_t<V> &t) noexcept;
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr deduced_vec_t<V> lerp(const V &a, const deduced_vec_t<V> &b, const deduced_vec_t<V> &t) noexcept;
+    RAINY_CONSTEXPR26 deduced_vec_t<V> lerp(const V &a, const deduced_vec_t<V> &b, const deduced_vec_t<V> &t) noexcept;
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr rebind_t<int, deduced_vec_t<V>> fpclassify(const V &val);
+    RAINY_CONSTEXPR26 rebind_t<int, deduced_vec_t<V>> fpclassify(const V &val);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr typename deduced_vec_t<V>::mask_type isfinite(const V &val);
+    RAINY_CONSTEXPR26 typename deduced_vec_t<V>::mask_type isfinite(const V &val);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr typename deduced_vec_t<V>::mask_type isinf(const V &val);
+    RAINY_CONSTEXPR26 typename deduced_vec_t<V>::mask_type isinf(const V &val);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr typename deduced_vec_t<V>::mask_type isnan(const V &val);
+    RAINY_CONSTEXPR26 typename deduced_vec_t<V>::mask_type isnan(const V &val);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr typename deduced_vec_t<V>::mask_type isnormal(const V &val);
+    RAINY_CONSTEXPR26 typename deduced_vec_t<V>::mask_type isnormal(const V &val);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr typename deduced_vec_t<V>::mask_type signbit(const V &val);
+    RAINY_CONSTEXPR26 typename deduced_vec_t<V>::mask_type signbit(const V &val);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr typename deduced_vec_t<V>::mask_type isgreater(const V &val, const V &y);
+    RAINY_CONSTEXPR26 typename deduced_vec_t<V>::mask_type isgreater(const V &val, const V &y);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr typename deduced_vec_t<V>::mask_type isgreater(const deduced_vec_t<V> &val, const V &y);
+    RAINY_CONSTEXPR26 typename deduced_vec_t<V>::mask_type isgreater(const deduced_vec_t<V> &val, const V &y);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr typename deduced_vec_t<V>::mask_type isgreater(const V &val, const deduced_vec_t<V> &y);
+    RAINY_CONSTEXPR26 typename deduced_vec_t<V>::mask_type isgreater(const V &val, const deduced_vec_t<V> &y);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr typename deduced_vec_t<V>::mask_type isgreaterequal(const V &val, const V &y);
+    RAINY_CONSTEXPR26 typename deduced_vec_t<V>::mask_type isgreaterequal(const V &val, const V &y);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr typename deduced_vec_t<V>::mask_type isgreaterequal(const deduced_vec_t<V> &val, const V &y);
+    RAINY_CONSTEXPR26 typename deduced_vec_t<V>::mask_type isgreaterequal(const deduced_vec_t<V> &val, const V &y);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr typename deduced_vec_t<V>::mask_type isgreaterequal(const V &val, const deduced_vec_t<V> &y);
+    RAINY_CONSTEXPR26 typename deduced_vec_t<V>::mask_type isgreaterequal(const V &val, const deduced_vec_t<V> &y);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr typename deduced_vec_t<V>::mask_type isless(const V &val, const V &y);
+    RAINY_CONSTEXPR26 typename deduced_vec_t<V>::mask_type isless(const V &val, const V &y);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr typename deduced_vec_t<V>::mask_type isless(const deduced_vec_t<V> &val, const V &y);
+    RAINY_CONSTEXPR26 typename deduced_vec_t<V>::mask_type isless(const deduced_vec_t<V> &val, const V &y);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr typename deduced_vec_t<V>::mask_type isless(const V &val, const deduced_vec_t<V> &y);
+    RAINY_CONSTEXPR26 typename deduced_vec_t<V>::mask_type isless(const V &val, const deduced_vec_t<V> &y);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr typename deduced_vec_t<V>::mask_type islessequal(const V &val, const V &y);
+    RAINY_CONSTEXPR26 typename deduced_vec_t<V>::mask_type islessequal(const V &val, const V &y);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr typename deduced_vec_t<V>::mask_type islessequal(const deduced_vec_t<V> &val, const V &y);
+    RAINY_CONSTEXPR26 typename deduced_vec_t<V>::mask_type islessequal(const deduced_vec_t<V> &val, const V &y);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr typename deduced_vec_t<V>::mask_type islessequal(const V &val, const deduced_vec_t<V> &y);
+    RAINY_CONSTEXPR26 typename deduced_vec_t<V>::mask_type islessequal(const V &val, const deduced_vec_t<V> &y);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr typename deduced_vec_t<V>::mask_type islessgreater(const V &val, const V &y);
+    RAINY_CONSTEXPR26 typename deduced_vec_t<V>::mask_type islessgreater(const V &val, const V &y);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr typename deduced_vec_t<V>::mask_type islessgreater(const deduced_vec_t<V> &val, const V &y);
+    RAINY_CONSTEXPR26 typename deduced_vec_t<V>::mask_type islessgreater(const deduced_vec_t<V> &val, const V &y);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr typename deduced_vec_t<V>::mask_type islessgreater(const V &val, const deduced_vec_t<V> &y);
+    RAINY_CONSTEXPR26 typename deduced_vec_t<V>::mask_type islessgreater(const V &val, const deduced_vec_t<V> &y);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr typename deduced_vec_t<V>::mask_type isunordered(const V &val, const V &y);
+    RAINY_CONSTEXPR26 typename deduced_vec_t<V>::mask_type isunordered(const V &val, const V &y);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr typename deduced_vec_t<V>::mask_type isunordered(const deduced_vec_t<V> &val, const V &y);
+    RAINY_CONSTEXPR26 typename deduced_vec_t<V>::mask_type isunordered(const deduced_vec_t<V> &val, const V &y);
     template <typename V, implements::enable_if_math_t<V> = 0>
-    constexpr typename deduced_vec_t<V>::mask_type isunordered(const V &val, const deduced_vec_t<V> &y);
+    RAINY_CONSTEXPR26 typename deduced_vec_t<V>::mask_type isunordered(const V &val, const deduced_vec_t<V> &y);
 }
 
 #endif
