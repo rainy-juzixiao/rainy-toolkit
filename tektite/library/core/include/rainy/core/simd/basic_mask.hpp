@@ -33,9 +33,9 @@ namespace rainy::core {
                                                                 simd_size_v<implements::integer_from_t<Bytes>, Abi>>
             size{};
 
-        RAINY_CONSTEXPR20 basic_mask() noexcept = default;
+        RAINY_CONSTEXPR26 basic_mask() noexcept = default;
 
-        RAINY_CONSTEXPR20 explicit basic_mask(value_type val) noexcept
+        RAINY_CONSTEXPR26 explicit basic_mask(value_type val) noexcept
             : data_(implements::simd_ops<implements::integer_from_t<Bytes>, Abi>::broadcast(
                   static_cast<implements::integer_from_t<Bytes>>(val ? -1 : 0))) {}
 
@@ -44,7 +44,7 @@ namespace rainy::core {
                       simd_size_v<implements::integer_from_t<UBytes>, UAbi> ==
                           simd_size_v<implements::integer_from_t<Bytes>, Abi>,
                       int> = 0>
-        RAINY_CONSTEXPR20 explicit basic_mask(const basic_mask<UBytes, UAbi> &other) noexcept {
+        RAINY_CONSTEXPR26 explicit basic_mask(const basic_mask<UBytes, UAbi> &other) noexcept {
             using integer = implements::integer_from_t<Bytes>;
             data_ = implements::simd_ops<integer, Abi>::template convert<implements::integer_from_t<UBytes>, UAbi>(
                 static_cast<typename basic_mask<UBytes, UAbi>::register_type>(other));
@@ -52,7 +52,7 @@ namespace rainy::core {
 
         template <typename G,
                   type_traits::other_trans::enable_if_t<implements::is_basic_vec_generator<G>::value, int> = 0>
-        RAINY_CONSTEXPR20 explicit basic_mask(G &&gen) noexcept {
+        RAINY_CONSTEXPR26 explicit basic_mask(G &&gen) noexcept {
             gen_fill(gen, type_traits::helper::make_index_sequence<
                               static_cast<std::size_t>(simd_size_v<implements::integer_from_t<Bytes>, Abi>)>{});
         }
@@ -61,28 +61,28 @@ namespace rainy::core {
                   type_traits::other_trans::enable_if_t<
                       type_traits::type_relations::is_same_v<type_traits::implements::remove_cvref_t<R>, register_type>,
                       int> = 0>
-        RAINY_CONSTEXPR20 explicit basic_mask(R &&reg) noexcept : data_(reg) {}
+        RAINY_CONSTEXPR26 explicit basic_mask(R &&reg) noexcept : data_(reg) {}
 
-        RAINY_CONSTEXPR20 explicit operator register_type() const noexcept { return data_; }
+        RAINY_CONSTEXPR26 explicit operator register_type() const noexcept { return data_; }
 
-        RAINY_CONSTEXPR20 value_type operator[](simd_size_type i) const {
+        RAINY_CONSTEXPR26 value_type operator[](simd_size_type i) const {
             return implements::simd_ops<implements::integer_from_t<Bytes>, Abi>::get_lane(data_, i) != 0;
         }
 
-        RAINY_CONSTEXPR20 basic_mask operator!() const noexcept {
+        RAINY_CONSTEXPR26 basic_mask operator!() const noexcept {
             return basic_mask{implements::simd_ops<implements::integer_from_t<Bytes>, Abi>::bit_not(data_)};
         }
 
-        RAINY_CONSTEXPR20 basic_vec<implements::integer_from_t<Bytes>, Abi> operator+() const noexcept {
+        RAINY_CONSTEXPR26 basic_vec<implements::integer_from_t<Bytes>, Abi> operator+() const noexcept {
             return basic_vec<implements::integer_from_t<Bytes>, Abi>{
                 implements::simd_ops<implements::integer_from_t<Bytes>, Abi>::negate(data_)};
         }
 
-        RAINY_CONSTEXPR20 basic_vec<implements::integer_from_t<Bytes>, Abi> operator-() const noexcept {
+        RAINY_CONSTEXPR26 basic_vec<implements::integer_from_t<Bytes>, Abi> operator-() const noexcept {
             return basic_vec<implements::integer_from_t<Bytes>, Abi>{data_};
         }
 
-        RAINY_CONSTEXPR20 basic_vec<implements::integer_from_t<Bytes>, Abi> operator~() const noexcept {
+        RAINY_CONSTEXPR26 basic_vec<implements::integer_from_t<Bytes>, Abi> operator~() const noexcept {
             using integer = implements::integer_from_t<Bytes>;
             using ops = implements::simd_ops<integer, Abi>;
             return basic_vec<integer, Abi>{ops::bit_not(ops::bit_and(data_, ops::broadcast(static_cast<integer>(1))))};
@@ -92,7 +92,7 @@ namespace rainy::core {
                   type_traits::other_trans::enable_if_t<
                       sizeof(U) == Bytes && simd_size_v<U, A> == simd_size_v<implements::integer_from_t<Bytes>, Abi>,
                       int> = 0>
-        RAINY_CONSTEXPR20 operator basic_vec<U, A>() const noexcept {
+        RAINY_CONSTEXPR26 operator basic_vec<U, A>() const noexcept {
             return make_simd<U, A>();
         }
 
@@ -100,102 +100,102 @@ namespace rainy::core {
                   type_traits::other_trans::enable_if_t<
                       sizeof(U) != Bytes && simd_size_v<U, A> == simd_size_v<implements::integer_from_t<Bytes>, Abi>,
                       int> = 0>
-        RAINY_CONSTEXPR20 explicit operator basic_vec<U, A>() const noexcept {
+        RAINY_CONSTEXPR26 explicit operator basic_vec<U, A>() const noexcept {
             return make_simd<U, A>();
         }
 
-        friend RAINY_CONSTEXPR20 basic_mask operator&&(const basic_mask &left,
+        friend RAINY_CONSTEXPR26 basic_mask operator&&(const basic_mask &left,
                                                             const basic_mask &right) noexcept {
             return basic_mask{
                 implements::simd_ops<implements::integer_from_t<Bytes>, Abi>::bit_and(left.data_, right.data_)};
         }
 
-        friend RAINY_CONSTEXPR20 basic_mask operator||(const basic_mask &left,
+        friend RAINY_CONSTEXPR26 basic_mask operator||(const basic_mask &left,
                                                             const basic_mask &right) noexcept {
             return basic_mask{
                 implements::simd_ops<implements::integer_from_t<Bytes>, Abi>::bit_or(left.data_, right.data_)};
         }
 
-        friend RAINY_CONSTEXPR20 basic_mask operator&(const basic_mask &left,
+        friend RAINY_CONSTEXPR26 basic_mask operator&(const basic_mask &left,
                                                            const basic_mask &right) noexcept {
             return basic_mask{
                 implements::simd_ops<implements::integer_from_t<Bytes>, Abi>::bit_and(left.data_, right.data_)};
         }
 
-        friend RAINY_CONSTEXPR20 basic_mask operator|(const basic_mask &left,
+        friend RAINY_CONSTEXPR26 basic_mask operator|(const basic_mask &left,
                                                            const basic_mask &right) noexcept {
             return basic_mask{
                 implements::simd_ops<implements::integer_from_t<Bytes>, Abi>::bit_or(left.data_, right.data_)};
         }
 
-        friend RAINY_CONSTEXPR20 basic_mask operator^(const basic_mask &left,
+        friend RAINY_CONSTEXPR26 basic_mask operator^(const basic_mask &left,
                                                            const basic_mask &right) noexcept {
             return basic_mask{
                 implements::simd_ops<implements::integer_from_t<Bytes>, Abi>::bit_xor(left.data_, right.data_)};
         }
 
-        friend RAINY_CONSTEXPR20 basic_mask &operator&=(basic_mask &left,
+        friend RAINY_CONSTEXPR26 basic_mask &operator&=(basic_mask &left,
                                                              const basic_mask &right) noexcept {
             left.data_ = implements::simd_ops<implements::integer_from_t<Bytes>, Abi>::bit_and(left.data_, right.data_);
             return left;
         }
 
-        friend RAINY_CONSTEXPR20 basic_mask &operator|=(basic_mask &left,
+        friend RAINY_CONSTEXPR26 basic_mask &operator|=(basic_mask &left,
                                                              const basic_mask &right) noexcept {
             left.data_ = implements::simd_ops<implements::integer_from_t<Bytes>, Abi>::bit_or(left.data_, right.data_);
             return left;
         }
 
-        friend RAINY_CONSTEXPR20 basic_mask &operator^=(basic_mask &left,
+        friend RAINY_CONSTEXPR26 basic_mask &operator^=(basic_mask &left,
                                                              const basic_mask &right) noexcept {
             left.data_ = implements::simd_ops<implements::integer_from_t<Bytes>, Abi>::bit_xor(left.data_, right.data_);
             return left;
         }
 
-        friend RAINY_CONSTEXPR20 basic_mask operator==(const basic_mask &left,
+        friend RAINY_CONSTEXPR26 basic_mask operator==(const basic_mask &left,
                                                             const basic_mask &right) noexcept {
             using ops = implements::simd_ops<implements::integer_from_t<Bytes>, Abi>;
             return make_compare<ops::cmp_eq>(left, right);
         }
 
-        friend RAINY_CONSTEXPR20 basic_mask operator!=(const basic_mask &left,
+        friend RAINY_CONSTEXPR26 basic_mask operator!=(const basic_mask &left,
                                                             const basic_mask &right) noexcept {
             using ops = implements::simd_ops<implements::integer_from_t<Bytes>, Abi>;
             return make_compare<ops::cmp_ne>(left, right);
         }
 
-        friend RAINY_CONSTEXPR20 basic_mask operator>=(const basic_mask &left,
+        friend RAINY_CONSTEXPR26 basic_mask operator>=(const basic_mask &left,
                                                             const basic_mask &right) noexcept {
             using ops = implements::simd_ops<implements::integer_from_t<Bytes>, Abi>;
             return make_compare<ops::cmp_ge>(left, right);
         }
 
-        friend RAINY_CONSTEXPR20 basic_mask operator<=(const basic_mask &left,
+        friend RAINY_CONSTEXPR26 basic_mask operator<=(const basic_mask &left,
                                                             const basic_mask &right) noexcept {
             using ops = implements::simd_ops<implements::integer_from_t<Bytes>, Abi>;
             return make_compare<ops::cmp_le>(left, right);
         }
 
-        friend RAINY_CONSTEXPR20 basic_mask operator>(const basic_mask &left,
+        friend RAINY_CONSTEXPR26 basic_mask operator>(const basic_mask &left,
                                                            const basic_mask &right) noexcept {
             using ops = implements::simd_ops<implements::integer_from_t<Bytes>, Abi>;
             return make_compare<ops::cmp_gt>(left, right);
         }
 
-        friend RAINY_CONSTEXPR20 basic_mask operator<(const basic_mask &left,
+        friend RAINY_CONSTEXPR26 basic_mask operator<(const basic_mask &left,
                                                            const basic_mask &right) noexcept {
             using ops = implements::simd_ops<implements::integer_from_t<Bytes>, Abi>;
             return make_compare<ops::cmp_lt>(left, right);
         }
 
-        friend RAINY_CONSTEXPR20 basic_mask simd_select_impl(const basic_mask &mask,
+        friend RAINY_CONSTEXPR26 basic_mask simd_select_impl(const basic_mask &mask,
                                                                   const basic_mask &left,
                                                                   const basic_mask &right) noexcept {
             using ops = implements::simd_ops<implements::integer_from_t<Bytes>, Abi>;
             return basic_mask{ops::blend(mask.data_, left.data_, right.data_)};
         }
 
-        friend RAINY_CONSTEXPR20 basic_mask simd_select_impl(const basic_mask &mask, bool left,
+        friend RAINY_CONSTEXPR26 basic_mask simd_select_impl(const basic_mask &mask, bool left,
                                                                   bool right) noexcept {
             using integer = implements::integer_from_t<Bytes>;
             using ops = implements::simd_ops<integer, Abi>;
@@ -205,7 +205,7 @@ namespace rainy::core {
 
         template <typename T0,
                   type_traits::other_trans::enable_if_t<implements::is_vectorizable_v<T0> && sizeof(T0) == Bytes, int> = 0>
-        friend RAINY_CONSTEXPR20 basic_vec<T0, Abi> simd_select_impl(const basic_mask &mask, const T0 &left,
+        friend RAINY_CONSTEXPR26 basic_vec<T0, Abi> simd_select_impl(const basic_mask &mask, const T0 &left,
                                                                       const T0 &right) noexcept {
             using target = basic_vec<T0, Abi>;
             using target_ops = implements::simd_ops<T0, Abi>;
@@ -214,7 +214,7 @@ namespace rainy::core {
 
     private:
         template <auto Op>
-        RAINY_CONSTEXPR20 static basic_mask make_compare(const basic_mask &left,
+        RAINY_CONSTEXPR26 static basic_mask make_compare(const basic_mask &left,
                                                               const basic_mask &right) noexcept {
             using integer = implements::integer_from_t<Bytes>;
             using ops = implements::simd_ops<integer, Abi>;
@@ -223,7 +223,7 @@ namespace rainy::core {
         }
 
         template <typename U, typename A>
-        RAINY_CONSTEXPR20 basic_vec<U, A> make_simd() const noexcept {
+        RAINY_CONSTEXPR26 basic_vec<U, A> make_simd() const noexcept {
             using integer = implements::integer_from_t<Bytes>;
             using int_ops = implements::simd_ops<integer, Abi>;
             auto bits = int_ops::bit_and(data_, int_ops::broadcast(static_cast<integer>(1)));
@@ -231,7 +231,7 @@ namespace rainy::core {
         }
 
         template <typename G, std::size_t... I>
-        RAINY_CONSTEXPR20 void gen_fill(G &&gen, type_traits::helper::index_sequence<I...>) noexcept {
+        RAINY_CONSTEXPR26 void gen_fill(G &&gen, type_traits::helper::index_sequence<I...>) noexcept {
             using integer = implements::integer_from_t<Bytes>;
             if constexpr (simd_size_v<integer, Abi> > 0) {
                 (implements::simd_ops<integer, Abi>::set_lane(
