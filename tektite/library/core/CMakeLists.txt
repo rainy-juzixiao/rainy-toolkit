@@ -36,6 +36,18 @@ rainy_load_flodar_files("${CMAKE_CURRENT_SOURCE_DIR}/tests" ".cc" RAINY_TOOLKIT_
 
 add_executable(rainy-toolkit-core-unit-test ${RAINY_TOOLKIT_CORE_TEST_FILES})
 
+# Workaround: MSVC 14.51 (VS 2026) crashes with an internal compiler error
+# (C1001, compiler file 'src/vctools/Compiler/Utc/src/p2/main.cpp') while
+# optimizing tests/simd/reduce.cc with /O2 for ARM64. It is a toolset defect -
+# the same translation unit compiles fine with MSVC 14.44 - so build it
+# unoptimized on that target only. Drop this once the toolset is fixed.
+# MSVC_CXX_ARCHITECTURE_ID casing differs between targets
+string(TOUPPER "${MSVC_CXX_ARCHITECTURE_ID}" RAINY_MSVC_ARCH_ID)
+if (MSVC AND RAINY_MSVC_ARCH_ID STREQUAL "ARM64")
+    set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/tests/simd/reduce.cc"
+            PROPERTIES COMPILE_OPTIONS "/Od")
+endif ()
+
 target_link_libraries(rainy-toolkit-core-unit-test PRIVATE Catch2::Catch2WithMain rainy-toolkit-core)
 
 catch_discover_tests(rainy-toolkit-core-unit-test)
