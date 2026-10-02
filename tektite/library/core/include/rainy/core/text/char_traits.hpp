@@ -405,7 +405,7 @@ namespace rainy::core::text {
             } else {
 #if RAINY_HAS_CXX20
                 if (std::is_constant_evaluated()) {
-                    if (string1 == string2 || count == 0) {
+                    if (count == 0) {
                         return 0;
                     }
                     for (size_type i = 0; i < count; ++i) {

@@ -358,9 +358,6 @@ namespace rainy::core {
     // [simd.cond]
     template <typename Ty, typename UTy>
     RAINY_CONSTEXPR26 auto select(bool c, const Ty &a, const UTy &b) -> type_traits::implements::remove_cvref_t<decltype(c ? a : b)>;
-    template <std::size_t Bytes, typename Abi, typename Ty, typename U>
-    RAINY_CONSTEXPR26 auto select(const basic_mask<Bytes, Abi> &c, const Ty &a, const U &b) noexcept
-        -> decltype(simd_select_impl(c, a, b));
 
     // basic_vec load and store functions
     template <typename V, typename It, typename... Flags,
