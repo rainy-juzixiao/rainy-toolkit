@@ -16,6 +16,11 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: Setup vcpkg overlay triplets
+      shell: pwsh
+      run: |
+        "VCPKG_OVERLAY_TRIPLETS=${{ github.workspace }}/triplets" >> $env:GITHUB_ENV
+
     - name: Cache vcpkg
       id: cache-vcpkg
       uses: actions/cache@v4
