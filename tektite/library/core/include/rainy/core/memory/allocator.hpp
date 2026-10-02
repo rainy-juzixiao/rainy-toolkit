@@ -359,7 +359,7 @@ namespace rainy::core::memory::implements {
 
         template <typename Ty_>
         static RAINY_CONSTEXPR20 void destroy(allocator_type &allocator, Ty_ *ptr) {
-            allocator.destroy(ptr);
+            std::allocator_traits<allocator_type>::destroy(allocator, ptr);
         }
 
         static RAINY_CONSTEXPR20 size_type max_size(allocator_type al) noexcept {
