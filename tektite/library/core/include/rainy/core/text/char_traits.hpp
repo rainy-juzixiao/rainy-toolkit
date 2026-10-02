@@ -35,14 +35,14 @@ namespace rainy::core::text::implements {
         return static_cast<const char *>(std::memchr(string, target, count));
     }
 
-    template<typename CharType>
-    static const CharType* find_impl_char(const CharType* string, std::size_t count, const CharType& target) {
+    template <typename CharType>
+    static const CharType *find_impl_char(const CharType *string, std::size_t count, const CharType &target) {
 #if RAINY_USING_AVX2 && RAINY_IS_X86_PLATFORM
-        const auto* bytes = reinterpret_cast<const unsigned char*>(string);
+        const auto *bytes = reinterpret_cast<const unsigned char *>(string);
         const __m256i target_vec = _mm256_set1_epi8(static_cast<unsigned char>(target));
 
         for (std::size_t i = 0; i + 32 <= count; i += 32) {
-            const __m256i chunk = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(bytes + i));
+            const __m256i chunk = _mm256_loadu_si256(reinterpret_cast<const __m256i *>(bytes + i));
             const __m256i cmp = _mm256_cmpeq_epi8(chunk, target_vec);
             const int mask = _mm256_movemask_epi8(cmp);
             if (mask != 0) {
@@ -52,7 +52,7 @@ namespace rainy::core::text::implements {
 
         std::size_t remaining_start = count & ~0x1F;
         for (std::size_t i = remaining_start; i + 16 <= count; i += 16) {
-            const __m128i chunk = _mm_loadu_si128(reinterpret_cast<const __m128i*>(bytes + i));
+            const __m128i chunk = _mm_loadu_si128(reinterpret_cast<const __m128i *>(bytes + i));
             const __m128i cmp = _mm_cmpeq_epi8(chunk, _mm_set1_epi8(static_cast<unsigned char>(target)));
             const int mask = _mm_movemask_epi8(cmp);
             if (mask != 0) {
@@ -71,13 +71,13 @@ namespace rainy::core::text::implements {
         return nullptr;
     }
 
-    template<typename CharType>
-    static const CharType* find_impl_wchar_16bit(const CharType* string, std::size_t count, const CharType& target) {
+    template <typename CharType>
+    static const CharType *find_impl_wchar_16bit(const CharType *string, std::size_t count, const CharType &target) {
 #if RAINY_USING_AVX2 && RAINY_IS_X86_PLATFORM
         const __m256i target_vec = _mm256_set1_epi16(static_cast<uint16_t>(target));
 
         for (std::size_t i = 0; i + 16 <= count; i += 16) {
-            const __m256i chunk = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(string + i));
+            const __m256i chunk = _mm256_loadu_si256(reinterpret_cast<const __m256i *>(string + i));
             const __m256i cmp = _mm256_cmpeq_epi16(chunk, target_vec);
             const int mask = _mm256_movemask_epi8(cmp);
             if (mask != 0) {
@@ -89,7 +89,7 @@ namespace rainy::core::text::implements {
 
         std::size_t remaining_start = count & ~0xF;
         for (std::size_t i = remaining_start; i + 8 <= count; i += 8) {
-            const __m128i chunk = _mm_loadu_si128(reinterpret_cast<const __m128i*>(string + i));
+            const __m128i chunk = _mm_loadu_si128(reinterpret_cast<const __m128i *>(string + i));
             const __m128i cmp = _mm_cmpeq_epi16(chunk, _mm_set1_epi16(static_cast<uint16_t>(target)));
             const int mask = _mm_movemask_epi8(cmp);
             if (mask != 0) {
@@ -110,13 +110,13 @@ namespace rainy::core::text::implements {
         return nullptr;
     }
 
-    template<typename CharType>
-    static const CharType* find_impl_wchar_32bit(const CharType* string, std::size_t count, const CharType& target) {
+    template <typename CharType>
+    static const CharType *find_impl_wchar_32bit(const CharType *string, std::size_t count, const CharType &target) {
 #if RAINY_USING_AVX2 && RAINY_IS_X86_PLATFORM
         const __m256i target_vec = _mm256_set1_epi32(static_cast<uint32_t>(target));
 
         for (std::size_t i = 0; i + 8 <= count; i += 8) {
-            const __m256i chunk = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(string + i));
+            const __m256i chunk = _mm256_loadu_si256(reinterpret_cast<const __m256i *>(string + i));
             const __m256i cmp = _mm256_cmpeq_epi32(chunk, target_vec);
             const int mask = _mm256_movemask_epi8(cmp);
             if (mask != 0) {
@@ -128,7 +128,7 @@ namespace rainy::core::text::implements {
 
         std::size_t remaining_start = count & ~0x7;
         for (std::size_t i = remaining_start; i + 4 <= count; i += 4) {
-            const __m128i chunk = _mm_loadu_si128(reinterpret_cast<const __m128i*>(string + i));
+            const __m128i chunk = _mm_loadu_si128(reinterpret_cast<const __m128i *>(string + i));
             const __m128i cmp = _mm_cmpeq_epi32(chunk, _mm_set1_epi32(static_cast<uint32_t>(target)));
             const int mask = _mm_movemask_epi8(cmp);
             if (mask != 0) {
@@ -150,7 +150,8 @@ namespace rainy::core::text::implements {
     }
 
     template <typename CharType>
-    RAINY_NODISCARD static RAINY_CONSTEXPR20 const CharType *find_impl(const CharType *string, std::size_t count, const CharType &target) {
+    RAINY_NODISCARD static RAINY_CONSTEXPR20 const CharType *find_impl(const CharType *string, std::size_t count,
+                                                                       const CharType &target) {
         if constexpr (sizeof(CharType) == 1) {
             return find_impl_char(string, count, target);
         } else if constexpr (sizeof(CharType) == 2) {
@@ -402,7 +403,24 @@ namespace rainy::core::text {
                 }
                 return 0;
             } else {
-                return core::builtin::compare_string(string1, string2, count);
+#if RAINY_HAS_CXX20
+                if (std::is_constant_evaluated()) {
+                    if (string1 == string2 || count == 0) {
+                        return 0;
+                    }
+                    for (size_type i = 0; i < count; ++i) {
+                        const auto left = static_cast<unsigned char>(string1[i]);
+                        const auto right = static_cast<unsigned char>(string2[i]);
+                        if (left != right) {
+                            return left < right ? -1 : 1;
+                        }
+                    }
+                    return 0;
+                } else
+#endif
+                {
+                    return core::builtin::compare_string(string1, string2, count);
+                }
             }
         }
 
@@ -585,7 +603,7 @@ namespace rainy::core::text {
          */
         template <size_type N>
         static RAINY_CONSTEXPR20 char_type *move(rainy::collections::array<char_type, N> &to, const char_type *from,
-                                                  const size_type count) {
+                                                 const size_type count) {
             if (N < count) {
                 return nullptr;
             }
