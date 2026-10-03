@@ -17,9 +17,9 @@
 #include <rainy/foundation/willow/json5.hpp>
 
 namespace rainy::foundation::willow {
-    thread_local std::pmr::unsynchronized_pool_resource pool{};
+    thread_local auto *pool_storage = new std::pmr::unsynchronized_pool_resource{};
 
-    thread_local std::pmr::memory_resource *memory_resource = utility::addressof(pool);
+    thread_local std::pmr::memory_resource *memory_resource = pool_storage;
 
     std::pmr::memory_resource *set_memory_resource(std::pmr::memory_resource *memres) noexcept {
         if (!memres) {
@@ -31,16 +31,6 @@ namespace rainy::foundation::willow {
     std::pmr::memory_resource *get_memory_resource() noexcept {
         return memory_resource;
     }
-
-    namespace {
-        struct auto_runner {
-            ~auto_runner() {
-                pool.release();
-            }
-        };
-    }
-
-    thread_local auto_runner placeholder;
 }
 
 namespace rainy::foundation::willow::implements {
