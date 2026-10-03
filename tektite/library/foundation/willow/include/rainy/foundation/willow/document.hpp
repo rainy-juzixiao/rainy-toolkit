@@ -17,7 +17,6 @@
 #define RAINY_FOUNDATION_WILLOW_DOCUMENT_HPP
 #include <algorithm>
 #include <cassert>
-#include <string_view>
 #include <rainy/foundation/willow/implements/common/exceptions.hpp>
 #include <rainy/foundation/willow/implements/common/value.hpp>
 #include <rainy/foundation/willow/iterator.hpp>
@@ -80,10 +79,9 @@ namespace rainy::foundation::willow {
         }
 
         template <typename StringViewLike,
-                  type_traits::other_trans::enable_if_t<
-                      type_traits::properties::is_constructible_v<string_type, StringViewLike> &&
-                          !std::is_base_of_v<basic_document, StringViewLike>,
-                      int> = 0>
+                  type_traits::other_trans::enable_if_t<type_traits::properties::is_constructible_v<string_type, StringViewLike> &&
+                                                            !type_traits::type_relations::is_base_of_v<basic_document, StringViewLike>,
+                                                        int> = 0>
         basic_document(const StringViewLike &value) : value_{string_type{value}} {
         }
 
@@ -96,14 +94,16 @@ namespace rainy::foundation::willow {
         basic_document(integer_type value) : value_(value) {
         }
 
-        template <typename IntegerUTy, typename std::enable_if<std::is_integral<IntegerUTy>::value, int>::type = 0>
+        template <typename IntegerUTy,
+                  typename type_traits::other_trans::enable_if_t<type_traits::primary_types::is_integral_v<IntegerUTy>, int> = 0>
         basic_document(IntegerUTy value) : value_(static_cast<integer_type>(value)) {
         }
 
         basic_document(float_type value) : value_(value) {
         }
 
-        template <typename FloatingUTy, typename std::enable_if<std::is_floating_point<FloatingUTy>::value, int>::type = 0>
+        template <typename FloatingUTy, typename type_traits::other_trans::enable_if_t<
+                                            type_traits::primary_types::is_floating_point_v<FloatingUTy>, int> = 0>
         basic_document(FloatingUTy value) : value_(static_cast<float_type>(value)) {
         }
 
@@ -336,9 +336,10 @@ namespace rainy::foundation::willow {
             value_.data.vector->erase(value_.data.vector->begin() + static_cast<difference_type>(index));
         }
 
-        template <class It,
-                  typename std::enable_if<std::is_same<It, iterator>::value || std::is_same<It, const_iterator>::value,
-                                          int>::type = 0>
+        template <typename It,
+                  typename type_traits::other_trans::enable_if_t<type_traits::type_relations::is_same_v<It, iterator> ||
+                                                                     type_traits::type_relations::is_same_v<It, const_iterator>,
+                                                                 int> = 0>
         It erase(It pos) {
             It result = end();
 
@@ -360,9 +361,10 @@ namespace rainy::foundation::willow {
             return result;
         }
 
-        template <class It,
-                  typename std::enable_if<std::is_same<It, iterator>::value || std::is_same<It, const_iterator>::value,
-                                          int>::type = 0>
+        template <typename It,
+                  typename type_traits::other_trans::enable_if_t<type_traits::type_relations::is_same_v<It, iterator> ||
+                                                                     type_traits::type_relations::is_same_v<It, const_iterator>,
+                                                                 int> = 0>
         It erase(It first, It last) {
             It result = end();
             switch (type()) {
@@ -642,9 +644,8 @@ namespace rainy::foundation::willow {
     template <template <class Key, class Ty, class... Args> class ObjectType, template <class Key, class... Args> class ArrayType,
               typename StringType, typename IntegerType, typename FloatingType, typename BooleanType, template <class Ty> class Alloc,
               typename NodeTag>
-    RAINY_CONSTEXPR_BOOL
-        is_basic_document_v<basic_document<ObjectType, ArrayType, StringType, IntegerType, FloatingType, BooleanType, Alloc, NodeTag>> =
-            true;
+    RAINY_CONSTEXPR_BOOL is_basic_document_v<
+        basic_document<ObjectType, ArrayType, StringType, IntegerType, FloatingType, BooleanType, Alloc, NodeTag>> = true;
 
     template <typename Ty>
     struct is_basic_document : type_traits::helper::bool_constant<is_basic_document_v<Ty>> {};
