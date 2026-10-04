@@ -1468,7 +1468,7 @@ namespace rainy::core::text {
             if (utility::addressof(str) == this) {
                 return *this;
             }
-            if RAINY_CONSTEXPR20 (memory::allocator_traits<Allocator>::propagate_on_container_copy_assignment::value) {
+            if constexpr (memory::allocator_traits<Allocator>::propagate_on_container_copy_assignment::value) {
                 if (this->get_al() != str.get_al()) {
                     basic_string temp{this->get_al()};
                     temp.swap(*this);
@@ -1521,7 +1521,7 @@ namespace rainy::core::text {
          * @return 对此字符串的引用
          */
         RAINY_CONSTEXPR20 basic_string &assign(basic_string &&right) noexcept { // NOLINT
-            if RAINY_CONSTEXPR20 (memory::allocator_traits<Allocator>::propagate_on_container_move_assignment::value) {
+            if constexpr (memory::allocator_traits<Allocator>::propagate_on_container_move_assignment::value) {
                 right.swap(*this);
             } else {
                 if (this->get_al() == right.get_al()) {
@@ -1697,7 +1697,7 @@ namespace rainy::core::text {
         template <typename InputIt,
                   type_traits::other_trans::enable_if_t<type_traits::extras::iterators::is_input_iterator_v<InputIt>, int> = 0>
         RAINY_CONSTEXPR20 basic_string &append(InputIt first, InputIt last) {
-            if RAINY_CONSTEXPR20 (type_traits::extras::iterators::is_random_access_iterator_v<InputIt>) {
+            if constexpr (type_traits::extras::iterators::is_random_access_iterator_v<InputIt>) {
                 auto size = this->size();
                 auto length = utility::distance(first, last);
                 auto new_size = size + length;
@@ -3030,7 +3030,7 @@ namespace rainy::core::text {
             auto start = pos;
             auto end = end_();
             auto index = start - begin_();
-            if RAINY_CONSTEXPR20 (type_traits::extras::iterators::is_random_access_iterator_v<InputIt>) {
+            if constexpr (type_traits::extras::iterators::is_random_access_iterator_v<InputIt>) {
                 auto length = utility::distance(first, last);
                 reserve(size + length);
                 auto begin = begin_();
@@ -3759,7 +3759,7 @@ namespace rainy::core::text {
                   type_traits::other_trans::enable_if_t<type_traits::extras::iterators::is_input_iterator_v<InputIt>, int> = 0>
         RAINY_CONSTEXPR20 basic_string &replace(const_iterator first, const_iterator last, InputIt first2, InputIt last2) {
             auto start = first;
-            if RAINY_CONSTEXPR20 (type_traits::extras::iterators::is_random_access_iterator_v<InputIt>) {
+            if constexpr (type_traits::extras::iterators::is_random_access_iterator_v<InputIt>) {
                 auto data = utility::addressof(*first2);
                 auto length2 = utility::distance(first2, last2);
                 replace_(start - begin_(), last - first, data, data + length2);
@@ -4725,7 +4725,11 @@ namespace rainy::core::text {
                 if (!(last1 < first2 || last2 < first1) && new_size <= capacity()) {
                 auto diff = length1 - length2;
                 // NOLINTBEGIN
+#if RAINY_HAS_CXX20
                 if (std::is_constant_evaluated()) {
+#else
+                if (false) {
+#endif
                     if (diff > 0) {
                         core::algorithm::copy(last1, end, last1 - diff);
                     } else if (diff < 0) {

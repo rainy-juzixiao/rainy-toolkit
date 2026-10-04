@@ -53,9 +53,15 @@ namespace rainy::core::text {
         little_endian = 1
     };
 
+#if RAINY_HAS_CXX20
     using codecvt_mode::consume_header;
     using codecvt_mode::generate_header;
     using codecvt_mode::little_endian;
+#else
+    inline constexpr codecvt_mode consume_header = codecvt_mode::consume_header;
+    inline constexpr codecvt_mode generate_header = codecvt_mode::generate_header;
+    inline constexpr codecvt_mode little_endian = codecvt_mode::little_endian;
+#endif
 
     RAINY_ENABLE_ENUM_CLASS_BITMASK_OPERATORS(codecvt_mode);
 

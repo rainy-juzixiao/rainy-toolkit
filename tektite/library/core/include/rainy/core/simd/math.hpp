@@ -17,6 +17,7 @@
 #define RAINY_CORE_SIMD_MATH_HPP
 
 #include <cmath>
+#include <rainy/core/platform.hpp>
 #include <rainy/core/simd/basic_vec.hpp>
 #include <rainy/core/simd/math_common.hpp>
 
@@ -43,6 +44,15 @@ namespace rainy::core::implements {
             const simd_size_type i = static_cast<simd_size_type>(index);
             return f(first[i], second[i], third[i]);
         }};
+    }
+
+    template <typename Ty>
+    constexpr Ty lerp_compat(const Ty x, const Ty y, const Ty p) noexcept {
+#if RAINY_HAS_CXX20
+        return std::lerp(x, y, p);
+#else
+        return x + p * (y - x);
+#endif
     }
 }
 
@@ -579,43 +589,43 @@ namespace rainy::core {
     template <typename V, implements::enable_if_math_t<V>>
     RAINY_CONSTEXPR26 deduced_vec_t<V> lerp(const V &a, const V &b, const V &t) noexcept {
         return implements::map_ternary<deduced_vec_t<V>>(a, b, t,
-                                                         [](auto x, auto y, auto p) { return std::lerp(x, y, p); });
+                                                         [](auto x, auto y, auto p) { return implements::lerp_compat(x, y, p); });
     }
 
     template <typename V, implements::enable_if_math_t<V>>
     RAINY_CONSTEXPR26 deduced_vec_t<V> lerp(const deduced_vec_t<V> &a, const V &b, const V &t) noexcept {
         return implements::map_ternary<deduced_vec_t<V>>(a, b, t,
-                                                         [](auto x, auto y, auto p) { return std::lerp(x, y, p); });
+                                                         [](auto x, auto y, auto p) { return implements::lerp_compat(x, y, p); });
     }
 
     template <typename V, implements::enable_if_math_t<V>>
     RAINY_CONSTEXPR26 deduced_vec_t<V> lerp(const V &a, const deduced_vec_t<V> &b, const V &t) noexcept {
         return implements::map_ternary<deduced_vec_t<V>>(a, b, t,
-                                                         [](auto x, auto y, auto p) { return std::lerp(x, y, p); });
+                                                         [](auto x, auto y, auto p) { return implements::lerp_compat(x, y, p); });
     }
 
     template <typename V, implements::enable_if_math_t<V>>
     RAINY_CONSTEXPR26 deduced_vec_t<V> lerp(const V &a, const V &b, const deduced_vec_t<V> &t) noexcept {
         return implements::map_ternary<deduced_vec_t<V>>(a, b, t,
-                                                         [](auto x, auto y, auto p) { return std::lerp(x, y, p); });
+                                                         [](auto x, auto y, auto p) { return implements::lerp_compat(x, y, p); });
     }
 
     template <typename V, implements::enable_if_math_t<V>>
     RAINY_CONSTEXPR26 deduced_vec_t<V> lerp(const deduced_vec_t<V> &a, const deduced_vec_t<V> &b, const V &t) noexcept {
         return implements::map_ternary<deduced_vec_t<V>>(a, b, t,
-                                                         [](auto x, auto y, auto p) { return std::lerp(x, y, p); });
+                                                         [](auto x, auto y, auto p) { return implements::lerp_compat(x, y, p); });
     }
 
     template <typename V, implements::enable_if_math_t<V>>
     RAINY_CONSTEXPR26 deduced_vec_t<V> lerp(const deduced_vec_t<V> &a, const V &b, const deduced_vec_t<V> &t) noexcept {
         return implements::map_ternary<deduced_vec_t<V>>(a, b, t,
-                                                         [](auto x, auto y, auto p) { return std::lerp(x, y, p); });
+                                                         [](auto x, auto y, auto p) { return implements::lerp_compat(x, y, p); });
     }
 
     template <typename V, implements::enable_if_math_t<V>>
     RAINY_CONSTEXPR26 deduced_vec_t<V> lerp(const V &a, const deduced_vec_t<V> &b, const deduced_vec_t<V> &t) noexcept {
         return implements::map_ternary<deduced_vec_t<V>>(a, b, t,
-                                                         [](auto x, auto y, auto p) { return std::lerp(x, y, p); });
+                                                         [](auto x, auto y, auto p) { return implements::lerp_compat(x, y, p); });
     }
 
     template <typename V, implements::enable_if_math_t<V>>
