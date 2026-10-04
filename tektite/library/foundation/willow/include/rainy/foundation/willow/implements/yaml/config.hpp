@@ -74,6 +74,8 @@ namespace rainy::foundation::willow::yaml {
     using willow::basic_document;
     using willow::document;
     using willow::document_type;
+    using willow::from_other_document;
+    using willow::from_other_document_t;
     using willow::serializer_args;
 
     template <typename CharType>
@@ -146,6 +148,7 @@ namespace rainy::foundation::willow::yaml {
         using const_iterator = typename base_type::const_iterator;
         using reverse_iterator = typename base_type::reverse_iterator;
         using const_reverse_iterator = typename base_type::const_reverse_iterator;
+        using node_type = typename base_type::node_type;
 
         using base_type::base_type;
 
@@ -155,6 +158,11 @@ namespace rainy::foundation::willow::yaml {
         }
 
         yaml_document(base_type &&right) : base_type(utility::move(right)) {
+        }
+
+        template <typename OtherDocument>
+        yaml_document(from_other_document_t, const OtherDocument &right) :
+            base_type(willow::implements::convert_document<base_type>(right)) {
         }
 
         yaml_document(const yaml_document &right) :
@@ -198,6 +206,14 @@ namespace rainy::foundation::willow::yaml {
         }
 
         const base_type &base() const noexcept {
+            return *this;
+        }
+
+        base_type &as_document() noexcept {
+            return *this;
+        }
+
+        const base_type &as_document() const noexcept {
             return *this;
         }
 

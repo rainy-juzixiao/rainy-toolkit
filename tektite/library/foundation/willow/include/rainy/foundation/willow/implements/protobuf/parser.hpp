@@ -19,8 +19,9 @@
 #include <rainy/foundation/willow/implements/protobuf/config.hpp>
 #include <rainy/foundation/willow/implements/protobuf/exceptions.hpp>
 #include <rainy/foundation/willow/implements/protobuf/serializer.hpp>
+#include <rainy/foundation/willow/implements/protobuf/version.hpp>
 
-#if RAINY_HAS_CXX20
+#if RAINY_WILLOW_PROTOBUF_AVAILABLE
 
 namespace rainy::foundation::willow::protobuf::implements {
     using namespace rainy::foundation::exceptions::willow::protobuf;
@@ -130,7 +131,7 @@ namespace rainy::foundation::willow::protobuf::implements {
     template <typename Concept, typename BasicDocument>
     struct protobuf_parser {
         static void decode_into(const std::uint8_t *data, std::size_t size, BasicDocument &doc) {
-            static_assert(protobuf_message<Concept>, "decode requires a protobuf concept type");
+            static_assert(is_protobuf_message_v<Concept>, "decode requires a protobuf concept type");
             static_assert(valid_field_numbers_v<Concept>, "protobuf field numbers must be unique and within 1..536870911");
             if (doc.is_null()) {
                 doc = BasicDocument(document_type::object);
@@ -177,7 +178,7 @@ namespace rainy::foundation::willow::protobuf::implements {
         static void decode_field(wire_type wire, const std::uint8_t *&ptr, const std::uint8_t *end, BasicDocument &doc) {
             using field_type = field_at_t<Owner, Index>;
             using kind = typename field_type::kind;
-            constexpr core::text::string_view name = field_type::name.view();
+            constexpr core::text::string_view name = field_name_of<field_type>();
             auto key = make_protobuf_key<BasicDocument>(name);
             if constexpr (is_repeated_kind_v<kind>) {
                 BasicDocument &slot = doc[key];

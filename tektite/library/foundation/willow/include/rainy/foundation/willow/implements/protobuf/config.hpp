@@ -16,38 +16,14 @@
 #ifndef RAINY_FOUNDATION_WILLOW_IMPLEMENTS_PROTOBUF_CONFIG_HPP
 #define RAINY_FOUNDATION_WILLOW_IMPLEMENTS_PROTOBUF_CONFIG_HPP
 #include <rainy/core/container/tuple.hpp>
+#include <rainy/core/text/string_view.hpp>
 #include <rainy/foundation/willow/implements/common/config.hpp>
+#include <rainy/foundation/willow/implements/protobuf/version.hpp>
 
-#if RAINY_HAS_CXX20
+#if RAINY_WILLOW_PROTOBUF_AVAILABLE
 
 namespace rainy::foundation::willow::protobuf {
     using byte_buffer = core::collections::vector<std::uint8_t>;
-}
-
-namespace rainy::foundation::willow::protobuf {
-    template <std::size_t N>
-    struct fixed_name {
-        char data[N]{};
-
-        constexpr fixed_name(const char (&str)[N]) noexcept {
-            for (std::size_t i = 0; i < N; ++i) {
-                data[i] = str[i];
-            }
-        }
-
-        constexpr std::size_t size() const noexcept {
-            return N == 0 ? 0 : N - 1;
-        }
-
-        constexpr core::text::string_view view() const noexcept {
-            return core::text::string_view(data, size());
-        }
-
-        constexpr bool operator==(const fixed_name &) const noexcept = default;
-    };
-
-    template <std::size_t N>
-    fixed_name(const char (&)[N]) -> fixed_name<N>;
 }
 
 namespace rainy::foundation::willow::protobuf::proto {
@@ -75,39 +51,6 @@ namespace rainy::foundation::willow::protobuf::proto {
 }
 
 namespace rainy::foundation::willow::protobuf {
-    template <fixed_name Name, typename Kind, std::uint32_t Number>
-    struct field {
-        static constexpr auto name = Name;
-        using kind = Kind;
-        static constexpr std::uint32_t number = Number;
-    };
-
-    template <typename Ty>
-    struct is_field : type_traits::helper::false_type {};
-
-    template <fixed_name Name, typename Kind, std::uint32_t Number>
-    struct is_field<field<Name, Kind, Number>> : type_traits::helper::true_type {};
-
-    template <typename Ty>
-    inline constexpr bool is_field_v = is_field<Ty>::value;
-
-    template <fixed_name Name, typename Kind, std::uint32_t Number, auto Member>
-    struct member_field {
-        static constexpr auto name = Name;
-        using kind = Kind;
-        static constexpr std::uint32_t number = Number;
-        static constexpr auto member = Member;
-    };
-
-    template <typename Ty>
-    struct is_direct_field : type_traits::helper::false_type {};
-
-    template <fixed_name Name, typename Kind, std::uint32_t Number, auto Member>
-    struct is_direct_field<member_field<Name, Kind, Number, Member>> : type_traits::helper::true_type {};
-
-    template <typename Ty>
-    inline constexpr bool is_direct_field_v = is_direct_field<Ty>::value;
-
     template <typename Ty>
     struct is_repeated_kind : type_traits::helper::false_type {};
 
@@ -147,12 +90,6 @@ namespace rainy::foundation::willow::protobuf {
 
     template <typename Ty>
     using message_concept_t = typename message_concept<Ty>::type;
-
-    template <typename Ty>
-    struct is_protobuf_message : type_traits::helper::false_type {};
-
-    template <typename Ty>
-    inline constexpr bool is_protobuf_message_v = is_protobuf_message<Ty>::value;
 
     enum class wire_type : std::uint32_t {
         varint = 0,
@@ -240,15 +177,214 @@ namespace rainy::foundation::willow::protobuf {
     inline constexpr bool is_packable_v = is_packable<Kind>::value;
 
     inline constexpr std::uint32_t max_field_number = 536870911;
+}
+
+#if RAINY_WILLOW_PROTOBUF_HAS_CXX20_FIELDS
+
+namespace rainy::foundation::willow::protobuf {
+    template <std::size_t N>
+    struct fixed_name {
+        char data[N]{};
+
+        constexpr fixed_name(const char (&str)[N]) noexcept {
+            for (std::size_t i = 0; i < N; ++i) {
+                data[i] = str[i];
+            }
+        }
+
+        constexpr std::size_t size() const noexcept {
+            return N == 0 ? 0 : N - 1;
+        }
+
+        constexpr core::text::string_view view() const noexcept {
+            return core::text::string_view(data, size());
+        }
+
+        constexpr bool operator==(const fixed_name &) const noexcept = default;
+    };
+
+    template <std::size_t N>
+    fixed_name(const char (&)[N]) -> fixed_name<N>;
+}
+
+namespace rainy::foundation::willow::protobuf {
+    template <fixed_name Name, typename Kind, std::uint32_t Number>
+    struct field {
+        static constexpr auto name = Name;
+        using kind = Kind;
+        static constexpr std::uint32_t number = Number;
+    };
+
+    template <typename Ty>
+    struct is_field_nttp : type_traits::helper::false_type {};
+
+    template <fixed_name Name, typename Kind, std::uint32_t Number>
+    struct is_field_nttp<field<Name, Kind, Number>> : type_traits::helper::true_type {};
+
+    template <typename Ty>
+    inline constexpr bool is_field_nttp_v = is_field_nttp<Ty>::value;
+
+    template <fixed_name Name, typename Kind, std::uint32_t Number, auto Member>
+    struct member_field {
+        static constexpr auto name = Name;
+        using kind = Kind;
+        static constexpr std::uint32_t number = Number;
+        static constexpr auto member = Member;
+    };
+
+    template <typename Ty>
+    struct is_direct_field_nttp : type_traits::helper::false_type {};
+
+    template <fixed_name Name, typename Kind, std::uint32_t Number, auto Member>
+    struct is_direct_field_nttp<member_field<Name, Kind, Number, Member>> : type_traits::helper::true_type {};
+
+    template <typename Ty>
+    inline constexpr bool is_direct_field_nttp_v = is_direct_field_nttp<Ty>::value;
+}
+
+#endif
+
+#if RAINY_WILLOW_PROTOBUF_HAS_CXX17_FIELDS
+
+namespace rainy::foundation::willow::protobuf {
+    template <typename Kind, std::uint32_t Number>
+    struct cxx17_field {
+        using kind = Kind;
+        static constexpr std::uint32_t number = Number;
+    };
+
+    template <typename Kind, std::uint32_t Number, auto Member>
+    struct cxx17_member_field {
+        using kind = Kind;
+        static constexpr std::uint32_t number = Number;
+        static constexpr auto member = Member;
+    };
+
+    template <typename Ty, typename = void>
+    struct has_protobuf_kind : type_traits::helper::false_type {};
+
+    template <typename Ty>
+    struct has_protobuf_kind<Ty, type_traits::other_trans::void_t<typename Ty::kind>>
+        : type_traits::helper::true_type {};
+
+    template <typename Ty, typename = void>
+    struct has_protobuf_number : type_traits::helper::false_type {};
+
+    template <typename Ty>
+    struct has_protobuf_number<
+        Ty, type_traits::other_trans::void_t<type_traits::helper::integral_constant<std::uint32_t, Ty::number>>>
+        : type_traits::helper::true_type {};
+
+    template <typename Ty, typename = void>
+    struct has_protobuf_member : type_traits::helper::false_type {};
+
+    template <typename Ty>
+    struct has_protobuf_member<Ty, type_traits::other_trans::void_t<decltype(Ty::member)>>
+        : type_traits::helper::true_type {};
+
+    template <typename Ty, typename = void>
+    struct has_cxx17_field_name : type_traits::helper::false_type {};
+
+    template <typename Ty>
+    struct has_cxx17_field_name<Ty,
+                                type_traits::other_trans::void_t<decltype(Ty::protobuf_field_name())>>
+        : type_traits::helper::true_type {};
+
+    template <typename Ty, typename = void>
+    struct has_nttp_field_name : type_traits::helper::false_type {};
+
+    template <typename Ty>
+    struct has_nttp_field_name<Ty, type_traits::other_trans::void_t<decltype(Ty::name.view())>>
+        : type_traits::helper::true_type {};
+
+    template <typename Ty>
+    struct is_field_macro
+        : type_traits::helper::bool_constant<has_protobuf_kind<Ty>::value && has_protobuf_number<Ty>::value &&
+                                             has_cxx17_field_name<Ty>::value> {};
+
+    template <typename Ty>
+    inline constexpr bool is_field_macro_v = is_field_macro<Ty>::value;
+
+    template <typename Ty>
+    struct is_direct_field_macro
+        : type_traits::helper::bool_constant<is_field_macro<Ty>::value && has_protobuf_member<Ty>::value> {};
+
+    template <typename Ty>
+    inline constexpr bool is_direct_field_macro_v = is_direct_field_macro<Ty>::value;
+
+    template <typename Ty>
+    RAINY_NODISCARD constexpr core::text::string_view field_name_of() noexcept {
+        if constexpr (has_nttp_field_name<Ty>::value) {
+            return Ty::name.view();
+        } else {
+            return Ty::protobuf_field_name();
+        }
+    }
+}
+
+#define RAINY_WILLOW_PROTOBUF_CXX17_FIELD_DECL(FieldType, NameStr, Kind, Number)                                        \
+    struct FieldType : ::rainy::foundation::willow::protobuf::cxx17_field<Kind, Number> {                               \
+        static constexpr ::rainy::core::text::string_view protobuf_field_name() noexcept {                              \
+            return ::rainy::core::text::string_view(NameStr, sizeof(NameStr) - 1);                                       \
+        }                                                                                                               \
+    }
+
+#define RAINY_WILLOW_PROTOBUF_CXX17_MEMBER_FIELD_DECL(FieldType, NameStr, Kind, Number, MemberPtr)                     \
+    struct FieldType : ::rainy::foundation::willow::protobuf::cxx17_member_field<Kind, Number, MemberPtr> {             \
+        static constexpr ::rainy::core::text::string_view protobuf_field_name() noexcept {                              \
+            return ::rainy::core::text::string_view(NameStr, sizeof(NameStr) - 1);                                       \
+        }                                                                                                               \
+    }
+
+#endif
+
+namespace rainy::foundation::willow::protobuf {
+#if RAINY_WILLOW_PROTOBUF_HAS_CXX20_FIELDS
+    template <typename Ty>
+    struct is_field
+        : type_traits::helper::bool_constant<is_field_nttp_v<Ty> || is_field_macro_v<Ty>> {};
+
+    template <typename Ty>
+    inline constexpr bool is_field_v = is_field<Ty>::value;
+
+    template <typename Ty>
+    struct is_direct_field
+        : type_traits::helper::bool_constant<is_direct_field_nttp_v<Ty> || is_direct_field_macro_v<Ty>> {};
+
+    template <typename Ty>
+    inline constexpr bool is_direct_field_v = is_direct_field<Ty>::value;
+#else
+    template <typename Ty>
+    struct is_field : is_field_macro<Ty> {};
+
+    template <typename Ty>
+    inline constexpr bool is_field_v = is_field<Ty>::value;
+
+    template <typename Ty>
+    struct is_direct_field : is_direct_field_macro<Ty> {};
+
+    template <typename Ty>
+    inline constexpr bool is_direct_field_v = is_direct_field<Ty>::value;
+#endif
+
+    template <typename Ty, typename = void>
+    struct is_protobuf_message : type_traits::helper::false_type {};
+
+    template <typename Ty>
+    struct is_protobuf_message<Ty, type_traits::other_trans::void_t<decltype(Ty::protobuf_fields)>>
+        : type_traits::helper::true_type {};
+
+    template <typename Ty>
+    inline constexpr bool is_protobuf_message_v = is_protobuf_message<Ty>::value;
 
     template <typename Concept>
     struct message_fields {
     private:
-        using raw = std::remove_cvref_t<decltype(Concept::protobuf_fields)>;
+        using raw = type_traits::modifers::remove_cvref_t<decltype(Concept::protobuf_fields)>;
 
     public:
         using type = raw;
-        static constexpr std::size_t size = std::tuple_size_v<raw>;
+        static constexpr std::size_t size = std::tuple_size<raw>::value;
     };
 
     template <typename Concept>
@@ -272,6 +408,11 @@ namespace rainy::foundation::willow::protobuf {
     template <typename Concept, std::size_t Index>
     inline constexpr std::uint32_t field_number_v = field_number<Concept, Index>::value;
 
+    template <typename Concept, std::size_t Index>
+    RAINY_NODISCARD constexpr core::text::string_view field_name_view() noexcept {
+        return field_name_of<field_at_t<Concept, Index>>();
+    }
+
     template <typename Concept, std::size_t... Is>
     constexpr bool check_field_numbers(type_traits::helper::index_sequence<Is...>) {
         constexpr std::uint32_t numbers[] = {field_number_v<Concept, Is>...};
@@ -293,11 +434,15 @@ namespace rainy::foundation::willow::protobuf {
         check_field_numbers<Concept>(type_traits::helper::make_index_sequence<field_count_v<Concept>>{});
 }
 
+#if RAINY_WILLOW_PROTOBUF_HAS_CXX20_FIELDS
+
 namespace rainy::foundation::willow::protobuf {
     template <typename Ty>
     concept protobuf_message = requires { Ty::protobuf_fields; } &&
                                (std::tuple_size_v<type_traits::modifers::remove_cvref_t<decltype(Ty::protobuf_fields)>> >= 0);
 }
+
+#endif
 
 #endif
 
