@@ -405,6 +405,15 @@ namespace rainy::core::text {
             } else {
 #if RAINY_HAS_CXX20
                 if (std::is_constant_evaluated()) {
+#elif defined(__has_builtin)
+#if __has_builtin(__builtin_is_constant_evaluated)
+                if (__builtin_is_constant_evaluated()) {
+#else
+                if (false) {
+#endif
+#else
+                if (false) {
+#endif
                     if (count == 0) {
                         return 0;
                     }
@@ -417,7 +426,6 @@ namespace rainy::core::text {
                     }
                     return 0;
                 } else
-#endif
                 {
                     return core::builtin::compare_string(string1, string2, count);
                 }

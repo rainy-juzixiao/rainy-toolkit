@@ -1930,7 +1930,7 @@ namespace rainy::core::collections {
          * @return 返回一个新向量，其元素为映射函数作用后的结果。
          */
         template <typename Fx, typename NewType = type_traits::properties::invoke_result_t<Fx, value_type>,
-                  typename NewAlloc = core::memory::allocator_traits<allocator_type>::template rebind_alloc<NewType>>
+                  typename NewAlloc = typename core::memory::allocator_traits<allocator_type>::template rebind_alloc<NewType>>
         RAINY_NODISCARD RAINY_CONSTEXPR20 rain_fn map(Fx &&func) const -> vector<NewType, NewAlloc> {
             static_assert(type_traits::composite_types::is_object_v<Ty>, "Ty must be a object");
             static_assert(type_traits::properties::is_complete_v<Ty>, "Ty require that Ty must a complete type");

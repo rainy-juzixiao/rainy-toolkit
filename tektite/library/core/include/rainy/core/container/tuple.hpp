@@ -442,7 +442,7 @@ namespace rainy::core::container {
     class tuple : public implements::tuple_impl<tuple<Types...>, 0, Types...> {
     public:
         using base = implements::tuple_impl<tuple<Types...>, 0, Types...>;
-        using head_type = type_traits::other_trans::type_at<0, type_traits::other_trans::type_list<Types...>>::type;
+        using head_type = typename type_traits::other_trans::type_at<0, type_traits::other_trans::type_list<Types...>>::type;
         using rest_tuple = typename implements::rest_tuple<
             tuple, typename type_traits::other_trans::type_list_pop_front<type_traits::other_trans::type_list<Types...>>::type>::type;
 

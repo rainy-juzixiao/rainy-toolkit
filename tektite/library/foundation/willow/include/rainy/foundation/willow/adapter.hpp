@@ -16,6 +16,10 @@
 #ifndef RAINY_FOUNDATION_WILLOW_APAPTER_HPP
 #define RAINY_FOUNDATION_WILLOW_APAPTER_HPP
 #include <cmath>
+#include <cstdio>
+#include <ios>
+#include <istream>
+#include <ostream>
 #include <rainy/core/platform.hpp>
 #include <rainy/core/poly/basic_poly.hpp>
 #include <rainy/core/text/char_traits.hpp>

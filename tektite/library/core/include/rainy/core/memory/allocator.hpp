@@ -54,7 +54,7 @@ namespace rainy::core::memory {
         constexpr allocator(const allocator<U> &) noexcept {
         }
 
-        constexpr ~allocator() = default;
+        RAINY_CONSTEXPR20 ~allocator() = default;
 
         constexpr allocator &operator=(const allocator &) = default;
 
@@ -668,7 +668,7 @@ namespace rainy::core::memory {
          * \lang simp-chinese
          * @brief 析构函数。
          */
-        constexpr ~allocator() = default;
+        RAINY_CONSTEXPR20 ~allocator() = default;
 
         /**
          * \lang english
