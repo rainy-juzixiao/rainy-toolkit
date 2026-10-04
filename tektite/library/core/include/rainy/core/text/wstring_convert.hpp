@@ -199,7 +199,6 @@ namespace rainy::core::text {
                     return result::error; // 码点太大
                 }
 
-#if RAINY_USING_WINDOWS
                 if (ch > 0xffff) {
                     if (to_end - to_next < 2) {
                         break;
@@ -210,9 +209,6 @@ namespace rainy::core::text {
                 } else {
                     *to_next++ = static_cast<wide_type>(ch);
                 }
-#else
-                *to_next++ = static_cast<wide_type>(ch);
-#endif
             }
 
             return from_begin == from_next ? result::partial : result::ok;
@@ -252,7 +248,6 @@ namespace rainy::core::text {
                 unsigned long ch = static_cast<unsigned long>(*from_next);
                 int consumed = 1;
 
-#if RAINY_USING_WINDOWS
                 if (ch >= 0xD800 && ch <= 0xDBFF) {
                     if (from_end - from_next < 2) {
                         break;
@@ -266,7 +261,6 @@ namespace rainy::core::text {
                 } else if (ch >= 0xDC00 && ch <= 0xDFFF) {
                     return result::error;
                 }
-#endif
                 from_next += consumed;
 
                 if (Maxcode < ch) {
@@ -488,7 +482,6 @@ namespace rainy::core::text {
                     return result::error; // 码点太大
                 }
 
-#ifdef RAINY_USING_WINDOWS
                 if (ch > 0xffff) {
                     // Windows: wchar_t 是 16 位，需要输出代理对
                     if (to_end - to_next < 2) {
@@ -500,9 +493,6 @@ namespace rainy::core::text {
                 } else {
                     *to_next++ = static_cast<wide_type>(ch);
                 }
-#else
-                *to_next++ = static_cast<wide_type>(ch);
-#endif
             }
 
             return from_next == from_end ? result::ok : result::partial;
