@@ -17,21 +17,29 @@
 #define RAINY_FOUNDATION_WILLOW_PROTOBUF_HPP
 #include <rainy/foundation/willow/document.hpp>
 #include <rainy/foundation/willow/implements/protobuf/config.hpp>
+#include <rainy/foundation/willow/implements/protobuf/dynamic.hpp>
+#include <rainy/foundation/willow/implements/protobuf/unknown.hpp>
 #include <rainy/foundation/willow/implements/protobuf/direct.hpp>
+#include <rainy/foundation/willow/implements/protobuf/descriptor.hpp>
+#include <rainy/foundation/willow/implements/protobuf/reflection.hpp>
+#include <rainy/foundation/willow/implements/protobuf/clearme.hpp>
 #include <rainy/foundation/willow/implements/protobuf/parser.hpp>
 #include <rainy/foundation/willow/implements/protobuf/serializer.hpp>
+#include <rainy/foundation/willow/implements/protobuf/version.hpp>
 
-#if RAINY_HAS_CXX20
+#if RAINY_WILLOW_PROTOBUF_AVAILABLE
 
 namespace rainy::foundation::willow::protobuf {
     using willow::basic_document;
     using willow::document;
     using willow::document64;
     using willow::document_type;
+    using willow::from_other_document;
+    using willow::from_other_document_t;
 
     template <typename Concept, typename BasicDocument>
     struct protobuf_document : public BasicDocument {
-        static_assert(protobuf_message<Concept>, "protobuf facade requires a concept type with protobuf_fields");
+        static_assert(is_protobuf_message_v<Concept>, "protobuf facade requires a concept type with protobuf_fields");
         static_assert(valid_field_numbers_v<Concept>, "protobuf field numbers must be unique and within 1..536870911");
 
         using document_base = BasicDocument;
@@ -42,6 +50,11 @@ namespace rainy::foundation::willow::protobuf {
         }
 
         protobuf_document(BasicDocument &&value) : BasicDocument(static_cast<BasicDocument &&>(value)) {
+        }
+
+        template <typename OtherDocument>
+        protobuf_document(from_other_document_t, const OtherDocument &value) :
+            BasicDocument(willow::implements::convert_document<BasicDocument>(value)) {
         }
 
         const BasicDocument &as_document() const noexcept {
@@ -66,7 +79,7 @@ namespace rainy::foundation::willow::protobuf {
 
     template <typename Concept, typename BasicDocument>
     byte_buffer encode(const BasicDocument &doc) {
-        static_assert(protobuf_message<Concept>, "encode requires a protobuf concept type");
+        static_assert(is_protobuf_message_v<Concept>, "encode requires a protobuf concept type");
         byte_buffer out{};
         implements::protobuf_serializer<Concept, BasicDocument>::encode_into(doc, out);
         return out;
@@ -79,7 +92,7 @@ namespace rainy::foundation::willow::protobuf {
 
     template <typename Concept, typename BasicDocument = document>
     BasicDocument decode(const std::uint8_t *data, std::size_t size) {
-        static_assert(protobuf_message<Concept>, "decode requires a protobuf concept type");
+        static_assert(is_protobuf_message_v<Concept>, "decode requires a protobuf concept type");
         BasicDocument doc(document_type::object);
         if (data == nullptr && size != 0) {
             implements::throw_protobuf_parse_error("null input with nonzero size");
@@ -111,7 +124,7 @@ namespace rainy::foundation::willow::protobuf {
 
     template <typename Concept>
     byte_buffer encode_direct(const Concept &value) {
-        static_assert(direct_message<Concept>, "encode_direct requires a concept type with member_field entries");
+        static_assert(is_direct_message_v<Concept>, "encode_direct requires a concept type with member_field entries");
         byte_buffer out{};
         out.reserve(128);
         implements::direct_serializer<Concept>::encode_into(value, out);
@@ -120,7 +133,7 @@ namespace rainy::foundation::willow::protobuf {
 
     template <typename Concept>
     Concept decode_direct(const std::uint8_t *data, std::size_t size) {
-        static_assert(direct_message<Concept>, "decode_direct requires a concept type with member_field entries");
+        static_assert(is_direct_message_v<Concept>, "decode_direct requires a concept type with member_field entries");
         Concept value{};
         if (data == nullptr && size != 0) {
             implements::throw_protobuf_parse_error("null input with nonzero size");
@@ -142,7 +155,7 @@ namespace rainy::foundation::willow::protobuf {
 
     template <typename Concept>
     void decode_direct_into(const std::uint8_t *data, std::size_t size, Concept &value) {
-        static_assert(direct_message<Concept>, "decode_direct_into requires a concept type with member_field entries");
+        static_assert(is_direct_message_v<Concept>, "decode_direct_into requires a concept type with member_field entries");
         if (data == nullptr && size != 0) {
             implements::throw_protobuf_parse_error("null input with nonzero size");
         }

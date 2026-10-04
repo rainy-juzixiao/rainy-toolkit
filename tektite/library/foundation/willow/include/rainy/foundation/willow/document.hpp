@@ -15,8 +15,7 @@
  */
 #ifndef RAINY_FOUNDATION_WILLOW_DOCUMENT_HPP
 #define RAINY_FOUNDATION_WILLOW_DOCUMENT_HPP
-#include <algorithm>
-#include <cassert>
+#include <rainy/core/text/wstring_convert.hpp>
 #include <rainy/foundation/willow/implements/common/exceptions.hpp>
 #include <rainy/foundation/willow/implements/common/value.hpp>
 #include <rainy/foundation/willow/iterator.hpp>
@@ -61,6 +60,14 @@ namespace rainy::foundation::willow {
 
         const node_type &as_node() const noexcept {
             return static_cast<const node_type &>(*this);
+        }
+
+        basic_document &as_document() noexcept {
+            return *this;
+        }
+
+        const basic_document &as_document() const noexcept {
+            return *this;
         }
 
         basic_document(std::nullptr_t) {
@@ -637,7 +644,113 @@ namespace rainy::foundation::willow {
     private:
         implements::value<basic_document> value_;
     };
+}
 
+namespace rainy::foundation::willow::implements {
+    template <typename CharType>
+    struct document_utf8_converter;
+
+    template <>
+    struct document_utf8_converter<char16_t> {
+        using type = core::text::wstring_convert<core::text::codecvt_utf8_utf16<char16_t>, core::text::basic_string, char16_t>;
+    };
+
+    template <>
+    struct document_utf8_converter<char32_t> {
+        using type = core::text::wstring_convert<core::text::codecvt_utf8<char32_t>, core::text::basic_string, char32_t>;
+    };
+
+    template <>
+    struct document_utf8_converter<wchar_t> {
+#if RAINY_USING_WINDOWS
+        using type = core::text::wstring_convert<core::text::codecvt_utf8_utf16<wchar_t>, core::text::basic_string, wchar_t>;
+#else
+        using type = core::text::wstring_convert<core::text::codecvt_utf8<char32_t>, core::text::basic_string, char32_t>;
+#endif
+    };
+
+    template <typename TargetString>
+    TargetString decode_document_utf8(const char *first, const char *last) {
+        using target_char_type = typename TargetString::value_type;
+        if constexpr (type_traits::type_relations::is_same_v<target_char_type, char>) {
+            return TargetString(first, last);
+        }
+#if RAINY_HAS_CXX20
+        else if constexpr (type_traits::type_relations::is_same_v<target_char_type, char8_t>) {
+            TargetString result;
+            result.reserve(static_cast<std::size_t>(last - first));
+            for (; first != last; ++first) {
+                result.push_back(static_cast<char8_t>(static_cast<unsigned char>(*first)));
+            }
+            return result;
+        } else
+#endif
+        {
+            using converter = typename document_utf8_converter<target_char_type>::type;
+            const auto converted = converter{}.from_bytes(first, last);
+            return TargetString(converted.begin(), converted.end());
+        }
+    }
+
+    template <typename TargetString, typename SourceString>
+    TargetString convert_document_string(const SourceString &source) {
+        using source_char_type = typename SourceString::value_type;
+        using target_char_type = typename TargetString::value_type;
+
+        if constexpr (type_traits::type_relations::is_same_v<source_char_type, target_char_type>) {
+            return TargetString(source.begin(), source.end());
+        } else if constexpr (type_traits::type_relations::is_same_v<source_char_type, char>) {
+            return decode_document_utf8<TargetString>(source.data(), source.data() + source.size());
+        }
+#if RAINY_HAS_CXX20
+        else if constexpr (type_traits::type_relations::is_same_v<source_char_type, char8_t>) {
+            return decode_document_utf8<TargetString>(reinterpret_cast<const char *>(source.data()),
+                                                       reinterpret_cast<const char *>(source.data() + source.size()));
+        }
+#endif
+        else {
+            using converter = typename document_utf8_converter<source_char_type>::type;
+            typename converter::wide_string wide(source.begin(), source.end());
+            const auto utf8 = converter{}.to_bytes(wide);
+            return decode_document_utf8<TargetString>(utf8.data(), utf8.data() + utf8.size());
+        }
+    }
+
+    template <typename TargetDocument, typename SourceDocument>
+    TargetDocument convert_document(const SourceDocument &source) {
+        const auto &source_document = source.as_document();
+        using source_type = type_traits::modifers::remove_cvref_t<decltype(source_document)>;
+        if constexpr (type_traits::type_relations::is_same_v<TargetDocument, source_type> &&
+                      type_traits::type_relations::is_same_v<typename TargetDocument::node_type, TargetDocument>) {
+            return TargetDocument(source_document);
+        } else if (source_document.is_object()) {
+            TargetDocument result(document_type::object);
+            for (const auto &entry: source_document.as_object()) {
+                auto key = convert_document_string<typename TargetDocument::string_type>(entry.first);
+                result[key] = convert_document<typename TargetDocument::node_type>(entry.second);
+            }
+            return result;
+        } else if (source_document.is_array()) {
+            TargetDocument result(document_type::array);
+            for (const auto &element: source_document.as_array()) {
+                result.push_back(convert_document<typename TargetDocument::node_type>(element));
+            }
+            return result;
+        } else if (source_document.is_string()) {
+            return TargetDocument(convert_document_string<typename TargetDocument::string_type>(source_document.as_string()));
+        } else if (source_document.is_integer()) {
+            return TargetDocument(static_cast<typename TargetDocument::integer_type>(source_document.as_integer()));
+        } else if (source_document.is_float()) {
+            return TargetDocument(static_cast<typename TargetDocument::float_type>(source_document.as_float()));
+        } else if (source_document.is_bool()) {
+            return TargetDocument(static_cast<typename TargetDocument::boolean_type>(source_document.as_bool()));
+        } else {
+            return TargetDocument{};
+        }
+    }
+}
+
+namespace rainy::foundation::willow {
     template <typename Ty>
     RAINY_CONSTEXPR_BOOL is_basic_document_v = false;
 

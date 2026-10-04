@@ -18,10 +18,10 @@
 #include <rainy/foundation/willow/implements/protobuf/codec.hpp>
 #include <rainy/foundation/willow/implements/protobuf/config.hpp>
 #include <rainy/foundation/willow/implements/protobuf/exceptions.hpp>
-#include <type_traits>
-#include <utility>
+#include <rainy/foundation/willow/implements/protobuf/unknown.hpp>
+#include <rainy/foundation/willow/implements/protobuf/version.hpp>
 
-#if RAINY_HAS_CXX20
+#if RAINY_WILLOW_PROTOBUF_AVAILABLE
 
 namespace rainy::foundation::willow::protobuf {
     template <typename Concept, std::size_t Index>
@@ -49,6 +49,7 @@ namespace rainy::foundation::willow::protobuf {
         return ((is_direct_field_v<direct_field_at_t<Concept, Is>> && direct_field_owner_ok<Concept, Is>()) && ...);
     }
 
+#if RAINY_WILLOW_PROTOBUF_HAS_CXX20_FIELDS
     template <typename Kind, typename Ty>
     struct direct_string_like {
     private:
@@ -62,10 +63,39 @@ namespace rainy::foundation::willow::protobuf {
             { v.empty() } -> std::convertible_to<bool>;
         } && sizeof(typename raw::value_type) == 1;
     };
+#else
+    template <typename Ty, typename = void>
+    struct has_string_value_type : type_traits::helper::false_type {};
+
+    template <typename Ty>
+    struct has_string_value_type<Ty, type_traits::other_trans::void_t<typename Ty::value_type>>
+        : type_traits::helper::bool_constant<sizeof(typename Ty::value_type) == 1> {};
+
+    template <typename Ty, typename = void>
+    struct has_string_data_size_empty : type_traits::helper::false_type {};
+
+    template <typename Ty>
+    struct has_string_data_size_empty<
+        Ty, type_traits::other_trans::void_t<decltype(std::declval<const Ty &>().data()),
+                                             decltype(std::declval<const Ty &>().size()),
+                                             decltype(std::declval<const Ty &>().empty())>>
+        : type_traits::helper::true_type {};
+
+    template <typename Kind, typename Ty>
+    struct direct_string_like {
+    private:
+        using raw = type_traits::modifers::remove_cvref_t<Ty>;
+
+    public:
+        static constexpr bool value =
+            has_string_value_type<raw>::value && has_string_data_size_empty<raw>::value;
+    };
+#endif
 
     template <typename Kind, typename Ty>
     inline constexpr bool direct_string_like_v = direct_string_like<Kind, Ty>::value;
 
+#if RAINY_WILLOW_PROTOBUF_HAS_CXX20_FIELDS
     template <typename Kind, typename Ty>
     struct direct_assignable_string {
     private:
@@ -76,10 +106,31 @@ namespace rainy::foundation::willow::protobuf {
         static constexpr bool value = direct_string_like_v<Kind, Ty> && requires(raw &v, const value_type *p,
                                                                                  std::size_t n) { v.assign(p, n); };
     };
+#else
+    template <typename Ty, typename = void>
+    struct has_string_assign : type_traits::helper::false_type {};
+
+    template <typename Ty>
+    struct has_string_assign<
+        Ty, type_traits::other_trans::void_t<decltype(std::declval<Ty &>().assign(
+                std::declval<const typename Ty::value_type *>(), std::declval<std::size_t>()))>>
+        : type_traits::helper::true_type {};
+
+    template <typename Kind, typename Ty>
+    struct direct_assignable_string {
+    private:
+        using raw = type_traits::modifers::remove_cvref_t<Ty>;
+
+    public:
+        static constexpr bool value =
+            direct_string_like_v<Kind, Ty> && has_string_assign<raw>::value;
+    };
+#endif
 
     template <typename Kind, typename Ty>
     inline constexpr bool direct_assignable_string_v = direct_assignable_string<Kind, Ty>::value;
 
+#if RAINY_WILLOW_PROTOBUF_HAS_CXX20_FIELDS
     template <typename Kind, typename Ty>
     struct direct_container {
     private:
@@ -95,17 +146,61 @@ namespace rainy::foundation::willow::protobuf {
             { v.emplace_back() } -> std::convertible_to<typename raw::value_type &>;
         };
     };
+#else
+    template <typename Ty, typename = void>
+    struct has_container_value_type : type_traits::helper::false_type {};
+
+    template <typename Ty>
+    struct has_container_value_type<Ty, type_traits::other_trans::void_t<typename Ty::value_type>>
+        : type_traits::helper::true_type {};
+
+    template <typename Ty, typename = void>
+    struct has_container_ops : type_traits::helper::false_type {};
+
+    template <typename Ty>
+    struct has_container_ops<
+        Ty, type_traits::other_trans::void_t<decltype(std::declval<Ty &>().size()),
+                                             decltype(std::declval<Ty &>().empty()),
+                                             decltype(std::declval<Ty &>().begin()),
+                                             decltype(std::declval<Ty &>().end()),
+                                             decltype(std::declval<Ty &>().emplace_back())>>
+        : type_traits::helper::true_type {};
+
+    template <typename Kind, typename Ty>
+    struct direct_container {
+    private:
+        using raw = type_traits::modifers::remove_cvref_t<Ty>;
+
+    public:
+        static constexpr bool value =
+            has_container_value_type<raw>::value && has_container_ops<raw>::value;
+    };
+#endif
 
     template <typename Kind, typename Ty>
     inline constexpr bool direct_container_v = direct_container<Kind, Ty>::value;
 }
 
 namespace rainy::foundation::willow::protobuf {
+    template <typename Ty, typename = void>
+    struct is_direct_message : type_traits::helper::false_type {};
+
+    template <typename Ty>
+    struct is_direct_message<Ty, type_traits::other_trans::void_t<decltype(Ty::protobuf_fields)>>
+        : type_traits::helper::bool_constant<
+              check_direct_fields<Ty>(type_traits::helper::make_index_sequence<field_count_v<Ty>>{}) &&
+              valid_field_numbers_v<Ty>> {};
+
+    template <typename Ty>
+    inline constexpr bool is_direct_message_v = is_direct_message<Ty>::value;
+
+#if RAINY_WILLOW_PROTOBUF_HAS_CXX20_FIELDS
     template <typename Ty>
     concept direct_message = requires { Ty::protobuf_fields; } &&
                              (std::tuple_size_v<type_traits::modifers::remove_cvref_t<decltype(Ty::protobuf_fields)>> >= 0) &&
                              check_direct_fields<Ty>(type_traits::helper::make_index_sequence<field_count_v<Ty>>{}) &&
                              valid_field_numbers_v<Ty>;
+#endif
 }
 
 namespace rainy::foundation::willow::protobuf::implements {
@@ -148,7 +243,7 @@ namespace rainy::foundation::willow::protobuf::implements {
 
     template <typename Concept>
     bool direct_message_is_default(const Concept &value) {
-        static_assert(direct_message<Concept>, "direct mode requires a concept type with member_field entries");
+        static_assert(is_direct_message_v<Concept>, "direct mode requires a concept type with member_field entries");
         return direct_message_is_default_impl(value, type_traits::helper::make_index_sequence<field_count_v<Concept>>{});
     }
 
@@ -339,19 +434,33 @@ namespace rainy::foundation::willow::protobuf::implements {
 
     template <typename Concept>
     std::size_t direct_message_measure(const Concept &value) {
-        static_assert(direct_message<Concept>, "direct mode requires a concept type with member_field entries");
+        static_assert(is_direct_message_v<Concept>, "direct mode requires a concept type with member_field entries");
         return direct_message_measure_impl(value, type_traits::helper::make_index_sequence<field_count_v<Concept>>{});
     }
 
     template <typename Concept>
     struct direct_serializer {
         static void encode_into(const Concept &value, byte_buffer &out) {
-            static_assert(direct_message<Concept>, "encode_direct requires a concept type with member_field entries");
+            static_assert(is_direct_message_v<Concept>, "encode_direct requires a concept type with member_field entries");
             static_assert(valid_field_numbers_v<Concept>, "protobuf field numbers must be unique and within 1..536870911");
             encode_fields(value, out, type_traits::helper::make_index_sequence<field_count_v<Concept>>{});
+            if constexpr (type_traits::type_relations::is_base_of_v<add_unknown_fields<Concept>, Concept>) {
+                write_unknown_fields(value, out);
+            }
         }
 
     private:
+        static void write_unknown_fields(const Concept &value, byte_buffer &out) {
+            for (const auto &f : value.unknown()) {
+                encode_tag(f.number(), f.wire(), out);
+                const auto &payload = f.as_bytes();
+                if (f.wire() == wire_type::len) {
+                    encode_length(payload.size(), out);
+                }
+                out.insert(out.end(), payload.begin(), payload.end());
+            }
+        }
+
         template <std::size_t... Is>
         static void encode_fields(const Concept &value, byte_buffer &out, type_traits::helper::index_sequence<Is...>) {
             (encode_field<Is>(value, out), ...);
@@ -545,7 +654,7 @@ namespace rainy::foundation::willow::protobuf::implements {
     template <typename Concept>
     struct direct_parser {
         static void decode_into(const std::uint8_t *data, std::size_t size, Concept &value) {
-            static_assert(direct_message<Concept>, "decode_direct requires a concept type with member_field entries");
+            static_assert(is_direct_message_v<Concept>, "decode_direct requires a concept type with member_field entries");
             static_assert(valid_field_numbers_v<Concept>, "protobuf field numbers must be unique and within 1..536870911");
             const std::uint8_t *ptr = data;
             const std::uint8_t *end = data + size;
@@ -556,8 +665,26 @@ namespace rainy::foundation::willow::protobuf::implements {
                     throw_protobuf_parse_error("truncated tag");
                 }
                 if (!dispatch_field(number, wire, ptr, end, value)) {
-                    if (!skip_field(wire, ptr, end)) {
-                        throw_protobuf_parse_error("truncated field payload");
+                    if constexpr (type_traits::type_relations::is_base_of_v<add_unknown_fields<Concept>, Concept>) {
+                        const std::uint8_t *payload_start = ptr;
+                        if (!skip_field(wire, ptr, end)) {
+                            throw_protobuf_parse_error("truncated field payload");
+                        }
+                        const std::uint8_t *value_start = payload_start;
+                        if (wire == wire_type::len) {
+                            const std::uint8_t *cursor = payload_start;
+                            std::uint64_t length_value = 0;
+                            if (!decode_varint(cursor, end, length_value)) {
+                                throw_protobuf_parse_error("truncated field payload");
+                            }
+                            value_start = cursor;
+                        }
+                        value.unknown().append(number, wire, value_start,
+                                              static_cast<std::size_t>(ptr - value_start));
+                    } else {
+                        if (!skip_field(wire, ptr, end)) {
+                            throw_protobuf_parse_error("truncated field payload");
+                        }
                     }
                 }
             }

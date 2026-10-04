@@ -49,6 +49,8 @@ namespace rainy::foundation::willow::json {
     using willow::basic_document;
     using willow::document;
     using willow::document_type;
+    using willow::from_other_document;
+    using willow::from_other_document_t;
     using willow::serializer_args;
 
     template <typename BasicDocument>
@@ -70,6 +72,7 @@ namespace rainy::foundation::willow::json {
         using const_iterator = typename BasicDocument::const_iterator;
         using reverse_iterator = typename BasicDocument::reverse_iterator;
         using const_reverse_iterator = typename BasicDocument::const_reverse_iterator;
+        using node_type = typename BasicDocument::node_type;
 
         using BasicDocument::BasicDocument;
 
@@ -79,6 +82,19 @@ namespace rainy::foundation::willow::json {
         }
 
         json_document(BasicDocument &&value) : BasicDocument(utility::move(value)) {
+        }
+
+        template <typename OtherDocument>
+        json_document(from_other_document_t, const OtherDocument &value) :
+            BasicDocument(willow::implements::convert_document<BasicDocument>(value)) {
+        }
+
+        BasicDocument &as_document() noexcept {
+            return *this;
+        }
+
+        const BasicDocument &as_document() const noexcept {
+            return *this;
         }
 
         using BasicDocument::is_object;

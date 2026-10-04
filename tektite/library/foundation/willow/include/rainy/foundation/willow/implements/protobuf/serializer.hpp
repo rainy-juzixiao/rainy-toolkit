@@ -18,12 +18,30 @@
 #include <rainy/foundation/willow/implements/protobuf/codec.hpp>
 #include <rainy/foundation/willow/implements/protobuf/config.hpp>
 #include <rainy/foundation/willow/implements/protobuf/exceptions.hpp>
+#include <rainy/foundation/willow/implements/protobuf/version.hpp>
 #include <utility>
 
-#if RAINY_HAS_CXX20
+#if RAINY_WILLOW_PROTOBUF_AVAILABLE
 
 namespace rainy::foundation::willow::protobuf::implements {
     using namespace rainy::foundation::exceptions::willow::protobuf;
+
+    template <typename Lhs, typename Rhs>
+    constexpr bool protobuf_cmp_greater(Lhs lhs, Rhs rhs) noexcept {
+#if RAINY_HAS_CXX20
+        return std::cmp_greater(lhs, rhs);
+#else
+        if constexpr (type_traits::properties::is_signed_v<Lhs> == type_traits::properties::is_signed_v<Rhs>) {
+            return lhs > rhs;
+        } else if constexpr (type_traits::properties::is_signed_v<Lhs>) {
+            using unsigned_lhs = typename type_traits::helper::make_unsigned<Lhs>::type;
+            return lhs < 0 ? false : static_cast<unsigned_lhs>(lhs) > static_cast<unsigned_lhs>(rhs);
+        } else {
+            using unsigned_rhs = typename type_traits::helper::make_unsigned<Rhs>::type;
+            return rhs < 0 ? true : static_cast<unsigned_rhs>(lhs) > static_cast<unsigned_rhs>(rhs);
+        }
+#endif
+    }
 
     template <typename BasicDocument>
     typename BasicDocument::string_type make_protobuf_key(core::text::string_view name) {
@@ -71,7 +89,7 @@ namespace rainy::foundation::willow::protobuf::implements {
     template <typename Concept, typename BasicDocument>
     struct protobuf_serializer {
         static void encode_into(const BasicDocument &doc, byte_buffer &out) {
-            static_assert(protobuf_message<Concept>, "encode requires a protobuf concept type");
+            static_assert(is_protobuf_message_v<Concept>, "encode requires a protobuf concept type");
             static_assert(valid_field_numbers_v<Concept>, "protobuf field numbers must be unique and within 1..536870911");
             if (doc.is_null()) {
                 return;
@@ -93,7 +111,7 @@ namespace rainy::foundation::willow::protobuf::implements {
             using field_type = field_at_t<Owner, Index>;
             using kind = typename field_type::kind;
             constexpr std::uint32_t number = field_number_v<Owner, Index>;
-            constexpr core::text::string_view name = field_type::name.view();
+            constexpr core::text::string_view name = field_name_of<field_type>();
             const BasicDocument *node = find_protobuf_node(doc, name);
             if (node == nullptr || node->is_null()) {
                 return;
@@ -162,7 +180,7 @@ namespace rainy::foundation::willow::protobuf::implements {
                 throw_protobuf_serialize_error("uint32 requires integer document");
             }
             const auto raw = static_cast<std::int64_t>(node.as_integer());
-            if (raw < 0 || std::cmp_greater(raw ,utility::numeric_limits<std::uint32_t>::max())) {
+            if (raw < 0 || protobuf_cmp_greater(raw ,utility::numeric_limits<std::uint32_t>::max())) {
                 throw_protobuf_serialize_error("uint32 value out of range");
             }
             encode_varint(static_cast<std::uint64_t>(raw), out);
@@ -200,7 +218,7 @@ namespace rainy::foundation::willow::protobuf::implements {
                 throw_protobuf_serialize_error("fixed32 requires integer document");
             }
             const auto raw = static_cast<std::int64_t>(node.as_integer());
-            if (raw < 0 || std::cmp_greater(raw ,utility::numeric_limits<std::uint32_t>::max())) {
+            if (raw < 0 || protobuf_cmp_greater(raw ,utility::numeric_limits<std::uint32_t>::max())) {
                 throw_protobuf_serialize_error("fixed32 value out of range");
             }
             encode_fixed32(static_cast<std::uint32_t>(raw), out);

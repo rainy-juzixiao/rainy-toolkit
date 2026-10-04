@@ -39,6 +39,10 @@ namespace rainy::foundation::willow {
 
     RAINY_TOOLKIT_API std::pmr::memory_resource *get_memory_resource() noexcept;
 
+    struct from_other_document_t {};
+
+    inline constexpr from_other_document_t from_other_document{};
+
     enum class document_type {
         number_integer,
         number_float,

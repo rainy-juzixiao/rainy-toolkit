@@ -16,8 +16,9 @@
 #ifndef RAINY_FOUNDATION_WILLOW_IMPLEMENTS_PROTOBUF_EXCEPTIONS_HPP
 #define RAINY_FOUNDATION_WILLOW_IMPLEMENTS_PROTOBUF_EXCEPTIONS_HPP
 #include <rainy/foundation/willow/implements/common/exceptions.hpp>
+#include <rainy/foundation/willow/implements/protobuf/version.hpp>
 
-#if RAINY_HAS_CXX20
+#if RAINY_WILLOW_PROTOBUF_AVAILABLE
 
 namespace rainy::foundation::exceptions::willow::protobuf {
     RAINY_DEFINE_EXCEPTION_WITH_THROW(protobuf_exception, rainy::foundation::exceptions::willow::willow_exception,
