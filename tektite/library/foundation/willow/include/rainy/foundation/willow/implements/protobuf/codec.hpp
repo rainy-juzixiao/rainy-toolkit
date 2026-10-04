@@ -15,13 +15,12 @@
  */
 #ifndef RAINY_FOUNDATION_WILLOW_IMPLEMENTS_PROTOBUF_CODEC_HPP
 #define RAINY_FOUNDATION_WILLOW_IMPLEMENTS_PROTOBUF_CODEC_HPP
-#include <cstdint>
-#include <cstring>
+#include <rainy/core/typeinfo.hpp>
 #include <rainy/foundation/willow/implements/protobuf/config.hpp>
 #include <rainy/foundation/willow/implements/protobuf/exceptions.hpp>
-#include <vector>
+#include <rainy/foundation/willow/implements/protobuf/version.hpp>
 
-#if RAINY_HAS_CXX20
+#if RAINY_WILLOW_PROTOBUF_AVAILABLE
 
 namespace rainy::foundation::willow::protobuf::implements {
     using namespace rainy::foundation::exceptions::willow::protobuf;
@@ -233,6 +232,95 @@ namespace rainy::foundation::willow::protobuf::implements {
         }
         return false;
     }
+}
+
+namespace rainy::foundation::willow::protobuf::implements {
+    constexpr std::size_t format_protobuf_message_name(core::text::string_view raw, char *out) noexcept { // NOLINT
+        constexpr core::text::string_view elaborated_keywords[] = {"class ", "struct ", "union ", "enum "};
+
+        const auto is_identifier = [](const core::text::string_view segment) {
+            if (segment.empty()) {
+                return false;
+            }
+            const auto is_alnum = [](const char ch) {
+                return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch == '_';
+            };
+            if (const char head = segment[0]; (head < 'a' || head > 'z') && (head < 'A' || head > 'Z') && head != '_') { // NOLINT
+                return false;
+            }
+            for (const char ch: segment) { // NOLINT
+                if (!is_alnum(ch)) {
+                    return false;
+                }
+            }
+            return true;
+        };
+
+        std::size_t index = 0;
+        bool advanced = true;
+        while (advanced) {
+            advanced = false;
+            if (raw.substr(index).starts_with("::")) {
+                index += 2;
+                advanced = true;
+                continue;
+            }
+            for (const auto keyword: elaborated_keywords) {
+                if (raw.substr(index).starts_with(keyword)) {
+                    index += keyword.size();
+                    advanced = true;
+                    break;
+                }
+            }
+        }
+        std::size_t length = 0;
+        bool first = true;
+        while (index < raw.size()) {
+            const std::size_t next = raw.find("::", index);
+            const std::size_t end = next == core::text::string_view::npos ? raw.size() : next;
+            const core::text::string_view segment = raw.substr(index, end - index);
+            index = end == raw.size() ? raw.size() : end + 2;
+            if (!is_identifier(segment)) {
+                continue;
+            }
+            if (!first) {
+                if (out != nullptr) {
+                    out[length] = '.';
+                }
+                ++length;
+            }
+            for (const char ch: segment) {
+                if (out != nullptr) {
+                    out[length] = ch;
+                }
+                ++length;
+            }
+            first = false;
+        }
+        return length;
+    }
+
+    template <typename Concept>
+    struct protobuf_message_name {
+    private:
+        static constexpr core::text::string_view raw_ = core::type_name<Concept>();
+        static constexpr std::size_t length_ = format_protobuf_message_name(raw_, nullptr);
+        static constexpr core::collections::array<char, length_ == 0 ? 1 : length_> data_ = [] {
+            core::collections::array<char, length_ == 0 ? 1 : length_> buffer{};
+            format_protobuf_message_name(raw_, buffer.data());
+            return buffer;
+        }();
+
+    public:
+        static constexpr core::text::string_view value() noexcept {
+            return {data_.data(), length_};
+        }
+    };
+}
+
+namespace rainy::foundation::willow::protobuf {
+    template <typename Concept>
+    inline constexpr core::text::string_view protobuf_message_name_v = implements::protobuf_message_name<Concept>::value();
 }
 
 #endif
