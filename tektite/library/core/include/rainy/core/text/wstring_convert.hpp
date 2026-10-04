@@ -193,7 +193,7 @@ namespace rainy::core::text {
                     return result::error; // 码点太大
                 }
 
-#ifdef RAINY_USING_WINDOWS
+#if RAINY_USING_WINDOWS
                 if (ch > 0xffff) {
                     if (to_end - to_next < 2) {
                         break;
@@ -246,7 +246,7 @@ namespace rainy::core::text {
                 unsigned long ch = static_cast<unsigned long>(*from_next);
                 int consumed = 1;
 
-#ifdef RAINY_USING_WINDOWS
+#if RAINY_USING_WINDOWS
                 if (ch >= 0xD800 && ch <= 0xDBFF) {
                     if (from_end - from_next < 2) {
                         break;
