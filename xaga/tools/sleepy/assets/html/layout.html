@@ -1,12 +1,423 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" class="scroll-smooth">
 <head>
-<meta charset="UTF-8"><title>{{ title }}</title>
-<style>body{font-family:system-ui,sans-serif;max-width:900px;margin:2rem auto;padding:0 1rem;color:#222;line-height:1.6}nav{border-bottom:1px solid #ccc;padding:.5rem 0;margin-bottom:1rem}a{color:#0366d6}</style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ title }}</title>
+<script>
+(function () {
+  var saved = localStorage.getItem('theme');
+  var prefers = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  if (saved ? saved === 'dark' : prefers) document.documentElement.classList.add('dark');
+})();
+</script>
+<script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+<script>
+tailwind.config = {
+  darkMode: 'class',
+  theme: {
+    extend: {
+      fontFamily: {
+        sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace']
+      },
+      typography: {
+        DEFAULT: {
+          css: {
+            maxWidth: 'none',
+            code: { fontWeight: '500', padding: '0.125rem 0.25rem', borderRadius: '0.25rem' },
+            'code::before': { content: '""' },
+            'code::after': { content: '""' }
+          }
+        }
+      }
+    }
+  }
+};
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link id="hljs-light" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+<link id="hljs-dark" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark-dimmed.min.css" disabled>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/cpp.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/cmake.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/bash.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/json.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/yaml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/toml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+<style>
+[v-cloak] { display: none !important; }
+html { transition: background-color 0.2s ease, color 0.2s ease; }
+.prose :where(pre):not(:where([class~="not-prose"] *)) {
+  position: relative;
+  background-color: rgb(249 250 251);
+  border: 1px solid rgb(229 231 235);
+  margin: 1.25rem 0;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+html.dark .prose :where(pre):not(:where([class~="not-prose"] *)) {
+  background-color: rgb(15 23 42);
+  border-color: rgb(31 41 55);
+}
+.prose :where(pre code):not(:where([class~="not-prose"] *)) {
+  background: transparent;
+  padding: 0;
+  font-size: inherit;
+  font-weight: 400;
+}
+.prose :where(code):not(:where([class~="not-prose"] *)) {
+  background-color: rgb(241 245 249);
+  color: rgb(190 24 93);
+}
+html.dark .prose :where(code):not(:where([class~="not-prose"] *)) {
+  background-color: rgb(30 41 59);
+  color: rgb(244 114 182);
+}
+.prose :where(a):not(:where([class~="not-prose"] *)) {
+  color: rgb(79 70 229);
+  text-decoration: none;
+  font-weight: 500;
+}
+html.dark .prose :where(a):not(:where([class~="not-prose"] *)) {
+  color: rgb(165 180 252);
+}
+.prose :where(a):not(:where([class~="not-prose"] *)):hover {
+  text-decoration: underline;
+}
+.prose :where(table):not(:where([class~="not-prose"] *)) {
+  width: 100%;
+  display: block;
+  overflow-x: auto;
+  font-size: 0.875rem;
+}
+.prose :where(h2):not(:where([class~="not-prose"] *)) {
+  margin-top: 2rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgb(229 231 235);
+}
+html.dark .prose :where(h2):not(:where([class~="not-prose"] *)) {
+  border-color: rgb(31 41 55);
+}
+.prose :where(blockquote):not(:where([class~="not-prose"] *)) {
+  border-left-color: rgb(99 102 241);
+  font-style: normal;
+  font-weight: 500;
+}
+.code-copy-btn {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1;
+  border-radius: 0.375rem;
+  background-color: rgb(241 245 249);
+  color: rgb(71 85 105);
+  border: 1px solid rgb(229 231 235);
+  opacity: 0;
+  transition: opacity 0.15s ease, background-color 0.15s ease;
+  cursor: pointer;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+html.dark .code-copy-btn {
+  background-color: rgb(30 41 59);
+  color: rgb(203 213 225);
+  border-color: rgb(51 65 85);
+}
+pre:hover > .code-copy-btn { opacity: 1; }
+.code-copy-btn:hover { background-color: rgb(226 232 240); }
+html.dark .code-copy-btn:hover { background-color: rgb(51 65 85); }
+.code-copy-btn.copied { background-color: rgb(220 252 231); color: rgb(22 101 52); border-color: rgb(187 247 208); }
+html.dark .code-copy-btn.copied { background-color: rgb(20 83 45); color: rgb(187 247 208); border-color: rgb(22 101 52); }
+</style>
 </head>
-<body>
-<nav><a href="index.html">首页</a> | <a href="reference.html">参考</a></nav>
-<main>{% block content %}{% endblock %}</main>
-<footer style="margin-top:3rem;font-size:.85rem;color:#666;border-top:1px solid #ccc;padding:.5rem 0">生成于 sleepy</footer>
+<body class="min-h-screen flex flex-col bg-white text-slate-800 dark:bg-slate-950 dark:text-slate-200 font-sans antialiased selection:bg-indigo-500/20">
+<div id="app" class="flex flex-col min-h-screen">
+<header class="sticky top-0 z-40 backdrop-blur-md bg-white/80 dark:bg-slate-950/80 border-b border-slate-200 dark:border-slate-800">
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="flex h-16 items-center justify-between gap-4">
+<a href="index.html" class="flex items-center gap-2.5 shrink-0">
+<svg class="w-7 h-7 text-indigo-600 dark:text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<path stroke-linecap="round" stroke-linejoin="round" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+</svg>
+<span class="font-semibold text-lg tracking-tight text-slate-900 dark:text-white">MuZiYan</span>
+</a>
+<nav class="hidden md:flex items-center gap-1">
+<a href="index.html" :class="activePath === 'index.html' ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300' : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800'" class="px-3 py-2 rounded-md text-sm font-medium transition">首页</a>
+<a href="reference.html" :class="activePath === 'reference.html' ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300' : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800'" class="px-3 py-2 rounded-md text-sm font-medium transition">参考</a>
+</nav>
+<div class="flex items-center gap-1">
+<button @click="openSearch" type="button" class="flex items-center gap-2 px-2.5 py-1.5 rounded-md text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition" aria-label="搜索文档">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+<path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+</svg>
+<span class="hidden sm:inline text-xs font-mono px-1.5 py-0.5 rounded border border-slate-300 dark:border-slate-700 text-slate-400 dark:text-slate-500">⌘K</span>
+</button>
+<button @click="toggleTheme" type="button" class="p-2 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition" :aria-label="isDark ? '切换到浅色' : '切换到深色'">
+<svg v-show="isDark" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+<path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+</svg>
+<svg v-show="!isDark" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+<path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+</svg>
+</button>
+<button @click="mobileOpen = !mobileOpen" type="button" class="md:hidden p-2 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition" :aria-expanded="mobileOpen" aria-label="菜单">
+<svg v-show="!mobileOpen" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+<path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+</svg>
+<svg v-show="mobileOpen" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+</svg>
+</button>
+</div>
+</div>
+<div v-show="mobileOpen" class="md:hidden pb-3 pt-2 border-t border-slate-200 dark:border-slate-800 space-y-1">
+<a href="index.html" :class="activePath === 'index.html' ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300' : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800'" class="block px-3 py-2 rounded-md text-sm font-medium transition">首页</a>
+<a href="reference.html" :class="activePath === 'reference.html' ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300' : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800'" class="block px-3 py-2 rounded-md text-sm font-medium transition">参考</a>
+</div>
+</div>
+</header>
+{% block docs_json %}{% endblock %}
+<teleport to="body">
+<div v-if="searchOpen" class="fixed inset-0 z-50 flex items-start justify-center p-4 pt-[10vh] sm:pt-[15vh]" @click.self="closeSearch" @keydown.esc="closeSearch">
+<div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" aria-hidden="true"></div>
+<div class="relative w-full max-w-xl bg-white dark:bg-slate-900 rounded-xl shadow-2xl ring-1 ring-slate-200 dark:ring-slate-700 overflow-hidden">
+<div class="flex items-center gap-2 px-4 border-b border-slate-200 dark:border-slate-800">
+<svg class="w-5 h-5 text-slate-400 dark:text-slate-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+<path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+</svg>
+<input ref="searchInput" v-model="searchQuery" type="text" placeholder="搜索文档…" class="flex-1 bg-transparent border-0 outline-none text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-base py-4" @keydown.down.prevent="moveDown" @keydown.up.prevent="moveUp" @keydown.enter.prevent="gotoActive">
+<button @click="closeSearch" type="button" class="p-1.5 rounded-md text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition" aria-label="关闭">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+</svg>
+</button>
+</div>
+<div class="max-h-[50vh] overflow-y-auto p-2">
+<div v-if="filteredDocs.length === 0" class="px-4 py-10 text-center text-sm text-slate-500 dark:text-slate-400">
+<svg class="mx-auto w-10 h-10 text-slate-300 dark:text-slate-700 mb-2" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+<path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+</svg>
+<span v-if="searchQuery">未找到匹配的文档</span>
+<span v-else>暂无可搜索的文档</span>
+</div>
+<button v-for="(doc, i) in filteredDocs" :key="doc.filename" @click="gotoDoc(doc)" @mouseenter="activeIdx = i" :class="i === activeIdx ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition">
+<div class="w-8 h-8 rounded-md bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
+<svg class="w-4 h-4 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+<path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+</svg>
+</div>
+<div class="min-w-0 flex-1">
+<p class="text-sm font-medium truncate">${ doc.title }</p>
+<p class="text-xs text-slate-500 dark:text-slate-400 font-mono truncate">${ doc.filename }</p>
+</div>
+<svg v-show="i === activeIdx" class="w-4 h-4 text-indigo-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+<path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+</svg>
+</button>
+</div>
+<div class="border-t border-slate-200 dark:border-slate-800 px-4 py-2.5 flex items-center justify-between text-xs text-slate-400 dark:text-slate-500">
+<div class="flex items-center gap-3">
+<span class="flex items-center gap-1"><kbd class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-mono text-[10px]">↑↓</kbd>导航</span>
+<span class="flex items-center gap-1"><kbd class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-mono text-[10px]">↵</kbd>打开</span>
+<span class="flex items-center gap-1"><kbd class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-mono text-[10px]">esc</kbd>关闭</span>
+</div>
+<span class="font-mono">${ filteredDocs.length } / ${ allDocs.length }</span>
+</div>
+</div>
+</div>
+</teleport>
+<main class="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
+{% block content %}{% endblock %}
+</main>
+<footer class="border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col sm:flex-row justify-between items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+<p>由 <span class="font-medium text-slate-700 dark:text-slate-300">sleepy</span>（MuZiYan）生成</p>
+<p class="font-mono text-xs">rainy-juzixiao · Apache-2.0</p>
+</div>
+</footer>
+<button v-show="showBackTop" @click="scrollToTop" type="button" class="fixed bottom-6 right-6 z-30 p-3 rounded-full bg-indigo-600 text-white shadow-lg hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-950 transition" aria-label="返回顶部">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+<path stroke-linecap="round" stroke-linejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18"/>
+</svg>
+</button>
+</div>
+<script>
+function syncHljsTheme(isDark) {
+  var lightLink = document.getElementById('hljs-light');
+  var darkLink = document.getElementById('hljs-dark');
+  if (lightLink) lightLink.disabled = isDark;
+  if (darkLink) darkLink.disabled = !isDark;
+}
+syncHljsTheme(document.documentElement.classList.contains('dark'));
+
+function highlightAll(scope) {
+  (scope || document).querySelectorAll('pre code').forEach(function (block) {
+    if (block.dataset.hljsDone === '1') return;
+    block.dataset.hljsDone = '1';
+    try { hljs.highlightElement(block); } catch (e) {}
+    var pre = block.parentElement;
+    if (pre && pre.tagName === 'PRE' && !pre.querySelector('.code-copy-btn')) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'code-copy-btn';
+      btn.textContent = '复制';
+      btn.addEventListener('click', function () {
+        var text = block.textContent;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(function () {
+            btn.textContent = '已复制';
+            btn.classList.add('copied');
+            setTimeout(function () { btn.textContent = '复制'; btn.classList.remove('copied'); }, 1500);
+          });
+        } else {
+          var ta = document.createElement('textarea');
+          ta.value = text;
+          ta.style.position = 'fixed';
+          ta.style.opacity = '0';
+          document.body.appendChild(ta);
+          ta.select();
+          try { document.execCommand('copy'); btn.textContent = '已复制'; btn.classList.add('copied'); setTimeout(function () { btn.textContent = '复制'; btn.classList.remove('copied'); }, 1500); } catch (e2) {}
+          document.body.removeChild(ta);
+        }
+      });
+      pre.appendChild(btn);
+    }
+  });
+}
+
+var { createApp, ref, computed, watch, onMounted, onBeforeUnmount, nextTick } = Vue;
+var app = createApp({
+  setup() {
+    var isDark = ref(document.documentElement.classList.contains('dark'));
+    var mobileOpen = ref(false);
+    var showBackTop = ref(false);
+    var activePath = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
+
+    var dataEl = document.getElementById('docs-json');
+    var allDocs = ref([]);
+    try {
+      if (dataEl && dataEl.textContent.trim()) {
+        allDocs.value = JSON.parse(dataEl.textContent) || [];
+      }
+    } catch (e) {}
+
+    var searchOpen = ref(false);
+    var searchQuery = ref('');
+    var activeIdx = ref(0);
+    var searchInput = ref(null);
+
+    var filteredDocs = computed(function () {
+      var q = searchQuery.value.trim().toLowerCase();
+      if (!q) return allDocs.value;
+      return allDocs.value.filter(function (d) {
+        return (d.title && String(d.title).toLowerCase().indexOf(q) !== -1) ||
+               (d.filename && String(d.filename).toLowerCase().indexOf(q) !== -1);
+      });
+    });
+
+    function openSearch() {
+      searchOpen.value = true;
+      activeIdx.value = 0;
+      searchQuery.value = '';
+      nextTick(function () { if (searchInput.value) searchInput.value.focus(); });
+      document.documentElement.style.overflow = 'hidden';
+    }
+    function closeSearch() {
+      searchOpen.value = false;
+      document.documentElement.style.overflow = '';
+    }
+    function moveDown() {
+      if (filteredDocs.value.length === 0) return;
+      activeIdx.value = (activeIdx.value + 1) % filteredDocs.value.length;
+    }
+    function moveUp() {
+      if (filteredDocs.value.length === 0) return;
+      activeIdx.value = (activeIdx.value - 1 + filteredDocs.value.length) % filteredDocs.value.length;
+    }
+    function gotoActive() {
+      var list = filteredDocs.value;
+      if (list.length === 0) return;
+      var doc = list[activeIdx.value] || list[0];
+      gotoDoc(doc);
+    }
+    function gotoDoc(doc) {
+      if (!doc || !doc.filename) return;
+      location.href = doc.filename + '.html';
+    }
+
+    watch(searchQuery, function () { activeIdx.value = 0; });
+
+    function applyTheme(v) {
+      document.documentElement.classList.toggle('dark', v);
+      localStorage.setItem('theme', v ? 'dark' : 'light');
+      syncHljsTheme(v);
+    }
+    function toggleTheme() { isDark.value = !isDark.value; applyTheme(isDark.value); }
+    function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
+    function onScroll() { showBackTop.value = window.scrollY > 400; }
+
+    function onGlobalKey(e) {
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
+        e.preventDefault();
+        if (searchOpen.value) closeSearch(); else openSearch();
+        return;
+      }
+      if (e.key === 'Escape' && searchOpen.value) { e.preventDefault(); closeSearch(); }
+      if (e.key === '/' && !searchOpen.value) {
+        var t = e.target && e.target.tagName;
+        if (t !== 'INPUT' && t !== 'TEXTAREA') { e.preventDefault(); openSearch(); }
+      }
+    }
+
+    onMounted(function () {
+      window.addEventListener('scroll', onScroll, { passive: true });
+      window.addEventListener('keydown', onGlobalKey);
+      onScroll();
+      nextTick(function () { highlightAll(document.querySelector('main')); });
+      if ('MutationObserver' in window) {
+        var mo = new MutationObserver(function (muts) {
+          for (var i = 0; i < muts.length; i++) {
+            if (muts[i].addedNodes && muts[i].addedNodes.length) {
+              for (var j = 0; j < muts[i].addedNodes.length; j++) {
+                var n = muts[i].addedNodes[j];
+                if (n.nodeType === 1 && (n.tagName === 'PRE' || (n.querySelector && n.querySelector('pre code')))) {
+                  highlightAll(n);
+                }
+              }
+            }
+          }
+        });
+        var main = document.querySelector('main');
+        if (main) mo.observe(main, { childList: true, subtree: true });
+      }
+    });
+    onBeforeUnmount(function () {
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('keydown', onGlobalKey);
+    });
+
+    return {
+      isDark: isDark, mobileOpen: mobileOpen, showBackTop: showBackTop, activePath: activePath,
+      toggleTheme: toggleTheme, scrollToTop: scrollToTop,
+      allDocs: allDocs, searchOpen: searchOpen, searchQuery: searchQuery, activeIdx: activeIdx,
+      searchInput: searchInput, filteredDocs: filteredDocs,
+      openSearch: openSearch, closeSearch: closeSearch, moveDown: moveDown, moveUp: moveUp,
+      gotoActive: gotoActive, gotoDoc: gotoDoc
+    };
+  }
+});
+app.config.compilerOptions.delimiters = ['${', '}'];
+app.config.compilerOptions.whitespace = 'preserve';
+app.mount('#app');
+</script>
 </body>
 </html>
