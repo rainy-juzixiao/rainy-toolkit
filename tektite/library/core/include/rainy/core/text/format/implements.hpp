@@ -18,6 +18,7 @@
 #include <rainy/core/platform.hpp>
 #include <rainy/core/diagnostics/exceptions.hpp>
 #include <rainy/core/text/string_view.hpp>
+#include <rainy/core/text/format/context.hpp>
 
 namespace rainy::core::text::implements {
     enum class align_type {

@@ -19,7 +19,6 @@
 #include <rainy/core/type_traits/primary_types.hpp>
 #include <rainy/core/type_traits/properties.hpp>
 
-#if !RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
 
 namespace rainy::core::concurrency::implements {
     template <typename Ty, typename Ops>
@@ -489,6 +488,5 @@ namespace rainy::core::concurrency::implements {
     using select_atomic_base_t = typename implements::atomic_base_selector<TVal, Ty>::type;
 }
 
-#endif
 
 #endif
