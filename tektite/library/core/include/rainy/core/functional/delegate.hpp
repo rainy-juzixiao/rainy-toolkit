@@ -638,6 +638,17 @@ namespace rainy::functional::implements {
     template <typename Fx, typename Rx, typename TypeList>
     class delegate_impl {};
 
+    template <typename Rx, typename Callable, typename Class, typename... Args>
+    struct is_invocable_object
+        : type_traits::logical_traits::disjunction<
+              type_traits::properties::is_invocable_r<Rx, Callable, Class &, Args...>,
+              type_traits::properties::is_invocable_r<Rx, Callable, Class, Args...>> {};
+
+    template <typename Rx, typename Callable, typename... Args>
+    struct is_invocable_object<Rx, Callable, void, Args...>
+        : type_traits::properties::is_invocable_r<Rx, Callable, Args...> {};
+
+
     template <typename Fx, typename Rx, typename... Args>
     class delegate_impl<Fx, Rx, type_traits::other_trans::type_list<Args...>> {
     public:
@@ -1336,7 +1347,7 @@ namespace rainy::functional {
      * @tparam Fx delegate的函数签名。
      */
     template <typename Fx>
-    class delegate final {
+    class delegate final : public implements::get_delegate_impl<Fx>::type {
     public:
         /**
          * \lang english
@@ -1454,87 +1465,9 @@ namespace rainy::functional {
          */
         delegate &operator=(std::nullptr_t) noexcept;
 
-        /**
-         * \lang english
-         * @brief Invokes the stored callable bound to an object.
-         * @tparam Class The object type.
-         * @param object The object to bind the callable to.
-         * @param args The arguments to forward.
-         * @return The result of the invocation.
-         *
-         * @note Throws invalid_delegate if the delegate is empty.
-         *
-         * \lang simp-chinese
-         * @brief 调用绑定到某对象的所存储可调用对象。
-         * @tparam Class 对象类型。
-         * @param object 要绑定可调用对象的对象。
-         * @param args 要转发的参数。
-         * @return 调用结果。
-         *
-         * @note 若 delegate 为空则抛出 invalid_delegate。
-         */
-        template <typename Class>
-        auto invoke(Class &&object, typename type_traits::primary_types::function_traits<Fx>::argument_types... args) const
-            -> typename type_traits::primary_types::function_traits<Fx>::return_type;
 
-        /**
-         * \lang english
-         * @brief Invokes the stored callable without binding an object.
-         * @param args The arguments to forward.
-         * @return The result of the invocation.
-         *
-         * @note Throws invalid_delegate if the delegate is empty.
-         *
-         * \lang simp-chinese
-         * @brief 在不绑定对象的情况下调用所存储可调用对象。
-         * @param args 要转发的参数。
-         * @return 调用结果。
-         *
-         * @note 若 delegate 为空则抛出 invalid_delegate。
-         */
-        auto invoke(typename type_traits::primary_types::function_traits<Fx>::argument_types... args) const
-            -> typename type_traits::primary_types::function_traits<Fx>::return_type;
 
-        /**
-         * \lang english
-         * @brief Invokes the stored callable bound to an object (operator form).
-         * @tparam Class The object type.
-         * @param object The object to bind the callable to.
-         * @param args The arguments to forward.
-         * @return The result of the invocation.
-         *
-         * @note Throws invalid_delegate if the delegate is empty.
-         *
-         * \lang simp-chinese
-         * @brief 调用绑定到某对象的所存储可调用对象（运算符形式）。
-         * @tparam Class 对象类型。
-         * @param object 要绑定可调用对象的对象。
-         * @param args 要转发的参数。
-         * @return 调用结果。
-         *
-         * @note 若 delegate 为空则抛出 invalid_delegate。
-         */
-        template <typename Class>
-        auto operator()(Class &&object, typename type_traits::primary_types::function_traits<Fx>::argument_types... args) const
-            -> typename type_traits::primary_types::function_traits<Fx>::return_type;
 
-        /**
-         * \lang english
-         * @brief Invokes the stored callable without binding an object (operator form).
-         * @param args The arguments to forward.
-         * @return The result of the invocation.
-         *
-         * @note Throws invalid_delegate if the delegate is empty.
-         *
-         * \lang simp-chinese
-         * @brief 在不绑定对象的情况下调用所存储可调用对象（运算符形式）。
-         * @param args 要转发的参数。
-         * @return 调用结果。
-         *
-         * @note 若 delegate 为空则抛出 invalid_delegate。
-         */
-        auto operator()(typename type_traits::primary_types::function_traits<Fx>::argument_types... args) const
-            -> typename type_traits::primary_types::function_traits<Fx>::return_type;
 
         /**
          * \lang english
@@ -1782,7 +1715,7 @@ namespace rainy::functional {
      * @tparam Fx delegate的函数签名。
      */
     template <typename Fx>
-    class move_only_delegate final {
+    class move_only_delegate final : public implements::get_delegate_impl<Fx>::type {
     public:
         /**
          * \lang english
@@ -1894,87 +1827,9 @@ namespace rainy::functional {
          */
         move_only_delegate &operator=(std::nullptr_t) noexcept;
 
-        /**
-         * \lang english
-         * @brief Invokes the stored callable bound to an object.
-         * @tparam Class The object type.
-         * @param object The object to bind the callable to.
-         * @param args The arguments to forward.
-         * @return The result of the invocation.
-         *
-         * @note Throws invalid_delegate if the delegate is empty.
-         *
-         * \lang simp-chinese
-         * @brief 调用绑定到某对象的所存储可调用对象。
-         * @tparam Class 对象类型。
-         * @param object 要绑定可调用对象的对象。
-         * @param args 要转发的参数。
-         * @return 调用结果。
-         *
-         * @note 若 delegate 为空则抛出 invalid_delegate。
-         */
-        template <typename Class>
-        auto invoke(Class &&object, typename type_traits::primary_types::function_traits<Fx>::argument_types... args) const
-            -> typename type_traits::primary_types::function_traits<Fx>::return_type;
 
-        /**
-         * \lang english
-         * @brief Invokes the stored callable without binding an object.
-         * @param args The arguments to forward.
-         * @return The result of the invocation.
-         *
-         * @note Throws invalid_delegate if the delegate is empty.
-         *
-         * \lang simp-chinese
-         * @brief 在不绑定对象的情况下调用所存储可调用对象。
-         * @param args 要转发的参数。
-         * @return 调用结果。
-         *
-         * @note 若 delegate 为空则抛出 invalid_delegate。
-         */
-        auto invoke(typename type_traits::primary_types::function_traits<Fx>::argument_types... args) const
-            -> typename type_traits::primary_types::function_traits<Fx>::return_type;
 
-        /**
-         * \lang english
-         * @brief Invokes the stored callable bound to an object (operator form).
-         * @tparam Class The object type.
-         * @param object The object to bind the callable to.
-         * @param args The arguments to forward.
-         * @return The result of the invocation.
-         *
-         * @note Throws invalid_delegate if the delegate is empty.
-         *
-         * \lang simp-chinese
-         * @brief 调用绑定到某对象的所存储可调用对象（运算符形式）。
-         * @tparam Class 对象类型。
-         * @param object 要绑定可调用对象的对象。
-         * @param args 要转发的参数。
-         * @return 调用结果。
-         *
-         * @note 若 delegate 为空则抛出 invalid_delegate。
-         */
-        template <typename Class>
-        auto operator()(Class &&object, typename type_traits::primary_types::function_traits<Fx>::argument_types... args) const
-            -> typename type_traits::primary_types::function_traits<Fx>::return_type;
 
-        /**
-         * \lang english
-         * @brief Invokes the stored callable without binding an object (operator form).
-         * @param args The arguments to forward.
-         * @return The result of the invocation.
-         *
-         * @note Throws invalid_delegate if the delegate is empty.
-         *
-         * \lang simp-chinese
-         * @brief 在不绑定对象的情况下调用所存储可调用对象（运算符形式）。
-         * @param args 要转发的参数。
-         * @return 调用结果。
-         *
-         * @note 若 delegate 为空则抛出 invalid_delegate。
-         */
-        auto operator()(typename type_traits::primary_types::function_traits<Fx>::argument_types... args) const
-            -> typename type_traits::primary_types::function_traits<Fx>::return_type;
 
         /**
          * \lang english

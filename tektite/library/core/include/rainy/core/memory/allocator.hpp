@@ -861,7 +861,11 @@ namespace rainy::core::memory::implements {
     };
 
     template <typename Ty, typename = void>
-    struct get_const_pointer_type { using type = typename Ty::const_pointer; };
+    struct get_const_pointer_type {
+        using ptr_t = typename get_pointer_type<Ty>::type;
+        using val_t = typename Ty::value_type;
+        using type = typename memory::pointer_traits<ptr_t>::template rebind<const val_t>;
+    };
 
     template <typename Ty>
     struct get_const_pointer_type<Ty, type_traits::other_trans::void_t<typename Ty::const_pointer>> {
@@ -869,7 +873,10 @@ namespace rainy::core::memory::implements {
     };
 
     template <typename Ty, typename = void>
-    struct get_void_pointer_type { using type = typename Ty::void_pointer; };
+    struct get_void_pointer_type {
+        using ptr_t = typename get_pointer_type<Ty>::type;
+        using type = typename memory::pointer_traits<ptr_t>::template rebind<void>;
+    };
 
     template <typename Ty>
     struct get_void_pointer_type<Ty, type_traits::other_trans::void_t<typename Ty::void_pointer>> {
@@ -877,7 +884,10 @@ namespace rainy::core::memory::implements {
     };
 
     template <typename Ty, typename = void>
-    struct get_const_void_pointer_type { using type = typename Ty::const_void_pointer; };
+    struct get_const_void_pointer_type {
+        using ptr_t = typename get_pointer_type<Ty>::type;
+        using type = typename memory::pointer_traits<ptr_t>::template rebind<const void>;
+    };
 
     template <typename Ty>
     struct get_const_void_pointer_type<Ty, type_traits::other_trans::void_t<typename Ty::const_void_pointer>> {
@@ -885,7 +895,10 @@ namespace rainy::core::memory::implements {
     };
 
     template <typename Ty, typename = void>
-    struct get_difference_type { using type = typename Ty::difference_type; };
+    struct get_difference_type {
+        using ptr_t = typename get_pointer_type<Ty>::type;
+        using type = typename memory::pointer_traits<ptr_t>::difference_type;
+    };
 
     template <typename Ty>
     struct get_difference_type<Ty, type_traits::other_trans::void_t<typename Ty::difference_type>> {
@@ -893,7 +906,9 @@ namespace rainy::core::memory::implements {
     };
 
     template <typename Ty, typename = void>
-    struct get_size_type { using type = typename Ty::size_type; };
+    struct get_size_type {
+        using type = type_traits::helper::make_unsigned_t<typename get_difference_type<Ty>::type>;
+    };
 
     template <typename Ty>
     struct get_size_type<Ty, type_traits::other_trans::void_t<typename Ty::size_type>> {
@@ -925,7 +940,9 @@ namespace rainy::core::memory::implements {
     };
 
     template <typename Ty, typename = void>
-    struct get_is_always_equal { using type = typename Ty::is_always_equal; };
+    struct get_is_always_equal {
+        using type = type_traits::helper::bool_constant<type_traits::properties::is_empty_v<Ty>>;
+    };
 
     template <typename Ty>
     struct get_is_always_equal<Ty, type_traits::other_trans::void_t<typename Ty::is_always_equal>> {

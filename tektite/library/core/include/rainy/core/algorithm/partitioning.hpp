@@ -18,6 +18,7 @@
 
 #include <rainy/core/algorithm/modifying.hpp>
 #include <rainy/core/collections/vector.hpp>
+#include <rainy/core/container/pair.hpp>
 
 namespace rainy::core::algorithm {
     /**

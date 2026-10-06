@@ -15,6 +15,7 @@ sources:
       - h
     compile_flags:
       std: c++20
+      muziyan: true
       defines:
         - RAINY_ENABLE_DEBUG=1
         - RAINY_UNSPECVALUE=0

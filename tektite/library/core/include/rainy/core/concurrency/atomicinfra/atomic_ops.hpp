@@ -20,7 +20,6 @@
 
 #include <cstring>
 
-#if !RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
 
 namespace rainy::core::concurrency::implements {
     template <size_t ByteSize>
@@ -604,6 +603,5 @@ namespace rainy::core::concurrency::implements {
     }
 }
 
-#endif
 
 #endif

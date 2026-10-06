@@ -13,10 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/**
- * \lang english
- * @mergeto rainy/core/core.hpp
- */
 #ifndef RAINY_CORE_ALGORITHM_BASIC_ALGORITHM_HPP
 #define RAINY_CORE_ALGORITHM_BASIC_ALGORITHM_HPP
 #include <algorithm>

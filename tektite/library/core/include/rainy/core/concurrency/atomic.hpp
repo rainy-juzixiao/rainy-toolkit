@@ -1679,7 +1679,7 @@ namespace rainy::core::concurrency {
          *
          * @note 适用类型：所有类型。
          */
-        static constexpr std::size_t required_alignment = /* implementation-defined */;
+        static constexpr std::size_t required_alignment = alignof(Ty);
 
         /**
          * \lang english
