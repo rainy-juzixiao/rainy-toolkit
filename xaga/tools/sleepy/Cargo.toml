@@ -19,6 +19,7 @@ shell-words = "1"
 
 anyhow = "1"
 tera = "1.20"
+pulldown-cmark = "0.12"
 indexmap = "2.13.0"
 which = "8.0.2"
 config = "0.15.19"
