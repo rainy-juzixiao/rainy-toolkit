@@ -1,0 +1,7 @@
+{% extends "layout.html" %}
+{% block content %}
+<h1>参考文档</h1>
+<ul>
+{% for doc in docs %}<li><a href="{{ doc.filename }}.html">{{ doc.title }}</a></li>{% endfor %}
+</ul>
+{% endblock %}

@@ -13,6 +13,8 @@
 // limitations under the License.
 pub mod markdown;
 pub mod rt_vitepress_markdown;
+pub mod reports;
+pub mod cycles;
 pub mod xml;
 pub mod html;
 pub mod latex;
