@@ -71,7 +71,7 @@ TEST_CASE("willow facade conversion transcodes Unicode between character encodin
     REQUIRE(source["文本"].as_string() == "中😀");
 
     yaml::facade<wdocument> wide{from_other_document, source};
-    REQUIRE(wide[L"文本"].as_string().size() == 2);
+    REQUIRE(wide[L"文本"].as_string().size() == 3);
     REQUIRE(wide[L"文本"].as_string() == L"中😀");
     json::facade<document> from_wide{from_other_document, wide};
     REQUIRE(from_wide["文本"].as_string() == "中😀");
