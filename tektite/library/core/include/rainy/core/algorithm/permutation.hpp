@@ -18,6 +18,7 @@
 
 #include <rainy/core/algorithm/basic_algorithm.hpp>
 #include <rainy/core/algorithm/modifying.hpp>
+#include <rainy/core/algorithm/nonmodifying.hpp>
 
 namespace rainy::core::algorithm {
     /**

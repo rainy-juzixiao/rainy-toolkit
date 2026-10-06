@@ -29,7 +29,6 @@ namespace rainy::core::memory {
     class weak_ptr;
 }
 
-#if !RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
 namespace rainy::core::memory::implements {
     template <typename Ty, typename = void>
     struct can_scalar_del : type_traits::helper::false_type {};
@@ -74,9 +73,7 @@ namespace rainy::core::memory::implements {
     template <typename UTy, size_t Ext>
     struct shared_pointer_compatible<UTy[Ext], const volatile UTy[]> : type_traits::helper::true_type {};
 }
-#endif
 
-#if !RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
 namespace rainy::core::memory::implements {
     class ref_count_base {
     public:
@@ -215,9 +212,7 @@ namespace rainy::core::memory::implements {
         container::pair<Dx, container::pair<allocator_type, Res>> pair;
     };
 }
-#endif
 
-#if !RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
 namespace rainy::core::memory::implements {
     template <typename Ty>
     class shared_ptr_base {
@@ -368,9 +363,7 @@ namespace rainy::core::memory::implements {
         container::pair<element_type *, ref_count_base *> pair;
     };
 }
-#endif
 
-#if !RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
 namespace rainy::core::memory::implements {
     template <typename UTy>
     struct temporary_owner {
@@ -481,7 +474,6 @@ namespace rainy::core::memory::implements {
     struct can_enable_shared<Ty, type_traits::other_trans::void_t<typename Ty::rts_enable_shared_type>>
         : type_traits::helper::bool_constant<type_traits::type_relations::is_convertible_v<type_traits::modifers::remove_cv_t<Ty> *, typename Ty::rts_enable_shared_type *>> {};
 }
-#endif
 
 namespace rainy::core::memory {
     /**
@@ -1662,7 +1654,6 @@ namespace rainy::core::memory {
     }
 }
 
-#if !RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
 namespace rainy::core::memory::implements {
     template <typename Ty, typename UTy, typename = void>
     static constexpr bool must_avoid_expired_conversions_from = true;
@@ -1671,7 +1662,6 @@ namespace rainy::core::memory::implements {
     static constexpr bool must_avoid_expired_conversions_from<
         Ty, UTy, type_traits::other_trans::void_t<decltype(static_cast<const UTy *>(static_cast<Ty *>(nullptr)))>> = false;
 }
-#endif
 
 namespace rainy::core::memory {
     /**

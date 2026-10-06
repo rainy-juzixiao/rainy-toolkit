@@ -67,7 +67,7 @@ TEST_CASE("codecvt_utf8 to_wide basic conversions", "[codecvt_utf8]") {
         REQUIRE(result == codecvt::result::ok);
         REQUIRE(from_next == input + 4);
 
-#ifdef RAINY_USING_WINDOWS
+#if RAINY_USING_WINDOWS
         REQUIRE(to_next - output == 2);
         REQUIRE(output[0] == 0xD83D);
         REQUIRE(output[1] == 0xDE01);
@@ -203,7 +203,7 @@ TEST_CASE("codecvt_utf8 to_bytes basic conversions", "[codecvt_utf8]") {
     }
 
     SECTION("4-byte UTF-8") {
-#ifdef RAINY_USING_WINDOWS
+#if RAINY_USING_WINDOWS
         const wchar_t input[] = {0xD83D, 0xDE01};
         char output[10];
         const wchar_t *from_next = nullptr;
@@ -284,7 +284,7 @@ TEST_CASE("codecvt_utf16 to_wide basic conversions", "[codecvt_utf16]") {
         REQUIRE(result == codecvt::result::ok);
         REQUIRE(from_next == input + 4);
 
-#ifdef RAINY_USING_WINDOWS
+#if RAINY_USING_WINDOWS
         REQUIRE(to_next - output == 2);
         REQUIRE(output[0] == 0xD83D);
         REQUIRE(output[1] == 0xDE01); 
@@ -367,7 +367,7 @@ TEST_CASE("codecvt_utf16 to_bytes basic conversions", "[codecvt_utf16]") {
         REQUIRE(result == codecvt::result::ok);
         REQUIRE(from_next == input + 4);
 
-#ifdef RAINY_USING_WINDOWS
+#if RAINY_USING_WINDOWS
         REQUIRE(to_next - output == 2);
         REQUIRE(output[0] == 0xD83D);
         REQUIRE(output[1] == 0xDE01);

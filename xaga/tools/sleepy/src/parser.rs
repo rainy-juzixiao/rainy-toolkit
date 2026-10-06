@@ -150,6 +150,11 @@ pub fn build_file_document(
     let namespace_stack = vec![];
 
     let mut doc = FileDocument {
+        path: PathBuf::from(file_path),
+        title: PathBuf::from(file_path)
+            .file_stem()
+            .map(|s| s.to_string_lossy().to_string())
+            .unwrap_or_default(),
         file_path: file_path.to_string(),
         includes: vec![],
         brief: crate::i18n::I18n::new(),
@@ -171,6 +176,7 @@ pub fn build_file_document(
         macros: vec![],
         merge_into: None,
         module: None,
+        body: String::new(),
     };
 
     if let Some(raw) = extract_raw_comment(&root) {

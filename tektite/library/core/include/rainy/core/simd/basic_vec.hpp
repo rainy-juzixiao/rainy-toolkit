@@ -16,7 +16,6 @@
 #ifndef RAINY_CORE_SIMD_BASIC_SIMD_HPP
 #define RAINY_CORE_SIMD_BASIC_SIMD_HPP
 #include <iterator>
-#include <rainy/core/simd/basic_mask.hpp>
 #include <rainy/core/simd/fwd.hpp>
 #include <rainy/core/simd/native_abi.hpp>
 #include <rainy/core/simd/register.hpp>

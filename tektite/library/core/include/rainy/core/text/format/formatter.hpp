@@ -18,6 +18,7 @@
 #include <cmath>
 #include <locale>
 #include <rainy/core/text/charconv.hpp>
+#include <rainy/core/text/format/context.hpp>
 #include <rainy/core/text/format/implements.hpp>
 #include <rainy/core/text/wstring_convert.hpp>
 

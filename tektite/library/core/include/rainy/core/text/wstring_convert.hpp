@@ -199,7 +199,7 @@ namespace rainy::core::text {
                     return result::error; // 码点太大
                 }
 
-                if (ch > 0xffff) {
+                if (ch > 0xffff && sizeof(wide_type) == 2) {
                     if (to_end - to_next < 2) {
                         break;
                     }
@@ -482,8 +482,7 @@ namespace rainy::core::text {
                     return result::error; // 码点太大
                 }
 
-                if (ch > 0xffff) {
-                    // Windows: wchar_t 是 16 位，需要输出代理对
+                if (ch > 0xffff && sizeof(wide_type) == 2) {
                     if (to_end - to_next < 2) {
                         break; // 输出空间不足
                     }
