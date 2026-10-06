@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 use crate::i18n::{I18n, LangTag};
+use std::path::PathBuf;
 
 #[derive(Clone)]
 pub enum AccessLevel {
@@ -322,6 +323,8 @@ pub struct NamespaceDocument {
 }
 
 pub struct FileDocument {
+    pub path: PathBuf,
+    pub title: String,
     pub file_path: String,
     pub includes: Vec<String>,
     pub brief: I18n<String>,
@@ -342,5 +345,6 @@ pub struct FileDocument {
     pub concepts: Vec<ConceptDocument>,
     pub macros: Vec<MacroDocument>,
     pub merge_into: Option<String>,
-    pub module: Option<String>,           // @module
+    pub module: Option<String>,
+    pub body: String,
 }
