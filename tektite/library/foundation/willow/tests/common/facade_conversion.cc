@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 #include <catch2/catch_all.hpp>
+#include <iostream>
 #include <rainy/foundation/willow/json.hpp>
 #include <rainy/foundation/willow/json5.hpp>
 #include <rainy/foundation/willow/protobuf.hpp>
@@ -71,7 +72,11 @@ TEST_CASE("willow facade conversion transcodes Unicode between character encodin
     REQUIRE(source["文本"].as_string() == "中😀");
 
     yaml::facade<wdocument> wide{from_other_document, source};
+#if RAINY_USING_WINDOWS
     REQUIRE(wide[L"文本"].as_string().size() == 3);
+#else
+    REQUIRE(wide[L"文本"].as_string().size() == 2);
+#endif
     REQUIRE(wide[L"文本"].as_string() == L"中😀");
     json::facade<document> from_wide{from_other_document, wide};
     REQUIRE(from_wide["文本"].as_string() == "中😀");

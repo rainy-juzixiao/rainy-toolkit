@@ -630,9 +630,7 @@ namespace rainy::core::layer {
         unknown = 0xFFFF
     };
 
-#if !RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
     RAINY_INTERNALLAYER_ENABLE_ENUM_CLASS_BITMASK_OPERATORS(perms);
-#endif
 
     /**
      * \lang english
@@ -842,9 +840,7 @@ namespace rainy::core::layer {
         create_hard_links = 256
     };
 
-#if !RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
     RAINY_INTERNALLAYER_ENABLE_ENUM_CLASS_BITMASK_OPERATORS(copy_options);
-#endif
 
     /**
      * \lang english

@@ -18,7 +18,6 @@
 #include <rainy/core/layer.hpp>
 #include <rainy/core/concurrency/atomicinfra/atomic_ops.hpp>
 
-#if !RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
 
 namespace rainy::core::concurrency::implements {
     /**
@@ -303,6 +302,5 @@ namespace rainy::core::concurrency::implements {
     };
 }
 
-#endif
 
 #endif

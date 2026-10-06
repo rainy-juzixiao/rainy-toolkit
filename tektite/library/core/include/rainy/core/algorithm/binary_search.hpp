@@ -17,6 +17,7 @@
 #define RAINY_CORE_ALGORITHM_BINARY_SEARCH_HPP
 
 #include <rainy/core/algorithm/basic_algorithm.hpp>
+#include <rainy/core/container/pair.hpp>
 
 namespace rainy::core::algorithm {
     /**
