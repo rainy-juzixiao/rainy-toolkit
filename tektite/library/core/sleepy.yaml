@@ -18,8 +18,3 @@ sources:
       defines:
         - RAINY_ENABLE_DEBUG=1
         - RAINY_UNSPECVALUE=0
-      includes: []
-      extra: []
-    files:
-      - include/rainy/core/platform.hpp
-      - include/rainy/core/layer.hpp
