@@ -15,7 +15,8 @@ MuZiYan（沐子言）是一个基于 Rust + libClang 开发的 C++ 程序语言
 ## 特性总览
 
 - 基于 libClang 的 AST 级解析，识别 9 类 C++ 实体（类/枚举/别名/概念/函数/宏/命名空间/变量/常量）
-- 解析期注入 `__MUZIYAN_IS_HERE__` 宏，头文件可据此调整自身内容以配合解析
+- `implements` / `detail` / `impl` 等内部命名空间参与解析（基类查找、继承补全）但不出现在文档中
+- 可选注入 `__MUZIYAN_IS_HERE__` 宏（`compile_flags.muziyan`），头文件可据此调整自身内容以配合解析
 - `@mergeto` 头文件合并：多个实现片段合并到同一个主页面
 - `@module` 模块标注：VitePress 侧边栏按模块组织
 - 跨目录配置引用（`includes`）：一个根配置聚合多个库的文档

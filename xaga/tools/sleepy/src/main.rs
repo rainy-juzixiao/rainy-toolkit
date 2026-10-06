@@ -60,6 +60,11 @@ struct Cli {
     /// 发现循环依赖时仅警告，不作为错误退出 (warn instead of fail on cycles)
     #[arg(long)]
     allow_cycles: bool,
+
+    /// 输出格式：markdown、html 自由组合（分隔符 + , ; 空格任选），也可用 all；默认 markdown
+    /// (output formats, freely combinable; default markdown)
+    #[arg(long, value_name = "FMT", default_value = "markdown")]
+    format: String,
 }
 
 fn main() -> ExitCode {
@@ -74,6 +79,9 @@ fn main() -> ExitCode {
 }
 
 fn run(cli: &Cli) -> anyhow::Result<()> {
+    let formats = parse_formats(&cli.format)?;
+    let want_html = formats.contains(&OutputFormat::Html);
+    let want_markdown = formats.contains(&OutputFormat::Markdown);
     if let Some(root) = &cli.root {
         std::env::set_current_dir(root)
             .with_context(|| format!("cannot change directory to --root: {}", root.display()))?;
@@ -125,6 +133,7 @@ fn run(cli: &Cli) -> anyhow::Result<()> {
     let mut flat_seen: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
     // canonical file path -> display name (e.g. "<source>/<rel path>")
     let mut file_infos: HashMap<String, String> = HashMap::new();
+    let mut diag_seen: std::collections::HashSet<String> = std::collections::HashSet::new();
 
     for source in &config.sources {
         process_source(
@@ -136,6 +145,8 @@ fn run(cli: &Cli) -> anyhow::Result<()> {
             &mut all_docs,
             &mut pending_writes,
             &mut file_infos,
+            &mut diag_seen,
+            want_markdown,
         )?;
     }
 
@@ -180,12 +191,20 @@ fn run(cli: &Cli) -> anyhow::Result<()> {
         pending_writes.len()
     );
 
+    // --- HTML (always run if requested, independent of docs count) ---
+    if want_html {
+        let html_gen =
+            generator::html::HtmlGenerator::new("assets/html", config.lang.clone());
+        html_gen.generate_site(&all_docs, &config.output_dir.join("html"), config.flat)?;
+        println!("[sleepy] HTML site at {}", config.output_dir.join("html").display());
+    }
+
     if all_docs.is_empty() {
         return Ok(());
     }
 
     // --- dependency graph & index page ---
-    if !cli.no_graph && config.dependency_graph.enabled {
+    if want_markdown && !cli.no_graph && config.dependency_graph.enabled {
         let graph_path = config
             .output_dir
             .join(format!("{}.md", config.dependency_graph.out_name));
@@ -202,7 +221,8 @@ fn run(cli: &Cli) -> anyhow::Result<()> {
         println!("[sleepy] index page → {}", index_path.display());
     }
 
-    // --- VitePress output ---
+    if want_markdown {
+    // --- VitePress / markdown output ---
     let vp_gen = generator::rt_vitepress_markdown::VitePressMarkdownGenerator::new(&config.lang);
     if cli.partial {
         let ref_dir = config.output_dir.join("reference");
@@ -218,13 +238,160 @@ fn run(cli: &Cli) -> anyhow::Result<()> {
             config.output_dir.join("docs").display()
         );
     }
-
-    // HTML backend (Tera templates) — zero-comment integration
-    let html_gen = generator::html::HtmlGenerator::new("assets/html");
-    html_gen.generate_site(&all_docs, &config.output_dir.join("html"))?;
-    println!("[sleepy] HTML site at {}", config.output_dir.join("html").display());
+    }
 
     Ok(())
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum OutputFormat {
+    Markdown,
+    Html,
+}
+
+fn parse_formats(raw: &str) -> anyhow::Result<Vec<OutputFormat>> {
+    fn push_unique(out: &mut Vec<OutputFormat>, fmt: OutputFormat) {
+        if !out.contains(&fmt) {
+            out.push(fmt);
+        }
+    }
+    let mut out: Vec<OutputFormat> = Vec::new();
+    for part in raw.split(|c: char| c == '+' || c == ',' || c == ';' || c.is_whitespace()) {
+        match part.trim().to_ascii_lowercase().as_str() {
+            "" => {}
+            "markdown" | "md" | "vitepress" => push_unique(&mut out, OutputFormat::Markdown),
+            "html" => push_unique(&mut out, OutputFormat::Html),
+            "all" => {
+                push_unique(&mut out, OutputFormat::Markdown);
+                push_unique(&mut out, OutputFormat::Html);
+            }
+            other => anyhow::bail!(
+                "unknown --format `{other}` (expected a combination of markdown/md/vitepress, html joined by `+`, `,`, `;` or whitespace, or `all`)"
+            ),
+        }
+    }
+    if out.is_empty() {
+        anyhow::bail!("--format must request at least one of: markdown, html");
+    }
+    Ok(out)
+}
+
+fn diagnostic_label(severity: clang::diagnostic::Severity) -> &'static str {
+    match severity {
+        clang::diagnostic::Severity::Ignored => "ignored",
+        clang::diagnostic::Severity::Note => "note",
+        clang::diagnostic::Severity::Warning => "warning",
+        clang::diagnostic::Severity::Error => "error",
+        clang::diagnostic::Severity::Fatal => "fatal",
+    }
+}
+
+fn diagnostic_location(diag: &clang::diagnostic::Diagnostic, tu_path: &str) -> (String, u32, u32) {
+    let spelling = diag.get_location().get_spelling_location();
+    let path = spelling
+        .file
+        .map(|f| f.get_path().to_string_lossy().to_string())
+        .unwrap_or_else(|| tu_path.to_string());
+    (path, spelling.line, spelling.column)
+}
+
+fn format_fixit(fixit: &clang::diagnostic::FixIt) -> String {
+    match fixit {
+        clang::diagnostic::FixIt::Deletion(range) => {
+            let s = range.get_start().get_spelling_location();
+            let e = range.get_end().get_spelling_location();
+            format!(
+                "delete {}:{}:{}-{}:{}",
+                s.file
+                    .map(|f| f.get_path().to_string_lossy().to_string())
+                    .unwrap_or_else(|| "<unknown>".into()),
+                s.line,
+                s.column,
+                e.line,
+                e.column
+            )
+        }
+        clang::diagnostic::FixIt::Insertion(loc, text) => {
+            let s = loc.get_spelling_location();
+            format!(
+                "insert {:?} at {}:{}:{}",
+                text,
+                s.file
+                    .map(|f| f.get_path().to_string_lossy().to_string())
+                    .unwrap_or_else(|| "<unknown>".into()),
+                s.line,
+                s.column
+            )
+        }
+        clang::diagnostic::FixIt::Replacement(range, text) => {
+            let s = range.get_start().get_spelling_location();
+            let e = range.get_end().get_spelling_location();
+            format!(
+                "replace {}:{}:{}-{}:{} with {:?}",
+                s.file
+                    .map(|f| f.get_path().to_string_lossy().to_string())
+                    .unwrap_or_else(|| "<unknown>".into()),
+                s.line,
+                s.column,
+                e.line,
+                e.column,
+                text
+            )
+        }
+    }
+}
+
+fn report_diagnostics(
+    tu: &clang::TranslationUnit,
+    tu_path: &str,
+    seen: &mut std::collections::HashSet<String>,
+) {
+    const MAX_PER_TU: usize = 20;
+    let mut shown = 0usize;
+    let mut skipped_dup = 0usize;
+    for diag in tu.get_diagnostics() {
+        let severity = diag.get_severity();
+        if severity < clang::diagnostic::Severity::Warning {
+            continue;
+        }
+        let (path, line, column) = diagnostic_location(&diag, tu_path);
+        let text = diag.get_text();
+        let key = format!("{}:{line}:{column}:{}", path, text);
+        if !seen.insert(key) {
+            skipped_dup += 1;
+            continue;
+        }
+        if shown >= MAX_PER_TU {
+            continue;
+        }
+        shown += 1;
+        let label = diagnostic_label(severity);
+        if path == tu_path {
+            eprintln!("[sleepy][parse {label}] {path}:{line}:{column}: {text}");
+        } else {
+            eprintln!("[sleepy][parse {label}] {path}:{line}:{column}: {text} (in TU {tu_path})");
+        }
+        for child in diag.get_children() {
+            let (cpath, cline, ccolumn) = diagnostic_location(&child, tu_path);
+            eprintln!(
+                "  |- {} {}:{cline}:{ccolumn}: {}",
+                diagnostic_label(child.get_severity()),
+                cpath,
+                child.get_text()
+            );
+        }
+        for fixit in diag.get_fix_its().iter().take(3) {
+            eprintln!("  |- fix-it: {}", format_fixit(fixit));
+        }
+    }
+    if shown >= MAX_PER_TU {
+        eprintln!("[sleepy][parse note] {tu_path}: further diagnostics suppressed (cap {MAX_PER_TU}/TU)");
+    }
+    if skipped_dup > 0 {
+        eprintln!(
+            "[sleepy][parse note] {tu_path}: {skipped_dup} duplicate diagnostic(s) already reported from other TUs"
+        );
+    }
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -237,6 +404,8 @@ fn process_source(
     all_docs: &mut Vec<data::document::FileDocument>,
     pending_writes: &mut Vec<(PathBuf, String)>,
     file_infos: &mut HashMap<String, String>,
+    diag_seen: &mut std::collections::HashSet<String>,
+    want_markdown: bool,
 ) -> anyhow::Result<()> {
     println!("[sleepy] source: {}", source.name);
     let toolchain = match &source.compile_flags.compiler {
@@ -356,17 +525,7 @@ fn process_source(
             .parse()
             .with_context(|| format!("failed to parse: {}", main_file.display()))?;
 
-        for diag in tu.get_diagnostics() {
-            if diag.get_severity() >= clang::diagnostic::Severity::Error {
-                eprintln!(
-                    "[parse warn] {} {}:{}: {}",
-                    file_str,
-                    diag.get_location().get_file_location().line,
-                    diag.get_location().get_file_location().column,
-                    diag.get_text()
-                );
-            }
-        }
+        report_diagnostics(&tu, file_str, diag_seen);
 
         let source_text = std::fs::read_to_string(main_file).unwrap_or_default();
         let nodoc_ranges = parser::collect_nodoc_ranges(&source_text);
@@ -379,50 +538,62 @@ fn process_source(
             ignored_namespaces: &config.ignored_namespaces,
         };
 
-        let doc = parser::build_file_document(&tu, file_str, &context);
-        let md = gen.generate_file(&doc);
-
-        // display name: "<source>/<relative path under include root>"
-        let display = match main_file.strip_prefix(&include_root) {
-            Ok(rel) => format!("{}/{}", source.name, rel.display()),
-            Err(_) => format!(
-                "{}/{}",
-                source.name,
+        let mut doc = parser::build_file_document(&tu, file_str, &context);
+        doc.source_name = source.name.clone();
+        doc.rel_path = main_file
+            .strip_prefix(&include_root)
+            .map(|r| r.to_path_buf())
+            .unwrap_or_else(|_| {
                 main_file
                     .file_name()
-                    .map(|f| f.to_string_lossy().to_string())
-                    .unwrap_or_else(|| "unknown".to_string())
-            ),
-        };
-        file_infos.insert(main_file.to_string_lossy().to_string(), display);
+                    .map(std::path::PathBuf::from)
+                    .unwrap_or_else(|| std::path::PathBuf::from("unknown.hpp"))
+            });
+        if want_markdown {
+            let md = gen.generate_file(&doc);
 
-        let out_name = main_file
-            .file_stem()
-            .and_then(|s| s.to_str())
-            .unwrap_or("unknown");
-        let out_path = if config.flat {
-            let base = out_name.to_string();
-            let count = flat_seen.entry(base.clone()).or_insert(0);
-            *count += 1;
-            let final_name = if *count > 1 {
-                format!("{}_{}", base, count)
-            } else {
-                base
+            // display name: "<source>/<relative path under include root>"
+            let display = match main_file.strip_prefix(&include_root) {
+                Ok(rel) => format!("{}/{}", source.name, rel.display()),
+                Err(_) => format!(
+                    "{}/{}",
+                    source.name,
+                    main_file
+                        .file_name()
+                        .map(|f| f.to_string_lossy().to_string())
+                        .unwrap_or_else(|| "unknown".to_string())
+                ),
             };
-            source_output_dir.join(format!("{}.md", final_name))
-        } else {
-            let include_root = source.include_dirs.get(0)
-                .and_then(|d| d.canonicalize().ok())
-                .unwrap_or_else(|| source.include_dirs.get(0).cloned().unwrap_or_default());
-            let rel = main_file.strip_prefix(&include_root).unwrap_or(main_file.as_path());
-            source_output_dir.join(rel.with_extension("md"))
-        };
-        if let Some(parent) = out_path.parent() {
-            std::fs::create_dir_all(parent)?;
-        }
-        pending_writes.push((out_path.clone(), md));
-        if std::env::var("SLEEPY_QUIET").as_deref() != Ok("1") {
-            println!("[sleepy]   → {}", out_path.display());
+            file_infos.insert(main_file.to_string_lossy().to_string(), display);
+
+            let out_name = main_file
+                .file_stem()
+                .and_then(|s| s.to_str())
+                .unwrap_or("unknown");
+            let out_path = if config.flat {
+                let base = out_name.to_string();
+                let count = flat_seen.entry(base.clone()).or_insert(0);
+                *count += 1;
+                let final_name = if *count > 1 {
+                    format!("{}_{}", base, count)
+                } else {
+                    base
+                };
+                source_output_dir.join(format!("{}.md", final_name))
+            } else {
+                let include_root = source.include_dirs.get(0)
+                    .and_then(|d| d.canonicalize().ok())
+                    .unwrap_or_else(|| source.include_dirs.get(0).cloned().unwrap_or_default());
+                let rel = main_file.strip_prefix(&include_root).unwrap_or(main_file.as_path());
+                source_output_dir.join(rel.with_extension("md"))
+            };
+            if let Some(parent) = out_path.parent() {
+                std::fs::create_dir_all(parent)?;
+            }
+            pending_writes.push((out_path.clone(), md));
+            if std::env::var("SLEEPY_QUIET").as_deref() != Ok("1") {
+                println!("[sleepy]   → {}", out_path.display());
+            }
         }
 
         all_docs.push(doc);
