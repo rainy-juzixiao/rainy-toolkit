@@ -16,6 +16,7 @@ mod gen_compile_db;
 mod generator;
 mod i18n;
 mod parser;
+mod progress;
 mod toolchain;
 mod utils;
 
@@ -43,7 +44,7 @@ struct Cli {
     #[arg(short = 'c', long, value_name = "PATH")]
     config: Option<PathBuf>,
 
-    /// 仅生成 VitePress 的 reference 页面，不生成站点骨架 (reference pages only)
+    /// 仅生成 reference 页面，不生成站点骨架 (reference pages only)
     #[arg(long)]
     partial: bool,
 
@@ -130,12 +131,19 @@ fn run(cli: &Cli) -> anyhow::Result<()> {
     let mut all_docs: Vec<data::document::FileDocument> = Vec::new();
     // two-phase pipeline: (output path, content) registered first, written later
     let mut pending_writes: Vec<(PathBuf, String)> = Vec::new();
-    let mut flat_seen: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
     // canonical file path -> display name (e.g. "<source>/<rel path>")
     let mut file_infos: HashMap<String, String> = HashMap::new();
     let mut diag_seen: std::collections::HashSet<String> = std::collections::HashSet::new();
 
-    for source in &config.sources {
+    let source_headers: Vec<Vec<PathBuf>> = config
+        .sources
+        .iter()
+        .map(|s| collect_source_headers(s))
+        .collect::<anyhow::Result<_>>()?;
+    let total: usize = source_headers.iter().map(|h| h.len()).sum();
+    let mut progress = progress::Progress::new(total as u64);
+
+    for (source, headers) in config.sources.iter().zip(source_headers) {
         process_source(
             source,
             &config,
@@ -147,8 +155,11 @@ fn run(cli: &Cli) -> anyhow::Result<()> {
             &mut file_infos,
             &mut diag_seen,
             want_markdown,
+            headers,
+            &mut progress,
         )?;
     }
+    progress.finish();
 
     // --- cycle detection (independent of --no-graph) ---
     let graph_opts = generator::reports::GraphBuildOptions {
@@ -178,6 +189,7 @@ fn run(cli: &Cli) -> anyhow::Result<()> {
         );
         return Ok(());
     }
+    let mut written = 0usize;
     for (path, content) in &pending_writes {
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent)
@@ -185,21 +197,26 @@ fn run(cli: &Cli) -> anyhow::Result<()> {
         }
         std::fs::write(path, content)
             .with_context(|| format!("failed to write: {}", path.display()))?;
+        written += 1;
     }
-    println!(
-        "[sleepy] {} 个文件已写入 (files written)",
-        pending_writes.len()
-    );
 
     // --- HTML (always run if requested, independent of docs count) ---
     if want_html {
         let html_gen =
             generator::html::HtmlGenerator::new("assets/html", config.lang.clone());
-        html_gen.generate_site(&all_docs, &config.output_dir.join("html"), config.flat)?;
-        println!("[sleepy] HTML site at {}", config.output_dir.join("html").display());
+        if cli.partial {
+            let ref_dir = config.output_dir.join("html").join("reference");
+            written += html_gen.generate_reference_only(&all_docs, &ref_dir, config.flat)?;
+            println!("[sleepy] HTML reference page at {}", ref_dir.display());
+        } else {
+            written +=
+                html_gen.generate_site(&all_docs, &config.output_dir.join("html"), config.flat)?;
+            println!("[sleepy] HTML site at {}", config.output_dir.join("html").display());
+        }
     }
 
     if all_docs.is_empty() {
+        println!("[sleepy] {} 个文件已写入 (files written)", written);
         return Ok(());
     }
 
@@ -209,6 +226,7 @@ fn run(cli: &Cli) -> anyhow::Result<()> {
             .output_dir
             .join(format!("{}.md", config.dependency_graph.out_name));
         generator::reports::generate_dependency_graph(&graph, &graph_path, &config.lang)?;
+        written += 1;
         println!("[sleepy] dependency graph → {}", graph_path.display());
 
         let index_path = config.output_dir.join("index.md");
@@ -218,6 +236,7 @@ fn run(cli: &Cli) -> anyhow::Result<()> {
             &index_path,
             &config.lang,
         )?;
+        written += 1;
         println!("[sleepy] index page → {}", index_path.display());
     }
 
@@ -226,19 +245,21 @@ fn run(cli: &Cli) -> anyhow::Result<()> {
     let vp_gen = generator::rt_vitepress_markdown::VitePressMarkdownGenerator::new(&config.lang);
     if cli.partial {
         let ref_dir = config.output_dir.join("reference");
-        vp_gen.generate_reference_only(&all_docs, &ref_dir)?;
+        written += vp_gen.generate_reference_only(&all_docs, &ref_dir)?;
         println!(
             "[sleepy] VitePress reference pages generated at {}",
             ref_dir.display()
         );
     } else {
-        vp_gen.generate_site(&all_docs, &config.output_dir)?;
+        written += vp_gen.generate_site(&all_docs, &config.output_dir)?;
         println!(
             "[sleepy] VitePress site generated at {}",
             config.output_dir.join("docs").display()
         );
     }
     }
+
+    println!("[sleepy] {} 个文件已写入 (files written)", written);
 
     Ok(())
 }
@@ -394,37 +415,7 @@ fn report_diagnostics(
     }
 }
 
-#[allow(clippy::too_many_arguments)]
-fn process_source(
-    source: &data::config::SourceConfig,
-    config: &data::config::SleepyConfig,
-    index: &Index,
-    gen: &generator::markdown::MarkdownGenerator,
-    global_include_dirs: &[PathBuf],
-    all_docs: &mut Vec<data::document::FileDocument>,
-    pending_writes: &mut Vec<(PathBuf, String)>,
-    file_infos: &mut HashMap<String, String>,
-    diag_seen: &mut std::collections::HashSet<String>,
-    want_markdown: bool,
-) -> anyhow::Result<()> {
-    println!("[sleepy] source: {}", source.name);
-    let toolchain = match &source.compile_flags.compiler {
-        Some(path) => {
-            println!("[toolchain] using compiler from config: {}", path.display());
-            toolchain::Toolchain::from_path(path)?
-        }
-        None => toolchain::Toolchain::detect()?,
-    };
-    let mut args = source
-        .compile_flags
-        .to_args(&source.include_dirs, &toolchain)?;
-    // cross-library convenience: expose every scanned include root to -I
-    for dir in global_include_dirs {
-        args.push("-I".into());
-        args.push(dir.to_string_lossy().to_string());
-    }
-    println!("[sleepy]   compiler args: {}", args.join(" "));
-
+fn collect_source_headers(source: &data::config::SourceConfig) -> anyhow::Result<Vec<PathBuf>> {
     let headers: Vec<PathBuf> = if !source.files.is_empty() {
         source
             .files
@@ -445,7 +436,6 @@ fn process_source(
         h
     };
 
-    // apply exclude_dirs / exclude_files filters
     let exclude_dirs: Vec<PathBuf> = source
         .exclude_dirs
         .iter()
@@ -456,7 +446,7 @@ fn process_source(
         .iter()
         .filter_map(|f| f.canonicalize().ok())
         .collect();
-    let headers: Vec<PathBuf> = headers
+    Ok(headers
         .into_iter()
         .filter(|h| {
             let canon = h.canonicalize().unwrap_or_else(|_| h.clone());
@@ -465,53 +455,55 @@ fn process_source(
             }
             !exclude_dirs.iter().any(|d| canon.starts_with(d))
         })
-        .collect();
+        .map(|h| h.canonicalize().unwrap_or(h))
+        .collect())
+}
+
+#[allow(clippy::too_many_arguments)]
+fn process_source(
+    source: &data::config::SourceConfig,
+    config: &data::config::SleepyConfig,
+    index: &Index,
+    gen: &generator::markdown::MarkdownGenerator,
+    global_include_dirs: &[PathBuf],
+    all_docs: &mut Vec<data::document::FileDocument>,
+    pending_writes: &mut Vec<(PathBuf, String)>,
+    file_infos: &mut HashMap<String, String>,
+    diag_seen: &mut std::collections::HashSet<String>,
+    want_markdown: bool,
+    headers: Vec<PathBuf>,
+    progress: &mut progress::Progress,
+) -> anyhow::Result<()> {
+    println!("[sleepy] source: {}", source.name);
+    let toolchain = match &source.compile_flags.compiler {
+        Some(path) => {
+            println!("[toolchain] using compiler from config: {}", path.display());
+            toolchain::Toolchain::from_path(path)?
+        }
+        None => toolchain::Toolchain::detect()?,
+    };
+    let mut args = source
+        .compile_flags
+        .to_args(&source.include_dirs, &toolchain)?;
+    // cross-library convenience: expose every scanned include root to -I
+    for dir in global_include_dirs {
+        args.push("-I".into());
+        args.push(dir.to_string_lossy().to_string());
+    }
+    println!("[sleepy]   compiler args: {}", args.join(" "));
 
     println!("[sleepy]   found {} files", headers.len());
-    let mut merge_map: HashMap<PathBuf, PathBuf> = HashMap::new();
-    for header in &headers {
-        if let Some(target_name) = parser::read_mergeto_tag(header) {
-            let include_root = match source.include_dirs[0].canonicalize() {
-                Ok(p) => p,
-                Err(_) => continue,
-            };
-            let target_path = include_root.join(&target_name);
-            if let (Ok(src), Ok(dst)) = (
-                std::fs::canonicalize(header),
-                std::fs::canonicalize(&target_path),
-            ) {
-                merge_map.insert(src, dst);
-            } else {
-                eprintln!(
-                    "[sleepy warn] @mergeto 目标无法解析: {} → {}",
-                    header.display(),
-                    target_name
-                );
-            }
-        }
-    }
-    let mut owned_map: HashMap<PathBuf, HashSet<PathBuf>> = HashMap::new();
-    for header in &headers {
-        let canon = match std::fs::canonicalize(header) {
-            Ok(p) => p,
-            Err(_) => continue,
-        };
-        if merge_map.contains_key(&canon) {
-            continue;
-        }
-        let mut owned = HashSet::new();
-        owned.insert(canon.clone());
-        for (src, dst) in &merge_map {
-            if dst == &canon {
-                owned.insert(src.clone());
-            }
-        }
-        owned_map.insert(canon, owned);
-    }
 
     let source_output_dir = config.output_dir.join(&source.name);
     let mut flat_seen: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
-    for (main_file, owned_files) in &owned_map {
+    for header in &headers {
+        let main_file = match std::fs::canonicalize(header) {
+            Ok(p) => p,
+            Err(_) => continue,
+        };
+        let owned_files: HashSet<PathBuf> = [main_file.clone()].into_iter().collect();
+        let main_file = &main_file;
+        let owned_files = &owned_files;
         let file_str = main_file
             .to_str()
             .ok_or_else(|| anyhow::anyhow!("invalid path: {}", main_file.display()))?;
@@ -553,17 +545,7 @@ fn process_source(
             let md = gen.generate_file(&doc);
 
             // display name: "<source>/<relative path under include root>"
-            let display = match main_file.strip_prefix(&include_root) {
-                Ok(rel) => format!("{}/{}", source.name, rel.display()),
-                Err(_) => format!(
-                    "{}/{}",
-                    source.name,
-                    main_file
-                        .file_name()
-                        .map(|f| f.to_string_lossy().to_string())
-                        .unwrap_or_else(|| "unknown".to_string())
-                ),
-            };
+            let display = format!("{}/{}", source.name, doc.rel_path.display());
             file_infos.insert(main_file.to_string_lossy().to_string(), display);
 
             let out_name = main_file
@@ -581,21 +563,15 @@ fn process_source(
                 };
                 source_output_dir.join(format!("{}.md", final_name))
             } else {
-                let include_root = source.include_dirs.get(0)
-                    .and_then(|d| d.canonicalize().ok())
-                    .unwrap_or_else(|| source.include_dirs.get(0).cloned().unwrap_or_default());
-                let rel = main_file.strip_prefix(&include_root).unwrap_or(main_file.as_path());
-                source_output_dir.join(rel.with_extension("md"))
+                source_output_dir.join(doc.rel_path.with_extension("md"))
             };
             if let Some(parent) = out_path.parent() {
                 std::fs::create_dir_all(parent)?;
             }
             pending_writes.push((out_path.clone(), md));
-            if std::env::var("SLEEPY_QUIET").as_deref() != Ok("1") {
-                println!("[sleepy]   → {}", out_path.display());
-            }
         }
 
+        progress.tick(&doc.rel_path.display().to_string());
         all_docs.push(doc);
     }
 

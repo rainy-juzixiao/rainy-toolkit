@@ -13,15 +13,6 @@
 // limitations under the License.
 use clang::Entity;
 
-pub fn is_noexcept(entity: &Entity) -> bool {
-    entity.get_exception_specification()
-        .map(|s| matches!(s,
-            clang::ExceptionSpecification::BasicNoexcept |
-            clang::ExceptionSpecification::NoThrow
-        ))
-        .unwrap_or(false)
-}
-
 pub fn is_override(entity: &Entity) -> bool {
     // libclang 没有直接 API，但 CXCursor_CXXOverrideAttr 子节点能判断
     entity.get_children().iter().any(|c| {

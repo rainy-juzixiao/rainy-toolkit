@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-use super::comment::{extract_raw_comment, parse_comment};
+use super::comment::{entity_location, extract_raw_comment, parse_comment};
 use super::function::build_access;
 use super::function::build_template_params;
 use crate::data::document::{
@@ -26,7 +26,7 @@ pub fn build_variable(entity: &Entity, namespace_stack: &[String]) -> Option<Var
 
     let name = entity.get_name()?;
     let raw = extract_raw_comment(entity).unwrap_or_default();
-    let parsed = parse_comment(&raw, &name, namespace_stack.to_vec());
+    let parsed = parse_comment(&raw, &name, namespace_stack.to_vec(), entity_location(entity).as_deref());
 
     let type_name = entity
         .get_type()
@@ -60,7 +60,7 @@ pub fn build_member_field(
     }
     let name = entity.get_name()?;
     let raw = extract_raw_comment(entity).unwrap_or_default();
-    let parsed = parse_comment(&raw, &name, namespace_stack.to_vec());
+    let parsed = parse_comment(&raw, &name, namespace_stack.to_vec(), entity_location(entity).as_deref());
     let type_name = entity
         .get_type()
         .map(|t| t.get_display_name())
@@ -90,7 +90,7 @@ pub fn build_constant(
     }
     let name = entity.get_name()?;
     let raw = extract_raw_comment(entity).unwrap_or_default();
-    let parsed = parse_comment(&raw, &name, namespace_stack.to_vec());
+    let parsed = parse_comment(&raw, &name, namespace_stack.to_vec(), entity_location(entity).as_deref());
     let type_name = entity
         .get_type()
         .map(|t| t.get_display_name())
@@ -120,7 +120,7 @@ pub fn build_variable_template(
     }
     let name = entity.get_name()?;
     let raw = extract_raw_comment(entity).unwrap_or_default();
-    let mut parsed = parse_comment(&raw, &name, namespace_stack.to_vec());
+    let mut parsed = parse_comment(&raw, &name, namespace_stack.to_vec(), entity_location(entity).as_deref());
     let type_name = entity
         .get_type()
         .map(|t| t.get_display_name())

@@ -99,17 +99,19 @@ impl VitePressMarkdownGenerator {
     /// Write the per-file reference markdown pages into `ref_dir`.
     ///
     /// Reused by both [`generate_site`] and [`generate_reference_only`].
-    fn write_reference_pages(&self, docs: &[FileDocument], ref_dir: &Path) -> anyhow::Result<()> {
+    fn write_reference_pages(&self, docs: &[FileDocument], ref_dir: &Path) -> anyhow::Result<usize> {
         std::fs::create_dir_all(ref_dir)?;
         let md_gen = MarkdownGenerator::new(self.lang.0.clone());
 
+        let mut written = 0;
         for doc in docs {
             let stem = file_stem(&doc.file_path).unwrap_or("unknown");
             let page = self.wrap_with_frontmatter(&md_gen, doc, stem);
             std::fs::write(ref_dir.join(format!("{}.md", stem)), &page)?;
+            written += 1;
         }
 
-        Ok(())
+        Ok(written)
     }
 
     /// Generate the entire VitePress site under `output_dir`.
@@ -132,7 +134,7 @@ impl VitePressMarkdownGenerator {
         &self,
         docs: &[FileDocument],
         output_dir: &Path,
-    ) -> anyhow::Result<()> {
+    ) -> anyhow::Result<usize> {
         let modules = self.group_by_module(docs);
 
         let docs_dir = output_dir.join("docs");
@@ -147,9 +149,9 @@ impl VitePressMarkdownGenerator {
         let index_md = self.generate_index_md(&modules);
         std::fs::write(docs_dir.join("index.md"), &index_md)?;
 
-        self.write_reference_pages(docs, &ref_dir)?;
+        let pages = self.write_reference_pages(docs, &ref_dir)?;
 
-        Ok(())
+        Ok(pages + 2)
     }
 
     /// Generate only the reference markdown pages, **without** `config.mts` or `index.md`.
@@ -169,7 +171,7 @@ impl VitePressMarkdownGenerator {
         &self,
         docs: &[FileDocument],
         output_ref_dir: &Path,
-    ) -> anyhow::Result<()> {
+    ) -> anyhow::Result<usize> {
         self.write_reference_pages(docs, output_ref_dir)
     }
 

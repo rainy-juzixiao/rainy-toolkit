@@ -81,23 +81,50 @@ impl HtmlGenerator {
         }
     }
 
-    fn href_of(&self, d: &FileDocument, flat: bool) -> String {
-        to_posix(&self.page_rel(d, flat))
+    fn pages_of<'a>(
+        &self,
+        docs: &'a [FileDocument],
+        flat: bool,
+    ) -> anyhow::Result<Vec<(&'a FileDocument, PathBuf)>> {
+        let mut used: HashMap<String, usize> = HashMap::new();
+        let mut pages = Vec::with_capacity(docs.len());
+        for d in docs {
+            let mut rel = self.page_rel(d, flat);
+            if flat {
+                let key = rel.to_string_lossy().to_string();
+                let count = used.entry(key.clone()).or_insert(0);
+                *count += 1;
+                if *count > 1 {
+                    let stem = rel
+                        .file_stem()
+                        .map(|s| s.to_string_lossy().to_string())
+                        .unwrap_or_default();
+                    rel = PathBuf::from(format!("{stem}_{count}.html"));
+                }
+            }
+            if rel.is_absolute() {
+                anyhow::bail!(
+                    "refusing to write outside HTML dir (absolute page path): {}",
+                    rel.display()
+                );
+            }
+            pages.push((d, rel));
+        }
+        Ok(pages)
     }
 
-    fn docs_index(&self, docs: &[FileDocument], flat: bool) -> Vec<serde_json::Value> {
-        let mut entries: Vec<serde_json::Value> = docs
+    fn docs_index(&self, pages: &[(&FileDocument, PathBuf)], root_prefix: &str) -> Vec<serde_json::Value> {
+        let mut entries: Vec<serde_json::Value> = pages
             .iter()
-            .map(|d| {
-                let stem = d
-                    .path
+            .map(|(d, rel)| {
+                let filename = rel
                     .file_stem()
                     .map(|s| s.to_string_lossy().to_string())
                     .unwrap_or_else(|| d.title.clone());
                 serde_json::json!({
-                    "filename": stem,
+                    "filename": filename,
                     "title": d.title.clone(),
-                    "href": self.href_of(d, flat),
+                    "href": format!("{root_prefix}{}", to_posix(rel)),
                     "path": d.file_path.clone(),
                 })
             })
@@ -131,18 +158,19 @@ impl HtmlGenerator {
         docs: &[FileDocument],
         out_dir: &Path,
         flat: bool,
-    ) -> anyhow::Result<()> {
+    ) -> anyhow::Result<usize> {
         if out_dir.as_os_str().is_empty() {
             anyhow::bail!("HTML output dir is empty");
         }
         std::fs::create_dir_all(out_dir)
             .with_context(|| format!("cannot create HTML dir: {}", out_dir.display()))?;
         let tera = self.load_tera()?;
-        let docs_index = self.docs_index(docs, flat);
+        let pages = self.pages_of(docs, flat)?;
+        let root_docs = self.docs_index(&pages, "");
 
         let mut ctx = tera::Context::new();
         ctx.insert("title", "sleepy html");
-        ctx.insert("docs", &docs_index);
+        ctx.insert("docs", &root_docs);
         ctx.insert("root_prefix", "");
         std::fs::write(
             out_dir.join("index.html"),
@@ -157,27 +185,8 @@ impl HtmlGenerator {
         )
         .context("failed to write reference.html")?;
 
-        let mut used: HashMap<String, usize> = HashMap::new();
-        for d in docs {
-            let mut rel = self.page_rel(d, flat);
-            if flat {
-                let key = rel.to_string_lossy().to_string();
-                let count = used.entry(key.clone()).or_insert(0);
-                *count += 1;
-                if *count > 1 {
-                    let stem = rel
-                        .file_stem()
-                        .map(|s| s.to_string_lossy().to_string())
-                        .unwrap_or_default();
-                    rel = PathBuf::from(format!("{stem}_{count}.html"));
-                }
-            }
-            if rel.is_absolute() {
-                anyhow::bail!(
-                    "refusing to write outside HTML dir (absolute page path): {}",
-                    rel.display()
-                );
-            }
+        let mut written = 2;
+        for (d, rel) in &pages {
             let depth = rel.components().count().saturating_sub(1);
             let root_prefix = "../".repeat(depth);
             let mut ctx = tera::Context::new();
@@ -185,19 +194,8 @@ impl HtmlGenerator {
             ctx.insert("path", &d.file_path);
             ctx.insert("body", &self.render_body(d));
             ctx.insert("root_prefix", &root_prefix);
-            let href = to_posix(&rel);
-            let entry = serde_json::json!({
-                "filename": d.path.file_stem().map(|s| s.to_string_lossy().to_string()).unwrap_or_else(|| d.title.clone()),
-                "title": d.title.clone(),
-                "href": href,
-                "path": d.file_path.clone(),
-            });
-            let mut page_docs = docs_index.clone();
-            if !page_docs.iter().any(|v| v.get("href").and_then(|h| h.as_str()) == Some(href.as_str())) {
-                page_docs.push(entry);
-            }
-            ctx.insert("docs", &page_docs);
-            let page_path = out_dir.join(&rel);
+            ctx.insert("docs", &self.docs_index(&pages, &root_prefix));
+            let page_path = out_dir.join(rel);
             if let Some(parent) = page_path.parent() {
                 std::fs::create_dir_all(parent).with_context(|| {
                     format!("cannot create HTML page dir: {}", parent.display())
@@ -209,8 +207,9 @@ impl HtmlGenerator {
                     .with_context(|| format!("failed to render page for {}", d.file_path))?,
             )
             .with_context(|| format!("failed to write {}", page_path.display()))?;
+            written += 1;
         }
-        Ok(())
+        Ok(written)
     }
 
     pub fn generate_reference_only(
@@ -218,12 +217,14 @@ impl HtmlGenerator {
         docs: &[FileDocument],
         out_dir: &Path,
         flat: bool,
-    ) -> anyhow::Result<()> {
+    ) -> anyhow::Result<usize> {
         std::fs::create_dir_all(out_dir)
             .with_context(|| format!("cannot create HTML dir: {}", out_dir.display()))?;
         let tera = self.load_tera()?;
+        let pages = self.pages_of(docs, flat)?;
         let mut ctx = tera::Context::new();
-        ctx.insert("docs", &self.docs_index(docs, flat));
+        ctx.insert("title", "sleepy html");
+        ctx.insert("docs", &self.docs_index(&pages, ""));
         ctx.insert("root_prefix", "");
         std::fs::write(
             out_dir.join("reference.html"),
@@ -231,7 +232,7 @@ impl HtmlGenerator {
                 .context("failed to render reference.html")?,
         )
         .context("failed to write reference.html")?;
-        Ok(())
+        Ok(1)
     }
 }
 

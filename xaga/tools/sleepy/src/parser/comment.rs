@@ -19,7 +19,6 @@ use crate::i18n::{I18n, LangTag};
 use std::collections::HashMap;
 
 pub fn extract_raw_comment(entity: &clang::Entity) -> Option<String> {
-    let result = entity.get_comment();
     // 优先 libclang
     if let Some(comment) = entity.get_comment() {
         if !comment.trim().is_empty() {
@@ -38,12 +37,20 @@ pub fn extract_raw_comment(entity: &clang::Entity) -> Option<String> {
     None
 }
 
+pub fn entity_location(entity: &clang::Entity) -> Option<String> {
+    let loc = entity.get_location()?;
+    let file_loc = loc.get_file_location();
+    let file = file_loc.file?;
+    let path = file.get_path();
+    Some(format!("{}:{}", path.display(), file_loc.line))
+}
+
 #[derive(Debug)]
 enum CommentToken {
     LangSwitch(String),                                       // \lang <tag>
     Tag(String, String),                                      // @brief foo / @param[in] x desc
     TagWithArg(String, String, String), // @param[in] name desc / @tparam T desc
-    TagWithDirection(String, ParamDirection, String, String), // @param[in/out] name desc
+    TagWithDirection(ParamDirection, String, String), // @param[in/out] name desc
     RetVal(String, String),             // @retval value desc
     Throws(String, String),             // @throws Type desc
     See(String),                        // @see / @sa
@@ -63,7 +70,7 @@ enum CommentToken {
     OverloadDecl(String), // @overload_decl
     MainTemplate,
     SpecTemplate(Vec<String>),
-    Module(String),  // @module
+    Module(String), // @module
 }
 
 fn tokenize_comment(raw: &str) -> Vec<CommentToken> {
@@ -171,12 +178,7 @@ fn tokenize_comment(raw: &str) -> Vec<CommentToken> {
         if let Some(rest) = strip_tag(line, "param") {
             let (dir, rest2) = parse_param_direction(rest);
             let (name, desc) = split_first_word(rest2);
-            tokens.push(CommentToken::TagWithDirection(
-                "param".into(),
-                dir,
-                name,
-                desc,
-            ));
+            tokens.push(CommentToken::TagWithDirection(dir, name, desc));
             i += 1;
             continue;
         }
@@ -391,7 +393,6 @@ pub struct ParsedComment {
     pub tparams_desc: HashMap<String, I18n<String>>, // name → desc，合并到 template_params
     pub return_doc: ReturnDoc,
     pub exceptions: Vec<ExceptionDoc>,
-    pub overload_decl: Option<String>,
 }
 
 fn get_current_lang(parser: &CommentBlockParser) -> Option<LangTag> {
@@ -401,7 +402,12 @@ fn get_current_lang(parser: &CommentBlockParser) -> Option<LangTag> {
     }
 }
 
-pub fn parse_comment(raw: &str, name: &str, namespace_stack: Vec<String>) -> ParsedComment {
+pub fn parse_comment(
+    raw: &str,
+    name: &str,
+    namespace_stack: Vec<String>,
+    location: Option<&str>,
+) -> ParsedComment {
     let tokens = tokenize_comment(raw);
     let mut basic = BasicDocument {
         name: name.to_string(),
@@ -459,9 +465,10 @@ pub fn parse_comment(raw: &str, name: &str, namespace_stack: Vec<String>) -> Par
                 let count = seen_langs.entry(tag.clone()).or_insert(0);
                 *count += 1;
                 if *count >= 2 {
+                    let where_ = location.unwrap_or("<unknown>");
                     eprintln!(
-                        "[sleepy warn] {}: 检测到 {} 个或以上的 \\lang {} 语言块文档，可能会被覆盖",
-                        name, *count, tag
+                        "[sleepy warn] {where_}: {name}: 检测到 {} 个或以上的 \\lang {} 语言块文档，可能会被覆盖",
+                        *count, tag
                     );
                 }
                 parser.current_lang = LangContext::Scoped(LangTag(tag));
@@ -520,7 +527,7 @@ pub fn parse_comment(raw: &str, name: &str, namespace_stack: Vec<String>) -> Par
                 buf.push_str(&text);
             }
 
-            CommentToken::TagWithDirection(_, dir, name, desc) => {
+            CommentToken::TagWithDirection(dir, name, desc) => {
                 // @param
                 let lang = get_current_lang(&parser);
                 let entry = params.entry(name.clone()).or_insert_with(|| Param {
@@ -687,7 +694,6 @@ pub fn parse_comment(raw: &str, name: &str, namespace_stack: Vec<String>) -> Par
         tparams_desc,
         return_doc,
         exceptions,
-        overload_decl,
     }
 }
 

@@ -37,10 +37,4 @@ impl<T> I18n<T> {
         }
         self.default.as_ref()
     }
-    pub fn from_default(val: T) -> Self {
-        Self {
-            default: Some(val),
-            translations: HashMap::new(),
-        }
-    }
 }

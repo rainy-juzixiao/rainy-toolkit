@@ -31,7 +31,7 @@ use crate::parser::concept::is_concept_decl;
 use alias::build_type_alias;
 use clang::{Entity, EntityKind, TranslationUnit};
 use class::build_class;
-use comment::{extract_raw_comment, parse_comment};
+use comment::{entity_location, extract_raw_comment, parse_comment};
 use concept::build_concept;
 use enum_::build_enum;
 use function::build_free_function;
@@ -74,20 +74,6 @@ pub fn is_in_nodoc_range(entity: &Entity, ranges: &[std::ops::Range<u32>]) -> bo
         .map(|l| l.get_file_location().line)
         .unwrap_or(0);
     ranges.iter().any(|r| r.contains(&line))
-}
-
-pub fn read_mergeto_tag(file: &PathBuf) -> Option<String> {
-    let text = std::fs::read_to_string(file).ok()?;
-    for line in text.lines() {
-        let line = line.trim().trim_start_matches('*').trim();
-        if let Some(rest) = line.strip_prefix("@mergeto") {
-            let target = rest.trim().to_string();
-            if !target.is_empty() {
-                return Some(target);
-            }
-        }
-    }
-    None
 }
 
 /// Read the @module tag directly from the source file.
@@ -156,6 +142,8 @@ pub fn build_file_document(
             .map(|s| s.to_string_lossy().to_string())
             .unwrap_or_default(),
         file_path: file_path.to_string(),
+        source_name: String::new(),
+        rel_path: PathBuf::from(file_path),
         includes: vec![],
         brief: crate::i18n::I18n::new(),
         description: crate::i18n::I18n::new(),
@@ -174,13 +162,12 @@ pub fn build_file_document(
         aliases: vec![],
         concepts: vec![],
         macros: vec![],
-        merge_into: None,
         module: None,
         body: String::new(),
     };
 
     if let Some(raw) = extract_raw_comment(&root) {
-        let parsed = parse_comment(&raw, file_path, vec![]);
+        let parsed = parse_comment(&raw, file_path, vec![], entity_location(&root).as_deref());
         doc.brief       = parsed.basic.brief;
         doc.description = parsed.basic.description;
         doc.authors     = parsed.basic.authors;

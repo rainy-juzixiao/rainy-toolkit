@@ -7,7 +7,7 @@ MuZiYan（沐子言）是一个基于 Rust + libClang 开发的 C++ 程序语言
 - 提供统一的 Doxygen 中间文档树表达结构
 - 支持 `markdown`、`vitepress`、`latex`、`html`、`xml` 格式的生成
 - 国际化支持
-- 控制语法（`@brief`、`@param`、`@mergeto`、`@NODOCBEGIN` 等）
+- 控制语法（`@brief`、`@param`、`@NODOCBEGIN` 等）
 
 当前状态：`markdown` 与 `rt_vitepress_markdown`（VitePress 站点）生成器可用；
 `xml` / `html` / `latex` 生成器尚未实现（占位文件）。
@@ -17,7 +17,6 @@ MuZiYan（沐子言）是一个基于 Rust + libClang 开发的 C++ 程序语言
 - 基于 libClang 的 AST 级解析，识别 9 类 C++ 实体（类/枚举/别名/概念/函数/宏/命名空间/变量/常量）
 - `implements` / `detail` / `impl` 等内部命名空间参与解析（基类查找、继承补全）但不出现在文档中
 - 可选注入 `__MUZIYAN_IS_HERE__` 宏（`compile_flags.muziyan`），头文件可据此调整自身内容以配合解析
-- `@mergeto` 头文件合并：多个实现片段合并到同一个主页面
 - `@module` 模块标注：VitePress 侧边栏按模块组织
 - 跨目录配置引用（`includes`）：一个根配置聚合多个库的文档
 - 依赖图生成（Mermaid 图 + 边列表）与文件/模块两级循环依赖检查
@@ -78,7 +77,7 @@ Usage: MuZiYan [OPTIONS]
 Options:
       --root <DIR>       在查找/加载配置前切换工作目录
   -c, --config <PATH>    显式指定配置文件路径
-      --partial          仅生成 VitePress 的 reference 页面（嵌入已有站点时用）
+      --partial          仅生成 reference 页面（VitePress 或 HTML，嵌入已有站点时用）
       --no-graph         跳过依赖图与索引页生成；循环依赖检查仍会执行
       --dry-run          试运行：解析与检查照常，但不写任何输出文件
       --allow-cycles     发现循环依赖时仅警告，不作为错误退出

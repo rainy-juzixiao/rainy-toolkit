@@ -13,7 +13,7 @@
 // limitations under the License.
 use clang::{Entity, EntityKind};
 use crate::data::document::{TypeAliasDocument, TypeAliasKind};
-use super::comment::{extract_raw_comment, parse_comment};
+use super::comment::{entity_location, extract_raw_comment, parse_comment};
 use super::function::build_access;
 
 pub fn build_type_alias(
@@ -28,7 +28,7 @@ pub fn build_type_alias(
 
     let name = entity.get_name()?;
     let raw  = extract_raw_comment(entity).unwrap_or_default();
-    let parsed = parse_comment(&raw, &name, namespace_stack.to_vec());
+    let parsed = parse_comment(&raw, &name, namespace_stack.to_vec(), entity_location(entity).as_deref());
 
     let target_type = entity.get_typedef_underlying_type()
         .map(|t| t.get_display_name())
