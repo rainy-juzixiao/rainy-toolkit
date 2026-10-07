@@ -23,7 +23,6 @@
 #include <rainy/core/text/wstring_convert.hpp>
 
 namespace rainy::core::text {
-    template <typename CharType, typename Traits>
     /**
      * \lang english
      * @brief Formatter specialization for rainy basic_string_view values.
@@ -37,6 +36,7 @@ namespace rainy::core::text {
      * @tparam CharType 字符类型
      * @tparam Traits 字符 traits 类型
      */
+    template <typename CharType, typename Traits>
     struct formatter<basic_string_view<CharType, Traits>, CharType> {
         /**
          * \lang english
@@ -47,19 +47,6 @@ namespace rainy::core::text {
          *
          * \lang simp-chinese
          * @brief 解析字符串格式规范（填充/对齐、宽度、精度、类型）。
-         *
-         * @param ctx 解析上下文
-         * @return 指向已解析规范末尾之后的迭代器
-         */
-        /**
-         * \lang english
-         * @brief Parses the pointer format specification.
-         *
-         * @param ctx The parse context
-         * @return An iterator past the parsed specification
-         *
-         * \lang simp-chinese
-         * @brief 解析指针格式规范。
          *
          * @param ctx 解析上下文
          * @return 指向已解析规范末尾之后的迭代器
@@ -246,7 +233,6 @@ namespace rainy::core::text {
         implements::format_specs<CharType> specs_;
     };
 
-    template <typename CharType, typename Traits, typename Alloc>
     /**
      * \lang english
      * @brief Formatter specialization for rainy basic_string values.
@@ -262,6 +248,7 @@ namespace rainy::core::text {
      * @tparam Traits 字符 traits 类型
      * @tparam Alloc 分配器类型
      */
+    template <typename CharType, typename Traits, typename Alloc>
     struct formatter<basic_string<CharType, Traits, Alloc>, CharType> {
         /**
          * \lang english
@@ -276,85 +263,6 @@ namespace rainy::core::text {
          * @param ctx 解析上下文
          * @return 指向已解析规范末尾之后的迭代器
          */
-        /**
-         * \lang english
-         * @brief Parses the string format specification, delegating to the string_view formatter.
-         *
-         * @param ctx The parse context
-         * @return An iterator past the parsed specification
-         *
-         * \lang simp-chinese
-         * @brief 解析字符串格式规范，委托给 string_view formatter 处理。
-         *
-         * @param ctx 解析上下文
-         * @return 指向已解析规范末尾之后的迭代器
-         */
-        /**
-         * \lang english
-         * @brief Parses the string format specification, delegating to the string_view formatter.
-         *
-         * @param ctx The parse context
-         * @return An iterator past the parsed specification
-         *
-         * \lang simp-chinese
-         * @brief 解析字符串格式规范，委托给 string_view formatter 处理。
-         *
-         * @param ctx 解析上下文
-         * @return 指向已解析规范末尾之后的迭代器
-         */
-        /**
-         * \lang english
-         * @brief Parses the string format specification, delegating to the string_view formatter.
-         *
-         * @param ctx The parse context
-         * @return An iterator past the parsed specification
-         *
-         * \lang simp-chinese
-         * @brief 解析字符串格式规范，委托给 string_view formatter 处理。
-         *
-         * @param ctx 解析上下文
-         * @return 指向已解析规范末尾之后的迭代器
-         */
-        /**
-         * \lang english
-         * @brief Parses the string format specification, delegating to the string_view formatter.
-         *
-         * @param ctx The parse context
-         * @return An iterator past the parsed specification
-         *
-         * \lang simp-chinese
-         * @brief 解析字符串格式规范，委托给 string_view formatter 处理。
-         *
-         * @param ctx 解析上下文
-         * @return 指向已解析规范末尾之后的迭代器
-         */
-        /**
-         * \lang english
-         * @brief Parses the bool format specification ('s' for text, 'd'/'b'/'o'/'x'/'X' for digits).
-         *
-         * @param ctx The parse context
-         * @return An iterator past the parsed specification
-         *
-         * \lang simp-chinese
-         * @brief 解析 bool 格式规范（'s' 输出文本，'d'/'b'/'o'/'x'/'X' 输出数字）。
-         *
-         * @param ctx 解析上下文
-         * @return 指向已解析规范末尾之后的迭代器
-         */
-        /**
-         * \lang english
-         * @brief Parses the character format specification.
-         *
-         * @param ctx The parse context
-         * @return An iterator past the parsed specification
-         *
-         * \lang simp-chinese
-         * @brief 解析字符格式规范。
-         *
-         * @param ctx 解析上下文
-         * @return 指向已解析规范末尾之后的迭代器
-         */
-    public:
         constexpr auto parse(basic_format_parse_context<CharType> &ctx) -> typename basic_format_parse_context<CharType>::iterator {
             return underlying_.parse(ctx);
         }
@@ -385,7 +293,6 @@ namespace rainy::core::text {
         formatter<basic_string_view<CharType, Traits>, CharType> underlying_;
     };
 
-    template <typename CharType>
     /**
      * \lang english
      * @brief Formatter specialization for null-terminated character pointers.
@@ -397,6 +304,7 @@ namespace rainy::core::text {
      *
      * @tparam CharType 字符类型
      */
+    template <typename CharType>
     struct formatter<const CharType *, CharType> {
     public:
         /**
@@ -442,7 +350,6 @@ namespace rainy::core::text {
         formatter<basic_string_view<CharType>, CharType> underlying_;
     };
 
-    template <typename CharType, std::size_t N>
     /**
      * \lang english
      * @brief Formatter specialization for fixed-size character arrays.
@@ -456,6 +363,7 @@ namespace rainy::core::text {
      * @tparam CharType 字符类型
      * @tparam N 数组大小
      */
+    template <typename CharType, std::size_t N>
     struct formatter<const CharType[N], CharType> {
     public:
         /**
@@ -889,6 +797,12 @@ namespace rainy::core::text {
      * @tparam Ty 整数类型
      * @tparam CharType 字符类型
      */
+    struct formatter<
+        Ty, CharType,
+        type_traits::other_trans::enable_if_t<
+            type_traits::primary_types::is_integral_v<Ty> && !type_traits::type_relations::is_same_v<Ty, bool> &&
+            !type_traits::type_relations::is_same_v<Ty, char> && !type_traits::type_relations::is_same_v<Ty, wchar_t> &&
+            !type_traits::type_relations::is_same_v<Ty, char16_t> && !type_traits::type_relations::is_same_v<Ty, char32_t>>> {
         /**
          * \lang english
          * @brief Parses the integer format specification (fill/align, sign, 'L', zero-fill, width, type).
@@ -902,12 +816,6 @@ namespace rainy::core::text {
          * @param ctx 解析上下文
          * @return 指向已解析规范末尾之后的迭代器
          */
-    struct formatter<
-        Ty, CharType,
-        type_traits::other_trans::enable_if_t<type_traits::primary_types::is_integral_v<Ty> && !type_traits::type_relations::is_same_v<Ty, bool> &&
-                         !type_traits::type_relations::is_same_v<Ty, char> && !type_traits::type_relations::is_same_v<Ty, wchar_t> &&
-                         !type_traits::type_relations::is_same_v<Ty, char16_t> &&
-                         !type_traits::type_relations::is_same_v<Ty, char32_t>>> {
         constexpr auto parse(basic_format_parse_context<CharType> &ctx) -> typename basic_format_parse_context<CharType>::iterator {
             auto it = ctx.begin();
             auto end = ctx.end();
@@ -1279,6 +1187,8 @@ namespace rainy::core::text {
      * @tparam Ty 浮点类型
      * @tparam CharType 字符类型
      */
+    struct formatter<Ty, CharType, type_traits::other_trans::enable_if_t<type_traits::primary_types::is_floating_point_v<Ty>>> {
+    public:
         /**
          * \lang english
          * @brief Parses the floating-point format specification (fill/align, width, precision, 'L', type).
@@ -1292,8 +1202,6 @@ namespace rainy::core::text {
          * @param ctx 解析上下文
          * @return 指向已解析规范末尾之后的迭代器
          */
-    struct formatter<Ty, CharType, type_traits::other_trans::enable_if_t<type_traits::primary_types::is_floating_point_v<Ty>>> {
-    public:
         constexpr auto parse(basic_format_parse_context<CharType> &ctx) -> typename basic_format_parse_context<CharType>::iterator {
             auto it = ctx.begin();
             auto end = ctx.end();

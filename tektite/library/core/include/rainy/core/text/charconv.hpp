@@ -39,19 +39,13 @@ namespace rainy::core::text {
          * @brief 成功时指向已写入字符的末尾；失败时指向缓冲区末尾。
          */
         char *ptr;
+
         /**
          * \lang english
          * @brief The error code; std::errc{} on success.
          *
          * \lang simp-chinese
          * @brief 错误码；成功时为 std::errc{}。
-         */
-        /**
-         * \lang english
-         * @brief The error code; std::errc{} on success, std::errc::invalid_argument or std::errc::result_out_of_range on failure.
-         *
-         * \lang simp-chinese
-         * @brief 错误码；成功时为 std::errc{}，失败时为 std::errc::invalid_argument 或 std::errc::result_out_of_range。
          */
         std::errc ec;
 
@@ -74,17 +68,6 @@ namespace rainy::core::text {
             return left.ptr == right.ptr && left.ec == right.ec;
         }
 
-        /**
-         * \lang english
-         * @brief Checks whether the conversion succeeded.
-         *
-         * @return true if ec is std::errc{}
-         *
-         * \lang simp-chinese
-         * @brief 检查转换是否成功。
-         *
-         * @return ec 为 std::errc{} 时返回 true
-         */
         /**
          * \lang english
          * @brief Checks whether the conversion succeeded.
@@ -546,46 +529,256 @@ namespace rainy::core::text::implements {
 namespace rainy::core::text {
     /**
      * \lang english
-     * @brief Macro that generates an integral to_chars overload for the given type.
+     * @brief Converts a char value to a character string and stores it into the range.
      *
-     * Converts an integer value to its textual representation in the given base (2 to 36).
-     *
-     * @tparam Ty The integral type
-     * @param begin Pointer to the beginning of the output buffer
-     * @param end Pointer past the end of the output buffer
-     * @param value The integer value to convert
+     * @param begin Pointer to the beginning of the output range
+     * @param end Pointer past the end of the output range
+     * @param value The value to convert
      * @param base The numeric base, between 2 and 36
      * @return A to_chars_result describing the outcome
      *
      * \lang simp-chinese
-     * @brief 为指定类型生成整数 to_chars 重载的宏。
+     * @brief 将 char 值转换为字符串并存入输出范围。
      *
-     * 将整数值按给定进制（2 到 36）转换为其文本表示。
-     *
-     * @tparam Ty 整数类型
-     * @param begin 输出缓冲区起始指针
-     * @param end 输出缓冲区末尾之后指针
-     * @param value 待转换的整数值
+     * @param begin 输出范围起始指针
+     * @param end 输出范围末尾之后指针
+     * @param value 要转换的值
      * @param base 数值进制，介于 2 到 36
      * @return 描述转换结果的 to_chars_result
      */
-#define RAINY_GENERATE_FUN_STUB_TO_CHARS(Ty)                                                                                           \
-    RAINY_CONSTEXPR23 inline to_chars_result to_chars(char *begin, char *end, Ty value, int base = 10) {                               \
-        return rainy::core::text::implements::to_chars_impl<Ty>(begin, end, value, base);                                              \
+    RAINY_CONSTEXPR23 inline to_chars_result to_chars(char *begin, char *end, char value, int base = 10) {
+        return rainy::core::text::implements::to_chars_impl<char>(begin, end, value, base);
     }
 
-    RAINY_GENERATE_FUN_STUB_TO_CHARS(char)
-    RAINY_GENERATE_FUN_STUB_TO_CHARS(signed char)
-    RAINY_GENERATE_FUN_STUB_TO_CHARS(unsigned char)
-    RAINY_GENERATE_FUN_STUB_TO_CHARS(signed short)
-    RAINY_GENERATE_FUN_STUB_TO_CHARS(unsigned short)
-    RAINY_GENERATE_FUN_STUB_TO_CHARS(signed int)
-    RAINY_GENERATE_FUN_STUB_TO_CHARS(unsigned int)
-    RAINY_GENERATE_FUN_STUB_TO_CHARS(signed long)
-    RAINY_GENERATE_FUN_STUB_TO_CHARS(unsigned long)
-    RAINY_GENERATE_FUN_STUB_TO_CHARS(signed long long)
-    RAINY_GENERATE_FUN_STUB_TO_CHARS(unsigned long long)
-#undef RAINY_GENERATE_FUN_STUB_TO_CHARS
+    /**
+     * \lang english
+     * @brief Converts a signed char value to a character string and stores it into the range.
+     *
+     * @param begin Pointer to the beginning of the output range
+     * @param end Pointer past the end of the output range
+     * @param value The value to convert
+     * @param base The numeric base, between 2 and 36
+     * @return A to_chars_result describing the outcome
+     *
+     * \lang simp-chinese
+     * @brief 将 signed char 值转换为字符串并存入输出范围。
+     *
+     * @param begin 输出范围起始指针
+     * @param end 输出范围末尾之后指针
+     * @param value 要转换的值
+     * @param base 数值进制，介于 2 到 36
+     * @return 描述转换结果的 to_chars_result
+     */
+    RAINY_CONSTEXPR23 inline to_chars_result to_chars(char *begin, char *end, signed char value, int base = 10) {
+        return rainy::core::text::implements::to_chars_impl<signed char>(begin, end, value, base);
+    }
+
+    /**
+     * \lang english
+     * @brief Converts an unsigned char value to a character string and stores it into the range.
+     *
+     * @param begin Pointer to the beginning of the output range
+     * @param end Pointer past the end of the output range
+     * @param value The value to convert
+     * @param base The numeric base, between 2 and 36
+     * @return A to_chars_result describing the outcome
+     *
+     * \lang simp-chinese
+     * @brief 将 unsigned char 值转换为字符串并存入输出范围。
+     *
+     * @param begin 输出范围起始指针
+     * @param end 输出范围末尾之后指针
+     * @param value 要转换的值
+     * @param base 数值进制，介于 2 到 36
+     * @return 描述转换结果的 to_chars_result
+     */
+    RAINY_CONSTEXPR23 inline to_chars_result to_chars(char *begin, char *end, unsigned char value, int base = 10) {
+        return rainy::core::text::implements::to_chars_impl<unsigned char>(begin, end, value, base);
+    }
+
+    /**
+     * \lang english
+     * @brief Converts a signed short value to a character string and stores it into the range.
+     *
+     * @param begin Pointer to the beginning of the output range
+     * @param end Pointer past the end of the output range
+     * @param value The value to convert
+     * @param base The numeric base, between 2 and 36
+     * @return A to_chars_result describing the outcome
+     *
+     * \lang simp-chinese
+     * @brief 将 signed short 值转换为字符串并存入输出范围。
+     *
+     * @param begin 输出范围起始指针
+     * @param end 输出范围末尾之后指针
+     * @param value 要转换的值
+     * @param base 数值进制，介于 2 到 36
+     * @return 描述转换结果的 to_chars_result
+     */
+    RAINY_CONSTEXPR23 inline to_chars_result to_chars(char *begin, char *end, signed short value, int base = 10) {
+        return rainy::core::text::implements::to_chars_impl<signed short>(begin, end, value, base);
+    }
+
+    /**
+     * \lang english
+     * @brief Converts an unsigned short value to a character string and stores it into the range.
+     *
+     * @param begin Pointer to the beginning of the output range
+     * @param end Pointer past the end of the output range
+     * @param value The value to convert
+     * @param base The numeric base, between 2 and 36
+     * @return A to_chars_result describing the outcome
+     *
+     * \lang simp-chinese
+     * @brief 将 unsigned short 值转换为字符串并存入输出范围。
+     *
+     * @param begin 输出范围起始指针
+     * @param end 输出范围末尾之后指针
+     * @param value 要转换的值
+     * @param base 数值进制，介于 2 到 36
+     * @return 描述转换结果的 to_chars_result
+     */
+    RAINY_CONSTEXPR23 inline to_chars_result to_chars(char *begin, char *end, unsigned short value, int base = 10) {
+        return rainy::core::text::implements::to_chars_impl<unsigned short>(begin, end, value, base);
+    }
+
+    /**
+     * \lang english
+     * @brief Converts a signed int value to a character string and stores it into the range.
+     *
+     * @param begin Pointer to the beginning of the output range
+     * @param end Pointer past the end of the output range
+     * @param value The value to convert
+     * @param base The numeric base, between 2 and 36
+     * @return A to_chars_result describing the outcome
+     *
+     * \lang simp-chinese
+     * @brief 将 signed int 值转换为字符串并存入输出范围。
+     *
+     * @param begin 输出范围起始指针
+     * @param end 输出范围末尾之后指针
+     * @param value 要转换的值
+     * @param base 数值进制，介于 2 到 36
+     * @return 描述转换结果的 to_chars_result
+     */
+    RAINY_CONSTEXPR23 inline to_chars_result to_chars(char *begin, char *end, signed int value, int base = 10) {
+        return rainy::core::text::implements::to_chars_impl<signed int>(begin, end, value, base);
+    }
+
+    /**
+     * \lang english
+     * @brief Converts an unsigned int value to a character string and stores it into the range.
+     *
+     * @param begin Pointer to the beginning of the output range
+     * @param end Pointer past the end of the output range
+     * @param value The value to convert
+     * @param base The numeric base, between 2 and 36
+     * @return A to_chars_result describing the outcome
+     *
+     * \lang simp-chinese
+     * @brief 将 unsigned int 值转换为字符串并存入输出范围。
+     *
+     * @param begin 输出范围起始指针
+     * @param end 输出范围末尾之后指针
+     * @param value 要转换的值
+     * @param base 数值进制，介于 2 到 36
+     * @return 描述转换结果的 to_chars_result
+     */
+    RAINY_CONSTEXPR23 inline to_chars_result to_chars(char *begin, char *end, unsigned int value, int base = 10) {
+        return rainy::core::text::implements::to_chars_impl<unsigned int>(begin, end, value, base);
+    }
+
+    /**
+     * \lang english
+     * @brief Converts a signed long value to a character string and stores it into the range.
+     *
+     * @param begin Pointer to the beginning of the output range
+     * @param end Pointer past the end of the output range
+     * @param value The value to convert
+     * @param base The numeric base, between 2 and 36
+     * @return A to_chars_result describing the outcome
+     *
+     * \lang simp-chinese
+     * @brief 将 signed long 值转换为字符串并存入输出范围。
+     *
+     * @param begin 输出范围起始指针
+     * @param end 输出范围末尾之后指针
+     * @param value 要转换的值
+     * @param base 数值进制，介于 2 到 36
+     * @return 描述转换结果的 to_chars_result
+     */
+    RAINY_CONSTEXPR23 inline to_chars_result to_chars(char *begin, char *end, signed long value, int base = 10) {
+        return rainy::core::text::implements::to_chars_impl<signed long>(begin, end, value, base);
+    }
+
+    /**
+     * \lang english
+     * @brief Converts an unsigned long value to a character string and stores it into the range.
+     *
+     * @param begin Pointer to the beginning of the output range
+     * @param end Pointer past the end of the output range
+     * @param value The value to convert
+     * @param base The numeric base, between 2 and 36
+     * @return A to_chars_result describing the outcome
+     *
+     * \lang simp-chinese
+     * @brief 将 unsigned long 值转换为字符串并存入输出范围。
+     *
+     * @param begin 输出范围起始指针
+     * @param end 输出范围末尾之后指针
+     * @param value 要转换的值
+     * @param base 数值进制，介于 2 到 36
+     * @return 描述转换结果的 to_chars_result
+     */
+    RAINY_CONSTEXPR23 inline to_chars_result to_chars(char *begin, char *end, unsigned long value, int base = 10) {
+        return rainy::core::text::implements::to_chars_impl<unsigned long>(begin, end, value, base);
+    }
+
+    /**
+     * \lang english
+     * @brief Converts a signed long long value to a character string and stores it into the range.
+     *
+     * @param begin Pointer to the beginning of the output range
+     * @param end Pointer past the end of the output range
+     * @param value The value to convert
+     * @param base The numeric base, between 2 and 36
+     * @return A to_chars_result describing the outcome
+     *
+     * \lang simp-chinese
+     * @brief 将 signed long long 值转换为字符串并存入输出范围。
+     *
+     * @param begin 输出范围起始指针
+     * @param end 输出范围末尾之后指针
+     * @param value 要转换的值
+     * @param base 数值进制，介于 2 到 36
+     * @return 描述转换结果的 to_chars_result
+     */
+    RAINY_CONSTEXPR23 inline to_chars_result to_chars(char *begin, char *end, signed long long value, int base = 10) {
+        return rainy::core::text::implements::to_chars_impl<signed long long>(begin, end, value, base);
+    }
+
+    /**
+     * \lang english
+     * @brief Converts an unsigned long long value to a character string and stores it into the range.
+     *
+     * @param begin Pointer to the beginning of the output range
+     * @param end Pointer past the end of the output range
+     * @param value The value to convert
+     * @param base The numeric base, between 2 and 36
+     * @return A to_chars_result describing the outcome
+     *
+     * \lang simp-chinese
+     * @brief 将 unsigned long long 值转换为字符串并存入输出范围。
+     *
+     * @param begin 输出范围起始指针
+     * @param end 输出范围末尾之后指针
+     * @param value 要转换的值
+     * @param base 数值进制，介于 2 到 36
+     * @return 描述转换结果的 to_chars_result
+     */
+    RAINY_CONSTEXPR23 inline to_chars_result to_chars(char *begin, char *end, unsigned long long value, int base = 10) {
+        return rainy::core::text::implements::to_chars_impl<unsigned long long>(begin, end, value, base);
+    }
 
     /**
      * \lang english
@@ -963,11 +1156,11 @@ namespace rainy::core::text {
 }
 
 namespace rainy::text {
-    using core::text::to_chars_result;
-    using core::text::from_chars_result;
     using core::text::chars_format;
-    using core::text::to_chars;
     using core::text::from_chars;
+    using core::text::from_chars_result;
+    using core::text::to_chars;
+    using core::text::to_chars_result;
 }
 
 #endif

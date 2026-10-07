@@ -29,7 +29,7 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Warray-bounds"
 
-#if !RAINY_USING_MACOS
+#if !RAINY_USING_MACOS && !RAINY_USING_LLVM_GCC
 #pragma GCC diagnostic ignored "-Wstringop-overflow" // Ok...
 #endif
 
