@@ -66,23 +66,23 @@ namespace rainy::foundation::willow::ini::implements {
                     continue;
                 }
                 put(entry.first.data(), entry.first.size());
-                put(separator());
+                write_separator();
                 put(entry.second.as_string().data(), entry.second.as_string().size());
-                put(newline());
+                put(to_char_type('\n'));
             }
             for (const auto &entry: object) {
                 if (!entry.second.is_object()) {
                     continue;
                 }
-                put(open_section());
+                put(to_char_type('['));
                 put(entry.first.data(), entry.first.size());
-                put(close_section());
-                put(newline());
+                put(to_char_type(']'));
+                put(to_char_type('\n'));
                 for (const auto &item: entry.second.as_object()) {
                     put(item.first.data(), item.first.size());
-                    put(separator());
+                    write_separator();
                     put(item.second.as_string().data(), item.second.as_string().size());
-                    put(newline());
+                    put(to_char_type('\n'));
                 }
             }
             flush_buffer();
@@ -149,35 +149,14 @@ namespace rainy::foundation::willow::ini::implements {
             }
         }
 
-        const char_type *separator() const {
-            if constexpr (type_traits::type_relations::is_same_v<char_type, char>) {
-                return " = ";
-            } else if constexpr (type_traits::type_relations::is_same_v<char_type, wchar_t>) {
-                return L" = ";
-            } else if constexpr (type_traits::type_relations::is_same_v<char_type, char16_t>) {
-                return u" = ";
-            } else if constexpr (type_traits::type_relations::is_same_v<char_type, char32_t>) {
-                return U" = ";
-            } else {
-#if RAINY_HAS_CXX20
-                if constexpr (type_traits::type_relations::is_same_v<char_type, char8_t>) {
-                    return u8" = ";
-                }
-#endif
-                return nullptr;
-            }
+        void write_separator() {
+            put(to_char_type(' '));
+            put(to_char_type('='));
+            put(to_char_type(' '));
         }
 
-        char_type newline() const {
-            return char_type('\n');
-        }
-
-        char_type open_section() const {
-            return char_type('[');
-        }
-
-        char_type close_section() const {
-            return char_type(']');
+        static char_type to_char_type(char_type c) {
+            return char_traits::to_char_type(static_cast<char_int_type>(c));
         }
 
     private:

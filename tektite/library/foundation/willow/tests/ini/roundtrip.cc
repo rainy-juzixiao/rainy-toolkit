@@ -20,8 +20,10 @@ using namespace rainy::foundation::willow;
 using namespace rainy::foundation::willow::ini;
 
 TEST_CASE("ini dump - empty object dumps to empty text", "[willow][ini]") {
-    REQUIRE(ini::dump(ini::facade<document>()) == "");
+    REQUIRE(ini::dump(ini::facade<document>(document_type::object)) == "");
     REQUIRE(ini::dump(ini::parse("")) == "");
+    REQUIRE_THROWS_AS(ini::dump(ini::facade<document>()),
+                      rainy::foundation::exceptions::willow::ini::ini_serialize_error);
 }
 
 TEST_CASE("ini dump - top-level keys", "[willow][ini]") {

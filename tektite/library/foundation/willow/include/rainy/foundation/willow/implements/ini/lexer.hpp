@@ -143,11 +143,6 @@ namespace rainy::foundation::willow::ini::implements {
                     continue;
                 }
                 if (ch == char_type(';') || ch == char_type('#')) {
-                    for (std::size_t j = i + 1; j < line_buffer_.size(); ++j) {
-                        if (!is_blank(line_buffer_[j])) {
-                            break;
-                        }
-                    }
                     key_buffer_ = utility::move(name);
                     return;
                 }
