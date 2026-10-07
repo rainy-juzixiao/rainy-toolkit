@@ -13,7 +13,7 @@
 // limitations under the License.
 use super::{
     alias::build_type_alias,
-    comment::{extract_raw_comment, parse_comment},
+    comment::{entity_location, extract_raw_comment, parse_comment},
     enum_::build_enum,
     function::{build_access, build_template_params},
     variable::{
@@ -42,7 +42,7 @@ pub fn build_class(entity: &Entity, namespace_stack: &[String]) -> Option<ClassD
     };
     let name = entity.get_name()?;
     let raw = extract_raw_comment(entity).unwrap_or_default();
-    let mut parsed = parse_comment(&raw, &name, namespace_stack.to_vec());
+    let mut parsed = parse_comment(&raw, &name, namespace_stack.to_vec(), entity_location(entity).as_deref());
     let (is_template, template_params) = build_template_params(entity, &parsed.tparams_desc);
     parsed.basic.is_template = is_template;
     parsed.basic.template_params = template_params;
@@ -75,7 +75,7 @@ pub fn build_class(entity: &Entity, namespace_stack: &[String]) -> Option<ClassD
 
                     let raw = extract_raw_comment(&child).unwrap_or_default();
                     if !raw.is_empty() {
-                        let parsed = parse_comment(&raw, &member_name, child_ns.clone());
+                        let parsed = parse_comment(&raw, &member_name, child_ns.clone(), entity_location(&child).as_deref());
                         let decl_prototype = parsed.basic.overload_decl.clone(); // 只用手动提供的，using 没有 AST 签名
                         let func_doc = MemberFunctionDocument {
                             is_const: false,

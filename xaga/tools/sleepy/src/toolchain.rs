@@ -16,6 +16,7 @@ use std::path::PathBuf;
 use std::process::Command;
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct Toolchain {
     pub compiler: PathBuf,
     pub kind: CompilerKind,
@@ -134,7 +135,7 @@ fn parse_gcc_include_paths(stderr: &str) -> Result<Vec<PathBuf>> {
     Ok(paths)
 }
 
-fn probe_msvc_includes(compiler: &PathBuf) -> Result<Vec<PathBuf>> {
+fn probe_msvc_includes(_compiler: &PathBuf) -> Result<Vec<PathBuf>> {
     let mut paths = Vec::new();
     if let Ok(include_env) = std::env::var("INCLUDE") {
         for p in include_env.split(';') {

@@ -13,6 +13,7 @@
 // limitations under the License.
 use clang::Entity;
 
+#[allow(dead_code)]
 pub struct ParseContext<'a> {
     pub include_root: &'a str,
     pub nodoc_ranges: &'a [std::ops::Range<u32>],
