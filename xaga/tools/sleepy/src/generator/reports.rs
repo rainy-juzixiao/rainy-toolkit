@@ -47,12 +47,6 @@ pub struct IncludeGraph {
     pub external_edges: BTreeSet<(String, String)>,
 }
 
-impl IncludeGraph {
-    pub fn internal_edge_count(&self) -> usize {
-        self.edges.len()
-    }
-}
-
 /// Parse ignore entries of the form `"a.hpp -> b.hpp"` into edge pairs.
 pub fn parse_ignored_edges(raw: &[String]) -> BTreeSet<(String, String)> {
     let mut out = BTreeSet::new();

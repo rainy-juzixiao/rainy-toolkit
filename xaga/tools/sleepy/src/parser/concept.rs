@@ -11,9 +11,9 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-use clang::{Entity, EntityKind};
+use clang::Entity;
 use crate::data::document::ConceptDocument;
-use super::comment::{extract_raw_comment, parse_comment};
+use super::comment::{entity_location, extract_raw_comment, parse_comment};
 use super::function::build_template_params;
 
 pub fn is_concept_decl(entity: &Entity) -> bool {
@@ -29,7 +29,7 @@ pub fn build_concept(
     }
     let name = entity.get_name()?;
     let raw  = extract_raw_comment(entity).unwrap_or_default();
-    let mut parsed = parse_comment(&raw, &name, namespace_stack.to_vec());
+    let mut parsed = parse_comment(&raw, &name, namespace_stack.to_vec(), entity_location(entity).as_deref());
     let (is_template, template_params) =
         build_template_params(entity, &parsed.tparams_desc);
     parsed.basic.is_template     = is_template;

@@ -32,6 +32,7 @@ pub struct Cycle {
     /// the walk, e.g. ["a.hpp", "b.hpp", "a.hpp"] (starts and ends on the same node)
     pub path: Vec<String>,
     /// SCC members involved in this cycle
+    #[allow(dead_code)]
     pub members: Vec<String>,
 }
 
