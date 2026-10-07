@@ -37,7 +37,7 @@ TEST_CASE("ini value - top-level keys decode as strings", "[willow][ini]") {
     REQUIRE(doc.is_object());
     REQUIRE(doc.size() == 3);
     REQUIRE(doc["host"].is_string());
-    REQUIRE(doc["host"].as_string() == "host");
+    REQUIRE(doc["host"].as_string() == "example.com");
     REQUIRE(doc["port"].as_string() == "8080");
     REQUIRE(doc["enabled"].as_string() == "true");
 }
