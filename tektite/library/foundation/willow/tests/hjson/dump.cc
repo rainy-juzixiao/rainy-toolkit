@@ -16,6 +16,7 @@
 #include <catch2/catch_all.hpp>
 #include <rainy/foundation/willow/hjson.hpp>
 
+#include <limits>
 #include <sstream>
 #include <string>
 
@@ -138,8 +139,10 @@ TEST_CASE("hjson dump - an indent of zero falls back to the default width", "[wi
 }
 
 TEST_CASE("hjson dump - non finite floats are dumped as null", "[willow][hjson][dump]") {
-    const hjson::facade<document> doc =
-        hjson::facade<document>::object({{"a", 1.0 / 0.0}, {"b", -1.0 / 0.0}, {"c", 0.1}});
+    const hjson::facade<document> doc = hjson::facade<document>::object(
+        {{"a", std::numeric_limits<double>::infinity()},
+         {"b", -std::numeric_limits<double>::infinity()},
+         {"c", 0.1}});
     REQUIRE(hjson::dump(doc) == "a: null\nb: null\nc: 0.1\n");
 }
 
