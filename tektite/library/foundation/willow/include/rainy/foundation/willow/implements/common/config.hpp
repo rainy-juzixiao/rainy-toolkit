@@ -56,6 +56,7 @@ namespace rainy::foundation::willow {
     enum class language {
         bson,
         cbor,
+        hjson,
         ini,
         json,
         json5,

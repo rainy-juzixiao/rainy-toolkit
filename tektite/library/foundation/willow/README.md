@@ -43,7 +43,7 @@ wide[L"k"].as_integer();  // 1
 - jsonnet (实现中)
 - xml (实现中)
 - toml (实现中)
-- hjson (实现中)
+- hjson
 - msgpack (实现中)
 - bson (实现中)
 - cbor (实现中)
