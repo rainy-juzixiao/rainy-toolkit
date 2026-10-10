@@ -30,13 +30,8 @@ namespace rainy::foundation::willow::jsonnet {
      * \lang english
      * @brief Supplies source text or bytes for @c import, @c importstr and @c importbin.
      *
-     * @brief The library never touches the filesystem; the caller decides how a path maps to source.
-     *        Any callback left empty makes the corresponding import form raise an import error.
-     *
      * \lang simp-chinese
      * @brief 为 @c import、@c importstr 与 @c importbin 提供源文本或字节。
-     *
-     * @brief 库不触碰文件系统；由调用方决定路径如何映射到源。留空的回调会让对应的导入形式抛出导入错误。
      */
     struct import_resolver {
         functional::delegate<core::text::string(const core::text::string &)> import_source{};

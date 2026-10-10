@@ -30,7 +30,7 @@ namespace rainy::foundation::willow::jsonnet::implements {
      * \lang simp-chinese
      * @brief 将 jsonnet 语法树惰性求值为运行时值。
      */
-    class evaluator {
+    class RAINY_TOOLKIT_API evaluator {
     public:
         explicit evaluator(const import_resolver *resolver = nullptr) : resolver_(resolver) {
         }

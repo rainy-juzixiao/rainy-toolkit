@@ -40,7 +40,7 @@ wide[L"k"].as_integer();  // 1
 - ini
 - json/json5
 - yaml
-- jsonnet (实现中)
+- jsonnet
 - xml (实现中)
 - toml (实现中)
 - hjson

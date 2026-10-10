@@ -89,9 +89,9 @@ TEST_CASE("operations - modulo floors toward the divisor sign", "[willow][operat
 }
 
 TEST_CASE("operations - codepoint and char round-trip", "[willow][operations]") {
-    REQUIRE(ops::codepoint(document("A")) == 65);
-    REQUIRE(ops::codepoint(document("\xe4\xb8\xad")) == 0x4E2D);
-    REQUIRE(ops::codepoint(document("\xf0\x9f\x98\x80")) == 0x1F600);
+    REQUIRE(ops::codepoint<document>(document("A").as_string()) == 65);
+    REQUIRE(ops::codepoint<document>(document("\xe4\xb8\xad").as_string()) == 0x4E2D);
+    REQUIRE(ops::codepoint<document>(document("\xf0\x9f\x98\x80").as_string()) == 0x1F600);
     REQUIRE(ops::char_from_code<document>(65).as_string() == "A");
     REQUIRE(ops::char_from_code<document>(0x4E2D).as_string() == "\xe4\xb8\xad");
     REQUIRE(ops::char_from_code<document>(0x1F600).as_string() == "\xf0\x9f\x98\x80");

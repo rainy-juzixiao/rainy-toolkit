@@ -91,35 +91,35 @@ namespace rainy::foundation::willow::jsonnet::implements {
 
         static int precedence(const token_type type) noexcept {
             switch (type) {
-                case token_type::op_star:
-                case token_type::op_slash:
-                case token_type::op_percent:
+                case token_type::op_or:
+                    return 1;
+                case token_type::op_and:
+                    return 2;
+                case token_type::op_pipe:
                     return 3;
-                case token_type::op_plus:
-                case token_type::op_minus:
+                case token_type::op_caret:
                     return 4;
-                case token_type::op_shift_left:
-                case token_type::op_shift_right:
+                case token_type::op_ampersand:
                     return 5;
+                case token_type::op_equal:
+                case token_type::op_not_equal:
+                    return 6;
                 case token_type::op_less:
                 case token_type::op_less_equal:
                 case token_type::op_greater:
                 case token_type::op_greater_equal:
                 case token_type::kw_in:
-                    return 6;
-                case token_type::op_equal:
-                case token_type::op_not_equal:
                     return 7;
-                case token_type::op_ampersand:
+                case token_type::op_shift_left:
+                case token_type::op_shift_right:
                     return 8;
-                case token_type::op_caret:
+                case token_type::op_plus:
+                case token_type::op_minus:
                     return 9;
-                case token_type::op_pipe:
+                case token_type::op_star:
+                case token_type::op_slash:
+                case token_type::op_percent:
                     return 10;
-                case token_type::op_and:
-                    return 11;
-                case token_type::op_or:
-                    return 12;
                 default:
                     return 0;
             }
@@ -215,19 +215,30 @@ namespace rainy::foundation::willow::jsonnet::implements {
             }
         }
 
+        bool at_colon() const noexcept {
+            return check(token_type::colon) || check(token_type::double_colon);
+        }
+
+        int take_colons() {
+            if (match(token_type::double_colon)) {
+                return 2;
+            }
+            if (match(token_type::colon)) {
+                return 1;
+            }
+            return 0;
+        }
+
         jsonnet_node *parse_index_or_slice(jsonnet_node *target) {
             const ast::source_location start = target->location.begin;
             expect(token_type::bracket_left, "expected '['");
 
-            bool is_slice = false;
             jsonnet_node *begin_expr = nullptr;
-            if (!check(token_type::colon) && !check(token_type::bracket_right)) {
+            if (!at_colon() && !check(token_type::bracket_right)) {
                 begin_expr = parse_expression();
             }
-            if (check(token_type::colon)) {
-                is_slice = true;
-            }
-            if (!is_slice) {
+            const int first_colons = take_colons();
+            if (first_colons == 0) {
                 if (begin_expr == nullptr) {
                     fail("expected index expression");
                 }
@@ -241,23 +252,27 @@ namespace rainy::foundation::willow::jsonnet::implements {
 
             jsonnet_node *node = make(jsonnet_node_kind::slice);
             node->add_child(target);
-            jsonnet_node *begin_node = begin_expr != nullptr ? begin_expr : make_null();
             if (begin_expr != nullptr) {
                 node->set_flag(flag_slice_begin);
+                node->add_child(begin_expr);
+            } else {
+                node->add_child(make_null());
             }
-            node->add_child(begin_node);
+
             jsonnet_node *end_node = make_null();
             jsonnet_node *step_node = make_null();
-            expect(token_type::colon, "expected ':'");
-            if (!check(token_type::colon) && !check(token_type::bracket_right)) {
-                end_node = parse_expression();
-                node->set_flag(flag_slice_end);
-            }
-            if (match(token_type::colon)) {
-                if (!check(token_type::bracket_right)) {
+            if (first_colons == 1) {
+                if (!at_colon() && !check(token_type::bracket_right)) {
+                    end_node = parse_expression();
+                    node->set_flag(flag_slice_end);
+                }
+                if (take_colons() == 1 && !check(token_type::bracket_right)) {
                     step_node = parse_expression();
                     node->set_flag(flag_slice_step);
                 }
+            } else if (!check(token_type::bracket_right)) {
+                step_node = parse_expression();
+                node->set_flag(flag_slice_step);
             }
             node->add_child(end_node);
             node->add_child(step_node);

@@ -75,9 +75,15 @@ namespace rainy::foundation::willow::jsonnet::implements {
         }
     };
 
+    inline bool name_equals(const core::text::string &text, const core::text::basic_string_view<char> view) noexcept {
+        return text.size() == view.size() &&
+               core::text::char_traits<char>::compare(text.data(), view.data(), view.size()) == 0;
+    }
+
     struct field_slot {
         field_visibility visibility{field_visibility::visible};
         bool inherits{false};
+        env_ptr scope{};
         functional::delegate<value_ptr(const env_ptr &)> body{};
     };
 
@@ -96,7 +102,7 @@ namespace rainy::foundation::willow::jsonnet::implements {
             for (std::size_t i = layers.size(); i > 0; --i) {
                 const auto &layer = layers[i - 1];
                 for (std::size_t j = 0; j < layer.names.size(); ++j) {
-                    if (layer.names[j] == name) {
+                    if (name_equals(layer.names[j], name)) {
                         layer_index = i - 1;
                         return &layer.slots[j];
                     }
@@ -110,7 +116,7 @@ namespace rainy::foundation::willow::jsonnet::implements {
             bool found = false;
             for (const auto &layer: layers) {
                 for (std::size_t j = 0; j < layer.names.size(); ++j) {
-                    if (layer.names[j] == name) {
+                    if (name_equals(layer.names[j], name)) {
                         if (!found) {
                             result = layer.slots[j].visibility;
                             found = true;
@@ -175,7 +181,7 @@ namespace rainy::foundation::willow::jsonnet::implements {
 
         thunk_ptr *find(const core::text::basic_string_view<char> name) noexcept {
             for (auto &entry: bindings) {
-                if (entry.first == name) {
+                if (name_equals(entry.first, name)) {
                     return &entry.second;
                 }
             }
