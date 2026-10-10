@@ -12,6 +12,7 @@ target_sources(rainy-toolkit-foundation-willow PRIVATE ${WILLOW_SOURCES})
 
 target_link_libraries(rainy-toolkit-foundation-willow PUBLIC
         rainy-toolkit-core
+        rainy-toolkit-foundation-ast
         rainy-toolkit-foundation-collections
 )
 
