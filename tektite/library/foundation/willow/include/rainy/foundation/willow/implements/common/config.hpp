@@ -60,6 +60,7 @@ namespace rainy::foundation::willow {
         ini,
         json,
         json5,
+        jsonnet,
         msgpack,
         protobuf,
         toml,
