@@ -54,10 +54,10 @@ TEST_CASE("jsonnet parser - literals", "[jsonnet][parser]") {
 TEST_CASE("jsonnet parser - binary precedence and associativity", "[jsonnet][parser]") {
     const auto text = dump1(parse_text("1 + 2 * 3"));
     REQUIRE(text == "binary @1:1\n"
-                     " binary @1:1\n"
-                     "  number @1:1\n"
+                     " number @1:1\n"
+                     " binary @1:5\n"
                      "  number @1:5\n"
-                     " number @1:9\n");
+                     "  number @1:9\n");
 
     const auto text2 = dump1(parse_text("1 - 2 - 3"));
     REQUIRE(text2 == "binary @1:1\n"
