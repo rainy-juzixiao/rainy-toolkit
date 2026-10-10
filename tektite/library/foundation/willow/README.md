@@ -44,7 +44,7 @@ wide[L"k"].as_integer();  // 1
 - xml (实现中)
 - toml (实现中)
 - hjson
-- msgpack (实现中)
+- msgpack
 - bson (实现中)
 - cbor (实现中)
 - protobuf
