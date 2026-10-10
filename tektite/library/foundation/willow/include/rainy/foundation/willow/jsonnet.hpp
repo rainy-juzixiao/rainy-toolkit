@@ -20,8 +20,11 @@
 #include <rainy/foundation/willow/document.hpp>
 #include <rainy/foundation/willow/implements/jsonnet/ast.hpp>
 #include <rainy/foundation/willow/implements/jsonnet/config.hpp>
+#include <rainy/foundation/willow/implements/jsonnet/evaluator.hpp>
 #include <rainy/foundation/willow/implements/jsonnet/lexer.hpp>
 #include <rainy/foundation/willow/implements/jsonnet/parser.hpp>
+#include <rainy/foundation/willow/implements/jsonnet/resolver.hpp>
+#include <rainy/foundation/willow/implements/json/serializer.hpp>
 
 #if RAINY_WILLOW_JSONNET_AVAILABLE
 
@@ -67,6 +70,45 @@ namespace rainy::foundation::willow::jsonnet {
     facade<BasicDocument> parse(std::FILE *file) {
         const core::text::string source = implements::read_all(file);
         return parse<BasicDocument>(source.data(), source.size());
+    }
+
+    /**
+     * \lang english
+     * @brief Evaluates a parsed jsonnet document into a plain document.
+     *
+     * @param doc A document produced by @c parse.
+     * @param resolver Optional source for @c import, @c importstr and @c importbin.
+     *
+     * \lang simp-chinese
+     * @brief 将解析后的 jsonnet 文档求值为普通文档。
+     *
+     * @param doc 由 @c parse 产生的文档。
+     * @param resolver 可选的 @c import、@c importstr 与 @c importbin 源。
+     */
+    template <typename BasicDocument>
+    BasicDocument evaluate(const jsonnet_document<BasicDocument> &doc, const import_resolver &resolver = {}) {
+        implements::evaluator engine(&resolver);
+        return engine.manifest<BasicDocument>(engine.evaluate(const_cast<jsonnet_node *>(doc.ast())));
+    }
+
+    template <typename BasicDocument>
+    BasicDocument evaluate(const import_resolver &resolver, const jsonnet_document<BasicDocument> &doc) {
+        return evaluate(doc, resolver);
+    }
+
+    template <typename BasicDocument>
+    typename BasicDocument::string_type dump(const BasicDocument &doc,
+                                             const serializer_args<BasicDocument> &args = serializer_args<BasicDocument>{}) {
+        typename BasicDocument::string_type result{};
+        string_output_adapter<typename BasicDocument::string_type> adapter(result);
+        json::implements::json_serializer<BasicDocument>(&adapter, args).dump(doc);
+        return result;
+    }
+
+    template <typename BasicDocument>
+    typename BasicDocument::string_type dump(const jsonnet_document<BasicDocument> &doc,
+                                             const import_resolver &resolver = {}) {
+        return dump<BasicDocument>(evaluate(doc, resolver));
     }
 
     template <typename BasicDocument>

@@ -283,8 +283,7 @@ namespace rainy::foundation::willow::implements::operations {
      * @brief 以整数返回字符串的第一个码点。
      */
     template <typename BasicDocument>
-    std::int64_t codepoint(const BasicDocument &doc) {
-        const auto &str = doc.as_string();
+    std::int64_t codepoint(const typename BasicDocument::string_type &str) {
         std::size_t index = 0;
         std::uint32_t code = 0;
         unicode_reader<typename BasicDocument::string_type> reader{str, true};
