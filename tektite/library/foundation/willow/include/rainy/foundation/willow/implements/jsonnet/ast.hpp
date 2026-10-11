@@ -85,7 +85,7 @@ namespace rainy::foundation::willow::jsonnet {
         return static_cast<jsonnet_node_kind>(static_cast<std::uint16_t>(kind) & 0x3FFFu);
     }
 
-    const char *jsonnet_kind_name(ast::node_kind kind) noexcept;
+    RAINY_TOOLKIT_API const char *jsonnet_kind_name(ast::node_kind kind) noexcept;
 
     inline const char *node_name(const ast::node_kind kind) noexcept {
         return is_jsonnet_kind(kind) ? jsonnet_kind_name(kind) : ast::kind_name(kind);
