@@ -93,7 +93,7 @@ namespace rainy::foundation::willow::jsonnet::implements {
         op_tilde,
     };
 
-    const char *token_name(token_type type) noexcept;
+    RAINY_TOOLKIT_API const char *token_name(token_type type) noexcept;
 
     struct token {
         token_type type{token_type::uninitialized};
