@@ -15,9 +15,9 @@
  */
 #ifndef RAINY_FOUNDATION_TEXT_DISPATCH_HPP
 #define RAINY_FOUNDATION_TEXT_DISPATCH_HPP
-#include <rainy/foundation/text/lexical_cast/caster.hpp>
-#include <rainy/foundation/text/lexical_cast/converter.hpp>
-#include <rainy/foundation/text/lexical_cast/traits.hpp>
+#include <rainy/foundation/text/implements/lexical_cast/caster.hpp>
+#include <rainy/foundation/text/implements/lexical_cast/converter.hpp>
+#include <rainy/foundation/text/implements/lexical_cast/traits.hpp>
 
 namespace rainy::foundation::text::implements {
     /**

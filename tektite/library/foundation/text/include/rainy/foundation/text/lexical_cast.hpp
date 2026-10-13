@@ -18,8 +18,8 @@
 #include <rainy/core/platform.hpp>
 #include <rainy/core/text/string.hpp>
 #include <rainy/core/text/string_view.hpp>
-#include <rainy/foundation/text/lexical_cast/bad_lexical_cast.hpp>
-#include <rainy/foundation/text/lexical_cast/dispatch.hpp>
+#include <rainy/foundation/text/implements/lexical_cast/bad_lexical_cast.hpp>
+#include <rainy/foundation/text/implements/lexical_cast/dispatch.hpp>
 
 namespace rainy::foundation::text {
     /**
