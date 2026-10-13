@@ -321,6 +321,25 @@ clang和GNU编译器区域
 static_assert(false, "Detected invalid architecture,rainy-toolkit is not support on your compile architecture");
 #endif
 
+#ifndef RAINY_HAS_EXTENDED_LONG_DOUBLE
+#if defined(__SIZEOF_INT128__) &&                                                                                    \
+    (((defined(__x86_64__) || defined(__i386__)) && !defined(_WIN32)) ||                                             \
+     ((defined(__aarch64__) || defined(_M_ARM64)) && defined(__SIZEOF_LONG_DOUBLE__) && __SIZEOF_LONG_DOUBLE__ == 16))
+#define RAINY_HAS_EXTENDED_LONG_DOUBLE 1
+#else
+#define RAINY_HAS_EXTENDED_LONG_DOUBLE 0
+#endif
+#endif
+
+#ifndef RAINY_LONG_DOUBLE_IS_BINARY128
+#if RAINY_HAS_EXTENDED_LONG_DOUBLE && (defined(__aarch64__) || defined(_M_ARM64)) && defined(__SIZEOF_LONG_DOUBLE__) && \
+    __SIZEOF_LONG_DOUBLE__ == 16
+#define RAINY_LONG_DOUBLE_IS_BINARY128 1
+#else
+#define RAINY_LONG_DOUBLE_IS_BINARY128 0
+#endif
+#endif
+
 #if RAINY_CURRENT_STANDARD_VERSION < 201703L
 static_assert(false, "We detected you are using C++14 and below, and the library only supports C++17 and above, please modify your "
                      "standard version of C++ to C++17 and above before trying to compile!");

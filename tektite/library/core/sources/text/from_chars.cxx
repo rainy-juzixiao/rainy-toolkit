@@ -38,6 +38,7 @@ namespace rainy::core::text::implements {
         static constexpr uint_type shifted_exponent_mask = 0x7f800000u;
         static constexpr uint_type shifted_sign_mask = 0x80000000u;
         static constexpr uint_type special_nan_mantissa_mask = 0x400000;
+        static constexpr bool explicit_integer_bit = false;
     };
 
     template <>
@@ -53,7 +54,59 @@ namespace rainy::core::text::implements {
         static constexpr uint_type shifted_exponent_mask = 0x7ff0000000000000ULL;
         static constexpr uint_type shifted_sign_mask = 0x8000000000000000ULL;
         static constexpr uint_type special_nan_mantissa_mask = 0x8000000000000ULL;
+        static constexpr bool explicit_integer_bit = false;
     };
+
+#if RAINY_HAS_EXTENDED_LONG_DOUBLE
+#if RAINY_LONG_DOUBLE_IS_BINARY128
+    template <>
+    struct floating_traits<long double> {
+        using uint_type = unsigned __int128;
+        static constexpr int sign_shift = 127;
+        static constexpr int exponent_shift = 112;
+        static constexpr int exponent_bias = 16383;
+        static constexpr int mantissa_bits = 113;
+        static constexpr int maximum_binary_exponent = 16383;
+        static constexpr int minimum_binary_exponent = -16382;
+        static constexpr uint_type normal_mantissa_mask = (static_cast<uint_type>(1) << 113) - 1;
+        static constexpr uint_type shifted_exponent_mask = static_cast<uint_type>(0x7fffu) << 112;
+        static constexpr uint_type shifted_sign_mask = static_cast<uint_type>(1) << 127;
+        static constexpr uint_type special_nan_mantissa_mask = static_cast<uint_type>(1) << 111;
+        static constexpr bool explicit_integer_bit = false;
+    };
+#else
+    template <>
+    struct floating_traits<long double> {
+        using uint_type = unsigned __int128;
+        static constexpr int sign_shift = 79;
+        static constexpr int exponent_shift = 64;
+        static constexpr int exponent_bias = 16383;
+        static constexpr int mantissa_bits = 64;
+        static constexpr int maximum_binary_exponent = 16383;
+        static constexpr int minimum_binary_exponent = -16382;
+        static constexpr uint_type normal_mantissa_mask = (static_cast<uint_type>(1) << 64) - 1;
+        static constexpr uint_type shifted_exponent_mask = static_cast<uint_type>(0x7fffu) << 64;
+        static constexpr uint_type shifted_sign_mask = static_cast<uint_type>(1) << 79;
+        static constexpr uint_type special_nan_mantissa_mask = static_cast<uint_type>(0xc000000000000000ULL);
+        static constexpr bool explicit_integer_bit = true;
+    };
+#endif
+#endif
+
+    template <typename Floating>
+    struct floating_mantissa_type {
+        using type = std::uint64_t;
+    };
+
+#if RAINY_HAS_EXTENDED_LONG_DOUBLE
+    template <>
+    struct floating_mantissa_type<long double> {
+        using type = unsigned __int128;
+    };
+#endif
+
+    template <typename Floating>
+    using floating_mantissa_t = typename floating_mantissa_type<Floating>::type;
 
     inline constexpr unsigned char digit_from_char_table[256] = {
         255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
@@ -93,6 +146,19 @@ namespace rainy::core::text::implements {
 #endif
     }
 
+#if RAINY_HAS_EXTENDED_LONG_DOUBLE
+    inline std::uint32_t bit_scan_reverse(const unsigned __int128 value) noexcept {
+        if (value == 0) {
+            return 0;
+        }
+        const auto high = static_cast<std::uint64_t>(value >> 64);
+        if (high != 0) {
+            return 64u + bit_scan_reverse(high);
+        }
+        return bit_scan_reverse(static_cast<std::uint64_t>(value));
+    }
+#endif
+
     inline std::uint32_t count_sequential_high_zeroes(const std::uint32_t value) noexcept {
 #ifdef _MSC_VER
         unsigned long index = 0;
@@ -103,7 +169,11 @@ namespace rainy::core::text::implements {
     }
 
     struct big_integer_flt {
+#if RAINY_HAS_EXTENDED_LONG_DOUBLE
+        static constexpr std::uint32_t maximum_bits = 16400 + 2552 + 64;
+#else
         static constexpr std::uint32_t maximum_bits = 1074 + 2552 + 54;
+#endif
         static constexpr std::uint32_t element_bits = 32;
         static constexpr std::uint32_t element_count = (maximum_bits + element_bits - 1) / element_bits;
 
@@ -333,7 +403,8 @@ namespace rainy::core::text::implements {
         return multiply(value, small_powers_of_ten[remaining - 1]);
     }
 
-    inline std::uint64_t divide(big_integer_flt &numerator, const big_integer_flt &denominator) noexcept {
+    template <typename UInt = std::uint64_t>
+    UInt divide(big_integer_flt &numerator, const big_integer_flt &denominator) noexcept {
         if (numerator.used == 0) {
             return 0;
         }
@@ -352,13 +423,13 @@ namespace rainy::core::text::implements {
                 return small_numerator / small_denominator;
             }
             if (small_denominator == 1) {
-                std::uint64_t quotient = numerator.data[1];
+                UInt quotient = numerator.data[1];
                 quotient <<= 32;
                 quotient |= numerator.data[0];
                 numerator.used = 0;
                 return quotient;
             }
-            std::uint64_t quotient = 0;
+            UInt quotient = 0;
             std::uint64_t remainder_wide = 0;
             for (std::uint32_t i = max_numerator_element_index; i != static_cast<std::uint32_t>(-1); --i) {
                 remainder_wide = (remainder_wide << 32) | numerator.data[i];
@@ -408,7 +479,7 @@ namespace rainy::core::text::implements {
                 denominator_next |= denominator.data[denominator_count - 3] >> shift_right_amount;
             }
         }
-        std::uint64_t quotient = 0;
+        UInt quotient = 0;
         for (int i = quotient_digits; --i >= 0;) {
             const std::uint32_t numerator_high =
                 (i + static_cast<int>(denominator_count) <= static_cast<int>(max_numerator_element_index))
@@ -486,48 +557,54 @@ namespace rainy::core::text::implements {
         using traits = floating_traits<Floating>;
         using uint_type = typename traits::uint_type;
         const uint_type sign_component = static_cast<uint_type>(is_negative) << traits::sign_shift;
-        result = std::bit_cast<Floating>(static_cast<uint_type>(sign_component | traits::shifted_exponent_mask));
+        uint_type magnitude = traits::shifted_exponent_mask;
+        if constexpr (traits::explicit_integer_bit) {
+            magnitude |= static_cast<uint_type>(1) << (traits::mantissa_bits - 1);
+        }
+        result = std::bit_cast<Floating>(static_cast<uint_type>(sign_component | magnitude));
     }
 
     inline bool should_round_up(const bool lsb_bit, const bool round_bit, const bool has_tail_bits) noexcept {
         return round_bit && (has_tail_bits || lsb_bit);
     }
 
-    inline std::uint64_t right_shift_with_rounding(const std::uint64_t value, const std::uint32_t shift,
-                                                   const bool has_zero_tail) noexcept {
-        constexpr std::uint32_t total_bits = 64;
+    template <typename UInt>
+    UInt right_shift_with_rounding(const UInt value, const std::uint32_t shift, const bool has_zero_tail) noexcept {
+        constexpr std::uint32_t total_bits = sizeof(UInt) * 8;
         if (shift >= total_bits) {
             if (shift == total_bits) {
-                constexpr std::uint64_t extra_bits_mask = (1ULL << (total_bits - 1)) - 1;
-                constexpr std::uint64_t round_bit_mask = (1ULL << (total_bits - 1));
+                const UInt extra_bits_mask = (static_cast<UInt>(1) << (total_bits - 1)) - 1;
+                const UInt round_bit_mask = static_cast<UInt>(1) << (total_bits - 1);
                 const bool round_bit = (value & round_bit_mask) != 0;
                 const bool tail_bits = !has_zero_tail || (value & extra_bits_mask) != 0;
-                return static_cast<std::uint64_t>(round_bit && tail_bits);
+                return static_cast<UInt>(round_bit && tail_bits);
             }
             return 0;
         }
-        const std::uint64_t lsb_bit = value;
-        const std::uint64_t round_bit = value << 1;
-        const std::uint64_t has_tail_bits = round_bit - static_cast<std::uint64_t>(has_zero_tail);
-        const std::uint64_t round_up = ((round_bit & (has_tail_bits | lsb_bit)) >> shift) & std::uint64_t{1};
-        return (value >> shift) + round_up;
+        const UInt lsb_bit = value;
+        const UInt round_bit = static_cast<UInt>(value << 1);
+        const UInt has_tail_bits = round_bit - static_cast<UInt>(has_zero_tail);
+        const UInt round_up = ((round_bit & (has_tail_bits | lsb_bit)) >> shift) & static_cast<UInt>(1);
+        return static_cast<UInt>((value >> shift) + round_up);
     }
 
     template <typename Floating>
     void assemble_floating_point_value_no_shift(const bool is_negative, const int exponent,
-                                                const typename floating_traits<Floating>::uint_type mantissa,
-                                                Floating &result) noexcept {
+                                                const floating_mantissa_t<Floating> mantissa, Floating &result) noexcept {
         using traits = floating_traits<Floating>;
         using uint_type = typename traits::uint_type;
         const uint_type sign_component = static_cast<uint_type>(is_negative) << traits::sign_shift;
-        uint_type exponent_component = static_cast<uint_type>(exponent + (traits::exponent_bias - 1));
+        constexpr int exponent_offset = traits::explicit_integer_bit ? 0 : -1;
+        uint_type exponent_component = static_cast<uint_type>(exponent + (traits::exponent_bias + exponent_offset));
         exponent_component <<= traits::exponent_shift;
-        result = std::bit_cast<Floating>(static_cast<uint_type>(sign_component | (exponent_component + mantissa)));
+        const uint_type mantissa_bits = static_cast<uint_type>(mantissa);
+        result = std::bit_cast<Floating>(static_cast<uint_type>(sign_component | (exponent_component + mantissa_bits)));
     }
 
     template <typename Floating>
-    std::errc assemble_floating_point_value(const std::uint64_t initial_mantissa, const std::int32_t initial_exponent,
-                                            const bool is_negative, const bool has_zero_tail, Floating &result) noexcept {
+    std::errc assemble_floating_point_value(const floating_mantissa_t<Floating> initial_mantissa,
+                                            const std::int32_t initial_exponent, const bool is_negative,
+                                            const bool has_zero_tail, Floating &result) noexcept {
         using traits = floating_traits<Floating>;
         const std::uint32_t initial_mantissa_bits = bit_scan_reverse(initial_mantissa);
         const int normal_mantissa_shift = static_cast<int>(traits::mantissa_bits) - static_cast<int>(initial_mantissa_bits);
@@ -536,14 +613,21 @@ namespace rainy::core::text::implements {
             assemble_floating_point_infinity(is_negative, result);
             return std::errc::result_out_of_range;
         }
-        std::uint64_t mantissa = initial_mantissa;
+        floating_mantissa_t<Floating> mantissa = initial_mantissa;
         int exponent = normal_exponent;
         std::errc error_code{};
         if (normal_exponent < traits::minimum_binary_exponent) {
-            exponent = traits::minimum_binary_exponent;
-            const int denormal_mantissa_shift = static_cast<int>(initial_exponent) - exponent;
+            constexpr int integer_bit_correction = traits::explicit_integer_bit ? 1 : 0;
+            exponent = traits::minimum_binary_exponent - integer_bit_correction;
+            const int denormal_mantissa_shift =
+                static_cast<int>(initial_exponent) - exponent - integer_bit_correction;
             if (denormal_mantissa_shift < 0) {
                 mantissa = right_shift_with_rounding(mantissa, static_cast<std::uint32_t>(-denormal_mantissa_shift), has_zero_tail);
+                if constexpr (traits::explicit_integer_bit) {
+                    if (mantissa >= (floating_mantissa_t<Floating>(1) << (traits::mantissa_bits - 1))) {
+                        ++exponent;
+                    }
+                }
                 if (mantissa == 0) {
                     error_code = std::errc::result_out_of_range;
                 }
@@ -553,7 +637,7 @@ namespace rainy::core::text::implements {
         } else {
             if (normal_mantissa_shift < 0) {
                 mantissa = right_shift_with_rounding(mantissa, static_cast<std::uint32_t>(-normal_mantissa_shift), has_zero_tail);
-                if (mantissa > static_cast<std::uint64_t>(traits::normal_mantissa_mask) &&
+                if (mantissa > static_cast<floating_mantissa_t<Floating>>(traits::normal_mantissa_mask) &&
                     exponent == traits::maximum_binary_exponent) {
                     error_code = std::errc::result_out_of_range;
                 }
@@ -561,52 +645,8 @@ namespace rainy::core::text::implements {
                 mantissa <<= normal_mantissa_shift;
             }
         }
-        assemble_floating_point_value_no_shift(is_negative, exponent, static_cast<typename traits::uint_type>(mantissa), result);
+        assemble_floating_point_value_no_shift(is_negative, exponent, mantissa, result);
         return error_code;
-    }
-
-    template <typename Floating>
-    std::errc assemble_floating_point_value_from_big_integer(const big_integer_flt &integer_value,
-                                                             const std::uint32_t integer_bits_of_precision, const bool is_negative,
-                                                             const bool has_nonzero_fractional_part, Floating &result) noexcept {
-        using traits = floating_traits<Floating>;
-        constexpr int base_exponent = traits::mantissa_bits - 1;
-        if (integer_bits_of_precision <= 64) {
-            const std::uint32_t mantissa_low = integer_value.used > 0 ? integer_value.data[0] : 0;
-            const std::uint32_t mantissa_high = integer_value.used > 1 ? integer_value.data[1] : 0;
-            const std::uint64_t mantissa = mantissa_low + (static_cast<std::uint64_t>(mantissa_high) << 32);
-            return assemble_floating_point_value(mantissa, base_exponent, is_negative, !has_nonzero_fractional_part, result);
-        }
-        const std::uint32_t top_element_bits = integer_bits_of_precision % 32;
-        const std::uint32_t top_element_index = integer_bits_of_precision / 32;
-        const std::uint32_t middle_element_index = top_element_index - 1;
-        const std::uint32_t bottom_element_index = top_element_index - 2;
-        if (top_element_bits == 0) {
-            const int exponent = static_cast<int>(base_exponent + bottom_element_index * 32);
-            const std::uint64_t mantissa = integer_value.data[bottom_element_index] +
-                                           (static_cast<std::uint64_t>(integer_value.data[middle_element_index]) << 32);
-            bool has_zero_tail = !has_nonzero_fractional_part;
-            for (std::uint32_t i = 0; has_zero_tail && i != bottom_element_index; ++i) {
-                has_zero_tail = integer_value.data[i] == 0;
-            }
-            return assemble_floating_point_value(mantissa, exponent, is_negative, has_zero_tail, result);
-        }
-        const std::uint32_t top_element_mask = (1u << top_element_bits) - 1;
-        const std::uint32_t top_element_shift = 64 - top_element_bits;
-        const std::uint32_t middle_element_shift = top_element_shift - 32;
-        const std::uint32_t bottom_element_bits = 32 - top_element_bits;
-        const std::uint32_t bottom_element_mask = ~top_element_mask;
-        const std::uint32_t bottom_element_shift = 32 - bottom_element_bits;
-        const int exponent = static_cast<int>(base_exponent + bottom_element_index * 32 + top_element_bits);
-        const std::uint64_t mantissa =
-            (static_cast<std::uint64_t>(integer_value.data[top_element_index] & top_element_mask) << top_element_shift) +
-            (static_cast<std::uint64_t>(integer_value.data[middle_element_index]) << middle_element_shift) +
-            ((static_cast<std::uint64_t>(integer_value.data[bottom_element_index] & bottom_element_mask)) >> bottom_element_shift);
-        bool has_zero_tail = !has_nonzero_fractional_part && (integer_value.data[bottom_element_index] & top_element_mask) == 0;
-        for (std::uint32_t i = 0; has_zero_tail && i != bottom_element_index; ++i) {
-            has_zero_tail = integer_value.data[i] == 0;
-        }
-        return assemble_floating_point_value(mantissa, exponent, is_negative, has_zero_tail, result);
     }
 
     inline void accumulate_decimal_digits_into_big_integer(const std::uint8_t *first_digit, const std::uint8_t *last_digit,
@@ -628,6 +668,58 @@ namespace rainy::core::text::implements {
             multiply_by_power_of_ten(result, accumulator_count);
             add(result, accumulator);
         }
+    }
+
+    template <typename Floating>
+    std::errc assemble_floating_point_value_from_big_integer(const big_integer_flt &integer_value,
+                                                             const std::uint32_t integer_bits_of_precision, const bool is_negative,
+                                                             const bool has_nonzero_fractional_part, Floating &result) noexcept {
+        using traits = floating_traits<Floating>;
+        using mantissa_type = floating_mantissa_t<Floating>;
+        constexpr int base_exponent = traits::mantissa_bits - 1;
+        constexpr std::uint32_t mantissa_capacity_bits = static_cast<std::uint32_t>(sizeof(mantissa_type) * 8);
+        constexpr std::uint32_t mantissa_limbs = mantissa_capacity_bits / 32;
+        if (integer_bits_of_precision <= mantissa_capacity_bits) {
+            const std::uint32_t available = integer_value.used < mantissa_limbs ? integer_value.used : mantissa_limbs;
+            mantissa_type mantissa = 0;
+            for (std::uint32_t i = 0; i < available; ++i) {
+                mantissa |= static_cast<mantissa_type>(integer_value.data[i]) << (i * 32);
+            }
+            return assemble_floating_point_value(mantissa, base_exponent, is_negative, !has_nonzero_fractional_part, result);
+        }
+        const std::uint32_t top_element_bits = integer_bits_of_precision % 32;
+        const std::uint32_t top_element_index = integer_bits_of_precision / 32;
+        const std::uint32_t bottom_element_index = top_element_index - mantissa_limbs;
+        if (top_element_bits == 0) {
+            const int exponent = static_cast<int>(base_exponent + bottom_element_index * 32);
+            mantissa_type mantissa = 0;
+            for (std::uint32_t i = 0; i < mantissa_limbs; ++i) {
+                mantissa |= static_cast<mantissa_type>(integer_value.data[bottom_element_index + i]) << (i * 32);
+            }
+            bool has_zero_tail = !has_nonzero_fractional_part;
+            for (std::uint32_t i = 0; has_zero_tail && i != bottom_element_index; ++i) {
+                has_zero_tail = integer_value.data[i] == 0;
+            }
+            return assemble_floating_point_value(mantissa, exponent, is_negative, has_zero_tail, result);
+        }
+        const int exponent = static_cast<int>(base_exponent + bottom_element_index * 32 + top_element_bits);
+        mantissa_type mantissa = 0;
+        std::uint32_t shift = mantissa_capacity_bits - top_element_bits;
+        for (std::uint32_t j = 0; j <= mantissa_limbs; ++j) {
+            const std::uint32_t idx = top_element_index - j;
+            if (j == mantissa_limbs) {
+                mantissa |= static_cast<mantissa_type>(integer_value.data[idx]) >> top_element_bits;
+            } else {
+                mantissa |= static_cast<mantissa_type>(integer_value.data[idx]) << shift;
+                shift -= 32;
+            }
+        }
+        bool has_zero_tail =
+            !has_nonzero_fractional_part && (integer_value.data[bottom_element_index] & ((1u << top_element_bits) - 1)) == 0;
+        for (std::uint32_t i = 0; has_zero_tail && i != bottom_element_index; ++i) {
+            has_zero_tail = integer_value.data[i] == 0;
+        }
+        return assemble_floating_point_value(mantissa, exponent, is_negative, has_zero_tail, result);
     }
 
     template <typename Floating>
@@ -724,22 +816,25 @@ namespace rainy::core::text::implements {
 
         shift_left(fractional_numerator, remaining_bits_of_precision_required);
 
-        std::uint64_t fractional_mantissa = divide(fractional_numerator, fractional_denominator);
+        using mantissa_type = floating_mantissa_t<Floating>;
+        mantissa_type fractional_mantissa = divide<mantissa_type>(fractional_numerator, fractional_denominator);
 
         has_zero_tail = has_zero_tail && fractional_numerator.used == 0;
 
         const std::uint32_t fractional_mantissa_bits = bit_scan_reverse(fractional_mantissa);
         if (fractional_mantissa_bits > required_fractional_bits_of_precision) {
             const std::uint32_t shift = fractional_mantissa_bits - required_fractional_bits_of_precision;
-            has_zero_tail = has_zero_tail && (fractional_mantissa & ((1ULL << shift) - 1)) == 0;
+            has_zero_tail = has_zero_tail && (fractional_mantissa & ((static_cast<mantissa_type>(1) << shift) - 1)) == 0;
             fractional_mantissa >>= shift;
         }
 
-        const std::uint32_t integer_mantissa_low = integer_value.used > 0 ? integer_value.data[0] : 0;
-        const std::uint32_t integer_mantissa_high = integer_value.used > 1 ? integer_value.data[1] : 0;
-        const std::uint64_t integer_mantissa = integer_mantissa_low + (static_cast<std::uint64_t>(integer_mantissa_high) << 32);
+        const mantissa_type integer_mantissa = integer_value.used > 0 ? integer_value.data[0] : 0;
+        const mantissa_type integer_mantissa_high =
+            integer_value.used > 1 ? static_cast<mantissa_type>(integer_value.data[1]) << 32 : 0;
+        const mantissa_type full_integer_mantissa = integer_mantissa | integer_mantissa_high;
 
-        const std::uint64_t complete_mantissa = (integer_mantissa << required_fractional_bits_of_precision) + fractional_mantissa;
+        const mantissa_type complete_mantissa =
+            (full_integer_mantissa << required_fractional_bits_of_precision) + static_cast<mantissa_type>(fractional_mantissa);
 
         const std::int32_t final_exponent = integer_bits_of_precision > 0 ? static_cast<std::int32_t>(integer_bits_of_precision - 2)
                                                                           : -static_cast<std::int32_t>(fractional_exponent) - 1;
@@ -751,11 +846,12 @@ namespace rainy::core::text::implements {
     std::errc convert_hexadecimal_string_to_floating_type(const floating_point_string &data, Floating &result,
                                                           bool has_zero_tail) noexcept {
         using traits = floating_traits<Floating>;
-        std::uint64_t mantissa = 0;
+        using mantissa_type = floating_mantissa_t<Floating>;
+        mantissa_type mantissa = 0;
         std::int32_t exponent = data.exponent + traits::mantissa_bits - 1;
         const std::uint8_t *const mantissa_last = data.mantissa + data.mantissa_count;
         const std::uint8_t *mantissa_it = data.mantissa;
-        while (mantissa_it != mantissa_last && mantissa <= static_cast<std::uint64_t>(traits::normal_mantissa_mask)) {
+        while (mantissa_it != mantissa_last && mantissa <= static_cast<mantissa_type>(traits::normal_mantissa_mask)) {
             mantissa *= 16;
             mantissa += *mantissa_it++;
             exponent -= 4;
@@ -1058,11 +1154,15 @@ namespace rainy::core::text {
     }
 
     from_chars_result from_chars(const char *const begin, const char *const end, long double &value, const chars_format fmt) noexcept {
+#if RAINY_HAS_EXTENDED_LONG_DOUBLE
+        return implements::floating_from_chars(begin, end, value, fmt);
+#else
         double doub_var;
         const from_chars_result result = implements::floating_from_chars(begin, end, doub_var, fmt);
         if (result.ec == std::errc{}) {
             value = doub_var;
         }
         return result;
+#endif
     }
 }
