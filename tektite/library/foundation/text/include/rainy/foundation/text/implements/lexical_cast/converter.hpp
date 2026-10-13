@@ -22,10 +22,10 @@
 #include <rainy/core/type_traits/limits.hpp>
 #include <rainy/core/type_traits/properties.hpp>
 #include <rainy/core/type_traits/type_relations.hpp>
-#include <rainy/foundation/text/lexical_cast/caster.hpp>
-#include <rainy/foundation/text/lexical_cast/encoding.hpp>
-#include <rainy/foundation/text/lexical_cast/source.hpp>
-#include <rainy/foundation/text/lexical_cast/traits.hpp>
+#include <rainy/foundation/text/implements/lexical_cast/caster.hpp>
+#include <rainy/foundation/text/implements/lexical_cast/encoding.hpp>
+#include <rainy/foundation/text/implements/lexical_cast/source.hpp>
+#include <rainy/foundation/text/implements/lexical_cast/traits.hpp>
 
 namespace rainy::foundation::text::implements {
     /**

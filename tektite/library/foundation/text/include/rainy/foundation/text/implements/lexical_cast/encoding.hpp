@@ -22,7 +22,7 @@
 #include <rainy/core/text/string_view.hpp>
 #include <rainy/core/text/wstring_convert.hpp>
 #include <rainy/core/type_traits/type_relations.hpp>
-#include <rainy/foundation/text/lexical_cast/traits.hpp>
+#include <rainy/foundation/text/implements/lexical_cast/traits.hpp>
 
 namespace rainy::foundation::text::implements {
     template <typename CharType>

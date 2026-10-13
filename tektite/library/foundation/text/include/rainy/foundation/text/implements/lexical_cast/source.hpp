@@ -19,8 +19,8 @@
 #include <rainy/core/text/char_traits.hpp>
 #include <rainy/core/text/charconv.hpp>
 #include <rainy/core/text/string_view.hpp>
-#include <rainy/foundation/text/lexical_cast/encoding.hpp>
-#include <rainy/foundation/text/lexical_cast/traits.hpp>
+#include <rainy/foundation/text/implements/lexical_cast/encoding.hpp>
+#include <rainy/foundation/text/implements/lexical_cast/traits.hpp>
 
 namespace rainy::foundation::text::implements {
     /**
