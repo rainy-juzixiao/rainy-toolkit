@@ -44,6 +44,7 @@
 #include <rainy/core/container/compressed_pair.hpp>
 #include <rainy/core/platform.hpp>
 #include <rainy/core/text/charconv.hpp>
+#include <rainy/core/text/implements/ryu_generic_128.hpp>
 #include <rainy/core/text/implements/ryu_table.hpp>
 #include <rainy/core/type_traits/meta_methods.hpp>
 #include <rainy/core/utility/bit.hpp>
@@ -2291,6 +2292,15 @@ namespace rainy::core::text::implements {
             }
         }
     }
+
+#if RAINY_HAS_EXTENDED_LONG_DOUBLE
+    RAINY_NODISCARD inline to_chars_result long_double_to_chars(char *const first, char *const end, const long double value,
+                                                                const chars_format fmt) noexcept {
+        const ryu::floating_decimal_128 decimal = ryu::long_double_to_fd128(value);
+        const container::compressed_pair<char *, std::errc> result = ryu::generic_to_chars(first, end, decimal, fmt, value);
+        return {result.first, result.second};
+    }
+#endif
 }
 
 namespace rainy::core::text {
@@ -2321,18 +2331,31 @@ namespace rainy::core::text {
     }
 
     to_chars_result to_chars(char *begin, char *end, long double value) noexcept {
+#if RAINY_HAS_EXTENDED_LONG_DOUBLE
+        return implements::long_double_to_chars(begin, end, value, chars_format{});
+#else
         return implements::floating_to_chars<implements::floating_to_chars_overload::plain>(begin, end, static_cast<double>(value),
                                                                                             chars_format{}, 0);
+#endif
     }
 
     to_chars_result to_chars(char *begin, char *end, long double value, chars_format fmt) noexcept {
+#if RAINY_HAS_EXTENDED_LONG_DOUBLE
+        return implements::long_double_to_chars(begin, end, value, fmt);
+#else
         return implements::floating_to_chars<implements::floating_to_chars_overload::format_only>(begin, end,
                                                                                                   static_cast<double>(value), fmt, 0);
+#endif
     }
 
     to_chars_result to_chars(char *begin, char *end, long double value, chars_format fmt, int precision) noexcept {
+#if RAINY_HAS_EXTENDED_LONG_DOUBLE
+        (void) precision;
+        return implements::long_double_to_chars(begin, end, value, fmt);
+#else
         return implements::floating_to_chars<implements::floating_to_chars_overload::format_precision>(
             begin, end, static_cast<double>(value), fmt, precision);
+#endif
     }
 }
 
