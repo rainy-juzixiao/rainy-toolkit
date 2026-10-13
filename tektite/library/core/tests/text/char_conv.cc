@@ -39,6 +39,14 @@ namespace {
     bool same_bits(const Ty left, const Ty right) {
         return std::memcmp(&left, &right, sizeof(Ty)) == 0;
     }
+
+    bool same_long_double(const long double left, const long double right) {
+#if RAINY_HAS_EXTENDED_LONG_DOUBLE && !RAINY_LONG_DOUBLE_IS_BINARY128
+        return std::memcmp(&left, &right, 10) == 0;
+#else
+        return same_bits(left, right);
+#endif
+    }
 }
 
 TEST_CASE("Integer to_chars - All signed types boundaries", "[to_chars][integer][extreme]") {
@@ -931,6 +939,93 @@ TEST_CASE("Float to_chars - Extreme magnitude values", "[to_chars][float][magnit
             REQUIRE(r3.ec == std::errc{});
         }
     }
+}
+
+TEST_CASE("Long double to_chars extended precision", "[to_chars][float][longdouble]") {
+    char buffer[256];
+
+#if RAINY_HAS_EXTENDED_LONG_DOUBLE
+    SECTION("Full 64-bit mantissa round-trip") {
+        const long double v = 1.0L + std::numeric_limits<long double>::epsilon();
+        auto r = to_chars(buffer, buffer + sizeof(buffer), v);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(std::string(buffer, r.ptr) == "1.0000000000000000001");
+
+        long double back = 0;
+        auto rr = from_chars(buffer, r.ptr, back);
+        REQUIRE(rr.ec == std::errc{});
+        REQUIRE(same_long_double(v, back));
+    }
+
+    SECTION("Beyond double range") {
+        auto r = to_chars(buffer, buffer + sizeof(buffer), 1e4932L);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(std::string(buffer, r.ptr) == "1e+4932");
+
+        long double back = 0;
+        auto rr = from_chars(buffer, r.ptr, back);
+        REQUIRE(rr.ec == std::errc{});
+        REQUIRE(back == 1e4932L);
+    }
+
+    SECTION("Exact integer valued output") {
+        auto r = to_chars(buffer, buffer + sizeof(buffer), 206089332366660917712.0L);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(std::string(buffer, r.ptr) == "206089332366660917712");
+    }
+#else
+    SECTION("Falls back to double path") {
+        const long double v = 1.1L;
+        auto r = to_chars(buffer, buffer + sizeof(buffer), v);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(std::string(buffer, r.ptr) == "1.1");
+    }
+#endif
+}
+
+TEST_CASE("Long double from_chars extended precision", "[from_chars][float][longdouble]") {
+#if RAINY_HAS_EXTENDED_LONG_DOUBLE
+    SECTION("Full 64-bit mantissa") {
+        const char text[] = "3.141592653589793238462643383279502884";
+        long double value = 0;
+        auto r = from_chars(text, text + sizeof(text) - 1, value);
+        REQUIRE(r.ec == std::errc{});
+        char out[64];
+        auto w = to_chars(out, out + sizeof(out), value);
+        REQUIRE(w.ec == std::errc{});
+        REQUIRE(std::string(out, w.ptr) == "3.1415926535897932385");
+    }
+
+    SECTION("Beyond double range") {
+        const char text[] = "1e4932";
+        long double value = 0;
+        auto r = from_chars(text, text + sizeof(text) - 1, value);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(value == 1e4932L);
+    }
+
+    SECTION("Denormal boundary") {
+        const char text[] = "1e-4932";
+        long double value = 0;
+        auto r = from_chars(text, text + sizeof(text) - 1, value);
+        REQUIRE(r.ec == std::errc{});
+        char out[64];
+        auto w = to_chars(out, out + sizeof(out), value);
+        REQUIRE(w.ec == std::errc{});
+        long double back = 0;
+        auto rr = from_chars(out, w.ptr, back);
+        REQUIRE(rr.ec == std::errc{});
+        REQUIRE(same_long_double(value, back));
+    }
+#else
+    SECTION("Falls back to double path") {
+        const char text[] = "1.1";
+        long double value = 0;
+        auto r = from_chars(text, text + sizeof(text) - 1, value);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(value == 1.1L);
+    }
+#endif
 }
 
 TEST_CASE("Float to_chars - All format combinations", "[to_chars][float][formats]") {
