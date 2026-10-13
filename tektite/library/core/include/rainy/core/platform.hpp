@@ -13,37 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/**
- * @file platform.hpp
- * @module Core
- *
- * \lang english
- * @brief
- * This is the most critical part of the rainy-toolkit core. It defines how
- * rainy-toolkit communicates with the platform. Without it, the build system
- * will not function properly.
- * @brief
- * It is not intended for end users but for library developers. It contains
- * platform-related macro definitions, function declarations, fundamental type
- * definitions, and template metaprogramming code. It is used by core.hpp.
- * @brief It should not be included directly by users; use core.hpp instead.
- * @brief Also includes a series of builtin functions. Some are implemented in
- *        core.cxx. Direct inclusion may cause compilation failures.
- * @author rainy-juzixiao
- * @date 2/24/2025 1:30:49 PM Initial annotation added (by rainy-juzixiao)
- * @date 3/13/2025 1:57:45 PM Migrated type_traits::other_trans code and revised annotations
- *
- * \lang simp-chinese
- * @brief
- * 这是rainy-toolkit的核心文件的最重要部分。它定义了rainy-toolkit如何与平台进行沟通。没有它，rainy-toolkit的构建系统将无法正常工作
- * @brief
- * 简单点说。它不是给用户使用的。是给库开发者使用的。它包含了一些平台相关的宏定义和函数声明以及非常基础的类型定义和模板元编程代码。它由core.hpp使用
- * @brief 它不应该被用户包含，而是考虑使用core.hpp
- * @brief 另外，包含了一系列内建函数。部分内建函数是由core.cxx负责的。直接包含则有可能导致编译失败
- * @author rainy-juzixiao
- * @date 2/24/2025 1:30:49 PM 在此进行添加注释（由rainy-juzixiao添加）
- * @date 3/13/2025 1:57:45 PM 在此转移type_traits的other_trans代码以及修改注释
- */
 #ifndef RAINY_CORE_PLATFORM_HPP
 #define RAINY_CORE_PLATFORM_HPP
 #include <cassert>
