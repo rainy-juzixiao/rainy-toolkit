@@ -41,10 +41,10 @@ wide[L"k"].as_integer();  // 1
 - json/json5
 - yaml
 - jsonnet
-- xml (实现中)
-- toml (实现中)
+- xml
+- toml
 - hjson
 - msgpack
-- bson (实现中)
-- cbor (实现中)
+- bson
+- cbor
 - protobuf
