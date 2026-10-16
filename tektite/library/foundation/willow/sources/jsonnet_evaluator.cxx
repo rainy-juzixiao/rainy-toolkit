@@ -55,6 +55,36 @@ namespace rainy::foundation::willow::jsonnet::implements {
             return core::text::string(view.data(), view.size());
         }
 
+        core::collections::vector<core::text::string> string_codepoints(const core::text::string &str) {
+            core::collections::vector<core::text::string> result;
+            unicode_reader<core::text::string> reader{str, true};
+            std::size_t offset = 0;
+            std::uint32_t code = 0;
+            while (reader.get_code(offset, code)) {
+                core::text::string character;
+                unicode_writer<core::text::string> writer{character};
+                writer.add_code(code);
+                result.push_back(utility::move(character));
+            }
+            return result;
+        }
+
+        bool string_codepoint_at(const core::text::string &str, const std::int64_t index, core::text::string &out) {
+            unicode_reader<core::text::string> reader{str, true};
+            std::size_t offset = 0;
+            std::uint32_t code = 0;
+            std::int64_t position = 0;
+            while (reader.get_code(offset, code)) {
+                if (position == index) {
+                    unicode_writer<core::text::string> writer{out};
+                    writer.add_code(code);
+                    return true;
+                }
+                ++position;
+            }
+            return false;
+        }
+
         document to_document(const value_ptr &v);
 
         document to_document(const value_ptr &v) {
@@ -357,62 +387,64 @@ namespace rainy::foundation::willow::jsonnet::implements {
             }
             return target->elements[static_cast<std::size_t>(position)]->force();
         }
+        if (target->kind == value_kind::string) {
+            const auto position = static_cast<std::int64_t>(as_number(index));
+            core::text::string character;
+            if (position < 0 || !string_codepoint_at(target->str, position, character)) {
+                exceptions::willow::jsonnet::throw_jsonnet_evaluate_error("string index out of bounds");
+            }
+            return make_string(utility::move(character));
+        }
         if (target->kind == value_kind::object) {
             return lookup_field(target, value_to_string(*index));
         }
-        exceptions::willow::jsonnet::throw_jsonnet_evaluate_error("indexing requires an array or object");
+        exceptions::willow::jsonnet::throw_jsonnet_evaluate_error("indexing requires an array, string or object");
     }
 
     value_ptr evaluator::eval_slice(jsonnet_node *node, const env_ptr &env) {
         const value_ptr target = eval(node->at(0), env);
-        const std::int64_t size = target->kind == value_kind::array
-                                      ? static_cast<std::int64_t>(target->elements.size())
-                                      : static_cast<std::int64_t>(target->str.size());
-        auto bound = [&](const std::size_t child, const std::uint16_t flag, const std::int64_t fallback) -> std::int64_t {
-            if (!node->has_flag(flag)) {
-                return fallback;
-            }
+        core::collections::vector<core::text::string> characters;
+        std::int64_t size = 0;
+        if (target->kind == value_kind::array) {
+            size = static_cast<std::int64_t>(target->elements.size());
+        } else if (target->kind == value_kind::string) {
+            characters = string_codepoints(target->str);
+            size = static_cast<std::int64_t>(characters.size());
+        } else {
+            exceptions::willow::jsonnet::throw_jsonnet_evaluate_error("slicing requires an array or string");
+        }
+        auto bound = [&](const std::size_t child) -> std::int64_t {
             return static_cast<std::int64_t>(as_number(eval(node->at(child), env)));
         };
-        const std::int64_t step = bound(3, flag_slice_step, 1);
+        const std::int64_t step = node->has_flag(flag_slice_step) ? bound(3) : 1;
         if (step == 0) {
             exceptions::willow::jsonnet::throw_jsonnet_evaluate_error("slice step cannot be zero");
         }
-        auto norm = [size](std::int64_t value) {
+        const std::int64_t lower = step < 0 ? -1 : 0;
+        const std::int64_t upper = step < 0 ? size - 1 : size;
+        auto norm = [size, lower, upper](std::int64_t value) {
             if (value < 0) {
                 value += size;
             }
-            return value < 0 ? std::int64_t{0} : (value > size ? size : value);
+            return value < lower ? lower : (value > upper ? upper : value);
         };
-        const std::int64_t begin = norm(bound(1, flag_slice_begin, 0));
-        const std::int64_t end = norm(bound(2, flag_slice_end, size));
+        const std::int64_t begin = node->has_flag(flag_slice_begin) ? norm(bound(1)) : (step < 0 ? size - 1 : 0);
+        const std::int64_t end = node->has_flag(flag_slice_end) ? norm(bound(2)) : (step < 0 ? -1 : size);
+        auto advance = [step](std::int64_t index, const std::int64_t stop) {
+            return step > 0 ? index < stop : index > stop;
+        };
         if (target->kind == value_kind::array) {
             core::collections::vector<thunk_ptr> result;
-            if (step > 0) {
-                for (std::int64_t i = begin; i < end; i += step) {
-                    result.push_back(target->elements[static_cast<std::size_t>(i)]);
-                }
-            } else {
-                for (std::int64_t i = begin; i > end; i += step) {
-                    result.push_back(target->elements[static_cast<std::size_t>(i)]);
-                }
+            for (std::int64_t i = begin; advance(i, end); i += step) {
+                result.push_back(target->elements[static_cast<std::size_t>(i)]);
             }
             return make_array(utility::move(result));
         }
-        if (target->kind == value_kind::string) {
-            core::text::string result;
-            if (step > 0) {
-                for (std::int64_t i = begin; i < end; i += step) {
-                    result.push_back(target->str[static_cast<std::size_t>(i)]);
-                }
-            } else {
-                for (std::int64_t i = begin; i > end; i += step) {
-                    result.push_back(target->str[static_cast<std::size_t>(i)]);
-                }
-            }
-            return make_string(utility::move(result));
+        core::text::string result;
+        for (std::int64_t i = begin; advance(i, end); i += step) {
+            result += characters[static_cast<std::size_t>(i)];
         }
-        exceptions::willow::jsonnet::throw_jsonnet_evaluate_error("slicing requires an array or string");
+        return make_string(utility::move(result));
     }
 
     value_ptr evaluator::eval_call(jsonnet_node *node, const env_ptr &env) {
