@@ -116,6 +116,27 @@ TEST_CASE("jsonnet evaluate - string slices count code points", "[jsonnet][evalu
     REQUIRE(run("\"\\u00e9\\u00e8x\"[::-1]").as_string() == "x\xc3\xa8\xc3\xa9");
 }
 
+TEST_CASE("jsonnet evaluate - fractional indices are rejected", "[jsonnet][evaluate]") {
+    REQUIRE(run("[10, 20][1.0]").as_integer() == 20);
+    REQUIRE_THROWS_AS(run("[10, 20][1.9]"), jsonnet_evaluate_error);
+    REQUIRE_THROWS_AS(run("\"abc\"[1.9]"), jsonnet_evaluate_error);
+}
+
+TEST_CASE("jsonnet evaluate - object equality compares fields", "[jsonnet][evaluate]") {
+    REQUIRE(run("{ a: 1 } == { a: 1 }").as_bool());
+    REQUIRE(run("{ a: 1 } == { b: 2 }").as_bool() == false);
+    REQUIRE(run("{ a: 1 } == { a: 2 }").as_bool() == false);
+    REQUIRE(run("{ a: 1, b: 2 } == { b: 2, a: 1 }").as_bool());
+    REQUIRE(run("{ a: { x: 1 } } == { a: { x: 1 } }").as_bool());
+    REQUIRE(run("{ a: 1 } != { b: 1 }").as_bool());
+}
+
+TEST_CASE("jsonnet evaluate - defaults see earlier arguments", "[jsonnet][evaluate]") {
+    REQUIRE(run("(function(a, b=a) b)(1)").as_integer() == 1);
+    REQUIRE(run("(function(a, b=a + 1) b)(1)").as_integer() == 2);
+    REQUIRE(run("(function(a, b=2) b)(1)").as_integer() == 2);
+}
+
 TEST_CASE("jsonnet evaluate - local bindings are recursive and lazy", "[jsonnet][evaluate]") {
     REQUIRE(run("local x = 1; x + 1").as_integer() == 2);
     REQUIRE(run("local x = 1, y = x + 1; y").as_integer() == 2);

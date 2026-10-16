@@ -73,18 +73,21 @@ namespace rainy::foundation::willow::jsonnet::implements {
         value_ptr eval_field_body(const object_ptr &object, const core::text::basic_string_view<char> name,
                                   const field_slot &slot, std::size_t layer_index, const value_ptr &self_value);
         value_ptr lookup_field(const value_ptr &target, const core::text::basic_string_view<char> name);
+        bool values_equal(const value_ptr &left, const value_ptr &right);
         void run_asserts(const object_ptr &object, const value_ptr &self_value);
         void add_field(object_layer &layer, jsonnet_node *field, const env_ptr &env);
         void add_local_binding(const env_ptr &env, jsonnet_node *bind);
         value_ptr format_string(const core::text::string &format, const value_ptr &args);
         value_ptr make_std();
         void add_native(object_layer &layer, core::text::basic_string_view<char> name,
+                        core::collections::vector<core::text::string> params,
                         functional::delegate<value_ptr(core::collections::vector<value_ptr> &)> fn);
         void manifest_value(const value_ptr &v, document &out);
         void collect_comprehension_envs(const core::collections::vector<jsonnet_node *> &clauses, const env_ptr &start,
                                         core::collections::vector<env_ptr> &out);
 
         const import_resolver *resolver_{nullptr};
+        core::collections::vector<ast_handle> imported_arenas_{};
     };
 }
 
