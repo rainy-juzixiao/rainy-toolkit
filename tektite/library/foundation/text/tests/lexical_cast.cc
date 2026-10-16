@@ -194,7 +194,11 @@ TEST_CASE("lexical_cast handles the floating point values", "[text][lexical_cast
     SECTION("the long double precision survives") {
         const long double precise = 1.2345678901234567890L;
         REQUIRE(lexical_cast<long double>(lexical_to_string(precise)) == precise);
+#if RAINY_HAS_EXTENDED_LONG_DOUBLE
         REQUIRE(lexical_cast<long double>("1e-4932") > 0.0L);
+#else
+        REQUIRE(rejects<long double>("1e-4932"));
+#endif
     }
 
     SECTION("an out of range value fails") {
