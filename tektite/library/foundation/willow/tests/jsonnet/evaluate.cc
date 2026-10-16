@@ -84,6 +84,15 @@ TEST_CASE("jsonnet evaluate - arrays and indexing", "[jsonnet][evaluate]") {
     REQUIRE_THROWS_AS(run("[1][5]"), jsonnet_evaluate_error);
 }
 
+TEST_CASE("jsonnet evaluate - string indexing", "[jsonnet][evaluate]") {
+    REQUIRE(run("\"abc\"[0]").as_string() == "a");
+    REQUIRE(run("\"abc\"[2]").as_string() == "c");
+    REQUIRE_THROWS_AS(run("\"abc\"[3]"), jsonnet_evaluate_error);
+    REQUIRE(run("\"\\u00e9\"[0]").as_string() == "\xc3\xa9");
+    REQUIRE(run("\"\\u00e9x\"[1]").as_string() == "x");
+    REQUIRE_THROWS_AS(run("\"\\u00e9\"[1]"), jsonnet_evaluate_error);
+}
+
 TEST_CASE("jsonnet evaluate - slices", "[jsonnet][evaluate]") {
     REQUIRE(run("[0, 1, 2, 3, 4][1:3]").size() == 2);
     REQUIRE(run("[0, 1, 2, 3, 4][1:3][0]").as_integer() == 1);
@@ -91,6 +100,20 @@ TEST_CASE("jsonnet evaluate - slices", "[jsonnet][evaluate]") {
     REQUIRE(run("[0, 1, 2, 3, 4][-2:]").size() == 2);
     REQUIRE(run("\"abcde\"[1:3]").as_string() == "bc");
     REQUIRE(run("[0, 1, 2, 3, 4][4:0:-1]").size() == 4);
+}
+
+TEST_CASE("jsonnet evaluate - reverse slices", "[jsonnet][evaluate]") {
+    REQUIRE(run("[0, 1, 2, 3][::-1]").size() == 4);
+    REQUIRE(run("[0, 1, 2, 3][::-1][0]").as_integer() == 3);
+    REQUIRE(run("[0, 1, 2, 3][1::-1]").size() == 2);
+    REQUIRE(run("[0, 1, 2, 3][:2:-1]").size() == 1);
+    REQUIRE(run("\"abcd\"[::-1]").as_string() == "dcba");
+}
+
+TEST_CASE("jsonnet evaluate - string slices count code points", "[jsonnet][evaluate]") {
+    REQUIRE(run("\"\\u00e9\"[0:1]").as_string() == "\xc3\xa9");
+    REQUIRE(run("\"\\u00e9x\"[1:2]").as_string() == "x");
+    REQUIRE(run("\"\\u00e9\\u00e8x\"[::-1]").as_string() == "x\xc3\xa8\xc3\xa9");
 }
 
 TEST_CASE("jsonnet evaluate - local bindings are recursive and lazy", "[jsonnet][evaluate]") {
