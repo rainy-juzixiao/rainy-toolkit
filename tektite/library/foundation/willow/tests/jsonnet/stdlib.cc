@@ -74,6 +74,16 @@ TEST_CASE("jsonnet std - primitiveEquals", "[jsonnet][stdlib]") {
     REQUIRE(run("std.primitiveEquals(1, 1)").as_bool());
     REQUIRE(run("std.primitiveEquals(1, 2)").as_bool() == false);
     REQUIRE(run("std.primitiveEquals(\"a\", \"a\")").as_bool());
+    REQUIRE(run("std.primitiveEquals({ a: 1 }, { a: 1 })").as_bool() == false);
+    REQUIRE(run("std.primitiveEquals([1], [1])").as_bool() == false);
+}
+
+TEST_CASE("jsonnet std - argument arity and named arguments", "[jsonnet][stdlib]") {
+    REQUIRE(run("std.length(x=[1, 2])").as_integer() == 2);
+    REQUIRE(run("std.pow(y=2, x=3)").as_integer() == 9);
+    REQUIRE_THROWS_AS(run("std.length()"), jsonnet_evaluate_error);
+    REQUIRE_THROWS_AS(run("std.pow(2)"), jsonnet_evaluate_error);
+    REQUIRE_THROWS_AS(run("std.length(1, 2)"), jsonnet_evaluate_error);
 }
 
 TEST_CASE("jsonnet std - join", "[jsonnet][stdlib]") {
