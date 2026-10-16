@@ -949,7 +949,11 @@ TEST_CASE("Long double to_chars extended precision", "[to_chars][float][longdoub
         const long double v = 1.0L + std::numeric_limits<long double>::epsilon();
         auto r = to_chars(buffer, buffer + sizeof(buffer), v);
         REQUIRE(r.ec == std::errc{});
+#if RAINY_LONG_DOUBLE_IS_BINARY128
+        REQUIRE(std::string(buffer, r.ptr) == "1.0000000000000000000000000000000002");
+#else
         REQUIRE(std::string(buffer, r.ptr) == "1.0000000000000000001");
+#endif
 
         long double back = 0;
         auto rr = from_chars(buffer, r.ptr, back);
@@ -993,7 +997,11 @@ TEST_CASE("Long double from_chars extended precision", "[from_chars][float][long
         char out[64];
         auto w = to_chars(out, out + sizeof(out), value);
         REQUIRE(w.ec == std::errc{});
+#if RAINY_LONG_DOUBLE_IS_BINARY128
+        REQUIRE(std::string(out, w.ptr) == "3.1415926535897932384626433832795028");
+#else
         REQUIRE(std::string(out, w.ptr) == "3.1415926535897932385");
+#endif
     }
 
     SECTION("Beyond double range") {
