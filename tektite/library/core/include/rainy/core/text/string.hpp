@@ -232,8 +232,8 @@ namespace rainy::core::text {
          */
         RAINY_CONSTEXPR20 basic_string(size_type count, value_type ch, allocator_type const &allocator = allocator_type()) :
             pair_{allocator, {}} {
+            allocate_plus_one_(count);
             if (count > 0) {
-                allocate_plus_one_(count);
                 auto begin = begin_();
                 std::fill(begin, begin + count, ch);
             }
