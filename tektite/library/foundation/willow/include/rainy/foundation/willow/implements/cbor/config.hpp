@@ -392,6 +392,9 @@ namespace rainy::foundation::willow::cbor {
             if (!left.has_native_value()) {
                 return true;
             }
+            if (left.state_->tagged != right.state_->tagged) {
+                return false;
+            }
             return left.state_->tag_number == right.state_->tag_number &&
                    left.state_->simple_value == right.state_->simple_value;
         }

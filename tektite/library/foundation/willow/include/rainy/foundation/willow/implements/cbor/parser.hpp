@@ -73,7 +73,8 @@ namespace rainy::foundation::willow::cbor::implements {
             return narrow_key_to_string<BasicDocument>(buffer, static_cast<std::size_t>(result.ptr - buffer));
         }
         if (key.is_float()) {
-            const auto result = core::text::to_chars(buffer, buffer + sizeof(buffer), static_cast<double>(key.as_float()));
+            const auto result = core::text::to_chars(buffer, buffer + sizeof(buffer), static_cast<double>(key.as_float()),
+                                                     core::text::chars_format::scientific);
             return narrow_key_to_string<BasicDocument>(buffer, static_cast<std::size_t>(result.ptr - buffer));
         }
         if (key.is_bool()) {
@@ -198,7 +199,7 @@ namespace rainy::foundation::willow::cbor::implements {
                     if (additional == additional_indefinite) {
                         throw_cbor_parse_error("a tag may not use the indefinite form");
                     }
-                    decode_tag(ptr, end, out, argument, depth);
+                    decode_tag(ptr, end, out, argument, depth + 1);
                     return;
                 }
                 case major_type::simple:

@@ -133,6 +133,14 @@ namespace rainy::foundation::willow::protobuf::implements {
         static void decode_into(const std::uint8_t *data, std::size_t size, BasicDocument &doc) {
             static_assert(is_protobuf_message_v<Concept>, "decode requires a protobuf concept type");
             static_assert(valid_field_numbers_v<Concept>, "protobuf field numbers must be unique and within 1..536870911");
+            decode_into(data, size, doc, 0);
+        }
+
+        static void decode_into(const std::uint8_t *data, std::size_t size, BasicDocument &doc,
+                                const std::size_t depth) {
+            if (depth >= willow::implements::max_document_nesting_depth) {
+                throw_protobuf_parse_error("message nesting is too deep");
+            }
             if (doc.is_null()) {
                 doc = BasicDocument(document_type::object);
             }
@@ -147,7 +155,7 @@ namespace rainy::foundation::willow::protobuf::implements {
                 if (!decode_tag(ptr, end, number, wire)) {
                     throw_protobuf_parse_error("truncated tag");
                 }
-                if (!dispatch_field<Concept>(number, wire, ptr, end, doc)) {
+                if (!dispatch_field<Concept>(number, wire, ptr, end, doc, depth)) {
                     if (!skip_field(wire, ptr, end)) {
                         throw_protobuf_parse_error("truncated field payload");
                     }
@@ -161,21 +169,23 @@ namespace rainy::foundation::willow::protobuf::implements {
     private:
         template <typename Owner>
         static bool dispatch_field(std::uint32_t number, wire_type wire, const std::uint8_t *&ptr, const std::uint8_t *end,
-                                   BasicDocument &doc) {
-            return dispatch_fields<Owner>(number, wire, ptr, end, doc, std::make_index_sequence<field_count_v<Owner>>{});
+                                   BasicDocument &doc, const std::size_t depth) {
+            return dispatch_fields<Owner>(number, wire, ptr, end, doc, depth,
+                                          type_traits::helper::make_index_sequence<field_count_v<Owner>>{});
         }
 
         template <typename Owner, std::size_t... Is>
         static bool dispatch_fields(std::uint32_t number, wire_type wire, const std::uint8_t *&ptr, const std::uint8_t *end,
-                                    BasicDocument &doc, std::index_sequence<Is...>) {
+                                    BasicDocument &doc, const std::size_t depth, type_traits::helper::index_sequence<Is...>) {
             bool handled = false;
-            ((number == field_number_v<Owner, Is> ? (decode_field<Owner, Is>(wire, ptr, end, doc), handled = true, 0) : 0),
+            ((number == field_number_v<Owner, Is> ? (decode_field<Owner, Is>(wire, ptr, end, doc, depth), handled = true, 0) : 0),
              ...);
             return handled;
         }
 
         template <typename Owner, std::size_t Index>
-        static void decode_field(wire_type wire, const std::uint8_t *&ptr, const std::uint8_t *end, BasicDocument &doc) {
+        static void decode_field(wire_type wire, const std::uint8_t *&ptr, const std::uint8_t *end, BasicDocument &doc,
+                                 const std::size_t depth) {
             using field_type = field_at_t<Owner, Index>;
             using kind = typename field_type::kind;
             constexpr core::text::string_view name = field_name_of<field_type>();
@@ -188,7 +198,7 @@ namespace rainy::foundation::willow::protobuf::implements {
                 if (!slot.is_array()) {
                     throw_protobuf_parse_error("protobuf repeated field requires array document");
                 }
-                decode_repeated<kind>(wire, ptr, end, slot);
+                decode_repeated<kind>(wire, ptr, end, slot, depth);
             } else if constexpr (is_message_kind_v<kind>) {
                 if (wire != wire_type::len) {
                     throw_protobuf_parse_error("message field requires LEN wire type");
@@ -207,7 +217,7 @@ namespace rainy::foundation::willow::protobuf::implements {
                 if (!slot.is_object()) {
                     throw_protobuf_parse_error("protobuf message field requires object document");
                 }
-                protobuf_parser<message_concept_t<kind>, BasicDocument>::decode_into(ptr, length, slot);
+                protobuf_parser<message_concept_t<kind>, BasicDocument>::decode_into(ptr, length, slot, depth + 1);
                 ptr += length;
             } else {
                 BasicDocument &slot = doc[key];
@@ -216,7 +226,8 @@ namespace rainy::foundation::willow::protobuf::implements {
         }
 
         template <typename Repeated>
-        static void decode_repeated(wire_type wire, const std::uint8_t *&ptr, const std::uint8_t *end, BasicDocument &array) {
+        static void decode_repeated(wire_type wire, const std::uint8_t *&ptr, const std::uint8_t *end, BasicDocument &array,
+                                    const std::size_t depth) {
             using element = repeated_element_t<Repeated>;
             if constexpr (is_message_kind_v<element>) {
                 if (wire != wire_type::len) {
@@ -230,7 +241,7 @@ namespace rainy::foundation::willow::protobuf::implements {
                     throw_protobuf_parse_error("truncated message payload");
                 }
                 BasicDocument elem(document_type::object);
-                protobuf_parser<message_concept_t<element>, BasicDocument>::decode_into(ptr, length, elem);
+                protobuf_parser<message_concept_t<element>, BasicDocument>::decode_into(ptr, length, elem, depth + 1);
                 ptr += length;
                 array.as_array().push_back(utility::move(elem));
             } else if constexpr (type_traits::type_relations::is_same_v<element, proto::string> || type_traits::type_relations::is_same_v<element, proto::bytes>) {

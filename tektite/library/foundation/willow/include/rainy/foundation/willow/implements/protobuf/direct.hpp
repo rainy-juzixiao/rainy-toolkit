@@ -523,9 +523,15 @@ namespace rainy::foundation::willow::protobuf::implements {
                       "protobuf integer member requires a non-bool arithmetic type");
         if constexpr (type_traits::primary_types::is_floating_point_v<raw>) {
             slot = static_cast<raw>(value);
+        } else if constexpr (type_traits::properties::is_unsigned_v<raw>) {
+            if (value < 0 ||
+                static_cast<std::uint64_t>(value) > static_cast<std::uint64_t>((utility::numeric_limits<raw>::max)())) {
+                throw_protobuf_parse_error("integer value out of member range");
+            }
+            slot = static_cast<raw>(value);
         } else {
-            if (value < static_cast<std::int64_t>(utility::numeric_limits<raw>::min()) ||
-                value > static_cast<std::int64_t>(utility::numeric_limits<raw>::max())) {
+            if (value < static_cast<std::int64_t>((utility::numeric_limits<raw>::min)()) ||
+                value > static_cast<std::int64_t>((utility::numeric_limits<raw>::max)())) {
                 throw_protobuf_parse_error("integer value out of member range");
             }
             slot = static_cast<raw>(value);
@@ -578,6 +584,9 @@ namespace rainy::foundation::willow::protobuf::implements {
         }
     }
 
+    template <typename Ty>
+    void assign_direct_floating(const double value, Ty &slot);
+
     template <typename Element, typename Ty>
     void assign_direct_packed_fixed32(std::uint32_t raw, Ty &slot) {
         if constexpr (type_traits::type_relations::is_same_v<Element, proto::fixed32>) {
@@ -589,7 +598,7 @@ namespace rainy::foundation::willow::protobuf::implements {
         } else if constexpr (type_traits::type_relations::is_same_v<Element, proto::floating>) {
             float value = 0;
             core::builtin::copy_memory(&value, &raw, sizeof(float));
-            slot = static_cast<type_traits::modifers::remove_cvref_t<Ty>>(value);
+            assign_direct_floating(static_cast<double>(value), slot);
         } else {
             throw_protobuf_parse_error("unsupported packed fixed32 type");
         }
@@ -606,9 +615,30 @@ namespace rainy::foundation::willow::protobuf::implements {
         } else if constexpr (type_traits::type_relations::is_same_v<Element, proto::doubling>) {
             double value = 0;
             core::builtin::copy_memory(&value, &raw, sizeof(double));
-            slot = static_cast<type_traits::modifers::remove_cvref_t<Ty>>(value);
+            assign_direct_floating(value, slot);
         } else {
             throw_protobuf_parse_error("unsupported packed fixed64 type");
+        }
+    }
+
+    template <typename Ty>
+    void assign_direct_floating(const double value, Ty &slot) {
+        using raw = type_traits::modifers::remove_cvref_t<Ty>;
+        static_assert(type_traits::composite_types::is_arithmetic_v<raw> && !type_traits::type_relations::is_same_v<raw, bool>,
+                      "protobuf floating member requires a non-bool arithmetic type");
+        if constexpr (type_traits::primary_types::is_floating_point_v<raw>) {
+            slot = static_cast<raw>(value);
+        } else if constexpr (type_traits::properties::is_unsigned_v<raw>) {
+            if (!(value >= 0.0) || value > static_cast<double>((utility::numeric_limits<raw>::max)())) {
+                throw_protobuf_parse_error("floating value out of member range");
+            }
+            slot = static_cast<raw>(value);
+        } else {
+            if (value < static_cast<double>((utility::numeric_limits<raw>::min)()) ||
+                value > static_cast<double>((utility::numeric_limits<raw>::max)())) {
+                throw_protobuf_parse_error("floating value out of member range");
+            }
+            slot = static_cast<raw>(value);
         }
     }
 
@@ -663,6 +693,13 @@ namespace rainy::foundation::willow::protobuf::implements {
         static void decode_into(const std::uint8_t *data, std::size_t size, Concept &value) {
             static_assert(is_direct_message_v<Concept>, "decode_direct requires a concept type with member_field entries");
             static_assert(valid_field_numbers_v<Concept>, "protobuf field numbers must be unique and within 1..536870911");
+            decode_into(data, size, value, 0);
+        }
+
+        static void decode_into(const std::uint8_t *data, std::size_t size, Concept &value, const std::size_t depth) {
+            if (depth >= willow::implements::max_document_nesting_depth) {
+                throw_protobuf_parse_error("message nesting is too deep");
+            }
             const std::uint8_t *ptr = data;
             const std::uint8_t *end = data + size;
             while (ptr < end) {
@@ -671,7 +708,7 @@ namespace rainy::foundation::willow::protobuf::implements {
                 if (!decode_tag(ptr, end, number, wire)) {
                     throw_protobuf_parse_error("truncated tag");
                 }
-                if (!dispatch_field(number, wire, ptr, end, value)) {
+                if (!dispatch_field(number, wire, ptr, end, value, depth)) {
                     if constexpr (type_traits::type_relations::is_base_of_v<add_unknown_fields<Concept>, Concept>) {
                         const std::uint8_t *payload_start = ptr;
                         if (!skip_field(wire, ptr, end)) {
@@ -703,30 +740,30 @@ namespace rainy::foundation::willow::protobuf::implements {
     private:
         template <std::size_t... Is>
         static bool dispatch_fields(std::uint32_t number, wire_type wire, const std::uint8_t *&ptr, const std::uint8_t *end,
-                                    Concept &value, type_traits::helper::index_sequence<Is...>) {
+                                    Concept &value, const std::size_t depth, type_traits::helper::index_sequence<Is...>) {
             bool handled = false;
-            ((number == field_number_v<Concept, Is> ? (decode_field<Is>(number, wire, ptr, end, value), handled = true, 0)
+            ((number == field_number_v<Concept, Is> ? (decode_field<Is>(number, wire, ptr, end, value, depth), handled = true, 0)
                                                        : 0),
              ...);
             return handled;
         }
 
         static bool dispatch_field(std::uint32_t number, wire_type wire, const std::uint8_t *&ptr, const std::uint8_t *end,
-                                   Concept &value) {
-            return dispatch_fields(number, wire, ptr, end, value,
+                                   Concept &value, const std::size_t depth) {
+            return dispatch_fields(number, wire, ptr, end, value, depth,
                                    type_traits::helper::make_index_sequence<field_count_v<Concept>>{});
         }
 
         template <std::size_t Index>
         static void decode_field(std::uint32_t number, wire_type wire, const std::uint8_t *&ptr, const std::uint8_t *end,
-                                 Concept &value) {
+                                 Concept &value, const std::size_t depth) {
             using field_type = direct_field_at_t<Concept, Index>;
             using kind = typename field_type::kind;
             auto &slot = value.*(field_type::member);
             if constexpr (is_repeated_kind_v<kind>) {
                 static_assert(direct_container_v<kind, decltype(slot)>,
                               "protobuf repeated member requires a container with emplace_back()");
-                decode_repeated<kind>(wire, ptr, end, slot, number);
+                decode_repeated<kind>(wire, ptr, end, slot, number, depth);
             } else if constexpr (is_message_kind_v<kind>) {
                 if (wire != wire_type::len) {
                     throw_protobuf_parse_error("message field requires LEN wire type");
@@ -738,7 +775,7 @@ namespace rainy::foundation::willow::protobuf::implements {
                 if (length > static_cast<std::size_t>(end - ptr)) {
                     throw_protobuf_parse_error("truncated message payload");
                 }
-                direct_parser<message_concept_t<kind>>::decode_into(ptr, length, slot);
+                direct_parser<message_concept_t<kind>>::decode_into(ptr, length, slot, depth + 1);
                 ptr += length;
             } else {
                 decode_direct_single<kind>(ptr, end, wire, slot);
@@ -747,7 +784,7 @@ namespace rainy::foundation::willow::protobuf::implements {
 
         template <typename Repeated, typename Container>
         static void decode_repeated(wire_type wire, const std::uint8_t *&ptr, const std::uint8_t *end, Container &slots,
-                                    std::uint32_t number) {
+                                    std::uint32_t number, const std::size_t depth) {
             using element = repeated_element_t<Repeated>;
             if constexpr (is_message_kind_v<element>) {
                 if (wire != wire_type::len) {
@@ -761,7 +798,7 @@ namespace rainy::foundation::willow::protobuf::implements {
                     throw_protobuf_parse_error("truncated message payload");
                 }
                 auto &elem = slots.emplace_back();
-                direct_parser<message_concept_t<element>>::decode_into(ptr, length, elem);
+                direct_parser<message_concept_t<element>>::decode_into(ptr, length, elem, depth + 1);
                 ptr += length;
             } else if constexpr (type_traits::type_relations::is_same_v<element, proto::string> ||
                                  type_traits::type_relations::is_same_v<element, proto::bytes>) {
@@ -810,7 +847,7 @@ namespace rainy::foundation::willow::protobuf::implements {
                     std::uint64_t raw = 0;
                     if (q < end && (*q & 0x80u) == 0) {
                         raw = *q++;
-                    } else if (q + 1 < end && (q[1] & 0x80u) == 0) {
+                    } else if (static_cast<std::size_t>(end - q) >= 2 && (q[1] & 0x80u) == 0) {
                         raw = (static_cast<std::uint64_t>(*q & 0x7Fu)) | (static_cast<std::uint64_t>(q[1]) << 7);
                         q += 2;
                     } else {

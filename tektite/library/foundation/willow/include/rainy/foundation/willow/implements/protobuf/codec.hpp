@@ -60,7 +60,7 @@ namespace rainy::foundation::willow::protobuf::implements {
             value = *ptr++;
             return true;
         }
-        if (ptr + 1 < end && (*ptr & 0x80u) != 0 && (ptr[1] & 0x80u) == 0) {
+        if (static_cast<std::size_t>(end - ptr) >= 2 && (*ptr & 0x80u) != 0 && (ptr[1] & 0x80u) == 0) {
             value = (static_cast<std::uint64_t>(*ptr & 0x7Fu)) | (static_cast<std::uint64_t>(ptr[1]) << 7);
             ptr += 2;
             return true;

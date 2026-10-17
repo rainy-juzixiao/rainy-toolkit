@@ -528,11 +528,11 @@ namespace rainy::foundation::willow::bson::implements {
                 throw_bson_parse_error("truncated bson document length");
             }
             const std::int32_t length = static_cast<std::int32_t>(raw);
-            if (length < 5 || static_cast<std::size_t>(length) > size) {
+            if (length < 5 || static_cast<std::size_t>(length) != size) {
                 throw_bson_parse_error("a bson document length does not match the input");
             }
             const std::uint8_t *const document_end = data + length;
-            decode_fields(ptr, document_end, out);
+            decode_fields(ptr, document_end, out, 0);
             if (ptr >= document_end || *ptr != 0) {
                 throw_bson_parse_error("a bson document is missing its terminator");
             }
@@ -544,7 +544,11 @@ namespace rainy::foundation::willow::bson::implements {
 
     private:
         template <typename Message>
-        static void decode_fields(const std::uint8_t *&ptr, const std::uint8_t *end, Message &out) {
+        static void decode_fields(const std::uint8_t *&ptr, const std::uint8_t *end, Message &out,
+                                  const std::size_t depth) {
+            if (depth >= willow::implements::max_document_nesting_depth) {
+                throw_bson_parse_error("document nesting is too deep");
+            }
             while (ptr < end) {
                 if (*ptr == 0) {
                     break;
@@ -557,15 +561,15 @@ namespace rainy::foundation::willow::bson::implements {
                 }
                 const core::text::string_view key(reinterpret_cast<const char *>(key_data), key_size);
                 dispatch_field<Message>(ptr, end, out, key, static_cast<element_type>(type_byte),
-                                        type_traits::helper::make_index_sequence<field_count_v<Message>>{});
+                                        type_traits::helper::make_index_sequence<field_count_v<Message>>{}, depth);
             }
         }
 
         template <typename Message, std::size_t... Is>
         static void dispatch_field(const std::uint8_t *&ptr, const std::uint8_t *end, Message &out,
                                    const core::text::string_view &key, const element_type kind,
-                                   type_traits::helper::index_sequence<Is...>) {
-            const bool matched = (try_assign_field<Message, Is>(ptr, end, out, key, kind) || ...);
+                                   type_traits::helper::index_sequence<Is...>, const std::size_t depth) {
+            const bool matched = (try_assign_field<Message, Is>(ptr, end, out, key, kind, depth) || ...);
             if (!matched) {
                 skip_element_body(kind, ptr, end);
             }
@@ -573,7 +577,8 @@ namespace rainy::foundation::willow::bson::implements {
 
         template <typename Message, std::size_t Index>
         static bool try_assign_field(const std::uint8_t *&ptr, const std::uint8_t *end, Message &out,
-                                     const core::text::string_view &key, const element_type kind) {
+                                     const core::text::string_view &key, const element_type kind,
+                                     const std::size_t depth) {
             using field_type = field_at_t<Message, Index>;
             using field_kind = typename field_type::kind;
             if (!(field_name_view<Message, Index>() == key)) {
@@ -582,20 +587,21 @@ namespace rainy::foundation::willow::bson::implements {
             if (static_cast<std::uint8_t>(kind) != element_byte_v<field_kind>) {
                 throw_bson_parse_error("a bson element type does not match the registered field kind");
             }
-            decode_member<field_kind>(ptr, end, out.*(field_type::member));
+            decode_member<field_kind>(ptr, end, out.*(field_type::member), depth);
             return true;
         }
 
         template <typename Kind, typename Ty>
-        static void decode_member(const std::uint8_t *&ptr, const std::uint8_t *end, Ty &member) {
+        static void decode_member(const std::uint8_t *&ptr, const std::uint8_t *end, Ty &member,
+                                  const std::size_t depth) {
             using raw = type_traits::modifers::remove_cvref_t<Ty>;
             if constexpr (is_repeated_kind_v<Kind>) {
                 static_assert(direct_container_v<Kind, Ty>, "bson repeated member requires a container with emplace_back()");
-                decode_array<Kind>(ptr, end, member);
+                decode_array<Kind>(ptr, end, member, depth);
             } else if constexpr (is_message_kind_v<Kind>) {
                 static_assert(type_traits::type_relations::is_same_v<raw, message_concept_t<Kind>>,
                               "bson message member type must match message<Concept>");
-                decode_message<message_concept_t<Kind>>(ptr, end, member);
+                decode_message<message_concept_t<Kind>>(ptr, end, member, depth);
             } else if constexpr (type_traits::type_relations::is_same_v<Kind, types::string_>) {
                 static_assert(direct_assignable_string_v<Kind, Ty>, "bson string member requires assign(data(), size())");
                 decode_string(ptr, end, member);
@@ -623,7 +629,7 @@ namespace rainy::foundation::willow::bson::implements {
                 }
                 double value = 0;
                 core::builtin::copy_memory(&value, &bits, sizeof(double));
-                member = static_cast<raw>(value);
+                assign_floating(value, member);
             } else if constexpr (type_traits::type_relations::is_same_v<Kind, types::int32>) {
                 static_assert(type_traits::composite_types::is_arithmetic_v<raw>,
                               "bson int32 member requires an arithmetic type");
@@ -645,13 +651,47 @@ namespace rainy::foundation::willow::bson::implements {
             }
         }
 
+        template <typename Ty>
+        static void assign_floating(const double value, Ty &member) {
+            using raw = type_traits::modifers::remove_cvref_t<Ty>;
+            if constexpr (type_traits::primary_types::is_floating_point_v<raw>) {
+                member = static_cast<raw>(value);
+            } else if constexpr (type_traits::properties::is_unsigned_v<raw>) {
+                if (!(value >= 0.0) || value > static_cast<double>((utility::numeric_limits<raw>::max)())) {
+                    throw_bson_parse_error("a bson double is out of the member range");
+                }
+                member = static_cast<raw>(value);
+            } else {
+                if (value < static_cast<double>((utility::numeric_limits<raw>::min)()) ||
+                    value > static_cast<double>((utility::numeric_limits<raw>::max)())) {
+                    throw_bson_parse_error("a bson double is out of the member range");
+                }
+                member = static_cast<raw>(value);
+            }
+        }
+
         template <typename Integer, typename Ty>
         static void assign_integer(const Integer value, Ty &member) {
-            if (value < static_cast<Integer>((utility::numeric_limits<Ty>::min)()) ||
-                value > static_cast<Integer>((utility::numeric_limits<Ty>::max)())) {
-                throw_bson_parse_error("a bson integer is out of the member range");
+            using raw = type_traits::modifers::remove_cvref_t<Ty>;
+            if constexpr (type_traits::primary_types::is_floating_point_v<raw>) {
+                member = static_cast<raw>(value);
+            } else if constexpr (type_traits::properties::is_unsigned_v<raw>) {
+                if constexpr (type_traits::properties::is_signed_v<Integer>) {
+                    if (value < 0) {
+                        throw_bson_parse_error("a bson integer is out of the member range");
+                    }
+                }
+                if (static_cast<std::uint64_t>(value) > static_cast<std::uint64_t>((utility::numeric_limits<raw>::max)())) {
+                    throw_bson_parse_error("a bson integer is out of the member range");
+                }
+                member = static_cast<raw>(value);
+            } else {
+                if (static_cast<std::int64_t>(value) < static_cast<std::int64_t>((utility::numeric_limits<raw>::min)()) ||
+                    static_cast<std::int64_t>(value) > static_cast<std::int64_t>((utility::numeric_limits<raw>::max)())) {
+                    throw_bson_parse_error("a bson integer is out of the member range");
+                }
+                member = static_cast<raw>(value);
             }
-            member = static_cast<Ty>(value);
         }
 
         template <typename Ty>
@@ -690,7 +730,8 @@ namespace rainy::foundation::willow::bson::implements {
         }
 
         template <typename Concept2>
-        static void decode_message(const std::uint8_t *&ptr, const std::uint8_t *end, Concept2 &member) {
+        static void decode_message(const std::uint8_t *&ptr, const std::uint8_t *end, Concept2 &member,
+                                   const std::size_t depth) {
             std::uint32_t raw = 0;
             if (!take_le32(ptr, end, raw)) {
                 throw_bson_parse_error("truncated bson document length");
@@ -700,7 +741,7 @@ namespace rainy::foundation::willow::bson::implements {
                 throw_bson_parse_error("a nested bson document runs past the end of the input");
             }
             const std::uint8_t *const document_end = ptr + (length - 4);
-            decode_fields(ptr, document_end, member);
+            decode_fields(ptr, document_end, member, depth + 1);
             if (ptr >= document_end || *ptr != 0) {
                 throw_bson_parse_error("a nested bson document is missing its terminator");
             }
@@ -711,7 +752,8 @@ namespace rainy::foundation::willow::bson::implements {
         }
 
         template <typename Kind, typename Ty>
-        static void decode_array(const std::uint8_t *&ptr, const std::uint8_t *end, Ty &member) {
+        static void decode_array(const std::uint8_t *&ptr, const std::uint8_t *end, Ty &member,
+                                 const std::size_t depth) {
             std::uint32_t raw = 0;
             if (!take_le32(ptr, end, raw)) {
                 throw_bson_parse_error("truncated bson array length");
@@ -737,7 +779,7 @@ namespace rainy::foundation::willow::bson::implements {
                     continue;
                 }
                 auto &slot = member.emplace_back();
-                decode_member<element_kind>(ptr, array_end, slot);
+                decode_member<element_kind>(ptr, array_end, slot, depth + 1);
             }
             if (ptr >= array_end || *ptr != 0) {
                 throw_bson_parse_error("a bson array is missing its terminator");
