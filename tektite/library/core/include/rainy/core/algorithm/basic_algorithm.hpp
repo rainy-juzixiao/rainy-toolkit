@@ -847,7 +847,7 @@ namespace rainy::core::algorithm {
         type_traits::properties::is_nothrow_copy_assignable_v<type_traits::other_trans::conditional_t<
             type_traits::implements::_is_pointer_v<InputIter>, type_traits::modifers::remove_pointer_t<InputIter>,
             typename utility::iterator_traits<InputIter>::value_type>>) -> OutIter {
-        if (begin1 == end1 || (end1 - 1) == begin1) {
+        if (begin1 == end1) {
             return dest;
         }
         for (InputIter iter = begin1; iter != end1; ++iter, ++dest, ++begin2) {

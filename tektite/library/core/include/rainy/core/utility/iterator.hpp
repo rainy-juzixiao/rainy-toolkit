@@ -1128,8 +1128,8 @@ namespace rainy::utility {
          * @param n 要减去的位数。
          * @return 结果位置。
          */
-        constexpr difference_type subtract(difference_type n) const noexcept {
-            return current - n;
+        constexpr const_iterator subtract(difference_type n) const noexcept {
+            return const_iterator{current - n};
         }
 
         /**
@@ -1183,7 +1183,7 @@ namespace rainy::utility {
          * @param n 偏移量。
          * @return 结果位置。
          */
-        constexpr friend difference_type operator-(const const_iterator &left, difference_type n) {
+        constexpr friend const_iterator operator-(const const_iterator &left, difference_type n) {
             return left.subtract(n);
         }
 
@@ -1589,8 +1589,8 @@ namespace rainy::utility {
          * @param n 要减去的位数。
          * @return 结果位置。
          */
-        constexpr typename base::difference_type subtract(typename base::difference_type n) const noexcept {
-            return this->current - n;
+        constexpr iterator subtract(typename base::difference_type n) const noexcept {
+            return iterator{this->current - n};
         }
 
         /**
@@ -1710,7 +1710,7 @@ namespace rainy::utility {
          * @param n 偏移量。
          * @return 结果位置。
          */
-        constexpr friend typename base::difference_type operator-(const iterator &left, typename base::difference_type n) {
+        constexpr friend iterator operator-(const iterator &left, typename base::difference_type n) {
             return left.subtract(n);
         }
     };

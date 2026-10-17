@@ -172,8 +172,12 @@ namespace rainy::utility {
          * \lang simp-chinese
          * @brief 用于元素访问的箭头运算符。
          */
-        RAINY_NODISCARD constexpr pointer operator->() const noexcept(noexcept(current.operator->())) {
-            return current.operator->();
+        RAINY_NODISCARD constexpr pointer operator->() const noexcept {
+            if constexpr (type_traits::primary_types::is_pointer_v<iterator_type>) {
+                return current;
+            } else {
+                return current.operator->();
+            }
         }
 
         /**

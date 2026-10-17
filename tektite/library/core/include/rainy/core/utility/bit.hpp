@@ -234,6 +234,12 @@ namespace rainy::utility {
     RAINY_NODISCARD constexpr rain_fn rotate_left(Type value, int shift) noexcept -> Type {
         constexpr int bits = utility::numeric_limits<Type>::digits;
         shift %= bits;
+        if (shift < 0) {
+            shift += bits;
+        }
+        if (shift == 0) {
+            return value;
+        }
         return (value << shift) | (value >> (bits - shift));
     }
 
@@ -258,6 +264,12 @@ namespace rainy::utility {
     RAINY_NODISCARD constexpr rain_fn rotate_right(Type value, int shift) noexcept -> Type {
         constexpr int bits = utility::numeric_limits<Type>::digits;
         shift %= bits;
+        if (shift < 0) {
+            shift += bits;
+        }
+        if (shift == 0) {
+            return value;
+        }
         return (value >> shift) | (value << (bits - shift));
     }
 

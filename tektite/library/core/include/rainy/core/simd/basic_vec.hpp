@@ -15,6 +15,7 @@
  */
 #ifndef RAINY_CORE_SIMD_BASIC_SIMD_HPP
 #define RAINY_CORE_SIMD_BASIC_SIMD_HPP
+#include <rainy/core/collections/array.hpp>
 #include <iterator>
 #include <rainy/core/simd/fwd.hpp>
 #include <rainy/core/simd/native_abi.hpp>
@@ -513,22 +514,26 @@ namespace rainy::core::implements {
 }
 
 namespace rainy::core::implements {
-    template <typename Elem, typename Abi, simd_size_type N, typename Source>
+    template <typename Ty, simd_size_type N, typename Source>
     RAINY_CONSTEXPR26 auto chunk_vec_impl(const Source &val) noexcept {
-        using result_t = basic_vec<Elem, scalar_abi>;
-        result_t out[N]{};
-        for (simd_size_type i = 0; i < N; ++i) {
-            out[i] = result_t(static_cast<Elem>(val[i]));
+        core::collections::array<Ty, static_cast<std::size_t>(N)> out{};
+        for (simd_size_type j = 0; j < N; ++j) {
+            const simd_size_type base = j * static_cast<simd_size_type>(Ty::size());
+            out[static_cast<std::size_t>(j)] = Ty{[&val, base](auto index) {
+                return static_cast<typename Ty::value_type>(val[base + static_cast<simd_size_type>(index)]);
+            }};
         }
         return out;
     }
 
-    template <std::size_t Bytes, typename Abi, simd_size_type N, typename Source>
+    template <typename Ty, simd_size_type N, typename Source>
     RAINY_CONSTEXPR26 auto chunk_mask_impl(const Source &val) noexcept {
-        using mask_t = basic_mask<Bytes, scalar_abi>;
-        mask_t out[N]{};
-        for (simd_size_type i = 0; i < N; ++i) {
-            out[i] = mask_t(val[i]);
+        core::collections::array<Ty, static_cast<std::size_t>(N)> out{};
+        for (simd_size_type j = 0; j < N; ++j) {
+            const simd_size_type base = j * static_cast<simd_size_type>(Ty::size());
+            out[static_cast<std::size_t>(j)] = Ty{[&val, base](auto index) {
+                return val[base + static_cast<simd_size_type>(index)];
+            }};
         }
         return out;
     }
@@ -539,29 +544,29 @@ namespace rainy::core {
     template <typename Ty, typename Abi>
     RAINY_CONSTEXPR26 auto chunk(const basic_vec<typename Ty::value_type, Abi> &val) noexcept {
         using elem_t = typename Ty::value_type;
-        constexpr simd_size_type N = simd_size_v<elem_t, Abi>;
-        return implements::chunk_vec_impl<elem_t, Abi, N>(val);
+        constexpr simd_size_type N = simd_size_v<elem_t, Abi> / Ty::size();
+        return implements::chunk_vec_impl<Ty, N>(val);
     }
 
     template <typename Ty, typename Abi>
     RAINY_CONSTEXPR26 auto chunk(const basic_mask<mask_element_size<Ty>, Abi> &val) noexcept {
-        using elem_t = Ty;
         constexpr std::size_t Bytes = mask_element_size<Ty>;
-        constexpr simd_size_type N = simd_size_v<elem_t, Abi>;
-        return implements::chunk_mask_impl<Bytes, Abi, N>(val);
+        constexpr simd_size_type N =
+            simd_size_v<implements::integer_from_t<Bytes>, Abi> / static_cast<simd_size_type>(Ty::size());
+        return implements::chunk_mask_impl<Ty, N>(val);
     }
 
     template <simd_size_type N, typename Ty, typename Abi>
     RAINY_CONSTEXPR26 auto chunk(const basic_vec<Ty, Abi> &val) noexcept {
         static_assert(N <= simd_size_v<Ty, Abi>, "chunk<N>: N exceeds lane count");
-        return implements::chunk_vec_impl<Ty, Abi, N>(val);
+        return implements::chunk_vec_impl<resize_t<N, basic_vec<Ty, Abi>>, N>(val);
     }
 
     template <simd_size_type N, std::size_t Bytes, typename Abi>
     RAINY_CONSTEXPR26 auto chunk(const basic_mask<Bytes, Abi> &val) noexcept {
         static_assert(N <= simd_size_v<unsigned char, Abi> * Bytes,
                       "chunk<N>: N exceeds mask bit count");
-        return implements::chunk_mask_impl<Bytes, Abi, N>(val);
+        return implements::chunk_mask_impl<resize_t<N, basic_mask<Bytes, Abi>>, N>(val);
     }
 
     template <typename Ty, typename Abi, typename BinaryOperation,
