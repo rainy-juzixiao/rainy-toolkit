@@ -91,6 +91,7 @@ namespace rainy::foundation::willow::jsonnet::implements {
         op_or,
         op_not,
         op_tilde,
+        op_assign,
     };
 
     RAINY_TOOLKIT_API const char *token_name(token_type type) noexcept;
@@ -412,11 +413,11 @@ namespace rainy::foundation::willow::jsonnet::implements {
                                 writer.add_surrogates(code, trail);
                                 return;
                             }
-                            unicode_writer<core::text::string> writer{buffer};
-                            writer.add_code(code);
-                            writer.add_code(trail);
-                            return;
                         }
+                        exceptions::willow::jsonnet::throw_jsonnet_parse_error("unpaired unicode surrogate");
+                    }
+                    if (unicode_surrogate_trail_begin <= code && code <= unicode_surrogate_trail_end) {
+                        exceptions::willow::jsonnet::throw_jsonnet_parse_error("unpaired unicode surrogate");
                     }
                     unicode_writer<core::text::string> writer{buffer};
                     writer.add_code(code);
@@ -478,6 +479,7 @@ namespace rainy::foundation::willow::jsonnet::implements {
             core::text::string raw;
             core::text::string prefix;
             bool prefix_known = false;
+            bool terminated = false;
             while (position_ < size_) {
                 const std::size_t line_begin = position_;
                 while (position_ < size_ && data_[position_] != '\n') {
@@ -490,6 +492,7 @@ namespace rainy::foundation::willow::jsonnet::implements {
                     advance();
                 }
                 if (is_terminator(line)) {
+                    terminated = true;
                     break;
                 }
                 if (!prefix_known && !is_blank(line)) {
@@ -504,6 +507,9 @@ namespace rainy::foundation::willow::jsonnet::implements {
                 if (has_newline) {
                     raw.push_back('\n');
                 }
+            }
+            if (!terminated) {
+                exceptions::willow::jsonnet::throw_jsonnet_parse_error("unterminated text block");
             }
             if (chomp && !raw.empty() && raw.back() == '\n') {
                 raw.pop_back();
@@ -695,7 +701,7 @@ namespace rainy::foundation::willow::jsonnet::implements {
                     result.type = token_type::op_greater;
                     break;
                 case '=':
-                    result.type = token_type::op_equal;
+                    result.type = token_type::op_assign;
                     break;
                 case '&':
                     result.type = token_type::op_ampersand;

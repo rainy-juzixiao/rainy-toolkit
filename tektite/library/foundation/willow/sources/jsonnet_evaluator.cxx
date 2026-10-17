@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 #include <cmath>
+#include <cstdint>
 #include <rainy/foundation/willow/implements/jsonnet/evaluator.hpp>
 #include <rainy/foundation/willow/implements/jsonnet/parser.hpp>
 
@@ -37,14 +38,6 @@ namespace rainy::foundation::willow::jsonnet::implements {
             return v->number;
         }
 
-        std::int64_t to_int64(const value_ptr &v) {
-            const double number = as_number(v);
-            if (!std::isfinite(number) || number < -9223372036854775808.0 || number >= 9223372036854775808.0) {
-                exceptions::willow::jsonnet::throw_jsonnet_evaluate_error("integer value out of range");
-            }
-            return static_cast<std::int64_t>(number);
-        }
-
         std::int64_t to_integer(const value_ptr &v, const char *what) {
             const double number = as_number(v);
             if (!std::isfinite(number) || number != std::floor(number)) {
@@ -58,6 +51,10 @@ namespace rainy::foundation::willow::jsonnet::implements {
                 exceptions::willow::jsonnet::throw_jsonnet_evaluate_error(message.c_str());
             }
             return static_cast<std::int64_t>(number);
+        }
+
+        std::int64_t to_int64(const value_ptr &v) {
+            return to_integer(v, "operand");
         }
 
         std::int64_t to_index(const value_ptr &v) {
@@ -84,14 +81,29 @@ namespace rainy::foundation::willow::jsonnet::implements {
             std::size_t &counter_;
         };
 
-        int compare_values(const value_ptr &left, const value_ptr &right) {
+        int compare_values(const value_ptr &left, const value_ptr &right, const std::size_t depth = 0) {
+            if (depth >= willow::implements::max_document_nesting_depth) {
+                exceptions::willow::jsonnet::throw_jsonnet_evaluate_error("document nesting is too deep");
+            }
             if (left->kind == value_kind::number && right->kind == value_kind::number) {
                 return left->number < right->number ? -1 : (left->number > right->number ? 1 : 0);
             }
             if (left->kind == value_kind::string && right->kind == value_kind::string) {
                 return left->str < right->str ? -1 : (left->str > right->str ? 1 : 0);
             }
-            return static_cast<int>(left->kind) - static_cast<int>(right->kind);
+            if (left->kind == value_kind::array && right->kind == value_kind::array) {
+                const std::size_t count = left->elements.size() < right->elements.size() ? left->elements.size()
+                                                                                         : right->elements.size();
+                for (std::size_t i = 0; i < count; ++i) {
+                    const int result = compare_values(left->elements[i]->force(), right->elements[i]->force(), depth + 1);
+                    if (result != 0) {
+                        return result;
+                    }
+                }
+                return left->elements.size() < right->elements.size() ? -1
+                                                                       : (left->elements.size() > right->elements.size() ? 1 : 0);
+            }
+            exceptions::willow::jsonnet::throw_jsonnet_evaluate_error("cannot compare these values");
         }
 
         core::text::string view_to_string(const core::text::basic_string_view<char> view) {
@@ -127,81 +139,6 @@ namespace rainy::foundation::willow::jsonnet::implements {
             }
             return false;
         }
-
-        document to_document(const value_ptr &v);
-
-        document to_document(const value_ptr &v) {
-            document out;
-            switch (v->kind) {
-                case value_kind::null_value:
-                    out = document(document_type::null);
-                    break;
-                case value_kind::boolean:
-                    out = document(v->boolean);
-                    break;
-                case value_kind::number:
-                    out = document(v->number);
-                    break;
-                case value_kind::string:
-                    out = document(v->str);
-                    break;
-                case value_kind::array:
-                    out = document(document_type::array);
-                    for (const auto &element: v->elements) {
-                        out.push_back(to_document(element->force()));
-                    }
-                    break;
-                case value_kind::object:
-                    out = document(document_type::object);
-                    for (const auto &name: v->object->field_names(false)) {
-                        std::size_t layer = 0;
-                        const field_slot *slot = v->object->find(name, layer);
-                        out[name] = to_document(slot->body(make_env(nullptr)));
-                    }
-                    break;
-                case value_kind::function:
-                    exceptions::willow::jsonnet::throw_jsonnet_evaluate_error("cannot convert a function to a document");
-            }
-            return out;
-        }
-
-        value_ptr from_document(const document &doc) {
-            switch (doc.type()) {
-                case document_type::null:
-                    return make_null();
-                case document_type::boolean:
-                    return make_boolean(doc.as_bool());
-                case document_type::number_integer:
-                    return make_number(static_cast<double>(doc.as_integer()));
-                case document_type::number_float:
-                    return make_number(doc.as_float());
-                case document_type::string:
-                    return make_string(doc.as_string());
-                case document_type::array: {
-                    core::collections::vector<thunk_ptr> elements;
-                    for (const auto &element: doc.as_array()) {
-                        elements.push_back(eager_thunk(from_document(element)));
-                    }
-                    return make_array(utility::move(elements));
-                }
-                case document_type::object: {
-                    object_ptr object = core::memory::make_shared<object_value>();
-                    object_layer layer;
-                    layer.lexical_env = make_env(nullptr);
-                    for (const auto &entry: doc.as_object()) {
-                        field_slot slot;
-                        slot.visibility = field_visibility::visible;
-                        value_ptr captured = from_document(entry.second);
-                        slot.body = [captured](const env_ptr &) -> value_ptr { return captured; };
-                        layer.names.push_back(entry.first);
-                        layer.slots.push_back(utility::move(slot));
-                    }
-                    object->layers.push_back(utility::move(layer));
-                    return make_object(utility::move(object));
-                }
-            }
-            return make_null();
-        }
     }
 
     value_ptr evaluator::evaluate(jsonnet_node *root) {
@@ -223,13 +160,19 @@ namespace rainy::foundation::willow::jsonnet::implements {
                 return make_string(core::text::string(node->text.data(), node->text.size()));
             case jsonnet_node_kind::identifier:
                 return eval_identifier(node, env);
-            case jsonnet_node_kind::self_reference:
-            case jsonnet_node_kind::dollar: {
+            case jsonnet_node_kind::self_reference: {
                 const auto *self = env->find_self();
                 if (self == nullptr) {
                     exceptions::willow::jsonnet::throw_jsonnet_evaluate_error("self is not available outside an object");
                 }
                 return *self;
+            }
+            case jsonnet_node_kind::dollar: {
+                const auto *dollar = env->find_dollar();
+                if (dollar == nullptr) {
+                    exceptions::willow::jsonnet::throw_jsonnet_evaluate_error("$ is not available outside an object");
+                }
+                return *dollar;
             }
             case jsonnet_node_kind::super_reference: {
                 const auto *super = env->find_super();
@@ -403,11 +346,14 @@ namespace rainy::foundation::willow::jsonnet::implements {
             return make_boolean(!values_equal(left, right));
         }
         if (op == "in") {
+            if (left->kind != value_kind::string) {
+                exceptions::willow::jsonnet::throw_jsonnet_evaluate_error("'in' requires a string on the left");
+            }
             if (right->kind != value_kind::object) {
                 exceptions::willow::jsonnet::throw_jsonnet_evaluate_error("'in' requires an object on the right");
             }
             std::size_t layer = 0;
-            return make_boolean(right->object->find(value_to_string(*left), layer) != nullptr);
+            return make_boolean(right->object->find(left->str, layer) != nullptr);
         }
         exceptions::willow::jsonnet::throw_jsonnet_evaluate_error("unknown binary operator");
     }
@@ -424,9 +370,27 @@ namespace rainy::foundation::willow::jsonnet::implements {
                             core::text::basic_string_view<char>(node->at(1)->text.data(), node->at(1)->text.size()));
     }
 
-    bool evaluator::values_equal(const value_ptr &left, const value_ptr &right) {
+    bool evaluator::values_equal(const value_ptr &left, const value_ptr &right, const std::size_t depth) {
+        if (depth >= willow::implements::max_document_nesting_depth) {
+            exceptions::willow::jsonnet::throw_jsonnet_evaluate_error("document nesting is too deep");
+        }
+        if (left->kind == value_kind::array && right->kind == value_kind::array) {
+            if (left->elements.size() != right->elements.size()) {
+                return false;
+            }
+            for (std::size_t i = 0; i < left->elements.size(); ++i) {
+                if (!values_equal(left->elements[i]->force(), right->elements[i]->force(), depth + 1)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        if (left->kind == value_kind::object && right->kind == value_kind::object &&
+            left->object.get() == right->object.get()) {
+            return true;
+        }
         if (left->kind != value_kind::object || right->kind != value_kind::object) {
-            return value_equals(*left, *right);
+            return value_equals(*left, *right, depth);
         }
         const auto names = left->object->field_names(false);
         if (names.size() != right->object->field_names(false).size()) {
@@ -439,7 +403,7 @@ namespace rainy::foundation::willow::jsonnet::implements {
             const field_slot *right_slot = right->object->find(name, right_layer);
             if (right_slot == nullptr ||
                 !values_equal(eval_field_body(left->object, name, *left_slot, left_layer, left),
-                              eval_field_body(right->object, name, *right_slot, right_layer, right))) {
+                              eval_field_body(right->object, name, *right_slot, right_layer, right), depth + 1)) {
                 return false;
             }
         }
@@ -465,7 +429,10 @@ namespace rainy::foundation::willow::jsonnet::implements {
             return make_string(utility::move(character));
         }
         if (target->kind == value_kind::object) {
-            return lookup_field(target, value_to_string(*index));
+            if (index->kind != value_kind::string) {
+                exceptions::willow::jsonnet::throw_jsonnet_evaluate_error("object index must be a string");
+            }
+            return lookup_field(target, index->str);
         }
         exceptions::willow::jsonnet::throw_jsonnet_evaluate_error("indexing requires an array, string or object");
     }
@@ -493,6 +460,9 @@ namespace rainy::foundation::willow::jsonnet::implements {
         const std::int64_t upper = step < 0 ? size - 1 : size;
         auto norm = [size, lower, upper](std::int64_t value) {
             if (value < 0) {
+                if (value < -size) {
+                    return lower;
+                }
                 value += size;
             }
             return value < lower ? lower : (value > upper ? upper : value);
@@ -503,15 +473,32 @@ namespace rainy::foundation::willow::jsonnet::implements {
         auto advance = [step](std::int64_t index, const std::int64_t stop) {
             return step > 0 ? index < stop : index > stop;
         };
+        auto next_index = [step](const std::int64_t index, const std::int64_t stop) {
+            if (step > 0) {
+                if (index > stop || static_cast<std::uint64_t>(stop - index) <= static_cast<std::uint64_t>(step)) {
+                    return stop;
+                }
+                return index + step;
+            }
+            if (index < stop) {
+                return stop;
+            }
+            const std::uint64_t distance = static_cast<std::uint64_t>(index) - static_cast<std::uint64_t>(stop);
+            const std::uint64_t magnitude = static_cast<std::uint64_t>(0) - static_cast<std::uint64_t>(step);
+            if (distance <= magnitude) {
+                return stop;
+            }
+            return index + step;
+        };
         if (target->kind == value_kind::array) {
             core::collections::vector<thunk_ptr> result;
-            for (std::int64_t i = begin; advance(i, end); i += step) {
+            for (std::int64_t i = begin; advance(i, end); i = next_index(i, end)) {
                 result.push_back(target->elements[static_cast<std::size_t>(i)]);
             }
             return make_array(utility::move(result));
         }
         core::text::string result;
-        for (std::int64_t i = begin; advance(i, end); i += step) {
+        for (std::int64_t i = begin; advance(i, end); i = next_index(i, end)) {
             result += characters[static_cast<std::size_t>(i)];
         }
         return make_string(utility::move(result));
@@ -522,14 +509,15 @@ namespace rainy::foundation::willow::jsonnet::implements {
         if (callee->kind != value_kind::function) {
             exceptions::willow::jsonnet::throw_jsonnet_evaluate_error("attempt to call a non-function");
         }
-        core::collections::vector<value_ptr> positional;
-        core::collections::vector<core::container::pair<core::text::string, value_ptr>> named;
+        core::collections::vector<thunk_ptr> positional;
+        core::collections::vector<core::container::pair<core::text::string, thunk_ptr>> named;
         for (std::size_t i = 1; i < node->child_count(); ++i) {
             jsonnet_node *arg = node->at(i);
             if (arg->json_kind == jsonnet_node_kind::named_argument) {
-                named.emplace_back(core::text::string(arg->text.data(), arg->text.size()), eval(arg->at(0), env));
+                named.emplace_back(core::text::string(arg->text.data(), arg->text.size()),
+                                   make_thunk([this, arg, env]() { return eval(arg->at(0), env); }));
             } else {
-                positional.push_back(eval(arg->at(0), env));
+                positional.push_back(make_thunk([this, arg, env]() { return eval(arg->at(0), env); }));
             }
         }
         return call_function(callee->function, positional, named);
@@ -549,31 +537,43 @@ namespace rainy::foundation::willow::jsonnet::implements {
         return make_function(utility::move(fn));
     }
 
-    value_ptr evaluator::call_function(const function_ptr &fn, core::collections::vector<value_ptr> &positional,
-                                       core::collections::vector<core::container::pair<core::text::string, value_ptr>> &named) {
+    value_ptr evaluator::call_function(const function_ptr &fn, core::collections::vector<thunk_ptr> &positional,
+                                       core::collections::vector<core::container::pair<core::text::string, thunk_ptr>> &named) {
         if (fn->is_native) {
-            if (positional.size() + named.size() != fn->params.size()) {
+            if (positional.size() + named.size() != fn->params.size() || positional.size() > fn->params.size()) {
                 exceptions::willow::jsonnet::throw_jsonnet_evaluate_error("wrong number of arguments for function call");
             }
-            if (!named.empty()) {
-                core::collections::vector<value_ptr> reordered;
-                reordered.reserve(fn->params.size());
-                for (const auto &param: fn->params) {
-                    bool bound = false;
-                    for (auto &entry: named) {
-                        if (entry.first == param) {
-                            reordered.push_back(entry.second);
-                            bound = true;
-                            break;
-                        }
-                    }
-                    if (!bound) {
-                        exceptions::willow::jsonnet::throw_jsonnet_evaluate_error("unknown named argument for function call");
-                    }
-                }
-                return fn->native(reordered);
+            core::collections::vector<value_ptr> arguments(fn->params.size());
+            core::collections::vector<char> bound_flags(fn->params.size(), 0);
+            for (std::size_t i = 0; i < positional.size(); ++i) {
+                arguments[i] = positional[i]->force();
+                bound_flags[i] = 1;
             }
-            return fn->native(positional);
+            for (const auto &entry: named) {
+                bool matched = false;
+                for (std::size_t i = 0; i < fn->params.size(); ++i) {
+                    if (fn->params[i] != entry.first) {
+                        continue;
+                    }
+                    if (bound_flags[i] != 0) {
+                        exceptions::willow::jsonnet::throw_jsonnet_evaluate_error(
+                            "duplicate or unknown named argument for function call");
+                    }
+                    arguments[i] = entry.second->force();
+                    bound_flags[i] = 1;
+                    matched = true;
+                    break;
+                }
+                if (!matched) {
+                    exceptions::willow::jsonnet::throw_jsonnet_evaluate_error("unknown named argument for function call");
+                }
+            }
+            for (const char bound: bound_flags) {
+                if (bound == 0) {
+                    exceptions::willow::jsonnet::throw_jsonnet_evaluate_error("missing argument for function call");
+                }
+            }
+            return fn->native(arguments);
         }
         env_ptr call_env = make_env(fn->env);
         const auto *self = fn->env->find_self();
@@ -584,11 +584,15 @@ namespace rainy::foundation::willow::jsonnet::implements {
         if (super != nullptr) {
             call_env->super = *super;
         }
+        const auto *dollar = fn->env->find_dollar();
+        if (dollar != nullptr) {
+            call_env->dollar = *dollar;
+        }
         std::size_t positional_index = 0;
         core::collections::vector<char> named_consumed(named.size(), 0);
         for (std::size_t i = 0; i < fn->params.size(); ++i) {
             const auto &name = fn->params[i];
-            value_ptr bound;
+            thunk_ptr bound;
             bool has_bound = false;
             if (positional_index < positional.size()) {
                 bound = positional[positional_index++];
@@ -604,7 +608,7 @@ namespace rainy::foundation::willow::jsonnet::implements {
                 }
             }
             if (has_bound) {
-                call_env->bindings.emplace_back(name, eager_thunk(bound));
+                call_env->bindings.emplace_back(name, bound);
             } else if (fn->defaults[i] != nullptr) {
                 jsonnet_node *default_node = fn->defaults[i];
                 env_ptr capture = call_env;
@@ -656,10 +660,10 @@ namespace rainy::foundation::willow::jsonnet::implements {
                                    make_thunk([this, body, capture]() { return eval(body, capture); }));
     }
 
-    void evaluator::add_field(object_layer &layer, jsonnet_node *field, const env_ptr &env) {
+    void evaluator::add_field(object_layer &layer, jsonnet_node *field, const env_ptr &env, const env_ptr &name_env) {
         core::text::string name;
         if (field->has_flag(flag_computed_name)) {
-            name = value_to_string(*eval(field->at(0), env));
+            name = value_to_string(*eval(field->at(0), name_env));
         } else {
             name = core::text::string(field->at(0)->text.data(), field->at(0)->text.size());
         }
@@ -707,11 +711,21 @@ namespace rainy::foundation::willow::jsonnet::implements {
         }
         object_layer layer;
         layer.lexical_env = binds.empty() ? env : make_env(env);
+        layer.locals = binds;
         for (jsonnet_node *bind: binds) {
             add_local_binding(layer.lexical_env, bind);
         }
         for (jsonnet_node *field: fields) {
-            add_field(layer, field, layer.lexical_env);
+            add_field(layer, field, layer.lexical_env, layer.lexical_env);
+        }
+        for (std::size_t i = 0; i < layer.names.size(); ++i) {
+            for (std::size_t j = i + 1; j < layer.names.size(); ++j) {
+                if (layer.names[i] == layer.names[j]) {
+                    core::text::string message = "duplicate field name: ";
+                    message.append(layer.names[i].data(), layer.names[i].size());
+                    exceptions::willow::jsonnet::throw_jsonnet_evaluate_error(message.c_str());
+                }
+            }
         }
         for (jsonnet_node *assertion: asserts) {
             layer.asserts.push_back(assertion);
@@ -742,9 +756,15 @@ namespace rainy::foundation::willow::jsonnet::implements {
             super_object->layers.push_back(object->layers[i]);
         }
         const value_ptr super_value = make_object(super_object);
-        env_ptr field_env = make_env(slot.scope != nullptr ? slot.scope : object->layers[layer_index].lexical_env);
+        const object_layer &layer = object->layers[layer_index];
+        env_ptr field_env = make_env(slot.scope != nullptr ? slot.scope : layer.lexical_env);
         field_env->self = self_value;
         field_env->super = super_value;
+        const value_ptr *dollar = field_env->find_dollar();
+        field_env->dollar = dollar != nullptr ? *dollar : self_value;
+        for (jsonnet_node *bind: layer.locals) {
+            add_local_binding(field_env, bind);
+        }
         value_ptr base = slot.body(field_env);
         if (slot.inherits) {
             std::size_t super_layer = 0;
@@ -762,11 +782,21 @@ namespace rainy::foundation::willow::jsonnet::implements {
             return;
         }
         object->asserts_run = true;
-        for (const auto &layer: object->layers) {
+        for (std::size_t index = 0; index < object->layers.size(); ++index) {
+            const auto &layer = object->layers[index];
             for (jsonnet_node *assertion: layer.asserts) {
                 env_ptr assert_env = make_env(layer.lexical_env);
                 assert_env->self = self_value;
-                assert_env->super = make_object(core::memory::make_shared<object_value>());
+                object_ptr super_object = core::memory::make_shared<object_value>();
+                for (std::size_t i = 0; i < index; ++i) {
+                    super_object->layers.push_back(object->layers[i]);
+                }
+                assert_env->super = make_object(utility::move(super_object));
+                const value_ptr *dollar = assert_env->find_dollar();
+                assert_env->dollar = dollar != nullptr ? *dollar : self_value;
+                for (jsonnet_node *bind: layer.locals) {
+                    add_local_binding(assert_env, bind);
+                }
                 if (!as_boolean(eval(assertion->at(0), assert_env))) {
                     core::text::string message = "assertion failed";
                     if (assertion->at(1)->json_kind != jsonnet_node_kind::null_literal) {
@@ -859,6 +889,7 @@ namespace rainy::foundation::willow::jsonnet::implements {
         }
         object_layer layer;
         layer.lexical_env = binds.empty() ? env : make_env(env);
+        layer.locals = binds;
         for (jsonnet_node *bind: binds) {
             add_local_binding(layer.lexical_env, bind);
         }
@@ -868,14 +899,31 @@ namespace rainy::foundation::willow::jsonnet::implements {
         core::collections::vector<env_ptr> contexts;
         collect_comprehension_envs(clauses, layer.lexical_env, contexts);
         for (const auto &context: contexts) {
+            env_ptr context_env = make_env(context);
+            for (jsonnet_node *bind: binds) {
+                add_local_binding(context_env, bind);
+            }
             for (jsonnet_node *field: fields) {
                 if (field->has_flag(flag_computed_name)) {
                     const value_ptr name_value = eval(field->at(0), context);
                     if (name_value->kind == value_kind::null_value) {
                         continue;
                     }
+                    const core::text::string name = value_to_string(*name_value);
+                    bool duplicate = false;
+                    for (const auto &existing: layer.names) {
+                        if (existing == name) {
+                            duplicate = true;
+                            break;
+                        }
+                    }
+                    if (duplicate) {
+                        core::text::string message = "duplicate field name: ";
+                        message.append(name.data(), name.size());
+                        exceptions::willow::jsonnet::throw_jsonnet_evaluate_error(message.c_str());
+                    }
                 }
-                add_field(layer, field, context);
+                add_field(layer, field, context_env, context);
             }
         }
         object->layers.push_back(utility::move(layer));
@@ -963,9 +1011,17 @@ namespace rainy::foundation::willow::jsonnet::implements {
             }
             switch (spec) {
                 case 'd':
-                case 'i':
-                    result.append(number_to_string(std::floor(as_number(argument))));
+                case 'i': {
+                    const double number = as_number(argument);
+                    if (!std::isfinite(number) || number < -9223372036854775808.0 || number >= 9223372036854775808.0) {
+                        exceptions::willow::jsonnet::throw_jsonnet_evaluate_error("%d argument out of range");
+                    }
+                    char buffer[32]{};
+                    const auto code = core::text::to_chars(buffer, buffer + sizeof(buffer),
+                                                           static_cast<std::int64_t>(number));
+                    result.append(buffer, static_cast<std::size_t>(code.ptr - buffer));
                     break;
+                }
                 case 'f': {
                     char buffer[64]{};
                     const auto code = core::text::to_chars(buffer, buffer + sizeof(buffer), as_number(argument),
@@ -981,7 +1037,7 @@ namespace rainy::foundation::willow::jsonnet::implements {
                     if (!std::isfinite(number) || number != std::floor(number)) {
                         exceptions::willow::jsonnet::throw_jsonnet_evaluate_error("%c requires an integer");
                     }
-                    const std::int64_t code = to_int64(argument);
+                    const std::int64_t code = to_integer(argument, "%c argument");
                     if (code < 0 || code > 0x10FFFF ||
                         (code >= static_cast<std::int64_t>(willow::implements::unicode_surrogate_lead_begin) &&
                          code <= static_cast<std::int64_t>(willow::implements::unicode_surrogate_trail_end))) {
@@ -1028,8 +1084,10 @@ namespace rainy::foundation::willow::jsonnet::implements {
                     return make_number(static_cast<double>(v->elements.size()));
                 case value_kind::object:
                     return make_number(static_cast<double>(v->object->field_names(false).size()));
+                case value_kind::function:
+                    return make_number(static_cast<double>(v->function->params.size()));
                 default:
-                    exceptions::willow::jsonnet::throw_jsonnet_evaluate_error("std.length requires a string, array or object");
+                    exceptions::willow::jsonnet::throw_jsonnet_evaluate_error("std.length requires a string, array, object or function");
             }
         });
         add_native(layer, "type", {"x"}, [](core::collections::vector<value_ptr> &args) -> value_ptr {
@@ -1039,10 +1097,13 @@ namespace rainy::foundation::willow::jsonnet::implements {
             return make_string(value_to_string(*args[0]));
         });
         add_native(layer, "codepoint", {"x"}, [](core::collections::vector<value_ptr> &args) -> value_ptr {
+            if (args[0]->kind != value_kind::string) {
+                exceptions::willow::jsonnet::throw_jsonnet_evaluate_error("std.codepoint requires a string");
+            }
             return make_number(static_cast<double>(willow::implements::operations::codepoint<document>(args[0]->str)));
         });
         add_native(layer, "char", {"n"}, [](core::collections::vector<value_ptr> &args) -> value_ptr {
-            const std::int64_t code = to_int64(args[0]);
+            const std::int64_t code = to_integer(args[0], "std.char argument");
             if (code < 0 || code > 0x10FFFF ||
                 (code >= static_cast<std::int64_t>(willow::implements::unicode_surrogate_lead_begin) &&
                  code <= static_cast<std::int64_t>(willow::implements::unicode_surrogate_trail_end))) {
@@ -1072,6 +1133,9 @@ namespace rainy::foundation::willow::jsonnet::implements {
             return make_number(std::pow(as_number(args[0]), as_number(args[1])));
         });
         add_native(layer, "min", {"arr"}, [](core::collections::vector<value_ptr> &args) -> value_ptr {
+            if (args[0]->kind != value_kind::array) {
+                exceptions::willow::jsonnet::throw_jsonnet_evaluate_error("std.min requires an array");
+            }
             const auto &array = args[0]->elements;
             if (array.empty()) {
                 exceptions::willow::jsonnet::throw_jsonnet_evaluate_error("std.min requires a non-empty array");
@@ -1086,6 +1150,9 @@ namespace rainy::foundation::willow::jsonnet::implements {
             return best;
         });
         add_native(layer, "max", {"arr"}, [](core::collections::vector<value_ptr> &args) -> value_ptr {
+            if (args[0]->kind != value_kind::array) {
+                exceptions::willow::jsonnet::throw_jsonnet_evaluate_error("std.max requires an array");
+            }
             const auto &array = args[0]->elements;
             if (array.empty()) {
                 exceptions::willow::jsonnet::throw_jsonnet_evaluate_error("std.max requires a non-empty array");
@@ -1107,7 +1174,47 @@ namespace rainy::foundation::willow::jsonnet::implements {
             return make_boolean(value_equals(*args[0], *args[1]));
         });
         add_native(layer, "join", {"sep", "arr"}, [](core::collections::vector<value_ptr> &args) -> value_ptr {
-            return from_document(willow::implements::operations::join(to_document(args[0]), to_document(args[1])));
+            const value_ptr &separator = args[0];
+            const value_ptr &items = args[1];
+            if (items->kind != value_kind::array) {
+                exceptions::willow::jsonnet::throw_jsonnet_evaluate_error("std.join requires an array");
+            }
+            if (items->elements.empty()) {
+                return separator->kind == value_kind::string ? make_string({}) : make_array({});
+            }
+            if (separator->kind == value_kind::string) {
+                core::text::string result;
+                for (std::size_t i = 0; i < items->elements.size(); ++i) {
+                    if (i != 0) {
+                        result.append(separator->str);
+                    }
+                    const value_ptr element = items->elements[i]->force();
+                    if (element->kind != value_kind::string) {
+                        exceptions::willow::jsonnet::throw_jsonnet_evaluate_error("std.join requires an array of strings");
+                    }
+                    result.append(element->str);
+                }
+                return make_string(utility::move(result));
+            }
+            if (separator->kind != value_kind::array) {
+                exceptions::willow::jsonnet::throw_jsonnet_evaluate_error("std.join requires a string or array separator");
+            }
+            core::collections::vector<thunk_ptr> result;
+            for (std::size_t i = 0; i < items->elements.size(); ++i) {
+                const value_ptr element = items->elements[i]->force();
+                if (element->kind != value_kind::array) {
+                    exceptions::willow::jsonnet::throw_jsonnet_evaluate_error("std.join requires an array of arrays");
+                }
+                if (i != 0) {
+                    for (const auto &part: separator->elements) {
+                        result.push_back(part);
+                    }
+                }
+                for (const auto &part: element->elements) {
+                    result.push_back(part);
+                }
+            }
+            return make_array(utility::move(result));
         });
         object->layers.push_back(utility::move(layer));
         return make_object(utility::move(object));
@@ -1123,6 +1230,9 @@ namespace rainy::foundation::willow::jsonnet::implements {
                 out = document(v->boolean);
                 break;
             case value_kind::number:
+                if (!std::isfinite(v->number)) {
+                    exceptions::willow::jsonnet::throw_jsonnet_evaluate_error("cannot manifest a non-finite number");
+                }
                 out = document(v->number);
                 break;
             case value_kind::string:
@@ -1138,6 +1248,7 @@ namespace rainy::foundation::willow::jsonnet::implements {
                 break;
             case value_kind::object:
                 out = document(document_type::object);
+                run_asserts(v->object, v);
                 for (const auto &name: v->object->field_names(false)) {
                     document child;
                     std::size_t layer = 0;

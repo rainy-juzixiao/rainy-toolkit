@@ -117,6 +117,8 @@ namespace rainy::foundation::willow::jsonnet::implements {
                 return ">=";
             case token_type::op_equal:
                 return "==";
+            case token_type::op_assign:
+                return "=";
             case token_type::op_not_equal:
                 return "!=";
             case token_type::op_ampersand:

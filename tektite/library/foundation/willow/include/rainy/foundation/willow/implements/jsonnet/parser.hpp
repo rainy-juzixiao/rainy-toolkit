@@ -40,6 +40,23 @@ namespace rainy::foundation::willow::jsonnet::implements {
         }
 
     private:
+        struct depth_guard {
+            explicit depth_guard(std::size_t &counter) : counter_(counter) {
+                if (counter_ >= willow::implements::max_document_nesting_depth) {
+                    exceptions::willow::jsonnet::throw_jsonnet_parse_error("document nesting is too deep");
+                }
+                ++counter_;
+            }
+            ~depth_guard() {
+                --counter_;
+            }
+            depth_guard(const depth_guard &) = delete;
+            depth_guard &operator=(const depth_guard &) = delete;
+
+        private:
+            std::size_t &counter_;
+        };
+
         jsonnet_node *make(const jsonnet_node_kind kind) {
             return make_node(arena_.allocator, kind, &arena_.resource);
         }
@@ -135,6 +152,7 @@ namespace rainy::foundation::willow::jsonnet::implements {
         }
 
         jsonnet_node *parse_binary(const int min_precedence) {
+            const depth_guard guard(depth_);
             jsonnet_node *left = parse_unary();
             while (true) {
                 const int level = precedence(current_.type);
@@ -156,6 +174,7 @@ namespace rainy::foundation::willow::jsonnet::implements {
         }
 
         jsonnet_node *parse_unary() {
+            const depth_guard guard(depth_);
             if (is_unary(current_.type)) {
                 const ast::source_location start = mark();
                 const token_type op = current_.type;
@@ -287,7 +306,7 @@ namespace rainy::foundation::willow::jsonnet::implements {
             node->add_child(callee);
             expect(token_type::paren_left, "expected '('");
             while (!check(token_type::paren_right)) {
-                if (check(token_type::identifier) && peek(1).type == token_type::op_equal) {
+                if (check(token_type::identifier) && peek(1).type == token_type::op_assign) {
                     jsonnet_node *arg = make(jsonnet_node_kind::named_argument);
                     arg->text = current_.text;
                     advance();
@@ -435,7 +454,7 @@ namespace rainy::foundation::willow::jsonnet::implements {
                 bind->set_flag(flag_method);
                 parse_parameters(bind);
             }
-            expect(token_type::op_equal, "expected '=' in binding");
+            expect(token_type::op_assign, "expected '=' in binding");
             bind->add_child(parse_expression());
             finish(bind, start);
             return bind;
@@ -450,7 +469,7 @@ namespace rainy::foundation::willow::jsonnet::implements {
                 jsonnet_node *param = make(jsonnet_node_kind::parameter);
                 param->text = current_.text;
                 advance();
-                if (match(token_type::op_equal)) {
+                if (match(token_type::op_assign)) {
                     param->set_flag(flag_has_default);
                     param->add_child(parse_expression());
                 }
@@ -676,6 +695,7 @@ namespace rainy::foundation::willow::jsonnet::implements {
 
         jsonnet_lexer lexer_;
         ast_arena &arena_;
+        std::size_t depth_{0};
         token current_{};
         token previous_{};
     };

@@ -92,3 +92,28 @@ TEST_CASE("jsonnet std - join", "[jsonnet][stdlib]") {
     REQUIRE(run("std.join(\",\", [])").as_string() == "");
     REQUIRE(run("std.join([0], [[1], [2], [3]])").size() == 5);
 }
+
+TEST_CASE("jsonnet std - char requires an integer", "[jsonnet][stdlib]") {
+    REQUIRE_THROWS_AS(run("std.char(65.5)"), jsonnet_evaluate_error);
+    REQUIRE(run("std.char(65)").as_string() == "A");
+}
+
+TEST_CASE("jsonnet std - length of a function", "[jsonnet][stdlib]") {
+    REQUIRE(run("std.length(function(a, b) a)").as_integer() == 2);
+}
+
+TEST_CASE("jsonnet std - min and max reject non-arrays", "[jsonnet][stdlib]") {
+    REQUIRE_THROWS_AS(run("std.min(1)"), jsonnet_evaluate_error);
+    REQUIRE_THROWS_AS(run("std.max(1)"), jsonnet_evaluate_error);
+    REQUIRE_THROWS_AS(run("std.min([1, \"a\"])"), jsonnet_evaluate_error);
+}
+
+TEST_CASE("jsonnet std - join validates its arguments", "[jsonnet][stdlib]") {
+    REQUIRE_THROWS_AS(run("std.join(\",\", [\"a\", 1])"), jsonnet_evaluate_error);
+}
+
+TEST_CASE("jsonnet std - named and positional arguments may be mixed", "[jsonnet][stdlib]") {
+    REQUIRE(run("std.pow(2, y = 3)").as_integer() == 8);
+    REQUIRE_THROWS_AS(run("std.pow(x = 2, 3)"), jsonnet_evaluate_error);
+    REQUIRE_THROWS_AS(run("std.pow(x = 2, x = 3)"), jsonnet_evaluate_error);
+}

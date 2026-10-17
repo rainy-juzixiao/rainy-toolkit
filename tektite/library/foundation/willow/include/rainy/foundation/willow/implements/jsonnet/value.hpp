@@ -68,7 +68,12 @@ namespace rainy::foundation::willow::jsonnet::implements {
                 exceptions::willow::jsonnet::throw_jsonnet_evaluate_error("infinite recursion while forcing a value");
             }
             evaluating = true;
-            cached = compute();
+            try {
+                cached = compute();
+            } catch (...) {
+                evaluating = false;
+                throw;
+            }
             forced = true;
             evaluating = false;
             return cached;
@@ -89,6 +94,7 @@ namespace rainy::foundation::willow::jsonnet::implements {
 
     struct object_layer {
         env_ptr lexical_env{};
+        core::collections::vector<jsonnet_node *> locals{};
         core::collections::vector<core::text::string> names{};
         core::collections::vector<field_slot> slots{};
         core::collections::vector<jsonnet_node *> asserts{};
@@ -178,6 +184,7 @@ namespace rainy::foundation::willow::jsonnet::implements {
         core::collections::vector<core::container::pair<core::text::string, thunk_ptr>> bindings{};
         value_ptr self{};
         value_ptr super{};
+        value_ptr dollar{};
 
         thunk_ptr *find(const core::text::basic_string_view<char> name) noexcept {
             for (auto &entry: bindings) {
@@ -200,6 +207,13 @@ namespace rainy::foundation::willow::jsonnet::implements {
                 return &super;
             }
             return parent != nullptr ? parent->find_super() : nullptr;
+        }
+
+        const value_ptr *find_dollar() const noexcept {
+            if (dollar != nullptr) {
+                return &dollar;
+            }
+            return parent != nullptr ? parent->find_dollar() : nullptr;
         }
     };
 
@@ -276,7 +290,10 @@ namespace rainy::foundation::willow::jsonnet::implements {
      * @brief 以 jsonnet 呈现数字的方式渲染数字。
      */
     inline core::text::string number_to_string(const double value) {
-        if (std::isfinite(value) && std::fabs(value) < 1e15) {
+        if (!std::isfinite(value)) {
+            exceptions::willow::jsonnet::throw_jsonnet_evaluate_error("cannot convert a non-finite number to a string");
+        }
+        if (std::fabs(value) < 1e15) {
             const auto integer = static_cast<std::int64_t>(value);
             if (value == static_cast<double>(integer)) {
                 char buffer[32]{};
@@ -285,25 +302,30 @@ namespace rainy::foundation::willow::jsonnet::implements {
             }
         }
         char buffer[64]{};
-        const auto result = core::text::to_chars(buffer, buffer + sizeof(buffer), value, core::text::chars_format::general, 17);
+        const auto result = core::text::to_chars(buffer, buffer + sizeof(buffer), value);
         return core::text::string(buffer, static_cast<std::size_t>(result.ptr - buffer));
     }
 
-    inline bool value_equals(const value &left, const value &right);
+    inline core::text::string value_to_string(const value &v, std::size_t depth = 0);
 
-    inline bool array_equals(const value &left, const value &right) {
+    inline bool value_equals(const value &left, const value &right, std::size_t depth = 0);
+
+    inline bool array_equals(const value &left, const value &right, const std::size_t depth) {
         if (left.elements.size() != right.elements.size()) {
             return false;
         }
         for (std::size_t i = 0; i < left.elements.size(); ++i) {
-            if (!value_equals(*left.elements[i]->force(), *right.elements[i]->force())) {
+            if (!value_equals(*left.elements[i]->force(), *right.elements[i]->force(), depth + 1)) {
                 return false;
             }
         }
         return true;
     }
 
-    inline bool value_equals(const value &left, const value &right) {
+    inline bool value_equals(const value &left, const value &right, const std::size_t depth) {
+        if (depth >= willow::implements::max_document_nesting_depth) {
+            exceptions::willow::jsonnet::throw_jsonnet_evaluate_error("document nesting is too deep");
+        }
         if (left.kind == value_kind::number && right.kind == value_kind::number) {
             return left.number == right.number;
         }
@@ -320,7 +342,7 @@ namespace rainy::foundation::willow::jsonnet::implements {
             case value_kind::string:
                 return left.str == right.str;
             case value_kind::array:
-                return array_equals(left, right);
+                return array_equals(left, right, depth);
             case value_kind::object:
                 return left.object->field_names(false).size() == right.object->field_names(false).size();
             case value_kind::function:
@@ -329,7 +351,10 @@ namespace rainy::foundation::willow::jsonnet::implements {
         return false;
     }
 
-    inline core::text::string value_to_string(const value &v) {
+    inline core::text::string value_to_string(const value &v, const std::size_t depth) {
+        if (depth >= willow::implements::max_document_nesting_depth) {
+            exceptions::willow::jsonnet::throw_jsonnet_evaluate_error("document nesting is too deep");
+        }
         switch (v.kind) {
             case value_kind::null_value:
                 return "null";
@@ -345,7 +370,7 @@ namespace rainy::foundation::willow::jsonnet::implements {
                     if (i != 0) {
                         result.append(", ");
                     }
-                    result.append(value_to_string(*v.elements[i]->force()));
+                    result.append(value_to_string(*v.elements[i]->force(), depth + 1));
                 }
                 result.push_back(']');
                 return result;
