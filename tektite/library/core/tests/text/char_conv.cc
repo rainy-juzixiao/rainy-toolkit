@@ -1117,6 +1117,93 @@ TEST_CASE("Long double to_chars honors precision", "[to_chars][float][longdouble
         REQUIRE(r.ec == std::errc{});
         REQUIRE(std::string(buffer, r.ptr) == "1e+00");
     }
+
+    SECTION("General precision uses the rounded exponent to choose the style") {
+        auto r1 = to_chars(buffer, buffer + sizeof(buffer), 99.9L, chars_format::general, 2);
+        REQUIRE(r1.ec == std::errc{});
+        REQUIRE(std::string(buffer, r1.ptr) == "1e+02");
+
+        auto r2 = to_chars(buffer, buffer + sizeof(buffer), 0.0000999L, chars_format::general, 2);
+        REQUIRE(r2.ec == std::errc{});
+        REQUIRE(std::string(buffer, r2.ptr) == "0.0001");
+
+        auto r3 = to_chars(buffer, buffer + sizeof(buffer), 999.5L, chars_format::general, 3);
+        REQUIRE(r3.ec == std::errc{});
+        REQUIRE(std::string(buffer, r3.ptr) == "1e+03");
+
+        auto r4 = to_chars(buffer, buffer + sizeof(buffer), 1.234e-5L, chars_format::general, 2);
+        REQUIRE(r4.ec == std::errc{});
+        REQUIRE(std::string(buffer, r4.ptr) == "1.2e-05");
+    }
+#endif
+}
+
+TEST_CASE("Long double to_chars hexadecimal", "[to_chars][float][longdouble][hex]") {
+    char buffer[128];
+#if RAINY_HAS_EXTENDED_LONG_DOUBLE
+    SECTION("Shortest form") {
+        auto r = to_chars(buffer, buffer + sizeof(buffer), 1.5L, chars_format::hex);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(std::string(buffer, r.ptr) == "cp-3");
+
+        auto r2 = to_chars(buffer, buffer + sizeof(buffer), 1.0L, chars_format::hex);
+        REQUIRE(r2.ec == std::errc{});
+        REQUIRE(std::string(buffer, r2.ptr) == "8p-3");
+
+        auto r3 = to_chars(buffer, buffer + sizeof(buffer), -1.5L, chars_format::hex);
+        REQUIRE(r3.ec == std::errc{});
+        REQUIRE(std::string(buffer, r3.ptr) == "-cp-3");
+    }
+
+    SECTION("Zero") {
+        auto r = to_chars(buffer, buffer + sizeof(buffer), 0.0L, chars_format::hex);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(std::string(buffer, r.ptr) == "0p+0");
+
+        auto r2 = to_chars(buffer, buffer + sizeof(buffer), -0.0L, chars_format::hex);
+        REQUIRE(r2.ec == std::errc{});
+        REQUIRE(std::string(buffer, r2.ptr) == "-0p+0");
+    }
+
+    SECTION("Precision pads and rounds") {
+        auto r = to_chars(buffer, buffer + sizeof(buffer), 1.5L, chars_format::hex, 4);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(std::string(buffer, r.ptr) == "c.0000p-3");
+
+        auto r2 = to_chars(buffer, buffer + sizeof(buffer), 1.5L, chars_format::hex, 0);
+        REQUIRE(r2.ec == std::errc{});
+        REQUIRE(std::string(buffer, r2.ptr) == "cp-3");
+    }
+
+    SECTION("Extreme values") {
+        auto r = to_chars(buffer, buffer + sizeof(buffer), (std::numeric_limits<long double>::min)(), chars_format::hex);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(std::string(buffer, r.ptr) == "8p-16385");
+
+        auto r2 = to_chars(buffer, buffer + sizeof(buffer), (std::numeric_limits<long double>::denorm_min)(),
+                           chars_format::hex);
+        REQUIRE(r2.ec == std::errc{});
+        REQUIRE(std::string(buffer, r2.ptr) == "8p-16448");
+    }
+#endif
+}
+
+TEST_CASE("Long double to_chars keeps the sign of NaN", "[to_chars][float][longdouble][special]") {
+    char buffer[32];
+#if RAINY_HAS_EXTENDED_LONG_DOUBLE
+    SECTION("Negative NaN") {
+        long double value = (std::numeric_limits<long double>::quiet_NaN)();
+        value = -value;
+        auto r = to_chars(buffer, buffer + sizeof(buffer), value);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(std::string(buffer, r.ptr) == "-nan");
+    }
+
+    SECTION("Positive NaN") {
+        auto r = to_chars(buffer, buffer + sizeof(buffer), (std::numeric_limits<long double>::quiet_NaN)());
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(std::string(buffer, r.ptr) == "nan");
+    }
 #endif
 }
 
