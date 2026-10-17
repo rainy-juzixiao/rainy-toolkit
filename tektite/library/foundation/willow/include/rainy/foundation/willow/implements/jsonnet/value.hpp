@@ -276,10 +276,13 @@ namespace rainy::foundation::willow::jsonnet::implements {
      * @brief 以 jsonnet 呈现数字的方式渲染数字。
      */
     inline core::text::string number_to_string(const double value) {
-        if (value == static_cast<double>(static_cast<std::int64_t>(value)) && std::fabs(value) < 1e15) {
-            char buffer[32]{};
-            const auto result = core::text::to_chars(buffer, buffer + sizeof(buffer), static_cast<std::int64_t>(value));
-            return core::text::string(buffer, static_cast<std::size_t>(result.ptr - buffer));
+        if (std::isfinite(value) && std::fabs(value) < 1e15) {
+            const auto integer = static_cast<std::int64_t>(value);
+            if (value == static_cast<double>(integer)) {
+                char buffer[32]{};
+                const auto result = core::text::to_chars(buffer, buffer + sizeof(buffer), integer);
+                return core::text::string(buffer, static_cast<std::size_t>(result.ptr - buffer));
+            }
         }
         char buffer[64]{};
         const auto result = core::text::to_chars(buffer, buffer + sizeof(buffer), value, core::text::chars_format::general, 17);
