@@ -26,7 +26,7 @@ namespace rainy::type_traits::primary_types {
     struct common_type<Ty> : common_type<Ty, Ty> {};
 }
 
-namespace rainy::type_traits::implemennts {
+namespace rainy::type_traits::implements {
     template <typename Ty1, typename Ty2>
     using conditional_result_t = decltype(false ? utility::declval<Ty1>() : utility::declval<Ty2>());
 
@@ -54,11 +54,11 @@ namespace rainy::type_traits::primary_types {
     struct common_type<Ty1, Ty2>
         : other_trans::conditional_t<
               type_relations::is_same_v<Ty1, other_trans::decay_t<Ty1>> && type_relations::is_same_v<Ty2, other_trans::decay_t<Ty2>>,
-              implemennts::common_type_2_impl<Ty1, Ty2>, common_type<other_trans::decay_t<Ty1>, typename other_trans::decay_t<Ty2>>> {
+              implements::common_type_2_impl<Ty1, Ty2>, common_type<other_trans::decay_t<Ty1>, typename other_trans::decay_t<Ty2>>> {
     };
 
     template <typename Ty1, typename Ty2, typename... R>
-    struct common_type<Ty1, Ty2, R...> : implemennts::common_type_multi_impl<void, Ty1, Ty2, R...> {};
+    struct common_type<Ty1, Ty2, R...> : implements::common_type_multi_impl<void, Ty1, Ty2, R...> {};
 
     template <typename... Types>
     using common_type_t = typename common_type<Types...>::type;

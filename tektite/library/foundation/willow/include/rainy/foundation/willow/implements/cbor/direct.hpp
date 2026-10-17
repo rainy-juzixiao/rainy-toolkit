@@ -206,8 +206,15 @@ namespace rainy::foundation::willow::cbor {
     inline constexpr bool valid_field_names_v =
         check_unique_names<Concept>(type_traits::helper::make_index_sequence<field_count_v<Concept>>{});
 
+    template <typename Concept, typename = void>
+    struct direct_message : type_traits::helper::false_type {};
+
     template <typename Concept>
-    concept direct_message = requires { Concept::cbor_fields; } && valid_field_names_v<Concept>;
+    struct direct_message<Concept, type_traits::other_trans::void_t<decltype(Concept::cbor_fields)>>
+        : type_traits::helper::integral_constant<bool, valid_field_names_v<Concept>> {};
+
+    template <typename Concept>
+    inline constexpr bool direct_message_v = direct_message<Concept>::value;
 }
 
 #endif
