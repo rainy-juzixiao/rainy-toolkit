@@ -195,11 +195,18 @@ namespace rainy::foundation::willow::protobuf {
     inline constexpr bool is_direct_message_v = is_direct_message<Ty>::value;
 
 #if RAINY_WILLOW_PROTOBUF_HAS_CXX20_FIELDS
+    template <typename Ty, typename = void>
+    struct direct_message : type_traits::helper::false_type {};
+
     template <typename Ty>
-    concept direct_message = requires { Ty::protobuf_fields; } &&
-                             (std::tuple_size_v<type_traits::modifers::remove_cvref_t<decltype(Ty::protobuf_fields)>> >= 0) &&
-                             check_direct_fields<Ty>(type_traits::helper::make_index_sequence<field_count_v<Ty>>{}) &&
-                             valid_field_numbers_v<Ty>;
+    struct direct_message<Ty, type_traits::other_trans::void_t<decltype(Ty::protobuf_fields)>>
+        : type_traits::helper::bool_constant<
+              (std::tuple_size<type_traits::modifers::remove_cvref_t<decltype(Ty::protobuf_fields)>>::value >= 0) &&
+              check_direct_fields<Ty>(type_traits::helper::make_index_sequence<field_count_v<Ty>>{}) &&
+              valid_field_numbers_v<Ty>> {};
+
+    template <typename Ty>
+    inline constexpr bool direct_message_v = direct_message<Ty>::value;
 #endif
 }
 

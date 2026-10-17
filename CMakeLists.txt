@@ -28,9 +28,9 @@ option(RAINY_USE_NODE_ADDON "Enable integration with node-addon-api (N-API)" off
 option(RAINY_USE_CXX26_REFLECTION_TS "Allows rainy-toolkit to use reflection ts of c++ 26 features for meta library" ON)
 option(RAINY_USE_CROSSCOMPILE "Enable cross compilation" OFF)
 set(RAINY_SIMD_ISA "auto" CACHE STRING
-        "SIMD instruction set acceleration resolved against the compiler target. x86: auto/none/sse4.2/avx/avx2/avx512, arm64: auto/none/neon/sve/sve2")
+        "SIMD instruction set acceleration resolved against the compiler target. x86: auto/none/sse4.2/avx/avx2/avx512, arm64: auto/none/neon")
 set_property(CACHE RAINY_SIMD_ISA PROPERTY STRINGS
-        auto none sse4.2 avx avx2 avx512 neon sve sve2)
+        auto none sse4.2 avx avx2 avx512 neon)
 
 set(RAINY_TOOLCHAIN_FILE "" CACHE FILEPATH "Path to CMake toolchain file for cross-compilation")
 
