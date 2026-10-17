@@ -903,7 +903,7 @@ namespace rainy::core::text::implements::ryu {
             *p++ = static_cast<CharType>('n');
             return {p, std::errc{}};
         }
-        if (magnitude > std::numeric_limits<long double>::max()) {
+        if (magnitude > (utility::numeric_limits<long double>::max)()) {
             if (!reserve(3)) {
                 return {end, std::errc::value_too_large};
             }
