@@ -15,6 +15,7 @@
  */
 #ifndef RAINY_FOUNDATION_WILLOW_IMPLEMENTS_COMMON_CONFIG_HPP
 #define RAINY_FOUNDATION_WILLOW_IMPLEMENTS_COMMON_CONFIG_HPP
+#include <cstddef>
 #include <map>
 #include <memory_resource>
 #include <rainy/core/collections/vector.hpp>
@@ -23,6 +24,7 @@
 #include <type_traits>
 
 namespace rainy::foundation::willow::implements {
+    inline constexpr std::size_t max_document_nesting_depth = 256;
     inline constexpr std::uint32_t unicode_surrogate_base = 0x10000;
     inline constexpr std::uint32_t unicode_surrogate_lead_begin = 0xD800;
     inline constexpr std::uint32_t unicode_surrogate_lead_end = 0xDBFF;
