@@ -255,7 +255,9 @@ namespace rainy::foundation::willow::hjson::implements {
             const auto float_result = core::text::from_chars(begin, end, float_value);
             if ((float_result.ec == std::errc{} || float_result.ec == std::errc::result_out_of_range) &&
                 float_result.ptr == end) {
-                float_out = float_value;
+                float_out = float_result.ec == std::errc::result_out_of_range
+                                ? willow::implements::saturate_floating_out_of_range<float_type>(begin, end, float_result.ec)
+                                : float_value;
                 is_float = true;
                 return true;
             }

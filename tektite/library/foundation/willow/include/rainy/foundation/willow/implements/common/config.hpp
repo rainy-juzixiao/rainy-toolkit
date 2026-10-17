@@ -20,6 +20,7 @@
 #include <memory_resource>
 #include <rainy/core/collections/vector.hpp>
 #include <rainy/core/platform.hpp>
+#include <rainy/core/type_traits/limits.hpp>
 #include <rainy/foundation/collections/unordered_map.hpp>
 #include <type_traits>
 
@@ -32,6 +33,52 @@ namespace rainy::foundation::willow::implements {
     inline constexpr std::uint32_t unicode_surrogate_trail_end = 0xDFFF;
     inline constexpr std::uint32_t unicode_surrogate_bits = 10;
     inline constexpr std::uint32_t unicode_surrogate_max_sur = 0x3FF;
+
+    template <typename FloatType>
+    RAINY_NODISCARD inline FloatType saturate_floating_out_of_range(const char *first, const char *last,
+                                                                    const std::errc error) noexcept {
+        if (error != std::errc::result_out_of_range) {
+            return FloatType{};
+        }
+        bool negative = false;
+        if (first != last && (*first == '-' || *first == '+')) {
+            negative = *first == '-';
+            ++first;
+        }
+        bool underflow = false;
+        bool has_exponent = false;
+        for (const char *it = first; it != last; ++it) {
+            if (*it == 'e' || *it == 'E' || *it == 'p' || *it == 'P') {
+                has_exponent = true;
+                underflow = it + 1 != last && it[1] == '-';
+                break;
+            }
+        }
+        if (!has_exponent) {
+            std::size_t leading_fractional_zeros = 0;
+            bool seen_point = false;
+            bool seen_significant = false;
+            for (const char *it = first; it != last; ++it) {
+                if (*it == '.') {
+                    seen_point = true;
+                } else if (*it >= '0' && *it <= '9') {
+                    if (*it != '0') {
+                        seen_significant = true;
+                        break;
+                    }
+                    if (seen_point) {
+                        ++leading_fractional_zeros;
+                    }
+                }
+            }
+            underflow = !seen_significant && leading_fractional_zeros > 400;
+        }
+        if (underflow) {
+            return negative ? -FloatType{} : FloatType{};
+        }
+        const FloatType infinity = utility::numeric_limits<FloatType>::infinity();
+        return negative ? -infinity : infinity;
+    }
 
     RAINY_TOOLKIT_API std::uint32_t merge_surrogates(const std::uint32_t lead_surrogate, const std::uint32_t trail_surrogate) noexcept;
 }

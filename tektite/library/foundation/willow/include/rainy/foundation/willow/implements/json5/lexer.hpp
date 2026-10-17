@@ -484,6 +484,9 @@ namespace rainy::foundation::willow::json5::implements {
             }
             const auto float_result = core::text::from_chars(begin, end, number_value_, core::text::chars_format::hex);
             if (float_result.ec == std::errc{} || float_result.ec == std::errc::result_out_of_range) {
+                if (float_result.ec == std::errc::result_out_of_range) {
+                    number_value_ = willow::implements::saturate_floating_out_of_range<float_type>(begin, end, float_result.ec);
+                }
                 return token_type::value_float;
             }
             exceptions::willow::json5::throw_json5_parse_error("invalid hex number");
@@ -495,6 +498,9 @@ namespace rainy::foundation::willow::json5::implements {
             const auto result = core::text::from_chars(begin, end, number_value_);
             if (result.ec != std::errc{} && result.ec != std::errc::result_out_of_range) {
                 exceptions::willow::json5::throw_json5_parse_error("invalid number");
+            }
+            if (result.ec == std::errc::result_out_of_range) {
+                number_value_ = willow::implements::saturate_floating_out_of_range<float_type>(begin, end, result.ec);
             }
             return token_type::value_float;
         }

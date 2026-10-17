@@ -329,6 +329,10 @@ namespace rainy::foundation::willow::jsonnet::implements {
             if (result_code.ec != std::errc{} && result_code.ec != std::errc::result_out_of_range) {
                 exceptions::willow::jsonnet::throw_jsonnet_parse_error("invalid number");
             }
+            if (result_code.ec == std::errc::result_out_of_range) {
+                value = willow::implements::saturate_floating_out_of_range<double>(
+                    cleaned.data(), cleaned.data() + cleaned.size(), result_code.ec);
+            }
             result.type = token_type::literal_number;
             result.number = value;
             result.is_integer = !is_float;
