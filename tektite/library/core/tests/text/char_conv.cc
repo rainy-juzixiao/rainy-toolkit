@@ -1141,18 +1141,35 @@ TEST_CASE("Long double to_chars honors precision", "[to_chars][float][longdouble
 TEST_CASE("Long double to_chars hexadecimal", "[to_chars][float][longdouble][hex]") {
     char buffer[128];
 #if RAINY_HAS_EXTENDED_LONG_DOUBLE
+#if RAINY_LONG_DOUBLE_IS_BINARY128
+    constexpr const char *one_and_a_half = "1.8p+0";
+    constexpr const char *one = "1p+0";
+    constexpr const char *minus_one_and_a_half = "-1.8p+0";
+    constexpr const char *one_and_a_half_padded = "1.8000p+0";
+    constexpr const char *one_and_a_half_zero_precision = "2p+0";
+    constexpr const char *minimum_normal = "1p-16382";
+    constexpr const char *minimum_subnormal = "1p-16494";
+#else
+    constexpr const char *one_and_a_half = "cp-3";
+    constexpr const char *one = "8p-3";
+    constexpr const char *minus_one_and_a_half = "-cp-3";
+    constexpr const char *one_and_a_half_padded = "c.0000p-3";
+    constexpr const char *one_and_a_half_zero_precision = "cp-3";
+    constexpr const char *minimum_normal = "8p-16385";
+    constexpr const char *minimum_subnormal = "8p-16448";
+#endif
     SECTION("Shortest form") {
         auto r = to_chars(buffer, buffer + sizeof(buffer), 1.5L, chars_format::hex);
         REQUIRE(r.ec == std::errc{});
-        REQUIRE(std::string(buffer, r.ptr) == "cp-3");
+        REQUIRE(std::string(buffer, r.ptr) == one_and_a_half);
 
         auto r2 = to_chars(buffer, buffer + sizeof(buffer), 1.0L, chars_format::hex);
         REQUIRE(r2.ec == std::errc{});
-        REQUIRE(std::string(buffer, r2.ptr) == "8p-3");
+        REQUIRE(std::string(buffer, r2.ptr) == one);
 
         auto r3 = to_chars(buffer, buffer + sizeof(buffer), -1.5L, chars_format::hex);
         REQUIRE(r3.ec == std::errc{});
-        REQUIRE(std::string(buffer, r3.ptr) == "-cp-3");
+        REQUIRE(std::string(buffer, r3.ptr) == minus_one_and_a_half);
     }
 
     SECTION("Zero") {
@@ -1168,22 +1185,22 @@ TEST_CASE("Long double to_chars hexadecimal", "[to_chars][float][longdouble][hex
     SECTION("Precision pads and rounds") {
         auto r = to_chars(buffer, buffer + sizeof(buffer), 1.5L, chars_format::hex, 4);
         REQUIRE(r.ec == std::errc{});
-        REQUIRE(std::string(buffer, r.ptr) == "c.0000p-3");
+        REQUIRE(std::string(buffer, r.ptr) == one_and_a_half_padded);
 
         auto r2 = to_chars(buffer, buffer + sizeof(buffer), 1.5L, chars_format::hex, 0);
         REQUIRE(r2.ec == std::errc{});
-        REQUIRE(std::string(buffer, r2.ptr) == "cp-3");
+        REQUIRE(std::string(buffer, r2.ptr) == one_and_a_half_zero_precision);
     }
 
     SECTION("Extreme values") {
         auto r = to_chars(buffer, buffer + sizeof(buffer), (std::numeric_limits<long double>::min)(), chars_format::hex);
         REQUIRE(r.ec == std::errc{});
-        REQUIRE(std::string(buffer, r.ptr) == "8p-16385");
+        REQUIRE(std::string(buffer, r.ptr) == minimum_normal);
 
         auto r2 = to_chars(buffer, buffer + sizeof(buffer), (std::numeric_limits<long double>::denorm_min)(),
                            chars_format::hex);
         REQUIRE(r2.ec == std::errc{});
-        REQUIRE(std::string(buffer, r2.ptr) == "8p-16448");
+        REQUIRE(std::string(buffer, r2.ptr) == minimum_subnormal);
     }
 #endif
 }
