@@ -68,7 +68,8 @@ namespace rainy::foundation::willow::msgpack::implements {
             return narrow_key_to_string<BasicDocument>(buffer, static_cast<std::size_t>(result.ptr - buffer));
         }
         if (key.is_float()) {
-            const auto result = core::text::to_chars(buffer, buffer + sizeof(buffer), static_cast<double>(key.as_float()));
+            const auto result = core::text::to_chars(buffer, buffer + sizeof(buffer), static_cast<double>(key.as_float()),
+                                                     core::text::chars_format::scientific);
             return narrow_key_to_string<BasicDocument>(buffer, static_cast<std::size_t>(result.ptr - buffer));
         }
         if (key.is_bool()) {

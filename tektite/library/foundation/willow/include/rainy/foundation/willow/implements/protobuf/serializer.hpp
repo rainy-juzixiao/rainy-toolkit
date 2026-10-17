@@ -230,14 +230,15 @@ namespace rainy::foundation::willow::protobuf::implements {
             if (raw < utility::numeric_limits<std::int32_t>::min() || raw > utility::numeric_limits<std::int32_t>::max()) {
                 throw_protobuf_serialize_error("sfixed32 value out of range");
             }
+            const auto narrowed = static_cast<std::int32_t>(raw);
             std::uint32_t bits = 0;
-            core::builtin::copy_memory(&bits, &raw, sizeof(std::int32_t));
+            core::builtin::copy_memory(&bits, &narrowed, sizeof(std::int32_t));
             encode_fixed32(bits, out);
         } else if constexpr (type_traits::type_relations::is_same_v<Kind, proto::floating>) {
             if (!node.is_number()) {
                 throw_protobuf_serialize_error("float requires numeric document");
             }
-            const auto value = node.is_integer() ? static_cast<float>(node.as_integer()) : node.as_float();
+            const float value = node.is_integer() ? static_cast<float>(node.as_integer()) : static_cast<float>(node.as_float());
             std::uint32_t bits = 0;
             core::builtin::copy_memory(&bits, &value, sizeof(float));
             encode_fixed32(bits, out);
@@ -262,7 +263,7 @@ namespace rainy::foundation::willow::protobuf::implements {
             if (!node.is_number()) {
                 throw_protobuf_serialize_error("double requires numeric document");
             }
-            const auto value = node.is_integer() ? static_cast<double>(node.as_integer()) : node.as_float();
+            const double value = node.is_integer() ? static_cast<double>(node.as_integer()) : static_cast<double>(node.as_float());
             std::uint64_t bits = 0;
             core::builtin::copy_memory(&bits, &value, sizeof(double));
             encode_fixed64(bits, out);

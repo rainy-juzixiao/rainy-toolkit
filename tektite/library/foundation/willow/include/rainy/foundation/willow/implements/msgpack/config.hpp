@@ -295,7 +295,16 @@ namespace rainy::foundation::willow::msgpack {
         }
 
         friend bool operator==(const msgpack_document &left, const msgpack_document &right) {
-            return static_cast<const base_type &>(left) == static_cast<const base_type &>(right);
+            if (!(static_cast<const base_type &>(left) == static_cast<const base_type &>(right))) {
+                return false;
+            }
+            if (left.has_ext() != right.has_ext()) {
+                return false;
+            }
+            if (!left.has_ext()) {
+                return true;
+            }
+            return left.state_->ext_type == right.state_->ext_type && left.state_->ext_data == right.state_->ext_data;
         }
 
         friend bool operator!=(const msgpack_document &left, const msgpack_document &right) {

@@ -478,14 +478,18 @@ namespace rainy::foundation::willow::cbor::implements {
         static void decode_into(const std::uint8_t *data, const std::size_t size, Concept &out) {
             const std::uint8_t *ptr = data;
             const std::uint8_t *const end = data + size;
-            decode_map_fields<Concept>(ptr, end, out);
+            decode_map_fields<Concept>(ptr, end, out, 0);
             if (ptr != end) {
                 throw_cbor_parse_error("trailing bytes after the cbor map");
             }
         }
 
         template <typename Message>
-        static void decode_map_fields(const std::uint8_t *&ptr, const std::uint8_t *end, Message &out) {
+        static void decode_map_fields(const std::uint8_t *&ptr, const std::uint8_t *end, Message &out,
+                                      const std::size_t depth) {
+            if (depth >= willow::implements::max_document_nesting_depth) {
+                throw_cbor_parse_error("document nesting is too deep");
+            }
             major_type major{};
             std::uint8_t additional = 0;
             std::uint64_t argument = 0;
@@ -502,11 +506,11 @@ namespace rainy::foundation::willow::cbor::implements {
                         ++ptr;
                         return;
                     }
-                    decode_entry<Message>(ptr, end, out);
+                    decode_entry<Message>(ptr, end, out, depth + 1);
                 }
             }
             for (std::uint64_t i = 0; i < argument; ++i) {
-                decode_entry<Message>(ptr, end, out);
+                decode_entry<Message>(ptr, end, out, depth + 1);
             }
         }
 
@@ -529,7 +533,8 @@ namespace rainy::foundation::willow::cbor::implements {
         }
 
         template <typename Message>
-        static void decode_entry(const std::uint8_t *&ptr, const std::uint8_t *end, Message &out) {
+        static void decode_entry(const std::uint8_t *&ptr, const std::uint8_t *end, Message &out,
+                                 const std::size_t depth) {
             major_type major{};
             std::uint8_t additional = 0;
             std::uint64_t argument = 0;
@@ -546,40 +551,42 @@ namespace rainy::foundation::willow::cbor::implements {
             const core::text::string_view key(reinterpret_cast<const char *>(ptr), static_cast<std::size_t>(argument));
             ptr += argument;
             dispatch_entry<Message>(ptr, end, out, key,
-                                    type_traits::helper::make_index_sequence<field_count_v<Message>>{});
+                                    type_traits::helper::make_index_sequence<field_count_v<Message>>{}, depth);
         }
 
         template <typename Message, std::size_t... Is>
         static void dispatch_entry(const std::uint8_t *&ptr, const std::uint8_t *end, Message &out,
-                                   const core::text::string_view &key, type_traits::helper::index_sequence<Is...>) {
-            const bool matched = (try_assign<Message, Is>(ptr, end, out, key) || ...);
+                                   const core::text::string_view &key, type_traits::helper::index_sequence<Is...>,
+                                   const std::size_t depth) {
+            const bool matched = (try_assign<Message, Is>(ptr, end, out, key, depth) || ...);
             if (!matched) {
-                skip_value(ptr, end);
+                skip_value(ptr, end, depth);
             }
         }
 
         template <typename Message, std::size_t Index>
         static bool try_assign(const std::uint8_t *&ptr, const std::uint8_t *end, Message &out,
-                               const core::text::string_view &key) {
+                               const core::text::string_view &key, const std::size_t depth) {
             using field_type = field_at_t<Message, Index>;
             using field_kind = typename field_type::kind;
             if (!(field_name_view<Message, Index>() == key)) {
                 return false;
             }
-            decode_member<field_kind>(ptr, end, out.*(field_type::member));
+            decode_member<field_kind>(ptr, end, out.*(field_type::member), depth);
             return true;
         }
 
         template <typename Kind, typename Ty>
-        static void decode_member(const std::uint8_t *&ptr, const std::uint8_t *end, Ty &member) {
+        static void decode_member(const std::uint8_t *&ptr, const std::uint8_t *end, Ty &member,
+                                  const std::size_t depth) {
             using raw = type_traits::modifers::remove_cvref_t<Ty>;
             if constexpr (is_repeated_kind_v<Kind>) {
                 static_assert(direct_container_v<Kind, Ty>, "cbor repeated member requires a container with emplace_back()");
-                decode_array<Kind>(ptr, end, member);
+                decode_array<Kind>(ptr, end, member, depth);
             } else if constexpr (is_message_kind_v<Kind>) {
                 static_assert(type_traits::type_relations::is_same_v<raw, message_concept_t<Kind>>,
                               "cbor message member type must match message<Concept>");
-                direct_parser<message_concept_t<Kind>>::decode_map_fields(ptr, end, member);
+                decode_map_fields<message_concept_t<Kind>>(ptr, end, member, depth);
             } else if constexpr (type_traits::type_relations::is_same_v<Kind, types::text_string> ||
                                  type_traits::type_relations::is_same_v<Kind, types::byte_string>) {
                 static_assert(direct_assignable_string_v<Kind, Ty>, "cbor string member requires assign(data(), size())");
@@ -601,11 +608,11 @@ namespace rainy::foundation::willow::cbor::implements {
                 }
             } else if constexpr (type_traits::type_relations::is_same_v<Kind, types::null_>) {
                 (void) member;
-                skip_value(ptr, end);
+                skip_value(ptr, end, depth);
             } else if constexpr (type_traits::type_relations::is_same_v<Kind, types::double_>) {
                 static_assert(type_traits::composite_types::is_arithmetic_v<raw>,
                               "cbor double member requires an arithmetic type");
-                member = static_cast<raw>(decode_double(ptr, end));
+                assign_floating(decode_double(ptr, end), member);
             } else {
                 static_assert(is_integer_kind_v<Kind>, "unknown cbor direct field kind");
                 static_assert(type_traits::composite_types::is_arithmetic_v<raw>,
@@ -615,7 +622,27 @@ namespace rainy::foundation::willow::cbor::implements {
         }
 
         template <typename Ty>
+        static void assign_floating(const double value, Ty &member) {
+            using raw = type_traits::modifers::remove_cvref_t<Ty>;
+            if constexpr (type_traits::primary_types::is_floating_point_v<raw>) {
+                member = static_cast<raw>(value);
+            } else if constexpr (type_traits::properties::is_unsigned_v<raw>) {
+                if (!(value >= 0.0) || value > static_cast<double>((utility::numeric_limits<raw>::max)())) {
+                    throw_cbor_parse_error("a cbor float is out of the member range");
+                }
+                member = static_cast<raw>(value);
+            } else {
+                if (value < static_cast<double>((utility::numeric_limits<raw>::min)()) ||
+                    value > static_cast<double>((utility::numeric_limits<raw>::max)())) {
+                    throw_cbor_parse_error("a cbor float is out of the member range");
+                }
+                member = static_cast<raw>(value);
+            }
+        }
+
+        template <typename Ty>
         static void assign_integer(const std::uint8_t *&ptr, const std::uint8_t *end, Ty &member) {
+            using raw = type_traits::modifers::remove_cvref_t<Ty>;
             major_type major{};
             std::uint8_t additional = 0;
             std::uint64_t argument = 0;
@@ -623,25 +650,44 @@ namespace rainy::foundation::willow::cbor::implements {
             if (additional == additional_indefinite) {
                 throw_cbor_parse_error("an integer may not use the indefinite form");
             }
-            if (major == major_type::unsigned_int) {
-                if (argument > static_cast<std::uint64_t>((utility::numeric_limits<Ty>::max)())) {
-                    throw_cbor_parse_error("a cbor integer is out of the member range");
+            if constexpr (type_traits::primary_types::is_floating_point_v<raw>) {
+                if (major == major_type::unsigned_int) {
+                    member = static_cast<raw>(argument);
+                    return;
                 }
-                member = static_cast<Ty>(argument);
-                return;
+                if (major == major_type::negative_int) {
+                    if (argument > static_cast<std::uint64_t>((utility::numeric_limits<std::int64_t>::max)())) {
+                        throw_cbor_parse_error("a negative cbor integer is out of range");
+                    }
+                    member = static_cast<raw>(-1 - static_cast<std::int64_t>(argument));
+                    return;
+                }
+                throw_cbor_parse_error("a cbor integer field received a non integer value");
+            } else {
+                if (major == major_type::unsigned_int) {
+                    if (argument > static_cast<std::uint64_t>((utility::numeric_limits<raw>::max)())) {
+                        throw_cbor_parse_error("a cbor integer is out of the member range");
+                    }
+                    member = static_cast<raw>(argument);
+                    return;
+                }
+                if (major == major_type::negative_int) {
+                    if (argument > static_cast<std::uint64_t>((utility::numeric_limits<std::int64_t>::max)())) {
+                        throw_cbor_parse_error("a negative cbor integer is out of range");
+                    }
+                    const auto value = -1 - static_cast<std::int64_t>(argument);
+                    if constexpr (type_traits::properties::is_unsigned_v<raw>) {
+                        throw_cbor_parse_error("a cbor integer is out of the member range");
+                    } else {
+                        if (value < static_cast<std::int64_t>((utility::numeric_limits<raw>::min)())) {
+                            throw_cbor_parse_error("a cbor integer is out of the member range");
+                        }
+                        member = static_cast<raw>(value);
+                    }
+                    return;
+                }
+                throw_cbor_parse_error("a cbor integer field received a non integer value");
             }
-            if (major == major_type::negative_int) {
-                if (argument > static_cast<std::uint64_t>((utility::numeric_limits<std::int64_t>::max)())) {
-                    throw_cbor_parse_error("a negative cbor integer is out of range");
-                }
-                const auto value = -1 - static_cast<std::int64_t>(argument);
-                if (value < static_cast<std::int64_t>((utility::numeric_limits<Ty>::min)())) {
-                    throw_cbor_parse_error("a cbor integer is out of the member range");
-                }
-                member = static_cast<Ty>(value);
-                return;
-            }
-            throw_cbor_parse_error("a cbor integer field received a non integer value");
         }
 
         static double decode_double(const std::uint8_t *&ptr, const std::uint8_t *end) {
@@ -723,7 +769,8 @@ namespace rainy::foundation::willow::cbor::implements {
         }
 
         template <typename Kind, typename Ty>
-        static void decode_array(const std::uint8_t *&ptr, const std::uint8_t *end, Ty &member) {
+        static void decode_array(const std::uint8_t *&ptr, const std::uint8_t *end, Ty &member,
+                                 const std::size_t depth) {
             major_type major{};
             std::uint8_t additional = 0;
             std::uint64_t argument = 0;
@@ -742,16 +789,19 @@ namespace rainy::foundation::willow::cbor::implements {
                         return;
                     }
                     auto &slot = member.emplace_back();
-                    decode_member<element_kind>(ptr, end, slot);
+                    decode_member<element_kind>(ptr, end, slot, depth + 1);
                 }
             }
             for (std::uint64_t i = 0; i < argument; ++i) {
                 auto &slot = member.emplace_back();
-                decode_member<element_kind>(ptr, end, slot);
+                decode_member<element_kind>(ptr, end, slot, depth + 1);
             }
         }
 
-        static void skip_value(const std::uint8_t *&ptr, const std::uint8_t *end) {
+        static void skip_value(const std::uint8_t *&ptr, const std::uint8_t *end, const std::size_t depth) {
+            if (depth >= willow::implements::max_document_nesting_depth) {
+                throw_cbor_parse_error("document nesting is too deep");
+            }
             major_type major{};
             std::uint8_t additional = 0;
             std::uint64_t argument = 0;
@@ -764,7 +814,7 @@ namespace rainy::foundation::willow::cbor::implements {
                         throw_cbor_parse_error("an integer or tag may not use the indefinite form");
                     }
                     if (major == major_type::tag) {
-                        skip_value(ptr, end);
+                        skip_value(ptr, end, depth + 1);
                     }
                     return;
                 case major_type::byte_string:
@@ -772,10 +822,10 @@ namespace rainy::foundation::willow::cbor::implements {
                     skip_string(ptr, end, additional, argument);
                     return;
                 case major_type::array:
-                    skip_array(ptr, end, additional, argument);
+                    skip_array(ptr, end, additional, argument, depth + 1);
                     return;
                 case major_type::map:
-                    skip_map(ptr, end, additional, argument);
+                    skip_map(ptr, end, additional, argument, depth + 1);
                     return;
                 case major_type::simple:
                     skip_simple(ptr, end, additional, argument);
@@ -816,7 +866,7 @@ namespace rainy::foundation::willow::cbor::implements {
         }
 
         static void skip_array(const std::uint8_t *&ptr, const std::uint8_t *end, const std::uint8_t additional,
-                               const std::uint64_t argument) {
+                               const std::uint64_t argument, const std::size_t depth) {
             if (additional == additional_indefinite) {
                 while (true) {
                     if (ptr >= end) {
@@ -826,16 +876,16 @@ namespace rainy::foundation::willow::cbor::implements {
                         ++ptr;
                         return;
                     }
-                    skip_value(ptr, end);
+                    skip_value(ptr, end, depth);
                 }
             }
             for (std::uint64_t i = 0; i < argument; ++i) {
-                skip_value(ptr, end);
+                skip_value(ptr, end, depth);
             }
         }
 
         static void skip_map(const std::uint8_t *&ptr, const std::uint8_t *end, const std::uint8_t additional,
-                             const std::uint64_t argument) {
+                             const std::uint64_t argument, const std::size_t depth) {
             if (additional == additional_indefinite) {
                 while (true) {
                     if (ptr >= end) {
@@ -845,13 +895,13 @@ namespace rainy::foundation::willow::cbor::implements {
                         ++ptr;
                         return;
                     }
-                    skip_value(ptr, end);
-                    skip_value(ptr, end);
+                    skip_value(ptr, end, depth);
+                    skip_value(ptr, end, depth);
                 }
             }
             for (std::uint64_t i = 0; i < argument; ++i) {
-                skip_value(ptr, end);
-                skip_value(ptr, end);
+                skip_value(ptr, end, depth);
+                skip_value(ptr, end, depth);
             }
         }
 
