@@ -240,6 +240,16 @@ namespace rainy::foundation::willow::yaml::implements {
             }
             while (true) {
                 facade_type item;
+                if (last_token == token_type::end_flow_sequence) {
+                    lexer.leave_flow();
+                    get_token();
+                    break;
+                }
+                if (last_token == token_type::value_separator) {
+                    yaml.as_array().emplace_back(document_type::null);
+                    get_token();
+                    continue;
+                }
                 parse_node(item, -1, true, false);
                 yaml.as_array().emplace_back(utility::move(item));
                 if (last_token == token_type::end_flow_sequence) {
@@ -251,8 +261,7 @@ namespace rainy::foundation::willow::yaml::implements {
                     exceptions::willow::yaml::throw_yaml_parse_error("unexpected token in flow sequence");
                 }
                 get_token();
-            }
-            yaml.set_style("flow");
+            }            yaml.set_style("flow");
         }
 
         static string_type key_from_integer(const integer_type value) {
@@ -333,6 +342,15 @@ namespace rainy::foundation::willow::yaml::implements {
             }
             while (true) {
                 facade_type key_doc;
+                if (last_token == token_type::end_flow_mapping) {
+                    lexer.leave_flow();
+                    get_token();
+                    break;
+                }
+                if (last_token == token_type::value_separator) {
+                    get_token();
+                    continue;
+                }
                 parse_node(key_doc, -1, true, false);
                 string_type key = document_key(key_doc);
                 if (last_token != token_type::key_separator) {
@@ -340,7 +358,14 @@ namespace rainy::foundation::willow::yaml::implements {
                 }
                 get_token();
                 facade_type value;
-                parse_node(value, -1, true, false);
+                if (last_token == token_type::value_separator || last_token == token_type::end_flow_mapping) {
+                    value = document_type::null;
+                } else {
+                    parse_node(value, -1, true, false);
+                }
+                if (yaml.as_object().find(key) != yaml.as_object().end()) {
+                    exceptions::willow::yaml::throw_yaml_parse_error("the key was already defined");
+                }
                 yaml.as_object().emplace(utility::move(key), utility::move(value));
                 if (last_token == token_type::end_flow_mapping) {
                     lexer.leave_flow();
@@ -356,15 +381,15 @@ namespace rainy::foundation::willow::yaml::implements {
         }
 
         void parse_block_sequence(facade_type &yaml, const int parent_indent) {
-            yaml = document_type::array;
-            yaml.set_style("block");
-            const int sequence_indent = lexer.current_line_indent();
+            const int sequence_indent = lexer.token_column();
             if (sequence_indent <= parent_indent) {
+                yaml = document_type::null;
                 return;
             }
+            yaml = document_type::array;
+            yaml.set_style("block");
 
-            while (last_token == token_type::block_entry_indicator &&
-                   lexer.current_line_indent() == sequence_indent) {
+            while (last_token == token_type::block_entry_indicator && lexer.token_column() == sequence_indent) {
                 get_token();
                 facade_type item;
                 parse_node(item, sequence_indent, false, true);
@@ -375,11 +400,27 @@ namespace rainy::foundation::willow::yaml::implements {
             }
         }
 
+        bool starts_mapping_key() const {
+            switch (last_token) {
+                case token_type::value_string:
+                case token_type::value_integer:
+                case token_type::value_float:
+                case token_type::literal_true:
+                case token_type::literal_false:
+                case token_type::literal_null:
+                case token_type::literal_null_tilde:
+                case token_type::explicit_key:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
         void parse_block_mapping(facade_type &yaml, const int parent_indent) {
             yaml = document_type::object;
             yaml.set_style("block");
 
-            const int mapping_indent = lexer.current_line_indent();
+            const int mapping_indent = lexer.token_column();
 
             while (true) {
                 if (last_token == token_type::end_of_input || last_token == token_type::document_end ||
@@ -389,7 +430,7 @@ namespace rainy::foundation::willow::yaml::implements {
                 if (last_token == token_type::block_entry_indicator) {
                     break;
                 }
-                if (lexer.current_line_indent() < mapping_indent) {
+                if (lexer.token_column() < mapping_indent) {
                     break;
                 }
 
@@ -472,8 +513,13 @@ namespace rainy::foundation::willow::yaml::implements {
                 if (last_token == token_type::end_of_input || last_token == token_type::document_end ||
                     last_token == token_type::document_start) {
                     value = document_type::null;
+                } else if (lexer.token_column() <= mapping_indent && starts_mapping_key()) {
+                    value = document_type::null;
                 } else {
                     parse_node(value, parent_indent, false, true);
+                }
+                if (yaml.as_object().find(key) != yaml.as_object().end()) {
+                    exceptions::willow::yaml::throw_yaml_parse_error("the key was already defined");
                 }
                 yaml.as_object().emplace(utility::move(key), utility::move(value));
 

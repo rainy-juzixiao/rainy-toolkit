@@ -121,9 +121,17 @@ namespace rainy::foundation::willow::yaml::implements {
         void jump_to(const char_type *target) noexcept {
             const auto offset = static_cast<std::size_t>(target - buffer_begin());
             if (offset < adapter_.size()) {
+                const std::size_t from = adapter_.position();
+                for (std::size_t i = from; i <= offset; ++i) {
+                    advance_column(char_traits::to_int_type(buffer_begin()[i]));
+                }
                 current = char_traits::to_int_type(*target);
                 adapter_.set_position(offset + 1);
             } else {
+                const std::size_t from = adapter_.position();
+                for (std::size_t i = from; i < adapter_.size(); ++i) {
+                    advance_column(char_traits::to_int_type(buffer_begin()[i]));
+                }
                 current = char_traits::eof();
                 adapter_.set_position(adapter_.size());
             }
@@ -146,10 +154,24 @@ namespace rainy::foundation::willow::yaml::implements {
             if (has_pushback_) {
                 has_pushback_ = false;
                 current = pushback_;
+                advance_column(current);
                 return current;
             }
             current = adapter_.get_char();
+            advance_column(current);
             return current;
+        }
+
+        void advance_column(const char_int_type ch) noexcept {
+            if (ch == char_traits::eof()) {
+                return;
+            }
+            const auto unit = code_unit(ch);
+            if (unit == 0x0A || unit == 0x0D) {
+                column_ = 0;
+            } else {
+                ++column_;
+            }
         }
 
         void unread(const char_int_type ch) {
@@ -158,6 +180,9 @@ namespace rainy::foundation::willow::yaml::implements {
         }
 
         char_int_type peek_next() {
+            if (has_pushback_) {
+                return pushback_;
+            }
             const auto ch = adapter_.get_char();
             unread(ch);
             return ch;
@@ -252,6 +277,10 @@ namespace rainy::foundation::willow::yaml::implements {
             return current_line_indent_;
         }
 
+        int token_column() const {
+            return token_column_;
+        }
+
         void skip_spaces() {
             while (is_yaml_space(current)) {
                 read_next();
@@ -271,7 +300,11 @@ namespace rainy::foundation::willow::yaml::implements {
                 skip_spaces();
                 skip_comment();
                 if (is_line_terminator(current)) {
+                    const bool carriage_return = current == '\r';
                     read_next();
+                    if (carriage_return && current == '\n') {
+                        read_next();
+                    }
                     int indent = 0;
                     while (is_yaml_space(current)) {
                         ++indent;
@@ -329,7 +362,7 @@ namespace rainy::foundation::willow::yaml::implements {
 
             while (current != char_traits::eof()) {
                 int raw_indent = 0;
-                while (is_yaml_space(current)) {
+                while (current == char_traits::to_int_type(' ')) {
                     ++raw_indent;
                     read_next();
                 }
@@ -441,6 +474,8 @@ namespace rainy::foundation::willow::yaml::implements {
                 return token_type::end_of_input;
             }
 
+            const int token_column = column_ - 1;
+            token_column_ = token_column;
             switch (char_traits::to_char_type(current)) {
                 case '[':
                     read_next();
@@ -466,6 +501,9 @@ namespace rainy::foundation::willow::yaml::implements {
                 case '-':
                     return scan_dash_token();
                 case '.':
+                    if (is_float_special_lead()) {
+                        return scan_plain_scalar();
+                    }
                     return scan_document_end();
                 case '#':
                     skip_comment();
@@ -528,6 +566,15 @@ namespace rainy::foundation::willow::yaml::implements {
             string_buffer_.clear();
             string_buffer_.push_back('.');
             return scan_plain_scalar_continue();
+        }
+
+        bool is_float_special_lead() {
+            const auto next = peek_next();
+            if (next == char_traits::eof()) {
+                return false;
+            }
+            const auto unit = code_unit(next);
+            return unit == 'i' || unit == 'I' || unit == 'n' || unit == 'N';
         }
 
         token_type scan_anchor() {
@@ -598,15 +645,45 @@ namespace rainy::foundation::willow::yaml::implements {
                 }
                 if (quote == '\"' && current == '\\') {
                     read_next();
+                    if (is_line_terminator(current)) {
+                        while (is_line_terminator(current)) {
+                            if (current == '\r') {
+                                read_next();
+                                if (current == '\n') {
+                                    read_next();
+                                }
+                            } else {
+                                read_next();
+                            }
+                        }
+                        continue;
+                    }
                     scan_escape_sequence();
                     continue;
                 }
                 if (is_line_terminator(current)) {
-                    read_next();
+                    std::size_t line_breaks = 0;
+                    while (is_line_terminator(current)) {
+                        ++line_breaks;
+                        if (current == '\r') {
+                            read_next();
+                            if (current == '\n') {
+                                read_next();
+                            }
+                        } else {
+                            read_next();
+                        }
+                    }
                     while (is_yaml_space(current)) {
                         read_next();
                     }
-                    string_buffer_.push_back(' ');
+                    if (line_breaks == 1) {
+                        string_buffer_.push_back(' ');
+                    } else {
+                        for (std::size_t i = 1; i < line_breaks; ++i) {
+                            string_buffer_.push_back('\n');
+                        }
+                    }
                     continue;
                 }
                 string_buffer_.push_back(char_traits::to_char_type(current));
@@ -1126,10 +1203,62 @@ namespace rainy::foundation::willow::yaml::implements {
                 default:
                     break;
             }
+            if (match_float_special()) {
+                return token_type::value_float;
+            }
             if (scan_plain_number()) {
                 return number_is_float_ ? token_type::value_float : token_type::value_integer;
             }
             return token_type::value_string;
+        }
+
+        bool match_float_special() {
+            const auto &s = string_buffer_;
+            std::size_t idx = 0;
+            bool negative = false;
+            if (!s.empty() && (s[0] == '-' || s[0] == '+')) {
+                negative = s[0] == '-';
+                idx = 1;
+            }
+            if (idx >= s.size() || s[idx] != char_type('.')) {
+                return false;
+            }
+            ++idx;
+            const std::size_t remaining = s.size() - idx;
+            auto matches = [&](const char *const word) {
+                std::size_t length = 0;
+                while (word[length] != '\0') {
+                    ++length;
+                }
+                if (remaining != length) {
+                    return false;
+                }
+                for (std::size_t i = 0; i < length; ++i) {
+                    if (s[idx + i] != char_type(word[i])) {
+                        return false;
+                    }
+                }
+                return true;
+            };
+            if (matches("inf") || matches("Inf") || matches("INF")) {
+                number_value_ = negative ? -numeric_infinity() : numeric_infinity();
+                number_is_float_ = true;
+                return true;
+            }
+            if (matches("nan") || matches("NaN") || matches("NAN")) {
+                number_value_ = numeric_nan();
+                number_is_float_ = true;
+                return true;
+            }
+            return false;
+        }
+
+        static float_type numeric_infinity() noexcept {
+            return (utility::numeric_limits<float_type>::infinity)();
+        }
+
+        static float_type numeric_nan() noexcept {
+            return (utility::numeric_limits<float_type>::quiet_NaN)();
         }
 
         bool scan_plain_number() {
@@ -1151,13 +1280,19 @@ namespace rainy::foundation::willow::yaml::implements {
             if (idx < s.size() && s[idx] == '0' && idx + 1 < s.size() && (s[idx + 1] == 'x' || s[idx + 1] == 'X')) {
                 idx += 2;
                 bool has_digits = false;
+                bool overflow = false;
                 std::uint64_t value = 0;
                 while (idx < s.size() && is_hex_digit(static_cast<char_int_type>(s[idx]))) {
-                    value = value * 16 + hex_value(s[idx]);
+                    const auto digit = hex_value(s[idx]);
+                    if (value > (maximum_integer_magnitude() - digit) / 16) {
+                        overflow = true;
+                    } else if (!overflow) {
+                        value = value * 16 + digit;
+                    }
                     has_digits = true;
                     ++idx;
                 }
-                if (!has_digits || idx != s.size()) {
+                if (!has_digits || idx != s.size() || overflow) {
                     return false;
                 }
                 integer_value_ = negative ? -static_cast<integer_type>(value) : static_cast<integer_type>(value);
@@ -1168,13 +1303,19 @@ namespace rainy::foundation::willow::yaml::implements {
             if (idx < s.size() && s[idx] == '0' && idx + 1 < s.size() && s[idx + 1] == 'o') {
                 idx += 2;
                 bool has_digits = false;
+                bool overflow = false;
                 std::uint64_t value = 0;
                 while (idx < s.size() && is_oct_digit(static_cast<char_int_type>(s[idx]))) {
-                    value = value * 8 + static_cast<std::uint64_t>(s[idx] - '0');
+                    const auto digit = static_cast<std::uint64_t>(s[idx] - '0');
+                    if (value > (maximum_integer_magnitude() - digit) / 8) {
+                        overflow = true;
+                    } else if (!overflow) {
+                        value = value * 8 + digit;
+                    }
                     has_digits = true;
                     ++idx;
                 }
-                if (!has_digits || idx != s.size()) {
+                if (!has_digits || idx != s.size() || overflow) {
                     return false;
                 }
                 integer_value_ = negative ? -static_cast<integer_type>(value) : static_cast<integer_type>(value);
@@ -1238,10 +1379,13 @@ namespace rainy::foundation::willow::yaml::implements {
             core::collections::vector<char> cleaned;
             const char *begin = nullptr;
             const char *end = nullptr;
-            if (s.find(char_type('_')) == string_type::npos) {
-                begin = reinterpret_cast<const char *>(s.data());
-                end = begin + s.size();
-            } else {
+            if constexpr (type_traits::type_relations::is_same_v<char_type, char>) {
+                if (s.find(char_type('_')) == string_type::npos) {
+                    begin = reinterpret_cast<const char *>(s.data());
+                    end = begin + s.size();
+                }
+            }
+            if (begin == nullptr) {
                 cleaned.reserve(s.size());
                 for (const char_type c: s) {
                     if (c != '_') {
@@ -1255,19 +1399,22 @@ namespace rainy::foundation::willow::yaml::implements {
             if (has_dot || has_exp) {
                 float_type fv{};
                 const auto result = core::text::from_chars(begin, end, fv);
-                if (result.ec != std::errc{} && result.ec != std::errc::result_out_of_range) {
+                if (result.ec == std::errc::result_out_of_range) {
+                    number_value_ = willow::implements::saturate_floating_out_of_range<float_type>(begin, end, result.ec);
+                    number_is_float_ = true;
+                    return true;
+                }
+                if (result.ec != std::errc{} || result.ptr != end) {
                     return false;
                 }
-                number_value_ = result.ec == std::errc::result_out_of_range
-                                    ? willow::implements::saturate_floating_out_of_range<float_type>(begin, end, result.ec)
-                                    : fv;
+                number_value_ = fv;
                 number_is_float_ = true;
                 return true;
             }
 
             integer_type iv{};
             const auto result = core::text::from_chars(begin, end, iv);
-            if (result.ec == std::errc{}) {
+            if (result.ec == std::errc{} && result.ptr == end) {
                 integer_value_ = iv;
                 number_is_float_ = false;
                 return true;
@@ -1275,10 +1422,13 @@ namespace rainy::foundation::willow::yaml::implements {
 
             float_type fv{};
             const auto fresult = core::text::from_chars(begin, end, fv);
-            if (fresult.ec == std::errc{} || fresult.ec == std::errc::result_out_of_range) {
-                number_value_ = fresult.ec == std::errc::result_out_of_range
-                                    ? willow::implements::saturate_floating_out_of_range<float_type>(begin, end, fresult.ec)
-                                    : fv;
+            if (fresult.ec == std::errc::result_out_of_range) {
+                number_value_ = willow::implements::saturate_floating_out_of_range<float_type>(begin, end, fresult.ec);
+                number_is_float_ = true;
+                return true;
+            }
+            if (fresult.ec == std::errc{} && fresult.ptr == end) {
+                number_value_ = fv;
                 number_is_float_ = true;
                 return true;
             }
@@ -1337,6 +1487,8 @@ namespace rainy::foundation::willow::yaml::implements {
         int flow_depth_{0};
         int current_line_indent_{0};
         int block_parent_indent_{0};
+        int token_column_{0};
+        int column_{0};
     };
 }
 

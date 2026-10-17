@@ -108,7 +108,9 @@ namespace rainy::foundation::willow::xml::implements {
         }
 
         void dump_element(const string_type &name, const BasicDocument &node, const unsigned int depth) {
-            indent(depth);
+            if (!inline_text_mode_) {
+                indent(depth);
+            }
             put(to_char_type('<'));
             put(name.data(), name.size());
             dump_attributes(node);
@@ -139,24 +141,32 @@ namespace rainy::foundation::willow::xml::implements {
                 }
             }
             put(to_char_type('>'));
+            auto text = object.find(text_key_);
+            const bool has_text = text != object.end() && !is_blank_text(text->second);
             if (has_child_element) {
-                newline();
-                for (const auto &entry: object) {
-                    if (entry.first == text_key_) {
-                        continue;
+                if (has_text) {
+                    const bool outer_inline = inline_text_mode_;
+                    inline_text_mode_ = true;
+                    for (const auto &entry: object) {
+                        if (entry.first == text_key_) {
+                            continue;
+                        }
+                        dump_child(entry.first, entry.second, depth + 1);
                     }
-                    dump_child(entry.first, entry.second, depth + 1);
-                }
-                indent(depth);
-                auto text = object.find(text_key_);
-                if (text != object.end()) {
+                    inline_text_mode_ = outer_inline;
                     dump_text_content(text->second);
+                } else {
+                    newline();
+                    for (const auto &entry: object) {
+                        if (entry.first == text_key_) {
+                            continue;
+                        }
+                        dump_child(entry.first, entry.second, depth + 1);
+                    }
+                    indent(depth);
                 }
-            } else {
-                auto text = object.find(text_key_);
-                if (text != object.end()) {
-                    dump_text_content(text->second);
-                }
+            } else if (has_text) {
+                dump_text_content(text->second);
             }
             put_literal("</");
             put(name.data(), name.size());
@@ -313,7 +323,7 @@ namespace rainy::foundation::willow::xml::implements {
         }
 
         void indent(const unsigned int depth) {
-            if (arg_.indent == 0) {
+            if (arg_.indent == 0 || inline_text_mode_) {
                 return;
             }
             put(to_char_type('\n'));
@@ -323,7 +333,7 @@ namespace rainy::foundation::willow::xml::implements {
         }
 
         void newline() {
-            if (arg_.indent != 0) {
+            if (arg_.indent != 0 && !inline_text_mode_) {
                 put(to_char_type('\n'));
             }
         }
@@ -403,11 +413,24 @@ namespace rainy::foundation::willow::xml::implements {
             return result;
         }
 
+        static bool is_blank_text(const BasicDocument &node) {
+            if (!node.is_string()) {
+                return false;
+            }
+            for (const char_type ch: node.as_string()) {
+                if (ch != char_type(' ') && ch != char_type('\t') && ch != char_type('\n') && ch != char_type('\r')) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
     private:
         output_adapter<char_type> out_;
         const args &arg_;
         string_type text_key_;
         core::collections::vector<char_type> out_buffer_;
+        bool inline_text_mode_{false};
     };
 }
 

@@ -225,6 +225,16 @@ namespace rainy::foundation::willow::toml::implements {
                 if (node.is_inline_table()) {
                     exceptions::willow::toml::throw_toml_parse_error("cannot extend an inline table");
                 }
+                if (node.is_array()) {
+                    if (!node.is_array_table() || node.as_array().empty()) {
+                        exceptions::willow::toml::throw_toml_parse_error("a key conflicts with an existing value");
+                    }
+                    node_type &last = node.as_array().back();
+                    if (!last.is_object()) {
+                        exceptions::willow::toml::throw_toml_parse_error("a key conflicts with an existing value");
+                    }
+                    return &last.as_object();
+                }
                 if (!node.is_object()) {
                     exceptions::willow::toml::throw_toml_parse_error("a key conflicts with an existing value");
                 }

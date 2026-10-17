@@ -486,11 +486,13 @@ namespace rainy::foundation::willow::yaml::implements {
                     case 1:
                         return str == "~";
                     case 2:
-                        return str == "no" || str == "on";
+                        return str == "no" || str == "No" || str == "NO" || str == "on" || str == "On" || str == "ON";
                     case 3:
-                        return str == "yes" || str == "off";
+                        return str == "yes" || str == "Yes" || str == "YES" || str == "off" || str == "Off" || str == "OFF";
                     case 4:
-                        return str == "true" || str == "True" || str == "TRUE" || str == "null" || str == "Null" || str == "NULL";
+                        return str == "true" || str == "True" || str == "TRUE" || str == "null" || str == "Null" || str == "NULL" ||
+                               str == ".inf" || str == ".Inf" || str == ".INF" || str == ".nan" || str == ".NaN" ||
+                               str == ".NAN";
                     case 5:
                         return str == "false" || str == "False" || str == "FALSE";
                     default:
@@ -501,12 +503,14 @@ namespace rainy::foundation::willow::yaml::implements {
                     case 1:
                         return str == L"~";
                     case 2:
-                        return str == L"no" || str == L"on";
+                        return str == L"no" || str == L"No" || str == L"NO" || str == L"on" || str == L"On" || str == L"ON";
                     case 3:
-                        return str == L"yes" || str == L"off";
+                        return str == L"yes" || str == L"Yes" || str == L"YES" || str == L"off" || str == L"Off" ||
+                               str == L"OFF";
                     case 4:
                         return str == L"true" || str == L"True" || str == L"TRUE" || str == L"null" || str == L"Null" ||
-                               str == L"NULL";
+                               str == L"NULL" || str == L".inf" || str == L".Inf" || str == L".INF" || str == L".nan" ||
+                               str == L".NaN" || str == L".NAN";
                     case 5:
                         return str == L"false" || str == L"False" || str == L"FALSE";
                     default:
@@ -517,12 +521,14 @@ namespace rainy::foundation::willow::yaml::implements {
                     case 1:
                         return str == u"~";
                     case 2:
-                        return str == u"no" || str == u"on";
+                        return str == u"no" || str == u"No" || str == u"NO" || str == u"on" || str == u"On" || str == u"ON";
                     case 3:
-                        return str == u"yes" || str == u"off";
+                        return str == u"yes" || str == u"Yes" || str == u"YES" || str == u"off" || str == u"Off" ||
+                               str == u"OFF";
                     case 4:
                         return str == u"true" || str == u"True" || str == u"TRUE" || str == u"null" || str == u"Null" ||
-                               str == u"NULL";
+                               str == u"NULL" || str == u".inf" || str == u".Inf" || str == u".INF" || str == u".nan" ||
+                               str == u".NaN" || str == u".NAN";
                     case 5:
                         return str == u"false" || str == u"False" || str == u"FALSE";
                     default:
@@ -533,12 +539,14 @@ namespace rainy::foundation::willow::yaml::implements {
                     case 1:
                         return str == U"~";
                     case 2:
-                        return str == U"no" || str == U"on";
+                        return str == U"no" || str == U"No" || str == U"NO" || str == U"on" || str == U"On" || str == U"ON";
                     case 3:
-                        return str == U"yes" || str == U"off";
+                        return str == U"yes" || str == U"Yes" || str == U"YES" || str == U"off" || str == U"Off" ||
+                               str == U"OFF";
                     case 4:
                         return str == U"true" || str == U"True" || str == U"TRUE" || str == U"null" || str == U"Null" ||
-                               str == U"NULL";
+                               str == U"NULL" || str == U".inf" || str == U".Inf" || str == U".INF" || str == U".nan" ||
+                               str == U".NaN" || str == U".NAN";
                     case 5:
                         return str == U"false" || str == U"False" || str == U"FALSE";
                     default:
@@ -551,12 +559,15 @@ namespace rainy::foundation::willow::yaml::implements {
                         case 1:
                             return str == u8"~";
                         case 2:
-                            return str == u8"no" || str == u8"on";
+                            return str == u8"no" || str == u8"No" || str == u8"NO" || str == u8"on" || str == u8"On" ||
+                                   str == u8"ON";
                         case 3:
-                            return str == u8"yes" || str == u8"off";
+                            return str == u8"yes" || str == u8"Yes" || str == u8"YES" || str == u8"off" || str == u8"Off" ||
+                                   str == u8"OFF";
                         case 4:
                             return str == u8"true" || str == u8"True" || str == u8"TRUE" || str == u8"null" ||
-                                   str == u8"Null" || str == u8"NULL";
+                                   str == u8"Null" || str == u8"NULL" || str == u8".inf" || str == u8".Inf" ||
+                                   str == u8".INF" || str == u8".nan" || str == u8".NaN" || str == u8".NAN";
                         case 5:
                             return str == u8"false" || str == u8"False" || str == u8"FALSE";
                         default:
@@ -589,13 +600,33 @@ namespace rainy::foundation::willow::yaml::implements {
             if (length == 0) {
                 return false;
             }
-            for (std::size_t index = 1; index < length; ++index) {
-                if (first[index] == char_type('-') || first[index] == char_type('+')) {
-                    return false;
-                }
-            }
             const bool signed_value = first[0] == char_type('-') || first[0] == char_type('+');
             std::size_t i = signed_value ? 1 : 0;
+            if (i < length && first[i] == char_type('.') && length > i + 3) {
+                const char_type second = first[i + 1];
+                if (second == char_type('i') || second == char_type('I') || second == char_type('n') || second == char_type('N')) {
+                    return true;
+                }
+            }
+            bool has_digit_before_exponent = false;
+            for (std::size_t index = i; index < length; ++index) {
+                if (first[index] >= char_type('0') && first[index] <= char_type('9')) {
+                    has_digit_before_exponent = true;
+                }
+                if (first[index] == char_type('e') || first[index] == char_type('E')) {
+                    break;
+                }
+            }
+            if (has_digit_before_exponent) {
+                for (std::size_t index = 1; index < length; ++index) {
+                    if (first[index] == char_type('-') || first[index] == char_type('+')) {
+                        const auto previous = first[index - 1];
+                        if (previous != char_type('e') && previous != char_type('E')) {
+                            return false;
+                        }
+                    }
+                }
+            }
             if (length > i + 2 && first[i] == char_type('0') && (first[i + 1] == char_type('x') || first[i + 1] == char_type('X'))) {
                 for (std::size_t k = i + 2; k < length; ++k) {
                     const auto c = first[k];
@@ -624,7 +655,22 @@ namespace rainy::foundation::willow::yaml::implements {
                 } else if (c == char_type('.')) {
                     has_dot = true;
                 } else if (c == char_type('e') || c == char_type('E')) {
-                    return has_digit;
+                    if (!has_digit) {
+                        return false;
+                    }
+                    ++i;
+                    if (i < length && (first[i] == char_type('+') || first[i] == char_type('-'))) {
+                        ++i;
+                    }
+                    if (i >= length) {
+                        return false;
+                    }
+                    for (; i < length; ++i) {
+                        if (first[i] < char_type('0') || first[i] > char_type('9')) {
+                            return false;
+                        }
+                    }
+                    return true;
                 } else {
                     return false;
                 }
@@ -663,8 +709,10 @@ namespace rainy::foundation::willow::yaml::implements {
 
         void dump_string(const string_type &str, const unsigned int current_indent) {
             if (str.find(to_char_type('\n')) != string_type::npos) {
-                dump_block_scalar(str, current_indent);
-                return;
+                if (can_write_block_scalar(str)) {
+                    dump_block_scalar(str, current_indent);
+                    return;
+                }
             }
             if (needs_quotes(str)) {
                 dump_quoted_string(str);
@@ -672,6 +720,18 @@ namespace rainy::foundation::willow::yaml::implements {
                 write_raw_string(str);
             }
             put(to_char_type('\n'));
+        }
+
+        bool can_write_block_scalar(const string_type &str) const {
+            for (const auto &ch: str) {
+                if (ch == to_char_type('\r') || ch == to_char_type('\t')) {
+                    return false;
+                }
+            }
+            if (str.front() == to_char_type(' ')) {
+                return false;
+            }
+            return true;
         }
 
         void dump_flow_string(const string_type &str) {
@@ -695,6 +755,7 @@ namespace rainy::foundation::willow::yaml::implements {
             }
             put(to_char_type('\n'));
             const std::size_t body_end = str.size() - (trailing > 0 ? 1 : 0);
+            const std::size_t content_end = trailing > 0 ? str.size() - trailing : str.size();
             std::size_t pos = 0;
             while (pos <= body_end) {
                 const auto end = str.find(to_char_type('\n'), pos);
@@ -707,6 +768,12 @@ namespace rainy::foundation::willow::yaml::implements {
                 put(str.data() + pos, end - pos);
                 put(to_char_type('\n'));
                 pos = end + 1;
+            }
+            for (std::size_t i = body_end; i < content_end; ++i) {
+                if (str[i] == to_char_type('\n')) {
+                    write_indent(current_indent + 1);
+                    put(to_char_type('\n'));
+                }
             }
         }
 

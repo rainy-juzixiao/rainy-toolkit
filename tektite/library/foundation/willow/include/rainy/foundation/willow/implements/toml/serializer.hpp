@@ -111,9 +111,65 @@ namespace rainy::foundation::willow::toml::implements {
                 if (saved != 0) {
                     path_buffer_.push_back(char_type('.'));
                 }
-                path_buffer_.append(entry.first);
+                append_key_path(entry.first);
                 dump_table(entry.second, true);
                 path_buffer_.resize(saved);
+            }
+        }
+
+        void append_key_path(const string_type &key) {
+            if (is_bare_key(key)) {
+                path_buffer_.append(key);
+                return;
+            }
+            path_buffer_.push_back(char_type('\"'));
+            for (const char_type ch: key) {
+                const auto unit = static_cast<std::uint32_t>(static_cast<type_traits::helper::make_unsigned_t<char_type>>(ch));
+                switch (unit) {
+                    case '\b':
+                        append_escape('b');
+                        break;
+                    case '\t':
+                        append_escape('t');
+                        break;
+                    case '\n':
+                        append_escape('n');
+                        break;
+                    case '\f':
+                        append_escape('f');
+                        break;
+                    case '\r':
+                        append_escape('r');
+                        break;
+                    case '\"':
+                        append_escape('\"');
+                        break;
+                    case '\\':
+                        append_escape('\\');
+                        break;
+                    default:
+                        if (unit < 0x20 || unit == 0x7F) {
+                            append_unicode_escape(unit);
+                        } else {
+                            path_buffer_.push_back(ch);
+                        }
+                        break;
+                }
+            }
+            path_buffer_.push_back(char_type('\"'));
+        }
+
+        void append_escape(const char_type ch) {
+            path_buffer_.push_back(char_type('\\'));
+            path_buffer_.push_back(ch);
+        }
+
+        void append_unicode_escape(std::uint32_t codepoint) {
+            path_buffer_.push_back(char_type('\\'));
+            path_buffer_.push_back(char_type('u'));
+            static const char hex_chars[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
+            for (int i = 3; i >= 0; --i) {
+                path_buffer_.push_back(char_type(hex_chars[(codepoint >> (4 * i)) & 0xF]));
             }
         }
 
@@ -346,7 +402,21 @@ namespace rainy::foundation::willow::toml::implements {
             if (result.ec != std::errc{}) {
                 exceptions::willow::toml::throw_toml_serialize_error("a float could not be formatted");
             }
-            put_narrow(buffer, static_cast<std::size_t>(result.ptr - buffer));
+            const std::size_t length = static_cast<std::size_t>(result.ptr - buffer);
+            put_narrow(buffer, length);
+            if (!contains_float_marker(buffer, length)) {
+                put(to_char_type('.'));
+                put(to_char_type('0'));
+            }
+        }
+
+        static bool contains_float_marker(const char *const str, const std::size_t size) noexcept {
+            for (std::size_t i = 0; i < size; ++i) {
+                if (str[i] == '.' || str[i] == 'e' || str[i] == 'E') {
+                    return true;
+                }
+            }
+            return false;
         }
 
         void put_narrow(const char *const str, const std::size_t size) {
