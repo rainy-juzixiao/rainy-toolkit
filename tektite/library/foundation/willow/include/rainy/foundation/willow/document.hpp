@@ -125,7 +125,10 @@ namespace rainy::foundation::willow {
                 exact_type = is_an_object ? document_type::object : document_type::array;
             }
             if (exact_type == document_type::object) {
-                assert(is_an_object);
+                if (!is_an_object) {
+                    exceptions::willow::throw_willow_type_error(
+                        "cannot initialize an object document from a non-object initializer list");
+                }
                 value_ = document_type::object;
                 for (const node_type &item: init_list) {
                     object_type &object = (*value_.data.object);
@@ -526,6 +529,9 @@ namespace rainy::foundation::willow {
             }
             auto &vec = (*value_.data.vector);
             if (index >= vec.size()) {
+                if (index == (utility::numeric_limits<size_type>::max)() || index - vec.size() + 1 > vec.max_size() - vec.size()) {
+                    core::exceptions::logic::throw_length_error("operator[] index is too large");
+                }
                 vec.insert(vec.end(), index - vec.size() + 1, basic_document{});
             }
             return vec[index];
@@ -551,7 +557,7 @@ namespace rainy::foundation::willow {
             return (*value_.data.object)[key];
         }
 
-        RAINY_INLINE node_type &operator[](const typename object_type::key_type &key) const {
+        RAINY_INLINE const node_type &operator[](const typename object_type::key_type &key) const {
             if (!is_object()) {
                 exceptions::willow::throw_willow_invalid_key("operator[] called on a non-object object");
             }
