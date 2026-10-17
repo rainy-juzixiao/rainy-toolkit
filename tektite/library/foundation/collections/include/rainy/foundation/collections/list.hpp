@@ -16,6 +16,7 @@
 #ifndef RAINY_FOUNDATION_COLLECTIONS_LIST_HPP
 #define RAINY_FOUNDATION_COLLECTIONS_LIST_HPP
 #include <rainy/core/algorithm/basic_algorithm.hpp>
+#include <rainy/core/collections/vector.hpp>
 #include <rainy/core/functional/functor.hpp>
 #include <rainy/core/memory/allocator.hpp>
 #include <rainy/core/platform.hpp>
@@ -30,6 +31,17 @@ namespace rainy::foundation::collections {
     /**
      * @brief
      */
+    template <typename Ty>
+    struct list_node_storage {
+        Ty value;
+        list_node_storage *prev;
+        list_node_storage *next;
+
+        template <typename... Args>
+        list_node_storage(Args &&...args) : value(utility::forward<Args>(args)...), prev(this), next(this) {
+        }
+    };
+
     template <typename Ty, typename Alloc>
     class list_node;
 
@@ -42,15 +54,7 @@ namespace rainy::foundation::collections {
     template <typename Ty, typename Allocator = core::memory::allocator<Ty>>
     class list {
     public:
-        struct node {
-            Ty value;
-            node *prev;
-            node *next;
-
-            template <typename... Args>
-            node(Args &&...args) : value(utility::forward<Args>(args)...), prev(this), next(this) {
-            }
-        };
+        using node = list_node_storage<Ty>;
 
         using node_allocator_type = typename core::memory::allocator_traits<Allocator>::template rebind_alloc<node>;
         using node_allocator_traits = core::memory::allocator_traits<node_allocator_type>;
@@ -246,7 +250,9 @@ namespace rainy::foundation::collections {
                 if (node_allocator_traits::propagate_on_container_copy_assignment::value) {
                     if (allocator_ != right.allocator_) {
                         clear();
+                        node_allocator_traits::deallocate(allocator_, sentinel_, 1);
                         allocator_ = right.allocator_;
+                        create_sentinel();
                     }
                 }
                 assign(right.begin(), right.end());
@@ -258,7 +264,19 @@ namespace rainy::foundation::collections {
             if (this != &right) {
                 clear();
                 if constexpr (node_allocator_traits::propagate_on_container_move_assignment::value) {
-                    allocator_ = utility::move(right.allocator_);
+                    if (allocator_ != right.allocator_) {
+                        node_allocator_traits::deallocate(allocator_, sentinel_, 1);
+                        allocator_ = utility::move(right.allocator_);
+                        create_sentinel();
+                        for (auto &item: right) {
+                            push_back(utility::move(item));
+                        }
+                        right.clear();
+                        return *this;
+                    }
+                    std::swap(sentinel_, right.sentinel_);
+                    std::swap(size_, right.size_);
+                    return *this;
                 }
                 if (allocator_ == right.allocator_) {
                     std::swap(sentinel_, right.sentinel_);
@@ -459,16 +477,25 @@ namespace rainy::foundation::collections {
         iterator insert(const_iterator position, size_type count, const Ty &left) {
             iterator result = iterator(const_cast<node *>(position.node_ptr));
             for (size_type i = 0; i < count; ++i) {
-                result = insert(position, left);
+                iterator inserted = insert(position, left);
+                if (i == 0) {
+                    result = inserted;
+                }
             }
             return result;
         }
 
-        template <typename InputIter>
+        template <typename InputIter,
+                  type_traits::other_trans::enable_if_t<type_traits::extras::iterators::is_iterator_v<InputIter>, int> = 0>
         iterator insert(const_iterator position, InputIter first, InputIter last) {
             iterator result = iterator(const_cast<node *>(position.node_ptr));
+            bool first_inserted = true;
             for (auto it = first; it != last; ++it) {
-                result = insert(position, *it);
+                iterator inserted = insert(position, *it);
+                if (first_inserted) {
+                    result = inserted;
+                    first_inserted = false;
+                }
             }
             return result;
         }
@@ -477,7 +504,7 @@ namespace rainy::foundation::collections {
             return insert(position, ilist.begin(), ilist.end());
         }
 
-        iterator insert(const_iterator position, list_node<value_type, allocator_type> &&new_node) {
+        iterator insert(const_iterator position, list_node<value_type, node_allocator_type> &&new_node) {
             if (new_node.empty()) {
                 return {};
             }
@@ -652,8 +679,9 @@ namespace rainy::foundation::collections {
                 return;
             }
             // 归并排序
-            list carry;
-            list counter[64];
+            using list_allocator = typename core::memory::allocator_traits<allocator_type>::template rebind_alloc<list>;
+            list carry{allocator_};
+            core::collections::vector<list, list_allocator> counter(64, list{allocator_}, list_allocator{allocator_});
             int fill = 0;
             while (!empty()) {
                 carry.splice(carry.begin(), *this, begin());
@@ -677,11 +705,11 @@ namespace rainy::foundation::collections {
             if (size_ <= 1) {
                 return;
             }
-            node *current = sentinel_->next;
+            node *current = sentinel_;
             do {
                 std::swap(current->prev, current->next);
-                current = current->prev; // 因为已经交换，所以prev是原来的next
-            } while (current != sentinel_->next);
+                current = current->prev;
+            } while (current != sentinel_);
         }
 
         list_node<value_type, node_allocator_type> extract_node(const_iterator position) {
@@ -695,9 +723,9 @@ namespace rainy::foundation::collections {
 
         list take_front(size_type count) {
             if (count == 0 || empty()) {
-                return {};
+                return list{allocator_};
             }
-            list out;
+            list out{allocator_};
             if (count >= size()) {
                 out.splice(out.end(), *this);
                 return out;
@@ -710,9 +738,9 @@ namespace rainy::foundation::collections {
 
         list take_back(size_type n) {
             if (n == 0 || empty()) {
-                return {};
+                return list{allocator_};
             }
-            list out;
+            list out{allocator_};
             if (n >= size()) {
                 out.splice(out.end(), *this);
                 return out;
@@ -792,6 +820,7 @@ namespace rainy::foundation::collections {
             if (this != &right) {
                 deallocate_this_node();
                 ptr = right.ptr;
+                allocator = right.allocator;
                 right.ptr = nullptr;
             }
             return *this;
