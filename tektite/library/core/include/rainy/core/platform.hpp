@@ -969,7 +969,7 @@ namespace rainy::core::builtin {
      * @return 从最低有效位开始连续零位的数量
      */
     RAINY_INLINE int ctz(const int mask) {
-#if RAINY_COMPILER_MSVC
+#if RAINY_USING_MSVC
         unsigned long index;
         _BitScanForward(&index, static_cast<unsigned long>(mask));
         return static_cast<int>(index);
