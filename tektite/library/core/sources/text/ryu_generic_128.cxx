@@ -514,6 +514,528 @@ namespace rainy::core::text::implements::ryu {
         return {p, std::errc{}};
     }
 
+    inline constexpr std::uint32_t big_decimal_max_limbs = 1400;
+    inline constexpr std::uint32_t big_decimal_base = 1000000000u;
+
+    struct big_decimal {
+        std::uint32_t limbs[big_decimal_max_limbs];
+        std::uint32_t count;
+    };
+
+    inline void big_decimal_trim(big_decimal &v) noexcept {
+        while (v.count > 0 && v.limbs[v.count - 1] == 0) {
+            --v.count;
+        }
+    }
+
+    inline void big_decimal_from_u128(big_decimal &v, uint128_t value) noexcept {
+        v.count = 0;
+        while (value != 0) {
+            v.limbs[v.count++] = static_cast<std::uint32_t>(value % big_decimal_base);
+            value /= big_decimal_base;
+        }
+    }
+
+    inline void big_decimal_mul_small(big_decimal &v, const std::uint32_t factor) noexcept {
+        if (factor == 1) {
+            return;
+        }
+        std::uint64_t carry = 0;
+        for (std::uint32_t i = 0; i < v.count; ++i) {
+            const std::uint64_t product = static_cast<std::uint64_t>(v.limbs[i]) * factor + carry;
+            v.limbs[i] = static_cast<std::uint32_t>(product % big_decimal_base);
+            carry = product / big_decimal_base;
+        }
+        while (carry != 0 && v.count < big_decimal_max_limbs) {
+            v.limbs[v.count++] = static_cast<std::uint32_t>(carry % big_decimal_base);
+            carry /= big_decimal_base;
+        }
+    }
+
+    inline void big_decimal_add_small(big_decimal &v, const std::uint32_t addend) noexcept {
+        std::uint64_t carry = addend;
+        std::uint32_t i = 0;
+        while (carry != 0 && i < v.count) {
+            const std::uint64_t sum = static_cast<std::uint64_t>(v.limbs[i]) + carry;
+            v.limbs[i] = static_cast<std::uint32_t>(sum % big_decimal_base);
+            carry = sum / big_decimal_base;
+            ++i;
+        }
+        while (carry != 0 && v.count < big_decimal_max_limbs) {
+            v.limbs[v.count++] = static_cast<std::uint32_t>(carry % big_decimal_base);
+            carry /= big_decimal_base;
+        }
+    }
+
+    inline void big_decimal_mul_pow2(big_decimal &v, std::uint32_t exponent) noexcept {
+        constexpr std::uint32_t chunk = 536870912u;
+        while (exponent >= 29) {
+            big_decimal_mul_small(v, chunk);
+            exponent -= 29;
+        }
+        big_decimal_mul_small(v, 1u << exponent);
+    }
+
+    inline void big_decimal_mul_pow5(big_decimal &v, std::uint32_t exponent) noexcept {
+        constexpr std::uint32_t five13 = 1220703125u;
+        while (exponent >= 13) {
+            big_decimal_mul_small(v, five13);
+            exponent -= 13;
+        }
+        std::uint32_t factor = 1;
+        for (std::uint32_t i = 0; i < exponent; ++i) {
+            factor *= 5;
+        }
+        big_decimal_mul_small(v, factor);
+    }
+
+    inline void big_decimal_mul_pow10(big_decimal &v, std::uint32_t exponent) noexcept {
+        while (exponent >= 9) {
+            big_decimal_mul_small(v, big_decimal_base);
+            exponent -= 9;
+        }
+        static constexpr std::uint32_t small_powers[] = {1u,      10u,      100u,      1000u,     10000u,
+                                                        100000u, 1000000u, 10000000u, 100000000u};
+        big_decimal_mul_small(v, small_powers[exponent]);
+    }
+
+    RAINY_NODISCARD inline std::uint32_t big_decimal_digit_count(const big_decimal &v) noexcept {
+        if (v.count == 0) {
+            return 1;
+        }
+        std::uint32_t top = v.limbs[v.count - 1];
+        std::uint32_t digits = 0;
+        while (top != 0) {
+            top /= 10;
+            ++digits;
+        }
+        return (v.count - 1) * 9 + digits;
+    }
+
+    inline void big_decimal_to_digits(const big_decimal &v, char *const out) noexcept {
+        if (v.count == 0) {
+            out[0] = '0';
+            return;
+        }
+        char scratch[10];
+        std::uint32_t position = 0;
+        std::uint32_t top = v.limbs[v.count - 1];
+        std::uint32_t length = 0;
+        while (top != 0) {
+            scratch[length++] = static_cast<char>('0' + top % 10);
+            top /= 10;
+        }
+        while (length > 0) {
+            out[position++] = scratch[--length];
+        }
+        for (std::uint32_t i = v.count - 1; i > 0; --i) {
+            std::uint32_t limb = v.limbs[i - 1];
+            for (std::uint32_t k = 0; k < 9; ++k) {
+                scratch[8 - k] = static_cast<char>('0' + limb % 10);
+                limb /= 10;
+            }
+            for (std::uint32_t k = 0; k < 9; ++k) {
+                out[position++] = scratch[k];
+            }
+        }
+    }
+
+    inline void big_decimal_div_pow10(big_decimal &v, const std::uint32_t exponent) noexcept {
+        const std::uint32_t whole_limbs = exponent / 9;
+        const std::uint32_t remainder_digits = exponent % 9;
+        if (whole_limbs >= v.count) {
+            v.count = 0;
+            return;
+        }
+        for (std::uint32_t i = 0; i + whole_limbs < v.count; ++i) {
+            v.limbs[i] = v.limbs[i + whole_limbs];
+        }
+        v.count -= whole_limbs;
+        if (remainder_digits != 0) {
+            std::uint32_t divisor = 1;
+            for (std::uint32_t i = 0; i < remainder_digits; ++i) {
+                divisor *= 10;
+            }
+            std::uint64_t remainder = 0;
+            for (std::uint32_t i = v.count; i > 0; --i) {
+                const std::uint64_t current = remainder * big_decimal_base + v.limbs[i - 1];
+                v.limbs[i - 1] = static_cast<std::uint32_t>(current / divisor);
+                remainder = current % divisor;
+            }
+        }
+        big_decimal_trim(v);
+    }
+
+    inline void big_decimal_mod_pow10(const big_decimal &v, const std::uint32_t exponent, big_decimal &out) noexcept {
+        const std::uint32_t whole_limbs = exponent / 9;
+        const std::uint32_t remainder_digits = exponent % 9;
+        if (whole_limbs >= v.count) {
+            out = v;
+            return;
+        }
+        out.count = whole_limbs;
+        for (std::uint32_t i = 0; i < whole_limbs; ++i) {
+            out.limbs[i] = v.limbs[i];
+        }
+        if (remainder_digits != 0) {
+            std::uint32_t divisor = 1;
+            for (std::uint32_t i = 0; i < remainder_digits; ++i) {
+                divisor *= 10;
+            }
+            out.limbs[out.count++] = v.limbs[whole_limbs] % divisor;
+        }
+        big_decimal_trim(out);
+    }
+
+    inline void big_decimal_div_pow10_round(big_decimal &v, const std::uint32_t exponent) noexcept {
+        if (exponent == 0) {
+            return;
+        }
+        big_decimal remainder{};
+        big_decimal_mod_pow10(v, exponent, remainder);
+        big_decimal_div_pow10(v, exponent);
+        if (remainder.count == 0) {
+            return;
+        }
+        const std::uint32_t digits = big_decimal_digit_count(remainder);
+        if (digits < exponent) {
+            return;
+        }
+        const std::uint32_t top = remainder.limbs[remainder.count - 1];
+        std::uint32_t top_digits = 0;
+        for (std::uint32_t t = top; t != 0; t /= 10) {
+            ++top_digits;
+        }
+        std::uint32_t leading_power = 1;
+        for (std::uint32_t i = 1; i < top_digits; ++i) {
+            leading_power *= 10;
+        }
+        const std::uint32_t leading = top / leading_power;
+        bool sticky = top != leading * leading_power;
+        for (std::uint32_t i = 0; i + 1 < remainder.count && !sticky; ++i) {
+            sticky = remainder.limbs[i] != 0;
+        }
+        const bool round_up = leading > 5 || (leading == 5 && (sticky || (v.count > 0 && v.limbs[0] % 2 != 0)));
+        if (round_up) {
+            big_decimal_add_small(v, 1);
+        }
+    }
+
+    inline void long_double_decompose(const long double value, uint128_t &mantissa, std::int32_t &binary_exponent) noexcept {
+        uint128_t bits = 0;
+        std::memcpy(&bits, &value, sizeof(long double));
+#if RAINY_LONG_DOUBLE_IS_BINARY128
+        constexpr std::uint32_t mantissa_bits = 112;
+        constexpr std::int32_t exponent_bias = 16383;
+        const std::uint32_t ieee_exponent = static_cast<std::uint32_t>((bits >> mantissa_bits) & 0x7fffu);
+        const uint128_t ieee_mantissa = bits & ((static_cast<uint128_t>(1) << mantissa_bits) - 1);
+        if (ieee_exponent == 0) {
+            mantissa = ieee_mantissa;
+            binary_exponent = 1 - exponent_bias - static_cast<std::int32_t>(mantissa_bits);
+        } else {
+            mantissa = (static_cast<uint128_t>(1) << mantissa_bits) | ieee_mantissa;
+            binary_exponent = static_cast<std::int32_t>(ieee_exponent) - exponent_bias - static_cast<std::int32_t>(mantissa_bits);
+        }
+#else
+        constexpr std::uint32_t mantissa_bits = 64;
+        constexpr std::int32_t exponent_bias = 16383;
+        const std::uint32_t ieee_exponent = static_cast<std::uint32_t>((bits >> 64) & 0x7fffu);
+        mantissa = bits & ((static_cast<uint128_t>(1) << 64) - 1);
+        if (ieee_exponent == 0) {
+            binary_exponent = 1 - exponent_bias - static_cast<std::int32_t>(mantissa_bits) + 1;
+        } else {
+            binary_exponent =
+                static_cast<std::int32_t>(ieee_exponent) - exponent_bias - static_cast<std::int32_t>(mantissa_bits) + 1;
+        }
+#endif
+    }
+
+    RAINY_NODISCARD inline std::int32_t big_decimal_decimal_exponent(const big_decimal &v) noexcept {
+        return static_cast<std::int32_t>(big_decimal_digit_count(v)) - 1;
+    }
+
+    inline void long_double_exact_decimal(const long double value, big_decimal &numerator, std::uint32_t &scale) noexcept {
+        uint128_t mantissa = 0;
+        std::int32_t binary_exponent = 0;
+        long_double_decompose(value, mantissa, binary_exponent);
+        big_decimal_from_u128(numerator, mantissa);
+        if (binary_exponent >= 0) {
+            big_decimal_mul_pow2(numerator, static_cast<std::uint32_t>(binary_exponent));
+            scale = 0;
+        } else {
+            big_decimal_mul_pow5(numerator, static_cast<std::uint32_t>(-binary_exponent));
+            scale = static_cast<std::uint32_t>(-binary_exponent);
+        }
+    }
+
+    inline void long_double_round_to_scale(big_decimal &numerator, std::uint32_t &scale, const std::uint32_t target) noexcept {
+        if (scale > target) {
+            big_decimal_div_pow10_round(numerator, scale - target);
+            scale = target;
+        } else if (scale < target) {
+            big_decimal_mul_pow10(numerator, target - scale);
+            scale = target;
+        }
+    }
+
+    template <typename CharType>
+    RAINY_NODISCARD CharType *emit_fixed_digits(CharType *first, const big_decimal &numerator, const std::uint32_t precision) noexcept {
+        const std::uint32_t length = big_decimal_digit_count(numerator);
+        big_decimal_to_digits(numerator, reinterpret_cast<char *>(first));
+        if (precision == 0) {
+            return first + length;
+        }
+        if (length > precision) {
+            CharType *const point = first + (length - precision);
+            std::memmove(point + 1, point, precision * sizeof(CharType));
+            *point = static_cast<CharType>('.');
+            return first + length + 1;
+        }
+        const std::uint32_t zeros = precision - length;
+        const std::uint32_t shift = zeros + 2;
+        std::memmove(first + shift, first, length * sizeof(CharType));
+        first[0] = static_cast<CharType>('0');
+        first[1] = static_cast<CharType>('.');
+        for (std::uint32_t i = 0; i < zeros; ++i) {
+            first[2 + i] = static_cast<CharType>('0');
+        }
+        return first + shift + length;
+    }
+
+    template <typename CharType>
+    RAINY_NODISCARD CharType *emit_scientific_digits(CharType *first, const big_decimal &numerator, const std::uint32_t precision,
+                                                     std::int32_t exponent) noexcept {
+        const std::uint32_t length = big_decimal_digit_count(numerator);
+        CharType *const digits = first;
+        big_decimal_to_digits(numerator, reinterpret_cast<char *>(digits));
+        CharType *p = digits + length;
+        if (precision > 0) {
+            std::memmove(digits + 2, digits + 1, (length - 1) * sizeof(CharType));
+            digits[1] = static_cast<CharType>('.');
+            p = digits + length + 1;
+            const std::uint32_t fraction = length - 1;
+            for (std::uint32_t i = fraction; i < precision; ++i) {
+                *p++ = static_cast<CharType>('0');
+            }
+        }
+        *p++ = static_cast<CharType>('e');
+        if (exponent < 0) {
+            *p++ = static_cast<CharType>('-');
+            exponent = -exponent;
+        } else {
+            *p++ = static_cast<CharType>('+');
+        }
+        CharType buffer[8];
+        std::uint32_t written = 0;
+        do {
+            buffer[written++] = static_cast<CharType>('0' + exponent % 10);
+            exponent /= 10;
+        } while (exponent != 0);
+        while (written < 2) {
+            buffer[written++] = static_cast<CharType>('0');
+        }
+        while (written > 0) {
+            *p++ = buffer[--written];
+        }
+        return p;
+    }
+
+    template <typename CharType>
+    RAINY_NODISCARD CharType *strip_trailing_zeros(CharType *const first, CharType *const last) noexcept {
+        const std::ptrdiff_t length = last - first;
+        std::ptrdiff_t exponent = -1;
+        for (std::ptrdiff_t i = length - 1; i >= 0; --i) {
+            if (first[i] == static_cast<CharType>('e')) {
+                exponent = i;
+                break;
+            }
+        }
+        const std::ptrdiff_t end = exponent < 0 ? length : exponent;
+        std::ptrdiff_t dot = -1;
+        for (std::ptrdiff_t i = end - 1; i >= 0; --i) {
+            if (first[i] == static_cast<CharType>('.')) {
+                dot = i;
+                break;
+            }
+        }
+        if (dot < 0) {
+            return last;
+        }
+        std::ptrdiff_t point = end;
+        while (point > 0 && first[point - 1] == static_cast<CharType>('0')) {
+            --point;
+        }
+        if (point < dot + 1) {
+            return last;
+        }
+        if (point == dot + 1) {
+            point = dot;
+        }
+        const std::ptrdiff_t tail = length - end;
+        std::memmove(first + point, first + end, static_cast<std::size_t>(tail) * sizeof(CharType));
+        return first + point + tail;
+    }
+
+    template <typename CharType>
+    RAINY_NODISCARD container::compressed_pair<CharType *, std::errc> generic_to_chars_precision(
+        CharType *const first, CharType *const end, const long double value, const chars_format fmt, int precision) noexcept {
+        uint128_t bits = 0;
+        std::memcpy(&bits, &value, sizeof(long double));
+        const bool negative = ((bits >> (RAINY_LONG_DOUBLE_IS_BINARY128 ? 127 : 79)) & 1) != 0;
+        CharType *p = first;
+        const auto reserve = [&](const std::uint32_t needed) noexcept {
+            return end - p >= static_cast<std::ptrdiff_t>(needed);
+        };
+        if (negative) {
+            if (!reserve(1)) {
+                return {end, std::errc::value_too_large};
+            }
+            *p++ = static_cast<CharType>('-');
+        }
+        CharType *const digits_begin = p;
+        const long double magnitude = negative ? -value : value;
+        if (magnitude != magnitude) {
+            if (!reserve(3)) {
+                return {end, std::errc::value_too_large};
+            }
+            *p++ = static_cast<CharType>('n');
+            *p++ = static_cast<CharType>('a');
+            *p++ = static_cast<CharType>('n');
+            return {p, std::errc{}};
+        }
+        if (magnitude > std::numeric_limits<long double>::max()) {
+            if (!reserve(3)) {
+                return {end, std::errc::value_too_large};
+            }
+            *p++ = static_cast<CharType>('i');
+            *p++ = static_cast<CharType>('n');
+            *p++ = static_cast<CharType>('f');
+            return {p, std::errc{}};
+        }
+        if (fmt == chars_format::hex) {
+            return {end, std::errc::invalid_argument};
+        }
+        if (precision < 0) {
+            precision = 6;
+        } else if (precision >= 1'000'000'000) {
+            return {end, std::errc::value_too_large};
+        }
+        if (fmt == chars_format::general && precision == 0) {
+            precision = 1;
+        }
+        const std::uint32_t requested = static_cast<std::uint32_t>(precision);
+        if (requested > static_cast<std::uint32_t>(end - first)) {
+            return {end, std::errc::value_too_large};
+        }
+        if (magnitude == 0) {
+            if (fmt == chars_format::scientific) {
+                if (!reserve(1 + (requested > 0 ? 1 + requested : 0) + 4)) {
+                    return {end, std::errc::value_too_large};
+                }
+                *p++ = static_cast<CharType>('0');
+                if (requested > 0) {
+                    *p++ = static_cast<CharType>('.');
+                    for (std::uint32_t i = 0; i < requested; ++i) {
+                        *p++ = static_cast<CharType>('0');
+                    }
+                }
+                *p++ = static_cast<CharType>('e');
+                *p++ = static_cast<CharType>('+');
+                *p++ = static_cast<CharType>('0');
+                *p++ = static_cast<CharType>('0');
+                return {p, std::errc{}};
+            }
+            if (fmt == chars_format::general) {
+                if (!reserve(1)) {
+                    return {end, std::errc::value_too_large};
+                }
+                *p++ = static_cast<CharType>('0');
+                return {p, std::errc{}};
+            }
+            if (!reserve(1 + (requested > 0 ? 1 + requested : 0))) {
+                return {end, std::errc::value_too_large};
+            }
+            *p++ = static_cast<CharType>('0');
+            if (requested > 0) {
+                *p++ = static_cast<CharType>('.');
+                for (std::uint32_t i = 0; i < requested; ++i) {
+                    *p++ = static_cast<CharType>('0');
+                }
+            }
+            return {p, std::errc{}};
+        }
+
+        big_decimal numerator{};
+        std::uint32_t scale = 0;
+        long_double_exact_decimal(magnitude, numerator, scale);
+        std::int32_t exponent = big_decimal_decimal_exponent(numerator) - static_cast<std::int32_t>(scale);
+
+        if (fmt == chars_format::fixed) {
+            long_double_round_to_scale(numerator, scale, requested);
+            const std::uint32_t length = big_decimal_digit_count(numerator);
+            const std::uint32_t integer_digits = length > requested ? length - requested : 0;
+            const std::uint32_t needed = (integer_digits > 0 ? integer_digits : 1) + (requested > 0 ? 1 + requested : 0);
+            if (!reserve(needed)) {
+                return {end, std::errc::value_too_large};
+            }
+            p = emit_fixed_digits(p, numerator, requested);
+            return {p, std::errc{}};
+        }
+
+        if (fmt == chars_format::scientific) {
+            const std::int32_t shift = static_cast<std::int32_t>(scale) - static_cast<std::int32_t>(requested) + exponent;
+            if (shift > 0) {
+                big_decimal_div_pow10_round(numerator, static_cast<std::uint32_t>(shift));
+            } else if (shift < 0) {
+                big_decimal_mul_pow10(numerator, static_cast<std::uint32_t>(-shift));
+            }
+            while (big_decimal_digit_count(numerator) > requested + 1) {
+                big_decimal_div_pow10(numerator, 1);
+                ++exponent;
+            }
+            const std::uint32_t needed = 1 + (requested > 0 ? 1 + requested : 0) + 2 + 5;
+            if (!reserve(needed)) {
+                return {end, std::errc::value_too_large};
+            }
+            p = emit_scientific_digits(p, numerator, requested, exponent);
+            return {p, std::errc{}};
+        }
+
+        if (static_cast<std::int32_t>(requested) > exponent && exponent >= -4) {
+            const std::uint32_t fractional = static_cast<std::uint32_t>(static_cast<std::int32_t>(requested) - 1 - exponent);
+            long_double_round_to_scale(numerator, scale, fractional);
+            const std::uint32_t length = big_decimal_digit_count(numerator);
+            const std::uint32_t integer_digits = length > fractional ? length - fractional : 0;
+            const std::uint32_t needed = (integer_digits > 0 ? integer_digits : 1) + (fractional > 0 ? 1 + fractional : 0);
+            if (!reserve(needed)) {
+                return {end, std::errc::value_too_large};
+            }
+            p = emit_fixed_digits(p, numerator, fractional);
+            CharType *q = fractional > 0 ? strip_trailing_zeros(digits_begin, p) : p;
+            return {q, std::errc{}};
+        }
+        const std::int32_t shift = static_cast<std::int32_t>(scale) - static_cast<std::int32_t>(requested) + 1 + exponent;
+        if (shift > 0) {
+            big_decimal_div_pow10_round(numerator, static_cast<std::uint32_t>(shift));
+        } else if (shift < 0) {
+            big_decimal_mul_pow10(numerator, static_cast<std::uint32_t>(-shift));
+        }
+        while (big_decimal_digit_count(numerator) > requested) {
+            big_decimal_div_pow10(numerator, 1);
+            ++exponent;
+        }
+        const std::uint32_t needed = 1 + (requested > 1 ? requested : 0) + 2 + 5;
+        if (!reserve(needed)) {
+            return {end, std::errc::value_too_large};
+        }
+        p = emit_scientific_digits(p, numerator, requested - 1, exponent);
+        CharType *q = strip_trailing_zeros(digits_begin, p);
+        return {q, std::errc{}};
+    }
+
+    template container::compressed_pair<char *, std::errc> generic_to_chars_precision<char>(char *, char *, long double,
+                                                                                           chars_format, int) noexcept;
+
     template container::compressed_pair<char *, std::errc> generic_to_chars<char>(char *, char *,
                                                                                  const floating_decimal_128 &,
                                                                                  chars_format, long double) noexcept;

@@ -1036,6 +1036,90 @@ TEST_CASE("Long double from_chars extended precision", "[from_chars][float][long
 #endif
 }
 
+TEST_CASE("Long double to_chars honors precision", "[to_chars][float][longdouble]") {
+    char buffer[256];
+#if RAINY_HAS_EXTENDED_LONG_DOUBLE
+    SECTION("Fixed precision") {
+        auto r = to_chars(buffer, buffer + sizeof(buffer), 1.2345L, chars_format::fixed, 2);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(std::string(buffer, r.ptr) == "1.23");
+    }
+
+    SECTION("Fixed precision keeps trailing zeros") {
+        auto r = to_chars(buffer, buffer + sizeof(buffer), 1.5L, chars_format::fixed, 6);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(std::string(buffer, r.ptr) == "1.500000");
+    }
+
+    SECTION("Fixed precision below one") {
+        auto r = to_chars(buffer, buffer + sizeof(buffer), 0.125L, chars_format::fixed, 2);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(std::string(buffer, r.ptr) == "0.12");
+    }
+
+    SECTION("Fixed precision rounds to zero") {
+        auto r = to_chars(buffer, buffer + sizeof(buffer), 0.00001L, chars_format::fixed, 3);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(std::string(buffer, r.ptr) == "0.000");
+    }
+
+    SECTION("Scientific precision") {
+        auto r = to_chars(buffer, buffer + sizeof(buffer), 1.2345L, chars_format::scientific, 3);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(std::string(buffer, r.ptr) == "1.235e+00");
+    }
+
+    SECTION("Scientific precision with a large exponent") {
+        auto r = to_chars(buffer, buffer + sizeof(buffer), 1e300L, chars_format::scientific, 2);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(std::string(buffer, r.ptr) == "1.00e+300");
+    }
+
+    SECTION("General precision drops trailing zeros") {
+        auto r = to_chars(buffer, buffer + sizeof(buffer), 1.5L, chars_format::general, 6);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(std::string(buffer, r.ptr) == "1.5");
+    }
+
+    SECTION("General precision keeps integer digits") {
+        auto r = to_chars(buffer, buffer + sizeof(buffer), 100.0L, chars_format::general, 3);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(std::string(buffer, r.ptr) == "100");
+    }
+
+    SECTION("General precision switches to scientific") {
+        auto r = to_chars(buffer, buffer + sizeof(buffer), 1e10L, chars_format::general, 3);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(std::string(buffer, r.ptr) == "1e+10");
+    }
+
+    SECTION("Negative values keep the sign") {
+        auto r = to_chars(buffer, buffer + sizeof(buffer), -1.2345L, chars_format::fixed, 2);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(std::string(buffer, r.ptr) == "-1.23");
+    }
+
+    SECTION("Zero") {
+        auto r = to_chars(buffer, buffer + sizeof(buffer), 0.0L, chars_format::fixed, 2);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(std::string(buffer, r.ptr) == "0.00");
+    }
+
+    SECTION("A negative precision means six digits") {
+        auto r = to_chars(buffer, buffer + sizeof(buffer), 1.2345L, chars_format::fixed, -1);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(std::string(buffer, r.ptr) == "1.234500");
+    }
+
+    SECTION("A full mantissa survives the rounding") {
+        const long double value = 1.0L + std::numeric_limits<long double>::epsilon();
+        auto r = to_chars(buffer, buffer + sizeof(buffer), value, chars_format::scientific, 0);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(std::string(buffer, r.ptr) == "1e+00");
+    }
+#endif
+}
+
 TEST_CASE("Float to_chars - All format combinations", "[to_chars][float][formats]") {
     char buffer[256];
 
