@@ -109,7 +109,8 @@ TEST_CASE("json char_type - escape unicode round trip", "[willow][json][char_typ
     auto args = serializer_args<std::decay_t<decltype(doc)>>{};
     args.escape_unicode = true;
     const auto text = json::dump(doc, args);
-    REQUIRE(text == R"({"s":"h\u00c3\u00a9llo"})");
+    REQUIRE(text == R"({"s":"h\u00e9llo"})");
+    REQUIRE(json::parse(text) == doc);
 
     const auto wdoc = json::parse<wdocument>(LR"({"s":"héllo"})");
     auto wargs = serializer_args<std::decay_t<decltype(wdoc)>>{};

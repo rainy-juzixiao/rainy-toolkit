@@ -122,6 +122,13 @@ namespace rainy::foundation::willow::ini::implements {
             if (key.empty()) {
                 exceptions::willow::ini::throw_ini_serialize_error("ini key is empty");
             }
+            const auto front = key.front();
+            if (front == char_type(' ') || front == char_type('\t') || front == char_type(';') || front == char_type('#')) {
+                exceptions::willow::ini::throw_ini_serialize_error("ini key cannot be recovered after parsing");
+            }
+            if (key.back() == char_type(' ') || key.back() == char_type('\t')) {
+                exceptions::willow::ini::throw_ini_serialize_error("ini key cannot be recovered after parsing");
+            }
             for (const auto ch: key) {
                 if (ch == char_type('\n') || ch == char_type('\r') || ch == char_type('=') || ch == char_type('[') ||
                     ch == char_type(']')) {
@@ -131,6 +138,11 @@ namespace rainy::foundation::willow::ini::implements {
         }
 
         void check_value(const string_type &value) const {
+            if (!value.empty() &&
+                (value.front() == char_type(' ') || value.front() == char_type('\t') || value.back() == char_type(' ') ||
+                 value.back() == char_type('\t'))) {
+                exceptions::willow::ini::throw_ini_serialize_error("ini value cannot be recovered after parsing");
+            }
             for (const auto ch: value) {
                 if (ch == char_type('\n') || ch == char_type('\r')) {
                     exceptions::willow::ini::throw_ini_serialize_error("ini value holds a line break");
@@ -141,6 +153,10 @@ namespace rainy::foundation::willow::ini::implements {
         void check_section(const string_type &name) const {
             if (name.empty()) {
                 exceptions::willow::ini::throw_ini_serialize_error("ini section name is empty");
+            }
+            if (name.front() == char_type(' ') || name.front() == char_type('\t') || name.back() == char_type(' ') ||
+                name.back() == char_type('\t')) {
+                exceptions::willow::ini::throw_ini_serialize_error("ini section name cannot be recovered after parsing");
             }
             for (const auto ch: name) {
                 if (ch == char_type('\n') || ch == char_type('\r') || ch == char_type('[') || ch == char_type(']')) {

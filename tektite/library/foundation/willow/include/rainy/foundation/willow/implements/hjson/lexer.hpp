@@ -67,8 +67,9 @@ namespace rainy::foundation::willow::hjson::implements {
 
         void unread(const char_int_type ch) {
             if (span_data_ != nullptr) {
-                (void)ch;
-                --span_pos_;
+                if (ch != char_traits::eof()) {
+                    --span_pos_;
+                }
                 return;
             }
             pushback_.push_back(ch);
@@ -81,6 +82,7 @@ namespace rainy::foundation::willow::hjson::implements {
         token_type probe_root() {
             key_mode_ = true;
             probe_colon_ = false;
+            probe_quoted_ = false;
             const token_type probe = scan();
             key_mode_ = false;
             if (probe != token_type::value_string) {
@@ -110,6 +112,10 @@ namespace rainy::foundation::willow::hjson::implements {
 
         bool probe_sees_colon() const {
             return probe_colon_;
+        }
+
+        bool probe_was_quoted() const {
+            return probe_quoted_;
         }
 
         static std::uint32_t code_unit(const char_int_type ch) {
@@ -187,10 +193,14 @@ namespace rainy::foundation::willow::hjson::implements {
         token_type scan() {
             white();
             if (key_mode_) {
-                if (current == char_traits::eof() || current == '\0') {
+                if (current == char_traits::eof()) {
                     return token_type::end_of_input;
                 }
-                if (!is_punctuator(current) && current != '"' && current != '\'') {
+                if (current == '"' || current == '\'') {
+                    probe_quoted_ = true;
+                } else if (current == '\0') {
+                    exceptions::willow::hjson::throw_hjson_parse_error("unexpected character");
+                } else if (!is_punctuator(current)) {
                     return scan_key();
                 }
             }
@@ -217,9 +227,10 @@ namespace rainy::foundation::willow::hjson::implements {
                 case '"':
                 case '\'':
                     return scan_string();
-                case '\0':
                 case char_traits::eof():
                     return token_type::end_of_input;
+                case '\0':
+                    exceptions::willow::hjson::throw_hjson_parse_error("unexpected character");
                 default:
                     return scan_quoteless();
             }
@@ -692,6 +703,7 @@ namespace rainy::foundation::willow::hjson::implements {
         std::size_t column_{0};
         bool key_mode_{false};
         bool probe_colon_{false};
+        bool probe_quoted_{false};
         bool number_is_float_{false};
     };
 }
