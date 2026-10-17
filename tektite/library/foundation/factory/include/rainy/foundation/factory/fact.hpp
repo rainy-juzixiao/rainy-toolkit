@@ -81,7 +81,7 @@ namespace rainy::foundation::fact {
         unsynchronized_factory(const allocator_type &allocator) : storage{allocator} {
         }
 
-        unsynchronized_factory &operator=(const unsynchronized_factory &) noexcept = default;
+        unsynchronized_factory &operator=(const unsynchronized_factory &) = default;
         unsynchronized_factory &operator=(unsynchronized_factory &&) noexcept = default;
 
         iterator begin() noexcept {
@@ -144,7 +144,7 @@ namespace rainy::foundation::fact {
             return *this;
         }
 
-        const creater &operator[](const product_key &id) const noexcept {
+        const creater &operator[](const product_key &id) const {
             return storage.at(id);
         }
 
@@ -156,7 +156,7 @@ namespace rainy::foundation::fact {
             return storage.find(id);
         }
 
-        const creater &get_creater(const product_key &id) const noexcept {
+        const creater &get_creater(const product_key &id) const {
             return storage.at(id);
         }
 
