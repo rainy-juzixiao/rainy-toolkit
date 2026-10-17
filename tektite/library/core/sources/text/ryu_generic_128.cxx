@@ -339,6 +339,197 @@ namespace rainy::core::text::implements::ryu {
         return r;
     }
 
+    struct long_double_hex_parts {
+        uint128_t mantissa;
+        std::int32_t exponent;
+        std::uint32_t full_nibbles;
+        std::uint32_t rounded_bits;
+        bool implicit_leading_bit;
+        bool normal;
+        bool sign;
+    };
+
+    RAINY_NODISCARD inline long_double_hex_parts long_double_hex_decompose(const long double value) noexcept {
+        uint128_t bits = 0;
+        std::memcpy(&bits, &value, sizeof(long double));
+        long_double_hex_parts parts{};
+#if RAINY_LONG_DOUBLE_IS_BINARY128
+        constexpr std::uint32_t mantissa_bits = 112;
+        constexpr std::int32_t bias = 16383;
+        const std::uint32_t ieee_exponent = static_cast<std::uint32_t>((bits >> mantissa_bits) & 0x7fffu);
+        parts.mantissa = bits & ((static_cast<uint128_t>(1) << mantissa_bits) - 1);
+        parts.full_nibbles = (mantissa_bits + 3) / 4;
+        parts.rounded_bits = parts.full_nibbles * 4;
+        parts.implicit_leading_bit = true;
+        parts.normal = ieee_exponent != 0;
+        parts.exponent = ieee_exponent == 0 ? 1 - bias : static_cast<std::int32_t>(ieee_exponent) - bias;
+        parts.sign = ((bits >> 127) & 1) != 0;
+#else
+        constexpr std::uint32_t mantissa_bits = 64;
+        constexpr std::int32_t bias = 16383;
+        const std::uint32_t ieee_exponent = static_cast<std::uint32_t>((bits >> mantissa_bits) & 0x7fffu);
+        parts.mantissa = bits & ((static_cast<uint128_t>(1) << mantissa_bits) - 1);
+        parts.full_nibbles = (mantissa_bits - 4 + 3) / 4;
+        parts.rounded_bits = (mantissa_bits + 3) / 4 * 4;
+        parts.implicit_leading_bit = false;
+        parts.normal = ieee_exponent != 0;
+        parts.exponent = ieee_exponent == 0 ? 1 - bias : static_cast<std::int32_t>(ieee_exponent) - bias;
+        parts.sign = ((bits >> 79) & 1) != 0;
+#endif
+        return parts;
+    }
+
+    RAINY_NODISCARD inline std::uint32_t hex_bit_width(const uint128_t value) noexcept {
+        std::uint32_t width = 0;
+        for (uint128_t t = value; t != 0; t >>= 1) {
+            ++width;
+        }
+        return width;
+    }
+
+    template <typename CharType>
+    RAINY_NODISCARD CharType *emit_hex_exponent(CharType *p, std::int32_t exponent) noexcept {
+        *p++ = static_cast<CharType>('p');
+        if (exponent < 0) {
+            *p++ = static_cast<CharType>('-');
+            exponent = -exponent;
+        } else {
+            *p++ = static_cast<CharType>('+');
+        }
+        CharType buffer[8];
+        std::uint32_t written = 0;
+        do {
+            buffer[written++] = static_cast<CharType>('0' + exponent % 10);
+            exponent /= 10;
+        } while (exponent != 0);
+        while (written > 0) {
+            *p++ = buffer[--written];
+        }
+        return p;
+    }
+
+    template <typename CharType>
+    RAINY_NODISCARD container::compressed_pair<CharType *, std::errc> generic_to_chars_hex(CharType *const first,
+                                                                                           CharType *const end,
+                                                                                           const long double value,
+                                                                                           const int precision) noexcept {
+        long_double_hex_parts parts = long_double_hex_decompose(value);
+        const bool sign = parts.sign;
+        if (parts.mantissa == 0 && !parts.normal) {
+            const std::uint32_t digits = precision < 0 ? 0u : static_cast<std::uint32_t>(precision);
+            const std::uint32_t needed = (sign ? 1u : 0u) + 1u + (digits > 0 ? 1u + digits : 0u) + 3u;
+            if (end - first < static_cast<std::ptrdiff_t>(needed)) {
+                return {end, std::errc::value_too_large};
+            }
+            CharType *p = first;
+            if (sign) {
+                *p++ = static_cast<CharType>('-');
+            }
+            *p++ = static_cast<CharType>('0');
+            if (digits > 0) {
+                *p++ = static_cast<CharType>('.');
+                for (std::uint32_t i = 0; i < digits; ++i) {
+                    *p++ = static_cast<CharType>('0');
+                }
+            }
+            *p++ = static_cast<CharType>('p');
+            *p++ = static_cast<CharType>('+');
+            *p++ = static_cast<CharType>('0');
+            return {p, std::errc{}};
+        }
+        uint128_t effective = parts.mantissa;
+        if (parts.normal && parts.implicit_leading_bit) {
+            effective |= static_cast<uint128_t>(1) << parts.rounded_bits;
+        }
+        if (!parts.normal && precision < 0) {
+            const std::uint32_t shift = parts.rounded_bits - hex_bit_width(effective) + (parts.implicit_leading_bit ? 1u : 0u);
+            effective <<= shift;
+            parts.exponent -= static_cast<std::int32_t>(shift);
+        }
+        std::uint32_t trailing_nibbles = 0;
+        {
+            uint128_t t = effective;
+            while ((t & 0xf) == 0) {
+                t >>= 4;
+                ++trailing_nibbles;
+            }
+        }
+        const std::uint32_t shortest_full = parts.full_nibbles - trailing_nibbles;
+        std::uint32_t effective_precision = shortest_full;
+        std::uint32_t excess = 0;
+        if (precision >= 0) {
+            const std::uint32_t requested = static_cast<std::uint32_t>(precision);
+            if (requested < parts.full_nibbles) {
+                const std::uint32_t dropped = (parts.full_nibbles - requested) * 4;
+                uint128_t kept = effective >> dropped;
+                const bool round_bit = ((effective >> (dropped - 1)) & 1) != 0;
+                const uint128_t tail_bits =
+                    dropped > 1 ? (static_cast<uint128_t>(1) << (dropped - 1)) - 1 : static_cast<uint128_t>(0);
+                const bool tail = (effective & tail_bits) != 0;
+                if (round_bit && (tail || (kept & 1) != 0)) {
+                    ++kept;
+                    if (!parts.implicit_leading_bit && kept == (static_cast<uint128_t>(1) << (parts.rounded_bits - dropped))) {
+                        effective = static_cast<uint128_t>(1) << (parts.rounded_bits - 4);
+                        parts.exponent += 4;
+                    } else {
+                        effective = kept << dropped;
+                    }
+                } else {
+                    effective = kept << dropped;
+                }
+                effective_precision = requested;
+            } else {
+                excess = requested - shortest_full;
+            }
+        }
+        const std::uint32_t leading_shift = parts.implicit_leading_bit ? parts.rounded_bits : parts.rounded_bits - 4;
+        const std::uint32_t leading = static_cast<std::uint32_t>(effective >> leading_shift);
+        if (parts.implicit_leading_bit) {
+            effective &= (static_cast<uint128_t>(1) << parts.rounded_bits) - 1;
+        } else {
+            effective &= (static_cast<uint128_t>(1) << (parts.rounded_bits - 4)) - 1;
+        }
+        const std::uint32_t fraction_offset = leading_shift;
+        std::int32_t written_exponent = parts.exponent - (parts.implicit_leading_bit ? 0 : 3);
+        const std::int32_t magnitude_exp = written_exponent < 0 ? -written_exponent : written_exponent;
+        const std::uint32_t exponent_digits = magnitude_exp >= 10'000 ? 5u
+                                               : magnitude_exp >= 1'000 ? 4u
+                                               : magnitude_exp >= 100   ? 3u
+                                               : magnitude_exp >= 10    ? 2u
+                                                                        : 1u;
+        const std::uint32_t needed = (sign ? 1u : 0u) + 1u +
+                                     (effective_precision > 0 || excess > 0 ? 1u + effective_precision + excess : 0u) + 2u +
+                                     exponent_digits;
+        if (end - first < static_cast<std::ptrdiff_t>(needed)) {
+            return {end, std::errc::value_too_large};
+        }
+        CharType *p = first;
+        if (sign) {
+            *p++ = static_cast<CharType>('-');
+        }
+        *p++ = static_cast<CharType>(leading < 10 ? '0' + leading : 'a' + (leading - 10));
+        if (effective_precision > 0 || excess > 0) {
+            *p++ = static_cast<CharType>('.');
+            std::uint32_t written = 0;
+            std::uint32_t offset = fraction_offset;
+            while (effective != 0) {
+                offset -= 4;
+                const std::uint32_t nibble = static_cast<std::uint32_t>((effective >> offset) & 0xf);
+                *p++ = static_cast<CharType>(nibble < 10 ? '0' + nibble : 'a' + (nibble - 10));
+                ++written;
+                effective &= ~(static_cast<uint128_t>(0xf) << offset);
+            }
+            for (; written < effective_precision; ++written) {
+                *p++ = static_cast<CharType>('0');
+            }
+            for (std::uint32_t i = 0; i < excess; ++i) {
+                *p++ = static_cast<CharType>('0');
+            }
+        }
+        p = emit_hex_exponent(p, written_exponent);
+        return {p, std::errc{}};
+    }
+
     template <typename CharType>
     RAINY_NODISCARD container::compressed_pair<CharType *, std::errc> generic_to_chars(CharType *const first,
                                                                                        CharType *const end,
@@ -349,8 +540,13 @@ namespace rainy::core::text::implements::ryu {
             const char *str;
             std::size_t len;
             if (value.mantissa != 0) {
-                str = "nan";
-                len = 3;
+                if (value.sign) {
+                    str = "-nan";
+                    len = 4;
+                } else {
+                    str = "nan";
+                    len = 3;
+                }
             } else if (value.sign) {
                 str = "-inf";
                 len = 4;
@@ -365,6 +561,10 @@ namespace rainy::core::text::implements::ryu {
                 first[i] = static_cast<CharType>(str[i]);
             }
             return {first + len, std::errc{}};
+        }
+
+        if (fmt == chars_format::hex) {
+            return generic_to_chars_hex(first, end, original, -1);
         }
 
         CharType *p = first;
@@ -913,10 +1113,15 @@ namespace rainy::core::text::implements::ryu {
             return {p, std::errc{}};
         }
         if (fmt == chars_format::hex) {
-            return {end, std::errc::invalid_argument};
+            const int requested_hex = precision < 0 ? -1 : precision;
+            if (requested_hex >= 1'000'000'000) {
+                return {end, std::errc::value_too_large};
+            }
+            CharType *const digits_begin_hex = p;
+            p = generic_to_chars_hex(digits_begin_hex, end, magnitude, requested_hex).first;
+            return {p, std::errc{}};
         }
-        if (precision < 0) {
-            precision = 6;
+        if (precision < 0) {            precision = 6;
         } else if (precision >= 1'000'000'000) {
             return {end, std::errc::value_too_large};
         }
@@ -1001,8 +1206,21 @@ namespace rainy::core::text::implements::ryu {
             return {p, std::errc{}};
         }
 
-        if (static_cast<std::int32_t>(requested) > exponent && exponent >= -4) {
-            const std::uint32_t fractional = static_cast<std::uint32_t>(static_cast<std::int32_t>(requested) - 1 - exponent);
+        big_decimal rounded = numerator;
+        const std::int32_t shift = static_cast<std::int32_t>(scale) - static_cast<std::int32_t>(requested) + 1 + exponent;
+        if (shift > 0) {
+            big_decimal_div_pow10_round(rounded, static_cast<std::uint32_t>(shift));
+        } else if (shift < 0) {
+            big_decimal_mul_pow10(rounded, static_cast<std::uint32_t>(-shift));
+        }
+        std::int32_t rounded_exponent = exponent;
+        while (big_decimal_digit_count(rounded) > requested) {
+            big_decimal_div_pow10(rounded, 1);
+            ++rounded_exponent;
+        }
+        if (static_cast<std::int32_t>(requested) > rounded_exponent && rounded_exponent >= -4) {
+            const std::uint32_t fractional =
+                static_cast<std::uint32_t>(static_cast<std::int32_t>(requested) - 1 - rounded_exponent);
             long_double_round_to_scale(numerator, scale, fractional);
             const std::uint32_t length = big_decimal_digit_count(numerator);
             const std::uint32_t integer_digits = length > fractional ? length - fractional : 0;
@@ -1014,21 +1232,11 @@ namespace rainy::core::text::implements::ryu {
             CharType *q = fractional > 0 ? strip_trailing_zeros(digits_begin, p) : p;
             return {q, std::errc{}};
         }
-        const std::int32_t shift = static_cast<std::int32_t>(scale) - static_cast<std::int32_t>(requested) + 1 + exponent;
-        if (shift > 0) {
-            big_decimal_div_pow10_round(numerator, static_cast<std::uint32_t>(shift));
-        } else if (shift < 0) {
-            big_decimal_mul_pow10(numerator, static_cast<std::uint32_t>(-shift));
-        }
-        while (big_decimal_digit_count(numerator) > requested) {
-            big_decimal_div_pow10(numerator, 1);
-            ++exponent;
-        }
         const std::uint32_t needed = 1 + (requested > 1 ? requested : 0) + 2 + 5;
         if (!reserve(needed)) {
             return {end, std::errc::value_too_large};
         }
-        p = emit_scientific_digits(p, numerator, requested - 1, exponent);
+        p = emit_scientific_digits(p, rounded, requested - 1, rounded_exponent);
         CharType *q = strip_trailing_zeros(digits_begin, p);
         return {q, std::errc{}};
     }
