@@ -61,8 +61,8 @@ namespace rainy::foundation::willow::jsonnet::implements {
         value_ptr eval_slice(jsonnet_node *node, const env_ptr &env);
         value_ptr eval_call(jsonnet_node *node, const env_ptr &env);
         value_ptr eval_function(jsonnet_node *node, const env_ptr &env);
-        value_ptr call_function(const function_ptr &fn, core::collections::vector<value_ptr> &positional,
-                                core::collections::vector<core::container::pair<core::text::string, value_ptr>> &named);
+        value_ptr call_function(const function_ptr &fn, core::collections::vector<thunk_ptr> &positional,
+                                core::collections::vector<core::container::pair<core::text::string, thunk_ptr>> &named);
         object_ptr eval_object(jsonnet_node *node, const env_ptr &env);
         object_ptr eval_object_comprehension(jsonnet_node *node, const env_ptr &env);
         value_ptr eval_array(jsonnet_node *node, const env_ptr &env);
@@ -73,9 +73,9 @@ namespace rainy::foundation::willow::jsonnet::implements {
         value_ptr eval_field_body(const object_ptr &object, const core::text::basic_string_view<char> name,
                                   const field_slot &slot, std::size_t layer_index, const value_ptr &self_value);
         value_ptr lookup_field(const value_ptr &target, const core::text::basic_string_view<char> name);
-        bool values_equal(const value_ptr &left, const value_ptr &right);
+        bool values_equal(const value_ptr &left, const value_ptr &right, std::size_t depth = 0);
         void run_asserts(const object_ptr &object, const value_ptr &self_value);
-        void add_field(object_layer &layer, jsonnet_node *field, const env_ptr &env);
+        void add_field(object_layer &layer, jsonnet_node *field, const env_ptr &env, const env_ptr &name_env);
         void add_local_binding(const env_ptr &env, jsonnet_node *bind);
         value_ptr format_string(const core::text::string &format, const value_ptr &args);
         value_ptr make_std();

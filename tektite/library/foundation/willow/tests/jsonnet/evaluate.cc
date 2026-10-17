@@ -194,7 +194,7 @@ TEST_CASE("jsonnet evaluate - array comprehensions", "[jsonnet][evaluate]") {
 TEST_CASE("jsonnet evaluate - object comprehensions", "[jsonnet][evaluate]") {
     REQUIRE(run("{ [k]: 1 for k in [\"a\", \"b\"] }").size() == 2);
     REQUIRE(run("{ [k]: k + \"!\" for k in [\"a\"] }.a").as_string() == "a!");
-    REQUIRE(run("{ [if x > 1 then \"big\" else null]: x for x in [1, 2, 3] }").size() == 1);
+    REQUIRE(run("{ [if x > 1 then \"big\" else null]: x for x in [1, 2] }").size() == 1);
 }
 
 TEST_CASE("jsonnet evaluate - in operator", "[jsonnet][evaluate]") {
@@ -222,4 +222,46 @@ TEST_CASE("jsonnet evaluate - laziness avoids unused errors", "[jsonnet][evaluat
     REQUIRE(run("{ a: 1, b: error \"unused\" }.a").as_integer() == 1);
     REQUIRE(run("local x = error \"unused\"; 5").as_integer() == 5);
     REQUIRE(run("[1, error \"unused\"][0]").as_integer() == 1);
+}
+
+TEST_CASE("jsonnet evaluate - object locals see self and dollar", "[jsonnet][evaluate]") {
+    REQUIRE(run("{ local x = self.a, a: 1, b: x }.b").as_integer() == 1);
+    REQUIRE(run("{ a: 1, b: { c: $.a } }.b.c").as_integer() == 1);
+    REQUIRE(run("{ a: 1, b: { a: 2, c: $.a } }.b.c").as_integer() == 1);
+    REQUIRE(run("{ a: 10, g: (function(x) self.a + x)(1) }.g").as_integer() == 11);
+}
+
+TEST_CASE("jsonnet evaluate - object assertions run on manifestation", "[jsonnet][evaluate]") {
+    REQUIRE_THROWS_AS(run("{ assert false : \"boom\", a: 1 }"), jsonnet_evaluate_error);
+    REQUIRE_THROWS_AS(run("{ a: 1, assert self.a == 2 : \"boom\" }"), jsonnet_evaluate_error);
+    REQUIRE(run("{ a: 1, assert self.a == 1 }.a").as_integer() == 1);
+}
+
+TEST_CASE("jsonnet evaluate - equality is structural for nested containers", "[jsonnet][evaluate]") {
+    REQUIRE(run("[{a: 1}] == [{a: 1}]").as_bool());
+    REQUIRE(run("[{a: 1}] == [{a: 2}]").as_bool() == false);
+    REQUIRE(run("{ a: [1, {b: 2}] } == { a: [1, {b: 2}] }").as_bool());
+    REQUIRE(run("{ a: [1, {b: 2}] } == { a: [1, {b: 3}] }").as_bool() == false);
+}
+
+TEST_CASE("jsonnet evaluate - ordering follows the jsonnet comparison rules", "[jsonnet][evaluate]") {
+    REQUIRE(run("[1, 2] < [1, 3]").as_bool());
+    REQUIRE(run("[1] < [1, 0]").as_bool());
+    REQUIRE_THROWS_AS(run("1 < \"a\""), jsonnet_evaluate_error);
+    REQUIRE_THROWS_AS(run("true < false"), jsonnet_evaluate_error);
+}
+
+TEST_CASE("jsonnet evaluate - duplicate fields are rejected in comprehensions", "[jsonnet][evaluate]") {
+    REQUIRE_THROWS_AS(run("{ [k]: 1 for k in [\"a\", \"a\"] }"), jsonnet_evaluate_error);
+    REQUIRE_THROWS_AS(run("{ a: 1, a: 2 }"), jsonnet_evaluate_error);
+    REQUIRE_THROWS_AS(run("{ [\"a\"]: 1, [\"a\"]: 2 }"), jsonnet_evaluate_error);
+}
+
+TEST_CASE("jsonnet evaluate - string conversion uses the shortest representation", "[jsonnet][evaluate]") {
+    REQUIRE(run("\"\" + 0.1").as_string() == "0.1");
+    REQUIRE(run("std.toString(1.5e-7)").as_string() == "1.5e-07");
+}
+
+TEST_CASE("jsonnet evaluate - non-finite numbers cannot be manifested", "[jsonnet][evaluate]") {
+    REQUIRE_THROWS_AS(run("1e400"), jsonnet_evaluate_error);
 }

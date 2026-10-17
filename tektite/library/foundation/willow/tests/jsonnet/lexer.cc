@@ -137,4 +137,16 @@ TEST_CASE("jsonnet lexer - tracks source positions", "[jsonnet][lexer]") {
 TEST_CASE("jsonnet lexer - unterminated constructs raise errors", "[jsonnet][lexer]") {
     REQUIRE_THROWS_AS(lex_one("\"unterminated"), jsonnet_parse_error);
     REQUIRE_THROWS_AS(lex_one("/* unterminated"), jsonnet_parse_error);
+    REQUIRE_THROWS_AS(lex_one("|||\n  unterminated"), jsonnet_parse_error);
+}
+
+TEST_CASE("jsonnet lexer - assignment and equality are distinct", "[jsonnet][lexer]") {
+    REQUIRE(lex_one("=").type == token_type::op_assign);
+    REQUIRE(lex_one("==").type == token_type::op_equal);
+}
+
+TEST_CASE("jsonnet lexer - unpaired surrogates are rejected", "[jsonnet][lexer]") {
+    REQUIRE_THROWS_AS(lex_one("\"\\ud800\""), jsonnet_parse_error);
+    REQUIRE_THROWS_AS(lex_one("\"\\udc00\""), jsonnet_parse_error);
+    REQUIRE(lex_one("\"\\ud83d\\ude00\"").text == "\xf0\x9f\x98\x80");
 }
