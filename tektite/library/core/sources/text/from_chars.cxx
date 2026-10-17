@@ -870,6 +870,7 @@ namespace rainy::core::text::implements {
 
         floating_point_string fp_string;
         fp_string.is_negative = minus_sign;
+        Floating converted{};
 
         std::uint8_t *const mantissa_first = fp_string.mantissa;
         std::uint8_t *const mantissa_last = fp_string.mantissa + 768;
@@ -979,11 +980,6 @@ namespace rainy::core::text::implements {
         }
 
         if (exp_abs_too_large) {
-            if (exponent_value > 0) {
-                assemble_floating_point_infinity(fp_string.is_negative, value);
-            } else {
-                assemble_floating_point_zero(fp_string.is_negative, value);
-            }
             return {next, std::errc::result_out_of_range};
         }
 
@@ -1013,36 +1009,36 @@ namespace rainy::core::text::implements {
 
         if (exponent_value > maximum_temporary_exponent ||
             exponent_adjustment > maximum_temporary_exponent / exponent_adjustment_multiplier) {
-            assemble_floating_point_infinity(fp_string.is_negative, value);
             return {next, std::errc::result_out_of_range};
         }
 
         if (exponent_value < minimum_temporary_exponent ||
             exponent_adjustment < minimum_temporary_exponent / exponent_adjustment_multiplier) {
-            assemble_floating_point_zero(fp_string.is_negative, value);
             return {next, std::errc::result_out_of_range};
         }
 
         exponent_value += exponent_adjustment * exponent_adjustment_multiplier;
 
         if (exponent_value > maximum_temporary_exponent) {
-            assemble_floating_point_infinity(fp_string.is_negative, value);
             return {next, std::errc::result_out_of_range};
         }
 
         if (exponent_value < minimum_temporary_exponent) {
-            assemble_floating_point_zero(fp_string.is_negative, value);
             return {next, std::errc::result_out_of_range};
         }
 
         fp_string.exponent = static_cast<std::int32_t>(exponent_value);
         fp_string.mantissa_count = static_cast<std::uint32_t>(mantissa_it - mantissa_first);
 
+        std::errc ec{};
         if (is_hexadecimal) {
-            const std::errc ec = convert_hexadecimal_string_to_floating_type(fp_string, value, has_zero_tail);
-            return {next, ec};
+            ec = convert_hexadecimal_string_to_floating_type(fp_string, converted, has_zero_tail);
+        } else {
+            ec = convert_decimal_string_to_floating_type(fp_string, converted, has_zero_tail);
         }
-        const std::errc ec = convert_decimal_string_to_floating_type(fp_string, value, has_zero_tail);
+        if (ec != std::errc::result_out_of_range) {
+            value = converted;
+        }
         return {next, ec};
     }
 

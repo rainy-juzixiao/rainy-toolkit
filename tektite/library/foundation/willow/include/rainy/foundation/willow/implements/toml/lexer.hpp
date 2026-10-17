@@ -408,6 +408,9 @@ namespace rainy::foundation::willow::toml::implements {
                 }
             }
             const auto result = core::text::from_chars(compact, compact + out, float_value_);
+            if (result.ec == std::errc::result_out_of_range) {
+                float_value_ = willow::implements::saturate_floating_out_of_range<float_type>(compact, compact + out, result.ec);
+            }
             return result.ec == std::errc{} || result.ec == std::errc::result_out_of_range;
         }
 
