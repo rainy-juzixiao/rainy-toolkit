@@ -33,6 +33,10 @@ namespace rainy::foundation::willow::implements {
         using array_type = typename BasicDocument::array_type;
         using object_type = typename BasicDocument::object_type;
 
+        template <typename Ty>
+        static constexpr bool uses_pmr_v = type_traits::properties::is_constructible_v<
+            typename BasicDocument::template allocator_type<Ty>, std::pmr::polymorphic_allocator<void>>;
+
         value() {
             type = document_type::null;
             data.object = nullptr;
@@ -45,23 +49,27 @@ namespace rainy::foundation::willow::implements {
 
         value(const object_type &value) {
             type = document_type::object;
-            data.object = create<object_type>(value);
+            resource_ = get_memory_resource();
+            data.object = create_with<object_type>(resource_, value);
         }
 
         value(const array_type &value) {
             type = document_type::array;
-            data.vector = create<array_type>(value);
+            resource_ = get_memory_resource();
+            data.vector = create_with<array_type>(resource_, value);
         }
 
         value(const string_type &value) {
             type = document_type::string;
-            data.string = create<string_type>(value);
+            resource_ = get_memory_resource();
+            data.string = create_with<string_type>(resource_, value);
         }
 
         template <typename CharType>
         value(const CharType *str) {
             type = document_type::string;
-            data.string = create<string_type>(str);
+            resource_ = get_memory_resource();
+            data.string = create_with<string_type>(resource_, str);
         }
 
         value(const integer_type value) {
@@ -81,15 +89,16 @@ namespace rainy::foundation::willow::implements {
 
         value(const document_type value_type) {
             type = value_type;
+            resource_ = get_memory_resource();
             switch (type) {
                 case document_type::object:
-                    data.object = create<object_type>();
+                    data.object = create_with<object_type>(resource_);
                     break;
                 case document_type::array:
-                    data.vector = create<array_type>();
+                    data.vector = create_with<array_type>(resource_);
                     break;
                 case document_type::string:
-                    data.string = create<string_type>();
+                    data.string = create_with<string_type>(resource_);
                     break;
                 case document_type::number_integer:
                     data.number_integer = integer_type(0);
@@ -108,16 +117,17 @@ namespace rainy::foundation::willow::implements {
 
         value(value const &other) {
             type = other.type;
+            resource_ = get_memory_resource();
 
             switch (other.type) {
                 case document_type::object:
-                    data.object = create<object_type>(*other.data.object);
+                    data.object = create_with<object_type>(resource_, *other.data.object);
                     break;
                 case document_type::array:
-                    data.vector = create<array_type>(*other.data.vector);
+                    data.vector = create_with<array_type>(resource_, *other.data.vector);
                     break;
                 case document_type::string:
-                    data.string = create<string_type>(*other.data.string);
+                    data.string = create_with<string_type>(resource_, *other.data.string);
                     break;
                 case document_type::number_integer:
                     data.number_integer = other.data.number_integer;
@@ -137,20 +147,22 @@ namespace rainy::foundation::willow::implements {
         value(value &&other) noexcept {
             type = other.type;
             data = other.data;
+            resource_ = other.resource_;
             other.type = document_type::null;
             other.data.object = nullptr;
+            other.resource_ = nullptr;
         }
 
         ~value() {
             switch (type) {
                 case document_type::object:
-                    destroy<object_type>(data.object);
+                    destroy_with<object_type>(data.object, resource_);
                     break;
                 case document_type::array:
-                    destroy<array_type>(data.vector);
+                    destroy_with<array_type>(data.vector, resource_);
                     break;
                 case document_type::string:
-                    destroy<string_type>(data.string);
+                    destroy_with<string_type>(data.string, resource_);
                     break;
                 default:
                     break;
@@ -160,18 +172,19 @@ namespace rainy::foundation::willow::implements {
         void swap(value &other) noexcept {
             std::swap(type, other.type);
             std::swap(data, other.data);
+            std::swap(resource_, other.resource_);
         }
 
         void clear() {
             switch (type) {
                 case document_type::object:
-                    destroy<object_type>(data.object);
+                    destroy_with<object_type>(data.object, resource_);
                     break;
                 case document_type::array:
-                    destroy<array_type>(data.vector);
+                    destroy_with<array_type>(data.vector, resource_);
                     break;
                 case document_type::string:
-                    destroy<string_type>(data.string);
+                    destroy_with<string_type>(data.string, resource_);
                     break;
                 default:
                     break;
@@ -182,11 +195,16 @@ namespace rainy::foundation::willow::implements {
 
         template <typename Ty, typename... Args>
         static Ty *create(Args &&...args) {
+            return create_with<Ty>(get_memory_resource(), utility::forward<Args>(args)...);
+        }
+
+        template <typename Ty, typename... Args>
+        static Ty *create_with(std::pmr::memory_resource *resource, Args &&...args) {
             using allocator_type = typename BasicDocument::template allocator_type<Ty>;
             using allocator_traits = std::allocator_traits<allocator_type>;
             Ty *ptr{nullptr};
-            if constexpr (type_traits::properties::is_constructible_v<allocator_type, std::pmr::polymorphic_allocator<void>>) {
-                allocator_type base{get_memory_resource()};
+            if constexpr (uses_pmr_v<Ty>) {
+                allocator_type base{resource};
                 ptr = allocator_traits::allocate(base, 1);
                 allocator_traits::construct(base, ptr, utility::forward<Args>(args)...);
             } else {
@@ -199,10 +217,15 @@ namespace rainy::foundation::willow::implements {
 
         template <typename Ty>
         static void destroy(Ty *ptr) {
+            destroy_with<Ty>(ptr, get_memory_resource());
+        }
+
+        template <typename Ty>
+        static void destroy_with(Ty *ptr, std::pmr::memory_resource *resource) {
             using allocator_type = typename BasicDocument::template allocator_type<Ty>;
             using allocator_traits = std::allocator_traits<allocator_type>;
-            if constexpr (type_traits::properties::is_constructible_v<allocator_type, std::pmr::polymorphic_allocator<void>>) {
-                std::pmr::polymorphic_allocator<void> base{get_memory_resource()};
+            if constexpr (uses_pmr_v<Ty>) {
+                std::pmr::polymorphic_allocator<void> base{resource};
                 allocator_type allocator{base};
                 allocator_traits::destroy(allocator, ptr);
                 allocator_traits::deallocate(allocator, ptr, 1);
@@ -225,8 +248,10 @@ namespace rainy::foundation::willow::implements {
                 clear();
                 type = other.type;
                 data = other.data;
+                resource_ = other.resource_;
                 other.type = document_type::null;
                 other.data.object = nullptr;
+                other.resource_ = nullptr;
             }
             return (*this);
         }
@@ -277,6 +302,7 @@ namespace rainy::foundation::willow::implements {
             float_type number_float;
             boolean_type boolean;
         } data;
+        std::pmr::memory_resource *resource_{nullptr};
     };
 
     template <typename BasicDocument>

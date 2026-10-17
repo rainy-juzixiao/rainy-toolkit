@@ -185,7 +185,10 @@ namespace rainy::foundation::willow::implements::operations {
      * @brief 深入比较两个值是否相等，对象按无序字段映射处理。
      */
     template <typename BasicDocument>
-    bool equals(const BasicDocument &left, const BasicDocument &right) {
+    bool equals(const BasicDocument &left, const BasicDocument &right, const std::size_t depth = 0) {
+        if (depth >= max_document_nesting_depth) {
+            exceptions::willow::throw_willow_exception("document nesting is too deep");
+        }
         if (left.type() != right.type()) {
             return left.is_number() && right.is_number() && nearly_equal(left.as_float(), right.as_float());
         }
@@ -197,7 +200,7 @@ namespace rainy::foundation::willow::implements::operations {
                     return false;
                 }
                 for (std::size_t i = 0; i < lhs.size(); ++i) {
-                    if (!equals(lhs[i], rhs[i])) {
+                    if (!equals(lhs[i], rhs[i], depth + 1)) {
                         return false;
                     }
                 }
@@ -211,7 +214,7 @@ namespace rainy::foundation::willow::implements::operations {
                 }
                 for (const auto &entry: lhs) {
                     const auto iter = rhs.find(entry.first);
-                    if (iter == rhs.end() || !equals(entry.second, iter->second)) {
+                    if (iter == rhs.end() || !equals(entry.second, iter->second, depth + 1)) {
                         return false;
                     }
                 }
