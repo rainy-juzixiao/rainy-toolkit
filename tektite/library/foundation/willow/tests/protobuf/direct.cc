@@ -134,8 +134,8 @@ namespace {
 }
 
 TEST_CASE("protobuf direct - concept shape requires member fields with explicit numbers", "[willow][protobuf]") {
-    STATIC_REQUIRE(direct_message<d_person>);
-    STATIC_REQUIRE(direct_message<d_scalars>);
+    STATIC_REQUIRE(direct_message_v<d_person>);
+    STATIC_REQUIRE(direct_message_v<d_scalars>);
     STATIC_REQUIRE(field_count_v<d_person> == 4);
     STATIC_REQUIRE(field_number_v<d_person, 0> == 1);
     STATIC_REQUIRE(field_number_v<d_person, 3> == 4);

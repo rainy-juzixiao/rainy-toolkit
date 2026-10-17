@@ -95,8 +95,8 @@ namespace {
 }
 
 TEST_CASE("cbor direct - the concept shape requires member fields", "[willow][cbor]") {
-    STATIC_REQUIRE(direct_message<d_person>);
-    STATIC_REQUIRE(direct_message<d_scalars>);
+    STATIC_REQUIRE(direct_message_v<d_person>);
+    STATIC_REQUIRE(direct_message_v<d_scalars>);
     STATIC_REQUIRE(field_count_v<d_person> == 4);
     STATIC_REQUIRE(valid_field_names_v<d_person>);
 }
