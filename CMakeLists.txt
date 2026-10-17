@@ -19,7 +19,7 @@
 cmake_minimum_required(VERSION 3.22.1)
 
 option(RAINY_ENABLE_TESTING "Enable for testing." on)
-option(RAINY_USE_AVX2_BOOST "Enable for avx2 boost." on)
+option(RAINY_USE_AVX2_BOOST "Enable for avx2 boost. Only used when RAINY_SIMD_ISA=auto; otherwise RAINY_SIMD_ISA decides." on)
 option(RAINY_BUILD_WITH_DYNAMIC
         "This option allows you build rainy-toolkit as a dynamic libraray." on)
 option(RAINY_USING_UTF8_INPUT_FOR_MSVC "Use utf-8 encoding for input. Reason: we need avoid mutilangauge problems." on)
