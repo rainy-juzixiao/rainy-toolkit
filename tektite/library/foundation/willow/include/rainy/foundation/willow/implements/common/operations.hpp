@@ -298,6 +298,26 @@ namespace rainy::foundation::willow::implements::operations {
 
     /**
      * \lang english
+     * @brief Validates an integer as a Unicode scalar value and returns it as a code point.
+     *
+     * @throws willow_type_error If @p code is negative, above @c 0x10FFFF, or inside the surrogate range.
+     *
+     * \lang simp-chinese
+     * @brief 校验整数是否为 Unicode 标量值，并以码点形式返回。
+     *
+     * @throws willow_type_error 若 @p code 为负数、超过 @c 0x10FFFF 或位于代理区。
+     */
+    inline std::uint32_t validate_unicode_scalar(const std::int64_t code) {
+        if (code < 0 || code > 0x10FFFF ||
+            (code >= static_cast<std::int64_t>(unicode_surrogate_lead_begin) &&
+             code <= static_cast<std::int64_t>(unicode_surrogate_trail_end))) {
+            exceptions::willow::throw_willow_type_error("char requires a Unicode scalar value");
+        }
+        return static_cast<std::uint32_t>(code);
+    }
+
+    /**
+     * \lang english
      * @brief Builds a one-code-point string from an integer.
      *
      * \lang simp-chinese
@@ -307,7 +327,7 @@ namespace rainy::foundation::willow::implements::operations {
     typename BasicDocument::node_type char_from_code(const std::int64_t code) {
         typename BasicDocument::string_type buffer;
         unicode_writer<typename BasicDocument::string_type> writer{buffer};
-        writer.add_code(static_cast<std::uint32_t>(code));
+        writer.add_code(validate_unicode_scalar(code));
         return typename BasicDocument::node_type(utility::move(buffer));
     }
 

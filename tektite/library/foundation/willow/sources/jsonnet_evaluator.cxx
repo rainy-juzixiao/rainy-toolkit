@@ -45,15 +45,23 @@ namespace rainy::foundation::willow::jsonnet::implements {
             return static_cast<std::int64_t>(number);
         }
 
-        std::int64_t to_index(const value_ptr &v) {
+        std::int64_t to_integer(const value_ptr &v, const char *what) {
             const double number = as_number(v);
             if (!std::isfinite(number) || number != std::floor(number)) {
-                exceptions::willow::jsonnet::throw_jsonnet_evaluate_error("index must be an integer");
+                core::text::string message(what);
+                message += " must be an integer";
+                exceptions::willow::jsonnet::throw_jsonnet_evaluate_error(message.c_str());
             }
             if (number < -9223372036854775808.0 || number >= 9223372036854775808.0) {
-                exceptions::willow::jsonnet::throw_jsonnet_evaluate_error("index out of range");
+                core::text::string message(what);
+                message += " out of range";
+                exceptions::willow::jsonnet::throw_jsonnet_evaluate_error(message.c_str());
             }
             return static_cast<std::int64_t>(number);
+        }
+
+        std::int64_t to_index(const value_ptr &v) {
+            return to_integer(v, "index");
         }
 
         thread_local std::size_t evaluation_nesting_depth = 0;
@@ -474,10 +482,10 @@ namespace rainy::foundation::willow::jsonnet::implements {
         } else {
             exceptions::willow::jsonnet::throw_jsonnet_evaluate_error("slicing requires an array or string");
         }
-        auto bound = [&](const std::size_t child) -> std::int64_t {
-            return static_cast<std::int64_t>(as_number(eval(node->at(child), env)));
+        auto bound = [&](const std::size_t child, const char *what) -> std::int64_t {
+            return to_integer(eval(node->at(child), env), what);
         };
-        const std::int64_t step = node->has_flag(flag_slice_step) ? bound(3) : 1;
+        const std::int64_t step = node->has_flag(flag_slice_step) ? bound(3, "slice step") : 1;
         if (step == 0) {
             exceptions::willow::jsonnet::throw_jsonnet_evaluate_error("slice step cannot be zero");
         }
@@ -489,8 +497,9 @@ namespace rainy::foundation::willow::jsonnet::implements {
             }
             return value < lower ? lower : (value > upper ? upper : value);
         };
-        const std::int64_t begin = node->has_flag(flag_slice_begin) ? norm(bound(1)) : (step < 0 ? size - 1 : 0);
-        const std::int64_t end = node->has_flag(flag_slice_end) ? norm(bound(2)) : (step < 0 ? -1 : size);
+        const std::int64_t begin =
+            node->has_flag(flag_slice_begin) ? norm(bound(1, "slice begin")) : (step < 0 ? size - 1 : 0);
+        const std::int64_t end = node->has_flag(flag_slice_end) ? norm(bound(2, "slice end")) : (step < 0 ? -1 : size);
         auto advance = [step](std::int64_t index, const std::int64_t stop) {
             return step > 0 ? index < stop : index > stop;
         };
@@ -576,6 +585,7 @@ namespace rainy::foundation::willow::jsonnet::implements {
             call_env->super = *super;
         }
         std::size_t positional_index = 0;
+        core::collections::vector<char> named_consumed(named.size(), 0);
         for (std::size_t i = 0; i < fn->params.size(); ++i) {
             const auto &name = fn->params[i];
             value_ptr bound;
@@ -584,9 +594,10 @@ namespace rainy::foundation::willow::jsonnet::implements {
                 bound = positional[positional_index++];
                 has_bound = true;
             } else {
-                for (auto &entry: named) {
-                    if (entry.first == name) {
-                        bound = entry.second;
+                for (std::size_t j = 0; j < named.size(); ++j) {
+                    if (named[j].first == name) {
+                        bound = named[j].second;
+                        named_consumed[j] = 1;
                         has_bound = true;
                         break;
                     }
@@ -601,6 +612,15 @@ namespace rainy::foundation::willow::jsonnet::implements {
                     name, make_thunk([this, default_node, capture]() { return eval(default_node, capture); }));
             } else {
                 exceptions::willow::jsonnet::throw_jsonnet_evaluate_error("missing argument for function call");
+            }
+        }
+        if (positional_index < positional.size()) {
+            exceptions::willow::jsonnet::throw_jsonnet_evaluate_error("too many arguments for function call");
+        }
+        for (const char consumed: named_consumed) {
+            if (consumed == 0) {
+                exceptions::willow::jsonnet::throw_jsonnet_evaluate_error(
+                    "duplicate or unknown named argument for function call");
             }
         }
         return eval(fn->body, call_env);
@@ -1022,7 +1042,13 @@ namespace rainy::foundation::willow::jsonnet::implements {
             return make_number(static_cast<double>(willow::implements::operations::codepoint<document>(args[0]->str)));
         });
         add_native(layer, "char", {"n"}, [](core::collections::vector<value_ptr> &args) -> value_ptr {
-            return make_string(willow::implements::operations::char_from_code<document>(to_int64(args[0])).as_string());
+            const std::int64_t code = to_int64(args[0]);
+            if (code < 0 || code > 0x10FFFF ||
+                (code >= static_cast<std::int64_t>(willow::implements::unicode_surrogate_lead_begin) &&
+                 code <= static_cast<std::int64_t>(willow::implements::unicode_surrogate_trail_end))) {
+                exceptions::willow::jsonnet::throw_jsonnet_evaluate_error("std.char requires a Unicode scalar value");
+            }
+            return make_string(willow::implements::operations::char_from_code<document>(code).as_string());
         });
         add_native(layer, "mod", {"x", "y"}, [](core::collections::vector<value_ptr> &args) -> value_ptr {
             if (as_number(args[1]) == 0.0) {
