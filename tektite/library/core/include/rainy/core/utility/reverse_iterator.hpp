@@ -175,11 +175,10 @@ namespace rainy::utility {
          *
          * @return 反向迭代器所指向元素的常量引用
          */
-        constexpr const_reference operator*() const noexcept {
+        constexpr reference operator*() const noexcept {
             iterator_type tmp = current;
             return *--tmp;
         }
-
         /**
          * \lang english
          * @brief Arrow operator.
@@ -354,7 +353,7 @@ namespace rainy::utility {
          * @param n 相对于当前位置的偏移
          * @return 偏移 n 处元素的常量引用
          */
-        constexpr const_reference operator[](difference_type n) const noexcept {
+        constexpr reference operator[](difference_type n) const noexcept {
             return current[-n - 1];
         }
 
@@ -370,7 +369,7 @@ namespace rainy::utility {
          * @return 如果底层迭代器非空则为 true，否则为 false
          */
         constexpr explicit operator bool() const noexcept {
-            return current != nullptr;
+            return current != iterator_type{};
         }
 
         /**

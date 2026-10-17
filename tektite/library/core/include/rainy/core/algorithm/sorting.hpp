@@ -24,6 +24,9 @@ namespace rainy::core::algorithm::implements {
 
     template <typename RandomIt, typename Comp>
     constexpr void insertion_sort(RandomIt first, RandomIt last, Comp comp) {
+        if (first == last) {
+            return;
+        }
         for (RandomIt it = first + 1; it != last; ++it) {
             auto value = utility::move(*it);
             RandomIt hole = it;

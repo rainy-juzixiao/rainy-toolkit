@@ -131,6 +131,9 @@ namespace rainy::core::algorithm {
      */
     template <typename RandomIt, typename Comp>
     constexpr rain_fn push_heap(RandomIt first, RandomIt last, Comp comp) -> void {
+        if (first == last) {
+            return;
+        }
         implements::sift_up(first, last - 1, comp);
     }
 

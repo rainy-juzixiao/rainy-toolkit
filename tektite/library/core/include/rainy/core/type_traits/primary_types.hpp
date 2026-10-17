@@ -68,7 +68,7 @@ namespace rainy::type_traits::primary_types {
      * @tparam Ty 要检查的类型
      */
     template <typename Ty>
-    RAINY_CONSTEXPR_BOOL is_void_v = type_relations::is_same_v<void, Ty>;
+    RAINY_CONSTEXPR_BOOL is_void_v = type_relations::is_same_v<void, modifers::remove_cv_t<Ty>>;
 
     /**
      * \lang english

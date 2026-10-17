@@ -45,13 +45,14 @@ namespace rainy::core::implements {
     template <typename Ty>
     constexpr int popcount(Ty __x) noexcept {
         using utype = type_traits::helper::make_unsigned_t<Ty>;
-        utype u = static_cast<utype>(__x);
+        using wide = type_traits::other_trans::conditional_t<(sizeof(utype) < sizeof(unsigned int)), unsigned int, utype>;
+        wide u = static_cast<wide>(__x);
 
-        constexpr int s = utility::numeric_limits<utype>::digits;
+        constexpr int s = utility::numeric_limits<wide>::digits;
 
-        u = u - ((u >> 1) & static_cast<utype>(~utype{0} / 3));
-        u = (u & static_cast<utype>(~utype{0} / 5)) + ((u >> 2) & static_cast<utype>(~utype{0} / 5));
-        u = (u + (u >> 4)) & static_cast<utype>(~utype{0} / 17);
+        u = u - ((u >> 1) & static_cast<wide>(~wide{0} / 3));
+        u = (u & static_cast<wide>(~wide{0} / 5)) + ((u >> 2) & static_cast<wide>(~wide{0} / 5));
+        u = (u + (u >> 4)) & static_cast<wide>(~wide{0} / 17);
         u = u + (u >> 8);
         u = u + (u >> 16);
 
@@ -63,7 +64,7 @@ namespace rainy::core::implements {
             u = u + (u >> 128);
         }
 
-        return static_cast<int>(u & static_cast<utype>(0x7F));
+        return static_cast<int>(u & static_cast<wide>(0x7F));
     }
 
     template <typename Ty, type_traits::other_trans::enable_if_t<type_traits::properties::is_unsigned_v<Ty>, int> = 0>
@@ -171,7 +172,9 @@ namespace rainy::core::implements {
     // mask-element-size<Ty> (exposition); the basic_mask partial
     // specialization is added below, after the class template is declared
     template <typename Ty>
-    struct mask_element_size_impl;
+    struct mask_element_size_impl {
+        static constexpr std::size_t value = 0;
+    };
 
     template <typename Op, typename Ty, typename = void>
     struct is_reduction_op;
@@ -268,6 +271,26 @@ namespace rainy::core::implements {
     struct mask_element_size_impl<basic_mask<Bytes, Abi>> {
         static constexpr std::size_t value = Bytes;
     };
+
+    template <simd_size_type N, typename Ty, typename = void>
+    struct resize_impl {};
+
+    template <simd_size_type N, typename UTy, typename Abi>
+    struct resize_impl<N, basic_vec<UTy, Abi>,
+                       type_traits::implements::void_t<typename deduce_abi_impl<UTy, N>::type>> {
+        using type = basic_vec<UTy, typename deduce_abi_impl<UTy, N>::type>;
+    };
+
+    template <simd_size_type N, std::size_t Bytes, typename Abi>
+    struct resize_impl<N, basic_mask<Bytes, Abi>,
+                       type_traits::implements::void_t<typename deduce_abi_impl<integer_from_t<Bytes>, N>::type>> {
+        using type = basic_mask<Bytes, typename deduce_abi_impl<integer_from_t<Bytes>, N>::type>;
+    };
+}
+
+namespace rainy::core {
+    template <simd_size_type N, typename Ty>
+    struct resize : implements::resize_impl<N, Ty> {};
 }
 
 namespace rainy::core {
