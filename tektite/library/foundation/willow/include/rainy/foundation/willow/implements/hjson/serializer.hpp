@@ -56,6 +56,11 @@ namespace rainy::foundation::willow::hjson::implements {
                 if (!hjson.empty()) {
                     put(to_char_type('\n'));
                 }
+            } else if (hjson.is_string() && hjson.as_string().find(char_type(' ')) != string_type::npos) {
+                put(to_char_type('"'));
+                dump_escaped_string(hjson.as_string());
+                put(to_char_type('"'));
+                put(to_char_type('\n'));
             } else {
                 dump_value(hjson, 0);
                 put(to_char_type('\n'));
@@ -226,7 +231,7 @@ namespace rainy::foundation::willow::hjson::implements {
         }
 
         void dump_string(const string_type &str, const unsigned int current_indent) {
-            if (str.find(char_type('\n')) != string_type::npos) {
+            if (can_dump_multiline(str)) {
                 dump_multiline_string(str, current_indent);
                 return;
             }
@@ -237,6 +242,35 @@ namespace rainy::foundation::willow::hjson::implements {
             } else {
                 put(str.data(), str.size());
             }
+        }
+
+        static bool can_dump_multiline(const string_type &str) {
+            if (str.find(char_type('\n')) == string_type::npos) {
+                return false;
+            }
+            if (str.back() == char_type('\n') || str.find(char_type('\r')) != string_type::npos) {
+                return false;
+            }
+            bool line_start = true;
+            for (std::size_t i = 0; i < str.size(); ++i) {
+                const auto ch = str[i];
+                if (line_start && (ch == char_type(' ') || ch == char_type('\t'))) {
+                    return false;
+                }
+                if (line_start && ch == char_type('\'') && i + 2 < str.size() && str[i + 1] == char_type('\'') &&
+                    str[i + 2] == char_type('\'')) {
+                    return false;
+                }
+                if (ch == char_type('\n')) {
+                    if (i + 1 < str.size() && str[i + 1] == char_type('\n')) {
+                        return false;
+                    }
+                    line_start = true;
+                } else {
+                    line_start = false;
+                }
+            }
+            return true;
         }
 
         static bool string_needs_quotes(const string_type &str) {
@@ -270,6 +304,13 @@ namespace rainy::foundation::willow::hjson::implements {
                         break;
                 }
             }
+            if (str.find(char_type('/')) != string_type::npos) {
+                for (std::size_t i = 0; i + 1 < str.size(); ++i) {
+                    if (str[i] == char_type('/') && (str[i + 1] == char_type('/') || str[i + 1] == char_type('*'))) {
+                        return true;
+                    }
+                }
+            }
             if (equals_ascii(str, "true") || equals_ascii(str, "false") || equals_ascii(str, "null")) {
                 return true;
             }
@@ -296,17 +337,23 @@ namespace rainy::foundation::willow::hjson::implements {
         }
 
         static bool number_looks_parseable(const string_type &str) {
+            core::collections::vector<char> narrow;
+            narrow.reserve(str.size());
             for (const auto ch: str) {
                 const auto unit = static_cast<std::uint32_t>(static_cast<type_traits::helper::make_unsigned_t<char_type>>(ch));
                 if (unit > 0x7F) {
                     return false;
                 }
+                narrow.push_back(static_cast<char>(unit));
+            }
+            if (narrow.empty()) {
+                return false;
             }
             integer_type integer_out{};
             float_type float_out{};
             bool is_float = false;
-            const char *begin = reinterpret_cast<const char *>(str.data());
-            const char *end = begin + str.size();
+            const char *begin = narrow.data();
+            const char *end = begin + narrow.size();
             return hjson_lexer<BasicDocument, int>::try_parse_number(begin, end, integer_out, float_out, is_float);
         }
 
@@ -361,6 +408,19 @@ namespace rainy::foundation::willow::hjson::implements {
             while (i < size) {
                 const auto ch = data[i];
                 const auto unit = static_cast<std::uint32_t>(static_cast<type_traits::helper::make_unsigned_t<char_type>>(ch));
+                if constexpr (is_byte_char_type()) {
+                    if (arg_.escape_unicode && unit >= 0x7F) {
+                        std::uint32_t codepoint = 0;
+                        std::size_t next = i;
+                        if (decode_utf8(str, next, codepoint)) {
+                            put(data + run, i - run);
+                            escape_unicode(codepoint);
+                            i = next + 1;
+                            run = i;
+                            continue;
+                        }
+                    }
+                }
                 const bool clean = unit > 0x1F && unit != static_cast<std::uint32_t>('"') &&
                                    unit != static_cast<std::uint32_t>('\\') &&
                                    !(arg_.escape_unicode && unit >= 0x7F);
@@ -410,6 +470,48 @@ namespace rainy::foundation::willow::hjson::implements {
                 run = i;
             }
             put(data + run, size - run);
+        }
+
+        static constexpr bool is_byte_char_type() {
+            if constexpr (type_traits::type_relations::is_same_v<char_type, char>) {
+                return true;
+            } else {
+#if RAINY_HAS_CXX20
+                return type_traits::type_relations::is_same_v<char_type, char8_t>;
+#else
+                return false;
+#endif
+            }
+        }
+
+        static bool decode_utf8(const string_type &str, std::size_t &index, std::uint32_t &codepoint) {
+            const auto lead = static_cast<std::uint32_t>(static_cast<type_traits::helper::make_unsigned_t<char_type>>(str[index]));
+            std::size_t continuation = 0;
+            if ((lead & 0xE0) == 0xC0) {
+                codepoint = lead & 0x1F;
+                continuation = 1;
+            } else if ((lead & 0xF0) == 0xE0) {
+                codepoint = lead & 0x0F;
+                continuation = 2;
+            } else if ((lead & 0xF8) == 0xF0) {
+                codepoint = lead & 0x07;
+                continuation = 3;
+            } else {
+                return false;
+            }
+            if (index + continuation >= str.size()) {
+                return false;
+            }
+            for (std::size_t offset = 1; offset <= continuation; ++offset) {
+                const auto next =
+                    static_cast<std::uint32_t>(static_cast<type_traits::helper::make_unsigned_t<char_type>>(str[index + offset]));
+                if ((next & 0xC0) != 0x80) {
+                    return false;
+                }
+                codepoint = (codepoint << 6) | (next & 0x3F);
+            }
+            index += continuation;
+            return true;
         }
 
         void escape_unicode(std::uint32_t codepoint) {

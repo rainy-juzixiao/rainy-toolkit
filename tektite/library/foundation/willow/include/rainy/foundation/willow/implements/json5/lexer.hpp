@@ -193,6 +193,7 @@ namespace rainy::foundation::willow::json5::implements {
                 case '9':
                     return scan_number();
                 case '\0':
+                    exceptions::willow::json5::throw_json5_parse_error("unexpected character");
                 case char_traits::eof():
                     return token_type::end_of_input;
                 default:

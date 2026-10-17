@@ -113,7 +113,6 @@ namespace rainy::foundation::willow::json::implements {
                 case '8':
                 case '9':
                     return scan_number();
-                case '\0':
                 case char_traits::eof():
                     return token_type::end_of_input;
                 default:
@@ -230,8 +229,8 @@ namespace rainy::foundation::willow::json::implements {
                                     }
                                     const auto lead_surrogate = code;
                                     const auto trail_surrogate = read_one_escaped_code();
-                                    if (!(unicode_surrogate_lead_begin <= trail_surrogate &&
-                                          trail_surrogate <= unicode_surrogate_lead_end)) {
+                                    if (!(unicode_surrogate_trail_begin <= trail_surrogate &&
+                                          trail_surrogate <= unicode_surrogate_trail_end)) {
                                         exceptions::willow::json::throw_json_parse_error(
                                             "surrogate U+D800...U+DBFF must be followed by U+DC00...U+DFFF");
                                     }

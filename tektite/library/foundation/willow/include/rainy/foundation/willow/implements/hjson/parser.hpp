@@ -47,7 +47,7 @@ namespace rainy::foundation::willow::hjson::implements {
             } else {
                 token_type token = probe;
                 if (probe == token_type::value_string) {
-                    token = lexer.reclassify_root_value();
+                    token = lexer.probe_was_quoted() ? probe : lexer.reclassify_root_value();
                     last_token = token;
                 }
                 if (token == token_type::begin_object) {

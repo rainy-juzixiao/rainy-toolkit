@@ -207,6 +207,19 @@ namespace rainy::foundation::willow::json::implements {
             while (i < size) {
                 const auto ch = data[i];
                 const auto unit = static_cast<std::uint32_t>(static_cast<type_traits::helper::make_unsigned_t<char_type>>(ch));
+                if constexpr (is_byte_char_type()) {
+                    if (arg_.escape_unicode && unit >= 0x7F) {
+                        std::uint32_t codepoint = 0;
+                        std::size_t next = i;
+                        if (decode_utf8(str, next, codepoint)) {
+                            put(data + run, i - run);
+                            escape_unicode(codepoint);
+                            i = next + 1;
+                            run = i;
+                            continue;
+                        }
+                    }
+                }
                 const bool clean = unit > 0x1F && unit != static_cast<std::uint32_t>('"') &&
                                    unit != static_cast<std::uint32_t>('\\') &&
                                    !(arg_.escape_unicode && unit >= 0x7F);
@@ -258,6 +271,48 @@ namespace rainy::foundation::willow::json::implements {
             put(data + run, size - run);
         }
 
+        static constexpr bool is_byte_char_type() {
+            if constexpr (type_traits::type_relations::is_same_v<char_type, char>) {
+                return true;
+            } else {
+#if RAINY_HAS_CXX20
+                return type_traits::type_relations::is_same_v<char_type, char8_t>;
+#else
+                return false;
+#endif
+            }
+        }
+
+        static bool decode_utf8(const string_type &str, std::size_t &index, std::uint32_t &codepoint) {
+            const auto lead = static_cast<std::uint32_t>(static_cast<type_traits::helper::make_unsigned_t<char_type>>(str[index]));
+            std::size_t continuation = 0;
+            if ((lead & 0xE0) == 0xC0) {
+                codepoint = lead & 0x1F;
+                continuation = 1;
+            } else if ((lead & 0xF0) == 0xE0) {
+                codepoint = lead & 0x0F;
+                continuation = 2;
+            } else if ((lead & 0xF8) == 0xF0) {
+                codepoint = lead & 0x07;
+                continuation = 3;
+            } else {
+                return false;
+            }
+            if (index + continuation >= str.size()) {
+                return false;
+            }
+            for (std::size_t offset = 1; offset <= continuation; ++offset) {
+                const auto next =
+                    static_cast<std::uint32_t>(static_cast<type_traits::helper::make_unsigned_t<char_type>>(str[index + offset]));
+                if ((next & 0xC0) != 0x80) {
+                    return false;
+                }
+                codepoint = (codepoint << 6) | (next & 0x3F);
+            }
+            index += continuation;
+            return true;
+        }
+
         void escape_unicode(std::uint32_t codepoint) {
             if (codepoint <= 0xFFFF) {
                 put(to_char_type('\\'));
@@ -300,9 +355,14 @@ namespace rainy::foundation::willow::json::implements {
                 put(to_char_type('0'));
                 return;
             }
-            bool negative = value < 0;
-            auto abs_value =
-                static_cast<integer_type>(negative ? -static_cast<std::int64_t>(value) : static_cast<std::uint64_t>(value));
+            const bool negative = value < 0;
+            std::uint64_t abs_value = 0;
+            if (negative) {
+                abs_value = static_cast<std::uint64_t>(-(static_cast<std::int64_t>(value) + 1));
+                ++abs_value;
+            } else {
+                abs_value = static_cast<std::uint64_t>(value);
+            }
             char_type buffer[32]{};
             std::size_t pos = sizeof(buffer) / sizeof(buffer[0]);
             buffer[--pos] = '\0';
@@ -341,7 +401,10 @@ namespace rainy::foundation::willow::json::implements {
         }
 
         void write_indent(unsigned int indent_level) {
-            if (indent_level > 0 && indent_level <= indent_string_.size()) {
+            if (indent_level > 0) {
+                while (indent_level > indent_string_.size()) {
+                    indent_string_ += indent_char_;
+                }
                 put(indent_string_.data(), indent_level);
             }
         }

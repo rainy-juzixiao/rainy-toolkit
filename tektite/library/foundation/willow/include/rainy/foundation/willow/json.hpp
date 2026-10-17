@@ -58,7 +58,7 @@ namespace rainy::foundation::willow::json {
 
     template <typename BasicDocument = document>
     facade<BasicDocument> parse(core::text::basic_string_view<typename BasicDocument::char_type> str) {
-        string_view_input_adapter<core::text::basic_string_view<typename BasicDocument::char_type>> adapter(str.data());
+        string_view_input_adapter<core::text::basic_string_view<typename BasicDocument::char_type>> adapter(str);
         return implements::parse_document<BasicDocument>(adapter, str.data(), str.size());
     }
 
