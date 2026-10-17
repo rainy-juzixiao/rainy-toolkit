@@ -94,7 +94,8 @@ fn run(cli: &Cli) -> anyhow::Result<()> {
         );
     }
 
-    let clang = Clang::new().unwrap();
+    let clang = Clang::new()
+        .map_err(|e| anyhow::anyhow!("failed to initialize libclang: {e}"))?;
     let index = Index::new(&clang, false, false);
 
     // --- locate & load config (with recursive includes) ---
@@ -109,6 +110,7 @@ fn run(cli: &Cli) -> anyhow::Result<()> {
     println!("[sleepy] using config: {}", config_path.display());
     let config = data::config::load_with_includes(&config_path)
         .with_context(|| format!("failed to load config: {}", config_path.display()))?;
+    validate_output_names(&config)?;
 
     // NOTE: output dirs are created lazily in the write phase, so that a
     // failed cycle check truly leaves the filesystem untouched.
@@ -261,6 +263,33 @@ fn run(cli: &Cli) -> anyhow::Result<()> {
 
     println!("[sleepy] {} 个文件已写入 (files written)", written);
 
+    Ok(())
+}
+
+fn validate_output_names(config: &data::config::SleepyConfig) -> anyhow::Result<()> {
+    fn is_single_component(name: &str) -> bool {
+        !name.is_empty()
+            && name != "."
+            && name != ".."
+            && !name.contains('/')
+            && !name.contains('\\')
+            && !std::path::Path::new(name).is_absolute()
+    }
+    for source in &config.sources {
+        if !is_single_component(&source.name) {
+            anyhow::bail!(
+                "invalid source name '{}': must be a single path component",
+                source.name
+            );
+        }
+    }
+    let out_name = &config.dependency_graph.out_name;
+    if !is_single_component(out_name) {
+        anyhow::bail!(
+            "invalid dependency_graph.out_name '{}': must be a single path component",
+            out_name
+        );
+    }
     Ok(())
 }
 
@@ -521,7 +550,16 @@ fn process_source(
 
         let source_text = std::fs::read_to_string(main_file).unwrap_or_default();
         let nodoc_ranges = parser::collect_nodoc_ranges(&source_text);
-        let include_root = source.include_dirs[0].canonicalize()?;
+        let include_root = source
+            .include_dirs
+            .first()
+            .ok_or_else(|| {
+                anyhow::anyhow!("source '{}' has no include_dirs", source.name)
+            })?
+            .canonicalize()
+            .with_context(|| {
+                format!("cannot resolve include dir for source '{}'", source.name)
+            })?;
 
         let context = parser::ParseContext {
             include_root: include_root.to_str().unwrap_or(""),
@@ -541,12 +579,12 @@ fn process_source(
                     .map(std::path::PathBuf::from)
                     .unwrap_or_else(|| std::path::PathBuf::from("unknown.hpp"))
             });
+        // display name: "<source>/<relative path under include root>"
+        let display = format!("{}/{}", source.name, doc.rel_path.display());
+        file_infos.insert(main_file.to_string_lossy().to_string(), display);
+
         if want_markdown {
             let md = gen.generate_file(&doc);
-
-            // display name: "<source>/<relative path under include root>"
-            let display = format!("{}/{}", source.name, doc.rel_path.display());
-            file_infos.insert(main_file.to_string_lossy().to_string(), display);
 
             let out_name = main_file
                 .file_stem()
@@ -565,10 +603,7 @@ fn process_source(
             } else {
                 source_output_dir.join(doc.rel_path.with_extension("md"))
             };
-            if let Some(parent) = out_path.parent() {
-                std::fs::create_dir_all(parent)?;
-            }
-            pending_writes.push((out_path.clone(), md));
+            pending_writes.push((out_path, md));
         }
 
         progress.tick(&doc.rel_path.display().to_string());

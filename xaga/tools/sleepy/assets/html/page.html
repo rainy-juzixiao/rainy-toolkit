@@ -1,5 +1,5 @@
 {% extends "layout.html" %}
-{% block docs_json %}<script type="application/json" id="docs-json">{{ docs | json_encode | safe }}</script>{% endblock %}
+{% block docs_json %}<script type="application/json" id="docs-json">{{ docs | json_encode | replace(from="</", to="<\/") | safe }}</script>{% endblock %}
 {% block content %}
 <article class="space-y-6">
 <nav class="text-sm text-slate-500 dark:text-slate-400" aria-label="breadcrumb">

@@ -1,5 +1,5 @@
 {% extends "layout.html" %}
-{% block docs_json %}<script type="application/json" id="docs-json">{{ docs | json_encode | safe }}</script>{% endblock %}
+{% block docs_json %}<script type="application/json" id="docs-json">{{ docs | json_encode | replace(from="</", to="<\/") | safe }}</script>{% endblock %}
 {% block content %}
 <section class="space-y-12">
     <section class="text-center py-10 sm:py-16">
