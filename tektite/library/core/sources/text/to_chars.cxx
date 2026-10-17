@@ -252,16 +252,15 @@ namespace rainy::core::text::implements::ryu {
         return (value & ((1ull << power) - 1)) == 0;
     }
 
-    RAINY_NODISCARD static unsigned char bit_scan_forward(unsigned long *index, unsigned long mask) {
+    RAINY_NODISCARD static unsigned char bit_scan_forward(unsigned long *index, std::uint32_t mask) {
         if (mask == 0) {
-            return 0; // 没有置位位，行为未定义（通常返回 0）
+            return 0;
         }
-        unsigned long lowest = mask & -mask;
-        static const unsigned long DE_BRUIJN = 0x077CB531UL;
-        static const unsigned char bit_pos[32] = {0,  1,  28, 2,  29, 14, 24, 3, 30, 22, 20, 15, 25, 17, 4,  8,
-                                                  31, 27, 13, 23, 21, 19, 16, 7, 26, 12, 18, 6,  11, 5,  10, 9};
-        unsigned long bit_index = bit_pos[(lowest * DE_BRUIJN) >> 27];
-        *index = bit_index;
+        const std::uint32_t lowest = mask & (0u - mask);
+        static constexpr std::uint32_t DE_BRUIJN = 0x077CB531u;
+        static constexpr unsigned char bit_pos[32] = {0,  1,  28, 2,  29, 14, 24, 3, 30, 22, 20, 15, 25, 17, 4,  8,
+                                                      31, 27, 13, 23, 21, 19, 16, 7, 26, 12, 18, 6,  11, 5,  10, 9};
+        *index = bit_pos[(lowest * DE_BRUIJN) >> 27];
         return 1;
     }
 }
@@ -800,7 +799,7 @@ namespace rainy::core::text::implements::ryu {
                     *round = '0';
                     round_up = 1; // 继续进位
                 } else {
-                    if (round_up == 1 || (*round & 1) == 0) {
+                    if (round_up == 1 || (*round & 1) != 0) {
                         *round = static_cast<char>(*round + 1);
                     }
                     break;
