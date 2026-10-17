@@ -38,7 +38,11 @@ namespace rainy::foundation::willow::jsonnet::implements {
         }
 
         std::int64_t to_int64(const value_ptr &v) {
-            return static_cast<std::int64_t>(as_number(v));
+            const double number = as_number(v);
+            if (!std::isfinite(number) || number < -9223372036854775808.0 || number >= 9223372036854775808.0) {
+                exceptions::willow::jsonnet::throw_jsonnet_evaluate_error("integer value out of range");
+            }
+            return static_cast<std::int64_t>(number);
         }
 
         std::int64_t to_index(const value_ptr &v) {
@@ -46,8 +50,31 @@ namespace rainy::foundation::willow::jsonnet::implements {
             if (!std::isfinite(number) || number != std::floor(number)) {
                 exceptions::willow::jsonnet::throw_jsonnet_evaluate_error("index must be an integer");
             }
+            if (number < -9223372036854775808.0 || number >= 9223372036854775808.0) {
+                exceptions::willow::jsonnet::throw_jsonnet_evaluate_error("index out of range");
+            }
             return static_cast<std::int64_t>(number);
         }
+
+        thread_local std::size_t evaluation_nesting_depth = 0;
+        thread_local std::size_t manifest_nesting_depth = 0;
+
+        struct eval_depth_guard {
+            explicit eval_depth_guard(std::size_t &counter) : counter_(counter) {
+                if (counter_ >= willow::implements::max_document_nesting_depth) {
+                    exceptions::willow::jsonnet::throw_jsonnet_evaluate_error("document nesting is too deep");
+                }
+                ++counter_;
+            }
+            ~eval_depth_guard() {
+                --counter_;
+            }
+            eval_depth_guard(const eval_depth_guard &) = delete;
+            eval_depth_guard &operator=(const eval_depth_guard &) = delete;
+
+        private:
+            std::size_t &counter_;
+        };
 
         int compare_values(const value_ptr &left, const value_ptr &right) {
             if (left->kind == value_kind::number && right->kind == value_kind::number) {
@@ -176,6 +203,7 @@ namespace rainy::foundation::willow::jsonnet::implements {
     }
 
     value_ptr evaluator::eval(jsonnet_node *node, const env_ptr &env) {
+        const eval_depth_guard guard(evaluation_nesting_depth);
         switch (node->json_kind) {
             case jsonnet_node_kind::null_literal:
                 return make_null();
@@ -331,10 +359,13 @@ namespace rainy::foundation::willow::jsonnet::implements {
             return make_number(willow::implements::operations::modulo(as_number(left), as_number(right)));
         }
         if (op == "<<") {
-            return make_number(static_cast<double>(to_int64(left) << (to_int64(right) & 63)));
+            const std::uint64_t shift = static_cast<std::uint64_t>(to_int64(right)) & 63u;
+            const std::uint64_t bits = static_cast<std::uint64_t>(to_int64(left));
+            return make_number(static_cast<double>(static_cast<std::int64_t>(bits << shift)));
         }
         if (op == ">>") {
-            return make_number(static_cast<double>(to_int64(left) >> (to_int64(right) & 63)));
+            const std::uint64_t shift = static_cast<std::uint64_t>(to_int64(right)) & 63u;
+            return make_number(static_cast<double>(to_int64(left) >> shift));
         }
         if (op == "&") {
             return make_number(static_cast<double>(to_int64(left) & to_int64(right)));
@@ -925,9 +956,21 @@ namespace rainy::foundation::willow::jsonnet::implements {
                 case 's':
                     result.append(value_to_string(*argument));
                     break;
-                case 'c':
-                    result.push_back(static_cast<char>(static_cast<std::int64_t>(as_number(argument))));
+                case 'c': {
+                    const double number = as_number(argument);
+                    if (!std::isfinite(number) || number != std::floor(number)) {
+                        exceptions::willow::jsonnet::throw_jsonnet_evaluate_error("%c requires an integer");
+                    }
+                    const std::int64_t code = to_int64(argument);
+                    if (code < 0 || code > 0x10FFFF ||
+                        (code >= static_cast<std::int64_t>(willow::implements::unicode_surrogate_lead_begin) &&
+                         code <= static_cast<std::int64_t>(willow::implements::unicode_surrogate_trail_end))) {
+                        exceptions::willow::jsonnet::throw_jsonnet_evaluate_error("%c requires a unicode code point");
+                    }
+                    unicode_writer<core::text::string> writer{result};
+                    writer.add_code(static_cast<std::uint32_t>(code));
                     break;
+                }
                 default:
                     exceptions::willow::jsonnet::throw_jsonnet_evaluate_error("unsupported format specifier");
             }
@@ -1044,7 +1087,9 @@ namespace rainy::foundation::willow::jsonnet::implements {
         return make_object(utility::move(object));
     }
 
-    void evaluator::manifest_value(const value_ptr &v, document &out) {        switch (v->kind) {
+    void evaluator::manifest_value(const value_ptr &v, document &out) {
+        const eval_depth_guard guard(manifest_nesting_depth);
+        switch (v->kind) {
             case value_kind::null_value:
                 out = document(document_type::null);
                 break;

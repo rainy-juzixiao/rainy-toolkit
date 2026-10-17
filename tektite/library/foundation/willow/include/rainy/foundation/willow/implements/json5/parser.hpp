@@ -48,6 +48,23 @@ namespace rainy::foundation::willow::json5::implements {
         }
 
     private:
+        struct depth_guard {
+            explicit depth_guard(int &counter) : counter_(counter) {
+                if (counter_ >= static_cast<int>(willow::implements::max_document_nesting_depth)) {
+                    exceptions::willow::json5::throw_json5_parse_error("document nesting is too deep");
+                }
+                ++counter_;
+            }
+            ~depth_guard() {
+                --counter_;
+            }
+            depth_guard(const depth_guard &) = delete;
+            depth_guard &operator=(const depth_guard &) = delete;
+
+        private:
+            int &counter_;
+        };
+
         token_type get_token() {
             last_token = lexer.scan();
             return last_token;
@@ -61,6 +78,7 @@ namespace rainy::foundation::willow::json5::implements {
         }
 
         void parse_value(BasicDocument &json, bool read_next = true) {
+            const depth_guard guard(nesting_depth_);
             token_type token = last_token;
             if (read_next) {
                 token = get_token();
@@ -157,6 +175,7 @@ namespace rainy::foundation::willow::json5::implements {
 
         json5_lexer<BasicDocument, Adapter> lexer;
         token_type last_token;
+        int nesting_depth_{0};
     };
 }
 

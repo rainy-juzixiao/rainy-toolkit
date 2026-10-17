@@ -87,7 +87,7 @@ namespace rainy::foundation::willow::bson::implements {
             }
             const std::uint8_t *ptr = data;
             const std::uint8_t *const end = data + size;
-            decode_document(ptr, end, out);
+            decode_document(ptr, end, out, 0);
             if (ptr != end) {
                 throw_bson_parse_error("trailing bytes after the bson document");
             }
@@ -116,7 +116,11 @@ namespace rainy::foundation::willow::bson::implements {
             }
         }
 
-        static void decode_document(const std::uint8_t *&ptr, const std::uint8_t *end, doc_type &out) {
+        static void decode_document(const std::uint8_t *&ptr, const std::uint8_t *end, doc_type &out,
+                                    const std::size_t depth) {
+            if (depth >= willow::implements::max_document_nesting_depth) {
+                throw_bson_parse_error("document nesting is too deep");
+            }
             std::int32_t length = 0;
             read_document_length(ptr, end, length);
             const std::uint8_t *const document_end = ptr + (length - 4);
@@ -135,7 +139,7 @@ namespace rainy::foundation::willow::bson::implements {
                 typename BasicDocument::string_type key = narrow_key_to_string<BasicDocument>(
                     reinterpret_cast<const char *>(key_data), key_size);
                 doc_type value;
-                decode_value(static_cast<element_type>(type_byte), ptr, document_end, value);
+                decode_value(static_cast<element_type>(type_byte), ptr, document_end, value, depth);
                 object.emplace(utility::move(key), utility::move(value));
             }
             if (ptr >= document_end || *ptr != 0) {
@@ -147,7 +151,11 @@ namespace rainy::foundation::willow::bson::implements {
             }
         }
 
-        static void decode_array(const std::uint8_t *&ptr, const std::uint8_t *end, doc_type &out) {
+        static void decode_array(const std::uint8_t *&ptr, const std::uint8_t *end, doc_type &out,
+                                 const std::size_t depth) {
+            if (depth >= willow::implements::max_document_nesting_depth) {
+                throw_bson_parse_error("document nesting is too deep");
+            }
             std::int32_t length = 0;
             read_document_length(ptr, end, length);
             const std::uint8_t *const document_end = ptr + (length - 4);
@@ -164,7 +172,7 @@ namespace rainy::foundation::willow::bson::implements {
                     throw_bson_parse_error("truncated bson array index");
                 }
                 doc_type value;
-                decode_value(static_cast<element_type>(type_byte), ptr, document_end, value);
+                decode_value(static_cast<element_type>(type_byte), ptr, document_end, value, depth);
                 array.push_back(utility::move(value));
             }
             if (ptr >= document_end || *ptr != 0) {
@@ -176,7 +184,8 @@ namespace rainy::foundation::willow::bson::implements {
             }
         }
 
-        static void decode_value(const element_type kind, std::uint8_t const *&ptr, const std::uint8_t *end, doc_type &out) {
+        static void decode_value(const element_type kind, std::uint8_t const *&ptr, const std::uint8_t *end, doc_type &out,
+                                 const std::size_t depth) {
             switch (kind) {
                 case element_type::double_: {
                     std::uint64_t bits = 0;
@@ -196,10 +205,10 @@ namespace rainy::foundation::willow::bson::implements {
                     return;
                 }
                 case element_type::document:
-                    decode_document(ptr, end, out);
+                    decode_document(ptr, end, out, depth + 1);
                     return;
                 case element_type::array:
-                    decode_array(ptr, end, out);
+                    decode_array(ptr, end, out, depth + 1);
                     return;
                 case element_type::boolean: {
                     std::uint8_t value = 0;
