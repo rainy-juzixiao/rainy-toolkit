@@ -118,7 +118,7 @@ namespace rainy::foundation::willow::cbor::implements {
             }
             const std::uint8_t *ptr = data;
             const std::uint8_t *const end = data + size;
-            decode_value(ptr, end, out);
+            decode_value(ptr, end, out, 0);
             if (ptr != end) {
                 throw_cbor_parse_error("trailing bytes after the cbor item");
             }
@@ -157,7 +157,11 @@ namespace rainy::foundation::willow::cbor::implements {
             }
         }
 
-        static void decode_value(const std::uint8_t *&ptr, const std::uint8_t *end, doc_type &out) {
+        static void decode_value(const std::uint8_t *&ptr, const std::uint8_t *end, doc_type &out,
+                                 const std::size_t depth) {
+            if (depth >= willow::implements::max_document_nesting_depth) {
+                throw_cbor_parse_error("document nesting is too deep");
+            }
             major_type major{};
             std::uint8_t additional = 0;
             std::uint64_t argument = 0;
@@ -185,16 +189,16 @@ namespace rainy::foundation::willow::cbor::implements {
                     decode_string(ptr, end, out, additional, argument, false);
                     return;
                 case major_type::array:
-                    decode_array(ptr, end, out, additional, argument);
+                    decode_array(ptr, end, out, additional, argument, depth + 1);
                     return;
                 case major_type::map:
-                    decode_map(ptr, end, out, additional, argument);
+                    decode_map(ptr, end, out, additional, argument, depth + 1);
                     return;
                 case major_type::tag: {
                     if (additional == additional_indefinite) {
                         throw_cbor_parse_error("a tag may not use the indefinite form");
                     }
-                    decode_tag(ptr, end, out, argument);
+                    decode_tag(ptr, end, out, argument, depth);
                     return;
                 }
                 case major_type::simple:
@@ -261,7 +265,7 @@ namespace rainy::foundation::willow::cbor::implements {
         }
 
         static void decode_array(const std::uint8_t *&ptr, const std::uint8_t *end, doc_type &out,
-                                 const std::uint8_t additional, const std::uint64_t argument) {
+                                 const std::uint8_t additional, const std::uint64_t argument, const std::size_t depth) {
             out = doc_type(document_type::array);
             auto &array = out.as_array();
             if (additional == additional_indefinite) {
@@ -274,7 +278,7 @@ namespace rainy::foundation::willow::cbor::implements {
                         return;
                     }
                     doc_type element;
-                    decode_value(ptr, end, element);
+                    decode_value(ptr, end, element, depth);
                     array.push_back(utility::move(element));
                 }
             }
@@ -284,13 +288,13 @@ namespace rainy::foundation::willow::cbor::implements {
             array.reserve(static_cast<std::size_t>(argument));
             for (std::uint64_t i = 0; i < argument; ++i) {
                 doc_type element;
-                decode_value(ptr, end, element);
+                decode_value(ptr, end, element, depth);
                 array.push_back(utility::move(element));
             }
         }
 
         static void decode_map(const std::uint8_t *&ptr, const std::uint8_t *end, doc_type &out,
-                               const std::uint8_t additional, const std::uint64_t argument) {
+                               const std::uint8_t additional, const std::uint64_t argument, const std::size_t depth) {
             out = doc_type(document_type::object);
             auto &object = out.as_object();
             if (additional == additional_indefinite) {
@@ -302,29 +306,31 @@ namespace rainy::foundation::willow::cbor::implements {
                         ++ptr;
                         return;
                     }
-                    decode_map_entry(ptr, end, object);
+                    decode_map_entry(ptr, end, object, depth);
                 }
             }
             if (argument > static_cast<std::uint64_t>(end - ptr) + 1) {
                 throw_cbor_parse_error("a cbor map declares more entries than the input holds");
             }
             for (std::uint64_t i = 0; i < argument; ++i) {
-                decode_map_entry(ptr, end, object);
+                decode_map_entry(ptr, end, object, depth);
             }
         }
 
-        static void decode_map_entry(const std::uint8_t *&ptr, const std::uint8_t *end, typename doc_type::object_type &object) {
+        static void decode_map_entry(const std::uint8_t *&ptr, const std::uint8_t *end, typename doc_type::object_type &object,
+                                     const std::size_t depth) {
             doc_type key_node;
-            decode_value(ptr, end, key_node);
+            decode_value(ptr, end, key_node, depth);
             string_type key = cbor_key_to_string<BasicDocument>(key_node);
             doc_type value;
-            decode_value(ptr, end, value);
+            decode_value(ptr, end, value, depth);
             object.emplace(utility::move(key), utility::move(value));
         }
 
-        static void decode_tag(const std::uint8_t *&ptr, const std::uint8_t *end, doc_type &out, const std::uint64_t tag_number) {
+        static void decode_tag(const std::uint8_t *&ptr, const std::uint8_t *end, doc_type &out, const std::uint64_t tag_number,
+                               const std::size_t depth) {
             doc_type inner;
-            decode_value(ptr, end, inner);
+            decode_value(ptr, end, inner, depth);
             out = utility::move(inner);
             out.set_tag(tag_number);
         }

@@ -96,6 +96,23 @@ namespace rainy::foundation::willow::xml::implements {
         }
 
     private:
+        struct depth_guard {
+            explicit depth_guard(int &counter) : counter_(counter) {
+                if (counter_ >= static_cast<int>(willow::implements::max_document_nesting_depth)) {
+                    exceptions::willow::xml::throw_xml_parse_error("document nesting is too deep");
+                }
+                ++counter_;
+            }
+            ~depth_guard() {
+                --counter_;
+            }
+            depth_guard(const depth_guard &) = delete;
+            depth_guard &operator=(const depth_guard &) = delete;
+
+        private:
+            int &counter_;
+        };
+
         void advance() {
             current_token_ = lexer.scan();
         }
@@ -120,6 +137,7 @@ namespace rainy::foundation::willow::xml::implements {
         }
 
         node_type parse_element() {
+            const depth_guard guard(nesting_depth_);
             const string_type element_name = lexer.token_to_name();
             const bool self_closing = lexer.token_is_self_closing();
             attribute_list attributes = lexer.token_to_attributes();
@@ -235,6 +253,7 @@ namespace rainy::foundation::willow::xml::implements {
         string_type text_key_;
         typename doc_type::declaration_type declaration_{};
         bool has_declaration_{false};
+        int nesting_depth_{0};
     };
 }
 

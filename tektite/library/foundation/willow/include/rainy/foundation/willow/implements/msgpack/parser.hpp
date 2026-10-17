@@ -94,7 +94,7 @@ namespace rainy::foundation::willow::msgpack::implements {
             }
             const std::uint8_t *ptr = data;
             const std::uint8_t *end = data + size;
-            decode_value(ptr, end, out, options);
+            decode_value(ptr, end, out, options, 0);
             if (ptr != end) {
                 throw_msgpack_parse_error("trailing bytes after msgpack value");
             }
@@ -125,27 +125,39 @@ namespace rainy::foundation::willow::msgpack::implements {
         }
 
         static void decode_array(doc_type &out, const std::uint8_t *&ptr, const std::uint8_t *end, const std::size_t count,
-                                 const msgpack_options &options) {
+                                 const msgpack_options &options, const std::size_t depth) {
+            if (depth >= willow::implements::max_document_nesting_depth) {
+                throw_msgpack_parse_error("document nesting is too deep");
+            }
+            if (count > static_cast<std::size_t>(end - ptr)) {
+                throw_msgpack_parse_error("a msgpack array declares more elements than the input holds");
+            }
             out = doc_type(document_type::array);
             auto &array = out.as_array();
             array.reserve(count);
             for (std::size_t i = 0; i < count; ++i) {
                 doc_type element;
-                decode_value(ptr, end, element, options);
+                decode_value(ptr, end, element, options, depth + 1);
                 array.push_back(utility::move(element));
             }
         }
 
         static void decode_map(doc_type &out, const std::uint8_t *&ptr, const std::uint8_t *end, const std::size_t count,
-                               const msgpack_options &options) {
+                               const msgpack_options &options, const std::size_t depth) {
+            if (depth >= willow::implements::max_document_nesting_depth) {
+                throw_msgpack_parse_error("document nesting is too deep");
+            }
+            if (count > static_cast<std::size_t>(end - ptr) / 2) {
+                throw_msgpack_parse_error("a msgpack map declares more entries than the input holds");
+            }
             out = doc_type(document_type::object);
             auto &object = out.as_object();
             for (std::size_t i = 0; i < count; ++i) {
                 doc_type key_node;
-                decode_value(ptr, end, key_node, options);
+                decode_value(ptr, end, key_node, options, depth + 1);
                 string_type key = msgpack_key_to_string<BasicDocument>(key_node);
                 doc_type value;
-                decode_value(ptr, end, value, options);
+                decode_value(ptr, end, value, options, depth + 1);
                 object.emplace(utility::move(key), utility::move(value));
             }
         }
@@ -177,7 +189,8 @@ namespace rainy::foundation::willow::msgpack::implements {
             out.set_ext(static_cast<std::int8_t>(raw_type), utility::move(payload));
         }
 
-        static void decode_value(const std::uint8_t *&ptr, const std::uint8_t *end, doc_type &out, const msgpack_options &options) {
+        static void decode_value(const std::uint8_t *&ptr, const std::uint8_t *end, doc_type &out, const msgpack_options &options,
+                                 const std::size_t depth) {
             if (ptr >= end) {
                 throw_msgpack_parse_error("unexpected end of msgpack input");
             }
@@ -191,11 +204,11 @@ namespace rainy::foundation::willow::msgpack::implements {
                 return;
             }
             if (head <= 0x8f) {
-                decode_map(out, ptr, end, head & 0x0f, options);
+                decode_map(out, ptr, end, head & 0x0f, options, depth);
                 return;
             }
             if (head <= 0x9f) {
-                decode_array(out, ptr, end, head & 0x0f, options);
+                decode_array(out, ptr, end, head & 0x0f, options, depth);
                 return;
             }
             if (head <= 0xbf) {
@@ -341,7 +354,7 @@ namespace rainy::foundation::willow::msgpack::implements {
                     if (!read_length(ptr, end, head, count)) {
                         throw_msgpack_parse_error("truncated array length");
                     }
-                    decode_array(out, ptr, end, count, options);
+                    decode_array(out, ptr, end, count, options, depth);
                     return;
                 }
                 case 0xde:
@@ -350,7 +363,7 @@ namespace rainy::foundation::willow::msgpack::implements {
                     if (!read_length(ptr, end, head, count)) {
                         throw_msgpack_parse_error("truncated map length");
                     }
-                    decode_map(out, ptr, end, count, options);
+                    decode_map(out, ptr, end, count, options, depth);
                     return;
                 }
                 default:

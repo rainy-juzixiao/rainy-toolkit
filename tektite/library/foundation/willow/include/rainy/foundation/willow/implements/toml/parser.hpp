@@ -83,6 +83,23 @@ namespace rainy::foundation::willow::toml::implements {
         }
 
     private:
+        struct depth_guard {
+            explicit depth_guard(int &counter) : counter_(counter) {
+                if (counter_ >= static_cast<int>(willow::implements::max_document_nesting_depth)) {
+                    exceptions::willow::toml::throw_toml_parse_error("document nesting is too deep");
+                }
+                ++counter_;
+            }
+            ~depth_guard() {
+                --counter_;
+            }
+            depth_guard(const depth_guard &) = delete;
+            depth_guard &operator=(const depth_guard &) = delete;
+
+        private:
+            int &counter_;
+        };
+
         void advance_key() {
             current_token_ = lexer.scan_key();
         }
@@ -235,6 +252,7 @@ namespace rainy::foundation::willow::toml::implements {
         }
 
         node_type parse_value() {
+            const depth_guard guard(nesting_depth_);
             switch (current_token_) {
                 case token_type::value_string: {
                     node_type value(lexer.token_to_string());
@@ -343,6 +361,7 @@ namespace rainy::foundation::willow::toml::implements {
         object_type *root_{nullptr};
         object_type *current_{nullptr};
         core::collections::vector<string_type> key_parts_;
+        int nesting_depth_{0};
     };
 }
 
