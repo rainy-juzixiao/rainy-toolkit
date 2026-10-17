@@ -131,8 +131,12 @@ namespace rainy::foundation::text::implements {
             } else if constexpr (is_float_v<Source> && is_float_v<Target>) {
                 const Target converted = static_cast<Target>(source);
                 const Source restored = static_cast<Source>(converted);
-                if (restored == source || (restored != restored && source != source) ||
-                    restored < (utility::numeric_limits<Target>::min)()) {
+                if (restored == source || (restored != restored && source != source)) {
+                    result = converted;
+                    return true;
+                }
+                const Source magnitude = source < Source{0} ? -source : source;
+                if (converted == Target{0} && magnitude < static_cast<Source>((utility::numeric_limits<Target>::min)())) {
                     result = converted;
                     return true;
                 }

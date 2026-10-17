@@ -54,6 +54,106 @@ namespace rainy::foundation::text::implements {
 
     /**
      * \lang english
+     * @brief Indicates whether a range of code units is a well formed UTF-8 sequence.
+     * @param data Pointer to the first byte
+     * @param size The number of bytes
+     * @return true when no overlong, surrogate, out of range or truncated sequence appears
+     *
+     * \lang simp-chinese
+     * @brief 判断码元区间是否为良构的 UTF-8 序列。
+     * @param data 指向首字节的指针
+     * @param size 字节数
+     * @return 不含过长、代理项、越界或截断序列时返回 true
+     */
+    inline bool is_valid_utf8_sequence(const char *data, std::size_t size) noexcept {
+        std::size_t index = 0;
+        while (index < size) {
+            const unsigned char lead = static_cast<unsigned char>(data[index]);
+            if (lead < 0x80) {
+                ++index;
+                continue;
+            }
+            std::size_t needed = 0;
+            char32_t value = 0;
+            if (lead >= 0xC2 && lead <= 0xDF) {
+                value = lead & 0x1F;
+                needed = 1;
+            } else if (lead >= 0xE0 && lead <= 0xEF) {
+                value = lead & 0x0F;
+                needed = 2;
+            } else if (lead >= 0xF0 && lead <= 0xF4) {
+                value = lead & 0x07;
+                needed = 3;
+            } else {
+                return false;
+            }
+            if (size - index < needed + 1) {
+                return false;
+            }
+            for (std::size_t offset = 1; offset <= needed; ++offset) {
+                const unsigned char unit = static_cast<unsigned char>(data[index + offset]);
+                if ((unit & 0xC0) != 0x80) {
+                    return false;
+                }
+                value = (value << 6) | (unit & 0x3F);
+            }
+            if ((needed == 2 && value < 0x800) || (needed == 3 && value < 0x10000)) {
+                return false;
+            }
+            if ((value >= 0xD800 && value <= 0xDFFF) || value > 0x10FFFF) {
+                return false;
+            }
+            index += needed + 1;
+        }
+        return true;
+    }
+
+    /**
+     * \lang english
+     * @brief Indicates whether a range of wide code units holds only valid code points.
+     * @tparam CharType The code unit type
+     * @param data Pointer to the first code unit
+     * @param size The number of code units
+     * @return true when no lone surrogate or out of range code point appears
+     *
+     * \lang simp-chinese
+     * @brief 判断宽码元区间是否只含有有效码点。
+     * @tparam CharType 码元类型
+     * @param data 指向首码元的指针
+     * @param size 码元数
+     * @return 不含孤立代理项或越界码点时返回 true
+     */
+    template <typename CharType>
+    bool is_valid_wide_sequence(const CharType *data, std::size_t size) noexcept {
+        if constexpr (sizeof(CharType) == 2) {
+            for (std::size_t index = 0; index < size; ++index) {
+                const char32_t unit = static_cast<char32_t>(static_cast<unsigned short>(data[index]));
+                if (unit >= 0xD800 && unit <= 0xDBFF) {
+                    if (index + 1 >= size) {
+                        return false;
+                    }
+                    const char32_t trail = static_cast<char32_t>(static_cast<unsigned short>(data[index + 1]));
+                    if (trail < 0xDC00 || trail > 0xDFFF) {
+                        return false;
+                    }
+                    ++index;
+                } else if (unit >= 0xDC00 && unit <= 0xDFFF) {
+                    return false;
+                }
+            }
+        } else {
+            for (std::size_t index = 0; index < size; ++index) {
+                const char32_t unit = static_cast<char32_t>(data[index]);
+                if (unit > 0x10FFFF || (unit >= 0xD800 && unit <= 0xDFFF)) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    /**
+     * \lang english
      * @brief Converts a character sequence to its UTF-8 representation.
      * @param input The sequence to convert
      * @param output The converted sequence, left untouched on failure
@@ -71,6 +171,9 @@ namespace rainy::foundation::text::implements {
             assign_bytes(output, input.data(), input.size());
             return true;
         } else {
+            if (!is_valid_wide_sequence(input.data(), input.size())) {
+                return false;
+            }
             utf8_converter<CharType> converter;
             core::text::string converted = converter.to_bytes(input.data(), input.data() + input.size());
             if (!input.empty() && converted.empty()) {
@@ -100,6 +203,9 @@ namespace rainy::foundation::text::implements {
             assign_bytes(output, input.data(), input.size());
             return true;
         } else {
+            if (!is_valid_utf8_sequence(input.data(), input.size())) {
+                return false;
+            }
             utf8_converter<CharType> converter;
             core::text::basic_string<CharType> converted = converter.from_bytes(input.data(), input.data() + input.size());
             if (!input.empty() && converted.empty()) {

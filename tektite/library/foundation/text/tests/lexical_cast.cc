@@ -402,8 +402,9 @@ TEST_CASE("try_lexical_convert reports instead of throwing", "[text][lexical_cas
     }
 
     SECTION("the non owning targets keep the source alive") {
+        const string source{"abc"};
         string_view result;
-        REQUIRE(try_lexical_convert(string{"abc"}, result));
+        REQUIRE(try_lexical_convert(source, result));
         REQUIRE(result == "abc");
     }
 

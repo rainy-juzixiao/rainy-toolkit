@@ -140,7 +140,8 @@ namespace rainy::foundation::text::implements {
      */
     template <typename Ty>
     RAINY_CONSTEXPR_BOOL is_byte_char_v =
-        type_traits::type_relations::is_same_v<Ty, char>
+        type_traits::type_relations::is_same_v<Ty, char> || type_traits::type_relations::is_same_v<Ty, signed char> ||
+        type_traits::type_relations::is_same_v<Ty, unsigned char>
 #if RAINY_HAS_CXX20
         || type_traits::type_relations::is_same_v<Ty, char8_t>
 #endif
