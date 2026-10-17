@@ -280,9 +280,11 @@ namespace rainy::core::implements {
     template <typename Ty>
     constexpr rain_fn eval_for_typeinfo() noexcept -> traits {
         traits traits{}; // NOLINT
-        traits |= implements::eval_traits_for_properties<Ty>();
-        traits |= implements::eval_traits_for_fundamental<Ty>();
-        traits |= implements::eval_traits_for_compound<Ty>();
+        if constexpr (type_traits::type_relations::is_void_v<Ty> || type_traits::properties::is_complete_v<Ty>) {
+            traits |= implements::eval_traits_for_properties<Ty>();
+            traits |= implements::eval_traits_for_fundamental<Ty>();
+            traits |= implements::eval_traits_for_compound<Ty>();
+        }
         return traits;
     }
 
@@ -457,16 +459,21 @@ namespace rainy::core::implements {
         if (last_dot != text::string_view::npos) {
             last_sep = last_dot;
         }
-        if (last_arrow != text::string_view::npos && last_arrow > last_sep) {
+        if (last_arrow != text::string_view::npos && (last_sep == text::string_view::npos || last_arrow > last_sep)) {
             last_sep = last_arrow;
         }
-        if (last_colon != text::string_view::npos && last_colon > last_sep) {
+        if (last_colon != text::string_view::npos && (last_sep == text::string_view::npos || last_colon > last_sep)) {
             last_sep = last_colon;
         }
         if (last_sep != text::string_view::npos) {
             auto sep_len = (last_sep == last_arrow || last_sep == last_colon) ? 2 : 1;
             if (last_sep + sep_len <= content.size()) {
-                return content.substr(last_sep + sep_len);
+                auto name = content.substr(last_sep + sep_len);
+                while (!name.empty() && (name.back() == ')' || name.back() == '}' || name.back() == ' ' ||
+                                         name.back() == ',')) {
+                    name.remove_suffix(1);
+                }
+                return name;
             }
             return content;
         }
@@ -1549,6 +1556,9 @@ namespace rainy::core {
         }
         if (const auto p = reg.find(to); p != nullptr) {
             return p(nullptr, nullptr, from);
+        }
+        if (from.remove_cvref().is_arithmetic() && to.remove_cvref().is_arithmetic()) {
+            return true;
         }
         return false;
     }

@@ -23,7 +23,6 @@
 #include <rainy/core/type_traits/implements.hpp>
 #include <rainy/core/type_traits/primary_types.hpp>
 #include <rainy/core/type_traits/type_relations.hpp>
-#include <rainy/core/type_traits/properties.hpp>
 #include <rainy/core/type_traits/underlying_type.hpp>
 
 // NOLINTEND
@@ -1161,7 +1160,7 @@ namespace rainy::type_traits::properties {
      */
     template <typename Ty, typename... Args>
     struct is_nothrow_constructible : helper::bool_constant<is_nothrow_constructible_v<Ty, Args...>> {};
-#if RAINY_USING_MSVC || RAINY_USING_CLANG || RAINY_USING_MACOS
+#if RAINY_USING_MSVC || RAINY_USING_CLANG || RAINY_USING_MACOS || RAINY_USING_LLVM_GCC
     /**
      * \lang english
      * @brief Variable template for checking if a type is trivially destructible.

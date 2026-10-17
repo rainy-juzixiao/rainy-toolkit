@@ -41,6 +41,31 @@ TEST_CASE("numeric_limits of integers", "[type_traits][limits]") {
         STATIC_REQUIRE_FALSE(numeric_limits<bool>::is_signed);
         STATIC_REQUIRE(numeric_limits<bool>::digits == 1);
     }
+    SECTION("the wide and plain character types follow the platform") {
+        STATIC_REQUIRE(numeric_limits<char>::is_specialized);
+        STATIC_REQUIRE(numeric_limits<char>::digits == std::numeric_limits<char>::digits);
+        STATIC_REQUIRE(numeric_limits<char>::digits10 == std::numeric_limits<char>::digits10);
+        STATIC_REQUIRE(numeric_limits<char>::is_signed == std::numeric_limits<char>::is_signed);
+        STATIC_REQUIRE(numeric_limits<char>::min() == std::numeric_limits<char>::min());
+        STATIC_REQUIRE(numeric_limits<char>::max() == std::numeric_limits<char>::max());
+
+        STATIC_REQUIRE(numeric_limits<wchar_t>::is_specialized);
+        STATIC_REQUIRE(numeric_limits<wchar_t>::digits == std::numeric_limits<wchar_t>::digits);
+        STATIC_REQUIRE(numeric_limits<wchar_t>::digits10 == std::numeric_limits<wchar_t>::digits10);
+        STATIC_REQUIRE(numeric_limits<wchar_t>::is_signed == std::numeric_limits<wchar_t>::is_signed);
+        STATIC_REQUIRE(numeric_limits<wchar_t>::min() == std::numeric_limits<wchar_t>::min());
+        STATIC_REQUIRE(numeric_limits<wchar_t>::max() == std::numeric_limits<wchar_t>::max());
+    }
+    SECTION("the long types follow the data model") {
+        STATIC_REQUIRE(numeric_limits<long>::digits == std::numeric_limits<long>::digits);
+        STATIC_REQUIRE(numeric_limits<long>::digits10 == std::numeric_limits<long>::digits10);
+        STATIC_REQUIRE(numeric_limits<long>::min() == std::numeric_limits<long>::min());
+        STATIC_REQUIRE(numeric_limits<long>::max() == std::numeric_limits<long>::max());
+
+        STATIC_REQUIRE(numeric_limits<unsigned long>::digits == std::numeric_limits<unsigned long>::digits);
+        STATIC_REQUIRE(numeric_limits<unsigned long>::digits10 == std::numeric_limits<unsigned long>::digits10);
+        STATIC_REQUIRE(numeric_limits<unsigned long>::max() == std::numeric_limits<unsigned long>::max());
+    }
 }
 
 TEST_CASE("numeric_limits of floating points", "[type_traits][limits]") {

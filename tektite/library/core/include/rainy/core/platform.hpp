@@ -13,37 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/**
- * @file platform.hpp
- * @module Core
- *
- * \lang english
- * @brief
- * This is the most critical part of the rainy-toolkit core. It defines how
- * rainy-toolkit communicates with the platform. Without it, the build system
- * will not function properly.
- * @brief
- * It is not intended for end users but for library developers. It contains
- * platform-related macro definitions, function declarations, fundamental type
- * definitions, and template metaprogramming code. It is used by core.hpp.
- * @brief It should not be included directly by users; use core.hpp instead.
- * @brief Also includes a series of builtin functions. Some are implemented in
- *        core.cxx. Direct inclusion may cause compilation failures.
- * @author rainy-juzixiao
- * @date 2/24/2025 1:30:49 PM Initial annotation added (by rainy-juzixiao)
- * @date 3/13/2025 1:57:45 PM Migrated type_traits::other_trans code and revised annotations
- *
- * \lang simp-chinese
- * @brief
- * 这是rainy-toolkit的核心文件的最重要部分。它定义了rainy-toolkit如何与平台进行沟通。没有它，rainy-toolkit的构建系统将无法正常工作
- * @brief
- * 简单点说。它不是给用户使用的。是给库开发者使用的。它包含了一些平台相关的宏定义和函数声明以及非常基础的类型定义和模板元编程代码。它由core.hpp使用
- * @brief 它不应该被用户包含，而是考虑使用core.hpp
- * @brief 另外，包含了一系列内建函数。部分内建函数是由core.cxx负责的。直接包含则有可能导致编译失败
- * @author rainy-juzixiao
- * @date 2/24/2025 1:30:49 PM 在此进行添加注释（由rainy-juzixiao添加）
- * @date 3/13/2025 1:57:45 PM 在此转移type_traits的other_trans代码以及修改注释
- */
 #ifndef RAINY_CORE_PLATFORM_HPP
 #define RAINY_CORE_PLATFORM_HPP
 #include <cassert>
@@ -319,6 +288,25 @@ clang和GNU编译器区域
 #define RAINY_IS_X86_PLATFORM 1
 #else
 static_assert(false, "Detected invalid architecture,rainy-toolkit is not support on your compile architecture");
+#endif
+
+#ifndef RAINY_HAS_EXTENDED_LONG_DOUBLE
+#if defined(__SIZEOF_INT128__) &&                                                                                    \
+    (((defined(__x86_64__) || defined(__i386__)) && !defined(_WIN32)) ||                                             \
+     ((defined(__aarch64__) || defined(_M_ARM64)) && defined(__SIZEOF_LONG_DOUBLE__) && __SIZEOF_LONG_DOUBLE__ == 16))
+#define RAINY_HAS_EXTENDED_LONG_DOUBLE 1
+#else
+#define RAINY_HAS_EXTENDED_LONG_DOUBLE 0
+#endif
+#endif
+
+#ifndef RAINY_LONG_DOUBLE_IS_BINARY128
+#if RAINY_HAS_EXTENDED_LONG_DOUBLE && (defined(__aarch64__) || defined(_M_ARM64)) && defined(__SIZEOF_LONG_DOUBLE__) && \
+    __SIZEOF_LONG_DOUBLE__ == 16
+#define RAINY_LONG_DOUBLE_IS_BINARY128 1
+#else
+#define RAINY_LONG_DOUBLE_IS_BINARY128 0
+#endif
 #endif
 
 #if RAINY_CURRENT_STANDARD_VERSION < 201703L
@@ -648,7 +636,6 @@ namespace rainy::type_traits::other_trans {
         enable_if &operator=(enable_if &&) = delete;
     };
 
-#if !RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
     /**
      * \lang english
      * @brief Specialization of enable_if for the true case.
@@ -662,7 +649,6 @@ namespace rainy::type_traits::other_trans {
     struct enable_if<true, Ty> {
         using type = Ty;
     };
-#endif
 
     /**
      * \lang english
@@ -705,7 +691,6 @@ namespace rainy::type_traits::other_trans {
         using type = IfTrue;
     };
 
-#if !RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
     /**
      * \lang english
      * @brief Specialization of conditional for the false case.
@@ -721,7 +706,6 @@ namespace rainy::type_traits::other_trans {
     struct conditional<false, IfTrue, IfFalse> {
         using type = IfFalse;
     };
-#endif
 
     /**
      * \lang english
@@ -783,7 +767,6 @@ namespace rainy::type_traits::other_trans {
         using apply = Ty1;
     };
 
-#if !RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
     /**
      * \lang english
      * @brief Specialization of select for the false case.
@@ -807,7 +790,6 @@ namespace rainy::type_traits::other_trans {
         template <typename Ty1, typename Ty2>
         using apply = Ty2;
     };
-#endif
 
     /**
      * @brief Dummy type placeholder for template metaprogramming.
@@ -882,7 +864,6 @@ namespace rainy::type_traits::modifers {
         using type = Ty;
     };
 
-#if !RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
     /**
      * \lang english
      * @brief Specialization for lvalue reference types.
@@ -914,7 +895,6 @@ namespace rainy::type_traits::modifers {
     struct remove_reference<Ty &&> {
         using type = Ty;
     };
-#endif
 
     /**
      * \lang english
@@ -1108,6 +1088,7 @@ namespace rainy::core::builtin {
      * 即使源和目标内存区域重叠也能正确处理。
      */
     RAINY_INLINE rain_fn move_memory(void *dest, std::size_t dest_size, const void *src, std::size_t src_count) -> void * {
+        (void) dest_size;
         return std::memmove(dest, src, src_count);
     }
 
@@ -1229,7 +1210,7 @@ namespace rainy::core::builtin {
      * 但不超过 `count` 字节。
      */
     RAINY_INLINE rain_fn fill_memory(void *dest, std::size_t count, const void *src, std::size_t src_count) -> void * {
-        return std::memcpy(dest, src, (std::min)(count, src_count));
+        return std::memcpy(dest, src, (std::min) (count, src_count));
     }
 
     /**
@@ -3555,7 +3536,6 @@ namespace rainy::type_traits::helper {
     template <typename CharType>
     struct char_space : integral_constant<char, ' '> {};
 
-#if !RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
     /**
      * \lang english
      * @brief wchar_t specialization of space character constant.
@@ -3585,7 +3565,6 @@ namespace rainy::type_traits::helper {
      */
     template <>
     struct char_space<char32_t> : integral_constant<char32_t, U' '> {};
-#endif
 
     /**
      * \lang english
@@ -3599,7 +3578,7 @@ namespace rainy::type_traits::helper {
     template <typename CharType>
     RAINY_INLINE_CONSTEXPR CharType char_space_v = char_space<CharType>::value;
 
-#if RAINY_HAS_CXX20 && defined(__cpp_lib_char8_t) && !RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
+#if RAINY_HAS_CXX20 && defined(__cpp_lib_char8_t)
     /**
      * \lang english
      * @brief char8_t specialization of space character constant (C++20 and later).
@@ -3625,7 +3604,6 @@ namespace rainy::type_traits::helper {
     template <typename CharType>
     struct char_null : integral_constant<char, '\0'> {};
 
-#if !RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
     /**
      * \lang english
      * @brief wchar_t specialization of null character constant.
@@ -3655,9 +3633,8 @@ namespace rainy::type_traits::helper {
      */
     template <>
     struct char_null<char32_t> : integral_constant<char32_t, U'\0'> {};
-#endif
 
-#if RAINY_HAS_CXX20 && defined(__cpp_lib_char8_t) && !RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
+#if RAINY_HAS_CXX20 && defined(__cpp_lib_char8_t)
     /**
      * \lang english
      * @brief char8_t specialization of null character constant (C++20 and later).
@@ -3971,9 +3948,7 @@ namespace rainy::container {
      *        用于指示构造函数应使用分段方式构造 pair 或 tuple 等容器。
      */
     struct piecewise_construct_t {
-#if !RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
         explicit piecewise_construct_t() = default;
-#endif
     };
 
     /**
@@ -4095,7 +4070,7 @@ namespace rainy::utility {
      *        位掩码以及取值范围等信息。
      * @tparam FloatingType 需要检查的浮点类型
      */
-    template <>
+    template <typename FloatingType>
     struct floating_type_traits {
         /**
          * \lang english
@@ -4596,12 +4571,10 @@ namespace rainy::utility::implements {
      */
     struct ignore_type {
         explicit ignore_type() = default;
-#if !RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
         template <typename Ty>
         constexpr const ignore_type &operator=(const Ty &) const noexcept { // NOLINT
             return *this;
         }
-#endif
     };
 }
 
@@ -4807,7 +4780,6 @@ namespace rainy::annotations {
 
 #endif
 
-#if !RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
 
 namespace rainy::core::implements {
     constexpr bool is_pow_2(const std::size_t val) noexcept {
@@ -4838,7 +4810,6 @@ namespace rainy::core::implements {
     RAINY_TOOLKIT_API void stl_internal_check(bool result);
 }
 
-#endif
 
 namespace rainy::utility {
     /**
@@ -4851,13 +4822,11 @@ namespace rainy::utility {
     struct monostate {};
 }
 
-#if !RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
 
 namespace rainy::core::implements {
     RAINY_TOOLKIT_API void throw_exception_out_of_range(const char *msg);
     RAINY_TOOLKIT_API void throw_exception_length_error(const char *msg);
 }
 
-#endif
 
 #endif

@@ -11,7 +11,10 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+#![allow(dead_code)]
+
 use crate::i18n::{I18n, LangTag};
+use std::path::PathBuf;
 
 #[derive(Clone)]
 pub enum AccessLevel {
@@ -322,7 +325,11 @@ pub struct NamespaceDocument {
 }
 
 pub struct FileDocument {
+    pub path: PathBuf,
+    pub title: String,
     pub file_path: String,
+    pub source_name: String,
+    pub rel_path: PathBuf,
     pub includes: Vec<String>,
     pub brief: I18n<String>,
     pub description: I18n<String>,
@@ -341,6 +348,6 @@ pub struct FileDocument {
     pub aliases: Vec<TypeAliasDocument>,
     pub concepts: Vec<ConceptDocument>,
     pub macros: Vec<MacroDocument>,
-    pub merge_into: Option<String>,
-    pub module: Option<String>,           // @module
+    pub module: Option<String>,
+    pub body: String,
 }

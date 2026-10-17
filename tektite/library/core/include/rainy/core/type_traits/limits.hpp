@@ -17,6 +17,7 @@
 #define RAINY_CORE_LIMITS_HPP
 #include <cfloat>
 #include <climits>
+#include <cwchar>
 #include <rainy/core/platform.hpp>
 
 namespace rainy::utility {
@@ -846,6 +847,173 @@ namespace rainy::utility {
 namespace rainy::utility {
     /**
      * \lang english
+     * @brief Specialization of numeric_limits for char.
+     *
+     * \lang simp-chinese
+     * @brief char 类型的 numeric_limits 特化。
+     */
+    template <>
+    class numeric_limits<char> : public implements::number_int_base {
+    public:
+        /**
+         * \lang english
+         * @brief Returns the minimum finite value of char.
+         *
+         * @return CHAR_MIN
+         *
+         * \lang simp-chinese
+         * @brief 返回 char 的最小有限值。
+         */
+        RAINY_NODISCARD static constexpr rain_fn(min)() noexcept -> char {
+            return CHAR_MIN;
+        }
+
+        /**
+         * \lang english
+         * @brief Returns the maximum finite value of char.
+         *
+         * @return CHAR_MAX
+         *
+         * \lang simp-chinese
+         * @brief 返回 char 的最大有限值。
+         */
+        RAINY_NODISCARD static constexpr rain_fn(max)() noexcept -> char {
+            return CHAR_MAX;
+        }
+
+        /**
+         * \lang english
+         * @brief Returns the most negative finite value (same as min).
+         *
+         * @return CHAR_MIN
+         *
+         * \lang simp-chinese
+         * @brief 返回最负有限值（与min相同）。
+         */
+        RAINY_NODISCARD static constexpr rain_fn lowest() noexcept -> char {
+            return (min) ();
+        }
+
+        /**
+         * \lang english
+         * @brief Returns epsilon (0 for integral types).
+         *
+         * @return 0
+         *
+         * \lang simp-chinese
+         * @brief 返回机器精度（对于整型为0）。
+         */
+        RAINY_NODISCARD static constexpr rain_fn epsilon() noexcept -> char {
+            return 0;
+        }
+
+        /**
+         * \lang english
+         * @brief Returns the maximum rounding error (0 for integral types).
+         *
+         * @return 0
+         *
+         * \lang simp-chinese
+         * @brief 返回最大舍入误差（对于整型为0）。
+         */
+        RAINY_NODISCARD static constexpr rain_fn round_error() noexcept -> char {
+            return 0;
+        }
+
+        /**
+         * \lang english
+         * @brief Returns the minimum positive denormalized value (0 for integral types).
+         *
+         * @return 0
+         *
+         * \lang simp-chinese
+         * @brief 返回最小正反规范化值（对于整型为0）。
+         */
+        RAINY_NODISCARD static constexpr rain_fn denorm_min() noexcept -> char {
+            return 0;
+        }
+
+        /**
+         * \lang english
+         * @brief Returns infinity representation (0 for integral types).
+         *
+         * @return 0
+         *
+         * \lang simp-chinese
+         * @brief 返回无穷的表示形式（对于整型为0）。
+         */
+        RAINY_NODISCARD static constexpr rain_fn infinity() noexcept -> char {
+            return 0;
+        }
+
+        /**
+         * \lang english
+         * @brief Returns quiet NaN representation (0 for integral types).
+         *
+         * @return 0
+         *
+         * \lang simp-chinese
+         * @brief 返回安静NaN的表示形式（对于整型为0）。
+         */
+        RAINY_NODISCARD static constexpr rain_fn quiet_NaN() noexcept -> char {
+            return 0;
+        }
+
+        /**
+         * \lang english
+         * @brief Returns signaling NaN representation (0 for integral types).
+         *
+         * @return 0
+         *
+         * \lang simp-chinese
+         * @brief 返回发信号NaN的表示形式（对于整型为0）。
+         */
+        RAINY_NODISCARD static constexpr rain_fn signaling_NaN() noexcept -> char {
+            return 0;
+        }
+
+        /**
+         * \lang english
+         * @brief Indicates whether the type is signed.
+         *
+         * \lang simp-chinese
+         * @brief 指示类型是否有符号。
+         */
+        static constexpr bool is_signed = CHAR_MIN < 0;
+
+        /**
+         * \lang english
+         * @brief Indicates whether the type is modulo (handles overflow by wrapping around).
+         *
+         * \lang simp-chinese
+         * @brief 指示类型是否为模数类型（通过回绕处理溢出）。
+         */
+        static constexpr bool is_modulo = !is_signed;
+
+        /**
+         * \lang english
+         * @brief Number of radix digits that can be represented without change.
+         *
+         * \lang simp-chinese
+         * @brief 可以无变化表示的基数位数。
+         */
+        static constexpr int digits = static_cast<int>(sizeof(char) * CHAR_BIT) - (is_signed ? 1 : 0);
+
+        /**
+         * \lang english
+         * @brief Number of decimal digits that can be represented without change.
+         *
+         * \lang simp-chinese
+         * @brief 可以无变化表示的十进制位数。
+         */
+        static constexpr int digits10 =
+            (static_cast<int>(sizeof(char) * CHAR_BIT) - (is_signed ? 1 : 0)) * 30103 / 100000;
+    };
+}
+
+namespace rainy::utility {
+    /**
+     * \lang english
      * @brief Specialization of numeric_limits for signed char.
      *
      * \lang simp-chinese
@@ -1486,26 +1654,26 @@ namespace rainy::utility {
          * \lang english
          * @brief Returns the minimum finite value of wchar_t.
          *
-         * @return 0
+         * @return WCHAR_MIN
          *
          * \lang simp-chinese
          * @brief 返回 wchar_t 的最小有限值。
          */
         RAINY_NODISCARD static constexpr rain_fn(min)() noexcept -> wchar_t {
-            return 0;
+            return WCHAR_MIN;
         }
 
         /**
          * \lang english
          * @brief Returns the maximum finite value of wchar_t.
          *
-         * @return 0xffff
+         * @return WCHAR_MAX
          *
          * \lang simp-chinese
          * @brief 返回 wchar_t 的最大有限值。
          */
         RAINY_NODISCARD static constexpr rain_fn(max)() noexcept -> wchar_t {
-            return 0xffff;
+            return WCHAR_MAX;
         }
 
         /**
@@ -1601,12 +1769,21 @@ namespace rainy::utility {
 
         /**
          * \lang english
+         * @brief Indicates whether the type is signed.
+         *
+         * \lang simp-chinese
+         * @brief 指示类型是否有符号。
+         */
+        static constexpr bool is_signed = WCHAR_MIN < 0;
+
+        /**
+         * \lang english
          * @brief Indicates whether the type is modulo (handles overflow by wrapping around).
          *
          * \lang simp-chinese
          * @brief 指示类型是否为模数类型（通过回绕处理溢出）。
          */
-        static constexpr bool is_modulo = true;
+        static constexpr bool is_modulo = !is_signed;
 
         /**
          * \lang english
@@ -1615,7 +1792,7 @@ namespace rainy::utility {
          * \lang simp-chinese
          * @brief 可以无变化表示的基数位数。
          */
-        static constexpr int digits = 16;
+        static constexpr int digits = static_cast<int>(sizeof(wchar_t) * CHAR_BIT) - (is_signed ? 1 : 0);
 
         /**
          * \lang english
@@ -1624,7 +1801,8 @@ namespace rainy::utility {
          * \lang simp-chinese
          * @brief 可以无变化表示的十进制位数。
          */
-        static constexpr int digits10 = 4;
+        static constexpr int digits10 =
+            (static_cast<int>(sizeof(wchar_t) * CHAR_BIT) - (is_signed ? 1 : 0)) * 30103 / 100000;
     };
 }
 
@@ -2086,7 +2264,7 @@ namespace rainy::utility {
          * \lang simp-chinese
          * @brief 可以无变化表示的基数位数。
          */
-        static constexpr int digits = 31;
+        static constexpr int digits = static_cast<int>(sizeof(long) * CHAR_BIT) - 1;
 
         /**
          * \lang english
@@ -2095,7 +2273,7 @@ namespace rainy::utility {
          * \lang simp-chinese
          * @brief 可以无变化表示的十进制位数。
          */
-        static constexpr int digits10 = 9;
+        static constexpr int digits10 = (static_cast<int>(sizeof(long) * CHAR_BIT) - 1) * 30103 / 100000;
     };
 }
 
@@ -2714,7 +2892,7 @@ namespace rainy::utility {
          * \lang simp-chinese
          * @brief 可以无变化表示的基数位数。
          */
-        static constexpr int digits = 32;
+        static constexpr int digits = static_cast<int>(sizeof(unsigned long) * CHAR_BIT);
 
         /**
          * \lang english
@@ -2723,7 +2901,7 @@ namespace rainy::utility {
          * \lang simp-chinese
          * @brief 可以无变化表示的十进制位数。
          */
-        static constexpr int digits10 = 9;
+        static constexpr int digits10 = static_cast<int>(sizeof(unsigned long) * CHAR_BIT) * 30103 / 100000;
     };
 }
 

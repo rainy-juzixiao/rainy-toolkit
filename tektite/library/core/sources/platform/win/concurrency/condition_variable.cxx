@@ -15,6 +15,7 @@
  */
 #include <rainy/core/layer.hpp>
 #include <windows.h>
+#include <ctime>
 
 namespace rainy::core::layer {
     struct mutex_handle {

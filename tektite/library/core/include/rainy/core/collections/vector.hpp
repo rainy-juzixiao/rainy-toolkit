@@ -21,6 +21,7 @@
 #include <rainy/core/platform.hpp>
 #include <rainy/core/type_traits.hpp>
 #include <rainy/core/utility/reverse_iterator.hpp>
+#include <rainy/core/utility/uninitialized.hpp>
 
 namespace rainy::core::collections {
     /**
@@ -213,9 +214,14 @@ namespace rainy::core::collections {
             object.start = core::memory::allocator_traits<allocator_type>::allocate(allocator, count);
             object.finish = object.start;
             object.end_of_storage = object.start + count;
-            for (size_type i = 0; i < count; ++i) {
-                core::memory::allocator_traits<allocator_type>::construct(allocator, object.finish);
-                ++object.finish;
+            if constexpr (type_traits::properties::is_trivially_copyable_v<value_type> &&
+                          type_traits::properties::is_trivially_default_constructible_v<value_type>) {
+                object.finish = utility::uninitialized_value_construct_n(object.start, count);
+            } else {
+                for (size_type i = 0; i < count; ++i) {
+                    core::memory::allocator_traits<allocator_type>::construct(allocator, object.finish);
+                    ++object.finish;
+                }
             }
         }
 
@@ -279,10 +285,7 @@ namespace rainy::core::collections {
             object.start = core::memory::allocator_traits<allocator_type>::allocate(allocator, count);
             object.finish = object.start;
             object.end_of_storage = object.start + count;
-            for (auto it = first; it != last; ++it) {
-                core::memory::allocator_traits<allocator_type>::construct(allocator, object.finish, *it);
-                ++object.finish;
-            }
+            object.finish = utility::uninitialized_copy(first, last, object.start);
         }
 
         /**
@@ -307,10 +310,7 @@ namespace rainy::core::collections {
             object.start = core::memory::allocator_traits<allocator_type>::allocate(allocator, count);
             object.finish = object.start;
             object.end_of_storage = object.start + count;
-            for (auto it = right.begin(); it != right.end(); ++it) {
-                core::memory::allocator_traits<allocator_type>::construct(allocator, object.finish, *it);
-                ++object.finish;
-            }
+            object.finish = utility::uninitialized_copy(right.begin(), right.end(), object.start);
         }
 
         /**
@@ -351,10 +351,7 @@ namespace rainy::core::collections {
             object.start = core::memory::allocator_traits<allocator_type>::allocate(allocator, count);
             object.finish = object.start;
             object.end_of_storage = object.start + count;
-            for (auto it = right.begin(); it != right.end(); ++it) {
-                core::memory::allocator_traits<allocator_type>::construct(allocator, object.finish, *it);
-                ++object.finish;
-            }
+            object.finish = utility::uninitialized_copy(right.begin(), right.end(), object.start);
         }
 
         /**
@@ -388,10 +385,7 @@ namespace rainy::core::collections {
                 object.start = core::memory::allocator_traits<allocator_type>::allocate(allocator, count);
                 object.finish = object.start;
                 object.end_of_storage = object.start + count;
-                for (auto it = right.begin(); it != right.end(); ++it) {
-                    core::memory::allocator_traits<allocator_type>::construct(allocator, object.finish, utility::move(*it));
-                    ++object.finish;
-                }
+                object.finish = utility::uninitialized_move(right.begin(), right.end(), object.start);
             }
         }
 
@@ -470,20 +464,23 @@ namespace rainy::core::collections {
                 return *this;
             }
             auto &object = vec_object();
-            // 覆盖已有元素
             const size_type cur_size = size();
-            if (new_size <= cur_size) {
-                core::algorithm::copy(rim.start, rim.start + new_size, object.start); // copy 覆盖前 new_size 个，然后销毁多余的
-                for (pointer p = object.start + new_size; p != object.finish; ++p) {
-                    core::memory::allocator_traits<allocator_type>::destroy(allocator, p);
-                }
+            if constexpr (type_traits::properties::is_trivially_copyable_v<value_type>) {
+                object.finish = utility::uninitialized_copy(rim.start, rim.start + new_size, object.start);
             } else {
-                core::algorithm::copy(rim.start, rim.start + cur_size, object.start); // copy 覆盖已有的，然后 construct 新增的
-                for (pointer p = rim.start + cur_size; p != rim.finish; ++p) {
-                    core::memory::allocator_traits<allocator_type>::construct(allocator, object.start + (p - rim.start), *p);
+                if (new_size <= cur_size) {
+                    core::algorithm::copy(rim.start, rim.start + new_size, object.start);
+                    for (pointer p = object.start + new_size; p != object.finish; ++p) {
+                        core::memory::allocator_traits<allocator_type>::destroy(allocator, p);
+                    }
+                } else {
+                    core::algorithm::copy(rim.start, rim.start + cur_size, object.start);
+                    for (pointer p = rim.start + cur_size; p != rim.finish; ++p) {
+                        core::memory::allocator_traits<allocator_type>::construct(allocator, object.start + (p - rim.start), *p);
+                    }
                 }
+                object.finish = object.start + new_size;
             }
-            object.finish = object.start + new_size;
             return *this;
         }
 
@@ -507,19 +504,20 @@ namespace rainy::core::collections {
                 return *this;
             }
             auto &allocator = get_al();
-            auto &object = vec_object();
-            for (pointer p = object.start; p != object.finish; ++p) {
-                core::memory::allocator_traits<allocator_type>::destroy(allocator, p);
-            }
-            if (object.start) {
-                core::memory::allocator_traits<allocator_type>::deallocate(
-                    allocator, object.start, static_cast<size_type>(object.end_of_storage - object.start));
-            }
             if constexpr (core::memory::allocator_traits<allocator_type>::propagate_on_container_move_assignment::value) {
+                release_storage(allocator);
                 allocator = utility::move(right.get_al());
+                steal_storage(right);
+            } else if (allocator == right.get_al()) {
+                release_storage(allocator);
+                steal_storage(right);
+            } else {
+                clear_and_release();
+                reserve(right.size());
+                for (auto &elem: right) {
+                    emplace_back(utility::move(elem));
+                }
             }
-            object = right.vec_object();
-            right.vec_object() = {};
             return *this;
         }
 
@@ -567,19 +565,22 @@ namespace rainy::core::collections {
                 swap(tmp);
                 return;
             }
-            if (const size_type cur = size(); count <= cur) {
-                auto new_finish = core::algorithm::copy(first, last, object.start);
-                for (pointer p = new_finish; p != object.finish; ++p) {
-                    core::memory::allocator_traits<allocator_type>::destroy(allocator, p);
-                }
-                object.finish = new_finish;
+            if constexpr (type_traits::properties::is_trivially_copyable_v<value_type>) {
+                object.finish = utility::uninitialized_copy(first, last, object.start);
             } else {
-                auto mid = first;
-                utility::advance(mid, cur);
-                core::algorithm::copy(first, mid, object.start);
-                for (auto it = mid; it != last; ++it) {
-                    core::memory::allocator_traits<allocator_type>::construct(allocator, object.finish, *it);
-                    ++object.finish;
+                if (const size_type cur = size(); count <= cur) {
+                    auto new_finish = core::algorithm::copy(first, last, object.start);
+                    if constexpr (!type_traits::properties::is_trivially_destructible_v<value_type>) {
+                        for (pointer p = new_finish; p != object.finish; ++p) {
+                            core::memory::allocator_traits<allocator_type>::destroy(allocator, p);
+                        }
+                    }
+                    object.finish = new_finish;
+                } else {
+                    auto mid = first;
+                    utility::advance(mid, cur);
+                    core::algorithm::copy(first, mid, object.start);
+                    object.finish = utility::uninitialized_copy(mid, last, object.finish);
                 }
             }
         }
@@ -607,8 +608,10 @@ namespace rainy::core::collections {
             }
             if (const size_type cur = size(); count <= cur) {
                 core::algorithm::fill_n(object.start, count, elem);
-                for (pointer p = object.start + count; p != object.finish; ++p) {
-                    core::memory::allocator_traits<allocator_type>::destroy(allocator, p);
+                if constexpr (!type_traits::properties::is_trivially_destructible_v<value_type>) {
+                    for (pointer p = object.start + count; p != object.finish; ++p) {
+                        core::memory::allocator_traits<allocator_type>::destroy(allocator, p);
+                    }
                 }
                 object.finish = object.start + count;
             } else {
@@ -905,15 +908,22 @@ namespace rainy::core::collections {
             auto &allocator = get_al();
             auto &object = vec_object();
             if (const size_type cur = size(); new_size < cur) {
-                for (pointer p = object.start + new_size; p != object.finish; ++p) {
-                    core::memory::allocator_traits<allocator_type>::destroy(allocator, p);
+                if constexpr (!type_traits::properties::is_trivially_destructible_v<value_type>) {
+                    for (pointer p = object.start + new_size; p != object.finish; ++p) {
+                        core::memory::allocator_traits<allocator_type>::destroy(allocator, p);
+                    }
                 }
                 object.finish = object.start + new_size;
             } else if (new_size > cur) {
                 reserve(new_size);
-                for (size_type i = cur; i < new_size; ++i) {
-                    core::memory::allocator_traits<allocator_type>::construct(allocator, object.finish);
-                    ++object.finish;
+                if constexpr (type_traits::properties::is_trivially_copyable_v<value_type> &&
+                              type_traits::properties::is_trivially_default_constructible_v<value_type>) {
+                    object.finish = utility::uninitialized_value_construct_n(object.start + cur, new_size - cur);
+                } else {
+                    for (size_type i = cur; i < new_size; ++i) {
+                        core::memory::allocator_traits<allocator_type>::construct(allocator, object.finish);
+                        ++object.finish;
+                    }
                 }
             }
         }
@@ -935,8 +945,10 @@ namespace rainy::core::collections {
             auto &allocator = get_al();
             auto &object = vec_object();
             if (const size_type cur = size(); new_size < cur) {
-                for (pointer p = object.start + new_size; p != object.finish; ++p) {
-                    core::memory::allocator_traits<allocator_type>::destroy(allocator, p);
+                if constexpr (!type_traits::properties::is_trivially_destructible_v<value_type>) {
+                    for (pointer p = object.start + new_size; p != object.finish; ++p) {
+                        core::memory::allocator_traits<allocator_type>::destroy(allocator, p);
+                    }
                 }
                 object.finish = object.start + new_size;
             } else if (new_size > cur) {
@@ -990,13 +1002,20 @@ namespace rainy::core::collections {
                 }
             } guard(allocator, new_start, count);
             pointer new_finish = new_start;
-            for (pointer p = object.start; p != object.finish; ++p) {
-                core::memory::allocator_traits<allocator_type>::construct(allocator, new_finish, utility::move_if_noexcept(*p));
-                ++new_finish;
+            if constexpr (type_traits::properties::is_trivially_copyable_v<value_type>) {
+                new_finish = utility::uninitialized_move(object.start, object.finish, new_start);
                 guard.finish = new_finish;
+            } else {
+                for (pointer p = object.start; p != object.finish; ++p) {
+                    core::memory::allocator_traits<allocator_type>::construct(allocator, new_finish, utility::move_if_noexcept(*p));
+                    ++new_finish;
+                    guard.finish = new_finish;
+                }
             }
-            for (pointer p = object.start; p != object.finish; ++p) {
-                core::memory::allocator_traits<allocator_type>::destroy(allocator, p);
+            if constexpr (!type_traits::properties::is_trivially_destructible_v<value_type>) {
+                for (pointer p = object.start; p != object.finish; ++p) {
+                    core::memory::allocator_traits<allocator_type>::destroy(allocator, p);
+                }
             }
             if (object.start) {
                 core::memory::allocator_traits<allocator_type>::deallocate(
@@ -1016,10 +1035,12 @@ namespace rainy::core::collections {
          * @brief 移除向量中的所有元素。
          */
         RAINY_CONSTEXPR20 void clear() noexcept {
-            auto &allocator = get_al();
             auto &object = vec_object();
-            for (pointer p = object.start; p != object.finish; ++p) {
-                core::memory::allocator_traits<allocator_type>::destroy(allocator, p);
+            if constexpr (!type_traits::properties::is_trivially_destructible_v<value_type>) {
+                auto &allocator = get_al();
+                for (pointer p = object.start; p != object.finish; ++p) {
+                    core::memory::allocator_traits<allocator_type>::destroy(allocator, p);
+                }
             }
             object.finish = object.start;
         }
@@ -1048,12 +1069,18 @@ namespace rainy::core::collections {
             }
             pointer new_start = core::memory::allocator_traits<allocator_type>::allocate(allocator, cur_size);
             pointer new_finish = new_start;
-            for (pointer p = object.start; p != object.finish; ++p) {
-                core::memory::allocator_traits<allocator_type>::construct(allocator, new_finish, utility::move_if_noexcept(*p));
-                ++new_finish;
+            if constexpr (type_traits::properties::is_trivially_copyable_v<value_type>) {
+                new_finish = utility::uninitialized_move(object.start, object.finish, new_start);
+            } else {
+                for (pointer p = object.start; p != object.finish; ++p) {
+                    core::memory::allocator_traits<allocator_type>::construct(allocator, new_finish, utility::move_if_noexcept(*p));
+                    ++new_finish;
+                }
             }
-            for (pointer p = object.start; p != object.finish; ++p) {
-                core::memory::allocator_traits<allocator_type>::destroy(allocator, p);
+            if constexpr (!type_traits::properties::is_trivially_destructible_v<value_type>) {
+                for (pointer p = object.start; p != object.finish; ++p) {
+                    core::memory::allocator_traits<allocator_type>::destroy(allocator, p);
+                }
             }
             core::memory::allocator_traits<allocator_type>::deallocate(allocator, object.start,
                                                                        static_cast<size_type>(object.end_of_storage - object.start));
@@ -1336,11 +1363,9 @@ namespace rainy::core::collections {
             // reserve 可能使指针失效，重新算插入位置
             pointer pos = object.start + offset;
             if (pos != object.finish) {
-                // 在末尾 construct 最后一个元素的移动拷贝，然后向后移位
                 core::memory::allocator_traits<allocator_type>::construct(allocator, object.finish,
                                                                           utility::move(*(object.finish - 1)));
                 core::algorithm::move_backward(pos, object.finish - 1, object.finish);
-                // 销毁旧元素后 placement-construct 新值
                 core::memory::allocator_traits<allocator_type>::destroy(allocator, pos);
             }
             core::memory::allocator_traits<allocator_type>::construct(allocator, pos, utility::forward<Args>(args)...);
@@ -1494,12 +1519,27 @@ namespace rainy::core::collections {
         template <typename InputIter,
                   type_traits::other_trans::enable_if_t<type_traits::extras::iterators::is_input_iterator_v<InputIter>, int> = 0>
         RAINY_CONSTEXPR20 iterator insert(const_iterator position, InputIter first, InputIter last) {
-            const auto offset = static_cast<size_type>(position - vec_object().start);
-            for (auto it = first; it != last; ++it) {
-                // 每次 emplace 后 position 可能因 reserve 失效，用 offset 重新定位
-                emplace(vec_object().start + offset + static_cast<size_type>(it - first), *it);
+            auto &object = vec_object();
+            const auto offset = static_cast<size_type>(position - object.start);
+            const size_type count = static_cast<size_type>(utility::distance(first, last));
+            if (count == 0) {
+                return object.start + offset;
             }
-            return vec_object().start + offset;
+            pointer pos = object.start + offset;
+            if (pos == object.finish) {
+                const size_type cur_size = static_cast<size_type>(object.finish - object.start);
+                if (cur_size + count > capacity()) {
+                    const size_type new_cap = (core::max) (cur_size + count, capacity() * 2);
+                    reserve(new_cap);
+                    pos = object.start + offset;
+                }
+                object.finish = utility::uninitialized_copy(first, last, object.finish);
+                return pos;
+            }
+            for (auto it = first; it != last; ++it) {
+                emplace(object.start + offset + static_cast<size_type>(it - first), *it);
+            }
+            return object.start + offset;
         }
 
         /**
@@ -1890,7 +1930,7 @@ namespace rainy::core::collections {
          * @return 返回一个新向量，其元素为映射函数作用后的结果。
          */
         template <typename Fx, typename NewType = type_traits::properties::invoke_result_t<Fx, value_type>,
-                  typename NewAlloc = core::memory::allocator_traits<allocator_type>::template rebind_alloc<NewType>>
+                  typename NewAlloc = typename core::memory::allocator_traits<allocator_type>::template rebind_alloc<NewType>>
         RAINY_NODISCARD RAINY_CONSTEXPR20 rain_fn map(Fx &&func) const -> vector<NewType, NewAlloc> {
             static_assert(type_traits::composite_types::is_object_v<Ty>, "Ty must be a object");
             static_assert(type_traits::properties::is_complete_v<Ty>, "Ty require that Ty must a complete type");
@@ -2030,6 +2070,29 @@ namespace rainy::core::collections {
             Ty *finish{};
             Ty *end_of_storage{};
         };
+
+        void release_storage(allocator_type &allocator) noexcept {
+            auto &object = vec_object();
+            if constexpr (!type_traits::properties::is_trivially_destructible_v<value_type>) {
+                for (pointer p = object.start; p != object.finish; ++p) {
+                    core::memory::allocator_traits<allocator_type>::destroy(allocator, p);
+                }
+            }
+            if (object.start) {
+                core::memory::allocator_traits<allocator_type>::deallocate(
+                    allocator, object.start, static_cast<size_type>(object.end_of_storage - object.start));
+            }
+            object = {};
+        }
+
+        void clear_and_release() noexcept {
+            release_storage(get_al());
+        }
+
+        void steal_storage(vector &right) noexcept {
+            vec_object() = right.vec_object();
+            right.vec_object() = {};
+        }
 
         constexpr impl &vec_object() noexcept {
             return pair.second;

@@ -37,6 +37,7 @@
 #include <rainy/core/type_traits/type_list.hpp>
 #include <rainy/core/type_traits/type_relations.hpp>
 #include <rainy/core/type_traits/value_list.hpp>
+#include <rainy/core/type_traits/common_type.hpp>
 #include <utility>
 
 // NOLINTEND, clang-format on

@@ -1,5 +1,5 @@
 /*
-* Copyright 2026 rainy-juzixiao
+ * Copyright 2026 rainy-juzixiao
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,10 +18,12 @@
 #include <catch2/generators/catch_generators.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <cmath>
+#include <cstdint>
 #include <cstring>
 #include <limits>
-#include <rainy/core/text/string_view.hpp>
 #include <rainy/core/text/charconv.hpp>
+#include <rainy/core/text/string_view.hpp>
+#include <random>
 #include <string>
 
 // NOLINTBEGIN(cpp-core-guidelines-do-while)
@@ -31,6 +33,21 @@ using namespace rainy::core::text;
 
 using Catch::Matchers::WithinAbs;
 using Catch::Matchers::WithinRel;
+
+namespace {
+    template <typename Ty>
+    bool same_bits(const Ty left, const Ty right) {
+        return std::memcmp(&left, &right, sizeof(Ty)) == 0;
+    }
+
+    bool same_long_double(const long double left, const long double right) {
+#if RAINY_HAS_EXTENDED_LONG_DOUBLE && !RAINY_LONG_DOUBLE_IS_BINARY128
+        return std::memcmp(&left, &right, 10) == 0;
+#else
+        return same_bits(left, right);
+#endif
+    }
+}
 
 TEST_CASE("Integer to_chars - All signed types boundaries", "[to_chars][integer][extreme]") {
     char buffer[256];
@@ -247,6 +264,7 @@ TEST_CASE("Integer to_chars - Buffer boundary tests", "[to_chars][integer][buffe
 TEST_CASE("Integer from_chars - All signed types boundaries", "[from_chars][integer][extreme]") {
     using utility::begin;
     using utility::end;
+    using text::string_view;
 
     constexpr string_view sc_max = "127";
     constexpr string_view sc_min = "-128";
@@ -449,7 +467,8 @@ TEST_CASE("Integer from_chars - All signed types boundaries", "[from_chars][inte
 TEST_CASE("Integer from_chars - All bases exhaustive", "[from_chars][integer][bases]") {
     using utility::begin;
     using utility::end;
-
+    using text::string_view;
+    
     constexpr string_view zero = "0";
     constexpr string_view one = "1";
 
@@ -598,6 +617,7 @@ TEST_CASE("Integer from_chars - All bases exhaustive", "[from_chars][integer][ba
 TEST_CASE("Integer from_chars - Invalid input coverage", "[from_chars][integer][invalid]") {
     using utility::begin;
     using utility::end;
+    using text::string_view;
 
     constexpr string_view empty = "";
     constexpr string_view ws3 = "   ";
@@ -705,6 +725,7 @@ TEST_CASE("Integer from_chars - Invalid input coverage", "[from_chars][integer][
 TEST_CASE("Integer from_chars - Overflow detection exhaustive", "[from_chars][integer][overflow]") {
     using utility::begin;
     using utility::end;
+    using text::string_view;
 
     constexpr string_view sc_1000 = "1000";
     constexpr string_view sc_neg1000 = "-1000";
@@ -920,6 +941,289 @@ TEST_CASE("Float to_chars - Extreme magnitude values", "[to_chars][float][magnit
     }
 }
 
+TEST_CASE("Long double to_chars extended precision", "[to_chars][float][longdouble]") {
+    char buffer[256];
+
+#if RAINY_HAS_EXTENDED_LONG_DOUBLE
+    SECTION("Full 64-bit mantissa round-trip") {
+        const long double v = 1.0L + std::numeric_limits<long double>::epsilon();
+        auto r = to_chars(buffer, buffer + sizeof(buffer), v);
+        REQUIRE(r.ec == std::errc{});
+#if RAINY_LONG_DOUBLE_IS_BINARY128
+        REQUIRE(std::string(buffer, r.ptr) == "1.0000000000000000000000000000000002");
+#else
+        REQUIRE(std::string(buffer, r.ptr) == "1.0000000000000000001");
+#endif
+
+        long double back = 0;
+        auto rr = from_chars(buffer, r.ptr, back);
+        REQUIRE(rr.ec == std::errc{});
+        REQUIRE(same_long_double(v, back));
+    }
+
+    SECTION("Beyond double range") {
+        auto r = to_chars(buffer, buffer + sizeof(buffer), 1e4932L);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(std::string(buffer, r.ptr) == "1e+4932");
+
+        long double back = 0;
+        auto rr = from_chars(buffer, r.ptr, back);
+        REQUIRE(rr.ec == std::errc{});
+        REQUIRE(back == 1e4932L);
+    }
+
+    SECTION("Exact integer valued output") {
+        auto r = to_chars(buffer, buffer + sizeof(buffer), 206089332366660917712.0L);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(std::string(buffer, r.ptr) == "206089332366660917712");
+    }
+#else
+    SECTION("Falls back to double path") {
+        const long double v = 1.1L;
+        auto r = to_chars(buffer, buffer + sizeof(buffer), v);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(std::string(buffer, r.ptr) == "1.1");
+    }
+#endif
+}
+
+TEST_CASE("Long double from_chars extended precision", "[from_chars][float][longdouble]") {
+#if RAINY_HAS_EXTENDED_LONG_DOUBLE
+    SECTION("Full 64-bit mantissa") {
+        const char text[] = "3.141592653589793238462643383279502884";
+        long double value = 0;
+        auto r = from_chars(text, text + sizeof(text) - 1, value);
+        REQUIRE(r.ec == std::errc{});
+        char out[64];
+        auto w = to_chars(out, out + sizeof(out), value);
+        REQUIRE(w.ec == std::errc{});
+#if RAINY_LONG_DOUBLE_IS_BINARY128
+        REQUIRE(std::string(out, w.ptr) == "3.1415926535897932384626433832795028");
+#else
+        REQUIRE(std::string(out, w.ptr) == "3.1415926535897932385");
+#endif
+    }
+
+    SECTION("Beyond double range") {
+        const char text[] = "1e4932";
+        long double value = 0;
+        auto r = from_chars(text, text + sizeof(text) - 1, value);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(value == 1e4932L);
+    }
+
+    SECTION("Denormal boundary") {
+        const char text[] = "1e-4932";
+        long double value = 0;
+        auto r = from_chars(text, text + sizeof(text) - 1, value);
+        REQUIRE(r.ec == std::errc{});
+        char out[64];
+        auto w = to_chars(out, out + sizeof(out), value);
+        REQUIRE(w.ec == std::errc{});
+        long double back = 0;
+        auto rr = from_chars(out, w.ptr, back);
+        REQUIRE(rr.ec == std::errc{});
+        REQUIRE(same_long_double(value, back));
+    }
+#else
+    SECTION("Falls back to double path") {
+        const char text[] = "1.1";
+        long double value = 0;
+        auto r = from_chars(text, text + sizeof(text) - 1, value);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(value == 1.1L);
+    }
+#endif
+}
+
+TEST_CASE("Long double to_chars honors precision", "[to_chars][float][longdouble]") {
+    char buffer[256];
+#if RAINY_HAS_EXTENDED_LONG_DOUBLE
+    SECTION("Fixed precision") {
+        auto r = to_chars(buffer, buffer + sizeof(buffer), 1.2345L, chars_format::fixed, 2);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(std::string(buffer, r.ptr) == "1.23");
+    }
+
+    SECTION("Fixed precision keeps trailing zeros") {
+        auto r = to_chars(buffer, buffer + sizeof(buffer), 1.5L, chars_format::fixed, 6);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(std::string(buffer, r.ptr) == "1.500000");
+    }
+
+    SECTION("Fixed precision below one") {
+        auto r = to_chars(buffer, buffer + sizeof(buffer), 0.125L, chars_format::fixed, 2);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(std::string(buffer, r.ptr) == "0.12");
+    }
+
+    SECTION("Fixed precision rounds to zero") {
+        auto r = to_chars(buffer, buffer + sizeof(buffer), 0.00001L, chars_format::fixed, 3);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(std::string(buffer, r.ptr) == "0.000");
+    }
+
+    SECTION("Scientific precision") {
+        auto r = to_chars(buffer, buffer + sizeof(buffer), 1.2345L, chars_format::scientific, 3);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(std::string(buffer, r.ptr) == "1.235e+00");
+    }
+
+    SECTION("Scientific precision with a large exponent") {
+        auto r = to_chars(buffer, buffer + sizeof(buffer), 1e300L, chars_format::scientific, 2);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(std::string(buffer, r.ptr) == "1.00e+300");
+    }
+
+    SECTION("General precision drops trailing zeros") {
+        auto r = to_chars(buffer, buffer + sizeof(buffer), 1.5L, chars_format::general, 6);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(std::string(buffer, r.ptr) == "1.5");
+    }
+
+    SECTION("General precision keeps integer digits") {
+        auto r = to_chars(buffer, buffer + sizeof(buffer), 100.0L, chars_format::general, 3);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(std::string(buffer, r.ptr) == "100");
+    }
+
+    SECTION("General precision switches to scientific") {
+        auto r = to_chars(buffer, buffer + sizeof(buffer), 1e10L, chars_format::general, 3);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(std::string(buffer, r.ptr) == "1e+10");
+    }
+
+    SECTION("Negative values keep the sign") {
+        auto r = to_chars(buffer, buffer + sizeof(buffer), -1.2345L, chars_format::fixed, 2);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(std::string(buffer, r.ptr) == "-1.23");
+    }
+
+    SECTION("Zero") {
+        auto r = to_chars(buffer, buffer + sizeof(buffer), 0.0L, chars_format::fixed, 2);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(std::string(buffer, r.ptr) == "0.00");
+    }
+
+    SECTION("A negative precision means six digits") {
+        auto r = to_chars(buffer, buffer + sizeof(buffer), 1.2345L, chars_format::fixed, -1);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(std::string(buffer, r.ptr) == "1.234500");
+    }
+
+    SECTION("A full mantissa survives the rounding") {
+        const long double value = 1.0L + std::numeric_limits<long double>::epsilon();
+        auto r = to_chars(buffer, buffer + sizeof(buffer), value, chars_format::scientific, 0);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(std::string(buffer, r.ptr) == "1e+00");
+    }
+
+    SECTION("General precision uses the rounded exponent to choose the style") {
+        auto r1 = to_chars(buffer, buffer + sizeof(buffer), 99.9L, chars_format::general, 2);
+        REQUIRE(r1.ec == std::errc{});
+        REQUIRE(std::string(buffer, r1.ptr) == "1e+02");
+
+        auto r2 = to_chars(buffer, buffer + sizeof(buffer), 0.0000999L, chars_format::general, 2);
+        REQUIRE(r2.ec == std::errc{});
+        REQUIRE(std::string(buffer, r2.ptr) == "0.0001");
+
+        auto r3 = to_chars(buffer, buffer + sizeof(buffer), 999.5L, chars_format::general, 3);
+        REQUIRE(r3.ec == std::errc{});
+        REQUIRE(std::string(buffer, r3.ptr) == "1e+03");
+
+        auto r4 = to_chars(buffer, buffer + sizeof(buffer), 1.234e-5L, chars_format::general, 2);
+        REQUIRE(r4.ec == std::errc{});
+        REQUIRE(std::string(buffer, r4.ptr) == "1.2e-05");
+    }
+#endif
+}
+
+TEST_CASE("Long double to_chars hexadecimal", "[to_chars][float][longdouble][hex]") {
+    char buffer[128];
+#if RAINY_HAS_EXTENDED_LONG_DOUBLE
+#if RAINY_LONG_DOUBLE_IS_BINARY128
+    constexpr const char *one_and_a_half = "1.8p+0";
+    constexpr const char *one = "1p+0";
+    constexpr const char *minus_one_and_a_half = "-1.8p+0";
+    constexpr const char *one_and_a_half_padded = "1.8000p+0";
+    constexpr const char *one_and_a_half_zero_precision = "2p+0";
+    constexpr const char *minimum_normal = "1p-16382";
+    constexpr const char *minimum_subnormal = "1p-16494";
+#else
+    constexpr const char *one_and_a_half = "cp-3";
+    constexpr const char *one = "8p-3";
+    constexpr const char *minus_one_and_a_half = "-cp-3";
+    constexpr const char *one_and_a_half_padded = "c.0000p-3";
+    constexpr const char *one_and_a_half_zero_precision = "cp-3";
+    constexpr const char *minimum_normal = "8p-16385";
+    constexpr const char *minimum_subnormal = "8p-16448";
+#endif
+    SECTION("Shortest form") {
+        auto r = to_chars(buffer, buffer + sizeof(buffer), 1.5L, chars_format::hex);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(std::string(buffer, r.ptr) == one_and_a_half);
+
+        auto r2 = to_chars(buffer, buffer + sizeof(buffer), 1.0L, chars_format::hex);
+        REQUIRE(r2.ec == std::errc{});
+        REQUIRE(std::string(buffer, r2.ptr) == one);
+
+        auto r3 = to_chars(buffer, buffer + sizeof(buffer), -1.5L, chars_format::hex);
+        REQUIRE(r3.ec == std::errc{});
+        REQUIRE(std::string(buffer, r3.ptr) == minus_one_and_a_half);
+    }
+
+    SECTION("Zero") {
+        auto r = to_chars(buffer, buffer + sizeof(buffer), 0.0L, chars_format::hex);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(std::string(buffer, r.ptr) == "0p+0");
+
+        auto r2 = to_chars(buffer, buffer + sizeof(buffer), -0.0L, chars_format::hex);
+        REQUIRE(r2.ec == std::errc{});
+        REQUIRE(std::string(buffer, r2.ptr) == "-0p+0");
+    }
+
+    SECTION("Precision pads and rounds") {
+        auto r = to_chars(buffer, buffer + sizeof(buffer), 1.5L, chars_format::hex, 4);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(std::string(buffer, r.ptr) == one_and_a_half_padded);
+
+        auto r2 = to_chars(buffer, buffer + sizeof(buffer), 1.5L, chars_format::hex, 0);
+        REQUIRE(r2.ec == std::errc{});
+        REQUIRE(std::string(buffer, r2.ptr) == one_and_a_half_zero_precision);
+    }
+
+    SECTION("Extreme values") {
+        auto r = to_chars(buffer, buffer + sizeof(buffer), (std::numeric_limits<long double>::min)(), chars_format::hex);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(std::string(buffer, r.ptr) == minimum_normal);
+
+        auto r2 = to_chars(buffer, buffer + sizeof(buffer), (std::numeric_limits<long double>::denorm_min)(),
+                           chars_format::hex);
+        REQUIRE(r2.ec == std::errc{});
+        REQUIRE(std::string(buffer, r2.ptr) == minimum_subnormal);
+    }
+#endif
+}
+
+TEST_CASE("Long double to_chars keeps the sign of NaN", "[to_chars][float][longdouble][special]") {
+    char buffer[32];
+#if RAINY_HAS_EXTENDED_LONG_DOUBLE
+    SECTION("Negative NaN") {
+        long double value = (std::numeric_limits<long double>::quiet_NaN)();
+        value = -value;
+        auto r = to_chars(buffer, buffer + sizeof(buffer), value);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(std::string(buffer, r.ptr) == "-nan");
+    }
+
+    SECTION("Positive NaN") {
+        auto r = to_chars(buffer, buffer + sizeof(buffer), (std::numeric_limits<long double>::quiet_NaN)());
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(std::string(buffer, r.ptr) == "nan");
+    }
+#endif
+}
+
 TEST_CASE("Float to_chars - All format combinations", "[to_chars][float][formats]") {
     char buffer[256];
 
@@ -1039,6 +1343,7 @@ TEST_CASE("Float to_chars - Precision edge cases", "[to_chars][float][precision]
 TEST_CASE("Float from_chars - All special value strings", "[from_chars][float][special]") {
     using utility::begin;
     using utility::end;
+    using text::string_view;
 
     constexpr string_view inf_lc = "inf";
     constexpr string_view inf_cap = "Inf";
@@ -1143,6 +1448,7 @@ TEST_CASE("Float from_chars - All special value strings", "[from_chars][float][s
 TEST_CASE("Float from_chars - Extreme magnitudes", "[from_chars][float][magnitude]") {
     using utility::begin;
     using utility::end;
+    using text::string_view;
 
     constexpr string_view fl_max = "3.4e38";
     constexpr string_view fl_ovf_bound = "3.5e38";
@@ -1188,6 +1494,7 @@ TEST_CASE("Float from_chars - Extreme magnitudes", "[from_chars][float][magnitud
             float val = 0.0f;
             auto r = from_chars(begin(fl_denorm), end(fl_denorm), val);
             REQUIRE(r.ec == std::errc{});
+            REQUIRE(same_bits(val, std::numeric_limits<float>::denorm_min()));
         }
 
         SECTION("Underflow to zero") {
@@ -1218,6 +1525,7 @@ TEST_CASE("Float from_chars - Extreme magnitudes", "[from_chars][float][magnitud
             double val = 0.0;
             auto r = from_chars(begin(db_denorm), end(db_denorm), val);
             REQUIRE(r.ec == std::errc{});
+            REQUIRE(same_bits(val, std::numeric_limits<double>::denorm_min()));
         }
     }
 }
@@ -1225,6 +1533,7 @@ TEST_CASE("Float from_chars - Extreme magnitudes", "[from_chars][float][magnitud
 TEST_CASE("Float from_chars - All format strings", "[from_chars][float][formats]") {
     using utility::begin;
     using utility::end;
+    using text::string_view;
 
     constexpr string_view sci_e_lc = "1.5e10";
     constexpr string_view sci_E_uc = "1.5E10";
@@ -1241,9 +1550,10 @@ TEST_CASE("Float from_chars - All format strings", "[from_chars][float][formats]
 
     constexpr string_view hex_lc_prefix = "0x1.8p3";
     constexpr string_view hex_uc_prefix = "0X1.8P3";
-    constexpr string_view hex_digits_lc = "0x1.abcp3";
-    constexpr string_view hex_digits_uc = "0x1.ABCp3";
-    constexpr string_view hex_neg = "-0x1.8p3";
+    constexpr string_view hex_plain = "1.8p3";
+    constexpr string_view hex_digits_lc = "1.abcp3";
+    constexpr string_view hex_digits_uc = "1.ABCp3";
+    constexpr string_view hex_neg = "-1.8p3";
 
     SECTION("Parsing scientific notation variants") {
         SECTION("Lowercase e") {
@@ -1324,43 +1634,91 @@ TEST_CASE("Float from_chars - All format strings", "[from_chars][float][formats]
     }
 
     SECTION("Parsing hexadecimal float") {
-        SECTION("0x prefix lowercase") {
-            float val = 0.0f;
+        SECTION("0x prefix is not consumed") {
+            float val = 99.0f;
             auto r = from_chars(begin(hex_lc_prefix), end(hex_lc_prefix), val, chars_format::hex);
             REQUIRE(r.ec == std::errc{});
-            REQUIRE_THAT(val, WithinRel(12.0f, 0.001f));
+            REQUIRE(r.ptr == begin(hex_lc_prefix) + 1);
+            REQUIRE(val == 0.0f);
         }
 
         SECTION("0X prefix uppercase") {
             float val = 0.0f;
             auto r = from_chars(begin(hex_uc_prefix), end(hex_uc_prefix), val, chars_format::hex);
             REQUIRE(r.ec == std::errc{});
+            REQUIRE(r.ptr == begin(hex_uc_prefix) + 1);
+            REQUIRE(val == 0.0f);
+        }
+
+        SECTION("hex digits with p exponent") {
+            float val = 0.0f;
+            auto r = from_chars(begin(hex_plain), end(hex_plain), val, chars_format::hex);
+            REQUIRE(r.ec == std::errc{});
+            REQUIRE(r.ptr == begin(hex_plain) + 5);
+            REQUIRE_THAT(val, WithinRel(12.0f, 0.001f));
         }
 
         SECTION("Hex digits A-F lowercase") {
             float val = 0.0f;
             auto r = from_chars(begin(hex_digits_lc), end(hex_digits_lc), val, chars_format::hex);
             REQUIRE(r.ec == std::errc{});
+            REQUIRE_THAT(val, WithinRel(13.3671875f, 0.001f));
         }
 
         SECTION("Hex digits A-F uppercase") {
             float val = 0.0f;
             auto r = from_chars(begin(hex_digits_uc), end(hex_digits_uc), val, chars_format::hex);
             REQUIRE(r.ec == std::errc{});
+            REQUIRE_THAT(val, WithinRel(13.3671875f, 0.001f));
         }
 
         SECTION("Negative hex float") {
             float val = 0.0f;
             auto r = from_chars(begin(hex_neg), end(hex_neg), val, chars_format::hex);
             REQUIRE(r.ec == std::errc{});
+            REQUIRE(r.ptr == begin(hex_neg) + 6);
             REQUIRE(val < 0);
+            REQUIRE_THAT(val, WithinRel(-12.0f, 0.001f));
         }
+
+        SECTION("Truncated p exponent is not part of the pattern") {
+            constexpr string_view text = "1.8p";
+            float val = 0.0f;
+            auto r = from_chars(begin(text), end(text), val, chars_format::hex);
+            REQUIRE(r.ec == std::errc{});
+            REQUIRE(r.ptr == begin(text) + 3);
+            REQUIRE_THAT(val, WithinRel(1.5f, 0.001f));
+        }
+    }
+
+    SECTION("Truncated decimal exponent is not part of the pattern") {
+        const char one_e[] = "1e";
+        double value = 0.0;
+        auto r = from_chars(one_e, one_e + 2, value);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(r.ptr == one_e + 1);
+        REQUIRE(value == 1.0);
+
+        const char one_e_plus[] = "1e+";
+        value = 0.0;
+        r = from_chars(one_e_plus, one_e_plus + 3, value);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(r.ptr == one_e_plus + 1);
+        REQUIRE(value == 1.0);
+
+        const char one_point_five_e[] = "1.5e";
+        value = 0.0;
+        r = from_chars(one_point_five_e, one_point_five_e + 4, value);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(r.ptr == one_point_five_e + 3);
+        REQUIRE(value == 1.5);
     }
 }
 
 TEST_CASE("Float from_chars - Invalid input exhaustive", "[from_chars][float][invalid]") {
     using utility::begin;
     using utility::end;
+    using text::string_view;
 
     constexpr string_view empty = "";
     constexpr string_view ws3 = "   ";
@@ -1589,8 +1947,9 @@ TEST_CASE("Stress test - Random values", "[stress][random]") {
             std::srand(42);
             for (int i = 0; i < 1000; ++i) {
                 int orig = std::rand();
-                if (std::rand() % 2)
+                if (std::rand() % 2) {
                     orig = -orig;
+                }
 
                 auto r1 = to_chars(buffer, buffer + sizeof(buffer), orig);
                 REQUIRE(r1.ec == std::errc{});
@@ -1604,12 +1963,13 @@ TEST_CASE("Stress test - Random values", "[stress][random]") {
     }
 
     SECTION("Testing many random floats") {
-        SECTION("1000 random floats round-trip approximately") {
+        SECTION("1000 random floats round-trip bit-exactly") {
             std::srand(42);
             for (int i = 0; i < 1000; ++i) {
                 float orig = (float) std::rand() / RAND_MAX * 1000.0f;
-                if (std::rand() % 2)
+                if (std::rand() % 2) {
                     orig = -orig;
+                }
 
                 auto r1 = to_chars(buffer, buffer + sizeof(buffer), orig);
                 REQUIRE(r1.ec == std::errc{});
@@ -1617,7 +1977,7 @@ TEST_CASE("Stress test - Random values", "[stress][random]") {
                 float parsed = 0.0f;
                 auto r2 = from_chars(buffer, r1.ptr, parsed);
                 REQUIRE(r2.ec == std::errc{});
-                REQUIRE_THAT(parsed, WithinRel(orig, 0.01f));
+                REQUIRE(same_bits(parsed, orig));
             }
         }
     }
@@ -1665,6 +2025,436 @@ TEST_CASE("Behavior characteristics", "[behavior]") {
             if (r.ptr < buffer + sizeof(buffer)) {
                 REQUIRE(*r.ptr == 'X');
             }
+        }
+    }
+}
+
+TEST_CASE("Float to_chars - Shortest representation sample table", "[to_chars][float][samples]") {
+    char buffer[256];
+
+    SECTION("double shortest strings") {
+        struct sample {
+            double value;
+            const char *text;
+        };
+        static constexpr sample samples[] = {
+            {0.0, "0"},
+            {-0.0, "-0"},
+            {2.0, "2"},
+            {-7.0, "-7"},
+            {1.5, "1.5"},
+            {0.1, "0.1"},
+            {3.141592653589793, "3.141592653589793"},
+            {0.3333333333333333, "0.3333333333333333"},
+            {1e6, "1e+06"},
+            {1e9, "1e+09"},
+            {1e-6, "1e-06"},
+            {1e-7, "1e-07"},
+            {1e21, "1e+21"},
+            {1e23, "1e+23"},
+            {-1.5e-8, "-1.5e-08"},
+            {123456789.12345679, "123456789.12345679"},
+            {1234567890123456768.0, "1234567890123456768"},
+            {(std::numeric_limits<double>::max)(), "1.7976931348623157e+308"},
+            {std::numeric_limits<double>::denorm_min(), "5e-324"},
+        };
+        for (const auto &item: samples) {
+            auto r = to_chars(buffer, buffer + sizeof(buffer), item.value);
+            REQUIRE(r.ec == std::errc{});
+            REQUIRE(std::string(buffer, r.ptr) == item.text);
+        }
+    }
+
+    SECTION("float shortest strings") {
+        struct sample {
+            float value;
+            const char *text;
+        };
+        static constexpr sample samples[] = {
+            {0.0f, "0"},
+            {-0.0f, "-0"},
+            {2.0f, "2"},
+            {1.5f, "1.5"},
+            {0.1f, "0.1"},
+            {3.1415926f, "3.1415925"}, // 该 float 的最短往返表示是 3.1415925
+            {1e9f, "1e+09"},
+            {1e-6f, "1e-06"},
+            {(std::numeric_limits<float>::max)(), "3.4028235e+38"},
+            {std::numeric_limits<float>::denorm_min(), "1e-45"},
+        };
+        for (const auto &item: samples) {
+            auto r = to_chars(buffer, buffer + sizeof(buffer), item.value);
+            REQUIRE(r.ec == std::errc{});
+            REQUIRE(std::string(buffer, r.ptr) == item.text);
+        }
+    }
+}
+
+TEST_CASE("Float from_chars - Correct rounding sample table", "[from_chars][float][accuracy]") {
+    SECTION("double samples parse bit-exactly") {
+        struct sample {
+            const char *text;
+            double expected;
+        };
+        static constexpr sample samples[] = {
+            {"0", 0.0},
+            {"-0.0", -0.0},
+            {"2.5", 2.5},
+            {"0.000001", 1e-6},
+            {"1e-06", 1e-6},
+            {"1e-07", 1e-7},
+            {"1e-15", 1e-15},
+            {"1e-300", 1e-300},
+            {"1e-308", 1e-308},
+            {"1e+308", 1e308},
+            {"1e+09", 1e9},
+            {"1e+21", 1e21},
+            {"1e+23", 1e23},
+            {"5e-324", std::numeric_limits<double>::denorm_min()},
+            {"2.5e-324", std::numeric_limits<double>::denorm_min()},
+            {"4.9406564584124654e-324", std::numeric_limits<double>::denorm_min()},
+            {"1e-320", 1e-320},
+            {"0.1", 0.1},
+            {"0.3333333333333333", 0.3333333333333333},
+            {"123456789.12345679", 123456789.12345679},
+            {"3.141592653589793", 3.141592653589793},
+            {"-1.5e-08", -1.5e-8},
+            {"1.5e-08", 1.5e-8},
+            {"1.0512728143832832e+133", 1.0512728143832832e133},
+            {"-3.7895594801439177e-75", -3.7895594801439177e-75},
+            {"-7.079852379779643e-217", -7.079852379779643e-217},
+            {"2.350509871056267e+198", 2.350509871056267e198},
+            {"1234567890123456768", 1234567890123456768.0},
+            {"1.7976931348623157e+308", (std::numeric_limits<double>::max)()},
+        };
+        for (const auto &item: samples) {
+            const std::size_t length = std::strlen(item.text);
+            double parsed = 0.0;
+            auto r = from_chars(item.text, item.text + length, parsed);
+            REQUIRE(r.ec == std::errc{});
+            REQUIRE(r.ptr == item.text + length);
+            REQUIRE(same_bits(parsed, item.expected));
+        }
+    }
+
+    SECTION("float samples parse bit-exactly") {
+        struct sample {
+            const char *text;
+            float expected;
+        };
+        static constexpr sample samples[] = {
+            {"1.5", 1.5f},
+            {"0.1", 0.1f},
+            {"3.1415926", 3.1415926f},
+            {"1e+09", 1e9f},
+            {"1e-45", std::numeric_limits<float>::denorm_min()},
+            {"2.5e-08", 2.5e-8f},
+            {"-1.5e-08", -1.5e-8f},
+            {"3.4028235e+38", (std::numeric_limits<float>::max)()},
+        };
+        for (const auto &item: samples) {
+            const std::size_t length = std::strlen(item.text);
+            float parsed = 0.0f;
+            auto r = from_chars(item.text, item.text + length, parsed);
+            REQUIRE(r.ec == std::errc{});
+            REQUIRE(r.ptr == item.text + length);
+            REQUIRE(same_bits(parsed, item.expected));
+        }
+    }
+
+    SECTION("range limit handling") {
+        SECTION("double overflow leaves value unchanged") {
+            const char text[] = "1e400";
+            double parsed = 42.5;
+            auto r = from_chars(text, text + 5, parsed);
+            REQUIRE(r.ec == std::errc::result_out_of_range);
+            REQUIRE(r.ptr == text + 5);
+            REQUIRE(parsed == 42.5);
+        }
+
+        SECTION("double underflow leaves value unchanged") {
+            const char text[] = "1e-400";
+            double parsed = 42.5;
+            auto r = from_chars(text, text + 6, parsed);
+            REQUIRE(r.ec == std::errc::result_out_of_range);
+            REQUIRE(r.ptr == text + 6);
+            REQUIRE(parsed == 42.5);
+        }
+
+        SECTION("negative double underflow leaves value unchanged") {
+            const char text[] = "-1e-400";
+            double parsed = 42.5;
+            auto r = from_chars(text, text + 7, parsed);
+            REQUIRE(r.ec == std::errc::result_out_of_range);
+            REQUIRE(r.ptr == text + 7);
+            REQUIRE(parsed == 42.5);
+        }
+    }
+}
+
+TEST_CASE("Float from_chars - Out of range leaves value unchanged", "[from_chars][float][range]") {
+    SECTION("double overflow") {
+        const char text[] = "1e9999";
+        double value = 42.5;
+        auto r = from_chars(text, text + 6, value);
+        REQUIRE(r.ec == std::errc::result_out_of_range);
+        REQUIRE(r.ptr == text + 6);
+        REQUIRE(value == 42.5);
+    }
+
+    SECTION("negative double overflow") {
+        const char text[] = "-1e9999";
+        double value = 42.5;
+        auto r = from_chars(text, text + 7, value);
+        REQUIRE(r.ec == std::errc::result_out_of_range);
+        REQUIRE(r.ptr == text + 7);
+        REQUIRE(value == 42.5);
+    }
+
+    SECTION("double underflow") {
+        const char text[] = "1e-9999";
+        double value = 42.5;
+        auto r = from_chars(text, text + 7, value);
+        REQUIRE(r.ec == std::errc::result_out_of_range);
+        REQUIRE(r.ptr == text + 7);
+        REQUIRE(value == 42.5);
+    }
+
+    SECTION("float overflow") {
+        const char text[] = "1e9999";
+        float value = 42.5f;
+        auto r = from_chars(text, text + 6, value);
+        REQUIRE(r.ec == std::errc::result_out_of_range);
+        REQUIRE(r.ptr == text + 6);
+        REQUIRE(value == 42.5f);
+    }
+
+    SECTION("negative float overflow") {
+        const char text[] = "-1e9999";
+        float value = 42.5f;
+        auto r = from_chars(text, text + 7, value);
+        REQUIRE(r.ec == std::errc::result_out_of_range);
+        REQUIRE(r.ptr == text + 7);
+        REQUIRE(value == 42.5f);
+    }
+
+    SECTION("float underflow") {
+        const char text[] = "1e-9999";
+        float value = 42.5f;
+        auto r = from_chars(text, text + 7, value);
+        REQUIRE(r.ec == std::errc::result_out_of_range);
+        REQUIRE(r.ptr == text + 7);
+        REQUIRE(value == 42.5f);
+    }
+
+#if RAINY_HAS_EXTENDED_LONG_DOUBLE
+    SECTION("long double overflow") {
+        const char text[] = "1e99999";
+        long double value = 42.5L;
+        auto r = from_chars(text, text + 7, value);
+        REQUIRE(r.ec == std::errc::result_out_of_range);
+        REQUIRE(r.ptr == text + 7);
+        REQUIRE(value == 42.5L);
+    }
+
+    SECTION("long double underflow") {
+        const char text[] = "1e-99999";
+        long double value = 42.5L;
+        auto r = from_chars(text, text + 8, value);
+        REQUIRE(r.ec == std::errc::result_out_of_range);
+        REQUIRE(r.ptr == text + 8);
+        REQUIRE(value == 42.5L);
+    }
+#endif
+
+    SECTION("in-range value is still written") {
+        const char text[] = "2.5";
+        double value = 42.5;
+        auto r = from_chars(text, text + 3, value);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(value == 2.5);
+    }
+
+    SECTION("infinity is still written") {
+        const char text[] = "inf";
+        double value = 42.5;
+        auto r = from_chars(text, text + 3, value);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(std::isinf(value));
+        REQUIRE(value > 0);
+    }
+
+    SECTION("negative infinity is still written") {
+        const char text[] = "-inf";
+        double value = 42.5;
+        auto r = from_chars(text, text + 4, value);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(std::isinf(value));
+        REQUIRE(value < 0);
+    }
+
+    SECTION("nan is still written") {
+        const char text[] = "nan";
+        double value = 42.5;
+        auto r = from_chars(text, text + 3, value);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(std::isnan(value));
+    }
+}
+
+TEST_CASE("Round-trip conversion - Float shortest round-trip is bit-exact", "[roundtrip][float][bitexact]") {
+    char buffer[256];
+
+    const auto roundtrip_double = [&buffer](const double orig) {
+        auto r1 = to_chars(buffer, buffer + sizeof(buffer), orig);
+        REQUIRE(r1.ec == std::errc{});
+        double parsed = 0.0;
+        auto r2 = from_chars(buffer, r1.ptr, parsed);
+        REQUIRE(r2.ec == std::errc{});
+        REQUIRE(r2.ptr == r1.ptr);
+        REQUIRE(same_bits(parsed, orig));
+    };
+
+    const auto roundtrip_float = [&buffer](const float orig) {
+        auto r1 = to_chars(buffer, buffer + sizeof(buffer), orig);
+        REQUIRE(r1.ec == std::errc{});
+        float parsed = 0.0f;
+        auto r2 = from_chars(buffer, r1.ptr, parsed);
+        REQUIRE(r2.ec == std::errc{});
+        REQUIRE(r2.ptr == r1.ptr);
+        REQUIRE(same_bits(parsed, orig));
+    };
+
+    SECTION("fixed sample values (double)") {
+        static constexpr double samples[] = {
+            0.0,
+            -0.0,
+            1.0,
+            -1.0,
+            0.1,
+            0.5,
+            2.5,
+            0.3333333333333333,
+            3.141592653589793,
+            2.718281828459045,
+            1e-300,
+            1e300,
+            1e23,
+            1e-23,
+            -1.5e-8,
+            1.5e8,
+            0.000001,
+            123456789.12345679,
+            1234567890123456768.0,
+            1.0512728143832832e133,
+            -3.7895594801439177e-75,
+            (std::numeric_limits<double>::max)(),
+            (std::numeric_limits<double>::lowest)(),
+            (std::numeric_limits<double>::min)(),
+            std::numeric_limits<double>::denorm_min(),
+            -std::numeric_limits<double>::denorm_min(),
+            std::numeric_limits<double>::epsilon(),
+        };
+        for (const double value: samples) {
+            roundtrip_double(value);
+        }
+    }
+
+    SECTION("fixed sample values (float)") {
+        static constexpr float samples[] = {
+            0.0f,
+            -0.0f,
+            1.0f,
+            -1.0f,
+            0.1f,
+            1.5f,
+            3.1415926f,
+            1e9f,
+            1e-6f,
+            1e-45f,
+            (std::numeric_limits<float>::max)(),
+            (std::numeric_limits<float>::lowest)(),
+            (std::numeric_limits<float>::min)(),
+            std::numeric_limits<float>::denorm_min(),
+            std::numeric_limits<float>::epsilon(),
+        };
+        for (const float value: samples) {
+            roundtrip_float(value);
+        }
+    }
+
+    SECTION("power of ten sweep (double)") {
+        double value = 1.0;
+        for (int exponent = 0; exponent > -330; --exponent) {
+            if (value == 0.0) {
+                break;
+            }
+            roundtrip_double(value);
+            roundtrip_double(-value);
+            value /= 10.0;
+        }
+        value = 1.0;
+        for (int exponent = 0; exponent < 309; ++exponent) {
+            if (!std::isfinite(value)) {
+                break;
+            }
+            roundtrip_double(value);
+            roundtrip_double(-value);
+            value *= 10.0;
+        }
+    }
+
+    SECTION("subnormal sweep (double)") {
+        for (std::uint64_t bits = 1; bits < 4096; ++bits) {
+            double value = 0.0;
+            std::memcpy(&value, &bits, sizeof(value));
+            roundtrip_double(value);
+        }
+        const std::uint64_t high_subnormals[] = {
+            (std::uint64_t{1} << 51) - 1,
+            std::uint64_t{1} << 51,
+            (std::uint64_t{1} << 51) + 12345,
+            (std::uint64_t{1} << 52) - 1,
+        };
+        for (const std::uint64_t bits: high_subnormals) {
+            double value = 0.0;
+            std::memcpy(&value, &bits, sizeof(value));
+            roundtrip_double(value);
+        }
+    }
+
+    SECTION("deterministic random bit patterns (double)") {
+        std::mt19937_64 engine(0x5EEDu);
+        int produced = 0;
+        while (produced < 2000) {
+            const std::uint64_t bits = engine();
+            double value = 0.0;
+            std::memcpy(&value, &bits, sizeof(value));
+            if (!std::isfinite(value)) {
+                continue;
+            }
+            roundtrip_double(value);
+            ++produced;
+        }
+    }
+
+    SECTION("deterministic random bit patterns (float)") {
+        std::mt19937 engine(0xC0FFEEu);
+        int produced = 0;
+        while (produced < 2000) {
+            const std::uint32_t bits = engine();
+            float value = 0.0f;
+            std::memcpy(&value, &bits, sizeof(value));
+            if (!std::isfinite(value)) {
+                continue;
+            }
+            roundtrip_float(value);
+            ++produced;
+        }
+        for (std::uint32_t bits = 1; bits < 4096; ++bits) {
+            float value = 0.0f;
+            std::memcpy(&value, &bits, sizeof(value));
+            roundtrip_float(value);
         }
     }
 }

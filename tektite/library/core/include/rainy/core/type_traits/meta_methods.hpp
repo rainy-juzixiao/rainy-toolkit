@@ -379,7 +379,8 @@ namespace rainy::utility {
      * @param cont 容器对象
      * @return 指向第一个元素的迭代器
      */
-    template <typename Container>
+    template <typename Container, type_traits::other_trans::enable_if_t<
+                                      type_traits::extras::meta_method::try_to_invoke_begin<Container>::value, int> = 0>
     RAINY_NODISCARD constexpr rain_fn begin(Container &cont) noexcept(
         noexcept(type_traits::extras::meta_method::try_to_invoke_begin<Container>::invoke(cont)))
         -> decltype(type_traits::extras::meta_method::try_to_invoke_begin<Container>::invoke(cont)) {
@@ -401,7 +402,9 @@ namespace rainy::utility {
      * @param cont 常量容器对象
      * @return 指向第一个元素的常量迭代器
      */
-    template <typename Container>
+    template <typename Container,
+              type_traits::other_trans::enable_if_t<type_traits::extras::meta_method::try_to_invoke_begin<const Container>::value,
+                                                    int> = 0>
     RAINY_NODISCARD constexpr rain_fn begin(const Container &cont) noexcept(
         noexcept(type_traits::extras::meta_method::try_to_invoke_begin<const Container>::invoke(cont)))
         -> decltype(type_traits::extras::meta_method::try_to_invoke_begin<const Container>::invoke(cont)) {
@@ -445,7 +448,8 @@ namespace rainy::utility {
      * @param cont 容器对象
      * @return 指向最后一个元素之后位置的迭代器
      */
-    template <typename Container>
+    template <typename Container, type_traits::other_trans::enable_if_t<
+                                      type_traits::extras::meta_method::try_to_invoke_end<Container>::value, int> = 0>
     RAINY_NODISCARD constexpr rain_fn end(Container &cont) noexcept(
         noexcept(type_traits::extras::meta_method::try_to_invoke_end<Container>::invoke(cont)))
         -> decltype(type_traits::extras::meta_method::try_to_invoke_end<Container>::invoke(cont)) {
@@ -467,7 +471,9 @@ namespace rainy::utility {
      * @param cont 常量容器对象
      * @return 指向最后一个元素之后位置的常量迭代器
      */
-    template <typename Container>
+    template <typename Container,
+              type_traits::other_trans::enable_if_t<type_traits::extras::meta_method::try_to_invoke_end<const Container>::value,
+                                                    int> = 0>
     RAINY_NODISCARD constexpr rain_fn end(const Container &cont) noexcept(
         noexcept(type_traits::extras::meta_method::try_to_invoke_end<const Container>::invoke(cont)))
         -> decltype(type_traits::extras::meta_method::try_to_invoke_end<const Container>::invoke(cont)) {
@@ -3569,7 +3575,10 @@ namespace rainy::utility {
      * @param val 要转换的花哨指针
      * @return 从 pointer_traits 或 operator-> 获取的原始地址
      */
-    template <typename Pointer>
+    template <typename Pointer, type_traits::other_trans::enable_if_t<
+                                    implements::has_to_address<Pointer> ||
+                                        type_traits::extras::meta_method::has_operator_arrow_v<Pointer>,
+                                    int> = 0>
     RAINY_NODISCARD constexpr rain_fn to_address(const Pointer &val) noexcept -> auto {
         if constexpr (implements::has_to_address<Pointer>) {
             return pointer_traits<Pointer>::to_address(val);
@@ -3661,8 +3670,15 @@ namespace rainy::type_traits::extras::iterators {
      *
      * @tparam It 要检查的类型
      */
+    template <typename It, typename = void>
+    RAINY_CONSTEXPR_BOOL is_bidirectional_iterator_v = false;
+
     template <typename It>
-    RAINY_CONSTEXPR_BOOL is_bidirectional_iterator_v = is_forward_iterator_v<It> && meta_method::has_operator_predec_v<It>;
+    RAINY_CONSTEXPR_BOOL
+        is_bidirectional_iterator_v<
+            It, other_trans::void_t<decltype(--utility::declval<It &>()), decltype(utility::declval<It &>()--)>> =
+            is_forward_iterator_v<It> && type_relations::is_same_v<decltype(--utility::declval<It &>()), It &> &&
+            type_relations::is_same_v<decltype(utility::declval<It &>()--), It>;
 
     /**
      * \lang english

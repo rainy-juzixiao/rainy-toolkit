@@ -99,13 +99,6 @@ namespace rainy::core::text {
          * \lang simp-chinese
          * @brief 格式字符串的字符类型。
          */
-        /**
-         * \lang english
-         * @brief The character type.
-         *
-         * \lang simp-chinese
-         * @brief 字符类型。
-         */
         using char_type = CharType;
         /**
          * \lang english

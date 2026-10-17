@@ -109,7 +109,6 @@ namespace rainy::core::concurrency {
     }
 }
 
-#if !RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
 namespace rainy::core::concurrency::implements {
     template <typename Ty>
     void atomic_wait_impl(const volatile Ty *address, Ty old_val, memory_order /*order*/) noexcept {
@@ -132,6 +131,5 @@ namespace rainy::core::concurrency::implements {
         layer::atomic_notify_all(const_cast<Ty *>(address), sizeof(Ty));
     }
 }
-#endif
 
 #endif
