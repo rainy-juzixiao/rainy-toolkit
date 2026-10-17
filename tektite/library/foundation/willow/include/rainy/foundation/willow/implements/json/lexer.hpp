@@ -357,7 +357,9 @@ namespace rainy::foundation::willow::json::implements {
                 if (result.ec != std::errc{} && result.ec != std::errc::result_out_of_range) {
                     exceptions::willow::json::throw_json_parse_error("invalid number");
                 }
-                number_value_ = value;
+                number_value_ = result.ec == std::errc::result_out_of_range
+                                    ? willow::implements::saturate_floating_out_of_range<float_type>(begin, scan, result.ec)
+                                    : value;
                 return token_type::value_float;
             }
             integer_type value{};
@@ -371,7 +373,9 @@ namespace rainy::foundation::willow::json::implements {
             if (float_result.ec != std::errc{} && float_result.ec != std::errc::result_out_of_range) {
                 exceptions::willow::json::throw_json_parse_error("invalid number");
             }
-            number_value_ = float_value;
+            number_value_ = float_result.ec == std::errc::result_out_of_range
+                                ? willow::implements::saturate_floating_out_of_range<float_type>(begin, scan, float_result.ec)
+                                : float_value;
             return token_type::value_float;
         }
 
@@ -381,6 +385,9 @@ namespace rainy::foundation::willow::json::implements {
             const auto result = core::text::from_chars(begin, end, number_value_);
             if (result.ec != std::errc{} && result.ec != std::errc::result_out_of_range) {
                 exceptions::willow::json::throw_json_parse_error("invalid number");
+            }
+            if (result.ec == std::errc::result_out_of_range) {
+                number_value_ = willow::implements::saturate_floating_out_of_range<float_type>(begin, end, result.ec);
             }
             return token_type::value_float;
         }

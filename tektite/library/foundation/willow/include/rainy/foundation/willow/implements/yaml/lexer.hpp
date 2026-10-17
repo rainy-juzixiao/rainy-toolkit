@@ -1258,7 +1258,9 @@ namespace rainy::foundation::willow::yaml::implements {
                 if (result.ec != std::errc{} && result.ec != std::errc::result_out_of_range) {
                     return false;
                 }
-                number_value_ = fv;
+                number_value_ = result.ec == std::errc::result_out_of_range
+                                    ? willow::implements::saturate_floating_out_of_range<float_type>(begin, end, result.ec)
+                                    : fv;
                 number_is_float_ = true;
                 return true;
             }
@@ -1274,7 +1276,9 @@ namespace rainy::foundation::willow::yaml::implements {
             float_type fv{};
             const auto fresult = core::text::from_chars(begin, end, fv);
             if (fresult.ec == std::errc{} || fresult.ec == std::errc::result_out_of_range) {
-                number_value_ = fv;
+                number_value_ = fresult.ec == std::errc::result_out_of_range
+                                    ? willow::implements::saturate_floating_out_of_range<float_type>(begin, end, fresult.ec)
+                                    : fv;
                 number_is_float_ = true;
                 return true;
             }

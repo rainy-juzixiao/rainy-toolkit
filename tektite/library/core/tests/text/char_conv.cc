@@ -2163,34 +2163,142 @@ TEST_CASE("Float from_chars - Correct rounding sample table", "[from_chars][floa
     }
 
     SECTION("range limit handling") {
-        SECTION("double overflow") {
+        SECTION("double overflow leaves value unchanged") {
             const char text[] = "1e400";
-            double parsed = 0.0;
+            double parsed = 42.5;
             auto r = from_chars(text, text + 5, parsed);
             REQUIRE(r.ec == std::errc::result_out_of_range);
             REQUIRE(r.ptr == text + 5);
-            REQUIRE(std::isinf(parsed));
-            REQUIRE(parsed > 0);
+            REQUIRE(parsed == 42.5);
         }
 
-        SECTION("double underflow flushes to zero") {
+        SECTION("double underflow leaves value unchanged") {
             const char text[] = "1e-400";
-            double parsed = 1.0;
+            double parsed = 42.5;
             auto r = from_chars(text, text + 6, parsed);
             REQUIRE(r.ec == std::errc::result_out_of_range);
             REQUIRE(r.ptr == text + 6);
-            REQUIRE(parsed == 0.0);
+            REQUIRE(parsed == 42.5);
         }
 
-        SECTION("negative double underflow flushes to signed zero") {
+        SECTION("negative double underflow leaves value unchanged") {
             const char text[] = "-1e-400";
-            double parsed = 1.0;
+            double parsed = 42.5;
             auto r = from_chars(text, text + 7, parsed);
             REQUIRE(r.ec == std::errc::result_out_of_range);
             REQUIRE(r.ptr == text + 7);
-            REQUIRE(parsed == 0.0);
-            REQUIRE(std::signbit(parsed));
+            REQUIRE(parsed == 42.5);
         }
+    }
+}
+
+TEST_CASE("Float from_chars - Out of range leaves value unchanged", "[from_chars][float][range]") {
+    SECTION("double overflow") {
+        const char text[] = "1e9999";
+        double value = 42.5;
+        auto r = from_chars(text, text + 6, value);
+        REQUIRE(r.ec == std::errc::result_out_of_range);
+        REQUIRE(r.ptr == text + 6);
+        REQUIRE(value == 42.5);
+    }
+
+    SECTION("negative double overflow") {
+        const char text[] = "-1e9999";
+        double value = 42.5;
+        auto r = from_chars(text, text + 7, value);
+        REQUIRE(r.ec == std::errc::result_out_of_range);
+        REQUIRE(r.ptr == text + 7);
+        REQUIRE(value == 42.5);
+    }
+
+    SECTION("double underflow") {
+        const char text[] = "1e-9999";
+        double value = 42.5;
+        auto r = from_chars(text, text + 7, value);
+        REQUIRE(r.ec == std::errc::result_out_of_range);
+        REQUIRE(r.ptr == text + 7);
+        REQUIRE(value == 42.5);
+    }
+
+    SECTION("float overflow") {
+        const char text[] = "1e9999";
+        float value = 42.5f;
+        auto r = from_chars(text, text + 6, value);
+        REQUIRE(r.ec == std::errc::result_out_of_range);
+        REQUIRE(r.ptr == text + 6);
+        REQUIRE(value == 42.5f);
+    }
+
+    SECTION("negative float overflow") {
+        const char text[] = "-1e9999";
+        float value = 42.5f;
+        auto r = from_chars(text, text + 7, value);
+        REQUIRE(r.ec == std::errc::result_out_of_range);
+        REQUIRE(r.ptr == text + 7);
+        REQUIRE(value == 42.5f);
+    }
+
+    SECTION("float underflow") {
+        const char text[] = "1e-9999";
+        float value = 42.5f;
+        auto r = from_chars(text, text + 7, value);
+        REQUIRE(r.ec == std::errc::result_out_of_range);
+        REQUIRE(r.ptr == text + 7);
+        REQUIRE(value == 42.5f);
+    }
+
+#if RAINY_HAS_EXTENDED_LONG_DOUBLE
+    SECTION("long double overflow") {
+        const char text[] = "1e99999";
+        long double value = 42.5L;
+        auto r = from_chars(text, text + 7, value);
+        REQUIRE(r.ec == std::errc::result_out_of_range);
+        REQUIRE(r.ptr == text + 7);
+        REQUIRE(value == 42.5L);
+    }
+
+    SECTION("long double underflow") {
+        const char text[] = "1e-99999";
+        long double value = 42.5L;
+        auto r = from_chars(text, text + 8, value);
+        REQUIRE(r.ec == std::errc::result_out_of_range);
+        REQUIRE(r.ptr == text + 8);
+        REQUIRE(value == 42.5L);
+    }
+#endif
+
+    SECTION("in-range value is still written") {
+        const char text[] = "2.5";
+        double value = 42.5;
+        auto r = from_chars(text, text + 3, value);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(value == 2.5);
+    }
+
+    SECTION("infinity is still written") {
+        const char text[] = "inf";
+        double value = 42.5;
+        auto r = from_chars(text, text + 3, value);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(std::isinf(value));
+        REQUIRE(value > 0);
+    }
+
+    SECTION("negative infinity is still written") {
+        const char text[] = "-inf";
+        double value = 42.5;
+        auto r = from_chars(text, text + 4, value);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(std::isinf(value));
+        REQUIRE(value < 0);
+    }
+
+    SECTION("nan is still written") {
+        const char text[] = "nan";
+        double value = 42.5;
+        auto r = from_chars(text, text + 3, value);
+        REQUIRE(r.ec == std::errc{});
+        REQUIRE(std::isnan(value));
     }
 }
 
