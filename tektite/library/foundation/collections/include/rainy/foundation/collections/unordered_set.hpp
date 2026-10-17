@@ -30,12 +30,12 @@ namespace rainy::foundation::collections::implements {
         template <typename>
         friend class unordered_set_iterator;
 
-        using value_type = decltype(*std::declval<Iter>());
+        using value_type = type_traits::modifers::remove_cvref_t<decltype(*utility::declval<Iter>())>;
         using pointer = utility::input_iterator_pointer<value_type>;
-        using reference = value_type;
+        using reference = decltype(*utility::declval<Iter>());
         using difference_type = std::ptrdiff_t;
-        using iterator_category = std::input_iterator_tag;
-        using iterator_concept = std::random_access_iterator_tag;
+        using iterator_category = std::forward_iterator_tag;
+        using iterator_concept = std::forward_iterator_tag;
 
         constexpr unordered_set_iterator() noexcept : it{} {
         }
@@ -246,7 +246,8 @@ namespace rainy::foundation::collections::implements {
         using list_iterator = typename list_type::iterator;
         using const_list_iterator = typename list_type::const_iterator;
 
-        using bucket_type = core::collections::vector<list_iterator>;
+        using bucket_value_allocator = typename core::memory::allocator_traits<Allocator>::template rebind_alloc<list_iterator>;
+        using bucket_type = core::collections::vector<list_iterator, bucket_value_allocator>;
         using bucket_allocator = typename core::memory::allocator_traits<Allocator>::template rebind_alloc<bucket_type>;
 
         using iterator = unordered_set_iterator<list_iterator>;
@@ -261,19 +262,24 @@ namespace rainy::foundation::collections::implements {
             node_type node;
         };
 
-        unordered_set() noexcept : elements_(), buckets_(), size_(0), max_load_factor_(default_max_load_factor_), hash_(), equal_() {
+        unordered_set() noexcept :
+            elements_(), buckets_(bucket_allocator()), size_(0), max_load_factor_(default_max_load_factor_), hash_(), equal_() {
             init_buckets(default_bucket_count_);
         }
 
         explicit unordered_set(const size_type bucket_count, const hasher &hash = hasher(), const key_equal &equal = key_equal(),
                                const allocator_type &alloc = allocator_type()) :
-            elements_(alloc), buckets_(), size_(0), max_load_factor_(default_max_load_factor_), hash_(hash), equal_(equal) {
+            elements_(alloc), buckets_(bucket_allocator(alloc)), size_(0), max_load_factor_(default_max_load_factor_),
+            hash_(hash), equal_(equal) {
             init_buckets(bucket_count);
         }
 
         unordered_set(const unordered_set &other) :
-            elements_(other.elements_), buckets_(), size_(0), max_load_factor_(other.max_load_factor_), hash_(other.hash_),
-            equal_(other.equal_) {
+            elements_(other.elements_),
+            buckets_(core::memory::allocator_traits<bucket_allocator>::select_on_container_copy_construction(
+                other.buckets_.get_allocator())),
+            size_(0),
+            max_load_factor_(other.max_load_factor_), hash_(other.hash_), equal_(other.equal_) {
             init_buckets(other.buckets_.size());
             for (auto it = elements_.begin(); it != elements_.end(); ++it) {
                 size_type bucket_idx = get_bucket_index(*it);
@@ -291,7 +297,8 @@ namespace rainy::foundation::collections::implements {
         unordered_set(std::initializer_list<value_type> init, size_type bucket_count = default_bucket_count_,
                       const hasher &hash = hasher(), const key_equal &equal = key_equal(),
                       const allocator_type &alloc = allocator_type()) :
-            elements_(alloc), buckets_(), size_(0), max_load_factor_(default_max_load_factor_), hash_(hash), equal_(equal) {
+            elements_(alloc), buckets_(bucket_allocator(alloc)), size_(0), max_load_factor_(default_max_load_factor_),
+            hash_(hash), equal_(equal) {
             size_type actual_count = bucket_count > init.size() ? bucket_count : init.size();
             init_buckets(actual_count);
             for (const auto &item : init) {
@@ -300,19 +307,21 @@ namespace rainy::foundation::collections::implements {
         }
 
         unordered_set(std::allocator_arg_t, const allocator_type &alloc) :
-            elements_(alloc), buckets_(), size_(0), max_load_factor_(default_max_load_factor_), hash_(), equal_() {
+            elements_(alloc), buckets_(bucket_allocator(alloc)), size_(0), max_load_factor_(default_max_load_factor_),
+            hash_(), equal_() {
             init_buckets(default_bucket_count_);
         }
 
         unordered_set(std::allocator_arg_t, const allocator_type &alloc, const size_type bucket_count,
                       const hasher &hash = hasher(), const key_equal &equal = key_equal()) :
-            elements_(alloc), buckets_(), size_(0), max_load_factor_(default_max_load_factor_), hash_(hash), equal_(equal) {
+            elements_(alloc), buckets_(bucket_allocator(alloc)), size_(0), max_load_factor_(default_max_load_factor_),
+            hash_(hash), equal_(equal) {
             init_buckets(bucket_count);
         }
 
         unordered_set(std::allocator_arg_t, const allocator_type &alloc, const unordered_set &other) :
-            elements_(other.elements_, alloc), buckets_(), size_(0), max_load_factor_(other.max_load_factor_),
-            hash_(other.hash_), equal_(other.equal_) {
+            elements_(other.elements_, alloc), buckets_(bucket_allocator(alloc)), size_(0),
+            max_load_factor_(other.max_load_factor_), hash_(other.hash_), equal_(other.equal_) {
             init_buckets(other.buckets_.size());
             for (auto it = elements_.begin(); it != elements_.end(); ++it) {
                 size_type bucket_idx = get_bucket_index(*it);
@@ -322,8 +331,8 @@ namespace rainy::foundation::collections::implements {
         }
 
         unordered_set(std::allocator_arg_t, const allocator_type &alloc, unordered_set &&other) :
-            elements_(utility::move(other.elements_), alloc), buckets_(), size_(0), max_load_factor_(other.max_load_factor_),
-            hash_(other.hash_), equal_(other.equal_) {
+            elements_(utility::move(other.elements_), alloc), buckets_(bucket_allocator(alloc)), size_(0),
+            max_load_factor_(other.max_load_factor_), hash_(other.hash_), equal_(other.equal_) {
             init_buckets(other.buckets_.size());
             for (auto it = elements_.begin(); it != elements_.end(); ++it) {
                 size_type bucket_idx = get_bucket_index(*it);
@@ -338,7 +347,8 @@ namespace rainy::foundation::collections::implements {
         unordered_set(std::allocator_arg_t, const allocator_type &alloc, std::initializer_list<value_type> init,
                       size_type bucket_count = default_bucket_count_, const hasher &hash = hasher(),
                       const key_equal &equal = key_equal()) :
-            elements_(alloc), buckets_(), size_(0), max_load_factor_(default_max_load_factor_), hash_(hash), equal_(equal) {
+            elements_(alloc), buckets_(bucket_allocator(alloc)), size_(0), max_load_factor_(default_max_load_factor_),
+            hash_(hash), equal_(equal) {
             size_type actual_count = bucket_count > init.size() ? bucket_count : init.size();
             init_buckets(actual_count);
             for (const auto &item : init) {
@@ -350,8 +360,17 @@ namespace rainy::foundation::collections::implements {
 
         unordered_set &operator=(const unordered_set &other) {
             if (this != &other) {
-                unordered_set tmp(other);
-                swap(tmp);
+                if constexpr (core::memory::allocator_traits<allocator_type>::propagate_on_container_copy_assignment::value) {
+                    elements_ = other.elements_;
+                    buckets_ = other.buckets_;
+                    max_load_factor_ = other.max_load_factor_;
+                    hash_ = other.hash_;
+                    equal_ = other.equal_;
+                    rebuild_bucket_index();
+                } else {
+                    unordered_set tmp(std::allocator_arg, get_allocator(), other);
+                    swap(tmp);
+                }
             }
             return *this;
         }
@@ -361,7 +380,9 @@ namespace rainy::foundation::collections::implements {
             if (this == &other) {
                 return *this;
             }
-            if constexpr (core::memory::allocator_traits<allocator_type>::is_always_equal::value) {
+            if constexpr (core::memory::allocator_traits<allocator_type>::propagate_on_container_move_assignment::value) {
+                assign_by_steal(other);
+            } else if (core::memory::allocator_traits<allocator_type>::is_always_equal::value) {
                 assign_by_steal(other);
             } else if (get_allocator() == other.get_allocator()) {
                 assign_by_steal(other);
@@ -380,13 +401,20 @@ namespace rainy::foundation::collections::implements {
             return *this;
         }
 
-        void assign_by_steal(unordered_set &other) noexcept {
+        void assign_by_steal(unordered_set &other) {
+            const bool stable_nodes = elements_.get_allocator() == other.elements_.get_allocator();
+            const size_type bucket_count = other.buckets_.size();
             elements_ = utility::move(other.elements_);
-            buckets_ = utility::move(other.buckets_);
-            size_ = other.size_;
             max_load_factor_ = other.max_load_factor_;
             hash_ = utility::move(other.hash_);
             equal_ = utility::move(other.equal_);
+            if (stable_nodes) {
+                buckets_ = utility::move(other.buckets_);
+                size_ = other.size_;
+            } else {
+                init_buckets(bucket_count);
+                rebuild_bucket_index();
+            }
             other.size_ = 0;
         }
 
@@ -540,7 +568,7 @@ namespace rainy::foundation::collections::implements {
         }
 
         template <typename K>
-        auto count(const K &key) const -> decltype(equal_(std::declval<const key_type &>(), key), size_type()) {
+        auto count(const K &key) const -> decltype(equal_(utility::declval<const key_type &>(), key), size_type()) {
             if constexpr (Multi) {
                 if (buckets_.empty()) {
                     return 0;
@@ -578,7 +606,7 @@ namespace rainy::foundation::collections::implements {
         }
 
         template <typename K>
-        auto find(const K &key) -> decltype(equal_(std::declval<const key_type &>(), key), iterator()) {
+        auto find(const K &key) -> decltype(equal_(utility::declval<const key_type &>(), key), iterator()) {
             if (buckets_.empty()) {
                 return end();
             }
@@ -602,7 +630,7 @@ namespace rainy::foundation::collections::implements {
         }
 
         template <typename K>
-        auto contains(const K &key) const -> decltype(equal_(std::declval<const key_type &>(), key), bool()) {
+        auto contains(const K &key) const -> decltype(equal_(utility::declval<const key_type &>(), key), bool()) {
             return find(key) != end();
         }
 
@@ -614,17 +642,21 @@ namespace rainy::foundation::collections::implements {
                 size_type bucket_idx = get_bucket_index(key);
                 const auto &bucket = buckets_[bucket_idx];
                 iterator first = end();
-                iterator last = end();
                 for (auto it : bucket) {
                     if (equal_(*it, key)) {
                         if (first == end()) {
                             first = iterator(it);
                         }
-                        last = iterator(it);
-                        ++last;
                     }
                 }
-                return {first, last};
+                if (first == end()) {
+                    return {end(), end()};
+                }
+                auto next = first;
+                while (next != end() && equal_(*next, key)) {
+                    ++next;
+                }
+                return {first, next};
             } else {
                 auto it = find(key);
                 if (it == end()) {
@@ -644,17 +676,21 @@ namespace rainy::foundation::collections::implements {
                 size_type bucket_idx = get_bucket_index(key);
                 const auto &bucket = buckets_[bucket_idx];
                 const_iterator first = end();
-                const_iterator last = end();
                 for (auto it : bucket) {
                     if (equal_(*it, key)) {
                         if (first == end()) {
                             first = const_iterator(it);
                         }
-                        last = const_iterator(it);
-                        ++last;
                     }
                 }
-                return {first, last};
+                if (first == end()) {
+                    return {end(), end()};
+                }
+                auto next = first;
+                while (next != end() && equal_(*next, key)) {
+                    ++next;
+                }
+                return {first, next};
             } else {
                 auto it = find(key);
                 if (it == end()) {
@@ -733,7 +769,8 @@ namespace rainy::foundation::collections::implements {
             if (new_bucket_count == buckets_.size()) {
                 return;
             }
-            core::collections::vector<bucket_type> new_buckets(new_bucket_count);
+            core::collections::vector<bucket_type, bucket_allocator> new_buckets{bucket_allocator(get_allocator())};
+            new_buckets.resize(new_bucket_count, bucket_type(bucket_value_allocator(get_allocator())));
             for (auto it = elements_.begin(); it != elements_.end(); ++it) {
                 size_type bucket_idx = hash_(*it) & (new_bucket_count - 1);
                 new_buckets[bucket_idx].push_back(it);
@@ -754,17 +791,39 @@ namespace rainy::foundation::collections::implements {
         }
 
         void merge(unordered_set &right) {
-            for (auto item : right) {
-                insert(item);
+            if (this == utility::addressof(right)) {
+                return;
             }
-            right.clear();
+            for (auto it = right.begin(); it != right.end();) {
+                auto current = it++;
+                if constexpr (Multi) {
+                    insert(*current);
+                    right.erase(current);
+                } else {
+                    auto result = insert(*current);
+                    if (result.second) {
+                        right.erase(current);
+                    }
+                }
+            }
         }
 
         void merge(unordered_set &&right) {
-            for (value_type &&item : right) {
-                insert(utility::move(item));
+            if (this == utility::addressof(right)) {
+                return;
             }
-            right.clear();
+            for (auto it = right.begin(); it != right.end();) {
+                auto current = it++;
+                if constexpr (Multi) {
+                    insert(utility::move(*current));
+                    right.erase(current);
+                } else {
+                    auto result = insert(utility::move(*current));
+                    if (result.second) {
+                        right.erase(current);
+                    }
+                }
+            }
         }
 
         node_type extract(const_iterator position) {
@@ -811,6 +870,16 @@ namespace rainy::foundation::collections::implements {
             }
             auto new_iter = elements_.insert(elements_.end(), utility::move(nh.node_));
             size_type bucket_idx = get_bucket_index(key);
+            if constexpr (Multi) {
+                auto existing = find_in_bucket(bucket_idx, key);
+                if (existing != elements_.end()) {
+                    auto after = existing;
+                ++after;
+                    if (after != new_iter) {
+                        elements_.splice(after, elements_, new_iter);
+                    }
+                }
+            }
             buckets_[bucket_idx].push_back(new_iter);
             ++size_;
             return {iterator(new_iter), true, node_type{}};
@@ -852,7 +921,18 @@ namespace rainy::foundation::collections::implements {
 
         void init_buckets(size_type count) {
             size_type actual_count = count > 0 ? next_power_of_two(count) : default_bucket_count_;
-            buckets_.resize(actual_count);
+            buckets_.resize(actual_count, bucket_type(bucket_value_allocator(get_allocator())));
+        }
+
+        void rebuild_bucket_index() {
+            for (auto &bucket: buckets_) {
+                bucket.clear();
+            }
+            size_ = 0;
+            for (auto it = elements_.begin(); it != elements_.end(); ++it) {
+                buckets_[get_bucket_index(*it)].push_back(it);
+                ++size_;
+            }
         }
 
         template <typename K>
@@ -903,6 +983,14 @@ namespace rainy::foundation::collections::implements {
             auto new_iter = std::prev(elements_.end());
             const key_type &key = *new_iter;
             size_type bucket_idx = get_bucket_index(key);
+            auto existing = find_in_bucket(bucket_idx, key);
+            if (existing != elements_.end()) {
+                auto after = existing;
+                ++after;
+                if (after != new_iter) {
+                    elements_.splice(after, elements_, new_iter);
+                }
+            }
             buckets_[bucket_idx].push_back(new_iter);
             ++size_;
             return iterator(new_iter);
@@ -967,7 +1055,7 @@ namespace rainy::foundation::collections::implements {
         }
 
         list_type elements_;
-        core::collections::vector<bucket_type> buckets_;
+        core::collections::vector<bucket_type, bucket_allocator> buckets_;
         size_type size_;
         float max_load_factor_;
         hasher hash_;
