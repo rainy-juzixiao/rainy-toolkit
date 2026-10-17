@@ -20,13 +20,13 @@ include(CheckCXXCompilerFlag)
 
 function(rainy_configure_simd_isa)
     check_cxx_source_compiles("
-    #if !defined(__x86_64__) && !defined(__i386__)
+    #if !defined(__x86_64__) && !defined(__i386__) && !defined(_M_X64) && !defined(_M_AMD64) && !defined(_M_IX86)
     #error compiler target is not x86
     #endif
     int main() { return 0; }
     " RAINY_COMPILER_TARGET_X86)
     check_cxx_source_compiles("
-    #if !defined(__aarch64__)
+    #if !defined(__aarch64__) && !defined(_M_ARM64)
     #error compiler target is not arm64
     #endif
     int main() { return 0; }
@@ -540,8 +540,8 @@ function(rainy_configure_target TARGET_NAME)
             message("Linking libraries for windows package(CROSS-COMPILE)")
             if (MINGW)
                 message(STATUS "Detected MINGW")
-                set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--enable-stdcall-fixup -Wl,--no-as-needed")
-                set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--enable-stdcall-fixup -Wl,--no-as-needed")
+                target_link_options(${TARGET_NAME} PUBLIC
+                        -Wl,--enable-stdcall-fixup -Wl,--no-as-needed)
             endif ()
             target_link_libraries(${TARGET_NAME} PUBLIC synchronization dbghelp shlwapi)
         elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
@@ -569,8 +569,8 @@ function(rainy_configure_target TARGET_NAME)
         if (WIN32)
             message("Linking libraries for windows package")
             if (MINGW)
-                set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--enable-stdcall-fixup -Wl,--no-as-needed")
-                set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--enable-stdcall-fixup -Wl,--no-as-needed")
+                target_link_options(${TARGET_NAME} PUBLIC
+                        -Wl,--enable-stdcall-fixup -Wl,--no-as-needed)
             endif ()
             target_link_libraries(${TARGET_NAME} PRIVATE synchronization dbghelp shlwapi)
         endif ()
