@@ -2300,6 +2300,13 @@ namespace rainy::core::text::implements {
         const container::compressed_pair<char *, std::errc> result = ryu::generic_to_chars(first, end, decimal, fmt, value);
         return {result.first, result.second};
     }
+
+    RAINY_NODISCARD inline to_chars_result long_double_to_chars(char *const first, char *const end, const long double value,
+                                                                const chars_format fmt, const int precision) noexcept {
+        const container::compressed_pair<char *, std::errc> result =
+            ryu::generic_to_chars_precision(first, end, value, fmt, precision);
+        return {result.first, result.second};
+    }
 #endif
 }
 
@@ -2350,8 +2357,7 @@ namespace rainy::core::text {
 
     to_chars_result to_chars(char *begin, char *end, long double value, chars_format fmt, int precision) noexcept {
 #if RAINY_HAS_EXTENDED_LONG_DOUBLE
-        (void) precision;
-        return implements::long_double_to_chars(begin, end, value, fmt);
+        return implements::long_double_to_chars(begin, end, value, fmt, precision);
 #else
         return implements::floating_to_chars<implements::floating_to_chars_overload::format_precision>(
             begin, end, static_cast<double>(value), fmt, precision);

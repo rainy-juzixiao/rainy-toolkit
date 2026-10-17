@@ -103,6 +103,33 @@ namespace rainy::core::text::implements::ryu {
     container::compressed_pair<CharType *, std::errc> generic_to_chars(CharType *first, CharType *end,
                                                                       const floating_decimal_128 &value,
                                                                       chars_format fmt, long double original) noexcept;
+
+    /**
+     * \lang english
+     * @brief Formats a long double with a fixed number of significant or fractional digits.
+     *
+     * @param first Pointer to the beginning of the output buffer
+     * @param end Pointer past the end of the output buffer
+     * @param value The value to convert
+     * @param fmt The formatting style
+     * @param precision The number of digits after the decimal point, or significant digits for
+     *        chars_format::general
+     * @return The end of the written range and an error code
+     *
+     * \lang simp-chinese
+     * @brief 按指定的有效位数或小数位数格式化 long double。
+     *
+     * @param first 输出缓冲区起始指针
+     * @param end 输出缓冲区末尾之后指针
+     * @param value 待转换的值
+     * @param fmt 格式样式
+     * @param precision 小数点后的位数；chars_format::general 时为有效位数
+     * @return 写入范围的末尾与错误码
+     */
+    template <typename CharType>
+    container::compressed_pair<CharType *, std::errc> generic_to_chars_precision(CharType *first, CharType *end,
+                                                                                long double value, chars_format fmt,
+                                                                                int precision) noexcept;
 }
 #endif
 
