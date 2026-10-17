@@ -403,7 +403,7 @@ namespace rainy::foundation::willow::toml::implements {
             char compact[64];
             std::size_t out = 0;
             for (std::size_t j = 0; j < size && out < sizeof(compact); ++j) {
-                if (str[j] != '_') {
+                if (str[j] != '_' && str[j] != '+') {
                     compact[out++] = str[j];
                 }
             }
@@ -419,21 +419,24 @@ namespace rainy::foundation::willow::toml::implements {
             if (i < size && (str[i] == '+' || str[i] == '-')) {
                 ++i;
             }
+            const std::size_t digits_begin = i;
             bool int_digits = false;
             bool int_leading_zero = false;
+            std::size_t int_digit_count = 0;
             while (i < size && (is_digit(str[i]) || str[i] == '_')) {
                 if (is_digit(str[i])) {
                     if (!int_digits && str[i] == '0') {
                         int_leading_zero = true;
                     }
                     int_digits = true;
+                    ++int_digit_count;
                 }
                 ++i;
             }
             if (!int_digits) {
                 return false;
             }
-            if (int_leading_zero && i < size && is_digit(str[i])) {
+            if (int_leading_zero && int_digit_count > 1) {
                 return false;
             }
             bool has_fraction_or_exponent = false;
@@ -468,7 +471,24 @@ namespace rainy::foundation::willow::toml::implements {
                     return false;
                 }
             }
-            return has_fraction_or_exponent && i == size;
+            return has_fraction_or_exponent && i == size && valid_underscores(str, digits_begin, size, 10);
+        }
+
+        static bool valid_underscores(const char *const str, const std::size_t begin, const std::size_t end, const int base) {
+            for (std::size_t i = begin; i < end; ++i) {
+                if (str[i] != '_') {
+                    continue;
+                }
+                if (i == begin || i + 1 >= end) {
+                    return false;
+                }
+                const int previous = digit_value(str[i - 1]);
+                const int next = digit_value(str[i + 1]);
+                if (previous < 0 || previous >= base || next < 0 || next >= base) {
+                    return false;
+                }
+            }
+            return true;
         }
 
         bool try_parse_integer(const char *const str, const std::size_t size) {
@@ -510,6 +530,9 @@ namespace rainy::foundation::willow::toml::implements {
             if (!has_digit) {
                 return false;
             }
+            if (!valid_underscores(str, digits_begin, size, base)) {
+                return false;
+            }
             if (base == 10) {
                 std::size_t first = digits_begin;
                 while (first < size && str[first] == '_') {
@@ -521,7 +544,7 @@ namespace rainy::foundation::willow::toml::implements {
             }
             char compact[64];
             std::size_t out = 0;
-            if (has_sign) {
+            if (has_sign && str[0] == '-') {
                 compact[out++] = str[0];
             }
             for (std::size_t j = digits_begin; j < size && out < sizeof(compact); ++j) {
@@ -646,7 +669,12 @@ namespace rainy::foundation::willow::toml::implements {
                     !is_digit(str[i + 5])) {
                     return false;
                 }
-                const std::int32_t offset = two_digits(str, i + 1) * 60 + two_digits(str, i + 4);
+                const std::int32_t offset_hour = two_digits(str, i + 1);
+                const std::int32_t offset_minute = two_digits(str, i + 4);
+                if (offset_hour > 23 || offset_minute > 59) {
+                    exceptions::willow::toml::throw_toml_parse_error("time offset out of range");
+                }
+                const std::int32_t offset = offset_hour * 60 + offset_minute;
                 datetime_value_.has_offset = true;
                 datetime_value_.offset_minutes = negative ? -offset : offset;
                 return i + 6 == size;
@@ -656,6 +684,18 @@ namespace rainy::foundation::willow::toml::implements {
 
         void validate_date() const {
             if (datetime_value_.month < 1 || datetime_value_.month > 12 || datetime_value_.day < 1 || datetime_value_.day > 31) {
+                exceptions::willow::toml::throw_toml_parse_error("date field out of range");
+            }
+            const std::int32_t month = datetime_value_.month;
+            std::int32_t month_length = 31;
+            if (month == 4 || month == 6 || month == 9 || month == 11) {
+                month_length = 30;
+            } else if (month == 2) {
+                const std::int32_t year = datetime_value_.year;
+                const bool leap = (year % 4 == 0 && year % 100 != 0) || year % 400 == 0;
+                month_length = leap ? 29 : 28;
+            }
+            if (datetime_value_.day > month_length) {
                 exceptions::willow::toml::throw_toml_parse_error("date field out of range");
             }
         }
@@ -834,7 +874,7 @@ namespace rainy::foundation::willow::toml::implements {
                     if (scan_line_ending_backslash()) {
                         continue;
                     }
-                    scan_escape();
+                    apply_escape();
                     continue;
                 }
                 if (is_newline_char(current)) {
@@ -912,7 +952,7 @@ namespace rainy::foundation::willow::toml::implements {
                     cursor = buffer_begin() + buffer_position() - 1;
                     continue;
                 }
-                scan_escape();
+                apply_escape();
                 cursor = buffer_begin() + buffer_position() - 1;
             }
         }
@@ -954,6 +994,10 @@ namespace rainy::foundation::willow::toml::implements {
 
         void scan_escape() {
             read_next();
+            apply_escape();
+        }
+
+        void apply_escape() {
             switch (current) {
                 case '\"':
                     string_buffer_.push_back(char_type('\"'));

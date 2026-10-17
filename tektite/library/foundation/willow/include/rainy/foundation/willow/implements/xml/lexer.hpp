@@ -236,7 +236,15 @@ namespace rainy::foundation::willow::xml::implements {
         }
 
         static constexpr bool is_name_start(const char_int_type ch) noexcept {
-            return (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || ch == '_' || ch == ':' || ch >= 0x80;
+            if (ch == char_traits::eof()) {
+                return false;
+            }
+            if ((ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || ch == '_' || ch == ':') {
+                return true;
+            }
+            const auto unit = static_cast<std::uint32_t>(
+                static_cast<type_traits::helper::make_unsigned_t<char_type>>(char_traits::to_char_type(ch)));
+            return unit >= 0x80;
         }
 
         static constexpr bool is_name_char(const char_int_type ch) noexcept {
