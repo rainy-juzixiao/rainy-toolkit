@@ -715,7 +715,7 @@ namespace rainy::core::implements {
                     if constexpr (Bits == 128) {
                         return bitcast<mask_register_type>(_mm_cmpeq_ps(left, right));
                     } else if constexpr (Bits == 256 && RAINY_SIMD_AVX) {
-                        return bitcast<mask_register_type>(_mm256_cmpeq_ps(left, right));
+                        return bitcast<mask_register_type>(_mm256_cmp_ps(left, right, _CMP_EQ_OQ));
                     } else {
                         return lane_mask<0>(left, right);
                     }
@@ -723,7 +723,7 @@ namespace rainy::core::implements {
                     if constexpr (Bits == 128) {
                         return bitcast<mask_register_type>(_mm_cmpeq_pd(left, right));
                     } else if constexpr (Bits == 256 && RAINY_SIMD_AVX) {
-                        return bitcast<mask_register_type>(_mm256_cmpeq_pd(left, right));
+                        return bitcast<mask_register_type>(_mm256_cmp_pd(left, right, _CMP_EQ_OQ));
                     } else {
                         return lane_mask<0>(left, right);
                     }
@@ -743,7 +743,7 @@ namespace rainy::core::implements {
                     if constexpr (Bits == 128) {
                         return bitcast<mask_register_type>(_mm_cmplt_ps(left, right));
                     } else if constexpr (Bits == 256 && RAINY_SIMD_AVX) {
-                        return bitcast<mask_register_type>(_mm256_cmplt_ps(left, right));
+                        return bitcast<mask_register_type>(_mm256_cmp_ps(left, right, _CMP_LT_OS));
                     } else {
                         return lane_mask<2>(left, right);
                     }
@@ -751,7 +751,7 @@ namespace rainy::core::implements {
                     if constexpr (Bits == 128) {
                         return bitcast<mask_register_type>(_mm_cmplt_pd(left, right));
                     } else if constexpr (Bits == 256 && RAINY_SIMD_AVX) {
-                        return bitcast<mask_register_type>(_mm256_cmplt_pd(left, right));
+                        return bitcast<mask_register_type>(_mm256_cmp_pd(left, right, _CMP_LT_OS));
                     } else {
                         return lane_mask<2>(left, right);
                     }
@@ -769,7 +769,7 @@ namespace rainy::core::implements {
                     if constexpr (Bits == 128) {
                         return bitcast<mask_register_type>(_mm_cmple_ps(left, right));
                     } else if constexpr (Bits == 256 && RAINY_SIMD_AVX) {
-                        return bitcast<mask_register_type>(_mm256_cmple_ps(left, right));
+                        return bitcast<mask_register_type>(_mm256_cmp_ps(left, right, _CMP_LE_OS));
                     } else {
                         return lane_mask<3>(left, right);
                     }
@@ -777,7 +777,7 @@ namespace rainy::core::implements {
                     if constexpr (Bits == 128) {
                         return bitcast<mask_register_type>(_mm_cmple_pd(left, right));
                     } else if constexpr (Bits == 256 && RAINY_SIMD_AVX) {
-                        return bitcast<mask_register_type>(_mm256_cmple_pd(left, right));
+                        return bitcast<mask_register_type>(_mm256_cmp_pd(left, right, _CMP_LE_OS));
                     } else {
                         return lane_mask<3>(left, right);
                     }
@@ -793,7 +793,7 @@ namespace rainy::core::implements {
                     if constexpr (Bits == 128) {
                         return bitcast<mask_register_type>(_mm_cmpgt_ps(left, right));
                     } else if constexpr (Bits == 256 && RAINY_SIMD_AVX) {
-                        return bitcast<mask_register_type>(_mm256_cmpgt_ps(left, right));
+                        return bitcast<mask_register_type>(_mm256_cmp_ps(left, right, _CMP_GT_OS));
                     } else {
                         return lane_mask<4>(left, right);
                     }
@@ -801,7 +801,7 @@ namespace rainy::core::implements {
                     if constexpr (Bits == 128) {
                         return bitcast<mask_register_type>(_mm_cmpgt_pd(left, right));
                     } else if constexpr (Bits == 256 && RAINY_SIMD_AVX) {
-                        return bitcast<mask_register_type>(_mm256_cmpgt_pd(left, right));
+                        return bitcast<mask_register_type>(_mm256_cmp_pd(left, right, _CMP_GT_OS));
                     } else {
                         return lane_mask<4>(left, right);
                     }
@@ -819,7 +819,7 @@ namespace rainy::core::implements {
                     if constexpr (Bits == 128) {
                         return bitcast<mask_register_type>(_mm_cmpge_ps(left, right));
                     } else if constexpr (Bits == 256 && RAINY_SIMD_AVX) {
-                        return bitcast<mask_register_type>(_mm256_cmpge_ps(left, right));
+                        return bitcast<mask_register_type>(_mm256_cmp_ps(left, right, _CMP_GE_OS));
                     } else {
                         return lane_mask<5>(left, right);
                     }
@@ -827,7 +827,7 @@ namespace rainy::core::implements {
                     if constexpr (Bits == 128) {
                         return bitcast<mask_register_type>(_mm_cmpge_pd(left, right));
                     } else if constexpr (Bits == 256 && RAINY_SIMD_AVX) {
-                        return bitcast<mask_register_type>(_mm256_cmpge_pd(left, right));
+                        return bitcast<mask_register_type>(_mm256_cmp_pd(left, right, _CMP_GE_OS));
                     } else {
                         return lane_mask<5>(left, right);
                     }
