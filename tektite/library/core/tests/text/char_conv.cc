@@ -254,7 +254,10 @@ TEST_CASE("Integer to_chars - Buffer boundary tests", "[to_chars][integer][buffe
 }
 
 TEST_CASE("Integer from_chars - All signed types boundaries", "[from_chars][integer][extreme]") {
-    using std::string_view;
+    using utility::begin;
+    using utility::end;
+    using text::string_view;
+
     constexpr string_view sc_max = "127";
     constexpr string_view sc_min = "-128";
     constexpr string_view sc_ovf = "128";
@@ -454,8 +457,10 @@ TEST_CASE("Integer from_chars - All signed types boundaries", "[from_chars][inte
 }
 
 TEST_CASE("Integer from_chars - All bases exhaustive", "[from_chars][integer][bases]") {
-    using std::string_view;
-
+    using utility::begin;
+    using utility::end;
+    using text::string_view;
+    
     constexpr string_view zero = "0";
     constexpr string_view one = "1";
 
@@ -602,7 +607,9 @@ TEST_CASE("Integer from_chars - All bases exhaustive", "[from_chars][integer][ba
 }
 
 TEST_CASE("Integer from_chars - Invalid input coverage", "[from_chars][integer][invalid]") {
-    using std::string_view;
+    using utility::begin;
+    using utility::end;
+    using text::string_view;
 
     constexpr string_view empty = "";
     constexpr string_view ws3 = "   ";
@@ -708,8 +715,9 @@ TEST_CASE("Integer from_chars - Invalid input coverage", "[from_chars][integer][
 }
 
 TEST_CASE("Integer from_chars - Overflow detection exhaustive", "[from_chars][integer][overflow]") {
-    using std::string_view;
-
+    using utility::begin;
+    using utility::end;
+    using text::string_view;
 
     constexpr string_view sc_1000 = "1000";
     constexpr string_view sc_neg1000 = "-1000";
@@ -1042,8 +1050,9 @@ TEST_CASE("Float to_chars - Precision edge cases", "[to_chars][float][precision]
 }
 
 TEST_CASE("Float from_chars - All special value strings", "[from_chars][float][special]") {
-    using std::string_view;
-
+    using utility::begin;
+    using utility::end;
+    using text::string_view;
 
     constexpr string_view inf_lc = "inf";
     constexpr string_view inf_cap = "Inf";
@@ -1146,8 +1155,9 @@ TEST_CASE("Float from_chars - All special value strings", "[from_chars][float][s
 }
 
 TEST_CASE("Float from_chars - Extreme magnitudes", "[from_chars][float][magnitude]") {
-    using std::string_view;
-
+    using utility::begin;
+    using utility::end;
+    using text::string_view;
 
     constexpr string_view fl_max = "3.4e38";
     constexpr string_view fl_ovf_bound = "3.5e38";
@@ -1230,8 +1240,9 @@ TEST_CASE("Float from_chars - Extreme magnitudes", "[from_chars][float][magnitud
 }
 
 TEST_CASE("Float from_chars - All format strings", "[from_chars][float][formats]") {
-    using std::string_view;
-
+    using utility::begin;
+    using utility::end;
+    using text::string_view;
 
     constexpr string_view sci_e_lc = "1.5e10";
     constexpr string_view sci_E_uc = "1.5E10";
@@ -1414,8 +1425,9 @@ TEST_CASE("Float from_chars - All format strings", "[from_chars][float][formats]
 }
 
 TEST_CASE("Float from_chars - Invalid input exhaustive", "[from_chars][float][invalid]") {
-    using std::string_view;
-
+    using utility::begin;
+    using utility::end;
+    using text::string_view;
 
     constexpr string_view empty = "";
     constexpr string_view ws3 = "   ";

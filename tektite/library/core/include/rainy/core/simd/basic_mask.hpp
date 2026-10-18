@@ -278,13 +278,13 @@ namespace rainy::core::implements {
 
 namespace rainy::core {
     template <std::size_t Bytes, typename Abi, typename Ty, typename U>
-    constexpr auto select(const basic_mask<Bytes, Abi> &c, const Ty &a, const U &b) noexcept
+    RAINY_CONSTEXPR26 auto select(const basic_mask<Bytes, Abi> &c, const Ty &a, const U &b) noexcept
         -> decltype(simd_select_impl(c, a, b)) {
         return simd_select_impl(c, a, b);
     }
 
     template <std::size_t Bytes, typename Abi>
-    constexpr bool all_of(const basic_mask<Bytes, Abi> &k) noexcept {
+    RAINY_CONSTEXPR26 bool all_of(const basic_mask<Bytes, Abi> &k) noexcept {
         for (simd_size_type i = 0; i < basic_mask<Bytes, Abi>::size(); ++i) {
             if (!k[i]) {
                 return false;
@@ -294,7 +294,7 @@ namespace rainy::core {
     }
 
     template <std::size_t Bytes, typename Abi>
-    constexpr bool any_of(const basic_mask<Bytes, Abi> &k) noexcept {
+    RAINY_CONSTEXPR26 bool any_of(const basic_mask<Bytes, Abi> &k) noexcept {
         for (simd_size_type i = 0; i < basic_mask<Bytes, Abi>::size(); ++i) {
             if (k[i]) {
                 return true;
@@ -304,12 +304,12 @@ namespace rainy::core {
     }
 
     template <std::size_t Bytes, typename Abi>
-    constexpr bool none_of(const basic_mask<Bytes, Abi> &k) noexcept {
+    RAINY_CONSTEXPR26 bool none_of(const basic_mask<Bytes, Abi> &k) noexcept {
         return !any_of(k);
     }
 
     template <std::size_t Bytes, typename Abi>
-    constexpr simd_size_type reduce_count(const basic_mask<Bytes, Abi> &k) noexcept {
+    RAINY_CONSTEXPR26 simd_size_type reduce_count(const basic_mask<Bytes, Abi> &k) noexcept {
         simd_size_type count = 0;
         for (simd_size_type i = 0; i < basic_mask<Bytes, Abi>::size(); ++i) {
             if (k[i]) {
@@ -320,7 +320,7 @@ namespace rainy::core {
     }
 
     template <std::size_t Bytes, typename Abi>
-    constexpr simd_size_type reduce_min_index(const basic_mask<Bytes, Abi> &k) {
+    RAINY_CONSTEXPR26 simd_size_type reduce_min_index(const basic_mask<Bytes, Abi> &k) {
         for (simd_size_type i = 0; i < basic_mask<Bytes, Abi>::size(); ++i) {
             if (k[i]) {
                 return i;
@@ -330,7 +330,7 @@ namespace rainy::core {
     }
 
     template <std::size_t Bytes, typename Abi>
-    constexpr simd_size_type reduce_max_index(const basic_mask<Bytes, Abi> &k) {
+    RAINY_CONSTEXPR26 simd_size_type reduce_max_index(const basic_mask<Bytes, Abi> &k) {
         simd_size_type result = 0;
         for (simd_size_type i = 0; i < basic_mask<Bytes, Abi>::size(); ++i) {
             if (k[i]) {
@@ -340,27 +340,27 @@ namespace rainy::core {
         return result;
     }
 
-    constexpr bool all_of(bool val) noexcept {
+    RAINY_CONSTEXPR26 RAINY_INLINE bool all_of(bool val) noexcept {
         return val;
     }
 
-    constexpr bool any_of(bool val) noexcept {
+    RAINY_CONSTEXPR26 RAINY_INLINE bool any_of(bool val) noexcept {
         return val;
     }
 
-    constexpr bool none_of(bool val) noexcept {
+    RAINY_CONSTEXPR26 RAINY_INLINE bool none_of(bool val) noexcept {
         return !val;
     }
 
-    constexpr simd_size_type reduce_count(bool val) noexcept {
+    RAINY_CONSTEXPR26 RAINY_INLINE simd_size_type reduce_count(bool val) noexcept {
         return static_cast<simd_size_type>(val);
     }
 
-    constexpr simd_size_type reduce_min_index(bool val) {
+    RAINY_CONSTEXPR26 RAINY_INLINE simd_size_type reduce_min_index(bool val) {
         return static_cast<simd_size_type>(0);
     }
 
-    constexpr simd_size_type reduce_max_index(bool val) {
+    RAINY_CONSTEXPR26 RAINY_INLINE simd_size_type reduce_max_index(bool val) {
         return static_cast<simd_size_type>(0);
     }
 

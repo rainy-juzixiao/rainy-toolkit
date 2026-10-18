@@ -3670,8 +3670,15 @@ namespace rainy::type_traits::extras::iterators {
      *
      * @tparam It 要检查的类型
      */
+    template <typename It, typename = void>
+    RAINY_CONSTEXPR_BOOL is_bidirectional_iterator_v = false;
+
     template <typename It>
-    RAINY_CONSTEXPR_BOOL is_bidirectional_iterator_v = is_forward_iterator_v<It> && meta_method::has_operator_predec_v<It>;
+    RAINY_CONSTEXPR_BOOL
+        is_bidirectional_iterator_v<
+            It, other_trans::void_t<decltype(--utility::declval<It &>()), decltype(utility::declval<It &>()--)>> =
+            is_forward_iterator_v<It> && type_relations::is_same_v<decltype(--utility::declval<It &>()), It &> &&
+            type_relations::is_same_v<decltype(utility::declval<It &>()--), It>;
 
     /**
      * \lang english

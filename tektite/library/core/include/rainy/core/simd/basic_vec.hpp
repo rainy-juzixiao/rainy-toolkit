@@ -33,7 +33,7 @@ namespace rainy::core::implements {
     RAINY_CONSTEXPR_BOOL is_basic_vec_v = is_basic_vec<V>::value;
 
     template <typename From, typename To>
-    RAINY_CONSTEXPR26 bool is_value_preserving() noexcept {
+    constexpr bool is_value_preserving() noexcept {
         using from_t = type_traits::implements::remove_cvref_t<From>;
         using to_t = type_traits::implements::remove_cvref_t<To>;
         if constexpr (type_traits::type_relations::is_same_v<from_t, to_t>) {
@@ -494,15 +494,18 @@ namespace rainy::core::implements {
     RAINY_CONSTEXPR26 Ty reduce_selected(const basic_vec<Ty, Abi> &val, Selected selected,
                                          type_traits::primary_types::type_identity_t<Ty> identity_element, BinaryOperation binary_op) {
         using carrier = basic_vec<Ty, scalar_abi>;
+        using ops = simd_ops<Ty, Abi>;
+        const auto data = static_cast<typename basic_vec<Ty, Abi>::register_type>(val);
         carrier acc(identity_element);
         bool started = false;
         for (simd_size_type i = 0; i < simd_size_v<Ty, Abi>; ++i) {
             if (selected(i)) {
+                const Ty lane = ops::get_lane(data, i);
                 if (!started) {
-                    acc = carrier(val[i]);
+                    acc = carrier(lane);
                     started = true;
                 } else {
-                    acc = binary_op(acc, carrier(val[i]));
+                    acc = binary_op(acc, carrier(lane));
                 }
             }
         }
@@ -607,10 +610,13 @@ namespace rainy::core {
 
     template <typename Ty, typename Abi>
     RAINY_CONSTEXPR26 Ty reduce_min(const basic_vec<Ty, Abi> &val) noexcept {
-        Ty result = val[0];
+        using ops = implements::simd_ops<Ty, Abi>;
+        const auto data = static_cast<typename basic_vec<Ty, Abi>::register_type>(val);
+        Ty result = ops::get_lane(data, 0);
         for (simd_size_type i = 1; i < simd_size_v<Ty, Abi>; ++i) {
-            if (val[i] < result) {
-                result = val[i];
+            const Ty lane = ops::get_lane(data, i);
+            if (lane < result) {
+                result = lane;
             }
         }
         return result;
@@ -629,10 +635,13 @@ namespace rainy::core {
 
     template <typename Ty, typename Abi>
     RAINY_CONSTEXPR26 Ty reduce_max(const basic_vec<Ty, Abi> &val) noexcept {
-        Ty result = val[0];
+        using ops = implements::simd_ops<Ty, Abi>;
+        const auto data = static_cast<typename basic_vec<Ty, Abi>::register_type>(val);
+        Ty result = ops::get_lane(data, 0);
         for (simd_size_type i = 1; i < simd_size_v<Ty, Abi>; ++i) {
-            if (val[i] > result) {
-                result = val[i];
+            const Ty lane = ops::get_lane(data, i);
+            if (lane > result) {
+                result = lane;
             }
         }
         return result;
