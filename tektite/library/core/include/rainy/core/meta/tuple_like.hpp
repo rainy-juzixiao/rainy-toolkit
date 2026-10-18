@@ -254,7 +254,7 @@ namespace rainy::core::meta::implements {
         static constexpr rain_fn make() noexcept -> auto {                                                                            \
             auto &[RAINY_TO_TUPLE_EXPAND_ARGS(N)] =                                                                                   \
                 type_traits::helper::get_fake_object<type_traits::modifers::remove_cvref_t<Ty>>();                                    \
-            auto ref_tup = std::tie(RAINY_TO_TUPLE_EXPAND_ARGS(N));                                                                   \
+            auto ref_tup = container::tie(RAINY_TO_TUPLE_EXPAND_ARGS(N));                                                                   \
             auto get_ptrs = [](auto &..._refs) { return core::container::make_tuple(&_refs...); };                                    \
             return container::apply(get_ptrs, ref_tup);                                                                               \
         }                                                                                                                             \
@@ -263,7 +263,7 @@ namespace rainy::core::meta::implements {
                       rainy::type_traits::type_relations::is_same_v<type_traits::modifers::remove_cvref_t<UTy>, Ty>, int> = 0>        \
         static constexpr rain_fn make_ptr(UTy &&obj) noexcept -> auto {                                                               \
             auto &[RAINY_TO_TUPLE_EXPAND_ARGS(N)] = obj;                                                                              \
-            auto ref_tup = std::tie(RAINY_TO_TUPLE_EXPAND_ARGS(N));                                                                   \
+            auto ref_tup = container::tie(RAINY_TO_TUPLE_EXPAND_ARGS(N));                                                                   \
             auto get_ptrs = [](auto &..._refs) { return core::container::make_tuple(&_refs...); };                                    \
             return container::apply(get_ptrs, ref_tup);                                                                               \
         }                                                                                                                             \

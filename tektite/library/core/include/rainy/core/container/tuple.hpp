@@ -892,6 +892,11 @@ namespace rainy::core::container {
             return apply_impl(utility::forward<Func>(func), type_traits::helper::make_index_sequence<sizeof...(Types)>{});
         }
 
+        template <typename Func>
+        constexpr auto apply(Func &&func) & {
+            return apply_impl(utility::forward<Func>(func), type_traits::helper::make_index_sequence<sizeof...(Types)>{});
+        }
+
         /**
          * \lang english
          * @brief Applies a function to the elements of the tuple.
@@ -983,6 +988,11 @@ namespace rainy::core::container {
 
         template <typename Func, std::size_t... Is>
         constexpr auto apply_impl(Func &&func, type_traits::helper::index_sequence<Is...>) const & {
+            return utility::forward<Func>(func)(get<Is>()...);
+        }
+
+        template <typename Func, std::size_t... Is>
+        constexpr auto apply_impl(Func &&func, type_traits::helper::index_sequence<Is...>) & {
             return utility::forward<Func>(func)(get<Is>()...);
         }
 
@@ -1332,6 +1342,11 @@ namespace rainy::core::container {
         return t.apply(utility::forward<Func>(func));
     }
 
+    template <typename Func, typename... Types>
+    constexpr auto apply(Func &&func, tuple<Types...> &t) {
+        return t.apply(utility::forward<Func>(func));
+    }
+
     /**
      * \lang english
      * @brief Applies a function to the elements of a tuple (rvalue version).
@@ -1394,6 +1409,26 @@ namespace rainy::core::container {
     template <typename... Types>
     constexpr tuple<Types &&...> forward_as_tuple(Types &&...args) noexcept {
         return tuple<Types &&...>(utility::forward<Types>(args)...);
+    }
+
+    /**
+     * \lang english
+     * @brief Creates a tuple of lvalue references to the arguments.
+     *
+     * @tparam Types The types of the arguments
+     * @param args The values to create references to
+     * @return A tuple containing lvalue references to the arguments
+     *
+     * \lang simp-chinese
+     * @brief 创建参数左值引用的tuple。
+     *
+     * @tparam Types 参数的类型
+     * @param args 要创建引用的值
+     * @return 包含参数左值引用的tuple
+     */
+    template <typename... Types>
+    constexpr tuple<Types &...> tie(Types &...args) noexcept {
+        return tuple<Types &...>(args...);
     }
 
     /**
@@ -1516,6 +1551,7 @@ namespace rainy::utility::container {
     using rainy::core::container::forward_as_tuple;
     using rainy::core::container::get;
     using rainy::core::container::make_tuple;
+    using rainy::core::container::tie;
 
     using rainy::core::container::tuple_element;
     using rainy::core::container::tuple_element_t;
@@ -1586,6 +1622,7 @@ namespace rainy::container {
     using rainy::core::container::apply;
     using rainy::core::container::make_tuple;
     using rainy::core::container::forward_as_tuple;
+    using rainy::core::container::tie;
     using rainy::core::container::swap;
     using rainy::core::container::tuple_cat;
     using rainy::core::container::operator==;

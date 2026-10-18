@@ -343,22 +343,22 @@ namespace rainy::core {
     }
 
     template <typename V, implements::enable_if_math_t<V>>
-    deduced_vec_t<V> nearbyint(const V &val) {
+    RAINY_CONSTEXPR26 deduced_vec_t<V> nearbyint(const V &val) {
         return implements::map_unary<deduced_vec_t<V>>(val, [](auto x) { return std::nearbyint(x); });
     }
 
     template <typename V, implements::enable_if_math_t<V>>
-    deduced_vec_t<V> rint(const V &val) {
+    RAINY_CONSTEXPR26 deduced_vec_t<V> rint(const V &val) {
         return implements::map_unary<deduced_vec_t<V>>(val, [](auto x) { return std::rint(x); });
     }
 
     template <typename V, implements::enable_if_math_t<V>>
-    rebind_t<long int, deduced_vec_t<V>> lrint(const V &val) {
+    RAINY_CONSTEXPR26 rebind_t<long int, deduced_vec_t<V>> lrint(const V &val) {
         return implements::map_unary<rebind_t<long int, deduced_vec_t<V>>>(val, [](auto x) { return std::lrint(x); });
     }
 
     template <typename V, implements::enable_if_math_t<V>>
-    rebind_t<long long int, deduced_vec_t<V>> llrint(const V &val) {
+    RAINY_CONSTEXPR26 rebind_t<long long int, deduced_vec_t<V>> llrint(const V &val) {
         return implements::map_unary<rebind_t<long long int, deduced_vec_t<V>>>(val,
                                                                                 [](auto x) { return std::llrint(x); });
     }

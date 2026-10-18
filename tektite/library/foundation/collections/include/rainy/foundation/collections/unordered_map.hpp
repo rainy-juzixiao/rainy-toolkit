@@ -31,7 +31,7 @@ namespace rainy::foundation::collections::implements {
         template <typename>
         friend class unordered_map_iterator;
 
-        using first_type = decltype(std::as_const(std::declval<Iter>()->first));
+        using first_type = decltype(std::as_const(utility::declval<Iter>()->first));
         using second_type = decltype((utility::declval<Iter>()->second));
 
         using value_type = container::pair<first_type, second_type>;
@@ -605,8 +605,9 @@ namespace rainy::foundation::collections::implements {
             return const_iterator(it);
         }
 
-        template <typename K>
-        auto find(const K &key) -> decltype(equal_(std::declval<const key_type &>(), key), iterator()) {
+        template <typename K,
+                  typename = decltype(equal_(utility::declval<const key_type &>(), utility::declval<const K &>()))>
+        iterator find(const K &key) {
             if (buckets_.empty()) {
                 return end();
             }
@@ -616,8 +617,9 @@ namespace rainy::foundation::collections::implements {
             return iterator(it);
         }
 
-        template <typename K>
-        auto find(const K &key) const -> decltype(equal_(utility::declval<const key_type &>(), key), const_iterator()) {
+        template <typename K,
+                  typename = decltype(equal_(utility::declval<const key_type &>(), utility::declval<const K &>()))>
+        const_iterator find(const K &key) const {
             if (buckets_.empty()) {
                 return end();
             }

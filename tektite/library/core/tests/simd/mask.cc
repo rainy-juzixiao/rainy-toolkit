@@ -153,8 +153,8 @@ TEMPLATE_TEST_CASE("basic_mask conversions and select", "[simd][mask]", simd_vec
         CHECK(converted[i] == from_small[i]);
     }
 
-    STATIC_REQUIRE(!std::is_constructible_v<mask_type, bool, bool>);
-    STATIC_REQUIRE(rc::all_of(static_cast<bool>(true)));
+    CHECK(!std::is_constructible_v<mask_type, bool, bool>);
+    CHECK(rc::all_of(static_cast<bool>(true)));
     CHECK(rc::reduce_count(true) == 1);
     CHECK(rc::reduce_count(false) == 0);
     CHECK(!rc::any_of(false));

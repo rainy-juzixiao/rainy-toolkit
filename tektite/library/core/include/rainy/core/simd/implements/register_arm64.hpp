@@ -13,14 +13,20 @@
 namespace rainy::core::implements {
 #if RAINY_USING_MSVC
     template <typename Ty, std::size_t Bits>
+    struct simd_register_storage {
+        Ty lanes[Bits / (8 * sizeof(Ty))];
+    };
+
+    template <typename Ty, std::size_t Bits>
     struct simd_register<Ty, vector_abi<Bits>> {
-        using type = type_traits::other_trans::conditional_t<
+        using neon_type = type_traits::other_trans::conditional_t<
             type_traits::primary_types::is_floating_point_v<Ty>,
             type_traits::other_trans::conditional_t<sizeof(Ty) == 4, float32x4_t, float64x2_t>,
             type_traits::other_trans::conditional_t<
                 sizeof(Ty) == 1, int8x16_t,
                 type_traits::other_trans::conditional_t<
                     sizeof(Ty) == 2, int16x8_t, type_traits::other_trans::conditional_t<sizeof(Ty) == 4, int32x4_t, int64x2_t>>>>;
+        using type = type_traits::other_trans::conditional_t<Bits == 128, neon_type, simd_register_storage<Ty, Bits>>;
     };
 #else
     template <typename Ty, std::size_t Bits>
@@ -34,9 +40,12 @@ namespace rainy::core::implements {
 #endif
 
 #if RAINY_USING_MSVC
-    template <typename Ty, std::size_t Bits>
-    struct simd_ops<Ty, vector_abi<Bits>> {
-        static_assert(Bits == 128, "NEON backend provides 128-bit registers only");
+    template <typename Ty, std::size_t Bits, bool IsNeonWidth>
+    struct simd_ops_arm64;
+
+    template <typename Ty>
+    struct simd_ops_arm64<Ty, 128, true> {
+        static constexpr std::size_t Bits = 128;
 
         using register_type = typename simd_register<Ty, vector_abi<Bits>>::type;
         using mask_register_type = register_t<integer_from_t<sizeof(Ty)>, vector_abi<Bits>>;
@@ -467,6 +476,192 @@ namespace rainy::core::implements {
             return result;
         }
     };
+
+    template <typename Ty, std::size_t Bits>
+    struct simd_ops_arm64<Ty, Bits, false> {
+        using register_type = typename simd_register<Ty, vector_abi<Bits>>::type;
+        using mask_register_type = register_t<integer_from_t<sizeof(Ty)>, vector_abi<Bits>>;
+        static constexpr simd_size_type size = simd_size_v<Ty, vector_abi<Bits>>;
+
+        static RAINY_CONSTEXPR26 register_type broadcast(Ty value) noexcept {
+            register_type result{};
+            for (simd_size_type i = 0; i < size; ++i) {
+                result.lanes[i] = value;
+            }
+            return result;
+        }
+
+        static RAINY_CONSTEXPR26 Ty get_lane(const register_type &reg, simd_size_type i) noexcept {
+            return reg.lanes[i];
+        }
+
+        static RAINY_CONSTEXPR26 void set_lane(register_type &reg, simd_size_type i, Ty value) noexcept {
+            reg.lanes[i] = value;
+        }
+
+        static RAINY_CONSTEXPR26 register_type add(register_type left, register_type right) noexcept {
+            return lane_binary(left, right, [](Ty a, Ty b) { return static_cast<Ty>(a + b); });
+        }
+
+        static RAINY_CONSTEXPR26 register_type sub(register_type left, register_type right) noexcept {
+            return lane_binary(left, right, [](Ty a, Ty b) { return static_cast<Ty>(a - b); });
+        }
+
+        static RAINY_CONSTEXPR26 register_type mul(register_type left, register_type right) noexcept {
+            return lane_binary(left, right, [](Ty a, Ty b) { return static_cast<Ty>(a * b); });
+        }
+
+        static RAINY_CONSTEXPR26 register_type div(register_type left, register_type right) noexcept {
+            return lane_binary(left, right, [](Ty a, Ty b) { return static_cast<Ty>(a / b); });
+        }
+
+        static RAINY_CONSTEXPR26 register_type mod(register_type left, register_type right) noexcept {
+            return lane_binary(left, right, [](Ty a, Ty b) { return static_cast<Ty>(a % b); });
+        }
+
+        static RAINY_CONSTEXPR26 register_type bit_and(register_type left, register_type right) noexcept {
+            return lane_binary(left, right, [](Ty a, Ty b) { return static_cast<Ty>(a & b); });
+        }
+
+        static RAINY_CONSTEXPR26 register_type bit_or(register_type left, register_type right) noexcept {
+            return lane_binary(left, right, [](Ty a, Ty b) { return static_cast<Ty>(a | b); });
+        }
+
+        static RAINY_CONSTEXPR26 register_type bit_xor(register_type left, register_type right) noexcept {
+            return lane_binary(left, right, [](Ty a, Ty b) { return static_cast<Ty>(a ^ b); });
+        }
+
+        static RAINY_CONSTEXPR26 register_type shl(register_type left, register_type right) noexcept {
+            return lane_binary(left, right, [](Ty a, Ty b) { return static_cast<Ty>(a << b); });
+        }
+
+        static RAINY_CONSTEXPR26 register_type shr(register_type left, register_type right) noexcept {
+            return lane_binary(left, right, [](Ty a, Ty b) { return static_cast<Ty>(a >> b); });
+        }
+
+        static RAINY_CONSTEXPR26 register_type shl_scalar(register_type left, simd_size_type count) noexcept {
+            register_type result{};
+            for (simd_size_type i = 0; i < size; ++i) {
+                result.lanes[i] = static_cast<Ty>(left.lanes[i] << count);
+            }
+            return result;
+        }
+
+        static RAINY_CONSTEXPR26 register_type shr_scalar(register_type left, simd_size_type count) noexcept {
+            register_type result{};
+            for (simd_size_type i = 0; i < size; ++i) {
+                result.lanes[i] = static_cast<Ty>(left.lanes[i] >> count);
+            }
+            return result;
+        }
+
+        static RAINY_CONSTEXPR26 register_type negate(register_type reg) noexcept {
+            register_type result{};
+            for (simd_size_type i = 0; i < size; ++i) {
+                result.lanes[i] = static_cast<Ty>(-reg.lanes[i]);
+            }
+            return result;
+        }
+
+        static RAINY_CONSTEXPR26 register_type bit_not(register_type reg) noexcept {
+            register_type result{};
+            for (simd_size_type i = 0; i < size; ++i) {
+                result.lanes[i] = static_cast<Ty>(~reg.lanes[i]);
+            }
+            return result;
+        }
+
+        static RAINY_CONSTEXPR26 mask_register_type cmp_eq(register_type left, register_type right) noexcept {
+            return compare(left, right, [](Ty a, Ty b) { return a == b; });
+        }
+
+        static RAINY_CONSTEXPR26 mask_register_type cmp_ne(register_type left, register_type right) noexcept {
+            return compare(left, right, [](Ty a, Ty b) { return a != b; });
+        }
+
+        static RAINY_CONSTEXPR26 mask_register_type cmp_lt(register_type left, register_type right) noexcept {
+            return compare(left, right, [](Ty a, Ty b) { return a < b; });
+        }
+
+        static RAINY_CONSTEXPR26 mask_register_type cmp_le(register_type left, register_type right) noexcept {
+            return compare(left, right, [](Ty a, Ty b) { return a <= b; });
+        }
+
+        static RAINY_CONSTEXPR26 mask_register_type cmp_gt(register_type left, register_type right) noexcept {
+            return compare(left, right, [](Ty a, Ty b) { return a > b; });
+        }
+
+        static RAINY_CONSTEXPR26 mask_register_type cmp_ge(register_type left, register_type right) noexcept {
+            return compare(left, right, [](Ty a, Ty b) { return a >= b; });
+        }
+
+        static RAINY_CONSTEXPR26 register_type blend(const mask_register_type &mask, const register_type &on_true,
+                                                     const register_type &on_false) noexcept {
+            register_type result{};
+            for (simd_size_type i = 0; i < size; ++i) {
+                result.lanes[i] = mask.lanes[i] != 0 ? on_true.lanes[i] : on_false.lanes[i];
+            }
+            return result;
+        }
+
+        template <typename U, typename UAbi>
+        static RAINY_CONSTEXPR26 register_type convert(const register_t<U, UAbi> &src) noexcept {
+            register_type result{};
+            for (simd_size_type i = 0; i < size; ++i) {
+                result.lanes[i] = static_cast<Ty>(simd_ops<U, UAbi>::get_lane(src, i));
+            }
+            return result;
+        }
+
+        static RAINY_CONSTEXPR26 register_type min_reg(register_type left, register_type right) noexcept {
+            return blend(cmp_lt(right, left), right, left);
+        }
+
+        static RAINY_CONSTEXPR26 register_type max_reg(register_type left, register_type right) noexcept {
+            return blend(cmp_lt(left, right), right, left);
+        }
+
+        static RAINY_CONSTEXPR26 register_type load(const Ty *ptr) noexcept {
+            register_type result{};
+            for (simd_size_type i = 0; i < size; ++i) {
+                result.lanes[i] = ptr[i];
+            }
+            return result;
+        }
+
+        static RAINY_CONSTEXPR26 void store(Ty *ptr, const register_type &reg) noexcept {
+            for (simd_size_type i = 0; i < size; ++i) {
+                ptr[i] = reg.lanes[i];
+            }
+        }
+
+    private:
+        template <typename Fn>
+        static RAINY_CONSTEXPR26 register_type lane_binary(const register_type &left, const register_type &right,
+                                                           Fn fn) noexcept {
+            register_type result{};
+            for (simd_size_type i = 0; i < size; ++i) {
+                result.lanes[i] = fn(left.lanes[i], right.lanes[i]);
+            }
+            return result;
+        }
+
+        template <typename Fn>
+        static RAINY_CONSTEXPR26 mask_register_type compare(const register_type &left, const register_type &right,
+                                                            Fn fn) noexcept {
+            mask_register_type result{};
+            for (simd_size_type i = 0; i < size; ++i) {
+                result.lanes[i] = fn(left.lanes[i], right.lanes[i])
+                                      ? static_cast<integer_from_t<sizeof(Ty)>>(-1)
+                                      : static_cast<integer_from_t<sizeof(Ty)>>(0);
+            }
+            return result;
+        }
+    };
+
+    template <typename Ty, std::size_t Bits>
+    struct simd_ops<Ty, vector_abi<Bits>> : simd_ops_arm64<Ty, Bits, Bits == 128> {};
+
 #else
     template <typename Ty, std::size_t Bits>
     struct simd_ops<Ty, vector_abi<Bits>> {
