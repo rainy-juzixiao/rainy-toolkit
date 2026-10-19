@@ -18,8 +18,9 @@
 #include <rainy/core/platform.hpp>
 
 namespace rainy::foundation::container::implements {
-    template <typename Ty, std::size_t Length>
-    inline constexpr bool any_is_small = type_traits::properties::is_nothrow_move_constructible_v<Ty> && sizeof(Ty) <= Length;
+    template <typename Ty, std::size_t Length, std::size_t Align>
+    inline constexpr bool any_is_small =
+        type_traits::properties::is_nothrow_move_constructible_v<Ty> && sizeof(Ty) <= Length && alignof(Ty) <= Align;
 
     enum class any_representation : uintptr_t {
         big,
@@ -63,7 +64,7 @@ namespace rainy::foundation::container::implements {
 
         template <typename Ty>
         static void move(void *const target, void *const source) noexcept {
-            ::new (static_cast<Ty *>(target)) Ty(std::move(*static_cast<Ty *>(source)));
+            ::new (static_cast<Ty *>(target)) Ty(utility::move(*static_cast<Ty *>(source)));
         }
 
         destroy_fn *destroy_;

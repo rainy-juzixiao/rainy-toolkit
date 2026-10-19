@@ -203,8 +203,8 @@ TEST_CASE("any - as type retrieval", "[any]") {
 
 TEST_CASE("any - NEGATIVE - as type mismatch", "[any]") {
     any a = 42;
-    CHECK_THROWS_AS(a.as<double>(), std::bad_cast);
-    CHECK_THROWS_AS(a.as<std::string>(), std::bad_cast);
+    CHECK_THROWS_AS(a.as<double>(), rainy::core::exceptions::runtime::bad_cast);
+    CHECK_THROWS_AS(a.as<std::string>(), rainy::core::exceptions::runtime::bad_cast);
 }
 
 TEST_CASE("any - cast_to_pointer", "[any]") {
@@ -279,4 +279,54 @@ TEST_CASE("any - target_as_void_ptr", "[any]") {
     const void *ptr = a.target_as_void_ptr();
     CHECK(ptr != nullptr);
     CHECK(*static_cast<const int *>(ptr) == 42);
+}
+
+TEST_CASE("any - empty any query operations", "[any]") {
+    any a;
+    CHECK(a.size() == 0);
+    CHECK(a.begin() == a.end());
+    CHECK(a.begin().empty());
+    CHECK_FALSE(a.destructure([](int, int) {}));
+    CHECK_THROWS_AS(a.as<int>(), rainy::core::exceptions::runtime::bad_cast);
+    CHECK_THROWS_AS(a.hash_code(), rainy::core::exceptions::runtime::bad_cast);
+    CHECK_THROWS_AS(a.inner_decleartion_type(any_inner_declaertion::value_type),
+                    rainy::core::exceptions::runtime::bad_cast);
+    CHECK_THROWS_AS(a.convert<int>(), rainy::core::exceptions::runtime::bad_cast);
+}
+
+TEST_CASE("any - empty any arithmetic yields empty any", "[any]") {
+    any a;
+    any b = 1;
+    CHECK_FALSE((a + b).has_value());
+    CHECK_FALSE((b - a).has_value());
+    CHECK_FALSE((++a).has_value());
+    a.resize(4);
+    a.insert(a.begin(), b);
+    a.insert_as_maplike(b);
+    a.swap_value(b);
+    CHECK_FALSE(a.has_value());
+}
+
+TEST_CASE("any - moved-from any is empty", "[any]") {
+    any small = std::string("hello");
+    any moved_small = rainy::utility::move(small);
+    CHECK(moved_small.as<std::string>() == "hello");
+    CHECK_FALSE(small.has_value());
+
+    any big = std::string(400, 'x');
+    any moved_big = rainy::utility::move(big);
+    CHECK(moved_big.as<std::string>().size() == 400);
+    CHECK_FALSE(big.has_value());
+}
+
+TEST_CASE("any - over-aligned type is stored correctly", "[any]") {
+    struct alignas(32) over_aligned {
+        int value;
+    };
+    any a = over_aligned{7};
+    const auto *ptr = a.cast_to_pointer<over_aligned>();
+    CHECK(ptr != nullptr);
+    CHECK(reinterpret_cast<std::uintptr_t>(ptr) % 32 == 0);
+    CHECK(ptr->value == 7);
+    CHECK(a.as<over_aligned>().value == 7);
 }

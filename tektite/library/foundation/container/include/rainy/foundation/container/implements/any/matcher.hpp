@@ -27,13 +27,13 @@ namespace rainy::foundation::container::implements {
         explicit any_matcher(Handlers &&...hs) : handlers(std::forward<Handlers>(hs)...) {
         }
 
-        basic_any invoke(basic_any const &a) const noexcept {
+        basic_any invoke(basic_any const &a) const {
             return invoke_impl(a, type_traits::helper::make_index_sequence<sizeof...(Handlers)>{});
         }
 
     private:
         template <std::size_t I>
-        bool try_to_invoke(basic_any const &this_, basic_any &result) const noexcept {
+        bool try_to_invoke(basic_any const &this_, basic_any &result) const {
             using namespace type_traits::primary_types;
             using handler_t = std::tuple_element_t<I, std::tuple<Handlers...>>;
             using argument_t = typename type_traits::other_trans::type_at_t<0, typename function_traits<handler_t>::argument_list>;
@@ -87,7 +87,7 @@ namespace rainy::foundation::container::implements {
         }
 
         template <std::size_t... I>
-        basic_any invoke_impl(basic_any const &a, type_traits::helper::index_sequence<I...>) const noexcept {
+        basic_any invoke_impl(basic_any const &a, type_traits::helper::index_sequence<I...>) const {
             using namespace type_traits::other_trans;
             using namespace type_traits::primary_types;
             basic_any result{};

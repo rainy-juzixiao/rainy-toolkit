@@ -192,3 +192,12 @@ TEST_CASE("any - operators - NEGATIVE - empty any compared to empty any", "[any]
     CHECK_FALSE(a == b);
     CHECK_FALSE(a != b);
 }
+
+TEST_CASE("any - operators - const cast_to_pointer", "[any]") {
+    any a = 42;
+    const any &ca = a;
+    const int *ptr = ca.cast_to_pointer<int>();
+    CHECK(ptr != nullptr);
+    CHECK(*ptr == 42);
+    CHECK(ca.cast_to_pointer<double>() == nullptr);
+}

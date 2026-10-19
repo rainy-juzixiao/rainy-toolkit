@@ -130,7 +130,7 @@ TEST_CASE("any - convert - empty string edge cases", "[any]") {
 TEST_CASE("any - convert - NEGATIVE - incompatible type", "[any]") {
     any a = 42;
     CHECK(a.is_convertible<std::string>() == false);
-    CHECK_THROWS_AS(a.convert<std::string>(), std::bad_cast);
+    CHECK_THROWS_AS(a.convert<std::string>(), rainy::core::exceptions::runtime::bad_cast);
 }
 
 TEST_CASE("any - is_convertible by typeinfo", "[any]") {

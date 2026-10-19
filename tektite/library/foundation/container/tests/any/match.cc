@@ -16,6 +16,7 @@
 #include <catch2/catch_all.hpp>
 #include <rainy/foundation/container/any.hpp>
 
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -133,6 +134,11 @@ TEST_CASE("any - match - empty any returns empty", "[any]") {
     any a;
     any result = a.match([](int val) { return val; });
     CHECK(result.has_value() == false);
+}
+
+TEST_CASE("any - match - handler exception propagates", "[any]") {
+    any a = 42;
+    CHECK_THROWS_AS(a.match([](int val) -> int { throw std::runtime_error("handler"); }), std::runtime_error);
 }
 
 TEST_CASE("any - match - match on bool", "[any]") {

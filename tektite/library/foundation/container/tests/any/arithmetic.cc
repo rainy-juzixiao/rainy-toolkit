@@ -131,6 +131,7 @@ TEST_CASE("any - arithmetic - compound add assign", "[any]") {
     any b = 5;
     a += b;
     CHECK(a.has_value() == true);
+    CHECK(a.as<int>() == 15);
 }
 
 TEST_CASE("any - arithmetic - compound subtract assign", "[any]") {
@@ -138,6 +139,7 @@ TEST_CASE("any - arithmetic - compound subtract assign", "[any]") {
     any b = 10;
     a -= b;
     CHECK(a.has_value() == true);
+    CHECK(a.as<int>() == 20);
 }
 
 TEST_CASE("any - arithmetic - compound multiply assign", "[any]") {
@@ -145,6 +147,7 @@ TEST_CASE("any - arithmetic - compound multiply assign", "[any]") {
     any b = 4;
     a *= b;
     CHECK(a.has_value() == true);
+    CHECK(a.as<int>() == 20);
 }
 
 TEST_CASE("any - arithmetic - compound divide assign", "[any]") {
@@ -152,6 +155,7 @@ TEST_CASE("any - arithmetic - compound divide assign", "[any]") {
     any b = 5;
     a /= b;
     CHECK(a.has_value() == true);
+    CHECK(a.as<int>() == 20);
 }
 
 TEST_CASE("any - arithmetic - compound modulo assign", "[any]") {
@@ -159,19 +163,41 @@ TEST_CASE("any - arithmetic - compound modulo assign", "[any]") {
     any b = 5;
     a %= b;
     CHECK(a.has_value() == true);
+    CHECK(a.as<int>() == 2);
 }
 
 TEST_CASE("any - arithmetic - compound assignment chained", "[any]") {
     any a = 10;
     a += any(5);
     CHECK(a.has_value() == true);
+    CHECK(a.as<int>() == 15);
 
     any b = 100;
     b -= any(30);
     CHECK(b.has_value() == true);
+    CHECK(b.as<int>() == 70);
 
     b /= any(7);
     CHECK(b.has_value() == true);
+    CHECK(b.as<int>() == 10);
+}
+
+namespace {
+    struct add_only {
+        int value;
+
+        friend add_only operator+(const add_only &left, const add_only &right) {
+            return add_only{left.value + right.value};
+        }
+    };
+}
+
+TEST_CASE("any - arithmetic - compound assign falls back to binary operator", "[any]") {
+    any a = add_only{10};
+    any b = add_only{5};
+    a += b;
+    CHECK(a.has_value() == true);
+    CHECK(a.as<add_only>().value == 15);
 }
 
 TEST_CASE("any - arithmetic - chained operations", "[any]") {

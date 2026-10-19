@@ -35,6 +35,9 @@
 #endif
 
 namespace rainy::foundation::container::implements {
+    inline constexpr any_execution_policy any_void_execution_policy_object = {
+        +[](any_execution_policy::operation, void *, void *) noexcept -> bool { return false; }};
+
     template <typename TargetType, std::size_t Idx, bool IsReference = type_traits::composite_types::is_reference_v<TargetType>>
     struct convert_any_binding_package {
         static decltype(auto) impl(const any_binding_package &pkg) {
@@ -274,47 +277,71 @@ namespace rainy::foundation::container {
 }
 
 namespace rainy::foundation::container::implements {
+    template <typename Ty>
+    RAINY_CONSTEXPR_BOOL is_any_arithmetic_operand_v =
+        !type_traits::type_relations::is_same_v<bool, type_traits::modifers::remove_cvref_t<Ty>>;
+
     template <typename Ty, typename Any, bool WithEqual = false, typename = void>
     RAINY_CONSTEXPR_BOOL is_any_addable_v = false;
 
-    template <typename Ty, typename Any, bool WithEqual>
-    RAINY_CONSTEXPR_BOOL is_any_addable_v<Ty, Any, WithEqual, type_traits::other_trans::void_t<decltype(&any_magic_method<Ty, Any, WithEqual>::add)>> =
-        true;
+    template <typename Ty, typename Any>
+    RAINY_CONSTEXPR_BOOL is_any_addable_v<Ty, Any, false, void> =
+        type_traits::extras::meta_method::has_operator_add_v<Ty> && is_any_arithmetic_operand_v<Ty>;
+
+    template <typename Ty, typename Any>
+    RAINY_CONSTEXPR_BOOL is_any_addable_v<Ty, Any, true, void> =
+        type_traits::extras::meta_method::has_operator_plus_equal_v<Ty> && is_any_arithmetic_operand_v<Ty>;
 
     template <typename Ty, typename Any, bool WithEqual = false, typename = void>
     RAINY_CONSTEXPR_BOOL has_any_plus_equal_v = false;
 
-    template <typename Ty, typename Any, bool WithEqual>
-    RAINY_CONSTEXPR_BOOL
-        has_any_plus_equal_v<Ty, Any, WithEqual, type_traits::other_trans::void_t<decltype(&any_magic_method<Ty, Any, WithEqual>::plus_equal)>> = true;
+    template <typename Ty, typename Any>
+    RAINY_CONSTEXPR_BOOL has_any_plus_equal_v<Ty, Any, true, void> =
+        type_traits::extras::meta_method::has_operator_plus_equal_v<Ty> && is_any_arithmetic_operand_v<Ty>;
 
     template <typename Ty, typename Any, bool WithEqual = false, typename = void>
     RAINY_CONSTEXPR_BOOL is_any_subable_v = false;
 
-    template <typename Ty, typename Any, bool WithEqual>
-    RAINY_CONSTEXPR_BOOL is_any_subable_v<Ty, Any, WithEqual, type_traits::other_trans::void_t<decltype(&any_magic_method<Ty, Any, WithEqual>::subtract)>> =
-        true;
+    template <typename Ty, typename Any>
+    RAINY_CONSTEXPR_BOOL is_any_subable_v<Ty, Any, false, void> =
+        type_traits::extras::meta_method::has_operator_sub_v<Ty> && is_any_arithmetic_operand_v<Ty>;
+
+    template <typename Ty, typename Any>
+    RAINY_CONSTEXPR_BOOL is_any_subable_v<Ty, Any, true, void> =
+        type_traits::extras::meta_method::has_operator_sub_equal_v<Ty> && is_any_arithmetic_operand_v<Ty>;
 
     template <typename Ty, typename Any, bool WithEqual = false, typename = void>
     RAINY_CONSTEXPR_BOOL is_any_multable_v = false;
 
-    template <typename Ty, typename Any, bool WithEqual>
-    RAINY_CONSTEXPR_BOOL
-        is_any_multable_v<Ty, Any, WithEqual, type_traits::other_trans::void_t<decltype(&any_magic_method<Ty, Any, WithEqual>::multiply)>> = true;
+    template <typename Ty, typename Any>
+    RAINY_CONSTEXPR_BOOL is_any_multable_v<Ty, Any, false, void> =
+        type_traits::extras::meta_method::has_operator_mul_v<Ty> && is_any_arithmetic_operand_v<Ty>;
+
+    template <typename Ty, typename Any>
+    RAINY_CONSTEXPR_BOOL is_any_multable_v<Ty, Any, true, void> =
+        type_traits::extras::meta_method::has_operator_mul_equal_v<Ty> && is_any_arithmetic_operand_v<Ty>;
 
     template <typename Ty, typename Any, bool WithEqual = false, typename = void>
     RAINY_CONSTEXPR_BOOL is_any_divable_v = false;
 
-    template <typename Ty, typename Any, bool WithEqual>
-    RAINY_CONSTEXPR_BOOL is_any_divable_v<Ty, Any, WithEqual, type_traits::other_trans::void_t<decltype(&any_magic_method<Ty, Any, WithEqual>::divide)>> =
-        true;
+    template <typename Ty, typename Any>
+    RAINY_CONSTEXPR_BOOL is_any_divable_v<Ty, Any, false, void> =
+        type_traits::extras::meta_method::has_operator_div_v<Ty> && is_any_arithmetic_operand_v<Ty>;
+
+    template <typename Ty, typename Any>
+    RAINY_CONSTEXPR_BOOL is_any_divable_v<Ty, Any, true, void> =
+        type_traits::extras::meta_method::has_operator_div_equal_v<Ty> && is_any_arithmetic_operand_v<Ty>;
 
     template <typename Ty, typename Any, bool WithEqual = false, typename = void>
     RAINY_CONSTEXPR_BOOL is_any_modable_v = false;
 
-    template <typename Ty, typename Any, bool WithEqual>
-    RAINY_CONSTEXPR_BOOL is_any_modable_v<Ty, Any, WithEqual, type_traits::other_trans::void_t<decltype(&any_magic_method<Ty, Any, WithEqual>::mod)>> =
-        true;
+    template <typename Ty, typename Any>
+    RAINY_CONSTEXPR_BOOL is_any_modable_v<Ty, Any, false, void> =
+        type_traits::extras::meta_method::has_operator_mod_v<Ty> && is_any_arithmetic_operand_v<Ty>;
+
+    template <typename Ty, typename Any>
+    RAINY_CONSTEXPR_BOOL is_any_modable_v<Ty, Any, true, void> =
+        type_traits::extras::meta_method::has_operator_mod_equal_v<Ty> && is_any_arithmetic_operand_v<Ty>;
 
     template <typename Ty, typename Any, bool WithEqual = false, typename = void>
     RAINY_CONSTEXPR_BOOL is_any_preincable_v = false;
@@ -426,6 +453,7 @@ namespace rainy::foundation::container::implements {
             if constexpr (can_equal_for) {
                 static any_magic_method<remove_cvref_t, any, true> obj{};
                 utility::invoke(WhenIsTrueMemPtr, obj, recv, right);
+                return;
             }
         }
         if constexpr (is_avaiable) {

@@ -75,11 +75,13 @@ namespace rainy::foundation::container {
         using const_reference = implements::any_reference<basic_any>;
 
         constexpr basic_any() noexcept {
+            set_default_state();
         }
 
         RAINY_INLINE basic_any(const basic_any &right) {
             using namespace implements;
             if (!right.has_value()) {
+                set_default_state();
                 return;
             }
             switch (right.get_representation()) {
@@ -113,6 +115,7 @@ namespace rainy::foundation::container {
         basic_any(wrap_any_tag, T &&value) { // NOLINT
             if constexpr (type_traits::type_relations::is_any_of_v<type_traits::other_trans::decay_t<T>, basic_any>) {
                 if (!value.has_value()) {
+                    set_default_state();
                     return;
                 }
             }
@@ -202,21 +205,20 @@ namespace rainy::foundation::container {
 
         void reset() {
             using namespace implements;
-            if (!has_value()) {
-                return;
+            if (has_value()) {
+                switch (get_representation()) {
+                    case any_representation::_small:
+                        storage.small_any_raii_manager->destroy_(&storage.buffer);
+                        break;
+                    case any_representation::big:
+                        storage.big_any_raii_manager->destory_(const_cast<void *>(storage.ptr));
+                        break;
+                    case any_representation::reference:
+                    default:
+                        break;
+                }
             }
-            switch (get_representation()) {
-                case any_representation::_small:
-                    storage.small_any_raii_manager->destroy_(&storage.buffer);
-                    break;
-                case any_representation::big:
-                    storage.big_any_raii_manager->destory_(const_cast<void *>(storage.ptr));
-                    break;
-                case any_representation::reference:
-                default:
-                    break;
-            }
-            storage.type_data = 0;
+            set_default_state();
         }
 
         void swap(basic_any &right) noexcept {
@@ -247,7 +249,10 @@ namespace rainy::foundation::container {
             return *info;
         }
 
-        RAINY_INLINE_NODISCARD core::typeinfo inner_decleartion_type(any_inner_declaertion query) const noexcept {
+        RAINY_INLINE_NODISCARD core::typeinfo inner_decleartion_type(any_inner_declaertion query) const {
+            if (!has_value()) {
+                core::exceptions::runtime::throw_bad_cast();
+            }
             core::typeinfo type;
             core::container::tuple tuple{query, &type};
             storage.executer->invoke(implements::any_operation::query_inner_declaertion_type, const_cast<basic_any *>(this), &tuple);
@@ -256,6 +261,9 @@ namespace rainy::foundation::container {
 
         template <typename Type>
         RAINY_ANY_AS_NODISCARD auto as() -> decltype(auto) {
+            if (rainy_unlikely(!has_value())) {
+                core::exceptions::runtime::throw_bad_cast();
+            }
             const core::typeinfo *const raw = type_info();
             if (rainy_unlikely(!is<Type>())) {
                 if (raw->remove_cvref() == rainy_typeid(basic_any)) {
@@ -275,7 +283,7 @@ namespace rainy::foundation::container {
                         rainy_typeid(type_traits::modifers::remove_cvref_t<type_traits::other_trans::decay_t<Type>>));
                 }
                 if (!implements::is_as_runnable<Type>(type())) {
-                    throw std::bad_cast();
+                    core::exceptions::runtime::throw_bad_cast();
                 }
             }
             return implements::as_impl<Type>(target_as_void_ptr(), type());
@@ -293,9 +301,9 @@ namespace rainy::foundation::container {
         }
 
         template <typename Decayed>
-        RAINY_ANY_CAST_TO_POINTER_NODISCARD rain_fn
-        cast_to_pointer() const noexcept -> type_traits::modifers::add_pointer_t<type_traits::modifers::add_const_t<type_traits::other_trans::conditional_t<
-            type_traits::composite_types::is_reference_v<Decayed>, type_traits::modifers::remove_reference_t<Decayed> *, Decayed *>>> {
+        RAINY_ANY_CAST_TO_POINTER_NODISCARD rain_fn cast_to_pointer() const noexcept
+            -> type_traits::modifers::add_pointer_t<type_traits::modifers::add_const_t<type_traits::other_trans::conditional_t<
+                type_traits::composite_types::is_reference_v<Decayed>, type_traits::modifers::remove_reference_t<Decayed>, Decayed>>> {
             using type = type_traits::other_trans::conditional_t<type_traits::composite_types::is_reference_v<Decayed>,
                                             type_traits::modifers::remove_reference_t<Decayed>, Decayed>;
             if (!rainy::foundation::container::implements::is_as_runnable<type>(this->type())) {
@@ -342,15 +350,17 @@ namespace rainy::foundation::container {
 
         template <typename TargetType>
         RAINY_NODISCARD TargetType convert() {
+            if (!has_value()) {
+                core::exceptions::runtime::throw_bad_cast();
+            }
             if (type().is_compatible(rainy_typeid(TargetType))) {
                 return as<TargetType>();
             }
             if constexpr (is_any_convert_invocable<TargetType>) {
                 return utility::any_converter<TargetType>::basic_convert(this->target_as_void_ptr(), this->type());
             } else {
-                throw std::bad_cast{};
+                core::exceptions::runtime::throw_bad_cast();
             }
-            std::terminate();
         }
 
         template <typename TargetType>
@@ -591,17 +601,20 @@ namespace rainy::foundation::container {
          * @attention 需当前类型支持计算哈希
          * @attention 优先通过std::hash求值，如果std::hash不可用，则使用rainy::foundation::container::hash作为哈希支持
          */
-        RAINY_NODISCARD std::size_t hash_code() const noexcept {
+        RAINY_NODISCARD std::size_t hash_code() const {
+            if (!has_value()) {
+                core::exceptions::runtime::throw_bad_cast();
+            }
             std::size_t ret{};
             core::container::tuple tuple{this, &ret};
             if (storage.executer->invoke(implements::any_operation::eval_hash, const_cast<basic_any *>(this), &tuple)) {
                 return ret;
             }
-            std::terminate();
+            core::exceptions::runtime::throw_bad_cast();
         }
 
         template <typename... Fx>
-        basic_any match(Fx &&...funcs) const noexcept((type_traits::primary_types::function_traits<Fx>::is_noexcept && ...)) {
+        basic_any match(Fx &&...funcs) const {
             return matcher<Fx...>{utility::forward<Fx>(funcs)...}.invoke(*this);
         }
 
@@ -833,25 +846,40 @@ namespace rainy::foundation::container {
 
         void move_from(basic_any &right) noexcept {
             using namespace implements;
+            if (!right.has_value()) {
+                set_default_state();
+                right.set_default_state();
+                return;
+            }
             storage.type_data = right.storage.type_data;
             storage.executer = right.storage.executer;
             switch (right.get_representation()) {
                 case any_representation::_small:
                     storage.small_any_raii_manager = right.storage.small_any_raii_manager;
                     storage.small_any_raii_manager->move_(&storage.buffer, &right.storage.buffer);
+                    right.storage.small_any_raii_manager->destroy_(&right.storage.buffer);
+                    right.set_default_state();
                     break;
                 case any_representation::big:
                     storage.big_any_raii_manager = right.storage.big_any_raii_manager;
                     storage.ptr = right.storage.ptr;
-                    right.storage.type_data = 0;
+                    right.set_default_state();
                     break;
                 case any_representation::reference:
                     storage.ptr = right.storage.ptr;
-                    right.storage.type_data = 0;
+                    right.set_default_state();
                     break;
                 default:
+                    set_default_state();
+                    right.set_default_state();
                     break;
             }
+        }
+
+        void set_default_state() noexcept {
+            storage.type_data = 0;
+            storage.executer = &implements::any_void_execution_policy_object;
+            storage.ptr = static_cast<const void *>(&storage.buffer);
         }
 
         RAINY_INLINE void reset_and_move_from(basic_any &right) noexcept {
@@ -876,7 +904,7 @@ namespace rainy::foundation::container {
                 } else {
                     return emplace_<decayed>(utility::forward<Types>(args)...);
                 }
-            } else if constexpr (rainy::foundation::container::implements::any_is_small<decayed, sizeof(storage_t::buffer)>) {
+            } else if constexpr (rainy::foundation::container::implements::any_is_small<decayed, sizeof(storage_t::buffer), Align>) {
                 auto &object = reinterpret_cast<decayed &>(storage.buffer);
                 storage.small_any_raii_manager = &rainy::foundation::container::implements::any_small_raii_manager_object<decayed>;
                 ::new (utility::addressof(object)) decayed(utility::forward<Types>(args)...);
@@ -1003,7 +1031,7 @@ namespace rainy::utility {
             if (type.is_pointer() || type.is_nullptr()) {
                 return nullptr;
             }
-            throw std::bad_cast{};
+            core::exceptions::runtime::throw_bad_cast();
         }
 
         static bool is_convertible(const core::typeinfo &type) {
@@ -1053,7 +1081,7 @@ namespace rainy::utility {
                 default:
                     break;
             }
-            throw std::bad_cast{};
+            core::exceptions::runtime::throw_bad_cast();
         }
 
         static bool is_convertible(const core::typeinfo &type) {
@@ -1112,7 +1140,7 @@ namespace rainy::utility {
                 default:
                     break;
             }
-            throw std::bad_cast{};
+            core::exceptions::runtime::throw_bad_cast();
         }
 
         static bool is_convertible(const core::typeinfo &type) {
@@ -1163,7 +1191,7 @@ namespace rainy::utility {
                 default:
                     break;
             }
-            throw std::bad_cast{};
+            core::exceptions::runtime::throw_bad_cast();
         }
 
         static bool is_convertible(const core::typeinfo &type) {

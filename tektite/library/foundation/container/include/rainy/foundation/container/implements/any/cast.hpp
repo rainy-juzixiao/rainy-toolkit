@@ -15,6 +15,7 @@
  */
 #ifndef RAINY_FOUNDATION_CONTAINER_IMPLEMENTS_CAST_HPP
 #define RAINY_FOUNDATION_CONTAINER_IMPLEMENTS_CAST_HPP
+#include <rainy/core/diagnostics/exceptions.hpp>
 #include <rainy/core/platform.hpp>
 #include <rainy/core/typeinfo.hpp>
 
@@ -29,7 +30,7 @@ namespace rainy::foundation::container::implements {
         -> decltype(auto) {
 #if RAINY_ENABLE_DEBUG
        if (!implements::is_as_runnable<Type>(type)) {
-            throw std::bad_cast{};
+            core::exceptions::runtime::throw_bad_cast();
        }
 #else
         utility::ignore = type;
