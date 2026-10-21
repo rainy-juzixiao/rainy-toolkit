@@ -53,17 +53,35 @@ fn build_enum_variant(entity: &Entity) -> EnumVariantDocument {
 
     let raw = extract_raw_comment(entity).unwrap_or_default();
     // variant 的注释通常只有 brief/details
-    let parsed = if raw.is_empty() {
-        (I18n::new(), I18n::new())
+    let (brief, description, documented) = if raw.is_empty() {
+        (I18n::new(), I18n::new(), false)
     } else {
         let p = parse_comment(&raw, &name, vec![], entity_location(entity).as_deref());
-        (p.basic.brief, p.basic.description)
+        (p.basic.brief, p.basic.description, p.basic.is_documented)
     };
+    // libclang 会把某个枚举项的注释也挂到它后面的枚举项上，
+    // 只有注释结束行紧挨着声明行时才算该枚举项自己的文档
+    let documented = documented && comment_is_attached(entity);
 
     EnumVariantDocument {
         name,
         value,
-        brief:       parsed.0,
-        description: parsed.1,
+        brief,
+        description,
+        is_documented: documented,
+        location: entity_location(entity),
     }
+}
+
+fn comment_is_attached(entity: &Entity) -> bool {
+    let Some(end_line) = entity
+        .get_comment_range()
+        .map(|r| r.get_end().get_file_location().line)
+    else {
+        return false;
+    };
+    let Some(entity_line) = entity.get_location().map(|l| l.get_file_location().line) else {
+        return false;
+    };
+    end_line + 1 == entity_line
 }

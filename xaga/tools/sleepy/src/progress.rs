@@ -90,6 +90,14 @@ impl Progress {
             let _ = writeln!(std::io::stderr());
         }
     }
+
+    /// 在进度条之后输出其它内容前调用，避免警告粘在未换行的进度条尾部。
+    pub fn break_line(&mut self) {
+        if self.enabled && self.active && self.tty {
+            let _ = writeln!(std::io::stderr());
+            self.active = false;
+        }
+    }
 }
 
 impl Drop for Progress {

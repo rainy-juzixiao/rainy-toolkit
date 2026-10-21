@@ -67,6 +67,7 @@ enum CommentToken {
     Plain(String),        // 纯文本（属于 @details）
     NotPublic,            // @notpublic
     Hide,                 // @hide
+    Show,                 // @show
     OverloadDecl(String), // @overload_decl
     MainTemplate,
     SpecTemplate(Vec<String>),
@@ -89,6 +90,16 @@ fn tokenize_comment(raw: &str) -> Vec<CommentToken> {
         }
         if strip_tag(line, "hide").is_some() {
             tokens.push(CommentToken::Hide);
+            i += 1;
+            continue;
+        }
+        if strip_tag(line, "show").is_some() {
+            tokens.push(CommentToken::Show);
+            i += 1;
+            continue;
+        }
+        // 文件级标记与 @file：对单个实体没有文档意义，丢弃以免混进正文
+        if strip_tag(line, "file").is_some() || strip_tag(line, "umbrella").is_some() {
             i += 1;
             continue;
         }
@@ -441,10 +452,13 @@ pub fn parse_comment(
         par: vec![],
         is_not_public: false,
         is_hidden: false,
+        is_shown: false,
         overload_decl: None,
         is_main_template: false,
         spec_template_args: vec![],
         module: None,
+        is_documented: has_doc_content(raw),
+        location: location.map(|s| s.to_string()),
     };
     let mut parser = CommentBlockParser::new();
     let mut params: HashMap<String, Param> = HashMap::new();
@@ -672,6 +686,9 @@ pub fn parse_comment(
             CommentToken::Hide => {
                 basic.is_hidden = true;
             }
+            CommentToken::Show => {
+                basic.is_shown = true;
+            }
             CommentToken::OverloadDecl(proto) => {
                 overload_decl = Some(proto);
             }
@@ -695,6 +712,21 @@ pub fn parse_comment(
         return_doc,
         exceptions,
     }
+}
+
+/// 注释里是否写有实际文档内容。
+///
+/// 只带 `@notpublic` / `@hide` / `@file` 等标记的注释不算文档：这类实体要么
+/// 本来就被过滤掉，要么标记本身不描述实体。
+fn has_doc_content(raw: &str) -> bool {
+    tokenize_comment(raw).iter().any(|token| match token {
+        CommentToken::NotPublic
+        | CommentToken::Hide
+        | CommentToken::Show
+        | CommentToken::LangSwitch(_) => false,
+        CommentToken::Plain(text) => !text.trim().is_empty(),
+        _ => true,
+    })
 }
 
 fn strip_comment_markers(raw: &str) -> Vec<String> {

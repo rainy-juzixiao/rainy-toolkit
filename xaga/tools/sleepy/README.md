@@ -20,6 +20,7 @@ MuZiYan（沐子言）是一个基于 Rust + libClang 开发的 C++ 程序语言
 - `@module` 模块标注：VitePress 侧边栏按模块组织
 - 跨目录配置引用（`includes`）：一个根配置聚合多个库的文档
 - 依赖图生成（Mermaid 图 + 边列表）与文件/模块两级循环依赖检查
+- 文件级 `@hide` / `@notpublic` 排除伞头与实现文件，`@umbrella` 生成仅含 `#include` 列表的伞头页；空文档源文件与编译诊断即时报告
 - `--dry-run` 试运行、`--allow-cycles` 放行、`--no-graph` 跳过图生成
 - 中英双语文档与双语文诊断输出
 
@@ -94,6 +95,137 @@ MuZiYan --dry-run                     # CI 里可用于先验证解析与循环�
 MuZiYan --allow-cycles                # 临时放行已知循环，仅警告
 MuZiYan --no-graph --partial          # 只要 reference 页面
 ```
+
+## 文件级 @hide / @notpublic
+
+伞头（只做 `#include`）和实现文件通常不该出现在文档里。在文件开头的注释里写
+`@hide` 或 `@notpublic`，整个文件就会被排除：不解析、不生成页面、不参与依赖图，
+也不会触发空文档警告。
+
+```cpp
+/**
+ * @file collections.hpp
+ * @brief 汇总所有集合头文件。
+ * @hide
+ */
+#pragma once
+#include <rainy/core/yesod/collections/array.hpp>
+```
+
+识别范围仅限文件开头的注释（第一个非注释行之前），因此实体或成员上的
+`@hide` 不会被误当成文件级标记：
+
+```cpp
+/// @brief 正常归档
+struct Outer {
+    /// @hide      ← 只隐藏这个成员
+    int x;
+};
+```
+
+被跳过的文件静默处理：不生成页面、不参与依赖图，也不打印提示。
+
+### 伞头：@umbrella
+
+如果伞头仍然需要出现在文档里（让读者知道某个模块由哪些头文件组成），用
+`@umbrella` 代替 `@hide` / `@notpublic`：不解析实体，页面只列出它 `#include` 的
+头文件名。
+
+```cpp
+/**
+ * @file collections.hpp
+ * @brief 汇总所有集合头文件。
+ * @umbrella
+ */
+#pragma once
+#include <rainy/core/yesod/collections/array.hpp>
+#include <rainy/core/yesod/collections/vector.hpp>
+```
+
+生成结果：
+
+```markdown
+# collections.hpp
+
+汇总所有集合头文件。
+
+## 包含的头文件
+
+- `rainy/core/yesod/collections/array.hpp`
+- `rainy/core/yesod/collections/vector.hpp`
+```
+
+`#include` 名称直接按源码文本读取，**不做宏展开**，也不解析被包含的文件；
+注释里的 `#include` 会被忽略。伞头照常出现在索引页、侧边栏和依赖图中。
+
+## 空文档源文件检查
+
+扫描范围内、却没有生成任何文档的头文件会立即报告（不是攒到最后汇总）：
+
+```text
+[sleepy warn] 未生成任何文档: lib-alpha/empty.hpp: 未解析到可归档的实体，确认它是否只是聚合头文件或前置声明，或整体位于 ignored_namespaces 中
+[sleepy warn] 未生成任何文档: lib-alpha/legacy.hpp: 实体全部被 @notpublic/@hide 过滤，确认是否应从扫描范围排除
+[sleepy warn] 未生成任何文档: lib-alpha/gone.hpp: 文件不存在或无法读取，确认路径与权限
+```
+
+编译诊断同样在解析每个翻译单元时即时打印：
+
+```text
+[sleepy][parse warning] include/foo.hpp:2:2: "this header is deprecated"
+```
+
+## 可见性与 @show
+
+成员默认按访问级别过滤：只有 **public** 的成员（成员函数、成员变量、常量、变量模板、嵌套类/枚举/别名）会出现在文档里；顶层实体不受此限制。
+
+需要公开一个非 public 实体时，在它的文档注释里写 `@show`：
+
+```cpp
+class Cache {
+private:
+    /**
+     * @brief 仅供诊断工具读取的条目数
+     * @show
+     */
+    int entry_count() const;
+
+    /// @brief 这个不会出现在文档里
+    void evict();
+};
+```
+
+`@show` 可以越过 private / protected 限制，但对 `@hide` / `@notpublic` 无效——
+两者同时出现时仍然隐藏，方便在保持隐藏的前提下临时改写注释。
+
+匿名结构体/联合体（`union { ... };`）没有可引用的名字，libclang 会合成
+`(anonymous union at path:line:col)` 这样的伪名字，sleepy 直接跳过它们，既不生成
+也不计入统计。
+
+## 未文档化实体统计
+
+除了“整份文件没生成文档”，sleepy 还会报告**可见却没有文档注释**的有效实体：
+
+```text
+[sleepy warn] 未文档化的有效实体: lib-alpha/core.hpp: 共 47 个（2 类、1 枚举、22 枚举项、4 别名、4 函数、1 常量、13 成员函数）
+  |- 成员函数 `hash::operator()` (L974)
+  |- 成员函数 `hash::hash_this_val` (L978)
+  |- 别名 `hash::argument_type` (L971)
+  |- 枚举项 `ctti::traits::is_const` (L42)
+  |- ... 另有 27 个未列出
+```
+
+口径与文档生成器一致：
+
+- 成员只有 **public** 的才会生成进文档；`@show` 可以让 private / protected 成员也生成（但对 `@hide` / `@notpublic` 无效）；
+- `@hide` / `@notpublic` 排除的实体、`// @NODOCBEGIN` 区间内的实体不统计；
+- 只写了 `@notpublic` / `@hide` / `@file` 这类标记、没有实际文档内容的注释不算文档；
+- 伞头（`@umbrella`）不解析实体，因此不参与统计。
+
+每个文件最多逐条列出 20 个实体（类型、全名、行号），其余按种类汇总成“另有 N 个未列出”。
+
+枚举项的文档归属按源码位置判断：只有紧挨着该枚举项声明行的注释才算它的文档。
+libclang 会把某个枚举项的注释一并挂到其后的枚举项上，sleepy 会剥离这类误挂，
+避免把未文档化的枚举项误判为已文档化。
 
 ## 配置参考（sleepy.yaml）
 

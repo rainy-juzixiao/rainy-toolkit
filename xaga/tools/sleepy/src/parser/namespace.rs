@@ -90,7 +90,7 @@ pub fn build_namespace(
             | EntityKind::UnionDecl
             | EntityKind::ClassTemplate
             | EntityKind::ClassTemplatePartialSpecialization => {
-                if !child.is_definition() {
+                if !child.is_definition() || super::is_anonymous_record(&child) {
                     continue;
                 }
                 if let Some(c) = build_class(&child, &child_ns) {

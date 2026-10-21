@@ -122,10 +122,17 @@ pub struct BasicDocument {
     pub par: Vec<CustomParagraph>,
     pub is_not_public: bool,
     pub is_hidden: bool,
+    /// @show：无论访问级别如何都生成该实体
+    pub is_shown: bool,
     pub overload_decl: Option<String>,
     pub is_main_template: bool,           // @main_template
     pub spec_template_args: Vec<String>,  // @spec_template 参数...
     pub module: Option<String>,           // @module
+
+    /// 该实体是否带有文档注释（@notpublic/@hide 的实体不计入未文档化统计）
+    pub is_documented: bool,
+    /// 实体声明位置，形如 `path:line`
+    pub location: Option<String>,
 }
 
 pub enum LangContext {
@@ -225,6 +232,8 @@ pub struct EnumVariantDocument {
     pub value: Option<String>,
     pub brief: I18n<String>,
     pub description: I18n<String>,
+    pub is_documented: bool,
+    pub location: Option<String>,
 }
 
 #[derive(Clone)]
@@ -350,4 +359,139 @@ pub struct FileDocument {
     pub macros: Vec<MacroDocument>,
     pub module: Option<String>,
     pub body: String,
+    /// 伞头：不解析实体，页面上只列出 `#include` 的头文件名
+    pub is_umbrella: bool,
+}
+
+impl FileDocument {
+    /// 该文件能否产出至少一个文档条目。
+    pub fn has_visible_entities(&self) -> bool {
+        self.visible_entity_count() > 0
+    }
+
+    /// 会出现在文档中的实体数量（与 markdown 生成器的过滤口径一致）。
+    pub fn visible_entity_count(&self) -> usize {
+        fn count_ns(ns: &NamespaceDocument) -> usize {
+            ns.classes
+                .iter()
+                .filter(|c| !c.base.is_hidden && !c.base.is_not_public)
+                .count()
+                + ns.enums.iter().filter(|e| !e.base.is_not_public).count()
+                + ns
+                    .variables
+                    .iter()
+                    .filter(|v| !v.base.is_not_public)
+                    .count()
+                + ns
+                    .constants
+                    .iter()
+                    .filter(|c| !c.base.is_not_public)
+                    .count()
+                + ns
+                    .variable_templates
+                    .iter()
+                    .filter(|v| !v.base.is_not_public)
+                    .count()
+                + ns
+                    .free_function_overloads
+                    .iter()
+                    .filter(|g| {
+                        !g.overloads.is_empty()
+                            && !g
+                                .overloads
+                                .iter()
+                                .all(|f| f.base.is_hidden || f.base.is_not_public)
+                    })
+                    .count()
+                + ns
+                    .macros
+                    .iter()
+                    .filter(|m| !m.base.is_hidden && !m.base.is_not_public)
+                    .count()
+                + ns
+                    .aliases
+                    .iter()
+                    .filter(|a| !a.base.is_not_public)
+                    .count()
+                + ns
+                    .concepts
+                    .iter()
+                    .filter(|c| !c.base.is_not_public)
+                    .count()
+                + ns.sub_namespaces.iter().map(count_ns).sum::<usize>()
+        }
+        self.classes
+            .iter()
+            .filter(|c| !c.base.is_hidden && !c.base.is_not_public)
+            .count()
+            + self.enums.iter().filter(|e| !e.base.is_not_public).count()
+            + self
+                .variables
+                .iter()
+                .filter(|v| !v.base.is_not_public)
+                .count()
+            + self
+                .constants
+                .iter()
+                .filter(|c| !c.base.is_not_public)
+                .count()
+            + self
+                .variable_templates
+                .iter()
+                .filter(|v| !v.base.is_not_public)
+                .count()
+            + self
+                .free_function_overloads
+                .iter()
+                .filter(|g| {
+                    !g.overloads.is_empty()
+                        && !g
+                            .overloads
+                            .iter()
+                            .all(|f| f.base.is_hidden || f.base.is_not_public)
+                })
+                .count()
+            + self
+                .macros
+                .iter()
+                .filter(|m| !m.base.is_hidden && !m.base.is_not_public)
+                .count()
+            + self
+                .aliases
+                .iter()
+                .filter(|a| !a.base.is_not_public)
+                .count()
+            + self
+                .concepts
+                .iter()
+                .filter(|c| !c.base.is_not_public)
+                .count()
+            + self.namespaces.iter().map(count_ns).sum::<usize>()
+    }
+
+    /// 解析到的实体数量，无论是否可见。
+    pub fn entity_count(&self) -> usize {
+        fn count_ns(ns: &NamespaceDocument) -> usize {
+            ns.classes.len()
+                + ns.enums.len()
+                + ns.variables.len()
+                + ns.constants.len()
+                + ns.variable_templates.len()
+                + ns.free_function_overloads.len()
+                + ns.macros.len()
+                + ns.aliases.len()
+                + ns.concepts.len()
+                + ns.sub_namespaces.iter().map(count_ns).sum::<usize>()
+        }
+        self.classes.len()
+            + self.enums.len()
+            + self.variables.len()
+            + self.constants.len()
+            + self.variable_templates.len()
+            + self.free_function_overloads.len()
+            + self.macros.len()
+            + self.aliases.len()
+            + self.concepts.len()
+            + self.namespaces.iter().map(count_ns).sum::<usize>()
+    }
 }

@@ -16,8 +16,44 @@ use crate::data::document::ConceptDocument;
 use super::comment::{entity_location, extract_raw_comment, parse_comment};
 use super::function::build_template_params;
 
+/// clang crate 没有 `ConceptDecl` 变体，概念声明会被映射成
+/// `NotImplemented`（更老的 libclang 则可能给出别的不透明 kind），
+/// 因此按源码 token 判断：声明里出现 `concept` 关键字即为概念。
 pub fn is_concept_decl(entity: &Entity) -> bool {
-    format!("{:?}", entity.get_kind()).contains("Concept")
+    let opaque = matches!(
+        entity.get_kind(),
+        clang::EntityKind::NotImplemented | clang::EntityKind::UnexposedDecl
+    );
+    if !opaque && !format!("{:?}", entity.get_kind()).contains("Concept") {
+        return false;
+    }
+    concept_tokens(entity).iter().any(|t| t == "concept")
+}
+
+fn concept_tokens(entity: &Entity) -> Vec<String> {
+    entity
+        .get_range()
+        .map(|r| {
+            r.tokenize()
+                .iter()
+                .map(|t| t.get_spelling())
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default()
+}
+
+/// `template <...> concept Name = <constraint>;` —— 取 `=` 之后的约束表达式。
+fn constraint_expression(entity: &Entity) -> String {
+    let tokens = concept_tokens(entity);
+    let Some(eq) = tokens.iter().position(|t| t == "=") else {
+        return String::new();
+    };
+    tokens[eq + 1..]
+        .iter()
+        .filter(|t| t.as_str() != ";")
+        .cloned()
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 pub fn build_concept(
@@ -34,14 +70,10 @@ pub fn build_concept(
         build_template_params(entity, &parsed.tparams_desc);
     parsed.basic.is_template     = is_template;
     parsed.basic.template_params = template_params;
-    let constraint_expression = entity.get_children().into_iter()
-        .find(|c| format!("{:?}", c.get_kind()).contains("Requires"))
-        .and_then(|c| c.get_display_name())
-        .unwrap_or_default();
     let params = parsed.basic.template_params.clone();
     Some(ConceptDocument {
         params,
-        constraint_expression,
+        constraint_expression: constraint_expression(entity),
         base: parsed.basic,
     })
 }

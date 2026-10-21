@@ -85,29 +85,42 @@ impl MarkdownGenerator {
             writeln!(out, "{}", desc).unwrap();
             writeln!(out).unwrap();
         }
+        if doc.is_umbrella {
+            writeln!(out, "## {}", l.t("Includes", "包含的头文件")).unwrap();
+            writeln!(out).unwrap();
+            if doc.includes.is_empty() {
+                writeln!(out, "{}", l.t("(none)", "（无）")).unwrap();
+            } else {
+                for inc in &doc.includes {
+                    writeln!(out, "- `{}`", inc).unwrap();
+                }
+            }
+            writeln!(out).unwrap();
+            return out;
+        }
         let visible_classes: Vec<_> = doc
             .classes
             .iter()
             .chain(doc.namespaces.iter().flat_map(|ns| collect_all_classes(ns)))
-            .filter(|c| !c.base.is_hidden && !c.base.is_not_public)
+            .filter(|c| is_visible_type(&c.base, c.access.clone()))
             .collect();
         let visible_enums: Vec<_> = doc
             .enums
             .iter()
             .chain(doc.namespaces.iter().flat_map(|ns| collect_all_enums(ns)))
-            .filter(|e| !e.is_scoped && !e.base.is_not_public)
+            .filter(|e| !e.is_scoped && is_visible_type(&e.base, e.access.clone()))
             .collect();
         let visible_enum_classes: Vec<_> = doc
             .enums
             .iter()
             .chain(doc.namespaces.iter().flat_map(|ns| collect_all_enums(ns)))
-            .filter(|e| e.is_scoped && !e.base.is_not_public)
+            .filter(|e| e.is_scoped && is_visible_type(&e.base, e.access.clone()))
             .collect();
         let visible_vars: Vec<_> = doc
             .variables
             .iter()
             .chain(doc.namespaces.iter().flat_map(|ns| collect_all_variables(ns)))
-            .filter(|v| !v.base.is_not_public)
+            .filter(|v| is_visible_type(&v.base, AccessLevel::Public))
             .collect();
         let visible_constants: Vec<_> = doc
             .constants
@@ -117,7 +130,7 @@ impl MarkdownGenerator {
                     .iter()
                     .flat_map(|ns| collect_all_constants(ns)),
             )
-            .filter(|c| !c.base.is_not_public)
+            .filter(|c| is_visible_type(&c.base, c.access.clone()))
             .collect();
         let visible_variable_templates: Vec<_> = doc
             .variable_templates
@@ -127,7 +140,19 @@ impl MarkdownGenerator {
                     .iter()
                     .flat_map(|ns| collect_all_variable_templates(ns)),
             )
-            .filter(|vt| !vt.base.is_not_public)
+            .filter(|vt| is_visible_type(&vt.base, vt.access.clone()))
+            .collect();
+        let visible_aliases: Vec<_> = doc
+            .aliases
+            .iter()
+            .chain(doc.namespaces.iter().flat_map(|ns| collect_all_aliases(ns)))
+            .filter(|a| is_visible_type(&a.base, a.access.clone()))
+            .collect();
+        let visible_concepts: Vec<_> = doc
+            .concepts
+            .iter()
+            .chain(doc.namespaces.iter().flat_map(|ns| collect_all_concepts(ns)))
+            .filter(|c| is_visible_type(&c.base, AccessLevel::Public))
             .collect();
         let visible_fn_groups: Vec<_> = doc
             .free_function_overloads
@@ -139,7 +164,7 @@ impl MarkdownGenerator {
             )
             .filter(|g| {
                 !g.overloads.is_empty()
-                    && !g.overloads.iter().all(|f| f.base.is_hidden || f.base.is_not_public)
+                    && g.overloads.iter().any(|f| !f.base.is_hidden && !f.base.is_not_public)
             })
             .collect();
         let marcos: Vec<_> = doc
@@ -241,6 +266,37 @@ impl MarkdownGenerator {
             writeln!(out).unwrap();
         }
 
+        if !visible_aliases.is_empty() {
+            writeln!(out, "## {}", l.t("Aliases", "别名")).unwrap();
+            writeln!(out).unwrap();
+            writeln!(out, "| {} | {} | {} |", l.t("Name", "名称"), l.t("Target Type", "目标类型"), l.t("Description", "说明")).unwrap();
+            writeln!(out, "|------|------|-------------|").unwrap();
+            for a in &visible_aliases {
+                let brief = self.get(&a.base.brief).map(|s| escape_html(s)).unwrap_or_default();
+                let anchor = scoped_anchor(&a.base.namespace_stack, &a.base.name);
+                writeln!(
+                    out,
+                    "| [`{}`](#{}) | `{}` | {} |",
+                    a.base.name, anchor, a.target_type, brief
+                )
+                .unwrap();
+            }
+            writeln!(out).unwrap();
+        }
+
+        if !visible_concepts.is_empty() {
+            writeln!(out, "## {}", l.t("Concepts", "概念")).unwrap();
+            writeln!(out).unwrap();
+            writeln!(out, "| {} | {} |", l.t("Name", "名称"), l.t("Description", "说明")).unwrap();
+            writeln!(out, "|------|-------------|").unwrap();
+            for c in &visible_concepts {
+                let brief = self.get(&c.base.brief).map(|s| escape_html(s)).unwrap_or_default();
+                let anchor = scoped_anchor(&c.base.namespace_stack, &c.base.name);
+                writeln!(out, "| [`{}`](#{}) | {} |", c.base.name, anchor, brief).unwrap();
+            }
+            writeln!(out).unwrap();
+        }
+
         if !visible_fn_groups.is_empty() {
             writeln!(out, "## {}", l.t("Functions", "函数")).unwrap();
             writeln!(out).unwrap();
@@ -296,6 +352,12 @@ impl MarkdownGenerator {
         }
         for vt in &visible_variable_templates {
             out.push_str(&self.generate_variable_template(vt, 2));
+        }
+        for a in &visible_aliases {
+            out.push_str(&self.generate_alias(a, 2));
+        }
+        for c in &visible_concepts {
+            out.push_str(&self.generate_concept(c, 2));
         }
         for group in &visible_fn_groups {
             out.push_str(&self.generate_free_function_overload_group(group, 2));
@@ -375,37 +437,42 @@ impl MarkdownGenerator {
         let visible_methods: Vec<_> = c
             .overload_groups
             .iter()
-            .filter(|g| !g.overloads.iter().all(|o| o.doc.base.is_not_public))
+            .filter(|g| g.overloads.iter().any(is_public_member))
             .collect();
         let visible_fields: Vec<_> = c
             .member_fields
             .iter()
-            .filter(|f| matches!(f.access, AccessLevel::Public) && !f.base.is_not_public)
+            .filter(|f| is_visible_type(&f.base, f.access.clone()))
             .collect();
         let visible_constants: Vec<_> = c
             .constant_members
             .iter()
-            .filter(|c| matches!(c.access, AccessLevel::Public) && !c.base.is_not_public)
+            .filter(|c| is_visible_type(&c.base, c.access.clone()))
             .collect();
         let visible_vt_members: Vec<_> = c
             .variable_template_members
             .iter()
-            .filter(|vt| matches!(vt.access, AccessLevel::Public) && !vt.base.is_not_public)
+            .filter(|vt| is_visible_type(&vt.base, vt.access.clone()))
             .collect();
         let visible_nested: Vec<_> = c
             .nested_classes
             .iter()
-            .filter(|n| !n.base.is_hidden && !n.base.is_not_public)
+            .filter(|n| is_visible_type(&n.base, n.access.clone()))
             .collect();
         let visible_nested_enums: Vec<_> = c
             .nested_enums
             .iter()
-            .filter(|e| !e.is_scoped && !e.base.is_not_public)
+            .filter(|e| !e.is_scoped && is_visible_type(&e.base, e.access.clone()))
             .collect();
         let visible_nested_enum_classes: Vec<_> = c
             .nested_enums
             .iter()
-            .filter(|e| e.is_scoped && !e.base.is_not_public)
+            .filter(|e| e.is_scoped && is_visible_type(&e.base, e.access.clone()))
+            .collect();
+        let visible_nested_aliases: Vec<_> = c
+            .nested_aliases
+            .iter()
+            .filter(|a| is_visible_type(&a.base, a.access.clone()))
             .collect();
         if !visible_methods.is_empty() {
             writeln!(out, "### {}", l.t("Member Functions", "成员函数")).unwrap();
@@ -413,15 +480,16 @@ impl MarkdownGenerator {
             writeln!(out, "| {} | {} |", l.t("Function", "函数"), l.t("Description", "说明")).unwrap();
             writeln!(out, "|----------|-------------|").unwrap();
             for group in &visible_methods {
-                let brief = group
-                    .overloads
+                let visible: Vec<&OverloadDoc> =
+                    group.overloads.iter().filter(|o| is_public_member(o)).collect();
+                let brief = visible
                     .first()
                     .and_then(|o| self.get(&o.doc.base.brief))
                     .map(|s| s.as_str())
                     .unwrap_or("");
                 let anchor = method_anchor(&class_anchor_value, &group.name);
-                let overload_note = if group.overloads.len() > 1 {
-                    format!(" *({} {})*", group.overloads.len(), l.t("overloads", "个重载"))
+                let overload_note = if visible.len() > 1 {
+                    format!(" *({} {})*", visible.len(), l.t("overloads", "个重载"))
                 } else {
                     String::new()
                 };
@@ -521,9 +589,20 @@ impl MarkdownGenerator {
             }
             writeln!(out).unwrap();
         }
+        if !visible_nested_aliases.is_empty() {
+            writeln!(out, "### {}", l.t("Nested Aliases", "嵌套别名")).unwrap();
+            writeln!(out).unwrap();
+            writeln!(out, "| {} | {} | {} |", l.t("Name", "名称"), l.t("Target Type", "目标类型"), l.t("Description", "说明")).unwrap();
+            writeln!(out, "|------|------|-------------|").unwrap();
+            for a in &visible_nested_aliases {
+                let brief = self.get(&a.base.brief).map(|s| s.as_str()).unwrap_or("");
+                let anchor = scoped_anchor(&a.base.namespace_stack, &a.base.name);
+                writeln!(out, "| [{}](#{}) | `{}` | {} |", a.base.name, anchor, a.target_type, escape_html(brief)).unwrap();
+            }
+            writeln!(out).unwrap();
+        }
         writeln!(out, "---").unwrap();
         writeln!(out).unwrap();
-        // 成员函数详细文档
         for group in &visible_methods {
             out.push_str(&self.generate_overload_group(group, &class_anchor_value, heading + 1));
         }
@@ -552,6 +631,10 @@ impl MarkdownGenerator {
         for e in &visible_nested_enum_classes {
             out.push_str(&self.generate_enum(e, heading + 1));
         }
+        // 嵌套别名详细文档
+        for a in &visible_nested_aliases {
+            out.push_str(&self.generate_alias(a, heading + 1));
+        }
         out
     }
 
@@ -569,11 +652,10 @@ impl MarkdownGenerator {
         writeln!(out, "{} `{}` {{#{}}}", h, group.name, anchor).unwrap();
         writeln!(out).unwrap();
 
-        for (i, o) in group.overloads.iter().enumerate() {
-            if o.doc.base.is_not_public {
-                continue;
-            }
-            if group.overloads.len() > 1 {
+        let visible: Vec<&OverloadDoc> =
+            group.overloads.iter().filter(|o| is_public_member(o)).collect();
+        for (i, o) in visible.iter().enumerate() {
+            if visible.len() > 1 {
                 writeln!(out, "#### Overload {}", i + 1).unwrap();
                 writeln!(out).unwrap();
             }
@@ -862,6 +944,101 @@ impl MarkdownGenerator {
             writeln!(out).unwrap();
         }
         out.push_str(&self.generate_common_tags(&v.base));
+
+        out
+    }
+
+    pub fn generate_alias(&self, a: &TypeAliasDocument, heading: usize) -> String {
+        let mut out = String::new();
+        let h = "#".repeat(heading);
+        let anchor = scoped_anchor(&a.base.namespace_stack, &a.base.name);
+
+        writeln!(out, "{} `{}` {{#{}}}", h, a.base.name, anchor).unwrap();
+        writeln!(out).unwrap();
+
+        writeln!(out, "```cpp").unwrap();
+        if matches!(a.kind, TypeAliasKind::Using) {
+            writeln!(out, "using {} = {};", a.base.name, a.target_type).unwrap();
+        } else {
+            writeln!(out, "typedef {} {};", a.target_type, a.base.name).unwrap();
+        }
+        writeln!(out, "```").unwrap();
+        writeln!(out).unwrap();
+
+        if let Some(brief) = self.get(&a.base.brief) {
+            writeln!(out, "{}", escape_html(brief)).unwrap();
+            writeln!(out).unwrap();
+        }
+        if let Some(desc) = self.get(&a.base.description) {
+            writeln!(out, "{}", escape_html(desc)).unwrap();
+            writeln!(out).unwrap();
+        }
+        out.push_str(&self.generate_common_tags(&a.base));
+
+        out
+    }
+
+    pub fn generate_concept(&self, c: &ConceptDocument, heading: usize) -> String {
+        let mut out = String::new();
+        let l = Labels::new(&self.lang.0);
+        let h = "#".repeat(heading);
+        let anchor = scoped_anchor(&c.base.namespace_stack, &c.base.name);
+
+        writeln!(out, "{} `{}` {{#{}}}", h, c.base.name, anchor).unwrap();
+        writeln!(out).unwrap();
+
+        let params = c
+            .base
+            .template_params
+            .iter()
+            .map(|p| {
+                let ty = p.constraint.as_deref().unwrap_or("typename");
+                format!("{ty} {}", p.name)
+            })
+            .collect::<Vec<_>>()
+            .join(", ");
+        writeln!(out, "```cpp").unwrap();
+        writeln!(
+            out,
+            "template <{}>",
+            if params.is_empty() { "..." } else { &params }
+        )
+        .unwrap();
+        writeln!(
+            out,
+            "concept {} = {};",
+            c.base.name,
+            if c.constraint_expression.is_empty() {
+                "..."
+            } else {
+                &c.constraint_expression
+            }
+        )
+        .unwrap();
+        writeln!(out, "```").unwrap();
+        writeln!(out).unwrap();
+
+        if !c.base.template_params.is_empty() {
+            writeln!(out, "**{}**", l.t("Template parameters", "模板参数")).unwrap();
+            writeln!(out).unwrap();
+            writeln!(out, "| {} | {} |", l.t("Parameter", "参数"), l.t("Description", "说明")).unwrap();
+            writeln!(out, "|-----------|-------------|").unwrap();
+            for tp in &c.base.template_params {
+                let desc = self.get(&tp.description).map(|s| escape_html(s)).unwrap_or_default();
+                writeln!(out, "| `{}` | {} |", tp.name, desc).unwrap();
+            }
+            writeln!(out).unwrap();
+        }
+
+        if let Some(brief) = self.get(&c.base.brief) {
+            writeln!(out, "{}", escape_html(brief)).unwrap();
+            writeln!(out).unwrap();
+        }
+        if let Some(desc) = self.get(&c.base.description) {
+            writeln!(out, "{}", escape_html(desc)).unwrap();
+            writeln!(out).unwrap();
+        }
+        out.push_str(&self.generate_common_tags(&c.base));
 
         out
     }
@@ -1367,6 +1544,19 @@ fn heading_anchor(line: &str) -> Option<&str> {
     Some(&line[start + 2..start + 2 + end])
 }
 
+/// 成员函数是否应出现在文档里：public（或 @show）且未被 @notpublic/@hide 排除。
+fn is_public_member(o: &OverloadDoc) -> bool {
+    is_visible_type(&o.doc.base, o.doc.access.clone())
+}
+
+/// 实体是否应生成：@show 可越过访问级别；@hide/@notpublic 始终排除。
+fn is_visible_type(base: &BasicDocument, access: AccessLevel) -> bool {
+    if base.is_hidden || base.is_not_public {
+        return false;
+    }
+    base.is_shown || matches!(access, AccessLevel::Public)
+}
+
 fn collect_all_classes(ns: &NamespaceDocument) -> Vec<&ClassDocument> {
     let mut result: Vec<&ClassDocument> = ns.classes.iter().collect();
     for sub in &ns.sub_namespaces {
@@ -1411,6 +1601,22 @@ fn collect_all_variables(ns: &NamespaceDocument) -> Vec<&VariableDocument> {
     let mut result: Vec<&VariableDocument> = ns.variables.iter().collect();
     for sub in &ns.sub_namespaces {
         result.extend(collect_all_variables(sub));
+    }
+    result
+}
+
+fn collect_all_aliases(ns: &NamespaceDocument) -> Vec<&TypeAliasDocument> {
+    let mut result: Vec<&TypeAliasDocument> = ns.aliases.iter().collect();
+    for sub in &ns.sub_namespaces {
+        result.extend(collect_all_aliases(sub));
+    }
+    result
+}
+
+fn collect_all_concepts(ns: &NamespaceDocument) -> Vec<&ConceptDocument> {
+    let mut result: Vec<&ConceptDocument> = ns.concepts.iter().collect();
+    for sub in &ns.sub_namespaces {
+        result.extend(collect_all_concepts(sub));
     }
     result
 }

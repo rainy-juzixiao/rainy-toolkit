@@ -18,6 +18,7 @@ mod i18n;
 mod parser;
 mod progress;
 mod toolchain;
+mod undocumented;
 mod utils;
 
 use anyhow::Context;
@@ -444,6 +445,53 @@ fn report_diagnostics(
     }
 }
 
+/// 被扫描到、却无法产出任何条目的头文件。
+enum EmptyReason {
+    /// 解析成功，但文件里没有 sleepy 会归档的实体（可能只是聚合头文件或前置声明）
+    NoEntities,
+    /// 解析到实体，但全部被 @notpublic / @hide 过滤掉
+    AllFiltered,
+    /// 文件不存在或无法读取
+    Unreadable,
+}
+
+fn is_chinese(lang: &str) -> bool {
+    lang.starts_with("zh")
+        || lang.contains("chinese")
+        || lang.contains("Chinese")
+        || lang.contains("zh-Hans")
+        || lang.contains("zh_hans")
+}
+
+/// 处理到该文件时立刻报告，不攒到最后汇总。
+fn warn_empty_doc(display: &str, reason: EmptyReason, lang: &str) {
+    let zh = is_chinese(lang);
+    let hint = match (zh, reason) {
+        (true, EmptyReason::NoEntities) => {
+            "未解析到可归档的实体，确认它是否只是聚合头文件或前置声明，或整体位于 ignored_namespaces 中"
+        }
+        (true, EmptyReason::AllFiltered) => {
+            "实体全部被 @notpublic/@hide 过滤，确认是否应从扫描范围排除"
+        }
+        (true, EmptyReason::Unreadable) => "文件不存在或无法读取，确认路径与权限",
+        (false, EmptyReason::NoEntities) => {
+            "no archivable entity was parsed; it may be only an umbrella/forward-declaration header or live entirely in ignored_namespaces"
+        }
+        (false, EmptyReason::AllFiltered) => {
+            "every entity was filtered by @notpublic/@hide; consider excluding the file from the scan"
+        }
+        (false, EmptyReason::Unreadable) => {
+            "the file is missing or unreadable; check its path and permissions"
+        }
+    };
+    if zh {
+        eprintln!("[sleepy warn] 未生成任何文档: {display}: {hint}");
+    } else {
+        eprintln!("[sleepy warn] produced no documentation: {display}: {hint}");
+    }
+}
+
+
 fn collect_source_headers(source: &data::config::SourceConfig) -> anyhow::Result<Vec<PathBuf>> {
     let headers: Vec<PathBuf> = if !source.files.is_empty() {
         source
@@ -488,6 +536,43 @@ fn collect_source_headers(source: &data::config::SourceConfig) -> anyhow::Result
         .collect())
 }
 
+/// 诊断里使用的文件路径：优先相对于当前工作目录，避免整条绝对路径挤满一行。
+fn actual_path_display(path: &std::path::Path) -> String {
+    let base = std::env::current_dir().ok();
+    let shown = base
+        .as_deref()
+        .and_then(|base| path.strip_prefix(base).ok())
+        .filter(|p| !p.as_os_str().is_empty())
+        .unwrap_or(path);
+    shown.display().to_string()
+}
+
+/// 单页 markdown 的输出路径；平铺模式下同名文件加编号。
+fn markdown_out_path(
+    config: &data::config::SleepyConfig,
+    source_output_dir: &std::path::Path,
+    main_file: &std::path::Path,
+    rel_path: &std::path::Path,
+    flat_seen: &mut HashMap<String, usize>,
+) -> PathBuf {
+    if !config.flat {
+        return source_output_dir.join(rel_path.with_extension("md"));
+    }
+    let base = main_file
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .unwrap_or("unknown")
+        .to_string();
+    let count = flat_seen.entry(base.clone()).or_insert(0);
+    *count += 1;
+    let final_name = if *count > 1 {
+        format!("{}_{}", base, count)
+    } else {
+        base
+    };
+    source_output_dir.join(format!("{}.md", final_name))
+}
+
 #[allow(clippy::too_many_arguments)]
 fn process_source(
     source: &data::config::SourceConfig,
@@ -524,12 +609,79 @@ fn process_source(
     println!("[sleepy]   found {} files", headers.len());
 
     let source_output_dir = config.output_dir.join(&source.name);
+    let include_root = source
+        .include_dirs
+        .first()
+        .ok_or_else(|| anyhow::anyhow!("source '{}' has no include_dirs", source.name))?
+        .canonicalize()
+        .with_context(|| format!("cannot resolve include dir for source '{}'", source.name))?;
     let mut flat_seen: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
     for header in &headers {
         let main_file = match std::fs::canonicalize(header) {
             Ok(p) => p,
-            Err(_) => continue,
+            Err(_) => {
+                progress.break_line();
+                warn_empty_doc(
+                    &header.display().to_string(),
+                    EmptyReason::Unreadable,
+                    &config.lang,
+                );
+                progress.tick(&header.display().to_string());
+                continue;
+            }
         };
+        let rel_path = main_file
+            .strip_prefix(&include_root)
+            .map(|r| r.to_path_buf())
+            .unwrap_or_else(|_| {
+                main_file
+                    .file_name()
+                    .map(std::path::PathBuf::from)
+                    .unwrap_or_else(|| std::path::PathBuf::from("unknown.hpp"))
+            });
+        let display = format!("{}/{}", source.name, rel_path.display());
+
+        let source_text = match std::fs::read_to_string(&main_file) {
+            Ok(text) => text,
+            Err(_) => {
+                progress.break_line();
+                warn_empty_doc(&display, EmptyReason::Unreadable, &config.lang);
+                progress.tick(&rel_path.display().to_string());
+                continue;
+            }
+        };
+        // 文件级 @hide / @notpublic：伞头与实现文件整体排除，不解析也不产出页面
+        let markers = parser::read_file_markers(&source_text);
+        if markers.hide || markers.not_public {
+            progress.tick(&rel_path.display().to_string());
+            continue;
+        }
+        // @umbrella：不解析实体，只读取 #include 列表生成一页
+        if markers.umbrella {
+            let file_str = main_file.to_string_lossy().to_string();
+            let doc = parser::build_umbrella_document(
+                &file_str,
+                &source.name,
+                rel_path.clone(),
+                &source_text,
+            );
+            file_infos.insert(file_str, display.clone());
+            if want_markdown {
+                let md = gen.generate_file(&doc);
+                let out_path = markdown_out_path(
+                    config,
+                    &source_output_dir,
+                    &main_file,
+                    &rel_path,
+                    &mut flat_seen,
+                );
+                pending_writes.push((out_path, md));
+            }
+            all_docs.push(doc);
+            progress.tick(&rel_path.display().to_string());
+            continue;
+        }
+
         let owned_files: HashSet<PathBuf> = [main_file.clone()].into_iter().collect();
         let main_file = &main_file;
         let owned_files = &owned_files;
@@ -548,18 +700,7 @@ fn process_source(
 
         report_diagnostics(&tu, file_str, diag_seen);
 
-        let source_text = std::fs::read_to_string(main_file).unwrap_or_default();
         let nodoc_ranges = parser::collect_nodoc_ranges(&source_text);
-        let include_root = source
-            .include_dirs
-            .first()
-            .ok_or_else(|| {
-                anyhow::anyhow!("source '{}' has no include_dirs", source.name)
-            })?
-            .canonicalize()
-            .with_context(|| {
-                format!("cannot resolve include dir for source '{}'", source.name)
-            })?;
 
         let context = parser::ParseContext {
             include_root: include_root.to_str().unwrap_or(""),
@@ -570,39 +711,38 @@ fn process_source(
 
         let mut doc = parser::build_file_document(&tu, file_str, &context);
         doc.source_name = source.name.clone();
-        doc.rel_path = main_file
-            .strip_prefix(&include_root)
-            .map(|r| r.to_path_buf())
-            .unwrap_or_else(|_| {
-                main_file
-                    .file_name()
-                    .map(std::path::PathBuf::from)
-                    .unwrap_or_else(|| std::path::PathBuf::from("unknown.hpp"))
-            });
-        // display name: "<source>/<relative path under include root>"
-        let display = format!("{}/{}", source.name, doc.rel_path.display());
-        file_infos.insert(main_file.to_string_lossy().to_string(), display);
+        doc.rel_path = rel_path.clone();
+        file_infos.insert(main_file.to_string_lossy().to_string(), display.clone());
+
+        if !doc.has_visible_entities() {
+            let reason = if doc.entity_count() == 0 {
+                EmptyReason::NoEntities
+            } else {
+                EmptyReason::AllFiltered
+            };
+            progress.break_line();
+            warn_empty_doc(&display, reason, &config.lang);
+        }
+
+        let undocumented = undocumented::collect(&doc);
+        if !undocumented.is_empty() {
+            progress.break_line();
+            undocumented::warn(
+                &actual_path_display(main_file),
+                &undocumented,
+                &config.lang,
+            );
+        }
 
         if want_markdown {
             let md = gen.generate_file(&doc);
-
-            let out_name = main_file
-                .file_stem()
-                .and_then(|s| s.to_str())
-                .unwrap_or("unknown");
-            let out_path = if config.flat {
-                let base = out_name.to_string();
-                let count = flat_seen.entry(base.clone()).or_insert(0);
-                *count += 1;
-                let final_name = if *count > 1 {
-                    format!("{}_{}", base, count)
-                } else {
-                    base
-                };
-                source_output_dir.join(format!("{}.md", final_name))
-            } else {
-                source_output_dir.join(doc.rel_path.with_extension("md"))
-            };
+            let out_path = markdown_out_path(
+                config,
+                &source_output_dir,
+                main_file,
+                &doc.rel_path,
+                &mut flat_seen,
+            );
             pending_writes.push((out_path, md));
         }
 
