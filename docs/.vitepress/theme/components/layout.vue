@@ -41,7 +41,34 @@ provide("toggle-appearance", async ({ clientX: x, clientY: y }: MouseEvent) => {
 
 <template>
   <DefaultTheme.Layout>
-    <!-- 这里是已有的插槽组件 -->
+    <template #home-hero-image>
+      <svg class="rt-hero-mark" viewBox="0 0 320 360" fill="none" aria-hidden="true">
+        <g class="rt-rain">
+          <path d="M44 236 L32 266" />
+          <path d="M92 268 L80 298" />
+          <path d="M148 240 L136 270" />
+          <path d="M206 274 L194 304" />
+          <path d="M266 238 L254 268" />
+          <path d="M22 190 L10 220" />
+          <path d="M298 196 L286 226" />
+        </g>
+        <path
+          class="rt-canopy"
+          d="M44 176 C70 88 250 88 276 176
+             Q247 200 218 176 Q189 200 160 176
+             Q131 200 102 176 Q73 200 44 176 Z"
+        />
+        <path class="rt-panel" d="M160 78 L160 176 Q189 200 218 176 L276 176 C250 88 160 78 160 78 Z" />
+        <g class="rt-ribs">
+          <path d="M160 78 L44 176" />
+          <path d="M160 78 L102 176" />
+          <path d="M160 78 L160 176" />
+          <path d="M160 78 L218 176" />
+          <path d="M160 78 L276 176" />
+        </g>
+        <path class="rt-shaft" d="M160 78 L160 300 Q160 322 142 322 Q126 322 126 306" />
+      </svg>
+    </template>
   </DefaultTheme.Layout>
 </template>
 
@@ -70,4 +97,5 @@ provide("toggle-appearance", async ({ clientX: x, clientY: y }: MouseEvent) => {
 .VPSwitchAppearance .check .icon {
   top: -2px;
 }
+
 </style>

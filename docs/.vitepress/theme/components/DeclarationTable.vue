@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { codeToHtml } from 'shiki';
+import rainyWarm from '../shiki/rainy-warm';
 
 interface Props {
   header?: string;
@@ -22,8 +23,7 @@ interface Declaration {
 }
 
 interface HighlightedDeclaration extends Declaration {
-  lightHighlighted: string;
-  darkHighlighted: string;
+  highlighted: string;
 }
 
 interface GroupedDeclaration {
@@ -125,21 +125,14 @@ async function highlightDeclarations() {
     groupedDeclarations.map(async (group) => {
       const highlightedDeclarations = await Promise.all(
         group.declarations.map(async (decl) => {
-          const [lightHighlighted, darkHighlighted] = await Promise.all([
-            codeToHtml(decl.code, {
-              lang: 'cpp',
-              theme: 'github-light',
-            }),
-            codeToHtml(decl.code, {
-              lang: 'cpp',
-              theme: 'github-dark',
-            }),
-          ]);
+          const highlighted = await codeToHtml(decl.code, {
+            lang: 'cpp',
+            theme: rainyWarm,
+          });
 
           return {
             ...decl,
-            lightHighlighted,
-            darkHighlighted,
+            highlighted,
           };
         }),
       );
@@ -180,8 +173,7 @@ onMounted(async () => {
               class="declaration-content"
             >
               <div class="declaration-code-wrapper">
-                <div class="light-code" v-html="decl.lightHighlighted" />
-                <div class="dark-code" v-html="decl.darkHighlighted" />
+                <div class="declaration-code" v-html="decl.highlighted" />
               </div>
               <div v-if="decl.since.length > 0" class="since-info">
                 <span
@@ -212,46 +204,51 @@ onMounted(async () => {
 
 <style scoped>
 .declaration-table {
-  border: 1px solid #e1e5e9;
-  border-radius: 6px;
+  border: 1px solid rgba(240, 238, 230, 0.1);
+  border-radius: 10px;
   margin: 1.5rem 0;
   overflow: hidden;
-  background: white;
+  background: var(--rt-code-bg);
+  box-shadow: 0 1px 0 rgba(20, 20, 19, 0.04);
 }
 
 .declaration-loading {
   padding: 1rem;
   text-align: center;
-  color: #656d76;
+  color: var(--rt-code-muted);
 }
 
 .declaration-header {
-  background: #f6f8fa;
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid #e1e5e9;
-  font-size: 0.9rem;
-  color: #656d76;
+  background: rgba(240, 238, 230, 0.04);
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid rgba(240, 238, 230, 0.08);
+  font-family: var(--rt-font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(240, 238, 230, 0.45);
 }
 
 .header-name {
-  color: #0969da;
-  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  color: var(--rt-accent-bright);
+  font-family: var(--rt-font-mono);
+  text-transform: none;
+  letter-spacing: 0;
 }
 
 .declarations-container {
-  background: white;
+  background: transparent;
 }
 
 .declaration-group:not(:last-child) {
-  border-bottom: 1px solid #e1e5e9;
+  border-bottom: 1px solid rgba(240, 238, 230, 0.08);
 }
 
 .declaration-row {
   display: flex;
-  align-items: flex-start;
-  padding: 1rem;
-  gap: 1rem;
   align-items: center;
+  padding: 0.9rem 1rem;
+  gap: 1rem;
 }
 
 .declaration-content-wrapper {
@@ -271,7 +268,7 @@ onMounted(async () => {
 }
 
 .declaration-content:not(:last-child) {
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid rgba(240, 238, 230, 0.06);
 }
 
 .declaration-code-wrapper {
@@ -301,28 +298,30 @@ onMounted(async () => {
 
 .since-info {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.4rem;
   flex-wrap: wrap;
   flex-direction: column;
   align-items: flex-end;
 }
 
 .since-tag {
-  font-size: 0.75rem;
+  font-family: var(--rt-font-mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.06em;
   padding: 0.15rem 0.5rem;
-  border-radius: 12px;
+  border-radius: 4px;
   white-space: nowrap;
   font-weight: 500;
 }
 
 .since-tag.since {
-  color: #1a7f37;
-  background: #dafbe1;
+  color: #a9b99a;
+  background: rgba(169, 185, 154, 0.14);
 }
 
 .since-tag.constexpr {
-  color: #8250df;
-  background: #fbefff;
+  color: #b09ac7;
+  background: rgba(176, 154, 199, 0.16);
 }
 
 .declaration-meta {
@@ -334,21 +333,18 @@ onMounted(async () => {
 }
 
 .declaration-number {
-  font-size: 0.9rem;
-  color: #656d76;
+  font-family: var(--rt-font-mono);
+  font-size: 0.76rem;
+  color: rgba(240, 238, 230, 0.42);
   font-weight: 500;
 }
 
-.light-code {
+.declaration-code {
   display: block;
 }
 
-.dark-code {
-  display: none;
-}
-
-:deep(.declaration-content pre),
-:deep(.declaration-content pre[class*='shiki']) {
+:deep(.declaration-code pre),
+:deep(.declaration-code pre[class*='shiki']) {
   margin: 0 !important;
   padding: 0 !important;
   background: transparent !important;
@@ -356,13 +352,13 @@ onMounted(async () => {
   border: none !important;
   border-radius: 0 !important;
   box-shadow: none !important;
-  font-size: 0.9rem !important;
-  line-height: 1.5 !important;
+  font-size: 0.86rem !important;
+  line-height: 1.65 !important;
   overflow: visible !important;
 }
 
-:deep(.declaration-content code),
-:deep(.declaration-content code[class*='shiki']) {
+:deep(.declaration-code code),
+:deep(.declaration-code code[class*='shiki']) {
   background: transparent !important;
   background-color: transparent !important;
   padding: 0 !important;
@@ -370,67 +366,5 @@ onMounted(async () => {
   border-radius: 0 !important;
   box-shadow: none !important;
   display: block !important;
-}
-
-/* Dark mode styles - VitePress uses .dark class */
-.dark .declaration-table {
-  border-color: #30363d;
-  background: #0d1117;
-}
-
-.dark .declaration-header {
-  background: #161b22;
-  border-color: #30363d;
-  color: #8b949e;
-}
-
-.dark .header-name {
-  color: #58a6ff;
-}
-
-.dark .declarations-container {
-  background: #0d1117;
-}
-
-.dark .declaration-group:not(:last-child) {
-  border-color: #21262d;
-}
-
-.dark .declaration-number {
-  color: #8b949e;
-}
-
-.dark .since-tag.since {
-  color: #238636;
-  background: #1a2e1a;
-}
-
-.dark .since-tag.constexpr {
-  color: #a5a3ff;
-  background: #2d1b3d;
-}
-
-.dark .light-code {
-  display: none;
-}
-
-.dark .dark-code {
-  display: block;
-}
-
-@media (max-width: 768px) {
-  .declaration-row {
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-
-  .declaration-meta {
-    align-items: center;
-    align-self: flex-start;
-  }
-
-  .declaration-content-wrapper {
-    width: 100%;
-  }
 }
 </style>
