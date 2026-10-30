@@ -43,15 +43,102 @@ namespace rainy::core::collections::views {
      */
     template <typename Ty>
     struct array_view {
+        /**
+         * \lang english
+         * @brief The type of the viewed elements.
+         *
+         * Alias for the template parameter `Ty`.
+         *
+         * \lang simp-chinese
+         * @brief 被查看的元素类型。
+         *
+         * 模板参数 `Ty` 的别名。
+         */
         using value_type = Ty;
+
+        /**
+         * \lang english
+         * @brief The type used to represent sizes and indices.
+         *
+         * \lang simp-chinese
+         * @brief 用于表示大小和下标的类型。
+         */
         using size_type = std::size_t;
+
+        /**
+         * \lang english
+         * @brief Mutable reference to an element.
+         *
+         * \lang simp-chinese
+         * @brief 元素的可变引用。
+         */
         using reference = value_type &;
+
+        /**
+         * \lang english
+         * @brief Immutable (const) reference to an element.
+         *
+         * \lang simp-chinese
+         * @brief 元素的不可变（常量）引用。
+         */
         using const_reference = value_type const &;
+
+        /**
+         * \lang english
+         * @brief Mutable pointer to an element.
+         *
+         * \lang simp-chinese
+         * @brief 元素的可变指针。
+         */
         using pointer = value_type *;
+
+        /**
+         * \lang english
+         * @brief Immutable (const) pointer to an element.
+         *
+         * \lang simp-chinese
+         * @brief 元素的不可变（常量）指针。
+         */
         using const_pointer = value_type const *;
+
+        /**
+         * \lang english
+         * @brief Mutable iterator type.
+         *
+         * For `array_view` this is a plain pointer into the viewed storage.
+         *
+         * \lang simp-chinese
+         * @brief 可变迭代器类型。
+         *
+         * 对 `array_view` 而言，它是指向被查看存储的普通指针。
+         */
         using iterator = value_type *;
+
+        /**
+         * \lang english
+         * @brief Immutable (const) iterator type.
+         *
+         * \lang simp-chinese
+         * @brief 不可变（常量）迭代器类型。
+         */
         using const_iterator = value_type const *;
+
+        /**
+         * \lang english
+         * @brief Mutable reverse iterator type.
+         *
+         * \lang simp-chinese
+         * @brief 可变反向迭代器类型。
+         */
         using reverse_iterator = utility::reverse_iterator<iterator>;
+
+        /**
+         * \lang english
+         * @brief Immutable (const) reverse iterator type.
+         *
+         * \lang simp-chinese
+         * @brief 不可变（常量）反向迭代器类型。
+         */
         using const_reverse_iterator = utility::reverse_iterator<const_iterator>;
 
         /**

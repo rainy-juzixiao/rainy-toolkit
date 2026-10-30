@@ -2109,6 +2109,28 @@ namespace rainy::core::collections {
         container::compressed_pair<allocator_type, impl> pair;
     };
 
+    /**
+     * \lang english
+     * @brief Deduction guide for constructing a `vector` from an iterator range.
+     *
+     * Deduces the element type from `iter_value_t<InputIter>` and the allocator
+     * from the `Allocator` template parameter (defaulting to
+     * `allocator<iter_value_t<InputIter>>`). This allows writing
+     * `vector(first, last)` without explicitly specifying the element type.
+     *
+     * @tparam InputIter The input iterator type of the range
+     * @tparam Allocator The allocator type, defaulted from the iterator's value type
+     *
+     * \lang simp-chinese
+     * @brief 从迭代器区间构造 `vector` 的推导指引。
+     *
+     * 元素类型由 `iter_value_t<InputIter>` 推导，分配器来自 `Allocator` 模板参数
+     * （默认为 `allocator<iter_value_t<InputIter>>`）。这使得可以写
+     * `vector(first, last)` 而无需显式指定元素类型。
+     *
+     * @tparam InputIter 区间的输入迭代器类型
+     * @tparam Allocator 分配器类型，默认由迭代器的值类型确定
+     */
     template <typename InputIter,
               typename Allocator = core::memory::allocator<type_traits::extras::iterators::iter_value_t<InputIter>>>
     vector(InputIter, InputIter, Allocator = Allocator())

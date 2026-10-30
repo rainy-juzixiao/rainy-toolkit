@@ -74,9 +74,44 @@ namespace rainy::core::concurrency {
     template <typename Ty>
     class atomic {
     public:
+        /**
+         * \lang english
+         * @brief The type of the stored value.
+         *
+         * Alias for the template parameter `Ty`.
+         *
+         * \lang simp-chinese
+         * @brief 所存储值的类型。
+         *
+         * 模板参数 `Ty` 的别名。
+         */
         using value_type = Ty;
+
+        /**
+         * \lang english
+         * @brief The type used to represent the difference between two values.
+         *
+         * For this primary template it is the same as `value_type`, i.e. `Ty`.
+         *
+         * \lang simp-chinese
+         * @brief 用于表示两个值之差的类型。
+         *
+         * 对本主模板而言，它与 `value_type` 相同，即 `Ty`。
+         */
         using difference_type = Ty;
 
+        /**
+         * \lang english
+         * @brief Whether this atomic type is always lock-free.
+         *
+         * Always `true` for this implementation: the primary template performs
+         * its atomic operations without taking an internal lock.
+         *
+         * \lang simp-chinese
+         * @brief 该原子类型是否始终无锁。
+         *
+         * 在此实现中恒为 `true`：主模板执行原子操作时不获取内部锁。
+         */
         static constexpr bool is_always_lock_free = true;
 
         /**
@@ -144,8 +179,37 @@ namespace rainy::core::concurrency {
          */
         constexpr atomic(Ty desired) noexcept;
 
+        /**
+         * \lang english
+         * @brief Deleted copy constructor. `atomic` is neither copyable nor movable.
+         *
+         * \lang simp-chinese
+         * @brief 被删除的拷贝构造函数。`atomic` 既不可拷贝也不可移动。
+         */
         atomic(const atomic &) = delete;
+
+        /**
+         * \lang english
+         * @brief Deleted copy assignment operator. `atomic` cannot be copy-assigned.
+         *
+         * \lang simp-chinese
+         * @brief 被删除的拷贝赋值运算符。`atomic` 不可拷贝赋值。
+         */
         atomic &operator=(const atomic &) = delete;
+
+        /**
+         * \lang english
+         * @brief Deleted volatile-qualified copy assignment operator.
+         *
+         * Prevents copy assignment through a `volatile atomic` object as well,
+         * so no form of copy assignment is available.
+         *
+         * \lang simp-chinese
+         * @brief 被删除的 volatile 限定拷贝赋值运算符。
+         *
+         * 同时禁止通过 `volatile atomic` 对象进行拷贝赋值，
+         * 因此任何形式的拷贝赋值都不可用。
+         */
         atomic &operator=(const atomic &) volatile = delete;
 
         /**
@@ -446,7 +510,8 @@ namespace rainy::core::concurrency {
          *
          * @note 适用类型：所有类型。
          */
-        rain_fn compare_exchange_strong(Ty &expected, Ty desired, memory_order success, memory_order failure) volatile noexcept -> bool;
+        rain_fn compare_exchange_strong(Ty &expected, Ty desired, memory_order success, memory_order failure) volatile noexcept
+            -> bool;
 
         /**
          * \lang english
@@ -492,7 +557,8 @@ namespace rainy::core::concurrency {
          *
          * @note 适用类型：所有类型。
          */
-        rain_fn compare_exchange_strong(Ty &expected, Ty desired, memory_order order = memory_order::seq_cst) volatile noexcept -> bool;
+        rain_fn compare_exchange_strong(Ty &expected, Ty desired, memory_order order = memory_order::seq_cst) volatile noexcept
+            -> bool;
 
         /**
          * \lang english
@@ -1728,8 +1794,37 @@ namespace rainy::core::concurrency {
          */
         explicit atomic_ref(Ty &obj) noexcept;
 
-        atomic_ref(const atomic_ref &) noexcept;
-        atomic_ref &operator=(const atomic_ref &) = delete;
+        /**
+         * \lang english
+         * @brief Copy constructor (defaulted). A copy refers to the same object.
+         *
+         * @param right The `atomic_ref` to copy from
+         *
+         * \lang simp-chinese
+         * @brief 拷贝构造函数（默认）。副本引用同一个对象。
+         *
+         * @param right 要拷贝的 `atomic_ref`
+         */
+        atomic_ref(const atomic_ref & right) noexcept;
+
+        /**
+         * \lang english
+         * @brief Deleted copy assignment operator. `atomic_ref` cannot be copy-assigned.
+         *
+         * A copy-constructed `atomic_ref` refers to the same object as the
+         * original; assignment would be ambiguous, so it is deleted. Construct a
+         * new `atomic_ref` instead of assigning to an existing one.
+         *
+         * \lang simp-chinese
+         * @brief 被删除的拷贝赋值运算符。`atomic_ref` 不可拷贝赋值。
+         *
+         * 由拷贝构造得到的 `atomic_ref` 与原对象引用同一个对象；
+         * 赋值会产生语义歧义，因此被删除。应改为构造新的 `atomic_ref`，
+         * 而不是对已有对象赋值。
+         *
+         * @param right The `atomic_ref` to copy-assign from
+         */
+        atomic_ref &operator=(const atomic_ref & right) = delete;
 
         /**
          * \lang english

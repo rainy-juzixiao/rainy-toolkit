@@ -182,6 +182,19 @@ namespace rainy::core::container {
      */
     template <std::size_t Indices, typename... Types>
     struct tuple_element<Indices, tuple<Types...>> {
+        /**
+         * \lang english
+         * @brief The type of the element at index `Indices`.
+         *
+         * Obtained by indexing into the `type_list<Types...>` with `type_at`.
+         * Selecting an index out of bounds is a compile-time error.
+         *
+         * \lang simp-chinese
+         * @brief 索引 `Indices` 处元素的类型。
+         *
+         * 通过对 `type_list<Types...>` 使用 `type_at` 取下标得到。
+         * 选择越界的索引会导致编译期错误。
+         */
         using type = typename type_traits::other_trans::type_at<Indices, type_traits::other_trans::type_list<Types...>>::type;
     };
 
@@ -428,10 +441,47 @@ namespace rainy::core::container::implements {
 
 // NOLINTBEGIN
 namespace std {
+    /**
+     * \lang english
+     * @brief `std::tuple_element` specialization for `rainy::core::container::tuple`.
+     *
+     * Forwards to `rainy::core::container::tuple_element`, exposing the element
+     * type at index `I` of the rainy tuple through the standard trait, so it can
+     * be used by standard utilities such as structured bindings.
+     *
+     * @tparam I The index of the element
+     * @tparam Types The types contained in the tuple
+     *
+     * \lang simp-chinese
+     * @brief `rainy::core::container::tuple` 的 `std::tuple_element` 特化。
+     *
+     * 转发到 `rainy::core::container::tuple_element`，通过标准 trait 暴露 rainy tuple
+     * 中索引 `I` 处的元素类型，从而可被结构化绑定等标准工具使用。
+     *
+     * @tparam I 元素的索引
+     * @tparam Types tuple中包含的类型
+     */
     template <std::size_t I, typename... Types>
     struct tuple_element<I, rainy::core::container::tuple<Types...>>
         : rainy::core::container::tuple_element<I, rainy::core::container::tuple<Types...>> {};
 
+    /**
+     * \lang english
+     * @brief `std::tuple_size` specialization for `rainy::core::container::tuple`.
+     *
+     * Inherits from `std::integral_constant<std::size_t, sizeof...(Types)>`, so
+     * `std::tuple_size<...>::value` equals the number of tuple elements.
+     *
+     * @tparam Types The types contained in the tuple
+     *
+     * \lang simp-chinese
+     * @brief `rainy::core::container::tuple` 的 `std::tuple_size` 特化。
+     *
+     * 继承自 `std::integral_constant<std::size_t, sizeof...(Types)>`，
+     * 因此 `std::tuple_size<...>::value` 等于 tuple 的元素数量。
+     *
+     * @tparam Types tuple中包含的类型
+     */
     template <typename... Types>
     struct tuple_size<rainy::core::container::tuple<Types...>> : std::integral_constant<std::size_t, sizeof...(Types)> {};
 }
@@ -441,8 +491,11 @@ namespace rainy::core::container {
     template <typename... Types>
     class tuple : public implements::tuple_impl<tuple<Types...>, 0, Types...> {
     public:
+        /// @hide
         using base = implements::tuple_impl<tuple<Types...>, 0, Types...>;
+        /// @hide
         using head_type = typename type_traits::other_trans::type_at<0, type_traits::other_trans::type_list<Types...>>::type;
+        /// @hide
         using rest_tuple = typename implements::rest_tuple<
             tuple, typename type_traits::other_trans::type_list_pop_front<type_traits::other_trans::type_list<Types...>>::type>::type;
 
@@ -892,6 +945,27 @@ namespace rainy::core::container {
             return apply_impl(utility::forward<Func>(func), type_traits::helper::make_index_sequence<sizeof...(Types)>{});
         }
 
+        /**
+         * \lang english
+         * @brief Applies a function to the elements of a mutable tuple.
+         *
+         * Unlike the `const &` overload, this one is available on a non-const
+         * lvalue tuple, so the applied function may modify the elements.
+         *
+         * @tparam Func Callable type
+         * @param func The function to apply
+         * @return Result of the function call
+         *
+         * \lang simp-chinese
+         * @brief 将函数应用于可变tuple的元素。
+         *
+         * 与 `const &` 重载不同，此重载可用于非 const 左值 tuple，
+         * 因此所应用的函数可以修改元素。
+         *
+         * @tparam Func 可调用类型
+         * @param func 要应用的函数
+         * @return 函数调用的结果
+         */
         template <typename Func>
         constexpr auto apply(Func &&func) & {
             return apply_impl(utility::forward<Func>(func), type_traits::helper::make_index_sequence<sizeof...(Types)>{});
@@ -1053,7 +1127,7 @@ namespace rainy::core::container {
      */
     template <typename... Types>
     tuple(tuple<Types...> &) -> tuple<Types...>;
-    
+
     /**
      * \lang english
      * @brief Deduction guide for copy-constructing a tuple from another tuple.
@@ -1342,6 +1416,31 @@ namespace rainy::core::container {
         return t.apply(utility::forward<Func>(func));
     }
 
+    /**
+     * \lang english
+     * @brief Applies a function to the elements of a mutable tuple.
+     *
+     * Unlike the const overload, `t` is passed as a non-const lvalue reference,
+     * so the applied function may modify the tuple's elements.
+     *
+     * @tparam Func Callable type
+     * @tparam Types Types in the tuple
+     * @param func The function to apply
+     * @param t The tuple to apply to (may be modified)
+     * @return Result of the function call
+     *
+     * \lang simp-chinese
+     * @brief 将函数应用于可变tuple的元素。
+     *
+     * 与 const 重载不同，`t` 以非 const 左值引用传入，
+     * 因此所应用的函数可以修改 tuple 的元素。
+     *
+     * @tparam Func 可调用类型
+     * @tparam Types tuple中的类型
+     * @param func 要应用的函数
+     * @param t 要应用函数的tuple（可能被修改）
+     * @return 函数调用的结果
+     */
     template <typename Func, typename... Types>
     constexpr auto apply(Func &&func, tuple<Types...> &t) {
         return t.apply(utility::forward<Func>(func));
@@ -1466,6 +1565,18 @@ namespace rainy::core::container {
      */
     template <typename Tuple>
     struct tuple_size {
+        /**
+         * \lang english
+         * @brief The number of elements. Zero in the primary template.
+         *
+         * The primary template matches non-tuple types and reports `0`; the
+         * `tuple` specialization below reports the actual element count.
+         *
+         * \lang simp-chinese
+         * @brief 元素数量。在主模板中为零。
+         *
+         * 主模板匹配非 tuple 类型并报告 `0`；下方的 `tuple` 特化会报告实际的元素数量。
+         */
         static RAINY_INLINE_CONSTEXPR std::size_t value = 0;
     };
 
@@ -1482,6 +1593,13 @@ namespace rainy::core::container {
      */
     template <typename... Args>
     struct tuple_size<tuple<Args...>> {
+        /**
+         * \lang english
+         * @brief The number of elements, equal to `sizeof...(Args)`.
+         *
+         * \lang simp-chinese
+         * @brief 元素数量，等于 `sizeof...(Args)`。
+         */
         static RAINY_INLINE_CONSTEXPR std::size_t value = sizeof...(Args);
     };
 
@@ -1553,11 +1671,11 @@ namespace rainy::utility::container {
     using rainy::core::container::make_tuple;
     using rainy::core::container::tie;
 
+    using rainy::core::container::tuple;
     using rainy::core::container::tuple_element;
     using rainy::core::container::tuple_element_t;
     using rainy::core::container::tuple_size;
     using rainy::core::container::tuple_size_v;
-    using rainy::core::container::tuple;
 }
 
 namespace rainy::utility::container {
@@ -1610,21 +1728,21 @@ namespace rainy::core::container {
 
 
 namespace rainy::container {
+    using rainy::core::container::apply;
+    using rainy::core::container::drop;
+    using rainy::core::container::forward_as_tuple;
+    using rainy::core::container::get;
+    using rainy::core::container::make_tuple;
+    using rainy::core::container::subtuple;
+    using rainy::core::container::swap;
+    using rainy::core::container::take;
+    using rainy::core::container::tie;
     using rainy::core::container::tuple;
+    using rainy::core::container::tuple_cat;
     using rainy::core::container::tuple_element;
     using rainy::core::container::tuple_element_t;
     using rainy::core::container::tuple_size;
     using rainy::core::container::tuple_size_v;
-    using rainy::core::container::get;
-    using rainy::core::container::drop;
-    using rainy::core::container::take;
-    using rainy::core::container::subtuple;
-    using rainy::core::container::apply;
-    using rainy::core::container::make_tuple;
-    using rainy::core::container::forward_as_tuple;
-    using rainy::core::container::tie;
-    using rainy::core::container::swap;
-    using rainy::core::container::tuple_cat;
     using rainy::core::container::operator==;
 }
 

@@ -20,8 +20,8 @@
 
 #include <iterator>
 #include <rainy/core/platform.hpp>
+#include <rainy/core/type_traits/common_type.hpp>
 #include <rainy/core/type_traits/decay.hpp>
-#include <rainy/core/type_traits/underlying_type.hpp>
 #include <rainy/core/type_traits/helper.hpp>
 #include <rainy/core/type_traits/implements.hpp>
 #include <rainy/core/type_traits/iter_traits.hpp>
@@ -36,8 +36,8 @@
 #include <rainy/core/type_traits/templates.hpp>
 #include <rainy/core/type_traits/type_list.hpp>
 #include <rainy/core/type_traits/type_relations.hpp>
+#include <rainy/core/type_traits/underlying_type.hpp>
 #include <rainy/core/type_traits/value_list.hpp>
-#include <rainy/core/type_traits/common_type.hpp>
 #include <utility>
 
 // NOLINTEND, clang-format on
@@ -58,6 +58,7 @@ namespace rainy::utility {
      *         用于指示需要填充的位置或作为默认参数。
      */
     struct placeholder_t final {
+        /// @hide
         explicit placeholder_t() = default;
     };
 
@@ -85,6 +86,7 @@ namespace rainy::utility {
      */
     template <typename = void>
     struct placeholder_type_t final {
+        /// @hide
         explicit placeholder_type_t() = default;
     };
 
@@ -117,6 +119,7 @@ namespace rainy::utility {
      */
     template <std::size_t>
     struct in_place_index_t final {
+        /// @hide
         explicit in_place_index_t() = default;
     };
 
@@ -231,9 +234,36 @@ namespace rainy::utility {
             }
         }
 
+        /**
+         * \lang english
+         * @brief Deleted copy constructor. `finally_impl` is neither copyable nor movable.
+         *
+         * The wrapped callable must be invoked at most once on destruction, so
+         * duplicating or transferring the wrapper is disallowed.
+         *
+         * \lang simp-chinese
+         * @brief 被删除的拷贝构造函数。`finally_impl` 既不可拷贝也不可移动。
+         *
+         * 被包装的可调用对象在析构时最多只能被调用一次，因此禁止复制或转移该包装器。
+         */
         finally_impl(const finally_impl &) = delete;
 
+        /**
+         * \lang english
+         * @brief Deleted copy assignment operator. `finally_impl` cannot be copy-assigned.
+         *
+         * \lang simp-chinese
+         * @brief 被删除的拷贝赋值运算符。`finally_impl` 不可拷贝赋值。
+         */
         finally_impl &operator=(const finally_impl &) = delete;
+
+        /**
+         * \lang english
+         * @brief Deleted move assignment operator. `finally_impl` cannot be move-assigned.
+         *
+         * \lang simp-chinese
+         * @brief 被删除的移动赋值运算符。`finally_impl` 不可移动赋值。
+         */
         finally_impl &operator=(finally_impl &&) = delete;
 
         /**
@@ -383,6 +413,1234 @@ namespace rainy::type_traits::primary_types {
         using class_type = void;
     };
 
+#if RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
+
+    /**
+     * \lang english
+     * @brief Member-pointer specialization for member functions; qualifiers: `{SPEC}`.
+     *
+     * \lang simp-chinese
+     * @brief 成员函数指针特化；限定符：`{SPEC}`。
+     *
+     * \scope Name [member_pointer_traits]
+     * \scope Var [SPEC=none]
+     */
+    template <typename Rx, typename Class, typename... Args>
+    struct member_pointer_traits<Rx (Class::*)(Args...)> {
+        /**
+         * \lang english
+         * @brief Marks this specialization as a valid member-pointer specialization.
+         *
+         * \lang simp-chinese
+         * @brief 标记该特化是有效的成员指针特化。
+         *
+         * \scope Name [valid]
+         * \scope Var [SPEC=]
+         */
+        static constexpr bool valid = true;
+
+        /**
+         * \lang english
+         * @brief The class type the member function belongs to.
+         *
+         * \lang simp-chinese
+         * @brief 成员函数所属的类类型。
+         *
+         * \scope Name [class_type]
+         * \scope Var [SPEC=]
+         */
+        using class_type = Class;
+
+        /**
+         * \lang english
+         * @brief The return type of the member function.
+         *
+         * \lang simp-chinese
+         * @brief 成员函数的返回类型。
+         *
+         * \scope Name [return_type]
+         * \scope Var [SPEC=]
+         */
+        using return_type = Rx;
+    };
+
+    /**
+     * \forscope [member_pointer_traits]
+     * \forscope Var SPEC=..., no cv, no ref, no noexcept (C-style variadic)
+     */
+    template <typename Rx, typename Class, typename... Args>
+    struct member_pointer_traits<Rx (Class::*)(Args..., ...)> {
+        /**
+         * \forscope [class_type]
+         * \forscope Var SPEC=...
+         */
+        using class_type = Class;
+
+        /**
+         * \forscope [return_type]
+         * \forscope Var SPEC=...
+         */
+        using return_type = Rx;
+
+        /**
+         * \forscope [valid]
+         * \forscope Var SPEC=...
+         */
+        static constexpr bool valid = true;
+    };
+
+    /**
+     * \forscope [member_pointer_traits]
+     * \forscope Var SPEC=&
+     */
+    template <typename Rx, typename Class, typename... Args>
+    struct member_pointer_traits<Rx (Class::*)(Args...) &> {
+        /**
+         * \forscope [valid]
+         * \forscope Var SPEC=&
+         */
+        static constexpr bool valid = true;
+
+        /**
+         * \forscope [class_type]
+         * \forscope Var SPEC=&
+         */
+        using class_type = Class;
+
+        /**
+         * \forscope [return_type]
+         * \forscope Var SPEC=&
+         */
+        using return_type = Rx;
+    };
+
+    /**
+     * \forscope [member_pointer_traits]
+     * \forscope Var SPEC=&
+     */
+    template <typename Rx, typename Class, typename... Args>
+    struct member_pointer_traits<Rx (Class::*)(Args..., ...) &> {
+        /**
+         * \forscope [class_type]
+         * \forscope Var SPEC=&
+         */
+        using class_type = Class;
+
+        /**
+         * \forscope [return_type]
+         * \forscope Var SPEC=&
+         */
+        using return_type = Rx;
+
+        /**
+         * \forscope [valid]
+         * \forscope Var SPEC=&
+         */
+        static constexpr bool valid = true;
+    };
+
+    /**
+     * \forscope [member_pointer_traits]
+     * \forscope Var SPEC=&&
+     */
+    template <typename Rx, typename Class, typename... Args>
+    struct member_pointer_traits<Rx (Class::*)(Args...) &&> {
+        /**
+         * \forscope [valid]
+         * \forscope Var SPEC=&&
+         */
+        static constexpr bool valid = true;
+
+        /**
+         * \forscope [class_type]
+         * \forscope Var SPEC=&&
+         */
+        using class_type = Class;
+
+        /**
+         * \forscope [return_type]
+         * \forscope Var SPEC=&&
+         */
+        using return_type = Rx;
+    };
+
+    /**
+     * \forscope [member_pointer_traits]
+     * \forscope Var SPEC=&&
+     */
+    template <typename Rx, typename Class, typename... Args>
+    struct member_pointer_traits<Rx (Class::*)(Args..., ...) &&> {
+        /**
+         * \forscope [class_type]
+         * \forscope Var SPEC=&&
+         */
+        using class_type = Class;
+
+        /**
+         * \forscope [return_type]
+         * \forscope Var SPEC=&&
+         */
+        using return_type = Rx;
+
+        /**
+         * \forscope [valid]
+         * \forscope Var SPEC=&&
+         */
+        static constexpr bool valid = true;
+    };
+
+    /**
+     * \forscope [member_pointer_traits]
+     * \forscope Var SPEC=const
+     */
+    template <typename Rx, typename Class, typename... Args>
+    struct member_pointer_traits<Rx (Class::*)(Args...) const> {
+        /**
+         * \forscope [valid]
+         * \forscope Var SPEC=const
+         */
+        static constexpr bool valid = true;
+
+        /**
+         * \forscope [class_type]
+         * \forscope Var SPEC=const
+         */
+        using class_type = Class;
+
+        /**
+         * \forscope [return_type]
+         * \forscope Var SPEC=const
+         */
+        using return_type = Rx;
+    };
+
+    /**
+     * \forscope [member_pointer_traits]
+     * \forscope Var SPEC=const
+     */
+    template <typename Rx, typename Class, typename... Args>
+    struct member_pointer_traits<Rx (Class::*)(Args..., ...) const> {
+        /**
+         * \forscope [class_type]
+         * \forscope Var SPEC=const
+         */
+        using class_type = Class;
+
+        /**
+         * \forscope [return_type]
+         * \forscope Var SPEC=const
+         */
+        using return_type = Rx;
+
+        /**
+         * \forscope [valid]
+         * \forscope Var SPEC=const
+         */
+        static constexpr bool valid = true;
+    };
+
+    /**
+     * \forscope [member_pointer_traits]
+     * \forscope Var SPEC=const &
+     */
+    template <typename Rx, typename Class, typename... Args>
+    struct member_pointer_traits<Rx (Class::*)(Args...) const &> {
+        /**
+         * \forscope [valid]
+         * \forscope Var SPEC=const &
+         */
+        static constexpr bool valid = true;
+
+        /**
+         * \forscope [class_type]
+         * \forscope Var SPEC=const &
+         */
+        using class_type = Class;
+
+        /**
+         * \forscope [return_type]
+         * \forscope Var SPEC=const &
+         */
+        using return_type = Rx;
+    };
+
+    /**
+     * \forscope [member_pointer_traits]
+     * \forscope Var SPEC=const &
+     */
+    template <typename Rx, typename Class, typename... Args>
+    struct member_pointer_traits<Rx (Class::*)(Args..., ...) const &> {
+        /**
+         * \forscope [class_type]
+         * \forscope Var SPEC=const &
+         */
+        using class_type = Class;
+
+        /**
+         * \forscope [return_type]
+         * \forscope Var SPEC=const &
+         */
+        using return_type = Rx;
+
+        /**
+         * \forscope [valid]
+         * \forscope Var SPEC=const &
+         */
+        static constexpr bool valid = true;
+    };
+
+    /**
+     * \forscope [member_pointer_traits]
+     * \forscope Var SPEC=const &&
+     */
+    template <typename Rx, typename Class, typename... Args>
+    struct member_pointer_traits<Rx (Class::*)(Args...) const &&> {
+        /**
+         * \forscope [valid]
+         * \forscope Var SPEC=const &&
+         */
+        static constexpr bool valid = true;
+
+        /**
+         * \forscope [class_type]
+         * \forscope Var SPEC=const &&
+         */
+        using class_type = Class;
+
+        /**
+         * \forscope [return_type]
+         * \forscope Var SPEC=const &&
+         */
+        using return_type = Rx;
+    };
+
+    /**
+     * \forscope [member_pointer_traits]
+     * \forscope Var SPEC=const &&
+     */
+    template <typename Rx, typename Class, typename... Args>
+    struct member_pointer_traits<Rx (Class::*)(Args..., ...) const &&> {
+        /**
+         * \forscope [class_type]
+         * \forscope Var SPEC=const &&
+         */
+        using class_type = Class;
+
+        /**
+         * \forscope [return_type]
+         * \forscope Var SPEC=const &&
+         */
+        using return_type = Rx;
+
+        /**
+         * \forscope [valid]
+         * \forscope Var SPEC=const &&
+         */
+        static constexpr bool valid = true;
+    };
+
+    /**
+     * \forscope [member_pointer_traits]
+     * \forscope Var SPEC=noexcept
+     */
+    template <typename Rx, typename Class, typename... Args>
+    struct member_pointer_traits<Rx (Class::*)(Args...) noexcept> {
+        /**
+         * \forscope [valid]
+         * \forscope Var SPEC=noexcept
+         */
+        static constexpr bool valid = true;
+
+        /**
+         * \forscope [class_type]
+         * \forscope Var SPEC=noexcept
+         */
+        using class_type = Class;
+
+        /**
+         * \forscope [return_type]
+         * \forscope Var SPEC=noexcept
+         */
+        using return_type = Rx;
+    };
+
+    /**
+     * \forscope [member_pointer_traits]
+     * \forscope Var SPEC=noexcept
+     */
+    template <typename Rx, typename Class, typename... Args>
+    struct member_pointer_traits<Rx (Class::*)(Args..., ...) noexcept> {
+        /**
+         * \forscope [class_type]
+         * \forscope Var SPEC=noexcept
+         */
+        using class_type = Class;
+
+        /**
+         * \forscope [return_type]
+         * \forscope Var SPEC=noexcept
+         */
+        using return_type = Rx;
+
+        /**
+         * \forscope [valid]
+         * \forscope Var SPEC=noexcept
+         */
+        static constexpr bool valid = true;
+    };
+
+    /**
+     * \forscope [member_pointer_traits]
+     * \forscope Var SPEC=& noexcept
+     */
+    template <typename Rx, typename Class, typename... Args>
+    struct member_pointer_traits<Rx (Class::*)(Args...) & noexcept> {
+        /**
+         * \forscope [valid]
+         * \forscope Var SPEC=& noexcept
+         */
+        static constexpr bool valid = true;
+
+        /**
+         * \forscope [class_type]
+         * \forscope Var SPEC=& noexcept
+         */
+        using class_type = Class;
+
+        /**
+         * \forscope [return_type]
+         * \forscope Var SPEC=& noexcept
+         */
+        using return_type = Rx;
+    };
+
+    /**
+     * \forscope [member_pointer_traits]
+     * \forscope Var SPEC=& noexcept
+     */
+    template <typename Rx, typename Class, typename... Args>
+    struct member_pointer_traits<Rx (Class::*)(Args..., ...) & noexcept> {
+        /**
+         * \forscope [class_type]
+         * \forscope Var SPEC=& noexcept
+         */
+        using class_type = Class;
+
+        /**
+         * \forscope [return_type]
+         * \forscope Var SPEC=& noexcept
+         */
+        using return_type = Rx;
+
+        /**
+         * \forscope [valid]
+         * \forscope Var SPEC=& noexcept
+         */
+        static constexpr bool valid = true;
+    };
+
+    /**
+     * \forscope [member_pointer_traits]
+     * \forscope Var SPEC=&& noexcept
+     */
+    template <typename Rx, typename Class, typename... Args>
+    struct member_pointer_traits<Rx (Class::*)(Args...) && noexcept> {
+        /**
+         * \forscope [valid]
+         * \forscope Var SPEC=&& noexcept
+         */
+        static constexpr bool valid = true;
+
+        /**
+         * \forscope [class_type]
+         * \forscope Var SPEC=&& noexcept
+         */
+        using class_type = Class;
+
+        /**
+         * \forscope [return_type]
+         * \forscope Var SPEC=&& noexcept
+         */
+        using return_type = Rx;
+    };
+
+    /**
+     * \forscope [member_pointer_traits]
+     * \forscope Var SPEC=&& noexcept
+     */
+    template <typename Rx, typename Class, typename... Args>
+    struct member_pointer_traits<Rx (Class::*)(Args..., ...) && noexcept> {
+        /**
+         * \forscope [class_type]
+         * \forscope Var SPEC=&& noexcept
+         */
+        using class_type = Class;
+
+        /**
+         * \forscope [return_type]
+         * \forscope Var SPEC=&& noexcept
+         */
+        using return_type = Rx;
+
+        /**
+         * \forscope [valid]
+         * \forscope Var SPEC=&& noexcept
+         */
+        static constexpr bool valid = true;
+    };
+
+    /**
+     * \forscope [member_pointer_traits]
+     * \forscope Var SPEC=const noexcept
+     */
+    template <typename Rx, typename Class, typename... Args>
+    struct member_pointer_traits<Rx (Class::*)(Args...) const noexcept> {
+        /**
+         * \forscope [valid]
+         * \forscope Var SPEC=const noexcept
+         */
+        static constexpr bool valid = true;
+
+        /**
+         * \forscope [class_type]
+         * \forscope Var SPEC=const noexcept
+         */
+        using class_type = Class;
+
+        /**
+         * \forscope [return_type]
+         * \forscope Var SPEC=const noexcept
+         */
+        using return_type = Rx;
+    };
+
+    /**
+     * \forscope [member_pointer_traits]
+     * \forscope Var SPEC=const noexcept
+     */
+    template <typename Rx, typename Class, typename... Args>
+    struct member_pointer_traits<Rx (Class::*)(Args..., ...) const noexcept> {
+        /**
+         * \forscope [class_type]
+         * \forscope Var SPEC=const noexcept
+         */
+        using class_type = Class;
+
+        /**
+         * \forscope [return_type]
+         * \forscope Var SPEC=const noexcept
+         */
+        using return_type = Rx;
+
+        /**
+         * \forscope [valid]
+         * \forscope Var SPEC=const noexcept
+         */
+        static constexpr bool valid = true;
+    };
+
+    /**
+     * \forscope [member_pointer_traits]
+     * \forscope Var SPEC=const & noexcept
+     */
+    template <typename Rx, typename Class, typename... Args>
+    struct member_pointer_traits<Rx (Class::*)(Args...) const & noexcept> {
+        /**
+         * \forscope [valid]
+         * \forscope Var SPEC=const & noexcept
+         */
+        static constexpr bool valid = true;
+
+        /**
+         * \forscope [class_type]
+         * \forscope Var SPEC=const & noexcept
+         */
+        using class_type = Class;
+
+        /**
+         * \forscope [return_type]
+         * \forscope Var SPEC=const & noexcept
+         */
+        using return_type = Rx;
+    };
+
+    /**
+     * \forscope [member_pointer_traits]
+     * \forscope Var SPEC=const & noexcept
+     */
+    template <typename Rx, typename Class, typename... Args>
+    struct member_pointer_traits<Rx (Class::*)(Args..., ...) const & noexcept> {
+        /**
+         * \forscope [class_type]
+         * \forscope Var SPEC=const & noexcept
+         */
+        using class_type = Class;
+
+        /**
+         * \forscope [return_type]
+         * \forscope Var SPEC=const & noexcept
+         */
+        using return_type = Rx;
+
+        /**
+         * \forscope [valid]
+         * \forscope Var SPEC=const & noexcept
+         */
+        static constexpr bool valid = true;
+    };
+
+    /**
+     * \forscope [member_pointer_traits]
+     * \forscope Var SPEC=const && noexcept
+     */
+    template <typename Rx, typename Class, typename... Args>
+    struct member_pointer_traits<Rx (Class::*)(Args...) const && noexcept> {
+        /**
+         * \forscope [valid]
+         * \forscope Var SPEC=const && noexcept
+         */
+        static constexpr bool valid = true;
+
+        /**
+         * \forscope [class_type]
+         * \forscope Var SPEC=const && noexcept
+         */
+        using class_type = Class;
+
+        /**
+         * \forscope [return_type]
+         * \forscope Var SPEC=const && noexcept
+         */
+        using return_type = Rx;
+    };
+
+    /**
+     * \forscope [member_pointer_traits]
+     * \forscope Var SPEC=const && noexcept
+     */
+    template <typename Rx, typename Class, typename... Args>
+    struct member_pointer_traits<Rx (Class::*)(Args..., ...) const && noexcept> {
+        /**
+         * \forscope [class_type]
+         * \forscope Var SPEC=const && noexcept
+         */
+        using class_type = Class;
+
+        /**
+         * \forscope [return_type]
+         * \forscope Var SPEC=const && noexcept
+         */
+        using return_type = Rx;
+
+        /**
+         * \forscope [valid]
+         * \forscope Var SPEC=const && noexcept
+         */
+        static constexpr bool valid = true;
+    };
+
+    /**
+     * \forscope [member_pointer_traits]
+     * \forscope Var SPEC=volatile
+     */
+    template <typename Rx, typename Class, typename... Args>
+    struct member_pointer_traits<Rx (Class::*)(Args...) volatile> {
+        /**
+         * \forscope [valid]
+         * \forscope Var SPEC=volatile
+         */
+        static constexpr bool valid = true;
+
+        /**
+         * \forscope [class_type]
+         * \forscope Var SPEC=volatile
+         */
+        using class_type = Class;
+
+        /**
+         * \forscope [return_type]
+         * \forscope Var SPEC=volatile
+         */
+        using return_type = Rx;
+    };
+
+    /**
+     * \forscope [member_pointer_traits]
+     * \forscope Var SPEC=volatile
+     */
+    template <typename Rx, typename Class, typename... Args>
+    struct member_pointer_traits<Rx (Class::*)(Args..., ...) volatile> {
+        /**
+         * \forscope [class_type]
+         * \forscope Var SPEC=volatile
+         */
+        using class_type = Class;
+
+        /**
+         * \forscope [return_type]
+         * \forscope Var SPEC=volatile
+         */
+        using return_type = Rx;
+
+        /**
+         * \forscope [valid]
+         * \forscope Var SPEC=volatile
+         */
+        static constexpr bool valid = true;
+    };
+
+    /**
+     * \forscope [member_pointer_traits]
+     * \forscope Var SPEC=volatile &
+     */
+    template <typename Rx, typename Class, typename... Args>
+    struct member_pointer_traits<Rx (Class::*)(Args...) volatile &> {
+        /**
+         * \forscope [valid]
+         * \forscope Var SPEC=volatile &
+         */
+        static constexpr bool valid = true;
+
+        /**
+         * \forscope [class_type]
+         * \forscope Var SPEC=volatile &
+         */
+        using class_type = Class;
+
+        /**
+         * \forscope [return_type]
+         * \forscope Var SPEC=volatile &
+         */
+        using return_type = Rx;
+    };
+
+    /**
+     * \forscope [member_pointer_traits]
+     * \forscope Var SPEC=volatile &
+     */
+    template <typename Rx, typename Class, typename... Args>
+    struct member_pointer_traits<Rx (Class::*)(Args..., ...) volatile &> {
+        /**
+         * \forscope [class_type]
+         * \forscope Var SPEC=volatile &
+         */
+        using class_type = Class;
+
+        /**
+         * \forscope [return_type]
+         * \forscope Var SPEC=volatile &
+         */
+        using return_type = Rx;
+
+        /**
+         * \forscope [valid]
+         * \forscope Var SPEC=volatile &
+         */
+        static constexpr bool valid = true;
+    };
+
+    /**
+     * \forscope [member_pointer_traits]
+     * \forscope Var SPEC=volatile &&
+     */
+    template <typename Rx, typename Class, typename... Args>
+    struct member_pointer_traits<Rx (Class::*)(Args...) volatile &&> {
+        /**
+         * \forscope [valid]
+         * \forscope Var SPEC=volatile &&
+         */
+        static constexpr bool valid = true;
+
+        /**
+         * \forscope [class_type]
+         * \forscope Var SPEC=volatile &&
+         */
+        using class_type = Class;
+
+        /**
+         * \forscope [return_type]
+         * \forscope Var SPEC=volatile &&
+         */
+        using return_type = Rx;
+    };
+
+    /**
+     * \forscope [member_pointer_traits]
+     * \forscope Var SPEC=volatile &&
+     */
+    template <typename Rx, typename Class, typename... Args>
+    struct member_pointer_traits<Rx (Class::*)(Args..., ...) volatile &&> {
+        /**
+         * \forscope [class_type]
+         * \forscope Var SPEC=volatile &&
+         */
+        using class_type = Class;
+
+        /**
+         * \forscope [return_type]
+         * \forscope Var SPEC=volatile &&
+         */
+        using return_type = Rx;
+
+        /**
+         * \forscope [valid]
+         * \forscope Var SPEC=volatile &&
+         */
+        static constexpr bool valid = true;
+    };
+
+    /**
+     * \forscope [member_pointer_traits]
+     * \forscope Var SPEC=volatile noexcept
+     */
+    template <typename Rx, typename Class, typename... Args>
+    struct member_pointer_traits<Rx (Class::*)(Args...) volatile noexcept> {
+        /**
+         * \forscope [valid]
+         * \forscope Var SPEC=volatile noexcept
+         */
+        static constexpr bool valid = true;
+
+        /**
+         * \forscope [class_type]
+         * \forscope Var SPEC=volatile noexcept
+         */
+        using class_type = Class;
+
+        /**
+         * \forscope [return_type]
+         * \forscope Var SPEC=volatile noexcept
+         */
+        using return_type = Rx;
+    };
+
+    /**
+     * \forscope [member_pointer_traits]
+     * \forscope Var SPEC=volatile noexcept
+     */
+    template <typename Rx, typename Class, typename... Args>
+    struct member_pointer_traits<Rx (Class::*)(Args..., ...) volatile noexcept> {
+        /**
+         * \forscope [class_type]
+         * \forscope Var SPEC=volatile noexcept
+         */
+        using class_type = Class;
+
+        /**
+         * \forscope [return_type]
+         * \forscope Var SPEC=volatile noexcept
+         */
+        using return_type = Rx;
+
+        /**
+         * \forscope [valid]
+         * \forscope Var SPEC=volatile noexcept
+         */
+        static constexpr bool valid = true;
+    };
+
+    /**
+     * \forscope [member_pointer_traits]
+     * \forscope Var SPEC=volatile & noexcept
+     */
+    template <typename Rx, typename Class, typename... Args>
+    struct member_pointer_traits<Rx (Class::*)(Args...) volatile & noexcept> {
+        /**
+         * \forscope [valid]
+         * \forscope Var SPEC=volatile & noexcept
+         */
+        static constexpr bool valid = true;
+
+        /**
+         * \forscope [class_type]
+         * \forscope Var SPEC=volatile & noexcept
+         */
+        using class_type = Class;
+
+        /**
+         * \forscope [return_type]
+         * \forscope Var SPEC=volatile & noexcept
+         */
+        using return_type = Rx;
+    };
+
+    /**
+     * \forscope [member_pointer_traits]
+     * \forscope Var SPEC=volatile & noexcept
+     */
+    template <typename Rx, typename Class, typename... Args>
+    struct member_pointer_traits<Rx (Class::*)(Args..., ...) volatile & noexcept> {
+        /**
+         * \forscope [class_type]
+         * \forscope Var SPEC=volatile & noexcept
+         */
+        using class_type = Class;
+
+        /**
+         * \forscope [return_type]
+         * \forscope Var SPEC=volatile & noexcept
+         */
+        using return_type = Rx;
+
+        /**
+         * \forscope [valid]
+         * \forscope Var SPEC=volatile & noexcept
+         */
+        static constexpr bool valid = true;
+    };
+
+    /**
+     * \forscope [member_pointer_traits]
+     * \forscope Var SPEC=volatile && noexcept
+     */
+    template <typename Rx, typename Class, typename... Args>
+    struct member_pointer_traits<Rx (Class::*)(Args...) volatile && noexcept> {
+        /**
+         * \forscope [valid]
+         * \forscope Var SPEC=volatile && noexcept
+         */
+        static constexpr bool valid = true;
+
+        /**
+         * \forscope [class_type]
+         * \forscope Var SPEC=volatile && noexcept
+         */
+        using class_type = Class;
+
+        /**
+         * \forscope [return_type]
+         * \forscope Var SPEC=volatile && noexcept
+         */
+        using return_type = Rx;
+    };
+
+    /**
+     * \forscope [member_pointer_traits]
+     * \forscope Var SPEC=volatile && noexcept
+     */
+    template <typename Rx, typename Class, typename... Args>
+    struct member_pointer_traits<Rx (Class::*)(Args..., ...) volatile && noexcept> {
+        /**
+         * \forscope [class_type]
+         * \forscope Var SPEC=volatile && noexcept
+         */
+        using class_type = Class;
+
+        /**
+         * \forscope [return_type]
+         * \forscope Var SPEC=volatile && noexcept
+         */
+        using return_type = Rx;
+
+        /**
+         * \forscope [valid]
+         * \forscope Var SPEC=volatile && noexcept
+         */
+        static constexpr bool valid = true;
+    };
+
+    /**
+     * \forscope [member_pointer_traits]
+     * \forscope Var SPEC=const volatile
+     */
+    template <typename Rx, typename Class, typename... Args>
+    struct member_pointer_traits<Rx (Class::*)(Args...) const volatile> {
+        /**
+         * \forscope [valid]
+         * \forscope Var SPEC=const volatile
+         */
+        static constexpr bool valid = true;
+
+        /**
+         * \forscope [class_type]
+         * \forscope Var SPEC=const volatile
+         */
+        using class_type = Class;
+
+        /**
+         * \forscope [return_type]
+         * \forscope Var SPEC=const volatile
+         */
+        using return_type = Rx;
+    };
+
+    /**
+     * \forscope [member_pointer_traits]
+     * \forscope Var SPEC=const volatile
+     */
+    template <typename Rx, typename Class, typename... Args>
+    struct member_pointer_traits<Rx (Class::*)(Args..., ...) const volatile> {
+        /**
+         * \forscope [class_type]
+         * \forscope Var SPEC=const volatile
+         */
+        using class_type = Class;
+
+        /**
+         * \forscope [return_type]
+         * \forscope Var SPEC=const volatile
+         */
+        using return_type = Rx;
+
+        /**
+         * \forscope [valid]
+         * \forscope Var SPEC=const volatile
+         */
+        static constexpr bool valid = true;
+    };
+
+    /**
+     * \forscope [member_pointer_traits]
+     * \forscope Var SPEC=const volatile &
+     */
+    template <typename Rx, typename Class, typename... Args>
+    struct member_pointer_traits<Rx (Class::*)(Args...) const volatile &> {
+        /**
+         * \forscope [valid]
+         * \forscope Var SPEC=const volatile &
+         */
+        static constexpr bool valid = true;
+
+        /**
+         * \forscope [class_type]
+         * \forscope Var SPEC=const volatile &
+         */
+        using class_type = Class;
+
+        /**
+         * \forscope [return_type]
+         * \forscope Var SPEC=const volatile &
+         */
+        using return_type = Rx;
+    };
+
+    /**
+     * \forscope [member_pointer_traits]
+     * \forscope Var SPEC=const volatile &
+     */
+    template <typename Rx, typename Class, typename... Args>
+    struct member_pointer_traits<Rx (Class::*)(Args..., ...) const volatile &> {
+        /**
+         * \forscope [class_type]
+         * \forscope Var SPEC=const volatile &
+         */
+        using class_type = Class;
+
+        /**
+         * \forscope [return_type]
+         * \forscope Var SPEC=const volatile &
+         */
+        using return_type = Rx;
+
+        /**
+         * \forscope [valid]
+         * \forscope Var SPEC=const volatile &
+         */
+        static constexpr bool valid = true;
+    };
+
+    /**
+     * \forscope [member_pointer_traits]
+     * \forscope Var SPEC=const volatile &&
+     */
+    template <typename Rx, typename Class, typename... Args>
+    struct member_pointer_traits<Rx (Class::*)(Args...) const volatile &&> {
+        /**
+         * \forscope [valid]
+         * \forscope Var SPEC=const volatile &&
+         */
+        static constexpr bool valid = true;
+
+        /**
+         * \forscope [class_type]
+         * \forscope Var SPEC=const volatile &&
+         */
+        using class_type = Class;
+
+        /**
+         * \forscope [return_type]
+         * \forscope Var SPEC=const volatile &&
+         */
+        using return_type = Rx;
+    };
+
+    /**
+     * \forscope [member_pointer_traits]
+     * \forscope Var SPEC=const volatile &&
+     */
+    template <typename Rx, typename Class, typename... Args>
+    struct member_pointer_traits<Rx (Class::*)(Args..., ...) const volatile &&> {
+        /**
+         * \forscope [class_type]
+         * \forscope Var SPEC=const volatile &&
+         */
+        using class_type = Class;
+
+        /**
+         * \forscope [return_type]
+         * \forscope Var SPEC=const volatile &&
+         */
+        using return_type = Rx;
+
+        /**
+         * \forscope [valid]
+         * \forscope Var SPEC=const volatile &&
+         */
+        static constexpr bool valid = true;
+    };
+
+    /**
+     * \forscope [member_pointer_traits]
+     * \forscope Var SPEC=const volatile noexcept
+     */
+    template <typename Rx, typename Class, typename... Args>
+    struct member_pointer_traits<Rx (Class::*)(Args...) const volatile noexcept> {
+        /**
+         * \forscope [valid]
+         * \forscope Var SPEC=const volatile noexcept
+         */
+        static constexpr bool valid = true;
+
+        /**
+         * \forscope [class_type]
+         * \forscope Var SPEC=const volatile noexcept
+         */
+        using class_type = Class;
+
+        /**
+         * \forscope [return_type]
+         * \forscope Var SPEC=const volatile noexcept
+         */
+        using return_type = Rx;
+    };
+
+    /**
+     * \forscope [member_pointer_traits]
+     * \forscope Var SPEC=const volatile noexcept
+     */
+    template <typename Rx, typename Class, typename... Args>
+    struct member_pointer_traits<Rx (Class::*)(Args..., ...) const volatile noexcept> {
+        /**
+         * \forscope [class_type]
+         * \forscope Var SPEC=const volatile noexcept
+         */
+        using class_type = Class;
+
+        /**
+         * \forscope [return_type]
+         * \forscope Var SPEC=const volatile noexcept
+         */
+        using return_type = Rx;
+
+        /**
+         * \forscope [valid]
+         * \forscope Var SPEC=const volatile noexcept
+         */
+        static constexpr bool valid = true;
+    };
+
+    /**
+     * \forscope [member_pointer_traits]
+     * \forscope Var SPEC=const volatile & noexcept
+     */
+    template <typename Rx, typename Class, typename... Args>
+    struct member_pointer_traits<Rx (Class::*)(Args...) const volatile & noexcept> {
+        /**
+         * \forscope [valid]
+         * \forscope Var SPEC=const volatile & noexcept
+         */
+        static constexpr bool valid = true;
+
+        /**
+         * \forscope [class_type]
+         * \forscope Var SPEC=const volatile & noexcept
+         */
+        using class_type = Class;
+
+        /**
+         * \forscope [return_type]
+         * \forscope Var SPEC=const volatile & noexcept
+         */
+        using return_type = Rx;
+    };
+
+    /**
+     * \forscope [member_pointer_traits]
+     * \forscope Var SPEC=const volatile & noexcept
+     */
+    template <typename Rx, typename Class, typename... Args>
+    struct member_pointer_traits<Rx (Class::*)(Args..., ...) const volatile & noexcept> {
+        /**
+         * \forscope [class_type]
+         * \forscope Var SPEC=const volatile & noexcept
+         */
+        using class_type = Class;
+
+        /**
+         * \forscope [return_type]
+         * \forscope Var SPEC=const volatile & noexcept
+         */
+        using return_type = Rx;
+
+        /**
+         * \forscope [valid]
+         * \forscope Var SPEC=const volatile & noexcept
+         */
+        static constexpr bool valid = true;
+    };
+
+    /**
+     * \forscope [member_pointer_traits]
+     * \forscope Var SPEC=const volatile && noexcept
+     */
+    template <typename Rx, typename Class, typename... Args>
+    struct member_pointer_traits<Rx (Class::*)(Args...) const volatile && noexcept> {
+        /**
+         * \forscope [valid]
+         * \forscope Var SPEC=const volatile && noexcept
+         */
+        static constexpr bool valid = true;
+
+        /**
+         * \forscope [class_type]
+         * \forscope Var SPEC=const volatile && noexcept
+         */
+        using class_type = Class;
+
+        /**
+         * \forscope [return_type]
+         * \forscope Var SPEC=const volatile && noexcept
+         */
+        using return_type = Rx;
+    };
+
+    /**
+     * \forscope [member_pointer_traits]
+     * \forscope Var SPEC=const volatile && noexcept
+     */
+    template <typename Rx, typename Class, typename... Args>
+    struct member_pointer_traits<Rx (Class::*)(Args..., ...) const volatile && noexcept> {
+        /**
+         * \forscope [class_type]
+         * \forscope Var SPEC=const volatile && noexcept
+         */
+        using class_type = Class;
+
+        /**
+         * \forscope [return_type]
+         * \forscope Var SPEC=const volatile && noexcept
+         */
+        using return_type = Rx;
+
+        /**
+         * \forscope [valid]
+         * \forscope Var SPEC=const volatile && noexcept
+         */
+        static constexpr bool valid = true;
+    };
+
+#else
+
     // Specializations for various member pointer cv-qualifier and ref-qualifier combinations
     // 各种成员指针 cv-限定符和引用限定符组合的特化
     RAINY_MEMBER_POINTER_TRAITS_SPEC()
@@ -410,6 +1668,7 @@ namespace rainy::type_traits::primary_types {
     RAINY_MEMBER_POINTER_TRAITS_SPEC(const volatile & noexcept)
     RAINY_MEMBER_POINTER_TRAITS_SPEC(const volatile && noexcept)
 
+#endif
     /**
      * \lang english
      * @brief Specialization of member_pointer_traits for actual member pointer types.
@@ -1340,7 +2599,29 @@ namespace rainy::utility {
             this->reference_data = utility::addressof(ref);
         }
 
+        /**
+         * \lang english
+         * @brief Deleted copy constructor. `reference_wrapper` is neither copyable nor movable.
+         *
+         * Copying or moving would change which object is referenced, so both are
+         * disallowed. Assigning a new referent is done by constructing a new
+         * `reference_wrapper` instead.
+         *
+         * \lang simp-chinese
+         * @brief 被删除的拷贝构造函数。`reference_wrapper` 既不可拷贝也不可移动。
+         *
+         * 复制或移动会改变所引用的对象，因此二者均被禁止。
+         * 如需引用新对象，应改为构造新的 `reference_wrapper`。
+         */
         reference_wrapper(const reference_wrapper &) = delete;
+
+        /**
+         * \lang english
+         * @brief Deleted move constructor. `reference_wrapper` is neither copyable nor movable.
+         *
+         * \lang simp-chinese
+         * @brief 被删除的移动构造函数。`reference_wrapper` 既不可拷贝也不可移动。
+         */
         reference_wrapper(reference_wrapper &&) = delete;
 
         /**
@@ -1667,14 +2948,81 @@ namespace rainy::type_traits::modifers {
 }
 
 namespace rainy::utility {
+    /**
+     * \lang english
+     * @brief The strategy used to invoke a stored callable.
+     *
+     * Classifies how the target of an invoker is called, which determines the
+     * storage and the invocation path chosen at call time.
+     *
+     * \lang simp-chinese
+     * @brief 用于调用所存储可调用对象的策略。
+     *
+     * 对调用器目标的调用方式进行分类，从而决定存储形式以及调用时采用的调用路径。
+     */
     enum class invoker_strategy : std::uint8_t {
-        functor, // 仿函数或函数类型
-        pmf_object, // 类成员函数——对象调用
-        pmf_refwrap, // 类成员函数——对象引用包装器调用
-        pmf_pointer, // 类成员函数——对象指针调用
-        pmd_object, // 类成员变量——对象调用
-        pmd_refwrap, // 类成员变量——对象引用包装器调用
-        pmd_pointer // 类成员变量——对象指针调用
+        /**
+         * \lang english
+         * @brief Invoke a function object or a plain function.
+         *
+         * \lang simp-chinese
+         * @brief 调用仿函数或普通函数。
+         */
+        functor,
+
+        /**
+         * \lang english
+         * @brief Invoke a pointer-to-member-function with an object.
+         *
+         * \lang simp-chinese
+         * @brief 通过对象调用类成员函数指针。
+         */
+        pmf_object,
+
+        /**
+         * \lang english
+         * @brief Invoke a pointer-to-member-function with a reference wrapper to the object.
+         *
+         * \lang simp-chinese
+         * @brief 通过对象引用包装器调用类成员函数指针。
+         */
+        pmf_refwrap,
+
+        /**
+         * \lang english
+         * @brief Invoke a pointer-to-member-function with a pointer to the object.
+         *
+         * \lang simp-chinese
+         * @brief 通过对象指针调用类成员函数指针。
+         */
+        pmf_pointer,
+
+        /**
+         * \lang english
+         * @brief Access a pointer-to-member-data with an object.
+         *
+         * \lang simp-chinese
+         * @brief 通过对象访问类成员变量指针。
+         */
+        pmd_object,
+
+        /**
+         * \lang english
+         * @brief Access a pointer-to-member-data with a reference wrapper to the object.
+         *
+         * \lang simp-chinese
+         * @brief 通过对象引用包装器访问类成员变量指针。
+         */
+        pmd_refwrap,
+
+        /**
+         * \lang english
+         * @brief Access a pointer-to-member-data with a pointer to the object.
+         *
+         * \lang simp-chinese
+         * @brief 通过对象指针访问类成员变量指针。
+         */
+        pmd_pointer
     };
 }
 
@@ -1760,26 +3108,28 @@ namespace rainy::utility::implements {
     template <typename Callable, typename Ty1, typename RemoveCvref>
     struct invoker_impl<Callable, Ty1, RemoveCvref, true, false>
         : type_traits::other_trans::conditional_t<
-              type_traits::type_relations::is_same_v<typename rainy::type_traits::primary_types::member_pointer_traits<RemoveCvref>::class_type,
-                             type_traits::modifers::remove_cvref_t<Ty1>> ||
+              type_traits::type_relations::is_same_v<
+                  typename rainy::type_traits::primary_types::member_pointer_traits<RemoveCvref>::class_type,
+                  type_traits::modifers::remove_cvref_t<Ty1>> ||
                   std::is_base_of_v<typename rainy::type_traits::primary_types::member_pointer_traits<RemoveCvref>::class_type,
                                     type_traits::modifers::remove_cvref_t<Ty1>>,
               invoker_pmf_object,
-              type_traits::other_trans::conditional_t<rainy::type_traits::primary_types::is_specialization_v<type_traits::modifers::remove_cvref_t<Ty1>,
-                                                                                        std::reference_wrapper>,
-                                 invoker_pmf_refwrap, invoker_pmf_pointer>> {};
+              type_traits::other_trans::conditional_t<rainy::type_traits::primary_types::is_specialization_v<
+                                                          type_traits::modifers::remove_cvref_t<Ty1>, std::reference_wrapper>,
+                                                      invoker_pmf_refwrap, invoker_pmf_pointer>> {};
 
     template <typename Callable, typename Ty1, typename RemoveCvref>
     struct invoker_impl<Callable, Ty1, RemoveCvref, false, true>
         : type_traits::other_trans::conditional_t<
-              type_traits::type_relations::is_same_v<typename rainy::type_traits::primary_types::member_pointer_traits<RemoveCvref>::class_type,
-                             type_traits::modifers::remove_cvref_t<Ty1>> ||
+              type_traits::type_relations::is_same_v<
+                  typename rainy::type_traits::primary_types::member_pointer_traits<RemoveCvref>::class_type,
+                  type_traits::modifers::remove_cvref_t<Ty1>> ||
                   std::is_base_of_v<typename rainy::type_traits::primary_types::member_pointer_traits<RemoveCvref>::class_type,
                                     type_traits::modifers::remove_cvref_t<Ty1>>,
               invoker_pmd_object,
-              type_traits::other_trans::conditional_t<rainy::type_traits::primary_types::is_specialization_v<type_traits::modifers::remove_cvref_t<Ty1>,
-                                                                                        std::reference_wrapper>,
-                                 invoker_pmd_refwrap, invoker_pmd_pointer>> {};
+              type_traits::other_trans::conditional_t<rainy::type_traits::primary_types::is_specialization_v<
+                                                          type_traits::modifers::remove_cvref_t<Ty1>, std::reference_wrapper>,
+                                                      invoker_pmd_refwrap, invoker_pmd_pointer>> {};
 
     template <typename Callable, typename Ty1, typename RemoveCvref>
     struct invoker_impl<Callable, Ty1, RemoveCvref, false, false> : invoker_functor {};
@@ -2381,6 +3731,7 @@ namespace rainy::type_traits::composite_types {
 }
 
 namespace rainy::utility {
+#if RAINY_HAS_CXX20
     /**
      * \lang english
      * @brief Helper function to get an overloaded member function pointer with proper type deduction.
@@ -2400,7 +3751,6 @@ namespace rainy::utility {
      * @param memfn 成员函数指针
      * @return 相同的成员函数指针（已验证非空）
      */
-#if RAINY_HAS_CXX20
     template <typename Class, typename Fx>
         requires(type_traits::primary_types::is_member_function_pointer_v<Fx Class::*> &&
                  !type_traits::type_relations::is_same_v<Fx, std::nullptr_t>)
@@ -2793,8 +4143,7 @@ namespace rainy::utility {
      * @tparam Ty 要销毁的类型
      */
     template <typename Ty>
-    struct dtor
-        : type_traits::other_trans::enable_if_t<type_traits::properties::is_destructible_v<Ty>, implements::dtor_impl<Ty>> {};
+    struct dtor : type_traits::other_trans::enable_if_t<type_traits::properties::is_destructible_v<Ty>, implements::dtor_impl<Ty>> {};
 }
 
 namespace rainy::utility {
@@ -2905,8 +4254,9 @@ namespace rainy::utility {
      * @tparam Ty 被拷贝赋值的类型
      */
     template <typename Ty>
-    struct copy_assign : type_traits::other_trans::enable_if_t<type_traits::properties::is_copy_assignable_v<Ty>,
-                                                               implements::copy_assign_impl<Ty>> {};
+    struct copy_assign
+        : type_traits::other_trans::enable_if_t<type_traits::properties::is_copy_assignable_v<Ty>, implements::copy_assign_impl<Ty>> {
+    };
 
     /**
      * \lang english
@@ -2986,8 +4336,7 @@ namespace rainy::utility {
      * @tparam Ty 被拷贝赋值的类型
      * @return 指向 copy_assign<Ty>::invoke 的函数指针
      */
-    template <typename Ty,
-              type_traits::other_trans::enable_if_t<type_traits::properties::is_nothrow_copy_assignable_v<Ty>, int> = 0>
+    template <typename Ty, type_traits::other_trans::enable_if_t<type_traits::properties::is_nothrow_copy_assignable_v<Ty>, int> = 0>
     constexpr rain_fn get_copy_assign() -> auto {
         return &copy_assign<Ty>::invoke;
     }
@@ -3571,9 +4920,8 @@ namespace rainy::type_traits::properties {
      */
     template <typename Ty>
     RAINY_CONSTEXPR_BOOL is_copyable_v =
-        properties::is_copy_constructible_v<Ty> && is_movable_v<Ty> &&
-        type_traits::properties::is_assignable_v<Ty &, Ty &> && type_traits::properties::is_assignable_v<Ty &, const Ty &> &&
-        type_traits::properties::is_assignable_v<Ty &, const Ty>;
+        properties::is_copy_constructible_v<Ty> && is_movable_v<Ty> && type_traits::properties::is_assignable_v<Ty &, Ty &> &&
+        type_traits::properties::is_assignable_v<Ty &, const Ty &> && type_traits::properties::is_assignable_v<Ty &, const Ty>;
 
     /**
      * \lang english

@@ -111,6 +111,13 @@ namespace rainy::core::container {
 }
 
 namespace rainy::core::exceptions::runtime {
+    /**
+     * \lang english
+     * @brief Exception type for bad variant access, together with the throw helper throw_bad_variant_access.
+     *
+     * \lang simp-chinese
+     * @brief Variant错误访问异常类型，以及抛出辅助函数throw_bad_variant_access。
+     */
     RAINY_DEFINE_EXCEPTION_WITH_THROW(bad_variant_access, core::exceptions::runtime::runtime_error, "bad variant access",
                                       throw_bad_variant_access);
 }
@@ -618,6 +625,7 @@ namespace rainy::core::container::implements {
     template <typename... Types>
     class variant_destroy_layer : public variant_base<Types...> {
     public:
+        /// @hide
         using base = variant_base<Types...>;
         using base::base;
 
@@ -651,7 +659,9 @@ namespace rainy::core::container {
     template <typename... Types>
     class variant : implements::variant_destroy_layer_t<Types...> {
     public:
+        /// @hide
         using base = implements::variant_destroy_layer_t<Types...>;
+        /// @hide
         using type_list = type_traits::other_trans::type_list<Types...>;
         using base::storage;
 
@@ -1121,7 +1131,8 @@ namespace rainy::core::container {
 
     /**
      * \lang english
-     * @brief Accesses the alternative at the given index of a const variant. Throws bad_variant_access if the variant holds a different alternative.
+     * @brief Accesses the alternative at the given index of a const variant. Throws bad_variant_access if the variant holds a
+     * different alternative.
      *
      * @tparam Index The index of the alternative to access
      * @tparam Types The alternative types of the variant
@@ -1147,7 +1158,8 @@ namespace rainy::core::container {
 
     /**
      * \lang english
-     * @brief Accesses the alternative at the given index of an rvalue variant. Throws bad_variant_access if the variant holds a different alternative.
+     * @brief Accesses the alternative at the given index of an rvalue variant. Throws bad_variant_access if the variant holds a
+     * different alternative.
      *
      * @tparam Index The index of the alternative to access
      * @tparam Types The alternative types of the variant
@@ -1173,7 +1185,8 @@ namespace rainy::core::container {
 
     /**
      * \lang english
-     * @brief Accesses the alternative at the given index of a const rvalue variant. Throws bad_variant_access if the variant holds a different alternative.
+     * @brief Accesses the alternative at the given index of a const rvalue variant. Throws bad_variant_access if the variant holds a
+     * different alternative.
      *
      * @tparam Index The index of the alternative to access
      * @tparam Types The alternative types of the variant
@@ -1303,7 +1316,8 @@ namespace rainy::core::container {
 
     /**
      * \lang english
-     * @brief Accesses the alternative of the given type of an rvalue variant. Throws bad_variant_access if the variant holds a different alternative.
+     * @brief Accesses the alternative of the given type of an rvalue variant. Throws bad_variant_access if the variant holds a
+     * different alternative.
      *
      * @tparam Ty The type of the alternative to access
      * @tparam Types The alternative types of the variant
@@ -1327,7 +1341,8 @@ namespace rainy::core::container {
 
     /**
      * \lang english
-     * @brief Accesses the alternative of the given type of a const variant. Throws bad_variant_access if the variant holds a different alternative.
+     * @brief Accesses the alternative of the given type of a const variant. Throws bad_variant_access if the variant holds a different
+     * alternative.
      *
      * @tparam Ty The type of the alternative to access
      * @tparam Types The alternative types of the variant
@@ -1351,7 +1366,8 @@ namespace rainy::core::container {
 
     /**
      * \lang english
-     * @brief Accesses the alternative of the given type of a const rvalue variant. Throws bad_variant_access if the variant holds a different alternative.
+     * @brief Accesses the alternative of the given type of a const rvalue variant. Throws bad_variant_access if the variant holds a
+     * different alternative.
      *
      * @tparam Ty The type of the alternative to access
      * @tparam Types The alternative types of the variant
@@ -1707,13 +1723,13 @@ namespace rainy::utility::container {
 #endif
 
 namespace rainy::container {
-    using rainy::core::container::variant;
-    using rainy::core::container::variant_size;
-    using rainy::core::container::variant_size_v;
-    using rainy::core::container::variant_npos;
+    using rainy::core::container::get;
     using rainy::core::container::get_if;
     using rainy::core::container::holds_alternative;
-    using rainy::core::container::get;
+    using rainy::core::container::variant;
+    using rainy::core::container::variant_npos;
+    using rainy::core::container::variant_size;
+    using rainy::core::container::variant_size_v;
     using rainy::core::container::visit;
     using rainy::core::container::operator==;
     using rainy::core::container::operator!=;

@@ -1,5 +1,5 @@
 /*
-* Copyright 2026 rainy-juzixiao
+ * Copyright 2026 rainy-juzixiao
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -95,17 +95,73 @@ namespace rainy::annotations::smf_control {
      */
     template <typename Base>
     struct non_trivial_copy : Base {
+        /**
+         * \lang english
+         * @brief Inherits all constructors from `Base`.
+         *
+         * \lang simp-chinese
+         * @brief 继承 `Base` 的所有构造函数。
+         */
         using Base::Base;
 
+        /**
+         * \lang english
+         * @brief Default constructor.
+         *
+         * \lang simp-chinese
+         * @brief 默认构造函数。
+         */
         non_trivial_copy() = default;
 
+        /**
+         * \lang english
+         * @brief User-defined copy constructor.
+         *
+         * Copies the `Base` subobject, then calls `Base::construct_from` on the
+         * copied base to (re)construct the derived state. Declared `noexcept`
+         * according to the `noexcept` specification of that `construct_from` call.
+         *
+         * @param other The object to copy from
+         *
+         * \lang simp-chinese
+         * @brief 用户定义的拷贝构造函数。
+         *
+         * 先拷贝 `Base` 子对象，再对拷贝后的基类调用 `Base::construct_from`
+         * 以（重新）构造派生状态。其 `noexcept` 说明取决于该 `construct_from`
+         * 调用是否抛出异常。
+         *
+         * @param other 要拷贝的对象
+         */
         constexpr non_trivial_copy(const non_trivial_copy &other) noexcept(
             noexcept(Base::construct_from(static_cast<const Base &>(other)))) : Base(static_cast<const Base &>(other)) {
             Base::construct_from(static_cast<const Base &>(other));
         }
 
+        /**
+         * \lang english
+         * @brief Move constructor (defaulted).
+         *
+         * \lang simp-chinese
+         * @brief 移动构造函数（默认）。
+         */
         non_trivial_copy(non_trivial_copy &&) = default;
+
+        /**
+         * \lang english
+         * @brief Copy assignment operator (defaulted).
+         *
+         * \lang simp-chinese
+         * @brief 拷贝赋值运算符（默认）。
+         */
         non_trivial_copy &operator=(const non_trivial_copy &) = default;
+
+        /**
+         * \lang english
+         * @brief Move assignment operator (defaulted).
+         *
+         * \lang simp-chinese
+         * @brief 移动赋值运算符（默认）。
+         */
         non_trivial_copy &operator=(non_trivial_copy &&) = default;
     };
 
@@ -122,12 +178,63 @@ namespace rainy::annotations::smf_control {
      */
     template <typename Base>
     struct deleted_copy : Base {
+        /**
+         * \lang english
+         * @brief Inherits all constructors from `Base`.
+         *
+         * \lang simp-chinese
+         * @brief 继承 `Base` 的所有构造函数。
+         */
         using Base::Base;
 
+        /**
+         * \lang english
+         * @brief Default constructor.
+         *
+         * \lang simp-chinese
+         * @brief 默认构造函数。
+         */
         deleted_copy() = default;
+
+        /**
+         * \lang english
+         * @brief Deleted copy constructor. Makes the type non-copyable.
+         *
+         * \lang simp-chinese
+         * @brief 被删除的拷贝构造函数。使该类型不可拷贝。
+         */
         deleted_copy(const deleted_copy &) = delete;
+
+        /**
+         * \lang english
+         * @brief Move constructor (defaulted).
+         *
+         * \lang simp-chinese
+         * @brief 移动构造函数（默认）。
+         */
         deleted_copy(deleted_copy &&) = default;
+
+        /**
+         * \lang english
+         * @brief Copy assignment operator (defaulted).
+         *
+         * Note that copy assignment remains available even though the copy
+         * constructor is deleted.
+         *
+         * \lang simp-chinese
+         * @brief 拷贝赋值运算符（默认）。
+         *
+         * 注意：尽管拷贝构造函数已被删除，拷贝赋值运算符仍然可用。
+         */
         deleted_copy &operator=(const deleted_copy &) = default;
+
+        /**
+         * \lang english
+         * @brief Move assignment operator (defaulted).
+         *
+         * \lang simp-chinese
+         * @brief 移动赋值运算符（默认）。
+         */
         deleted_copy &operator=(deleted_copy &&) = default;
     };
 
@@ -157,8 +264,8 @@ namespace rainy::annotations::smf_control {
         type_traits::logical_traits::conjunction_v<type_traits::properties::is_trivially_copy_constructible<Types>...>, Base,
         type_traits::other_trans::conditional_t<
             type_traits::logical_traits::conjunction_v<type_traits::properties::is_copy_constructible<Types>...>,
-                                                non_trivial_copy<Base>, deleted_copy<Base>>>;
-    
+            non_trivial_copy<Base>, deleted_copy<Base>>>;
+
     /**
      * \lang english
      * @brief Non-trivial move construction control.
@@ -178,18 +285,82 @@ namespace rainy::annotations::smf_control {
      */
     template <typename Base, typename... Types>
     struct non_trivial_move : copy_control<Base, Types...> {
+        /**
+         * \lang english
+         * @brief Alias for the base class `copy_control<Base, Types...>`.
+         *
+         * \lang simp-chinese
+         * @brief 基类 `copy_control<Base, Types...>` 的别名。
+         */
         using MyBase = copy_control<Base, Types...>;
+
+        /**
+         * \lang english
+         * @brief Inherits all constructors from `MyBase`.
+         *
+         * \lang simp-chinese
+         * @brief 继承 `MyBase` 的所有构造函数。
+         */
         using MyBase::MyBase;
 
+        /**
+         * \lang english
+         * @brief Default constructor.
+         *
+         * \lang simp-chinese
+         * @brief 默认构造函数。
+         */
         non_trivial_move() = default;
+
+        /**
+         * \lang english
+         * @brief Copy constructor (defaulted).
+         *
+         * \lang simp-chinese
+         * @brief 拷贝构造函数（默认）。
+         */
         non_trivial_move(const non_trivial_move &) = default;
 
+        /**
+         * \lang english
+         * @brief User-defined move constructor.
+         *
+         * Moves the `Base` subobject, then calls `MyBase::construct_from` on the
+         * moved-from base to (re)construct the derived state. Declared `noexcept`
+         * according to the `noexcept` specification of that `construct_from` call.
+         *
+         * @param other The object to move from
+         *
+         * \lang simp-chinese
+         * @brief 用户定义的移动构造函数。
+         *
+         * 先移动 `Base` 子对象，再对被移走的基类调用 `MyBase::construct_from`
+         * 以（重新）构造派生状态。其 `noexcept` 说明取决于该 `construct_from`
+         * 调用是否抛出异常。
+         *
+         * @param other 要移动的对象
+         */
         constexpr non_trivial_move(non_trivial_move &&other) noexcept(noexcept(MyBase::construct_from(static_cast<Base &&>(other)))) :
             MyBase(static_cast<Base &&>(other)) {
             MyBase::construct_from(static_cast<Base &&>(other));
         }
 
+        /**
+         * \lang english
+         * @brief Copy assignment operator (defaulted).
+         *
+         * \lang simp-chinese
+         * @brief 拷贝赋值运算符（默认）。
+         */
         non_trivial_move &operator=(const non_trivial_move &) = default;
+
+        /**
+         * \lang english
+         * @brief Move assignment operator (defaulted).
+         *
+         * \lang simp-chinese
+         * @brief 移动赋值运算符（默认）。
+         */
         non_trivial_move &operator=(non_trivial_move &&) = default;
     };
 
@@ -206,13 +377,72 @@ namespace rainy::annotations::smf_control {
      */
     template <typename Base, typename... Types>
     struct deleted_move : copy_control<Base, Types...> {
+        /**
+         * \lang english
+         * @brief Alias for the base class `copy_control<Base, Types...>`.
+         *
+         * \lang simp-chinese
+         * @brief 基类 `copy_control<Base, Types...>` 的别名。
+         */
         using MyBase = copy_control<Base, Types...>;
+
+        /**
+         * \lang english
+         * @brief Inherits all constructors from `MyBase`.
+         *
+         * \lang simp-chinese
+         * @brief 继承 `MyBase` 的所有构造函数。
+         */
         using MyBase::MyBase;
 
+        /**
+         * \lang english
+         * @brief Default constructor.
+         *
+         * \lang simp-chinese
+         * @brief 默认构造函数。
+         */
         deleted_move() = default;
+
+        /**
+         * \lang english
+         * @brief Copy constructor (defaulted).
+         *
+         * \lang simp-chinese
+         * @brief 拷贝构造函数（默认）。
+         */
         deleted_move(const deleted_move &) = default;
+
+        /**
+         * \lang english
+         * @brief Deleted move constructor. Makes the type non-move-constructible.
+         *
+         * \lang simp-chinese
+         * @brief 被删除的移动构造函数。使该类型不可移动构造。
+         */
         deleted_move(deleted_move &&) = delete;
+
+        /**
+         * \lang english
+         * @brief Copy assignment operator (defaulted).
+         *
+         * \lang simp-chinese
+         * @brief 拷贝赋值运算符（默认）。
+         */
         deleted_move &operator=(const deleted_move &) = default;
+
+        /**
+         * \lang english
+         * @brief Move assignment operator (defaulted).
+         *
+         * Note that move assignment remains available even though the move
+         * constructor is deleted.
+         *
+         * \lang simp-chinese
+         * @brief 移动赋值运算符（默认）。
+         *
+         * 注意：尽管移动构造函数已被删除，移动赋值运算符仍然可用。
+         */
         deleted_move &operator=(deleted_move &&) = default;
     };
 
@@ -238,7 +468,7 @@ namespace rainy::annotations::smf_control {
             non_trivial_move<Base, Types...>, // Use non-trivial move if all are move constructible
             deleted_move<Base, Types...> // Delete move if any type is not move constructible
             >>;
-    
+
     /**
      * \lang english
      * @brief Non-trivial copy assignment control.
@@ -252,19 +482,85 @@ namespace rainy::annotations::smf_control {
      */
     template <typename Base, typename... Types>
     struct non_trivial_copy_assign : move_control<Base, Types...> {
+        /**
+         * \lang english
+         * @brief Alias for the base class `move_control<Base, Types...>`.
+         *
+         * \lang simp-chinese
+         * @brief 基类 `move_control<Base, Types...>` 的别名。
+         */
         using MyBase = move_control<Base, Types...>;
+
+        /**
+         * \lang english
+         * @brief Inherits all constructors from `MyBase`.
+         *
+         * \lang simp-chinese
+         * @brief 继承 `MyBase` 的所有构造函数。
+         */
         using MyBase::MyBase;
 
+        /**
+         * \lang english
+         * @brief Default constructor.
+         *
+         * \lang simp-chinese
+         * @brief 默认构造函数。
+         */
         non_trivial_copy_assign() = default;
+
+        /**
+         * \lang english
+         * @brief Copy constructor (defaulted).
+         *
+         * \lang simp-chinese
+         * @brief 拷贝构造函数（默认）。
+         */
         non_trivial_copy_assign(const non_trivial_copy_assign &) = default;
+
+        /**
+         * \lang english
+         * @brief Move constructor (defaulted).
+         *
+         * \lang simp-chinese
+         * @brief 移动构造函数（默认）。
+         */
         non_trivial_copy_assign(non_trivial_copy_assign &&) = default;
 
+        /**
+         * \lang english
+         * @brief User-defined copy assignment operator.
+         *
+         * Calls `MyBase::assign_from` on the `Base` subobject of `other` to
+         * (re)assign the derived state. Declared `noexcept` according to the
+         * `noexcept` specification of that `assign_from` call.
+         *
+         * @param other The object to copy-assign from
+         * @return Reference to this object
+         *
+         * \lang simp-chinese
+         * @brief 用户定义的拷贝赋值运算符。
+         *
+         * 对 `other` 的 `Base` 子对象调用 `MyBase::assign_from`
+         * 以（重新）赋值派生状态。其 `noexcept` 说明取决于该 `assign_from`
+         * 调用是否抛出异常。
+         *
+         * @param other 要拷贝赋值的对象
+         * @return 此对象的引用
+         */
         constexpr non_trivial_copy_assign &operator=(const non_trivial_copy_assign &other) noexcept(
             noexcept(MyBase::assign_from(static_cast<const Base &>(other)))) {
             MyBase::assign_from(static_cast<const Base &>(other));
             return *this;
         }
 
+        /**
+         * \lang english
+         * @brief Move assignment operator (defaulted).
+         *
+         * \lang simp-chinese
+         * @brief 移动赋值运算符（默认）。
+         */
         non_trivial_copy_assign &operator=(non_trivial_copy_assign &&) = default;
     };
 
@@ -277,13 +573,72 @@ namespace rainy::annotations::smf_control {
      */
     template <typename Base, typename... Types>
     struct deleted_copy_assign : move_control<Base, Types...> {
+        /**
+         * \lang english
+         * @brief Alias for the base class `move_control<Base, Types...>`.
+         *
+         * \lang simp-chinese
+         * @brief 基类 `move_control<Base, Types...>` 的别名。
+         */
         using MyBase = move_control<Base, Types...>;
+
+        /**
+         * \lang english
+         * @brief Inherits all constructors from `MyBase`.
+         *
+         * \lang simp-chinese
+         * @brief 继承 `MyBase` 的所有构造函数。
+         */
         using MyBase::MyBase;
 
+        /**
+         * \lang english
+         * @brief Default constructor.
+         *
+         * \lang simp-chinese
+         * @brief 默认构造函数。
+         */
         deleted_copy_assign() = default;
+
+        /**
+         * \lang english
+         * @brief Copy constructor (defaulted).
+         *
+         * \lang simp-chinese
+         * @brief 拷贝构造函数（默认）。
+         */
         deleted_copy_assign(const deleted_copy_assign &) = default;
+
+        /**
+         * \lang english
+         * @brief Move constructor (defaulted).
+         *
+         * \lang simp-chinese
+         * @brief 移动构造函数（默认）。
+         */
         deleted_copy_assign(deleted_copy_assign &&) = default;
+
+        /**
+         * \lang english
+         * @brief Deleted copy assignment operator. Makes the type non-copy-assignable.
+         *
+         * Note that the copy constructor remains available even though copy
+         * assignment is deleted.
+         *
+         * \lang simp-chinese
+         * @brief 被删除的拷贝赋值运算符。使该类型不可拷贝赋值。
+         *
+         * 注意：尽管拷贝赋值已被删除，拷贝构造函数仍然可用。
+         */
         deleted_copy_assign &operator=(const deleted_copy_assign &) = delete;
+
+        /**
+         * \lang english
+         * @brief Move assignment operator (defaulted).
+         *
+         * \lang simp-chinese
+         * @brief 移动赋值运算符（默认）。
+         */
         deleted_copy_assign &operator=(deleted_copy_assign &&) = default;
     };
 
@@ -303,10 +658,8 @@ namespace rainy::annotations::smf_control {
         type_traits::other_trans::conditional_t<
             type_traits::logical_traits::conjunction_v<type_traits::properties::is_copy_constructible<Types>...,
                                                        type_traits::properties::is_copy_assignable<Types>...>,
-            non_trivial_copy_assign<Base, Types...>,
-            deleted_copy_assign<Base, Types...>
-            >>;
-    
+            non_trivial_copy_assign<Base, Types...>, deleted_copy_assign<Base, Types...>>>;
+
     /**
      * \lang english
      * @brief Non-trivial move assignment control.
@@ -316,14 +669,81 @@ namespace rainy::annotations::smf_control {
      */
     template <typename Base, typename... Types>
     struct non_trivial_move_assign : copy_assign_control<Base, Types...> {
+        /**
+         * \lang english
+         * @brief Alias for the base class `copy_assign_control<Base, Types...>`.
+         *
+         * \lang simp-chinese
+         * @brief 基类 `copy_assign_control<Base, Types...>` 的别名。
+         */
         using MyBase = copy_assign_control<Base, Types...>;
+
+        /**
+         * \lang english
+         * @brief Inherits all constructors from `MyBase`.
+         *
+         * \lang simp-chinese
+         * @brief 继承 `MyBase` 的所有构造函数。
+         */
         using MyBase::MyBase;
 
+        /**
+         * \lang english
+         * @brief Default constructor.
+         *
+         * \lang simp-chinese
+         * @brief 默认构造函数。
+         */
         non_trivial_move_assign() = default;
+
+        /**
+         * \lang english
+         * @brief Copy constructor (defaulted).
+         *
+         * \lang simp-chinese
+         * @brief 拷贝构造函数（默认）。
+         */
         non_trivial_move_assign(const non_trivial_move_assign &) = default;
+
+        /**
+         * \lang english
+         * @brief Move constructor (defaulted).
+         *
+         * \lang simp-chinese
+         * @brief 移动构造函数（默认）。
+         */
         non_trivial_move_assign(non_trivial_move_assign &&) = default;
+
+        /**
+         * \lang english
+         * @brief Copy assignment operator (defaulted).
+         *
+         * \lang simp-chinese
+         * @brief 拷贝赋值运算符（默认）。
+         */
         non_trivial_move_assign &operator=(const non_trivial_move_assign &) = default;
 
+        /**
+         * \lang english
+         * @brief User-defined move assignment operator.
+         *
+         * Calls `MyBase::assign_from` on the `Base` subobject of `other` to
+         * (re)assign the derived state. Declared `noexcept` according to the
+         * `noexcept` specification of that `assign_from` call.
+         *
+         * @param other The object to move-assign from
+         * @return Reference to this object
+         *
+         * \lang simp-chinese
+         * @brief 用户定义的移动赋值运算符。
+         *
+         * 对 `other` 的 `Base` 子对象调用 `MyBase::assign_from`
+         * 以（重新）赋值派生状态。其 `noexcept` 说明取决于该 `assign_from`
+         * 调用是否抛出异常。
+         *
+         * @param other 要移动赋值的对象
+         * @return 此对象的引用
+         */
         constexpr non_trivial_move_assign &operator=(non_trivial_move_assign &&other) noexcept(
             noexcept(MyBase::assign_from(static_cast<Base &&>(other)))) {
             MyBase::assign_from(static_cast<Base &&>(other));
@@ -340,13 +760,72 @@ namespace rainy::annotations::smf_control {
      */
     template <typename Base, typename... Types>
     struct deleted_move_assign : copy_assign_control<Base, Types...> {
+        /**
+         * \lang english
+         * @brief Alias for the base class `copy_assign_control<Base, Types...>`.
+         *
+         * \lang simp-chinese
+         * @brief 基类 `copy_assign_control<Base, Types...>` 的别名。
+         */
         using MyBase = copy_assign_control<Base, Types...>;
+
+        /**
+         * \lang english
+         * @brief Inherits all constructors from `MyBase`.
+         *
+         * \lang simp-chinese
+         * @brief 继承 `MyBase` 的所有构造函数。
+         */
         using MyBase::MyBase;
 
+        /**
+         * \lang english
+         * @brief Default constructor.
+         *
+         * \lang simp-chinese
+         * @brief 默认构造函数。
+         */
         deleted_move_assign() = default;
+
+        /**
+         * \lang english
+         * @brief Copy constructor (defaulted).
+         *
+         * \lang simp-chinese
+         * @brief 拷贝构造函数（默认）。
+         */
         deleted_move_assign(const deleted_move_assign &) = default;
+
+        /**
+         * \lang english
+         * @brief Move constructor (defaulted).
+         *
+         * \lang simp-chinese
+         * @brief 移动构造函数（默认）。
+         */
         deleted_move_assign(deleted_move_assign &&) = default;
+
+        /**
+         * \lang english
+         * @brief Copy assignment operator (defaulted).
+         *
+         * \lang simp-chinese
+         * @brief 拷贝赋值运算符（默认）。
+         */
         deleted_move_assign &operator=(const deleted_move_assign &) = default;
+
+        /**
+         * \lang english
+         * @brief Deleted move assignment operator. Makes the type non-move-assignable.
+         *
+         * Note that the move constructor remains available even though move
+         * assignment is deleted.
+         *
+         * \lang simp-chinese
+         * @brief 被删除的移动赋值运算符。使该类型不可移动赋值。
+         *
+         * 注意：尽管移动赋值已被删除，移动构造函数仍然可用。
+         */
         deleted_move_assign &operator=(deleted_move_assign &&) = delete;
     };
 
@@ -371,7 +850,7 @@ namespace rainy::annotations::smf_control {
             type_traits::logical_traits::conjunction_v<type_traits::properties::is_move_constructible<Types>...,
                                                        type_traits::properties::is_move_assignable<Types>...>,
             non_trivial_move_assign<Base, Types...>, deleted_move_assign<Base, Types...>>>;
-    
+
     /**
      * \lang english
      * @brief The final unified control type alias.

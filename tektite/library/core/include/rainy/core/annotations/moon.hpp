@@ -17,7 +17,7 @@
 #define RAINY_ANNOTATIONS_MOON_HPP
 #include <rainy/core/platform.hpp>
 
-#if RAINY_HAS_CXX26 && RAINY_HAS_CXX26_STATIC_REFLECTION
+#if (RAINY_HAS_CXX26 && RAINY_HAS_CXX26_STATIC_REFLECTION) || RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
 #include <rainy/core/collections/vector.hpp>
 #include <rainy/core/text/string.hpp>
 #include <rainy/core/text/string_view.hpp>
@@ -33,7 +33,7 @@ namespace rainy::annotations::moon {
      * \lang simp-chinese
      * @brief 携带新名称的标签，用于重命名被反射的成员。
      */
-    struct rename_tag { char const* new_name; };
+    struct rename_tag {char const* new_name;};
 
     /**
      * \lang english
@@ -48,7 +48,13 @@ namespace rainy::annotations::moon {
      * @param new_name 被反射成员的新名称
      * @return 携带名称的rename_tag
      */
-    consteval rename_tag rename(core::text::string_view new_name = "") { return {std::define_static_string(new_name)}; }
+    consteval rename_tag rename(core::text::string_view new_name = "") {
+#if RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
+        return {};
+#else
+        return {std::define_static_string(new_name)};
+#endif
+    }
 
     /**
      * \lang english
@@ -72,7 +78,13 @@ namespace rainy::annotations::moon {
      * @param prefix 前缀字符串
      * @return 携带前缀的with_prefix_tag
      */
-    consteval with_prefix_tag with_prefix(core::text::string_view prefix = "") { return {std::define_static_string(prefix)}; }
+    consteval with_prefix_tag with_prefix(core::text::string_view prefix = "") {
+#if RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
+        return {};
+#else
+        return {std::define_static_string(prefix)};
+#endif
+    }
 
     /**
      * \lang english
@@ -81,7 +93,7 @@ namespace rainy::annotations::moon {
      * \lang simp-chinese
      * @brief 携带后缀的标签，该后缀会被添加到被反射成员名的后面。
      */
-    struct with_suffix_tag { char const* data; };
+    struct with_suffix_tag {char const* data;};
 
     /**
      * \lang english
@@ -96,7 +108,13 @@ namespace rainy::annotations::moon {
      * @param suffix 后缀字符串
      * @return 携带后缀的with_suffix_tag
      */
-    consteval with_suffix_tag with_suffix(core::text::string_view suffix = "") { return {std::define_static_string(suffix)}; }
+    consteval with_suffix_tag with_suffix(core::text::string_view suffix = "") {
+#if RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
+        return {};
+#else
+        return {std::define_static_string(suffix)};
+#endif
+    }
 
     /**
      * \lang english
@@ -144,11 +162,58 @@ namespace rainy::annotations::moon {
      * @brief 可应用于被反射成员名的命名风格。
      */
     enum class named_style {
+        /**
+         * \lang english
+         * @brief No transformation. The member name is used as-is.
+         *
+         * \lang simp-chinese
+         * @brief 不做转换。成员名按原样使用。
+         */
         none,
+
+        /**
+         * \lang english
+         * @brief Snake case, e.g. `my_member_name`.
+         *
+         * \lang simp-chinese
+         * @brief 蛇形命名，例如 `my_member_name`。
+         */
         snake_case,
+
+        /**
+         * \lang english
+         * @brief Pascal case, e.g. `MyMemberName`.
+         *
+         * \lang simp-chinese
+         * @brief 帕斯卡命名，例如 `MyMemberName`。
+         */
         pascal,
+
+        /**
+         * \lang english
+         * @brief Camel case, e.g. `myMemberName`.
+         *
+         * \lang simp-chinese
+         * @brief 驼峰命名，例如 `myMemberName`。
+         */
         camel,
+
+        /**
+         * \lang english
+         * @brief Upper snake case with underscores, e.g. `MY_MEMBER_NAME`.
+         *
+         * \lang simp-chinese
+         * @brief 带下划线的大写蛇形命名，例如 `MY_MEMBER_NAME`。
+         */
         all_caps,
+
+        /**
+         * \lang english
+         * @brief Upper flat case without underscores, e.g. `MYMEMBERNAME`.
+         *
+         * \lang simp-chinese
+         * @brief 不带下划线的大写平铺命名，例如 `MYMEMBERNAME`。
+         */
         all_caps_no_underline
     };
 
@@ -239,6 +304,8 @@ namespace rainy::annotations::moon {
      */
     inline static constexpr auto ignore = ignore_tag{};
 }
+
+#if !RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
 
 namespace rainy::core::meta::implements {
     // 预定义：通用处理工具
@@ -415,6 +482,8 @@ namespace rainy::core::meta::implements {
         }
     }
 }
+
+#endif
 
 #endif
 

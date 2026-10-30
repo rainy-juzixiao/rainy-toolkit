@@ -40,6 +40,9 @@
  * See the applicable license for the specific language governing
  * permissions and limitations under the License.
  */
+/**
+ * @notpublic
+ */
 #ifndef RAINY_YESOD_TEXT_IMPLEMENTS_RYU_GENERIC_128_HPP
 #define RAINY_YESOD_TEXT_IMPLEMENTS_RYU_GENERIC_128_HPP
 #include <rainy/core/container/compressed_pair.hpp>

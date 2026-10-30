@@ -13,6 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+/**
+ * @notpublic
+ */
 #ifndef RAINY_FOUNDATION_CONCURRENCY_IMPLEMENTS_ATOMIC_FLAG_HPP
 #define RAINY_FOUNDATION_CONCURRENCY_IMPLEMENTS_ATOMIC_FLAG_HPP
 #include <rainy/core/layer.hpp>

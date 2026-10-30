@@ -44,6 +44,7 @@ namespace rainy::core::exceptions::runtime {
      */
     class bad_optional_access final : public runtime_error {
     public:
+        // @hide
         using base = runtime_error;
 
         /**
@@ -370,6 +371,7 @@ namespace rainy::core::container {
     template <typename Ty>
     class optional final : private annotations::smf_control::control<implements::optional_base<Ty>> {
     public:
+        // @hide
         using base = annotations::smf_control::control<implements::optional_base<Ty>>;
 
         /**

@@ -126,9 +126,22 @@ namespace rainy::core::exceptions {
      */
     class exception : public std::exception {
     public:
+        /// @hide
         using base = std::exception;
-        using source = diagnostics::source_location;
 
+        /**
+         * \lang english
+         * @brief The source location type used by this exception.
+         *
+         * Alias for `diagnostics::source_location`, used to record where the
+         * exception originated.
+         *
+         * \lang simp-chinese
+         * @brief 该异常使用的源码位置类型。
+         *
+         * `diagnostics::source_location` 的别名，用于记录异常的来源位置。
+         */
+        using source = diagnostics::source_location;
         /**
          * \lang english
          * @brief Constructs an exception with a message and a source location.
@@ -276,6 +289,26 @@ namespace rainy::core::exceptions {
         core::text::string msg;
     };
 
+    /**
+     * \lang english
+     * @brief Throws an exception, or aborts when exceptions are disabled.
+     *
+     * Never returns. When exception support is available (`__cpp_exceptions`),
+     * `exception` is thrown. Otherwise the exception's `what()` message is
+     * written to `stderr` and `std::terminate()` is called instead.
+     *
+     * @tparam Except The exception type; must be derived from `std::exception`
+     * @param exception The exception object to throw
+     *
+     * \lang simp-chinese
+     * @brief 抛出异常；在禁用异常时直接中止程序。
+     *
+     * 永不返回。当支持异常（`__cpp_exceptions`）时，抛出 `exception`；
+     * 否则将异常的 `what()` 消息写入 `stderr`，并改为调用 `std::terminate()`。
+     *
+     * @tparam Except 异常类型；必须派生自 `std::exception`
+     * @param exception 要抛出的异常对象
+     */
     template <typename Except>
     RAINY_NORETURN constexpr void throw_exception(const Except &exception) {
         static_assert(type_traits::type_relations::is_base_of_v<std::exception, Except>,
@@ -412,6 +445,13 @@ namespace rainy::core::exceptions {
      */
     template <typename Except>
     struct with_this_exception_t {
+        /**
+         * \lang english
+         * @brief Constructs the tag. Carries no state; its type alone identifies `Except`.
+         *
+         * \lang simp-chinese
+         * @brief 构造该标签。不携带任何状态；仅凭其类型即可标识 `Except`。
+         */
         explicit with_this_exception_t() = default;
     };
 
@@ -563,6 +603,7 @@ namespace rainy::core::exceptions::logic {
      */
     class logic_error : public exception {
     public:
+        /// @hide
         using base = exception;
 
         /**
@@ -628,6 +669,7 @@ namespace rainy::core::exceptions::runtime {
      */
     class runtime_error : public exception {
     public:
+        /// @hide
         using base = exception;
 
         /**
@@ -728,8 +770,6 @@ namespace rainy::core::exceptions::runtime {
      */
     class system_error : public runtime_error {
     public:
-        using source = source;
-
         /**
          * \lang english
          * @brief Constructs a system_error from an error code and a string description.

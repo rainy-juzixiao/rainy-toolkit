@@ -13,6 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+/**
+ * @notpublic
+ */
 #ifndef RAINY_FOUNDATION_CONCURRENCY_ATOMICINFRA_ATOMIC_OPS_HPP
 #define RAINY_FOUNDATION_CONCURRENCY_ATOMICINFRA_ATOMIC_OPS_HPP
 #include <rainy/core/concurrency/atomicinfra/fwd.hpp>

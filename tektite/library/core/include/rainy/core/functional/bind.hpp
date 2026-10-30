@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 rainy-juzixiao
+ * Copyright 2026 rainy-juzixiao
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,8 +22,8 @@
  */
 #ifndef RAINY_CORE_FUNCTIONAL_BIND_HPP
 #define RAINY_CORE_FUNCTIONAL_BIND_HPP
-#include <rainy/core/container/tuple.hpp>
 #include <rainy/core/container/compressed_pair.hpp>
+#include <rainy/core/container/tuple.hpp>
 #include <rainy/core/platform.hpp>
 #include <rainy/core/type_traits.hpp>
 
@@ -112,35 +112,128 @@ namespace rainy::functional::implements {
 namespace rainy::functional::placeholders {
     /**
      * \lang english
-     * @brief Placeholder objects _1 through _20 for binding arguments.
+     * @brief Placeholder objects for binding arguments.
      *
-     *  When passed to bind or bind_front, each placeholder is replaced by the
-     *  corresponding positional argument of the later call.
+     *  \lang simp-chinese
+     * @brief 用于绑定参数的占位符对象 _{N}。
      *
-     * \lang simp-chinese
-     * @brief 用于绑定参数的占位符对象 _1 到 _20。
-     *
-     *  当传递给bind或bind_front时，每个占位符会被后续调用中对应的位置参数替换。
+     * \scope Name [placeholders]
+     * \scope Var [N=1]
      */
     inline constexpr implements::placeholder_t<1> _1{};
+
+    /**
+     * \forscope [placeholders]
+     * \forscope Var N=2
+     */
     inline constexpr implements::placeholder_t<2> _2{};
+
+    /**
+     * \forscope [placeholders]
+     * \forscope Var N=3
+     */
     inline constexpr implements::placeholder_t<3> _3{};
+
+    /**
+     * \forscope [placeholders]
+     * \forscope Var N=4
+     */
     inline constexpr implements::placeholder_t<4> _4{};
+
+    /**
+     * \forscope [placeholders]
+     * \forscope Var N=5
+     */
     inline constexpr implements::placeholder_t<5> _5{};
+
+    /**
+     * \forscope [placeholders]
+     * \forscope Var N=6
+     */
     inline constexpr implements::placeholder_t<6> _6{};
+
+    /**
+     * \forscope [placeholders]
+     * \forscope Var N=7
+     */
     inline constexpr implements::placeholder_t<7> _7{};
+
+    /**
+     * \forscope [placeholders]
+     * \forscope Var N=8
+     */
     inline constexpr implements::placeholder_t<8> _8{};
+
+    /**
+     * \forscope [placeholders]
+     * \forscope Var N=9
+     */
     inline constexpr implements::placeholder_t<9> _9{};
+
+    /**
+     * \forscope [placeholders]
+     * \forscope Var N=10
+     */
     inline constexpr implements::placeholder_t<10> _10{};
+
+    /**
+     * \forscope [placeholders]
+     * \forscope Var N=11
+     */
     inline constexpr implements::placeholder_t<11> _11{};
+
+    /**
+     * \forscope [placeholders]
+     * \forscope Var N=12
+     */
     inline constexpr implements::placeholder_t<12> _12{};
+
+    /**
+     * \forscope [placeholders]
+     * \forscope Var N=13
+     */
     inline constexpr implements::placeholder_t<13> _13{};
+
+    /**
+     * \forscope [placeholders]
+     * \forscope Var N=14
+     */
     inline constexpr implements::placeholder_t<14> _14{};
+
+    /**
+     * \forscope [placeholders]
+     * \forscope Var N=15
+     */
     inline constexpr implements::placeholder_t<15> _15{};
+
+    /**
+     * \forscope [placeholders]
+     * \forscope Var N=16
+     */
     inline constexpr implements::placeholder_t<16> _16{};
+
+    /**
+     * \forscope [placeholders]
+     * \forscope Var N=17
+     */
     inline constexpr implements::placeholder_t<17> _17{};
+
+    /**
+     * \forscope [placeholders]
+     * \forscope Var N=18
+     */
     inline constexpr implements::placeholder_t<18> _18{};
+
+    /**
+     * \forscope [placeholders]
+     * \forscope Var N=19
+     */
     inline constexpr implements::placeholder_t<19> _19{};
+
+    /**
+     * \forscope [placeholders]
+     * \forscope Var N=20
+     */
     inline constexpr implements::placeholder_t<20> _20{};
 }
 

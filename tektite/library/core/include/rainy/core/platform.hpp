@@ -15,6 +15,10 @@
  */
 #ifndef RAINY_CORE_PLATFORM_HPP
 #define RAINY_CORE_PLATFORM_HPP
+/*
+ * @file rainy/core/platform.hpp
+ * @brief 平台头文件
+ */
 #include <cassert>
 #include <cstddef>
 #include <cstdint>

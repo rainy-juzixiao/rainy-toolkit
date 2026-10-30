@@ -77,23 +77,131 @@ namespace rainy::core::collections {
     template <typename Ty, std::size_t N>
     class array {
     public:
+        /**
+         * \lang english
+         * @brief The type of the elements stored in the array.
+         *
+         * Alias for the template parameter `Ty`.
+         *
+         * \lang simp-chinese
+         * @brief 数组中存储的元素类型。
+         *
+         * 模板参数 `Ty` 的别名。
+         */
         using value_type = Ty;
+
+        /**
+         * \lang english
+         * @brief The type used to represent sizes and indices.
+         *
+         * \lang simp-chinese
+         * @brief 用于表示大小和下标的类型。
+         */
         using size_type = std::size_t;
+
+        /**
+         * \lang english
+         * @brief Mutable reference to an element.
+         *
+         * \lang simp-chinese
+         * @brief 元素的可变引用。
+         */
         using reference = Ty &;
+
+        /**
+         * \lang english
+         * @brief Immutable (const) reference to an element.
+         *
+         * \lang simp-chinese
+         * @brief 元素的不可变（常量）引用。
+         */
         using const_reference = const Ty &;
+
+        /**
+         * \lang english
+         * @brief Mutable pointer to an element.
+         *
+         * \lang simp-chinese
+         * @brief 元素的可变指针。
+         */
         using pointer = value_type *;
+
+        /**
+         * \lang english
+         * @brief Immutable (const) pointer to an element.
+         *
+         * \lang simp-chinese
+         * @brief 元素的不可变（常量）指针。
+         */
         using const_pointer = const value_type *;
+
+        /**
+         * \lang english
+         * @brief Signed type used to represent the difference between two pointers.
+         *
+         * \lang simp-chinese
+         * @brief 用于表示两个指针之差的带符号类型。
+         */
         using difference_type = std::ptrdiff_t;
-        /* 普通迭代器 */
+
+        /**
+         * \lang english
+         * @brief Mutable iterator type.
+         *
+         * For `array` this is a plain pointer into the underlying storage.
+         *
+         * \lang simp-chinese
+         * @brief 可变迭代器类型。
+         *
+         * 对 `array` 而言，它是指向底层存储的普通指针。
+         */
         using iterator = pointer;
+
+        /**
+         * \lang english
+         * @brief Immutable (const) iterator type.
+         *
+         * \lang simp-chinese
+         * @brief 不可变（常量）迭代器类型。
+         */
         using const_iterator = const_pointer;
+
+        /**
+         * \lang english
+         * @brief Mutable reverse iterator type.
+         *
+         * \lang simp-chinese
+         * @brief 可变反向迭代器类型。
+         */
         using reverse_iterator = utility::reverse_iterator<iterator>;
+
+        /**
+         * \lang english
+         * @brief Immutable (const) reverse iterator type.
+         *
+         * \lang simp-chinese
+         * @brief 不可变（常量）反向迭代器类型。
+         */
         using const_reverse_iterator = utility::reverse_iterator<const_iterator>;
 
+        // @hide
         using impl_traits = implements::array_traits<Ty, N>;
 
+        // @hide
         using carray_type = typename impl_traits::type;
 
+        /**
+         * \lang english
+         * @brief Constant representing an invalid or "not found" position.
+         *
+         * Equal to `static_cast<std::size_t>(-1)`, i.e. the maximum value of
+         * `size_type`.
+         *
+         * \lang simp-chinese
+         * @brief 表示无效或“未找到”位置的常量。
+         *
+         * 等于 `static_cast<std::size_t>(-1)`，即 `size_type` 的最大值。
+         */
         static constexpr std::size_t npos = static_cast<std::size_t>(-1);
 
         /**
@@ -289,6 +397,20 @@ namespace rainy::core::collections {
             }
         }
 
+        /**
+         * \lang english
+         * @brief Destructor (defaulted).
+         *
+         * Destroys the stored elements. In C++20 and later this is a
+         * `constexpr` destructor, allowing `array` to be used in constant
+         * evaluation.
+         *
+         * \lang simp-chinese
+         * @brief 析构函数（默认）。
+         *
+         * 销毁所存储的元素。在 C++20 及更高版本中这是 `constexpr` 析构函数，
+         * 使得 `array` 可用于常量求值。
+         */
         RAINY_CONSTEXPR20 ~array() = default;
 
         /**
@@ -1258,6 +1380,20 @@ namespace std {
     template <std::size_t Idx, typename Ty, std::size_t N>
     struct tuple_element<Idx, ::rainy::core::collections::array<Ty, N>> {
         static_assert(Idx < N, "Index out of bounds");
+
+        /**
+         * \lang english
+         * @brief The type of the element at index `Idx`.
+         *
+         * For `array<Ty, N>` every element has the same type, so this is simply
+         * `Ty`. The `static_assert` above guarantees `Idx` is within bounds.
+         *
+         * \lang simp-chinese
+         * @brief 索引 `Idx` 处元素的类型。
+         *
+         * 对于 `array<Ty, N>`，所有元素类型相同，因此该别名就是 `Ty`。
+         * 上方的 `static_assert` 保证 `Idx` 处于有效范围内。
+         */
         using type = Ty;
     };
 

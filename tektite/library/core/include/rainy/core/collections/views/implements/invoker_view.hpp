@@ -13,6 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+/**
+ * @notpublic
+ */
 #ifndef RAINY_COLLECTIONS_VIEWS_IMPLEMENTS_INVOKER_VIEW_HPP
 #define RAINY_COLLECTIONS_VIEWS_IMPLEMENTS_INVOKER_VIEW_HPP
 #include <rainy/core/collections/views/views_interface.hpp>

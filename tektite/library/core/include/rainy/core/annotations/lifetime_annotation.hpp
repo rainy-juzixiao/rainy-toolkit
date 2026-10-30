@@ -573,7 +573,36 @@ namespace rainy::annotations::lifetime {
     public:
         static_assert(type_traits::type_relations::is_same_v<type_traits::other_trans::decay_t<Ty>, Ty>);
 
+        /**
+         * \lang english
+         * @brief Mutable reference wrapper type.
+         *
+         * The type returned by mut(). Holds a reference to the borrowed value
+         * together with the shared control block, so the borrow can be tracked
+         * and the mutable access invalidated when appropriate.
+         *
+         * \lang simp-chinese
+         * @brief 可变引用包装器类型。
+         *
+         * 即 mut() 的返回类型。持有所借用值的引用以及共享控制块，
+         * 以便跟踪借用状态，并在适当时使可变访问失效。
+         */
         using refwrap = implements::refwrap<Ty>;
+
+        /**
+         * \lang english
+         * @brief Immutable (const) reference wrapper type.
+         *
+         * The type returned by const_ref(). Holds a const reference to the
+         * borrowed value together with the shared control block, allowing
+         * read-only access to be tracked alongside other borrows.
+         *
+         * \lang simp-chinese
+         * @brief 不可变（常量）引用包装器类型。
+         *
+         * 即 const_ref() 的返回类型。持有所借用值的常量引用以及共享控制块，
+         * 使得只读访问可以与其他借用一同被跟踪。
+         */
         using crefwrap = implements::crefwrap<Ty>;
 
         /**
@@ -761,15 +790,80 @@ namespace rainy::annotations::lifetime {
     template <typename Ty>
     class take : type_traits::helper::non_copyable {
     public:
+        /**
+         * \lang english
+         * @brief The decayed (cv/ref-stripped) type of the held resources.
+         *
+         * `Ty` with references and top-level cv qualifiers removed, i.e. the
+         * actual type stored inside the `take` object.
+         *
+         * \lang simp-chinese
+         * @brief 所持有资源的去修饰类型（去除 cv 与引用）。
+         *
+         * 即从 `Ty` 中去除引用和顶层 cv 限定符后得到的类型，
+         * 也是 `take` 对象内部实际存储的类型。
+         */
         using type = type_traits::modifers::remove_cvref_t<Ty>;
+
+        /**
+         * \lang english
+         * @brief Reference type to the held resources.
+         *
+         * Equivalent to `type &`. Returned by conversion, `get()` and the
+         * assignment operators.
+         *
+         * \lang simp-chinese
+         * @brief 所持有资源的引用类型。
+         *
+         * 等价于 `type &`。由转换运算符、`get()` 以及各赋值运算符返回。
+         */
         using reference = type &;
+
+        /**
+         * \lang english
+         * @brief Pointer type to the held resources.
+         *
+         * Equivalent to `type *`. Returned by the address-of operator.
+         *
+         * \lang simp-chinese
+         * @brief 所持有资源的指针类型。
+         *
+         * 等价于 `type *`。由取地址运算符返回。
+         */
         using pointer = type *;
 
         static_assert(implements::not_take_v<type>, "Do not pass take<Ty> to take<>");
         static_assert(type_traits::properties::is_move_constructible_v<type>,
                       "take<> require Ty is move constructible, but Ty is not.");
 
+        /**
+         * \lang english
+         * @brief Whether the held type is nothrow move constructible.
+         *
+         * Evaluates to `type_traits::properties::is_nothrow_move_constructible_v<type>`.
+         * Used as the `noexcept` specification of the converting and move constructors.
+         *
+         * \lang simp-chinese
+         * @brief 所持有类型是否可无异常地移动构造。
+         *
+         * 取值等价于 `type_traits::properties::is_nothrow_move_constructible_v<type>`。
+         * 用作各转换构造函数与移动构造函数的 `noexcept` 说明。
+         */
         static constexpr bool is_nothrow_move_construtible = type_traits::properties::is_nothrow_move_constructible_v<type>;
+
+        /**
+         * \lang english
+         * @brief Whether the held type is nothrow move assignable.
+         *
+         * Evaluates to `type_traits::properties::is_nothrow_move_assignable_v<type>`.
+         * Used as the `noexcept` specification of the move assignment operator.
+         *
+         * \lang simp-chinese
+         * @brief 所持有类型是否可无异常地移动赋值。
+         *
+         * 取值等价于 `type_traits::properties::is_nothrow_move_assignable_v<type>`。
+         * 用作移动赋值运算符的 `noexcept` 说明。
+         */
         static constexpr bool is_nothrow_move_assignible = type_traits::properties::is_nothrow_move_assignable_v<type>;
 
         /**
@@ -958,6 +1052,18 @@ namespace rainy::annotations::lifetime {
      */
     template <typename Ty>
     struct uninitialized {
+        /**
+         * \lang english
+         * @brief The contained value type.
+         *
+         * Alias for the template parameter `Ty`, denoting the type of the
+         * member `value`.
+         *
+         * \lang simp-chinese
+         * @brief 所包含值的类型。
+         *
+         * 模板参数 `Ty` 的别名，表示成员 `value` 的类型。
+         */
         using type = Ty;
 
         /**
@@ -1026,6 +1132,18 @@ namespace rainy::annotations::lifetime {
          */
         uninitialized &operator=(uninitialized &&) = default;
 
+        /**
+         * \lang english
+         * @brief The contained value.
+         *
+         * Stored by value as `type` (i.e. `Ty`). Public so that it can be
+         * initialized or accessed directly.
+         *
+         * \lang simp-chinese
+         * @brief 包含的值。
+         *
+         * 以 `type`（即 `Ty`）按值存储。公开可见，以便直接初始化或访问。
+         */
         type value;
     };
 
@@ -1039,11 +1157,7 @@ namespace rainy::annotations::lifetime {
     template <typename Ty>
     struct uninitialized<const Ty> {
         /**
-         * \lang english
-         * @brief Deleted default constructor.
-         *
-         * \lang simp-chinese
-         * @brief 已删除的默认构造函数。
+         * @hide
          */
         uninitialized() = delete;
     };
@@ -1058,11 +1172,7 @@ namespace rainy::annotations::lifetime {
     template <typename Ty>
     struct uninitialized<Ty &> {
         /**
-         * \lang english
-         * @brief Deleted default constructor.
-         *
-         * \lang simp-chinese
-         * @brief 已删除的默认构造函数。
+         * @hide
          */
         uninitialized() = delete;
     };
@@ -1076,6 +1186,9 @@ namespace rainy::annotations::lifetime {
      */
     template <typename Ty>
     struct uninitialized<const Ty &> {
+        /**
+         * @hide
+         */
         uninitialized() = delete;
     };
 
@@ -1088,6 +1201,9 @@ namespace rainy::annotations::lifetime {
      */
     template <typename Ty>
     struct uninitialized<Ty &&> {
+        /**
+         * @hide
+         */
         uninitialized() = delete;
     };
 
@@ -1101,11 +1217,7 @@ namespace rainy::annotations::lifetime {
     template <typename Ty>
     struct uninitialized<const Ty &&> {
         /**
-         * \lang english
-         * @brief Deleted default constructor.
-         *
-         * \lang simp-chinese
-         * @brief 已删除的默认构造函数。
+         * @hide
          */
         uninitialized() = delete;
     };

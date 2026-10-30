@@ -134,6 +134,25 @@ namespace rainy::core::diagnostics::contracts::implements {
 }
 
 namespace rainy::core::diagnostics::contracts {
+    /**
+     * \lang english
+     * @brief Default contract violation handler.
+     *
+     * Forwards the violation to `implements::handle_contract_violation`, which
+     * performs the implementation's default response (e.g. logging and/or
+     * terminating). Used when no user-supplied contract violation handler has
+     * been installed.
+     *
+     * @param violation The contract violation to handle
+     *
+     * \lang simp-chinese
+     * @brief 默认的契约违背处理器。
+     *
+     * 将违背信息转发给 `implements::handle_contract_violation`，由后者执行实现的
+     * 默认响应（例如记录日志和/或终止程序）。在未安装用户自定义契约违背处理器时使用。
+     *
+     * @param violation 要处理的契约违背信息
+     */
     RAINY_INLINE void invoke_default_contract_violation_handler(const contract_violation &violation) {
         implements::handle_contract_violation(violation);
     }
@@ -154,9 +173,40 @@ namespace rainy::core::diagnostics::contracts {
      */
     class contract_violation {
     public:
+        /**
+         * \lang english
+         * @brief Deleted default constructor. Violations are created only by `make_contract_violation`.
+         *
+         * \lang simp-chinese
+         * @brief 被删除的默认构造函数。违约对象只能由 `make_contract_violation` 创建。
+         */
         contract_violation() = delete;
+
+        /**
+         * \lang english
+         * @brief Deleted copy constructor. A violation object is not copyable.
+         *
+         * \lang simp-chinese
+         * @brief 被删除的拷贝构造函数。违约对象不可拷贝。
+         */
         contract_violation(const contract_violation &) = delete;
+
+        /**
+         * \lang english
+         * @brief Deleted copy assignment operator. A violation object is not assignable.
+         *
+         * \lang simp-chinese
+         * @brief 被删除的拷贝赋值运算符。违约对象不可赋值。
+         */
         contract_violation &operator=(const contract_violation &) = delete;
+
+        /**
+         * \lang english
+         * @brief Destructor (defaulted).
+         *
+         * \lang simp-chinese
+         * @brief 析构函数（默认）。
+         */
         ~contract_violation() = default;
 
         /**
@@ -237,10 +287,16 @@ namespace rainy::core::diagnostics::contracts {
             return semantic_;
         }
 
-    private:
+        /**
+         * \lang english
+         * @brief Grants `make_contract_violation` access to the private constructor.
+         *
+         * \lang simp-chinese
+         * @brief 授予 `make_contract_violation` 访问私有构造函数的权限。
+         */
         friend contract_violation make_contract_violation(assertion_kind, evaluation_semantic, contracts::detection_mode, const char *,
                                                           source_location);
-
+    private:
         contract_violation(assertion_kind kind, evaluation_semantic semantic, contracts::detection_mode mode, const char *comment,
                            source_location loc) noexcept : kind_(kind), semantic_(semantic), detection_mode_(mode), loc_(loc) {
             if (comment) {
@@ -263,6 +319,27 @@ namespace rainy::core::diagnostics::contracts {
         return contract_violation(kind, semantic, mode, comment, loc);
     }
 
+    /**
+     * \lang english
+     * @brief Returns the evaluation semantic used by default for contract checks.
+     *
+     * Resolved at compile time:
+     * - If `RAINY_CONTRACT_SEMANTIC` is defined, that value is returned;
+     * - otherwise, in debug builds (`RAINY_ENABLE_DEBUG`) `enforce` is returned;
+     * - otherwise (release builds) `observe` is returned.
+     *
+     * @return The default evaluation semantic
+     *
+     * \lang simp-chinese
+     * @brief 返回契约检查默认使用的求值语义。
+     *
+     * 在编译期确定：
+     * - 若定义了 `RAINY_CONTRACT_SEMANTIC`，则返回该值；
+     * - 否则在调试构建（`RAINY_ENABLE_DEBUG`）下返回 `enforce`；
+     * - 否则（发布构建）返回 `observe`。
+     *
+     * @return 默认的求值语义
+     */
     RAINY_INLINE evaluation_semantic default_semantic() noexcept {
 #if defined(RAINY_CONTRACT_SEMANTIC)
         return RAINY_CONTRACT_SEMANTIC;
@@ -273,6 +350,42 @@ namespace rainy::core::diagnostics::contracts {
 #endif
     }
 
+    /**
+     * \lang english
+     * @brief Reports a contract violation if the checked condition did not pass.
+     *
+     * Does nothing when `passed` is true. Otherwise the default evaluation
+     * semantic (see `default_semantic`) decides the outcome:
+     * - `ignore`: the violation is silently ignored;
+     * - `quick_enforce`: a minimal message is printed to `stderr` and the
+     *   program terminates immediately, without building a violation object;
+     * - any other semantic: a `contract_violation` is created with
+     *   `detection_mode::predicate_false` and passed to
+     *   `implements::handle_contract_violation`, after which the program
+     *   terminates if the semantic is `enforce`.
+     *
+     * @param kind The kind of the violated contract
+     * @param text The comment attached to the violation, may be null
+     * @param passed Whether the checked condition held
+     * @param loc The source location where the contract was checked
+     *
+     * \lang simp-chinese
+     * @brief 在检查的条件未通过时报告契约违约。
+     *
+     * 当 `passed` 为 true 时不做任何事。否则由默认求值语义（见 `default_semantic`）
+     * 决定后续行为：
+     * - `ignore`：静默忽略该违约；
+     * - `quick_enforce`：向 `stderr` 输出一条最简消息并立即终止程序，
+     *   不构造违约对象；
+     * - 其他语义：以 `detection_mode::predicate_false` 创建 `contract_violation`
+     *   并交给 `implements::handle_contract_violation`，若语义为 `enforce`
+     *   随后终止程序。
+     *
+     * @param kind 被违反契约的类型
+     * @param text 附加在违约上的注释，可为空指针
+     * @param passed 所检查的条件是否成立
+     * @param loc 检查契约处的源码位置
+     */
     RAINY_INLINE void check_contract(assertion_kind kind, const char *text, bool passed, const source_location &loc) {
         if (passed) {
             return;

@@ -527,6 +527,39 @@ namespace rainy::core::container {
             reset();
         }
 
+        /**
+         * \lang english
+         * @brief Copy assignment operator.
+         *
+         * Makes this `indirect` hold a copy of the value owned by `right`,
+         * mirroring its empty/non-empty state:
+         * - If `right` is empty, this object is `reset()` to empty.
+         * - If this object already owns a value, the value is copy-assigned
+         *   into the existing allocation (no reallocation).
+         * - Otherwise a new allocation is made and the value is copy-constructed
+         *   into it; if construction throws, the allocation is deallocated and
+         *   the exception is rethrown, leaving this object empty.
+         *
+         * Self-assignment is a no-op. Declared `noexcept` according to whether
+         * `Ty` is nothrow copy-assignable.
+         *
+         * @param right The `indirect` to copy from
+         * @return Reference to this object
+         *
+         * \lang simp-chinese
+         * @brief 拷贝赋值运算符。
+         *
+         * 使本 `indirect` 持有 `right` 所拥有值的副本，并与其空/非空状态保持一致：
+         * - 若 `right` 为空，则本对象被 `reset()` 为空。
+         * - 若本对象已持有值，则将值拷贝赋值到既有分配中（不重新分配）。
+         * - 否则分配新内存并在其中拷贝构造该值；若构造抛出异常，则释放该分配
+         *   并重新抛出，使本对象保持为空。
+         *
+         * 自赋值是空操作。其 `noexcept` 说明取决于 `Ty` 是否可无异常地拷贝赋值。
+         *
+         * @param right 要拷贝赋值的 `indirect`
+         * @return 此对象的引用
+         */
         RAINY_CONSTEXPR20 indirect &operator=(const indirect &right) noexcept(
             type_traits::properties::is_nothrow_copy_assignable_v<Ty>) {
             if (this != &right) {
@@ -972,6 +1005,23 @@ namespace rainy::core::container {
             }
         }
 
+        /**
+         * \lang english
+         * @brief Checks whether this object is valueless after being moved from.
+         *
+         * Equivalent to `empty()`. For this `indirect`, a moved-from object
+         * becomes empty, so this simply reports the empty state.
+         *
+         * @return `true` if this object holds no value, `false` otherwise
+         *
+         * \lang simp-chinese
+         * @brief 检查本对象在被移动后是否已无值。
+         *
+         * 等价于 `empty()`。对本 `indirect` 而言，被移动后的对象会变为空，
+         * 因此这里只是报告其空状态。
+         *
+         * @return 若本对象不持有值则返回 `true`，否则返回 `false`
+         */
         RAINY_NODISCARD RAINY_CONSTEXPR20 bool valueless_after_move() const noexcept {
             return empty();
         }
