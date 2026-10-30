@@ -19,6 +19,9 @@ use crate::i18n::{I18n, LangTag};
 use std::collections::HashMap;
 
 pub fn extract_raw_comment(entity: &clang::Entity) -> Option<String> {
+    if let Some(crate::parser::scope::Override::Substituted(raw)) = scope_override(entity) {
+        return Some(raw);
+    }
     // 优先 libclang
     if let Some(comment) = entity.get_comment() {
         if !comment.trim().is_empty() {
@@ -36,6 +39,12 @@ pub fn extract_raw_comment(entity: &clang::Entity) -> Option<String> {
     }
     None
 }
+
+fn scope_override(entity: &clang::Entity) -> Option<crate::parser::scope::Override> {
+    let line = entity.get_location()?.get_file_location().line;
+    crate::parser::scope::override_for(line)
+}
+
 
 pub fn entity_location(entity: &clang::Entity) -> Option<String> {
     let loc = entity.get_location()?;
@@ -115,6 +124,10 @@ fn tokenize_comment(raw: &str) -> Vec<CommentToken> {
                 .filter(|s| !s.is_empty())
                 .collect();
             tokens.push(CommentToken::SpecTemplate(args));
+            i += 1;
+            continue;
+        }
+        if strip_tag(line, "scope").is_some() || strip_tag(line, "forscope").is_some() {
             i += 1;
             continue;
         }

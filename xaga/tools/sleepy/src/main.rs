@@ -492,6 +492,47 @@ fn warn_empty_doc(display: &str, reason: EmptyReason, lang: &str) {
 }
 
 
+fn warn_scope_diagnostics(
+    display: &str,
+    diagnostics: &[parser::scope::Diagnostic],
+    lang: &str,
+) {
+    let zh = is_chinese(lang);
+    for d in diagnostics {
+        let hint = match (zh, d.kind) {
+            (true, parser::scope::DiagnosticKind::MissingValue) => {
+                format!("\\scope Var [{}] 缺少初值，应写成 \\scope Var [{}=<值>]", d.detail, d.detail)
+            }
+            (true, parser::scope::DiagnosticKind::UnknownGroup) => {
+                format!("\\forscope 引用了未声明的组 [{}]", d.detail)
+            }
+            (true, parser::scope::DiagnosticKind::MissingGroupName) => {
+                "\\forscope 没有组名，且之前没有声明任何 \\scope 组".to_string()
+            }
+            (true, parser::scope::DiagnosticKind::DuplicateGroup) => {
+                format!("组 [{}] 被重复声明，后一次会覆盖前一次的模板注释", d.detail)
+            }
+            (false, parser::scope::DiagnosticKind::MissingValue) => {
+                format!("\\scope Var [{}] has no initial value; write \\scope Var [{}=<value>]", d.detail, d.detail)
+            }
+            (false, parser::scope::DiagnosticKind::UnknownGroup) => {
+                format!("\\forscope references undeclared group [{}]", d.detail)
+            }
+            (false, parser::scope::DiagnosticKind::MissingGroupName) => {
+                "\\forscope has no group name and no \\scope group was declared".to_string()
+            }
+            (false, parser::scope::DiagnosticKind::DuplicateGroup) => {
+                format!("group [{}] is declared more than once; the later one overrides the earlier template", d.detail)
+            }
+        };
+        if zh {
+            eprintln!("[sleepy warn] 批量定义组: {display}:{}: {hint}", d.line);
+        } else {
+            eprintln!("[sleepy warn] batch definition group: {display}:{}: {hint}", d.line);
+        }
+    }
+}
+
 fn collect_source_headers(source: &data::config::SourceConfig) -> anyhow::Result<Vec<PathBuf>> {
     let headers: Vec<PathBuf> = if !source.files.is_empty() {
         source
@@ -622,7 +663,7 @@ fn process_source(
             Err(_) => {
                 progress.break_line();
                 warn_empty_doc(
-                    &header.display().to_string(),
+                    &actual_path_display(header),
                     EmptyReason::Unreadable,
                     &config.lang,
                 );
@@ -645,7 +686,11 @@ fn process_source(
             Ok(text) => text,
             Err(_) => {
                 progress.break_line();
-                warn_empty_doc(&display, EmptyReason::Unreadable, &config.lang);
+                warn_empty_doc(
+                    &actual_path_display(&main_file),
+                    EmptyReason::Unreadable,
+                    &config.lang,
+                );
                 progress.tick(&rel_path.display().to_string());
                 continue;
             }
@@ -700,6 +745,7 @@ fn process_source(
 
         report_diagnostics(&tu, file_str, diag_seen);
 
+        parser::scope::install(&source_text);
         let nodoc_ranges = parser::collect_nodoc_ranges(&source_text);
 
         let context = parser::ParseContext {
@@ -710,6 +756,16 @@ fn process_source(
         };
 
         let mut doc = parser::build_file_document(&tu, file_str, &context);
+        let scope_diagnostics = parser::scope::take_diagnostics();
+        parser::scope::clear();
+        if !scope_diagnostics.is_empty() {
+            progress.break_line();
+            warn_scope_diagnostics(
+                &actual_path_display(main_file),
+                &scope_diagnostics,
+                &config.lang,
+            );
+        }
         doc.source_name = source.name.clone();
         doc.rel_path = rel_path.clone();
         file_infos.insert(main_file.to_string_lossy().to_string(), display.clone());
@@ -721,7 +777,7 @@ fn process_source(
                 EmptyReason::AllFiltered
             };
             progress.break_line();
-            warn_empty_doc(&display, reason, &config.lang);
+            warn_empty_doc(&actual_path_display(main_file), reason, &config.lang);
         }
 
         let undocumented = undocumented::collect(&doc);

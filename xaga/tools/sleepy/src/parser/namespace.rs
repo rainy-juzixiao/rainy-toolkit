@@ -14,13 +14,15 @@
 use super::{alias::build_type_alias, class::build_class, comment::{entity_location, extract_raw_comment, parse_comment}, concept::build_concept, enum_::build_enum, function::build_free_function, is_in_nodoc_range, macro_::build_macro, merge_namespace, variable::{build_constant, build_variable, build_variable_template, is_constant_variable, is_variable_template_entity, unwrap_variable_template_candidate}};
 use crate::data::document::{FreeFunctionDocument, NamespaceDocument};
 use crate::parser::concept::is_concept_decl;
+use crate::parser::using_decl::ClassIndex;
 use clang::{Entity, EntityKind};
 use crate::data::context::ParseContext;
 
-pub fn build_namespace(
-    entity: &Entity,
+pub fn build_namespace<'tu>(
+    entity: &Entity<'tu>,
     namespace_stack: &[String],
     context: &ParseContext,
+    index: &ClassIndex<'tu>,
 ) -> Option<NamespaceDocument> {
     if !matches!(entity.get_kind(), EntityKind::Namespace) {
         return None;
@@ -93,7 +95,7 @@ pub fn build_namespace(
                 if !child.is_definition() || super::is_anonymous_record(&child) {
                     continue;
                 }
-                if let Some(c) = build_class(&child, &child_ns) {
+                if let Some(c) = build_class(&child, &child_ns, index) {
                     doc.classes.push(c);
                 }
             }
@@ -113,7 +115,7 @@ pub fn build_namespace(
                 }
             }
             EntityKind::Namespace => {
-                if let Some(ns) = build_namespace(&child, &child_ns, context) {
+                if let Some(ns) = build_namespace(&child, &child_ns, context, index) {
                     let sub_name = ns.base.name.clone();
                     if let Some(existing) = doc
                         .sub_namespaces

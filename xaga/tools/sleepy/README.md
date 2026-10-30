@@ -201,6 +201,56 @@ private:
 `(anonymous union at path:line:col)` 这样的伪名字，sleepy 直接跳过它们，既不生成
 也不计入统计。
 
+## 批量定义组：\scope / \forscope
+
+一组声明共用同一份文档时（例如 `_1`…`_20` 占位符），把模板注释写在第一个声明上，
+其余成员用 `\forscope` 引用并代入变量：
+
+```cpp
+namespace rainy::functional::placeholders {
+    /**
+     * \lang simp-chinese
+     * @brief 用于绑定参数的占位符对象 _{N}。
+     *
+     * \scope name [placeholders]
+     * \scope Var [N=1]
+     */
+    inline constexpr implements::placeholder_t<1> _1{};
+
+    /**
+     * \forscope [placeholders]
+     * \forscope Var N=2
+     */
+    inline constexpr implements::placeholder_t<2> _2{};
+
+    /**
+     * \forscope [placeholders]
+     * \forscope Var N=3
+     */
+    inline constexpr implements::placeholder_t<3> _3{};
+}
+```
+
+规则：
+
+- `\scope name [S]` 给组命名，`\scope Var [N=值]` 声明模板变量并给出初值；
+  初值必填，写 `\scope Var [N]` 会报错——组里的每个成员（包括声明处那个）都要
+  由显式赋值确定 `{N}`，不按声明顺序推断；
+- 写了 `\scope` 的声明同样是组成员，会正常生成文档；
+- `\forscope [S]` 引用组（省略组名时取最近声明的组），`\forscope Var N=XXX` 赋值，
+  正文里的 `{N}` 替换成 `XXX`；
+- 组只在**当前文件**内有效，不跨文件；不需要结束标记，组一直延续到文件末尾；
+- 组内每个成员各生成一条完整条目，并视为已文档化，不进入未文档化统计；
+- 每个语言块（`\lang ...`）独立替换，中英文可以各自取值。
+
+以下情况会给出警告（`批量定义组:` 前缀）：
+
+| 情况 | 说明 |
+|------|------|
+| `\scope Var [N]` 缺少初值 | 无法确定该成员的 `{N}` |
+| `\forscope [S]` 引用了未声明的组 | 组名拼错，或组在别的文件里 |
+| `\forscope` 没有组名且之前没有组 | 省略组名时必须有可沿用的组 |
+
 ## 未文档化实体统计
 
 除了“整份文件没生成文档”，sleepy 还会报告**可见却没有文档注释**的有效实体：

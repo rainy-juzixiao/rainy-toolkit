@@ -79,8 +79,13 @@ pub fn build_member_function(
     entity: &Entity,
     namespace_stack: &[String],
 ) -> Option<MemberFunctionDocument> {
+    let effective_kind = if entity.get_kind() == EntityKind::FunctionTemplate {
+        entity.get_template_kind()?
+    } else {
+        entity.get_kind()
+    };
     if !matches!(
-        entity.get_kind(),
+        effective_kind,
         EntityKind::Method
             | EntityKind::Constructor
             | EntityKind::Destructor

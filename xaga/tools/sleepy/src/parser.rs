@@ -19,6 +19,8 @@ pub mod enum_;
 pub mod function;
 pub mod macro_;
 pub mod namespace;
+pub mod scope;
+pub mod using_decl;
 pub mod variable;
 
 use crate::data::document::{
@@ -450,6 +452,7 @@ pub fn build_file_document(
 
     let mut ns_map: IndexMap<String, NamespaceDocument> = IndexMap::new();
     let mut raw_functions: Vec<FreeFunctionDocument> = Vec::new();
+    let class_index = using_decl::ClassIndex::build(&root);
 
     for child in root.get_children() {
         if !is_from_owned_file(&child, context) {
@@ -460,7 +463,7 @@ pub fn build_file_document(
         }
         match child.get_kind() {
             EntityKind::Namespace => {
-                if let Some(ns) = build_namespace(&child, &namespace_stack, context) {
+                if let Some(ns) = build_namespace(&child, &namespace_stack, context, &class_index) {
                     let name = ns.base.name.clone();
                     if let Some(existing) = ns_map.get_mut(&name) {
                         merge_namespace(existing, ns);
@@ -515,7 +518,7 @@ pub fn build_file_document(
                     if !child.is_definition() || is_anonymous_record(&child) {
                         continue;
                     }
-                    if let Some(c) = build_class(&child, &namespace_stack) {
+                    if let Some(c) = build_class(&child, &namespace_stack, &class_index) {
                         doc.classes.push(c);
                     }
                 }
@@ -679,7 +682,14 @@ fn apply_inheritance_class(c: &mut ClassDocument, map: &HashMap<String, ClassDoc
                             base_overload,
                         )
                     });
-                    if !has_manual {
+                    // `using` 已经把该成员解析进来了，别让继承补全再补一份
+                    let already = existing_group.overloads.iter().any(|existing| {
+                        match (&existing.decl_prototype, &base_overload.decl_prototype) {
+                            (Some(a), Some(b)) => normalize_proto(a) == normalize_proto(b),
+                            _ => false,
+                        }
+                    });
+                    if !has_manual && !already {
                         existing_group.overloads.push(base_overload.clone());
                     }
                 }
