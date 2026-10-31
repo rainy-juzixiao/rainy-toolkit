@@ -75,4 +75,9 @@ namespace rainy::foundation::exceptions::logic {
     }
 }
 
+namespace rainy::text {
+    using foundation::exceptions::logic::bad_lexical_cast;
+    using foundation::exceptions::logic::throw_bad_lexical_cast;
+}
+
 #endif

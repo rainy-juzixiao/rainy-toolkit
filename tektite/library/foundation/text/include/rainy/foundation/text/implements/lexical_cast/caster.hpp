@@ -78,4 +78,9 @@ namespace rainy::foundation::text {
     RAINY_CONSTEXPR_BOOL has_lexical_caster_v = lexical_caster<Target, CharT>::value;
 }
 
+namespace rainy::text {
+    using foundation::text::has_lexical_caster_v;
+    using foundation::text::lexical_caster;
+}
+
 #endif
