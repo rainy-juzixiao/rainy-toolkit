@@ -1,5 +1,6 @@
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/ast)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/collections)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/collections-concurrent)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/container)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/concurrency)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/factory)
