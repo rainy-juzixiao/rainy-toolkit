@@ -367,7 +367,9 @@ namespace rainy::foundation::text::unicode::implements {
             char16_t buffer[2];
             std::size_t count = 0;
             encode_utf16(code_point, buffer, count);
-            output.append(buffer, count);
+            for (std::size_t index = 0; index < count; ++index) {
+                output.push_back(static_cast<ToChar>(buffer[index]));
+            }
         } else {
             output.push_back(static_cast<ToChar>(code_point));
         }
