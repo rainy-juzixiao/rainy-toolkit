@@ -56,6 +56,18 @@ set_target_properties(rainy-toolkit-core-unit-test PROPERTIES RUNTIME_OUTPUT_DIR
 
 unset(RAINY_TOOLKIT_CORE_TEST_FILES)
 
+set(RAINY_TOOLKIT_CORE_BENCHMARK_FILES "")
+
+rainy_load_flodar_files("${CMAKE_CURRENT_SOURCE_DIR}/benchmarks" ".cc" RAINY_TOOLKIT_CORE_BENCHMARK_FILES)
+
+add_executable(rainy-toolkit-core-benchmark ${RAINY_TOOLKIT_CORE_BENCHMARK_FILES})
+
+target_link_libraries(rainy-toolkit-core-benchmark PRIVATE benchmark::benchmark_main rainy-toolkit-core)
+
+set_target_properties(rainy-toolkit-core-benchmark PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
+unset(RAINY_TOOLKIT_CORE_BENCHMARK_FILES)
+
 check_cxx26_static_reflection()
 
 if (RAINY_TOOLKIT_HAVE_CXX26_STATIC_REFLECTION)
