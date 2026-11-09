@@ -62,12 +62,12 @@ namespace rainy::utility {
          * \lang english
          * @brief Copy constructor.
          *
-         * @param rhs The reverse_iterator to copy from
+         * @param right The reverse_iterator to copy from
          *
          * \lang simp-chinese
          * @brief 拷贝构造函数。
          *
-         * @param rhs 要拷贝的 reverse_iterator
+         * @param right 要拷贝的 reverse_iterator
          */
         constexpr reverse_iterator(const reverse_iterator &) noexcept = default;
 
@@ -75,12 +75,12 @@ namespace rainy::utility {
          * \lang english
          * @brief Move constructor.
          *
-         * @param rhs The reverse_iterator to move from
+         * @param right The reverse_iterator to move from
          *
          * \lang simp-chinese
          * @brief 移动构造函数。
          *
-         * @param rhs 要移动的 reverse_iterator
+         * @param right 要移动的 reverse_iterator
          */
         constexpr reverse_iterator(reverse_iterator &&) noexcept = default;
 
@@ -414,133 +414,133 @@ namespace rainy::utility {
          * \lang english
          * @brief Computes the distance between two reverse iterators.
          *
-         * @param lhs The left-hand side iterator
-         * @param rhs The right-hand side iterator
-         * @return The distance between lhs and rhs
+         * @param left The left-hand side iterator
+         * @param right The right-hand side iterator
+         * @return The distance between left and right
          *
          * \lang simp-chinese
          * @brief 计算两个反向迭代器之间的距离。
          *
-         * @param lhs 左侧迭代器
-         * @param rhs 右侧迭代器
-         * @return lhs 与 rhs 之间的距离
+         * @param left 左侧迭代器
+         * @param right 右侧迭代器
+         * @return left 与 right 之间的距离
          */
-        friend constexpr difference_type operator-(const reverse_iterator &lhs, const reverse_iterator &rhs) {
-            return rhs.current - lhs.current;
+        friend constexpr difference_type operator-(const reverse_iterator &left, const reverse_iterator &right) {
+            return right.current - left.current;
         }
 
         /**
          * \lang english
          * @brief Equality comparison operator.
          *
-         * @param lhs The left-hand side iterator
-         * @param rhs The right-hand side iterator
+         * @param left The left-hand side iterator
+         * @param right The right-hand side iterator
          * @return true if the iterators are equal, false otherwise
          *
          * \lang simp-chinese
          * @brief 相等比较运算符。
          *
-         * @param lhs 左侧迭代器
-         * @param rhs 右侧迭代器
+         * @param left 左侧迭代器
+         * @param right 右侧迭代器
          * @return 如果迭代器相等则为 true，否则为 false
          */
-        friend constexpr bool operator==(const reverse_iterator &lhs, const reverse_iterator &rhs) {
-            return lhs.current == rhs.current;
+        friend constexpr bool operator==(const reverse_iterator &left, const reverse_iterator &right) {
+            return left.current == right.current;
         }
 
         /**
          * \lang english
          * @brief Inequality comparison operator.
          *
-         * @param lhs The left-hand side iterator
-         * @param rhs The right-hand side iterator
+         * @param left The left-hand side iterator
+         * @param right The right-hand side iterator
          * @return true if the iterators are not equal, false otherwise
          *
          * \lang simp-chinese
          * @brief 不等比较运算符。
          *
-         * @param lhs 左侧迭代器
-         * @param rhs 右侧迭代器
+         * @param left 左侧迭代器
+         * @param right 右侧迭代器
          * @return 如果迭代器不相等则为 true，否则为 false
          */
-        friend constexpr bool operator!=(const reverse_iterator &lhs, const reverse_iterator &rhs) {
-            return lhs.current != rhs.current;
+        friend constexpr bool operator!=(const reverse_iterator &left, const reverse_iterator &right) {
+            return left.current != right.current;
         }
 
         /**
          * \lang english
          * @brief Less-than comparison operator.
          *
-         * @param lhs The left-hand side iterator
-         * @param rhs The right-hand side iterator
-         * @return true if lhs precedes rhs, false otherwise
+         * @param left The left-hand side iterator
+         * @param right The right-hand side iterator
+         * @return true if left precedes right, false otherwise
          *
          * \lang simp-chinese
          * @brief 小于比较运算符。
          *
-         * @param lhs 左侧迭代器
-         * @param rhs 右侧迭代器
-         * @return 如果 lhs 在 rhs 之前则为 true，否则为 false
+         * @param left 左侧迭代器
+         * @param right 右侧迭代器
+         * @return 如果 left 在 right 之前则为 true，否则为 false
          */
-        friend constexpr bool operator<(const reverse_iterator &lhs, const reverse_iterator &rhs) {
-            return lhs.current > rhs.current;
+        friend constexpr bool operator<(const reverse_iterator &left, const reverse_iterator &right) {
+            return left.current > right.current;
         }
 
         /**
          * \lang english
          * @brief Less-than-or-equal comparison operator.
          *
-         * @param lhs The left-hand side iterator
-         * @param rhs The right-hand side iterator
-         * @return true if lhs does not follow rhs, false otherwise
+         * @param left The left-hand side iterator
+         * @param right The right-hand side iterator
+         * @return true if left does not follow right, false otherwise
          *
          * \lang simp-chinese
          * @brief 小于等于比较运算符。
          *
-         * @param lhs 左侧迭代器
-         * @param rhs 右侧迭代器
-         * @return 如果 lhs 不在 rhs 之后则为 true，否则为 false
+         * @param left 左侧迭代器
+         * @param right 右侧迭代器
+         * @return 如果 left 不在 right 之后则为 true，否则为 false
          */
-        friend constexpr bool operator<=(const reverse_iterator &lhs, const reverse_iterator &rhs) {
-            return lhs.current >= rhs.current;
+        friend constexpr bool operator<=(const reverse_iterator &left, const reverse_iterator &right) {
+            return left.current >= right.current;
         }
 
         /**
          * \lang english
          * @brief Greater-than comparison operator.
          *
-         * @param lhs The left-hand side iterator
-         * @param rhs The right-hand side iterator
-         * @return true if lhs follows rhs, false otherwise
+         * @param left The left-hand side iterator
+         * @param right The right-hand side iterator
+         * @return true if left follows right, false otherwise
          *
          * \lang simp-chinese
          * @brief 大于比较运算符。
          *
-         * @param lhs 左侧迭代器
-         * @param rhs 右侧迭代器
-         * @return 如果 lhs 在 rhs 之后则为 true，否则为 false
+         * @param left 左侧迭代器
+         * @param right 右侧迭代器
+         * @return 如果 left 在 right 之后则为 true，否则为 false
          */
-        friend constexpr bool operator>(const reverse_iterator &lhs, const reverse_iterator &rhs) {
-            return lhs.current < rhs.current;
+        friend constexpr bool operator>(const reverse_iterator &left, const reverse_iterator &right) {
+            return left.current < right.current;
         }
 
         /**
          * \lang english
          * @brief Greater-than-or-equal comparison operator.
          *
-         * @param lhs The left-hand side iterator
-         * @param rhs The right-hand side iterator
-         * @return true if lhs does not precede rhs, false otherwise
+         * @param left The left-hand side iterator
+         * @param right The right-hand side iterator
+         * @return true if left does not precede right, false otherwise
          *
          * \lang simp-chinese
          * @brief 大于等于比较运算符。
          *
-         * @param lhs 左侧迭代器
-         * @param rhs 右侧迭代器
-         * @return 如果 lhs 不在 rhs 之前则为 true，否则为 false
+         * @param left 左侧迭代器
+         * @param right 右侧迭代器
+         * @return 如果 left 不在 right 之前则为 true，否则为 false
          */
-        friend constexpr bool operator>=(const reverse_iterator &lhs, const reverse_iterator &rhs) {
-            return lhs.current <= rhs.current;
+        friend constexpr bool operator>=(const reverse_iterator &left, const reverse_iterator &right) {
+            return left.current <= right.current;
         }
 
     private:

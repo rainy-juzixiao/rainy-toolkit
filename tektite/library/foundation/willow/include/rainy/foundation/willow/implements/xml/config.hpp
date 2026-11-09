@@ -443,9 +443,9 @@ namespace rainy::foundation::willow::xml {
             if (!left.has_xml_declaration()) {
                 return true;
             }
-            const declaration_type &lhs = left.state_->declaration;
-            const declaration_type &rhs = right.state_->declaration;
-            return lhs.version == rhs.version && lhs.encoding == rhs.encoding && lhs.standalone == rhs.standalone;
+            const declaration_type &left_ = left.state_->declaration;
+            const declaration_type &right_ = right.state_->declaration;
+            return left_.version == right_.version && left_.encoding == right_.encoding && left_.standalone == right_.standalone;
         }
 
         friend bool operator!=(const xml_document &left, const xml_document &right) {

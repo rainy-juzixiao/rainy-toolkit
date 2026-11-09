@@ -316,29 +316,29 @@ TEST_CASE("A variant is move constructed", "[variant][constructor][move]") {
 
 TEST_CASE("A variant is copy assigned", "[variant][assignment][copy]") {
     SECTION("two variants holding different types") {
-        variant<int, std::string> lhs(42);
-        variant<int, std::string> rhs(std::string("assigned"));
-        SECTION("copy assigning rhs to lhs") {
-            lhs = rhs;
-            SECTION("lhs now holds string with the correct value") {
-                REQUIRE(lhs.index() == 1);
-                REQUIRE(get<std::string>(lhs) == "assigned");
+        variant<int, std::string> left(42);
+        variant<int, std::string> right(std::string("assigned"));
+        SECTION("copy assigning right to left") {
+            left = right;
+            SECTION("left now holds string with the correct value") {
+                REQUIRE(left.index() == 1);
+                REQUIRE(get<std::string>(left) == "assigned");
             }
-            SECTION("rhs is unchanged") {
-                REQUIRE(get<std::string>(rhs) == "assigned");
+            SECTION("right is unchanged") {
+                REQUIRE(get<std::string>(right) == "assigned");
             }
         }
     }
 
-    SECTION("a variant being assigned from a valueless rhs") {
-        variant<int, ThrowOnCopy> lhs(42);
-        variant<int, ThrowOnCopy> rhs;
+    SECTION("a variant being assigned from a valueless right") {
+        variant<int, ThrowOnCopy> left(42);
+        variant<int, ThrowOnCopy> right;
         try {
-            rhs = ThrowOnCopy{};
+            right = ThrowOnCopy{};
         } catch (...) {
         }
-        if (rhs.valueless_by_exception()) {
-            lhs = rhs;
+        if (right.valueless_by_exception()) {
+            left = right;
         }
     }
 
@@ -352,20 +352,20 @@ TEST_CASE("A variant is copy assigned", "[variant][assignment][copy]") {
         }
     }
 
-    SECTION("a variant being assigned from a valueless rhs") {
-        variant<int, ThrowOnCopy> lhs(42);
-        variant<int, ThrowOnCopy> rhs;
-        // Force rhs to valueless
+    SECTION("a variant being assigned from a valueless right") {
+        variant<int, ThrowOnCopy> left(42);
+        variant<int, ThrowOnCopy> right;
+        // Force right to valueless
         try {
-            rhs = ThrowOnCopy{};
+            right = ThrowOnCopy{};
         } catch (...) {
         }
-        // Only run this branch when rhs is actually valueless
-        if (rhs.valueless_by_exception()) {
-            SECTION("copy assigning valueless rhs") {
-                lhs = rhs;
-                SECTION("lhs becomes valueless too") {
-                    REQUIRE(lhs.valueless_by_exception());
+        // Only run this branch when right is actually valueless
+        if (right.valueless_by_exception()) {
+            SECTION("copy assigning valueless right") {
+                left = right;
+                SECTION("left becomes valueless too") {
+                    REQUIRE(left.valueless_by_exception());
                 }
             }
         }
@@ -374,38 +374,38 @@ TEST_CASE("A variant is copy assigned", "[variant][assignment][copy]") {
 
 TEST_CASE("A variant is move assigned", "[variant][assignment][move]") {
     SECTION("two variants holding different types") {
-        variant<int, std::string> lhs(0);
-        variant<int, std::string> rhs(std::string("moved"));
-        SECTION("move assigning rhs into lhs") {
-            lhs = std::move(rhs);
-            SECTION("lhs holds the string") {
-                REQUIRE(get<std::string>(lhs) == "moved");
+        variant<int, std::string> left(0);
+        variant<int, std::string> right(std::string("moved"));
+        SECTION("move assigning right into left") {
+            left = std::move(right);
+            SECTION("left holds the string") {
+                REQUIRE(get<std::string>(left) == "moved");
             }
         }
     }
 
     SECTION("two variants holding the same type") {
-        variant<int, std::string> lhs(std::string("old"));
-        variant<int, std::string> rhs(std::string("new"));
+        variant<int, std::string> left(std::string("old"));
+        variant<int, std::string> right(std::string("new"));
         SECTION("move assigning same-type") {
-            lhs = std::move(rhs);
-            SECTION("lhs is updated") {
-                REQUIRE(get<std::string>(lhs) == "new");
+            left = std::move(right);
+            SECTION("left is updated") {
+                REQUIRE(get<std::string>(left) == "new");
             }
         }
     }
 
     SECTION("a variant holding NonTrivial") {
         NonTrivial::reset();
-        variant<NonTrivial, int> lhs(std::in_place_index<0>, 1);
-        variant<NonTrivial, int> rhs(std::in_place_index<1>, 42);
+        variant<NonTrivial, int> left(std::in_place_index<0>, 1);
+        variant<NonTrivial, int> right(std::in_place_index<1>, 42);
         SECTION("assigning a different alternative") {
-            lhs = std::move(rhs);
-            SECTION("lhs now holds int") {
-                REQUIRE(lhs.index() == 1);
-                REQUIRE(get<1>(lhs) == 42);
+            left = std::move(right);
+            SECTION("left now holds int") {
+                REQUIRE(left.index() == 1);
+                REQUIRE(get<1>(left) == 42);
             }
-            SECTION("the old NonTrivial in lhs was destroyed") {
+            SECTION("the old NonTrivial in left was destroyed") {
                 REQUIRE(NonTrivial::destruct_count >= 1);
             }
         }

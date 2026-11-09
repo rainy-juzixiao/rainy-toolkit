@@ -27,18 +27,18 @@ namespace rainy::foundation::willow::protobuf::implements {
     using namespace rainy::foundation::exceptions::willow::protobuf;
 
     template <typename Lhs, typename Rhs>
-    constexpr bool protobuf_cmp_greater(Lhs lhs, Rhs rhs) noexcept {
+    constexpr bool protobuf_cmp_greater(Lhs left, Rhs right) noexcept {
 #if RAINY_HAS_CXX20
-        return std::cmp_greater(lhs, rhs);
+        return std::cmp_greater(left, right);
 #else
         if constexpr (type_traits::properties::is_signed_v<Lhs> == type_traits::properties::is_signed_v<Rhs>) {
-            return lhs > rhs;
+            return left > right;
         } else if constexpr (type_traits::properties::is_signed_v<Lhs>) {
             using unsigned_lhs = typename type_traits::helper::make_unsigned<Lhs>::type;
-            return lhs < 0 ? false : static_cast<unsigned_lhs>(lhs) > static_cast<unsigned_lhs>(rhs);
+            return left < 0 ? false : static_cast<unsigned_lhs>(left) > static_cast<unsigned_lhs>(right);
         } else {
             using unsigned_rhs = typename type_traits::helper::make_unsigned<Rhs>::type;
-            return rhs < 0 ? true : static_cast<unsigned_rhs>(lhs) > static_cast<unsigned_rhs>(rhs);
+            return right < 0 ? true : static_cast<unsigned_rhs>(left) > static_cast<unsigned_rhs>(right);
         }
 #endif
     }

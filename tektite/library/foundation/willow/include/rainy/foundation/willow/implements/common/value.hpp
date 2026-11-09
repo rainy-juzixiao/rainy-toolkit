@@ -256,39 +256,39 @@ namespace rainy::foundation::willow::implements {
             return (*this);
         }
 
-        friend bool operator==(const value &lhs, const value &rhs) {
-            if (lhs.type == rhs.type) {
-                switch (lhs.type) {
+        friend bool operator==(const value &left, const value &right) {
+            if (left.type == right.type) {
+                switch (left.type) {
                     case document_type::array:
-                        return (*lhs.data.vector == *rhs.data.vector);
+                        return (*left.data.vector == *right.data.vector);
 
                     case document_type::object:
-                        return (*lhs.data.object == *rhs.data.object);
+                        return (*left.data.object == *right.data.object);
 
                     case document_type::null:
                         return true;
 
                     case document_type::string:
-                        return (*lhs.data.string == *rhs.data.string);
+                        return (*left.data.string == *right.data.string);
 
                     case document_type::boolean:
-                        return (lhs.data.boolean == rhs.data.boolean);
+                        return (left.data.boolean == right.data.boolean);
 
                     case document_type::number_integer:
-                        return (lhs.data.number_integer == rhs.data.number_integer);
+                        return (left.data.number_integer == right.data.number_integer);
 
                     case document_type::number_float:
-                        return willow::implements::nearly_equal(lhs.data.number_float, rhs.data.number_float);
+                        return willow::implements::nearly_equal(left.data.number_float, right.data.number_float);
 
                     default:
                         return false;
                 }
-            } else if (lhs.type == document_type::number_integer && rhs.type == document_type::number_float) {
-                return willow::implements::nearly_equal<float_type>(static_cast<float_type>(lhs.data.number_integer),
-                                                                    rhs.data.number_float);
-            } else if (lhs.type == document_type::number_float && rhs.type == document_type::number_integer) {
-                return willow::implements::nearly_equal<float_type>(lhs.data.number_float,
-                                                                    static_cast<float_type>(rhs.data.number_integer));
+            } else if (left.type == document_type::number_integer && right.type == document_type::number_float) {
+                return willow::implements::nearly_equal<float_type>(static_cast<float_type>(left.data.number_integer),
+                                                                    right.data.number_float);
+            } else if (left.type == document_type::number_float && right.type == document_type::number_integer) {
+                return willow::implements::nearly_equal<float_type>(left.data.number_float,
+                                                                    static_cast<float_type>(right.data.number_integer));
             }
             return false;
         }

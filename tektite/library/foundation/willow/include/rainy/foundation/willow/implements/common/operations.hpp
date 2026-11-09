@@ -194,27 +194,27 @@ namespace rainy::foundation::willow::implements::operations {
         }
         switch (left.type()) {
             case document_type::array: {
-                const auto &lhs = left.as_array();
-                const auto &rhs = right.as_array();
-                if (lhs.size() != rhs.size()) {
+                const auto &left_ = left.as_array();
+                const auto &right_ = right.as_array();
+                if (left_.size() != right_.size()) {
                     return false;
                 }
-                for (std::size_t i = 0; i < lhs.size(); ++i) {
-                    if (!equals(lhs[i], rhs[i], depth + 1)) {
+                for (std::size_t i = 0; i < left_.size(); ++i) {
+                    if (!equals(left_[i], right_[i], depth + 1)) {
                         return false;
                     }
                 }
                 return true;
             }
             case document_type::object: {
-                const auto &lhs = left.as_object();
-                const auto &rhs = right.as_object();
-                if (lhs.size() != rhs.size()) {
+                const auto &left_ = left.as_object();
+                const auto &right_ = right.as_object();
+                if (left_.size() != right_.size()) {
                     return false;
                 }
-                for (const auto &entry: lhs) {
-                    const auto iter = rhs.find(entry.first);
-                    if (iter == rhs.end() || !equals(entry.second, iter->second, depth + 1)) {
+                for (const auto &entry: left_) {
+                    const auto iter = right_.find(entry.first);
+                    if (iter == right_.end() || !equals(entry.second, iter->second, depth + 1)) {
                         return false;
                     }
                 }
@@ -235,16 +235,16 @@ namespace rainy::foundation::willow::implements::operations {
     template <typename BasicDocument>
     int compare(const BasicDocument &left, const BasicDocument &right) {
         if (left.is_number() && right.is_number()) {
-            const double lhs = left.as_float();
-            const double rhs = right.as_float();
-            return lhs < rhs ? -1 : (lhs > rhs ? 1 : 0);
+            const double left_ = left.as_float();
+            const double right_ = right.as_float();
+            return left_ < right_ ? -1 : (left_ > right_ ? 1 : 0);
         }
         if (left.type() == right.type()) {
             switch (left.type()) {
                 case document_type::string: {
-                    const auto &lhs = left.as_string();
-                    const auto &rhs = right.as_string();
-                    return lhs < rhs ? -1 : (lhs > rhs ? 1 : 0);
+                    const auto &left_ = left.as_string();
+                    const auto &right_ = right.as_string();
+                    return left_ < right_ ? -1 : (left_ > right_ ? 1 : 0);
                 }
                 case document_type::boolean:
                     return left.as_bool() == right.as_bool() ? 0 : (left.as_bool() ? 1 : -1);

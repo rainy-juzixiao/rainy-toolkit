@@ -221,8 +221,8 @@ namespace rainy::foundation::willow {
             return {};
         }
 
-        void swap(basic_document &rhs) noexcept {
-            value_.swap(rhs.value_);
+        void swap(basic_document &right) noexcept {
+            value_.swap(right.value_);
         }
 
         iterator begin() {
@@ -596,55 +596,55 @@ namespace rainy::foundation::willow {
             return get<Ty>();
         }
 
-        friend bool operator==(const basic_document &lhs, const basic_document &rhs) {
-            return lhs.value_ == rhs.value_;
+        friend bool operator==(const basic_document &left, const basic_document &right) {
+            return left.value_ == right.value_;
         }
 
-        friend bool operator!=(const basic_document &lhs, const basic_document &rhs) {
-            return !(lhs == rhs);
+        friend bool operator!=(const basic_document &left, const basic_document &right) {
+            return !(left == right);
         }
 
-        friend bool operator<(const basic_document &lhs, const basic_document &rhs) {
-            const auto lhs_type = lhs.type();
-            const auto rhs_type = rhs.type();
+        friend bool operator<(const basic_document &left, const basic_document &right) {
+            const auto lhs_type = left.type();
+            const auto rhs_type = right.type();
             if (lhs_type == rhs_type) {
                 switch (lhs_type) {
                     case document_type::array:
-                        return (*lhs.value_.data.vector) < (*rhs.value_.data.vector);
+                        return (*left.value_.data.vector) < (*right.value_.data.vector);
                     case document_type::object:
-                        return (*lhs.value_.data.object) < (*rhs.value_.data.object);
+                        return (*left.value_.data.object) < (*right.value_.data.object);
                     case document_type::string:
-                        return (*lhs.value_.data.string) < (*rhs.value_.data.string);
+                        return (*left.value_.data.string) < (*right.value_.data.string);
                     case document_type::boolean:
-                        return (lhs.value_.data.boolean < rhs.value_.data.boolean);
+                        return (left.value_.data.boolean < right.value_.data.boolean);
                     case document_type::number_integer:
-                        return (lhs.value_.data.number_integer < rhs.value_.data.number_integer);
+                        return (left.value_.data.number_integer < right.value_.data.number_integer);
                     case document_type::number_float:
-                        return (lhs.value_.data.number_float < rhs.value_.data.number_float);
+                        return (left.value_.data.number_float < right.value_.data.number_float);
                     case document_type::null:
                     default:
                         return false;
                 }
             }
             if (lhs_type == document_type::number_integer && rhs_type == document_type::number_float) {
-                return (static_cast<float_type>(lhs.value_.data.number_integer) < rhs.value_.data.number_float);
+                return (static_cast<float_type>(left.value_.data.number_integer) < right.value_.data.number_float);
             }
             if (lhs_type == document_type::number_float && rhs_type == document_type::number_integer) {
-                return (lhs.value_.data.number_float < static_cast<float_type>(rhs.value_.data.number_integer));
+                return (left.value_.data.number_float < static_cast<float_type>(right.value_.data.number_integer));
             }
             return false;
         }
 
-        friend bool operator<=(const basic_document &lhs, const basic_document &rhs) {
-            return !(rhs < lhs);
+        friend bool operator<=(const basic_document &left, const basic_document &right) {
+            return !(right < left);
         }
 
-        friend bool operator>(const basic_document &lhs, const basic_document &rhs) {
-            return rhs < lhs;
+        friend bool operator>(const basic_document &left, const basic_document &right) {
+            return right < left;
         }
 
-        friend bool operator>=(const basic_document &lhs, const basic_document &rhs) {
-            return !(lhs < rhs);
+        friend bool operator>=(const basic_document &left, const basic_document &right) {
+            return !(left < right);
         }
 
     private:

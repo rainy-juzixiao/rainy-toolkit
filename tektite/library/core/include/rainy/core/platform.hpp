@@ -2774,8 +2774,8 @@ namespace rainy::type_traits::helper {
      * @tparam CharType Character type
      * @tparam N1 Size of first string
      * @tparam N2 Size of second string
-     * @param lhs Left-hand side string
-     * @param rhs Right-hand side string
+     * @param left Left-hand side string
+     * @param right Right-hand side string
      * @return true if strings are equal, false otherwise
      *
      * \lang simp-chinese
@@ -2783,15 +2783,15 @@ namespace rainy::type_traits::helper {
      * @tparam CharType 字符类型
      * @tparam N1 第一个字符串的大小
      * @tparam N2 第二个字符串的大小
-     * @param lhs 左侧字符串
-     * @param rhs 右侧字符串
+     * @param left 左侧字符串
+     * @param right 右侧字符串
      * @return 如果字符串相等则为 true，否则为 false
      */
     template <typename CharType, std::size_t N1, std::size_t N2>
-    constexpr rain_fn operator==(const basic_constexpr_string<CharType, N1> &lhs,
-                                 const basic_constexpr_string<CharType, N2> &rhs) noexcept -> bool {
-        return std::basic_string_view<CharType>(lhs.data(), lhs.length()) ==
-               std::basic_string_view<CharType>(rhs.data(), rhs.length());
+    constexpr rain_fn operator==(const basic_constexpr_string<CharType, N1> &left,
+                                 const basic_constexpr_string<CharType, N2> &right) noexcept -> bool {
+        return std::basic_string_view<CharType>(left.data(), left.length()) ==
+               std::basic_string_view<CharType>(right.data(), right.length());
     }
 
     /**
@@ -2802,9 +2802,9 @@ namespace rainy::type_traits::helper {
      * @brief 两个 constexpr 字符串之间的不相等比较。
      */
     template <typename CharType, std::size_t N1, std::size_t N2>
-    constexpr rain_fn operator!=(const basic_constexpr_string<CharType, N1> &lhs,
-                                 const basic_constexpr_string<CharType, N2> &rhs) noexcept -> bool {
-        return !(lhs == rhs);
+    constexpr rain_fn operator!=(const basic_constexpr_string<CharType, N1> &left,
+                                 const basic_constexpr_string<CharType, N2> &right) noexcept -> bool {
+        return !(left == right);
     }
 
     /**
@@ -2815,9 +2815,9 @@ namespace rainy::type_traits::helper {
      * @brief 两个 constexpr 字符串之间的小于比较。
      */
     template <typename CharType, std::size_t N1, std::size_t N2>
-    constexpr rain_fn operator<(const basic_constexpr_string<CharType, N1> &lhs,
-                                const basic_constexpr_string<CharType, N2> &rhs) noexcept -> bool {
-        return std::basic_string_view<CharType>(lhs.data(), lhs.length()) < std::basic_string_view<CharType>(rhs.data(), rhs.length());
+    constexpr rain_fn operator<(const basic_constexpr_string<CharType, N1> &left,
+                                const basic_constexpr_string<CharType, N2> &right) noexcept -> bool {
+        return std::basic_string_view<CharType>(left.data(), left.length()) < std::basic_string_view<CharType>(right.data(), right.length());
     }
 
     /**
@@ -2828,9 +2828,9 @@ namespace rainy::type_traits::helper {
      * @brief 两个 constexpr 字符串之间的小于等于比较。
      */
     template <typename CharType, std::size_t N1, std::size_t N2>
-    constexpr rain_fn operator<=(const basic_constexpr_string<CharType, N1> &lhs,
-                                 const basic_constexpr_string<CharType, N2> &rhs) noexcept -> bool {
-        return !(rhs < lhs);
+    constexpr rain_fn operator<=(const basic_constexpr_string<CharType, N1> &left,
+                                 const basic_constexpr_string<CharType, N2> &right) noexcept -> bool {
+        return !(right < left);
     }
 
     /**
@@ -2841,9 +2841,9 @@ namespace rainy::type_traits::helper {
      * @brief 两个 constexpr 字符串之间的大于比较。
      */
     template <typename CharType, std::size_t N1, std::size_t N2>
-    constexpr rain_fn operator>(const basic_constexpr_string<CharType, N1> &lhs,
-                                const basic_constexpr_string<CharType, N2> &rhs) noexcept -> bool {
-        return rhs < lhs;
+    constexpr rain_fn operator>(const basic_constexpr_string<CharType, N1> &left,
+                                const basic_constexpr_string<CharType, N2> &right) noexcept -> bool {
+        return right < left;
     }
 
     /**
@@ -2854,9 +2854,9 @@ namespace rainy::type_traits::helper {
      * @brief 两个 constexpr 字符串之间的大于等于比较。
      */
     template <typename CharType, std::size_t N1, std::size_t N2>
-    constexpr rain_fn operator>=(const basic_constexpr_string<CharType, N1> &lhs,
-                                 const basic_constexpr_string<CharType, N2> &rhs) noexcept -> bool {
-        return !(lhs < rhs);
+    constexpr rain_fn operator>=(const basic_constexpr_string<CharType, N1> &left,
+                                 const basic_constexpr_string<CharType, N2> &right) noexcept -> bool {
+        return !(left < right);
     }
 
     /**
@@ -2867,9 +2867,9 @@ namespace rainy::type_traits::helper {
      * @brief constexpr 字符串与 string_view 之间的相等比较。
      */
     template <typename CharType, std::size_t N>
-    constexpr rain_fn operator==(const basic_constexpr_string<CharType, N> &lhs, std::basic_string_view<CharType> rhs) noexcept
+    constexpr rain_fn operator==(const basic_constexpr_string<CharType, N> &left, std::basic_string_view<CharType> right) noexcept
         -> bool {
-        return std::basic_string_view<CharType>(lhs.data(), lhs.length()) == rhs;
+        return std::basic_string_view<CharType>(left.data(), left.length()) == right;
     }
 
     /**
@@ -2880,9 +2880,9 @@ namespace rainy::type_traits::helper {
      * @brief string_view 与 constexpr 字符串之间的相等比较。
      */
     template <typename CharType, std::size_t N>
-    constexpr rain_fn operator==(std::basic_string_view<CharType> lhs, const basic_constexpr_string<CharType, N> &rhs) noexcept
+    constexpr rain_fn operator==(std::basic_string_view<CharType> left, const basic_constexpr_string<CharType, N> &right) noexcept
         -> bool {
-        return lhs == std::basic_string_view<CharType>(rhs.data(), rhs.length());
+        return left == std::basic_string_view<CharType>(right.data(), right.length());
     }
 
     /**
@@ -2893,8 +2893,8 @@ namespace rainy::type_traits::helper {
      * @brief constexpr 字符串与 C 风格字符串之间的相等比较。
      */
     template <typename CharType, std::size_t N>
-    constexpr rain_fn operator==(const basic_constexpr_string<CharType, N> &lhs, const CharType *rhs) noexcept -> bool {
-        return std::basic_string_view<CharType>(lhs.data(), lhs.length()) == std::basic_string_view<CharType>(rhs);
+    constexpr rain_fn operator==(const basic_constexpr_string<CharType, N> &left, const CharType *right) noexcept -> bool {
+        return std::basic_string_view<CharType>(left.data(), left.length()) == std::basic_string_view<CharType>(right);
     }
 
     /**
@@ -2905,8 +2905,8 @@ namespace rainy::type_traits::helper {
      * @brief C 风格字符串与 constexpr 字符串之间的相等比较。
      */
     template <typename CharType, std::size_t N>
-    constexpr rain_fn operator==(const CharType *lhs, const basic_constexpr_string<CharType, N> &rhs) noexcept -> bool {
-        return std::basic_string_view<CharType>(lhs) == std::basic_string_view<CharType>(rhs.data(), rhs.length());
+    constexpr rain_fn operator==(const CharType *left, const basic_constexpr_string<CharType, N> &right) noexcept -> bool {
+        return std::basic_string_view<CharType>(left) == std::basic_string_view<CharType>(right.data(), right.length());
     }
 
     /**
@@ -2955,8 +2955,8 @@ namespace rainy::type_traits::helper {
      * @tparam CharType Character type
      * @tparam N1 Size of first string
      * @tparam N2 Size of second string
-     * @param lhs First string
-     * @param rhs Second string
+     * @param left First string
+     * @param right Second string
      * @return Concatenated string of size N1 + N2 - 1
      *
      * \lang simp-chinese
@@ -2964,20 +2964,20 @@ namespace rainy::type_traits::helper {
      * @tparam CharType 字符类型
      * @tparam N1 第一个字符串的大小
      * @tparam N2 第二个字符串的大小
-     * @param lhs 第一个字符串
-     * @param rhs 第二个字符串
+     * @param left 第一个字符串
+     * @param right 第二个字符串
      * @return 大小为 N1 + N2 - 1 的连接后字符串
      */
     template <typename CharType, std::size_t N1, std::size_t N2>
-    constexpr rain_fn concat(const basic_constexpr_string<CharType, N1> &lhs, const basic_constexpr_string<CharType, N2> &rhs)
+    constexpr rain_fn concat(const basic_constexpr_string<CharType, N1> &left, const basic_constexpr_string<CharType, N2> &right)
         -> auto {
         basic_constexpr_string<CharType, N1 + N2 - 1> result{};
         std::size_t current_result_idx = 0;
-        for (std::size_t i = 0; i < lhs.length(); ++i) {
-            result[current_result_idx++] = lhs[i];
+        for (std::size_t i = 0; i < left.length(); ++i) {
+            result[current_result_idx++] = left[i];
         }
-        for (std::size_t i = 0; i < rhs.length(); ++i) {
-            result[current_result_idx++] = rhs[i];
+        for (std::size_t i = 0; i < right.length(); ++i) {
+            result[current_result_idx++] = right[i];
         }
         result[current_result_idx] = '\0';
         return result;

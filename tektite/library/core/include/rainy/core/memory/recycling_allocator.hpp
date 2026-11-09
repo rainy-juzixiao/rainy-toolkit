@@ -75,13 +75,13 @@ namespace rainy::core::memory {
          * @brief Converting constructor from another recycling_allocator type.
          *
          * @tparam U The element type of the source allocator
-         * @param rhs The allocator to convert from
+         * @param right The allocator to convert from
          *
          * \lang simp-chinese
          * @brief 从另一个 recycling_allocator 类型转换的构造函数。
          *
          * @tparam U 源分配器的元素类型
-         * @param rhs 要转换的分配器
+         * @param right 要转换的分配器
          */
         template <typename U>
         explicit recycling_allocator(const recycling_allocator<U, Purpose> &) noexcept {}
@@ -174,13 +174,13 @@ namespace rainy::core::memory {
          * @brief Converting constructor from another recycling_allocator type.
          *
          * @tparam U The element type of the source allocator
-         * @param rhs The allocator to convert from
+         * @param right The allocator to convert from
          *
          * \lang simp-chinese
          * @brief 从另一个 recycling_allocator 类型转换的构造函数。
          *
          * @tparam U 源分配器的元素类型
-         * @param rhs 要转换的分配器
+         * @param right 要转换的分配器
          */
         template <typename U>
         explicit recycling_allocator(const recycling_allocator<U, Purpose> &) noexcept {}

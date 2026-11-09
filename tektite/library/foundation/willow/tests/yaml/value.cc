@@ -125,10 +125,10 @@ TEST_CASE("yaml value - get and explicit conversion", "[willow][yaml][value]") {
 }
 
 TEST_CASE("yaml value - equality and ordering", "[willow][yaml][value]") {
-    const auto lhs = yaml::parse("a: 1\nb: [1, 2]\n");
-    const auto rhs = yaml::parse("a: 1\nb: [1, 2]\n");
-    REQUIRE(lhs == rhs);
-    REQUIRE(!(lhs != rhs));
+    const auto left = yaml::parse("a: 1\nb: [1, 2]\n");
+    const auto right = yaml::parse("a: 1\nb: [1, 2]\n");
+    REQUIRE(left == right);
+    REQUIRE(!(left != right));
 
     REQUIRE(yaml::parse("1\n") == yaml::parse("1\n"));
     REQUIRE(yaml::parse("1\n") != yaml::parse("2\n"));

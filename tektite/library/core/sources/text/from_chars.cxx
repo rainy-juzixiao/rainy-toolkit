@@ -190,13 +190,13 @@ namespace rainy::core::text::implements {
             return *this;
         }
 
-        bool operator<(const big_integer_flt &rhs) const noexcept {
-            if (used != rhs.used) {
-                return used < rhs.used;
+        bool operator<(const big_integer_flt &right) const noexcept {
+            if (used != right.used) {
+                return used < right.used;
             }
             for (std::uint32_t i = used - 1; i != static_cast<std::uint32_t>(-1); --i) {
-                if (data[i] != rhs.data[i]) {
-                    return data[i] < rhs.data[i];
+                if (data[i] != right.data[i]) {
+                    return data[i] < right.data[i];
                 }
             }
             return false;

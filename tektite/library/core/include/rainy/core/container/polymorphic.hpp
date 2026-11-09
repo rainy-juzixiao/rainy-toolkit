@@ -554,17 +554,17 @@ namespace rainy::core::container {
          * \lang english
          * @brief Swaps the managed objects of two polymorphic objects.
          *
-         * @param lhs The first polymorphic to swap
-         * @param rhs The second polymorphic to swap
+         * @param left The first polymorphic to swap
+         * @param right The second polymorphic to swap
          *
          * \lang simp-chinese
          * @brief 交换两个 polymorphic 对象的被管理对象。
          *
-         * @param lhs 要交换的第一个 polymorphic
-         * @param rhs 要交换的第二个 polymorphic
+         * @param left 要交换的第一个 polymorphic
+         * @param right 要交换的第二个 polymorphic
          */
-        friend RAINY_CONSTEXPR20 void swap(polymorphic &lhs, polymorphic &rhs) noexcept(noexcept(lhs.swap(rhs))) {
-            lhs.swap(rhs);
+        friend RAINY_CONSTEXPR20 void swap(polymorphic &left, polymorphic &right) noexcept(noexcept(left.swap(right))) {
+            left.swap(right);
         }
 
     private:

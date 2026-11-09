@@ -328,18 +328,18 @@ namespace rainy::core::container {
          * \lang english
          * @brief Performs bitwise AND assignment with another bitset.
          *
-         * @param rhs The other bitset
+         * @param right The other bitset
          * @return Reference to this bitset
          *
          * \lang simp-chinese
          * @brief 与另一个 bitset 执行按位与赋值。
          *
-         * @param rhs 另一个 bitset
+         * @param right 另一个 bitset
          * @return 此 bitset 的引用
          */
-        constexpr bitset &operator&=(const bitset &rhs) noexcept {
+        constexpr bitset &operator&=(const bitset &right) noexcept {
             for (std::size_t i = 0; i < NUM_WORDS; ++i) {
-                data[i] &= rhs.data[i];
+                data[i] &= right.data[i];
             }
             return *this;
         }
@@ -348,18 +348,18 @@ namespace rainy::core::container {
          * \lang english
          * @brief Performs bitwise OR assignment with another bitset.
          *
-         * @param rhs The other bitset
+         * @param right The other bitset
          * @return Reference to this bitset
          *
          * \lang simp-chinese
          * @brief 与另一个 bitset 执行按位或赋值。
          *
-         * @param rhs 另一个 bitset
+         * @param right 另一个 bitset
          * @return 此 bitset 的引用
          */
-        constexpr bitset &operator|=(const bitset &rhs) noexcept {
+        constexpr bitset &operator|=(const bitset &right) noexcept {
             for (std::size_t i = 0; i < NUM_WORDS; ++i) {
-                data[i] |= rhs.data[i];
+                data[i] |= right.data[i];
             }
             return *this;
         }
@@ -368,18 +368,18 @@ namespace rainy::core::container {
          * \lang english
          * @brief Performs bitwise XOR assignment with another bitset.
          *
-         * @param rhs The other bitset
+         * @param right The other bitset
          * @return Reference to this bitset
          *
          * \lang simp-chinese
          * @brief 与另一个 bitset 执行按位异或赋值。
          *
-         * @param rhs 另一个 bitset
+         * @param right 另一个 bitset
          * @return 此 bitset 的引用
          */
-        constexpr bitset &operator^=(const bitset &rhs) noexcept {
+        constexpr bitset &operator^=(const bitset &right) noexcept {
             for (std::size_t i = 0; i < NUM_WORDS; ++i) {
-                data[i] ^= rhs.data[i];
+                data[i] ^= right.data[i];
             }
             return *this;
         }
@@ -848,18 +848,18 @@ namespace rainy::core::container {
          * \lang english
          * @brief Compares two bitsets for equality.
          *
-         * @param rhs The other bitset
+         * @param right The other bitset
          * @return true if all bits are equal, false otherwise
          *
          * \lang simp-chinese
          * @brief 比较两个 bitset 是否相等。
          *
-         * @param rhs 另一个 bitset
+         * @param right 另一个 bitset
          * @return 若所有位均相等则返回 true，否则返回 false
          */
-        constexpr bool operator==(const bitset &rhs) const noexcept {
+        constexpr bool operator==(const bitset &right) const noexcept {
             for (std::size_t i = 0; i < NUM_WORDS; ++i) {
-                if (data[i] != rhs.data[i]) {
+                if (data[i] != right.data[i]) {
                     return false;
                 }
             }
@@ -1054,22 +1054,22 @@ namespace rainy::core::container {
      * @brief Performs bitwise AND between two bitsets.
      *
      * @tparam N The number of bits
-     * @param lhs The left bitset
-     * @param rhs The right bitset
-     * @return A new bitset with the bitwise AND of lhs and rhs
+     * @param left The left bitset
+     * @param right The right bitset
+     * @return A new bitset with the bitwise AND of left and right
      *
      * \lang simp-chinese
      * @brief 对两个 bitset 执行按位与运算。
      *
      * @tparam N 位的数量
-     * @param lhs 左 bitset
-     * @param rhs 右 bitset
-     * @return lhs 与 rhs 按位与的新 bitset
+     * @param left 左 bitset
+     * @param right 右 bitset
+     * @return left 与 right 按位与的新 bitset
      */
     template <std::size_t N>
-    constexpr bitset<N> operator&(const bitset<N> &lhs, const bitset<N> &rhs) noexcept {
-        bitset<N> result(lhs);
-        result &= rhs;
+    constexpr bitset<N> operator&(const bitset<N> &left, const bitset<N> &right) noexcept {
+        bitset<N> result(left);
+        result &= right;
         return result;
     }
 
@@ -1078,22 +1078,22 @@ namespace rainy::core::container {
      * @brief Performs bitwise OR between two bitsets.
      *
      * @tparam N The number of bits
-     * @param lhs The left bitset
-     * @param rhs The right bitset
-     * @return A new bitset with the bitwise OR of lhs and rhs
+     * @param left The left bitset
+     * @param right The right bitset
+     * @return A new bitset with the bitwise OR of left and right
      *
      * \lang simp-chinese
      * @brief 对两个 bitset 执行按位或运算。
      *
      * @tparam N 位的数量
-     * @param lhs 左 bitset
-     * @param rhs 右 bitset
-     * @return lhs 与 rhs 按位或的新 bitset
+     * @param left 左 bitset
+     * @param right 右 bitset
+     * @return left 与 right 按位或的新 bitset
      */
     template <std::size_t N>
-    constexpr bitset<N> operator|(const bitset<N> &lhs, const bitset<N> &rhs) noexcept {
-        bitset<N> result(lhs);
-        result |= rhs;
+    constexpr bitset<N> operator|(const bitset<N> &left, const bitset<N> &right) noexcept {
+        bitset<N> result(left);
+        result |= right;
         return result;
     }
 
@@ -1102,22 +1102,22 @@ namespace rainy::core::container {
      * @brief Performs bitwise XOR between two bitsets.
      *
      * @tparam N The number of bits
-     * @param lhs The left bitset
-     * @param rhs The right bitset
-     * @return A new bitset with the bitwise XOR of lhs and rhs
+     * @param left The left bitset
+     * @param right The right bitset
+     * @return A new bitset with the bitwise XOR of left and right
      *
      * \lang simp-chinese
      * @brief 对两个 bitset 执行按位异或运算。
      *
      * @tparam N 位的数量
-     * @param lhs 左 bitset
-     * @param rhs 右 bitset
-     * @return lhs 与 rhs 按位异或的新 bitset
+     * @param left 左 bitset
+     * @param right 右 bitset
+     * @return left 与 right 按位异或的新 bitset
      */
     template <std::size_t N>
-    constexpr bitset<N> operator^(const bitset<N> &lhs, const bitset<N> &rhs) noexcept {
-        bitset<N> result(lhs);
-        result ^= rhs;
+    constexpr bitset<N> operator^(const bitset<N> &left, const bitset<N> &right) noexcept {
+        bitset<N> result(left);
+        result ^= right;
         return result;
     }
 }
