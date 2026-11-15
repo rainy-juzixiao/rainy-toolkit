@@ -15,11 +15,15 @@ Usage:
     python3 scripts/ci/gen-api-docs.py
     python3 scripts/ci/gen-api-docs.py --project core
     python3 scripts/ci/gen-api-docs.py --allow-cycles
+
+Set ``MUZIYAN_BIN`` to use a prebuilt MuZiYan binary instead of the
+``scripts/muziyan`` launcher (which runs ``cargo run``).
 """
 
 from __future__ import annotations
 
 import argparse
+import os
 import re
 import shutil
 import subprocess
@@ -27,7 +31,9 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-BINARY = REPO_ROOT / "scripts" / "muziyan"
+BINARY = Path(os.environ.get("MUZIYAN_BIN") or REPO_ROOT / "scripts" / "muziyan")
+if not BINARY.is_absolute():
+    BINARY = (REPO_ROOT / BINARY).resolve()
 SITE_DIR = REPO_ROOT / "docs"
 OUT_ROOT = SITE_DIR / "api"
 INDEX_NAME = "index.md"
