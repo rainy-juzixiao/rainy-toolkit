@@ -580,6 +580,69 @@ TEST_CASE("tcp client can connect to a listening server on loopback", "[internet
     }
 }
 
+TEST_CASE("async_connect completes and lets run() return", "[internet][tcp][async]") {
+
+    SECTION("a client async-connects to a listening loopback server") {
+        io_context ctx;
+        tcp::acceptor acceptor{ctx, tcp::endpoint{tcp::v4(), 0}};
+        const port_type assigned_port = acceptor.local_endpoint().port();
+
+        std::thread server_thread([&] {
+            std::error_code ec;
+            auto client_sock = acceptor.accept(ec);
+            if (!ec) {
+                client_sock.close(ec);
+            }
+        });
+
+        tcp::socket client{ctx};
+        std::atomic<bool> called{false};
+        std::error_code async_ec;
+        client.async_connect(tcp::endpoint{address_v4::loopback(), assigned_port}, [&](std::error_code ec) {
+            async_ec = ec;
+            called = true;
+        });
+
+        const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+        while (!called.load() && std::chrono::steady_clock::now() < deadline) {
+            ctx.run_one_for(std::chrono::milliseconds(100));
+        }
+
+        if (server_thread.joinable()) {
+            server_thread.join();
+        }
+
+        SECTION("the completion handler was invoked without error") {
+            REQUIRE(called.load());
+            REQUIRE_FALSE(async_ec);
+        }
+
+        SECTION("run() returns once the completion handler has run") {
+            std::atomic<bool> run_returned{false};
+            std::thread runner([&] {
+                ctx.run();
+                run_returned.store(true);
+            });
+
+            const auto run_deadline = std::chrono::steady_clock::now() + std::chrono::seconds(3);
+            while (!run_returned.load() && std::chrono::steady_clock::now() < run_deadline) {
+                std::this_thread::yield();
+            }
+
+            const bool returned_on_its_own = run_returned.load();
+            if (!returned_on_its_own) {
+                ctx.stop();
+            }
+
+            if (runner.joinable()) {
+                runner.join();
+            }
+
+            REQUIRE(returned_on_its_own);
+        }
+    }
+}
+
 TEST_CASE("tcp acceptor bound to port 0 gets a dynamic port assigned", "[internet][tcp][network]") {
 
     SECTION("a tcp acceptor on v4 loopback port 0") {

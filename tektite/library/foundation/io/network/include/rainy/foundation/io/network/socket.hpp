@@ -418,7 +418,6 @@ namespace rainy::foundation::io::net {
                     handler(ec);
                 },
                 executor_);
-            executor_.on_work_started();
             impl_->async_connect(raw_ep, executor_.context().get_executor(), op);
             return init.result.get();
         }
