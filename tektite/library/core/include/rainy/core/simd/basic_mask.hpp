@@ -155,37 +155,37 @@ namespace rainy::core {
         friend RAINY_CONSTEXPR26 basic_mask operator==(const basic_mask &left,
                                                             const basic_mask &right) noexcept {
             using ops = implements::simd_ops<implements::integer_from_t<Bytes>, Abi>;
-            return make_compare<compare_op::eq>(left, right);
+            return make_compare<ops::cmp_eq>(left, right);
         }
 
         friend RAINY_CONSTEXPR26 basic_mask operator!=(const basic_mask &left,
                                                             const basic_mask &right) noexcept {
             using ops = implements::simd_ops<implements::integer_from_t<Bytes>, Abi>;
-            return make_compare<compare_op::ne>(left, right);
+            return make_compare<ops::cmp_ne>(left, right);
         }
 
         friend RAINY_CONSTEXPR26 basic_mask operator>=(const basic_mask &left,
                                                             const basic_mask &right) noexcept {
             using ops = implements::simd_ops<implements::integer_from_t<Bytes>, Abi>;
-            return make_compare<compare_op::ge>(left, right);
+            return make_compare<ops::cmp_ge>(left, right);
         }
 
         friend RAINY_CONSTEXPR26 basic_mask operator<=(const basic_mask &left,
                                                             const basic_mask &right) noexcept {
             using ops = implements::simd_ops<implements::integer_from_t<Bytes>, Abi>;
-            return make_compare<compare_op::le>(left, right);
+            return make_compare<ops::cmp_le>(left, right);
         }
 
         friend RAINY_CONSTEXPR26 basic_mask operator>(const basic_mask &left,
                                                            const basic_mask &right) noexcept {
             using ops = implements::simd_ops<implements::integer_from_t<Bytes>, Abi>;
-            return make_compare<compare_op::gt>(left, right);
+            return make_compare<ops::cmp_gt>(left, right);
         }
 
         friend RAINY_CONSTEXPR26 basic_mask operator<(const basic_mask &left,
                                                            const basic_mask &right) noexcept {
             using ops = implements::simd_ops<implements::integer_from_t<Bytes>, Abi>;
-            return make_compare<compare_op::lt>(left, right);
+            return make_compare<ops::cmp_lt>(left, right);
         }
 
         friend RAINY_CONSTEXPR26 basic_mask simd_select_impl(const basic_mask &mask,
@@ -213,29 +213,13 @@ namespace rainy::core {
         }
 
     private:
-        enum class compare_op { eq, ne, ge, le, gt, lt };
-
-        template <compare_op Op>
+        template <auto Op>
         RAINY_CONSTEXPR26 static basic_mask make_compare(const basic_mask &left,
                                                               const basic_mask &right) noexcept {
             using integer = implements::integer_from_t<Bytes>;
             using ops = implements::simd_ops<integer, Abi>;
             auto one = ops::broadcast(static_cast<integer>(1));
-            auto lhs = ops::bit_and(left.data_, one);
-            auto rhs = ops::bit_and(right.data_, one);
-            if constexpr (Op == compare_op::eq) {
-                return basic_mask{ops::cmp_eq(lhs, rhs)};
-            } else if constexpr (Op == compare_op::ne) {
-                return basic_mask{ops::cmp_ne(lhs, rhs)};
-            } else if constexpr (Op == compare_op::ge) {
-                return basic_mask{ops::cmp_ge(lhs, rhs)};
-            } else if constexpr (Op == compare_op::le) {
-                return basic_mask{ops::cmp_le(lhs, rhs)};
-            } else if constexpr (Op == compare_op::gt) {
-                return basic_mask{ops::cmp_gt(lhs, rhs)};
-            } else {
-                return basic_mask{ops::cmp_lt(lhs, rhs)};
-            }
+            return basic_mask{Op(ops::bit_and(left.data_, one), ops::bit_and(right.data_, one))};
         }
 
         template <typename U, typename A>
