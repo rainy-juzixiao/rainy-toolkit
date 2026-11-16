@@ -271,7 +271,7 @@ namespace rainy::core::implements {
         }
 
         static RAINY_CONSTEXPR26 register_type bit_not(register_type reg) noexcept {
-            return bitcast<register_type>(veorq_u8(bitcast<uint8x16_t>(reg), vdupq_n_u8(0xFF)));
+            return bitcast<register_type>(vmvnq_u8(bitcast<uint8x16_t>(reg)));
         }
 
         static RAINY_CONSTEXPR26 mask_register_type cmp_eq(register_type left, register_type right) noexcept {
@@ -416,7 +416,7 @@ namespace rainy::core::implements {
         }
 
         static RAINY_CONSTEXPR26 mask_register_type bit_not_mask(mask_register_type mask) noexcept {
-            return bitcast<mask_register_type>(veorq_u8(bitcast<uint8x16_t>(mask), vdupq_n_u8(0xFF)));
+            return bitcast<mask_register_type>(vmvnq_u8(bitcast<uint8x16_t>(mask)));
         }
 
         static RAINY_CONSTEXPR26 mask_register_type integer_gt(const register_type &left, const register_type &right) noexcept {

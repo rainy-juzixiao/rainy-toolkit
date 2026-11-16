@@ -160,7 +160,8 @@ namespace rainy::core {
 
         friend RAINY_CONSTEXPR26 basic_mask operator!=(const basic_mask &left,
                                                             const basic_mask &right) noexcept {
-            return !(left == right);
+            using ops = implements::simd_ops<implements::integer_from_t<Bytes>, Abi>;
+            return make_compare<ops::cmp_ne>(left, right);
         }
 
         friend RAINY_CONSTEXPR26 basic_mask operator>=(const basic_mask &left,
