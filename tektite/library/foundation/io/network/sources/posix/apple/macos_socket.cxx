@@ -55,11 +55,22 @@ namespace rainy::foundation::io::net::implements {
         return ::kevent(kq, &ev, 1, nullptr, 0, nullptr) == 0;
     }
 
+    static void restore_nonblock(int fd, const bool restore_blocking) noexcept {
+        if (!restore_blocking || fd < 0) {
+            return;
+        }
+        if (const int flags = ::fcntl(fd, F_GETFL, 0); flags >= 0) {
+            ::fcntl(fd, F_SETFL, flags & ~O_NONBLOCK);
+        }
+    }
+
     template <typename IoFunc>
     class kqueue_io_op final : public io::implements::completion_op {
     public:
-        kqueue_io_op(IoFunc &&io_func, io::implements::completion_op *user_op) noexcept(type_traits::properties::is_nothrow_move_constructible_v<IoFunc>) :
-            io::implements::completion_op(&do_complete), io_func_(utility::move(io_func)), user_op_(user_op) {
+        kqueue_io_op(IoFunc &&io_func, io::implements::completion_op *user_op, const int cancel_fd = -1,
+                     const bool cancel_restore = false) noexcept(type_traits::properties::is_nothrow_move_constructible_v<IoFunc>) :
+            io::implements::completion_op(&do_complete), io_func_(utility::move(io_func)), user_op_(user_op),
+            cancel_fd_(cancel_fd), cancel_restore_(cancel_restore) {
         }
 
         kqueue_io_op(const kqueue_io_op &) = delete;
@@ -70,9 +81,12 @@ namespace rainy::foundation::io::net::implements {
             auto *me = static_cast<kqueue_io_op *>(self);
             IoFunc io_func = utility::move(me->io_func_);
             io::implements::completion_op *user = me->user_op_;
+            const int cancel_fd = me->cancel_fd_;
+            const bool cancel_restore = me->cancel_restore_;
             delete me;
 
             if (is_cancelled) {
+                restore_nonblock(cancel_fd, cancel_restore);
                 io::implements::op_result r{user, 0, ECANCELED};
                 user->complete(r, true);
                 return;
@@ -85,12 +99,15 @@ namespace rainy::foundation::io::net::implements {
 
         IoFunc io_func_;
         io::implements::completion_op *user_op_;
+        int cancel_fd_;
+        bool cancel_restore_;
     };
 
     template <typename IoFunc>
     static void post_kqueue_async(int kq, int fd, short filter, io_context::executor_type executor, io::implements::completion_op *user_op,
-                                  IoFunc &&io_func) noexcept {
-        auto *io_op = new (std::nothrow) kqueue_io_op<type_traits::other_trans::decay_t<IoFunc>>(utility::forward<IoFunc>(io_func), user_op);
+                                  IoFunc &&io_func, const int cancel_fd = -1, const bool cancel_restore = false) noexcept {
+        auto *io_op = new (std::nothrow) kqueue_io_op<type_traits::other_trans::decay_t<IoFunc>>(utility::forward<IoFunc>(io_func), user_op,
+                                                                                                 cancel_fd, cancel_restore);
         if (!io_op) {
             io::implements::op_result r{user_op, 0, ENOMEM};
             user_op->complete(r, false);
@@ -98,8 +115,22 @@ namespace rainy::foundation::io::net::implements {
         }
         if (!submit_kevent(kq, fd, filter, io_op)) {
             delete io_op;
+            restore_nonblock(cancel_fd, cancel_restore);
             macos_socket_proxy{executor}.post_immediate_completion(user_op, false);
         }
+    }
+
+    template <typename IoFunc>
+    static void post_immediate_result(io_context::executor_type executor, io::implements::completion_op *user_op,
+                                      IoFunc &&io_func) noexcept {
+        using func_t = type_traits::other_trans::decay_t<IoFunc>;
+        auto *io_op = new (std::nothrow) kqueue_io_op<func_t>(utility::forward<IoFunc>(io_func), user_op);
+        if (!io_op) {
+            io::implements::op_result r{user_op, 0, ENOMEM};
+            user_op->complete(r, false);
+            return;
+        }
+        macos_socket_proxy{executor}.post_immediate_completion(io_op, false);
     }
 
     class macos_socket_impl final : public socket_impl_base {
@@ -345,31 +376,61 @@ namespace rainy::foundation::io::net::implements {
 
         void async_connect(const raw_endpoint &ep, io_context::executor_type executor,
                            io::implements::completion_op *op) noexcept override {
+            const int prev_flags = ::fcntl(fd_, F_GETFL, 0);
+            if (prev_flags < 0) {
+                const int err = errno;
+                post_immediate_result(executor, op, [err](io::implements::op_result &r) noexcept {
+                    r.bytes_transferred = 0;
+                    r.error_code = err;
+                });
+                return;
+            }
+            const bool restore_blocking = (prev_flags & O_NONBLOCK) == 0;
+            if (restore_blocking) {
+                if (const std::error_code nb_ec = apply_nonblock(true)) {
+                    const int err = nb_ec.value();
+                    post_immediate_result(executor, op, [err](io::implements::op_result &r) noexcept {
+                        r.bytes_transferred = 0;
+                        r.error_code = err;
+                    });
+                    return;
+                }
+            }
             const int ret = ::connect(fd_, reinterpret_cast<const ::sockaddr *>(ep.data), static_cast<::socklen_t>(ep.size));
             if (ret == 0) {
+                restore_nonblock(fd_, restore_blocking);
                 macos_socket_proxy{executor}.post_immediate_completion(op, false);
                 return;
             }
             if (errno != EINPROGRESS) {
-                macos_socket_proxy{executor}.post_immediate_completion(op, false);
+                const int err = errno;
+                restore_nonblock(fd_, restore_blocking);
+                post_immediate_result(executor, op, [err](io::implements::op_result &r) noexcept {
+                    r.bytes_transferred = 0;
+                    r.error_code = err;
+                });
                 return;
             }
 
             const int kq = get_kq_from_op(op, executor, fd_);
             if (kq < 0) {
+                restore_nonblock(fd_, restore_blocking);
                 macos_socket_proxy{executor}.post_immediate_completion(op, false);
                 return;
             }
             const int fd = fd_;
-            post_kqueue_async(kq, fd_, EVFILT_WRITE, executor, op, [fd](io::implements::op_result &r) noexcept {
-                int err = 0;
-                ::socklen_t len = sizeof(err);
-                if (::getsockopt(fd, SOL_SOCKET, SO_ERROR, &err, &len) < 0) {
-                    err = errno;
-                }
-                r.bytes_transferred = 0;
-                r.error_code = err;
-            });
+            post_kqueue_async(kq, fd_, EVFILT_WRITE, executor, op,
+                              [fd, restore_blocking](io::implements::op_result &r) noexcept {
+                                  restore_nonblock(fd, restore_blocking);
+                                  int err = 0;
+                                  ::socklen_t len = sizeof(err);
+                                  if (::getsockopt(fd, SOL_SOCKET, SO_ERROR, &err, &len) < 0) {
+                                      err = errno;
+                                  }
+                                  r.bytes_transferred = 0;
+                                  r.error_code = err;
+                              },
+                              fd, restore_blocking);
         }
 
         void async_send(const void *buf, std::size_t len, message_flags_t flags, io_context::executor_type executor,
