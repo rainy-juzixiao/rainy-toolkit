@@ -23,13 +23,15 @@ elseif (WIN32)
     target_link_libraries(rainy-toolkit-foundation-io-context PRIVATE ws2_32)
 endif ()
 
-set(RAINY_FOUNDATION_IO_CONTEXT_TEST_FILES "")
-rainy_load_flodar_files("${CMAKE_CURRENT_SOURCE_DIR}/tests" ".cc" RAINY_FOUNDATION_IO_CONTEXT_TEST_FILES)
-add_executable(rainy-toolkit-foundation-io-context-unit-test ${RAINY_FOUNDATION_IO_CONTEXT_TEST_FILES})
-target_link_libraries(rainy-toolkit-foundation-io-context-unit-test PRIVATE Catch2::Catch2WithMain rainy-toolkit-foundation-io-context)
-catch_discover_tests(rainy-toolkit-foundation-io-context-unit-test)
-set_target_properties(rainy-toolkit-foundation-io-context-unit-test PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-unset(RAINY_FOUNDATION_IO_CONTEXT_TEST_FILES)
+if (RAINY_ENABLE_TESTING)
+    set(RAINY_FOUNDATION_IO_CONTEXT_TEST_FILES "")
+    rainy_load_flodar_files("${CMAKE_CURRENT_SOURCE_DIR}/tests" ".cc" RAINY_FOUNDATION_IO_CONTEXT_TEST_FILES)
+    add_executable(rainy-toolkit-foundation-io-context-unit-test ${RAINY_FOUNDATION_IO_CONTEXT_TEST_FILES})
+    target_link_libraries(rainy-toolkit-foundation-io-context-unit-test PRIVATE Catch2::Catch2WithMain rainy-toolkit-foundation-io-context)
+    catch_discover_tests(rainy-toolkit-foundation-io-context-unit-test)
+    set_target_properties(rainy-toolkit-foundation-io-context-unit-test PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+    unset(RAINY_FOUNDATION_IO_CONTEXT_TEST_FILES)
+endif ()
 
 install(TARGETS rainy-toolkit-foundation-io-context EXPORT rainy-toolkit-targets
         RUNTIME DESTINATION ${RAINY_TOOLKIT_INSTALL_DIR}/bin

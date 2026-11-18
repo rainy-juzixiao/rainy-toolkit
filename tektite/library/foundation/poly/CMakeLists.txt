@@ -12,19 +12,21 @@ target_sources(rainy-toolkit-foundation-poly PRIVATE ${POLY_SOURCES})
 
 target_link_libraries(rainy-toolkit-foundation-poly PUBLIC rainy-toolkit-core)
 
-set(RAINY_FOUNDATION_POLY_TEST_FILES "")
+if (RAINY_ENABLE_TESTING)
+    set(RAINY_FOUNDATION_POLY_TEST_FILES "")
 
-rainy_load_flodar_files("${CMAKE_CURRENT_SOURCE_DIR}/tests" ".cc" RAINY_FOUNDATION_POLY_TEST_FILES)
+    rainy_load_flodar_files("${CMAKE_CURRENT_SOURCE_DIR}/tests" ".cc" RAINY_FOUNDATION_POLY_TEST_FILES)
 
-add_executable(rainy-toolkit-foundation-poly-unit-test ${RAINY_FOUNDATION_POLY_TEST_FILES})
+    add_executable(rainy-toolkit-foundation-poly-unit-test ${RAINY_FOUNDATION_POLY_TEST_FILES})
 
-target_link_libraries(rainy-toolkit-foundation-poly-unit-test PRIVATE Catch2::Catch2WithMain rainy-toolkit-foundation-poly)
+    target_link_libraries(rainy-toolkit-foundation-poly-unit-test PRIVATE Catch2::Catch2WithMain rainy-toolkit-foundation-poly)
 
-catch_discover_tests(rainy-toolkit-foundation-poly-unit-test)
+    catch_discover_tests(rainy-toolkit-foundation-poly-unit-test)
 
-set_target_properties(rainy-toolkit-foundation-poly-unit-test PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+    set_target_properties(rainy-toolkit-foundation-poly-unit-test PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-unset(RAINY_FOUNDATION_POLY_TEST_FILES)
+    unset(RAINY_FOUNDATION_POLY_TEST_FILES)
+endif ()
 unset(POLY_SOURCES)
 
 install(TARGETS rainy-toolkit-foundation-poly EXPORT rainy-toolkit-targets
