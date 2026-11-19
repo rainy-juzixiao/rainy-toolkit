@@ -188,23 +188,26 @@ namespace rainy::foundation::collections::concurrency {
 
         explicit forward_list(size_type n, const allocator_type &alloc = allocator_type()) :
             allocator_(alloc), head_(allocate_node_dummy()), size_(0) {
+            iterator tail = before_begin();
             for (size_type i = 0; i < n; ++i) {
-                emplace_front();
+                tail = emplace_after(tail);
             }
         }
 
         forward_list(size_type n, const Ty &value, const allocator_type &alloc = allocator_type()) :
             allocator_(alloc), head_(allocate_node_dummy()), size_(0) {
+            iterator tail = before_begin();
             for (size_type i = 0; i < n; ++i) {
-                push_front(value);
+                tail = emplace_after(tail, value);
             }
         }
 
         template <typename InputIter>
         forward_list(InputIter first, InputIter last, const allocator_type &alloc = allocator_type()) :
             allocator_(alloc), head_(allocate_node_dummy()), size_(0) {
+            iterator tail = before_begin();
             for (auto it = first; it != last; ++it) {
-                push_front(*it);
+                tail = emplace_after(tail, *it);
             }
         }
 
@@ -213,8 +216,9 @@ namespace rainy::foundation::collections::concurrency {
 
         forward_list(std::initializer_list<Ty> ilist, const allocator_type &alloc = allocator_type()) :
             allocator_(alloc), head_(allocate_node_dummy()), size_(0) {
+            iterator tail = before_begin();
             for (auto it = ilist.begin(); it != ilist.end(); ++it) {
-                push_front(*it);
+                tail = emplace_after(tail, *it);
             }
         }
 
@@ -560,7 +564,9 @@ namespace rainy::foundation::collections::concurrency {
                     break;
                 }
                 if (pred(next_node->value)) {
-                    if (erase_after(const_iterator(it.node_ptr)) != end()) {
+                    const size_type before = size_.load(core::concurrency::memory_order_relaxed);
+                    erase_after(const_iterator(it.node_ptr));
+                    if (size_.load(core::concurrency::memory_order_relaxed) != before) {
                         ++count;
                     } else {
                         // 如果 erase_after 失败，重试同一位置
@@ -587,7 +593,9 @@ namespace rainy::foundation::collections::concurrency {
             while (it.node_ptr->next.load(core::concurrency::memory_order_acquire) != nullptr) {
                 node *next_node = it.node_ptr->next.load(core::concurrency::memory_order_acquire);
                 if (binary_pred(it.node_ptr->value, next_node->value)) {
-                    if (erase_after(const_iterator(it.node_ptr)) != end()) {
+                    const size_type before = size_.load(core::concurrency::memory_order_relaxed);
+                    erase_after(const_iterator(it.node_ptr));
+                    if (size_.load(core::concurrency::memory_order_relaxed) != before) {
                         ++count;
                     } else {
                         continue; // 重试同一位置

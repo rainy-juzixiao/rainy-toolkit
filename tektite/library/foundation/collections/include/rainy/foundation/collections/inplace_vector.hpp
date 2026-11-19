@@ -195,7 +195,7 @@ namespace rainy::foundation::collections {
             auto elements = this->begin_();
             this->unsafe_set_size(count);
             for (std::size_t i = 0; i < count; ++i) {
-                elements[i] = value;
+                utility::construct_in_place(elements[i], value);
             }
         }
 
@@ -257,7 +257,14 @@ namespace rainy::foundation::collections {
             }
         }
 
-        RAINY_CONSTEXPR20 ~inplace_vector() = default;
+        RAINY_CONSTEXPR20 ~inplace_vector() {
+            if constexpr (!type_traits::properties::is_trivially_destructible_v<value_type>) {
+                for (auto &it : *this) {
+                    (void) utility::addressof(it)->~value_type();
+                }
+            }
+            this->unsafe_set_size(0);
+        }
 
         /**
          * @brief 截取向量的子区间
@@ -514,7 +521,7 @@ namespace rainy::foundation::collections {
             auto elements = this->begin_();
             std::size_t index{0};
             for (; begin != end; ++begin, ++index) {
-                elements[index] = *begin;
+                utility::construct_in_place(elements[index], *begin);
             }
             this->unsafe_set_size(distance);
         }
@@ -712,7 +719,7 @@ namespace rainy::foundation::collections {
                 const size_type old_size = size();
                 this->unsafe_set_size(new_size);
                 for (size_type i = old_size; i < size(); ++i) {
-                    elements[i] = value;
+                    utility::construct_in_place(elements[i], value);
                 }
             }
         }
