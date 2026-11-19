@@ -645,6 +645,39 @@ TEST_CASE("a handler posted from within another handler is executed in the same 
     }
 }
 
+TEST_CASE("posting to another context from inside a running context wakes it",
+         "[io_context][executor][cross_context]") {
+
+    SECTION("two io_contexts, the second blocked in run()") {
+        io_context ctx_a;
+        io_context ctx_b;
+        auto ex_a = ctx_a.get_executor();
+        auto ex_b = ctx_b.get_executor();
+
+        ex_b.on_work_started();
+
+        std::atomic<bool> b_started{false};
+        std::atomic<bool> b_handler_ran{false};
+
+        background_runner b_runner(ctx_b);
+
+        ex_b.post([&] { b_started = true; }, std::allocator<void>{});
+        REQUIRE(wait_for_condition([&] { return b_started.load(); }));
+
+        ex_a.post([&] {
+            ex_b.post([&] { b_handler_ran = true; }, std::allocator<void>{});
+        }, std::allocator<void>{});
+
+        ctx_a.run();
+
+        SECTION("the handler posted to the other context is executed") {
+            REQUIRE(wait_for_condition([&] { return b_handler_ran.load(); }));
+        }
+
+        ex_b.on_work_finished();
+    }
+}
+
 TEST_CASE("an exception thrown from a handler propagates through run()",
          "[io_context][exception]") {
 

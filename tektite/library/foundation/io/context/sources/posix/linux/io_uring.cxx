@@ -70,7 +70,7 @@ namespace rainy::foundation::io::implements {
 
         std::size_t run() override {
             std::size_t total = 0;
-            in_event_loop_ = true;
+            event_loop_scope scope(this);
             while (!stopped_.load(core::concurrency::memory_order_acquire)) {
                 total += drain_ready_queue();
                 if (stopped_.load(core::concurrency::memory_order_acquire)) {
@@ -81,7 +81,6 @@ namespace rainy::foundation::io::implements {
                 }
                 total += harvest(1, nullptr);
             }
-            in_event_loop_ = false;
             return total;
         }
 
@@ -89,30 +88,26 @@ namespace rainy::foundation::io::implements {
             if (stopped_.load(core::concurrency::memory_order_acquire)) {
                 return 0;
             }
-            in_event_loop_ = true;
             {
                 concurrency::unique_lock lock(ready_mutex_);
                 if (!ready_queue_.empty()) {
                     completion_op *op = ready_queue_.front();
                     ready_queue_.pop();
                     lock.unlock();
-                    in_event_loop_ = false;
                     op_result r{op, 0, 0}; // NOLINT
                     op->complete(r, false);
                     return 1;
                 }
             }
+            event_loop_scope scope(this);
             if (work_count_.load(core::concurrency::memory_order_acquire) <= 0) {
-                in_event_loop_ = false;
                 return 0;
             }
-            const std::size_t n = harvest(1, nullptr);
-            in_event_loop_ = false;
-            return n;
+            return harvest(1, nullptr);
         }
 
         std::size_t run_one_for(const std::uint64_t timeout_ns) override {
-            in_event_loop_ = true;
+            event_loop_scope scope(this);
             std::size_t n = 0;
             if (!stopped_.load(core::concurrency::memory_order_acquire)) {
                 if (timeout_ns == 0) {
@@ -124,13 +119,12 @@ namespace rainy::foundation::io::implements {
                     n = harvest(1, &ts);
                 }
             }
-            in_event_loop_ = false;
             return n;
         }
 
         std::size_t poll() override {
             std::size_t total = 0;
-            in_event_loop_ = true;
+            event_loop_scope scope(this);
             while (!stopped_.load(core::concurrency::memory_order_acquire)) {
                 const std::size_t n = harvest(0, nullptr); // peek，非阻塞
                 if (n == 0) {
@@ -138,7 +132,6 @@ namespace rainy::foundation::io::implements {
                 }
                 total += n;
             }
-            in_event_loop_ = false;
             return total;
         }
 
@@ -146,12 +139,11 @@ namespace rainy::foundation::io::implements {
             if (stopped_.load(core::concurrency::memory_order_acquire)) {
                 return 0;
             }
-            in_event_loop_ = true;
+            event_loop_scope scope(this);
             std::size_t n = drain_ready_queue_one();
             if (n == 0) {
                 n = harvest_one_cqe();
             }
-            in_event_loop_ = false;
             return n;
         }
 
@@ -184,7 +176,7 @@ namespace rainy::foundation::io::implements {
                 concurrency::scoped_lock lock(ready_mutex_);
                 ready_queue_.push(op);
             }
-            if (!in_event_loop_) {
+            if (current_event_loop_ != this) {
                 wakeup();
             }
         }
@@ -199,7 +191,7 @@ namespace rainy::foundation::io::implements {
         }
 
         RAINY_NODISCARD bool running_in_this_thread() const noexcept override {
-            return in_event_loop_;
+            return current_event_loop_ == this;
         }
 
         RAINY_NODISCARD int concurrency_hint() const noexcept override {
@@ -309,16 +301,33 @@ namespace rainy::foundation::io::implements {
             ::io_uring_submit(&ring_);
         }
 
+        class event_loop_scope {
+        public:
+            explicit event_loop_scope(io_uring_impl *impl) noexcept : previous_(current_event_loop_) {
+                current_event_loop_ = impl;
+            }
+
+            event_loop_scope(const event_loop_scope &) = delete;
+            event_loop_scope &operator=(const event_loop_scope &) = delete;
+
+            ~event_loop_scope() {
+                current_event_loop_ = previous_;
+            }
+
+        private:
+            io_uring_impl *previous_;
+        };
+
         concurrency::mutex ready_mutex_;
         std::queue<completion_op *> ready_queue_;
         io_uring ring_{};
         bool ring_initialized_{false};
         int concurrency_hint_{0};
         int event_fd_{-1};
-        static thread_local bool in_event_loop_;
+        static thread_local io_uring_impl *current_event_loop_;
     };
 
-    thread_local bool io_uring_impl::in_event_loop_ = false;
+    thread_local io_uring_impl *io_uring_impl::current_event_loop_ = nullptr;
 }
 
 namespace rainy::foundation::io::implements {

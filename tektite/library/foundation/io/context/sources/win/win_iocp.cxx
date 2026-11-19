@@ -135,7 +135,7 @@ namespace rainy::foundation::io::implements {
 
         std::size_t run() override {
             std::size_t total = 0;
-            in_event_loop_ = true;
+            event_loop_scope scope(this);
 
             while (!stopped_.load(core::layer::memory_order_acquire)) {
                 if (work_count_.load(core::layer::memory_order_acquire) <= 0) {
@@ -145,36 +145,33 @@ namespace rainy::foundation::io::implements {
                 total += count;
             }
 
-            in_event_loop_ = false;
             return total;
         }
 
         std::size_t run_one() override {
-            in_event_loop_ = true;
+            event_loop_scope scope(this);
             std::size_t count = 0;
             if (!stopped_.load(core::layer::memory_order_acquire)) {
                 if (work_count_.load(core::layer::memory_order_acquire) > 0) {
                     count = dequeue_and_dispatch(INFINITE);
                 }
             }
-            in_event_loop_ = false;
             return count;
         }
 
         std::size_t run_one_for(std::uint64_t timeout_ns) override {
             DWORD timeout_ms = (timeout_ns == 0) ? 0 : static_cast<DWORD>((timeout_ns + 999'999) / 1'000'000);
-            in_event_loop_ = true;
+            event_loop_scope scope(this);
             std::size_t count = 0;
             if (!stopped_.load(core::layer::memory_order_acquire)) {
                 count = dequeue_and_dispatch(timeout_ms);
             }
-            in_event_loop_ = false;
             return count;
         }
 
         std::size_t poll() noexcept override {
             std::size_t total = 0;
-            in_event_loop_ = true;
+            event_loop_scope scope(this);
             while (!stopped_.load(core::layer::memory_order_acquire)) {
                 std::size_t count = dequeue_and_dispatch(0); // 非阻塞
                 if (count == 0) {
@@ -182,22 +179,20 @@ namespace rainy::foundation::io::implements {
                 }
                 total += count;
             }
-            in_event_loop_ = false;
             return total;
         }
 
         std::size_t poll_one() noexcept override {
-            in_event_loop_ = true;
+            event_loop_scope scope(this);
             std::size_t count = 0;
             if (!stopped_.load(core::layer::memory_order_acquire)) {
                 count = dequeue_and_dispatch(0); // 非阻塞，只取一个
             }
-            in_event_loop_ = false;
             return count;
         }
 
         bool running_in_this_thread() const noexcept override {
-            return in_event_loop_;
+            return current_event_loop_ == this;
         }
 
         int concurrency_hint() const noexcept override {
@@ -250,13 +245,30 @@ namespace rainy::foundation::io::implements {
             return 1;
         }
 
+        class event_loop_scope {
+        public:
+            explicit event_loop_scope(win_iocp_impl *impl) noexcept : previous_(current_event_loop_) {
+                current_event_loop_ = impl;
+            }
+
+            event_loop_scope(const event_loop_scope &) = delete;
+            event_loop_scope &operator=(const event_loop_scope &) = delete;
+
+            ~event_loop_scope() {
+                current_event_loop_ = previous_;
+            }
+
+        private:
+            win_iocp_impl *previous_;
+        };
+
         HANDLE iocp_handle_{INVALID_HANDLE_VALUE};
         int concurrency_hint_{0};
 
-        static thread_local bool in_event_loop_;
+        static thread_local win_iocp_impl *current_event_loop_;
     };
 
-    thread_local bool win_iocp_impl::in_event_loop_ = false;
+    thread_local win_iocp_impl *win_iocp_impl::current_event_loop_ = nullptr;
 }
 
 namespace rainy::foundation::io::implements {
