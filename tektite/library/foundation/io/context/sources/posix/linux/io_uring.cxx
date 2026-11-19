@@ -292,6 +292,7 @@ namespace rainy::foundation::io::implements {
         }
 
         void wakeup() noexcept {
+            concurrency::scoped_lock lock(submit_mutex_);
             io_uring_sqe *sqe = ::io_uring_get_sqe(&ring_);
             if (!sqe) {
                 return;
@@ -319,6 +320,7 @@ namespace rainy::foundation::io::implements {
         };
 
         concurrency::mutex ready_mutex_;
+        concurrency::mutex submit_mutex_;
         std::queue<completion_op *> ready_queue_;
         io_uring ring_{};
         bool ring_initialized_{false};

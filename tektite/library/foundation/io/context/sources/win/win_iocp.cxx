@@ -149,12 +149,13 @@ namespace rainy::foundation::io::implements {
         }
 
         std::size_t run_one() override {
+            if (stopped_.load(core::layer::memory_order_acquire)) {
+                return 0;
+            }
             event_loop_scope scope(this);
             std::size_t count = 0;
-            if (!stopped_.load(core::layer::memory_order_acquire)) {
-                if (work_count_.load(core::layer::memory_order_acquire) > 0) {
-                    count = dequeue_and_dispatch(INFINITE);
-                }
+            if (work_count_.load(core::layer::memory_order_acquire) > 0) {
+                count = dequeue_and_dispatch(INFINITE);
             }
             return count;
         }
@@ -183,12 +184,11 @@ namespace rainy::foundation::io::implements {
         }
 
         std::size_t poll_one() noexcept override {
-            event_loop_scope scope(this);
-            std::size_t count = 0;
-            if (!stopped_.load(core::layer::memory_order_acquire)) {
-                count = dequeue_and_dispatch(0); // 非阻塞，只取一个
+            if (stopped_.load(core::layer::memory_order_acquire)) {
+                return 0;
             }
-            return count;
+            event_loop_scope scope(this);
+            return dequeue_and_dispatch(0); // 非阻塞，只取一个
         }
 
         bool running_in_this_thread() const noexcept override {

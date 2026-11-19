@@ -678,6 +678,56 @@ TEST_CASE("posting to another context from inside a running context wakes it",
     }
 }
 
+TEST_CASE("nested run() of two contexts on the same thread keeps executor state intact",
+         "[io_context][executor][nested_context]") {
+
+    SECTION("a handler of the outer context runs the inner context inline") {
+        io_context ctx_a;
+        io_context ctx_b;
+        auto ex_a = ctx_a.get_executor();
+        auto ex_b = ctx_b.get_executor();
+
+        ex_b.on_work_started();
+
+        std::atomic<bool> b_handler_ran{false};
+        std::atomic<bool> b_idle_before_poll{false};
+        std::atomic<bool> b_running_in_own_handler{false};
+        std::atomic<bool> a_not_running_in_b_handler{false};
+
+        ex_b.post([&] {
+            b_handler_ran = true;
+            b_running_in_own_handler = ex_b.running_in_this_thread();
+            a_not_running_in_b_handler = !ex_a.running_in_this_thread();
+        }, std::allocator<void>{});
+
+        ex_a.post([&] {
+            b_idle_before_poll = !ex_b.running_in_this_thread();
+            ctx_b.poll();
+        }, std::allocator<void>{});
+
+        ctx_a.run();
+
+        SECTION("the inner context was idle before the nested run") {
+            REQUIRE(b_idle_before_poll.load());
+        }
+
+        SECTION("inside the nested run only the inner context reported itself running") {
+            REQUIRE(b_running_in_own_handler.load());
+            REQUIRE(a_not_running_in_b_handler.load());
+        }
+
+        SECTION("the handler of the inner context was executed") {
+            REQUIRE(b_handler_ran.load());
+        }
+
+        SECTION("the inner context no longer reports itself running after the nested run") {
+            REQUIRE_FALSE(ex_b.running_in_this_thread());
+        }
+
+        ex_b.on_work_finished();
+    }
+}
+
 TEST_CASE("an exception thrown from a handler propagates through run()",
          "[io_context][exception]") {
 
