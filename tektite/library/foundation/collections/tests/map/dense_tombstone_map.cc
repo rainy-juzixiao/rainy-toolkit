@@ -88,3 +88,32 @@ TEST_CASE("dense_tombstone_map - copy move", "[dense_tombstone_map]") {
     dense_tombstone_map<int, int> mv = std::move(m);
     CHECK(mv.size() == c.size());
 }
+
+TEST_CASE("dense_tombstone_map - erase by iterator survives compaction", "[dense_tombstone_map]") {
+    dense_tombstone_map<int, int> m;
+    for (int i = 0; i < 32; ++i) {
+        m.insert({i, i});
+    }
+    std::size_t erased = 0;
+    for (auto it = m.begin(); it != m.end();) {
+        it = m.erase(it);
+        ++erased;
+    }
+    CHECK(erased == 32);
+    CHECK(m.empty());
+}
+
+TEST_CASE("dense_tombstone_map - values are mutable through iterators", "[dense_tombstone_map]") {
+    dense_tombstone_map<std::string, int> m{{"a", 1}, {"b", 2}, {"c", 3}, {"d", 4}};
+    for (auto &kv: m) {
+        kv.second += 100;
+    }
+    CHECK(m.at("a") == 101);
+    CHECK(m.at("b") == 102);
+    CHECK(m.at("c") == 103);
+    CHECK(m.at("d") == 104);
+    CHECK(m.erase("b") == 1);
+    for (auto &kv: m) {
+        CHECK(kv.second >= 101);
+    }
+}

@@ -221,3 +221,42 @@ TEST_CASE("dense_map - initializer list and bucket interface", "[dense_map]") {
         }
     }
 }
+
+TEST_CASE("dense_map - erase by iterator returns the successor", "[dense_map]") {
+    dense_map<int, int> m;
+    for (int i = 0; i < 4; ++i) {
+        m.insert({i, i});
+    }
+    auto middle = m.begin();
+    ++middle;
+    auto after_middle = m.erase(middle);
+    REQUIRE(after_middle != m.end());
+    CHECK(after_middle->first == 2);
+    CHECK(m.size() == 3);
+
+    auto penultimate = m.find(3);
+    auto after_penultimate = m.erase(penultimate);
+    REQUIRE(after_penultimate != m.end());
+    CHECK(after_penultimate->first == 2);
+    CHECK(m.size() == 2);
+
+    auto last = m.find(2);
+    auto after_last = m.erase(last);
+    CHECK(after_last == m.end());
+    CHECK(m.size() == 1);
+}
+
+TEST_CASE("dense_map - values are mutable through iterators", "[dense_map]") {
+    dense_map<std::string, int> m{{"a", 1}, {"b", 2}, {"c", 3}, {"d", 4}};
+    for (auto &kv: m) {
+        kv.second += 100;
+    }
+    CHECK(m.at("a") == 101);
+    CHECK(m.at("b") == 102);
+    CHECK(m.at("c") == 103);
+    CHECK(m.at("d") == 104);
+    CHECK(m.erase("b") == 1);
+    for (auto &kv: m) {
+        CHECK(kv.second >= 101);
+    }
+}

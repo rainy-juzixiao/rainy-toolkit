@@ -69,9 +69,25 @@ namespace rainy::foundation::collections::implements {
 
         RAINY_CONSTEXPR20 dense_node(dense_node &&) = default;
 
-        RAINY_CONSTEXPR20 dense_node &operator=(const dense_node &) = default;
+        RAINY_CONSTEXPR20 dense_node &operator=(const dense_node &right) {
+            if (this != utility::addressof(right)) {
+                utility::addressof(elem)->~Stored();
+                utility::construct_at(utility::addressof(elem), right.elem);
+                next = right.next;
+                alive = right.alive;
+            }
+            return *this;
+        }
 
-        RAINY_CONSTEXPR20 dense_node &operator=(dense_node &&) = default;
+        RAINY_CONSTEXPR20 dense_node &operator=(dense_node &&right) {
+            if (this != utility::addressof(right)) {
+                utility::addressof(elem)->~Stored();
+                utility::construct_at(utility::addressof(elem), utility::move(right.elem));
+                next = right.next;
+                alive = right.alive;
+            }
+            return *this;
+        }
 
         RAINY_CONSTEXPR20 ~dense_node() = default;
 

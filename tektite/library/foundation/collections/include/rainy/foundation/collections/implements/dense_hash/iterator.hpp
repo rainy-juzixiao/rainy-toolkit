@@ -75,11 +75,7 @@ namespace rainy::foundation::collections::implements {
         }
 
         RAINY_NODISCARD RAINY_CONSTEXPR20 reference operator*() const noexcept {
-            if constexpr (IsMap) {
-                return *reinterpret_cast<pointer>(utility::addressof(node_->elem));
-            } else {
-                return node_->elem;
-            }
+            return node_->elem;
         }
 
         RAINY_NODISCARD RAINY_CONSTEXPR20 pointer operator->() const noexcept {

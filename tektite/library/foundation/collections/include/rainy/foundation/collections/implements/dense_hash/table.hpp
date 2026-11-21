@@ -39,7 +39,7 @@ namespace rainy::foundation::collections::implements {
 
     template <typename Key, typename Mapped>
     struct dense_stored<true, Key, Mapped> {
-        using type = core::container::pair<Key, Mapped>;
+        using type = core::container::pair<const Key, Mapped>;
     };
 
     template <bool IsMap, typename Key, typename Mapped>
@@ -337,9 +337,27 @@ namespace rainy::foundation::collections::implements {
 
         iterator erase(const_iterator pos) {
             const size_type index = static_cast<size_type>(pos.node() - nodes_.data());
-            const size_type next_index = advance_index(index);
-            erase_at(index);
-            return make_iterator(next_index);
+            if constexpr (Policy == erase_policy::tombstone) {
+                const size_type next_index = advance_index(index);
+                size_type successor_index = next_index;
+                if (dead_ + 1 > size_ - 1) {
+                    successor_index = 0;
+                    for (size_type i = 0; i < index; ++i) {
+                        if (nodes_[i].alive) {
+                            ++successor_index;
+                        }
+                    }
+                }
+                erase_at(index);
+                return make_iterator(successor_index);
+            } else {
+                const size_type last = nodes_.size() - 1;
+                erase_at(index);
+                if (index == last) {
+                    return end();
+                }
+                return make_iterator(index + 1 == last ? index : index + 1);
+            }
         }
 
         template <typename K, typename = decltype(utility::declval<hasher &>()(utility::declval<const K &>()))>
