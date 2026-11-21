@@ -1057,6 +1057,14 @@ TEST_CASE("basic_string count-char constructor") {
     REQUIRE(s[0] == 'a');
 }
 
+TEST_CASE("basic_string count-char constructor with zero count") {
+    basic_string<char> s(static_cast<std::size_t>(0), 'a');
+    REQUIRE(s.empty());
+    REQUIRE(s.size() == 0);
+    REQUIRE(s == "");
+    REQUIRE(s == basic_string<char>{});
+}
+
 TEST_CASE("basic_string substring constructor") {
     STATIC_REQUIRE(test_substr_constructor());
     basic_string<char> s("hello world");

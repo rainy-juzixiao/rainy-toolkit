@@ -125,7 +125,7 @@ namespace rainy::core::implements {
     struct is_associative_container : type_traits::helper::false_type {};
 
     template <typename Ty>
-     struct is_associative_container<Ty, type_traits::other_trans::void_t<typename Ty::key_type, typename Ty::mapped_type>>
+    struct is_associative_container<Ty, type_traits::other_trans::void_t<typename Ty::key_type, typename Ty::mapped_type>>
         : type_traits::helper::true_type {};
 
     template <typename Ty>
@@ -163,7 +163,7 @@ namespace rainy::core::implements {
             traits_ |= traits::is_volatile;
         }
 
-        using decay_type = std::decay_t<Ty>;
+        using decay_type = type_traits::other_trans::decay_t<Ty>;
         if constexpr (is_associative_container_v<decay_type>) {
             traits_ |= traits::is_associative_container;
         }
@@ -178,42 +178,42 @@ namespace rainy::core::implements {
     constexpr rain_fn eval_traits_for_fundamental() noexcept -> traits {
         traits traits_{0};
 
-        if constexpr (std::is_void_v<Ty>) {
+        if constexpr (type_traits::type_relations::is_void_v<Ty>) {
             traits_ |= traits::is_void;
         }
 
-        if constexpr (std::is_pointer_v<rainy::type_traits::modifers::remove_cvref_t<Ty>> || std::is_same_v<Ty, std::nullptr_t>) {
+        if constexpr (type_traits::primary_types::is_pointer_v<rainy::type_traits::modifers::remove_cvref_t<Ty>> || type_traits::type_relations::is_same_v<Ty, std::nullptr_t>) {
             traits_ |= traits::is_pointer;
         }
 
-        if constexpr (std::is_integral_v<Ty>) {
+        if constexpr (type_traits::primary_types::is_integral_v<Ty>) {
             traits_ |= traits::is_integer;
         }
 
-        if constexpr (std::is_same_v<Ty, std::nullptr_t>) {
+        if constexpr (type_traits::type_relations::is_same_v<Ty, std::nullptr_t>) {
             traits_ |= traits::is_nullptr_t;
         }
 
-        if constexpr (std::is_floating_point_v<Ty>) {
+        if constexpr (type_traits::primary_types::is_floating_point_v<Ty>) {
             traits_ |= traits::is_floating_point;
         }
 
-        if constexpr (std::is_unsigned_v<Ty>) {
+        if constexpr (type_traits::properties::is_unsigned_v<Ty>) {
             traits_ |= traits::is_unsigned;
         }
-        if constexpr (std::is_signed_v<Ty>) {
+        if constexpr (type_traits::properties::is_signed_v<Ty>) {
             traits_ |= traits::is_signed;
         }
 
-        if constexpr (std::is_fundamental_v<Ty>) {
+        if constexpr (type_traits::composite_types::is_fundamental_v<Ty>) {
             traits_ |= traits::is_fundamental;
         }
 
-        if constexpr (std::is_trivially_default_constructible_v<Ty> && std::is_trivially_copyable_v<Ty>) {
+        if constexpr (type_traits::properties::is_trivially_default_constructible_v<Ty> && type_traits::properties::is_trivially_copyable_v<Ty>) {
             traits_ |= traits::is_trivial;
         }
 
-        if constexpr (std::is_arithmetic_v<Ty>) {
+        if constexpr (type_traits::composite_types::is_arithmetic_v<Ty>) {
             traits_ |= traits::is_arithmetic;
         }
 
@@ -224,9 +224,9 @@ namespace rainy::core::implements {
     constexpr rain_fn eval_traits_for_compound() noexcept -> traits {
         traits traits_{0};
 
-        using decay_type = std::decay_t<Ty>;
+        using decay_type = type_traits::other_trans::decay_t<Ty>;
 
-        if constexpr (std::is_class_v<decay_type>) {
+        if constexpr (type_traits::primary_types::is_class_v<decay_type>) {
             traits_ |= traits::is_class;
         }
 
@@ -250,7 +250,7 @@ namespace rainy::core::implements {
             }
         }
 
-        if constexpr (std::is_array_v<Ty>) {
+        if constexpr (type_traits::primary_types::is_array_v<Ty>) {
             traits_ |= traits::is_array;
         }
 
@@ -280,9 +280,11 @@ namespace rainy::core::implements {
     template <typename Ty>
     constexpr rain_fn eval_for_typeinfo() noexcept -> traits {
         traits traits{}; // NOLINT
-        traits |= implements::eval_traits_for_properties<Ty>();
-        traits |= implements::eval_traits_for_fundamental<Ty>();
-        traits |= implements::eval_traits_for_compound<Ty>();
+        if constexpr (type_traits::type_relations::is_void_v<Ty> || type_traits::properties::is_complete_v<Ty>) {
+            traits |= implements::eval_traits_for_properties<Ty>();
+            traits |= implements::eval_traits_for_fundamental<Ty>();
+            traits |= implements::eval_traits_for_compound<Ty>();
+        }
         return traits;
     }
 
@@ -433,9 +435,15 @@ namespace rainy::core::implements {
         if (bracket_start == text::string_view::npos || bracket_end == text::string_view::npos) {
             return "";
         }
+        if (bracket_start + 1 >= bracket_end) {
+            return "";
+        }
         auto content = func_name.substr(bracket_start + 1, bracket_end - bracket_start - 1);
+        if (content.empty()) {
+            return "";
+        }
         bool is_parenthesized = false;
-        if (!content.empty() && content[0] == '(') {
+        if (content[0] == '(') {
             auto last_rparen = content.rfind(')');
             if (last_rparen != text::string_view::npos && last_rparen + 1 < content.size()) {
                 is_parenthesized = true;
@@ -447,19 +455,27 @@ namespace rainy::core::implements {
         auto last_dot = content.rfind('.');
         auto last_arrow = content.rfind("->");
         auto last_colon = content.rfind("::");
-        if (last_dot == text::string_view::npos) {
-            last_dot = 0;
+        auto last_sep = text::string_view::npos;
+        if (last_dot != text::string_view::npos) {
+            last_sep = last_dot;
         }
-        if (last_arrow == text::string_view::npos) {
-            last_arrow = 0;
+        if (last_arrow != text::string_view::npos && (last_sep == text::string_view::npos || last_arrow > last_sep)) {
+            last_sep = last_arrow;
         }
-        if (last_colon == text::string_view::npos) {
-            last_colon = 0;
+        if (last_colon != text::string_view::npos && (last_sep == text::string_view::npos || last_colon > last_sep)) {
+            last_sep = last_colon;
         }
-        auto last_sep = (core::max) ({last_dot, last_arrow, last_colon});
-        if (last_sep != 0) {
+        if (last_sep != text::string_view::npos) {
             auto sep_len = (last_sep == last_arrow || last_sep == last_colon) ? 2 : 1;
-            return content.substr(last_sep + sep_len);
+            if (last_sep + sep_len <= content.size()) {
+                auto name = content.substr(last_sep + sep_len);
+                while (!name.empty() && (name.back() == ')' || name.back() == '}' || name.back() == ' ' ||
+                                         name.back() == ',')) {
+                    name.remove_suffix(1);
+                }
+                return name;
+            }
+            return content;
         }
         return content;
 #else
@@ -730,7 +746,7 @@ namespace rainy::core::implements {
         -> bool { // NOLINT
         using match_t = rainy::type_traits::modifers::remove_cvref_t<Type>;
         using real_convert_type = type_traits::other_trans::conditional_t<type_traits::composite_types::is_reference_v<Type>, Type,
-                                                                          type_traits::modifers::add_lvalue_reference<Type>>;
+                                                                          type_traits::modifers::add_lvalue_reference_t<Type>>;
         if constexpr (type_traits::primary_types::is_void_v<rainy::type_traits::modifers::remove_cvref_t<Type>>) {
             return false;
         } else if constexpr (type_traits::primary_types::is_null_pointer_v<match_t>) {
@@ -772,6 +788,12 @@ namespace rainy::core::implements {
 
 namespace rainy::core {
     /**
+     * \lang english
+     * @brief Gets a name from a type.
+     * @tparam Ty The type to obtain
+     * @returns A string view representing the name of the compile-time variable
+     *
+     * \lang simp-chinese
      * @brief 通过类型获取一个名称
      * @tparam Ty 要获取的类型
      * @returns 一个字符串视图，表示对编译时变量的名称
@@ -782,7 +804,12 @@ namespace rainy::core {
     }
 
     /**
-     * \lang chinese
+     * \lang english
+     * @brief Gets a variable name that can be determined at compile time.
+     * @tparam Variable A constant variable value
+     * @returns A string view representing the name of the compile-time variable
+     *
+     * \lang simp-chinese
      * @brief 获取一个可在编译时确定的变量名
      * @tparam Variable 一个常量变量值
      * @returns 一个字符串视图，表示对编译时变量的名称
@@ -810,7 +837,12 @@ namespace rainy::core {
 
 namespace rainy::core {
     /**
-     * \lang chinese
+     * \lang english
+     * @brief
+     * An abstract type information supporting compile-time evaluation.
+     * Can be used to query type information.
+     *
+     * \lang simp-chinese
      * @brief
      * 支持编译期计算的类型信息抽象
      * 可用于查询类型信息
@@ -828,6 +860,12 @@ namespace rainy::core {
         constexpr typeinfo &operator=(typeinfo &&) noexcept = default;
 
         /**
+         * \lang english
+         * @brief Constructs a typeinfo object from the Ty type information.
+         * @tparam Ty The type whose type information is to be obtained
+         * @return Returns the type information object corresponding to Ty
+         *
+         * \lang simp-chinese
          * @brief 从Ty类型信息中构造typeinfo对象
          * @tparam Ty 要获取类型信息的类型
          * @return 返回Ty对应的类型信息对象
@@ -841,12 +879,29 @@ namespace rainy::core {
             return type;
         }
 
+        /**
+         * \lang english
+         * @brief Gets the hash value of the Ty type information.
+         * @tparam Ty The type whose type information is to be obtained
+         * @return Returns the hash value of the type information
+         *
+         * \lang simp-chinese
+         * @brief 获取Ty类型信息的哈希值
+         * @tparam Ty 要获取类型信息的类型
+         * @return 返回该类型信息的哈希值
+         */
         template <typename Ty>
         static constexpr rain_fn get_type_hash() noexcept -> std::size_t {
             return implements::fnv1a_hash(type_name<Ty>());
         }
 
         /**
+         * \lang english
+         * @brief Gets a constant reference to the static instance of the Ty type information, usually used by the rainy_typeid macro (recommended).
+         * @tparam Ty The type whose type information is to be obtained
+         * @return A reference to a static read-only lifetime object pointing to the corresponding type information
+         *
+         * \lang simp-chinese
          * @brief 获取Ty类型信息的静态实例的常量引用，通常由rainy_typeid宏使用（推荐）
          * @tparam Ty 要获取类型信息的类型
          * @return 一个指向对应类型信息的static只读生命周期对象的引用
@@ -858,6 +913,10 @@ namespace rainy::core {
         }
 
         /**
+         * \lang english
+         * @brief Gets the name corresponding to the type information.
+         *
+         * \lang simp-chinese
          * @brief 获取类型信息中对应的名称
          */
         RAINY_NODISCARD constexpr rain_fn name() const noexcept -> text::string_view {
@@ -865,6 +924,10 @@ namespace rainy::core {
         }
 
         /**
+         * \lang english
+         * @brief Gets the hash value corresponding to the type information.
+         *
+         * \lang simp-chinese
          * @brief 获取类型信息中对应的哈希值
          */
         RAINY_NODISCARD constexpr rain_fn hash_code() const noexcept -> std::size_t {
@@ -872,6 +935,12 @@ namespace rainy::core {
         }
 
         /**
+         * \lang english
+         * @brief Checks whether two type information objects are the same.
+         * @param right Another type information object
+         * @return Returns true if the type information is the same, otherwise false
+         *
+         * \lang simp-chinese
          * @brief 检查两个类型信息是否相同
          * @param right 另一个类型信息对象
          * @return 如果类型信息相同，返回true，否则返回false
@@ -881,6 +950,11 @@ namespace rainy::core {
         }
 
         /**
+         * \lang english
+         * @brief Checks whether the type information is void.
+         * @return Returns true if the type information is void, otherwise false
+         *
+         * \lang simp-chinese
          * @brief 检查两个类型信息是否为void
          * @return 如果类型信息是void，返回true，否则返回false
          */
@@ -889,6 +963,13 @@ namespace rainy::core {
         }
 
         /**
+         * \lang english
+         * @brief Operator overload to check whether two type information objects are the same. Equivalent to is_same().
+         * @param left The left type information object to compare
+         * @param right The right type information object to compare
+         * @return Returns true if the type information is the same, otherwise false
+         *
+         * \lang simp-chinese
          * @brief 运算符重载，检查两个类型信息是否相同。等效于is_same()
          * @param left 要比较的左边的类型信息对象
          * @param right 要比较的右边的类型信息对象
@@ -899,6 +980,13 @@ namespace rainy::core {
         }
 
         /**
+         * \lang english
+         * @brief Operator overload to check whether two type information objects are different. Equivalent to !is_same().
+         * @param left The left type information object to compare
+         * @param right The right type information object to compare
+         * @return Returns true if the type information is different, otherwise false
+         *
+         * \lang simp-chinese
          * @brief 运算符重载，检查两个类型信息是否不同。等效于!is_same()
          * @param left 要比较的左边的类型信息对象
          * @param right 要比较的右边的类型信息对象
@@ -909,52 +997,104 @@ namespace rainy::core {
         }
 
         /**
+         * \lang english
+         * @brief Performs a remove-const operation on the current type.
+         * @return Returns the processed type information
+         *
+         * \lang simp-chinese
          * @brief 对当前类型执行移除const属性操作.
          * @return 返回被处理后的类型信息
          */
         RAINY_GENERATE_TYPEINFO_MODIFY_METHOD_HELPER(remove_const, implements::type_operation::remove_const);
 
         /**
+         * \lang english
+         * @brief Performs a remove-volatile operation on the current type.
+         * @return Returns the processed type information
+         *
+         * \lang simp-chinese
          * @brief 对当前类型执行移除volatile属性操作.
          * @return 返回被处理后的类型信息
          */
         RAINY_GENERATE_TYPEINFO_MODIFY_METHOD_HELPER(remove_volatile, implements::type_operation::remove_volatile);
 
         /**
+         * \lang english
+         * @brief Performs a remove-const-and-volatile operation on the current type.
+         * @return Returns the processed type information
+         *
+         * \lang simp-chinese
          * @brief 对当前类型执行移除const和volatile属性操作.
          * @return 返回被处理后的类型信息
          */
         RAINY_GENERATE_TYPEINFO_MODIFY_METHOD_HELPER(remove_cv, implements::type_operation::remove_const_volatile);
 
         /**
+         * \lang english
+         * @brief Performs a remove-reference operation on the current type.
+         * @return Returns the processed type information
+         *
+         * \lang simp-chinese
          * @brief 对当前类型执行移除reference属性操作.
          * @return 返回被处理后的类型信息
          */
         RAINY_GENERATE_TYPEINFO_MODIFY_METHOD_HELPER(remove_reference, implements::type_operation::remove_reference);
 
         /**
+         * \lang english
+         * @brief Performs a remove-const-volatile-and-reference operation on the current type.
+         * @return Returns the processed type information
+         *
+         * \lang simp-chinese
          * @brief 对当前类型执行移除const、volatile以及reference属性操作.
          * @return 返回被处理后的类型信息
          */
         RAINY_GENERATE_TYPEINFO_MODIFY_METHOD_HELPER(remove_cvref, implements::type_operation::remove_cvref);
 
         /**
+         * \lang english
+         * @brief Performs a remove-pointer operation on the current type.
+         * @return Returns the processed type information
+         *
+         * \lang simp-chinese
          * @brief 对当前类型执行移除指针属性操作.
          * @return 返回被处理后的类型信息
          */
         RAINY_GENERATE_TYPEINFO_MODIFY_METHOD_HELPER(remove_pointer, implements::type_operation::remove_pointer);
 
         /**
+         * \lang english
+         * @brief Performs a decay operation on the current type.
+         * @return Returns the processed type information
+         *
+         * \lang simp-chinese
          * @brief 对当前类型执行decay操作.
          * @return 返回被处理后的类型信息
          */
         RAINY_GENERATE_TYPEINFO_MODIFY_METHOD_HELPER(decay, implements::type_operation::decay_type);
 
+        /**
+         * \lang english
+         * @brief Checks whether the current type information is compatible with another type information.
+         * @param right The other type information to compare
+         * @return Returns true if the type information is compatible, otherwise false
+         *
+         * \lang simp-chinese
+         * @brief 检查当前类型信息是否与另一个类型信息兼容
+         * @param right 要比较的另一个类型信息
+         * @return 如果类型信息兼容，返回true，否则返回false
+         */
         RAINY_NODISCARD constexpr rain_fn is_compatible(const typeinfo &right) const noexcept -> bool {
             return internal_type->is_comptaible(*right.internal_type);
         }
 
         /**
+         * \lang english
+         * @brief Checks whether this type information has specific traits.
+         * @param traits The traits to check, obtained from the traits enum
+         * @return Returns true if the type information has the traits, otherwise false
+         *
+         * \lang simp-chinese
          * @brief 检查此类型信息是否具有特定的traits
          * @param traits 要检查的traits，从traits枚举中获取
          * @return 如果类型信息具有traits，返回true，否则返回false
@@ -964,6 +1104,11 @@ namespace rainy::core {
         }
 
         /**
+         * \lang english
+         * @brief Gets the sizeof size of the current type.
+         * @return Returns the sizeof size of the current type
+         *
+         * \lang simp-chinese
          * @brief 获取当前类型的sizeof大小
          * @return 返回当前类型的sizeof大小
          */
@@ -972,6 +1117,12 @@ namespace rainy::core {
         }
 
         /**
+         * \lang english
+         * @brief Attempts to get the template instantiation arguments of the current type.
+         * @attention For templates with NTTP parameters such as template <std::size_t>, they cannot be obtained; only pure type templates are supported
+         * @return Returns a list view of the template instantiation argument types
+         *
+         * \lang simp-chinese
          * @brief 尝试获取当前类型的模板实例化参数
          * @attention 对于 template <std::size_t> 这类带有NTTP参数的模板，则无法获取，仅支持纯类型的模板
          * @return 返回模板实例化参数类型的列表视图
@@ -981,6 +1132,10 @@ namespace rainy::core {
         }
 
         /**
+         * \lang english
+         * @brief Used to adapt into switch(x) to implement compile-time type matching.
+         *
+         * \lang simp-chinese
          * @brief 用于适配到switch(x)中，实现编译时类型匹配
          */
         operator std::size_t() const noexcept { // NOLINT
@@ -988,85 +1143,155 @@ namespace rainy::core {
         }
 
         /**
+         * \lang english
+         * @brief Checks whether the current type is an arithmetic type.
+         * @return Returns true if it is, otherwise false
+         *
+         * \lang simp-chinese
          * @brief 检查当前是否为算数类型.
          * @return 如果是返回true，否则false
          */
         RAINY_GENERATE_TYPEINFO_TYPEINSPECT_METHOD_HELPER(is_arithmetic, traits::is_arithmetic);
 
         /**
+         * \lang english
+         * @brief Checks whether the current type is a floating-point type.
+         * @return Returns true if it is, otherwise false
+         *
+         * \lang simp-chinese
          * @brief 检查当前是否为浮点类型.
          * @return 如果是返回true，否则false
          */
         RAINY_GENERATE_TYPEINFO_TYPEINSPECT_METHOD_HELPER(is_floating_point, traits::is_floating_point);
 
         /**
+         * \lang english
+         * @brief Checks whether the current type is an integer type.
+         * @return Returns true if it is, otherwise false
+         *
+         * \lang simp-chinese
          * @brief 检查当前是否为整型类型.
          * @return 如果是返回true，否则false
          */
         RAINY_GENERATE_TYPEINFO_TYPEINSPECT_METHOD_HELPER(is_integer, traits::is_integer);
 
         /**
+         * \lang english
+         * @brief Checks whether the current type is a null pointer type.
+         * @return Returns true if it is, otherwise false
+         *
+         * \lang simp-chinese
          * @brief 检查当前是否为空指针类型.
          * @return 如果是返回true，否则false
          */
         RAINY_GENERATE_TYPEINFO_TYPEINSPECT_METHOD_HELPER(is_nullptr, traits::is_nullptr_t);
 
         /**
+         * \lang english
+         * @brief Checks whether the current type is a reference type (either lvalue or rvalue).
+         * @return Returns true if it is, otherwise false
+         *
+         * \lang simp-chinese
          * @brief 检查当前是否为引用类型（包括左或右）.
          * @return 如果是返回true，否则false
          */
         RAINY_GENERATE_TYPEINFO_TYPEINSPECT_METHOD_HELPER(is_reference, traits::is_lref | traits::is_rref);
 
         /**
+         * \lang english
+         * @brief Checks whether the current type is a pointer type.
+         * @return Returns true if it is, otherwise false
+         *
+         * \lang simp-chinese
          * @brief 检查当前是否为指针类型.
          * @return 如果是返回true，否则false
          */
         RAINY_GENERATE_TYPEINFO_TYPEINSPECT_METHOD_HELPER(is_pointer, traits::is_pointer);
 
         /**
+         * \lang english
+         * @brief Checks whether the current type is an lvalue reference type.
+         * @return Returns true if it is, otherwise false
+         *
+         * \lang simp-chinese
          * @brief 检查当前是否为左引用类型.
          * @return 如果是返回true，否则false
          */
         RAINY_GENERATE_TYPEINFO_TYPEINSPECT_METHOD_HELPER(is_lvalue_reference, traits::is_lref);
 
         /**
+         * \lang english
+         * @brief Checks whether the current type is an rvalue reference type.
+         * @return Returns true if it is, otherwise false
+         *
+         * \lang simp-chinese
          * @brief 检查当前是否为右引用类型.
          * @return 如果是返回true，否则false
          */
         RAINY_GENERATE_TYPEINFO_TYPEINSPECT_METHOD_HELPER(is_rvalue_reference, traits::is_rref);
 
         /**
+         * \lang english
+         * @brief Checks whether the current type is a const type.
+         * @return Returns true if it is, otherwise false
+         *
+         * \lang simp-chinese
          * @brief 检查当前是否为const类型.
          * @return 如果是返回true，否则false
          */
         RAINY_GENERATE_TYPEINFO_TYPEINSPECT_METHOD_HELPER(is_const, traits::is_const);
 
         /**
+         * \lang english
+         * @brief Checks whether the current type is a volatile type.
+         * @return Returns true if it is, otherwise false
+         *
+         * \lang simp-chinese
          * @brief 检查当前是否为volatile类型.
          * @return 如果是返回true，否则false
          */
         RAINY_GENERATE_TYPEINFO_TYPEINSPECT_METHOD_HELPER(is_volatile, traits::is_volatile);
 
         /**
+         * \lang english
+         * @brief Checks whether the current type is a mixed const volatile type.
+         * @return Returns true if it is, otherwise false
+         *
+         * \lang simp-chinese
          * @brief 检查当前是否为const volatile混合的类型.
          * @return 如果是返回true，否则false
          */
         RAINY_GENERATE_TYPEINFO_TYPEINSPECT_METHOD_HELPER(is_const_volatile, traits::is_const | traits::is_volatile);
 
         /**
+         * \lang english
+         * @brief Checks whether the current type is an associative container type.
+         * @return Returns true if it is, otherwise false
+         *
+         * \lang simp-chinese
          * @brief 检查当前是否为关联容器类型.
          * @return 如果是返回true，否则false
          */
         RAINY_GENERATE_TYPEINFO_TYPEINSPECT_METHOD_HELPER(is_associative_container, traits::is_associative_container);
 
         /**
-         *  @brief 检查当前是否为序列容器类型.
+         * \lang english
+         * @brief Checks whether the current type is a sequential container type.
+         * @return Returns true if it is, otherwise false
+         *
+         * \lang simp-chinese
+         * @brief 检查当前是否为序列容器类型.
          * @return 如果是返回true，否则false
          */
         RAINY_GENERATE_TYPEINFO_TYPEINSPECT_METHOD_HELPER(is_sequential_container, traits::is_sequential_container);
 
         /**
-         *  @brief 检查当前是否为类类型.
+         * \lang english
+         * @brief Checks whether the current type is a class type.
+         * @return Returns true if it is, otherwise false
+         *
+         * \lang simp-chinese
+         * @brief 检查当前是否为类类型.
          * @return 如果是返回true，否则false
          */
         RAINY_GENERATE_TYPEINFO_TYPEINSPECT_METHOD_HELPER(is_class, traits::is_class);
@@ -1082,21 +1307,31 @@ namespace rainy::core {
 #undef RAINY_GENERATE_TYPEINFO_TYPEINSPECT_METHOD_HELPER
 
 /**
+ * \lang english
+ * @brief A macro used to obtain type information, taking into account the usage habits of traditional RTTI.
+ *
+ * \lang simp-chinese
  * @brief 用于获取类型信息的宏，考虑到使用传统rtti的使用习惯
  */
 #define rainy_typeid(x) ::rainy::core::typeinfo::of<x>()
 
 /**
- * \lang chinese
+ * \lang english
+ * @brief Used for type switch matching.
+ * @param x The type branch to match
+ *
+ * \lang simp-chinese
  * @brief 用于类型switch匹配
  * @param x 待匹配的类型分支
- *
- * \lang english
- *
  */
 #define rainy_typehash(x) ::rainy::core::typeinfo::get_type_hash<x>()
 
 /**
+ * \lang english
+ * @brief A specialization template defined for std::hash.
+ * @spec_template rainy::core::typeinfo
+ *
+ * \lang simp-chinese
  * @brief 为std::hash定义的特化模板
  * @spec_template rainy::core::typeinfo
  */
@@ -1106,6 +1341,7 @@ struct std::hash<rainy::core::typeinfo> {
         return val.hash_code();
     }
 };
+
 
 namespace rainy::core::implements {
     template <typename Type>
@@ -1117,7 +1353,7 @@ namespace rainy::core::implements {
     template <typename Type>
     using derived_func = derived_info<Type> (*)(void *);
 
-    using converter_func = std::function<void *(void *)>;
+    using converter_func = void* (*)(void *);
 
     struct conversion_key {
         bool operator==(const conversion_key &right) const {
@@ -1143,7 +1379,7 @@ namespace rainy::core::implements {
 
     template <typename Derived, typename Base>
     void register_base() {
-        static_assert(std::is_base_of_v<Base, Derived>);
+        static_assert(type_traits::type_relations::is_base_of_v<Base, Derived>);
         converter_func up_fn = [](void *ptr) -> void * { return static_cast<Base *>(static_cast<Derived *>(ptr)); };
         register_direct_base(typeinfo::get_type_hash<Derived>(), typeinfo::get_type_hash<Base>(), up_fn);
     }
@@ -1200,7 +1436,12 @@ namespace rainy::utility::implements {
 
 namespace rainy::core {
     /**
-     * @brief !
+     * \lang english
+     * @brief Enables a class to register a converter for a target type.
+     * @tparam ConverterClass The static type description class
+     *
+     * \lang simp-chinese
+     * @brief 使一个类能够为目标类型注册转换器
      * @tparam ConverterClass 静态类型描述类
      */
     template <typename ConverterClass>
@@ -1250,6 +1491,21 @@ namespace rainy::core {
 }
 
 namespace rainy::core {
+    /**
+     * \lang english
+     * @brief Dynamically converts a value from one type to another.
+     * @tparam Target The target type to convert to
+     * @param src Pointer to the source data
+     * @param src_type Type information of the source data
+     * @return Returns the converted value or reference
+     *
+     * \lang simp-chinese
+     * @brief 将一个值从一种类型动态转换为另一种类型
+     * @tparam Target 要转换到的目标类型
+     * @param src 指向源数据的指针
+     * @param src_type 源数据的类型信息
+     * @return 返回转换后的值或引用
+     */
     template <typename Target>
     rain_fn dynamic_convert(const void *src, const typeinfo &src_type) -> decltype(auto) {
         if constexpr (type_traits::composite_types::is_reference_v<std::remove_cv_t<Target>>) {
@@ -1280,6 +1536,19 @@ namespace rainy::core {
         }
     }
 
+    /**
+     * \lang english
+     * @brief Checks whether a value can be converted from one type information to another.
+     * @param from Type information of the source type
+     * @param to Type information of the target type
+     * @return Returns true if convertible, otherwise false
+     *
+     * \lang simp-chinese
+     * @brief 检查一个值是否可以由一种类型信息转换为另一种类型信息
+     * @param from 源类型的类型信息
+     * @param to 目标类型的类型信息
+     * @return 如果可以转换，返回true，否则返回false
+     */
     RAINY_INLINE bool is_convertible_to(const typeinfo &from, const typeinfo &to) noexcept {
         const auto &reg = implements::dynamic_converter_registry::instance();
         if (from.remove_cvref() == to.remove_cvref()) {
@@ -1288,22 +1557,25 @@ namespace rainy::core {
         if (const auto p = reg.find(to); p != nullptr) {
             return p(nullptr, nullptr, from);
         }
+        if (from.remove_cvref().is_arithmetic() && to.remove_cvref().is_arithmetic()) {
+            return true;
+        }
         return false;
     }
 }
 
 /**
- * \lang chinese
+ * \lang english
+ *
+ * @brief Used to quickly register the inheritance relationship of a class.
+ * @param Derived The derived class type
+ * @param Base The base class type
+ *
+ * \lang simp-chinese
  *
  * @brief 用于快捷注册一个类的继承关系
  * @param Derived 派生类类型
  * @param Base 基类类型
- *
- * \lang english
- *
- * @brief This is brief
- * @param Derived
- * @param Base
  */
 #define RAINY_REGISTER_BASE(Derived, Base) ::rainy::core::register_base<Derived, Base>()
 

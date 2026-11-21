@@ -42,7 +42,7 @@ use crate::data::document::*;
 use crate::generator::markdown::MarkdownGenerator;
 use crate::i18n::{I18n, LangTag};
 use std::fmt::Write;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use indexmap::IndexMap;
 
 pub struct VitePressMarkdownGenerator {
@@ -99,17 +99,23 @@ impl VitePressMarkdownGenerator {
     /// Write the per-file reference markdown pages into `ref_dir`.
     ///
     /// Reused by both [`generate_site`] and [`generate_reference_only`].
-    fn write_reference_pages(&self, docs: &[FileDocument], ref_dir: &Path) -> anyhow::Result<()> {
+    fn write_reference_pages(&self, docs: &[FileDocument], ref_dir: &Path) -> anyhow::Result<usize> {
         std::fs::create_dir_all(ref_dir)?;
         let md_gen = MarkdownGenerator::new(self.lang.0.clone());
 
+        let mut written = 0;
         for doc in docs {
-            let stem = file_stem(&doc.file_path).unwrap_or("unknown");
-            let page = self.wrap_with_frontmatter(&md_gen, doc, stem);
-            std::fs::write(ref_dir.join(format!("{}.md", stem)), &page)?;
+            let rel = reference_rel_path(doc);
+            let out_path = ref_dir.join(&rel);
+            if let Some(parent) = out_path.parent() {
+                std::fs::create_dir_all(parent)?;
+            }
+            let page = self.wrap_with_frontmatter(&md_gen, doc);
+            std::fs::write(&out_path, &page)?;
+            written += 1;
         }
 
-        Ok(())
+        Ok(written)
     }
 
     /// Generate the entire VitePress site under `output_dir`.
@@ -132,7 +138,7 @@ impl VitePressMarkdownGenerator {
         &self,
         docs: &[FileDocument],
         output_dir: &Path,
-    ) -> anyhow::Result<()> {
+    ) -> anyhow::Result<usize> {
         let modules = self.group_by_module(docs);
 
         let docs_dir = output_dir.join("docs");
@@ -147,9 +153,9 @@ impl VitePressMarkdownGenerator {
         let index_md = self.generate_index_md(&modules);
         std::fs::write(docs_dir.join("index.md"), &index_md)?;
 
-        self.write_reference_pages(docs, &ref_dir)?;
+        let pages = self.write_reference_pages(docs, &ref_dir)?;
 
-        Ok(())
+        Ok(pages + 2)
     }
 
     /// Generate only the reference markdown pages, **without** `config.mts` or `index.md`.
@@ -169,7 +175,7 @@ impl VitePressMarkdownGenerator {
         &self,
         docs: &[FileDocument],
         output_ref_dir: &Path,
-    ) -> anyhow::Result<()> {
+    ) -> anyhow::Result<usize> {
         self.write_reference_pages(docs, output_ref_dir)
     }
 
@@ -211,12 +217,18 @@ impl VitePressMarkdownGenerator {
             writeln!(out, "          items: [").unwrap();
 
             for doc in file_docs {
-                let stem = file_stem(&doc.file_path).unwrap_or("unknown");
-                let display = file_display_name(stem);
+                let link = reference_link(doc);
+                let display = file_display_name(
+                    Path::new(&link)
+                        .file_name()
+                        .and_then(|s| s.to_str())
+                        .unwrap_or("unknown"),
+                );
                 writeln!(
                     out,
                     "            {{ text: '{}', link: '/reference/{}' }},",
-                    display, stem
+                    escape_js(&display),
+                    escape_js(&link)
                 )
                 .unwrap();
             }
@@ -277,8 +289,8 @@ impl VitePressMarkdownGenerator {
             let links: Vec<String> = file_docs
                 .iter()
                 .map(|doc| {
-                    let stem = file_stem(&doc.file_path).unwrap_or("unknown");
-                    format!("[{}](reference/{})", stem, stem)
+                    let link = reference_link(doc);
+                    format!("[{}]({})", link, link)
                 })
                 .collect();
             let display = if links.len() <= 3 {
@@ -304,9 +316,9 @@ impl VitePressMarkdownGenerator {
             writeln!(out, "|------|-------------|").unwrap();
 
             for doc in file_docs {
-                let stem = file_stem(&doc.file_path).unwrap_or("unknown");
+                let link = reference_link(doc);
                 let brief = self.get(&doc.brief).map(|s| s.as_str()).unwrap_or("");
-                writeln!(out, "| [{}](reference/{}.md) | {} |", stem, stem, brief).unwrap();
+                writeln!(out, "| [{}]({}.md) | {} |", link, link, brief).unwrap();
             }
 
             writeln!(out).unwrap();
@@ -319,18 +331,21 @@ impl VitePressMarkdownGenerator {
         &self,
         md_gen: &MarkdownGenerator,
         doc: &FileDocument,
-        file_stem: &str,
     ) -> String {
         let mut out = String::new();
+        let file_name = Path::new(&doc.file_path)
+            .file_name()
+            .and_then(|s| s.to_str())
+            .unwrap_or("unknown");
 
         // --- YAML frontmatter ---
         writeln!(out, "---").unwrap();
-        writeln!(out, "title: {}", file_stem).unwrap();
+        writeln!(out, "title: {}", escape_yaml(file_name)).unwrap();
         if let Some(brief) = self.get(&doc.brief) {
-            writeln!(out, "description: {}", escape_yaml(brief)).unwrap();
+            writeln!(out, "description: \"{}\"", escape_yaml(brief)).unwrap();
         }
         if let Some(ref module) = doc.module {
-            writeln!(out, "category: {}", module).unwrap();
+            writeln!(out, "category: {}", escape_yaml(module)).unwrap();
         }
         writeln!(out, "---").unwrap();
         writeln!(out).unwrap();
@@ -340,23 +355,7 @@ impl VitePressMarkdownGenerator {
             writeln!(out).unwrap();
         }
 
-        let content = md_gen.generate_file(doc);
-
-        // Skip the first line (the `# filename` heading) since the frontmatter
-        // already provides the title.  Everything after the first blank line
-        // is the real content.
-        let body = if content.trim_start().starts_with("# ") {
-            let after_heading = content
-                .lines()
-                .skip(1)
-                .collect::<Vec<_>>()
-                .join("\n");
-            after_heading
-        } else {
-            content
-        };
-
-        out.push_str(&body);
+        out.push_str(&md_gen.generate_file(doc));
 
         // Ensure trailing newline
         if !out.ends_with('\n') {
@@ -391,5 +390,47 @@ fn file_display_name(stem: &str) -> String {
 }
 
 fn escape_yaml(s: &str) -> String {
-    s.replace('\\', "\\\\").replace('"', "\\\"")
+    s.split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+        .replace('\\', "\\\\")
+        .replace('"', "\\\"")
+}
+
+fn escape_js(s: &str) -> String {
+    s.replace('\\', "\\\\").replace('\'', "\\'")
+}
+
+/// Output path of a reference page, relative to the reference root.
+///
+/// Keeps the `<source>/<rel path>` layout used by the structured markdown
+/// output so that same-named headers in different libraries stay distinct.
+fn reference_rel_path(doc: &FileDocument) -> PathBuf {
+    let mut rel = if doc.rel_path.as_os_str().is_empty() {
+        PathBuf::from(format!(
+            "{}.md",
+            file_stem(&doc.file_path).unwrap_or("unknown")
+        ))
+    } else {
+        doc.rel_path.with_extension("md")
+    };
+    if rel.is_absolute() {
+        rel = PathBuf::from(
+            rel.file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_else(|| "unknown.md".to_string()),
+        );
+    }
+    if doc.source_name.is_empty() {
+        rel
+    } else {
+        Path::new(&doc.source_name).join(rel)
+    }
+}
+
+fn reference_link(doc: &FileDocument) -> String {
+    reference_rel_path(doc)
+        .with_extension("")
+        .to_string_lossy()
+        .replace('\\', "/")
 }

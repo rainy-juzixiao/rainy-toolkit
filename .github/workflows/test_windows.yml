@@ -27,7 +27,7 @@ jobs:
           - arch: arm64
             os: Windows 11 Arm64
             runner: windows-11-arm
-            vcpkg_triplet: arm64-windows
+            vcpkg_triplet: arm64-windows-od
           - arch: x64
             os: Windows 11
             runner: windows-latest
@@ -67,8 +67,8 @@ jobs:
 
       - name: Build
         id: build
-        continue-on-error: true
-        run: cmake --build build --config Debug --parallel
+        run:
+          cmake --build build --config Release --parallel
 
       - name: Run tests
         run: ctest --test-dir build --output-on-failure

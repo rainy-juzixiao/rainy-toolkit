@@ -26,32 +26,6 @@ namespace rainy::core::layer {
         };
     }
 
-    static int apple_mutex_timedlock(mutex_handle *mutex, const ::timespec *target) noexcept {
-        constexpr long long min_sleep_ns = 100'000LL;
-        constexpr long long max_sleep_ns = 5'000'000LL;
-        long long sleep_ns = min_sleep_ns;
-        rain_loop {
-            int res = pthread_mutex_trylock(&mutex->handle);
-            if (res == 0) {
-                return 0;
-            }
-            if (res != EBUSY) {
-                return res;
-            }
-            ::timespec now{};
-            ::clock_gettime(CLOCK_REALTIME, &now);
-            if (now.tv_sec > target->tv_sec || (now.tv_sec == target->tv_sec && now.tv_nsec >= target->tv_nsec)) {
-                return ETIMEDOUT;
-            }
-            long long remaining_ns = (static_cast<long long>(target->tv_sec - now.tv_sec) * 1'000'000'000LL) +
-                                     (static_cast<long long>(target->tv_nsec - now.tv_nsec));
-            long long actual_sleep = core::min(sleep_ns, remaining_ns);
-            ::timespec sleep_ts{0, static_cast<long>(actual_sleep)};
-            ::nanosleep(&sleep_ts, nullptr);
-            sleep_ns = core::min(sleep_ns * 2, max_sleep_ns);
-        }
-    }
-
     static int apple_mutex_recursive_timedlock(mutex_handle *mutex, const ::timespec *target) noexcept {
         const pthread_t self = pthread_self();
         constexpr long long min_sleep_ns = 100'000LL;
@@ -93,13 +67,13 @@ namespace rainy::core::layer {
 
         // 非递归普通 mutex
         if ((mutex->type & ~mutex_types::recursive_mtx) == mutex_types::plain_mtx) {
-            if (!target) {
-                return pthread_mutex_lock(&mutex->handle) == 0 ? thrd_result::success : thrd_result::error;
+            // 同线程重入直接增加计数
+            if (!pthread_equal(mutex->thread_id, current_thread_id)) {
+                pthread_mutex_lock(&mutex->handle);
+                mutex->thread_id = current_thread_id;
             }
-            if (target->tv_sec == 0 && target->tv_nsec == 0) {
-                return pthread_mutex_trylock(&mutex->handle) == 0 ? thrd_result::success : thrd_result::busy;
-            }
-            return apple_mutex_timedlock(mutex, target) == 0 ? thrd_result::success : thrd_result::timed_out;
+            core::layer::interlocked_increment(reinterpret_cast<volatile long *>(&mutex->count));
+            return thrd_result::success;
         }
 
         // 递归 mutex / 需要超时支持

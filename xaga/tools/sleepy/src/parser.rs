@@ -19,6 +19,8 @@ pub mod enum_;
 pub mod function;
 pub mod macro_;
 pub mod namespace;
+pub mod scope;
+pub mod using_decl;
 pub mod variable;
 
 use crate::data::document::{
@@ -31,7 +33,7 @@ use crate::parser::concept::is_concept_decl;
 use alias::build_type_alias;
 use clang::{Entity, EntityKind, TranslationUnit};
 use class::build_class;
-use comment::{extract_raw_comment, parse_comment};
+use comment::{entity_location, extract_raw_comment, parse_comment};
 use concept::build_concept;
 use enum_::build_enum;
 use function::build_free_function;
@@ -65,6 +67,16 @@ pub fn collect_nodoc_ranges(source_text: &str) -> Vec<std::ops::Range<u32>> {
     ranges
 }
 
+/// 匿名结构体/联合体没有可引用的名字，libclang 会合成
+/// `(anonymous union at path:line:col)` 这样的名字；这类实体无法在文档里
+/// 稳定引用，直接跳过。
+pub fn is_anonymous_record(entity: &Entity) -> bool {
+    matches!(
+        entity.get_kind(),
+        EntityKind::ClassDecl | EntityKind::StructDecl | EntityKind::UnionDecl
+    ) && (entity.is_anonymous() || entity.is_anonymous_record_decl())
+}
+
 pub fn is_in_nodoc_range(entity: &Entity, ranges: &[std::ops::Range<u32>]) -> bool {
     if ranges.is_empty() {
         return false;
@@ -76,18 +88,257 @@ pub fn is_in_nodoc_range(entity: &Entity, ranges: &[std::ops::Range<u32>]) -> bo
     ranges.iter().any(|r| r.contains(&line))
 }
 
-pub fn read_mergeto_tag(file: &PathBuf) -> Option<String> {
-    let text = std::fs::read_to_string(file).ok()?;
+/// 文件级 `@hide` / `@notpublic` / `@umbrella` 标记。
+///
+/// 标记写在文件开头的文档注释里，用于把整个文件排除出文档：
+/// 伞头、实现文件等不应出现在文档中的头文件据此跳过。
+#[derive(Debug, Default, Clone, Copy)]
+pub struct FileMarkers {
+    pub hide: bool,
+    pub not_public: bool,
+    /// 伞头：不解析实体，但会列出它 `#include` 的头文件
+    pub umbrella: bool,
+}
+
+/// 扫描文件开头的注释块，读取文件级标记。
+///
+/// 只检查第一个代码行之前的注释，避免把某个实体上的 `@hide` 误当成文件级标记。
+pub fn read_file_markers(text: &str) -> FileMarkers {
+    fn has_tag(line: &str, tag: &str) -> bool {
+        let at = format!("@{tag}");
+        let bsl = format!("\\{tag}");
+        line.starts_with(&at) || line.starts_with(&bsl)
+    }
+    fn check(line: &str, markers: &mut FileMarkers) {
+        if has_tag(line, "hide") {
+            markers.hide = true;
+        }
+        if has_tag(line, "notpublic") {
+            markers.not_public = true;
+        }
+        if has_tag(line, "umbrella") {
+            markers.umbrella = true;
+        }
+    }
+    /// 去掉块注释行可能残留的 `/*` 与 `*` 前缀。
+    fn strip_block_prefix(line: &str) -> &str {
+        let line = line.strip_prefix("/*").unwrap_or(line);
+        line.trim_start_matches('*').trim()
+    }
+
+    let mut markers = FileMarkers::default();
+    let mut in_block = false;
     for line in text.lines() {
-        let line = line.trim().trim_start_matches('*').trim();
-        if let Some(rest) = line.strip_prefix("@mergeto") {
-            let target = rest.trim().to_string();
-            if !target.is_empty() {
-                return Some(target);
+        let trimmed = line.trim();
+        if in_block {
+            check(strip_block_prefix(trimmed), &mut markers);
+            if trimmed.contains("*/") {
+                in_block = false;
+            }
+            continue;
+        }
+        if trimmed.is_empty() {
+            continue;
+        }
+        if trimmed.starts_with("/*") {
+            // `/**`、`/*!` 与普通 `/*` 都接受：文件级标记不强制文档注释风格
+            let inner = strip_block_prefix(trimmed);
+            let inner = inner.strip_suffix("*/").unwrap_or(inner);
+            check(inner, &mut markers);
+            if !trimmed.contains("*/") {
+                in_block = true;
+            }
+            continue;
+        }
+        if let Some(inner) = trimmed
+            .strip_prefix("///")
+            .or_else(|| trimmed.strip_prefix("//!"))
+            .or_else(|| trimmed.strip_prefix("//"))
+        {
+            check(inner.trim(), &mut markers);
+            continue;
+        }
+        // 第一个非注释行：文件级注释已经结束
+        break;
+    }
+    markers
+}
+
+/// 直接读取文件里 `#include` 的目标名，不做宏展开。
+///
+/// 用于伞头页面：只列出被包含的头文件名，不解析它们的实体。
+pub fn read_include_names(text: &str) -> Vec<String> {
+    let mut names = Vec::new();
+    let mut in_block_comment = false;
+    for line in text.lines() {
+        let mut line = line;
+        // 跳过块注释内与行注释，避免注释里的 #include 被当真
+        if in_block_comment {
+            match line.find("*/") {
+                Some(end) => {
+                    line = &line[end + 2..];
+                    in_block_comment = false;
+                }
+                None => continue,
+            }
+        }
+        if let Some(start) = line.find("/*") {
+            if line[start..].find("*/").is_none() {
+                in_block_comment = true;
+            }
+            line = &line[..start];
+        }
+        if let Some(start) = line.find("//") {
+            line = &line[..start];
+        }
+        let trimmed = line.trim_start();
+        let Some(rest) = trimmed.strip_prefix('#') else {
+            continue;
+        };
+        let rest = rest.trim_start();
+        let Some(rest) = rest.strip_prefix("include") else {
+            continue;
+        };
+        if !rest.starts_with([' ', '\t', '<', '"']) {
+            continue;
+        }
+        let rest = rest.trim_start();
+        let name = if let Some(body) = rest.strip_prefix('<') {
+            body.split_once('>').map(|(name, _)| name)
+        } else if let Some(body) = rest.strip_prefix('"') {
+            body.split_once('"').map(|(name, _)| name)
+        } else {
+            None
+        };
+        if let Some(name) = name {
+            let name = name.trim();
+            if !name.is_empty() {
+                names.push(name.to_string());
             }
         }
     }
-    None
+    names
+}
+
+/// 读取文件开头第一个文档注释块（`/** ... */`、`/*! ... */` 或连续的 `///` / `//!`）。
+///
+/// 伞头不解析实体，文件级简介只能从这里取。
+pub fn read_leading_doc_comment(text: &str) -> Option<String> {
+    let mut block: Vec<&str> = Vec::new();
+    let mut in_block = false;
+    let mut in_skipped_block = false;
+    let mut in_line_doc = false;
+    for line in text.lines() {
+        let trimmed = line.trim();
+        if in_block {
+            block.push(trimmed);
+            if trimmed.contains("*/") {
+                return Some(block.join("\n"));
+            }
+            continue;
+        }
+        if in_skipped_block {
+            if trimmed.contains("*/") {
+                in_skipped_block = false;
+            }
+            continue;
+        }
+        if trimmed.is_empty() {
+            if in_line_doc {
+                return Some(block.join("\n"));
+            }
+            continue;
+        }
+        if trimmed.starts_with("/**") || trimmed.starts_with("/*!") {
+            block.push(trimmed);
+            if trimmed.contains("*/") {
+                return Some(block.join("\n"));
+            }
+            in_block = true;
+            continue;
+        }
+        if trimmed.starts_with("///") || trimmed.starts_with("//!") {
+            in_line_doc = true;
+            block.push(trimmed);
+            continue;
+        }
+        if trimmed.starts_with("/*") {
+            if in_line_doc {
+                return Some(block.join("\n"));
+            }
+            if !trimmed.contains("*/") {
+                in_skipped_block = true;
+            }
+            continue;
+        }
+        if trimmed.starts_with("//") {
+            if in_line_doc {
+                return Some(block.join("\n"));
+            }
+            continue;
+        }
+        break;
+    }
+    if block.is_empty() {
+        None
+    } else {
+        Some(block.join("\n"))
+    }
+}
+
+/// 伞头文档：只带文件级简介与 `#include` 列表，没有实体。
+pub fn build_umbrella_document(
+    file_path: &str,
+    source_name: &str,
+    rel_path: PathBuf,
+    text: &str,
+) -> FileDocument {
+    let mut doc = FileDocument {
+        path: PathBuf::from(file_path),
+        title: PathBuf::from(file_path)
+            .file_stem()
+            .map(|s| s.to_string_lossy().to_string())
+            .unwrap_or_default(),
+        file_path: file_path.to_string(),
+        source_name: source_name.to_string(),
+        rel_path,
+        includes: read_include_names(text),
+        brief: crate::i18n::I18n::new(),
+        description: crate::i18n::I18n::new(),
+        authors: vec![],
+        date: None,
+        version: None,
+        copyright: None,
+        license: None,
+        namespaces: vec![],
+        free_function_overloads: vec![],
+        variables: vec![],
+        constants: vec![],
+        variable_templates: vec![],
+        classes: vec![],
+        enums: vec![],
+        aliases: vec![],
+        concepts: vec![],
+        macros: vec![],
+        module: None,
+        body: String::new(),
+        is_umbrella: true,
+    };
+    if let Some(raw) = read_leading_doc_comment(text) {
+        let parsed = parse_comment(&raw, file_path, vec![], None);
+        doc.brief = parsed.basic.brief;
+        doc.description = parsed.basic.description;
+        doc.authors = parsed.basic.authors;
+        doc.date = parsed.basic.date;
+        doc.version = parsed.basic.version;
+        doc.copyright = parsed.basic.copyright;
+        doc.license = parsed.basic.license;
+        doc.module = parsed.basic.module;
+    }
+    if doc.module.is_none() {
+        doc.module = read_module_tag(Path::new(file_path));
+    }
+    doc
 }
 
 /// Read the @module tag directly from the source file.
@@ -150,7 +401,14 @@ pub fn build_file_document(
     let namespace_stack = vec![];
 
     let mut doc = FileDocument {
+        path: PathBuf::from(file_path),
+        title: PathBuf::from(file_path)
+            .file_stem()
+            .map(|s| s.to_string_lossy().to_string())
+            .unwrap_or_default(),
         file_path: file_path.to_string(),
+        source_name: String::new(),
+        rel_path: PathBuf::from(file_path),
         includes: vec![],
         brief: crate::i18n::I18n::new(),
         description: crate::i18n::I18n::new(),
@@ -169,12 +427,13 @@ pub fn build_file_document(
         aliases: vec![],
         concepts: vec![],
         macros: vec![],
-        merge_into: None,
         module: None,
+        body: String::new(),
+        is_umbrella: false,
     };
 
     if let Some(raw) = extract_raw_comment(&root) {
-        let parsed = parse_comment(&raw, file_path, vec![]);
+        let parsed = parse_comment(&raw, file_path, vec![], entity_location(&root).as_deref());
         doc.brief       = parsed.basic.brief;
         doc.description = parsed.basic.description;
         doc.authors     = parsed.basic.authors;
@@ -193,6 +452,7 @@ pub fn build_file_document(
 
     let mut ns_map: IndexMap<String, NamespaceDocument> = IndexMap::new();
     let mut raw_functions: Vec<FreeFunctionDocument> = Vec::new();
+    let class_index = using_decl::ClassIndex::build(&root);
 
     for child in root.get_children() {
         if !is_from_owned_file(&child, context) {
@@ -203,7 +463,7 @@ pub fn build_file_document(
         }
         match child.get_kind() {
             EntityKind::Namespace => {
-                if let Some(ns) = build_namespace(&child, &namespace_stack, context) {
+                if let Some(ns) = build_namespace(&child, &namespace_stack, context, &class_index) {
                     let name = ns.base.name.clone();
                     if let Some(existing) = ns_map.get_mut(&name) {
                         merge_namespace(existing, ns);
@@ -255,10 +515,10 @@ pub fn build_file_document(
                 | EntityKind::UnionDecl
                 | EntityKind::ClassTemplate
                 | EntityKind::ClassTemplatePartialSpecialization => {
-                    if !child.is_definition() {
+                    if !child.is_definition() || is_anonymous_record(&child) {
                         continue;
                     }
-                    if let Some(c) = build_class(&child, &namespace_stack) {
+                    if let Some(c) = build_class(&child, &namespace_stack, &class_index) {
                         doc.classes.push(c);
                     }
                 }
@@ -422,7 +682,14 @@ fn apply_inheritance_class(c: &mut ClassDocument, map: &HashMap<String, ClassDoc
                             base_overload,
                         )
                     });
-                    if !has_manual {
+                    // `using` 已经把该成员解析进来了，别让继承补全再补一份
+                    let already = existing_group.overloads.iter().any(|existing| {
+                        match (&existing.decl_prototype, &base_overload.decl_prototype) {
+                            (Some(a), Some(b)) => normalize_proto(a) == normalize_proto(b),
+                            _ => false,
+                        }
+                    });
+                    if !has_manual && !already {
                         existing_group.overloads.push(base_overload.clone());
                     }
                 }

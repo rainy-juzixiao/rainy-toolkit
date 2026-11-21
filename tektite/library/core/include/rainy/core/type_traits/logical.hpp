@@ -20,109 +20,133 @@
 
 namespace rainy::type_traits::logical_traits {
     /**
+     * \lang english
      * @brief Logical conjunction trait (AND) for type traits.
-     *        Primary template for empty parameter pack yields true_type.
-     *
-     *        类型特征的逻辑与（AND） traits。
-     *        空参数包的主模板生成 true_type。
+     *         Primary template for empty parameter pack yields true_type.
      *
      * @tparam ... Parameter pack of type traits with ::value members
-     *             具有 ::value 成员的类型特征参数包
+     *
+     * \lang simp-chinese
+     * @brief 类型特征的逻辑与（AND） traits。
+     *         空参数包的主模板生成 true_type。
+     *
+     * @tparam 具有 ::value 成员的类型特征参数包
      */
     template <typename...>
     struct conjunction : helper::true_type {};
 
     /**
+     * \lang english
      * @brief Logical conjunction trait (AND) for type traits.
-     *        Recursive template that evaluates the conjunction of all traits.
-     *
-     *        类型特征的逻辑与（AND） traits。
-     *        递归模板，计算所有特征的逻辑与。
+     *         Recursive template that evaluates the conjunction of all traits.
      *
      * @tparam First First trait to evaluate
-     *               要评估的第一个特征
      * @tparam Rest Remaining traits to evaluate
-     *              要评估的剩余特征
+     *
+     * \lang simp-chinese
+     * @brief 类型特征的逻辑与（AND） traits。
+     *         递归模板，计算所有特征的逻辑与。
+     *
+     * @tparam First 要评估的第一个特征
+     * @tparam Rest 要评估的剩余特征
      */
     template <typename First, typename... Rest>
     struct conjunction<First, Rest...> : implements::_conjunction<First::value, First, Rest...>::type {};
 
     /**
+     * \lang english
      * @brief Variable template for logical conjunction.
-     *        Provides the value of conjunction<Traits...>::value.
-     *
-     *        逻辑与的变量模板。
-     *        提供 conjunction<Traits...>::value 的值。
+     *         Provides the value of conjunction<Traits...>::value.
      *
      * @tparam Traits Type traits to evaluate
-     *                要评估的类型特征
+     *
+     * \lang simp-chinese
+     * @brief 逻辑与的变量模板。
+     *         提供 conjunction<Traits...>::value 的值。
+     *
+     * @tparam Traits 要评估的类型特征
      */
     template <typename... Traits>
     RAINY_CONSTEXPR_BOOL conjunction_v = conjunction<Traits...>::value;
 
     /**
+     * \lang english
      * @brief Logical disjunction trait (OR) for type traits.
-     *        Primary template for empty parameter pack yields false_type.
-     *
-     *        类型特征的逻辑或（OR） traits。
-     *        空参数包的主模板生成 false_type。
+     *         Primary template for empty parameter pack yields false_type.
      *
      * @tparam ... Parameter pack of type traits with ::value members
-     *             具有 ::value 成员的类型特征参数包
+     *
+     * \lang simp-chinese
+     * @brief 类型特征的逻辑或（OR） traits。
+     *         空参数包的主模板生成 false_type。
+     *
+     * @tparam 具有 ::value 成员的类型特征参数包
      */
     template <typename...>
     struct disjunction : helper::false_type {};
 
     /**
+     * \lang english
      * @brief Logical disjunction trait (OR) for type traits.
-     *        Recursive template that evaluates the disjunction of all traits.
-     *
-     *        类型特征的逻辑或（OR） traits。
-     *        递归模板，计算所有特征的逻辑或。
+     *         Recursive template that evaluates the disjunction of all traits.
      *
      * @tparam first First trait to evaluate
-     *               要评估的第一个特征
      * @tparam rest Remaining traits to evaluate
-     *              要评估的剩余特征
+     *
+     * \lang simp-chinese
+     * @brief 类型特征的逻辑或（OR） traits。
+     *         递归模板，计算所有特征的逻辑或。
+     *
+     * @tparam first 要评估的第一个特征
+     * @tparam rest 要评估的剩余特征
      */
     template <typename first, typename... rest>
     struct disjunction<first, rest...> : implements::_disjunction<first::value, first, rest...>::type {};
 
     /**
+     * \lang english
      * @brief Variable template for logical disjunction.
-     *        Provides the value of disjunction<traits...>::value.
-     *
-     *        逻辑或的变量模板。
-     *        提供 disjunction<traits...>::value 的值。
+     *         Provides the value of disjunction<traits...>::value.
      *
      * @tparam traits Type traits to evaluate
-     *                要评估的类型特征
+     *
+     * \lang simp-chinese
+     * @brief 逻辑或的变量模板。
+     *         提供 disjunction<traits...>::value 的值。
+     *
+     * @tparam traits 要评估的类型特征
      */
     template <typename... traits>
     RAINY_CONSTEXPR_BOOL disjunction_v = disjunction<traits...>::value;
 
     /**
+     * \lang english
      * @brief Logical negation trait (NOT) for a single type trait.
-     *        Returns the opposite boolean value of the input trait.
-     *
-     *        单个类型特征的逻辑非（NOT） traits。
-     *        返回输入特征的反向布尔值。
+     *         Returns the opposite boolean value of the input trait.
      *
      * @tparam trait Type trait with ::value member to negate
-     *               要取反的具有 ::value 成员的类型特征
+     *
+     * \lang simp-chinese
+     * @brief 单个类型特征的逻辑非（NOT） traits。
+     *         返回输入特征的反向布尔值。
+     *
+     * @tparam trait 要取反的具有 ::value 成员的类型特征
      */
     template <typename trait>
     struct negation : helper::bool_constant<!static_cast<bool>(trait::value)> {};
 
     /**
+     * \lang english
      * @brief Variable template for logical negation.
-     *        Provides the value of negation<trait>::value.
-     *
-     *        逻辑非的变量模板。
-     *        提供 negation<trait>::value 的值。
+     *         Provides the value of negation<trait>::value.
      *
      * @tparam trait Type trait to negate
-     *               要取反的类型特征
+     *
+     * \lang simp-chinese
+     * @brief 逻辑非的变量模板。
+     *         提供 negation<trait>::value 的值。
+     *
+     * @tparam trait 要取反的类型特征
      */
     template <typename trait>
     RAINY_CONSTEXPR_BOOL negation_v = negation<trait>::value;

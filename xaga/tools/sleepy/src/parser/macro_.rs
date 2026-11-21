@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-use super::comment::{extract_raw_comment, parse_comment};
+use super::comment::{entity_location, extract_raw_comment, parse_comment};
 use crate::data::document::MacroDocument;
 use clang::{Entity, EntityKind};
 
@@ -26,7 +26,7 @@ pub fn build_macro(entity: &Entity, namespace_stack: &[String]) -> Option<MacroD
         // 为了避免宏的污染，仅限在构建宏的时候，检查是否定义注释，如果未提供注释文档，则不进行生成
         return None;
     }
-    let parsed = parse_comment(&raw, &name, namespace_stack.to_vec());
+    let parsed = parse_comment(&raw, &name, namespace_stack.to_vec(), entity_location(entity).as_deref());
 
     let is_function_like = entity.is_function_like_macro();
     let params = if is_function_like {

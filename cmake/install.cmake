@@ -13,21 +13,8 @@ install(
 )
 
 install(
-        DIRECTORY ${PROJECT_SOURCE_DIR}/xaga/include/
-        DESTINATION ${RAINY_TOOLKIT_INSTALL_DIR}/include
-)
-
-install(
-        TARGETS rainy-toolkit
-        EXPORT rainyToolkitTargets
-        RUNTIME DESTINATION ${RAINY_TOOLKIT_INSTALL_DIR}/bin
-        LIBRARY DESTINATION ${RAINY_TOOLKIT_INSTALL_DIR}/lib
-        ARCHIVE DESTINATION ${RAINY_TOOLKIT_INSTALL_DIR}/lib
-)
-
-install(
-        EXPORT rainyToolkitTargets
-        FILE rainyToolkitTargets.cmake
+        EXPORT rainy-toolkit-targets
+        FILE rainy-toolkitTargets.cmake
         NAMESPACE rainy::
         DESTINATION ${RAINY_TOOLKIT_INSTALL_DIR}/lib/cmake/rainy-toolkit
 )

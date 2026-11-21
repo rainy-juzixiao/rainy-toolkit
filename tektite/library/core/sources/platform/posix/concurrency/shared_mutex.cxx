@@ -205,17 +205,21 @@ namespace rainy::core::layer {
         pthread_mutex_lock(&handle->internal_mutex);
         pthread_t current_thread = pthread_self();
         if (handle->has_writer && pthread_equal(handle->writer_thread_id, current_thread)) {
-            handle->write_recursion_count++;
             pthread_mutex_unlock(&handle->internal_mutex);
-            return thrd_result::success;
+            errno = EDEADLK;
+            return thrd_result::error;
         }
-        handle->waiting_writers++;
         bool timed_out = false;
-        while (handle->has_writer || handle->active_readers > 0) {
-            int ret = pthread_cond_timedwait(&handle->write_cond, &handle->internal_mutex, timeout);
+        while (handle->has_writer || handle->waiting_writers > 0) {
+            int ret = pthread_cond_timedwait(&handle->read_cond, &handle->internal_mutex, timeout);
             if (ret == ETIMEDOUT) {
                 timed_out = true;
                 break;
+            }
+            if (ret != 0) {
+                pthread_mutex_unlock(&handle->internal_mutex);
+                errno = ret;
+                return thrd_result::error;
             }
             ::timespec now{};
             ::clock_gettime(CLOCK_REALTIME, &now);
@@ -224,15 +228,12 @@ namespace rainy::core::layer {
                 break;
             }
         }
-        handle->waiting_writers--;
         if (timed_out) {
             pthread_mutex_unlock(&handle->internal_mutex);
             errno = ETIMEDOUT;
             return thrd_result::timed_out;
         }
-        handle->has_writer = true;
-        handle->writer_thread_id = current_thread;
-        handle->write_recursion_count = 1;
+        handle->active_readers++;
         pthread_mutex_unlock(&handle->internal_mutex);
         return thrd_result::success;
 #else

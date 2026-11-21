@@ -13,39 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/**
- * @file platform.hpp
- * @module Core
- *
- * \lang english
- * @brief
- * This is the most critical part of the rainy-toolkit core. It defines how
- * rainy-toolkit communicates with the platform. Without it, the build system
- * will not function properly.
- * @brief
- * It is not intended for end users but for library developers. It contains
- * platform-related macro definitions, function declarations, fundamental type
- * definitions, and template metaprogramming code. It is used by core.hpp.
- * @brief It should not be included directly by users; use core.hpp instead.
- * @brief Also includes a series of builtin functions. Some are implemented in
- *        core.cxx. Direct inclusion may cause compilation failures.
- * @author rainy-juzixiao
- * @date 2/24/2025 1:30:49 PM Initial annotation added (by rainy-juzixiao)
- * @date 3/13/2025 1:57:45 PM Migrated type_traits::other_trans code and revised annotations
- *
- * \lang simp-chinese
- * @brief
- * 这是rainy-toolkit的核心文件的最重要部分。它定义了rainy-toolkit如何与平台进行沟通。没有它，rainy-toolkit的构建系统将无法正常工作
- * @brief
- * 简单点说。它不是给用户使用的。是给库开发者使用的。它包含了一些平台相关的宏定义和函数声明以及非常基础的类型定义和模板元编程代码。它由core.hpp使用
- * @brief 它不应该被用户包含，而是考虑使用core.hpp
- * @brief 另外，包含了一系列内建函数。部分内建函数是由core.cxx负责的。直接包含则有可能导致编译失败
- * @author rainy-juzixiao
- * @date 2/24/2025 1:30:49 PM 在此进行添加注释（由rainy-juzixiao添加）
- * @date 3/13/2025 1:57:45 PM 在此转移type_traits的other_trans代码以及修改注释
- */
 #ifndef RAINY_CORE_PLATFORM_HPP
 #define RAINY_CORE_PLATFORM_HPP
+/*
+ * @file rainy/core/platform.hpp
+ * @brief 平台头文件
+ */
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
@@ -319,6 +292,25 @@ clang和GNU编译器区域
 #define RAINY_IS_X86_PLATFORM 1
 #else
 static_assert(false, "Detected invalid architecture,rainy-toolkit is not support on your compile architecture");
+#endif
+
+#ifndef RAINY_HAS_EXTENDED_LONG_DOUBLE
+#if defined(__SIZEOF_INT128__) &&                                                                                    \
+    (((defined(__x86_64__) || defined(__i386__)) && !defined(_WIN32)) ||                                             \
+     ((defined(__aarch64__) || defined(_M_ARM64)) && defined(__SIZEOF_LONG_DOUBLE__) && __SIZEOF_LONG_DOUBLE__ == 16))
+#define RAINY_HAS_EXTENDED_LONG_DOUBLE 1
+#else
+#define RAINY_HAS_EXTENDED_LONG_DOUBLE 0
+#endif
+#endif
+
+#ifndef RAINY_LONG_DOUBLE_IS_BINARY128
+#if RAINY_HAS_EXTENDED_LONG_DOUBLE && (defined(__aarch64__) || defined(_M_ARM64)) && defined(__SIZEOF_LONG_DOUBLE__) && \
+    __SIZEOF_LONG_DOUBLE__ == 16
+#define RAINY_LONG_DOUBLE_IS_BINARY128 1
+#else
+#define RAINY_LONG_DOUBLE_IS_BINARY128 0
+#endif
 #endif
 
 #if RAINY_CURRENT_STANDARD_VERSION < 201703L
@@ -648,7 +640,6 @@ namespace rainy::type_traits::other_trans {
         enable_if &operator=(enable_if &&) = delete;
     };
 
-#if !RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
     /**
      * \lang english
      * @brief Specialization of enable_if for the true case.
@@ -662,7 +653,6 @@ namespace rainy::type_traits::other_trans {
     struct enable_if<true, Ty> {
         using type = Ty;
     };
-#endif
 
     /**
      * \lang english
@@ -705,7 +695,6 @@ namespace rainy::type_traits::other_trans {
         using type = IfTrue;
     };
 
-#if !RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
     /**
      * \lang english
      * @brief Specialization of conditional for the false case.
@@ -721,7 +710,6 @@ namespace rainy::type_traits::other_trans {
     struct conditional<false, IfTrue, IfFalse> {
         using type = IfFalse;
     };
-#endif
 
     /**
      * \lang english
@@ -783,7 +771,6 @@ namespace rainy::type_traits::other_trans {
         using apply = Ty1;
     };
 
-#if !RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
     /**
      * \lang english
      * @brief Specialization of select for the false case.
@@ -807,7 +794,6 @@ namespace rainy::type_traits::other_trans {
         template <typename Ty1, typename Ty2>
         using apply = Ty2;
     };
-#endif
 
     /**
      * @brief Dummy type placeholder for template metaprogramming.
@@ -882,7 +868,6 @@ namespace rainy::type_traits::modifers {
         using type = Ty;
     };
 
-#if !RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
     /**
      * \lang english
      * @brief Specialization for lvalue reference types.
@@ -914,7 +899,6 @@ namespace rainy::type_traits::modifers {
     struct remove_reference<Ty &&> {
         using type = Ty;
     };
-#endif
 
     /**
      * \lang english
@@ -937,6 +921,11 @@ namespace rainy::type_traits::implements {
 
     template <typename Ty>
     RAINY_CONSTEXPR_BOOL is_lvalue_reference_v<Ty &> = true;
+
+    template <typename Ty>
+    RAINY_NODISCARD constexpr rain_fn impl_move(Ty &&arg) noexcept -> type_traits::modifers::remove_reference_t<Ty> && {
+        return static_cast<type_traits::modifers::remove_reference_t<Ty> &&>(arg);
+    }
 }
 
 namespace rainy::core::builtin {
@@ -984,7 +973,7 @@ namespace rainy::core::builtin {
      * @return 从最低有效位开始连续零位的数量
      */
     RAINY_INLINE int ctz(const int mask) {
-#if RAINY_COMPILER_MSVC
+#if RAINY_USING_MSVC
         unsigned long index;
         _BitScanForward(&index, static_cast<unsigned long>(mask));
         return static_cast<int>(index);
@@ -1103,6 +1092,7 @@ namespace rainy::core::builtin {
      * 即使源和目标内存区域重叠也能正确处理。
      */
     RAINY_INLINE rain_fn move_memory(void *dest, std::size_t dest_size, const void *src, std::size_t src_count) -> void * {
+        (void) dest_size;
         return std::memmove(dest, src, src_count);
     }
 
@@ -1224,7 +1214,7 @@ namespace rainy::core::builtin {
      * 但不超过 `count` 字节。
      */
     RAINY_INLINE rain_fn fill_memory(void *dest, std::size_t count, const void *src, std::size_t src_count) -> void * {
-        return std::memcpy(dest, src, std::min(count, src_count));
+        return std::memcpy(dest, src, (std::min) (count, src_count));
     }
 
     /**
@@ -2784,8 +2774,8 @@ namespace rainy::type_traits::helper {
      * @tparam CharType Character type
      * @tparam N1 Size of first string
      * @tparam N2 Size of second string
-     * @param lhs Left-hand side string
-     * @param rhs Right-hand side string
+     * @param left Left-hand side string
+     * @param right Right-hand side string
      * @return true if strings are equal, false otherwise
      *
      * \lang simp-chinese
@@ -2793,15 +2783,15 @@ namespace rainy::type_traits::helper {
      * @tparam CharType 字符类型
      * @tparam N1 第一个字符串的大小
      * @tparam N2 第二个字符串的大小
-     * @param lhs 左侧字符串
-     * @param rhs 右侧字符串
+     * @param left 左侧字符串
+     * @param right 右侧字符串
      * @return 如果字符串相等则为 true，否则为 false
      */
     template <typename CharType, std::size_t N1, std::size_t N2>
-    constexpr rain_fn operator==(const basic_constexpr_string<CharType, N1> &lhs,
-                                 const basic_constexpr_string<CharType, N2> &rhs) noexcept -> bool {
-        return std::basic_string_view<CharType>(lhs.data(), lhs.length()) ==
-               std::basic_string_view<CharType>(rhs.data(), rhs.length());
+    constexpr rain_fn operator==(const basic_constexpr_string<CharType, N1> &left,
+                                 const basic_constexpr_string<CharType, N2> &right) noexcept -> bool {
+        return std::basic_string_view<CharType>(left.data(), left.length()) ==
+               std::basic_string_view<CharType>(right.data(), right.length());
     }
 
     /**
@@ -2812,9 +2802,9 @@ namespace rainy::type_traits::helper {
      * @brief 两个 constexpr 字符串之间的不相等比较。
      */
     template <typename CharType, std::size_t N1, std::size_t N2>
-    constexpr rain_fn operator!=(const basic_constexpr_string<CharType, N1> &lhs,
-                                 const basic_constexpr_string<CharType, N2> &rhs) noexcept -> bool {
-        return !(lhs == rhs);
+    constexpr rain_fn operator!=(const basic_constexpr_string<CharType, N1> &left,
+                                 const basic_constexpr_string<CharType, N2> &right) noexcept -> bool {
+        return !(left == right);
     }
 
     /**
@@ -2825,9 +2815,9 @@ namespace rainy::type_traits::helper {
      * @brief 两个 constexpr 字符串之间的小于比较。
      */
     template <typename CharType, std::size_t N1, std::size_t N2>
-    constexpr rain_fn operator<(const basic_constexpr_string<CharType, N1> &lhs,
-                                const basic_constexpr_string<CharType, N2> &rhs) noexcept -> bool {
-        return std::basic_string_view<CharType>(lhs.data(), lhs.length()) < std::basic_string_view<CharType>(rhs.data(), rhs.length());
+    constexpr rain_fn operator<(const basic_constexpr_string<CharType, N1> &left,
+                                const basic_constexpr_string<CharType, N2> &right) noexcept -> bool {
+        return std::basic_string_view<CharType>(left.data(), left.length()) < std::basic_string_view<CharType>(right.data(), right.length());
     }
 
     /**
@@ -2838,9 +2828,9 @@ namespace rainy::type_traits::helper {
      * @brief 两个 constexpr 字符串之间的小于等于比较。
      */
     template <typename CharType, std::size_t N1, std::size_t N2>
-    constexpr rain_fn operator<=(const basic_constexpr_string<CharType, N1> &lhs,
-                                 const basic_constexpr_string<CharType, N2> &rhs) noexcept -> bool {
-        return !(rhs < lhs);
+    constexpr rain_fn operator<=(const basic_constexpr_string<CharType, N1> &left,
+                                 const basic_constexpr_string<CharType, N2> &right) noexcept -> bool {
+        return !(right < left);
     }
 
     /**
@@ -2851,9 +2841,9 @@ namespace rainy::type_traits::helper {
      * @brief 两个 constexpr 字符串之间的大于比较。
      */
     template <typename CharType, std::size_t N1, std::size_t N2>
-    constexpr rain_fn operator>(const basic_constexpr_string<CharType, N1> &lhs,
-                                const basic_constexpr_string<CharType, N2> &rhs) noexcept -> bool {
-        return rhs < lhs;
+    constexpr rain_fn operator>(const basic_constexpr_string<CharType, N1> &left,
+                                const basic_constexpr_string<CharType, N2> &right) noexcept -> bool {
+        return right < left;
     }
 
     /**
@@ -2864,9 +2854,9 @@ namespace rainy::type_traits::helper {
      * @brief 两个 constexpr 字符串之间的大于等于比较。
      */
     template <typename CharType, std::size_t N1, std::size_t N2>
-    constexpr rain_fn operator>=(const basic_constexpr_string<CharType, N1> &lhs,
-                                 const basic_constexpr_string<CharType, N2> &rhs) noexcept -> bool {
-        return !(lhs < rhs);
+    constexpr rain_fn operator>=(const basic_constexpr_string<CharType, N1> &left,
+                                 const basic_constexpr_string<CharType, N2> &right) noexcept -> bool {
+        return !(left < right);
     }
 
     /**
@@ -2877,9 +2867,9 @@ namespace rainy::type_traits::helper {
      * @brief constexpr 字符串与 string_view 之间的相等比较。
      */
     template <typename CharType, std::size_t N>
-    constexpr rain_fn operator==(const basic_constexpr_string<CharType, N> &lhs, std::basic_string_view<CharType> rhs) noexcept
+    constexpr rain_fn operator==(const basic_constexpr_string<CharType, N> &left, std::basic_string_view<CharType> right) noexcept
         -> bool {
-        return std::basic_string_view<CharType>(lhs.data(), lhs.length()) == rhs;
+        return std::basic_string_view<CharType>(left.data(), left.length()) == right;
     }
 
     /**
@@ -2890,9 +2880,9 @@ namespace rainy::type_traits::helper {
      * @brief string_view 与 constexpr 字符串之间的相等比较。
      */
     template <typename CharType, std::size_t N>
-    constexpr rain_fn operator==(std::basic_string_view<CharType> lhs, const basic_constexpr_string<CharType, N> &rhs) noexcept
+    constexpr rain_fn operator==(std::basic_string_view<CharType> left, const basic_constexpr_string<CharType, N> &right) noexcept
         -> bool {
-        return lhs == std::basic_string_view<CharType>(rhs.data(), rhs.length());
+        return left == std::basic_string_view<CharType>(right.data(), right.length());
     }
 
     /**
@@ -2903,8 +2893,8 @@ namespace rainy::type_traits::helper {
      * @brief constexpr 字符串与 C 风格字符串之间的相等比较。
      */
     template <typename CharType, std::size_t N>
-    constexpr rain_fn operator==(const basic_constexpr_string<CharType, N> &lhs, const CharType *rhs) noexcept -> bool {
-        return std::basic_string_view<CharType>(lhs.data(), lhs.length()) == std::basic_string_view<CharType>(rhs);
+    constexpr rain_fn operator==(const basic_constexpr_string<CharType, N> &left, const CharType *right) noexcept -> bool {
+        return std::basic_string_view<CharType>(left.data(), left.length()) == std::basic_string_view<CharType>(right);
     }
 
     /**
@@ -2915,8 +2905,8 @@ namespace rainy::type_traits::helper {
      * @brief C 风格字符串与 constexpr 字符串之间的相等比较。
      */
     template <typename CharType, std::size_t N>
-    constexpr rain_fn operator==(const CharType *lhs, const basic_constexpr_string<CharType, N> &rhs) noexcept -> bool {
-        return std::basic_string_view<CharType>(lhs) == std::basic_string_view<CharType>(rhs.data(), rhs.length());
+    constexpr rain_fn operator==(const CharType *left, const basic_constexpr_string<CharType, N> &right) noexcept -> bool {
+        return std::basic_string_view<CharType>(left) == std::basic_string_view<CharType>(right.data(), right.length());
     }
 
     /**
@@ -2965,8 +2955,8 @@ namespace rainy::type_traits::helper {
      * @tparam CharType Character type
      * @tparam N1 Size of first string
      * @tparam N2 Size of second string
-     * @param lhs First string
-     * @param rhs Second string
+     * @param left First string
+     * @param right Second string
      * @return Concatenated string of size N1 + N2 - 1
      *
      * \lang simp-chinese
@@ -2974,20 +2964,20 @@ namespace rainy::type_traits::helper {
      * @tparam CharType 字符类型
      * @tparam N1 第一个字符串的大小
      * @tparam N2 第二个字符串的大小
-     * @param lhs 第一个字符串
-     * @param rhs 第二个字符串
+     * @param left 第一个字符串
+     * @param right 第二个字符串
      * @return 大小为 N1 + N2 - 1 的连接后字符串
      */
     template <typename CharType, std::size_t N1, std::size_t N2>
-    constexpr rain_fn concat(const basic_constexpr_string<CharType, N1> &lhs, const basic_constexpr_string<CharType, N2> &rhs)
+    constexpr rain_fn concat(const basic_constexpr_string<CharType, N1> &left, const basic_constexpr_string<CharType, N2> &right)
         -> auto {
         basic_constexpr_string<CharType, N1 + N2 - 1> result{};
         std::size_t current_result_idx = 0;
-        for (std::size_t i = 0; i < lhs.length(); ++i) {
-            result[current_result_idx++] = lhs[i];
+        for (std::size_t i = 0; i < left.length(); ++i) {
+            result[current_result_idx++] = left[i];
         }
-        for (std::size_t i = 0; i < rhs.length(); ++i) {
-            result[current_result_idx++] = rhs[i];
+        for (std::size_t i = 0; i < right.length(); ++i) {
+            result[current_result_idx++] = right[i];
         }
         result[current_result_idx] = '\0';
         return result;
@@ -3028,7 +3018,7 @@ namespace rainy::core {
      * \lang english
      * @brief Finds the largest element in a range using a custom comparison.
      * @tparam Iter Iterator type
-     * @tparam Pred Binary predicate type (bool pred(const T&, const T&))
+     * @tparam Pred Binary predicate type (bool pred(const Ty&, const Ty&))
      * @param first Iterator to the beginning of the range
      * @param end Iterator to the end of the range
      * @param pred Comparison function object that returns true if the first argument is less than the second
@@ -3090,7 +3080,7 @@ namespace rainy::core {
      * \lang english
      * @brief Finds the smallest element in a range using a custom comparison.
      * @tparam Iter Iterator type
-     * @tparam Pred Binary predicate type (bool pred(const T&, const T&))
+     * @tparam Pred Binary predicate type (bool pred(const Ty&, const Ty&))
      * @param first Iterator to the beginning of the range
      * @param end Iterator to the end of the range
      * @param pred Comparison function object that returns true if the first argument is less than the second
@@ -3478,8 +3468,9 @@ namespace rainy::type_traits::helper {
          * @brief 将包装器转换为存储值类型。
          * @return 存储的常量值。
          */
-        constexpr explicit operator value_type() const noexcept;
-
+        constexpr explicit operator value_type() const noexcept {
+            return Data;
+        }
 
         /**
          * \lang english
@@ -3490,7 +3481,9 @@ namespace rainy::type_traits::helper {
          * @brief 函数调用运算符，返回存储的常量值。
          * @return 存储的常量值。
          */
-        constexpr value_type operator()() const noexcept;
+        constexpr value_type operator()() const noexcept {
+            return Data;
+        }
 
 
         /**
@@ -3547,7 +3540,6 @@ namespace rainy::type_traits::helper {
     template <typename CharType>
     struct char_space : integral_constant<char, ' '> {};
 
-#if !RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
     /**
      * \lang english
      * @brief wchar_t specialization of space character constant.
@@ -3577,7 +3569,6 @@ namespace rainy::type_traits::helper {
      */
     template <>
     struct char_space<char32_t> : integral_constant<char32_t, U' '> {};
-#endif
 
     /**
      * \lang english
@@ -3591,7 +3582,7 @@ namespace rainy::type_traits::helper {
     template <typename CharType>
     RAINY_INLINE_CONSTEXPR CharType char_space_v = char_space<CharType>::value;
 
-#if RAINY_HAS_CXX20 && defined(__cpp_lib_char8_t) && !RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
+#if RAINY_HAS_CXX20 && defined(__cpp_lib_char8_t)
     /**
      * \lang english
      * @brief char8_t specialization of space character constant (C++20 and later).
@@ -3617,7 +3608,6 @@ namespace rainy::type_traits::helper {
     template <typename CharType>
     struct char_null : integral_constant<char, '\0'> {};
 
-#if !RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
     /**
      * \lang english
      * @brief wchar_t specialization of null character constant.
@@ -3647,9 +3637,8 @@ namespace rainy::type_traits::helper {
      */
     template <>
     struct char_null<char32_t> : integral_constant<char32_t, U'\0'> {};
-#endif
 
-#if RAINY_HAS_CXX20 && defined(__cpp_lib_char8_t) && !RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
+#if RAINY_HAS_CXX20 && defined(__cpp_lib_char8_t)
     /**
      * \lang english
      * @brief char8_t specialization of null character constant (C++20 and later).
@@ -3963,9 +3952,7 @@ namespace rainy::container {
      *        用于指示构造函数应使用分段方式构造 pair 或 tuple 等容器。
      */
     struct piecewise_construct_t {
-#if !RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
         explicit piecewise_construct_t() = default;
-#endif
     };
 
     /**
@@ -3988,7 +3975,7 @@ namespace rainy::utility {
      * @brief 在容器末尾插入元素的输出迭代器。
      * @tparam Container 容器类型（必须支持 push_back()）
      */
-    template <class Container>
+    template <typename Container>
     class back_insert_iterator {
     public:
         using iterator_category = std::output_iterator_tag;
@@ -4008,7 +3995,7 @@ namespace rainy::utility {
          * @brief 为给定容器构造 back_insert_iterator。
          * @param c 要插入元素的容器
          */
-        explicit back_insert_iterator(Container &c) : container(std::addressof(c)) {
+        explicit back_insert_iterator(Container &c) : container(utility::addressof(c)) {
         }
 
         /**
@@ -4031,7 +4018,7 @@ namespace rainy::utility {
          * @brief 通过 push_back 移动赋值一个值。
          */
         back_insert_iterator &operator=(typename Container::value_type &&value) {
-            container->push_back(std::move(value));
+            container->push_back(type_traits::implements::impl_move(value));
             return *this;
         }
 
@@ -4067,7 +4054,7 @@ namespace rainy::utility {
      * @param c 要插入元素的容器
      * @return back_insert_iterator<Container>
      */
-    template <class Container>
+    template <typename Container>
     back_insert_iterator<Container> back_inserter(Container &c) {
         return back_insert_iterator<Container>(c);
     }
@@ -4087,7 +4074,7 @@ namespace rainy::utility {
      *        位掩码以及取值范围等信息。
      * @tparam FloatingType 需要检查的浮点类型
      */
-    template <>
+    template <typename FloatingType>
     struct floating_type_traits {
         /**
          * \lang english
@@ -4588,12 +4575,10 @@ namespace rainy::utility::implements {
      */
     struct ignore_type {
         explicit ignore_type() = default;
-#if !RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
         template <typename Ty>
         constexpr const ignore_type &operator=(const Ty &) const noexcept { // NOLINT
             return *this;
         }
-#endif
     };
 }
 
@@ -4611,9 +4596,12 @@ namespace rainy::utility {
 }
 
 #if RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
+
+// @NODOCBEGIN
 namespace rainy::annotations::implements {
     using info_handle = void *;
 }
+// @NODOCEND
 
 namespace rainy::annotations {
     /**
@@ -4796,7 +4784,6 @@ namespace rainy::annotations {
 
 #endif
 
-#if !RAINY_HAS_MUZIYAN_REACH_FOR_THE_MOON
 
 namespace rainy::core::implements {
     constexpr bool is_pow_2(const std::size_t val) noexcept {
@@ -4827,7 +4814,6 @@ namespace rainy::core::implements {
     RAINY_TOOLKIT_API void stl_internal_check(bool result);
 }
 
-#endif
 
 namespace rainy::utility {
     /**
@@ -4839,5 +4825,12 @@ namespace rainy::utility {
      */
     struct monostate {};
 }
+
+
+namespace rainy::core::implements {
+    RAINY_TOOLKIT_API void throw_exception_out_of_range(const char *msg);
+    RAINY_TOOLKIT_API void throw_exception_length_error(const char *msg);
+}
+
 
 #endif

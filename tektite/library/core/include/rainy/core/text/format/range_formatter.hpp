@@ -59,13 +59,62 @@ namespace rainy::core::text::implements {
 }
 
 namespace rainy::core::text {
+    template <typename Ty, typename CharType>
+    RAINY_CONSTEXPR_BOOL
+        is_formattable_v<Ty, CharType, type_traits::other_trans::enable_if_t<implements::is_formattable_range_v<Ty, CharType>>> =
+            is_formattable_v<type_traits::modifers::remove_cvref_t<implements::range_value_t<Ty>>, CharType>;
+}
+
+namespace rainy::core::text {
+    /**
+     * \lang english
+     * @brief Formatter that formats a range of elements with separators and optional brackets.
+     *
+     * @tparam Ty The element type
+     * @tparam CharType The character type
+     *
+     * \lang simp-chinese
+     * @brief 以分隔符与可选的括号格式化一个元素范围的 formatter。
+     *
+     * @tparam Ty 元素类型
+     * @tparam CharType 字符类型
+     */
     template <typename Ty, typename CharType = char>
     class range_formatter {
     public:
+        /**
+         * \lang english
+         * @brief The element type of the range.
+         *
+         * \lang simp-chinese
+         * @brief 范围的元素类型。
+         */
         using element_type = Ty;
 
+        /**
+         * \lang english
+         * @brief Default constructor.
+         *
+         * \lang simp-chinese
+         * @brief 默认构造函数。
+         */
         range_formatter() = default;
 
+        /**
+         * \lang english
+         * @brief Parses the range format specification (fill/align, width, 'n', element format).
+         *
+         * @tparam ParseContext The parse context type
+         * @param ctx The parse context
+         * @return An iterator past the parsed specification
+         *
+         * \lang simp-chinese
+         * @brief 解析范围格式规范（填充/对齐、宽度、'n'、元素格式）。
+         *
+         * @tparam ParseContext 解析上下文类型
+         * @param ctx 解析上下文
+         * @return 指向已解析规范末尾之后的迭代器
+         */
         template <typename ParseContext>
         constexpr auto parse(ParseContext &ctx) -> typename ParseContext::iterator {
             auto it = ctx.begin();
@@ -142,6 +191,25 @@ namespace rainy::core::text {
             return it;
         }
 
+        /**
+         * \lang english
+         * @brief Formats the given range into the output context.
+         *
+         * @tparam Range The range type
+         * @tparam FormatContext The format context type
+         * @param range The range to format
+         * @param ctx The format context
+         * @return The output iterator after formatting
+         *
+         * \lang simp-chinese
+         * @brief 将给定的范围格式化到输出上下文中。
+         *
+         * @tparam Range 范围类型
+         * @tparam FormatContext 格式化上下文类型
+         * @param range 待格式化的范围
+         * @param ctx 格式化上下文
+         * @return 格式化完成后的输出迭代器
+         */
         template <typename Range, typename FormatContext>
         auto format(Range &&range, FormatContext &ctx) const -> typename FormatContext::iterator {
             basic_string<CharType> result;
@@ -160,7 +228,7 @@ namespace rainy::core::text {
                 basic_string<CharType> element_str;
                 auto element_out = utility::back_inserter(element_str);
                 using element_context = basic_format_context<decltype(element_out), CharType>;
-                element_context element_ctx(std::move(element_out), basic_format_args<element_context>{});
+                element_context element_ctx(utility::move(element_out), basic_format_args<element_context>{});
                 element_formatter_.format(element, element_ctx);
                 result.append(element_str);
             }
@@ -172,16 +240,47 @@ namespace rainy::core::text {
             return write_aligned(result, ctx);
         }
 
+        /**
+         * \lang english
+         * @brief Sets the separator string placed between formatted elements.
+         *
+         * @param sep The separator string
+         *
+         * \lang simp-chinese
+         * @brief 设置放置在已格式化元素之间的分隔字符串。
+         *
+         * @param sep 分隔字符串
+         */
         constexpr void set_separator(basic_string_view<CharType> sep) {
             separator_.assign(sep.data(), sep.size());
         }
 
+        /**
+         * \lang english
+         * @brief Sets the bracket characters and enables bracket output.
+         *
+         * @param open The opening bracket character
+         * @param close The closing bracket character
+         *
+         * \lang simp-chinese
+         * @brief 设置括号字符并启用括号输出。
+         *
+         * @param open 左括号字符
+         * @param close 右括号字符
+         */
         constexpr void set_brackets(CharType open, CharType close) {
             open_bracket_ = open;
             close_bracket_ = close;
             show_brackets_ = true;
         }
 
+        /**
+         * \lang english
+         * @brief Disables bracket output.
+         *
+         * \lang simp-chinese
+         * @brief 禁用括号输出。
+         */
         constexpr void clear_brackets() {
             show_brackets_ = false;
         }
@@ -201,19 +300,19 @@ namespace rainy::core::text {
 
             switch (align) {
                 case implements::align_type::left: {
-                    out = algorithm::copy(str.begin(), str.end(), std::move(out));
-                    return algorithm::fill_n(std::move(out), padding, fill_);
+                    out = algorithm::copy(str.begin(), str.end(), utility::move(out));
+                    return algorithm::fill_n(utility::move(out), padding, fill_);
                 }
                 case implements::align_type::right: {
-                    out = algorithm::fill_n(std::move(out), padding, fill_);
-                    return algorithm::copy(str.begin(), str.end(), std::move(out));
+                    out = algorithm::fill_n(utility::move(out), padding, fill_);
+                    return algorithm::copy(str.begin(), str.end(), utility::move(out));
                 }
                 case implements::align_type::center: {
                     auto lp = padding / 2;
                     auto rp = padding - lp;
-                    out = algorithm::fill_n(std::move(out), lp, fill_);
-                    out = algorithm::copy(str.begin(), str.end(), std::move(out));
-                    return algorithm::fill_n(std::move(out), rp, fill_);
+                    out = algorithm::fill_n(utility::move(out), lp, fill_);
+                    out = algorithm::copy(str.begin(), str.end(), utility::move(out));
+                    return algorithm::fill_n(utility::move(out), rp, fill_);
                 }
                 default: {
                     return algorithm::copy(str.begin(), str.end(), ctx.out());
@@ -231,9 +330,26 @@ namespace rainy::core::text {
         bool show_brackets_ = true;
     };
 
+    /**
+     * \lang english
+     * @brief Formatter specialization that formats any formattable range via range_formatter.
+     *
+     * @tparam Range The range type
+     * @tparam CharType The character type
+     *
+     * \lang simp-chinese
+     * @brief 通过 range_formatter 格式化任意可格式化范围的 formatter 特化。
+     *
+     * @tparam Range 范围类型
+     * @tparam CharType 字符类型
+     */
     template <typename Range, typename CharType>
     struct formatter<Range, CharType, type_traits::other_trans::enable_if_t<implements::is_formattable_range_v<Range, CharType>>>
         : range_formatter<implements::range_value_t<Range>, CharType> {};
+}
+
+namespace rainy::text {
+    using core::text::range_formatter;
 }
 
 #endif

@@ -34,7 +34,7 @@ namespace rainy::core::layer {
             return {};
         }
         DWORD thread_id{0};
-        HANDLE handle = CreateThread(nullptr, stack_size, reinterpret_cast<LPTHREAD_START_ROUTINE>(invoke_function_addr.get()),
+        HANDLE handle = CreateThread(nullptr, stack_size, reinterpret_cast<LPTHREAD_START_ROUTINE>(invoke_function_addr),
                                      arg_list, 0, &thread_id);
         if (!handle) {
             DWORD error = GetLastError();

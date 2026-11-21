@@ -43,6 +43,29 @@ jobs:
           cache: npm # 或 pnpm / yarn
       - name: Setup Pages
         uses: actions/configure-pages@v4
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: .
+      - name: Install libclang
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libclang-dev clang
+          libclang_path="$(dirname "$(find /usr/lib -name 'libclang.so' -print -quit)")"
+          if [ -z "${libclang_path}" ] || [ ! -d "${libclang_path}" ]; then
+            echo "libclang.so not found under /usr/lib" >&2
+            exit 1
+          fi
+          echo "LIBCLANG_PATH=${libclang_path}" >> "$GITHUB_ENV"
+          echo "LD_LIBRARY_PATH=${libclang_path}${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" >> "$GITHUB_ENV"
+      - name: Build MuZiYan
+        run: cargo build --release --locked -p MuZiYan
+      - name: Generate API docs
+        env:
+          MUZIYAN_BIN: target/release/MuZiYan
+        run: python3 scripts/ci/gen-api-docs.py
       - name: Install dependencies
         run: npm ci # 或 pnpm install / yarn install / bun install
       - name: Build with VitePress

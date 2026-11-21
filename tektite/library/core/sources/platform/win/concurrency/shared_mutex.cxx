@@ -16,7 +16,6 @@
 #include <cerrno>
 #include <chrono>
 #include <rainy/core/layer.hpp>
-#include <synchapi.h>
 #include <windows.h>
 
 #if RAINY_USING_MSVC
