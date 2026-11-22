@@ -15,6 +15,7 @@
  */
 
 #include <rainy/core/collections/vector.hpp>
+#include <rainy/core/diagnostics/exceptions.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_all.hpp>
 

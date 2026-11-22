@@ -19,6 +19,7 @@
 
 #include <iostream>
 #include <string>
+#include <string_view>
 #include <vector>
 
 using namespace rainy::container;
@@ -497,7 +498,7 @@ TEST_CASE("Tuple with custom types", "[tuple]") {
         Custom c{42};
         auto t = make_tuple(c, "hello");
         REQUIRE(get<0>(t).value == 42);
-        REQUIRE(get<1>(t) == "hello");
+        REQUIRE(std::string_view(get<1>(t)) == "hello");
     }
 }
 

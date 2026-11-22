@@ -13,6 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+/**
+ * @notpublic
+ */
 #ifndef RAINY_CORE_ALGORITHM_HPP
 #define RAINY_CORE_ALGORITHM_HPP
 #include <rainy/core/algorithm/basic_algorithm.hpp>

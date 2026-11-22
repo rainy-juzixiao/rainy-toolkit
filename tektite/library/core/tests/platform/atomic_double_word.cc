@@ -409,12 +409,15 @@ TEST_CASE("double_word concurrent single writer multiple readers", "[atomic][dou
     for (int r = 0; r < num_readers; ++r) {
         readers.emplace_back([&]() {
             while (!start.load(std::memory_order_acquire));
-            while (!done.load(std::memory_order_acquire)) {
+            for (;;) {
                 native_double_word_t val = atomic_load_double_word(&shared, memory_order_acquire);
                 if (val.lo != 0 && val.hi != val.lo * 2) {
                     corruptions.fetch_add(1, std::memory_order_relaxed);
                 }
                 total_reads.fetch_add(1, std::memory_order_relaxed);
+                if (done.load(std::memory_order_acquire)) {
+                    break;
+                }
             }
         });
     }

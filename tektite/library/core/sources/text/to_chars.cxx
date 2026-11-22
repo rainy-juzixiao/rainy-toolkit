@@ -44,6 +44,7 @@
 #include <rainy/core/container/compressed_pair.hpp>
 #include <rainy/core/platform.hpp>
 #include <rainy/core/text/charconv.hpp>
+#include <rainy/core/text/implements/ryu_generic_128.hpp>
 #include <rainy/core/text/implements/ryu_table.hpp>
 #include <rainy/core/type_traits/meta_methods.hpp>
 #include <rainy/core/utility/bit.hpp>
@@ -251,16 +252,15 @@ namespace rainy::core::text::implements::ryu {
         return (value & ((1ull << power) - 1)) == 0;
     }
 
-    RAINY_NODISCARD static unsigned char bit_scan_forward(unsigned long *index, unsigned long mask) {
+    RAINY_NODISCARD static unsigned char bit_scan_forward(unsigned long *index, std::uint32_t mask) {
         if (mask == 0) {
-            return 0; // 没有置位位，行为未定义（通常返回 0）
+            return 0;
         }
-        unsigned long lowest = mask & -mask;
-        static const unsigned long DE_BRUIJN = 0x077CB531UL;
-        static const unsigned char bit_pos[32] = {0,  1,  28, 2,  29, 14, 24, 3, 30, 22, 20, 15, 25, 17, 4,  8,
-                                                  31, 27, 13, 23, 21, 19, 16, 7, 26, 12, 18, 6,  11, 5,  10, 9};
-        unsigned long bit_index = bit_pos[(lowest * DE_BRUIJN) >> 27];
-        *index = bit_index;
+        const std::uint32_t lowest = mask & (0u - mask);
+        static constexpr std::uint32_t DE_BRUIJN = 0x077CB531u;
+        static constexpr unsigned char bit_pos[32] = {0,  1,  28, 2,  29, 14, 24, 3, 30, 22, 20, 15, 25, 17, 4,  8,
+                                                      31, 27, 13, 23, 21, 19, 16, 7, 26, 12, 18, 6,  11, 5,  10, 9};
+        *index = bit_pos[(lowest * DE_BRUIJN) >> 27];
         return 1;
     }
 }
@@ -799,7 +799,7 @@ namespace rainy::core::text::implements::ryu {
                     *round = '0';
                     round_up = 1; // 继续进位
                 } else {
-                    if (round_up == 1 || (*round & 1) == 0) {
+                    if (round_up == 1 || (*round & 1) != 0) {
                         *round = static_cast<char>(*round + 1);
                     }
                     break;
@@ -2291,6 +2291,22 @@ namespace rainy::core::text::implements {
             }
         }
     }
+
+#if RAINY_HAS_EXTENDED_LONG_DOUBLE
+    RAINY_NODISCARD inline to_chars_result long_double_to_chars(char *const first, char *const end, const long double value,
+                                                                const chars_format fmt) noexcept {
+        const ryu::floating_decimal_128 decimal = ryu::long_double_to_fd128(value);
+        const container::compressed_pair<char *, std::errc> result = ryu::generic_to_chars(first, end, decimal, fmt, value);
+        return {result.first, result.second};
+    }
+
+    RAINY_NODISCARD inline to_chars_result long_double_to_chars(char *const first, char *const end, const long double value,
+                                                                const chars_format fmt, const int precision) noexcept {
+        const container::compressed_pair<char *, std::errc> result =
+            ryu::generic_to_chars_precision(first, end, value, fmt, precision);
+        return {result.first, result.second};
+    }
+#endif
 }
 
 namespace rainy::core::text {
@@ -2321,18 +2337,30 @@ namespace rainy::core::text {
     }
 
     to_chars_result to_chars(char *begin, char *end, long double value) noexcept {
+#if RAINY_HAS_EXTENDED_LONG_DOUBLE
+        return implements::long_double_to_chars(begin, end, value, chars_format{});
+#else
         return implements::floating_to_chars<implements::floating_to_chars_overload::plain>(begin, end, static_cast<double>(value),
                                                                                             chars_format{}, 0);
+#endif
     }
 
     to_chars_result to_chars(char *begin, char *end, long double value, chars_format fmt) noexcept {
+#if RAINY_HAS_EXTENDED_LONG_DOUBLE
+        return implements::long_double_to_chars(begin, end, value, fmt);
+#else
         return implements::floating_to_chars<implements::floating_to_chars_overload::format_only>(begin, end,
                                                                                                   static_cast<double>(value), fmt, 0);
+#endif
     }
 
     to_chars_result to_chars(char *begin, char *end, long double value, chars_format fmt, int precision) noexcept {
+#if RAINY_HAS_EXTENDED_LONG_DOUBLE
+        return implements::long_double_to_chars(begin, end, value, fmt, precision);
+#else
         return implements::floating_to_chars<implements::floating_to_chars_overload::format_precision>(
             begin, end, static_cast<double>(value), fmt, precision);
+#endif
     }
 }
 

@@ -22,14 +22,17 @@
 
 namespace rainy::core::memory {
     /**
+     * \lang english
      * @brief A temporary buffer for POD types with automatic management.
-     *        Provides RAII-style management of temporary memory buffers.
-     *
-     *        用于POD类型的临时缓冲区，支持自动管理。
-     *        提供RAII风格的临时内存缓冲区管理。
+     *         Provides RAII-style management of temporary memory buffers.
      *
      * @tparam Ty The element type, must be a plain old data type
-     *            元素类型，必须是POD类型
+     *
+     * \lang simp-chinese
+     * @brief 用于POD类型的临时缓冲区，支持自动管理。
+     *         提供RAII风格的临时内存缓冲区管理。
+     *
+     * @tparam Ty 元素类型，必须是POD类型
      */
     template <typename Ty>
     class temporary_buffer {
@@ -47,11 +50,15 @@ namespace rainy::core::memory {
         friend rain_fn get_temporary_buffer(std::ptrdiff_t count) noexcept -> temporary_buffer<UTy>;
 
         /**
+         * \lang english
          * @brief Move constructor.
-         *        移动构造函数。
          *
          * @param right The temporary_buffer to move from
-         *              要移动的 temporary_buffer
+         *
+         * \lang simp-chinese
+         * @brief 移动构造函数。
+         *
+         * @param right 要移动的 temporary_buffer
          */
         temporary_buffer(temporary_buffer &&right) noexcept :
             buffer_{utility::exchange(right.buffer_, nullptr)}, count_{utility::exchange(right.count_, 0)},
@@ -59,21 +66,28 @@ namespace rainy::core::memory {
         }
 
         /**
+         * \lang english
          * @brief Destructor that automatically returns the buffer.
-         *        析构函数，自动归还缓冲区。
+         *
+         * \lang simp-chinese
+         * @brief 析构函数，自动归还缓冲区。
          */
         ~temporary_buffer() {
             return_buffer();
         }
 
         /**
+         * \lang english
          * @brief Move assignment operator.
-         *        移动赋值运算符。
          *
          * @param right The temporary_buffer to move from
-         *              要移动的 temporary_buffer
          * @return Reference to this object
-         *         此对象的引用
+         *
+         * \lang simp-chinese
+         * @brief 移动赋值运算符。
+         *
+         * @param right 要移动的 temporary_buffer
+         * @return 此对象的引用
          */
         rain_fn operator=(temporary_buffer &&right) noexcept -> temporary_buffer & {
             this->buffer_ = utility::exchange(right.buffer_, nullptr);
@@ -86,52 +100,71 @@ namespace rainy::core::memory {
         temporary_buffer &operator=(const temporary_buffer &) = delete;
 
         /**
+         * \lang english
          * @brief Returns an iterator to the beginning.
-         *        返回指向起始的迭代器。
          *
          * @return Iterator to the first element
-         *         指向第一个元素的迭代器
+         *
+         * \lang simp-chinese
+         * @brief 返回指向起始的迭代器。
+         *
+         * @return 指向第一个元素的迭代器
          */
         rain_fn begin() noexcept -> iterator {
             return buffer_;
         }
 
         /**
+         * \lang english
          * @brief Returns a const iterator to the beginning.
-         *        返回指向起始的常量迭代器。
          *
          * @return Const iterator to the first element
-         *         指向第一个元素的常量迭代器
+         *
+         * \lang simp-chinese
+         * @brief 返回指向起始的常量迭代器。
+         *
+         * @return 指向第一个元素的常量迭代器
          */
         rain_fn begin() const noexcept -> const_iterator {
             return buffer_;
         }
 
         /**
+         * \lang english
          * @brief Returns an iterator to the end.
-         *        返回指向末尾的迭代器。
          *
          * @return Iterator to one past the last element
-         *         指向最后一个元素之后位置的迭代器
+         *
+         * \lang simp-chinese
+         * @brief 返回指向末尾的迭代器。
+         *
+         * @return 指向最后一个元素之后位置的迭代器
          */
         rain_fn end() noexcept -> iterator {
             return buffer_ + count_;
         }
 
         /**
+         * \lang english
          * @brief Returns a const iterator to the end.
-         *        返回指向末尾的常量迭代器。
          *
          * @return Const iterator to one past the last element
-         *         指向最后一个元素之后位置的常量迭代器
+         *
+         * \lang simp-chinese
+         * @brief 返回指向末尾的常量迭代器。
+         *
+         * @return 指向最后一个元素之后位置的常量迭代器
          */
         rain_fn end() const noexcept -> const_iterator {
             return buffer_ + count_;
         }
 
         /**
+         * \lang english
          * @brief Returns the buffer to the system.
-         *        将缓冲区归还给系统。
+         *
+         * \lang simp-chinese
+         * @brief 将缓冲区归还给系统。
          */
         rain_fn return_buffer() -> void {
             if (!buffer_) {
@@ -143,11 +176,15 @@ namespace rainy::core::memory {
         }
 
         /**
+         * \lang english
          * @brief Reallocates the buffer to a new size.
-         *        重新分配缓冲区到新大小。
          *
          * @param realloc The requested number of elements
-         *                请求的元素数量
+         *
+         * \lang simp-chinese
+         * @brief 重新分配缓冲区到新大小。
+         *
+         * @param realloc 请求的元素数量
          */
         rain_fn reallocate(const std::size_t realloc) -> void {
             if (buffer_) {
@@ -167,55 +204,75 @@ namespace rainy::core::memory {
         }
 
         /**
+         * \lang english
          * @brief Gets the raw buffer pointer.
-         *        获取原始缓冲区指针。
          *
          * @return Pointer to the buffer
-         *         指向缓冲区的指针
+         *
+         * \lang simp-chinese
+         * @brief 获取原始缓冲区指针。
+         *
+         * @return 指向缓冲区的指针
          */
         rain_fn get_buffer() noexcept -> pointer {
             return buffer_;
         }
 
         /**
+         * \lang english
          * @brief Gets the raw buffer pointer (const version).
-         *        获取原始缓冲区指针（常量版本）。
          *
          * @return Const pointer to the buffer
-         *         指向缓冲区的常量指针
+         *
+         * \lang simp-chinese
+         * @brief 获取原始缓冲区指针（常量版本）。
+         *
+         * @return 指向缓冲区的常量指针
          */
         rain_fn get_buffer() const noexcept -> const_pointer {
             return buffer_;
         }
 
         /**
+         * \lang english
          * @brief Checks if the buffer is valid.
-         *        检查缓冲区是否有效。
          *
          * @return true if buffer is valid, false otherwise
-         *         如果缓冲区有效则为true，否则为false
+         *
+         * \lang simp-chinese
+         * @brief 检查缓冲区是否有效。
+         *
+         * @return 如果缓冲区有效则为true，否则为false
          */
         explicit operator bool() const noexcept {
             return static_cast<bool>(buffer_);
         }
 
         /**
+         * \lang english
          * @brief Implicit conversion to pointer.
-         *        到指针的隐式转换。
          *
          * @return Pointer to the buffer
-         *         指向缓冲区的指针
+         *
+         * \lang simp-chinese
+         * @brief 到指针的隐式转换。
+         *
+         * @return 指向缓冲区的指针
          */
         operator pointer() noexcept {
             return buffer_;
         }
 
         /**
+         * \lang english
          * @brief Implicit conversion to const pointer.
-         *        到常量指针的隐式转换。
          *
          * @return Const pointer to the buffer
-         *         指向缓冲区的常量指针
+         *
+         * \lang simp-chinese
+         * @brief 到常量指针的隐式转换。
+         *
+         * @return 指向缓冲区的常量指针
          */
         operator const_pointer() const noexcept {
             return buffer_;
@@ -233,15 +290,19 @@ namespace rainy::core::memory {
     };
 
     /**
+     * \lang english
      * @brief Obtains a temporary buffer for a given number of elements.
-     *        获取用于指定数量元素的临时缓冲区。
      *
      * @tparam Ty The element type (must be POD)
-     *            元素类型（必须是POD）
      * @param count The requested number of elements
-     *              请求的元素数量
      * @return A temporary_buffer instance managing the allocated memory
-     *         管理已分配内存的 temporary_buffer 实例
+     *
+     * \lang simp-chinese
+     * @brief 获取用于指定数量元素的临时缓冲区。
+     *
+     * @tparam Ty 元素类型（必须是POD）
+     * @param count 请求的元素数量
+     * @return 管理已分配内存的 temporary_buffer 实例
      */
     template <typename Ty>
     rain_fn get_temporary_buffer(std::ptrdiff_t count) noexcept -> temporary_buffer<Ty> {
@@ -250,13 +311,17 @@ namespace rainy::core::memory {
     }
 
     /**
+     * \lang english
      * @brief Explicitly returns a temporary buffer.
-     *        显式归还临时缓冲区。
      *
      * @tparam Ty The element type
-     *            元素类型
      * @param buffer The buffer to return
-     *               要归还的缓冲区
+     *
+     * \lang simp-chinese
+     * @brief 显式归还临时缓冲区。
+     *
+     * @tparam Ty 元素类型
+     * @param buffer 要归还的缓冲区
      */
     template <typename Ty>
     rain_fn return_temporary_buffer(temporary_buffer<Ty> &buffer) -> void {

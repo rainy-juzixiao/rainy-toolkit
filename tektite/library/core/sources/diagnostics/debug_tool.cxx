@@ -119,7 +119,7 @@ namespace rainy::core::layer {
     }
 }
 
-namespace rainy::core::pal {
+namespace rainy::core::layer {
 #if RAINY_USING_GCC || RAINY_USING_CLANG
     static void abi_demangle(czstring name, cstring buf, std::size_t buffer_length) {
         if (!buf || buffer_length == 0) {
@@ -249,7 +249,7 @@ namespace rainy::core::pal {
 #elif RAINY_USING_GCC
         abi_demangle(name, buf, buffer_length);
 #else
-        static_assert(false, "unsupported compiler from " RAINY_STRINGIZE(rainy::core::pal::demangle));
+        static_assert(false, "unsupported compiler from " RAINY_STRINGIZE(rainy::core::layer::demangle));
 #endif
 #else
         abi_demangle(name, buf, buffer_length);

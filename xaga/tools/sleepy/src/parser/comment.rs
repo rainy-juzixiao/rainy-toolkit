@@ -19,7 +19,9 @@ use crate::i18n::{I18n, LangTag};
 use std::collections::HashMap;
 
 pub fn extract_raw_comment(entity: &clang::Entity) -> Option<String> {
-    let result = entity.get_comment();
+    if let Some(crate::parser::scope::Override::Substituted(raw)) = scope_override(entity) {
+        return Some(raw);
+    }
     // 优先 libclang
     if let Some(comment) = entity.get_comment() {
         if !comment.trim().is_empty() {
@@ -38,12 +40,26 @@ pub fn extract_raw_comment(entity: &clang::Entity) -> Option<String> {
     None
 }
 
+fn scope_override(entity: &clang::Entity) -> Option<crate::parser::scope::Override> {
+    let line = entity.get_location()?.get_file_location().line;
+    crate::parser::scope::override_for(line)
+}
+
+
+pub fn entity_location(entity: &clang::Entity) -> Option<String> {
+    let loc = entity.get_location()?;
+    let file_loc = loc.get_file_location();
+    let file = file_loc.file?;
+    let path = file.get_path();
+    Some(format!("{}:{}", path.display(), file_loc.line))
+}
+
 #[derive(Debug)]
 enum CommentToken {
     LangSwitch(String),                                       // \lang <tag>
     Tag(String, String),                                      // @brief foo / @param[in] x desc
     TagWithArg(String, String, String), // @param[in] name desc / @tparam T desc
-    TagWithDirection(String, ParamDirection, String, String), // @param[in/out] name desc
+    TagWithDirection(ParamDirection, String, String), // @param[in/out] name desc
     RetVal(String, String),             // @retval value desc
     Throws(String, String),             // @throws Type desc
     See(String),                        // @see / @sa
@@ -60,10 +76,11 @@ enum CommentToken {
     Plain(String),        // 纯文本（属于 @details）
     NotPublic,            // @notpublic
     Hide,                 // @hide
+    Show,                 // @show
     OverloadDecl(String), // @overload_decl
     MainTemplate,
     SpecTemplate(Vec<String>),
-    Module(String),  // @module
+    Module(String), // @module
 }
 
 fn tokenize_comment(raw: &str) -> Vec<CommentToken> {
@@ -85,6 +102,16 @@ fn tokenize_comment(raw: &str) -> Vec<CommentToken> {
             i += 1;
             continue;
         }
+        if strip_tag(line, "show").is_some() {
+            tokens.push(CommentToken::Show);
+            i += 1;
+            continue;
+        }
+        // 文件级标记与 @file：对单个实体没有文档意义，丢弃以免混进正文
+        if strip_tag(line, "file").is_some() || strip_tag(line, "umbrella").is_some() {
+            i += 1;
+            continue;
+        }
         if strip_tag(line, "main_template").is_some() {
             tokens.push(CommentToken::MainTemplate);
             i += 1;
@@ -97,6 +124,10 @@ fn tokenize_comment(raw: &str) -> Vec<CommentToken> {
                 .filter(|s| !s.is_empty())
                 .collect();
             tokens.push(CommentToken::SpecTemplate(args));
+            i += 1;
+            continue;
+        }
+        if strip_tag(line, "scope").is_some() || strip_tag(line, "forscope").is_some() {
             i += 1;
             continue;
         }
@@ -171,12 +202,7 @@ fn tokenize_comment(raw: &str) -> Vec<CommentToken> {
         if let Some(rest) = strip_tag(line, "param") {
             let (dir, rest2) = parse_param_direction(rest);
             let (name, desc) = split_first_word(rest2);
-            tokens.push(CommentToken::TagWithDirection(
-                "param".into(),
-                dir,
-                name,
-                desc,
-            ));
+            tokens.push(CommentToken::TagWithDirection(dir, name, desc));
             i += 1;
             continue;
         }
@@ -391,7 +417,6 @@ pub struct ParsedComment {
     pub tparams_desc: HashMap<String, I18n<String>>, // name → desc，合并到 template_params
     pub return_doc: ReturnDoc,
     pub exceptions: Vec<ExceptionDoc>,
-    pub overload_decl: Option<String>,
 }
 
 fn get_current_lang(parser: &CommentBlockParser) -> Option<LangTag> {
@@ -401,7 +426,12 @@ fn get_current_lang(parser: &CommentBlockParser) -> Option<LangTag> {
     }
 }
 
-pub fn parse_comment(raw: &str, name: &str, namespace_stack: Vec<String>) -> ParsedComment {
+pub fn parse_comment(
+    raw: &str,
+    name: &str,
+    namespace_stack: Vec<String>,
+    location: Option<&str>,
+) -> ParsedComment {
     let tokens = tokenize_comment(raw);
     let mut basic = BasicDocument {
         name: name.to_string(),
@@ -435,10 +465,13 @@ pub fn parse_comment(raw: &str, name: &str, namespace_stack: Vec<String>) -> Par
         par: vec![],
         is_not_public: false,
         is_hidden: false,
+        is_shown: false,
         overload_decl: None,
         is_main_template: false,
         spec_template_args: vec![],
         module: None,
+        is_documented: has_doc_content(raw),
+        location: location.map(|s| s.to_string()),
     };
     let mut parser = CommentBlockParser::new();
     let mut params: HashMap<String, Param> = HashMap::new();
@@ -459,9 +492,10 @@ pub fn parse_comment(raw: &str, name: &str, namespace_stack: Vec<String>) -> Par
                 let count = seen_langs.entry(tag.clone()).or_insert(0);
                 *count += 1;
                 if *count >= 2 {
+                    let where_ = location.unwrap_or("<unknown>");
                     eprintln!(
-                        "[sleepy warn] {}: 检测到 {} 个或以上的 \\lang {} 语言块文档，可能会被覆盖",
-                        name, *count, tag
+                        "[sleepy warn] {where_}: {name}: 检测到 {} 个或以上的 \\lang {} 语言块文档，可能会被覆盖",
+                        *count, tag
                     );
                 }
                 parser.current_lang = LangContext::Scoped(LangTag(tag));
@@ -520,7 +554,7 @@ pub fn parse_comment(raw: &str, name: &str, namespace_stack: Vec<String>) -> Par
                 buf.push_str(&text);
             }
 
-            CommentToken::TagWithDirection(_, dir, name, desc) => {
+            CommentToken::TagWithDirection(dir, name, desc) => {
                 // @param
                 let lang = get_current_lang(&parser);
                 let entry = params.entry(name.clone()).or_insert_with(|| Param {
@@ -665,6 +699,9 @@ pub fn parse_comment(raw: &str, name: &str, namespace_stack: Vec<String>) -> Par
             CommentToken::Hide => {
                 basic.is_hidden = true;
             }
+            CommentToken::Show => {
+                basic.is_shown = true;
+            }
             CommentToken::OverloadDecl(proto) => {
                 overload_decl = Some(proto);
             }
@@ -687,8 +724,22 @@ pub fn parse_comment(raw: &str, name: &str, namespace_stack: Vec<String>) -> Par
         tparams_desc,
         return_doc,
         exceptions,
-        overload_decl,
     }
+}
+
+/// 注释里是否写有实际文档内容。
+///
+/// 只带 `@notpublic` / `@hide` / `@file` 等标记的注释不算文档：这类实体要么
+/// 本来就被过滤掉，要么标记本身不描述实体。
+fn has_doc_content(raw: &str) -> bool {
+    tokenize_comment(raw).iter().any(|token| match token {
+        CommentToken::NotPublic
+        | CommentToken::Hide
+        | CommentToken::Show
+        | CommentToken::LangSwitch(_) => false,
+        CommentToken::Plain(text) => !text.trim().is_empty(),
+        _ => true,
+    })
 }
 
 fn strip_comment_markers(raw: &str) -> Vec<String> {

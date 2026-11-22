@@ -13,6 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+/**
+ * @umbrella
+ */
 #ifndef RAINY_CORE_YESOD_COLLECTIONS_VIEWS_HPP
 #define RAINY_CORE_YESOD_COLLECTIONS_VIEWS_HPP
 

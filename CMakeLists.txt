@@ -19,7 +19,7 @@
 cmake_minimum_required(VERSION 3.22.1)
 
 option(RAINY_ENABLE_TESTING "Enable for testing." on)
-option(RAINY_USE_AVX2_BOOST "Enable for avx2 boost." on)
+option(RAINY_USE_AVX2_BOOST "Enable for avx2 boost. Only used when RAINY_SIMD_ISA=auto; otherwise RAINY_SIMD_ISA decides." on)
 option(RAINY_BUILD_WITH_DYNAMIC
         "This option allows you build rainy-toolkit as a dynamic libraray." on)
 option(RAINY_USING_UTF8_INPUT_FOR_MSVC "Use utf-8 encoding for input. Reason: we need avoid mutilangauge problems." on)
@@ -27,6 +27,10 @@ option(RAINY_USING_UTF8_OUTPUT_FOR_MSVC "Use utf-8 encoding for output. Reason: 
 option(RAINY_USE_NODE_ADDON "Enable integration with node-addon-api (N-API)" off)
 option(RAINY_USE_CXX26_REFLECTION_TS "Allows rainy-toolkit to use reflection ts of c++ 26 features for meta library" ON)
 option(RAINY_USE_CROSSCOMPILE "Enable cross compilation" OFF)
+set(RAINY_SIMD_ISA "auto" CACHE STRING
+        "SIMD instruction set acceleration resolved against the compiler target. x86: auto/none/sse4.2/avx/avx2/avx512, arm64: auto/none/neon")
+set_property(CACHE RAINY_SIMD_ISA PROPERTY STRINGS
+        auto none sse4.2 avx avx2 avx512 neon)
 
 set(RAINY_TOOLCHAIN_FILE "" CACHE FILEPATH "Path to CMake toolchain file for cross-compilation")
 
@@ -52,11 +56,12 @@ project(rainy-toolkit VERSION ${VERSION} LANGUAGES CXX C)
 
 message(STATUS "Current rainy-toolkit version is ${VERSION}")
 
-set(RAINY_TOOLKIT_CODE_NAME "xaga")
+set(RAINY_TOOLKIT_CODE_NAME "tektite")
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(RAINY_TOOLKIT_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
+set(BENCHMARK_ENABLE_TESTING OFF)
 
 message("Starting build rainy's toolkit")
 message("Current C++ Standard Is ${CMAKE_CXX_STANDARD}")
@@ -71,21 +76,21 @@ if (RAINY_ENABLE_TESTING)
     enable_testing()
     include(CTest)
     add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/catch2)
-    add_subdirectory(${PROJECT_SOURCE_DIR}/xaga/tests)
+#    add_subdirectory(${PROJECT_SOURCE_DIR}/xaga/tests)
 endif ()
 
-set(BENCHMARK_ENABLE_TESTING off)
-
-#add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/benchmark)
+add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/benchmark)
 #add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/rttr_ex)
 
-add_subdirectory(${PROJECT_SOURCE_DIR}/xaga/examples/reflection/)
+#add_subdirectory(${PROJECT_SOURCE_DIR}/xaga/examples/reflection/)
 #add_subdirectory(${PROJECT_SOURCE_DIR}/xaga/benchmark/format/)
 #add_subdirectory(${PROJECT_SOURCE_DIR}/xaga/benchmark/any/)
 #add_subdirectory(${PROJECT_SOURCE_DIR}/xaga/benchmark/reflection/)
 
-if (RAINY_USE_NODE_ADDON)
-    add_subdirectory(${PROJECT_SOURCE_DIR}/xaga/internal_use/nodejs_integrate_test/)
-endif ()
+#if (RAINY_USE_NODE_ADDON)
+#    add_subdirectory(${PROJECT_SOURCE_DIR}/xaga/internal_use/nodejs_integrate_test/)
+#endif ()
+
+rainy_configure_simd_isa()
 
 add_subdirectory(tektite/)

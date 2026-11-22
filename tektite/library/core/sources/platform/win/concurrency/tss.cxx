@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 #include <chrono>
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 #include <windows.h>
 #include <rainy/core/layer.hpp>
 

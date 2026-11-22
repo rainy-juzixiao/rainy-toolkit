@@ -45,7 +45,7 @@ TEST_CASE("polymorphic construction", "[container][polymorphic]") {
     REQUIRE(value->id() == 0);
     REQUIRE_FALSE(value.valueless_after_move());
 
-    polymorphic<testing::derived> with_alloc(std::allocator_arg, std::allocator<testing::derived>{});
+    polymorphic<testing::derived> with_alloc(std::allocator_arg, rainy::core::memory::allocator<testing::derived>{});
     REQUIRE(with_alloc->id() == 1);
 }
 

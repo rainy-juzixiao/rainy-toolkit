@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-use super::comment::{extract_raw_comment, parse_comment};
+use super::comment::{entity_location, extract_raw_comment, parse_comment};
 use crate::data::document::{
     AccessLevel, FreeFunctionDocument, MemberFunctionDocument, TemplateParam,
 };
@@ -33,7 +33,7 @@ pub fn build_free_function(
     }
     let name = entity.get_name()?;
     let raw = extract_raw_comment(entity).unwrap_or_default();
-    let mut parsed = parse_comment(&raw, &name, namespace_stack.to_vec());
+    let mut parsed = parse_comment(&raw, &name, namespace_stack.to_vec(), entity_location(entity).as_deref());
     if let Some(t) = entity.get_type() {
         let arg_types = t.get_argument_types().unwrap_or_default();
         for (i, param) in parsed.params.iter_mut().enumerate() {
@@ -79,8 +79,13 @@ pub fn build_member_function(
     entity: &Entity,
     namespace_stack: &[String],
 ) -> Option<MemberFunctionDocument> {
+    let effective_kind = if entity.get_kind() == EntityKind::FunctionTemplate {
+        entity.get_template_kind()?
+    } else {
+        entity.get_kind()
+    };
     if !matches!(
-        entity.get_kind(),
+        effective_kind,
         EntityKind::Method
             | EntityKind::Constructor
             | EntityKind::Destructor
@@ -91,7 +96,7 @@ pub fn build_member_function(
 
     let name = entity.get_name()?;
     let raw = extract_raw_comment(entity).unwrap_or_default();
-    let mut parsed = parse_comment(&raw, &name, namespace_stack.to_vec());
+    let mut parsed = parse_comment(&raw, &name, namespace_stack.to_vec(), entity_location(entity).as_deref());
     if let Some(t) = entity.get_type() {
         let arg_types = t.get_argument_types().unwrap_or_default();
         for (i, param) in parsed.params.iter_mut().enumerate() {

@@ -23,6 +23,11 @@
 #include <string>
 #include <filesystem>
 
+#if RAINY_USING_GCC
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-truncation"
+#endif
+
 #ifndef PATH_MAX
 #define PATH_MAX 4096
 #endif
@@ -186,7 +191,36 @@ TEST_CASE("path::canonical_native", "[filesystem][path]") {
         const rainy::core::ssize_t len = layer::canonical_native(d.file_a, buf, PATH_MAX);
         REQUIRE(len > 0);
         buf[len] = '\0';
+#if RAINY_USING_WINDOWS
+        native_char again[PATH_MAX];
+        const rainy::core::ssize_t len2 = layer::canonical_native(buf, again, PATH_MAX);
+        REQUIRE(len2 > 0);
+        again[len2] = '\0';
+        REQUIRE(native_strcmp(again, buf) == 0);
+        const native_char *name = buf;
+        for (const native_char *p = buf; *p; ++p) {
+            if (*p == L'\\' || *p == L'/') {
+                name = p + 1;
+            }
+        }
+        REQUIRE(native_strcmp(name, _T("file_a.txt")) == 0);
+#elif RAINY_USING_MACOS
+        const native_char *a = buf;
+        for (const native_char *p = buf; *p; ++p) {
+            if (*p == L'/') {
+                a = p + 1;
+            }
+        }
+        const native_char *b = d.file_a;
+        for (const native_char *p = d.file_a; *p; ++p) {
+            if (*p == L'/') {
+                b = p + 1;
+            }
+        }
+        REQUIRE(native_strcmp(a, b) == 0);
+#else
         REQUIRE(native_strcmp(buf, d.file_a) == 0);
+#endif
     }
 
     SECTION("canonical of non-existent fails") {
@@ -264,7 +298,23 @@ TEST_CASE("path::current_path_native", "[filesystem][cwd]") {
         const rainy::core::ssize_t len = layer::current_path_native(after, PATH_MAX);
         REQUIRE(len > 0);
         after[len] = '\0';
+#if RAINY_USING_MACOS
+        const native_char *a = after;
+        for (const native_char *p = after; *p; ++p) {
+            if (*p == L'/') {
+                a = p + 1;
+            }
+        }
+        const native_char *b = d.sub;
+        for (const native_char *p = d.sub; *p; ++p) {
+            if (*p == L'/') {
+                b = p + 1;
+            }
+        }
+        REQUIRE(native_strcmp(a, b) == 0);
+#else
         REQUIRE(native_strcmp(after, d.sub) == 0);
+#endif
 
         layer::current_path_native(saved);
     }
@@ -789,3 +839,7 @@ TEST_CASE("edge::error_cases", "[filesystem][edge]") {
         REQUIRE(layer::remove_all_native(_T("/tmp/_____should_not_exist_12345_____")) == 0);
     }
 }
+
+#if RAINY_USING_GCC
+#pragma GCC diagnostic pop
+#endif

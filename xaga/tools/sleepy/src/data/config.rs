@@ -11,6 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use serde::Deserialize;
 use anyhow::{Context, Result};
@@ -20,10 +21,65 @@ pub struct SleepyConfig {
     pub output_dir: PathBuf,
     #[serde(default = "default_lang")]
     pub lang: String,
+    #[serde(default)]
     pub sources: Vec<SourceConfig>,
     /// 要忽略的命名空间（默认：implements, detail, impl）
     #[serde(default = "default_ignored_namespaces")]
     pub ignored_namespaces: Vec<String>,
+    /// 引用其它目录的 sleepy 配置（相对当前配置文件所在目录）
+    #[serde(default)]
+    pub includes: Vec<PathBuf>,
+    /// 依赖图与循环依赖检查配置
+    #[serde(default)]
+    pub dependency_graph: DependencyGraphConfig,
+    /// true = 平铺输出（同名加编号）；false = 保留目录结构（如 rainy/core/）
+    #[serde(default = "default_false")]
+    pub flat: bool,
+}
+
+/// 依赖图生成与循环依赖检查选项。
+///
+/// 根配置中的该节决定全局行为；被引用配置中的同名节点会被忽略。
+#[derive(Debug, Deserialize, Clone)]
+pub struct DependencyGraphConfig {
+    /// 是否生成依赖图与索引页（默认 true）
+    #[serde(default = "default_true")]
+    pub enabled: bool,
+    /// 依赖图输出文件名（不含扩展名，默认 "dependency_graph"）
+    #[serde(default = "default_graph_out_name")]
+    pub out_name: String,
+    /// 发现循环依赖时是否视为致命错误（默认 true；可用 --allow-cycles 临时放行）
+    #[serde(default = "default_true")]
+    pub fail_on_cycle: bool,
+    /// 豁免的包含边，格式 "a.hpp -> b.hpp"（相对 include 根的显示名）
+    #[serde(default)]
+    pub ignore: Vec<String>,
+}
+
+impl Default for DependencyGraphConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            out_name: default_graph_out_name(),
+            fail_on_cycle: true,
+            ignore: Vec::new(),
+        }
+    }
+}
+
+impl SleepyConfig {
+    /// 空配置：用于菱形引用（已被合并过的配置静默跳过时）占位。
+    fn empty() -> Self {
+        Self {
+            output_dir: PathBuf::new(),
+            lang: default_lang(),
+            sources: Vec::new(),
+            ignored_namespaces: Vec::new(),
+            includes: Vec::new(),
+            dependency_graph: DependencyGraphConfig::default(),
+            flat: false,
+        }
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -39,6 +95,12 @@ pub struct SourceConfig {
     pub compile_flags: CompileFlags,
     #[serde(default)]
     pub files: Vec<PathBuf>,
+    /// 排除的目录（相对当前配置文件；其下所有头文件不参与生成）
+    #[serde(default)]
+    pub exclude_dirs: Vec<PathBuf>,
+    /// 排除的单个文件（相对当前配置文件）
+    #[serde(default)]
+    pub exclude_files: Vec<PathBuf>,
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -186,12 +248,130 @@ fn is_reusable_arg(arg: &str) -> bool {
 
 fn default_lang() -> String { "english".into() }
 
+fn default_false() -> bool { false }
+
+fn default_true() -> bool { true }
+
+fn default_graph_out_name() -> String { "dependency_graph".into() }
+
 fn default_ignored_namespaces() -> Vec<String> {
     vec!["implements".into(), "detail".into(), "impl".into()]
 }
 
 fn default_extensions() -> Vec<String> {
     vec!["h".into(), "hpp".into(), "hxx".into()]
+}
+
+/// 加载配置并递归合并 `includes` 引用。
+///
+/// 合并语义：
+/// - `sources`：被引用配置的 sources 会被追加，路径相对**该配置文件自身所在目录**重写；
+/// - `ignored_namespaces`：取并集；
+/// - `output_dir` / `lang` / `dependency_graph`：以根配置为准；
+/// - 显式引用链成环 → 报错并打印完整引用链；
+/// - 菱形引用（同一配置被引用多次）→ 静默跳过。
+pub fn load_with_includes(path: &Path) -> Result<SleepyConfig> {
+    let mut stack: Vec<(PathBuf, String)> = Vec::new();
+    let mut visited: HashSet<PathBuf> = HashSet::new();
+    let mut config = merge_config_tree(path, &mut stack, &mut visited)?;
+
+    // output_dir 相对根配置文件所在目录解析（-c 指向别处时输出也落在配置旁）
+    if config.output_dir.is_relative() {
+        if let Some(dir) = path.canonicalize().ok().and_then(|p| p.parent().map(|d| d.to_path_buf())) {
+            config.output_dir = dir.join(&config.output_dir);
+        }
+    }
+    Ok(config)
+}
+
+fn merge_config_tree(
+    path: &Path,
+    stack: &mut Vec<(PathBuf, String)>,
+    visited: &mut HashSet<PathBuf>,
+) -> Result<SleepyConfig> {
+    let canonical = path
+        .canonicalize()
+        .with_context(|| format!("cannot resolve config: {}", path.display()))?;
+
+    // 显式引用栈：真环检测
+    if let Some(pos) = stack.iter().position(|(p, _)| *p == canonical) {
+        let mut chain: Vec<String> = stack[pos..]
+            .iter()
+            .map(|(_, name)| name.clone())
+            .collect();
+        chain.push(path.display().to_string());
+        anyhow::bail!(
+            "检测到配置文件循环引用 (circular config includes):\n  {}\n  cycle closes here",
+            chain.join(" -> ")
+        );
+    }
+    // 菱形引用：已合并过则静默跳过
+    if !visited.insert(canonical.clone()) {
+        return Ok(SleepyConfig::empty());
+    }
+
+    let base = load(path)?;
+    let mut merged = base;
+    let config_dir = canonical
+        .parent()
+        .map(|p| p.to_path_buf())
+        .unwrap_or_else(|| PathBuf::from("."));
+
+    // 递归合并 includes（路径相对当前配置文件所在目录）
+    let includes = merged.includes.clone();
+    for inc in &includes {
+        let inc_path = config_dir.join(inc);
+        stack.push((canonical.clone(), path.display().to_string()));
+        let child = merge_config_tree(&inc_path, stack, visited);
+        stack.pop();
+        let child = child?;
+        for src in child.sources {
+            merged.sources.push(src);
+        }
+        for ns in child.ignored_namespaces {
+            if !merged.ignored_namespaces.contains(&ns) {
+                merged.ignored_namespaces.push(ns);
+            }
+        }
+    }
+
+    // 本层 sources 路径相对当前配置文件所在目录重写
+    for src in &mut merged.sources {
+        rewrite_source_paths(src, &config_dir);
+    }
+    Ok(merged)
+}
+
+fn rewrite_relative(config_dir: &Path, p: &Path) -> PathBuf {
+    if p.is_absolute() {
+        p.to_path_buf()
+    } else {
+        config_dir.join(p)
+    }
+}
+
+fn rewrite_source_paths(src: &mut SourceConfig, config_dir: &Path) {
+    for d in &mut src.include_dirs {
+        *d = rewrite_relative(config_dir, d);
+    }
+    for f in &mut src.files {
+        *f = rewrite_relative(config_dir, f);
+    }
+    for d in &mut src.exclude_dirs {
+        *d = rewrite_relative(config_dir, d);
+    }
+    for f in &mut src.exclude_files {
+        *f = rewrite_relative(config_dir, f);
+    }
+    for i in &mut src.compile_flags.includes {
+        *i = rewrite_relative(config_dir, i);
+    }
+    if let Some(inherit) = &mut src.compile_flags.inherit_from {
+        *inherit = rewrite_relative(config_dir, inherit);
+    }
+    if let Some(compiler) = &mut src.compile_flags.compiler {
+        *compiler = rewrite_relative(config_dir, compiler);
+    }
 }
 
 pub fn load(path: &Path) -> Result<SleepyConfig> {

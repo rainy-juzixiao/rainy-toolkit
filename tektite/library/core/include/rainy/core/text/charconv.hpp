@@ -23,23 +23,100 @@
 #include <system_error>
 
 namespace rainy::core::text {
+    /**
+     * \lang english
+     * @brief The result of a to_chars conversion: a pointer to the end of the written range and an error code.
+     *
+     * \lang simp-chinese
+     * @brief to_chars 转换的结果：指向已写入范围末尾的指针以及错误码。
+     */
     struct to_chars_result {
+        /**
+         * \lang english
+         * @brief Pointer to the end of the characters written on success, or to the end of the buffer on failure.
+         *
+         * \lang simp-chinese
+         * @brief 成功时指向已写入字符的末尾；失败时指向缓冲区末尾。
+         */
         char *ptr;
+
+        /**
+         * \lang english
+         * @brief The error code; std::errc{} on success.
+         *
+         * \lang simp-chinese
+         * @brief 错误码；成功时为 std::errc{}。
+         */
         std::errc ec;
 
+        /**
+         * \lang english
+         * @brief Compares two to_chars_result values for equality.
+         *
+         * @param left The left operand
+         * @param right The right operand
+         * @return true if both ptr and ec are equal
+         *
+         * \lang simp-chinese
+         * @brief 比较两个 to_chars_result 是否相等。
+         *
+         * @param left 左操作数
+         * @param right 右操作数
+         * @return ptr 与 ec 均相等时返回 true
+         */
         friend bool operator==(const to_chars_result &left, const to_chars_result &right) {
             return left.ptr == right.ptr && left.ec == right.ec;
         }
 
+        /**
+         * \lang english
+         * @brief Checks whether the conversion succeeded.
+         *
+         * @return true if ec is std::errc{}
+         *
+         * \lang simp-chinese
+         * @brief 检查转换是否成功。
+         *
+         * @return ec 为 std::errc{} 时返回 true
+         */
         constexpr explicit operator bool() const noexcept {
             return ec == std::errc{};
         }
     };
 
+    /**
+     * \lang english
+     * @brief The result of a from_chars conversion: a pointer to the first unconverted character and an error code.
+     *
+     * \lang simp-chinese
+     * @brief from_chars 转换的结果：指向首个未转换字符的指针以及错误码。
+     */
     struct from_chars_result {
+        /**
+         * \lang english
+         * @brief Pointer to the first character not matching the pattern.
+         *
+         * \lang simp-chinese
+         * @brief 指向第一个未匹配模式字符的指针。
+         */
         const char *ptr;
         std::errc ec;
 
+        /**
+         * \lang english
+         * @brief Compares two from_chars_result values for equality.
+         *
+         * @param left The left operand
+         * @param right The right operand
+         * @return true if both ptr and ec are equal
+         *
+         * \lang simp-chinese
+         * @brief 比较两个 from_chars_result 是否相等。
+         *
+         * @param left 左操作数
+         * @param right 右操作数
+         * @return ptr 与 ec 均相等时返回 true
+         */
         friend bool operator==(const from_chars_result &left, const from_chars_result &right) {
             return left.ptr == right.ptr && left.ec == right.ec;
         }
@@ -51,32 +128,32 @@ namespace rainy::core::text {
 }
 
 namespace rainy::core::text::implements {
-    template <typename T, typename UTy>
-    bool mul_overflow_helper(T a, T b, UTy &result) {
+    template <typename Ty, typename UTy>
+    bool mul_overflow_helper(Ty a, Ty b, UTy &result) {
         if (a == 0 || b == 0) {
             result = 0;
             return false;
         }
-        if constexpr (type_traits::properties::is_signed_v<T>) {
+        if constexpr (type_traits::properties::is_signed_v<Ty>) {
             if (a > 0 && b > 0) {
-                if (a > (utility::numeric_limits<T>::max)() / b) {
+                if (a > (utility::numeric_limits<Ty>::max)() / b) {
                     return true;
                 }
             } else if (a < 0 && b < 0) {
-                if (a < (utility::numeric_limits<T>::max)() / b) {
+                if (a < (utility::numeric_limits<Ty>::max)() / b) {
                     return true;
                 }
             } else if (a > 0 && b < 0) {
-                if (b < (utility::numeric_limits<T>::min)() / a) {
+                if (b < (utility::numeric_limits<Ty>::min)() / a) {
                     return true;
                 }
             } else if (a < 0 && b > 0) {
-                if (a < (utility::numeric_limits<T>::min)() / b) {
+                if (a < (utility::numeric_limits<Ty>::min)() / b) {
                     return true;
                 }
             }
         } else {
-            if (a > (utility::numeric_limits<T>::max)() / b) {
+            if (a > (utility::numeric_limits<Ty>::max)() / b) {
                 return true;
             }
         }
@@ -422,7 +499,7 @@ namespace rainy::core::text::implements {
         if (value == 0) {
             *begin = '0';
             return {begin + 1, std::errc{}};
-        } else if constexpr (std::is_signed_v<Ty>) {
+        } else if constexpr (type_traits::properties::is_signed_v<Ty>) {
             if (value < 0) {
                 *begin++ = '-';
                 val = unsigned_type(~value) + unsigned_type(1);
@@ -450,32 +527,295 @@ namespace rainy::core::text::implements {
 }
 
 namespace rainy::core::text {
-#define RAINY_GENERATE_FUN_STUB_TO_CHARS(T)                                                                                           \
-    RAINY_CONSTEXPR23 inline to_chars_result to_chars(char *begin, char *end, T value, int base = 10) {                               \
-        return rainy::core::text::implements::to_chars_impl<T>(begin, end, value, base);                                              \
+    /**
+     * \lang english
+     * @brief Converts a char value to a character string and stores it into the range.
+     *
+     * @param begin Pointer to the beginning of the output range
+     * @param end Pointer past the end of the output range
+     * @param value The value to convert
+     * @param base The numeric base, between 2 and 36
+     * @return A to_chars_result describing the outcome
+     *
+     * \lang simp-chinese
+     * @brief 将 char 值转换为字符串并存入输出范围。
+     *
+     * @param begin 输出范围起始指针
+     * @param end 输出范围末尾之后指针
+     * @param value 要转换的值
+     * @param base 数值进制，介于 2 到 36
+     * @return 描述转换结果的 to_chars_result
+     */
+    RAINY_CONSTEXPR23 inline to_chars_result to_chars(char *begin, char *end, char value, int base = 10) {
+        return rainy::core::text::implements::to_chars_impl<char>(begin, end, value, base);
     }
 
-    RAINY_GENERATE_FUN_STUB_TO_CHARS(char)
-    RAINY_GENERATE_FUN_STUB_TO_CHARS(signed char)
-    RAINY_GENERATE_FUN_STUB_TO_CHARS(unsigned char)
-    RAINY_GENERATE_FUN_STUB_TO_CHARS(signed short)
-    RAINY_GENERATE_FUN_STUB_TO_CHARS(unsigned short)
-    RAINY_GENERATE_FUN_STUB_TO_CHARS(signed int)
-    RAINY_GENERATE_FUN_STUB_TO_CHARS(unsigned int)
-    RAINY_GENERATE_FUN_STUB_TO_CHARS(signed long)
-    RAINY_GENERATE_FUN_STUB_TO_CHARS(unsigned long)
-    RAINY_GENERATE_FUN_STUB_TO_CHARS(signed long long)
-    RAINY_GENERATE_FUN_STUB_TO_CHARS(unsigned long long)
-#undef RAINY_GENERATE_FUN_STUB_TO_CHARS
+    /**
+     * \lang english
+     * @brief Converts a signed char value to a character string and stores it into the range.
+     *
+     * @param begin Pointer to the beginning of the output range
+     * @param end Pointer past the end of the output range
+     * @param value The value to convert
+     * @param base The numeric base, between 2 and 36
+     * @return A to_chars_result describing the outcome
+     *
+     * \lang simp-chinese
+     * @brief 将 signed char 值转换为字符串并存入输出范围。
+     *
+     * @param begin 输出范围起始指针
+     * @param end 输出范围末尾之后指针
+     * @param value 要转换的值
+     * @param base 数值进制，介于 2 到 36
+     * @return 描述转换结果的 to_chars_result
+     */
+    RAINY_CONSTEXPR23 inline to_chars_result to_chars(char *begin, char *end, signed char value, int base = 10) {
+        return rainy::core::text::implements::to_chars_impl<signed char>(begin, end, value, base);
+    }
 
+    /**
+     * \lang english
+     * @brief Converts an unsigned char value to a character string and stores it into the range.
+     *
+     * @param begin Pointer to the beginning of the output range
+     * @param end Pointer past the end of the output range
+     * @param value The value to convert
+     * @param base The numeric base, between 2 and 36
+     * @return A to_chars_result describing the outcome
+     *
+     * \lang simp-chinese
+     * @brief 将 unsigned char 值转换为字符串并存入输出范围。
+     *
+     * @param begin 输出范围起始指针
+     * @param end 输出范围末尾之后指针
+     * @param value 要转换的值
+     * @param base 数值进制，介于 2 到 36
+     * @return 描述转换结果的 to_chars_result
+     */
+    RAINY_CONSTEXPR23 inline to_chars_result to_chars(char *begin, char *end, unsigned char value, int base = 10) {
+        return rainy::core::text::implements::to_chars_impl<unsigned char>(begin, end, value, base);
+    }
+
+    /**
+     * \lang english
+     * @brief Converts a signed short value to a character string and stores it into the range.
+     *
+     * @param begin Pointer to the beginning of the output range
+     * @param end Pointer past the end of the output range
+     * @param value The value to convert
+     * @param base The numeric base, between 2 and 36
+     * @return A to_chars_result describing the outcome
+     *
+     * \lang simp-chinese
+     * @brief 将 signed short 值转换为字符串并存入输出范围。
+     *
+     * @param begin 输出范围起始指针
+     * @param end 输出范围末尾之后指针
+     * @param value 要转换的值
+     * @param base 数值进制，介于 2 到 36
+     * @return 描述转换结果的 to_chars_result
+     */
+    RAINY_CONSTEXPR23 inline to_chars_result to_chars(char *begin, char *end, signed short value, int base = 10) {
+        return rainy::core::text::implements::to_chars_impl<signed short>(begin, end, value, base);
+    }
+
+    /**
+     * \lang english
+     * @brief Converts an unsigned short value to a character string and stores it into the range.
+     *
+     * @param begin Pointer to the beginning of the output range
+     * @param end Pointer past the end of the output range
+     * @param value The value to convert
+     * @param base The numeric base, between 2 and 36
+     * @return A to_chars_result describing the outcome
+     *
+     * \lang simp-chinese
+     * @brief 将 unsigned short 值转换为字符串并存入输出范围。
+     *
+     * @param begin 输出范围起始指针
+     * @param end 输出范围末尾之后指针
+     * @param value 要转换的值
+     * @param base 数值进制，介于 2 到 36
+     * @return 描述转换结果的 to_chars_result
+     */
+    RAINY_CONSTEXPR23 inline to_chars_result to_chars(char *begin, char *end, unsigned short value, int base = 10) {
+        return rainy::core::text::implements::to_chars_impl<unsigned short>(begin, end, value, base);
+    }
+
+    /**
+     * \lang english
+     * @brief Converts a signed int value to a character string and stores it into the range.
+     *
+     * @param begin Pointer to the beginning of the output range
+     * @param end Pointer past the end of the output range
+     * @param value The value to convert
+     * @param base The numeric base, between 2 and 36
+     * @return A to_chars_result describing the outcome
+     *
+     * \lang simp-chinese
+     * @brief 将 signed int 值转换为字符串并存入输出范围。
+     *
+     * @param begin 输出范围起始指针
+     * @param end 输出范围末尾之后指针
+     * @param value 要转换的值
+     * @param base 数值进制，介于 2 到 36
+     * @return 描述转换结果的 to_chars_result
+     */
+    RAINY_CONSTEXPR23 inline to_chars_result to_chars(char *begin, char *end, signed int value, int base = 10) {
+        return rainy::core::text::implements::to_chars_impl<signed int>(begin, end, value, base);
+    }
+
+    /**
+     * \lang english
+     * @brief Converts an unsigned int value to a character string and stores it into the range.
+     *
+     * @param begin Pointer to the beginning of the output range
+     * @param end Pointer past the end of the output range
+     * @param value The value to convert
+     * @param base The numeric base, between 2 and 36
+     * @return A to_chars_result describing the outcome
+     *
+     * \lang simp-chinese
+     * @brief 将 unsigned int 值转换为字符串并存入输出范围。
+     *
+     * @param begin 输出范围起始指针
+     * @param end 输出范围末尾之后指针
+     * @param value 要转换的值
+     * @param base 数值进制，介于 2 到 36
+     * @return 描述转换结果的 to_chars_result
+     */
+    RAINY_CONSTEXPR23 inline to_chars_result to_chars(char *begin, char *end, unsigned int value, int base = 10) {
+        return rainy::core::text::implements::to_chars_impl<unsigned int>(begin, end, value, base);
+    }
+
+    /**
+     * \lang english
+     * @brief Converts a signed long value to a character string and stores it into the range.
+     *
+     * @param begin Pointer to the beginning of the output range
+     * @param end Pointer past the end of the output range
+     * @param value The value to convert
+     * @param base The numeric base, between 2 and 36
+     * @return A to_chars_result describing the outcome
+     *
+     * \lang simp-chinese
+     * @brief 将 signed long 值转换为字符串并存入输出范围。
+     *
+     * @param begin 输出范围起始指针
+     * @param end 输出范围末尾之后指针
+     * @param value 要转换的值
+     * @param base 数值进制，介于 2 到 36
+     * @return 描述转换结果的 to_chars_result
+     */
+    RAINY_CONSTEXPR23 inline to_chars_result to_chars(char *begin, char *end, signed long value, int base = 10) {
+        return rainy::core::text::implements::to_chars_impl<signed long>(begin, end, value, base);
+    }
+
+    /**
+     * \lang english
+     * @brief Converts an unsigned long value to a character string and stores it into the range.
+     *
+     * @param begin Pointer to the beginning of the output range
+     * @param end Pointer past the end of the output range
+     * @param value The value to convert
+     * @param base The numeric base, between 2 and 36
+     * @return A to_chars_result describing the outcome
+     *
+     * \lang simp-chinese
+     * @brief 将 unsigned long 值转换为字符串并存入输出范围。
+     *
+     * @param begin 输出范围起始指针
+     * @param end 输出范围末尾之后指针
+     * @param value 要转换的值
+     * @param base 数值进制，介于 2 到 36
+     * @return 描述转换结果的 to_chars_result
+     */
+    RAINY_CONSTEXPR23 inline to_chars_result to_chars(char *begin, char *end, unsigned long value, int base = 10) {
+        return rainy::core::text::implements::to_chars_impl<unsigned long>(begin, end, value, base);
+    }
+
+    /**
+     * \lang english
+     * @brief Converts a signed long long value to a character string and stores it into the range.
+     *
+     * @param begin Pointer to the beginning of the output range
+     * @param end Pointer past the end of the output range
+     * @param value The value to convert
+     * @param base The numeric base, between 2 and 36
+     * @return A to_chars_result describing the outcome
+     *
+     * \lang simp-chinese
+     * @brief 将 signed long long 值转换为字符串并存入输出范围。
+     *
+     * @param begin 输出范围起始指针
+     * @param end 输出范围末尾之后指针
+     * @param value 要转换的值
+     * @param base 数值进制，介于 2 到 36
+     * @return 描述转换结果的 to_chars_result
+     */
+    RAINY_CONSTEXPR23 inline to_chars_result to_chars(char *begin, char *end, signed long long value, int base = 10) {
+        return rainy::core::text::implements::to_chars_impl<signed long long>(begin, end, value, base);
+    }
+
+    /**
+     * \lang english
+     * @brief Converts an unsigned long long value to a character string and stores it into the range.
+     *
+     * @param begin Pointer to the beginning of the output range
+     * @param end Pointer past the end of the output range
+     * @param value The value to convert
+     * @param base The numeric base, between 2 and 36
+     * @return A to_chars_result describing the outcome
+     *
+     * \lang simp-chinese
+     * @brief 将 unsigned long long 值转换为字符串并存入输出范围。
+     *
+     * @param begin 输出范围起始指针
+     * @param end 输出范围末尾之后指针
+     * @param value 要转换的值
+     * @param base 数值进制，介于 2 到 36
+     * @return 描述转换结果的 to_chars_result
+     */
+    RAINY_CONSTEXPR23 inline to_chars_result to_chars(char *begin, char *end, unsigned long long value, int base = 10) {
+        return rainy::core::text::implements::to_chars_impl<unsigned long long>(begin, end, value, base);
+    }
+
+    /**
+     * \lang english
+     * @brief Deleted overload; converting a bool with to_chars is not supported.
+     *
+     * \lang simp-chinese
+     * @brief 已删除的重载；to_chars 不支持转换 bool。
+     */
     to_chars_result to_chars(char *, char *, bool, int = 10) = delete;
 
+    /**
+     * \lang english
+     * @brief Parses an integer from a character range and stores it into value.
+     *
+     * @tparam Ty The integral type of value
+     * @param begin Pointer to the beginning of the input range
+     * @param end Pointer past the end of the input range
+     * @param value The output value, written on success
+     * @param base The numeric base, between 2 and 36
+     * @return A from_chars_result describing the outcome
+     *
+     * \lang simp-chinese
+     * @brief 从字符范围解析整数并存入 value。
+     *
+     * @tparam Ty value 的整数类型
+     * @param begin 输入范围起始指针
+     * @param end 输入范围末尾之后指针
+     * @param value 输出值，成功时写入
+     * @param base 数值进制，介于 2 到 36
+     * @return 描述转换结果的 from_chars_result
+     */
     template <typename Ty>
     RAINY_CONSTEXPR23 from_chars_result from_chars(const char *begin, const char *end, Ty &value, int base = 10) {
         assert(2 <= base && base <= 36);
         from_chars_result result{begin, {}};
         int sign = 1;
-        if constexpr (std::is_signed_v<Ty>) {
+        if constexpr (type_traits::properties::is_signed_v<Ty>) {
             if (begin != end && *begin == '-') {
                 sign = -1;
                 ++begin;
@@ -503,7 +843,7 @@ namespace rainy::core::text {
             if (!valid) {
                 result.ec = std::errc::result_out_of_range; // Overflow
             } else {
-                if constexpr (std::is_signed_v<Ty>) {
+                if constexpr (type_traits::properties::is_signed_v<Ty>) {
                     // 对于有符号类型，需要特殊处理范围检查
                     // min 的绝对值可能比 max 大 1 (例如 int: min=-2147483648, max=2147483647)
                     constexpr unsigned_type max_positive = static_cast<unsigned_type>((utility::numeric_limits<Ty>::max)());
@@ -547,6 +887,13 @@ namespace rainy::core::text {
         return result;
     }
 
+    /**
+     * \lang english
+     * @brief Bitmask flags selecting the floating-point formatting style for to_chars/from_chars.
+     *
+     * \lang simp-chinese
+     * @brief 为 to_chars/from_chars 选择浮点数格式样式的位掩码标志。
+     */
     enum class chars_format {
         scientific = 1,
         fixed = 2,
@@ -556,28 +903,264 @@ namespace rainy::core::text {
 
     RAINY_ENABLE_ENUM_CLASS_BITMASK_OPERATORS(chars_format);
 
+    /**
+     * \lang english
+     * @brief Parses a floating-point value of type float from a character range.
+     *
+     * @param begin Pointer to the beginning of the input range
+     * @param end Pointer past the end of the input range
+     * @param value The output value, written on success
+     * @param fmt The expected formatting style
+     * @return A from_chars_result describing the outcome
+     *
+     * \lang simp-chinese
+     * @brief 从字符范围解析 float 类型的浮点数值。
+     *
+     * @param begin 输入范围起始指针
+     * @param end 输入范围末尾之后指针
+     * @param value 输出值，成功时写入
+     * @param fmt 期望的格式样式
+     * @return 描述转换结果的 from_chars_result
+     */
     RAINY_TOOLKIT_API from_chars_result from_chars(const char *begin, const char *end, float &value,
                                                    chars_format fmt = chars_format::general) noexcept;
 
+    /**
+     * \lang english
+     * @brief Parses a floating-point value of type double from a character range.
+     *
+     * @param begin Pointer to the beginning of the input range
+     * @param end Pointer past the end of the input range
+     * @param value The output value, written on success
+     * @param fmt The expected formatting style
+     * @return A from_chars_result describing the outcome
+     *
+     * \lang simp-chinese
+     * @brief 从字符范围解析 double 类型的浮点数值。
+     *
+     * @param begin 输入范围起始指针
+     * @param end 输入范围末尾之后指针
+     * @param value 输出值，成功时写入
+     * @param fmt 期望的格式样式
+     * @return 描述转换结果的 from_chars_result
+     */
     RAINY_TOOLKIT_API from_chars_result from_chars(const char *begin, const char *end, double &value,
                                                    chars_format fmt = chars_format::general) noexcept;
 
+    /**
+     * \lang english
+     * @brief Parses a floating-point value of type long double from a character range.
+     *
+     * @param begin Pointer to the beginning of the input range
+     * @param end Pointer past the end of the input range
+     * @param value The output value, written on success
+     * @param fmt The expected formatting style
+     * @return A from_chars_result describing the outcome
+     *
+     * \lang simp-chinese
+     * @brief 从字符范围解析 long double 类型的浮点数值。
+     *
+     * @param begin 输入范围起始指针
+     * @param end 输入范围末尾之后指针
+     * @param value 输出值，成功时写入
+     * @param fmt 期望的格式样式
+     * @return 描述转换结果的 from_chars_result
+     */
     RAINY_TOOLKIT_API from_chars_result from_chars(const char *begin, const char *end, long double &value,
                                                    chars_format fmt = chars_format::general) noexcept;
 }
 
 namespace rainy::core::text {
+    /**
+     * \lang english
+     * @brief Converts a float to its shortest round-trip textual representation.
+     *
+     * @param begin Pointer to the beginning of the output buffer
+     * @param end Pointer past the end of the output buffer
+     * @param value The value to convert
+     * @return A to_chars_result describing the outcome
+     *
+     * \lang simp-chinese
+     * @brief 将 float 转换为其最短的可往返文本表示。
+     *
+     * @param begin 输出缓冲区起始指针
+     * @param end 输出缓冲区末尾之后指针
+     * @param value 待转换的值
+     * @return 描述转换结果的 to_chars_result
+     */
     RAINY_TOOLKIT_API to_chars_result to_chars(char *begin, char *end, float value) noexcept;
+    /**
+     * \lang english
+     * @brief Converts a float to text using the given formatting style.
+     *
+     * @param begin Pointer to the beginning of the output buffer
+     * @param end Pointer past the end of the output buffer
+     * @param value The value to convert
+     * @param fmt The formatting style
+     * @return A to_chars_result describing the outcome
+     *
+     * \lang simp-chinese
+     * @brief 使用给定的格式样式将 float 转换为文本。
+     *
+     * @param begin 输出缓冲区起始指针
+     * @param end 输出缓冲区末尾之后指针
+     * @param value 待转换的值
+     * @param fmt 格式样式
+     * @return 描述转换结果的 to_chars_result
+     */
     RAINY_TOOLKIT_API to_chars_result to_chars(char *begin, char *end, float value, chars_format fmt) noexcept;
+    /**
+     * \lang english
+     * @brief Converts a float to text using the given formatting style and precision.
+     *
+     * @param begin Pointer to the beginning of the output buffer
+     * @param end Pointer past the end of the output buffer
+     * @param value The value to convert
+     * @param fmt The formatting style
+     * @param precision The number of digits after the decimal point
+     * @return A to_chars_result describing the outcome
+     *
+     * \lang simp-chinese
+     * @brief 使用给定的格式样式与精度将 float 转换为文本。
+     *
+     * @param begin 输出缓冲区起始指针
+     * @param end 输出缓冲区末尾之后指针
+     * @param value 待转换的值
+     * @param fmt 格式样式
+     * @param precision 小数点后的位数
+     * @return 描述转换结果的 to_chars_result
+     */
     RAINY_TOOLKIT_API to_chars_result to_chars(char *begin, char *end, float value, chars_format fmt, int precision) noexcept;
 
+    /**
+     * \lang english
+     * @brief Converts a double to its shortest round-trip textual representation.
+     *
+     * @param begin Pointer to the beginning of the output buffer
+     * @param end Pointer past the end of the output buffer
+     * @param value The value to convert
+     * @return A to_chars_result describing the outcome
+     *
+     * \lang simp-chinese
+     * @brief 将 double 转换为其最短的可往返文本表示。
+     *
+     * @param begin 输出缓冲区起始指针
+     * @param end 输出缓冲区末尾之后指针
+     * @param value 待转换的值
+     * @return 描述转换结果的 to_chars_result
+     */
     RAINY_TOOLKIT_API to_chars_result to_chars(char *begin, char *end, double value) noexcept;
+    /**
+     * \lang english
+     * @brief Converts a double to text using the given formatting style.
+     *
+     * @param begin Pointer to the beginning of the output buffer
+     * @param end Pointer past the end of the output buffer
+     * @param value The value to convert
+     * @param fmt The formatting style
+     * @return A to_chars_result describing the outcome
+     *
+     * \lang simp-chinese
+     * @brief 使用给定的格式样式将 double 转换为文本。
+     *
+     * @param begin 输出缓冲区起始指针
+     * @param end 输出缓冲区末尾之后指针
+     * @param value 待转换的值
+     * @param fmt 格式样式
+     * @return 描述转换结果的 to_chars_result
+     */
     RAINY_TOOLKIT_API to_chars_result to_chars(char *begin, char *end, double value, chars_format fmt) noexcept;
+    /**
+     * \lang english
+     * @brief Converts a double to text using the given formatting style and precision.
+     *
+     * @param begin Pointer to the beginning of the output buffer
+     * @param end Pointer past the end of the output buffer
+     * @param value The value to convert
+     * @param fmt The formatting style
+     * @param precision The number of digits after the decimal point
+     * @return A to_chars_result describing the outcome
+     *
+     * \lang simp-chinese
+     * @brief 使用给定的格式样式与精度将 double 转换为文本。
+     *
+     * @param begin 输出缓冲区起始指针
+     * @param end 输出缓冲区末尾之后指针
+     * @param value 待转换的值
+     * @param fmt 格式样式
+     * @param precision 小数点后的位数
+     * @return 描述转换结果的 to_chars_result
+     */
     RAINY_TOOLKIT_API to_chars_result to_chars(char *begin, char *end, double value, chars_format fmt, int precision) noexcept;
 
+    /**
+     * \lang english
+     * @brief Converts a long double to its shortest round-trip textual representation.
+     *
+     * @param begin Pointer to the beginning of the output buffer
+     * @param end Pointer past the end of the output buffer
+     * @param value The value to convert
+     * @return A to_chars_result describing the outcome
+     *
+     * \lang simp-chinese
+     * @brief 将 long double 转换为其最短的可往返文本表示。
+     *
+     * @param begin 输出缓冲区起始指针
+     * @param end 输出缓冲区末尾之后指针
+     * @param value 待转换的值
+     * @return 描述转换结果的 to_chars_result
+     */
     RAINY_TOOLKIT_API to_chars_result to_chars(char *begin, char *end, long double value) noexcept;
+    /**
+     * \lang english
+     * @brief Converts a long double to text using the given formatting style.
+     *
+     * @param begin Pointer to the beginning of the output buffer
+     * @param end Pointer past the end of the output buffer
+     * @param value The value to convert
+     * @param fmt The formatting style
+     * @return A to_chars_result describing the outcome
+     *
+     * \lang simp-chinese
+     * @brief 使用给定的格式样式将 long double 转换为文本。
+     *
+     * @param begin 输出缓冲区起始指针
+     * @param end 输出缓冲区末尾之后指针
+     * @param value 待转换的值
+     * @param fmt 格式样式
+     * @return 描述转换结果的 to_chars_result
+     */
     RAINY_TOOLKIT_API to_chars_result to_chars(char *begin, char *end, long double value, chars_format fmt) noexcept;
+    /**
+     * \lang english
+     * @brief Converts a long double to text using the given formatting style and precision.
+     *
+     * @param begin Pointer to the beginning of the output buffer
+     * @param end Pointer past the end of the output buffer
+     * @param value The value to convert
+     * @param fmt The formatting style
+     * @param precision The number of digits after the decimal point
+     * @return A to_chars_result describing the outcome
+     *
+     * \lang simp-chinese
+     * @brief 使用给定的格式样式与精度将 long double 转换为文本。
+     *
+     * @param begin 输出缓冲区起始指针
+     * @param end 输出缓冲区末尾之后指针
+     * @param value 待转换的值
+     * @param fmt 格式样式
+     * @param precision 小数点后的位数
+     * @return 描述转换结果的 to_chars_result
+     */
     RAINY_TOOLKIT_API to_chars_result to_chars(char *begin, char *end, long double value, chars_format fmt, int precision) noexcept;
+}
+
+namespace rainy::text {
+    using core::text::chars_format;
+    using core::text::from_chars;
+    using core::text::from_chars_result;
+    using core::text::to_chars;
+    using core::text::to_chars_result;
 }
 
 #endif

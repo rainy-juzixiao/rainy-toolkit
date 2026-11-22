@@ -13,6 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+/**
+ * @notpublic
+ */
 #ifndef RAINY_CORE_COLLECTIONS_VIEWS_PIPELINE_HPP
 #define RAINY_CORE_COLLECTIONS_VIEWS_PIPELINE_HPP
 #include <rainy/core/type_traits.hpp>

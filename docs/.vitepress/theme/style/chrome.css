@@ -1,0 +1,392 @@
+.VPNavBar {
+  transition:
+    background-color 0.3s ease,
+    backdrop-filter 0.3s ease;
+}
+
+.VPNavBar:not(.home),
+.VPNavBar.home:not(.top),
+.VPNavBar.screen-open {
+  background-color: var(--vp-nav-bg-color);
+  backdrop-filter: blur(14px) saturate(1.1);
+  -webkit-backdrop-filter: blur(14px) saturate(1.1);
+}
+
+.VPNavBar .divider-line {
+  background-color: var(--vp-c-gutter);
+}
+
+.VPNavBar .title {
+  font-family: var(--rt-font-serif);
+  font-size: 1.16rem;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+}
+
+.VPNavBar .VPNavBarTitle.has-sidebar .title {
+  border-bottom-color: transparent;
+}
+
+.VPNavBar .VPNavBarMenuLink {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--vp-c-text-2);
+  transition: color 0.2s ease;
+}
+
+.VPNavBar .VPNavBarMenuLink:hover,
+.VPNavBar .VPNavBarMenuLink.active {
+  color: var(--vp-c-text-1);
+}
+
+.VPNavBar .VPNavBarMenuGroup .text {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--vp-c-text-2);
+}
+
+.VPNavBar .DocSearch-Button {
+  border: 1px solid var(--rt-line);
+  border-radius: 7px;
+  width: auto;
+  min-width: 0;
+  height: 34px;
+  padding: 0 10px 0 12px;
+  margin: 0 8px;
+  background-color: transparent;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.VPNavBar .DocSearch-Button:hover {
+  border-color: rgba(20, 20, 19, 0.3);
+  background-color: var(--vp-c-bg-soft);
+}
+
+.dark .VPNavBar .DocSearch-Button:hover {
+  border-color: rgba(240, 238, 230, 0.3);
+}
+
+.VPNavBar .DocSearch-Button-Placeholder {
+  font-size: 13px;
+  padding: 0 18px 0 8px;
+  color: var(--vp-c-text-3);
+}
+
+.VPNavBar .DocSearch-Button-Keys {
+  display: flex;
+  gap: 3px;
+  min-width: 0;
+}
+
+.VPNavBar .DocSearch-Button-Key {
+  border: 1px solid var(--rt-line);
+  border-radius: 4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  font-family: var(--rt-font-mono);
+  font-size: 10px;
+  line-height: 1;
+  color: var(--vp-c-text-3);
+  box-shadow: none;
+}
+
+@media (max-width: 767px) {
+  .VPNavBar .DocSearch-Button-Placeholder {
+    display: none;
+  }
+
+  .VPNavBar .DocSearch-Button-Keys {
+    display: none;
+  }
+
+  .VPNavBar .DocSearch-Button {
+    border: none;
+    margin: 0;
+  }
+}
+
+.VPSidebar {
+  border-right: 1px solid var(--vp-c-gutter);
+  background-color: var(--vp-sidebar-bg-color);
+  scrollbar-width: thin;
+  scrollbar-color: var(--rt-line) transparent;
+}
+
+.VPSidebar .curtain {
+  background-color: transparent;
+  backdrop-filter: none;
+}
+
+.VPSidebarItem .text {
+  font-size: 13.5px;
+  line-height: 1.6;
+  padding: 5px 0;
+}
+
+.VPSidebarItem.level-0 > .item > .link > .text,
+.VPSidebarItem.level-0 > .item > .text {
+  font-family: var(--rt-font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--rt-muted);
+}
+
+.VPSidebarItem.level-0 {
+  padding-bottom: 18px;
+}
+
+.VPSidebarItem.level-1 .text,
+.VPSidebarItem.level-2 .text {
+  font-weight: 400;
+  color: var(--vp-c-text-2);
+}
+
+.VPSidebarItem.level-1.is-active > .item > .link > .text,
+.VPSidebarItem.level-2.is-active > .item > .link > .text {
+  color: var(--vp-c-brand-1);
+  font-weight: 500;
+}
+
+.VPSidebarItem.level-2 .items,
+.VPSidebarItem.level-3 .items,
+.VPSidebarItem.level-4 .items {
+  border-left-color: var(--rt-line-soft);
+}
+
+.VPSidebarItem.level-1 .indicator,
+.VPSidebarItem.level-0 .indicator {
+  display: none;
+}
+
+.VPSidebarItem.level-2.is-active > .item > .indicator,
+.VPSidebarItem.level-3.is-active > .item > .indicator {
+  background-color: var(--rt-accent-bright);
+  width: 2px;
+  left: -17px;
+}
+
+.VPLocalNav {
+  background-color: var(--vp-local-nav-bg-color);
+  backdrop-filter: blur(14px) saturate(1.1);
+  -webkit-backdrop-filter: blur(14px) saturate(1.1);
+  border-bottom-color: var(--vp-c-gutter);
+}
+
+.VPLocalNav .menu-text {
+  font-family: var(--rt-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.VPDocAsideOutline .outline-title {
+  font-family: var(--rt-font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--rt-muted);
+}
+
+.VPDocAsideOutline .outline-link {
+  font-size: 13px;
+  line-height: 1.6;
+  padding: 5px 0;
+  color: var(--vp-c-text-2);
+}
+
+.VPDocAsideOutline .outline-link:hover,
+.VPDocAsideOutline .outline-link.active {
+  color: var(--vp-c-brand-1);
+}
+
+.VPDocAsideOutline .outline-marker {
+  width: 2px;
+  background-color: var(--rt-accent-bright);
+}
+
+.VPDocFooter {
+  margin-top: 56px;
+}
+
+.VPDocFooter .prev-next {
+  border-top: 1px solid var(--vp-c-divider);
+  padding-top: 24px;
+}
+
+.VPDocFooter .pager-link {
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 8px;
+  padding: 12px 16px;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.VPDocFooter .pager-link:hover {
+  border-color: var(--rt-line);
+  background-color: var(--vp-c-bg-soft);
+}
+
+.VPDocFooter .pager-link .desc {
+  font-family: var(--rt-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--rt-muted);
+}
+
+.VPDocFooter .pager-link .title {
+  font-family: var(--rt-font-serif);
+  font-size: 1.05rem;
+  font-weight: 400;
+  color: var(--vp-c-text-1);
+}
+
+.VPDocFooter .edit-link-button {
+  font-family: var(--rt-font-mono);
+  font-size: 12px;
+  color: var(--rt-muted);
+}
+
+.VPDocFooter .edit-link-button:hover {
+  color: var(--vp-c-brand-1);
+}
+
+.VPFooter {
+  border-top: 1px solid var(--vp-c-gutter);
+  background-color: var(--vp-c-bg-alt);
+  padding: 40px 24px;
+}
+
+.VPFooter .message,
+.VPFooter .copyright {
+  font-family: var(--rt-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--rt-muted);
+}
+
+.VPLocalSearchBox .shell {
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 12px;
+  background-color: var(--vp-c-bg-elv);
+  box-shadow: var(--vp-shadow-4);
+}
+
+.VPLocalSearchBox .search-bar {
+  border-bottom: 1px solid var(--vp-c-divider);
+}
+
+.VPLocalSearchBox .search-input {
+  font-family: var(--rt-font-sans);
+  font-size: 15px;
+}
+
+.VPLocalSearchBox .results {
+  padding: 8px;
+}
+
+.VPLocalSearchBox .result {
+  border: 1px solid transparent;
+  border-radius: 8px;
+}
+
+.VPLocalSearchBox .result.selected {
+  border-color: var(--rt-line);
+  background-color: var(--vp-c-bg-soft);
+}
+
+.VPLocalSearchBox .result .title {
+  font-family: var(--rt-font-sans);
+  font-size: 14px;
+}
+
+.VPLocalSearchBox .result .title.main {
+  font-family: var(--rt-font-serif);
+  font-size: 15px;
+}
+
+.VPSwitchAppearance {
+  width: 34px;
+  height: 20px;
+  border-radius: 10px;
+}
+
+.VPSwitchAppearance .check {
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+}
+
+.VPBadge {
+  font-family: var(--rt-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-radius: 4px;
+  padding: 2px 7px;
+}
+
+.VPButton {
+  border-radius: 7px;
+  font-weight: 500;
+  font-size: 14px;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.VPButton.medium {
+  padding: 0 22px;
+  line-height: 44px;
+}
+
+.VPButton.brand:hover,
+.VPButton.alt:hover {
+  transform: translateY(-1px);
+}
+
+.VPSkipLink {
+  font-family: var(--rt-font-mono);
+  font-size: 12px;
+  background-color: var(--rt-ink);
+  color: var(--rt-ivory);
+  border-radius: 0 0 6px 0;
+}
+
+.NotFound .code {
+  font-family: var(--rt-font-serif);
+  font-size: 5rem;
+  font-weight: 400;
+  color: var(--rt-accent-bright);
+}
+
+.NotFound .title {
+  font-family: var(--rt-font-mono);
+  font-size: 13px;
+  letter-spacing: 0.2em;
+}
+
+.NotFound .quote {
+  font-family: var(--rt-font-serif);
+  font-size: 1.1rem;
+  font-style: italic;
+  color: var(--vp-c-text-2);
+}
+
+.NotFound .link {
+  font-family: var(--rt-font-mono);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--vp-c-brand-1);
+}
