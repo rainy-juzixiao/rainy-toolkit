@@ -254,9 +254,18 @@ namespace rainy::foundation::collections {
             data_(nullptr), capacity_(static_cast<size_type>(utility::distance(first, last))), head_(0), size_(0), alloc_(alloc) {
             if (capacity_ != 0) {
                 data_ = traits::allocate(alloc_, capacity_);
-                for (; first != last; ++first) {
-                    traits::construct(alloc_, data_ + size_, *first);
-                    ++size_;
+                try {
+                    for (; first != last; ++first) {
+                        traits::construct(alloc_, data_ + size_, *first);
+                        ++size_;
+                    }
+                } catch (...) {
+                    destroy_all();
+                    traits::deallocate(alloc_, data_, capacity_);
+                    data_ = nullptr;
+                    capacity_ = 0;
+                    size_ = 0;
+                    throw;
                 }
             }
         }

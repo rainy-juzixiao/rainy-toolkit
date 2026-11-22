@@ -391,13 +391,13 @@ namespace rainy::foundation::io::net::implements {
         void async_send(const void *buf, std::size_t len, message_flags_t flags, io_context::executor_type executor,
                         completion_op *op) noexcept override {
             bind_to_iocp(executor);
-            auto *iop = static_cast<iocp_op *>(op);
+            auto *iop = new socket_iocp_op(op, executor);
             WSABUF wb{static_cast<ULONG>(len), const_cast<char *>(static_cast<const char *>(buf))};
             DWORD sent = 0;
 
             int ret = ::WSASend(sock_, &wb, 1, &sent, static_cast<DWORD>(flags), &iop->overlapped, nullptr);
             if (ret == SOCKET_ERROR && ::WSAGetLastError() != WSA_IO_PENDING) {
-                
+                delete iop;
                 win32_socket_proxy{executor}.post_immediate_completion(op, false);
             }
         }
@@ -405,13 +405,14 @@ namespace rainy::foundation::io::net::implements {
         void async_receive(void *buf, std::size_t len, message_flags_t flags, io_context::executor_type executor,
                            completion_op *op) noexcept override {
             bind_to_iocp(executor);
-            auto *iop = static_cast<iocp_op *>(op);
+            auto *iop = new socket_iocp_op(op, executor);
             WSABUF wb{static_cast<ULONG>(len), static_cast<char *>(buf)};
             DWORD recvd = 0;
             DWORD f = static_cast<DWORD>(flags);
 
             int ret = ::WSARecv(sock_, &wb, 1, &recvd, &f, &iop->overlapped, nullptr);
             if (ret == SOCKET_ERROR && ::WSAGetLastError() != WSA_IO_PENDING) {
+                delete iop;
                 win32_socket_proxy{executor}.post_immediate_completion(op, false);
             }
         }
@@ -419,13 +420,14 @@ namespace rainy::foundation::io::net::implements {
         void async_send_to(const void *buf, std::size_t len, message_flags_t flags, const raw_endpoint &dest,
                            io_context::executor_type executor, completion_op *op) noexcept override {
             bind_to_iocp(executor);
-            auto *iop = static_cast<iocp_op *>(op);
+            auto *iop = new socket_iocp_op(op, executor);
             WSABUF wb{static_cast<ULONG>(len), const_cast<char *>(static_cast<const char *>(buf))};
             DWORD sent = 0;
 
             int ret = ::WSASendTo(sock_, &wb, 1, &sent, static_cast<DWORD>(flags), reinterpret_cast<const ::sockaddr *>(dest.data),
                                   static_cast<int>(dest.size), &iop->overlapped, nullptr);
             if (ret == SOCKET_ERROR && ::WSAGetLastError() != WSA_IO_PENDING) {
+                delete iop;
                 win32_socket_proxy{executor}.post_immediate_completion(op, false);
             }
         }
@@ -433,7 +435,7 @@ namespace rainy::foundation::io::net::implements {
         void async_receive_from(void *buf, std::size_t len, message_flags_t flags, raw_endpoint &sender,
                                 io_context::executor_type executor, completion_op *op) noexcept override {
             bind_to_iocp(executor);
-            auto *iop = static_cast<iocp_op *>(op);
+            auto *iop = new socket_iocp_op(op, executor);
             WSABUF wb{static_cast<ULONG>(len), static_cast<char *>(buf)};
             DWORD recvd = 0;
             DWORD f = static_cast<DWORD>(flags);
@@ -441,7 +443,7 @@ namespace rainy::foundation::io::net::implements {
             int ret = ::WSARecvFrom(sock_, &wb, 1, &recvd, &f, reinterpret_cast<::sockaddr *>(sender.data), &from_len_,
                                     &iop->overlapped, nullptr);
             if (ret == SOCKET_ERROR && ::WSAGetLastError() != WSA_IO_PENDING) {
-                
+                delete iop;
                 win32_socket_proxy{executor}.post_immediate_completion(op, false);
             }
         }

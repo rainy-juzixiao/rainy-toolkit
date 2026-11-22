@@ -353,3 +353,28 @@ SCENARIO("edge cases for forward_list", "[forward_list]") {
         }
     }
 }
+
+TEST_CASE("forward_list assign preserves input order", "[forward_list][assign]") {
+    forward_list<int> list;
+    const int values[] = {1, 2, 3};
+    list.assign(values, values + 3);
+    auto it = list.begin();
+    REQUIRE(*it++ == 1);
+    REQUIRE(*it++ == 2);
+    REQUIRE(*it++ == 3);
+    REQUIRE(it == list.end());
+
+    list.assign({4, 5, 6});
+    it = list.begin();
+    REQUIRE(*it++ == 4);
+    REQUIRE(*it++ == 5);
+    REQUIRE(*it++ == 6);
+    REQUIRE(it == list.end());
+
+    list.assign(3, 7);
+    it = list.begin();
+    REQUIRE(*it++ == 7);
+    REQUIRE(*it++ == 7);
+    REQUIRE(*it++ == 7);
+    REQUIRE(it == list.end());
+}

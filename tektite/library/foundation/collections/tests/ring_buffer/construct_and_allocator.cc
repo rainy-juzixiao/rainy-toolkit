@@ -16,6 +16,7 @@
 #include <catch2/catch_all.hpp>
 #include <rainy/foundation/collections/ring_buffer.hpp>
 
+#include <stdexcept>
 #include <utility>
 #include <vector>
 
@@ -267,4 +268,46 @@ TEST_CASE("ring_buffer - swap exchanges propagating allocators", "[ring_buffer][
     }
     CHECK(allocation_registry::mismatches == 0);
     CHECK(allocation_registry::owners.empty());
+}
+
+namespace {
+    struct throwing_value {
+        static inline int copies_before_throw = -1;
+        static inline int constructed = 0;
+        static inline int destroyed = 0;
+        int value{0};
+
+        throwing_value() = default;
+
+        explicit throwing_value(int v) : value(v) {
+        }
+
+        throwing_value(const throwing_value &right) : value(right.value) {
+            if (copies_before_throw == 0) {
+                throw std::runtime_error("copy failed");
+            }
+            if (copies_before_throw > 0) {
+                --copies_before_throw;
+            }
+            ++constructed;
+        }
+
+        throwing_value(throwing_value &&) = delete;
+        throwing_value &operator=(const throwing_value &) = delete;
+        throwing_value &operator=(throwing_value &&) = delete;
+
+        ~throwing_value() {
+            ++destroyed;
+        }
+    };
+}
+
+TEST_CASE("ring_buffer - range construction releases storage when a copy throws", "[ring_buffer][construct][exception]") {
+    throwing_value source[3]{throwing_value{1}, throwing_value{2}, throwing_value{3}};
+    throwing_value::copies_before_throw = 2;
+    throwing_value::constructed = 0;
+    throwing_value::destroyed = 0;
+
+    CHECK_THROWS_AS((ring_buffer<throwing_value>(source, source + 3)), std::runtime_error);
+    CHECK(throwing_value::constructed == throwing_value::destroyed);
 }

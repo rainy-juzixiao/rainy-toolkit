@@ -239,15 +239,17 @@ namespace rainy::foundation::collections::concurrency {
                   type_traits::other_trans::enable_if_t<type_traits::extras::iterators::is_iterator_v<InputIter>, int> = 0>
         void assign(InputIter first, InputIter last) {
             clear();
+            iterator tail = before_begin();
             for (auto it = first; it != last; ++it) {
-                push_front(*it);
+                tail = emplace_after(tail, *it);
             }
         }
 
         void assign(size_type n, const Ty &t) {
             clear();
+            iterator tail = before_begin();
             for (size_type i = 0; i < n; ++i) {
-                push_front(t);
+                tail = emplace_after(tail, t);
             }
         }
 

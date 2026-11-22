@@ -29,7 +29,14 @@ namespace rainy::foundation::io::filesystem::implements {
 
     template <typename CharType>
     RAINY_INLINE bool is_separator(CharType c) noexcept { // NOLINT
-        return c == static_cast<CharType>('/') || c == static_cast<CharType>('\\');
+        if (c == static_cast<CharType>('/')) {
+            return true;
+        }
+#if RAINY_USING_WINDOWS
+        return c == static_cast<CharType>('\\');
+#else
+        return false;
+#endif
     }
 
     template <typename CharType>
@@ -44,8 +51,8 @@ namespace rainy::foundation::io::filesystem::implements {
             if (p.size() == 2) {
                 return 2;
             }
-            auto pos = p.find_first_of(static_cast<CharType>('/'));
-            auto pos2 = p.find_first_of(static_cast<CharType>('\\'));
+            auto pos = p.find_first_of(static_cast<CharType>('/'), 2);
+            auto pos2 = p.find_first_of(static_cast<CharType>('\\'), 2);
             // 取更小的非 npos 值
             std::size_t sep = text::basic_string<CharType>::npos;
             if (pos != text::basic_string<CharType>::npos) {
