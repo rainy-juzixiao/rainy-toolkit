@@ -73,17 +73,22 @@ namespace rainy::foundation::io::net::implements {
 
         static void do_complete(completion_op *self, const op_result &result, bool cancelled) {
             auto *iop = static_cast<socket_iocp_op *>(self);
-            if (!cancelled && result.error_code == 0) {
-                if (iop->type == op_type::connect) {
-                    ::setsockopt(iop->sock, SOL_SOCKET, SO_UPDATE_CONNECT_CONTEXT, nullptr, 0);
-                } else if (iop->type == op_type::accept) {
-                    SOCKET client = reinterpret_cast<SOCKET>(iop->associated_handle);
+            op_result forwarded = result;
+            if (iop->type == op_type::accept) {
+                const SOCKET client = reinterpret_cast<SOCKET>(iop->associated_handle);
+                if (!cancelled && result.error_code == 0) {
                     ::setsockopt(client, SOL_SOCKET, SO_UPDATE_ACCEPT_CONTEXT, reinterpret_cast<char *>(&iop->sock), sizeof(SOCKET));
+                    forwarded.bytes_transferred = static_cast<std::size_t>(client);
+                } else {
+                    ::closesocket(client);
+                    forwarded.bytes_transferred = 0;
                 }
+            } else if (!cancelled && result.error_code == 0 && iop->type == op_type::connect) {
+                ::setsockopt(iop->sock, SOL_SOCKET, SO_UPDATE_CONNECT_CONTEXT, nullptr, 0);
             }
             completion_op *outer = iop->outer;
             delete iop;
-            outer->complete(result, cancelled);
+            outer->complete(forwarded, cancelled);
         }
     };
 
@@ -229,6 +234,7 @@ namespace rainy::foundation::io::net::implements {
             int ret = ::getsockname(sock_, reinterpret_cast<::sockaddr *>(ep.data), &len);
             if (ret == 0) {
                 ep.size = static_cast<std::size_t>(len);
+                ep.family = reinterpret_cast<::sockaddr *>(ep.data)->sa_family;
             }
             return ret == 0 ? std::error_code{} : last_wsa_error();
         }
@@ -238,6 +244,7 @@ namespace rainy::foundation::io::net::implements {
             int ret = ::getpeername(sock_, reinterpret_cast<::sockaddr *>(ep.data), &len);
             if (ret == 0) {
                 ep.size = static_cast<std::size_t>(len);
+                ep.family = reinterpret_cast<::sockaddr *>(ep.data)->sa_family;
             }
             return ret == 0 ? std::error_code{} : last_wsa_error();
         }
@@ -294,6 +301,7 @@ namespace rainy::foundation::io::net::implements {
                 return -1;
             }
             sender.size = static_cast<std::size_t>(from_len);
+            sender.family = reinterpret_cast<::sockaddr *>(sender.data)->sa_family;
             ec.clear();
             return static_cast<std::ptrdiff_t>(recvd);
         }
@@ -305,6 +313,7 @@ namespace rainy::foundation::io::net::implements {
                 client = ::accept(sock_, reinterpret_cast<::sockaddr *>(peer_ep->data), &len);
                 if (client != INVALID_SOCKET) {
                     peer_ep->size = static_cast<std::size_t>(len);
+                    peer_ep->family = reinterpret_cast<::sockaddr *>(peer_ep->data)->sa_family;
                 }
             } else {
                 client = ::accept(sock_, nullptr, nullptr);
@@ -454,8 +463,8 @@ namespace rainy::foundation::io::net::implements {
             BOOL ok =
                 ::AcceptEx(sock_, client, addr_buf, 0, sizeof(addr_buf) / 2, sizeof(addr_buf) / 2, &bytes_recv, &iop->overlapped);
             if (!ok && ::WSAGetLastError() != ERROR_IO_PENDING) {
-                
                 ::closesocket(client);
+                delete iop;
                 win32_socket_proxy{executor}.post_immediate_completion(op, false);
             }
         }

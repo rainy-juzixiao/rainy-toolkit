@@ -173,6 +173,7 @@ namespace rainy::foundation::io::net::implements {
             const int ret = ::getsockname(fd_, reinterpret_cast<::sockaddr *>(ep.data), &len);
             if (ret == 0) {
                 ep.size = static_cast<std::size_t>(len);
+                ep.family = reinterpret_cast<::sockaddr *>(ep.data)->sa_family;
             }
             return ret == 0 ? std::error_code{} : posix_error();
         }
@@ -182,6 +183,7 @@ namespace rainy::foundation::io::net::implements {
             const int ret = ::getpeername(fd_, reinterpret_cast<::sockaddr *>(ep.data), &len);
             if (ret == 0) {
                 ep.size = static_cast<std::size_t>(len);
+                ep.family = reinterpret_cast<::sockaddr *>(ep.data)->sa_family;
             }
             return ret == 0 ? std::error_code{} : posix_error();
         }
@@ -228,6 +230,7 @@ namespace rainy::foundation::io::net::implements {
                 return -1;
             }
             sender.size = static_cast<std::size_t>(slen);
+            sender.family = reinterpret_cast<::sockaddr *>(sender.data)->sa_family;
             ec.clear();
             return n;
         }
@@ -239,6 +242,7 @@ namespace rainy::foundation::io::net::implements {
                 client = ::accept4(fd_, reinterpret_cast<::sockaddr *>(peer_ep->data), &len, SOCK_CLOEXEC);
                 if (client >= 0) {
                     peer_ep->size = static_cast<std::size_t>(len);
+                    peer_ep->family = reinterpret_cast<::sockaddr *>(peer_ep->data)->sa_family;
                 }
             } else {
                 client = ::accept4(fd_, nullptr, nullptr, SOCK_CLOEXEC);

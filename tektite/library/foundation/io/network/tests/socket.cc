@@ -14,10 +14,15 @@
  * limitations under the License.
  */
 #include <catch2/catch_test_macros.hpp>
+#include <rainy/foundation/io/network/internet.hpp>
 #include <rainy/foundation/io/network/socket.hpp>
+
+#include <atomic>
+#include <chrono>
 
 using namespace rainy::foundation::io;
 using namespace rainy::foundation::io::net;
+using namespace rainy::foundation::io::net::ip;
 
 namespace {
     static constexpr int af_inet = 2;
@@ -609,4 +614,154 @@ TEST_CASE("release() detaches the native handle", "[socket][basic_socket][releas
             }
         }
     }
+}
+
+namespace {
+    bool pump_until(io_context &ctx, const std::atomic<bool> &done, const std::chrono::milliseconds budget) {
+        const auto deadline = std::chrono::steady_clock::now() + budget;
+        while (!done.load(std::memory_order_acquire) && std::chrono::steady_clock::now() < deadline) {
+            ctx.run_one_for(std::chrono::milliseconds{10});
+        }
+        ctx.restart();
+        return done.load(std::memory_order_acquire);
+    }
+}
+
+TEST_CASE("async_receive_from reports the datagram already received", "[socket][datagram_socket][async]") {
+    io_context ctx;
+    udp::socket receiver{ctx, udp::v4()};
+    REQUIRE(receiver.is_open());
+    std::error_code ec;
+    receiver.bind(udp::endpoint{ip::address_v4::loopback(), 0}, ec);
+    REQUIRE_FALSE(ec);
+    const auto local = receiver.local_endpoint(ec);
+    REQUIRE_FALSE(ec);
+    REQUIRE(local.port() != 0);
+
+    udp::socket sender{ctx, udp::v4()};
+    REQUIRE(sender.is_open());
+    char payload[] = "ping";
+
+    std::atomic<bool> done{false};
+    std::error_code recv_ec;
+    std::size_t received = 0;
+    udp::endpoint from;
+    receiver.async_receive_from(buffer(payload, sizeof(payload)), from, [&](std::error_code e, std::size_t n) {
+        recv_ec = e;
+        received = n;
+        done.store(true, std::memory_order_release);
+    });
+    sender.send_to(buffer(payload, sizeof(payload)), local, ec);
+    REQUIRE_FALSE(ec);
+
+    REQUIRE(pump_until(ctx, done, std::chrono::milliseconds{3000}));
+    CHECK_FALSE(recv_ec);
+    CHECK(received == sizeof(payload));
+    CHECK(from.port() == sender.local_endpoint(ec).port());
+}
+
+TEST_CASE("async_send_to delivers the datagram exactly once", "[socket][datagram_socket][async]") {
+    io_context ctx;
+    udp::socket receiver{ctx, udp::v4()};
+    REQUIRE(receiver.is_open());
+    std::error_code ec;
+    receiver.bind(udp::endpoint{ip::address_v4::loopback(), 0}, ec);
+    REQUIRE_FALSE(ec);
+    const auto local = receiver.local_endpoint(ec);
+    REQUIRE_FALSE(ec);
+    REQUIRE(local.port() != 0);
+
+    udp::socket sender{ctx, udp::v4()};
+    REQUIRE(sender.is_open());
+    char payload[] = "pong";
+
+    std::atomic<bool> done{false};
+    std::error_code send_ec;
+    std::size_t sent = 0;
+    sender.async_send_to(buffer(payload, sizeof(payload)), local, [&](std::error_code e, std::size_t n) {
+        send_ec = e;
+        sent = n;
+        done.store(true, std::memory_order_release);
+    });
+
+    REQUIRE(pump_until(ctx, done, std::chrono::milliseconds{3000}));
+    CHECK_FALSE(send_ec);
+    CHECK(sent == sizeof(payload));
+
+    char buf[16]{};
+    const auto n = receiver.receive(buffer(buf, sizeof(buf)), ec);
+    REQUIRE_FALSE(ec);
+    CHECK(n == sizeof(payload));
+}
+
+TEST_CASE("async_accept delivers the accepted connection", "[socket][acceptor][async]") {
+    io_context ctx;
+    tcp::acceptor acceptor{ctx, tcp::v4()};
+    REQUIRE(acceptor.is_open());
+    std::error_code ec;
+    acceptor.bind(tcp::endpoint{ip::address_v4::loopback(), 0}, ec);
+    REQUIRE_FALSE(ec);
+    acceptor.listen(1, ec);
+    REQUIRE_FALSE(ec);
+    const auto local = acceptor.local_endpoint(ec);
+    REQUIRE_FALSE(ec);
+    REQUIRE(local.port() != 0);
+
+    std::atomic<bool> done{false};
+    std::error_code accept_ec;
+    bool accepted_open = false;
+    acceptor.async_accept([&](std::error_code e, tcp::socket s) {
+        accept_ec = e;
+        accepted_open = s.is_open();
+        done.store(true, std::memory_order_release);
+    });
+
+    tcp::socket client{ctx, tcp::v4()};
+    REQUIRE(client.is_open());
+    client.connect(local, ec);
+    REQUIRE_FALSE(ec);
+
+    REQUIRE(pump_until(ctx, done, std::chrono::milliseconds{3000}));
+    CHECK_FALSE(accept_ec);
+    CHECK(accepted_open);
+}
+
+TEST_CASE("async_accept into another context delivers the accepted connection", "[socket][acceptor][async]") {
+    io_context ctx;
+    io_context client_ctx;
+    tcp::acceptor acceptor{ctx, tcp::v4()};
+    REQUIRE(acceptor.is_open());
+    std::error_code ec;
+    acceptor.bind(tcp::endpoint{ip::address_v4::loopback(), 0}, ec);
+    REQUIRE_FALSE(ec);
+    acceptor.listen(1, ec);
+    REQUIRE_FALSE(ec);
+    const auto local = acceptor.local_endpoint(ec);
+    REQUIRE_FALSE(ec);
+    REQUIRE(local.port() != 0);
+
+    std::atomic<bool> done{false};
+    std::error_code accept_ec;
+    bool accepted_open = false;
+    acceptor.async_accept(client_ctx, [&](std::error_code e, tcp::socket s) {
+        accept_ec = e;
+        accepted_open = s.is_open();
+        done.store(true, std::memory_order_release);
+    });
+
+    tcp::socket client{client_ctx, tcp::v4()};
+    REQUIRE(client.is_open());
+    client.connect(local, ec);
+    REQUIRE_FALSE(ec);
+
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds{3000};
+    while (!done.load(std::memory_order_acquire) && std::chrono::steady_clock::now() < deadline) {
+        ctx.run_one_for(std::chrono::milliseconds{5});
+        client_ctx.run_one_for(std::chrono::milliseconds{5});
+    }
+    ctx.restart();
+    client_ctx.restart();
+    REQUIRE(done.load(std::memory_order_acquire));
+    CHECK_FALSE(accept_ec);
+    CHECK(accepted_open);
 }

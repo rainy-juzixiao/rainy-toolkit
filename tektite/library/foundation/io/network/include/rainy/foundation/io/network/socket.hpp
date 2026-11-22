@@ -661,13 +661,20 @@ namespace rainy::foundation::io::net {
 
             auto raw_sender = std::make_shared<implements::raw_endpoint>();
             auto *op = io::implements::make_executor_completion_op(
-                [this, mb, flags, &sender, raw_sender, handler]() mutable {
+                [&sender, raw_sender, handler, is_open = this->impl_->is_open()](const io::implements::op_result &r,
+                                                                                 const bool cancelled) mutable {
                     std::error_code ec;
-                    auto n = this->impl_->receive_from(mb.data(), mb.size(), flags, *raw_sender, ec);
+                    if (cancelled) {
+                        ec = std::make_error_code(std::errc::operation_canceled);
+                    } else if (r.error_code) {
+                        ec = std::error_code{r.error_code, std::system_category()};
+                    } else if (!is_open) {
+                        ec = std::make_error_code(std::errc::bad_file_descriptor);
+                    }
                     if (!ec) {
                         sender = endpoint_type::from_raw(*raw_sender);
                     }
-                    handler(ec, n < 0 ? 0 : static_cast<std::size_t>(n));
+                    handler(ec, r.bytes_transferred);
                 },
                 this->executor_);
             this->impl_->async_receive_from(mb.data(), mb.size(), flags, *raw_sender, this->executor_, op);
@@ -787,10 +794,16 @@ namespace rainy::foundation::io::net {
             auto raw_dest = recipient.to_raw();
 
             auto *op = io::implements::make_executor_completion_op(
-                [this, cb, flags, raw_dest, handler]() mutable {
+                [handler, is_open = this->impl_->is_open()](const io::implements::op_result &r, const bool cancelled) mutable {
                     std::error_code ec;
-                    auto n = this->impl_->send_to(cb.data(), cb.size(), flags, raw_dest, ec);
-                    handler(ec, n < 0 ? 0 : static_cast<std::size_t>(n));
+                    if (cancelled) {
+                        ec = std::make_error_code(std::errc::operation_canceled);
+                    } else if (r.error_code) {
+                        ec = std::error_code{r.error_code, std::system_category()};
+                    } else if (!is_open) {
+                        ec = std::make_error_code(std::errc::bad_file_descriptor);
+                    }
+                    handler(ec, r.bytes_transferred);
                 },
                 this->executor_);
             this->impl_->async_send_to(cb.data(), cb.size(), flags, raw_dest, this->executor_, op);
@@ -997,7 +1010,7 @@ namespace rainy::foundation::io::net {
         }
 
         basic_socket_acceptor(io_context &ctx, const protocol_type &protocol) :
-            executor_(ctx.get_executor()), impl_(implements::create_socket_impl()) {
+            executor_(ctx.get_executor()), protocol_(protocol), impl_(implements::create_socket_impl()) {
             open(protocol);
         }
 
@@ -1355,18 +1368,29 @@ namespace rainy::foundation::io::net {
             async_completion<token_t, void(std::error_code, socket_type)> init(token);
             auto handler = utility::move(init.completion_handler);
             auto raw_peer = std::make_shared<implements::raw_endpoint>();
+            auto executor = ctx.get_executor();
+            auto protocol = protocol_;
             auto *op = io::implements::make_executor_completion_op(
-                [this, &ctx, raw_peer, handler]() mutable {
+                [raw_peer, handler, executor, protocol, is_open = impl_->is_open()](const io::implements::op_result &r,
+                                                                                   const bool cancelled) mutable {
                     std::error_code ec;
-                    auto fd = this->impl_->accept(raw_peer.get(), ec);
-                    socket_type s{ctx};
+                    if (cancelled) {
+                        ec = std::make_error_code(std::errc::operation_canceled);
+                    } else if (r.error_code) {
+                        ec = std::error_code{r.error_code, std::system_category()};
+                    } else if (!is_open) {
+                        ec = std::make_error_code(std::errc::bad_file_descriptor);
+                    }
+                    socket_type s{executor.context()};
                     if (!ec) {
-                        s.assign(this->protocol_, fd, ec);
+                        auto fd = static_cast<implements::native_socket_t>(r.bytes_transferred);
+                        s.assign(protocol, fd, ec);
                     }
                     handler(ec, utility::move(s));
+                    utility::ignore = raw_peer;
                 },
-                executor_);
-            impl_->async_accept(raw_peer, executor_, op);
+                executor);
+            impl_->async_accept(raw_peer.get(), executor, op);
             return init.result.get();
         }
 
